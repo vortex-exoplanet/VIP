@@ -1,0 +1,16 @@
+vortex_exoplanet.egg-info
+build
+dist
+
+.settings
+.project
+.pydevproject
+
+*.pyc
+*/*.pyc
+*/*/*.pyc
+*/*/*/*.pyc
+
+*/.idea
+*/*/.idea
+

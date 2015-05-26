@@ -247,7 +247,7 @@ def snr_student(array, sourcey, sourcex, fwhm, plot=False, verbose=True,
         print msg3.format(fluxes.std())
     
     if plot:
-        fig, ax = plt.subplots(figsize=(10,10))
+        fig, ax = plt.subplots(figsize=(6,6))
         im = ax.imshow(array, origin='lower', interpolation='nearest')
         fig.colorbar(im)
         for i in range(xx.shape[0]):
@@ -320,7 +320,7 @@ def snr_peakstddev(array, sourcey, sourcex, fwhm, plot=False, verbose=True,
         print msg.format(snr, peak, mean[0], stddev)
     
     if plot:
-        fig, ax = plt.subplots(figsize=(10,10))
+        fig, ax = plt.subplots(figsize=(6,6))
         im = ax.imshow(array, origin='lower', interpolation='nearest')
         fig.colorbar(im)
 

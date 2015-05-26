@@ -23,7 +23,7 @@ setup(
     long_description=readme + '\n\n' + doclink + '\n\n',
     author='Carlos Gomez',
     author_email='cgomez@ulg.ac.be',
-    url='https://bitbucket.org/carlosgg/vortex',                    ######### change!
+    url='https://github.com/carlgogo/vip_exoplanets.git',                    
     packages=find_packages(),
     include_package_data=True,
     install_requires=['cython',

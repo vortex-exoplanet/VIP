@@ -272,7 +272,8 @@ def detection(array, fwhm, psf, mode='irafsf', mask=True, snr_thresh=5,
                        cmap='gray')
         colorbar_ax = fig.add_axes([0.92, 0.12, 0.03, 0.78])
         fig.colorbar(im, cax=colorbar_ax)
-           
+        ax.grid('off')
+        
         for i in xrange(yy_out.shape[0]):
             y = yy_out[i]
             x = xx_out[i]

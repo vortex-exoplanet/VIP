@@ -15,8 +15,9 @@ imaging written in Python 2.7.
 
 VIP is being developed within the VORTEX team @ University of Liege (Belgium).
 It's in alpha version meaning that the code will change drastically before the
-first release version. If you want to report a bug contact the main developer
-at cgomez [at] ulg.ac.be or through github.
+first release version. If you want to report a bug, suggest a feature or add a 
+feature please contact the main developer at cgomez [at] ulg.ac.be or through 
+github.
 
 
 QUICK INSTRUCTIONS
@@ -72,7 +73,7 @@ In any case wait a couple of minutes until all the requirements are satisfied.
 
 DOCUMENTATION 
 ==============
-Docstrings (docuementation of every function/class) are included in the code.
+Docstrings (documentation of every function/class) are included in the code.
 Sphinx can be used to generate the documentation from the docstrings in html or
 pdf into docs folder (To-Do).
 

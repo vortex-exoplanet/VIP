@@ -200,7 +200,8 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, svd_mode='randsvd',
         timing(start_time)
         
     finalfr = pca(cube, angle_list, ncomp=opt_npc, full_output=False, 
-                  verbose=False, mask_center_px=fwhm, svd_mode=svd_mode)    
+                  verbose=False, mask_center_px=mask_center_px, 
+                  svd_mode=svd_mode)    
     _ = frame_quick_report(finalfr, fwhm, y, x, verbose=verbose)
     
     if output_frame:

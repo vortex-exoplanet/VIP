@@ -82,8 +82,8 @@ def inject_fc_frame(array, array_fc, pos_y, pos_x, flux):
     if not array.ndim==2:
         raise TypeError('Array is not a frame or 2d array.')
     size_fc = array_fc.shape[0]
-    ceny, cenx = frame_center(array[0])
-    fc_fr = np.zeros_like(array[0], dtype=np.float64)
+    ceny, cenx = frame_center(array)
+    fc_fr = np.zeros_like(array, dtype=np.float64)
     w = int(np.floor(size_fc/2.))
     # fcomp in the center of a zeros frame
     fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc   

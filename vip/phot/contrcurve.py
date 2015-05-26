@@ -16,6 +16,7 @@ import numpy as np
 import photutils
 from scipy.interpolate import interp1d
 from scipy import stats
+from skimage.draw import circle
 from matplotlib import pyplot as plt
 from .fakecomp import inject_fcs_cube, inject_fc_frame
 from ..conf import timeInit, timing, VLT_NACO, LBT
@@ -413,7 +414,8 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=0.6, mean=False, verbose=False)
     flux = np.zeros((n_obj))
     for i, (y, x) in enumerate(zip(yc, xc)):
         if mean:
-            values = get_circle(array, (ap_factor*fwhm)/2., True, y, x)
+            ind = circle(y, x,  (ap_factor*fwhm)/2.)
+            values = array[ind]
             obj_flux = np.mean(values)
         else:
             aper = photutils.CircularAperture((x, y), (ap_factor*fwhm)/2.)

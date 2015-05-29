@@ -12,10 +12,10 @@ __all__ = ['pca',
 
 import numpy as np
 from skimage import draw
+from .utils import svd_wrapper, prepare_matrix, reshape_matrix
 from ..calib import cube_derotate
 from ..conf import timing, timeInit
-from ..pca.utils import svd_wrapper, prepare_matrix, reshape_matrix
-from ..phot import frame_quick_report, snr_student
+from .. import phot
 
 
 def pca(cube, angle_list, svd_mode='randsvd', ncomp=1, center='temporal', 
@@ -95,7 +95,7 @@ def pca(cube, angle_list, svd_mode='randsvd', ncomp=1, center='temporal',
     
     
 def pca_optimize_snr(cube, angle_list, y, x, fwhm, svd_mode='randsvd', 
-                     mask_center_px=5, min_snr=2, verbose=True, 
+                     mask_center_px=5, min_snr=0, verbose=True, 
                      output_frame=False, debug=False):
     """ Optimizes the number of principal components by doing a simple grid 
     search measuring the SNR for a given position in the frame. The mean SNR 
@@ -147,8 +147,8 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, svd_mode='randsvd',
                     verbose=False, mask_center_px=mask_center_px, 
                     svd_mode=svd_mode)
         yy, xx = draw.circle(y, x, fwhm/2.)
-        snr_pixels = [snr_student(frame, y_, x_, fwhm, plot=False, verbose=False) for \
-                      y_, x_ in zip(yy, xx)]
+        snr_pixels = [phot.snr_student(frame, y_, x_, fwhm, plot=False, 
+                                       verbose=False) for y_, x_ in zip(yy, xx)]
         return np.mean(snr_pixels)
 
     n = array.shape[0]
@@ -190,7 +190,7 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, svd_mode='randsvd',
     
     if debug:  
         print 'Finished stage 2', argm2, pclist2[argm2]
-        print '# de SVDs', nsteps
+        print '# of SVDs', nsteps
         print
     
     opt_npc = pclist2[argm2]
@@ -202,7 +202,7 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, svd_mode='randsvd',
     finalfr = pca(cube, angle_list, ncomp=opt_npc, full_output=False, 
                   verbose=False, mask_center_px=mask_center_px, 
                   svd_mode=svd_mode)    
-    _ = frame_quick_report(finalfr, fwhm, y, x, verbose=verbose)
+    _ = phot.frame_quick_report(finalfr, fwhm, y, x, verbose=verbose)
     
     if output_frame:
         return finalfr

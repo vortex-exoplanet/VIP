@@ -22,7 +22,6 @@ from .fakecomp import inject_fcs_cube, inject_fc_frame
 from ..conf import timeInit, timing, VLT_NACO, LBT
 from ..var import frame_center, dist
 from ..calib import frame_crop
-from ..pca import annular_pca, pca, subannular_pca
 
 
 def noise_per_annulus(array, separation, fwhm, verbose=False):
@@ -136,6 +135,9 @@ def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
         branch.
 
     """
+    from ..pca import pca 
+    from ..pca import annular_pca, subannular_pca
+    
     if not array.ndim == 3:
         raise TypeError('The input array is not a cube.')
     if not array.shape[0] == parangles.shape[0]:

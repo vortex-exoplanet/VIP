@@ -18,7 +18,7 @@ from skimage.draw import circle
 from matplotlib import pyplot as plt
 from multiprocessing import Pool, cpu_count
 from ..conf import eval_func_tuple, timeInit, timing
-from ..var import get_annulus, frame_center, dist
+from ..var import get_annulus, frame_center, dist, gaussian_filter_sp
 
 
 def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
@@ -176,8 +176,8 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
     return snrmap
     
     
-def snr_student(array, sourcey, sourcex, fwhm, plot=False, verbose=True, 
-                out_coor=False):
+def snr_student(array, sourcey, sourcex, fwhm, gauss_filter=True, plot=False, 
+                verbose=True, out_coor=False):
     """Calculates the SNR (signal to noise ratio) of a single planet in a 
     post-processed (e.g. by LOCI or PCA) frame. Uses the approach described in 
     Mawet et al. 2014 on small sample statistics, where a student t-test (eq. 9)
@@ -193,6 +193,8 @@ def snr_student(array, sourcey, sourcex, fwhm, plot=False, verbose=True,
         X coordinate of the planet or test speckle.
     fwhm : float
         Size in pixels of the FWHM.
+    gauss_filter :  {True, False}, bool optional
+        Whether to apply a gaussian filter to the frame or not.
     plot : {False, True}, bool optional
         Plots the frame and the apertures considered for clarity. 
     verbose: {True, False}, bool optional
@@ -211,7 +213,9 @@ def snr_student(array, sourcey, sourcex, fwhm, plot=False, verbose=True,
     
     centery, centerx = frame_center(array)
     rad = dist(centery,centerx,sourcey,sourcex)
- 
+    
+    if gauss_filter:  array = gaussian_filter_sp(array, fwhm) 
+    
     angle = np.arcsin(fwhm/2/rad)*2
     number_circles = int(np.floor(2*np.pi/angle))
     yy = np.zeros((number_circles))
@@ -333,7 +337,6 @@ def snr_peakstddev(array, sourcey, sourcex, fwhm, plot=False, verbose=True,
         aper = plt.Circle((sourcex, sourcey), radius=fwhm/2., color='r', 
                           fill=False)                                           # Coordinates (X,Y)
         ax.add_patch(aper)
-        #plt.show(block=False)
         plt.show()
     
     if out_coor:

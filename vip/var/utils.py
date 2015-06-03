@@ -38,6 +38,10 @@ def pp_subplots(*args, **kwargs):
         min_size = kwargs['size']
     else:
         min_size = 4
+    if kwargs.has_key('colorb'):
+        colorb = kwargs['colorb']
+    else:
+        colorb = False
     
     if not isinstance(rows, int):
         raise(TypeError('Rows must be an integer'))
@@ -68,7 +72,7 @@ def pp_subplots(*args, **kwargs):
         ax = subplot(rows,cols,v)
         im = ax.imshow(args[i], cmap=custom_cmap, interpolation='nearest', 
                        origin='lower')
-        colorbar(im, ax=ax)
+        if colorb:  colorbar(im, ax=ax)
         ax.grid('off')
     show()
 

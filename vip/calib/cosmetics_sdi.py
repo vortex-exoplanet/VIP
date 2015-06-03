@@ -10,12 +10,13 @@ __author__ = 'V. Christiaens', 'C. Gomez @ ULg'
 __all__ = ['cube_correct_nan',
            'bad_pixel_removal',
            'approx_stellar_position',
-           'find_outliers']
+           'find_outliers',
+           'reject_outliers']
 
 import numpy as np
 from skimage.draw import circle
 from astropy.stats import sigma_clipped_stats
-from ..stats import sigma_filter, reject_outliers
+from ..stats import sigma_filter
 
 
 def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False):
@@ -156,7 +157,7 @@ def bad_pixel_removal(array, center, fwhm_round, sig=5., verbose=False):
     sig=5.: Float scalar
         Value representing the number of "sigmas" above or below the "median" 
         of the neighbouring pixel, to consider a pixel as bad. See details on 
-        parameter "m" fo function reject_outlier
+        parameter "m" of function reject_outlier
     verbose: Boolean
         If true, it will print the number of bad pixels and number of iterations 
         required in each frame 
@@ -282,3 +283,49 @@ def find_outliers(frame, sig_dist, stddev=None, neighbor_box=3, DEBUG=False):
             bpix_map[yy,xx] = test_result
 
     return bpix_map
+
+
+def reject_outliers(data, m = 5., test_value=0,stddev=None, DEBUG = False):
+    """ FUNCTION TO REJECT OUTLIERS FROM A SET
+    Instead of the standard deviation, the absolute distance to the median is 
+    used as a discriminant.
+    This absolute distance is then scaled by the median value so that m is on a 
+    reasonable relative scale (similar to the number of sigma in std_dev 
+    statistics).
+    mthresh is set to avoid detecting outliers out of very close pixel values 
+    (i.e. if the 9 pixels happen to be very uniform in values at some location, 
+    any small deviation could already be seen as an outlier); mthresh is thus 
+    an order of magnitude of the minimum difference between a pixel and its 
+    neighbours to be considered as outlier.
+    """
+
+    if stddev == None: stddev = np.std(data)
+
+    d = np.abs(data - np.median(data))
+    mdev = np.median(d)
+    if DEBUG:
+        print "data = ", data
+        print "median(data)= ", np.median(data)
+        print "d = ", d
+        print "mdev = ", mdev
+        print "stddev(box) = ", np.std(data)
+        print "stddev(frame) = ", stddev
+        print "max(d) = ", np.max(d)
+
+    if np.max(d) > stddev:
+        mdev = mdev if mdev>stddev else stddev
+        s = d/mdev
+        good_neighbours = data[s<m]
+        if DEBUG: print "s =", s
+
+        test = np.abs((test_value-np.median(data))/mdev)
+        if DEBUG: print "test =", test
+        if test < m:
+            test_result = 0
+        else:
+            test_result = 1
+    else:
+        good_neighbours = data
+        test_result = 0
+
+    return good_neighbours, test_result

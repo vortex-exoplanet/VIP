@@ -153,18 +153,22 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, svd_mode='randsvd',
 
     n = array.shape[0]
     nsteps = 0
-    step1 = int(n/np.percentile(range(n), 10))
+    step1 = int(np.percentile(range(n), 10))
     snrlist = []
     pclist = []
+    counter = 0
     if debug:  print 'Step 1st grid:', step1
     for pc in range(1, n+1, step1):
         snr = get_snr(cube, angle_list, y, x, svd_mode, fwhm, ncomp=pc)
         nsteps += 1
         if nsteps>1 and snr<min_snr:  break
+        if nsteps>1 and snr<snrlist[-1]:  counter += 1
         snrlist.append(snr)
         pclist.append(pc)
         if debug:  print '{} {:.3f}'.format(pc, snr)
+        if counter==3:  break 
     argm = np.argmax(snrlist)
+    if argm==0:  return 1
     
     snrlist2 = []
     pclist2 = []

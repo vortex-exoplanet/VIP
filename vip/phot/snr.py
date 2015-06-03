@@ -176,7 +176,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
     return snrmap
     
     
-def snr_student(array, sourcey, sourcex, fwhm, gauss_filter=True, plot=False, 
+def snr_student(array, sourcey, sourcex, fwhm, gauss_filter=False, plot=False, 
                 verbose=True, out_coor=False):
     """Calculates the SNR (signal to noise ratio) of a single planet in a 
     post-processed (e.g. by LOCI or PCA) frame. Uses the approach described in 
@@ -193,7 +193,7 @@ def snr_student(array, sourcey, sourcex, fwhm, gauss_filter=True, plot=False,
         X coordinate of the planet or test speckle.
     fwhm : float
         Size in pixels of the FWHM.
-    gauss_filter :  {True, False}, bool optional
+    gauss_filter :  {False, True}, bool optional
         Whether to apply a gaussian filter to the frame or not.
     plot : {False, True}, bool optional
         Plots the frame and the apertures considered for clarity. 

@@ -177,7 +177,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
     
     
 def snr_student(array, sourcey, sourcex, fwhm, gauss_filter=False, plot=False, 
-                verbose=True, out_coor=False):
+                verbose=True, full_output=False):
     """Calculates the SNR (signal to noise ratio) of a single planet in a 
     post-processed (e.g. by LOCI or PCA) frame. Uses the approach described in 
     Mawet et al. 2014 on small sample statistics, where a student t-test (eq. 9)
@@ -199,8 +199,9 @@ def snr_student(array, sourcey, sourcex, fwhm, gauss_filter=False, plot=False,
         Plots the frame and the apertures considered for clarity. 
     verbose: {True, False}, bool optional
         Chooses whether to print some output or not.
-    out_coor: {False, True}, bool optional
-        If True returns back the snr value and the y, x input coordinates.
+    full_output: {False, True}, bool optional
+        If True returns back the snr value, the y, x input coordinates, noise 
+        and flux.    
     
     Returns
     -------
@@ -260,11 +261,10 @@ def snr_student(array, sourcey, sourcex, fwhm, gauss_filter=False, plot=False,
             ax.add_patch(aper)
             cent = plt.Circle((xx[i], yy[i]), radius=0.5, color='r', fill=True) # Coordinates (X,Y)
             ax.add_patch(cent)
-        #plt.show(block=False)
         plt.show()
     
-    if out_coor:
-        return sourcey, sourcex, snr
+    if full_output:
+        return sourcey, sourcex, f_source, fluxes.std(), snr
     else:
         return snr
     

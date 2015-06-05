@@ -59,8 +59,9 @@ def mask_source_centers(array, fwhm, y, x):
     return mask
 
 
-def detection(array, fwhm, psf, mode='irafsf', mask=True, snr_thresh=5,
-              plot=True, debug=False, full_output=False, verbose=True):                 
+def detection(array, fwhm, psf, mode='irafsf', matched_filter=True, mask=True, 
+              snr_thresh=5, plot=True, debug=False, full_output=False, 
+              verbose=True):                 
     """ Finds blobs in a 2d array. The algorithm is designed for automatically 
     finding planets in post-processed high contrast final frames. Blob can be 
     defined as a region of an image in which some properties are constant or 
@@ -114,10 +115,12 @@ def detection(array, fwhm, psf, mode='irafsf', mask=True, snr_thresh=5,
         Input psf.
     mode : {'irafsf','daofind','log','dog','matched'}, optional
         Sets with algorithm to use. Each algorithm yields different results.
+    matched_filter : {True, False}, bool optional
+        Whether to correlate with the psf of not.
     mask : {True, False}, optional
         Whether to mask the central region (circular aperture of 2*fwhm radius).
     snr_thresh : float, optional
-        SNR threshold for deciding whether the blob is a detection or not.     
+        SNR threshold for deciding whether the blob is a detection or not.         
     plot {True, False}, bool optional
         If True plots the frame showing the detected blobs on top.
     debug : {False, True}, bool optional
@@ -164,20 +167,23 @@ def detection(array, fwhm, psf, mode='irafsf', mask=True, snr_thresh=5,
     round = 0.3   # roundness constraint
     
     # Matched filter
-    array_correl = correlate(array, psf)
+    if matched_filter:  
+        frame_det = correlate(array, psf)
+    else:
+        frame_det = array
         
     if debug and plot:  
         print 'Input frame after matched filtering'
-        pp_subplots(array_correl, size=6, rows=2)
+        pp_subplots(frame_det, size=6, rows=2)
         
     if mode=='lpeaks':
         # Finding local peaks                                            
-        coords = peak_local_max(array_correl, threshold_abs=bkg_level, 
+        coords = peak_local_max(frame_det, threshold_abs=bkg_level, 
                                 min_distance=fwhm*2, num_peaks=20)
         if verbose:  print_coords(coords)
     
     elif mode=='daofind':                 
-        tab = findstars.daofind(array_correl, fwhm=fwhm, threshold=bkg_level,
+        tab = findstars.daofind(frame_det, fwhm=fwhm, threshold=bkg_level,
                                 roundlo=-round,roundhi=round)
         coords = np.transpose((np.array(tab['ycentroid']), 
                                np.array(tab['xcentroid'])))
@@ -186,7 +192,7 @@ def detection(array, fwhm, psf, mode='irafsf', mask=True, snr_thresh=5,
             print tab['ycentroid','xcentroid','roundness1','roundness2','flux']
                   
     elif mode=='irafsf':                
-        tab = findstars.irafstarfind(array_correl, fwhm=fwhm, 
+        tab = findstars.irafstarfind(frame_det, fwhm=fwhm, 
                                      threshold=bkg_level,
                                      roundlo=0, roundhi=round)
         coords = np.transpose((np.array(tab['ycentroid']), 
@@ -197,7 +203,7 @@ def detection(array, fwhm, psf, mode='irafsf', mask=True, snr_thresh=5,
         
     elif mode=='log':
         sigma = fwhm/SIGMA2FWHM
-        coords = feature.blob_log(array_correl.astype('float'), 
+        coords = feature.blob_log(frame_det.astype('float'), 
                                   threshold=bkg_level, 
                                   min_sigma=sigma-.5, max_sigma=sigma+.5)
         coords = coords[:,:2]
@@ -205,7 +211,7 @@ def detection(array, fwhm, psf, mode='irafsf', mask=True, snr_thresh=5,
      
     elif mode=='dog':
         sigma = fwhm/SIGMA2FWHM
-        coords = feature.blob_dog(array_correl.astype('float'), 
+        coords = feature.blob_dog(frame_det.astype('float'), 
                                   threshold=bkg_level, 
                                   min_sigma=sigma-.5, max_sigma=sigma+.5)
         coords = coords[:,:2]

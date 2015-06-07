@@ -188,7 +188,7 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, svd_mode='randsvd',
         if debug:  print '{} {:.3f}'.format(pc, snr)
     if len(snrlist2)==0:  
         msg = 'SNR too low at given position. Optimization failed'
-        print msg
+        if verbose:  print msg
         return 1
     
     argm2 = np.argmax(snrlist2)    

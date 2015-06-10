@@ -65,12 +65,12 @@ def noise_per_annulus(array, separation, fwhm, verbose=False):
     
     centery, centerx = frame_center(array)
     n_annuli = int(np.floor((centery)/separation))    
-        
+
     x = centerx
     y = centery
     noise = []
     vector_radd = []
-    if verbose:  print('{} annuli'.format(n_annuli))
+    if verbose:  print('{} annuli'.format(n_annuli-1))
         
     for _ in range(n_annuli-1):
         y -= separation

@@ -64,13 +64,14 @@ def noise_per_annulus(array, separation, fwhm, verbose=False):
         return np.array(y), np.array(x)
     
     centery, centerx = frame_center(array)
-    separation = np.round(separation)     
     n_annuli = int(np.floor((centery)/separation))    
-    
+        
     x = centerx
     y = centery
     noise = []
-    vector_radd = []    
+    vector_radd = []
+    if verbose:  print('{} annuli'.format(n_annuli))
+        
     for _ in range(n_annuli-1):
         y -= separation
         rad = dist(centery, centerx, y, x)
@@ -85,10 +86,9 @@ def noise_per_annulus(array, separation, fwhm, verbose=False):
         
         noise_ann = np.std(fluxes)
         noise.append(noise_ann) 
-        vector_radd.append(int(round(rad)))
+        vector_radd.append(rad)
         if verbose:
-            print('Radius(px) = {:} // Noise = {:.3f} '.format(int(round(rad)), 
-                                                             noise_ann))
+            print('Radius(px) = {:} // Noise = {:.3f} '.format(rad, noise_ann))
      
     return np.array(noise), np.array(vector_radd)
 

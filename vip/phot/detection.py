@@ -291,10 +291,11 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
         raise TypeError(msg)
 
     if coords.shape[0]==0:
-        print '_________________________________________'
-        print 'No potential sources found'
-        print '_________________________________________'
-        return 0
+        if verbose:  
+            print '_________________________________________'
+            print 'No potential sources found'
+            print '_________________________________________'
+        return 0, 0
     
     yy = coords[:,0]
     xx = coords[:,1]

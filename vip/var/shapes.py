@@ -63,11 +63,10 @@ def get_square(array, size, y, x, position=False):
         Sub array.
         
     """
-    if not array.ndim == 2:
+    if not array.ndim==2:
         raise TypeError('Input array is not a frame or 2d array.')
     
-    if size%2!=0:  size -= 1
-    
+    if size%2!=0:  size -= 1 # making it odd to get the wing
     wing = size/2    
     # wing is added to the sides of the subframe center. Note the +1 when 
     # closing the interval (python doesn't include the endpoint)

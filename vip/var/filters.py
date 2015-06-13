@@ -13,8 +13,10 @@ __all__ = ['wavelet_denoise',
 
 import pywt
 import numpy as np
+import photutils
 from scipy.ndimage import gaussian_filter        
 from astropy.convolution import convolve_fft, Gaussian2DKernel
+from .shapes import frame_center
 
 
 SIGMA2FWHM = 2.35482004503          # fwhm = sigma2fwhm * sigma
@@ -125,9 +127,13 @@ def gaussian_kernel(size, size_y=None):
         size_y = int(size_y)
     x, y = np.mgrid[-size:size+1, -size_y:size_y+1]
     g = np.exp(-(x**2/float(size)+y**2/float(size_y)))
-    return g / g.sum()
 
-
+    fwhm = size
+    fwhm_aper = photutils.CircularAperture((frame_center(g)), fwhm/2.)
+    fwhm_aper_phot = photutils.aperture_photometry(g, fwhm_aper)
+    g_norm = g/np.array(fwhm_aper_phot['aperture_sum'])
+     
+    return g_norm/g_norm.max()
 
 
 

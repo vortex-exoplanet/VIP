@@ -61,7 +61,7 @@ def frame_rotate(array, angle, interpolation='bicubic', cy=None, cx=None):
     return array_out
     
     
-def cube_derotate(array, angle_list, cy=None, cx=None):
+def cube_derotate(array, angle_list, cy=None, cx=None, collapse='median'):
     """ Rotates an ADI cube to a common north given a vector with the 
     corresponding parallactic angles for each frame of the sequence. By default
     bicubic interpolation is used (opencv). 
@@ -76,13 +76,15 @@ def cube_derotate(array, angle_list, cy=None, cx=None):
         Coordinates X,Y  of the point with respect to which the rotation will be 
         performed. By default the rotation is done with respect to the center 
         of the frames; central pixel if the frames have odd size.
+    collapse : {'median','mean'}
+        Way of collapsing the derotated cube.
         
     Returns
     -------
     array_der : array_like
         Resulting cube with de-rotated frames.
     array_out : array_like
-        Median combined image of the de-rotated cube.
+        Collapsed image of the de-rotated cube.
         
     """
     if not array.ndim == 3:
@@ -95,7 +97,11 @@ def cube_derotate(array, angle_list, cy=None, cx=None):
     for i in xrange(array.shape[0]): 
         M = cv2.getRotationMatrix2D((cx,cy), -angle_list[i], 1)
         array_der[i] = cv2.warpAffine(array[i].astype(np.float32), M, (x, y))
-            
-    array_out = np.median(array_der, axis=0)              
+    
+    if collapse=='median':        
+        array_out = np.median(array_der, axis=0)
+    elif collapse=='mean':
+        array_out = np.mean(array_der, axis=0)
+                      
     return array_der, array_out
 

@@ -5,7 +5,7 @@ Module for timing functions.
 """
 
 __author__ = 'C. Gomez @ ULg'
-__all__ = ['timeInit', 'timing']
+__all__ = ['timeInit', 'timing', 'timeFini']
 
 from datetime import datetime
 
@@ -30,5 +30,10 @@ def timing(start_time):
     print "Running time:  " + str(datetime.now()-start_time)
     print "-------------------------------------------------------------------"
 
+def timeFini(start_time):
+    """Returns the execution time of a script. It requires the initialization 
+    with the function timeInit().
+    """
+    return str(datetime.now()-start_time)
 
    

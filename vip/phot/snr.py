@@ -9,7 +9,8 @@ from __future__ import division
 __author__ = 'C. Gomez @ ULg, B. Pairet @ UCL'
 __all__ = ['snr_student',
            'snr_meanstddev',
-           'snrmap']
+           'snrmap',
+           'snrmap_fast']
 
 import numpy as np
 import itertools as itt
@@ -52,8 +53,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
     start_time = timeInit()
     if not array.ndim==2:
         raise TypeError('Input array is not a 2d array or image.')
-    if plot:
-        plt.close('snr')
+    if plot:  plt.close('snr')
         
     sizey, sizex = array.shape
     snrmap = np.zeros_like(array)
@@ -169,6 +169,52 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         plt.show()
         
     print "SNR map created using {:} processes.".format(nproc)
+    timing(start_time)
+    return snrmap
+   
+   
+def snrmap_fast(array, fwhm, plot=False):
+    """ Serial implementation of the SNR map generation function. Applies the 
+    SNR function snr_meanstddev at each pixel.
+    
+    Parameters
+    ----------
+    array : array_like
+        Input frame.
+    fwhm : float
+        Size in pixels of the FWHM.
+    plot : {False, True}, bool optional
+        If True plots the SNR map. 
+    
+    Returns
+    -------
+    snrmap : array_like
+        Frame with the same size as the input frame with each pixel.
+        
+    """
+    start_time = timeInit()
+    if not array.ndim==2:
+        raise TypeError('Input array is not a 2d array or image.')
+    if plot:  plt.close('snr')
+        
+    sizey, sizex = array.shape
+    snrmap = np.zeros_like(array)
+    width = min(sizey,sizex)/2 - 1.5*fwhm
+    mask = get_annulus(array, fwhm, width)
+    mask = np.ma.make_mask(mask)
+    yy, xx = np.where(mask)
+    
+    for y,x in zip(yy,xx):
+        snrmap[y,x] = snr_meanstddev(array, y, x, fwhm, False)       
+        
+    if plot:
+        plt.figure('snr')
+        plt.imshow(snrmap, origin='lower', interpolation='nearest')
+        plt.colorbar()
+        plt.grid(False)
+        plt.show()
+        
+    print "SNR map created"
     timing(start_time)
     return snrmap
     

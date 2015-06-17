@@ -6,9 +6,9 @@ Module with SNR calculation functions.
 
 from __future__ import division
 
-__author__ = 'C. Gomez @ ULg, B. Pairet @ UCL'
+__author__ = 'C. Gomez @ ULg, O. Absil @ ULg, B. Pairet @ UCL'
 __all__ = ['snr_student',
-           'snr_meanstddev',
+           'snr_peakstddev',
            'snrmap',
            'snrmap_fast']
 
@@ -17,6 +17,7 @@ import itertools as itt
 import photutils
 from skimage.draw import circle
 from matplotlib import pyplot as plt
+from astropy.convolution import convolve, Tophat2DKernel
 from multiprocessing import Pool, cpu_count
 from ..conf import eval_func_tuple, timeInit, timing
 from ..var import get_annulus, frame_center, dist, gaussian_filter_sp
@@ -34,9 +35,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         Size in pixels of the FWHM.
     plot : {False, True}, bool optional
         If True plots the SNR map. 
-    mode : {'ss', 'meanstddev'}, string optional
+    mode : {'ss', 'peakstddev'}, string optional
         'sss' uses the approach with the small sample statistics penalty and
-        'meanstddev' uses the mean(aperture)/std(annulus) version.
+        'peakstddev' uses the peak(aperture)/std(annulus) version.
     source_mask : array_like, optional
         If exists, it takes into account existing sources. The mask is a ones
         2d array, with the same size as the input frame. The centers of the 
@@ -67,8 +68,8 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
     
     if mode == 'sss':
         func = snr_student
-    elif mode == 'meanstddev':
-        func = snr_meanstddev
+    elif mode == 'peakstddev':
+        func = snr_peakstddev
     else:
         raise TypeError('\nMode not recognized.')
     
@@ -174,8 +175,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
    
    
 def snrmap_fast(array, fwhm, plot=False):
-    """ Serial implementation of the SNR map generation function. Applies the 
-    SNR function snr_meanstddev at each pixel.
+    """ Serial implementation of the SNR map generation function. To be used as
+    a quick proxy of the snrmap generated using the small samples statistics
+    definition. 
     
     Parameters
     ----------
@@ -191,11 +193,28 @@ def snrmap_fast(array, fwhm, plot=False):
     snrmap : array_like
         Frame with the same size as the input frame with each pixel.
         
-    """
+    """       
     start_time = timeInit()
     if not array.ndim==2:
         raise TypeError('Input array is not a 2d array or image.')
     if plot:  plt.close('snr')
+    
+    def snr(array, sourcey, sourcex, fwhm):
+        centery, centerx = frame_center(array)
+        rad = dist(centery,centerx,sourcey,sourcex)
+        
+        ind_aper = circle(sourcey, sourcex, fwhm/2.)
+        flux = array[ind_aper].sum()
+        an_coor = get_annulus(array, rad, 1, output_indices=True)
+        array2 = array.copy()
+        array2[ind_aper] = array[an_coor].mean()   # we 'mask' the flux aperture
+        stddev = array2[an_coor].std()
+        peak = array[sourcey, sourcex] - array2[ind_aper].mean()
+        snr = peak / stddev
+        return snr
+    
+    tophat_kernel = Tophat2DKernel(fwhm/2.)
+    array = convolve(array, tophat_kernel)
         
     sizey, sizex = array.shape
     snrmap = np.zeros_like(array)
@@ -205,7 +224,7 @@ def snrmap_fast(array, fwhm, plot=False):
     yy, xx = np.where(mask)
     
     for y,x in zip(yy,xx):
-        snrmap[y,x] = snr_meanstddev(array, y, x, fwhm, False)       
+        snrmap[y,x] = snr(array, y, x, fwhm)       
         
     if plot:
         plt.figure('snr')
@@ -290,7 +309,7 @@ def snr_student(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
     f_source = f_source['aperture_sum'][0]
     fluxes = fluxes[1:]
     n2 = fluxes.shape[0]
-    snr = (f_source - fluxes.mean())/(fluxes.std()*np.sqrt((n2+1)/n2))
+    snr = (f_source - fluxes.mean())/(fluxes.std()*np.sqrt(1+(1/n2)))
         
     if verbose:
         msg1 = 'SNR = {:}' 
@@ -321,14 +340,14 @@ def snr_student(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
         return snr
     
 
-def snr_meanstddev(array, sourcey, sourcex, fwhm, out_coor=False, plot=False, 
+def snr_peakstddev(array, sourcey, sourcex, fwhm, out_coor=False, plot=False, 
                    verbose=False):
     """Calculates the SNR (signal to noise ratio) of a single planet in a 
     post-processed (e.g. by LOCI or PCA) frame. The signal is taken as the ratio 
-    of mean value in an aperture centered on the planet (test speckle), and the 
-    noise computed as the standard deviation of the pixels in an annulus at the 
-    same radial distance from the center of the frame. The diameter of the
-    signal aperture and the annulus width is in both cases 1 FWHM ~ 1 lambda/D.
+    of pixel value of the planet (test speckle) and the noise computed as the 
+    standard deviation of the pixels in an annulus at the same radial distance 
+    from the center of the frame. The diameter of the signal aperture and the 
+    annulus width is in both cases 1 FWHM ~ 1 lambda/D.
     
     Parameters
     ----------
@@ -352,29 +371,21 @@ def snr_meanstddev(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
     snr : float
         Value of the SNR for the given planet or test speckle.
     
-    """
-    from skimage.draw import circle
-    
+    """     
     centery, centerx = frame_center(array)
-    rad = dist(centery,centerx,sourcey,sourcex)
-    
-    ind_aper = circle(sourcey, sourcex, fwhm/2.)
-    flux = array[ind_aper].sum()
+    rad = dist(centery,centerx,sourcey,sourcex)  
     
     inner_rad = np.round(rad)-(fwhm/2.)
     an_coor = get_annulus(array, inner_rad, fwhm, output_indices=True)
-
     ap_coor = circle(sourcey, sourcex, int(np.ceil(fwhm/2.)))
-    px_in_ap = (fwhm/2.)**2*np.pi
     array2 = array.copy()
     array2[ap_coor] = array[an_coor].mean()   # we 'mask' the flux aperture
     stddev = array2[an_coor].std()
-    peak = array[ap_coor].max()
-    mean = flux / px_in_ap
-    snr = mean / stddev
+    peak = array[sourcey, sourcex] 
+    snr = peak / stddev
     if verbose:
-        msg = "SNR = {:.3f}, Peak px = {:.3f}, Mean = {:.3f}, Noise = {:.3f}"
-        print msg.format(snr, peak, mean[0], stddev)
+        msg = "SNR = {:.3f}, Peak px = {:.3f}, Noise = {:.3f}"
+        print msg.format(snr, peak, stddev)
     
     if plot:
         fig, ax = plt.subplots(figsize=(6,6))

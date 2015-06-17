@@ -8,7 +8,7 @@ from __future__ import division
 
 __author__ = 'C. Gomez @ ULg, B. Pairet @ UCL'
 __all__ = ['snr_student',
-           'snr_peakstddev',
+           'snr_meanstddev',
            'snrmap']
 
 import numpy as np
@@ -33,9 +33,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         Size in pixels of the FWHM.
     plot : {False, True}, bool optional
         If True plots the SNR map. 
-    mode : {'ss', 'annulus'}, string optional
+    mode : {'ss', 'meanstddev'}, string optional
         'sss' uses the approach with the small sample statistics penalty and
-        'annulus' uses the peak(aperture)/std(annulus) version.
+        'meanstddev' uses the mean(aperture)/std(annulus) version.
     source_mask : array_like, optional
         If exists, it takes into account existing sources. The mask is a ones
         2d array, with the same size as the input frame. The centers of the 
@@ -67,8 +67,8 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
     
     if mode == 'sss':
         func = snr_student
-    elif mode == 'annulus':
-        func = snr_peakstddev
+    elif mode == 'meanstddev':
+        func = snr_meanstddev
     else:
         raise TypeError('\nMode not recognized.')
     
@@ -77,8 +77,6 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         res = pool.map(eval_func_tuple, itt.izip(itt.repeat(func),              
                                                  itt.repeat(array),
                                                  yy, xx, itt.repeat(fwhm),
-                                                 itt.repeat(False),
-                                                 itt.repeat(False),
                                                  itt.repeat(True)))       
         res = np.array(res)
         pool.close()
@@ -88,11 +86,13 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         snrmap[yy.astype('int'), xx.astype('int')] = snr
     else:
         if not array.shape == source_mask.shape:
-            raise ValueError('Source mask has wrong size.')
+            raise RuntimeError('Source mask has wrong size.')
         if source_mask[source_mask == 0].shape[0] == 0:
-            raise TypeError('Input source mask is empty. It must contain at least one source.')
+            msg = 'Input source mask is empty.'
+            raise RuntimeError(msg)
         if source_mask[source_mask == 0].shape[0] > 20:
-            raise TypeError('Input source mask is too crowded. Check its validity.')
+            msg = 'Input source mask is too crowded. Check its validity.'
+            raise RuntimeError(msg)
         
         soury, sourx = np.where(source_mask == 0)
         sources = []
@@ -140,8 +140,6 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
                                                   itt.repeat(array),
                                                   yy_rest, xx_rest, 
                                                   itt.repeat(fwhm),
-                                                  itt.repeat(False),
-                                                  itt.repeat(False),
                                                   itt.repeat(True)))       
         res = np.array(res)
         pool1.close()
@@ -155,8 +153,6 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
                                                   itt.repeat(array_sources),
                                                   yy_ann, xx_ann, 
                                                   itt.repeat(fwhm),
-                                                  itt.repeat(False),
-                                                  itt.repeat(False),
                                                   itt.repeat(True)))       
         res = np.array(res)
         pool2.close()
@@ -169,6 +165,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         plt.figure('snr')
         plt.imshow(snrmap, origin='lower', interpolation='nearest')
         plt.colorbar()
+        plt.grid(False)
         plt.show()
         
     print "SNR map created using {:} processes.".format(nproc)
@@ -176,8 +173,10 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
     return snrmap
     
     
-def snr_student(array, sourcey, sourcex, fwhm, gauss_filter=False, plot=False, 
-                verbose=True, full_output=False):
+def snr_student(array, sourcey, sourcex, fwhm, out_coor=False, plot=False, 
+                verbose=False, full_output=False, gauss_filter=False):
+    # Leave the order of parameters as it is, the same for both snr functions
+    # to be compatible with the snrmap parallel implementation
     """Calculates the SNR (signal to noise ratio) of a single planet in a 
     post-processed (e.g. by LOCI or PCA) frame. Uses the approach described in 
     Mawet et al. 2014 on small sample statistics, where a student t-test (eq. 9)
@@ -193,15 +192,17 @@ def snr_student(array, sourcey, sourcex, fwhm, gauss_filter=False, plot=False,
         X coordinate of the planet or test speckle.
     fwhm : float
         Size in pixels of the FWHM.
-    gauss_filter :  {False, True}, bool optional
-        Whether to apply a gaussian filter to the frame or not.
+    out_coor: {False, True}, bool optional
+        If True returns back the snr value and the y, x input coordinates.
     plot : {False, True}, bool optional
         Plots the frame and the apertures considered for clarity. 
     verbose: {True, False}, bool optional
-        Chooses whether to print some output or not.
+        Chooses whether to print some output or not. 
     full_output: {False, True}, bool optional
         If True returns back the snr value, the y, x input coordinates, noise 
-        and flux.    
+        and flux.   
+    gauss_filter :  {False, True}, bool optional
+        Whether to apply a gaussian filter to the frame or not.
     
     Returns
     -------
@@ -211,6 +212,8 @@ def snr_student(array, sourcey, sourcex, fwhm, gauss_filter=False, plot=False,
     """
     if not array.ndim==2:
         raise TypeError('Input array is not a frame or 2d array')
+    if out_coor and full_output:
+        raise TypeError('One of the 2 must be False')
     
     centery, centerx = frame_center(array)
     rad = dist(centery,centerx,sourcey,sourcex)
@@ -233,11 +236,11 @@ def snr_student(array, sourcey, sourcex, fwhm, gauss_filter=False, plot=False,
     yy[:] += centery 
         
     rad = fwhm/2.
-    aperture = photutils.CircularAperture((xx, yy), r=rad)                      # Coordinates (X,Y)
-    fluxes = photutils.aperture_photometry(array, aperture)    
+    aperture = photutils.CircularAperture((xx, yy), r=rad)  # Coordinates (X,Y)                    
+    fluxes = photutils.aperture_photometry(array, aperture, method='exact')    
     fluxes = np.array(fluxes['aperture_sum'])
     f_source_ap = photutils.CircularAperture((sourcex, sourcey), rad)
-    f_source = photutils.aperture_photometry(array, f_source_ap)
+    f_source = photutils.aperture_photometry(array, f_source_ap, method='exact')
     f_source = f_source['aperture_sum'][0]
     fluxes = fluxes[1:]
     n2 = fluxes.shape[0]
@@ -261,22 +264,25 @@ def snr_student(array, sourcey, sourcex, fwhm, gauss_filter=False, plot=False,
             ax.add_patch(aper)
             cent = plt.Circle((xx[i], yy[i]), radius=0.5, color='r', fill=True) # Coordinates (X,Y)
             ax.add_patch(cent)
+        ax.grid('off')
         plt.show()
     
+    if out_coor:
+        return sourcey, sourcex, snr
     if full_output:
         return sourcey, sourcex, f_source, fluxes.std(), snr
     else:
         return snr
     
 
-def snr_peakstddev(array, sourcey, sourcex, fwhm, plot=False, verbose=True, 
-                   out_coor=False):
+def snr_meanstddev(array, sourcey, sourcex, fwhm, out_coor=False, plot=False, 
+                   verbose=False):
     """Calculates the SNR (signal to noise ratio) of a single planet in a 
-    post-processed (e.g. by LOCI or PCA) frame. The signal is taken as the 
-    peak value in the planet (test speckle) aperture, and the noise as the 
-    standard deviation of the pixels in an annulus at the same radial distance 
-    from the center of the frame. The recommended value of the diameter of the
-    signal aperture and the annulus width is 1 FWHM ~ 1 lambda/D.
+    post-processed (e.g. by LOCI or PCA) frame. The signal is taken as the ratio 
+    of mean value in an aperture centered on the planet (test speckle), and the 
+    noise computed as the standard deviation of the pixels in an annulus at the 
+    same radial distance from the center of the frame. The diameter of the
+    signal aperture and the annulus width is in both cases 1 FWHM ~ 1 lambda/D.
     
     Parameters
     ----------
@@ -288,12 +294,12 @@ def snr_peakstddev(array, sourcey, sourcex, fwhm, plot=False, verbose=True,
         X coordinate of the planet or test speckle.
     fwhm : float
         Size in pixels of the FWHM.
+    out_coor: {False, True}, bool optional
+        If True returns back the snr value and the y, x input coordinates.
     plot : {False, True}, optional
         Plots the frame and the apertures considered for clarity. 
     verbose: {True, False}
-        Chooses whether to print some intermediate results or not.
-    out_coor: {False, True}, bool optional
-        If True returns back the snr value and the y, x input coordinates.    
+        Chooses whether to print some intermediate results or not.    
         
     Returns
     -------
@@ -301,12 +307,13 @@ def snr_peakstddev(array, sourcey, sourcex, fwhm, plot=False, verbose=True,
         Value of the SNR for the given planet or test speckle.
     
     """
+    from skimage.draw import circle
+    
     centery, centerx = frame_center(array)
     rad = dist(centery,centerx,sourcey,sourcex)
     
-    aperture = photutils.CircularAperture((sourcex, sourcey), fwhm/2.)
-    flux = photutils.aperture_photometry(array, aperture)
-    flux = np.array(flux['aperture_sum'])
+    ind_aper = circle(sourcey, sourcex, fwhm/2.)
+    flux = array[ind_aper].sum()
     
     inner_rad = np.round(rad)-(fwhm/2.)
     an_coor = get_annulus(array, inner_rad, fwhm, output_indices=True)
@@ -318,7 +325,7 @@ def snr_peakstddev(array, sourcey, sourcex, fwhm, plot=False, verbose=True,
     stddev = array2[an_coor].std()
     peak = array[ap_coor].max()
     mean = flux / px_in_ap
-    snr = peak / stddev
+    snr = mean / stddev
     if verbose:
         msg = "SNR = {:.3f}, Peak px = {:.3f}, Mean = {:.3f}, Noise = {:.3f}"
         print msg.format(snr, peak, mean[0], stddev)

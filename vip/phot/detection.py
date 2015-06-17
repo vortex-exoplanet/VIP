@@ -77,9 +77,14 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
     (5 sigma over the median) on the image. Then 5 different strategies can be 
     used to detect the blobs (planets):
     
-    Local maxima. The local peaks above the background threshold on the 
-    correlated frame are detected. The minimum separation between the peaks is 
-    2*FWHM. 
+    Local maxima + 2d Gaussian fit. The local peaks above the background on the 
+    (correlated) frame are detected. A maximum filter is used for finding local 
+    maxima. This operation dilates the original image and merges neighboring 
+    local maxima closer than the size of the dilation. Locations where the 
+    original image is equal to the dilated image are returned as local maxima.
+    The minimum separation between the peaks is 1*FWHM. A 2d Gaussian fit is 
+    done on each of the maxima constraining the position on the subimage and the
+    sigma of the fit. Finally an SNR criterion can be applied. 
     
     Laplacian of Gaussian. It computes the Laplacian of Gaussian images with 
     successively increasing standard deviation and stacks them up in a cube. 
@@ -165,7 +170,7 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
     # Getting the FWHM with a 2d gaussian fit on the PSF
     gauss = Gaussian2D(amplitude=1, x_mean=5, y_mean=5, x_stddev=3.5, 
                        y_stddev=3.5, theta=0)
-    fitter = LevMarLSQFitter()
+    fitter = LevMarLSQFitter()                  # Levenberg-Marquardt algorithm
     psf_subimage = get_square(psf, 9, frame_center(psf)[0],frame_center(psf)[1])
     y, x = np.indices(psf_subimage.shape)
     fit = fitter(gauss, x, y, psf_subimage)
@@ -198,7 +203,7 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
         
     if debug and plot:  
         print 'Input frame after matched filtering'
-        pp_subplots(frame_det, size=6, rows=2)
+        pp_subplots(frame_det, size=6, rows=2, colorb=True)
         
     if mode=='lpeaks':
         # Finding local peaks (can be done in the correlated frame)                                           

@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-PCA algorithm performed on full frame.
+PCA algorithm performed on full frame for ADI or RDI.
 """
 
 from __future__ import division 

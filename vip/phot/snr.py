@@ -174,7 +174,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
     return snrmap
    
    
-def snrmap_fast(array, fwhm, plot=False):
+def snrmap_fast(array, fwhm, plot=False, verbose=False):
     """ Serial implementation of the SNR map generation function. To be used as
     a quick proxy of the snrmap generated using the small samples statistics
     definition. 
@@ -187,6 +187,8 @@ def snrmap_fast(array, fwhm, plot=False):
         Size in pixels of the FWHM.
     plot : {False, True}, bool optional
         If True plots the SNR map. 
+    verbose: {True, False}
+        Chooses whether to print results or not. 
     
     Returns
     -------
@@ -194,7 +196,7 @@ def snrmap_fast(array, fwhm, plot=False):
         Frame with the same size as the input frame with each pixel.
         
     """       
-    start_time = timeInit()
+    if verbose:  start_time = timeInit()
     if not array.ndim==2:
         raise TypeError('Input array is not a 2d array or image.')
     if plot:  plt.close('snr')
@@ -232,9 +234,10 @@ def snrmap_fast(array, fwhm, plot=False):
         plt.colorbar()
         plt.grid(False)
         plt.show()
-        
-    print "SNR map created"
-    timing(start_time)
+     
+    if verbose:    
+        print "SNR map created"
+        timing(start_time)
     return snrmap
     
     

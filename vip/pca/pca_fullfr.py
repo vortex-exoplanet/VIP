@@ -18,11 +18,18 @@ from ..conf import timing, timeInit
 from .. import phot
 
 
-def pca(cube, angle_list, svd_mode='randsvd', ncomp=1, center='temporal', 
-        mask_center_px=None, full_output=False, verbose=True, debug=False):
-    """ Algorithm where the PSF and the quasi-static speckle pattern is modeled 
-    through PCA, using all the frames in the cube (as in KLIP or pynpoint).
-    Several SVD methods are explored.
+def pca(cube, angle_list, cube_ref=None, svd_mode='randsvd', ncomp=1, 
+        center='temporal', mask_center_px=None, full_output=False, verbose=True, 
+        debug=False):
+    """ Algorithm where the reference PSF and the quasi-static speckle pattern 
+    is modeled using Principal Component Analysis. PCA can be done on a matrix
+    with all the frames in the ADI cube or a matrix of frames from a reference 
+    star (RDI). Several SVD libraries can be used.
+    
+    References
+    ----------
+    KLIP: http://arxiv.org/abs/1207.4197
+    pynpoint: http://arxiv.org/abs/1207.6637
     
     Parameters
     ----------
@@ -30,6 +37,8 @@ def pca(cube, angle_list, svd_mode='randsvd', ncomp=1, center='temporal',
         Input cube.
     angle_list : array_like, 1d
         Corresponding parallactic angle for each frame.
+    cube_ref : array_like, 3d, optional
+        Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {randsvd, eigen, lapack, arpack, opencv}, optional
         Switch for different ways of computing the SVD and selected PCs.
     ncomp : int, optional
@@ -62,23 +71,26 @@ def pca(cube, angle_list, svd_mode='randsvd', ncomp=1, center='temporal',
         Cube of residuals after de-rotation.
         
     """
-    array = cube
-    if not array.ndim==3:
+    if not cube.ndim==3:
         raise TypeError('Input array is not a cube or 3d array')
-    n, y, x = array.shape
+    n, y, x = cube.shape
     
     if verbose: start_time = timeInit()
      
     if ncomp > n:
-        ncomp = n
-        print 'Number of PCs too high, set to maximum ({:})'.format(n)
+        ncomp = 10
+        print 'Number of PCs too high, using instead {:} PCs.'.format(ncomp)
     
-    matrix_pca = prepare_matrix(array, center, mask_center_px, verbose)             
-    V = svd_wrapper(matrix_pca, svd_mode, ncomp, debug, verbose)
+    matrix = prepare_matrix(cube, center, mask_center_px, verbose)
+    if cube_ref is not None:
+        ref_lib = prepare_matrix(cube_ref, center, mask_center_px, verbose)
+    else:
+        ref_lib = matrix           
+    V = svd_wrapper(ref_lib, svd_mode, ncomp, debug, verbose)
     if verbose: timing(start_time)
-    transformed = np.dot(V, matrix_pca.T)
+    transformed = np.dot(V, matrix.T)
     reconstructed = np.dot(transformed.T, V)
-    residuals = matrix_pca - reconstructed
+    residuals = matrix - reconstructed
     residuals_res = reshape_matrix(residuals,y,x)
             
     residuals_res_der, frame = cube_derotate(residuals_res, angle_list)
@@ -92,6 +104,7 @@ def pca(cube, angle_list, svd_mode='randsvd', ncomp=1, center='temporal',
         return pcs, recon, residuals_res, residuals_res_der, frame
     else:
         return frame
+    
     
     
 def pca_optimize_snr(cube, angle_list, y, x, fwhm, svd_mode='randsvd', 

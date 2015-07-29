@@ -28,48 +28,54 @@ from .snr import snr_student
 from .frame_analysis import frame_quick_report
 
 
-def mask_source_centers(array, fwhm, y, x):                                                  
-    """ Creates a mask of ones with the size of the input frame and zeros at
-    the center of the sources (planets) with coordinates x, y.
-    
-    Parameters
-    ----------
-    array : array_like
-        Input frame.
-    fwhm : float
-        Size in pixels of the FWHM.
-    y, x : tuples of int
-        Coordinates of the center of the sources.
-        
-    Returns
-    -------
-    mask : array_like
-        Mask frame.
-    
-    """
-    if not array.ndim==2:
-        raise TypeError('Wrong input array shape.')
-    
-    frame = array.copy()
-    if not y and x:
-        frame = mask_circle(frame, radius=2*fwhm)
-        yy, xx = detection(frame, fwhm, plot=False, mode='log')
-    else:
-        yy = np.array(y); xx = np.array(x)
-    mask = np.ones_like(array)
-    # center sources become zeros
-    mask[yy.astype('int'), xx.astype('int')] = 0                                 
-    return mask
-
-
 def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True, 
               mask=True, snr_thresh=5, plot=True, debug=False, 
               full_output=False, verbose=True):                 
     """ Finds blobs in a 2d array. The algorithm is designed for automatically 
     finding planets in post-processed high contrast final frames. Blob can be 
     defined as a region of an image in which some properties are constant or 
-    vary within a prescribed range of values.
-     
+    vary within a prescribed range of values. See <Notes> below to read about
+    the algorithm details.
+    
+    Parameters
+    ----------
+    array : array_like, 2d
+        Input frame.
+    psf : array_like
+        Input psf.
+    bkg_sigma : float, optional
+        The number standard deviations above the clipped median for setting the
+        background level. 
+    mode : {'lpeaks','irafsf','daofind','log','dog'}, optional
+        Sets with algorithm to use. Each algorithm yields different results.
+    matched_filter : {True, False}, bool optional
+        Whether to correlate with the psf of not.
+    mask : {True, False}, optional
+        Whether to mask the central region (circular aperture of 2*fwhm radius).
+    snr_thresh : float, optional
+        SNR threshold for deciding whether the blob is a detection or not.         
+    plot {True, False}, bool optional
+        If True plots the frame showing the detected blobs on top.
+    debug : {False, True}, bool optional
+        Whether to print and plot additional/intermediate results.
+    full_output : {False, True}, bool optional
+        Whether to output just the coordinates of blobs that fulfill the SNR
+        constraint or a table with all the blobs and the peak pixels and SNR.
+    verbose : {True,False}, bool optional
+        Whether to print to stdout information about found blobs.
+    
+    Returns
+    -------
+    yy, xx : array_like
+        Two vectors with the y and x coordinates of the centers of the sources 
+        (putative planets). 
+    If full_output is True then a table with all the candidates that passed the
+    2d Gaussian fit constrains and their SNR is returned. Also the count of 
+    companions with SNR>5 (those with highest probability of being true 
+    detections).
+                
+    Notes
+    -----
     The PSF is used to run a matched filter (correlation) which is equivalent 
     to a convolution filter. Filtering the image will smooth the noise and
     maximize detectability of objects with a shape similar to the kernel. 
@@ -112,43 +118,6 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
     input parameters. Daofind finds the object centroid by fitting the the 
     marginal x and y 1D distributions of the Gaussian kernel to the marginal x 
     and y distributions of the input (unconvolved) data image.
-    
-    Parameters
-    ----------
-    array : array_like, 2d
-        Input frame.
-    psf : array_like
-        Input psf.
-    bkg_sigma : float, optional
-        The number standard deviations above the clipped median for setting the
-        background level. 
-    mode : {'lpeaks','irafsf','daofind','log','dog'}, optional
-        Sets with algorithm to use. Each algorithm yields different results.
-    matched_filter : {True, False}, bool optional
-        Whether to correlate with the psf of not.
-    mask : {True, False}, optional
-        Whether to mask the central region (circular aperture of 2*fwhm radius).
-    snr_thresh : float, optional
-        SNR threshold for deciding whether the blob is a detection or not.         
-    plot {True, False}, bool optional
-        If True plots the frame showing the detected blobs on top.
-    debug : {False, True}, bool optional
-        Whether to print and plot additional/intermediate results.
-    full_output : {False, True}, bool optional
-        Whether to output just the coordinates of blobs that fulfill the SNR
-        constraint or a table with all the blobs and the peak pixels and SNR.
-    verbose : {True,False}, bool optional
-        Whether to print to stdout information about found blobs.
-    
-    Returns
-    -------
-    yy, xx : array_like
-        Two vectors with the y and x coordinates of the centers of the sources 
-        (putative planets). 
-    If full_output is True then a table with all the candidates that passed the
-    2d Gaussian fit constrains and their SNR is returned. Also the count of 
-    companions with SNR>5 (those with highest probability of being true 
-    detections).
                 
     """
     def print_coords(coords):
@@ -163,10 +132,6 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
     if not psf.ndim == 2 and psf.shape[0] < array.shape[0]:
         raise TypeError('Input psf is not a 2d array or has wrong size')
     
-    # Padding the image with zeros to avoid errors at the borders
-    pad = 10
-    array_padded = np.lib.pad(array, pad, 'constant', constant_values=0)
-    
     # Getting the FWHM with a 2d gaussian fit on the PSF
     gauss = Gaussian2D(amplitude=1, x_mean=5, y_mean=5, x_stddev=3.5, 
                        y_stddev=3.5, theta=0)
@@ -176,10 +141,13 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
     fit = fitter(gauss, x, y, psf_subimage)
     fwhm = np.mean([fit.y_stddev.value*SIGMA2FWHM, 
                     fit.x_stddev.value*SIGMA2FWHM])
-    if verbose:  print 'FWHM =', fwhm
+    if verbose:  
+        print 'FWHM =', fwhm
+        print
     if debug:  
         print 'FWHM_y ', fit.y_stddev.value*SIGMA2FWHM
         print 'FWHM_x ', fit.x_stddev.value*SIGMA2FWHM  
+        print
     
     # Masking the center, 2*lambda/D is the expected IWA
     if mask:  array = mask_circle(array, radius=2*fwhm)
@@ -200,8 +168,12 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
         print
     
     round = 0.3   # roundness constraint
+    
+    # Padding the image with zeros to avoid errors at the edges
+    pad = 10
+    array_padded = np.lib.pad(array, pad, 'constant', constant_values=0)
         
-    if debug and plot:  
+    if debug and plot and matched_filter:  
         print 'Input frame after matched filtering'
         pp_subplots(frame_det, size=6, rows=2, colorb=True)
         
@@ -226,33 +198,29 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
             sy, sx = np.indices(subim.shape)
             fit = fitter(gauss, sx, sy, subim)
             
-            if debug:  
-                print fit
-                msg = 'fwhm_y in px = {:.3f}, fwhm_x in px = {:.3f}'
-                print msg.format(fit.y_stddev.value*SIGMA2FWHM , 
-                                 fit.x_stddev.value*SIGMA2FWHM) 
-                pp_subplots(subim, colorb=True)
-            
-            # checking that the amplitude is positive > 1
+            # checking that the amplitude is positive > 0
             # checking whether the x and y centroids of the 2d gaussian fit 
             # coincide with the center of the subimage (within 2px error)
             # checking whether the mean of the fwhm in y and x of the fit are
-            # close to the FWHM_PSF with a margin of error_fwhm
-            # checking whether one of the fitted fwhm in y and x is close to the 
-            # FWHM_PSF with a margin of error_fwhm
+            # close to the FWHM_PSF with a margin of 3px
             fwhm_y = fit.y_stddev.value*SIGMA2FWHM
             fwhm_x = fit.x_stddev.value*SIGMA2FWHM
             mean_fwhm_fit = np.mean([np.abs(fwhm_x), np.abs(fwhm_y)]) 
-            ratio_fwhm_fit = np.abs(fwhm_y)/np.abs(fwhm_x)    
-            error_fwhm = 2
-            if fit.amplitude.value>1 \
+            if fit.amplitude.value>0 \
             and np.allclose(fit.y_mean.value, cy, atol=2) \
             and np.allclose(fit.x_mean.value, cx, atol=2) \
-            and np.allclose(mean_fwhm_fit, fwhm, atol=error_fwhm) \
-            and (np.allclose(fwhm_y, fwhm, atol=error_fwhm) \
-            or np.allclose(fwhm_x, fwhm, atol=error_fwhm)):                     # make this error smaller
+            and np.allclose(mean_fwhm_fit, fwhm, atol=3):                     
                 coords.append((suby+fit.y_mean.value, subx+fit.x_mean.value))
-                        
+        
+            if debug:  
+                print 'Coordinates (Y,X): {:.3f},{:.3f}'.format(y, x)
+                print 'fit peak = {:.3f}'.format(fit.amplitude.value)
+                #print fit
+                msg = 'fwhm_y in px = {:.3f}, fwhm_x in px = {:.3f}'
+                print msg.format(fwhm_y, fwhm_x) 
+                print 'mean fit fwhm = {:.3f}'.format(mean_fwhm_fit)
+                pp_subplots(subim, colorb=True)
+        
         coords = np.array(coords)
         if verbose and coords.shape[0]>0:  print_coords(coords)
     
@@ -458,3 +426,37 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None):
                                    gauss_filt_tmp.shape)
         
     return ind_max
+
+
+def mask_source_centers(array, fwhm, y, x):                                                  
+    """ Creates a mask of ones with the size of the input frame and zeros at
+    the center of the sources (planets) with coordinates x, y.
+    
+    Parameters
+    ----------
+    array : array_like
+        Input frame.
+    fwhm : float
+        Size in pixels of the FWHM.
+    y, x : tuples of int
+        Coordinates of the center of the sources.
+        
+    Returns
+    -------
+    mask : array_like
+        Mask frame.
+    
+    """
+    if not array.ndim==2:
+        raise TypeError('Wrong input array shape.')
+    
+    frame = array.copy()
+    if not y and x:
+        frame = mask_circle(frame, radius=2*fwhm)
+        yy, xx = detection(frame, fwhm, plot=False, mode='log')
+    else:
+        yy = np.array(y); xx = np.array(x)
+    mask = np.ones_like(array)
+    # center sources become zeros
+    mask[yy.astype('int'), xx.astype('int')] = 0                                 
+    return mask

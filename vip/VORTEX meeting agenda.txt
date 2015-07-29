@@ -1,0 +1,74 @@
+VORTEX meeting agenda
+*********************
+
+Venue: Colonster Castle (Liège)
+
+
+*** Tue 1/9 *** (@AGO dept)
+
+14:00 - 17:00: informal discussions
+17:00 - 18:00: Absil (introduction, agenda, project status)
+
+
+*** Wed 2/9 ***
+
+* Session 1: design / manufacturing *
+09:00 - 09:30: Carlomagno (charge-2 vortex design)
+09:30 - 10:30: Vargas (L band manufacturing)
+Coffee break 30'
+11:00 - 12:00: Forsberg (K band manufacturing, re-etching) - remote
+
+Lunch
+
+* Session 2: advanced concepts / performance simulations *
+13:30 - 14:30: Delacroix (charge-4 vortex design)
+14:30 - 15:30: Ruane (Lyot Phase Masks)
+Coffee break 30'
+16:00 - 17:00: Piron (orbital angular momentum)
+17:00 - 18:00: Carlomagno (performance simulations)
+
+
+*** Thu 3/9 ***
+
+* Session 3: testbench / operations *
+09:00 - 10:00: Huby (lab & on-sky operation)
+10:00 - 10:30: Jolivet (VODCA)
+Coffee break 30'
+11:00 - 12:00: Visit of VODCA lab
+
+Lunch
+
+* Session 4: astrophysics / instruments / processing *
+13:30 - 14:00: Wertz (orbits) - remote (TBC)
+14:00 - 15:00: Gomez (VIP package demo)
+15:00 - 15:30: Reggiani (planet/brown dwarf populations)
+Coffee break 30'
+16:00 - 16:30: Christiaens (transition disks) - remote
+16:30 - 17:00: Absil/Girard (VLT instrument status / observing programs)
+17:00 - 17:30: Defrère (LBT instrument status / observing programs) - remote
+17:30 - 18:00: Mawet/Serabyn (Keck instrument status / observing programs) - remote
+
+
+*** Fri 4/9 ***
+
+* Session 5: advanced image processing *
+09:00 - 09:45: Cantalloube (ANDROMEDA)
+09:45 - 10:45: Gomez (low-rank approx, machine learning, etc)
+Coffee break 30'
+11:15 - 12:00: Wertz (robust astrometry) - remote
+
+Lunch
+
+* Session 6: wrap-up *
+13:30 - 14:30: Absil/Karlsson (future directions)
+14:30 - 15:30: Absil/Karlsson (conclusions / review of action items)
+
+
+Participants
+************
+
+- on site: Absil, Cantalloube, Carlomagno, Delacroix, Gomez, Habraken, Huby, Jolivet, Karlsson, Piron, Rahir, Reggiani, Ruane, Surdej, van Droogenbroeck, Vargas
+
+- remote: Absil PA, Christiaens, Defrère, Forsberg, Mawet, Milli, Pueyo, Wertz
+
+- TBC: Girard, Orban de Xivry, Serabyn

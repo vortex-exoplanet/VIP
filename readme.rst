@@ -10,8 +10,9 @@
   Vortex Image Processing pipeline  
 ------------------------------------
 
-VIP is a package/pipeline for angular and spectral differential high-contrast 
-imaging written in Python 2.7.
+VIP is a package/pipeline for angular and reference star differential 
+imaging for exoplanet detection through high-contrast imaging. VIP is being
+developed in Python 2.7.
 
 VIP is being developed within the VORTEX team @ University of Liege (Belgium).
 It's in alpha version meaning that the code will change drastically before the

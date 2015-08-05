@@ -31,6 +31,8 @@ setup(
                       'scipy >= 0.14.0',
                       'ipython',
                       'astropy >= 1.0.2',
+                      'emcee',
+                      'triangle_plot',
                       'pandas',
                       'matplotlib',
                       'scikit-learn',

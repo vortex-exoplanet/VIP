@@ -10,7 +10,8 @@ from __future__ import print_function
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['prepare_matrix',
            'reshape_matrix',
-           'svd_wrapper']
+           'svd_wrapper',
+           'pca_annulus']
 
 import cv2
 import numpy as np
@@ -18,7 +19,57 @@ from scipy import linalg
 from scipy.sparse.linalg import svds
 from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_absolute_error
-from ..var import mask_circle
+from ..var import mask_circle, get_annulus
+from ..calib import cube_derotate
+
+
+def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, display=False):
+    """
+    PCA process the cube only for an annulus of a given width and at a given
+    radial distance to the frame center. It returns a PCA-ed frame with only 
+    non-zero values at the positions of the annulus.
+    
+    Parameters
+    ----------
+    cube: numpy.array
+        The cube of fits images expressed as a numpy.array.
+    angs: numpy.array
+        The parallactic angles expressed as a numpy.array.
+    ncomp: int
+        The number of principal component.
+    annulus_width: float
+        The annulus width in pixel on which the PCA is performed.
+    r_guess: float
+        Radius of the annulus in pixels.
+    display: boolean (optional)
+        If True, the PCA-ed frame is open into ds9.
+    
+    Returns
+    -------
+    out: numpy.array
+        The annulus PCA-ed frame.
+        
+    """
+    indic = get_annulus(cube[0], r_guess-annulus_width, annulus_width, 
+                        output_indices=True)
+    yy, xx = indic
+    matrix_ann = cube[:, yy, xx]
+    data = matrix_ann - matrix_ann.mean(axis=0)
+    
+    V = svd_wrapper(data, mode='lapack', ncomp=ncomp, debug=False, verbose=False)
+    
+    transformed = np.dot(data, V.T)
+    reconstructed = np.dot(transformed, V)                           
+    residuals = data - reconstructed
+    cube_zeros = np.zeros_like(cube)
+    cube_zeros[:, yy, xx] = residuals
+    cube_zeros_derot, pca_frame = cube_derotate(cube_zeros, angs)
+    
+    if display:
+        display_array_ds9(pca_frame)
+
+    return pca_frame  
+
 
 
 def prepare_matrix(array, center=None, mask_center_px=None, verbose=True):

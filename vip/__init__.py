@@ -7,6 +7,7 @@ from . import calib
 from . import conf
 from . import fits
 from . import madi
+from . import negfc
 from . import pca
 from . import phot
 from . import stats

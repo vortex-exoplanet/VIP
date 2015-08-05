@@ -8,6 +8,7 @@ from __future__ import division
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['create_psf_template',
+           'psf_norm',
            'inject_fcs_cube',
            'inject_fc_frame']
 
@@ -91,9 +92,19 @@ def inject_fc_frame(array, array_fc, pos_y, pos_x, flux):
     return array_out
 
 
-def create_psf_template(array, size, fwhm=5):
-    """ Creates a psf template from a cube of frames by taking the mean and 
-    normalizing.
+def create_psf_template(array, size, fwhm=5, verbose=True):
+    """ Creates a psf template from a cube of non-saturated off-axis frames of
+    the star by taking the mean and normalizing the psf flux.
+    
+    Parameters
+    ----------
+    array : array_like, 3d
+        Input cube.
+    size : int
+        Size of the squared subimage.
+    fwhm: float
+        The size of the Full Width Half Maximum in pixel.
+    
     """
     if not array.ndim==3:
         raise TypeError('Array is not a cube or 3d array.')
@@ -102,11 +113,36 @@ def create_psf_template(array, size, fwhm=5):
     psf = cube_crop_frames(array, size=size)
     psf = np.mean(psf, axis=0)
     
-    fwhm_aper = photutils.CircularAperture((frame_center(psf)), fwhm/2.)
-    fwhm_aper_phot = photutils.aperture_photometry(psf, fwhm_aper)
-    array_out = psf/np.array(fwhm_aper_phot['aperture_sum'])
+    psf_normd = psf_norm(psf, size, fwhm, verbose)
     
-    print "Done scaled PSF template from the average of", n,"frames."
-    return array_out
+    if verbose:  
+        print "Done scaled PSF template from the average of", n,"frames."
+    return psf_normd
 
 
+def psf_norm(psf_path, size, fwhm, verbose=True):
+    """
+    Scale the psf, so the 1*FWHM aperture flux equals 1
+    
+    Parameters
+    ----------
+    psf_path: str
+        The relative path to the psf fits image.
+    size : int
+        Size of the squared subimage.
+    fwhm: float
+        The size of the Full Width Half Maximum in pixel.
+        
+    Returns
+    -------
+    out: numpy.array
+        The scaled psf.
+
+    """
+    psfs = open_fits(psf_path, verbose=verbose)
+
+    psfs = frame_crop(psfs, size ) 
+    fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2.)
+    fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper)
+    
+    return psfs/np.array(fwhm_aper_phot['aperture_sum'])    

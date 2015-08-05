@@ -15,7 +15,9 @@ from skimage import draw
 from .utils import svd_wrapper, prepare_matrix, reshape_matrix
 from ..calib import cube_derotate
 from ..conf import timing, timeInit
+from ..var import frame_center, dist
 from .. import phot
+from .utils import pca_annulus
 
 
 def pca(cube, angle_list, cube_ref=None, svd_mode='randsvd', ncomp=1, 
@@ -107,9 +109,9 @@ def pca(cube, angle_list, cube_ref=None, svd_mode='randsvd', ncomp=1,
     
     
     
-def pca_optimize_snr(cube, angle_list, y, x, fwhm, svd_mode='randsvd', 
-                     mask_center_px=5, min_snr=0, verbose=True, 
-                     output_frame=False, debug=False):
+def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full', 
+                     annulus_width=None, svd_mode='randsvd', mask_center_px=5, 
+                     min_snr=0, verbose=True, output_frame=False, debug=False):
     """ Optimizes the number of principal components by doing a simple grid 
     search measuring the SNR for a given position in the frame. The mean SNR 
     in a 1*FWHM circular aperture centered on the given pixel is the metric
@@ -155,10 +157,18 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, svd_mode='randsvd',
     
     if verbose: start_time = timeInit()
     
-    def get_snr(cube, angle_list, y, x, svd_mode, fwhm, ncomp):
-        frame = pca(cube, angle_list, ncomp=ncomp, full_output=False, 
-                    verbose=False, mask_center_px=mask_center_px, 
-                    svd_mode=svd_mode)
+    def get_snr(cube, angle_list, y, x, mode, svd_mode, fwhm, ncomp):
+        if mode=='full':
+            frame = pca(cube, angle_list, ncomp=ncomp, full_output=False, 
+                        verbose=False, mask_center_px=mask_center_px, 
+                        svd_mode=svd_mode)
+        elif mode=='annular':
+            y_cent, x_cent = frame_center(cube[0])
+            annulus_radius = dist(y_cent, x_cent, y, x)
+            frame = pca_annulus(cube, angle_list, ncomp, annulus_width, 
+                                annulus_radius)
+        else:
+            raise RuntimeError('Wrong mode.')
         yy, xx = draw.circle(y, x, fwhm/2.)
         snr_pixels = [phot.snr_student(frame, y_, x_, fwhm, plot=False, 
                                        verbose=False) for y_, x_ in zip(yy, xx)]
@@ -166,15 +176,20 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, svd_mode='randsvd',
 
     n = array.shape[0]
     nsteps = 0
-    step1 = int(np.percentile(range(n), 10))
+    if mode=='full':
+        step1 = int(np.percentile(range(n), 10))
+    elif mode=='annular':
+        step1 = int(np.percentile(range(n), 5))
     snrlist = []
     pclist = []
     counter = 0
     if debug:  print 'Step 1st grid:', step1
     for pc in range(1, n+1, step1):
-        snr = get_snr(cube, angle_list, y, x, svd_mode, fwhm, ncomp=pc)
+        snr = get_snr(cube, angle_list, y, x, mode, svd_mode, fwhm, ncomp=pc)
         nsteps += 1
-        if nsteps>1 and snr<min_snr:  break
+        if nsteps>1 and snr<min_snr:  
+            print 'SNR became negative'
+            break
         if nsteps>1 and snr<snrlist[-1]:  counter += 1
         snrlist.append(snr)
         pclist.append(pc)
@@ -186,6 +201,8 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, svd_mode='randsvd',
     snrlist2 = []
     pclist2 = []
     
+    if len(pclist)==2: pclist.append(pclist[-1]+1)
+    
     if debug:
         print 'Finished stage 1', argm, pclist[argm], 
         print pclist[argm-1], pclist[argm+1]+1
@@ -193,12 +210,16 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, svd_mode='randsvd',
     
     if debug:  print 'Step 2nd grid:', 1
     for pc in range(pclist[argm-1], pclist[argm+1]+1, 1):
-        snr = get_snr(cube, angle_list, y, x, svd_mode, fwhm, ncomp=pc)
+        snr = get_snr(cube, angle_list, y, x, mode, svd_mode, fwhm, ncomp=pc)
         nsteps += 1
         if snr<min_snr:  break
         snrlist2.append(snr)
         pclist2.append(pc)
         if debug:  print '{} {:.3f}'.format(pc, snr)
+        if len(snrlist2)>8 and np.all(np.diff(np.array(snrlist2))[:-8] < 0 ) :
+            print 'SNR max passed'
+            break
+                
     if len(snrlist2)==0:  
         msg = 'SNR too low at given position. Optimization failed'
         if verbose:  print msg

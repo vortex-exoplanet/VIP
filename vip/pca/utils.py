@@ -23,7 +23,8 @@ from ..var import mask_circle, get_annulus
 from ..calib import cube_derotate
 
 
-def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, display=False):
+def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None, 
+                display=False):
     """
     PCA process the cube only for an annulus of a given width and at a given
     radial distance to the frame center. It returns a PCA-ed frame with only 
@@ -53,11 +54,18 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, display=False):
     indic = get_annulus(cube[0], r_guess-annulus_width, annulus_width, 
                         output_indices=True)
     yy, xx = indic
-    matrix_ann = cube[:, yy, xx]
-    data = matrix_ann - matrix_ann.mean(axis=0)
     
-    V = svd_wrapper(data, mode='lapack', ncomp=ncomp, debug=False, verbose=False)
+    data = cube[:, yy, xx]
+    #data = matrix_ann - matrix_ann.mean(axis=0) # centering?
     
+    if cube_ref is not None:
+        data_svd = cube_ref[:, yy, xx]
+    else:
+        data_svd = data
+        
+    V = svd_wrapper(data_svd, mode='randsvd', ncomp=ncomp, debug=False, 
+                    verbose=False)
+        
     transformed = np.dot(data, V.T)
     reconstructed = np.dot(transformed, V)                           
     residuals = data - reconstructed

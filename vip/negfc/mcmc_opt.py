@@ -58,7 +58,8 @@ def lnprior(modelParameters, bounds):
         return -np.inf
 
 
-def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp, aperture_radius, initialState, display = False):
+def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp, 
+           aperture_radius, initialState, cube_ref=None, display=False):
     """
     Define the likelihood log-function.
     
@@ -107,7 +108,9 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp, a
         display_array_ds9(cube_negfc)       
                                   
     # Perform PCA to generate the processed image and extract the zone of interest 
-    values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width,aperture_radius,initialState[0],initialState[1])
+    values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width,
+                                 aperture_radius,initialState[0],initialState[1],
+                                 cube_ref=cube_ref)
     
     # Function of merit
     values = np.abs(values)
@@ -117,7 +120,7 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp, a
 
 
 def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, annulus_width, 
-           ncomp, aperture_radius, initialState, display=False):
+           ncomp, aperture_radius, initialState, cube_ref=None, display=False):
     """
     Define the probability log-function as the sum between the prior and 
     likelihood log-funtions.
@@ -145,6 +148,8 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, annulus_width,
         The radius of the circular aperture.  
     initialState: numpy.array
         The initial guess for the position and the flux of the planet. 
+    cube_ref : array_like, 3d, optional
+        Reference library cube. For Reference Star Differential Imaging.
         
     Returns
     -------
@@ -159,7 +164,8 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, annulus_width,
         return -np.inf       
     
     return lp + lnlike(modelParameters, cube, angs, plsc, psfs_norm, 
-                       annulus_width, ncomp, aperture_radius, initialState, display) 
+                       annulus_width, ncomp, aperture_radius, initialState, 
+                       cube_ref, display) 
 
 
 # -----------------------------------------------------------------------------
@@ -249,30 +255,14 @@ def gelman_rubin_from_chain(chain, burnin):
     return rhat
 
 
-def run_mcmc_astrometry(cubes,
-                        angs,
-                        psfs_norm,
-                        plsc,
-                        fwhm,
-                        annulus_width,
-                        ncomp,
-                        aperture_radius,
-                        nwalkers,
-                        initialState,
-                        bounds,
-                        a=2.0,
-                        burnin = 0.3,
-                        rhat_threshold = 1.01,
-                        rhat_count_threshold = 3,
-                        niteration_min = 0.0,
-                        niteration_limit = 1e02,
-                        niteration_supp = 0.0,
-                        check_maxgap = 1e04,
-                        threads=1,
-                        output_file = None,
-                        display = False,
-                        verbose = True,
-                        save = False):
+def run_mcmc_astrometry(cubes, angs, psfs_norm, plsc, fwhm, annulus_width,
+                        ncomp, aperture_radius, nwalkers, initialState,
+                        bounds, cube_ref=None, a=2.0, burnin=0.3,
+                        rhat_threshold=1.01, rhat_count_threshold=3,
+                        niteration_min=0.0, niteration_limit=1e02,
+                        niteration_supp=0.0, check_maxgap=1e04, threads=1,
+                        output_file=None, display=False, verbose=True, 
+                        save=False):
     """
     Run an affine invariant mcmc algorithm in order to determine the true 
     position and the flux of the planet using the 'Negative Fake Companion' 
@@ -423,16 +413,12 @@ def run_mcmc_astrometry(cubes,
     rhat = np.zeros(dim)  
     stop = np.inf
     
-    sampler = emcee.EnsembleSampler(nwalkers,\
-                                    dim,\
-                                    lnprob,\
-                                    a,\
-                                    args =([bounds,cubes,angs,plsc,psfs_norm,
-                                            annulus_width,ncomp,aperture_radius,
-                                            initialState]),\
+    sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a,
+                                    args=([bounds,cubes,angs,plsc,psfs_norm,
+                                           annulus_width,ncomp,aperture_radius,
+                                           initialState, cube_ref]),
                                     threads=threads)
     
-
     duration_start = datetime.datetime.now()
     start = datetime.datetime.now()
 
@@ -444,7 +430,8 @@ def run_mcmc_astrometry(cubes,
         print 'Start of the MCMC run ...'
         print 'Step  |  Duration/step (sec)  |  Remaining Estimated Time (sec)'
                              
-    for k, res in enumerate(sampler.sample(pos,iterations=nIterations,storechain=True)):
+    for k, res in enumerate(sampler.sample(pos,iterations=nIterations,
+                                           storechain=True)):
         elapsed = (datetime.datetime.now()-start).total_seconds()
         if verbose:
             if k == 0:

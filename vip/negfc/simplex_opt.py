@@ -12,8 +12,8 @@ from .func_merit import chisquare
 
 
 def firstguess_simplex(p_ini, cube, angs, psf, plsc, fwhm, ncomp, annulus_width, 
-                       aperture_radius, tol=1e-04, max_iter=300, timer=False, 
-                       verbose=False):               
+                       aperture_radius, cube_ref=None, tol=1e-04, max_iter=300, 
+                       timer=False, verbose=False):               
     """
     Determine the position of a planet using the negative fake companion 
     technique and Nelder-Mead minimization.
@@ -35,6 +35,8 @@ def firstguess_simplex(p_ini, cube, angs, psf, plsc, fwhm, ncomp, annulus_width,
         The width in pixel of the annulus on wich the PCA is performed.
     aperture_radius: float
         The radius of the circular aperture.
+    cube_ref : array_like, 3d, optional
+        Reference library cube. For Reference Star Differential Imaging.
     tol : float
         The scipy.optimize.minimize() tolerance.
     max_iter : int
@@ -61,7 +63,7 @@ def firstguess_simplex(p_ini, cube, angs, psf, plsc, fwhm, ncomp, annulus_width,
     solu = minimize(chisquare, 
                     p_ini, 
                     args=(cube,angs,plsc,psf,annulus_width,ncomp,
-                          aperture_radius,p_ini), 
+                          aperture_radius,p_ini,cube_ref), 
                     method = 'Nelder-Mead', 
                     options={'xtol':tol, 'disp': True, 'maxiter': max_iter}) 
     

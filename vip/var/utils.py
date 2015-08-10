@@ -16,7 +16,7 @@ import glob
 import re
 import numpy as np
 from matplotlib.pyplot import (figure, subplot, show, colorbar, close, imshow,
-                               xlim, ylim, matshow)
+                               xlim, ylim, matshow, rc)
 from subprocess import call     
 from ..var import (fit_2dgaussian, dist, frame_center, get_circle, 
                         get_annulus)
@@ -42,6 +42,18 @@ def pp_subplots(*args, **kwargs):
         colorb = kwargs['colorb']
     else:
         colorb = False
+    if kwargs.has_key('vmax'):
+        vmax = kwargs['vmax']
+    else:
+        vmax = None
+    if kwargs.has_key('vmin'):
+        vmin = kwargs['vmin']
+    else:
+        vmin = None
+    if kwargs.has_key('dpi'):
+        rc("savefig", dpi=kwargs['dpi']) 
+    else:
+        rc("savefig", dpi=90) 
     
     if not isinstance(rows, int):
         raise(TypeError('Rows must be an integer'))
@@ -71,7 +83,7 @@ def pp_subplots(*args, **kwargs):
         v += 1
         ax = subplot(rows,cols,v)
         im = ax.imshow(args[i], cmap=custom_cmap, interpolation='nearest', 
-                       origin='lower')
+                       origin='lower', vmin=vmin, vmax=vmax)
         if colorb:  colorbar(im, ax=ax)
         ax.grid('off')
     show()

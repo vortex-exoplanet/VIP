@@ -9,6 +9,7 @@ __all__ = ['open_fits',
            'open_adicube',
            'info_fits',
            'write_fits',
+           'append_extension',
            'verify_fits',
            'display_fits_ds9',
            'display_array_ds9']
@@ -16,7 +17,7 @@ __all__ = ['open_fits',
 import glob
 import os
 import numpy as np
-from astropy.io import fits as fits
+from astropy.io import fits
 from ..exlib.ds9 import DS9Win
 
 
@@ -187,5 +188,13 @@ def write_fits(filename, array, header=None, dtype32=True, verbose=True):
         fits.writeto(filename, array, header)                       
         if verbose:
             print "\nFits file successfully saved"    
-    
+
+
+def append_extension(filename, array):
+    """Appends an extension to fits file. 
+    """
+    fits.append(filename, array)
+    print "\nFits extension appended"
+        
+        
     

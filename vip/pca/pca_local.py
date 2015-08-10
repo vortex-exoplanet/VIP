@@ -89,7 +89,7 @@ def annular_pca(array, angle_list, radius_int=0, asize=2, delta_rot=1, ncomp=1,
     if verbose:
         msg = '# annuli = {:}, Ann width = {:}, FWHM = {:.3f}\n'
         print msg.format(n_annuli, annulus_width, fwhm) 
-        print 'PCA will be done locally per annulus and per quadrant.\n'
+        print 'PCA will be done locally per annulus.\n'
         
     #***************************************************************************
     # The annuli are built, and the corresponding PA thresholds for frame 

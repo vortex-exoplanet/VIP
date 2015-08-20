@@ -201,19 +201,29 @@ def snrmap_fast(array, fwhm, plot=False, verbose=False):
         raise TypeError('Input array is not a 2d array or image.')
     if plot:  plt.close('snr')
     
-    def snr(array, sourcey, sourcex, fwhm):
-        centery, centerx = frame_center(array)
-        rad = dist(centery,centerx,sourcey,sourcex)
+    def snr_approx(array, sourcey, sourcex, fwhm):
+        """
+        array - convolved with top hat frame
+        """
+        #tophat_kernel = Tophat2DKernel(fwhm/2.)
+        #array = convolve(array, tophat_kernel) 
         
+        centery, centerx = frame_center(array)
+        rad = dist(centery,centerx,sourcey,sourcex) 
         ind_aper = circle(sourcey, sourcex, fwhm/2.)
-        flux = array[ind_aper].sum()
-        an_coor = get_annulus(array, rad, 1, output_indices=True)
+        
+        # noise : stddev in convolved array of px in 1px wide annulus
+        # masking the flux aperture * correction of number of res.elements
+        ind_ann = get_annulus(array, rad, 1, output_indices=True)
         array2 = array.copy()
-        array2[ind_aper] = array[an_coor].mean()   # we 'mask' the flux aperture
-        stddev = array2[an_coor].std()
-        peak = array[sourcey, sourcex] - array2[ind_aper].mean()
-        snr = peak / stddev
-        return snr
+        array2[ind_aper] = array[ind_ann].mean()   # quick-n-dirty mask
+        n2 = ((2*np.pi*rad)/fwhm) - 1
+        noise = array2[ind_ann].std()*np.sqrt(1+(1/n2))
+        
+        # signal : central px - the mean of the pxs in 1px annulus
+        signal = array[sourcey, sourcex] - array2[ind_ann].mean()
+    
+        return signal / noise
     
     tophat_kernel = Tophat2DKernel(fwhm/2.)
     array = convolve(array, tophat_kernel)
@@ -226,7 +236,7 @@ def snrmap_fast(array, fwhm, plot=False, verbose=False):
     yy, xx = np.where(mask)
     
     for y,x in zip(yy,xx):
-        snrmap[y,x] = snr(array, y, x, fwhm)       
+        snrmap[y,x] = snr_approx(array, y, x, fwhm)       
         
     if plot:
         plt.figure('snr')

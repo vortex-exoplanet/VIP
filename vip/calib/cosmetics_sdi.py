@@ -279,16 +279,30 @@ def find_outliers(frame, sig_dist, stddev=None, neighbor_box=3, DEBUG=False):
 
 def reject_outliers(data, m = 5., test_value=0,stddev=None, DEBUG = False):
     """ FUNCTION TO REJECT OUTLIERS FROM A SET
-    Instead of the standard deviation, the absolute distance to the median is 
-    used as a discriminant.
-    This absolute distance is then scaled by the median value so that m is on a 
-    reasonable relative scale (similar to the number of sigma in std_dev 
-    statistics).
-    mthresh is set to avoid detecting outliers out of very close pixel values 
-    (i.e. if the 9 pixels happen to be very uniform in values at some location, 
-    any small deviation could already be seen as an outlier); mthresh is thus 
-    an order of magnitude of the minimum difference between a pixel and its 
-    neighbours to be considered as outlier.
+    Instead of the classic standard deviation criterion (e.g. 5-sigma), the discriminant is determined as follow:
+    - for each value in data, an absolute distance to the median of data is computed and put in a new array "d" (of same size as data)
+    - the absolute distances "s" are then scaled by the median value of "d"
+    - each "s" is then compared to "m" (parameter): if s < m, we have a good neighbour.
+
+A specific value can also be tested as outlier, it would follow the same process as described above.
+
+
+    Parameters:
+    ----------------
+
+data         : Input array with respect to which we determine if a test_value consists in an outlier.
+m             : Criterion used to test if test_value or a neighbour pixel is an outlier (similar to the number of "sigma" in std_dev statistics)
+test_value: Value to be tested as an outlier in the context of the input array (data)
+stddev      : Global std dev of the non-PSF part of the considered frame. It is needed to avoid detecting outliers out of very close pixel values
+    (i.e. if the 9 pixels happen to be very uniform in values at some location). If not provided, a stddev of the sample is used (not recommended).
+DEBUG    : Bool. If True, the different variables involved will be printed out.
+
+    Returns:
+    -----------
+good_neighbours, test_result
+
+good_neighbours: sub-array of data containing the good neighbours, i.e. the pixels that are not outliers.
+test_result           : 0 if test_value is not an outlier. 1 otherwise. 
     """
 
     if stddev == None: stddev = np.std(data)

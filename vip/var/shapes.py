@@ -56,7 +56,7 @@ def get_square(array, size, y, x, position=False):
     y, x : int
         Coordinates of the center of the subframe.
     position : {False, True}, optional
-        If set to True return also the coordinates of the left upper vertex.
+        If set to True return also the coordinates of the left bottom vertex.
         
     Returns
     -------
@@ -186,7 +186,7 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
     if not cy and not cx:
         cy, cx = frame_center(array, verbose=False)
          
-    yy, xx = np.ogrid[:sx, :sy]                                                 # ogrid is a multidim mesh creator (faster than mgrid)
+    yy, xx = np.ogrid[:sy, :sx]                                                 # ogrid is a multidim mesh creator (faster than mgrid)
     circle = (yy - cy)**2 + (xx - cx)**2                                        # eq of circle. squared distance to the center                                        
     circle_mask = circle < radius**2                                            # mask of 1's and 0's                                       
     if output_values:

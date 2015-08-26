@@ -371,8 +371,8 @@ def cube_recenter_dft_upsampling(array, subimage=False, ref_y=None, ref_x=None,
         return array_rec
   
 
-def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, size_factor=3, full_output=False, verbose=True, save_shifts=False, debug=False):
-    """ Recenters the frames of a cube wrt the 1st one. The shifts are found
+def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, size_factor=3, ref_frame=0,full_output=False, verbose=True, save_shifts=False, debug=False):
+    """ Recenters the frames of a cube wrt the ref_frame one (default first one). The shifts are found
     fitting a 2d gaussian to a subimage centered at (pos_x, pos_y). This 
     assumes the frames don't have too large shifts (>5px). The frames are
     shifted using the function frame_shift() (bicubic interpolation).
@@ -383,8 +383,8 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, size_factor=3, full_o
         Input cube.
     pos_y, pos_x : int
         Coordinates of the center of the subimage.    
-    fwhm : float
-        FWHM size in pixels.
+    fwhm : float or array
+        FWHM size in pixels, either one value (float) that will be the same for the whole cube, or an array of floats with the same dimension as the 0th dim of array, containing the fwhm for each channel (e.g. in the case of an ifs cube)
     size_factor: float
         Size of the square in terms of FWHM.
     full_output : {False, True}, bool optional
@@ -415,21 +415,29 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, size_factor=3, full_o
     x = np.zeros((n_frames))
     y = np.zeros((n_frames))
     array_recentered = np.zeros_like(array)
+
+    if isinstance(fwhm,float) or isinstance(fwhm,int):
+        fwhm_scal = fwhm
+        fwhm = np.zeros((n_frames))
+        fwhm[:] = fwhm_scal
     
-    size = int(fwhm*size_factor)
-    sub_image, y1, x1 = get_square(array[0], size=size, y=pos_y, x=pos_x,
+    size = np.zeros(n_frames)    
+    for kk in range(n_frames):
+        size[kk] = max(2,int(fwhm[kk]*size_factor))
+
+    sub_image, y1, x1 = get_square(array[ref_frame], size=size[ref_frame], y=pos_y, x=pos_x,
                                    position=True)
     sub_image = sub_image.byteswap().newbyteorder()
     x_first, y_first = photutils.morphology.centroid_2dg(sub_image)             # centroid_2dg returns (x,y)
     y_first = y1 + y_first
     x_first = x1 + x_first                                                      # coord of source in first frame
     
-    array_recentered[0] = array[0]
+    array_recentered[ref_frame] = array[ref_frame]
     for i in xrange(1, n_frames):
-        sub_image, y1, x1 = get_square(array[i], size=13, y=pos_y, x=pos_x,
+        sub_image, y1, x1 = get_square(array[i], size=size[i], y=pos_y, x=pos_x,
                                        position=True)
         sub_image = sub_image.byteswap().newbyteorder()
-        x_i, y_i = photutils.morphology.centroid_2dg(sub_image)                 
+        x_i, y_i = photutils.morphology.centroid_2dg(sub_image)                
         y_i = y1 + y_i
         x_i = x1 + x_i
         y[i] = y_first-y_i                                                      
@@ -447,7 +455,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, size_factor=3, full_o
         return array_recentered
 
 
-def cube_recenter_com(array, pos_y, pos_x, fwhm=4, full_output=False,
+def cube_recenter_com(array, pos_y, pos_x, fwhm=4,full_output=False,
                       verbose=True, save_shifts=False, debug=False):
     """ Recenters the frames of a cube wrt the 1st one. The shifts are found
     getting the centroid of a subimage (center: (pos_x, pos_y)) as its center 
@@ -569,7 +577,7 @@ def cube_center_moffat2d_fit(array, fwhm=4, size_factor=10, full_output=False,
     assumes the frames don't have too large shifts (>5px). The frames are
     shifted using the vip function frame_shift() (bicubic interpolation).
     THE OUTPUT ARRAY SIZE IS LARGER THAN THE INPUT TO NOT LOOSE ANY INFORMATION ON THE EDGES.
-    The output size is larger than the input, and depends on the amplitude of the relative shifts between each frame of the cube.
+    The output array size depends on the amplitude of the relative shifts between each frame of the cube.
     
     Parameters
     ----------

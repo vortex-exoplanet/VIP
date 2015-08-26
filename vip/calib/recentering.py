@@ -17,18 +17,20 @@ __all__ = ['frame_shift',
 
 import numpy as np
 import cv2
+import os
 import photutils
 import pywt
 import itertools as itt
 import pyprind
 from scipy.ndimage.interpolation import shift
+from scipy.optimize import leastsq   
 from skimage.transform import radon
 from multiprocessing import Pool, cpu_count
 from image_registration import chi2_shift
 from matplotlib import pyplot as plt
 from ..conf import timeInit, timing, eval_func_tuple
 from ..var import (get_square, frame_center, wavelet_denoise, get_annulus, 
-                        pp_subplots)
+                        pp_subplots, get_square_robust)
 
 
 def frame_shift(array, shift_y, shift_x, lib='opencv', interpolation='bicubic'):
@@ -369,8 +371,7 @@ def cube_recenter_dft_upsampling(array, subimage=False, ref_y=None, ref_x=None,
         return array_rec
   
 
-def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, full_output=False, 
-                              verbose=True, save_shifts=False, debug=False):
+def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, size_factor=3, full_output=False, verbose=True, save_shifts=False, debug=False):
     """ Recenters the frames of a cube wrt the 1st one. The shifts are found
     fitting a 2d gaussian to a subimage centered at (pos_x, pos_y). This 
     assumes the frames don't have too large shifts (>5px). The frames are
@@ -384,6 +385,8 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, full_output=False,
         Coordinates of the center of the subimage.    
     fwhm : float
         FWHM size in pixels.
+    size_factor: float
+        Size of the square in terms of FWHM.
     full_output : {False, True}, bool optional
         Whether to return 2 1d arrays of shifts along with the recentered cube 
         or not.
@@ -413,7 +416,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, full_output=False,
     y = np.zeros((n_frames))
     array_recentered = np.zeros_like(array)
     
-    size = int(fwhm*3)
+    size = int(fwhm*size_factor)
     sub_image, y1, x1 = get_square(array[0], size=size, y=pos_y, x=pos_x,
                                    position=True)
     sub_image = sub_image.byteswap().newbyteorder()
@@ -558,5 +561,193 @@ def cube_center_fframe(array, ceny, cenx, fwhm=4):
     return array_out 
     
 
+
+def cube_center_moffat2d_fit(array, fwhm=4, size_factor=10, full_output=False, 
+                               verbose=True, debug=False,outpath=''):
+    """ Recenters the frames of a cube. The shifts are found
+    fitting a 2d moffat to a subimage centered at approximate stellar location. This 
+    assumes the frames don't have too large shifts (>5px). The frames are
+    shifted using the vip function frame_shift() (bicubic interpolation).
+    THE OUTPUT ARRAY SIZE IS LARGER THAN THE INPUT TO NOT LOOSE ANY INFORMATION ON THE EDGES.
+    The output size is larger than the input, and depends on the amplitude of the relative shifts between each frame of the cube.
+    
+    Parameters
+    ----------
+    array : array_like
+        Input cube.
+    fwhm : float or vector
+        FWHM size in pixels. If not vector, it is converted to a vector of the same z size as the datacube filled with the given value.
+    size_factor: float
+        Size of the square in terms of FWHM. From visual inspection of the models, 6 (8?) seems a conservative value to not take a box that is too small (which can affect the quality of the fit)
+    full_output : {False, True}, bool optional
+        Whether to return 2 1d arrays of shifts along with the recentered cube 
+        or not.
+    verbose : {True, False}, bool optional
+        Whether to print to stdout the timing and shift values or not.
+    debug : {False, True}, bool optional
+        Whether to print in an external file the shifts or not.
+    outpath: String
+        Contains the path of the directory where to save the external file containing shifts (requires debug = True to be useful)
+        
+    Returns
+    -------
+    array_recentered : array_like
+        The recentered cube.
+    If full_output is True:
+    y, x : array_like
+        1d arrays with the shifts in y and x. 
+    
+    """
+    if not array.ndim == 3:
+        raise TypeError('Input array is not a cube or 3d array')
+    
+    if verbose: start_time = timeInit()
+    
+    n_frames = array.shape[0]
+    n_y = array.shape[1]
+    n_x = array.shape[2]
+    x = np.zeros((n_frames))
+    y = np.zeros((n_frames))
+
+    if isinstance(fwhm,float) or isinstance(fwhm,int):
+        fwhm_scal = fwhm
+        fwhm = np.zeros((n_frames))
+        fwhm[:] = fwhm_scal
+    
+    size = np.zeros(n_frames)    
+    for kk in range(n_frames):
+        size[kk] = max(2,int(fwhm[kk]*size_factor))
+       
+    ### MAKE THE SHIFTED FRAMES BIGGER (rounded to upper integer) TO AVOID LOOSING INFO AFTER SHIFTING
+    new_ny = 2*n_y
+    new_nx = 2*n_x
+    big_arr = np.zeros([n_frames,new_ny,new_nx])
+    array_centered = np.zeros_like(big_arr)
+    cy, cx = frame_center(big_arr[0])
+
+    ### TAKE some precaution: some frames are dominated by noise and hence cannot be used to find the star with a Moffat fit.
+    ### In that case, just replace the coordinates by the approximate ones
+    star_approx_coords, star_not_present = approx_stellar_position(array,fwhm,return_test=True)
+
+    list_frames = range(n_frames)
+    for i in list_frames:
+        if star_not_present[i]:
+           y_i,x_i = star_approx_coords[i]
+        else:
+            sub_image, y1, x1 = get_square_robust(array[i], size=size[i], y=star_approx_coords[i,0], x=star_approx_coords[i,1], position=True,strict=False)
+            sub_image = sub_image.byteswap().newbyteorder()
+            y_i, x_i = fit_moffat_circular(sub_image, y1, x1, full_output=False)  
+        y[i] = cy-y_i                                                      
+        x[i] = cx-x_i
+        if verbose:  print y[i], x[i]
+        if debug:
+            if not os.path.exists(outpath+'shifts_value_centroid.txt'): # we only want to see the shifts of the first cube (to later compare with other recentering methods)
+                f=open(outpath+'shifts_value_centroid_cube000.txt','w')
+                just_opened= True
+                print >>f, i, y[i], x[i]
+
+    if debug:
+        f.close()
+
+
+    ###### SHIFTING
+    for i in list_frames:
+        big_arr[i,0:n_y,0:n_x] = array[i]
+        array_centered[i] = frame_shift(big_arr[i], y[i], x[i]) # shifting arrays
+
+    big_arr = None
+    max_y_sh = np.amax(y)
+    max_x_sh = np.amax(x)
+    min_y_sh = np.amin(y)
+    min_x_sh = np.amin(x)
+
+    ###### CROPPING TO SAVE MEMORY
+    # We want to keep the star centered, so we crop only a square centered on the star
+    size = 2*int(max(n_x-abs(min_x_sh),abs(max_x_sh),n_y-abs(min_y_sh),abs(max_y_sh)))+1
+    cropped_cube_ii = np.zeros([n_frames,size,size])
+
+    for zz in range(n_frames):
+        cropped_cube_ii[zz] = get_square_robust(array_centered[zz],size=size,y=cy,x=cx,strict=False)
+    
+    array_centered = None
+
+
+    if verbose:  timing(start_time)
+    
+    if full_output:
+        return cropped_cube_ii, y, x, size, size
+    else:
+        return cropped_cube_ii
+
+
+
+def fit_moffat_circular(array, yy, xx, full_output=False):
+    """Fits a star/planet with a 2D circular Moffat PSF.
+    
+    Parameters
+    ----------
+    array : array_like
+        Subimage with a single point source, approximately at the center. 
+    yy : int
+        Y integer position of the first pixel (0,0) of the subimage in the 
+        whole image.
+    xx : int
+        X integer position of the first pixel (0,0) of the subimage in the 
+        whole image.
+    
+    Returns
+    -------
+    maxi : float
+        Value of the source maximum signal (pixel).
+    floor : float
+        Level of the sky background (fit result).
+    height : float
+        PSF amplitude (fit result).
+    mean_x : float
+        Source centroid x position on the full image from fitting.
+    mean_y : float
+        Source centroid y position on the full image from fitting. 
+    fwhm : float
+        Gaussian PSF full width half maximum from fitting (in pixels).
+    beta : float
+        "beta" parameter of the moffat function.
+    """
+    maxi = array.max()                                                          # find starting values
+    floor = np.ma.median(array.flatten())
+    height = maxi - floor
+    if height==0.0:                                                             # if star is saturated it could be that 
+        floor = np.mean(array.flatten())                                        # median value is 32767 or 65535 --> height=0
+        height = maxi - floor
+
+    mean_y = (np.shape(array)[0]-1)/2
+    mean_x = (np.shape(array)[1]-1)/2
+
+    fwhm = np.sqrt(np.sum((array>floor+height/2.).flatten()))
+
+    beta = 4
+    
+    p0 = floor, height, mean_y, mean_x, fwhm, beta
+
+    def moffat(floor, height, mean_y, mean_x, fwhm, beta):                      # fitting
+        alpha = 0.5*fwhm/np.sqrt(2.**(1./beta)-1.)    
+        return lambda y,x: floor + height/((1.+(((x-mean_x)**2+(y-mean_y)**2)/alpha**2.))**beta)
+
+    def err(p,data):
+        return np.ravel(moffat(*p)(*np.indices(data.shape))-data)
+    
+    p = leastsq(err, p0, args=(array), maxfev=1000)
+    p = p[0]
+    
+    floor = p[0]                                                                # results
+    height = p[1]
+    mean_y = p[2] + yy
+    mean_x = p[3] + xx
+    fwhm = np.abs(p[4])
+    beta = p[5]
+    
+    if full_output:
+        return maxi, floor, height, mean_y, mean_x, fwhm, beta
+    else:
+        return mean_y, mean_x
 
         

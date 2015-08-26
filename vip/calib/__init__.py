@@ -7,5 +7,6 @@ from cosmetics import *
 from cosmetics_sdi import *
 from derotation import *
 from recentering import *
+from rescaling import *
 from subsampling import *
 

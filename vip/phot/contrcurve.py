@@ -10,7 +10,8 @@ from __future__ import print_function
 __author__ = 'C. Gomez, O. Absil @ ULg'
 __all__ = ['noise_per_annulus',
            'throughput',
-           'throughput_single_branch']
+           'throughput_single_branch',
+           'aperture_flux']
 
 import numpy as np
 import photutils
@@ -19,7 +20,7 @@ from scipy import stats
 from skimage.draw import circle
 from matplotlib import pyplot as plt
 from .fakecomp import inject_fcs_cube, inject_fc_frame
-from ..conf import timeInit, timing, VLT_NACO, LBT
+from ..conf import timeInit, timing, VLT_NACO, LBT, VLT_SINFONI
 from ..var import frame_center, dist
 from ..calib import frame_crop
 
@@ -64,14 +65,13 @@ def noise_per_annulus(array, separation, fwhm, verbose=False):
         return np.array(y), np.array(x)
     
     centery, centerx = frame_center(array)
+    separation = np.round(separation)     
     n_annuli = int(np.floor((centery)/separation))    
-
+    
     x = centerx
     y = centery
     noise = []
-    vector_radd = []
-    if verbose:  print('{} annuli'.format(n_annuli-1))
-        
+    vector_radd = []    
     for _ in range(n_annuli-1):
         y -= separation
         rad = dist(centery, centerx, y, x)
@@ -86,9 +86,10 @@ def noise_per_annulus(array, separation, fwhm, verbose=False):
         
         noise_ann = np.std(fluxes)
         noise.append(noise_ann) 
-        vector_radd.append(rad)
+        vector_radd.append(int(round(rad)))
         if verbose:
-            print('Radius(px) = {:} // Noise = {:.3f} '.format(rad, noise_ann))
+            print('Radius(px) = {:} // Noise = {:.3f} '.format(int(round(rad)), 
+                                                             noise_ann))
      
     return np.array(noise), np.array(vector_radd)
 
@@ -114,7 +115,7 @@ def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
     n_comp : int
         Number of principal components if PCA or other subspace projection 
         technique is used.
-    instrument : {'naco27', 'lmircam'}, string optional
+    instrument : {'naco27', 'lmircam', 'sinfoni12'}, string optional
         The instrument that acquired the dataset.
     algo : {'spca', 'pca', 'subspca', 'fd'}, string optional
         The post-processing algorithm.
@@ -151,6 +152,8 @@ def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
         plsc = VLT_NACO['plsc']
     elif instrument == 'lmircam':
         plsc = LBT['plsc']
+    elif instrument == 'sinfoni12':
+        plsc = VLT_SINFONI['plsc']
     else:
         raise TypeError('Instrument not recognized.')
 
@@ -283,7 +286,7 @@ def throughput_single_branch(array, parangles, psf_template, fwhm, n_comp,
     n_comp : int
         Number of principal components if PCA or other subspace projection 
         technique is used.
-    instrument : {'naco27', 'lmircam'}, string optional
+    instrument : {'naco27', 'lmircam', 'sinfoni12'}, string optional
         The instrument that acquired the dataset.
     algo : {'spca', 'pca'}, string optional
         The post-processing algorithm.
@@ -336,6 +339,8 @@ def throughput_single_branch(array, parangles, psf_template, fwhm, n_comp,
         plsc = VLT_NACO['plsc']
     elif instrument == 'lmircam':
         plsc = LBT['plsc']
+    elif instrument == 'sinfoni12':
+        plsc = VLT_SINFONI['plsc']
     else:
         raise TypeError('Instrument not recognized.')
     cube_fc = array.copy()

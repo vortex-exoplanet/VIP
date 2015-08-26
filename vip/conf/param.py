@@ -15,10 +15,25 @@ VLT_NACO = {
     'diam': 8.2,                            # telescope diameter [m]
     'lambdal' : 3.8e-6,                     # filter central wavelength [m] L band
     'camera_filter' : 'Ll',
+    'npix_x': 1024,
+    'npix_y': 1024,
     # header keywords
     'kw_categ' : 'HIERARCH ESO DPR CATG',   # header keyword for calibration frames: 'CALIB' / 'SCIENCE'
     'kw_type' : 'HIERARCH ESO DPR TYPE'     # header keyword for frame type: 'FLAT,SKY' / 'DARK' / 'OBJECT' / 'SKY'
 }
+
+
+VLT_SINFONI = {
+    'plsc': 0.0125,                         # plate scale [arcsec]/px
+    'diam': 8.2,                            # telescope diameter [m]
+    'lambdabrg' : 2.166e-6,                 # wavelength of the Brackett gamma line
+    'camera_filter' : 'H+K',
+    'spec_res':5e-4,                        # spectral resolution in um (for H+K)
+    # header keywords
+    'kw_categ' : 'HIERARCH ESO DPR CATG',   # header keyword for calibration frames: 'CALIB' / 'SCIENCE'
+    'kw_type' : 'HIERARCH ESO DPR TYPE'     # header keyword for frame type: 'FLAT,SKY' / 'DARK' / 'OBJECT' / 'SKY'
+}
+
 
 LBT = {
     'latitude' : 32.70131,                  # LBT's latitude in degrees

@@ -136,42 +136,34 @@ def approx_stellar_position(cube, fwhm):
     return star_approx_coords
 
 
-def bad_pixel_removal(array, center, fwhm_round, sig=5., verbose=False):
-    """ 
-    Function to correct the bad pixels in array; either a frame or a 
-    wavelength cube.
-    No bad pixel is corrected in a circle of 2 fwhm around the approximate 
-    location of the star.
-    
+def bad_pixel_removal(obj_tmp, center, fwhm, sig=5., protect_psf=True, verbose=False, hcube_ii='',DEBUG=False):
+    """
+    Function to correct the bad pixels in obj_tmp; either a frame or a wavelength cube.
+    No bad pixel is corrected in a circle of 2 fwhm radius around the approximate location of the star.
     Parameters
     ----------
     obj_tmp : cube_like or frame_like 
         Input 3d cube or 2d image.
     center : float scalar or vector
-        Vector with approximate y and x coordinates of the star for each channel 
-        (cube_like), or single 2-elements vector (frame_like)
-    fwhm_round: integral scalar or vector
-        Vector containing the full width half maximum of the PSF in pixels r
-        ounded to integral values, for each channel (cube_like); or single 
-        value (frame_like)
+        Vector with approximate y and x coordinates of the star for each channel (cube_like), or single 2-elements vector (frame_like)
+    fwhm: float scalar or vector
+        Vector containing the full width half maximum of the PSF in pixels, for each channel (cube_like); or single value (frame_like)
     sig=5.: Float scalar
-        Value representing the number of "sigmas" above or below the "median" 
-        of the neighbouring pixel, to consider a pixel as bad. See details on 
-        parameter "m" of function reject_outlier
+        Value representing the number of "sigmas" above or below the "median" of the neighbouring pixel, to consider a pixel as bad. See details on parameter "m" fo function reject_outlier
+    protect_psf: True if you want to protect a circular region centered on the star (2*fwhm radius) from any bpix corr (if False, maybe risk to modify a peak value; but if True real bpix within the core are not corrected)
     verbose: Boolean
-        If true, it will print the number of bad pixels and number of iterations 
-        required in each frame 
+        If true, it will print the number of bad pixels and number of iterations required in each frame 
     DEBUG: Boolean
-        If true, it will create fits files containing the bad pixel map and 
-        corrected frame at each iteration.
+        If true, it will create fits files containing the bad pixel map and corrected frame at each iteration.
     """
-    obj_tmp = array
-    ndims = len(obj_tmp.shape)
+    ndims = obj_tmp.ndim
     assert ndims == 2 or ndims == 3, "Object is not two or three dimensional.\n"
 
-    def bp_removal_2d(obj_tmp, center, fwhm_round, sig, verbose):        
+
+    def bp_removal_2d(obj_tmp, center, fwhm, sig, protect_psf, verbose):        
         n_x = obj_tmp.shape[1]
         n_y = obj_tmp.shape[0]
+        fwhm_round = int(round(fwhm))
         if fwhm_round % 2 == 0:
             neighbor_box = max(3,fwhm_round+1)     # This should reduce the chance to accidently correct a bright planet
         else:
@@ -179,8 +171,8 @@ def bad_pixel_removal(array, center, fwhm_round, sig=5., verbose=False):
         nneig = sum(np.arange(3,neighbor_box+2,2)) # This way, the sigma clipping will never get stuck due to a nan/bpix in a corner of the frame 
         
         #1/ Create a tuple-array with coordinates of a circle of radius 2*fwhm_round centered on the approximate coordinates of the star
-        circl_new = circle(cy=center[0], cx=center[1], radius=2*fwhm_round, 
-                           shape=(n_y, n_x))
+        if protect_psf: circl_new = circle(cy=center[0], cx=center[1], radius=2.0*fwhm_round, shape=(n_y, n_x))
+        else: circl_new = []
         
         #2/ Compute stddev of background
         # tested that 2.5 is the best to represent typical variation of background noise
@@ -203,7 +195,7 @@ def bad_pixel_removal(array, center, fwhm_round, sig=5., verbose=False):
                 print 'Iteration ',nit, ': ', nbpix_tot, ' bpixels in total, and ', nbpix_tbc, ' to be corrected.'
             obj_tmp = sigma_filter(obj_tmp, bpix_map, neighbor_box=neighbor_box, 
                                    min_neighbors=nneig, verbose=verbose)
-            bpix_map = find_outliers(obj_tmp, sig_dist=sig, 
+            bpix_map = find_outliers(obj_tmp, sig_dist=sig, stddev = stddev, 
                                      neighbor_box=neighbor_box,DEBUG=True)
             bpix_map_cumul = bpix_map_cumul+bpix_map
             nbpix_tot = np.sum(bpix_map)
@@ -215,14 +207,14 @@ def bad_pixel_removal(array, center, fwhm_round, sig=5., verbose=False):
         return obj_tmp, bpix_map_cumul
 
     if ndims == 2:
-        bpix_map_cumul = bp_removal_2d(obj_tmp, center, fwhm_round, sig, verbose)
+        obj_tmp, bpix_map_cumul = bp_removal_2d(obj_tmp, center, fwhm, sig, protect_psf, verbose)
 
     if ndims == 3:
         n_z = obj_tmp.shape[0]
         bpix_map_cumul = np.zeros_like(obj_tmp)
         for i in range(n_z):
-            bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], center, fwhm_round, 
-                                              sig, verbose)
+            if verbose: print '************Frame # ', i,' *************'
+            obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], center[i], fwhm[i], sig, protect_psf, verbose)
  
     return obj_tmp, bpix_map_cumul
     

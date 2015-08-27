@@ -22,15 +22,14 @@ import photutils
 import pywt
 import itertools as itt
 import pyprind
-from scipy.ndimage.interpolation import shift
-from scipy.optimize import leastsq   
+from scipy.ndimage.interpolation import shift  
 from skimage.transform import radon
 from multiprocessing import Pool, cpu_count
 from image_registration import chi2_shift
 from matplotlib import pyplot as plt
 from ..conf import timeInit, timing, eval_func_tuple
 from ..var import (get_square, frame_center, wavelet_denoise, get_annulus, 
-                        pp_subplots, get_square_robust)
+                        pp_subplots, get_square_robust,fit_2dmoffat)
 
 
 def frame_shift(array, shift_y, shift_x, lib='opencv', interpolation='bicubic'):
@@ -345,12 +344,12 @@ def cube_recenter_dft_upsampling(array, subimage=False, ref_y=None, ref_x=None,
     array_rec = array.copy()
     if subimage: 
         size = int(fwhm*3)
-        sub_image_1 = get_square(array_rec[0], size=size, y=ref_y, x=ref_x)
+        sub_image_1 = get_square_robust(array_rec[0], size=size, y=ref_y, x=ref_x)
         
     for i in xrange(1, n_frames):
         if subimage:
             size = int(fwhm*3)
-            sub_image = get_square(array[i], size=size, y=ref_y, x=ref_x)
+            sub_image = get_square_robust(array[i], size=size, y=ref_y, x=ref_x)
             dx, dy, edx, edy = chi2_shift(sub_image_1, sub_image, 
                                       upsample_factor='auto')
         else:
@@ -425,7 +424,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, size_factor=3, ref_fr
     for kk in range(n_frames):
         size[kk] = max(2,int(fwhm[kk]*size_factor))
 
-    sub_image, y1, x1 = get_square(array[ref_frame], size=size[ref_frame], y=pos_y, x=pos_x,
+    sub_image, y1, x1 = get_square_robust(array[ref_frame], size=size[ref_frame], y=pos_y, x=pos_x,
                                    position=True)
     sub_image = sub_image.byteswap().newbyteorder()
     x_first, y_first = photutils.morphology.centroid_2dg(sub_image)             # centroid_2dg returns (x,y)
@@ -434,13 +433,13 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, size_factor=3, ref_fr
     
     array_recentered[ref_frame] = array[ref_frame]
     for i in xrange(1, n_frames):
-        sub_image, y1, x1 = get_square(array[i], size=size[i], y=pos_y, x=pos_x,
+        sub_image, y1, x1 = get_square_robust(array[i], size=size[i], y=pos_y, x=pos_x,
                                        position=True)
         sub_image = sub_image.byteswap().newbyteorder()
         x_i, y_i = photutils.morphology.centroid_2dg(sub_image)                
         y_i = y1 + y_i
         x_i = x1 + x_i
-        y[i] = y_first-y_i                                                      
+        y[i] = y_first-y_i                                                
         x[i] = x_first-x_i
         if debug:  print y[i], x[i]
         array_recentered[i] = frame_shift(array[i], y[i], x[i])
@@ -500,7 +499,7 @@ def cube_recenter_com(array, pos_y, pos_x, fwhm=4,full_output=False,
     array_recentered = np.zeros_like(array)
     
     size = int(fwhm*3)
-    sub_image, y1, x1 = get_square(array[0], size=size, y=pos_y, x=pos_x,
+    sub_image, y1, x1 = get_square_robust(array[0], size=size, y=pos_y, x=pos_x,
                                       position=True)
     sub_image = sub_image.byteswap().newbyteorder()
     x_first, y_first = photutils.morphology.centroid_com(sub_image)             # centroid_2dg returns (x,y)
@@ -509,7 +508,7 @@ def cube_recenter_com(array, pos_y, pos_x, fwhm=4,full_output=False,
     
     array_recentered[0] = array[0]
     for i in xrange(1, n_frames):
-        sub_image, y1, x1 = get_square(array[i], size=13, y=pos_y, x=pos_x,
+        sub_image, y1, x1 = get_square_robust(array[i], size=13, y=pos_y, x=pos_x,
                                        position=True)
         sub_image = sub_image.byteswap().newbyteorder()
         x_i, y_i = photutils.morphology.centroid_com(sub_image)                 
@@ -554,7 +553,7 @@ def cube_center_fframe(array, ceny, cenx, fwhm=4):
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
     size = int(fwhm*3)
-    sub_image, y1, x1 = get_square(array[0], size=size, y=ceny, x=cenx,
+    sub_image, y1, x1 = get_square_robust(array[0], size=size, y=ceny, x=cenx,
                                    position=True)
     x_fit, y_fit = photutils.morphology.centroid_2dg(sub_image) 
     y_fit = y1 + int(round(y_fit))
@@ -644,7 +643,7 @@ def cube_center_moffat2d_fit(array, fwhm=4, size_factor=10, full_output=False,
         else:
             sub_image, y1, x1 = get_square_robust(array[i], size=size[i], y=star_approx_coords[i,0], x=star_approx_coords[i,1], position=True,strict=False)
             sub_image = sub_image.byteswap().newbyteorder()
-            y_i, x_i = fit_moffat_circular(sub_image, y1, x1, full_output=False)  
+            y_i, x_i = fit_2dmoffat(sub_image, y1, x1, full_output=False)  
         y[i] = cy-y_i                                                      
         x[i] = cx-x_i
         if verbose:  print y[i], x[i]
@@ -689,73 +688,5 @@ def cube_center_moffat2d_fit(array, fwhm=4, size_factor=10, full_output=False,
 
 
 
-def fit_moffat_circular(array, yy, xx, full_output=False):
-    """Fits a star/planet with a 2D circular Moffat PSF.
-    
-    Parameters
-    ----------
-    array : array_like
-        Subimage with a single point source, approximately at the center. 
-    yy : int
-        Y integer position of the first pixel (0,0) of the subimage in the 
-        whole image.
-    xx : int
-        X integer position of the first pixel (0,0) of the subimage in the 
-        whole image.
-    
-    Returns
-    -------
-    maxi : float
-        Value of the source maximum signal (pixel).
-    floor : float
-        Level of the sky background (fit result).
-    height : float
-        PSF amplitude (fit result).
-    mean_x : float
-        Source centroid x position on the full image from fitting.
-    mean_y : float
-        Source centroid y position on the full image from fitting. 
-    fwhm : float
-        Gaussian PSF full width half maximum from fitting (in pixels).
-    beta : float
-        "beta" parameter of the moffat function.
-    """
-    maxi = array.max()                                                          # find starting values
-    floor = np.ma.median(array.flatten())
-    height = maxi - floor
-    if height==0.0:                                                             # if star is saturated it could be that 
-        floor = np.mean(array.flatten())                                        # median value is 32767 or 65535 --> height=0
-        height = maxi - floor
-
-    mean_y = (np.shape(array)[0]-1)/2
-    mean_x = (np.shape(array)[1]-1)/2
-
-    fwhm = np.sqrt(np.sum((array>floor+height/2.).flatten()))
-
-    beta = 4
-    
-    p0 = floor, height, mean_y, mean_x, fwhm, beta
-
-    def moffat(floor, height, mean_y, mean_x, fwhm, beta):                      # fitting
-        alpha = 0.5*fwhm/np.sqrt(2.**(1./beta)-1.)    
-        return lambda y,x: floor + height/((1.+(((x-mean_x)**2+(y-mean_y)**2)/alpha**2.))**beta)
-
-    def err(p,data):
-        return np.ravel(moffat(*p)(*np.indices(data.shape))-data)
-    
-    p = leastsq(err, p0, args=(array), maxfev=1000)
-    p = p[0]
-    
-    floor = p[0]                                                                # results
-    height = p[1]
-    mean_y = p[2] + yy
-    mean_x = p[3] + xx
-    fwhm = np.abs(p[4])
-    beta = p[5]
-    
-    if full_output:
-        return maxi, floor, height, mean_y, mean_x, fwhm, beta
-    else:
-        return mean_y, mean_x
 
         

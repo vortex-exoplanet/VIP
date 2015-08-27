@@ -6,7 +6,7 @@ Module with local smart pca (annulus-wise) serial and parallel implementations.
 
 from __future__ import division 
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'C. Gomez @ ULg, V. Christiaens @ UChile/ULg'
 __all__ = ['annular_pca', 
            'subannular_pca', 
            'subannular_pca_parallel',
@@ -584,7 +584,7 @@ def get_fwhm(instrument):
             fwhm = LBT['fwhm']
         else:
             fwhm = LBT['lambdal']/LBT['diam']*206265/LBT['plsc']
-    elif instrument == 'sinfoni-brg':
+    elif instrument == 'sinfoni12':
         if 'fwhm' in VLT_SINFONI:
             fwhm = VLT_SINFONI['fwhm']
         else:

@@ -160,7 +160,7 @@ def get_square_robust(array, size, y, x, position=False, out_borders='reduced_sq
 
 def get_circle(array, radius, output_values=False, cy=None, cx=None):           
     """Returns a centered circular region from a 2d ndarray. All the rest 
-    pixels are set to zeros. 
+    pixels are set to zeros.
     
     Parameters
     ----------

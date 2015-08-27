@@ -18,7 +18,7 @@ from skimage import draw
 from .utils import svd_wrapper, prepare_matrix, reshape_matrix
 from ..calib import scale_cube, cube_derotate, cube_rescaling
 from ..conf import timing, timeInit
-from ..var import frame_center,get_square_robust
+from ..var import frame_center
 from .. import phot
 from .pca_local import annular_pca, subannular_pca
 

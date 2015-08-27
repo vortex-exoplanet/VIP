@@ -153,6 +153,8 @@ def bad_pixel_removal(obj_tmp, center, fwhm, sig=5., protect_psf=True, verbose=F
     protect_psf: True if you want to protect a circular region centered on the star (2*fwhm radius) from any bpix corr (if False, maybe risk to modify a peak value; but if True real bpix within the core are not corrected)
     verbose: Boolean
         If true, it will print the number of bad pixels and number of iterations required in each frame 
+    hcube_ii:
+        Optional, the header of the cube. It is required in case DEBUG is True, to write some intermediate fits files.
     DEBUG: Boolean
         If true, it will create fits files containing the bad pixel map and corrected frame at each iteration.
     """

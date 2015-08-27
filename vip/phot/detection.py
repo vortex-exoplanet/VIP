@@ -22,7 +22,7 @@ from astropy.modeling.fitting import LevMarLSQFitter
 from photutils import CircularAperture, aperture_photometry
 from photutils.detection import findstars
 from skimage.feature import peak_local_max
-from ..var import mask_circle, pp_subplots, get_square, fit_2dgaussian, frame_center
+from ..var import mask_circle, pp_subplots, get_square_robust, fit_2dgaussian, frame_center
 from ..var.filters import SIGMA2FWHM, gaussian_kernel
 from .snr import snr_student
 from .frame_analysis import frame_quick_report
@@ -136,7 +136,7 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
     gauss = Gaussian2D(amplitude=1, x_mean=5, y_mean=5, x_stddev=3.5, 
                        y_stddev=3.5, theta=0)
     fitter = LevMarLSQFitter()                  # Levenberg-Marquardt algorithm
-    psf_subimage = get_square(psf, 9, frame_center(psf)[0],frame_center(psf)[1])
+    psf_subimage = get_square_robust(psf, 9, frame_center(psf)[0],frame_center(psf)[1])
     y, x = np.indices(psf_subimage.shape)
     fit = fitter(gauss, x, y, psf_subimage)
     fwhm = np.mean([fit.y_stddev.value*SIGMA2FWHM, 
@@ -186,7 +186,7 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
         coords = []
         # Fitting a 2d gaussian to each local maxima position
         for y,x in zip(y_temp,x_temp):
-            subim, suby, subx = get_square(array_padded, 2*int(np.ceil(fwhm)), 
+            subim, suby, subx = get_square_robust(array_padded, 2*int(np.ceil(fwhm)), 
                                            y+pad, x+pad, position=True) 
             cy, cx = frame_center(subim)
             
@@ -289,7 +289,7 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
         if verbose: 
             print '_________________________________________'
             print 'Y,X = ({:.1f},{:.1f}) -----------------------'.format(y, x)
-        subim = get_square(array, size=15, y=y, x=x)
+        subim = get_square_robust(array, size=15, y=y, x=x)
         snr = snr_student(array, y, x, fwhm, False, verbose=False)
         snr_list.append(snr)
         px_list.append(array[y,x])

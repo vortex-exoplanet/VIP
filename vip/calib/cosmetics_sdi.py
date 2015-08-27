@@ -2,6 +2,7 @@
 
 """
 Module with cube cosmetic functions for SDI datasets.
+This module has been optimized using VLT/SINFONI data (only). 
 """
 
 from __future__ import division

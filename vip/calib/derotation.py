@@ -106,7 +106,8 @@ def cube_derotate(array, angle_list, cy=None, cx=None):
 
 def derot_angles(objname_tmp_A, digit_format=3,objname_tmp_B='',inpath='~/',verbose=False, skew = False, writing=True, outpath='~/',unit='deg',list_obj=None):
     """
-    FUNCTION TO PROVIDE A LIST OF ANGLES TO DEROTATE DATACUBES FROM ANY HEADER.
+    FUNCTION TO PROVIDE A LIST OF ANGLES TO DEROTATE DATACUBES FROM ANY HEADER OF ESO (not tested on other headers).
+    The header should contain the following keywords: 'CD1_1','CD1_2','CD2_1','CD2_2' and 'CUNIT1'.
     ROBUST, in the sense that:
     1) all angles of the ouput list are positive
     2) there is no jump of more than 180 deg between consecutive values (e.g. no jump like [350deg,355deg,0deg,5deg] => replaced by [350deg,355deg,360deg,365deg])

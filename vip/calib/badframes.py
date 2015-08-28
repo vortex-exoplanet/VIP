@@ -46,8 +46,8 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=None, width=None,
         Top boundary for rejection.
     low_sigma : int, optional
         Lower boundary for rejection.
-    plot : {'False','True'}, optional
-        If true it plots the mean fluctuation as a function of the frames and 
+    plot : {False,True}, optional
+        If True it plots the mean fluctuation as a function of the frames and 
         the boundaries.
     verbose : {True, False}, bool optional
         Whether to print to stdout or not.

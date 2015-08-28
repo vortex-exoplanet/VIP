@@ -4,16 +4,20 @@ Created in February 2015, last updated in August 2015
 Module of subroutines used to manipulate fits headers.
 """
 
-__author__ = 'V. Christiaens @ UChile/ULg'
+__author__ = 'V. Christiaens @ UChile/ULg; V. Salinas @ U.Leiden'
 
 import numpy as np
 
 
 def coordinates(header,j):
     """
-    FUNCTION TO READ HEADER h AND FIND THE COORDINATE OF EACH POINT OF AXIS j
-    Example:
-    if j=1, [val]=RA; if j=2, [val]=DEC; if j=3, [val]=microns
+    FUNCTION TO READ HEADER AND RETURNS THE COORDINATE OF EACH POINT OF AXIS j\
+
+    Typically:
+    if j=1, coordinates in RA;
+    if j=2, coordinates in DEC; 
+    if j=3, coordinates in microns
+
     """
     N=header['NAXIS'+str(j)];
     val=np.zeros(N);
@@ -24,9 +28,12 @@ def coordinates(header,j):
 
 def coordinate(header,j,i):
     """
-    FUNCTION TO READ HEADER h AND FIND THE COORDINATE OF POINT i OF AXIS j
-    Example:
-    if j=1, [val]=RA; if j=2, [val]=DEC; if j=3, [val]=microns
+    FUNCTION TO READ HEADER AND FIND THE COORDINATE OF POINT i OF AXIS j
+
+    Typically:
+    if j=1, coordinates in RA of column x = i;
+    if j=2, coordinates in DEC of column y = i; 
+    if j=3, coordinates in microns of channel z = i
     """
     val = (i+1-float(header['CRPIX'+str(j)]))*float(header['CD'+str(j)+'_'+str(j)]) + float(header['CRVAL'+str(j)]);
     return val
@@ -34,11 +41,8 @@ def coordinate(header,j,i):
 
 def genlbda(header):
     """
-    FUNCTION TO GENERATE A VECTOR WITH ALL THE WAVELENGTH VALUES - author: Vachail Salinas
+    FUNCTION TO GENERATE A VECTOR WITH ALL THE WAVELENGTH VALUES
 
-    Parameter:
-    ----------
-    header:header_like
     """
     lbda= np.array([header['CD3_3']*(x - (header['CRPIX3']-1)) + header['CRVAL3'] for x in range(header['NAXIS3'])])   # in microns (units of header)  
     return lbda
@@ -46,11 +50,18 @@ def genlbda(header):
 
 def hcubetoim(header,dim4=False):
     """
-    FUNCTION TO CONVERT A HEADER FROM 3D to 2D (useful for output images like median,mean, etc.).
+    FUNCTION TO CONVERT A HEADER FROM 3D (or 4D) to 2D (useful for output images like median,mean, etc.).
     
     Parameter:
     ----------
-    header:header_like
+    header: header_like
+    dim4: bool, {False,True} optional
+        Whether the input header is associated to a dimension 4 cube.
+
+    Returns:
+    --------
+    hplane: header_like
+        The modified header.
     """
 
     hplane=header
@@ -129,7 +140,11 @@ def himtocube(header,nz_fin,crpix3,crval3,cunit3='um',cdelt3=0.005,ctype3='WAVE'
 
 def hsmallercube(header,n_subtr_chan_init,n_subtr_chan_fin):
     """
-    FUNCTION TO CHANGE A HEADER WHEN THE WAVELENGTH RANGE IS REDUCED (by providing the number of channels to be removed at the beginning and at the end).
+    FUNCTION TO CHANGE A HEADER WHEN THE WAVELENGTH RANGE IS REDUCED
+    
+    Parameters:
+    -----------
+(by providing the number of channels to be removed at the beginning and at the end).
     Note: this function is different than hdifferentZ in the sense that it assumes that the cube remains a spectral cube along the z-axis. 
     """
 

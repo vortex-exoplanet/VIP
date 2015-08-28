@@ -6,7 +6,7 @@ Module with detection algorithms.
 
 from __future__ import division
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'C. Gomez @ ULg, V. Christiaens @ UChile/ULg'
 __all__ = ['detection', 
            'mask_source_centers',
            'peak_coordinates']
@@ -359,12 +359,12 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
         return yy_final, xx_final
 
     
-def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None):
+def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None, cube_max=False):
     """Find the pixel coordinates of maximum in either a frame or a cube, 
     after convolution with gaussian. It first applies a gaussian filter, to 
     lower the probability of returning a hot pixel (although it may still 
     happen with clumps of hot pixels, hence the need for function 
-    "approx_stellar_position".
+    "approx_stellar_position" in calib/cosmetics_ifs.py).
     
     Parameters
     ----------
@@ -378,12 +378,19 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None):
         of the peak.
     search_box: 
         Scalar or list_like (of 2 components) giving the half-size in pixels 
-        of a box in which the peak is searched, aroung approx_peak.
+        of a box in which the peak is searched, around approx_peak.
+    cube_max: {False, True}, bool optional
+        Whether the function returns only the indices of the peak, or also a 
+        vector with the coordinates of the gaussian filtered max in each channel 
+        (in case of a 3d cube).
 
     Returns
     -------
-    zz_max, yy_max, xx_max : integers
+    (zz_max,) yy_max, xx_max : integers
         Indices of highest throughput channel
+    If cube_max is True, then it also returns yy_max_ch, xx_max_ch: array_like, 
+    with the y and x indices of the gaussian-filtered peak in each channel.
+    
     """
 
     ndims = len(obj_tmp.shape)
@@ -415,17 +422,21 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None):
     if ndims == 3:
         n_z = obj_tmp.shape[0]
         gauss_filt_tmp = np.zeros_like(obj_tmp)
+        if cube_max: ind_max_cube = np.zeros([n_z,2])
 
         msg2 = "The search for the peak in a 3D cube, with the approx peak"
         msg2 +=  "option is not implemented.\n"
         assert approx_peak == None, msg2
         for zz in range(n_z):
             gauss_filt_tmp[zz] = gaussian_filter(obj_tmp[zz], fwhm[zz])
+            if cube_max:
+                ind_max_cube[zz] = np.unravel_index(gauss_filt_tmp[zz].argmax(), gauss_filt_tmp[zz].shape)
 
         ind_max = np.unravel_index(gauss_filt_tmp.argmax(), 
                                    gauss_filt_tmp.shape)
         
-    return ind_max
+    if cube_max and ndims == 3: return ind_max, ind_max_cube
+    else: return ind_max
 
 
 def mask_source_centers(array, fwhm, y, x):                                                  

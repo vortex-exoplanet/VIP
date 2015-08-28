@@ -6,7 +6,7 @@ Module containing functions for cubes frame registration.
 
 from __future__ import division
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'C. Gomez @ ULg, V. Christiaens @ UChile/ULg'
 __all__ = ['frame_shift',
            'frame_center_radon',
            'cube_recenter_radon',
@@ -29,7 +29,7 @@ from image_registration import chi2_shift
 from matplotlib import pyplot as plt
 from ..conf import timeInit, timing, eval_func_tuple
 from ..var import (get_square, frame_center, wavelet_denoise, get_annulus, 
-                        pp_subplots, get_square_robust,fit_2dmoffat)
+                   pp_subplots, get_square_robust,fit_2dmoffat)
 
 
 def frame_shift(array, shift_y, shift_x, lib='opencv', interpolation='bicubic'):
@@ -37,13 +37,13 @@ def frame_shift(array, shift_y, shift_x, lib='opencv', interpolation='bicubic'):
 
     Parameters
     ----------
-    array : array_like
+    array: array_like
         Input 2d array.
     shift_y, shift_x: float
         Shifts in x and y directions.
-    lib : {'opencv', 'ndimage'}, string optional 
+    lib: {'opencv', 'ndimage'}, string optional 
         Whether to use opencv or ndimage library.
-    interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
+    interpolation: {'bicubic', 'bilinear', 'nearneig'}, optional
         'nneighbor' stands for nearest-neighbor interpolation,
         'bilinear' stands for bilinear interpolation,
         'bicubic' for interpolation over 4x4 pixel neighborhood.
@@ -370,8 +370,8 @@ def cube_recenter_dft_upsampling(array, subimage=False, ref_y=None, ref_x=None,
         return array_rec
   
 
-def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, size_factor=3, ref_frame=0,full_output=False, verbose=True, save_shifts=False, debug=False):
-    """ Recenters the frames of a cube wrt the ref_frame one (default first one). The shifts are found
+def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, size_factor=3, ref_frame=0, full_output=False, verbose=True, save_shifts=False, debug=False):
+    """ Recenters the frames of a cube wrt the ref_frame one. The shifts are found
     fitting a 2d gaussian to a subimage centered at (pos_x, pos_y). This 
     assumes the frames don't have too large shifts (>5px). The frames are
     shifted using the function frame_shift() (bicubic interpolation).
@@ -385,7 +385,9 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, size_factor=3, ref_fr
     fwhm : float or array
         FWHM size in pixels, either one value (float) that will be the same for the whole cube, or an array of floats with the same dimension as the 0th dim of array, containing the fwhm for each channel (e.g. in the case of an ifs cube)
     size_factor: float
-        Size of the square in terms of FWHM.
+        Size of the sub-array in which the gaussian fit is done, in terms of FWHM.
+    ref_frame: int
+        Index of the frame wrt which the other frames are registered.
     full_output : {False, True}, bool optional
         Whether to return 2 1d arrays of shifts along with the recentered cube 
         or not.
@@ -583,9 +585,9 @@ def cube_center_moffat2d_fit(array, fwhm=4, size_factor=10, full_output=False,
     array : array_like
         Input cube.
     fwhm : float or vector
-        FWHM size in pixels. If not vector, it is converted to a vector of the same z size as the datacube filled with the given value.
+        FWHM size in pixels. If not vector, it is converted to a vector of the same dimension as the first axis of datacube, filled with the given value.
     size_factor: float
-        Size of the square in terms of FWHM. From visual inspection of the models, 6 (8?) seems a conservative value to not take a box that is too small (which can affect the quality of the fit)
+        Size of the sub-array in which the Moffat fit is done, in terms of FWHM.
     full_output : {False, True}, bool optional
         Whether to return 2 1d arrays of shifts along with the recentered cube 
         or not.

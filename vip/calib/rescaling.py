@@ -5,9 +5,9 @@ Module with frame rescaling routine for SDI.
 """
 __author__ = 'V. Christiaens @ ULg'
 __all__ = ['scale_cube',
-           'cube_rescaling',
+           '_scale_func',
            'frame_rescaling',
-           'scale_func']
+           'cube_rescaling']
 
 import cv2
 import numpy as np
@@ -20,6 +20,29 @@ def scale_cube(cube,scal_list,full_output=True,inverse=False,y_in=1,x_in=1):
     """
     Wrapper to scale or descale a cube by factors given in scal_list, without any loss of information (zero-padding if scaling > 1).
     Important: in case of ifs data, the scaling factors in var_list should be >= 1 (ie. provide the scaling factors as for scaling to the longest wavelength channel)
+
+    Parameters:
+    -----------
+    cube: 3D-array
+       Datacube that whose frames have to be rescaled
+    scal_list: 1D-array
+       Vector of same dimension as the first dimension of datacube, containing the scaling factor for each frame.
+    full_output: bool, {True,False}, optional
+       Whether to output just the rescaled cube (False) or also its median, the new y and x shapes of the cube, and the new centers cy and cx of the frames (True).
+    inverse: bool, {True,False}, optional
+       Whether to inverse the scaling factors in scal_list before applying them or not.
+       i.e. True is to descale the cube (typically after a first scaling has already been done)
+    y_in, x-in:
+       Initial y and x sizes.
+       In case the cube is descaled, these values will be used to crop back the cubes/frames to their original size.
+
+    Returns:
+    --------
+    frame: 2D-array
+        The median of the rescaled cube.
+    If full_output is set to True, the function returns:
+    cube,frame,y,x,cy,cx: 3D-array,2D-array,int,int,int,int
+        The rescaled cube, its median, the new y and x shapes of the cube, and the new centers cy and cx of the frames
     """
 
     #First pad the cube with zeros appropriately to not loose info when scaling the cube.
@@ -68,11 +91,11 @@ def scale_cube(cube,scal_list,full_output=True,inverse=False,y_in=1,x_in=1):
     else: return frame
 
 
-def scale_func(output_coords,ref_y=0,ref_x=0, scaling=1.0):    
+def _scale_func(output_coords,ref_y=0,ref_x=0, scaling=1.0):    
     """
     For each coordinate point in a new scaled image (output_coords), 
     coordinates in the image before the scaling are returned. 
-    Typically this function is used within geometric_transform, 
+    This scaling function is used within geometric_transform (in frame_rescaling), 
     which, for each point in the output image, will compute the (spline)
     interpolated value at the corresponding frame coordinates before the scaling.
     """
@@ -96,7 +119,7 @@ def frame_rescaling(array, ref_y=0,ref_x=0, gamma=1.0, method = 'geometric_trans
         of the frame; central pixel if frame has odd size.
     gamma : float
         Scaling factor. If > 1, it will expand the input array.        
-    method: {geometric_transform,cv2.warp_affine}, optional
+    method: {'geometric_transform','cv2.warp_affine'}, optional
         String determining which method to apply to rescale. 
         Both use a spline of order 3 for interpolation.
         geometric transform (default) seems to work fine, from a test on a numpy array in ipython.
@@ -114,7 +137,7 @@ def frame_rescaling(array, ref_y=0,ref_x=0, gamma=1.0, method = 'geometric_trans
     array_out = np.zeros_like(array)
 
     if method == 'geometric_transform':
-        geometric_transform(array, scale_func, output_shape=array.shape, output = array_out, extra_keywords={'ref_y':ref_y,'ref_x':ref_x,'scaling':gamma})
+        geometric_transform(array, _scale_func, output_shape=array.shape, output = array_out, extra_keywords={'ref_y':ref_y,'ref_x':ref_x,'scaling':gamma})
 
     elif method == 'cv2.warp_affine':
         M = np.array([[gamma,0,(1.-gamma)*ref_x],[0,gamma,(1.-gamma)*ref_y]])
@@ -127,17 +150,18 @@ def frame_rescaling(array, ref_y=0,ref_x=0, gamma=1.0, method = 'geometric_trans
     
     
 def cube_rescaling(array, scaling_list, ref_y=None, ref_x=None, method = 'geometric_transform'):
-    """ Function to rescale a cube, frame by frame, 
-        by a factor gamma, with respect to position (cy,cx).
-        It calls frame_rescaling.
+    """ 
+    Function to rescale a cube, frame by frame, 
+    by a factor gamma, with respect to position (cy,cx).
+    It calls frame_rescaling.
     
     Parameters
     ----------
     array : array_like 
         Input 3d array, cube.
-    angle_list : list
+    angle_list : 1D-array
         Vector containing the parallactic angles.
-    cy, cx : float, optional
+    ref_y, ref_x : float, optional
         Coordinates X,Y  of the point with respect to which the rotation will be 
         performed. By default the rotation is done with respect to the center 
         of the frames; central pixel if the frames have odd size.

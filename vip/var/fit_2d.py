@@ -5,7 +5,8 @@
 """
 
 __author__ = 'C. Gomez @ ULg'
-__all__ = ['fit_2dgaussian']
+__all__ = ['fit_2dgaussian',
+           'fit_2dmoffat']
 
 import numpy as np
 from scipy.optimize import leastsq

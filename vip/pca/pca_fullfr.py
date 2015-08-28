@@ -16,7 +16,7 @@ import numpy as np
 import pdb
 from skimage import draw
 from .utils import svd_wrapper, prepare_matrix, reshape_matrix
-from ..calib import scale_cube, cube_derotate, cube_rescaling
+from ..calib import scale_cube, cube_derotate, cube_rescaling, check_PA_vector
 from ..conf import timing, timeInit
 from ..var import frame_center
 from .. import phot
@@ -76,11 +76,11 @@ def pca(cube, var_list,svd_mode='randsvd', ncomp=1, center='temporal',
     n, y_in, x_in = cube.shape
 
     if verbose: start_time = timeInit()
-
-
+ 
     if variation == 'ifs':
         array,_,y,x,cy,cx = scale_cube(cube,var_list)
     elif variation == 'adi':
+        var_list = check_PA_vector(var_list)
         array = cube
         y, x = y_in, x_in
     else:

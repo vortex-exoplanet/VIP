@@ -23,7 +23,7 @@ import numpy as np
 import pdb
 
 from multiprocessing import Pool, cpu_count
-from ..calib import cube_derotate,scale_cube
+from ..calib import cube_derotate,scale_cube,check_PA_vector
 from ..conf import timeInit, timing, eval_func_tuple, VLT_NACO, LBT, VLT_SINFONI
 from ..var import get_annulus_quad
 from ..pca.utils import svd_wrapper, reshape_matrix
@@ -96,8 +96,11 @@ def annular_pca(array, var_list, radius_int=0, asize=2., delta_thr=1, ncomp=None
     
     if variation == 'ifs':
         array,_,y,x,cy,cx = scale_cube(array,var_list)
-    else:
+    elif variation == 'adi':
+        var_list = check_PA_vector(var_list)
         y,x = y_in,x_in
+    else:
+        raise ValueError("Variation argument can only be set to 'adi' or 'ifs'")
 
     if not ncomp: auto_ncomp = True
     else: auto_ncomp = False
@@ -277,8 +280,11 @@ def subannular_pca(array, var_list, radius_int=0, asize=2., delta_thr=1,
 
     if variation == 'ifs':
         array,_,y,x,cy,cx = scale_cube(array,var_list)
-    else:
+    elif variation == 'adi':
+        var_list = check_PA_vector(var_list)
         y,x = y_in,x_in
+    else:
+        raise ValueError("Variation argument can only be set to 'adi' or 'ifs'")
     
     annulus_width = max(2, int(asize * fwhm))                                           # equal size for all annuli
     n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    
@@ -476,8 +482,11 @@ def subannular_pca_parallel(array, var_list, radius_int=0, asize=2.,
 
     if variation == 'ifs':
         array,_,y,x,cy,cx = scale_cube(array,var_list)
-    else:
+    elif variation == 'adi':
+        var_list = check_PA_vector(var_list)
         y,x = y_in,x_in
+    else:
+        raise ValueError("Variation argument can only be set to 'adi' or 'ifs'")
     
     annulus_width = max(2, int(asize * fwhm))                                           # equal size for all annuli
     n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    

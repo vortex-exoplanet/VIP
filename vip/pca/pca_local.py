@@ -404,7 +404,8 @@ def subannular_pca(array, var_list, radius_int=0, asize=2., delta_thr=1,
 def subannular_pca_parallel(array, var_list, radius_int=0, asize=2., 
                             delta_thr=1, ncomp=None, instrument=None, fwhm=None, 
                             center=True, nproc=None, svd_mode='arpack', 
-                            full_output=False, verbose=True, debug=False,variation='adi'):
+                            full_output=False, verbose=True, debug=False,
+                            variation='adi'):
     """ Local PCA (subannular version) parallel algorithm. The PCA is computed 
     locally in each quadrant of each annulus. On each annulus we discard 
     reference images taking into account the parallactic angle threshold. 

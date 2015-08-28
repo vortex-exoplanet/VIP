@@ -10,8 +10,6 @@ __all__ = ['derot_angles_CD',
 import math
 import numpy as np
 import os
-import cv2
-from ..var import frame_center
 
 
 def derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',inpath='~/', 

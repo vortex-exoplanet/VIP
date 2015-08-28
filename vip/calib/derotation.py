@@ -106,11 +106,19 @@ def cube_derotate(array, angle_list, cy=None, cx=None):
 
 def derot_angles(objname_tmp_A, digit_format=3,objname_tmp_B='',inpath='~/', skew=False, writing=False, outpath='~/', list_obj=None, cd11_key='CD1_1', cd12_key='CD1_2', cd21_key='CD2_1', cd22_key='CD2_2', verbose=False):
     """
+<<<<<<< HEAD
     Function that provides a numpy vector of angles to derotate datacubes so as to match North up, East left, based on header information.
     It is robust for the pca algorithm (which computes variables based on this vector), in the sense that:
     1) all angles of the output are in degrees
     2) all angles of the ouput list are positive
     3) there is no jump of more than 180 deg between consecutive values (e.g. no jump like [350deg,355deg,0deg,5deg] => replaced by [350deg,355deg,360deg,365deg])
+=======
+    FUNCTION TO PROVIDE A LIST OF ANGLES TO DEROTATE DATACUBES FROM ANY HEADER OF ESO (not tested on other headers).
+    The header should contain the following keywords: 'CD1_1','CD1_2','CD2_1','CD2_2' and 'CUNIT1'.
+    ROBUST, in the sense that:
+    1) all angles of the ouput list are positive
+    2) there is no jump of more than 180 deg between consecutive values (e.g. no jump like [350deg,355deg,0deg,5deg] => replaced by [350deg,355deg,360deg,365deg])
+>>>>>>> ce6903e0bbfdaab296008a6e93e96c8b609f36eb
 
     Parameters:
     -----------

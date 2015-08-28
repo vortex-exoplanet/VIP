@@ -17,12 +17,12 @@ def derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',inpath='~/',
                  cd11_key='CD1_1', cd12_key='CD1_2', cd21_key='CD2_1', 
                  cd22_key='CD2_2', verbose=False):
     """
-    Function that provides a numpy vector of angles to derotate datacubes so as 
+    Function that returns a numpy vector of angles to derotate datacubes so as 
     to match North up, East left, based on header information.
     It is robust for the pca algorithm (which computes variables based on this 
     vector), in the sense that:
     1) all angles of the output are in degrees
-    2) all angles of the ouput list are positive
+    2) all angles of the ouput  are positive
     3) there is no jump of more than 180 deg between consecutive values (e.g. no
     jump like [350deg,355deg,0deg,5deg] 
     => replaced by [350deg,355deg,360deg,365deg])
@@ -121,7 +121,7 @@ def derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',inpath='~/',
     cd2_1 = []
     cd2_2 = []
 
-    if list_obj == None:
+    if list_obj is None:
         list_obj = []
         for ii in range(10**digit_format):
             digits_ii = numberToString(ii,digit_format)

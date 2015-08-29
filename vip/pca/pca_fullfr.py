@@ -6,17 +6,17 @@ PCA algorithm performed on full frame.
 
 from __future__ import division 
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'C. Gomez @ ULg, V. Christiaens @ U.Chile/ULg'
 __all__ = ['pca',
            'pca_optimize_snr',
            'scale_cube']
 
 import copy
 import numpy as np
-import pdb
 from skimage import draw
 from .utils import svd_wrapper, prepare_matrix, reshape_matrix
-from ..calib import scale_cube, cube_derotate, cube_rescaling, check_PA_vector
+from ..calib import (scale_cube, cube_derotate, cube_rescaling, check_PA_vector,
+                     check_scal_vector)
 from ..conf import timing, timeInit
 from ..var import frame_center
 from .. import phot
@@ -24,19 +24,25 @@ from .pca_local import annular_pca, subannular_pca
 
 
 def pca(cube, var_list,svd_mode='randsvd', ncomp=1, center='temporal', 
-        radius_int=None, full_output=False, verbose=True, debug=False,variation='adi'):
+        radius_int=None, full_output=False, verbose=True, debug=False,
+        variation='adi'):
     """ Algorithm where the PSF and the quasi-static speckle pattern is modeled 
     through PCA, using all the frames in the cube (as in KLIP or pynpoint).
     Several SVD methods are explored.
+    Important: it is assumed that the input cube is already centered with the 
+    star on its middle pixel.
     
     Parameters
     ----------
     cube : array_like, 3d
         Input cube.
     var_list : array_like, 1d
-        Corresponding parallactic angle for each frame (if variation == 'adi') or corresponding scaling factor list for each frame (if variation == 'ifs')
-        Important: it is assumed that the input cube is already centered with the star on its middle pixel.
-        Important: in case of ifs data, the scaling factors in var_list should be >= 1 (ie. provide the scaling factors as for scaling to the longest wavelength channel)
+        Vector of parallactic angle (if variation = 'adi') or scaling factor 
+        (if variation = 'ifs'). 
+        Note: in case of ifs data, the scaling factor of each channel of 
+        wavelength lambda_zz is approximately: lambda_ref/lambda_zz, where 
+        lambda_ref is some ref wavelength (e.g. the longest one in the cube).
+        See Pueyo et al. 2015 for a more precise way of computing them.
     svd_mode : {randsvd, eigen, lapack, arpack, opencv}, optional
         Switch for different ways of computing the SVD and selected PCs.
     ncomp : int, optional
@@ -54,7 +60,8 @@ def pca(cube, var_list,svd_mode='randsvd', ncomp=1, center='temporal',
     debug : {False, True}, bool optional
         Whether to print debug information or not.
     variation: {adi, ifs}, optional
-        Choose the variation present in the cube to disentangle speckles from planets.
+        Choose the variation present in the cube to disentangle speckles from 
+        planets.
     
     Returns
     -------
@@ -65,9 +72,9 @@ def pca(cube, var_list,svd_mode='randsvd', ncomp=1, center='temporal',
         Cube with the selected principal components.
     recon : array_like, 3d
         Reconstruction of frames using the selected PCs.
-    residuals_res : array_like, 3d 
+    residual_res : array_like, 3d 
         Cube of residuals.
-    residuals_res_var : array_like, 3d
+    residual_res_var : array_like, 3d
         Cube of residuals after de-rotation/de-scaling.
         
     """
@@ -78,13 +85,14 @@ def pca(cube, var_list,svd_mode='randsvd', ncomp=1, center='temporal',
     if verbose: start_time = timeInit()
  
     if variation == 'ifs':
+        var_list = check_scal_vector(var_list)
         array,_,y,x,cy,cx = scale_cube(cube,var_list)
     elif variation == 'adi':
         var_list = check_PA_vector(var_list)
         array = cube
         y, x = y_in, x_in
     else:
-        raise ValueError("Please choose a valid variation argument between 'ifs' and 'adi'")
+        raise ValueError("Please choose a valid variation: 'ifs' or 'adi'")
 
 
     if ncomp > n:
@@ -93,21 +101,26 @@ def pca(cube, var_list,svd_mode='randsvd', ncomp=1, center='temporal',
     
     mask_center_px = radius_int
     if radius_int == 0: mask_center_px = None
-    matrix_pca = prepare_matrix(array, center, mask_center_px, verbose)             
+    matrix_pca = prepare_matrix(array, center, mask_center_px, verbose) 
     V = svd_wrapper(matrix_pca, svd_mode, ncomp, debug, verbose)
     if verbose: timing(start_time)
     transformed = np.dot(V, matrix_pca.T)
     reconstructed = np.dot(transformed.T, V)
     residuals = matrix_pca - reconstructed
-    residuals_res = reshape_matrix(residuals,y,x)
+    residual_res = reshape_matrix(residuals,y,x)
         
     if variation == 'ifs':
         if full_output:
-            residuals_res_var, frame,_,_,_,_ = scale_cube(residuals_res,var_list,full_output=full_output,inverse=True,y_in=y_in,x_in=x_in)
+            residual_res_var,frame,_,_,_,_ = scale_cube(residual_res,
+                                                        var_list,
+                                                        full_output=full_output,
+                                                        inverse=True,y_in=y_in,
+                                                        x_in=x_in)
         else:
-            frame = scale_cube(residuals_res,var_list,full_output=full_output,inverse=True,y_in=y_in,x_in=x_in)
+            frame = scale_cube(residual_res,var_list,full_output=full_output,
+                               inverse=True,y_in=y_in,x_in=x_in)
     elif variation == 'adi':
-        residuals_res_var, frame = cube_derotate(residuals_res, var_list)
+        residual_res_var, frame = cube_derotate(residual_res, var_list)
 
     if verbose:
         print 'Done derotating and combining'
@@ -116,28 +129,33 @@ def pca(cube, var_list,svd_mode='randsvd', ncomp=1, center='temporal',
     if full_output:
         pcs = reshape_matrix(V, y, x)
         recon = reshape_matrix(reconstructed, y, x)
-        return pcs, recon, residuals_res, residuals_res_var, frame
+        return pcs, recon, residual_res, residual_res_var, frame
     else:
         return frame
     
 
     
 def pca_optimize_snr(cube, var_list, y, x, fwhm_in, svd_mode='randsvd', 
-                     radius_int=5, min_snr=0, verbose=True, 
-                     full_output=False, debug=False,variation='adi',pca_method=pca,**kwargs):
+                     radius_int=5, min_snr=0, verbose=True, full_output=False, 
+                     debug=False,variation='adi',pca_method=pca,**kwargs):
     """ Optimizes the number of principal components by doing a simple grid 
     search measuring the SNR for a given position in the frame. The mean SNR 
     in a 1*FWHM circular aperture centered on the given pixel is the metric
     used instead of the given pixel's SNR (which may lead to false maximums).
+    Important: it is assumed that the input cube is already centered with the 
+    star on its middle pixel.
     
     Parameters
     ----------
     cube : array_like, 3d
         Input cube.
     var_list : array_like, 1d
-        Corresponding parallactic angle for each frame (if variation == 'adi') or corresponding scaling factor list for each frame (if variation == 'ifs')
-        Important: it is assumed that the input cube is already centered with the star on its middle pixel.
-        Important: in case of ifs data, the scaling factors in var_list should be >= 1 (ie. provide the scaling factors as for scaling to the longest wavelength channel)
+        Vector of parallactic angle (if variation = 'adi') or scaling factor 
+        (if variation = 'ifs'). 
+        Note: in case of ifs data, the scaling factor of each channel of 
+        wavelength lambda_zz is approximately: lambda_ref/lambda_zz, where 
+        lambda_ref is some ref wavelength (e.g. the longest one in the cube).
+        See Pueyo et al. 2015 for a more precise way of computing them.
     y, x : int
         Y and X coordinates of the pixel where the source is located and whose
         SNR is going to be maximized.
@@ -154,19 +172,23 @@ def pca_optimize_snr(cube, var_list, y, x, fwhm_in, svd_mode='randsvd',
     verbose : {True, False}, bool optional
         If True prints intermediate info and timing.
     full_output : {False, True} bool optional
-        Whether to return the optimal number of PCs alone or along with the final PCA processed frame.
+        Whether to return the optimal number of PCs alone or along with the 
+        final PCA processed frame.
     debug : {False, True}, bool optional
         Whether to print debug information or not.
     variation: {adi, ifs}, optional
-        Choose the variation present in the cube to disentangle speckles from planets.
+        Choose the variation present in the cube to disentangle speckles from 
+        planets.
     pca_method: {pca,annular_pca,subannular_pca}, optional
-        Choose which pca algorithm to use: full frame (pca), annular (annular_pca), or by portions of annulus (subannular_pca) 
+        Choose which pca algorithm to use: full frame (pca), annular 
+        (annular_pca), or by portions of annulus (subannular_pca) 
 
     Returns
     -------
     opt_npc : int
         Optimal number of PCs for given source.
-    If full_output is True, the final processed frame is returned.
+    If full_output is True, the final processed frame is also returned:
+    finalfr, opt_npc: array, int
     
     """
     if not cube.ndim==3:
@@ -190,7 +212,8 @@ def pca_optimize_snr(cube, var_list, y, x, fwhm_in, svd_mode='randsvd',
     pclist = []
     if debug:  print 'Step 1st grid:', step1
     for pc in range(1, n+1, step1):
-        snr = get_snr(cube, var_list, y, x, svd_mode, fwhm_in, ncomp=pc,variation=variation)
+        snr = get_snr(cube, var_list, y, x, svd_mode, fwhm_in, ncomp=pc,
+                      variation=variation)
         nsteps += 1
         if nsteps>1 and snr<min_snr:  break
         snrlist.append(snr)
@@ -208,7 +231,8 @@ def pca_optimize_snr(cube, var_list, y, x, fwhm_in, svd_mode='randsvd',
     
     if debug:  print 'Step 2nd grid:', 1
     for pc in range(pclist[argm-1], pclist[argm+1]+1, 1):
-        snr = get_snr(cube, var_list, y, x, svd_mode, fwhm_in, ncomp=pc,variation=variation)
+        snr = get_snr(cube, var_list, y, x, svd_mode, fwhm_in, ncomp=pc,
+                      variation=variation)
         nsteps += 1
         if snr<min_snr:  break
         snrlist2.append(snr)
@@ -232,8 +256,8 @@ def pca_optimize_snr(cube, var_list, y, x, fwhm_in, svd_mode='randsvd',
         timing(start_time)
         
     finalfr = pca_method(cube, var_list, ncomp=opt_npc, full_output=False, 
-                         verbose=False, radius_int=radius_int, svd_mode=svd_mode,
-                         variation=variation,**kwargs)
+                         verbose=False, radius_int=radius_int, 
+                         svd_mode=svd_mode, variation=variation,**kwargs)
     _ = phot.frame_quick_report(finalfr, fwhm_in, y, x, verbose=verbose)
     
     if full_output:

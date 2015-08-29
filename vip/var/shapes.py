@@ -80,34 +80,59 @@ def get_square(array, size, y, x, position=False):
         return array_view
 
 
-def get_square_robust(array, size, y, x, position=False, out_borders='reduced_square',return_wings = False,strict=False):                 
-    """ Returns a square subframe from a larger array robustly (different options in case the requested subframe outpasses the borders of the larger array. If size is an even value it'll be decreased by one to make it odd.
+def get_square_robust(array, size, y, x, position=False,
+                      out_borders='reduced_square', return_wings=False,
+                      strict=False):                 
+    """ 
+    Returns a square subframe from a larger array robustly (different options in
+    case the requested subframe outpasses the borders of the larger array.
     
     Parameters
     ----------
     array : array_like
         Input frame.
     size : int, ideally odd
-        Size of the subframe.
+        Size of the subframe to be returned.
     y, x : int
         Coordinates of the center of the subframe.
-    position : {False, True}, optional
-        If set to True return also the coordinates of the left bottom vertex.
-    out_borders: Option that set what to do if the provided size is such that the sub-array exceeds the borders of the array. 
-                 'reduced_square' (default) -> returns a smaller square sub-array: the biggest that fits within the borders of the array + warning message
-                 'rectangular' -> returns a cropped sub-array with only the part that fits within the borders of the array (thus a non-centered rectangle) + warning message
-                 'whatever' -> returns a square sub-array of the requested size, but filled with zeros where it outpasses the borders of the array + warning message
-    return_wings: If True, the function only returns the size of the sub square (this can be used to test that there is no size reduction of the square beforehand)
-    strict  : {False, True}, optional
-        Set to True when you want an error to be raised if the size is not an odd number. Else, the subsquare will be computed even if size is an even number. In the later case, the center is placed in such a way that frame_center function of the sub_array would give the input center (at pixels of half dimension minus 1).
+    position : bool, {False, True}, optional
+        If set to True, returns also the coordinates of the left bottom vertex.
+    out_borders: string {'reduced_square','rectangular', 'whatever'}, optional
+        Option that set what to do if the provided size is such that the 
+        sub-array exceeds the borders of the array:
+            - 'reduced_square' (default) -> returns a smaller square sub-array: 
+            the biggest that fits within the borders of the array (warning msg)
+            - 'rectangular' -> returns a cropped sub-array with only the part 
+            that fits within the borders of the array; thus a rectangle (warning
+            msg)
+            - 'whatever' -> returns a square sub-array of the requested size, 
+            but filled with zeros where it outpasses the borders of the array 
+            (warning msg)
+    return_wings: bool, {False,True}, optional
+        If True, the function only returns the size of the sub square
+        (this can be used to test that there will not be any size reduction of 
+        the requested square beforehand)
+    strict: bool, {False, True}, optional
+        Set to True when you want an error to be raised if the size is not an 
+        odd number. Else, the subsquare will be computed even if size is an even
+        number. In the later case, the center is placed in such a way that 
+        frame_center function of the sub_array would give the input center 
+        (at pixel = half dimension minus 1).
         
     Returns
     -------
+    default:
     array_view : array_like
-        Sub array.
+        Sub array of the requested dimensions (or smaller depending on its 
+        location in the original array and the selected out_borders option)
 
-    if position==True, it returns: array_like, y_coord of the left bottom vertex, x_coord of the left bottom vertex 
-    if return_wing==True, it only returns: wing (a float containing the semi-size of the square in agreement with the selected out_borders condition)
+    if position is set to True and return_wing to False: 
+    array_view, y_coord, x_coord: array_like, int, int 
+        y_coord and x_coord are the indices of the left bottom vertex
+
+    if return_wing is set to True: 
+    wing: int
+        the semi-size of the square in agreement with the out_borders option
     """
     if not array.ndim == 2:
         raise TypeError('Input array is not a frame or 2d array.')
@@ -116,7 +141,8 @@ def get_square_robust(array, size, y, x, position=False, out_borders='reduced_sq
     n_x = array.shape[1]
 
     if strict:
-        if size%2==0: raise ValueError('The given size of the sub-square should be odd.')
+        if size%2==0: 
+            raise ValueError('The given size of the sub-square should be odd.')
         wing_bef = int((size-1)/2)
         wing_aft = wing_bef
     else:
@@ -128,11 +154,15 @@ def get_square_robust(array, size, y, x, position=False, out_borders='reduced_sq
             wing_aft = wing_bef
 
     #Consider the case of the sub-array exceeding the array
-    if y-wing_bef < 0 or y+wing_aft+1 >= n_y or x-wing_bef < 0 or x+wing_aft+1 >= n_x :
+    if (y-wing_bef < 0 or y+wing_aft+1 >= n_y or x-wing_bef < 0 or 
+        x+wing_aft+1 >= n_x):
         if out_borders=='reduced_square':
             wing_bef = min(y,x,n_y-1-y,n_x-1-x)
             wing_aft = wing_bef
-            print "!!! WARNING: The size of the square sub-array was reduced to fit within the borders of the array. Now, wings = ", wing_bef,wing_aft, " px x px !!!"
+            msg = "!!! WARNING: The size of the square sub-array was reduced"+\
+                  " to fit within the borders of the array. Now, wings = "+\
+                  str(wing_bef)+"px x "+str(wing_aft)+ "px !!!"
+            print msg
         elif out_borders=='rectangular':
             wing_y = min(y,n_y-1-y)
             wing_x = min(x,n_x-1-x)
@@ -141,18 +171,25 @@ def get_square_robust(array, size, y, x, position=False, out_borders='reduced_sq
             x_init = x-wing_x
             x_fin = x+wing_x+1
             array_view = array[y_init:y_fin, x_init:x_fin]
-            print "!!! WARNING: The square sub-array was changed to a rectangular sub-array to fit within the borders of the array. Now, [y_init,yfin]= [", y_init, y_fin , "] and [x_init,x_fin] = [" ,x_init, x_fin, "]."
+            msg = "!!! WARNING: The square sub-array was changed to a "+\
+                  "rectangular sub-array to fit within the borders of the "+\
+                  "array. Now, [y_init,yfin]= ["+ str(y_init)+", "+ str(y_fin)+\
+                  "] and [x_init,x_fin] = ["+ str(x_init)+", "+ str(x_fin)+ "]."
+            print msg
             if position:
                 return array_view, y_init, x_init
             else:
                 return array_view
         else:
-            print "!!! WARNING: The square sub-array was not changed but it exceeds the borders of the array."
+            msg = "!!! WARNING: The square sub-array was not changed but it"+\
+                  " exceeds the borders of the array."
+            print msg
 
     if return_wings: return wing_bef,wing_aft
     
     else:
-        # wing is added to the sides of the subframe center. Note the +1 when closing the interval (python doesn't include the endpoint)
+        # wing is added to the sides of the subframe center. Note the +1 when 
+        # closing the interval (python doesn't include the endpoint)
         array_view = array[y-wing_bef:y+wing_aft+1, x-wing_bef:x+wing_aft+1]
         if position: return array_view, y-wing_bef, x-wing_bef
         else: return array_view
@@ -186,9 +223,11 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
     if not cy and not cx:
         cy, cx = frame_center(array, verbose=False)
          
-    yy, xx = np.ogrid[:sy, :sx]                                                 # ogrid is a multidim mesh creator (faster than mgrid)
-    circle = (yy - cy)**2 + (xx - cx)**2                                        # eq of circle. squared distance to the center                                        
-    circle_mask = circle < radius**2                                            # mask of 1's and 0's                                       
+    yy, xx = np.ogrid[:sy, :sx] 
+    # ogrid is a multidim mesh creator (faster than mgrid)
+    circle = (yy - cy)**2 + (xx - cx)**2 
+    # eq of circle. squared distance to the center       
+    circle_mask = circle < radius**2   # mask of 1's and 0's
     if output_values:
         values = array[circle_mask]
         return values
@@ -230,8 +269,9 @@ def get_annulus(array, inner_radius, width, output_values=False,
         raise TypeError('Input array is not a frame or 2d array.')
     cy, cx = frame_center(array)
     xx, yy = np.mgrid[:array.shape[0], :array.shape[1]]
-    circle = (xx - cx)**2 + (yy - cy)**2                                                                               
-    donut_mask = (circle <= (inner_radius + width)**2) & (circle >= inner_radius**2)
+    circle = (xx - cx)**2 + (yy - cy)**2                                    
+    donut_mask = (circle <= (inner_radius + width)**2) & (circle >= \
+                                                          inner_radius**2)
     if output_values and not output_indices:
         values = array[donut_mask]
         return values
@@ -241,13 +281,14 @@ def get_annulus(array, inner_radius, width, output_values=False,
         x = indices[1]
         return y, x
     elif output_indices and output_values:
-        raise ValueError('output_values and output_indices cannot be both True.')
+        msg =  'output_values and output_indices cannot be both True.'
+        raise ValueError(msg)
     else:
         array_masked = array*donut_mask
         return array_masked
     
 
-def get_annulus_quad(array, inner_radius, width, output_values=False):                                          
+def get_annulus_quad(array, inner_radius, width, output_values=False):
     """ Returns indices or values in quadrants of a centerered annulus from a 
     2d ndarray. 
     
@@ -277,11 +318,15 @@ def get_annulus_quad(array, inner_radius, width, output_values=False):
     
     cy, cx = frame_center(array)
     xx, yy = np.mgrid[:array.shape[0], :array.shape[1]]
-    circle = (xx - cx)**2 + (yy - cy)**2                                                                               
-    q1 = (circle >= inner_radius**2) & (circle <= (inner_radius + width)**2) & (xx >= cx) & (yy <= cy)  
-    q2 = (circle >= inner_radius**2) & (circle <= (inner_radius + width)**2) & (xx <= cx) & (yy <= cy)
-    q3 = (circle >= inner_radius**2) & (circle <= (inner_radius + width)**2) & (xx <= cx) & (yy >= cy)
-    q4 = (circle >= inner_radius**2) & (circle <= (inner_radius + width)**2) & (xx >= cx) & (yy >= cy)
+    circle = (xx - cx)**2 + (yy - cy)**2 
+    q1 = (circle >= inner_radius**2) & (circle <= (inner_radius + width)**2) & \
+         (xx >= cx) & (yy <= cy)  
+    q2 = (circle >= inner_radius**2) & (circle <= (inner_radius + width)**2) & \
+         (xx <= cx) & (yy <= cy)
+    q3 = (circle >= inner_radius**2) & (circle <= (inner_radius + width)**2) & \
+         (xx <= cx) & (yy >= cy)
+    q4 = (circle >= inner_radius**2) & (circle <= (inner_radius + width)**2) & \
+         (xx >= cx) & (yy >= cy)
     
     if output_values:
         values = [array[mask] for mask in [q1,q2,q3,q4]]
@@ -319,7 +364,8 @@ def get_annulus_cube(array, inner_radius, width, output_values=False):
         raise TypeError('Input array is not a cube or 3d array.')
     arr_annulus = np.empty_like(array)
     if output_values:
-        values = [get_annulus(array[i], inner_radius, width, output_values=True) for i in xrange(array.shape[0])]
+        values = [get_annulus(array[i], inner_radius, width, output_values=True)
+                  for i in xrange(array.shape[0])]
         return np.array(values)
     else:
         for i in xrange(array.shape[0]):
@@ -348,8 +394,8 @@ def mask_circle(array, radius):
         cy = sy/2
         cx = sx/2
         xx, yy = np.ogrid[:sy, :sx]
-        circle = (xx - cx)**2 + (yy - cy)**2               # squared distance to the center                                        
-        hole_mask = circle > radius**2                                             
+        circle = (xx - cx)**2 + (yy - cy)**2 # squared distance to the center
+        hole_mask = circle > radius**2 
         array_masked = array*hole_mask
         
     if len(array.shape) == 3:
@@ -357,7 +403,7 @@ def mask_circle(array, radius):
         cy = sy/2
         cx = sx/2
         xx, yy = np.ogrid[:sy, :sx]
-        circle = (xx - cx)**2 + (yy - cy)**2               # squared distance to the center                                        
+        circle = (xx - cx)**2 + (yy - cy)**2 # squared distance to the center
         hole_mask = circle > radius**2      
         array_masked = np.empty_like(array)
         for i in xrange(n):

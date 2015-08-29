@@ -36,7 +36,8 @@ def fit_2dgaussian(array, cy=None, cx=None, fwhm=4):
     
     """
     if cy and cx and fwhm:
-        subimage, suby, subx = get_square_robust(array, size=6*int(fwhm), y=cy, x=cx, position=True)
+        subimage, suby, subx = get_square_robust(array, size=6*int(fwhm), y=cy,
+                                                 x=cx, position=True)
         x, y = morphology.centroid_2dg(subimage)
         x += subx
         y += suby
@@ -77,11 +78,12 @@ def fit_2dmoffat(array, yy, xx, full_output=False):
     beta : float
         "beta" parameter of the moffat function.
     """
-    maxi = array.max()                                                          # find starting values
+    maxi = array.max() # find starting values
     floor = np.ma.median(array.flatten())
     height = maxi - floor
-    if height==0.0:                                                             # if star is saturated it could be that 
-        floor = np.mean(array.flatten())                                        # median value is 32767 or 65535 --> height=0
+    if height==0.0: # if star is saturated it could be that 
+        floor = np.mean(array.flatten())  # median value is 32767 or 65535 
+                                          # --> height=0
         height = maxi - floor
 
     mean_y = (np.shape(array)[0]-1)/2
@@ -93,9 +95,10 @@ def fit_2dmoffat(array, yy, xx, full_output=False):
     
     p0 = floor, height, mean_y, mean_x, fwhm, beta
 
-    def moffat(floor, height, mean_y, mean_x, fwhm, beta):                      # fitting
+    def moffat(floor, height, mean_y, mean_x, fwhm, beta): # fitting
         alpha = 0.5*fwhm/np.sqrt(2.**(1./beta)-1.)    
-        return lambda y,x: floor + height/((1.+(((x-mean_x)**2+(y-mean_y)**2)/alpha**2.))**beta)
+        return lambda y,x: floor + height/((1.+(((x-mean_x)**2+(y-mean_y)**2)/\
+                                                alpha**2.))**beta)
 
     def err(p,data):
         return np.ravel(moffat(*p)(*np.indices(data.shape))-data)
@@ -103,7 +106,8 @@ def fit_2dmoffat(array, yy, xx, full_output=False):
     p = leastsq(err, p0, args=(array), maxfev=1000)
     p = p[0]
     
-    floor = p[0]                                                                # results
+    # results
+    floor = p[0]                                
     height = p[1]
     mean_y = p[2] + yy
     mean_x = p[3] + xx

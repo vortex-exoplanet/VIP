@@ -64,7 +64,8 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
     yy, xx = np.where(mask)
 
     if not nproc:  
-        nproc = int((cpu_count()/2))  # Hyper-threading duplicates the number of cores
+        nproc = int((cpu_count()/2))  # Hyper-threading duplicates the number 
+                                      # of cores
     
     if mode == 'sss':
         func = snr_student
@@ -314,7 +315,7 @@ def snr_student(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
     yy[:] += centery 
         
     rad = fwhm/2.
-    aperture = photutils.CircularAperture((xx, yy), r=rad)  # Coordinates (X,Y)                    
+    aperture = photutils.CircularAperture((xx, yy), r=rad)  # Coordinates (X,Y)
     fluxes = photutils.aperture_photometry(array, aperture, method='exact')    
     fluxes = np.array(fluxes['aperture_sum'])
     f_source_ap = photutils.CircularAperture((sourcex, sourcey), rad)
@@ -338,9 +339,10 @@ def snr_student(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
         fig.colorbar(im)
         for i in range(xx.shape[0]):
             aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2., color='r', 
-                              fill=False)                                       # Coordinates (X,Y)
+                              fill=False)   # Coordinates (X,Y)
             ax.add_patch(aper)
-            cent = plt.Circle((xx[i], yy[i]), radius=0.5, color='r', fill=True) # Coordinates (X,Y)
+            cent = plt.Circle((xx[i], yy[i]), radius=0.5, color='r', 
+                              fill=True)    # Coordinates (X,Y)
             ax.add_patch(cent)
         ax.grid('off')
         plt.show()
@@ -356,7 +358,7 @@ def snr_student(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
 def snr_peakstddev(array, sourcey, sourcex, fwhm, out_coor=False, plot=False, 
                    verbose=False):
     """Calculates the SNR (signal to noise ratio) of a single planet in a 
-    post-processed (e.g. by LOCI or PCA) frame. The signal is taken as the ratio 
+    post-processed (e.g. by LOCI or PCA) frame. The signal is taken as the ratio
     of pixel value of the planet (test speckle) and the noise computed as the 
     standard deviation of the pixels in an annulus at the same radial distance 
     from the center of the frame. The diameter of the signal aperture and the 
@@ -408,11 +410,11 @@ def snr_peakstddev(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
         circ = plt.Circle((centerx, centery), radius=inner_rad, color='r', 
                           fill=False) 
         ax.add_patch(circ)
-        circ2 = plt.Circle((centerx, centery), radius=inner_rad+fwhm, color='r', 
+        circ2 = plt.Circle((centerx, centery), radius=inner_rad+fwhm, color='r',
                            fill=False) 
         ax.add_patch(circ2)
         aper = plt.Circle((sourcex, sourcey), radius=fwhm/2., color='r', 
-                          fill=False)                                           # Coordinates (X,Y)
+                          fill=False)   # Coordinates (X,Y)
         ax.add_patch(aper)
         plt.show()
     

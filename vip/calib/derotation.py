@@ -3,7 +3,7 @@
 """
 Module with frame de-rotation routine for ADI.
 """
-__author__ = 'C. Gomez @ ULg, V. Christiaens @ UChile/ULg'
+__author__ = 'C. Gomez @ ULg'
 __all__ = ['cube_derotate',
            'frame_rotate']
 
@@ -29,7 +29,7 @@ def frame_rotate(array, angle, interpolation='bicubic', cy=None, cx=None):
         the 'bicubic' the slowest of the three. The 'nearneig' is the poorer
         option for interpolation of noisy astronomical images.
     cy, cx : float, optional
-        Coordinates X,Y  of the point with respect to which the rotation will be 
+        Coordinates X,Y  of the point with respect to which the rotation will be
         performed. By default the rotation is done with respect to the center 
         of the frame; central pixel if frame has odd size.
         

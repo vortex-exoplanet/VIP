@@ -63,8 +63,8 @@ def frame_quick_report(array, fwhm, y=None, x=None , verbose=True):
     
     # we get the mean and stddev of SNRs on aperture
     yy, xx = draw.circle(y, x, fwhm/2.)
-    snr_pixels = [snr_student(array, y_, x_, fwhm, plot=False, verbose=False) for \
-                  y_, x_ in zip(yy, xx)]
+    snr_pixels = [snr_student(array, y_, x_, fwhm, plot=False, verbose=False) \
+                  for y_, x_ in zip(yy, xx)]
     meansnr = np.mean(snr_pixels)
     stdsnr = np.std(snr_pixels)
     if verbose: 

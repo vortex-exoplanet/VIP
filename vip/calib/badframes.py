@@ -22,7 +22,7 @@ from ..stats import (cube_stats_aperture, cube_stats_annulus,
                               cube_distance)
 
 
-def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=None, width=None, 
+def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=None, width=None,
                               top_sigma=1.0, low_sigma=1.0, plot=False, 
                               verbose=True):             
     """ Returns the list of bad frames from a cube using the px statistics in 
@@ -37,7 +37,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=None, width=None,
     mode : {'annulus', 'circle'}, string optional
         Whether to take the statistics from a circle or an annulus.
     in_radius : int
-        If mode is 'annulus' then 'in_radius' is the inner radius of the annular 
+        If mode is 'annulus' then 'in_radius' is the inner radius of the annular
         region. If mode is 'circle' then 'in_radius' is the radius of the 
         aperture.
     width : int

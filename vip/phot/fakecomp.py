@@ -60,7 +60,7 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_arcs,
     
     w = int(np.floor(size_fc/2.))
     # fcomp in the center of a zeros frame
-    fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc                                  
+    fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc
        
     array_out = np.zeros_like(array)
     for fr in xrange(nframes):                                                  

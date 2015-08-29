@@ -128,8 +128,8 @@ def derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',inpath='~/',
             if os.path.exists(inpath+objname_tmp_A+digits_ii+objname_tmp_B+ \
 '.fits'):   
                 list_obj.append(ii)
-                _, header = vip.fits.open_fits(inpath+objname_tmp_A+ \ 
-                                               digits_ii+objname_tmp_B+ \ 
+                _, header = vip.fits.open_fits(inpath+objname_tmp_A+ \
+                                               digits_ii+objname_tmp_B+ \
                                                '.fits', verbose=False, 
                                                header=True)
                 cd1_1.append(header[cd11_key])
@@ -139,7 +139,7 @@ def derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',inpath='~/',
     else:
         for ii in list_obj:
             digits_ii = numberToString(ii,digit_format)
-            _, header = vip.fits.open_fits(inpath+objname_tmp_A+digits_ii+ \ 
+            _, header = vip.fits.open_fits(inpath+objname_tmp_A+digits_ii+ \
                                            objname_tmp_B+'.fits', 
                                            verbose=False, header=True)
             cd1_1.append(header[cd11_key])
@@ -239,7 +239,7 @@ def check_PA_vector(angle_list, unit='deg'):
     # In the previous case, correct for it by adding 360deg to angles < 180deg
     if correct:
         for ii in range(npa):
-           if angle_list[ii] < 180:
-               angle_list[ii] = 360+angle_list[ii]
+            if angle_list[ii] < 180:
+                angle_list[ii] = 360+angle_list[ii]
 
     return angle_list

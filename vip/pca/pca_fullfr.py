@@ -11,6 +11,7 @@ __all__ = ['pca',
            'pca_optimize_snr',
            'scale_cube']
 
+import pdb
 import copy
 import numpy as np
 from skimage import draw
@@ -181,7 +182,7 @@ def pca_optimize_snr(cube, var_list, y, x, fwhm_in, svd_mode='randsvd',
         planets.
     pca_method: {pca,annular_pca,subannular_pca}, optional
         Choose which pca algorithm to use: full frame (pca), annular 
-        (annular_pca), or by portions of annulus (subannular_pca) 
+        (annular_pca), or by portions of annulus (subannular_pca)
 
     Returns
     -------
@@ -207,7 +208,8 @@ def pca_optimize_snr(cube, var_list, y, x, fwhm_in, svd_mode='randsvd',
 
     n = cube.shape[0]
     nsteps = 0
-    step1 = int(n/np.percentile(range(n), 10))
+    step1 = int(np.sqrt(n))
+#    step1 = int(n/np.percentile(range(n), 10))
     snrlist = []
     pclist = []
     if debug:  print 'Step 1st grid:', step1
@@ -220,7 +222,11 @@ def pca_optimize_snr(cube, var_list, y, x, fwhm_in, svd_mode='randsvd',
         pclist.append(pc)
         if debug:  print '{} {:.3f}'.format(pc, snr)
     argm = np.argmax(snrlist)
-    
+    argm_a = argm-1
+    argm_b = argm+1
+    if argm == 0: argm_a = argm
+    if argm == len(snrlist)-1: argm_b = argm
+   
     snrlist2 = []
     pclist2 = []
     
@@ -230,7 +236,7 @@ def pca_optimize_snr(cube, var_list, y, x, fwhm_in, svd_mode='randsvd',
         print
     
     if debug:  print 'Step 2nd grid:', 1
-    for pc in range(pclist[argm-1], pclist[argm+1]+1, 1):
+    for pc in range(pclist[argm_a], pclist[argm_b]+1, 1):
         snr = get_snr(cube, var_list, y, x, svd_mode, fwhm_in, ncomp=pc,
                       variation=variation)
         nsteps += 1

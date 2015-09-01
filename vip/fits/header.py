@@ -33,7 +33,7 @@ def coordinates(header,j):
     N=header['NAXIS'+str(j)];
     val=np.zeros(N);
     for i in range(0,N):
-        val[i]=(i+1-float(header['CRPIX'+str(j)])) * \ 
+        val[i]=(i+1-float(header['CRPIX'+str(j)])) * \
         float(header['CD'+str(j)+'_'+str(j)]) + float(header['CRVAL'+str(j)])
     return val
 

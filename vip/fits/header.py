@@ -98,20 +98,23 @@ def genfwhm(header):
         Contains the fwhm (in pixels) for each channel of the header's cube
     """
 
-    lbda = genlbda(header)
-    cdelt = abs(header['CDELT1'])
+    if 'um' in header['CUNIT3']:
+        lbda = 1e-6*genlbda(header)
+    else:
+        raise ValueError('The unit of cdelt 3 in header is not recognized')
 
+    if 'VLT' in header['TELESCOP']:
+        diam = 8.2
+    else:
+        raise ValueError('ESO telescope not recognized. Add "elif" case.')
+
+    cdelt = abs(header['CDELT1'])
     if 'deg' in header['CUNIT1']:
         plsc = cdelt*3600
     else:
         raise ValueError('The unit of cdelt 1 in header is not recognized')
 
-    if 'VLT' in header['TELESCOP']:
-        diam = 8.2
-    else:
-        raise ValueError('Add exception to the code if other ESO telescope')
-
-    fwhm = (lbda/diam)*206265/plsc
+    fwhm = (lbda*1e-6/diam)*206265/plsc
 
     return fwhm
 

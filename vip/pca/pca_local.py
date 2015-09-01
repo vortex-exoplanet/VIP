@@ -813,7 +813,7 @@ def do_pca_patch(matrix_quad, frame, var_list, fwhm, threshold, center,
     return residuals   
 
 
-def quad_conditions(reject_quads,y,x):
+def quad_conditions(reject_quads,y,x,verbose=False):
     """ 
     Define here the conditions when to reject specific annuli or quadrants at 
     specific radii, from pca processing. Indeed, in the case of zones with pure
@@ -861,7 +861,8 @@ def quad_conditions(reject_quads,y,x):
         max_rad = min(int(y/2.),int(x/2.))
         qua_list = {}
         min_r_qua = min(int(y/2.),int(x/2.))
-        msg = 'The input reject_quads name is not recognized. => There will '+ \
-              'be no limitation in quadrant and/or radial distance.'
-        print msg
+        if verbose:
+            msg = 'The input reject_quads name is not recognized. => There '+ \
+              'will be no limitation in quadrant and/or radial distance.'
+            print msg
     return min_rad,max_rad,qua_list,min_r_qua

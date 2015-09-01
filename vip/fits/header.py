@@ -13,10 +13,21 @@ def coordinates(header,j):
     """
     FUNCTION TO READ HEADER AND RETURNS THE COORDINATE OF EACH POINT OF AXIS j
 
+    Parameter:
+    ----------
+    header: ESO-like header
+
+    Returns:
+    --------
+    val: 1d array
+        Contains the value of each coordinate along the j-th axis.
+
     Typically:
-    if j=1, coordinates in RA;
-    if j=2, coordinates in DEC; 
-    if j=3, coordinates in microns
+    if j=1, returns RA coordinates of each column of px along x (only true for 
+    derotated frames/cubes; i.e. with North up and East left);
+    if j=2, returns DEC coordinates of each row of px along y (only true for 
+    derotated frames/cubes; i.e. with North up and East left) ; 
+    if j=3, returns the wavelength range
 
     """
     N=header['NAXIS'+str(j)];
@@ -31,11 +42,23 @@ def coordinate(header,j,i):
     """
     FUNCTION TO READ HEADER AND FIND THE COORDINATE OF POINT i OF AXIS j
 
-    Typically:
-    if j=1, coordinates in RA of column x = i;
-    if j=2, coordinates in DEC of column y = i; 
-    if j=3, coordinates in microns of channel z = i
+    Parameter:
+    ----------
+    header: ESO-like header
+
+    Returns:
+    --------
+    val: float
+
+    Examples:
+    ---------
+    if j=1, returns coordinate in RA of column x = i (only true for 
+    derotated frames/cubes; i.e. with North up and East left);
+    if j=2, returns coordinate in DEC of column y = i (only true for 
+    derotated frames/cubes; i.e. with North up and East left); 
+    if j=3, returns coordinate in microns of channel z = i
     """
+
     val = (i+1-float(header['CRPIX'+str(j)])) * \
           float(header['CD'+str(j)+'_'+str(j)]) + float(header['CRVAL'+str(j)])
     return val
@@ -45,11 +68,52 @@ def genlbda(header):
     """
     FUNCTION TO GENERATE A VECTOR WITH ALL THE WAVELENGTH VALUES
 
+    Parameter:
+    ----------
+    header: ESO-like header
+
+    Returns:
+    --------
+    lbda: 1d array
+        Contains the wavelength (in same unit as header - usually um) for each 
+        channel of the header's cube
     """
-    lbda= np.array([header['CD3_3']*(x - (header['CRPIX3']-1)) + \
-                    header['CRVAL3'] for x in range(header['NAXIS3'])]) 
-    # in microns (units of header)  
+
+    lbda= coordinates(header,3)
+
     return lbda
+
+
+def genfwhm(header):
+    """
+    FUNCTION TO GENERATE A VECTOR WITH ALL THE FWHM (in pixels
+
+    Parameter:
+    ----------
+    header: ESO-like header
+
+    Returns:
+    --------
+    fwhm: 1d array
+        Contains the fwhm (in pixels) for each channel of the header's cube
+    """
+
+    lbda = genlbda(header)
+    cdelt = abs(header['CDELT1'])
+
+    if 'deg' in header['CUNIT1']:
+        plsc = cdelt*3600
+    else:
+        raise ValueError('The unit of cdelt 1 in header is not recognized')
+
+    if 'VLT' in header['TELESCOP']:
+        diam = 8.2
+    else:
+        raise ValueError('Add exception to the code if other ESO telescope')
+
+    fwhm = (lbda/diam)*206265/plsc
+
+    return fwhm
 
 
 def hcubetoim(header,dim4=False):
@@ -59,7 +123,7 @@ def hcubetoim(header,dim4=False):
     
     Parameter:
     ----------
-    header: header
+    header: ESO-like header
     dim4: bool, {False,True} optional
         Whether the input header is associated to a dimension 4 cube.
 
@@ -117,7 +181,7 @@ def himtocube(header,nz_fin,crpix3,crval3,cunit3='um',cdelt3=0.005,
 
     Parameters:
     -----------
-    header: header
+    header: ESO-like header
     nz_fin: int
         number of frames along the 3rd axis
     crpix3: int
@@ -162,7 +226,7 @@ def hsmallercube(header,n_subtr_chan_init,n_subtr_chan_fin):
 
     Parameters:
     -----------
-    header: header
+    header: ESO-like header
     n_subtr_chan_init: int
        index of the first channel that is kept
     n_subtr_chan_fin: int
@@ -197,7 +261,7 @@ def hdifferentZ(header, nz_fin, crpix3=1, crval3=1, cunit3='#', cdelt3=1,
 
     Parameters:
     -----------
-    header: header
+    header: ESO-like header
     nz_fin: int
         number of frames along the 3rd axis
     crpix3: int, optional
@@ -241,7 +305,7 @@ def hdifferentXorY(header,ny_fin,nx_fin):
 
     Parameters:
     -----------
-    header: header
+    header: ESO-like header
     ny_fin: int
        final dimension along y
     nx_fin: int

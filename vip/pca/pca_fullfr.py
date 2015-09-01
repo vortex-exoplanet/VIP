@@ -138,7 +138,7 @@ def pca(cube, var_list,svd_mode='randsvd', ncomp=1, center='temporal',
     
 def pca_optimize_snr(cube, var_list, y, x, fwhm_in, svd_mode='randsvd', 
                      radius_int=5, min_snr=0, verbose=True, full_output=False, 
-                     debug=False,variation='adi',pca_method=pca,**kwargs):
+                     debug=False,variation='adi',pca_method=pca,strict=True,**kwargs):
     """ Optimizes the number of principal components by doing a simple grid 
     search measuring the SNR for a given position in the frame. The mean SNR 
     in a 1*FWHM circular aperture centered on the given pixel is the metric
@@ -183,6 +183,10 @@ def pca_optimize_snr(cube, var_list, y, x, fwhm_in, svd_mode='randsvd',
     pca_method: {pca,annular_pca,subannular_pca}, optional
         Choose which pca algorithm to use: full frame (pca), annular 
         (annular_pca), or by portions of annulus (subannular_pca)
+    strict: bool, {True, False}, optional
+        Whether the algorithm should raise an error if the SNR is too low at the
+        given position. If False, it returns opt_npc = 1, and (if full_ouput) 
+        the pca final_fr obtained with pc = 1.
 
     Returns
     -------
@@ -244,9 +248,15 @@ def pca_optimize_snr(cube, var_list, y, x, fwhm_in, svd_mode='randsvd',
         snrlist2.append(snr)
         pclist2.append(pc)
         if debug:  print '{} {:.3f}'.format(pc, snr)
-    if len(snrlist2)==0:  
-        msg = 'SNR too low at given position. Optimization failed'
-        raise RuntimeError(msg)
+    if len(snrlist2)==0:
+        if strict:
+            msg = 'SNR too low at given position. Optimization failed'
+            raise RuntimeError(msg)
+        else:
+            print "Warning: Optimization failed; SNR too low!"
+            print "opt_npc set to 1 and opt_snr set to ", min_snr
+            snrlist2.append(min_snr)
+            pclist2.append(1)
     
     argm2 = np.argmax(snrlist2)    
     
@@ -267,6 +277,6 @@ def pca_optimize_snr(cube, var_list, y, x, fwhm_in, svd_mode='randsvd',
     _ = phot.frame_quick_report(finalfr, fwhm_in, y, x, verbose=verbose)
     
     if full_output:
-        return finalfr, opt_npc
+        return finalfr, opt_npc, snrlist2[argm2]
     else:
         return opt_npc

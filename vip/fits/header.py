@@ -114,7 +114,7 @@ def genfwhm(header):
     else:
         raise ValueError('The unit of cdelt 1 in header is not recognized')
 
-    fwhm = (lbda*1e-6/diam)*206265/plsc
+    fwhm = (lbda/diam)*206265/plsc
 
     return fwhm
 

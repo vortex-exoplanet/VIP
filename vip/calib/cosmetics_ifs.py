@@ -174,8 +174,8 @@ def approx_stellar_position(obj_tmp, fwhm,return_test=False):
         return star_approx_idx
 
 
-def bad_pixel_removal(obj_tmp, center, fwhm, sig=5., protect_psf=True, 
-                      verbose=False, hcube_ii='',DEBUG=False):
+def bad_pixel_removal(obj_tmp, center, fwhm, sig=5.5, protect_psf=True, 
+                      verbose=False, DEBUG=False):
     """
     Function to correct the bad pixels in obj_tmp; either a frame or a 
     spectral cube. No bad pixel is corrected in a circle of 2 fwhm radius around
@@ -192,10 +192,11 @@ def bad_pixel_removal(obj_tmp, center, fwhm, sig=5., protect_psf=True,
     fwhm: float scalar or vector
         Vector containing the full width half maximum of the PSF in pixels, for
         each channel (cube_like); or single value (frame_like)
-    sig=5.: float
+    sig=: float
         Value representing the number of "sigmas" above or below the "median" of
         the neighbouring pixel, to consider a pixel as bad. See details on 
-        parameter "m" of function reject_outlier
+        parameter "m" of function reject_outlier. Empirically, a value of 5.0
+        is conservative.
     protect_psf: bool, {True,False}, optional
         True if you want to protect a circular region centered on the star 
         (2*fwhm radius) from any bpix corr. If False, there is a risk to modify
@@ -203,13 +204,9 @@ def bad_pixel_removal(obj_tmp, center, fwhm, sig=5., protect_psf=True,
         corrected.
     verbose: bool, {True,False}, otpional
         If true, it will print the number of bad pixels and number of iterations
-        required in each frame 
-    hcube_ii: header, optional
-        Optional, the header of the cube. It is required in case DEBUG is True,
-        to write some intermediate fits files.
-    DEBUG: bool, {True,False}, otpional
-        If true, it will create fits files containing the bad pixel map and 
-        corrected frame at each iteration.
+        required in each frame
+    DEBUG: bool, {True,False}, optional
+        Whether to print the details when a pixel is considered a bpix
 
     Returns:
     --------
@@ -254,7 +251,7 @@ def bad_pixel_removal(obj_tmp, center, fwhm, sig=5., protect_psf=True,
 
         #3/ Create a bad pixel map, by detecting them with find_outliers
         bpix_map = find_outliers(obj_tmp, sig_dist=sig, stddev = stddev, 
-                                 neighbor_box=neighbor_box)
+                                 neighbor_box=neighbor_box,DEBUG=DEBUG)
         bpix_map_cumul = np.zeros_like(bpix_map)
         bpix_map_cumul[:] = bpix_map[:] 
         nbpix_tot = np.sum(bpix_map)
@@ -267,31 +264,33 @@ def bad_pixel_removal(obj_tmp, center, fwhm, sig=5., protect_psf=True,
         while nbpix_tbc > 0:
             nit = nit+1
             if verbose:
-                print 'Iteration ',nit, ': ', nbpix_tot, 
+                print 'Iteration ',nit, ': ', nbpix_tot, \
                 ' bpixels in total, and ', nbpix_tbc, ' to be corrected.'
             obj_tmp = sigma_filter(obj_tmp, bpix_map, neighbor_box=neighbor_box,
                                    min_neighbors=nneig, verbose=verbose)
             bpix_map = find_outliers(obj_tmp, sig_dist=sig, stddev = stddev, 
-                                     neighbor_box=neighbor_box,DEBUG=True)
+                                     neighbor_box=neighbor_box,DEBUG=DEBUG)
             bpix_map_cumul = bpix_map_cumul+bpix_map
             nbpix_tot = np.sum(bpix_map)
             nbpix_tbc = nbpix_tot - np.sum(bpix_map[circl_new])
             bpix_map[circl_new] = 0
 
-        if verbose:  print 'All bad pixels are corrected.'
+        if verbose:  print 'All bad pixels are corrected. \n'
             
         return obj_tmp, bpix_map_cumul
 
     if ndims == 2:
-        obj_tmp, bpix_map_cumul = bp_removal_2d(obj_tmp, center, fwhm, sig, 
+        frame = obj_tmp.copy()
+        obj_tmp, bpix_map_cumul = bp_removal_2d(frame, center, fwhm, sig, 
                                                 protect_psf, verbose)
 
     if ndims == 3:
+        cube = obj_tmp.copy()
         n_z = obj_tmp.shape[0]
         bpix_map_cumul = np.zeros_like(obj_tmp)
         for i in range(n_z):
             if verbose: print '************Frame # ', i,' *************'
-            obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], 
+            obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(cube[i], 
                                                           center[i], fwhm[i], 
                                                           sig, protect_psf, 
                                                           verbose)
@@ -299,7 +298,7 @@ def bad_pixel_removal(obj_tmp, center, fwhm, sig=5., protect_psf=True,
     return obj_tmp, bpix_map_cumul
     
     
-def find_outliers(frame, sig_dist, stddev=None, neighbor_box=3, DEBUG=False):
+def find_outliers(frame, sig_dist, stddev=None, neighbor_box=3,DEBUG=False):
     """ Provides a bad pixel (or outlier) map for a given frame.
 
     Parameters
@@ -313,6 +312,8 @@ def find_outliers(frame, sig_dist, stddev=None, neighbor_box=3, DEBUG=False):
         The side of the square window around each pixel where the sigma and 
         median are calculated for the bad pixel DETECTION and CORRECTION.
         Can only be 3 or 5.
+    DEBUG: bool, {True,False}, optional
+        Whether to print the details when a pixel is considered a bpix
         
     Returns
     -------
@@ -356,7 +357,8 @@ def find_outliers(frame, sig_dist, stddev=None, neighbor_box=3, DEBUG=False):
             _,test_result = reject_outliers(neighbours,
                                             test_value=frame[yy,xx],
                                             m=sig_dist,
-                                            stddev=stddev)
+                                            stddev=stddev,
+                                            DEBUG=DEBUG)
 
             #3/ Assign the value of the test to bpix_map
             bpix_map[yy,xx] = test_result
@@ -412,23 +414,12 @@ def reject_outliers(data, test_value, m=5., stddev=None, DEBUG=False):
 
     d = np.abs(data - np.median(data))
     mdev = np.median(d)
-    if DEBUG:
-        print "data = ", data
-        print "median(data)= ", np.median(data)
-        print "d = ", d
-        print "mdev = ", mdev
-        print "stddev(box) = ", np.std(data)
-        print "stddev(frame) = ", stddev
-        print "max(d) = ", np.max(d)
 
     if np.max(d) > stddev:
         mdev = mdev if mdev>stddev else stddev
         s = d/mdev
         good_neighbours = data[s<m]
-        if DEBUG: print "s =", s
-
         test = np.abs((test_value-np.median(data))/mdev)
-        if DEBUG: print "test =", test
         if test < m:
             test_result = 0
         else:
@@ -436,5 +427,15 @@ def reject_outliers(data, test_value, m=5., stddev=None, DEBUG=False):
     else:
         good_neighbours = data
         test_result = 0
+
+    if DEBUG and test_result:
+        print "data = ", data
+        print "median(data)= ", np.median(data)
+        print "d = ", d
+        print "mdev = ", mdev
+        print "stddev(frame) = ", stddev
+        print "max(d) = ", np.amax(d)
+        print "s = ", s
+        print "test ", test, " > m: ", m
 
     return good_neighbours, test_result

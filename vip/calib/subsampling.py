@@ -92,7 +92,7 @@ def frame_resize(array, scale=0.5, interpolation='bicubic'):
     else:
         raise TypeError('Interpolation method not recognized.')
 
-    resized = cv2.resize(array, (0,0), fx=scale, fy=scale, interpolation=intp)    
+    resized = cv2.resize(array, (0,0), fx=scale, fy=scale, interpolation=intp)
     return resized
 
 
@@ -152,18 +152,19 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=False):
     """
     if not array.ndim == 3:
         raise TypeError('The input array is not a cube or 3d array.')
-    m = int(array.shape[0]/n)                                                        
+    m = int(array.shape[0]/n)                                                   
     y = array.shape[1]
     x = array.shape[2]
     arr = np.empty([m, y, x]) 
     if mode == 'median':
         for i in xrange(m):                                                  
-            arr[i, :, :] = np.median(array[:n, :, :], axis=0)                   # first new frame,  mean of first n frames
+            arr[i, :, :] = np.median(array[:n, :, :], axis=0)
+            # first new frame,  mean of first n frames
             if i >= 1:
                 arr[i, :, :] = np.median(array[n*i:n*i+n, :, :], axis=0) 
     if mode=='mean':
         for i in xrange(m):                                                  
-            arr[i, :, :] = np.mean(array[:n, :, :], axis=0)                         
+            arr[i, :, :] = np.mean(array[:n, :, :], axis=0)
             if i >= 1:
                 arr[i, :, :] = np.mean(array[n*i:n*i+n, :, :], axis=0)
     else:  
@@ -179,7 +180,7 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=False):
     if array.shape[0]/n % 1 != 0:
         print '\nInitial # of frames and window are not multiples. A few frames were dropped.'   
     if verbose:
-        print "Done {:} over FITS-Cube with window n = {:}".format(mode ,n)                            
+        print "Done {:} over FITS-Cube with window n = {:}".format(mode ,n)
     if parallactic is not None:
         return arr, angles
     else:

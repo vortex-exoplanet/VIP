@@ -6,7 +6,7 @@ Module with detection algorithms.
 
 from __future__ import division
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'C. Gomez @ ULg, V. Christiaens @ UChile/ULg'
 __all__ = ['detection', 
            'mask_source_centers',
            'peak_coordinates']
@@ -22,7 +22,8 @@ from astropy.modeling.fitting import LevMarLSQFitter
 from photutils import CircularAperture, aperture_photometry
 from photutils.detection import findstars
 from skimage.feature import peak_local_max
-from ..var import mask_circle, pp_subplots, get_square, fit_2dgaussian, frame_center
+from ..var import (mask_circle, pp_subplots, get_square_robust, fit_2dgaussian,
+                   frame_center)
 from ..var.filters import SIGMA2FWHM, gaussian_kernel
 from .snr import snr_student
 from .frame_analysis import frame_quick_report
@@ -53,7 +54,7 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
     mask : {True, False}, optional
         Whether to mask the central region (circular aperture of 2*fwhm radius).
     snr_thresh : float, optional
-        SNR threshold for deciding whether the blob is a detection or not.         
+        SNR threshold for deciding whether the blob is a detection or not.
     plot {True, False}, bool optional
         If True plots the frame showing the detected blobs on top.
     debug : {False, True}, bool optional
@@ -101,17 +102,17 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
     
     Difference of Gaussians. This is a faster approximation of LoG approach. In 
     this case the image is blurred with increasing standard deviations and the 
-    difference between two successively blurred images are stacked up in a cube. 
-    This method suffers from the same disadvantage as LoG approach for detecting 
+    difference between two successively blurred images are stacked up in a cube.
+    This method suffers from the same disadvantage as LoG approach for detecting
     larger blobs. Blobs are again assumed to be bright on dark.
     
-    Irafsf. starfind algorithm (IRAF software) searches images for local density 
+    Irafsf. starfind algorithm (IRAF software) searches images for local density
     maxima that have a peak amplitude greater than threshold above the local 
-    background and have a PSF full-width half-maximum similar to the input fwhm. 
-    The objects' centroid, roundness (ellipticity), and sharpness are calculated 
+    background and have a PSF full-width half-maximum similar to the input fwhm.
+    The objects' centroid, roundness (ellipticity), and sharpness are calculated
     using image moments.
     
-    Daofind. Searches images for local density maxima that have a peak amplitude 
+    Daofind. Searches images for local density maxima that have a peak amplitude
     greater than threshold (approximately; threshold is applied to a convolved 
     image) and have a size and shape similar to the defined 2D Gaussian kernel. 
     The Gaussian kernel is defined by the fwhm, ratio, theta, and sigma_radius 
@@ -136,7 +137,8 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
     gauss = Gaussian2D(amplitude=1, x_mean=5, y_mean=5, x_stddev=3.5, 
                        y_stddev=3.5, theta=0)
     fitter = LevMarLSQFitter()                  # Levenberg-Marquardt algorithm
-    psf_subimage = get_square(psf, 9, frame_center(psf)[0],frame_center(psf)[1])
+    psf_subimage = get_square_robust(psf, 9, frame_center(psf)[0],
+                                     frame_center(psf)[1])
     y, x = np.indices(psf_subimage.shape)
     fit = fitter(gauss, x, y, psf_subimage)
     fwhm = np.mean([fit.y_stddev.value*SIGMA2FWHM, 
@@ -178,7 +180,7 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
         pp_subplots(frame_det, size=6, rows=2, colorb=True)
         
     if mode=='lpeaks':
-        # Finding local peaks (can be done in the correlated frame)                                           
+        # Finding local peaks (can be done in the correlated frame)
         coords_temp = peak_local_max(frame_det, threshold_abs=bkg_level, 
                                      min_distance=fwhm, num_peaks=20)
         y_temp = coords_temp[:,0]
@@ -186,8 +188,9 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
         coords = []
         # Fitting a 2d gaussian to each local maxima position
         for y,x in zip(y_temp,x_temp):
-            subim, suby, subx = get_square(array_padded, 2*int(np.ceil(fwhm)), 
-                                           y+pad, x+pad, position=True) 
+            subim, suby, subx = get_square_robust(array_padded, 
+                                                  2*int(np.ceil(fwhm)), 
+                                                  y+pad, x+pad, position=True) 
             cy, cx = frame_center(subim)
             
             gauss = Gaussian2D(amplitude=subim.max(), 
@@ -289,7 +292,7 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
         if verbose: 
             print '_________________________________________'
             print 'Y,X = ({:.1f},{:.1f}) -----------------------'.format(y, x)
-        subim = get_square(array, size=15, y=y, x=x)
+        subim = get_square_robust(array, size=15, y=y, x=x)
         snr = snr_student(array, y, x, fwhm, False, verbose=False)
         snr_list.append(snr)
         px_list.append(array[y,x])
@@ -359,12 +362,13 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
         return yy_final, xx_final
 
     
-def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None):
+def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None, 
+                     cube_max=False):
     """Find the pixel coordinates of maximum in either a frame or a cube, 
     after convolution with gaussian. It first applies a gaussian filter, to 
     lower the probability of returning a hot pixel (although it may still 
     happen with clumps of hot pixels, hence the need for function 
-    "approx_stellar_position".
+    "approx_stellar_position" in calib/cosmetics_ifs.py).
     
     Parameters
     ----------
@@ -378,12 +382,19 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None):
         of the peak.
     search_box: 
         Scalar or list_like (of 2 components) giving the half-size in pixels 
-        of a box in which the peak is searched, aroung approx_peak.
+        of a box in which the peak is searched, around approx_peak.
+    cube_max: {False, True}, bool optional
+        Whether the function returns only the indices of the peak, or also a 
+        vector with the coordinates of the gaussian filtered max in each channel
+        (in case of a 3d cube).
 
     Returns
     -------
-    zz_max, yy_max, xx_max : integers
+    (zz_max,) yy_max, xx_max : integers
         Indices of highest throughput channel
+    If cube_max is True, then it also returns yy_max_ch, xx_max_ch: array_like, 
+    with the y and x indices of the gaussian-filtered peak in each channel.
+    
     """
 
     ndims = len(obj_tmp.shape)
@@ -415,20 +426,25 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None):
     if ndims == 3:
         n_z = obj_tmp.shape[0]
         gauss_filt_tmp = np.zeros_like(obj_tmp)
+        if cube_max: ind_max_cube = np.zeros([n_z,2])
 
         msg2 = "The search for the peak in a 3D cube, with the approx peak"
         msg2 +=  "option is not implemented.\n"
         assert approx_peak == None, msg2
         for zz in range(n_z):
             gauss_filt_tmp[zz] = gaussian_filter(obj_tmp[zz], fwhm[zz])
+            if cube_max:
+                ind_max_cube[zz] = np.unravel_index(gauss_filt_tmp[zz].argmax(),
+                                                    gauss_filt_tmp[zz].shape)
 
         ind_max = np.unravel_index(gauss_filt_tmp.argmax(), 
                                    gauss_filt_tmp.shape)
         
-    return ind_max
+    if cube_max and ndims == 3: return ind_max, ind_max_cube
+    else: return ind_max
 
 
-def mask_source_centers(array, fwhm, y, x):                                                  
+def mask_source_centers(array, fwhm, y, x): 
     """ Creates a mask of ones with the size of the input frame and zeros at
     the center of the sources (planets) with coordinates x, y.
     
@@ -458,5 +474,5 @@ def mask_source_centers(array, fwhm, y, x):
         yy = np.array(y); xx = np.array(x)
     mask = np.ones_like(array)
     # center sources become zeros
-    mask[yy.astype('int'), xx.astype('int')] = 0                                 
+    mask[yy.astype('int'), xx.astype('int')] = 0
     return mask

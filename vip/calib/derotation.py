@@ -29,7 +29,7 @@ def frame_rotate(array, angle, interpolation='bicubic', cy=None, cx=None):
         the 'bicubic' the slowest of the three. The 'nearneig' is the poorer
         option for interpolation of noisy astronomical images.
     cy, cx : float, optional
-        Coordinates X,Y  of the point with respect to which the rotation will be 
+        Coordinates X,Y  of the point with respect to which the rotation will be
         performed. By default the rotation is done with respect to the center 
         of the frame; central pixel if frame has odd size.
         
@@ -70,15 +70,15 @@ def cube_derotate(array, angle_list, cy=None, cx=None, collapse='median'):
     ----------
     array : array_like 
         Input 3d array, cube.
-    angle_list : list
+    angle_list : list or 1D-array
         Vector containing the parallactic angles.
     cy, cx : float, optional
-        Coordinates X,Y  of the point with respect to which the rotation will be 
+        Coordinates X,Y  of the point with respect to which the rotation will be
         performed. By default the rotation is done with respect to the center 
         of the frames; central pixel if the frames have odd size.
-    collapse : {'median','mean'}
-        Way of collapsing the derotated cube.
-        
+    collapse : string, {'median','mean'}, optional
+        Way of collapsing the derotated cube.       
+ 
     Returns
     -------
     array_der : array_like
@@ -97,11 +97,10 @@ def cube_derotate(array, angle_list, cy=None, cx=None, collapse='median'):
     for i in xrange(array.shape[0]): 
         M = cv2.getRotationMatrix2D((cx,cy), -angle_list[i], 1)
         array_der[i] = cv2.warpAffine(array[i].astype(np.float32), M, (x, y))
-    
+            
     if collapse=='median':        
         array_out = np.median(array_der, axis=0)
     elif collapse=='mean':
         array_out = np.mean(array_der, axis=0)
-                      
+             
     return array_der, array_out
-

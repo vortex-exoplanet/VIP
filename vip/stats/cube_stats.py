@@ -17,7 +17,7 @@ from ..var import get_annulus, get_circle
 
 
 def cube_stats_aperture(arr, radius, y=None, x=None, plot=False, 
-                        full_output=False, verbose=True):                                                 
+                        full_output=False, verbose=True):
     """Calculates statistics in an aperture on a 2D or 3D array and plots the 
     variation of the mean, median and standard deviation as a functions of time.
     
@@ -62,7 +62,8 @@ def cube_stats_aperture(arr, radius, y=None, x=None, plot=False,
         values_circle = []
         for i in xrange(n):
             if x and y:
-                circle = get_circle(arr[i], radius, output_values=True, cy=y, cx=x)
+                circle = get_circle(arr[i], radius, output_values=True, cy=y, 
+                                    cx=x)
             else:
                 circle = get_circle(arr[i], radius, output_values=True)
             values_circle.append(circle)
@@ -103,9 +104,10 @@ def cube_stats_aperture(arr, radius, y=None, x=None, plot=False,
             plt.axes([0.80,0.55,0.1,0.1])
             plt.axis('off')
             if x and y:
-                circle_im = get_circle(arr.mean(axis=0), radius=radius, cy=y, cx=x)           
+                circle_im = get_circle(arr.mean(axis=0), radius=radius, cy=y, 
+                                       cx=x)           
                 plt.imshow(circle_im, origin='lower', interpolation="nearest", 
-                           cmap=plt.get_cmap('gray'), alpha=0.5)                     
+                           cmap=plt.get_cmap('gray'), alpha=0.5)
                 plt.xlim(x-radius, x+radius)
                 plt.ylim(y-radius, y+radius)
             else:
@@ -217,7 +219,7 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False,
             else:
                 annulus = get_annulus(arr, inner_radius, size)
             plt.imshow(annulus, origin = 'lower', interpolation="nearest", 
-                       cmap = plt.get_cmap('gray'))                             # shows annulus from 1st fr
+                       cmap = plt.get_cmap('gray')) # shows annulus from 1st fr
             plt.xlim((widht/2)-(inner_radius+size), 
                      (widht/2)+(inner_radius+size))
             plt.ylim((height/2)-(inner_radius+size), 

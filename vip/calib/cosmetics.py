@@ -17,7 +17,7 @@ import cv2
 import numpy as np
 from ..stats import clip_array
 from ..fits import open_fits, write_fits
-from ..var import frame_center, get_square
+from ..var import frame_center, get_square_robust
 
     
 def frame_bad_pixel_correction(array, bpm_mask, size=3, double_check=False):
@@ -48,16 +48,16 @@ def frame_bad_pixel_correction(array, bpm_mask, size=3, double_check=False):
      
     frame = array.copy()
     smoothed = cv2.medianBlur(frame.astype(np.float32), size)
-    frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]      # smoothed bad pixels
+    frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)] # smoothed bad pxls
     if double_check:
-        indices = clip_array(frame, 3, 3, neighbor=True, num_neighbor=9)                                
+        indices = clip_array(frame, 3, 3, neighbor=True, num_neighbor=9) 
         frame[indices] = smoothed[indices]
          
     print "Done correcting bad pixels"
     return frame
 
 
-def cube_crop_frames(array, size, ceny=None, cenx=None, verbose=True):                         
+def cube_crop_frames(array, size, ceny=None, cenx=None, verbose=True):
     """Crops frames in a cube (3d array). If size is an even value it'll be 
     increased by one to make it odd.
     
@@ -106,7 +106,7 @@ def cube_crop_frames(array, size, ceny=None, cenx=None, verbose=True):
     return array_view
 
 
-def frame_crop(array, size, ceny=None, cenx=None, verbose=True):                         
+def frame_crop(array, size, ceny=None, cenx=None, verbose=True):
     """Crops frame (2d array). Wrapper of function vortex.var.shapes.get_square.
     If size is an even value it'll be increased by one to make it odd.
     
@@ -132,7 +132,7 @@ def frame_crop(array, size, ceny=None, cenx=None, verbose=True):
     
     if not ceny and not cenx:
         ceny, cenx = frame_center(array, verbose=False)
-    array_view = get_square(array, size, ceny, cenx)    
+    array_view = get_square_robust(array, size, ceny, cenx)    
     
     if verbose:
         print

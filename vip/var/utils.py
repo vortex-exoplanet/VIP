@@ -18,7 +18,7 @@ import numpy as np
 from matplotlib.pyplot import (figure, subplot, show, colorbar, close, imshow,
                                xlim, ylim, matshow, rc)
 from subprocess import call     
-from ..var import (fit_2dgaussian, dist, frame_center, get_circle, 
+from ..var import (fit_2dgaussian, dist, frame_center, 
                         get_annulus)
 from ..conf import VLT_NACO, LBT
 

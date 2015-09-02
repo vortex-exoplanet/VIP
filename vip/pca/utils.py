@@ -106,7 +106,8 @@ def prepare_matrix(array, center=None, mask_center_px=None, verbose=True):
     if mask_center_px:
         array = mask_circle(array, mask_center_px)
                 
-    matrix = np.reshape(array, (array.shape[0], -1))            # equivalent to a for loop: array[i].flatten()                            
+    matrix = np.reshape(array, (array.shape[0], -1)) # equivalent to a for loop:
+                                                     # array[i].flatten()
     
     if center==None:
         pass
@@ -152,7 +153,8 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
                                                                    rec_matrix))
         exp_var = (S ** 2) / matrix.shape[0]
         full_var = np.var(matrix, axis=0).sum()
-        explained_variance_ratio = exp_var / full_var           # Percentage of variance explained by each PC
+        explained_variance_ratio = exp_var / full_var # Percentage of variance 
+                                                      # explained by each PC
         if var==1:
             pass    
         else:
@@ -162,11 +164,13 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         print(msg.format(ncomp, ratio_cumsum[ncomp-1]))
         
     if mode=='eigen':
-        M = np.dot(matrix, matrix.T)                             # covariance matrix
-        e, EV = linalg.eigh(M)                                   # eigenvalues and eigenvectors
-        pc = np.dot(EV.T, matrix)                                # PCs / compact trick
-        V = pc[::-1]                                             # reverse since last eigenvectors are the ones we want 
-        S = np.sqrt(e)[::-1]                                     # reverse since eigenvalues are in increasing order 
+        M = np.dot(matrix, matrix.T)       # covariance matrix
+        e, EV = linalg.eigh(M)             # eigenvalues and eigenvectors
+        pc = np.dot(EV.T, matrix)          # PCs / compact trick
+        V = pc[::-1]                       # reverse since last eigenvectors are
+                                           # the ones we want 
+        S = np.sqrt(e)[::-1]               # reverse since eigenvalues are in 
+                                           # increasing order 
         for i in xrange(V.shape[1]): 
             V[:,i] /= S
         V = V[:ncomp]
@@ -174,9 +178,10 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         
     # When num_px < num_frames (rare case) or we need all the PCs
     elif mode=='lapack':
-        U, S, V = linalg.svd(matrix, full_matrices=False)         # scipy SVD, S = variance(singular values)
+        U, S, V = linalg.svd(matrix, full_matrices=False)# scipy SVD, S = 
+                                                         #variance(singular val)
         if debug: reconstruction(ncomp, U, S, V, 1)
-        V = V[:ncomp]                                             # we cut projection matrix according to the # of PCs
+        V = V[:ncomp]       # we cut projection matrix according to the # of PCs
         if verbose: print('Done SVD/PCA with scipy SVD (LAPACK)')
             
     elif mode=='arpack':
@@ -186,7 +191,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         
         
     elif mode=='opencv':
-        _, V = cv2.PCACompute(matrix, maxComponents=ncomp)          # eigenvectors, PCs
+        _, V = cv2.PCACompute(matrix, maxComponents=ncomp) # eigenvectors, PCs
         if verbose: print('Done SVD/PCA with opencv.')
 
     elif mode=='randsvd':

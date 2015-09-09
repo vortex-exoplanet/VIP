@@ -226,7 +226,7 @@ def firstguess(pipeline_parameters, planets_xy_coord=None, f_range=None,
         res = firstguess_simplex((r_pre,theta_pre,f_pre), cube, angs, psfn,
                                  PLSC, fwhm, ncomp, annulus_width, 
                                  aperture_radius, tol=tol, max_iter=max_iter,
-                                 verbose=False)
+                                 verbose=True)
         if verbose:                               
             print '   Done !'                                       
         

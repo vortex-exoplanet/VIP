@@ -191,7 +191,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
 
     elif mode=='randsvd':
         U, S, V = randomized_svd(matrix, n_components=ncomp, n_iter=2, 
-                                 transpose='auto')
+                                 transpose='auto', random_state=None)
         if debug: reconstruction(ncomp, U, S, V, 1)
         if verbose: print('Done SVD/PCA with randomized SVD')
 

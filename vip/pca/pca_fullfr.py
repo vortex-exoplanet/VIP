@@ -110,12 +110,14 @@ def pca(cube, angle_list, cube_ref=None, svd_mode='randsvd', ncomp=1,
     
     
 def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full', 
-                     annulus_width=None, svd_mode='randsvd', mask_center_px=5, 
-                     min_snr=0, verbose=True, output_frame=False, debug=False):
+                     annulus_width=None, svd_mode='randsvd', mask_center_px=5,
+                     fmerit='cent', min_snr=0, verbose=True, output_frame=False, 
+                     debug=False):
     """ Optimizes the number of principal components by doing a simple grid 
-    search measuring the SNR for a given position in the frame. The mean SNR 
-    in a 1*FWHM circular aperture centered on the given pixel is the metric
-    used instead of the given pixel's SNR (which may lead to false maximums).
+    search measuring the SNR for a given position in the frame. The metric
+    used could be the given pixel's SNR, the maximun SNR in a fwhm circular
+    aperture centred on the given coordinates or the mean SNR in the same
+    circular aperture. They yield slightly different results.
     
     Parameters
     ----------
@@ -133,6 +135,10 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
         radius of the circular mask.  
+    fmerit : {cent, max, mean}
+        The metric to be maximized. 'cent' is the given pixel's SNR, 'max' the 
+        maximun SNR in a fwhm circular aperture centred on the given coordinates 
+        and 'mean' is the mean SNR in the same circular aperture.  
     min_snr : float
         Value for the minimum acceptable SNR. Setting this value higher will 
         reduce the steps.
@@ -150,14 +156,8 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
         Optimal number of PCs for given source.
     If output_frame is True, the final processed frame is returned.
     
-    """
-    array = cube
-    if not array.ndim==3:
-        raise TypeError('Input array is not a cube or 3d array')
-    
-    if verbose: start_time = timeInit()
-    
-    def get_snr(cube, angle_list, y, x, mode, svd_mode, fwhm, ncomp):
+    """    
+    def get_snr(cube, angle_list, y, x, mode, svd_mode, fwhm, ncomp, fmerit):
         if mode=='full':
             frame = pca(cube, angle_list, ncomp=ncomp, full_output=False, 
                         verbose=False, mask_center_px=mask_center_px, 
@@ -172,70 +172,80 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
         yy, xx = draw.circle(y, x, fwhm/2.)
         snr_pixels = [phot.snr_student(frame, y_, x_, fwhm, plot=False, 
                                        verbose=False) for y_, x_ in zip(yy, xx)]
-        return np.mean(snr_pixels)
-
-    n = array.shape[0]
-    nsteps = 0
-    if mode=='full':
-        step1 = int(np.percentile(range(n), 10))
-    elif mode=='annular':
-        step1 = int(np.percentile(range(n), 5))
-    snrlist = []
-    pclist = []
-    counter = 0
-    if debug:  print 'Step 1st grid:', step1
-    for pc in range(1, n+1, step1):
-        snr = get_snr(cube, angle_list, y, x, mode, svd_mode, fwhm, ncomp=pc)
-        nsteps += 1
-        if nsteps>1 and snr<min_snr:  
-            print 'SNR became negative'
-            break
-        if nsteps>1 and snr<snrlist[-1]:  counter += 1
-        snrlist.append(snr)
-        pclist.append(pc)
-        if debug:  print '{} {:.3f}'.format(pc, snr)
-        if counter==3:  break 
-    argm = np.argmax(snrlist)
-    if argm==0:  return 1
+        if fmerit=='max':
+            return np.max(snr_pixels)
+        elif fmerit=='px':
+            return phot.snr_student(frame, y, x, fwhm, plot=False, verbose=False)
+        elif fmerit=='mean':
+            return np.mean(snr_pixels)
     
-    snrlist2 = []
-    pclist2 = []
+    def grid(cube, angle_list, y, x, mode, svd_mode, fwhm, fmerit, step, inti, 
+             intf, debug):
+        nsteps = 0
+        n = cube.shape[0]
+        snrlist = []
+        pclist = []
+        counter = 0
+        if debug:  print 'Step current grid:', step
+        for pc in range(inti, intf+1, step):
+            snr = get_snr(cube, angle_list, y, x, mode, svd_mode, fwhm, 
+                          pc, fmerit)
+            if nsteps>2 and snr<min_snr:  
+                print 'SNR too small'
+                break
+            if nsteps>1 and snr<snrlist[-1]:  counter += 1
+            #if len(snrlist)>8 and np.all(np.diff(np.array(snrlist))[:-8] < 0 ) :
+            #    print 'SNR decreasing'
+            snrlist.append(snr)
+            pclist.append(pc)
+            nsteps += 1
+            if debug:  
+                print '{} {:.3f}'.format(pc, snr)
+            if counter==3:  
+                break 
+        argm = np.argmax(snrlist)
+        
+        if len(pclist)==2: pclist.append(pclist[-1]+1)
     
-    if len(pclist)==2: pclist.append(pclist[-1]+1)
+        if debug:
+            print 'Finished current stage' 
+            print 'Interval for next grid: ', pclist[argm-1], 'to', pclist[argm+1]+1
+            print
+        
+        if argm==0:  
+            return 1, pclist, nsteps
+        else:  
+            return argm, pclist, nsteps
     
-    if debug:
-        print 'Finished stage 1', argm, pclist[argm], 
-        print pclist[argm-1], pclist[argm+1]+1
-        print
+    #----------------------------------------------------
+    if not cube.ndim==3:
+        raise TypeError('Input array is not a cube or 3d array')
     
-    if debug:  print 'Step 2nd grid:', 1
-    for pc in range(pclist[argm-1], pclist[argm+1]+1, 1):
-        snr = get_snr(cube, angle_list, y, x, mode, svd_mode, fwhm, ncomp=pc)
-        nsteps += 1
-        if snr<min_snr:  break
-        snrlist2.append(snr)
-        pclist2.append(pc)
-        if debug:  print '{} {:.3f}'.format(pc, snr)
-        if len(snrlist2)>8 and np.all(np.diff(np.array(snrlist2))[:-8] < 0 ) :
-            print 'SNR max passed'
-            break
-                
-    if len(snrlist2)==0:  
-        msg = 'SNR too low at given position. Optimization failed'
-        if verbose:  print msg
-        return 1
+    if verbose: start_time = timeInit()
+    n = cube.shape[0]
     
-    argm2 = np.argmax(snrlist2)    
+    # Up to min(n, 150) principal components. More isn't very realistic for any
+    # ADI dataset I've tried. 
+    argm, pclist, nsteps = grid(cube, angle_list, y, x, mode, svd_mode, fwhm, 
+                                fmerit, 20, 1, min(150, n), debug)
+    
+    argm2, pclist2, nsteps2 = grid(cube, angle_list, y, x, mode, svd_mode, fwhm,
+                                   fmerit, 10, pclist[argm-1], pclist[argm+1], 
+                                   debug)
+    
+    argm3, pclist3, nsteps3 = grid(cube, angle_list, y, x, mode, svd_mode, fwhm, 
+                                   fmerit, 1, pclist2[argm2-1], pclist2[argm2+1], 
+                                   debug)
     
     if debug:  
-        print 'Finished stage 2', argm2, pclist2[argm2]
-        print '# of SVDs', nsteps
+        print '# of SVDs', nsteps+nsteps2+nsteps3
         print
     
-    opt_npc = pclist2[argm2]
+    opt_npc = pclist3[argm3]
     if verbose:
-        msg = 'Optimal # of PCs = {} for mean SNR = {:.3f}'
-        print msg.format(opt_npc, snrlist2[argm2])
+        msg = 'Optimal # of PCs = {}'
+        print msg.format(opt_npc)
+        print
         timing(start_time)
         
     finalfr = pca(cube, angle_list, ncomp=opt_npc, full_output=False, 

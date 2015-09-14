@@ -255,6 +255,34 @@ def gelman_rubin_from_chain(chain, burnin):
     return rhat
 
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+def run_mcmc_astrometry(cubes,
+                        angs,
+                        psfs_norm,
+                        ncomp,                        
+                        plsc,                        
+                        annulus_width,
+                        aperture_radius,
+                        nwalkers,
+                        initialState,
+                        bounds=None,
+                        a=2.0,
+                        burnin = 0.3,
+                        rhat_threshold = 1.01,
+                        rhat_count_threshold = 3,
+                        niteration_min = 0.0,
+                        niteration_limit = 1e02,
+                        niteration_supp = 0.0,
+                        check_maxgap = 1e04,
+                        threads=1,
+                        output_file = None,
+                        display = False,
+                        verbose = True,
+                        save = False):
+=======
+>>>>>>> Stashed changes
 def run_mcmc_astrometry(cubes, angs, psfs_norm, plsc, fwhm, annulus_width,
                         ncomp, aperture_radius, nwalkers, initialState,
                         bounds, cube_ref=None, a=2.0, burnin=0.3,
@@ -263,6 +291,10 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, plsc, fwhm, annulus_width,
                         niteration_supp=0.0, check_maxgap=1e04, threads=1,
                         output_file=None, display=False, verbose=True, 
                         save=False):
+<<<<<<< Updated upstream
+=======
+>>>>>>> origin/master
+>>>>>>> Stashed changes
     """
     Run an affine invariant mcmc algorithm in order to determine the true 
     position and the flux of the planet using the 'Negative Fake Companion' 
@@ -292,9 +324,7 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, plsc, fwhm, annulus_width,
     psf: str or numpy.array
         The relative path to the instrumental psf fits image or the psfn itself. 
     plsc: float
-        The platescale, in arcsec per pixel. 
-    fwhm: float
-        The size of the Full Width Half Maximum in pixel. 
+        The platescale, in arcsec per pixel.  
     annulus_width: float
         The width in pixel of the annulus on wich the PCA is performed.
     ncomp: int
@@ -305,8 +335,10 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, plsc, fwhm, annulus_width,
         The number of Goodman & Weare 'walkers'.
     initialState: numpy.array 
         The first guess for the position and flux of the planet, respectively.
-    bounds: numpy.array or list
-        The prior knowledge on the model parameters.
+        Each walker will start in a small ball around this preferred position.
+    bounds: numpy.array or list, default=None
+        The prior knowledge on the model parameters. If None, large bounds will 
+        be automatically estimated from the initial state.
     a: float, default=2.0
         The proposal scale parameter. 
     burnin: float, default=0.3
@@ -413,10 +445,31 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, plsc, fwhm, annulus_width,
     rhat = np.zeros(dim)  
     stop = np.inf
     
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+    if bounds is None:
+        bounds = [(initialState[0]-annulus_width/2.,initialState[0]+annulus_width/2.), #position
+                  (initialState[1]-10,initialState[1]+10), #angle
+                  (0,2*initialState[2])] #flux
+    
+    sampler = emcee.EnsembleSampler(nwalkers,\
+                                    dim,\
+                                    lnprob,\
+                                    a,\
+                                    args =([bounds,cubes,angs,plsc,psfs_norm,
+                                            annulus_width,ncomp,aperture_radius,
+                                            initialState]),\
+=======
+>>>>>>> Stashed changes
     sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a,
                                     args=([bounds,cubes,angs,plsc,psfs_norm,
                                            annulus_width,ncomp,aperture_radius,
                                            initialState, cube_ref]),
+<<<<<<< Updated upstream
+=======
+>>>>>>> origin/master
+>>>>>>> Stashed changes
                                     threads=threads)
     
     duration_start = datetime.datetime.now()
@@ -438,7 +491,7 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, plsc, fwhm, annulus_width,
                 q = 0.5
             else:
                 q = 1
-            print '{}   {}   {}'.format(k,elapsed*q,elapsed*(limit-k-1)*q)
+            print '{}        {}                {}'.format(k,elapsed*q,elapsed*(limit-k-1)*q)
             
         start = datetime.datetime.now()
 
@@ -536,13 +589,13 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, plsc, fwhm, annulus_width,
                   'parallactic_angle': angs,
                   'psf': psfs_norm,
                   'plsc': plsc,
-                  'fwhm': fwhm,
                   'annulus_width': annulus_width,
                   'ncomp': ncomp,
                   'aperture_radius': aperture_radius,
                   'initialState': initialState,
                   'bounds': bounds,
-                  'a': a}
+                  'a': a}#,
+                  #'fwhm': fwhm}
                   
         with open('results/'+output_file+'/MCMC_results','wb') as fileSave:
             myPickler = pickle.Pickler(fileSave)
@@ -617,7 +670,7 @@ def showWalk(chain, save = False, **kwargs):
     except ImportError:
         print("The module matplotlib is required to show the walk plot. Please, install it.")
     
-
+    
     temp = np.where(chain[0,:,0] == 0.0)[0]
     if len(temp) != 0:
         chain = chain[:,:temp[0],:]

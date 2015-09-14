@@ -57,4 +57,28 @@ def radial_to_eq(r=1, t=0, rError=0, tError=0, display=False):
             (dec,np.mean([decErrorInf,decErrorSup])))    
     
     
+def index_to_polar(y, x, ceny=0, cenx=0):
+    """
+    Convert pixel index into polar coordinates (r,theta) with 
+    respect to a given center (cenx,ceny).
+    
+    Note that ds9 index (x,y) = Python matrix index (y,x).
+    
+    Parameters
+    ----------
+    x,y : float
+        The pixel index
+        
+    Returns
+    -------
+    
+    r,thera : float
+        The polar coordinates with respect to the (cenx,ceny). Note that theta 
+        is given in degrees.
+    """
+    r = np.sqrt((y-ceny)**2 + (x-cenx)**2)
+    theta = np.degrees(np.arctan2(y-ceny, x-cenx)) 
+    
+    return (r,theta)
+    
     

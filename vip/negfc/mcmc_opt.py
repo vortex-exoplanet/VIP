@@ -255,9 +255,6 @@ def gelman_rubin_from_chain(chain, burnin):
     return rhat
 
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
 def run_mcmc_astrometry(cubes,
                         angs,
                         psfs_norm,
@@ -281,20 +278,8 @@ def run_mcmc_astrometry(cubes,
                         display = False,
                         verbose = True,
                         save = False):
-=======
->>>>>>> Stashed changes
-def run_mcmc_astrometry(cubes, angs, psfs_norm, plsc, fwhm, annulus_width,
-                        ncomp, aperture_radius, nwalkers, initialState,
-                        bounds, cube_ref=None, a=2.0, burnin=0.3,
-                        rhat_threshold=1.01, rhat_count_threshold=3,
-                        niteration_min=0.0, niteration_limit=1e02,
-                        niteration_supp=0.0, check_maxgap=1e04, threads=1,
-                        output_file=None, display=False, verbose=True, 
-                        save=False):
-<<<<<<< Updated upstream
-=======
->>>>>>> origin/master
->>>>>>> Stashed changes
+
+
     """
     Run an affine invariant mcmc algorithm in order to determine the true 
     position and the flux of the planet using the 'Negative Fake Companion' 
@@ -445,31 +430,16 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, plsc, fwhm, annulus_width,
     rhat = np.zeros(dim)  
     stop = np.inf
     
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
+
     if bounds is None:
         bounds = [(initialState[0]-annulus_width/2.,initialState[0]+annulus_width/2.), #position
                   (initialState[1]-10,initialState[1]+10), #angle
                   (0,2*initialState[2])] #flux
     
-    sampler = emcee.EnsembleSampler(nwalkers,\
-                                    dim,\
-                                    lnprob,\
-                                    a,\
+    sampler = emcee.EnsembleSampler(nwalkers,dim,lnprob,a,
                                     args =([bounds,cubes,angs,plsc,psfs_norm,
                                             annulus_width,ncomp,aperture_radius,
-                                            initialState]),\
-=======
->>>>>>> Stashed changes
-    sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a,
-                                    args=([bounds,cubes,angs,plsc,psfs_norm,
-                                           annulus_width,ncomp,aperture_radius,
-                                           initialState, cube_ref]),
-<<<<<<< Updated upstream
-=======
->>>>>>> origin/master
->>>>>>> Stashed changes
+                                            initialState]),
                                     threads=threads)
     
     duration_start = datetime.datetime.now()

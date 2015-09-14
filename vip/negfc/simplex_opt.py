@@ -14,21 +14,11 @@ __all__ = ['firstguess_simplex',
            'firstguess_from_coord',
            'firstguess']
 
-<<<<<<< Updated upstream
-def firstguess_simplex(p_ini, cube, angs, psf, plsc, fwhm, ncomp, annulus_width, 
-                       aperture_radius, cube_ref=None, tol=1e-04, max_iter=300, 
-                       timer=False, verbose=False):               
-=======
-<<<<<<< HEAD
+
 def firstguess_simplex(p_ini, cube, angs, psf, plsc, ncomp, annulus_width, 
                        aperture_radius, options=None, timer=False, 
                        verbose=False):               
-=======
-def firstguess_simplex(p_ini, cube, angs, psf, plsc, fwhm, ncomp, annulus_width, 
-                       aperture_radius, cube_ref=None, tol=1e-04, max_iter=300, 
-                       timer=False, verbose=False):               
->>>>>>> origin/master
->>>>>>> Stashed changes
+
     """
     Determine the position of a planet using the negative fake companion 
     technique and Nelder-Mead minimization.
@@ -79,19 +69,10 @@ def firstguess_simplex(p_ini, cube, angs, psf, plsc, fwhm, ncomp, annulus_width,
     solu = minimize(chisquare, 
                     p_ini, 
                     args=(cube,angs,plsc,psf,annulus_width,ncomp,
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
                           aperture_radius,p_ini), 
-                    method = options.pop('method','Nelder-Mead'), 
-                    options=options)                       
-=======
->>>>>>> Stashed changes
-                          aperture_radius,p_ini,cube_ref), 
-                    method = 'Nelder-Mead', 
-                    options={'xtol':tol, 'disp': True, 'maxiter': max_iter}) 
-    
->>>>>>> origin/master
+                          method = options.pop('method','Nelder-Mead'), 
+                          options=options)                       
+
     
     end = datetime.datetime.now()
     elapsed_time = (end-start).total_seconds()
@@ -252,20 +233,6 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width,
         if verbose:
             msg3 = 'Planet {}: preliminary guess: (r,theta,f) = ({},{},{})'
             print msg3.format(index_planet,r_pre, theta_pre, f_pre)
-<<<<<<< HEAD
- 
-=======
-            msg4 = 'Planet {}: Simplex Nelder-Mead minimization, running ...'
-            print msg4.format(index_planet) 
-        res = firstguess_simplex((r_pre,theta_pre,f_pre), cube, angs, psfn,
-                                 PLSC, fwhm, ncomp, annulus_width, 
-                                 aperture_radius, tol=tol, max_iter=max_iter,
-                                 verbose=True)
-        if verbose:                               
-            print '   Done !'                                       
-        
-        r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x
->>>>>>> origin/master
         
         if simplex:
             if verbose:
@@ -278,8 +245,10 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width,
             
             r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x
             if verbose:
-                msg5 = 'Planet {}: Success: {}, nit: {}, chi2r: {}'
-                print msg5.format(index_planet,res.success,res.nit,res.fun)
+                msg5 = 'Planet {}: Success: {}, nit: {}, nfev: {}, chi2r: {}'
+                print msg5.format(index_planet,res.success,res.nit,res.nfev, 
+                                  res.fun)
+                print 'message: {}'.format(res.message)
             
         else:
             if verbose:

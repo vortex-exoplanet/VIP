@@ -21,8 +21,8 @@ from ..var import frame_center, get_square
 
     
 def frame_bad_pixel_correction(array, bpm_mask, size=3, double_check=False):
-    """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is
-    replaced by the median of the adjacent pixels.
+    """ Corrects the bad pixels (preferably isolated pixels), marked in the bad 
+    pixel mask. The bad pixel is replaced by the median of the adjacent pixels.
      
     Parameters
     ----------
@@ -30,7 +30,7 @@ def frame_bad_pixel_correction(array, bpm_mask, size=3, double_check=False):
         Input frame.
     bpm_mask : array_like
         Input bad pixel map.
-    size : odd integer, optional
+    size : {3, 5}, optional
         The size the box (size x size) of adjacent pixels for taking the median.
     double_check : {False, True}, bool optional
         Double check for still deviating px not captured in the bad pixel mask.

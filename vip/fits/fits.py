@@ -64,6 +64,7 @@ def open_fits(fitsfilename, n=0, header=False, verbose=True):
                 msg = "\nFits HDU:{:} data and header successfully loaded. Data"+\
                     " shape: [{:},{:},{:}]"
                 print msg.format(n, data.shape[0],data.shape[1],data.shape[2])
+        hdulist.close()
         return data, header 
     else:
         if verbose:
@@ -79,6 +80,7 @@ def open_fits(fitsfilename, n=0, header=False, verbose=True):
                 msg = "\nFits HDU:{:} data successfully loaded. Data"+\
                     " shape: [{:},{:},{:}]"
                 print msg.format(n, data.shape[0],data.shape[1],data.shape[2])
+        hdulist.close()
         return data        
 
 

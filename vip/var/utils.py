@@ -6,8 +6,9 @@ Module with various functions.
 
 from __future__ import division
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'C. Gomez @ ULg', 'O. Wertz'
 __all__ = ['pp_subplots',
+           'plot_surface',
            'lines_of_code',
            'px2mas']
 
@@ -16,7 +17,8 @@ import glob
 import re
 import numpy as np
 from matplotlib.pyplot import (figure, subplot, show, colorbar, close, imshow,
-                               xlim, ylim, matshow, rc)
+                               xlim, ylim, matshow, rc, axes)
+from mpl_toolkits.mplot3d import Axes3D
 from subprocess import call     
 from ..var import (fit_2dgaussian, dist, frame_center, get_circle, 
                         get_annulus)
@@ -87,6 +89,69 @@ def pp_subplots(*args, **kwargs):
         if colorb:  colorbar(im, ax=ax)
         ax.grid('off')
     show()
+
+
+def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False, 
+                 **kwargs):
+    """
+    Create a surface plot from image.
+    
+    By default, the whole image is plotted. The 'center' and 'size' attributes 
+    allow to crop the image.
+        
+    Parameters
+    ----------
+    image : numpy.array
+        The image as a numpy.array.
+    center : tuple of 2 int (optional, default=None)
+        If None, the whole image will be plotted. Otherwise, it grabs a square
+        subimage at the 'center' (Y,X) from the image.
+    size : int (optional, default=15)
+        It corresponds to the size of a square in the image.
+    output : {False, True}, bool optional
+        Whether to output the grids and intensities or not.
+    ds9_indexing : {False, True}, bool optional 
+        If True the coordinates are in X,Y convention and in 1-indexed format.
+    kwargs:
+        Additional attributes are passed to the matplotlib figure() and 
+        plot_surface() method.        
+    
+    Returns
+    -------
+    out : tuple of 3 numpy.array
+        x and y for the grid, and the intensity
+        
+    """        
+    if not center:
+        size = image.shape[0]
+        x = np.outer(np.arange(0,size,1), np.ones(size))
+        y = x.copy().T 
+        z = image
+    else: 
+        if ds9_indexing:
+            center = (center[0]-1,center[1]-1) 
+            cx, cy = center
+        else:
+            cy, cx = center
+        if size % 2:            # if size is odd             
+            x = np.outer(np.arange(0,size,1), np.ones(size))
+        else:                   # otherwise, size is even
+            x = np.outer(np.arange(0,size+1,1), np.ones(size+1))
+        y = x.copy().T            
+        z = image[cy-size//2:cy+size//2+1,cx-size//2:cx+size//2+1]           
+    
+    figure(figsize=kwargs.pop('figsize',(5,5)))
+    ax = axes(projection='3d')
+    ax.plot_surface(x, y, z, rstride=1, cstride=1, linewidth=0, **kwargs) 
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('$y$')
+    ax.set_zlabel('$I(x,y)$')
+    ax.set_title('Data')
+    show()
+    
+    if output:
+        return (x,y,z)
+ 
 
 
 def lines_of_code():

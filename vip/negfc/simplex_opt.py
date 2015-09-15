@@ -5,7 +5,6 @@ Module with simplex (Nelder-Mead) optimization for defining the flux and
 position of a companion using the Negative Fake Companion.
 """
 
-import datetime
 import numpy as np
 from scipy.optimize import minimize
 from .func_merit import chisquare 
@@ -16,12 +15,10 @@ __all__ = ['firstguess_simplex',
 
 
 def firstguess_simplex(p_ini, cube, angs, psf, plsc, ncomp, annulus_width, 
-                       aperture_radius, options=None, timer=False, 
-                       verbose=False):               
-
+                       aperture_radius, options=None, verbose=False):               
     """
-    Determine the position of a planet using the negative fake companion 
-    technique and Nelder-Mead minimization.
+    Determine the position of a companion using the negative fake companion 
+    technique and a standard minimization algorithm (Default=Nelder-Mead) .
     
     Parameters
     ----------
@@ -32,6 +29,8 @@ def firstguess_simplex(p_ini, cube, angs, psf, plsc, ncomp, annulus_width,
         The cube of fits images expressed as a numpy.array. 
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array. 
+    psf: numpy.array
+        The scaled psf expressed as a numpy.array.        
     plsc: float
         The platescale, in arcsec per pixel.
     ncomp: int
@@ -40,32 +39,21 @@ def firstguess_simplex(p_ini, cube, angs, psf, plsc, ncomp, annulus_width,
         The width in pixel of the annulus on wich the PCA is performed.
     aperture_radius: float
         The radius of the circular aperture.
-    cube_ref : array_like, 3d, optional
-        Reference library cube. For Reference Star Differential Imaging.
-    tol : float
-        The scipy.optimize.minimize() tolerance.
-    max_iter : int
-        The scipy.optimize.minimize() maximum iteration.
-    timer : boolean
-        If True, the minimization duration is returned.
-    verbose : boolean
+    options: dict, optional
+        The scipy.optimize.minimize options.
+    verbose : boolean, optional
         If True, informations are displayed in the shell.
         
-    """
-    #if isinstance(cube,str):
-    #    if angs is None:
-    #        cube, angs = open_adicube(cube)
-    #    else:
-    #        cube = open_fits(cube)
-    #        angs = open_fits(parallactic_angle)
-    #    psf = psf_norm(psf,-1)
-    
+    Returns
+    -------
+    out : scipy.optimize.minimize solution object
+        The solution of the minimization algorithm.
+        
+    """    
     if verbose:
         print ''
         print '{} minimization is running'.format(options.get('method','Nelder-Mead'))
-    
-
-    start = datetime.datetime.now()  
+     
     solu = minimize(chisquare, 
                     p_ini, 
                     args=(cube,angs,plsc,psf,annulus_width,ncomp,
@@ -73,25 +61,56 @@ def firstguess_simplex(p_ini, cube, angs, psf, plsc, ncomp, annulus_width,
                           method = options.pop('method','Nelder-Mead'), 
                           options=options)                       
 
-    
-    end = datetime.datetime.now()
-    elapsed_time = (end-start).total_seconds()
-
     if verbose:
-        print("Duration (sec): {}".format(elapsed_time))
         print(solu)
         
-    if timer:
-        return (solu,elapsed_time)
-    else:
-        return solu
+    return solu
     
-    
-    
+        
 def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm, 
                           annulus_width, ncomp, aperture_radius, f_range=None, 
                           display=False, verbose=True, save=False, **kwargs):
     """
+    Determine a first guess for the flux of a companion at a given position 
+    in the cube by doing a simple grid search evaluating the reduced chi2.
+    
+    Parameters
+    ----------
+    planet: numpy.array
+        The (x,y) position of the planet in the pca processed cube.
+    center: numpy.array
+        The (x,y) position of the cube center.
+    cube: numpy.array
+        The cube of fits images expressed as a numpy.array. 
+    angs: numpy.array
+        The parallactic angle fits image expressed as a numpy.array.         
+    PLSC: float
+        The platescale, in arcsec per pixel.
+    psf_norm: numpy.array
+        The scaled psf expressed as a numpy.array.            
+    annulus_width: float
+        The width in pixel of the annulus on wich the PCA is performed.
+    ncomp: int
+        The number of principal components.        
+    aperture_radius: float
+        The radius of the circular aperture.
+    f_range: numpy.array, optional
+        The range of flux tested values. If None, 20 values between 0 and 5000
+        are tested.
+    display: boolean, optional
+        If True, the figure chi2 vs. flux is displayed.
+    verbose: boolean
+        If True, display intermediate info in the shell.        
+    save: boolean, optional
+        If True, the figure chi2 vs. flux is saved. 
+    kwargs: dict, optional
+        Additional parameters are passed to the matplotlib plot method.
+        
+    Returns
+    -------
+    out : numpy.array
+        The radial coordinates and the flux of the companion.
+                
     """
     
     xy = planet-center
@@ -168,25 +187,46 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width,
            
     Parameters
     ----------
-    
-    """
-# TODO: Au lieu de faire une minimization simplex, faire un fit d'une 
-#       gaussienne
-    
-   
-    #print kwargs
+    cube: numpy.array
+        The cube of fits images expressed as a numpy.array. 
+    angs: numpy.array
+        The parallactic angle fits image expressed as a numpy.array.  
+    psfn: numpy.array
+        The scaled psf expressed as a numpy.array.   
+    ncomp: int
+        The number of principal components.         
+    PLSC: float
+        The platescale, in arcsec per pixel.            
+    annulus_width: float
+        The width in pixel of the annulus on wich the PCA is performed.       
+    aperture_radius: float
+        The radius of the circular aperture.
+    planet_xy_coord: numpy.array
+        The (x,y) position of the planet in the pca processed cube.        
+    f_range: numpy.array, optional
+        The range of flux tested values. If None, 20 values between 0 and 5000
+        are tested.
+    simplex: boolean, optional
+        If True, the Nelder-Mead minimization is performed after the flux grid
+        search.
+    simplex_options: dict, optional
+        The scipy.optimize.minimize options.
+    display: boolean, optional
+        If True, the figure chi2 vs. flux is displayed.
+    verbose: boolean
+        If True, display intermediate info in the shell.        
+    save: boolean, optional
+        If True, the figure chi2 vs. flux is saved. 
+    figure_options: dict, optional
+        Additional parameters are passed to the matplotlib plot method.    
 
-    #cube, angs, psfn, fwhm, ncomp, PLSC, annulus_width, aperture_radius
-    #cube = pipeline_parameters['cube']
-    #angs = pipeline_parameters['angs']
-    #psfn = pipeline_parameters['psfn']
-    ##fwhm = pipeline_parameters['fwhm']
-    #ncomp = pipeline_parameters['ncomp']
-    #PLSC = pipeline_parameters['PLSC']
-    #annulus_width = pipeline_parameters['annulus_width']
-    #aperture_radius = pipeline_parameters['aperture_radius']
+    Returns
+    -------
+    out : The radial coordinates and the flux of the companion.
+
+    """
     
-    if planets_xy_coord is None:
+    if planets_xy_coord is None: # TODO: This part (if...) should be deleted.
         #pca_frame(cube,angs,ncomp,cube.shape[1]//2.,cube.shape[1]//2.,display=True)        
         #_ = pca_full_frame(cube,angs,ncomp)
 

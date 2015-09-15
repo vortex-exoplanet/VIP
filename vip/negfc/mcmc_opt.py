@@ -33,10 +33,6 @@ def lnprior(modelParameters, bounds):
         0           --  All the model parameters satisfy the prior 
                         conditions defined here.
         -np.inf     --  At least one model parameters is out of bounds.
-        
-    Raises
-    ------
-        TypeError
     
     """
     
@@ -66,7 +62,7 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
     Parameters
     ----------    
     modelParameters: tuple
-        The model parameters.
+        The model parameters, typically (r, theta, flux).
     cube: numpy.array
         The cube of fits images expressed as a numpy.array.
     angs: numpy.array
@@ -83,15 +79,15 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
         The radius of the circular aperture.  
     initialState: numpy.array
         The initial guess for the position and the flux of the planet.
+    cube_ref: array_like, 3d, optional
+        Reference library cube. For Reference Star Differential Imaging.
+    display: boolean
+        If True, the cube is displayed with ds9.        
         
     Returns
     -------
     out: float
         The log of the likelihood.
-        
-    Raises
-    ------
-        TypeError
         
     """    
     try:
@@ -100,8 +96,8 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
         print('paraVector must be a tuple, {} was given'.format(type(modelParameters)))    
     
     # Create the cube with the fake companing injected
-    cube_negfc = inject_fcs_cube(cube, psfs_norm, angs, flevel=-modelParameters[2], plsc=plsc, 
-                                 rad_arcs=[modelParameters[0]*plsc],
+    cube_negfc = inject_fcs_cube(cube, psfs_norm, angs, flevel=-modelParameters[2], 
+                                 plsc=plsc, rad_arcs=[modelParameters[0]*plsc],
                                  n_branches=1, theta=modelParameters[1])
                                  
     if display:
@@ -150,6 +146,8 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, annulus_width,
         The initial guess for the position and the flux of the planet. 
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
+    display: boolean
+        If True, the cube is displayed with ds9.        
         
     Returns
     -------
@@ -177,17 +175,23 @@ def gelman_rubin(x):
     ----------
     x: numpy.array
         The numpy.array on which the Gelman-Rubin test is applied. This array
-        should contain at least 2 set of data.
+        should contain at least 2 set of data, i.e. x.shape >= (2,).
         
     Returns
     -------
     out: float
         The Gelman-Rubin \hat{R}.
-        
-    Raises
-    ------
-    ValueError
 
+    Example
+    -------
+    >>> x1 = np.random.normal(0.0,1.0,(1,100))
+    >>> x2 = np.random.normal(0.1,1.3,(1,100))
+    >>> x = np.vstack((x1,x2))
+    >>> gelman_rubin(x)
+    1.0366629898991262
+    >>> gelman_rubin(np.vstack((x1,x1)))
+    0.99
+        
     """
     if np.shape(x) < (2,):
         raise ValueError(
@@ -266,18 +270,18 @@ def run_mcmc_astrometry(cubes,
                         initialState,
                         bounds=None,
                         a=2.0,
-                        burnin = 0.3,
-                        rhat_threshold = 1.01,
-                        rhat_count_threshold = 3,
-                        niteration_min = 0.0,
-                        niteration_limit = 1e02,
-                        niteration_supp = 0.0,
-                        check_maxgap = 1e04,
+                        burnin=0.3,
+                        rhat_threshold=1.01,
+                        rhat_count_threshold=3,
+                        niteration_min=0.0,
+                        niteration_limit=1e02,
+                        niteration_supp=0.0,
+                        check_maxgap=1e04,
                         threads=1,
-                        output_file = None,
-                        display = False,
-                        verbose = True,
-                        save = False):
+                        output_file=None,
+                        display=False,
+                        verbose=True,
+                        save=False):
 
 
     """
@@ -304,16 +308,16 @@ def run_mcmc_astrometry(cubes,
     ----------  
     cubes: str or numpy.array
         The relative path to the cube of fits images OR the cube itself.
-    parallactic_angle: str or numpy.array
+    angs: str or numpy.array
         The relative path to the parallactic angle fits image or the angs itself.
-    psf: str or numpy.array
+    psfs_norm: str or numpy.array
         The relative path to the instrumental psf fits image or the psfn itself. 
+    ncomp: int
+        The number of principal components.        
     plsc: float
         The platescale, in arcsec per pixel.  
     annulus_width: float
         The width in pixel of the annulus on wich the PCA is performed.
-    ncomp: int
-        The number of principal components.
     aperture_radius: float
         The radius of the circular aperture.        
     nwalkers: int 
@@ -321,11 +325,11 @@ def run_mcmc_astrometry(cubes,
     initialState: numpy.array 
         The first guess for the position and flux of the planet, respectively.
         Each walker will start in a small ball around this preferred position.
-    bounds: numpy.array or list, default=None
+    bounds: numpy.array or list, default=None, optional
         The prior knowledge on the model parameters. If None, large bounds will 
         be automatically estimated from the initial state.
     a: float, default=2.0
-        The proposal scale parameter. 
+        The proposal scale parameter. See notes.
     burnin: float, default=0.3
         The fraction of a walker which is discarded.
     rhat_threshold: float, default=0.01
@@ -340,6 +344,8 @@ def run_mcmc_astrometry(cubes,
         Steps per walker upper bound. If the simulation runs up to 
         'niteration_limit' steps without having reached the convergence 
         criterion, the run is stopped.
+    niteration_supp: int, optional
+        Number of iterations to run after having "reached the convergence".     
     check_maxgap: int, optional
         Maximum number of steps per walker between two Gelman-Rubin test.
     threads: int, optional
@@ -362,7 +368,9 @@ def run_mcmc_astrometry(cubes,
         
     Notes
     -----
-    The parameter 'a' must be > 1.
+    The parameter 'a' must be > 1. For more theoretical information concerning
+    this parameter, see Goodman & Weare, 2010, Comm. App. Math. Comp. Sci., 
+    5, 65, Eq. [9] p70.
     
     The parameter 'rhat_threshold' can be a numpy.array with individual 
     threshold value for each model parameter.
@@ -381,7 +389,9 @@ def run_mcmc_astrometry(cubes,
         
         if output_file is None:
             datetime_today = datetime.datetime.today()
-            output_file = str(datetime_today.year)+str(datetime_today.month)+str(datetime_today.day)+'_'+str(datetime_today.hour)+str(datetime_today.minute)+str(datetime_today.second)            
+            output_file = str(datetime_today.year)+str(datetime_today.month)+\
+                          str(datetime_today.day)+'_'+str(datetime_today.hour)+\
+                          str(datetime_today.minute)+str(datetime_today.second)            
         
         if not os.path.exists('results/'+output_file):
             os.makedirs('results/'+output_file)
@@ -609,7 +619,7 @@ def chain_zero_truncated(chain):
     return chain[:,0:idxzero,:]
  
    
-def showWalk(chain, save = False, **kwargs):  
+def showWalk(chain, save=False, **kwargs):  
     """
     Display or save a figure showing the path of each walker during the MCMC run
     
@@ -628,10 +638,6 @@ def showWalk(chain, save = False, **kwargs):
     -------
     Display the figure or create a pdf file named walk_plot.pdf in the working
     directory.         
-        
-    Raises
-    ------
-    ImportError
     
     """
     try:
@@ -672,7 +678,7 @@ def showWalk(chain, save = False, **kwargs):
         plt.show()                                  
 
 
-def showPDFCorner(chain, burnin = 0.5, save = False, **kwargs):
+def showPDFCorner(chain, burnin=0.5, save=False, **kwargs):
     """
     Display or save a figure showing the corner plot (pdfs + correlation plots)
     
@@ -730,8 +736,7 @@ def writeText(document,text):
     Parameters
     ----------
     document: str
-        The path to the file to append or create.
-        
+        The path to the file to append or create.        
     text: str
         The text to write.
         
@@ -751,7 +756,8 @@ def writeText(document,text):
 
 
 # -----------------------------------------------------------------------------              
-def confidence(isamples, cfd = 68.27, bins = 100, gaussianFit = False, verbose = True, save = False, **kwargs):#cfd = 68.27, plsc = 0.001, bins = 100, title = None, gaussianFit = False, display = False, verbose = True, save = False):
+def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, verbose=True, 
+               save=False, **kwargs):
     """
     Determine the highly probable value for each model parameter, as well as 
     the 1-sigma confidence interval.
@@ -759,23 +765,17 @@ def confidence(isamples, cfd = 68.27, bins = 100, gaussianFit = False, verbose =
     Parameters
     ----------
     isamples: numpy.array
-        The independent samples for each model parameter.
-        
+        The independent samples for each model parameter.        
     cfd: float, optional
-        The confidence leve given in percentage.
-    
+        The confidence leve given in percentage.    
     bins: int, optional
-        The number of bins used to sample the posterior distributions.
-        
+        The number of bins used to sample the posterior distributions.        
     gaussianFit: boolean, optional
         If True, a gaussian fit is performed in order to determine (\mu,\sigma)
-
     verbose: boolean, optional
-        Display informations in the shell.        
-        
+        Display informations in the shell.                
     save: boolean, optional
-        If "True", a txt file with the results is saved in the output repository.
-        
+        If "True", a txt file with the results is saved in the output repository.        
     kwargs: optional
         Additional attributs are passed to the matplotlib hist() method.
         
@@ -817,7 +817,9 @@ def confidence(isamples, cfd = 68.27, bins = 100, gaussianFit = False, verbose =
         label = [r'$\Delta r$',r'$\Delta \theta$',r'$\Delta f$']
         
         plt.figure()
-        n, bin_vertices, patches = plt.hist(isamples[:,j],bins=bins,histtype=kwargs.get('histtype','step'), edgecolor=kwargs.get('edgecolor','blue'))
+        n, bin_vertices, patches = plt.hist(isamples[:,j],bins=bins,
+                                            histtype=kwargs.get('histtype','step'), 
+                                            edgecolor=kwargs.get('edgecolor','blue'))
         bins_width = np.mean(np.diff(bin_vertices))
         surface_total = np.sum(np.ones_like(n)*bins_width * n)
         n_arg_sort = np.argsort(n)[::-1]
@@ -838,7 +840,9 @@ def confidence(isamples, cfd = 68.27, bins = 100, gaussianFit = False, verbose =
         confidenceInterval[pKey[j]] = np.array([bin_vertices[n_arg_min-1],bin_vertices[n_arg_max+1]]-val_max[pKey[j]])
         
         arg = (isamples[:,j]>=bin_vertices[n_arg_min-1])*(isamples[:,j]<=bin_vertices[n_arg_max+1])
-        n2, bins2, patches2 = plt.hist(isamples[arg,j],bins=bin_vertices,facecolor=kwargs.get('facecolor','green'),edgecolor=kwargs.get('edgecolor','blue'), histtype='stepfilled')
+        n2, bins2, patches2 = plt.hist(isamples[arg,j],bins=bin_vertices,
+                                       facecolor=kwargs.get('facecolor','green'),
+                                       edgecolor=kwargs.get('edgecolor','blue'), histtype='stepfilled')
         
         plt.plot(np.ones(2)*val_max[pKey[j]],[0,n[n_arg_sort[0]]],'--m')
         plt.xlabel(label[j]) 
@@ -853,7 +857,10 @@ def confidence(isamples, cfd = 68.27, bins = 100, gaussianFit = False, verbose =
 
             (mu[j], sigma[j]) = norm.fit(isamples[:,j])
             n_fit, bins_fit = np.histogram(isamples[:,j], bins, normed=1)
-            a, b, c = plt.hist(isamples[:,j], bins, normed=1,facecolor=kwargs.get('facecolor','green'),edgecolor=kwargs.get('edgecolor','blue'), histtype=kwargs.get('histtype','step'))
+            a, b, c = plt.hist(isamples[:,j], bins, normed=1,
+                               facecolor=kwargs.get('facecolor','green'),
+                               edgecolor=kwargs.get('edgecolor','blue'), 
+                               histtype=kwargs.get('histtype','step'))
             y = mlab.normpdf( bins_fit, mu[j], sigma[j])
             l = plt.plot(bins_fit, y, 'r--', linewidth=2, alpha=0.7) #/y.max()*n[n_arg_sort[0]]
             

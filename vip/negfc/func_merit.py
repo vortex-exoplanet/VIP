@@ -12,12 +12,15 @@ from ..phot import inject_fcs_cube
 def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp, 
               aperture_radius, initialState, cube_ref=None, display=False):
     """
-    Define the reduced chi2.
+    Calculate the reduced chi2:
+    \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
+    where N is the number of pixels within a circular aperture centered on the 
+    first estimate of the planet position, and I_j the j-th pixel intensity.
     
     Parameters
     ----------    
     modelParameters: tuple
-        The model parameters.
+        The model parameters, typically (r, theta, flux).
     cube: numpy.array
         The cube of fits images expressed as a numpy.array.
     angs: numpy.array
@@ -36,15 +39,13 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp
         The initial guess for the position and the flux of the planet.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
+    display: boolean
+        If True, the cube is displayed with ds9.        
 
     Returns
     -------
     out: float
         The reduced chi squared.
-        
-    Raises
-    ------
-        TypeError
         
     """    
     try:
@@ -56,9 +57,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp
     cube_negfc = inject_fcs_cube(cube, psfs_norm, angs, flevel=-modelParameters[2], 
                                  plsc=plsc, 
                                  rad_arcs=[modelParameters[0]*plsc],
-                                 n_branches=1, theta=modelParameters[1])
-    #if display:
-    #    display_array_ds9(cube_negfc)       
+                                 n_branches=1, theta=modelParameters[1])       
                                   
     # Perform PCA to generate the processed image and extract the zone of interest 
     values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width,

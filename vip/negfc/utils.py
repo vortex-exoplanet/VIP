@@ -14,8 +14,26 @@ def radial_to_eq(r=1, t=0, rError=0, tError=0, display=False):
     """ 
     Convert the position given in (r,t) into \delta RA and \delta DEC, as 
     well as the corresponding uncertainties. 
-    t = 0 deg (resp. 90 deg) points toward North (resp. East).            
-                 
+    t = 0 deg (resp. 90 deg) points toward North (resp. East).   
+
+    Parameters
+    ----------
+    r: float
+        The radial coordinate.
+    t: float
+        The angular coordinate.
+    rError: float
+        The error bar related to r.
+    tError: float
+        The error bar related to t.
+    display: boolean, optional
+        If True, a figure illustrating the error ellipse is displayed.
+        
+    Returns
+    -------
+    out : tuple
+        ((RA, RA error), (DEC, DEC error))
+                              
     """  
     ra = (r * np.sin(math.radians(t)))
     dec = (r * np.cos(math.radians(t)))   
@@ -66,15 +84,16 @@ def index_to_polar(y, x, ceny=0, cenx=0):
     
     Parameters
     ----------
-    x,y : float
+    x,y: float
         The pixel index
         
     Returns
     -------
     
-    r,thera : float
-        The polar coordinates with respect to the (cenx,ceny). Note that theta 
-        is given in degrees.
+    out : tuple
+        The polar coordinates (r,theta) with respect to the (cenx,ceny). 
+        Note that theta is given in degrees.
+        
     """
     r = np.sqrt((y-ceny)**2 + (x-cenx)**2)
     theta = np.degrees(np.arctan2(y-ceny, x-cenx)) 

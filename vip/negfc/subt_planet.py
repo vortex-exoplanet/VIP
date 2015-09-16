@@ -9,16 +9,31 @@ from ..phot import inject_fcs_cube
 
 
 
-def cube_planet_free(planet_parameter,pipeline_parameters):
+def cube_planet_free(planet_parameter, cube, angs, psfn, PLSC):
     """
     Return a cube in which we have injected negative fake companion at the 
     position/flux given by planet_parameter.
     
-    """
-    cube = pipeline_parameters['cube'] 
-    psfn = pipeline_parameters['psfn'] 
-    angs = pipeline_parameters['angs'] 
-    PLSC = pipeline_parameters['PLSC']    
+    Parameters
+    ----------
+    planet_parameter: numpy.array
+        The (r, theta, flux) for all known companions.    
+    cube: numpy.array
+        The cube of fits images expressed as a numpy.array.
+    angs: numpy.array
+        The parallactic angle fits image expressed as a numpy.array. 
+    psfsn: numpy.array
+        The scaled psf expressed as a numpy.array.        
+    plsc: float
+        The platescale, in arcsec per pixel.
+        
+    Returns
+    -------
+    out : numpy.array
+        The cube with negative companions injected at the position given in
+        planet_parameter.
+       
+    """    
     
     cpf = np.zeros_like(cube)
     

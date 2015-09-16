@@ -7,9 +7,10 @@ algorithm.
 
 import numpy as np
 from skimage.draw import circle
-from ..calib import cube_derotate
-from ..var import get_annulus, frame_center
+#from ..calib import cube_derotate
+from ..var import frame_center #, get_annulus 
 from ..pca import pca_annulus
+from ..fits import display_array_ds9
 
 
 def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius, 
@@ -40,6 +41,8 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         chain, but should be the fixed initial guess.  
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
+    display: boolean
+        If True, the cube is displayed with ds9.        
         
     Returns
     -------

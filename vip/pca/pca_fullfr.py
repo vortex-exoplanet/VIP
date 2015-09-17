@@ -130,12 +130,16 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
         SNR is going to be maximized.
     fwhm : float 
         Size of the PSF's FWHM in pixels. 
+    mode : {'full', 'annular'}, optional
+        Mode for PCA processing (full-frame or just in an annulus).
+    annulus_width : None or float, optional
+        Width in pixels of the annulus in the case of the "annular" mode. 
     svd_mode : {randsvd, eigen, lapack, arpack, opencv}, optional
         Switch for different ways of computing the SVD and selected PCs.
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
         radius of the circular mask.  
-    fmerit : {cent, max, mean}
+    fmerit : {'cent', 'max', 'mean'}
         The metric to be maximized. 'cent' is the given pixel's SNR, 'max' the 
         maximun SNR in a fwhm circular aperture centred on the given coordinates 
         and 'mean' is the mean SNR in the same circular aperture.  

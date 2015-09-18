@@ -37,6 +37,13 @@ LBT = {
     'filter' : 'LMIR_FW2'                   # filter
 }
 
-
+KECK_NIRC2 = {
+    'plsc_narrow' : 0.009942,               # plate scale [arcsec]/px, narrow camera
+    'plsc_medium' : 0.019829,               # plate scale [arcsec]/px, medium camera
+    'plsc_wide' : 0.039686,                 # plate scale [arcsec]/px, wide camera   
+    'latitude' : 19.82636,                  # Keck's latitude in degrees
+    # header keywords
+    'camera_name' : 'CAMNAME'               # camera name bwt narrow, medium and wide
+}
 
 

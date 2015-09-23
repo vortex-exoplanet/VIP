@@ -156,16 +156,16 @@ def bp_annuli_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True,
             n_pix_init = neigh.shape[0]
             while neigh.shape[0] > 10 and n_removal < n_pix_init/10.:
                 min_neigh = np.amin(neigh)
-                if reject_outliers(neigh, m=5.,test_value=min_neigh,
-                                   stddev=stddev,min_thr=min_thr*stddev,
+                if reject_outliers(neigh, min_neigh, m=5., stddev=stddev,
+                                   min_thr=min_thr*stddev,
                                    mid_thr=mid_thr*stddev):
                     min_idx = np.argmin(neigh)
                     neigh = np.delete(neigh,min_idx)
                     n_removal += 1
                 else:
                     max_neigh = np.amax(neigh)
-                    if reject_outliers(neigh, m=5.,test_value=max_neigh,
-                                       stddev=stddev,min_thr=min_thr*stddev,
+                    if reject_outliers(neigh, max_neigh, m=5., stddev=stddev,
+                                       min_thr=min_thr*stddev, 
                                        mid_thr=mid_thr*stddev):
                         max_idx = np.argmax(neigh)
                         neigh = np.delete(neigh,max_idx)
@@ -516,10 +516,9 @@ def find_outliers(frame, sig_dist, in_bpix=None, stddev=None,neighbor_box=3,
                 neighbours = np.delete(neighbours,flat_idx)
 
                 #2/ Det if central pixel is outlier
-                test_result = reject_outliers(neighbours, m=sig_dist,
-                                              test_value=frame[yy,xx],
-                                              stddev=stddev, min_thr=min_thr,
-                                              mid_thr=mid_thr)
+                test_result = reject_outliers(neighbours, frame[yy,xx], 
+                                              m=sig_dist, stddev=stddev, 
+                                              min_thr=min_thr, mid_thr=mid_thr)
 
                 #3/ Assign the value of the test to bpix_map
                 bpix_map[yy,xx] = test_result
@@ -562,10 +561,9 @@ def find_outliers(frame, sig_dist, in_bpix=None, stddev=None,neighbor_box=3,
             neighbours = np.delete(neighbours,flat_c_idx)
 
             #2/ test if bpix
-            test_result = reject_outliers(neighbours, m=sig_dist,
-                                          test_value=frame[wb[0][n],wb[1][n]],
-                                          stddev=stddev, min_thr=min_thr, 
-                                          mid_thr=mid_thr)
+            test_result = reject_outliers(neighbours, frame[wb[0][n],wb[1][n]],
+                                          m=sig_dist, stddev=stddev, 
+                                          min_thr=min_thr, mid_thr=mid_thr)
 
             #3/ Assign the value of the test to bpix_map
             bpix_map[wb[0][n],wb[1][n]] = test_result
@@ -574,7 +572,7 @@ def find_outliers(frame, sig_dist, in_bpix=None, stddev=None,neighbor_box=3,
     return bpix_map
 
 
-def reject_outliers(data, m = 5., test_value,stddev=None, DEBUG=False, 
+def reject_outliers(data, test_value, m=5., stddev=None, DEBUG=False, 
                     min_thr=None, mid_thr=None):
     """ FUNCTION TO REJECT OUTLIERS FROM A SET
     Instead of the classic standard deviation criterion (e.g. 5-sigma), the 
@@ -592,11 +590,11 @@ def reject_outliers(data, m = 5., test_value,stddev=None, DEBUG=False,
     data: array_like
         Input array with respect to which either a test_value or the central a 
         value of data is determined to be an outlier or not
+    test_value: float
+        Value to be tested as an outlier in the context of the input array data
     m: float, optional
         Criterion used to test if test_value is or pixels of data are outlier(s)
         (similar to the number of "sigma" in std_dev statistics)
-    test_value: float, optional
-        Value to be tested as an outlier in the context of the input array data
     stddev: float, optional (but strongly recommended)
         Global std dev of the non-PSF part of the considered frame. It is needed
         as a reference to know the typical variation of the noise, and hence 

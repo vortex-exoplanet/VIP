@@ -112,7 +112,7 @@ def approx_stellar_position(cube, fwhm, return_test=False):
     #1/ Write a 2-columns array with indices of all max pixel values in the cube
     star_tmp_idx = np.zeros([n_z,2])
     star_approx_idx = np.zeros([n_z,2])
-    test_result = np.zeros([n_z,2])
+    test_result = np.zeros(n_z)
     for zz in range(n_z):
         star_tmp_idx[zz] = peak_coordinates(obj_tmp[zz], fwhm[zz])
         

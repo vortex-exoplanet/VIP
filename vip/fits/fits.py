@@ -14,9 +14,7 @@ __all__ = ['open_fits',
            'display_fits_ds9',
            'display_array_ds9']
 
-import glob
 import os
-import numpy as np
 from astropy.io import fits
 from ..exlib.ds9 import DS9Win
 

@@ -5,7 +5,6 @@ Module with frame rescaling routine for SDI.
 """
 __author__ = 'V. Christiaens @ ULg'
 __all__ = ['scale_cube',
-           '_scale_func',
            'frame_rescaling',
            'cube_rescaling',
            'check_scal_vector']
@@ -16,6 +15,7 @@ from scipy.ndimage.interpolation import geometric_transform
 from ..var import frame_center, get_square_robust
 
 
+# TODO: to move this function to PCA module
 def scale_cube(cube,scal_list,full_output=True,inverse=False,y_in=1,x_in=1):
     """
     Wrapper to scale or descale a cube by factors given in scal_list, without 
@@ -102,18 +102,6 @@ def scale_cube(cube,scal_list,full_output=True,inverse=False,y_in=1,x_in=1):
     else: return frame
 
 
-def _scale_func(output_coords,ref_y=0,ref_x=0, scaling=1.0):    
-    """
-    For each coordinate point in a new scaled image (output_coords), 
-    coordinates in the image before the scaling are returned. 
-    This scaling function is used within geometric_transform (in 
-    frame_rescaling), 
-    which, for each point in the output image, will compute the (spline)
-    interpolated value at the corresponding frame coordinates before the scaling
-    """
-    return (ref_y+((output_coords[0]-ref_y)/scaling), 
-            ref_x+((output_coords[1]-ref_x)/scaling))
-
 
 def frame_rescaling(array, ref_y=0, ref_x=0, gamma=1.0, 
                     method='geometric_transform'):
@@ -152,6 +140,18 @@ def frame_rescaling(array, ref_y=0, ref_x=0, gamma=1.0,
         Resulting frame.
         
     """
+    def _scale_func(output_coords,ref_y=0,ref_x=0, scaling=1.0):    
+        """
+        For each coordinate point in a new scaled image (output_coords), 
+        coordinates in the image before the scaling are returned. 
+        This scaling function is used within geometric_transform (in 
+        frame_rescaling), 
+        which, for each point in the output image, will compute the (spline)
+        interpolated value at the corresponding frame coordinates before the 
+        scaling.
+        """
+        return (ref_y+((output_coords[0]-ref_y)/scaling), 
+                ref_x+((output_coords[1]-ref_x)/scaling))
 
     array_out = np.zeros_like(array)
 

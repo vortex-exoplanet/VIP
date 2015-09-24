@@ -11,10 +11,12 @@ __all__ = ['annular_pca',
            'subannular_pca', 
            'subannular_pca_parallel']
 
+# TODO: to move here function scale_cube()
+
 import numpy as np
 import itertools as itt
 from multiprocessing import Pool, cpu_count
-from ..calib import cube_derotate
+from ..calib import cube_derotate, check_PA_vector
 from ..conf import timeInit, timing, eval_func_tuple, VLT_NACO, LBT 
 from ..var import get_annulus_quad
 from ..pca.utils import svd_wrapper, reshape_matrix
@@ -80,6 +82,8 @@ def annular_pca(array, angle_list, radius_int=0, asize=2, delta_rot=1, ncomp=1,
     if not fwhm:  fwhm = get_fwhm(instrument)
      
     if verbose:  start_time = timeInit()
+    
+    angle_list = check_PA_vector(angle_list)
     
     if not ncomp: auto_ncomp = True
     else: auto_ncomp = False    

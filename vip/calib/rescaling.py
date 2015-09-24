@@ -216,7 +216,7 @@ def cube_rescaling(array, scale, ref_y=None, ref_x=None,
     
     if not ref_y and not ref_x:  ref_y, ref_x = frame_center(array[0])
     
-    if isinstance(scale, float):
+    if isinstance(scale, float) or isinstance(scale, int):
         for i in xrange(array.shape[0]): 
             array_sc[i] = frame_rescaling(array[i], ref_y=ref_y, ref_x=ref_x, 
                                           gamma=scale, method=method)

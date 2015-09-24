@@ -184,10 +184,10 @@ def cube_rescaling(array, scale, ref_y=None, ref_x=None,
     ----------
     array : array_like 
         Input 3d array, cube.
-    scale : float or 1D-array
-        When a single float value, the scale is the same for each frame in the
-        cube. When a 1D-array is given it corresponds to the scale corresponding
-        to each frame in the cube.
+    scale : int or float or 1D-array
+        When a single float or int value, the scale is the same for each frame 
+        in the cube. When a 1D-array is given it corresponds to the scale 
+        corresponding to each frame in the cube.
     ref_y, ref_x : float, optional
         Coordinates X,Y  of the point with respect to which the rescaling will be
         performed. By default the rescaling is done with respect to the center 
@@ -228,7 +228,8 @@ def cube_rescaling(array, scale, ref_y=None, ref_x=None,
             array_sc[i] = frame_rescaling(array[i], ref_y=ref_y, ref_x=ref_x, 
                                           gamma=scale[i], method=method)
     else:
-        raise TypeError('Wrong scale parameter.')
+        msg = 'Wrong scale parameter. Must be an int/float or list/1D-array.'
+        raise TypeError(msg)
             
     return array_sc
 

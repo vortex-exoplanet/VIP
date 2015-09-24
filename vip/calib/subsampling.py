@@ -54,7 +54,6 @@ def dataset_stacking(fi_list, mode, window):
     print "Finished {:} stacking with window n = {:}".format(mode, window) 
     return cube_out
 
-
 def frame_resize(array, scale=0.5, interpolation='bicubic'):
     """ Resizes the input frame with a given scale using OpenCV libraries. 
     Depending on the scale the operation can lead to pixel binning or pixel

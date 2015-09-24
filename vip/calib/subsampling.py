@@ -7,125 +7,12 @@ Module with pixel and frame subsampling functions.
 from __future__ import division
 
 __author__ = 'C. Gomez @ ULg'
-__all__ = ['dataset_stacking',
-           'frame_resize',
-           'cube_pixel_resize',
-           'cube_subsample',
+__all__ = ['cube_subsample',
            'cube_collapse_trimmean',
            'cube_subsample_trimmean']
 
 import numpy as np
 import pandas as pn
-import cv2
-from datetime import datetime
-from ..fits import open_fits
-
-### TODO: check available memory
-def dataset_stacking(fi_list, mode, window):
-    """ Creates a cube a list of FITS files and stacks them with a given window.
-    This function might be heavy on memory usage, depending on the number of
-    FITS files to handle, must be used carefully.
-    
-    Parameters
-    ----------
-    fi_list : list of str
-        FITS filenames list.
-    mode : {"mean", "median"}, str optional
-        Stacking (temporal subsampling) mode.
-    window : Int optional
-        Window for the frames subsampling.
-        
-    Returns
-    _______
-    cube_out : array_like
-        Cube with the stacked frames.    
-        
-    """
-    nfits = len(fi_list)
-    fiframe = open_fits(fi_list[0], verbose=False)
-    y, x = fiframe.shape
-    cube = np.empty((nfits, y, x), dtype=np.float64)
-    
-    for i, filename in enumerate(fi_list):
-        frame = open_fits(filename, verbose=False)
-        cube[i] = frame
-
-    cube_out = cube_subsample(cube, window, mode, None, False)
-    print "Finished {:} stacking with window n = {:}".format(mode, window) 
-    return cube_out
-
-def frame_resize(array, scale=0.5, interpolation='bicubic'):
-    """ Resizes the input frame with a given scale using OpenCV libraries. 
-    Depending on the scale the operation can lead to pixel binning or pixel
-    upsampling.
-    
-    Parameters
-    ----------
-    array : array_like
-        Input 2d array.
-    scale : float
-        Scale factor along both X and Y axes.
-    interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
-        'nneighbor' stands for nearest-neighbor interpolation,
-        'bilinear' stands for bilinear interpolation,
-        'bicubic' for interpolation over 4x4 pixel neighborhood.
-        The 'bicubic' is the default. The 'nearneig' is the fastest method and
-        the 'bicubic' the slowest of the three. The 'nearneig' is the poorer
-        option for interpolation of noisy astronomical images.
-        
-    Returns
-    -------
-    resized : array_like
-        Resized 2d array.
-        
-    """
-    if not array.ndim == 2:
-        raise TypeError('The input array is not a frame or 2d array.')
-    
-    if interpolation == 'bilinear':
-        intp = cv2.INTER_LINEAR
-    elif interpolation == 'bicubic':
-        intp= cv2.INTER_CUBIC
-    elif interpolation == 'nneighbor':
-        intp = cv2.INTER_NEAREST
-    else:
-        raise TypeError('Interpolation method not recognized.')
-
-    resized = cv2.resize(array, (0,0), fx=scale, fy=scale, interpolation=intp)    
-    return resized
-
-
-def cube_pixel_resize(array, scale, interpolation):
-    """ Calls frame_resize for resizing the frames of a cube.
-    
-    Parameters
-    ----------
-    array : array_like
-        Input cube.
-    scale : float
-        Scale factor along both X and Y axes.
-    interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
-        'nneighbor' stands for nearest-neighbor interpolation,
-        'bilinear' stands for bilinear interpolation,
-        'bicubic' for interpolation over 4x4 pixel neighborhood.
-        The 'bicubic' is the default. The 'nearneig' is the fastest method and
-        the 'bicubic' the slowest of the three. The 'nearneig' is the poorer
-        option for interpolation of noisy astronomical images.
-    
-    Returns
-    -------
-    cube : array_like
-        Cube with resized frames.
-    """
-    if not array.ndim == 3:
-        raise TypeError('The input array is not a cube or 3d array.')
-    
-    cube = array.copy()
-    for frame in cube:                                                       
-        frame = frame_resize(frame, scale=scale, interpolation=interpolation)
-    
-    print "Done resizing the frames in the cube"
-    return cube
     
 
 def cube_subsample(array, n, mode="mean", parallactic=None, verbose=False):

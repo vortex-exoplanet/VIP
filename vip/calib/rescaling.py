@@ -174,24 +174,25 @@ def frame_rescaling(array, ref_y=0, ref_x=0, gamma=1.0,
 
     
     
-def cube_rescaling(array, scaling_list, ref_y=None, ref_x=None, 
+def cube_rescaling(array, scale, ref_y=None, ref_x=None, 
                    method='geometric_transform'):
     """ 
-    Function to rescale a cube, frame by frame, 
-    by a factor gamma, with respect to position (cy,cx).
-    It calls frame_rescaling.
+    Function to rescale a cube, frame by frame, by a factor 'scale', with 
+    respect to position (cy,cx). It calls frame_rescaling function.
     
     Parameters
     ----------
     array : array_like 
         Input 3d array, cube.
-    angle_list : 1D-array
-        Vector containing the parallactic angles.
+    scale : float or 1D-array
+        When a single float value, the scale is the same for each frame in the
+        cube. When a 1D-array is given it corresponds to the scale corresponding
+        to each frame in the cube.
     ref_y, ref_x : float, optional
-        Coordinates X,Y  of the point with respect to which the rotation will be
-        performed. By default the rotation is done with respect to the center 
+        Coordinates X,Y  of the point with respect to which the rescaling will be
+        performed. By default the rescaling is done with respect to the center 
         of the frames; central pixel if the frames have odd size.
-    method: {geometric_transform,cv2.warp_affine}, optional
+    method: {'geometric_transform', 'cv2.warp_affine'}, optional
         String determining which method to apply to rescale. 
         Both use a spline of order 3 for interpolation.
         geometric transform (default) seems to work fine, from a test on a numpy
@@ -205,25 +206,31 @@ def cube_rescaling(array, scaling_list, ref_y=None, ref_x=None,
         
     Returns
     -------
-    array_der : array_like
+    array_sc : array_like
         Resulting cube with rescaled frames.
-    array_out : array_like
-        Median combined image of the rescaled cube.
         
     """
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array.')
     array_sc = np.zeros_like(array) 
-    y, x = array[0].shape
     
     if not ref_y and not ref_x:  ref_y, ref_x = frame_center(array[0])
     
-    for i in xrange(array.shape[0]): 
-        array_sc[i] = frame_rescaling(array[i], ref_y=ref_y, ref_x=ref_x, 
-                                      gamma=scaling_list[i], method=method)
+    if isinstance(scale, float):
+        for i in xrange(array.shape[0]): 
+            array_sc[i] = frame_rescaling(array[i], ref_y=ref_y, ref_x=ref_x, 
+                                          gamma=scale, method=method)
+    
+    # Checking if is instance of an array or list
+    elif hasattr(scale, '__len__') and (not isinstance(scale, str)) or \
+         isinstance(scale, list):
+        for i in xrange(array.shape[0]): 
+            array_sc[i] = frame_rescaling(array[i], ref_y=ref_y, ref_x=ref_x, 
+                                          gamma=scale[i], method=method)
+    else:
+        raise TypeError('Wrong scale parameter.')
             
-    array_out = np.median(array_sc, axis=0)              
-    return array_sc, array_out
+    return array_sc
 
 
 def check_scal_vector(scal_vec):

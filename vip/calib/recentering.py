@@ -273,10 +273,10 @@ def _radon_costf(frame, cent, radint, coords):
                 
 
 def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4, 
-                                 full_output=False, verbose=True,
+                                 subi_size=2, full_output=False, verbose=True,
                                  save_shifts=False, debug=False):                          
     """ Recenters a cube of frames using the DFT upsampling method as 
-    proposed in Guizar et al. 2008 (see Notes) plus a chi^2, for determinig
+    proposed in Guizar et al. 2008 (see Notes) plus a chi^2, for determining
     automatically the upsampling factor, as implemented in the package 
     'image_registration' (see Notes).
     
@@ -291,8 +291,10 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
         Input cube.
     cy_1, cx_1 : int
         Coordinates of the center of the subimage for centroiding the 1st frame.    
-    fwhm : float
+    fwhm : float, optional
         FWHM size in pixels.
+    subi_size : int, optional
+        Size of the square subimage sides in terms of FWHM.
     full_output : {False, True}, bool optional
         Whether to return 2 1d arrays of shifts along with the recentered cube 
         or not.
@@ -339,7 +341,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
     array_rec = array.copy()
     
     # Centroiding first frame with 2d gaussian and shifting
-    size = int(fwhm*3)
+    size = int(fwhm*subi_size)
     cy, cx = frame_center(array[0])
     y1, x1 = _centroid_2dg_frame(array_rec, 0, size, cy_1, cx_1)
     array_rec[0] = frame_shift(array_rec[0], shift_y=cy-y1, shift_x=cx-x1)
@@ -386,6 +388,9 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, nproc=None,
         Coordinates of the center of the subimage.    
     fwhm : float
         FWHM size in pixels.
+    nproc : int, optional
+        Number of processes for parallel computing. If None the number of 
+        processes will be set to (cpu_count()/2). 
     full_output : {False, True}, bool optional
         Whether to return 2 1d arrays of shifts along with the recentered cube 
         or not.
@@ -407,6 +412,8 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, nproc=None,
     """    
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
+    if not pos_x or not pos_y:
+        raise ValueError('Missing parameters POS_Y and/or POS_X')
     
     if verbose:  start_time = timeInit()
     

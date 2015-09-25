@@ -374,7 +374,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
   
 
 def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=2, 
-                              nproc=None, full_output=False, verbose=True, 
+                              nproc=1, full_output=False, verbose=True, 
                               save_shifts=False, debug=False):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
     gaussian to a subimage centered at (pos_x, pos_y). This assumes the frames 
@@ -391,9 +391,9 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=2,
         FWHM size in pixels.
     subi_size : int, optional
         Size of the square subimage sides in terms of FWHM.
-    nproc : int, optional
-        Number of processes for parallel computing. If None the number of 
-        processes will be set to (cpu_count()/2). 
+    nproc : int or None, optional
+        Number of processes (>1) for parallel computing. If 1 then it runs in 
+        serial. If None the number of processes will be set to (cpu_count()/2).  
     full_output : {False, True}, bool optional
         Whether to return 2 1d arrays of shifts along with the recentered cube 
         or not.
@@ -427,15 +427,23 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=2,
     
     if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
         nproc = (cpu_count()/2) 
-    pool = Pool(processes=nproc)  
-    res = pool.map(eval_func_tuple,itt.izip(itt.repeat(_centroid_2dg_frame),
-                                            itt.repeat(array),
-                                            range(n_frames),
-                                            itt.repeat(size),
-                                            itt.repeat(pos_y), 
-                                            itt.repeat(pos_x))) 
-    res = np.array(res)
-    pool.close()
+    elif nproc==1:
+        res = []
+        bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
+        for i in range(n_frames):
+            res.append(_centroid_2dg_frame(array, i, size, pos_y, pos_x))
+            bar.update()
+        res = np.array(res)
+    elif nproc>1:
+        pool = Pool(processes=nproc)  
+        res = pool.map(eval_func_tuple,itt.izip(itt.repeat(_centroid_2dg_frame),
+                                                itt.repeat(array),
+                                                range(n_frames),
+                                                itt.repeat(size),
+                                                itt.repeat(pos_y), 
+                                                itt.repeat(pos_x))) 
+        res = np.array(res)
+        pool.close()
     y = cy - res[:,0]
     x = cx - res[:,1]
         

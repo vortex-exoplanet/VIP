@@ -247,6 +247,8 @@ def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1,
      
     if verbose:  start_time = timeInit()
     
+    angle_list = check_PA_vector(angle_list)
+    
     annulus_width = int(asize * fwhm)                                           # equal size for all annuli
     n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    
     if verbose:
@@ -420,6 +422,8 @@ def subannular_pca_parallel(array, angle_list, radius_int=0, asize=1,
     if not fwhm:  fwhm = get_fwhm(instrument)
      
     if verbose:  start_time = timeInit()
+    
+    angle_list = check_PA_vector(angle_list)
     
     annulus_width = int(asize * fwhm)                                           # equal size for all annuli
     n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    

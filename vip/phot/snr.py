@@ -7,7 +7,7 @@ Module with SNR calculation functions.
 from __future__ import division
 
 __author__ = 'C. Gomez @ ULg, O. Absil @ ULg, B. Pairet @ UCL'
-__all__ = ['snr_student',
+__all__ = ['snr_ss',
            'snr_peakstddev',
            'snrmap',
            'snrmap_fast']
@@ -67,7 +67,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         nproc = int((cpu_count()/2))  # Hyper-threading duplicates the number of cores
     
     if mode == 'sss':
-        func = snr_student
+        func = snr_ss
     elif mode == 'peakstddev':
         func = snr_peakstddev
     else:
@@ -251,8 +251,8 @@ def snrmap_fast(array, fwhm, plot=False, verbose=False):
     return snrmap
     
     
-def snr_student(array, sourcey, sourcex, fwhm, out_coor=False, plot=False, 
-                verbose=False, full_output=False, gauss_filter=False):
+def snr_ss(array, sourcey, sourcex, fwhm, out_coor=False, plot=False, 
+           verbose=False, full_output=False, gauss_filter=False):
     # Leave the order of parameters as it is, the same for both snr functions
     # to be compatible with the snrmap parallel implementation
     """Calculates the SNR (signal to noise ratio) of a single planet in a 

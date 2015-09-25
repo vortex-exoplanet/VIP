@@ -24,7 +24,7 @@ from photutils.detection import findstars
 from skimage.feature import peak_local_max
 from ..var import mask_circle, pp_subplots, get_square, fit_2dgaussian, frame_center
 from ..var.filters import SIGMA2FWHM, gaussian_kernel
-from .snr import snr_student
+from .snr import snr_ss
 from .frame_analysis import frame_quick_report
 
 
@@ -290,7 +290,7 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
             print '_________________________________________'
             print 'Y,X = ({:.1f},{:.1f}) -----------------------'.format(y, x)
         subim = get_square(array, size=15, y=y, x=x)
-        snr = snr_student(array, y, x, fwhm, False, verbose=False)
+        snr = snr_ss(array, y, x, fwhm, False, verbose=False)
         snr_list.append(snr)
         px_list.append(array[y,x])
         if snr >= snr_thresh and array[y,x]>0:

@@ -356,6 +356,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
         y[i] = -dy
         array_rec[i] = frame_shift(array[i], y[i], x[i])
         bar.update()
+    print
     
     if debug:
         print  
@@ -372,9 +373,9 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
         return array_rec
   
 
-def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, nproc=None, 
-                              full_output=False, verbose=True, save_shifts=False, 
-                              debug=False):
+def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=2, 
+                              nproc=None, full_output=False, verbose=True, 
+                              save_shifts=False, debug=False):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
     gaussian to a subimage centered at (pos_x, pos_y). This assumes the frames 
     don't have too large shifts (>5px). The frames are shifted using the 
@@ -388,6 +389,8 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, nproc=None,
         Coordinates of the center of the subimage.    
     fwhm : float
         FWHM size in pixels.
+    subi_size : int, optional
+        Size of the square subimage sides in terms of FWHM.
     nproc : int, optional
         Number of processes for parallel computing. If None the number of 
         processes will be set to (cpu_count()/2). 
@@ -420,7 +423,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, nproc=None,
     n_frames = array.shape[0]
     cy, cx = frame_center(array[0])
     array_recentered = np.zeros_like(array)  
-    size = int(fwhm*3)
+    size = int(fwhm*subi_size)
     
     if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
         nproc = (cpu_count()/2) 

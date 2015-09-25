@@ -19,11 +19,10 @@ from astropy.stats import sigma_clipped_stats
 from astropy.table import Table
 from astropy.modeling.models import Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter
-from photutils import CircularAperture, aperture_photometry
 from photutils.detection import findstars
 from skimage.feature import peak_local_max
-from ..var import mask_circle, pp_subplots, get_square, fit_2dgaussian, frame_center
-from ..var.filters import SIGMA2FWHM, gaussian_kernel
+from ..var import mask_circle, pp_subplots, get_square, frame_center
+from ..var.filters import SIGMA2FWHM
 from .snr import snr_ss
 from .frame_analysis import frame_quick_report
 
@@ -460,3 +459,5 @@ def mask_source_centers(array, fwhm, y, x):
     # center sources become zeros
     mask[yy.astype('int'), xx.astype('int')] = 0                                 
     return mask
+
+

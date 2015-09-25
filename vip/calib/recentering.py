@@ -29,6 +29,7 @@ from ..var import (get_square, frame_center, wavelet_denoise, get_annulus,
                         pp_subplots)
 
 
+
 def frame_shift(array, shift_y, shift_x, lib='opencv', interpolation='bicubic'):
     """ Shifts an 2d array by shift_y, shift_x. Boundaries are filled with zeros. 
 
@@ -468,6 +469,12 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x):
     sub_image, y1, x1 = get_square(cube[frnum], size=size, y=pos_y, x=pos_x,
                                    position=True)
     sub_image = sub_image.byteswap().newbyteorder()
+    # we check if the min pixel is located in the center (negative gaussian)
+    miny, minx = np.where(sub_image==sub_image.min())
+    cy, cx = frame_center(sub_image)
+    if np.allclose(miny, cy, atol=2) and np.allclose(minx, cx, atol=2):
+        sub_image = -sub_image + np.abs(np.min(-sub_image))
+        
     x_i, y_i = photutils.morphology.centroid_2dg(sub_image)   
     #x_i, y_i = photutils.morphology.centroid_com(sub_image)              
     y_i = y1 + y_i

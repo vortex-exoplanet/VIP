@@ -471,7 +471,7 @@ def subannular_pca_parallel(array, angle_list, radius_int=0, asize=1,
             # A multiprocessing pool is created to process frames in parallel.
             # SVD/PCA is done in do_pca_patch function. 
             #*******************************************************************            
-            pool = Pool(processes=nproc)
+            pool = Pool(processes=int(nproc))
             res = pool.map(eval_func_tuple, itt.izip(itt.repeat(do_pca_patch), 
                                                      itt.repeat(matrix_quad),
                                                      range(n),

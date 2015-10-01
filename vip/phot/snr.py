@@ -74,7 +74,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         raise TypeError('\nMode not recognized.')
     
     if source_mask is None:
-        pool = Pool(processes=nproc)                                        
+        pool = Pool(processes=int(nproc))                                        
         res = pool.map(eval_func_tuple, itt.izip(itt.repeat(func),              
                                                  itt.repeat(array),
                                                  yy, xx, itt.repeat(fwhm),
@@ -136,7 +136,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         yy_rest = list(np.array(coor_rest)[:,0])
         xx_rest = list(np.array(coor_rest)[:,1])
         
-        pool1 = Pool(processes=nproc)
+        pool1 = Pool(processes=int(nproc))
         res = pool1.map(eval_func_tuple, itt.izip(itt.repeat(func), 
                                                   itt.repeat(array),
                                                   yy_rest, xx_rest, 
@@ -149,7 +149,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         snr = res[:,2]
         snrmap[yy.astype('int'), xx.astype('int')] = snr
         
-        pool2 = Pool(processes=nproc)
+        pool2 = Pool(processes=int(nproc))
         res = pool2.map(eval_func_tuple, itt.izip(itt.repeat(func), 
                                                   itt.repeat(array_sources),
                                                   yy_ann, xx_ann, 

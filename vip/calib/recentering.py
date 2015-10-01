@@ -95,6 +95,7 @@ def frame_shift(array, shift_y, shift_x, lib='opencv', interpolation='bicubic'):
 
 def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01, wavelet=False,
                        threshold=1000, mask_center=None, nproc=None, 
+                       satspots=False, full_output=False,
                        verbose=True, plot=True, debug=False):
     """ Finding the center of a broadband (co-added) frame with speckles and 
     satellite spots elongated towards the star (center). 
@@ -113,7 +114,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01, wavelet=False,
     ----------
     array : array_like
         Input 2d array or image.
-    cropsize : int, optional
+    cropsize : odd int, optional
         Size in pixels of the cropped central area of the input array that will
         be used. It should be large enough to contain the satellite spots.
     hsize : float, optional
@@ -169,26 +170,48 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01, wavelet=False,
     
     coords = [(y,x) for y in listyx for x in listyx]
     cent, _ = frame_center(frame)
+           
+    frame = get_annulus(frame, radint, cent-radint)
                 
     if debug:
-        frame_test = get_annulus(frame, radint, cent-radint)
-        theta = np.linspace(start=0., stop=360., num=cent*2, endpoint=False)
-        sinogram = radon(frame_test, theta=theta, circle=True)
-        pp_subplots(frame_test, sinogram)
-        print np.sum(np.abs(sinogram[cent,:]))
-        
+        if satspots:
+            samples = 10
+            theta = np.hstack((np.linspace(start=40, stop=50, num=samples, 
+                                           endpoint=False), 
+                               np.linspace(start=130, stop=140, num=samples, 
+                                           endpoint=False),
+                               np.linspace(start=220, stop=230, num=samples, 
+                                           endpoint=False),
+                               np.linspace(start=310, stop=320, num=samples, 
+                                           endpoint=False)))             
+            sinogram = radon(frame, theta=theta, circle=True)
+            pp_subplots(frame, sinogram)
+            print np.sum(np.abs(sinogram[cent,:]))
+        else:
+            theta = np.linspace(start=0., stop=360., num=cent*2, endpoint=False)
+            sinogram = radon(frame, theta=theta, circle=True)
+            pp_subplots(frame, sinogram)
+            print np.sum(np.abs(sinogram[cent,:]))
+
     if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
         nproc = (cpu_count()/2) 
-    pool = Pool(processes=nproc)  
-    res = pool.map(eval_func_tuple,itt.izip(itt.repeat(_radon_costf),              
-                                            itt.repeat(frame), itt.repeat(cent),
-                                            itt.repeat(radint), coords)) 
+    pool = Pool(processes=int(nproc))  
+    if satspots:
+        res = pool.map(eval_func_tuple,itt.izip(itt.repeat(_radon_costf2),              
+                                                itt.repeat(frame), 
+                                                itt.repeat(cent),
+                                                itt.repeat(radint), coords))        
+    else:
+        res = pool.map(eval_func_tuple,itt.izip(itt.repeat(_radon_costf),              
+                                                itt.repeat(frame), 
+                                                itt.repeat(cent),
+                                                itt.repeat(radint), coords)) 
     costf = np.array(res)
     pool.close()
         
     if verbose:  
         msg = 'Done {} radon transform calls distributed in {} processes'
-        print msg.format(len(coords), nproc)
+        print msg.format(len(coords), int(nproc))
     
     if plot:          
         cost_bound = costf.reshape(listyx.shape[0], listyx.shape[0])
@@ -198,18 +221,61 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01, wavelet=False,
         plt.colorbar()
         plt.grid('off')
         plt.show()
+        
+    #argm = np.argmax(costf) # index of 1st max in 1d cost function 'surface' 
+    #optimy, optimx = coords[argm]
     
-    argm = np.argmax(costf)
-    optimy, optimx = coords[argm]
-    
-    if debug:  print 'Cost function max: {}'.format(costf.max())
+    # maxima in the 2d cost function surface
+    num_max = np.where(cost_bound==cost_bound.max())[0].shape[0]
+    ind_maximay, ind_maximax = np.where(cost_bound==cost_bound.max())
+    argmy = ind_maximay[int(np.ceil(num_max/2))-1]
+    argmx = ind_maximax[int(np.ceil(num_max/2))-1]
+    y_grid = np.array(coords)[:,0].reshape(listyx.shape[0], listyx.shape[0])
+    x_grid = np.array(coords)[:,1].reshape(listyx.shape[0], listyx.shape[0])
+    optimy = y_grid[argmy, 0] 
+    optimx = x_grid[0, argmx]  
     
     if verbose: 
+        print 'Cost function max: {}'.format(costf.max())
+        print 'Cost function # maxima: {}'.format(num_max)
         msg = 'Finished grid search radon optimization. Y={:.5f}, X={:.5f}'
         print msg.format(optimy, optimx)
         timing(start_time)
-    return optimy, optimx
     
+    if full_output:
+        return cost_bound, optimy, optimx
+    else:
+        return optimy, optimx
+
+
+def _radon_costf(frame, cent, radint, coords):
+    """ Radon cost function used in frame_center_radon().
+    """
+    frame_shifted = frame_shift(frame, coords[0], coords[1])
+    frame_shifted_ann = get_annulus(frame_shifted, radint, cent-radint)
+    theta = np.linspace(start=0., stop=360., num=frame_shifted_ann.shape[0],    
+                    endpoint=False)
+    sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
+    costf = np.sum(np.abs(sinogram[cent,:]))
+    return costf
+                
+                
+def _radon_costf2(frame, cent, radint, coords):
+    """ Radon cost function used in frame_center_radon().
+    """
+    frame_shifted = frame_shift(frame, coords[0], coords[1])
+    frame_shifted_ann = get_annulus(frame_shifted, radint, cent-radint)
+    samples = 10
+    theta = np.hstack((np.linspace(start=40, stop=50, num=samples, endpoint=False), 
+                   np.linspace(start=130, stop=140, num=samples, endpoint=False),
+                   np.linspace(start=220, stop=230, num=samples, endpoint=False),
+                   np.linspace(start=310, stop=320, num=samples, endpoint=False)))
+    
+    sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
+    costf = np.sum(np.abs(sinogram[cent,:]))
+    return costf
+
+
       
 def cube_recenter_radon(array, full_output=False, verbose=True, **kwargs):
     """ Recenters a cube looping through its frames and calling the 
@@ -259,18 +325,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, **kwargs):
         return array_rec, y, x
     else:
         return array_rec
-    
-    
-def _radon_costf(frame, cent, radint, coords):
-    """ Radon cost function used in frame_center_radon().
-    """
-    frame_shifted = frame_shift(frame, coords[0], coords[1])
-    frame_shifted_ann = get_annulus(frame_shifted, radint, cent-radint)
-    theta = np.linspace(start=0., stop=360., num=frame_shifted_ann.shape[0], 
-                        endpoint=False)
-    sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
-    costf = np.sum(np.abs(sinogram[cent,:]))
-    return costf
+
                 
 
 def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4, 
@@ -436,7 +491,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=2,
             bar.update()
         res = np.array(res)
     elif nproc>1:
-        pool = Pool(processes=nproc)  
+        pool = Pool(processes=int(nproc))  
         res = pool.map(eval_func_tuple,itt.izip(itt.repeat(_centroid_2dg_frame),
                                                 itt.repeat(array),
                                                 range(n_frames),

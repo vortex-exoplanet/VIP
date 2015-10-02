@@ -429,7 +429,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
         return array_rec
   
 
-def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=2, 
+def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1, 
                               nproc=1, full_output=False, verbose=True, 
                               save_shifts=False, debug=False):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
@@ -474,6 +474,12 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=2,
     if not pos_x or not pos_y:
         raise ValueError('Missing parameters POS_Y and/or POS_X')
     
+    # If frame size is even we drop a row and a column
+    if array.shape[1]%2==0:
+        array = array[:,1:,:].copy()
+    if array.shape[2]%2==0:
+        array = array[:,:,1:].copy()
+    
     if verbose:  start_time = timeInit()
     
     n_frames = array.shape[0]
@@ -503,7 +509,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=2,
     y = cy - res[:,0]
     x = cx - res[:,1]
         
-    for i in range(n_frames):
+    for i in xrange(n_frames):
         if debug:  print y[i], x[i]
         array_recentered[i] = frame_shift(array[i], y[i], x[i])
 
@@ -518,8 +524,8 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=2,
 
 
 def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x):
-    """ Finds the shift of one frame from a cube. To be called from whitin 
-    cube_recenter_gauss2d_fit().
+    """ Finds the centroid by using a 2d gaussian fitting in one frame from a 
+    cube. To be called from whitin cube_recenter_gauss2d_fit().
     """
     sub_image, y1, x1 = get_square(cube[frnum], size=size, y=pos_y, x=pos_x,
                                    position=True)

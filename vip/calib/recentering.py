@@ -364,7 +364,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
     Returns
     -------
     array_recentered : array_like
-        The recentered cube.
+        The recentered cube. Frames have now even size.
     If full_output is True:
     y, x : array_like
         1d arrays with the shifts in y and x.     
@@ -388,6 +388,12 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
     """
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
+    
+    # If frame size is even we drop a row and a column
+    if array.shape[1]%2==0:
+        array = array[:,1:,:].copy()
+    if array.shape[2]%2==0:
+        array = array[:,:,1:].copy()
     
     if verbose:  start_time = timeInit()
     
@@ -463,7 +469,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1,
     Returns
     -------
     array_recentered : array_like
-        The recentered cube.
+        The recentered cube. Frames have now even size.
     If full_output is True:
     y, x : array_like
         1d arrays with the shifts in y and x. 

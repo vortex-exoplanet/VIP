@@ -364,7 +364,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
     Returns
     -------
     array_recentered : array_like
-        The recentered cube. Frames have now even size.
+        The recentered cube. Frames have now odd size.
     If full_output is True:
     y, x : array_like
         1d arrays with the shifts in y and x.     
@@ -469,7 +469,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1,
     Returns
     -------
     array_recentered : array_like
-        The recentered cube. Frames have now even size.
+        The recentered cube. Frames have now odd size.
     If full_output is True:
     y, x : array_like
         1d arrays with the shifts in y and x. 

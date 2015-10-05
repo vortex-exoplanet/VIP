@@ -11,10 +11,28 @@ VLT_NACO['diam']
 
 
 VLT_NACO = {
+    'latitude' : -24.627,
+    'longitude' : -70.404,
     'plsc': 0.027190,                       # plate scale [arcsec]/px
     'diam': 8.2,                            # telescope diameter [m]
     'lambdal' : 3.8e-6,                     # filter central wavelength [m] L band
     'camera_filter' : 'Ll',
+    # header keywords
+    'kw_categ' : 'HIERARCH ESO DPR CATG',   # header keyword for calibration frames: 'CALIB' / 'SCIENCE'
+    'kw_type' : 'HIERARCH ESO DPR TYPE'     # header keyword for frame type: 'FLAT,SKY' / 'DARK' / 'OBJECT' / 'SKY'
+}
+
+VLT_SINFONI = {
+    'latitude' : -24.627,
+    'longitude' : -70.404,
+    # plsc: depending on the chosen mode, can also be: 0.125'' or 0.05''
+    'plsc': 0.0125,                 # plate scale [arcsec]/px
+    'diam': 8.2,                    # telescope diameter [m]
+    'camera_filter' : 'H+K',
+    'lambdahk': 1.95e-6,            # wavelength of the middle of H+K
+    'lambdah': 1.65e-6,             # wavelength of the middle of H band
+    'lambdak': 2.166e-6,            # wavelength of the Brackett gamma line (~middle of the K band)
+    'spec_res':5e-4,                # spectral resolution in um (for H+K)
     # header keywords
     'kw_categ' : 'HIERARCH ESO DPR CATG',   # header keyword for calibration frames: 'CALIB' / 'SCIENCE'
     'kw_type' : 'HIERARCH ESO DPR TYPE'     # header keyword for frame type: 'FLAT,SKY' / 'DARK' / 'OBJECT' / 'SKY'

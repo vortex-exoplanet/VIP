@@ -174,12 +174,12 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
         else:
             raise RuntimeError('Wrong mode.')
         yy, xx = draw.circle(y, x, fwhm/2.)
-        snr_pixels = [phot.snr_student(frame, y_, x_, fwhm, plot=False, 
+        snr_pixels = [phot.snr(frame, y_, x_, fwhm, plot=False, 
                                        verbose=False) for y_, x_ in zip(yy, xx)]
         if fmerit=='max':
             return np.max(snr_pixels)
         elif fmerit=='px':
-            return phot.snr_student(frame, y, x, fwhm, plot=False, verbose=False)
+            return phot.snr(frame, y, x, fwhm, plot=False, verbose=False)
         elif fmerit=='mean':
             return np.mean(snr_pixels)
     

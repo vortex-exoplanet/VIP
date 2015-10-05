@@ -129,7 +129,7 @@ def approx_stellar_position(cube, fwhm, return_test=False):
     print "median x of star - 3sigma = ", lim_inf_x
     print "median x of star + 3sigma = ", lim_sup_x
 
-     for zz in range(n_z):
+    for zz in range(n_z):
         if ((star_tmp_idx[zz,0]<lim_inf_y) or (star_tmp_idx[zz,0]>lim_sup_y) or
             (star_tmp_idx[zz,1]<lim_inf_x) or (star_tmp_idx[zz,1]>lim_sup_x)):
             test_result[zz] = 1

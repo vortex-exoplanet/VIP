@@ -11,9 +11,9 @@ __author__ = 'C. Gomez @ ULg'
 __all__ = ['adi']
 
 import numpy as np
-from ..conf import timeInit, timing, LBT, VLT_NACO
+from ..conf import timeInit, timing
 from ..var import get_annulus
-from ..calib import cube_derotate
+from ..calib import cube_derotate, check_PA_vector
 from ..pca.pca_local import define_annuli, get_fwhm
 
 def adi(array, angle_list, fwhm=None, instrument=None, radius_int=0, asize=2, 
@@ -98,7 +98,9 @@ def adi(array, angle_list, fwhm=None, instrument=None, radius_int=0, asize=2,
     n, y, _ = array.shape
      
     if verbose:  start_time = timeInit()
-        
+    
+    angle_list = check_PA_vector(angle_list)
+    
     #***************************************************************************
     # The median frame (basic psf reference) is first subtracted from each frame.
     #***************************************************************************      
@@ -166,5 +168,3 @@ def adi(array, angle_list, fwhm=None, instrument=None, radius_int=0, asize=2,
     else:
         return frame 
 
-
-  

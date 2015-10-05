@@ -13,7 +13,7 @@ __all__ = ['frame_quick_report']
 import numpy as np
 import photutils
 from skimage import draw
-from .snr import snr_student
+from .snr import snr_ss
 from ..var import fit_2dgaussian
 
 
@@ -63,13 +63,13 @@ def frame_quick_report(array, fwhm, y=None, x=None , verbose=True):
     
     # we get the mean and stddev of SNRs on aperture
     yy, xx = draw.circle(y, x, fwhm/2.)
-    snr_pixels = [snr_student(array, y_, x_, fwhm, plot=False, verbose=False) for \
+    snr_pixels = [snr_ss(array, y_, x_, fwhm, plot=False, verbose=False) for \
                   y_, x_ in zip(yy, xx)]
     meansnr = np.mean(snr_pixels)
     stdsnr = np.std(snr_pixels)
     if verbose: 
         print('Central pixel SNR: ')
-        snr_student(array, y, x, fwhm, plot=False, verbose=True)
+        snr_ss(array, y, x, fwhm, plot=False, verbose=True)
         print('-----------------------------------------')
         print('In 1*FWHM circular aperture:')
         print('Integrated flux = {:.3f}'.format(obj_flux))

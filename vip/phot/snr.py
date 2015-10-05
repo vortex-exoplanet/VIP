@@ -7,7 +7,7 @@ Module with SNR calculation functions.
 from __future__ import division
 
 __author__ = 'C. Gomez @ ULg, O. Absil @ ULg, B. Pairet @ UCL'
-__all__ = ['snr_student',
+__all__ = ['snr_ss',
            'snr_peakstddev',
            'snrmap',
            'snrmap_fast']
@@ -67,14 +67,14 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         nproc = int((cpu_count()/2))  # Hyper-threading duplicates the number of cores
     
     if mode == 'sss':
-        func = snr_student
+        func = snr_ss
     elif mode == 'peakstddev':
         func = snr_peakstddev
     else:
         raise TypeError('\nMode not recognized.')
     
     if source_mask is None:
-        pool = Pool(processes=nproc)                                        
+        pool = Pool(processes=int(nproc))                                        
         res = pool.map(eval_func_tuple, itt.izip(itt.repeat(func),              
                                                  itt.repeat(array),
                                                  yy, xx, itt.repeat(fwhm),
@@ -136,7 +136,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         yy_rest = list(np.array(coor_rest)[:,0])
         xx_rest = list(np.array(coor_rest)[:,1])
         
-        pool1 = Pool(processes=nproc)
+        pool1 = Pool(processes=int(nproc))
         res = pool1.map(eval_func_tuple, itt.izip(itt.repeat(func), 
                                                   itt.repeat(array),
                                                   yy_rest, xx_rest, 
@@ -149,7 +149,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         snr = res[:,2]
         snrmap[yy.astype('int'), xx.astype('int')] = snr
         
-        pool2 = Pool(processes=nproc)
+        pool2 = Pool(processes=int(nproc))
         res = pool2.map(eval_func_tuple, itt.izip(itt.repeat(func), 
                                                   itt.repeat(array_sources),
                                                   yy_ann, xx_ann, 
@@ -251,8 +251,8 @@ def snrmap_fast(array, fwhm, plot=False, verbose=False):
     return snrmap
     
     
-def snr_student(array, sourcey, sourcex, fwhm, out_coor=False, plot=False, 
-                verbose=False, full_output=False, gauss_filter=False):
+def snr_ss(array, sourcey, sourcex, fwhm, out_coor=False, plot=False, 
+           verbose=False, full_output=False, gauss_filter=False):
     # Leave the order of parameters as it is, the same for both snr functions
     # to be compatible with the snrmap parallel implementation
     """Calculates the SNR (signal to noise ratio) of a single planet in a 

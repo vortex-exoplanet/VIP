@@ -13,15 +13,9 @@ __all__ = ['pp_subplots',
            'px2mas']
 
 import os
-import glob
-import re
 import numpy as np
-from matplotlib.pyplot import (figure, subplot, show, colorbar, close, imshow,
-                               xlim, ylim, matshow, rc, axes)
-from mpl_toolkits.mplot3d import Axes3D
-from subprocess import call     
-from ..var import (fit_2dgaussian, dist, frame_center, get_circle, 
-                        get_annulus)
+from matplotlib.pyplot import (figure, subplot, show, colorbar, rc, axes)
+from ..var import fit_2dgaussian, dist, frame_center
 from ..conf import VLT_NACO, LBT
 
 
@@ -152,7 +146,6 @@ def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False,
     if output:
         return (x,y,z)
  
-
 
 def lines_of_code():
     """ Calculates the lines of code for VORTEX pipeline. Not objective measure 

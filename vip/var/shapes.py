@@ -10,6 +10,7 @@ __author__ = 'C. Gomez @ ULg'
 __all__ = ['dist',
            'frame_center',
            'get_square',
+           'get_square_robust',
            'get_circle',
            'get_annulus',
            'get_annulus_quad',
@@ -76,6 +77,121 @@ def get_square(array, size, y, x, position=False):
         return array_view, y-wing, x-wing
     else:
         return array_view
+
+
+def get_square_robust(array, size, y, x, position=False, 
+                      out_borders='reduced_square', return_wings=False,
+                      strict=False):                 
+    """ 
+    Returns a square subframe from a larger array robustly (different options in
+    case the requested subframe outpasses the borders of the larger array.
+    
+    Parameters
+    ----------
+    array : array_like
+        Input frame.
+    size : int, ideally odd
+        Size of the subframe to be returned.
+    y, x : int
+        Coordinates of the center of the subframe.
+    position : bool, {False, True}, optional
+        If set to True, returns also the coordinates of the left bottom vertex.
+    out_borders: string {'reduced_square','rectangular', 'whatever'}, optional
+        Option that set what to do if the provided size is such that the 
+        sub-array exceeds the borders of the array:
+            - 'reduced_square' (default) -> returns a smaller square sub-array: 
+            the biggest that fits within the borders of the array (warning msg)
+            - 'rectangular' -> returns a cropped sub-array with only the part 
+            that fits within the borders of the array; thus a rectangle (warning
+            msg)
+            - 'whatever' -> returns a square sub-array of the requested size, 
+            but filled with zeros where it outpasses the borders of the array 
+            (warning msg)
+    return_wings: bool, {False,True}, optional
+        If True, the function only returns the size of the sub square
+        (this can be used to test that there will not be any size reduction of 
+        the requested square beforehand)
+    strict: bool, {False, True}, optional
+        Set to True when you want an error to be raised if the size is not an 
+        odd number. Else, the subsquare will be computed even if size is an even
+        number. In the later case, the center is placed in such a way that 
+        frame_center function of the sub_array would give the input center 
+        (at pixel = half dimension minus 1).
+        
+    Returns
+    -------
+    default:
+    array_view : array_like
+        Sub array of the requested dimensions (or smaller depending on its 
+        location in the original array and the selected out_borders option)
+
+    if position is set to True and return_wing to False: 
+    array_view, y_coord, x_coord: array_like, int, int 
+        y_coord and x_coord are the indices of the left bottom vertex
+
+    if return_wing is set to True: 
+    wing: int
+        the semi-size of the square in agreement with the out_borders option
+    """
+    if not array.ndim == 2:
+        raise TypeError('Input array is not a frame or 2d array.')
+    
+    n_y = array.shape[0]
+    n_x = array.shape[1]
+
+    if strict:
+        if size%2==0: 
+            raise ValueError('The given size of the sub-square should be odd.')
+        wing_bef = int((size-1)/2)
+        wing_aft = wing_bef
+    else:
+        if size%2==0:
+            wing_bef = (size/2)-1
+            wing_aft = size/2
+        else:
+            wing_bef = int((size-1)/2)
+            wing_aft = wing_bef
+
+    #Consider the case of the sub-array exceeding the array
+    if (y-wing_bef < 0 or y+wing_aft+1 >= n_y or x-wing_bef < 0 or 
+        x+wing_aft+1 >= n_x):
+        if out_borders=='reduced_square':
+            wing_bef = min(y,x,n_y-1-y,n_x-1-x)
+            wing_aft = wing_bef
+            msg = "!!! WARNING: The size of the square sub-array was reduced"+\
+                  " to fit within the borders of the array. Now, wings = "+\
+                  str(wing_bef)+"px x "+str(wing_aft)+ "px !!!"
+            print msg
+        elif out_borders=='rectangular':
+            wing_y = min(y,n_y-1-y)
+            wing_x = min(x,n_x-1-x)
+            y_init = y-wing_y
+            y_fin = y+wing_y+1
+            x_init = x-wing_x
+            x_fin = x+wing_x+1
+            array_view = array[y_init:y_fin, x_init:x_fin]
+            msg = "!!! WARNING: The square sub-array was changed to a "+\
+                  "rectangular sub-array to fit within the borders of the "+\
+                  "array. Now, [y_init,yfin]= ["+ str(y_init)+", "+ str(y_fin)+\
+                  "] and [x_init,x_fin] = ["+ str(x_init)+", "+ str(x_fin)+ "]."
+            print msg
+            if position:
+                return array_view, y_init, x_init
+            else:
+                return array_view
+        else:
+            msg = "!!! WARNING: The square sub-array was not changed but it"+\
+                  " exceeds the borders of the array."
+            print msg
+
+    if return_wings: return wing_bef,wing_aft
+    
+    else:
+        # wing is added to the sides of the subframe center. Note the +1 when 
+        # closing the interval (python doesn't include the endpoint)
+        array_view = array[y-wing_bef:y+wing_aft+1, x-wing_bef:x+wing_aft+1]
+        if position: return array_view, y-wing_bef, x-wing_bef
+        else: return array_view
 
 
 def get_circle(array, radius, output_values=False, cy=None, cx=None):           

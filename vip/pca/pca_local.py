@@ -11,10 +11,12 @@ __all__ = ['annular_pca',
            'subannular_pca', 
            'subannular_pca_parallel']
 
+# TODO: to move here function scale_cube()
+
 import numpy as np
 import itertools as itt
 from multiprocessing import Pool, cpu_count
-from ..calib import cube_derotate
+from ..calib import cube_derotate, check_PA_vector
 from ..conf import timeInit, timing, eval_func_tuple, VLT_NACO, LBT 
 from ..var import get_annulus_quad
 from ..pca.utils import svd_wrapper, reshape_matrix
@@ -80,6 +82,8 @@ def annular_pca(array, angle_list, radius_int=0, asize=2, delta_rot=1, ncomp=1,
     if not fwhm:  fwhm = get_fwhm(instrument)
      
     if verbose:  start_time = timeInit()
+    
+    angle_list = check_PA_vector(angle_list)
     
     if not ncomp: auto_ncomp = True
     else: auto_ncomp = False    
@@ -242,6 +246,8 @@ def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1,
     if not fwhm:  fwhm = get_fwhm(instrument)
      
     if verbose:  start_time = timeInit()
+    
+    angle_list = check_PA_vector(angle_list)
     
     annulus_width = int(asize * fwhm)                                           # equal size for all annuli
     n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    
@@ -417,6 +423,8 @@ def subannular_pca_parallel(array, angle_list, radius_int=0, asize=1,
      
     if verbose:  start_time = timeInit()
     
+    angle_list = check_PA_vector(angle_list)
+    
     annulus_width = int(asize * fwhm)                                           # equal size for all annuli
     n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    
     if verbose:
@@ -463,7 +471,7 @@ def subannular_pca_parallel(array, angle_list, radius_int=0, asize=1,
             # A multiprocessing pool is created to process frames in parallel.
             # SVD/PCA is done in do_pca_patch function. 
             #*******************************************************************            
-            pool = Pool(processes=nproc)
+            pool = Pool(processes=int(nproc))
             res = pool.map(eval_func_tuple, itt.izip(itt.repeat(do_pca_patch), 
                                                      itt.repeat(matrix_quad),
                                                      range(n),

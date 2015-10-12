@@ -7,38 +7,34 @@ Module with cube cosmetic functions for SDI datasets.
 from __future__ import division
 
 __author__ = 'V. Christiaens', 'C. Gomez @ ULg'
-__all__ = ['bp_annnuli_removal',
+__all__ = ['bp_annuli_removal',
            'bp_clump_removal']
 
 import copy
 import numpy as np
 from skimage.draw import circle, ellipse
 from astropy.stats import sigma_clipped_stats
+from ..fits import write_fits
 from ..stats import sigma_filter
 from ..var import dist
 
 
-def bp_annuli_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True, 
-                      verbose=False, half_res_y=False, min_thr=None, 
-                      mid_thr=None, DEBUG=False):
+def bp_annuli_removal(array, cy, cx, fwhm, sig=5., protect_psf=True, 
+                      verbose=True, half_res_y=False, min_thr=None, 
+                      mid_thr=None, full_output=False):
     """
     Function to correct the bad pixels annulus per annulus (centered on the 
-    star), in an input frame or cube.
-    This function is MUCH FASTER than bad_pixel_removal (about 20 times faster);
+    provided location of the star), in an input frame or cube.
+    This function is MUCH FASTER than bp_clump_removal (about 20 times faster);
     hence to be prefered in all cases where there is only one bright source.
-    An option (protect psf) allows to not correct any bad pixel in a circle of 
-    1.8 fwhm radius centered on the provided location of the star.
-    Another option (half_res_y) also allows to correct one line out of 2 to go 
-    twice faster, to be used in the case of data that are twice less sampled 
-    vertically than horizontally (e.g. SINFONI).
-    The bad pixels value are replaced by: ann_median + ann_stddev*random_gauss;
+    The bad pixel values are replaced by: ann_median + ann_stddev*random_gauss;
     where ann_median is the median of the annulus, ann_stddev is the standard 
     deviation in the annulus, and random_gauss is a random factor picked from a 
     gaussian distribution centered on 0 and with variance 1.
 
     Parameters
     ----------
-    obj_tmp : 3D or 2D array 
+    array : 3D or 2D array 
         Input 3d cube or 2d image.
     cy, cx : float or 1D array
         Vector with approximate y and x coordinates of the star for each channel
@@ -52,8 +48,8 @@ def bp_annuli_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True,
     protect_psf: bool, {True, False}, optional
         Whether to protect a circular region centered on the star (1.8*fwhm 
         radius) from any bpix corr. If False, there is a risk of modifying a 
-        centroid peak value; but if True real bad pixels within the core are not
-        corrected.
+        centroid peak value if it is too "peaky"; but if True real bad pixels 
+        within the core are not corrected.
     verbose: bool, {False, True}, optional
         Whether to print out the number of bad pixels in each frame. 
     half_res_y: bool, {True,False}, optional
@@ -63,21 +59,26 @@ def bp_annuli_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True,
     min_thr: {None,float}, optional
         Any pixel whose value is lower than this threshold (expressed in stddev)
         will be automatically considered bad and hence sigma_filtered. If None, 
-        it is not used.
+        it is not used (not recommended).
     mid_thr: {None, float}, optional
         Pixels whose value is lower than this threshold (expressed in stddev) 
         will have its neighbours checked; if there is at max. 1 neighbour pixel
         whose value is lower than (5+mid_thr)*stddev, then the pixel is 
         considered bad (as it means it is a cold pixel in the middle of 
-        significant signal). If None, it is not used.
-    DEBUG: bool, {False,True}, optional
-        Whether to write a fits file with the defined annuli. If True, you have 
-        to modify the hardcoded variable "path" (just below) to where you want 
-        the fits file to be written.
+        significant signal). If None, it is not used (not recommended).
+    full_output: bool, {False,True}, optional
+        Whether to return as well the cube of bad pixel maps and the cube of 
+        defined annuli.
+
+    Returns:
+    --------
+    obj_tmp: 2d or 3d array; the bad pixel corrected frame/cube.
+    If full_output is set to True, it returns as well:
+    bpix_map: 2d or 3d array; the bad pixel map or the cube of bpix maps
+    ann_frame_cumul: 2 or 3d array; the cube of defined annuli
     """
 
-    if DEBUG:
-        path = '/foo/'
+    obj_tmp = array.copy()
     ndims = obj_tmp.ndim
     assert ndims == 2 or ndims == 3, "Object is not two or three dimensional.\n"
 
@@ -94,7 +95,11 @@ def bp_annuli_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True,
 
         # Squash the frame if twice less resolved vertically than horizontally
         if half_res_y:
-            n_y = n_y/2
+            if n_y%2 != 0: 
+                msg = 'The input frames do not have of an even number of rows. '
+                msg2 = 'Hence, you should not use option half_res_y = True'
+                raise ValueError(msg+msg2)
+            n_y = int(n_y/2)
             cy = int(cy/2.)
             frame = obj_tmp.copy()
             obj_tmp = np.zeros([n_y,n_x])
@@ -106,11 +111,15 @@ def bp_annuli_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True,
 
         #2/ Define each annulus, its median and stddev
         ymax = max(cy,n_y-cy)
-        if half_res_y: ymax = 2*max(cy,n_y-cy)
-        xmax = max(xc,n_x-xc)
+        if half_res_y: ymax *= 2.
+        xmax = max(cx,n_x-cx)
         rmax = np.sqrt(ymax**2+xmax**2)
-        ann_width = max(1.5,0.61*fwhm)
+        ann_width = max(1.5,0.61*fwhm) # the annuli definition is optimized
+                                       # for Airy rings
         nrad = int(rmax/ann_width)+1
+        d_bord_max = max(n_y-cy,cy,n_x-cx,cx)
+        if half_res_y:
+            d_bord_max = max(2*(n_y-cy),2*cy,n_x-cx,cx)
 
         big_ell_frame = np.zeros_like(obj_tmp)
         sma_ell_frame = np.zeros_like(obj_tmp)
@@ -121,10 +130,10 @@ def bp_annuli_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True,
         neighbours = np.zeros([nrad,n_y*n_x])
 
         for rr in range(nrad):
-            if rr > 0.8*nrad:
+            if rr > int(d_bord_max/ann_width):
                 # just to merge farthest annuli with very few elements 
                 rr_big = nrad  
-                rr_sma = 0.8*nrad
+                rr_sma = int(d_bord_max/ann_width)
             else: 
                 rr_big = rr
                 rr_sma= rr
@@ -132,18 +141,21 @@ def bp_annuli_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True,
                 big_ell_idx = ellipse(cy=cy, cx=cx, 
                                       yradius=((rr_big+1)*ann_width)/2., 
                                       xradius=(rr_big+1)*ann_width, 
-                                      shape=(n_y, n_x))
-                small_ell_idx = ellipse(cy=cy, cx=cx, 
-                                        yradius=(rr_sma*ann_width)/2., 
-                                        xradius=rr_sma*ann_width, 
-                                        shape=(n_y, n_x))
+                                      shape=(n_y,n_x))
+                if rr != 0:
+                    small_ell_idx = ellipse(cy=cy, cx=cx, 
+                                            yradius=(rr_sma*ann_width)/2., 
+                                            xradius=rr_sma*ann_width, 
+                                            shape=(n_y,n_x))
             else:
                 big_ell_idx = circle(cy=cy, cx=cx, radius=(rr_big+1)*ann_width,
-                                     shape=(n_y, n_x))
-                small_ell_idx = circle(cy=cy, cx=cx, radius=rr_sma*ann_width, 
-                                       shape=(n_y, n_x))
+                                     shape=(n_y,n_x))
+                if rr != 0:
+                    small_ell_idx = circle(cy=cy, cx=cx, 
+                                           radius=rr_sma*ann_width, 
+                                           shape=(n_y,n_x))
             big_ell_frame[big_ell_idx] = 1
-            sma_ell_frame[small_ell_idx] = 1
+            if rr!=0: sma_ell_frame[small_ell_idx] = 1
             ann_frame = big_ell_frame - sma_ell_frame
             n_neig[rr] = ann_frame[np.where(ann_frame)].shape[0]
             neighbours[rr,:n_neig[rr]] = obj_tmp[np.where(ann_frame)]
@@ -272,6 +284,8 @@ def bp_annuli_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True,
         n_z = obj_tmp.shape[0]
         bpix_map = np.zeros_like(obj_tmp)
         ann_frame_cumul = np.zeros_like(obj_tmp)
+        if cy.shape[0] != n_z or cx.shape[0] != n_z: 
+            raise ValueError('Please provide cy and cx as 1d-arr of size n_z')
         for i in range(n_z):
             if verbose: print '************Frame # ', i,' *************'
             obj_tmp[i],bpix_map[i],ann_frame_cumul[i]=bp_removal_2d(obj_tmp[i],
@@ -281,28 +295,30 @@ def bp_annuli_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True,
                                                                     sig,
                                                                     protect_psf,
                                                                     verbose)
-        if DEBUG:
-            # Write a fits file with the defined annuli
-            vip.fits.write_fits(path+'ann_frame_cumul.fits',ann_frame_cumul)
  
-    return obj_tmp, bpix_map
+    if full_output:
+        return obj_tmp, bpix_map, ann_frame_cumul
+    else:
+        return obj_tmp
 
 
 
-def bp_clump_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True, 
-                     verbose=False, half_res_y=False, min_thr=None, 
-                     mid_thr=None, max_nit=15):
+def bp_clump_removal(array, cy, cx, fwhm, sig=4., protect_psf=True, 
+                     verbose=True, half_res_y=False, min_thr=None, 
+                     mid_thr=None, max_nit=15, full_output=False):
     """
-    Function to correct the bad pixels in obj_tmp. Slow alternative to correct
-    for bad pixels that can appear in clumps in either a frame or a spectral
-    cube. To be used only in the case of frames with not a single circularly 
-    symmetric psf; otherwise prefer bp_annuli_removal. There is an option to 
-    not correct any bad pixel within a circle of 1.8 fwhm radius around the 
-    provided location of the star.
+    Function to correct the bad pixels in obj_tmp. Slow alternative to 
+    bp_annuli_removal to correct for bad pixels in either a frame or a spectral
+    cube. It should be used instead of bp_annuli_removal only if the observed 
+    field is not composed of a single bright object (producing a circularly 
+    symmetric PSF). As it is based on an iterative process, it is able to 
+    correct clumps of bad pixels. The bad pixel values are sigma filtered 
+    (replaced by the median of neighbouring pixel values).
+
 
     Parameters
     ----------
-    obj_tmp : 3D or 2D array 
+    array : 3D or 2D array 
         Input 3d cube or 2d image.
     cy,cx : float or 1D array
         Vector with approximate y and x coordinates of the star for each channel
@@ -326,26 +342,36 @@ def bp_clump_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True,
         Whether the input data has only half the angular resolution vertically 
         compared to horizontally (e.g. the case of SINFONI data); in other words
         there are always 2 rows of pixels with exactly the same values.
-        The algorithm will just correct the bpix every other row (hence making 
-        it twice faster).
+        The algorithm will just consider every other row (hence making it
+        twice faster), then apply the bad pixel correction on all rows.
     min_thr: {None,float}, optional
         Any pixel whose value is lower than this threshold (expressed in adu)
-        will be automatically considered bad and hence sigma_filtered. If None,
-        it is not used.
+        will be automatically considered bad and hence sigma_filtered. If None, 
+        it is not used (not recommended).
     mid_thr: {None, float}, optional
         Pixels whose value is lower than this threshold (expressed in adu) will
-        have its neighbours checked; if there is at max. 1 neighbour pixel whose
+        have its neighbours checked; if there is at max 1 neighbour pixel whose
         value is lower than mid_thr+(5*stddev), then the pixel is considered bad
         (because it means it is a cold pixel in the middle of significant 
-        signal). If None, it is not used.
+        signal). If None, it is not used (not recommended).
     max_nit: float, optional
         Maximum number of iterations on a frame to correct bpix. Typically, it 
-        should be less than ny/2 or nx/2. This is a mean of precaution in case 
-        the algorithm gets stuck with 2 neighbouring pixels considered bpix 
+        should be set to less than ny/2 or nx/2. This is a mean of precaution in
+        case the algorithm gets stuck with 2 neighbouring pixels considered bpix
         alternately on two consecutively iterations hence leading to an infinite
         loop (very very rare case).
+    full_output: bool, {False,True}, optional
+        Whether to return as well the cube of bad pixel maps and the cube of 
+        defined annuli.
+
+    Returns:
+    --------
+    obj_tmp: 2d or 3d array; the bad pixel corrected frame/cube.
+    If full_output is set to True, it returns as well:
+    bpix_map: 2d or 3d array; the bad pixel map or the cube of bpix maps
     """
 
+    obj_tmp = array.copy()
     ndims = obj_tmp.ndim
     assert ndims == 2 or ndims == 3, "Object is not two or three dimensional.\n"
 
@@ -354,7 +380,11 @@ def bp_clump_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True,
         n_y = obj_tmp.shape[0]
 
         if half_res_y:
-            n_y = n_y/2
+            if n_y%2 != 0: 
+                msg = 'The input frames do not have of an even number of rows. '
+                msg2 = 'Hence, you should not use option half_res_y = True'
+                raise ValueError(msg+msg2)
+            n_y = int(n_y/2)
             frame = obj_tmp.copy()
             obj_tmp = np.zeros([n_y,n_x])
             for yy in range(n_y):
@@ -398,14 +428,14 @@ def bp_clump_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True,
         while nbpix_tbc > 0 and nit < max_nit:
             nit = nit+1
             if verbose:
-                print 'Iteration ',nit, ': ', nbpix_tot, ' bpix in total'
-                print nbpix_tbc, ' to be corrected.'
+                msg = 'Iteration '+str(nit)+': '+str(nbpix_tot)+\
+                      ' bpix in total, '+str(nbpix_tbc)+' to be corrected.'
+                print msg
             obj_tmp = sigma_filter(obj_tmp, bpix_map, neighbor_box=neighbor_box,
                                    min_neighbors=nneig, verbose=verbose)
             bpix_map = find_outliers(obj_tmp, sig_dist=sig, in_bpix=bpix_map,
                                      stddev=stddev, neighbor_box=neighbor_box,
-                                     DEBUG=False, min_thr=min_thr, 
-                                     mid_thr=mid_thr)
+                                     min_thr=min_thr,mid_thr=mid_thr)
             nbpix_tot = np.sum(bpix_map)
             nbpix_tbc = nbpix_tot - np.sum(bpix_map[circl_new])
             bpix_map[circl_new] = 0
@@ -437,9 +467,10 @@ def bp_clump_removal(obj_tmp, cy, cx, fwhm, sig=5., protect_psf=True,
             obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], cy[i], 
                                                           cx[i], fwhm[i], sig, 
                                                           protect_psf, verbose)
- 
-    return obj_tmp, bpix_map_cumul
-
+    if full_output:
+        return obj_tmp, bpix_map_cumul
+    else:
+        return obj_tmp
     
     
 def find_outliers(frame, sig_dist, in_bpix=None, stddev=None,neighbor_box=3,
@@ -524,13 +555,16 @@ def find_outliers(frame, sig_dist, in_bpix=None, stddev=None,neighbor_box=3,
                 bpix_map[yy,xx] = test_result
 
     else:
+        nb = int(np.sum(in_bpix))  # number of bad pixels at previous iteration
+        wb = np.where(in_bpix)     # pixels to check
         bool_bpix= np.zeros_like(in_bpix)
         for n in range(nb):
             for yy in [max(0,wb[0][n]-1),wb[0][n],min(ny-1,wb[0][n]+1)]:
                 for xx in [max(0,wb[1][n]-1),wb[1][n],min(ny-1,wb[1][n]+1)]:
                     bool_bpix[yy,xx] = 1
-        nb = int(np.sum(bool_bpix))  # true number of pixels to check
-        wb = np.where(bool_bpix)     # true pixels to check
+        nb = int(np.sum(bool_bpix))# true number of px to check  (including 
+                                   # neighbours of bpix from previous iteration)
+        wb = np.where(bool_bpix)   # true px to check
         for n in range(nb):
             #0/ Determine the box of neighbouring pixels
             # half size of the box at the bottom of the pixel

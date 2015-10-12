@@ -60,8 +60,8 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_arcs,
     
     w = int(np.floor(size_fc/2.))
     # fcomp in the center of a zeros frame
-    fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc                                  
-       
+    fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc
+
     array_out = np.zeros_like(array)
     for fr in xrange(nframes):                                                  
         tmp = np.zeros_like(array[0])
@@ -145,4 +145,4 @@ def psf_norm(psf_path, size, fwhm, verbose=True):
     fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2.)
     fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper)
     
-    return psfs/np.array(fwhm_aper_phot['aperture_sum'])    
+    return psfs/np.array(fwhm_aper_phot['aperture_sum'])

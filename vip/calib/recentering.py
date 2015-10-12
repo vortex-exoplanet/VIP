@@ -6,12 +6,13 @@ Module containing functions for cubes frame registration.
 
 from __future__ import division
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'C. Gomez @ ULg, V. Christiaens @ ULg/UChile'
 __all__ = ['frame_shift',
            'frame_center_radon',
            'cube_recenter_radon',
            'cube_recenter_dft_upsampling',
-           'cube_recenter_gauss2d_fit']
+           'cube_recenter_gauss2d_fit',
+           'cube_recenter_moffat2d_fit']
 
 import numpy as np
 import cv2
@@ -24,10 +25,10 @@ from skimage.transform import radon
 from multiprocessing import Pool, cpu_count
 from image_registration import chi2_shift
 from matplotlib import pyplot as plt
+from . import approx_stellar_position
 from ..conf import timeInit, timing, eval_func_tuple
-from ..var import (get_square, frame_center, wavelet_denoise, get_annulus, 
-                        pp_subplots)
-
+from ..var import (get_square, get_square_robust, frame_center, wavelet_denoise,
+                   get_annulus, pp_subplots, fit_2dmoffat)
 
 
 def frame_shift(array, shift_y, shift_x, lib='opencv', interpolation='bicubic'):
@@ -449,13 +450,16 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1,
         Input cube.
     pos_y, pos_x : int
         Coordinates of the center of the subimage.    
-    fwhm : float
-        FWHM size in pixels.
+    fwhm : float or array_like
+        FWHM size in pixels, either one value (float) that will be the same for
+        the whole cube, or an array of floats with the same dimension as the 
+        0th dim of array, containing the fwhm for each channel (e.g. in the case
+        of an ifs cube, where the fwhm varies with wavelength)
     subi_size : int, optional
         Size of the square subimage sides in terms of FWHM.
     nproc : int or None, optional
         Number of processes (>1) for parallel computing. If 1 then it runs in 
-        serial. If None the number of processes will be set to (cpu_count()/2).  
+        serial. If None the number of processes will be set to (cpu_count()/2).
     full_output : {False, True}, bool optional
         Whether to return 2 1d arrays of shifts along with the recentered cube 
         or not.
@@ -491,15 +495,23 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1,
     n_frames = array.shape[0]
     cy, cx = frame_center(array[0])
     array_recentered = np.zeros_like(array)  
-    size = int(fwhm*subi_size)
+
+    if isinstance(fwhm,float) or isinstance(fwhm,int):
+        fwhm_scal = fwhm
+        fwhm = np.zeros((n_frames))
+        fwhm[:] = fwhm_scal
+    size = np.zeros(n_frames)    
+    for kk in range(n_frames):
+        size[kk] = max(2,int(fwhm[kk]*subi_size))
     
     if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
         nproc = (cpu_count()/2) 
     elif nproc==1:
         res = []
-        bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
+        bar = pyprind.ProgBar(n_frames, stream=1, 
+                              title='Looping through frames')
         for i in range(n_frames):
-            res.append(_centroid_2dg_frame(array, i, size, pos_y, pos_x))
+            res.append(_centroid_2dg_frame(array, i, size[i], pos_y, pos_x))
             bar.update()
         res = np.array(res)
     elif nproc>1:
@@ -522,7 +534,145 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1,
     if verbose:  timing(start_time)
 
     if save_shifts: 
-        np.savetxt('recent_gauss_shifts.txt', np.transpose([y, x]), fmt='%f')     
+        np.savetxt('recent_gauss_shifts.txt', np.transpose([y, x]), fmt='%f')
+    if full_output:
+        return array_recentered, y, x
+    else:
+        return array_recentered
+
+
+
+def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5, 
+                               nproc=None, full_output=False, verbose=True, 
+                               save_shifts=False, debug=False, 
+                               unmoving_star=True):
+    """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
+    moffat to a subimage centered at (pos_x, pos_y). This assumes the frames 
+    don't have too large shifts (>5px). The frames are shifted using the 
+    function frame_shift() (bicubic interpolation).
+    
+    Parameters
+    ----------
+    array : array_like
+        Input cube.
+    pos_y, pos_x : int or array_like
+        Coordinates of the center of the subimage.    
+    fwhm : float or array_like
+        FWHM size in pixels, either one value (float) that will be the same for
+        the whole cube, or an array of floats with the same dimension as the 
+        0th dim of array, containing the fwhm for each channel (e.g. in the case
+        of an ifs cube, where the fwhm varies with wavelength)
+    subi_size : int, optional
+        Size of the square subimage sides in terms of FWHM.
+    nproc : int or None, optional
+        Number of processes (>1) for parallel computing. If 1 then it runs in 
+        serial. If None the number of processes will be set to (cpu_count()/2).
+    full_output : {False, True}, bool optional
+        Whether to return 2 1d arrays of shifts along with the recentered cube 
+        or not.
+    verbose : {True, False}, bool optional
+        Whether to print to stdout the timing or not.
+    save_shifts : {False, True}, bool optional
+        Whether to save the shifts to a file in disk.
+    debug : {False, True}, bool optional
+        Whether to print to stdout the shifts or not. 
+    unmoving_star : {False, True}, bool optional
+        Whether the star centroid is expected to not move a lot within the 
+        frames of the input cube. If False, then an additional test is done to 
+        be sure the centroid fit returns a reasonable index value (close to the 
+        median of the centroid indices in the other frames) - hence not taking 
+        noise or a clump of uncorrected bad pixels.
+        
+    Returns
+    -------
+    array_recentered : array_like
+        The recentered cube. Frames have now odd size.
+    If full_output is True:
+    y, x : array_like
+        1d arrays with the shifts in y and x. 
+    
+    """    
+    if not array.ndim == 3:
+        raise TypeError('Input array is not a cube or 3d array')
+    # if not pos_x or not pos_y:
+    #     raise ValueError('Missing parameters POS_Y and/or POS_X')
+    
+    # If frame size is even we drop a row and a column
+    if array.shape[1]%2==0:
+        array = array[:,1:,:].copy()
+    if array.shape[2]%2==0:
+        array = array[:,:,1:].copy()
+    
+    if verbose:  start_time = timeInit()
+    
+    n_frames = array.shape[0]
+    cy, cx = frame_center(array[0])
+    array_recentered = np.zeros_like(array)  
+
+    if isinstance(fwhm,float) or isinstance(fwhm,int):
+        fwhm_scal = fwhm
+        fwhm = np.zeros((n_frames))
+        fwhm[:] = fwhm_scal
+    size = np.zeros(n_frames)    
+    for kk in range(n_frames):
+        size[kk] = max(2,int(fwhm[kk]*subi_size))
+    
+    if isinstance(pos_x,int) or isinstance(pos_y,int):
+        if isinstance(pos_x,int) and not isinstance(pos_y,int):
+            raise ValueError('pos_x and pos_y should have the same shape')
+        elif not isinstance(pos_x,int) and isinstance(pos_y,int):
+            raise ValueError('pos_x and pos_y should have the same shape')
+        pos_x_scal, pos_y_scal = pos_x, pos_y
+        pos_x, pos_y = np.zeros((n_frames)),np.zeros((n_frames))
+        pos_x[:], pos_y[:] = pos_x_scal, pos_y_scal
+
+    ### Precaution: some frames are dominated by noise and hence cannot be used
+    ### to find the star with a Moffat or Gaussian fit.
+    ### In that case, just replace the coordinates by the approximate ones
+    if unmoving_star:
+        star_approx_coords, star_not_present = approx_stellar_position(array,
+                                                                       fwhm,
+                                                                       True)
+        star_approx_coords.tolist()
+        star_not_present.tolist()
+    else:
+        star_approx_coords, star_not_present = [None]*n_frames, [None]*n_frames
+
+    if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
+        nproc = (cpu_count()/2) 
+    if nproc==1:
+        res = []
+        bar = pyprind.ProgBar(n_frames, stream=1, 
+                              title='Looping through frames')
+        for i in range(n_frames):
+            res.append(_centroid_2dm_frame(array, i, size[i], pos_y[i], 
+                                           pos_x[i], star_approx_coords[i], 
+                                           star_not_present[i]))
+            bar.update()
+        res = np.array(res)
+    elif nproc>1:
+        pool = Pool(processes=int(nproc))  
+        res = pool.map(eval_func_tuple,itt.izip(itt.repeat(_centroid_2dm_frame),
+                                                itt.repeat(array),
+                                                range(n_frames),
+                                                size.tolist(),
+                                                pos_y.tolist(), 
+                                                pos_x.tolist(),
+                                                star_approx_coords,
+                                                star_not_present)) 
+        res = np.array(res)
+        pool.close()
+    y = cy - res[:,0]
+    x = cx - res[:,1]
+        
+    for i in xrange(n_frames):
+        if debug:  print y[i], x[i]
+        array_recentered[i] = frame_shift(array[i], y[i], x[i])
+
+    if verbose:  timing(start_time)
+
+    if save_shifts: 
+        np.savetxt('recent_moffat_shifts.txt', np.transpose([y, x]), fmt='%f')
     if full_output:
         return array_recentered, y, x
     else:
@@ -533,8 +683,14 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x):
     """ Finds the centroid by using a 2d gaussian fitting in one frame from a 
     cube. To be called from whitin cube_recenter_gauss2d_fit().
     """
-    sub_image, y1, x1 = get_square(cube[frnum], size=size, y=pos_y, x=pos_x,
-                                   position=True)
+
+    if isinstance(size,float) or isinstance(size,int):
+        size_scal = size
+        size = np.zeros(cube.shape[0])
+        size[:] = size_scal
+
+    sub_image, y1, x1 = get_square(cube[frnum], size=size[frnum], y=pos_y, 
+                                   x=pos_x,position=True)
     sub_image = sub_image.byteswap().newbyteorder()
     # we check if the min pixel is located in the center (negative gaussian)
     miny, minx = np.where(sub_image==sub_image.min())
@@ -546,6 +702,32 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x):
     #x_i, y_i = photutils.morphology.centroid_com(sub_image)              
     y_i = y1 + y_i
     x_i = x1 + x_i
+    return y_i, x_i
+
+
+def _centroid_2dm_frame(cube, frnum, size, pos_y, pos_x, 
+                        star_approx_coords=None, star_not_present=None):
+    """ Finds the centroid by using a 2d moffat fitting in one frame from a 
+    cube. To be called from whitin cube_recenter_gauss2d_fit().
+    """
+
+    sub_image, y1, x1 = get_square_robust(cube[frnum], size=size, y=pos_y, 
+                                          x=pos_x,position=True)
+    sub_image = sub_image.byteswap().newbyteorder()
+    # we check if the min pixel is located in the center (negative gaussian)
+    miny, minx = np.where(sub_image==sub_image.min())
+    cy, cx = frame_center(sub_image)
+    if np.allclose(miny, cy, atol=2) and np.allclose(minx, cx, atol=2):
+        sub_image = -sub_image + np.abs(np.min(-sub_image))
+        
+    if star_approx_coords is not None and star_not_present is not None:
+        if star_not_present:
+            y_i,x_i = star_approx_coords
+        else:
+            y_i, x_i = fit_2dmoffat(sub_image, y1, x1, full_output=False)
+    else:
+        y_i, x_i = fit_2dmoffat(sub_image, y1, x1, full_output=False)
+
     return y_i, x_i
 
 

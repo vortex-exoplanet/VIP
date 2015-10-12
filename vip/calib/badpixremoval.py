@@ -17,7 +17,6 @@ from astropy.stats import sigma_clipped_stats
 from ..fits import write_fits
 from ..stats import sigma_filter
 from ..var import dist
-import pdb
 
 
 def bp_annuli_removal(array, cy, cx, fwhm, sig=5., protect_psf=True, 

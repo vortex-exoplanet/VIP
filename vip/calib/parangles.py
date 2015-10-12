@@ -77,6 +77,7 @@ def compute_paral_angles(header, latitude, ra_key, dec_key, lst_key,
     
     return pa.value
 
+
 def compute_derot_angles_PA(objname_tmp_A,digit_format=3,objname_tmp_B='',
                             inpath='./',writing=False, outpath='./', 
                             list_obj=None, 
@@ -165,17 +166,17 @@ def compute_derot_angles_PA(objname_tmp_A,digit_format=3,objname_tmp_B='',
 '.fits'):   
                 list_obj.append(ii)
                 _, header = open_fits(inpath+objname_tmp_A+ \
-                                               digits_ii+objname_tmp_B+ \
-                                               '.fits', verbose=False, 
-                                               header=True)
+                                      digits_ii+objname_tmp_B+ \
+                                      '.fits', verbose=False, 
+                                      header=True)
                 posang_st.append(header[PosAng_st_key])
                 posang_nd.append(header[PosAng_nd_key])
     else:
         for ii in list_obj:
             digits_ii = numberToString(ii,digit_format)
             _, header = open_fits(inpath+objname_tmp_A+digits_ii+ \
-                                           objname_tmp_B+'.fits', 
-                                           verbose=False, header=True)
+                                  objname_tmp_B+'.fits', 
+                                  verbose=False, header=True)
             posang_st.append(header[PosAng_st_key])
             posang_nd.append(header[PosAng_nd_key])
 
@@ -204,7 +205,7 @@ def compute_derot_angles_PA(objname_tmp_A,digit_format=3,objname_tmp_B='',
 
 
 def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
-                            inpath='~/', skew=False, writing=False, 
+                            inpath='./', skew=False, writing=False, 
                             outpath='./', list_obj=None, cd11_key='CD1_1', 
                             cd12_key='CD1_2', cd21_key='CD2_1', 
                             cd22_key='CD2_2', verbose=False):
@@ -275,6 +276,8 @@ def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
         positive y axis and the North in the image.
         sign convention: positive angles in anti-clockwise direction.
         Opposite values are applied when rotating the image to match North up.
+    Note: if skew is set to True, there are 2 angle_list vectors returned; the
+        first to rotate the x-axis and the second for the y-axis.
     """
 
     cd1_1 = []
@@ -286,12 +289,10 @@ def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
         list_obj = []
         for ii in range(10**digit_format):
             digits_ii = numberToString(ii,digit_format)
-            if os.path.exists(inpath+objname_tmp_A+digits_ii+objname_tmp_B+\
-                              '.fits'):   
+            obj_str = inpath+objname_tmp_A+digits_ii+objname_tmp_B+'.fits'
+            if os.path.exists(obj_str):   
                 list_obj.append(ii)
-                _, header = open_fits(inpath+objname_tmp_A+digits_ii+\
-                                      objname_tmp_B+'.fits', verbose=False, 
-                                      header=True)
+                _, header = open_fits(obj_str, verbose=False, header=True)
                 cd1_1.append(header[cd11_key])
                 cd1_2.append(header[cd12_key])
                 cd2_1.append(header[cd21_key])
@@ -299,8 +300,8 @@ def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
     else:
         for ii in list_obj:
             digits_ii = numberToString(ii,digit_format)
-            _, header = open_fits(inpath+objname_tmp_A+digits_ii+objname_tmp_B+\
-                                  '.fits', verbose=False, header=True)
+            obj_str = inpath+objname_tmp_A+digits_ii+objname_tmp_B+'.fits'
+            _, header = open_fits(obj_str, verbose=False, header=True)
             cd1_1.append(header[cd11_key])
             cd1_2.append(header[cd12_key])
             cd2_1.append(header[cd21_key])
@@ -324,8 +325,9 @@ def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
             if rot2[ii] < 0:
                 rot2[ii] = (2*math.pi)+rot2[ii]
         if np.floor(rot[ii]) != np.floor(rot2[ii]):
-            print "There is more than 1deg diff. rotation between y and x!"
-            skew = True
+            msg = "There is more than 1deg skewness between y and x! "
+            msg2 = "Please re-run the function with argument skew=True"
+            raise ValueError(msg+msg2)
 
     # Check and correct to output at the right format
     rot = check_PA_vector(rot,'rad')
@@ -340,8 +342,12 @@ def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
     if writing:
         if outpath == '' or outpath == None: outpath=inpath
         f=open(outpath+'Parallactic_angles.txt','w')
-        for ii in range(len(cd1_1)):
-            print >>f, rot[ii]
+        if skew:
+            for ii in range(len(cd1_1)):
+                print >>f, rot[ii], rot2[ii]
+        else:
+            for ii in range(len(cd1_1)):
+                print >>f, rot[ii]
         f.close()
 
 

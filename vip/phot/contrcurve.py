@@ -64,7 +64,7 @@ def noise_per_annulus(array, separation, fwhm, verbose=False):
         return np.array(y), np.array(x)
     
     centery, centerx = frame_center(array)
-    n_annuli = int(np.floor((centery)/separation))    
+    n_annuli = int(np.floor((centery)/separation))
 
     x = centerx
     y = centery

@@ -29,7 +29,6 @@ from . import approx_stellar_position
 from ..conf import timeInit, timing, eval_func_tuple
 from ..var import (get_square, get_square_robust, frame_center, wavelet_denoise,
                    get_annulus, pp_subplots, fit_2dmoffat)
-import pdb
 
 
 def frame_shift(array, shift_y, shift_x, lib='opencv', interpolation='bicubic'):

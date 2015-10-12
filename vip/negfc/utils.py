@@ -98,6 +98,4 @@ def index_to_polar(y, x, ceny=0, cenx=0):
     r = np.sqrt((y-ceny)**2 + (x-cenx)**2)
     theta = np.degrees(np.arctan2(y-ceny, x-cenx)) 
     
-    return (r,theta)
-    
-    
+    return (r,theta)       

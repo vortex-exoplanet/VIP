@@ -51,9 +51,9 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         The annulus PCA-ed frame.
         
     """
-    indic = get_annulus(cube[0], r_guess-annulus_width, annulus_width, 
-                        output_indices=True)
-    yy, xx = indic
+    indic = get_annulus(cube[0], r_guess-annulus_width/2., annulus_width,      # annulus_width is divided by 2 to be sure that the radial distance r_guess lies 
+                        output_indices=True)                                   # at the center of the annulus. If we don't divide, than r_guess corresponds to 
+    yy, xx = indic                                                             # to the outer radius of the annulus.
     
     data = cube[:, yy, xx]
     #data = matrix_ann - matrix_ann.mean(axis=0) # centering?

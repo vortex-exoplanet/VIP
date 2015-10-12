@@ -14,8 +14,9 @@ __all__ = ['firstguess_simplex',
            'firstguess']
 
 
-def firstguess_simplex(p_ini, cube, angs, psf, plsc, ncomp, annulus_width, 
-                       aperture_radius, options=None, verbose=False):               
+def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, annulus_width, 
+                       aperture_radius, p_ini=None, options=None, verbose=False, 
+                       **kwargs):               
     """
     Determine the position of a companion using the negative fake companion 
     technique and a standard minimization algorithm (Default=Nelder-Mead) .
@@ -23,8 +24,8 @@ def firstguess_simplex(p_ini, cube, angs, psf, plsc, ncomp, annulus_width,
     Parameters
     ----------
     
-    p_ini : np.array
-        The initial position for the planet.
+    p : np.array
+        Estimate of the candidate position.
     cube: numpy.array
         The cube of fits images expressed as a numpy.array. 
     angs: numpy.array
@@ -39,6 +40,8 @@ def firstguess_simplex(p_ini, cube, angs, psf, plsc, ncomp, annulus_width,
         The width in pixel of the annulus on wich the PCA is performed.
     aperture_radius: float
         The radius of the circular aperture.
+    p_ini : np.array
+        Position (r, theta) of the circular aperture center.
     options: dict, optional
         The scipy.optimize.minimize options.
     verbose : boolean, optional
@@ -52,14 +55,18 @@ def firstguess_simplex(p_ini, cube, angs, psf, plsc, ncomp, annulus_width,
     """    
     if verbose:
         print ''
-        print '{} minimization is running'.format(options.get('method','Nelder-Mead'))
+        print '{} minimization is running...'.format(options.get('method','Nelder-Mead'))
      
+    if p_ini is None:
+        p_ini = p
+        
     solu = minimize(chisquare, 
-                    p_ini, 
+                    p, 
                     args=(cube,angs,plsc,psf,annulus_width,ncomp,
                           aperture_radius,p_ini), 
-                          method = options.pop('method','Nelder-Mead'), 
-                          options=options)                       
+                    method = options.pop('method','Nelder-Mead'), 
+                    options=options,
+                    **kwargs)                       
 
     if verbose:
         print(solu)
@@ -162,7 +169,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
 
 
 def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width, 
-               aperture_radius, planets_xy_coord=None, f_range=None, 
+               aperture_radius, planets_xy_coord=None, p_ini=None, f_range=None, 
                simplex=False, simplex_options=None, 
                display=False, verbose=True, save=False, 
                figure_options={}):
@@ -202,7 +209,9 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width,
     aperture_radius: float
         The radius of the circular aperture.
     planet_xy_coord: numpy.array
-        The (x,y) position of the planet in the pca processed cube.        
+        The (x,y) position of the planet in the pca processed cube. 
+    p_ini: numpy.array
+        Position (r, theta) of the circular aperture center.        
     f_range: numpy.array, optional
         The range of flux tested values. If None, 20 values between 0 and 5000
         are tested.
@@ -280,8 +289,9 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width,
                 print msg4.format(index_planet)
                                                          
             res = firstguess_simplex((r_pre,theta_pre,f_pre), cube, angs, psfn,
-                                     PLSC, ncomp, annulus_width, aperture_radius, 
-                                     options = simplex_options, verbose=False)
+                                     PLSC, ncomp, annulus_width, aperture_radius,
+                                     p_ini=None, options=simplex_options,
+                                     verbose=False)
             
             r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x
             if verbose:

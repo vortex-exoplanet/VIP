@@ -36,7 +36,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp
     aperture_radius: float
         The radius of the circular aperture.  
     initialState: numpy.array
-        The initial guess for the position and the flux of the planet.
+        Position (r, theta) of the circular aperture center.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     display: boolean
@@ -54,18 +54,19 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp
         print('paraVector must be a tuple, {} was given'.format(type(modelParameters)))    
     
     # Create the cube with the fake companing injected
-    cube_negfc = inject_fcs_cube(cube, psfs_norm, angs, flevel=-modelParameters[2], 
+    cube_negfc = inject_fcs_cube(cube, psfs_norm, angs, flevel=-flux, 
                                  plsc=plsc, 
-                                 rad_arcs=[modelParameters[0]*plsc],
-                                 n_branches=1, theta=modelParameters[1])       
-                                  
-    # Perform PCA to generate the processed image and extract the zone of interest 
+                                 rad_arcs=[r*plsc],
+                                 n_branches=1, theta=theta)       
+                                      
+    # Perform PCA to generate the processed image and extract the zone of interest                                     
     values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width,
                                  aperture_radius,initialState[0],initialState[1], 
                                  display=display, cube_ref=cube_ref)
     
     # Function of merit
     values = np.abs(values)
+    
     chi2 = np.sum(values[values>0])
     N =len(values[values>0])    
     

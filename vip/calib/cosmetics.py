@@ -13,48 +13,9 @@ __all__ = ['frame_bad_pixel_correction',
            'cube_drop_frames',
            'frame_crop']
 
-import cv2
-import numpy as np
-from ..stats import clip_array
-from ..fits import open_fits, write_fits
-from ..var import frame_center, get_square
 
-    
-def frame_bad_pixel_correction(array, bpm_mask, size=3, double_check=False):
-    """ Corrects the bad pixels (preferably isolated pixels), marked in the bad 
-    pixel mask. The bad pixel is replaced by the median of the adjacent pixels.
-     
-    Parameters
-    ----------
-    array : array_like
-        Input frame.
-    bpm_mask : array_like
-        Input bad pixel map.
-    size : {3, 5}, optional
-        The size the box (size x size) of adjacent pixels for taking the median.
-    double_check : {False, True}, bool optional
-        Double check for still deviating px not captured in the bad pixel mask.
-         
-    Return
-    ------
-    frame : array_like
-        Frame with bad pixels corrected.
-         
-    """
-    if not array.ndim == 2:
-        raise TypeError('Array is not a frame or 2d array')
-     
-    bpm_mask = bpm_mask.astype('bool')
-     
-    frame = array.copy()
-    smoothed = cv2.medianBlur(frame.astype(np.float32), size)
-    frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]      # smoothed bad pixels
-    if double_check:
-        indices = clip_array(frame, 3, 3, neighbor=True, num_neighbor=9)                                
-        frame[indices] = smoothed[indices]
-         
-    print "Done correcting bad pixels"
-    return frame
+import numpy as np
+from ..var import frame_center, get_square
 
 
 def cube_crop_frames(array, size, ceny=None, cenx=None, verbose=True):                         

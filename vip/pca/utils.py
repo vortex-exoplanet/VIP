@@ -23,8 +23,7 @@ from ..var import mask_circle, get_annulus
 from ..calib import cube_derotate
 
 
-def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None, 
-                display=False):
+def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None):
     """
     PCA process the cube only for an annulus of a given width and at a given
     radial distance to the frame center. It returns a PCA-ed frame with only 
@@ -72,10 +71,6 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     cube_zeros = np.zeros_like(cube)
     cube_zeros[:, yy, xx] = residuals
     cube_zeros_derot, pca_frame = cube_derotate(cube_zeros, angs)
-    
-    if display:
-        display_array_ds9(pca_frame)
-
     return pca_frame  
 
 
@@ -106,14 +101,17 @@ def prepare_matrix(array, center=None, mask_center_px=None, verbose=True):
     if mask_center_px:
         array = mask_circle(array, mask_center_px)
                 
-    matrix = np.reshape(array, (array.shape[0], -1))            # equivalent to a for loop: array[i].flatten()                            
+    matrix = np.reshape(array, (array.shape[0], -1))            
+    # equivalent to a for loop: array[i].flatten()                            
     
     if center==None:
         pass
     elif center=='spatial':
-        matrix = matrix - matrix.mean(axis=1).reshape(array.shape[0], -1)       
+        matrix = matrix - matrix.mean(axis=1).reshape(array.shape[0], -1) 
+        #matrix = matrix / matrix.std(axis=1).reshape(array.shape[0], -1)       
     elif center=='temporal':
-        matrix = matrix - matrix.mean(axis=0)                                   
+        matrix = matrix - matrix.mean(axis=0)    
+        #matrix = matrix / matrix.std(axis=0)                        
     elif center=='global':
         matrix = matrix - matrix.mean(axis=0)                                   
         matrix = matrix - matrix.mean(axis=1).reshape(array.shape[0], -1)       

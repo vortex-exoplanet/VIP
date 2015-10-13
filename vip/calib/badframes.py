@@ -112,7 +112,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=None, width=None,
 
     if plot:
         plt.figure(figsize=(12, 6))
-        plt.plot(mean_values, label='mean fluctuation', lw = 1.4, ls='-')
+        plt.plot(mean_values, 'o', label='mean fluctuation', lw = 1.4)
         plt.plot(mean_smooth, label='smoothed median', lw = 2, ls='-', alpha=0.5)
         plt.plot(top_boundary, label='top limit', lw = 1.4, ls='-')
         plt.plot(bot_boundary, label='lower limit', lw = 1.4, ls='-')

@@ -27,8 +27,10 @@ def dist(yc,xc,y1,x1):
 
 def frame_center(array, verbose=False):
     """ Returns the coordinates y,x of a frame central pixel if the sides are 
-    odd numbers. Python uses 0-based indexing, so the coordinates of the center
-    of a 5x5 pixels frame are (2,2). 
+    odd numbers. Python uses 0-based indexing, so the coordinates of the central
+    pixel of a 5x5 pixels frame are (2,2). Those are as well the coordinates of
+    the center of that pixel (sub-pixel center of the frame).
+     
     When the frame sides are even values, the coordinates returned are:
     (side_length/2) - 1.  
     """
@@ -38,7 +40,6 @@ def frame_center(array, verbose=False):
     cy = np.ceil(y) - 1
     cx = np.ceil(x) - 1
     if verbose:
-        print 'Half image at x,y = ({:.3f},{:.3f})'.format(y, x)
         print 'Center px coordinates at x,y = ({:},{:})'.format(cy, cx)
     return cy, cx
 

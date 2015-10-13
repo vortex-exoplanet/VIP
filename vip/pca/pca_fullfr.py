@@ -111,7 +111,7 @@ def pca(cube, angle_list, cube_ref=None, svd_mode='randsvd', ncomp=1,
     
 def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full', 
                      annulus_width=None, svd_mode='randsvd', mask_center_px=5,
-                     fmerit='cent', min_snr=0, verbose=True, output_frame=False, 
+                     fmerit='cent', min_snr=0, verbose=True, full_output=False, 
                      debug=False):
     """ Optimizes the number of principal components by doing a simple grid 
     search measuring the SNR for a given position in the frame. The metric
@@ -148,7 +148,7 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
         reduce the steps.
     verbose : {True, False}, bool optional
         If True prints intermediate info and timing.
-    output_frame : {False, True} bool optional
+    full_output : {False, True} bool optional
         Whether to return the final PCA processed frame with the optimal number
         of PCs or not.
     debug : {False, True}, bool optional
@@ -158,8 +158,8 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
     -------
     opt_npc : int
         Optimal number of PCs for given source.
-    If output_frame is True, the final processed frame is returned.
-    
+    If full_output is True, the final processed frame is returned along with 
+    the optimal number of principal components.
     """    
     def get_snr(cube, angle_list, y, x, mode, svd_mode, fwhm, ncomp, fmerit):
         if mode=='full':
@@ -257,9 +257,9 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
                   svd_mode=svd_mode)    
     _ = phot.frame_quick_report(finalfr, fwhm, y, x, verbose=verbose)
     
-    if output_frame:
+    if full_output:
         return finalfr
     else:
-        return opt_npc
+        return opt_npc, finalfr
 
 

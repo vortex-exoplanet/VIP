@@ -16,10 +16,8 @@ import numpy as np
 import photutils
 from scipy.ndimage import gaussian_filter        
 from astropy.convolution import convolve_fft, Gaussian2DKernel
+from astropy.stats import gaussian_fwhm_to_sigma
 from .shapes import frame_center
-
-
-SIGMA2FWHM = 2.35482004503          # fwhm = sigma2fwhm * sigma
 
 
 def wavelet_denoise(array, wavelet, threshold, levels, thrmode='hard'):
@@ -89,7 +87,7 @@ def convolution_gaussian2d(array, size_fwhm):
     if not array.ndim==2:
         raise TypeError('Input array is not a frame or 2d array')
     
-    gaus = Gaussian2DKernel(stddev=size_fwhm/SIGMA2FWHM)
+    gaus = Gaussian2DKernel(stddev=size_fwhm*gaussian_fwhm_to_sigma)
     return convolve_fft(array, gaus)
 
 
@@ -114,7 +112,8 @@ def gaussian_filter_sp(array, size_fwhm, order=0):
     """
     if not array.ndim==2:
         raise TypeError('Input array is not a frame or 2d array')
-    return gaussian_filter(array, sigma=size_fwhm/SIGMA2FWHM, order=order)
+    return gaussian_filter(array, sigma=size_fwhm*gaussian_fwhm_to_sigma, 
+                           order=order)
     
     
 def gaussian_kernel(size, size_y=None):

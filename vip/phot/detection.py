@@ -16,13 +16,13 @@ from matplotlib import pyplot as plt
 from scipy.ndimage.filters import correlate, gaussian_filter
 from skimage import feature
 from astropy.stats import sigma_clipped_stats
+from astropy.stats import gaussian_fwhm_to_sigma, gaussian_sigma_to_fwhm
 from astropy.table import Table
 from astropy.modeling.models import Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter
 from photutils.detection import findstars
 from skimage.feature import peak_local_max
 from ..var import mask_circle, pp_subplots, get_square, frame_center
-from ..var.filters import SIGMA2FWHM
 from .snr import snr_ss
 from .frame_analysis import frame_quick_report
 
@@ -138,14 +138,14 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
     psf_subimage = get_square(psf, 9, frame_center(psf)[0],frame_center(psf)[1])
     y, x = np.indices(psf_subimage.shape)
     fit = fitter(gauss, x, y, psf_subimage)
-    fwhm = np.mean([fit.y_stddev.value*SIGMA2FWHM, 
-                    fit.x_stddev.value*SIGMA2FWHM])
+    fwhm = np.mean([fit.y_stddev.value*gaussian_sigma_to_fwhm, 
+                    fit.x_stddev.value*gaussian_sigma_to_fwhm])
     if verbose:  
         print 'FWHM =', fwhm
         print
     if debug:  
-        print 'FWHM_y ', fit.y_stddev.value*SIGMA2FWHM
-        print 'FWHM_x ', fit.x_stddev.value*SIGMA2FWHM  
+        print 'FWHM_y ', fit.y_stddev.value*gaussian_sigma_to_fwhm
+        print 'FWHM_x ', fit.x_stddev.value*gaussian_sigma_to_fwhm  
         print
     
     # Masking the center, 2*lambda/D is the expected IWA
@@ -191,8 +191,8 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
             
             gauss = Gaussian2D(amplitude=subim.max(), 
                                x_mean=cx, y_mean=cy, 
-                               x_stddev=fwhm/SIGMA2FWHM, 
-                               y_stddev=fwhm/SIGMA2FWHM, theta=0)
+                               x_stddev=fwhm*gaussian_fwhm_to_sigma, 
+                               y_stddev=fwhm*gaussian_fwhm_to_sigma, theta=0)
             
             sy, sx = np.indices(subim.shape)
             fit = fitter(gauss, sx, sy, subim)
@@ -202,8 +202,8 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
             # coincide with the center of the subimage (within 2px error)
             # checking whether the mean of the fwhm in y and x of the fit are
             # close to the FWHM_PSF with a margin of 3px
-            fwhm_y = fit.y_stddev.value*SIGMA2FWHM
-            fwhm_x = fit.x_stddev.value*SIGMA2FWHM
+            fwhm_y = fit.y_stddev.value*gaussian_sigma_to_fwhm
+            fwhm_x = fit.x_stddev.value*gaussian_sigma_to_fwhm
             mean_fwhm_fit = np.mean([np.abs(fwhm_x), np.abs(fwhm_y)]) 
             if fit.amplitude.value>0 \
             and np.allclose(fit.y_mean.value, cy, atol=2) \
@@ -243,7 +243,7 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
             print tab['ycentroid','xcentroid','fwhm','flux','roundness']
         
     elif mode=='log':
-        sigma = fwhm/SIGMA2FWHM
+        sigma = fwhm*gaussian_fwhm_to_sigma
         coords = feature.blob_log(frame_det.astype('float'), 
                                   threshold=bkg_level, 
                                   min_sigma=sigma-.5, max_sigma=sigma+.5)
@@ -251,7 +251,7 @@ def detection(array, psf, bkg_sigma=3, mode='lpeaks', matched_filter=True,
         if coords.shape[0]>0 and verbose:  print_coords(coords)
      
     elif mode=='dog':
-        sigma = fwhm/SIGMA2FWHM
+        sigma = fwhm*gaussian_fwhm_to_sigma
         coords = feature.blob_dog(frame_det.astype('float'), 
                                   threshold=bkg_level, 
                                   min_sigma=sigma-.5, max_sigma=sigma+.5)

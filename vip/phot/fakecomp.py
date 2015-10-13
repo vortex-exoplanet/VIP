@@ -14,7 +14,7 @@ __all__ = ['create_psf_template',
 
 import numpy as np
 import photutils
-from ..calib import cube_crop_frames, frame_shift
+from ..calib import cube_crop_frames, frame_shift, frame_crop
 from ..var import frame_center
 
 
@@ -120,13 +120,12 @@ def create_psf_template(array, size, fwhm=5, verbose=True):
     return psf_normd
 
 
-def psf_norm(psf_path, size, fwhm, verbose=True):
-    """
-    Scale the psf, so the 1*FWHM aperture flux equals 1
+def psf_norm(array, size, fwhm):
+    """ Scales a PSF, so the 1*FWHM aperture flux equals 1.
     
     Parameters
     ----------
-    psf_path: str
+    array: array_like
         The relative path to the psf fits image.
     size : int
         Size of the squared subimage.
@@ -135,14 +134,20 @@ def psf_norm(psf_path, size, fwhm, verbose=True):
         
     Returns
     -------
-    out: numpy.array
+    psf_norm: array_like
         The scaled psf.
 
     """
-    psfs = open_fits(psf_path, verbose=verbose)
-
-    psfs = frame_crop(psfs, size ) 
+    psfs = frame_crop(array, size) 
     fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2.)
     fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper)
     
-    return psfs/np.array(fwhm_aper_phot['aperture_sum'])
+    fwhm_flux = np.array(fwhm_aper_phot['aperture_sum'])
+    if fwhm_flux>1.1 or fwhm_flux<0.9:
+        psf_norm = psfs/np.array(fwhm_aper_phot['aperture_sum'])
+    else:
+        psf_norm = psfs
+    
+    return psf_norm
+
+

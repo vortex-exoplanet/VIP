@@ -7,7 +7,7 @@ algorithm.
 
 import numpy as np
 import math
-from matplotlib.pyplot import *
+from matplotlib.pyplot import plot, xlim, ylim, hold, axes, gca, show
 
 
 def radial_to_eq(r=1, t=0, rError=0, tError=0, display=False):
@@ -99,3 +99,4 @@ def index_to_polar(y, x, ceny=0, cenx=0):
     theta = np.degrees(np.arctan2(y-ceny, x-cenx)) 
     
     return (r,theta)       
+

@@ -7,16 +7,54 @@ Module with cube cosmetic functions for SDI datasets.
 from __future__ import division
 
 __author__ = 'V. Christiaens', 'C. Gomez @ ULg'
-__all__ = ['bp_annuli_removal',
+__all__ = ['bp_isolated_removal',
+           'bp_annuli_removal',
            'bp_clump_removal']
 
-import copy
+import cv2
 import numpy as np
 from skimage.draw import circle, ellipse
 from astropy.stats import sigma_clipped_stats
-from ..fits import write_fits
 from ..stats import sigma_filter
 from ..var import dist
+from ..stats import clip_array
+    
+    
+def bp_isolated_removal(array, bpm_mask, size=3, double_check=False):
+    """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is 
+    replaced by the median of the adjacent pixels. This function is very fast
+    but works only with isolated (sparse) pixels.
+     
+    Parameters
+    ----------
+    array : array_like
+        Input frame or 2d array.
+    bpm_mask : array_like
+        Input bad pixel map.
+    size : {3, 5}, optional
+        The size the box (size x size) of adjacent pixels for taking the median.
+    double_check : {False, True}, bool optional
+        Double check for still deviating px not captured in the bad pixel mask.
+         
+    Return
+    ------
+    frame : array_like
+        Frame with bad pixels corrected.
+    """
+    if not array.ndim == 2:
+        raise TypeError('Array is not a frame or 2d array')
+     
+    bpm_mask = bpm_mask.astype('bool')
+     
+    frame = array.copy()
+    smoothed = cv2.medianBlur(frame.astype(np.float32), size)
+    frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]      # smoothed bad pixels
+    if double_check:
+        indices = clip_array(frame, 3, 3, neighbor=True, num_neighbor=9)                                
+        frame[indices] = smoothed[indices]
+         
+    print "Done correcting bad pixels"
+    return frame
 
 
 def bp_annuli_removal(array, cy, cx, fwhm, sig=5., protect_psf=True, 

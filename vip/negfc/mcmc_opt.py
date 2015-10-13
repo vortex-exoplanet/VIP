@@ -11,7 +11,8 @@ from math import *
 import datetime
 import triangle
 from matplotlib import pyplot as plt
-from ..phot import inject_fcs_cube
+from ..fits import display_array_ds9, open_adicube, open_fits
+from ..phot import inject_fcs_cube, psf_norm
 from .post_proc import get_values_optimize
 
 
@@ -259,31 +260,13 @@ def gelman_rubin_from_chain(chain, burnin):
     return rhat
 
 
-def run_mcmc_astrometry(cubes,
-                        angs,
-                        psfs_norm,
-                        ncomp,                        
-                        plsc,                        
-                        annulus_width,
-                        aperture_radius,
-                        nwalkers,
-                        initialState,
-                        bounds=None,
-                        a=2.0,
-                        burnin=0.3,
-                        rhat_threshold=1.01,
-                        rhat_count_threshold=3,
-                        niteration_min=0.0,
-                        niteration_limit=1e02,
-                        niteration_supp=0.0,
-                        check_maxgap=1e04,
-                        threads=1,
-                        output_file=None,
-                        display=False,
-                        verbose=True,
-                        save=False):
-
-
+def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
+                        aperture_radius, nwalkers, initialState, bounds=None,
+                        a=2.0, burnin=0.3, rhat_threshold=1.01, 
+                        rhat_count_threshold=3, niteration_min=0.0,
+                        niteration_limit=1e02, niteration_supp=0.0,
+                        check_maxgap=1e04, threads=1, output_file=None,
+                        display=False, verbose=True, save=False):
     """
     Run an affine invariant mcmc algorithm in order to determine the true 
     position and the flux of the planet using the 'Negative Fake Companion' 
@@ -311,7 +294,8 @@ def run_mcmc_astrometry(cubes,
     angs: str or numpy.array
         The relative path to the parallactic angle fits image or the angs itself.
     psfs_norm: str or numpy.array
-        The relative path to the instrumental psf fits image or the psfn itself. 
+        The relative path to the instrumental PSF fits image or the PSF itself.
+        The PSF flux in a 1*FWHM aperture must equal 1.
     ncomp: int
         The number of principal components.        
     plsc: float
@@ -402,16 +386,19 @@ def run_mcmc_astrometry(cubes,
     # #########################################################################
     if isinstance(cubes,str) and isinstance(angs,str):
         if angs is None:
-            cubes, angs = open_adicube(cube, verbose=False)
+            cubes, angs = open_adicube(cubes, verbose=False)
         else:
-            cubes, _ = open_fits(cube)
-            angs, _ = open_fits(parallactic_angle, verbose=False)    
+            cubes = open_fits(cubes)
+            angs = open_fits(angs, verbose=False)    
         
-        psfs_norm = psf_norm(psf,-1,verbose=False)
+        if isinstance(psfs_norm,str):
+            psfs_norm = open_fits(psfs_norm)
         
         if verbose:
             print 'The data has been loaded. Let''s continue !'
-        
+    
+    #psfs_norm = psf_norm(psfs_norm, min(29, psfs_norm.shape[0]), fwhm)
+    
     # #########################################################################
     # Initialization of the variables
     # #########################################################################    

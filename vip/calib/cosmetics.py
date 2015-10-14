@@ -8,8 +8,7 @@ Also functions for cropping cubes.
 from __future__ import division
 
 __author__ = 'C. Gomez @ ULg'
-__all__ = ['frame_bad_pixel_correction',
-           'cube_crop_frames',
+__all__ = ['cube_crop_frames',
            'cube_drop_frames',
            'frame_crop']
 

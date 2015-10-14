@@ -141,7 +141,7 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
         radius of the circular mask.  
     fmerit : {'cent', 'max', 'mean'}
         The metric to be maximized. 'cent' is the given pixel's SNR, 'max' the 
-        maximun SNR in a fwhm circular aperture centred on the given coordinates 
+        maximum SNR in a FWHM circular aperture centered on the given coordinates 
         and 'mean' is the mean SNR in the same circular aperture.  
     min_snr : float
         Value for the minimum acceptable SNR. Setting this value higher will 
@@ -173,14 +173,18 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
                                 annulus_radius)
         else:
             raise RuntimeError('Wrong mode.')
-        yy, xx = draw.circle(y, x, fwhm/2.)
-        snr_pixels = [phot.snr(frame, y_, x_, fwhm, plot=False, 
-                                       verbose=False) for y_, x_ in zip(yy, xx)]
+
         if fmerit=='max':
+            yy, xx = draw.circle(y, x, fwhm/2.)
+            snr_pixels = [phot.snr_ss(frame, y_, x_, fwhm, plot=False, 
+                                      verbose=False) for y_, x_ in zip(yy, xx)]
             return np.max(snr_pixels)
         elif fmerit=='px':
-            return phot.snr(frame, y, x, fwhm, plot=False, verbose=False)
+            return phot.snr_ss(frame, y, x, fwhm, plot=False, verbose=False)
         elif fmerit=='mean':
+            yy, xx = draw.circle(y, x, fwhm/2.)
+            snr_pixels = [phot.snr_ss(frame, y_, x_, fwhm, plot=False, 
+                                      verbose=False) for y_, x_ in zip(yy, xx)]
             return np.mean(snr_pixels)
     
     def grid(cube, angle_list, y, x, mode, svd_mode, fwhm, fmerit, step, inti, 

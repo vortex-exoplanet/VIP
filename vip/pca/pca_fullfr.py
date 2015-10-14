@@ -111,7 +111,7 @@ def pca(cube, angle_list, cube_ref=None, svd_mode='randsvd', ncomp=1,
     
 def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full', 
                      annulus_width=None, svd_mode='randsvd', mask_center_px=5,
-                     fmerit='cent', min_snr=0, verbose=True, full_output=False, 
+                     fmerit='px', min_snr=0, verbose=True, full_output=False, 
                      debug=False):
     """ Optimizes the number of principal components by doing a simple grid 
     search measuring the SNR for a given position in the frame. The metric
@@ -139,8 +139,8 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
         radius of the circular mask.  
-    fmerit : {'cent', 'max', 'mean'}
-        The metric to be maximized. 'cent' is the given pixel's SNR, 'max' the 
+    fmerit : {'px', 'max', 'mean'}
+        The metric to be maximized. 'px' is the given pixel's SNR, 'max' the 
         maximum SNR in a FWHM circular aperture centered on the given coordinates 
         and 'mean' is the mean SNR in the same circular aperture.  
     min_snr : float
@@ -172,8 +172,8 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
             frame = pca_annulus(cube, angle_list, ncomp, annulus_width, 
                                 annulus_radius)
         else:
-            raise RuntimeError('Wrong mode.')
-
+            raise RuntimeError('Wrong mode.')            
+        
         if fmerit=='max':
             yy, xx = draw.circle(y, x, fwhm/2.)
             snr_pixels = [phot.snr_ss(frame, y_, x_, fwhm, plot=False, 
@@ -184,13 +184,13 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
         elif fmerit=='mean':
             yy, xx = draw.circle(y, x, fwhm/2.)
             snr_pixels = [phot.snr_ss(frame, y_, x_, fwhm, plot=False, 
-                                      verbose=False) for y_, x_ in zip(yy, xx)]
+                                      verbose=False) for y_, x_ in zip(yy, xx)]                                      
             return np.mean(snr_pixels)
     
     def grid(cube, angle_list, y, x, mode, svd_mode, fwhm, fmerit, step, inti, 
              intf, debug):
         nsteps = 0
-        n = cube.shape[0]
+        #n = cube.shape[0]
         snrlist = []
         pclist = []
         counter = 0
@@ -207,7 +207,7 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
             snrlist.append(snr)
             pclist.append(pc)
             nsteps += 1
-            if debug:  
+            if debug: 
                 print '{} {:.3f}'.format(pc, snr)
             if counter==3:  
                 break 

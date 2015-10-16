@@ -9,7 +9,7 @@ import os
 import emcee
 from math import *
 import datetime
-import triangle
+import corner
 from matplotlib import pyplot as plt
 from ..fits import display_array_ds9, open_adicube, open_fits
 from ..phot import inject_fcs_cube, psf_norm

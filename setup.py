@@ -32,7 +32,7 @@ setup(
                       'ipython',
                       'astropy >= 1.0.2',
                       'emcee',
-                      'triangle_plot',
+                      'corner',
                       'pandas',
                       'matplotlib',
                       'scikit-learn',

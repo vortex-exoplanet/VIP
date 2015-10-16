@@ -12,7 +12,7 @@ __all__ = ['adi']
 
 import numpy as np
 from ..conf import timeInit, timing
-from ..var import get_annulus
+from ..var import get_annulus, mask_circle
 from ..calib import cube_derotate, check_PA_vector
 from ..pca.pca_local import define_annuli, get_fwhm
 
@@ -108,7 +108,10 @@ def adi(array, angle_list, fwhm=None, instrument=None, radius_int=0, asize=2,
     array = array - ref_psf
     
     if mode=='simple':
-        cube_out = array
+        if radius_int>0:
+            cube_out = mask_circle(array, radius_int)
+        else:
+            cube_out = array
         if verbose:  print 'Median psf reference subtracted'
     
     elif mode=='annular':   

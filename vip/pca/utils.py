@@ -70,7 +70,7 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None):
     residuals = data - reconstructed
     cube_zeros = np.zeros_like(cube)
     cube_zeros[:, yy, xx] = residuals
-    cube_zeros_derot, pca_frame = cube_derotate(cube_zeros, angs)
+    pca_frame = cube_derotate(cube_zeros, angs)
     return pca_frame  
 
 

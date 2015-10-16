@@ -681,7 +681,7 @@ def showPDFCorner(chain, burnin=0.5, save=False, **kwargs):
         If True, a pdf file is created. 
      
      kwargs:
-        Additional attributs are passed to the triangle.corner() method.                               
+        Additional attributs are passed to the corner.corner() method.                               
                     
     Returns
     -------
@@ -707,7 +707,7 @@ def showPDFCorner(chain, burnin=0.5, save=False, **kwargs):
     if chain.shape[0] == 0:
         print("It seems that the chain is empty. Have you already run the MCMC ?")
     else: 
-        fig = triangle.corner(chain, labels=kwargs.pop('labels',["$r$",r"$\theta$","$f$"]), **kwargs)
+        fig = corner.corner(chain, labels=kwargs.pop('labels',["$r$",r"$\theta$","$f$"]), **kwargs)
     
     if save:
         plt.savefig('corner_plot.pdf')

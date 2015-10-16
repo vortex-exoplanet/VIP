@@ -315,8 +315,9 @@ def bp_annuli_removal(array, cy, cx, fwhm, sig=5., protect_psf=True,
 
 
     if ndims == 2:
-        obj_tmp, bpix_map = bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, 
-                                          protect_psf, verbose)
+        obj_tmp, bpix_map, ann_frame_cumul = bp_removal_2d(obj_tmp, cy, cx, 
+                                                           fwhm, sig, 
+                                                           protect_psf, verbose)
 
     if ndims == 3:
         n_z = obj_tmp.shape[0]

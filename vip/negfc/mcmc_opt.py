@@ -8,6 +8,7 @@ import numpy as np
 import os
 import emcee
 from math import *
+import inspect
 import datetime
 import corner
 from matplotlib import pyplot as plt
@@ -509,16 +510,22 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
                     series = np.vstack((part1,part2))
                     rhat[j] = gelman_rubin(series)   
                 if verbose:    
-                    print '   r_hat = {}'.format(rhat)  
+                    print '   r_hat = {}'.format(rhat)
+                    print '   r_hat <= threshold = {}'.format(rhat <= rhat_threshold)
                     print ''
                 # We test the rhat.
-                if (rhat <= rhat_threshold).all() and rhat_count < rhat_count_threshold: 
+                if (rhat <= rhat_threshold).all(): #and rhat_count < rhat_count_threshold: 
                     rhat_count += 1
-                    print("Gelman-Rubin test OK {}/{}".format(rhat_count,rhat_count_threshold))
-                elif (rhat <= rhat_threshold).all() and rhat_count >= rhat_count_threshold:
-                    print '... ==> convergence reached'
-                    konvergence = k
-                    stop = konvergence + supp
+                    if rhat_count < rhat_count_threshold:
+                        print("Gelman-Rubin test OK {}/{}".format(rhat_count,rhat_count_threshold))
+                    elif rhat_count >= rhat_count_threshold:
+                        print '... ==> convergence reached'
+                        konvergence = k
+                        stop = konvergence + supp                       
+                #elif (rhat <= rhat_threshold).all() and rhat_count >= rhat_count_threshold:
+                #    print '... ==> convergence reached'
+                #    konvergence = k
+                #    stop = konvergence + supp
                 else:
                     rhat_count = 0
 
@@ -547,22 +554,16 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
 
     if save:
         import pickle
+        
+        frame = inspect.currentframe()
+        args, _, _, values = inspect.getargvalues(frame)
+        input_parameters = {j : values[j] for j in args[1:]}        
+        
         output = {'isamples':isamples,
                   'chain': chain_zero_truncated(chain),
+                  'input_parameters': input_parameters,
                   'AR': sampler.acceptance_fraction,
-                  'lnprobability': sampler.lnprobability,
-                  'nwalkers': nwalkers,
-                  'cube': cubes,
-                  'parallactic_angle': angs,
-                  'psf': psfs_norm,
-                  'plsc': plsc,
-                  'annulus_width': annulus_width,
-                  'ncomp': ncomp,
-                  'aperture_radius': aperture_radius,
-                  'initialState': initialState,
-                  'bounds': bounds,
-                  'a': a}#,
-                  #'fwhm': fwhm}
+                  'lnprobability': sampler.lnprobability}
                   
         with open('results/'+output_file+'/MCMC_results','wb') as fileSave:
             myPickler = pickle.Pickler(fileSave)

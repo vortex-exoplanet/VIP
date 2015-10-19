@@ -75,17 +75,15 @@ def radial_to_eq(r=1, t=0, rError=0, tError=0, display=False):
             (dec,np.mean([decErrorInf,decErrorSup])))    
     
     
-def index_to_polar(y, x, ceny=0, cenx=0):
+def cart_to_polar(y, x, ceny=0, cenx=0):
     """
-    Convert pixel index into polar coordinates (r,theta) with 
+    Convert cartesian into polar coordinates (r,theta) with 
     respect to a given center (cenx,ceny).
-    
-    Note that ds9 index (x,y) = Python matrix index (y,x).
     
     Parameters
     ----------
     x,y: float
-        The pixel index
+        The cartesian coordinates.
         
     Returns
     -------
@@ -98,5 +96,91 @@ def index_to_polar(y, x, ceny=0, cenx=0):
     r = np.sqrt((y-ceny)**2 + (x-cenx)**2)
     theta = np.degrees(np.arctan2(y-ceny, x-cenx)) 
     
-    return (r,theta)       
+    return (r,np.mod(theta,360))   
 
+
+def polar_to_cart(r, theta, ceny=0, cenx=0):
+    """
+    Convert polar coordinates with respect to the center (cenx,ceny) into 
+    cartesian coordinates (x,y) with respect to the bottom left corner of the 
+    image..
+    
+    Parameters
+    ----------
+    r,theta: float
+        The polar coordinates.
+        
+    Returns
+    -------
+    
+    out : tuple
+        The cartesian coordinates (x,y) with respect to the bottom left corner 
+        of the image..
+        
+    """
+    x = r*np.cos(np.deg2rad(theta)) + cenx
+    y = r*np.sin(np.deg2rad(theta)) + ceny 
+    
+    return (x,y)    
+
+
+def ds9index_to_polar(y, x, ceny=0, cenx=0):
+    """
+    Convert pixel index read on image displayed with DS9 into polar coordinates 
+    (r,theta) with respect to a given center (cenx,ceny).
+    
+    Note that ds9 index (x,y) = Python matrix index (y,x). Furthermore, when an 
+    image M is displayed with DS9, the coordinates of the center of the pixel 
+    associated with M[0,0] is (1,1). Then, there is a shift of (0.5, 0.5) of the
+    center of the coordinate system. As a conclusion, when you read (x_ds9, y_ds9)
+    on a image displayed with DS9, the corresponding position is (y-0.5, x-0.5)
+    and the associated pixel value is M(np.floor(y)-1,np.floor(x)-1).
+    
+    Parameters
+    ----------
+    x,y: float
+        The pixel index in DS9
+        
+    Returns
+    -------
+    
+    out : tuple
+        The polar coordinates (r,theta) with respect to the (cenx,ceny). 
+        Note that theta is given in degrees.
+        
+    """
+    r = np.sqrt((y-0.5-ceny)**2 + (x-0.5-cenx)**2)
+    theta = np.degrees(np.arctan2(y-0.5-ceny, x-0.5-cenx))
+    
+    return (r,np.mod(theta,360)) 
+    
+    
+def polar_to_ds9index(r, theta, ceny=0, cenx=0):
+    """
+    Convert position (r,theta) in an image with respect to a given center 
+    (cenx,ceny) into position in the image displayed with DS9.
+    
+    Note that ds9 index (x,y) = Python matrix index (y,x). Furthermore, when an 
+    image M is displayed with DS9, the coordinates of the center of the pixel 
+    associated with M[0,0] is (1,1). Then, there is a shift of (0.5, 0.5) of the
+    center of the coordinate system. As a conclusion, when you read (x_ds9, y_ds9)
+    on a image displayed with DS9, the corresponding position is (y-0.5, x-0.5)
+    and the associated pixel value is M(np.floor(y)-1,np.floor(x)-1).
+    
+    Parameters
+    ----------
+    x,y: float
+        The pixel index in DS9
+        
+    Returns
+    -------
+    
+    out : tuple
+        The polar coordinates (r,theta) with respect to the (cenx,ceny). 
+        Note that theta is given in degrees.
+        
+    """
+    x_ds9 = r*np.cos(np.deg2rad(theta)) + 0.5 + cenx
+    y_ds9 = r*np.sin(np.deg2rad(theta)) + 0.5 + ceny 
+    
+    return (x_ds9,y_ds9)    

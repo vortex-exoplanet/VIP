@@ -51,14 +51,16 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         
     """
 
-    pca_frame = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref)
+    _, pca_frame = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref)
+    
     if display:
         display_array_ds9(pca_frame)   
-    
+
     centy_fr, centx_fr = frame_center(cube[0])
     posy = r_guess * np.sin(np.deg2rad(theta_guess)) + centy_fr
     posx = r_guess * np.cos(np.deg2rad(theta_guess)) + centx_fr
     indices = circle(cy=posy, cx=posx, radius=aperture_radius)
+
     values = pca_frame[indices]
     
     return values

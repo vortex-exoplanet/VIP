@@ -136,7 +136,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
         print 'Step | flux    | chi2r'
     for j, f_guess in enumerate(f_range):
         chi2r[j] = chisquare((r0,theta0,f_guess), cube, angs, PLSC, psf_norm, 
-                             annulus_width, ncomp, aperture_radius,(r0,theta0))
+                             annulus_width, ncomp, aperture_radius,(r0,theta0),
+                             display=False)
         if verbose:
             print '{}/{}   {:.3f}   {:.3f}'.format(j+1,n,f_guess,chi2r[j])
          
@@ -290,7 +291,7 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width,
                                                          
             res = firstguess_simplex((r_pre,theta_pre,f_pre), cube, angs, psfn,
                                      PLSC, ncomp, annulus_width, aperture_radius,
-                                     p_ini=None, options=simplex_options,
+                                     p_ini=p_ini, options=simplex_options,
                                      verbose=False)
             
             r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x

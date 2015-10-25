@@ -57,7 +57,7 @@ def get_square(array, size, y, x, position=False):
     y, x : int
         Coordinates of the center of the subframe.
     position : {False, True}, optional
-        If set to True return also the coordinates of the left upper vertex.
+        If set to True return also the coordinates of the bottom-left vertex.
         
     Returns
     -------
@@ -223,7 +223,7 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
     if not cy and not cx:
         cy, cx = frame_center(array, verbose=False)
          
-    yy, xx = np.ogrid[:sx, :sy]                                                 # ogrid is a multidim mesh creator (faster than mgrid)
+    yy, xx = np.ogrid[:sy, :sx]                                                 # ogrid is a multidim mesh creator (faster than mgrid)
     circle = (yy - cy)**2 + (xx - cx)**2                                        # eq of circle. squared distance to the center                                        
     circle_mask = circle < radius**2                                            # mask of 1's and 0's                                       
     if output_values:
@@ -243,7 +243,7 @@ def get_annulus(array, inner_radius, width, output_values=False,
     ----------
     array : array_like
         Input 2d array or image. 
-    inner_radius : int
+    inner_radius : float
         The inner radius of the donut region.
     width : int
         The size of the annulus.
@@ -261,12 +261,11 @@ def get_annulus(array, inner_radius, width, output_values=False,
         Input array with the annular mask applied.
     y, x : array_like
         Coordinates of pixels in annulus.
-        
     """
     if not array.ndim == 2:
         raise TypeError('Input array is not a frame or 2d array.')
     cy, cx = frame_center(array)
-    xx, yy = np.mgrid[:array.shape[0], :array.shape[1]]
+    yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
     circle = (xx - cx)**2 + (yy - cy)**2                                                                               
     donut_mask = (circle <= (inner_radius + width)**2) & (circle >= inner_radius**2)
     if output_values and not output_indices:

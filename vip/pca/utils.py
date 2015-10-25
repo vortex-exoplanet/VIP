@@ -19,6 +19,7 @@ from scipy import linalg
 from scipy.sparse.linalg import svds
 from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_absolute_error
+from sklearn.preprocessing import scale
 from ..var import mask_circle, get_annulus
 from ..calib import cube_derotate
 
@@ -70,12 +71,12 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None):
     residuals = data - reconstructed
     cube_zeros = np.zeros_like(cube)
     cube_zeros[:, yy, xx] = residuals
-    pca_frame = cube_derotate(cube_zeros, angs)
+    _, pca_frame = cube_derotate(cube_zeros, angs)
     return pca_frame  
 
 
 
-def prepare_matrix(array, center=None, mask_center_px=None, verbose=True):
+def prepare_matrix(array, scaling='standard', mask_center_px=None, verbose=True):
     """ Builds the matrix for the SVD/PCA and other matrix decompositions, 
     centers the data and masks the frames central area if needed.
     
@@ -100,23 +101,18 @@ def prepare_matrix(array, center=None, mask_center_px=None, verbose=True):
     """
     if mask_center_px:
         array = mask_circle(array, mask_center_px)
-                
-    matrix = np.reshape(array, (array.shape[0], -1))            
-    # equivalent to a for loop: array[i].flatten()                            
     
-    if center==None:
+    nfr = array.shape[0]
+    matrix = np.reshape(array, (nfr, -1))  # == for i: array[i].flatten()                            
+    
+    if scaling==None:
         pass
-    elif center=='spatial':
-        matrix = matrix - matrix.mean(axis=1).reshape(array.shape[0], -1) 
-        #matrix = matrix / matrix.std(axis=1).reshape(array.shape[0], -1)       
-    elif center=='temporal':
-        matrix = matrix - matrix.mean(axis=0)    
-        #matrix = matrix / matrix.std(axis=0)                        
-    elif center=='global':
-        matrix = matrix - matrix.mean(axis=0)                                   
-        matrix = matrix - matrix.mean(axis=1).reshape(array.shape[0], -1)       
+    elif scaling=='mean':
+        matrix = scale(matrix, with_mean=True, with_std=False)
+    elif scaling=='standard':
+        matrix = scale(matrix, with_mean=True, with_std=True)                
     else:
-        raise ValueError('Centering mode not recognized')
+        raise ValueError('Scaling mode not recognized')
     
     if verbose:
         print('Done creating and centering the matrix')  
@@ -172,9 +168,12 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         
     # When num_px < num_frames (rare case) or we need all the PCs
     elif mode=='lapack':
-        U, S, V = linalg.svd(matrix, full_matrices=False)         # scipy SVD, S = variance(singular values)
+        U, S, V = linalg.svd(matrix, full_matrices=False)         
         if debug: reconstruction(ncomp, U, S, V, 1)
-        V = V[:ncomp]                                             # we cut projection matrix according to the # of PCs
+        # we cut projection matrix according to the # of PCs
+        V = V[:ncomp]                                             
+        U = U[:,:ncomp]
+        S = S[:ncomp]
         if verbose: print('Done SVD/PCA with scipy SVD (LAPACK)')
             
     elif mode=='arpack':

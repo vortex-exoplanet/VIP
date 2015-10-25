@@ -543,7 +543,7 @@ def define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
     ann_center = (inner_radius+(annulus_width/2.0))
     pa_threshold = delta_rot * (fwhm/ann_center) / np.pi*180
      
-    mid_range = (np.abs(angle_list[-1]) - np.abs(angle_list[0]))/2
+    mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list))/2
     if pa_threshold >= mid_range - mid_range * 0.1:
         new_pa_th = float(mid_range - mid_range * 0.1)
         if verbose:

@@ -19,7 +19,8 @@ from astropy.io import fits
 from ..exlib.ds9 import DS9Win
 
 
-def open_fits(fitsfilename, n=0, header=False, verbose=True):
+def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False, 
+              verbose=True):
     """Loads a fits file into a memory as numpy array.
     
     Parameters
@@ -30,6 +31,8 @@ def open_fits(fitsfilename, n=0, header=False, verbose=True):
         It chooses which HDU to open. Default is the first one.
     header : {False, True}, bool optional
         Whether to return the header along with the data or not.
+    ignore_missing_end : {False, True}, bool optional
+        Allows to open fits files with a header missing END card.
     verbose : {True, False}, bool optional
         If True prints message of completion.
     
@@ -43,7 +46,8 @@ def open_fits(fitsfilename, n=0, header=False, verbose=True):
     """
     if not fitsfilename.endswith('.fits'):
         fitsfilename = str(fitsfilename+'.fits')
-    hdulist = fits.open(fitsfilename, memmap=True)
+    hdulist = fits.open(fitsfilename, memmap=True, 
+                        ignore_missing_end=ignore_missing_end)
     data = hdulist[n].data
     #if data.dtype.name == 'float32':  data = np.array(data, dtype='float64')
     

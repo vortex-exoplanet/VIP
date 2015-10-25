@@ -94,8 +94,8 @@ def noise_per_annulus(array, separation, fwhm, verbose=False):
 
 
 def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
-               nbranch=3, instrument='naco27', student=True, full_output=False,
-               **kwargs):
+               nbranch=3, fc_rad_sep=3, instrument='naco27', student=True, 
+               full_output=False, **kwargs):
     """ Measures the throughput for chosen and input dataset. The final 
     throughput is the average of the same procedure measured in nbranch 
     azimutally equidistant branches.
@@ -121,6 +121,8 @@ def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
     nbranch : int
         Number of branches on which to inject fakes companions. Each branch
         is tested individually.
+    fc_rad_sep :
+        
     student {True, False}, bool optional
         If True uses Student correction to inject fake companion.
     full_output : {False, True}, bool optional
@@ -192,8 +194,7 @@ def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
     psf_template /= np.array(ap_phot['aperture_sum']) 
 
     # Initialize the fake companions
-    angle_branch = 360.0/nbranch
-    fc_rad_sep = 3                                                              # radial separation between fake companions in terms of FWHM (must be integer)
+    angle_branch = 360.0/nbranch                                                             # radial separation between fake companions in terms of FWHM (must be integer)
     snr_level = 7.0 * np.ones_like(noise)                                       # signal-to-noise ratio of injected fake companions
     if student:
         snr_level = stats.t.ppf(stats.norm.cdf(snr_level), 
@@ -261,7 +262,8 @@ def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
     timing(start_time)
     
     if full_output:
-        return thruput_arr, noise, vector_radd, cube_fc_all, frame_fc_all, frame_nofc, fc_map_all
+        return (thruput_arr, noise, vector_radd, cube_fc_all, frame_fc_all, 
+                frame_nofc, fc_map_all)
     else:
         return thruput_arr
     
@@ -288,7 +290,7 @@ def throughput_single_branch(array, parangles, psf_template, fwhm, n_comp,
     algo : {'spca', 'pca'}, string optional
         The post-processing algorithm.
     full_output : {False, True}, bool optional
-        If True returns all the intermidiate arrays. If False only the 
+        If True returns all the intermediate arrays. If False only the 
         throughput.
         
     Returns
@@ -301,6 +303,9 @@ def throughput_single_branch(array, parangles, psf_template, fwhm, n_comp,
     cube_fc , frame_fc, frame_nofc, fc_map, ratio
     
     """
+    from ..pca import pca 
+    from ..pca import annular_pca    
+
     if not array.ndim == 3:
         raise TypeError('The input array is not a cube.')
     if not array.shape[0] == parangles.shape[0]:

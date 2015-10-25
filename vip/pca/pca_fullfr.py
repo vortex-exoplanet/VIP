@@ -21,7 +21,7 @@ from .utils import pca_annulus
 
 
 def pca(cube, angle_list, cube_ref=None, svd_mode='randsvd', ncomp=1, 
-        center='temporal', mask_center_px=None, full_output=False, verbose=True, 
+        scaling='standard', mask_center_px=None, full_output=False, verbose=True, 
         debug=False):
     """ Algorithm where the reference PSF and the quasi-static speckle pattern 
     is modeled using Principal Component Analysis. PCA can be done on a matrix
@@ -83,9 +83,9 @@ def pca(cube, angle_list, cube_ref=None, svd_mode='randsvd', ncomp=1,
         ncomp = 10
         print 'Number of PCs too high, using instead {:} PCs.'.format(ncomp)
     
-    matrix = prepare_matrix(cube, center, mask_center_px, verbose)
+    matrix = prepare_matrix(cube, scaling, mask_center_px, verbose)
     if cube_ref is not None:
-        ref_lib = prepare_matrix(cube_ref, center, mask_center_px, verbose)
+        ref_lib = prepare_matrix(cube_ref, scaling, mask_center_px, verbose)
     else:
         ref_lib = matrix           
     V = svd_wrapper(ref_lib, svd_mode, ncomp, debug, verbose)
@@ -110,7 +110,7 @@ def pca(cube, angle_list, cube_ref=None, svd_mode='randsvd', ncomp=1,
     
     
 def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full', 
-                     annulus_width=None, svd_mode='randsvd', mask_center_px=5,
+                     annulus_width=2, svd_mode='randsvd', mask_center_px=5,
                      fmerit='px', min_snr=0, verbose=True, full_output=False, 
                      debug=False):
     """ Optimizes the number of principal components by doing a simple grid 
@@ -132,7 +132,7 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
         Size of the PSF's FWHM in pixels. 
     mode : {'full', 'annular'}, optional
         Mode for PCA processing (full-frame or just in an annulus).
-    annulus_width : None or float, optional
+    annulus_width : float, optional
         Width in pixels of the annulus in the case of the "annular" mode. 
     svd_mode : {randsvd, eigen, lapack, arpack, opencv}, optional
         Switch for different ways of computing the SVD and selected PCs.

@@ -66,7 +66,7 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_arcs,
     for fr in xrange(nframes):                                                  
         tmp = np.zeros_like(array[0])
         for branch in xrange(n_branches):
-            ang = branch * 2 * np.pi + np.deg2rad(theta) / n_branches
+            ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
             for i in xrange(n_fc_rad):
                 rad = rad_arcs[i]/plsc                                          
                 y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
@@ -92,7 +92,7 @@ def inject_fc_frame(array, array_fc, pos_y, pos_x, flux):
     return array_out
 
 
-def create_psf_template(array, size, fwhm=5, verbose=True):
+def create_psf_template(array, size, fwhm=5, verbose=True, collapse='mean'):
     """ Creates a psf template from a cube of non-saturated off-axis frames of
     the star by taking the mean and normalizing the psf flux.
     
@@ -104,14 +104,25 @@ def create_psf_template(array, size, fwhm=5, verbose=True):
         Size of the squared subimage.
     fwhm: float
         The size of the Full Width Half Maximum in pixel.
-    
+    collapse : {'mean','median'}, string optional
+        Defines the way the frames are collapsed.
+        
+    Returns
+    -------
+    psf_normd : array_like
+        Normalized PSF.
     """
     if not array.ndim==3:
         raise TypeError('Array is not a cube or 3d array.')
     
     n = array.shape[0]
     psf = cube_crop_frames(array, size=size)
-    psf = np.mean(psf, axis=0)
+    if collapse=='mean':
+        psf = np.mean(psf, axis=0)
+    elif collapse=='median':
+        psf = np.median(psf, axis=0)
+    else:
+        raise TypeError('Collapse mode not recognized.')
     
     psf_normd = psf_norm(psf, size, fwhm, verbose)
     

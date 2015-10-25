@@ -101,8 +101,8 @@ def compute_derot_angles_PA(objname_tmp_A,digit_format=3,objname_tmp_B='',
     jump like [350deg,355deg,0deg,5deg] 
     => replaced by [350deg,355deg,360deg,365deg])
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     objname_tmp_A: string
         Contains the common name of the cubes BEFORE the digits
     digit_format: int
@@ -145,8 +145,8 @@ def compute_derot_angles_PA(objname_tmp_A,digit_format=3,objname_tmp_B='',
                        objname_tmp_B = '_sorted'
                        inpath = /home/foo/'
 
-    Return:
-    -------
+    Returns
+    ------_
     angle_list: 1-D array_like
         vector of angles corresponding to the angular difference between the 
         positive y axis and the North in the image.
@@ -356,27 +356,28 @@ def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
 
 
 def check_PA_vector(angle_list, unit='deg'):
-    """
-    Function to check if the angle list has the right format to avoid any bug in
-    the pca algorithm. The right format complies to 3 criteria:
+    """ Checks if the angle list has the right format to avoid any bug in the 
+    pca-adi algorithm. The right format complies to 3 criteria:
        1) angles are expressed in degree
        2) the angles are positive
        3) there is no jump of more than 180 deg between consecutive values (e.g.
        no jump like [350deg,355deg,0deg,5deg] => replaced by 
        [350deg,355deg,360deg,365deg])
-    Parameter:
+       
+    Parameters
     ----------
     angle_list: 1D-array_like
         Vector containing the derotation angles
     unit: String, {'deg','rad'}
         The unit type of the input angle list
-    Returns:
-    --------
+    
+    Returns
+    -------
     angle_list: 1-D array_like 
         Vector containing the derotation angles (after correction to comply with
         the 3 criteria, if needed)
     """
-
+    angle_list = angle_list.copy()
     if unit != 'rad' and unit != 'deg':
         raise ValueError("The input unit should either be 'deg' or 'rad'")
 
@@ -410,8 +411,8 @@ def numberToString(n, digits):
     """ 
     Converts an int in a string according to the number of desired digits
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     n: int
     Number to be converted into string
     digits: int
@@ -423,8 +424,9 @@ def numberToString(n, digits):
     023
     >>> numberToString(8, 5)
     00008
-    Returns:
-    --------
+    
+    Returns
+    -------
     number: string
     The string representing "n", with "digits" characters.
     """

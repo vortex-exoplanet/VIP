@@ -48,7 +48,7 @@ def bp_isolated_removal(array, bpm_mask, size=3, double_check=False):
      
     frame = array.copy()
     smoothed = cv2.medianBlur(frame.astype(np.float32), size)
-    frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]      # smoothed bad pixels
+    frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]      
     if double_check:
         indices = clip_array(frame, 3, 3, neighbor=True, num_neighbor=9)                                
         frame[indices] = smoothed[indices]
@@ -152,8 +152,8 @@ def bp_annuli_removal(array, cy, cx, fwhm, sig=5., protect_psf=True,
         if half_res_y: ymax *= 2.
         xmax = max(cx,n_x-cx)
         rmax = np.sqrt(ymax**2+xmax**2)
-        ann_width = max(1.5,0.61*fwhm) # the annuli definition is optimized
-                                       # for Airy rings
+        # the annuli definition is optimized for Airy rings
+        ann_width = max(1.5,0.61*fwhm) 
         nrad = int(rmax/ann_width)+1
         d_bord_max = max(n_y-cy,cy,n_x-cx,cx)
         if half_res_y:

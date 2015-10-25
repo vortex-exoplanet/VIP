@@ -437,7 +437,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
   
 
 def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1, 
-                              nproc=1, full_output=False, verbose=True, 
+                              nproc=None, full_output=False, verbose=True, 
                               save_shifts=False, debug=False):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
     gaussian to a subimage centered at (pos_x, pos_y). This assumes the frames 

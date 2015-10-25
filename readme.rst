@@ -5,10 +5,10 @@
     `888. .8'     888   888ooo88P'  
      `888.8'      888   888         
       `888'       888   888         
-       `8'       o888o o888o        
-------------------------------------
-  Vortex Image Processing pipeline  
-------------------------------------
+       `8'       o888o o888o
+-----------------------------
+Vortex Image Processing pipeline
+--------------------------------
 
 VIP is a package/pipeline for angular and reference star differential 
 imaging for exoplanet detection through high-contrast imaging. VIP is being
@@ -19,6 +19,9 @@ It's in alpha version meaning that the code will change drastically before the
 first release version. If you want to report a bug, suggest a feature or add a 
 feature please contact the main developer at cgomez [at] ulg.ac.be or through 
 github.
+
+Please cite Gomez Gonzalez et al. 2016 (in prep) print whenever you publish 
+data reduced with VIP.
 
 
 QUICK INSTRUCTIONS
@@ -72,15 +75,15 @@ $ python setup.py develop
 In any case wait a couple of minutes until all the requirements are satisfied.
 
 
-DOCUMENTATION 
-==============
+DOCUMENTATION
+=============
 Docstrings (documentation of every function/class) are included in the code.
 Sphinx can be used to generate the documentation from the docstrings in html or
 pdf into docs folder (To-Do).
 
 
 USAGE
-======
+=====
 For interactive mode execute Ipython shell and import the package:
 >>> import vip
 

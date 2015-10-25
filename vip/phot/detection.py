@@ -369,9 +369,10 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None):
     ----------
     obj_tmp : cube_like or frame_like
         Input 3d cube or image.
-    fwhm     : float_like
-        Input full width half maximum value of the PSF. This will be used as 
-        the standard deviation for Gaussian kernel of the Gaussian filtering.
+    fwhm : float_like
+        Input full width half maximum value of the PSF in pixels. This will be 
+        used as the standard deviation for Gaussian kernel of the Gaussian 
+        filtering.
     approx_peak: 
         List_like, vector of 2 components giving the approximate coordinates 
         of the peak.
@@ -387,7 +388,7 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None):
 
     ndims = len(obj_tmp.shape)
     assert ndims == 2 or ndims == 3, "Array is not two or three dimensional"
-
+    
     if ndims == 2:
         gauss_filt_tmp = gaussian_filter(obj_tmp, fwhm)
         if approx_peak == None:

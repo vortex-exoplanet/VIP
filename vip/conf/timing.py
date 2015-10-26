@@ -9,7 +9,7 @@ __all__ = ['timeInit', 'timing', 'timeFini']
 
 from datetime import datetime
 
-def timeInit():
+def timeInit(verbose=True):
     """Sets and prints the time in which the script started.
     
     Returns
@@ -17,10 +17,11 @@ def timeInit():
     start_time : string
         Starting time.
     """
-    print "-------------------------------------------------------------------"
     start_time = datetime.now()
-    print "Starting time: " + start_time.strftime("%Y-%m-%d %H:%M:%S")
-    print "-------------------------------------------------------------------"
+    if verbose:
+        print "-------------------------------------------------------------------"
+        print "Starting time: " + start_time.strftime("%Y-%m-%d %H:%M:%S")
+        print "-------------------------------------------------------------------"
     return start_time
 
 def timing(start_time):

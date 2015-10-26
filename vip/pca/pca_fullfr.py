@@ -77,6 +77,9 @@ def pca(cube, angle_list, cube_ref=None, svd_mode='randsvd', ncomp=1,
         raise TypeError('Input array is not a cube or 3d array')
     n, y, x = cube.shape
     
+    if cube_ref is not None:
+        n, _, _ = cube_ref.shape
+    
     if verbose: start_time = timeInit()
      
     if ncomp > n:

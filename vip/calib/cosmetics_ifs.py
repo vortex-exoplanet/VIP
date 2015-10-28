@@ -17,20 +17,28 @@ from astropy.stats import sigma_clipped_stats
 from ..stats import sigma_filter
 
 
-def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False):
-    """Sigma filtering of nan pixels in a whole frame or cube (originally 
-    intended for SINFONI data).
+def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
+                     half_res_y=False):
+    """Sigma filtering of nan pixels in a whole frame or cube. Intended for 
+    SINFONI data.
     
     Parameters
     ----------
     cube : cube_like 
         Input 3d or 2d array.
-    neighbor_box_corr : int, optional
+    neighbor_box : int, optional
         The side of the square window around each pixel where the sigma and 
         median are calculated for the nan pixel correction.
     min_neighbors : int, optional
         Minimum number of good neighboring pixels to be able to correct the 
         bad/nan pixels.
+    verbose: {False,True} bool, optional
+        Whether to print more information or not during processing
+    half_res_y: bool, {True,False}, optional
+        Whether the input data have every couple of 2 rows identical, i.e. there
+        is twice less angular resolution vertically than horizontally (e.g. 
+        SINFONI data). The algorithm goes twice faster if this option is 
+        rightfully set to True.
         
     Returns
     -------
@@ -38,41 +46,72 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False):
         Output cube with corrected nan pixels in each frame
     """
 
-    obj_tmp = cube.copy()
-    if obj_tmp.ndim==2:
-        nan_indices = np.where(np.isnan(obj_tmp))
+    obj_tmp= cube.copy()
+
+    ndims = obj_tmp.ndim
+    if ndims != 2 and ndims != 3:
+        raise TypeError("Input object is not two or three dimensional")
+
+    if neighbor_box < 3 or neighbor_box%2 == 0:
+        raise ValueError('neighbor_box should be an odd value greater than 3')
+    max_neigh = sum(range(3,neighbor_box+2,2))
+    if min_neighbors > max_neigh:
+        min_neighbors = max_neigh
+        msg = "Warning! min_neighbors was reduced to "+str(max_neigh) +\
+              " to avoid bugs. \n"
+        print msg
+
+    def nan_corr_2d(obj_tmp):
+        n_x = obj_tmp.shape[1]
+        n_y = obj_tmp.shape[0]
+
+        if half_res_y:
+            if n_y%2 != 0: 
+                msg = 'The input frames do not have an even number of rows. '
+                msg2 = 'Hence, you should probably not be using the option '
+                msg3 = 'half_res_y = True.'
+                raise ValueError(msg+msg2+msg3)
+            n_y = int(n_y/2)
+            frame = obj_tmp
+            obj_tmp = np.zeros([n_y,n_x])
+            for yy in range(n_y):
+                obj_tmp[yy] = frame[2*yy]
+
+        # tuple with the 2D indices of each nan value of the frame
+        nan_indices = np.where(np.isnan(obj_tmp))  
         nan_map = np.zeros_like(obj_tmp)
         nan_map[nan_indices] = 1
         nnanpix = int(np.sum(nan_map))
-        if verbose == True:
-            msg = 'In frame there are {} nan pixels to be corrected.'
-            print msg.format(nnanpix)
-        #Correct nan with iterative sigma filter
-        obj_tmp = sigma_filter(obj_tmp, nan_map, 
-                                   neighbor_box=neighbor_box, 
-                                   min_neighbors=min_neighbors, 
-                                   verbose=verbose) 
-        if verbose == True:
-            print 'All nan pixels are corrected.'
-            
-    elif obj_tmp.ndim==3:
+        # Correct nan with iterative sigma filter
+        obj_tmp = sigma_filter(obj_tmp, nan_map, neighbor_box=neighbor_box, 
+                               min_neighbors=min_neighbors, verbose=verbose) 
+        if half_res_y:
+            frame = obj_tmp
+            n_y = 2*n_y
+            obj_tmp = np.zeros([n_y,n_x])
+            for yy in range(n_y):
+                obj_tmp[yy] = frame[int(yy/2)]
+
+        return obj_tmp, nnanpix
+
+
+    if ndims == 2:
+        obj_tmp, nnanpix = nan_corr_2d(obj_tmp)
+        if verbose:
+            print '\n There were ', nnanpix, ' nan pixels corrected.'
+
+    elif ndims == 3:
         n_z = obj_tmp.shape[0]
         for zz in range(n_z):
-            nan_indices = np.where(np.isnan(obj_tmp[zz]))
-            nan_map = np.zeros_like(obj_tmp[zz])
-            nan_map[nan_indices] = 1
-            nnanpix = int(np.sum(nan_map))
-            if verbose == True:
-                msg = 'In channel {} there are {} nan pixels to be corrected.'
-                print msg.format(zz, nnanpix)
-            #Correct nan with iterative sigma filter
-            obj_tmp[zz] = sigma_filter(obj_tmp[zz], nan_map, 
-                                       neighbor_box=neighbor_box, 
-                                       min_neighbors=min_neighbors, 
-                                       verbose=verbose) 
-            if verbose == True:
-                print 'All nan pixels are corrected.'
-                
+            obj_tmp[zz], nnanpix = nan_corr_2d(obj_tmp[zz])
+            if verbose:
+                msg = 'In channel '+str(zz)+', there were '+str(nnanpix)
+                msg2 = ' nan pixels corrected.'
+                print msg+msg2
+
+    if verbose:
+        print 'All nan pixels are corrected.'
+
     return obj_tmp
     
 

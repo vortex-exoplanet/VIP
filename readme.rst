@@ -6,11 +6,11 @@
      `888.8'      888   888         
       `888'       888   888         
        `8'       o888o o888o
------------------------------
-Vortex Image Processing pipeline
---------------------------------
+------------------------------------
+  Vortex Image Processing pipeline
+------------------------------------
 
-VIP is a package/pipeline for angular and reference star differential 
+VIP is a package/pipeline for angular, reference star and spectral differential
 imaging for exoplanet detection through high-contrast imaging. VIP is being
 developed in Python 2.7.
 
@@ -22,6 +22,17 @@ github.
 
 Please cite Gomez Gonzalez et al. 2016 (in prep.) whenever you publish data 
 reduced with VIP.
+
+
+DOCUMENTATION
+=============
+In ./tutorial folder you can find a Jupyter notebook with a detailed tutorial
+of VIP. You can visualize it, without loading it locally, here:
+http://nbviewer.ipython.org/github/vortex-exoplanet/VIP/blob/master/tutorial/Tutorial_VIP.ipynb
+
+Docstrings (internal documentation) are filled in for every function in VIP.
+Sphinx can be used to generate the documentation from the docstrings in html or
+pdf into docs folder (Coming soon).
 
 
 QUICK INSTRUCTIONS
@@ -73,37 +84,6 @@ to 'install' with the develop flag:
 $ python setup.py develop
 
 In any case wait a couple of minutes until all the requirements are satisfied.
-
-
-DOCUMENTATION
-=============
-In ./tutorial/ folder you can find a Jupyter notebook with a detailed tutorial
-of VIP. 
-Docstrings (internal documentation) are filled in for every function in VIP.
-Sphinx can be used to generate the documentation from the docstrings in html or
-pdf into docs folder (Coming soon).
-
-
-USAGE
-=====
-For interactive mode execute Ipython shell and import the package:
->>> import vip
-
->>> vip.<TAB> 
-shows all the subpackages available,
-
->>> vip.<subpackage>.<function or class name>? 
-for displaying the docstring (notice the ? question mark). This is a fast and
-convenient way to obtain help.
-
-
-TO-DO
-=====
-- Register in Pypi for even easier installation.
-- Better interface, OOP structure.
-- Proper html/pdf documentation, include more Jupyter(Ipython) tutorial notebooks.
-- Usage of pytest testing tool for better code consistency. 
-- Migrate to python 3.
 
 
 FAQ

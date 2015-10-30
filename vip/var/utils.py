@@ -15,6 +15,7 @@ __all__ = ['pp_subplots',
 import os
 import numpy as np
 from matplotlib.pyplot import (figure, subplot, show, colorbar, rc, axes)
+from mpl_toolkits.mplot3d import Axes3D
 from ..var import fit_2dgaussian, dist, frame_center
 from ..conf import VLT_NACO, LBT
 

@@ -43,6 +43,8 @@ def cube_crop_frames(array, size, ceny=None, cenx=None, verbose=True):
         raise TypeError('\nArray is not 3d, not a cube.')
     
     if size%2!=0:  size -= 1
+    if size >= array.shape[1]:
+        raise ValueError('The crop size is equal or bigger than the actual size.')
     
     # wing is added to the sides of the subframe center.
     wing = size/2           

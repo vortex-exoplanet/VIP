@@ -93,7 +93,7 @@ def noise_per_annulus(array, separation, fwhm, verbose=False):
     return np.array(noise), np.array(vector_radd)
 
 
-def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
+def throughput(array, parangles, psf_template, fwhm, ncomp, algo='pca',
                nbranch=3, fc_rad_sep=3, instrument='naco27', student=True, 
                full_output=False, **kwargs):
     """ Measures the throughput for chosen and input dataset. The final 
@@ -116,13 +116,14 @@ def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
         technique is used.
     instrument : {'naco27', 'lmircam'}, string optional
         The instrument that acquired the dataset.
-    algo : {'spca', 'pca', 'subspca', 'fd'}, string optional
+    algo : {'pca', spca', 'subspca'}, string optional
         The post-processing algorithm.
-    nbranch : int
+    nbranch : int optional
         Number of branches on which to inject fakes companions. Each branch
         is tested individually.
-    fc_rad_sep :
-        
+    fc_rad_sep : int optional
+        Radial separation between the injection companions (in each of the 
+        patterns) in FWHM. Must be large enough to avoid overlapping.  
     student {True, False}, bool optional
         If True uses Student correction to inject fake companion.
     full_output : {False, True}, bool optional
@@ -132,9 +133,28 @@ def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
     
     Returns
     -------
-    throughput : array_like
+    thruput_arr : array_like
         2d array whose rows are the annulus-wise throughput values for each 
         branch.
+    vector_radd : array_like
+        1d array with the distances in FWHM (the positions of the annuli).
+        
+    If full_output is True then the function returns: thruput_arr, noise, 
+    vector_radd, cube_fc_all, frame_fc_all, frame_nofc and fc_map_all.
+    
+    noise : array_like
+        1d array with the noise per annulus.
+    cube_fc_all : array_like
+        4d array, with the 3 different pattern cubes with the injected fake 
+        companions.
+    frame_fc_all : array_like
+        3d array with the 3 frames of the 3 (patterns) processed cubes with 
+        companions.
+    frame_nofc : array_like
+        2d array, PCA processed frame without companions.
+    fc_map_all : array_like
+        3d array with 3 frames containing the position of the companions in the
+        3 patterns.
 
     """
     from ..pca import pca 
@@ -146,8 +166,8 @@ def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
         raise TypeError('Input vector or parallactic angles has wrong length.')
     if not psf_template.ndim==2:
         raise TypeError('Template PSF has wrong shape.')
-    if not psf_template.shape[0]%2==0:
-        psf_template = frame_crop(psf_template, psf_template.shape[0]-1)
+#     if not psf_template.shape[0]%2==0:
+#         psf_template = frame_crop(psf_template, psf_template.shape[0]-1)
     
     if instrument == 'naco27':
         plsc = VLT_NACO['plsc']
@@ -162,26 +182,26 @@ def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
     if algo=='spca':
         function = annular_pca
         frame_nofc = function(array, angle_list=parangles, fwhm=fwhm, 
-                              ncomp=n_comp, verbose=False, **kwargs)
+                              ncomp=ncomp, verbose=False, **kwargs)
     elif algo=='pca':
         function = pca
-        frame_nofc = function(array, angle_list=parangles, ncomp=n_comp, 
+        frame_nofc = function(array, angle_list=parangles, ncomp=ncomp, 
                               verbose=False, **kwargs)
     
     elif algo=='subspca':
         function = subannular_pca
         frame_nofc = function(array, angle_list=parangles, fwhm=fwhm, 
-                              ncomp=n_comp, verbose=False, **kwargs) 
-
+                              ncomp=ncomp, verbose=False, **kwargs) 
     else:
         raise TypeError('Algorithm not recognized.')
-    print('Cube without fake companions processed with {:}.'.format(function.\
-                                                                    func_name))
+    
+    msg1 = 'Cube without fake companions processed with {:}.'
+    print(msg1.format(function.func_name))
     timing(start_time)
     
     #***************************************************************************
     # Compute noise in concentric annuli
-    noise, vector_radd = noise_per_annulus(frame_nofc, fwhm, fwhm, verbose=False)
+    noise, vector_radd = noise_per_annulus(frame_nofc,fwhm,fwhm,verbose=False)
     print('Measured annulus-wise noise in resulting frame.')
     timing(start_time)
     
@@ -194,12 +214,14 @@ def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
     psf_template /= np.array(ap_phot['aperture_sum']) 
 
     # Initialize the fake companions
-    angle_branch = 360.0/nbranch                                                             # radial separation between fake companions in terms of FWHM (must be integer)
-    snr_level = 7.0 * np.ones_like(noise)                                       # signal-to-noise ratio of injected fake companions
+    # radial separation between fake companions in terms of FWHM (must be integer)
+    angle_branch = 360.0/nbranch        
+    # signal-to-noise ratio of injected fake companions                                                     
+    snr_level = 7.0 * np.ones_like(noise)                                       
     if student:
         snr_level = stats.t.ppf(stats.norm.cdf(snr_level), 
-                                np.floor(vector_radd/fwhm*2*np.pi)) * \
-                                np.sqrt(1 + 1 / (np.floor(vector_radd/fwhm*2*np.pi)-1))
+                        np.floor(vector_radd/fwhm*2*np.pi)) * \
+                        np.sqrt(1 + 1/(np.floor(vector_radd/fwhm*2*np.pi)-1))
 
     thruput_arr = np.zeros((nbranch, noise.shape[0]))
     fc_map_all = np.zeros((nbranch*fc_rad_sep, array.shape[1], array.shape[2]))
@@ -210,49 +232,53 @@ def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
 
     for br in range(nbranch):
         for irad in range(fc_rad_sep):
-            radvec = vector_radd[irad::fc_rad_sep]                              # contains companions separated by "fc_rad_sep * fwhm"
+            # contains companions separated by "fc_rad_sep * fwhm"
+            radvec = vector_radd[irad::fc_rad_sep]                              
             cube_fc = array.copy()
-            fc_map = np.ones_like(array[0]) * min(noise) * 1e-6                 # fill map with small numbers
+            # filling map with small numbers
+            fc_map = np.ones_like(array[0]) * min(noise) * 1e-6                 
             fcy = []
             fcx = []
             for i in range(radvec.shape[0]):
                 cube_fc = inject_fcs_cube(cube_fc, psf_template, parangles,
-                                          snr_level[irad+i*fc_rad_sep] * noise[irad+i*fc_rad_sep],
-                                          plsc, [radvec[i]*plsc], theta=br*angle_branch)
+                        snr_level[irad+i*fc_rad_sep] * noise[irad+i*fc_rad_sep],
+                        plsc, [radvec[i]*plsc], theta=br*angle_branch)
                 y = cy + radvec[i] * np.sin(np.deg2rad(br*angle_branch))
                 x = cx + radvec[i] * np.cos(np.deg2rad(br*angle_branch))
                 fc_map = inject_fc_frame(fc_map, psf_template, y, x,
-                                         snr_level[irad+i*fc_rad_sep] * noise[irad+i*fc_rad_sep])
+                        snr_level[irad+i*fc_rad_sep] * noise[irad+i*fc_rad_sep])
                 fcy.append(y)
                 fcx.append(x)
-            print('Fake companions injected in branch {:} (pattern {:}/{:}).'.format(br+1, irad+1, fc_rad_sep))
+            msg2 = 'Fake companions injected in branch {:} (pattern {:}/{:}).'
+            print(msg2.format(br+1, irad+1, fc_rad_sep))
             timing(start_time)
 
-            #***********************************************************************
+            #*******************************************************************
             if algo=='spca':
                 frame_fc = function(cube_fc, angle_list=parangles, fwhm=fwhm,
-                                    ncomp=n_comp, verbose=False, **kwargs)
+                                    ncomp=ncomp, verbose=False, **kwargs)
             elif algo=='pca':
-                frame_fc = function(cube_fc, angle_list=parangles, ncomp=n_comp,
+                frame_fc = function(cube_fc, angle_list=parangles, ncomp=ncomp,
                                     verbose=False, **kwargs)
             
             elif algo=='subspca':
                 frame_fc = function(cube_fc, angle_list=parangles, fwhm=fwhm, 
-                                      ncomp=n_comp, verbose=False, **kwargs)     
+                                      ncomp=ncomp, verbose=False, **kwargs)     
             
             else:
                 raise TypeError('Algorithm not recognized.')
-            print('Cube with fake companions processed with {:}.'.format(function.\
-                                                                         func_name))
+            msg3 = 'Cube with fake companions processed with {:}.'
+            print(msg3.format(function.func_name))
             timing(start_time)
 
-            #***********************************************************************
+            #*******************************************************************
             ratio = (frame_fc - frame_nofc) / fc_map
             thruput = aperture_flux(ratio, fcy, fcx, fwhm, ap_factor=0.5,
                                        mean=True, verbose=False)
-            print('Measured the annulus-wise throughput of {:}.'.format(function.\
-                                                                        func_name))
+            msg4 = 'Measured the annulus-wise throughput of {:}.'
+            print(msg4.format(function.func_name))
             timing(start_time)
+            
             thruput_arr[br, irad::fc_rad_sep] = thruput
             fc_map_all[br*fc_rad_sep+irad, :, :] = fc_map
             frame_fc_all[br*fc_rad_sep+irad, :, :] = frame_fc
@@ -265,7 +291,7 @@ def throughput(array, parangles, psf_template, fwhm, n_comp, algo='spca',
         return (thruput_arr, noise, vector_radd, cube_fc_all, frame_fc_all, 
                 frame_nofc, fc_map_all)
     else:
-        return thruput_arr
+        return thruput_arr, vector_radd
     
     
 def throughput_single_branch(array, parangles, psf_template, fwhm, n_comp, 
@@ -312,8 +338,8 @@ def throughput_single_branch(array, parangles, psf_template, fwhm, n_comp,
         raise TypeError('Input vector or parallactic angles has wrong length.')
     if not psf_template.ndim==2:
         raise TypeError('Fake companion array has wrong shape.')
-    if not psf_template.shape[0]%2==0:
-        psf_template = frame_crop(psf_template, psf_template.shape[0]-1)
+    #if not psf_template.shape[0]%2==0:
+    #    psf_template = frame_crop(psf_template, psf_template.shape[0]-1)
     
     start_time = timeInit()
     #***************************************************************************    

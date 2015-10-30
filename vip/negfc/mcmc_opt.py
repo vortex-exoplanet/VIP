@@ -4,17 +4,26 @@
 Module with the MCMC optimization for NFC technique.
 """
 
+__all__ = ['run_mcmc_astrometry',
+           'chain_zero_truncated',
+           'showPDFCorner',
+           'showWalk',
+           'confidence']
+
 import numpy as np
 import os
 import emcee
-from math import *
+from math import isinf, floor, ceil
 import inspect
 import datetime
 import corner
 from matplotlib import pyplot as plt
 from ..fits import display_array_ds9, open_adicube, open_fits
-from ..phot import inject_fcs_cube, psf_norm
+from ..phot import inject_fcs_cube
 from .post_proc import get_values_optimize
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 
 
 def lnprior(modelParameters, bounds):
@@ -57,7 +66,8 @@ def lnprior(modelParameters, bounds):
 
 
 def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp, 
-           aperture_radius, initialState, cube_ref=None, display=False):
+           aperture_radius, initialState, cube_ref=None, svd_mode='randsvd', 
+           display=False):
     """
     Define the likelihood log-function.
     
@@ -97,7 +107,7 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
     except TypeError:
         print('paraVector must be a tuple, {} was given'.format(type(modelParameters)))    
     
-    # Create the cube with the fake companing injected
+    # Create the cube with the negative fake companion injected
     cube_negfc = inject_fcs_cube(cube, psfs_norm, angs, flevel=-modelParameters[2], 
                                  plsc=plsc, rad_arcs=[modelParameters[0]*plsc],
                                  n_branches=1, theta=modelParameters[1])
@@ -108,7 +118,7 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
     # Perform PCA to generate the processed image and extract the zone of interest 
     values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width,
                                  aperture_radius,initialState[0],initialState[1],
-                                 cube_ref=cube_ref)
+                                 cube_ref=cube_ref, svd_mode=svd_mode)
     
     # Function of merit
     values = np.abs(values)
@@ -118,7 +128,8 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
 
 
 def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, annulus_width, 
-           ncomp, aperture_radius, initialState, cube_ref=None, display=False):
+           ncomp, aperture_radius, initialState, cube_ref=None, 
+           svd_mode='randsvd', display=False):
     """
     Define the probability log-function as the sum between the prior and 
     likelihood log-funtions.
@@ -165,10 +176,9 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, annulus_width,
     
     return lp + lnlike(modelParameters, cube, angs, plsc, psfs_norm, 
                        annulus_width, ncomp, aperture_radius, initialState, 
-                       cube_ref, display) 
+                       cube_ref, svd_mode, display) 
 
 
-# -----------------------------------------------------------------------------
 def gelman_rubin(x):      
     """
     Determine the Gelman-Rubin \hat{R} statistical test between Markov chains.
@@ -262,7 +272,8 @@ def gelman_rubin_from_chain(chain, burnin):
 
 
 def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
-                        aperture_radius, nwalkers, initialState, bounds=None,
+                        aperture_radius, initialState, cube_ref=None, 
+                        svd_mode='randsvd', nwalkers=1000, bounds=None,
                         a=2.0, burnin=0.3, rhat_threshold=1.01, 
                         rhat_count_threshold=3, niteration_min=0.0,
                         niteration_limit=1e02, niteration_supp=0.0,
@@ -305,11 +316,15 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
         The width in pixel of the annulus on wich the PCA is performed.
     aperture_radius: float
         The radius of the circular aperture.        
-    nwalkers: int 
+    nwalkers: int optional
         The number of Goodman & Weare 'walkers'.
     initialState: numpy.array 
         The first guess for the position and flux of the planet, respectively.
         Each walker will start in a small ball around this preferred position.
+    cube_ref : array_like, 3d, optional
+        Reference library cube. For Reference Star Differential Imaging.
+    svd_mode : {'randsvd', 'eigen', 'lapack', 'arpack', 'opencv'}, str optional
+        Switch for different ways of computing the SVD and selected PCs.
     bounds: numpy.array or list, default=None, optional
         The prior knowledge on the model parameters. If None, large bounds will 
         be automatically estimated from the initial state.
@@ -437,7 +452,7 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
     sampler = emcee.EnsembleSampler(nwalkers,dim,lnprob,a,
                                     args =([bounds,cubes,angs,plsc,psfs_norm,
                                             annulus_width,ncomp,aperture_radius,
-                                            initialState]),
+                                            initialState,cube_ref,svd_mode]),
                                     threads=threads)
     
     duration_start = datetime.datetime.now()

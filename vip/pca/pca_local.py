@@ -24,8 +24,9 @@ from ..var import get_annulus
 
 
 def annular_pca(array, angle_list, radius_int=0, asize=2, delta_rot=1, ncomp=1,
-                svd_mode='randsvd', instrument=None, fwhm=None, center=True, 
-                full_output=False, verbose=True, debug=False):
+                svd_mode='randsvd', min_frames_pca=10, instrument=None, 
+                fwhm=None, center=True, full_output=False, verbose=True, 
+                debug=False):
     """ Smart PCA (annular version) algorithm. On each annulus we discard 
     reference images taking into account the parallactic angle threshold.
      
@@ -47,6 +48,14 @@ def annular_pca(array, angle_list, radius_int=0, asize=2, delta_rot=1, ncomp=1,
         How many PCs are kept. If none it will be automatically determined.
     svd_mode : {randsvd, eigen, lapack, arpack, opencv}, optional
         Switch for different ways of computing the SVD and principal components.
+    min_frames_pca : int, optional 
+        Minimum number of frames in the PCA reference library. Be careful, when
+        min_frames_pca <= ncomp, then for certain frames the subtracted low-rank
+        approximation is not optimal (getting a 10 PCs out of 2 frames is not
+        possible so the maximum number of PCs is used = 2). In practice the 
+        resulting frame may be more noisy. It is recommended to decrease 
+        delta_rot and have enough frames in the libraries to allow getting 
+        ncomp PCs.   
     full_output: boolean, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
@@ -126,16 +135,18 @@ def annular_pca(array, angle_list, radius_int=0, asize=2, delta_rot=1, ncomp=1,
         #***********************************************************************
         for frame in xrange(n):                                                 # for each frame 
             if pa_threshold != 0:
-                #indices_left = find_indices(angle_list, frame, pa_threshold, False)
                 if ann_center > fwhm*10:        ### TBD: fwhm*10
-                    indices_left = find_indices(angle_list, frame, pa_threshold, True)
+                    indices_left = find_indices(angle_list, frame, pa_threshold, 
+                                                True)
                 else:
-                    indices_left = find_indices(angle_list, frame, pa_threshold, False)
+                    indices_left = find_indices(angle_list, frame, pa_threshold, 
+                                                False)
                 
                 data_ref = data_all[indices_left]
                 
-                if data_ref.shape[0] <= 2:
-                    msg = 'No frames or too few frames left in the PCA reference frames library.'
+                if data_ref.shape[0] <= min_frames_pca:
+                    msg = 'Too few frames left in the PCA library. '
+                    msg += 'Try decreasing either delta_rot or min_frames_pca.'
                     raise RuntimeError(msg)
             else:
                 data_ref = data_all
@@ -187,8 +198,9 @@ def annular_pca(array, angle_list, radius_int=0, asize=2, delta_rot=1, ncomp=1,
 
 
 def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1, 
-                   ncomp=1, svd_mode='randsvd', instrument=None, fwhm=None, 
-                   center=True, full_output=False, verbose=True, debug=False):
+                   ncomp=1, svd_mode='randsvd', min_frames_pca=10, 
+                   instrument=None, fwhm=None, center=True, full_output=False, 
+                   verbose=True, debug=False):
     """ Smart PCA (subannular version) algorithm. The PCA is computed locally 
     in each quadrant of each annulus. On each annulus we discard reference 
     images taking into account the parallactic angle threshold. 
@@ -211,6 +223,14 @@ def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1,
         How many PCs are kept. If none it will be automatically determined.
     svd_mode : {randsvd, eigen, lapack, arpack, opencv}, optional
         Switch for different ways of computing the SVD and principal components.
+    min_frames_pca : int, optional 
+        Minimum number of frames in the PCA reference library. Be careful, when
+        min_frames_pca <= ncomp, then for certain frames the subtracted low-rank
+        approximation is not optimal (getting a 10 PCs out of 2 frames is not
+        possible so the maximum number of PCs is used = 2). In practice the 
+        resulting frame may be more noisy. It is recommended to decrease 
+        delta_rot and have enough frames in the libraries to allow getting 
+        ncomp PCs.    
     full_output: boolean, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
@@ -299,9 +319,10 @@ def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1,
                                                     pa_threshold, False)
                       
                     data_ref = matrix_quad[indices_left]
-                     
-                    if data_ref.shape[0] <= 10:
-                        msg = 'Too few frames left in the PCA library.'
+                    
+                    if data_ref.shape[0] <= min_frames_pca:
+                        msg = 'Too few frames left in the PCA library. '
+                        msg += 'Try decreasing either delta_rot or min_frames_pca.'
                         raise RuntimeError(msg)
                 else:
                     data_ref = matrix_quad
@@ -320,7 +341,7 @@ def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1,
                     ncomp = get_ncomp(data, svd_mode, debug)
                  
                 #***************************************************************
-                # Performing SVD/PCA according to "mode" flag. 'data' is the 
+                # Performing SVD/PCA according to "svd_mode" flag. 'data' is the 
                 # matrix for feeding the SVD.
                 #***************************************************************
                 V = svd_wrapper(data, svd_mode, ncomp, debug=False, verbose=False)
@@ -349,8 +370,9 @@ def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1,
 
 def subannular_pca_parallel(array, angle_list, radius_int=0, asize=1, 
                             delta_rot=1, ncomp=1, instrument=None, fwhm=None, 
-                            center=True, nproc=None, svd_mode='arpack', 
-                            full_output=False, verbose=True, debug=False):
+                            center=True, nproc=None, svd_mode='randsvd',
+                            min_frames_pca=10,  full_output=False, verbose=True, 
+                            debug=False):
     """ Local PCA (subannular version) parallel algorithm. The PCA is computed 
     locally in each quadrant of each annulus. On each annulus we discard 
     reference images taking into account the parallactic angle threshold. 
@@ -378,8 +400,16 @@ def subannular_pca_parallel(array, angle_list, radius_int=0, asize=1,
         Default is 1 (excludes 1 FHWM on each side of the considered frame).
     ncomp : int, optional
         How many PCs are kept. If none it will be automatically determined.
-    svd_mode : {lapack, randsvd, eigen, arpack, opencv}, str optional
+    svd_mode : {randsvd, lapack, eigen, arpack, opencv}, str optional
         Switch for different ways of computing the SVD and principal components.
+    min_frames_pca : int, optional 
+        Minimum number of frames in the PCA reference library. Be careful, when
+        min_frames_pca <= ncomp, then for certain frames the subtracted low-rank
+        approximation is not optimal (getting a 10 PCs out of 2 frames is not
+        possible so the maximum number of PCs is used = 2). In practice the 
+        resulting frame may be more noisy. It is recommended to decrease 
+        delta_rot and have enough frames in the libraries to allow getting 
+        ncomp PCs.    
     instrument: {'naco27, 'lmircam'}, optional
         Defines the type of dataset. For cubes without proper headers.
     fwhm : float
@@ -481,7 +511,8 @@ def subannular_pca_parallel(array, angle_list, radius_int=0, asize=1,
                                                      itt.repeat(center),
                                                      itt.repeat(ann_center),
                                                      itt.repeat(svd_mode),
-                                                     itt.repeat(ncomp)))
+                                                     itt.repeat(ncomp),
+                                                     itt.repeat(min_frames_pca)))
             residuals = np.array(res)
             pool.close()
             for fr in range(n):
@@ -626,7 +657,7 @@ def get_ncomp(data, mode, debug):                                               
 
 
 def do_pca_patch(matrix_quad, frame, angle_list, fwhm, pa_threshold, center,
-                 ann_center, svd_mode, ncomp):
+                 ann_center, svd_mode, ncomp, min_frames_pca):
     """
     Does the SVD/PCA for each frame patch (small matrix). For each frame we 
     find the frames to be rejected depending on the radial distance from the 
@@ -640,9 +671,10 @@ def do_pca_patch(matrix_quad, frame, angle_list, fwhm, pa_threshold, center,
          
         data_ref = matrix_quad[indices_left]
         
-        if data_ref.shape[0] <= 10:
-            msg = 'Too few frames left in the PCA library.'
-            raise RuntimeError(msg)
+        if data_ref.shape[0] <= min_frames_pca:
+            msg = 'Too few frames left in the PCA library. '
+            msg += 'Try decreasing either delta_rot or min_frames_pca.'
+        raise RuntimeError(msg)
     else:
         data_ref = matrix_quad
                   

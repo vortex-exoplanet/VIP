@@ -8,7 +8,6 @@ __author__ = 'C. Gomez @ ULg', 'V. Christiaens'
 __all__ = ['clip_array',
            'sigma_filter']
 
-import copy
 import numpy as np
 from scipy.ndimage.filters import generic_filter
 

@@ -50,9 +50,11 @@ def frame_quick_report(array, fwhm, y=None, x=None , verbose=True):
     # we get integrated flux on aperture with diameter=1FWHM
     if not y and not x:
         y, x = np.where(array == array.max())
+        y = y[0]
+        x = x[0]
         if verbose: 
             print
-            print('Coordinates of Max px Y,X = {:},{:}'.format(y[0],x[0]))
+            print('Coordinates of Max px Y,X = {:},{:}'.format(y,x))
     else:
         if verbose: 
             print

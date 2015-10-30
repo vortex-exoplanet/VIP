@@ -20,8 +20,8 @@ first release version. If you want to report a bug, suggest a feature or add a
 feature please contact the main developer at cgomez [at] ulg.ac.be or through 
 github.
 
-Please cite Gomez Gonzalez et al. 2016 (in prep) print whenever you publish 
-data reduced with VIP.
+Please cite Gomez Gonzalez et al. 2016 (in prep.) whenever you publish data 
+reduced with VIP.
 
 
 QUICK INSTRUCTIONS
@@ -77,9 +77,11 @@ In any case wait a couple of minutes until all the requirements are satisfied.
 
 DOCUMENTATION
 =============
-Docstrings (documentation of every function/class) are included in the code.
+In ./tutorial/ folder you can find a Jupyter notebook with a detailed tutorial
+of VIP. 
+Docstrings (internal documentation) are filled in for every function in VIP.
 Sphinx can be used to generate the documentation from the docstrings in html or
-pdf into docs folder (To-Do).
+pdf into docs folder (Coming soon).
 
 
 USAGE

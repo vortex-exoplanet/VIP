@@ -10,7 +10,7 @@ from ..phot import inject_fcs_cube
 
 
 def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp, 
-              aperture_radius, initialState, cube_ref=None, display=False):
+              aperture_radius, initialState, cube_ref=None, svd_mode='randsvd'):
     """
     Calculate the reduced chi2:
     \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -34,13 +34,13 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp
     ncomp: int
         The number of principal components.
     aperture_radius: float
-        The radius of the circular aperture.  
+        The radius of the circular aperture. 
     initialState: numpy.array
         Position (r, theta) of the circular aperture center.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    display: boolean
-        If True, the cube is displayed with ds9.        
+    svd_mode : {'randsvd', 'eigen', 'lapack', 'arpack', 'opencv'}, str optional
+        Switch for different ways of computing the SVD and selected PCs.         
 
     Returns
     -------
@@ -53,7 +53,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp
     except TypeError:
         print('paraVector must be a tuple, {} was given'.format(type(modelParameters)))    
     
-    # Create the cube with the fake companing injected
+    # Create the cube with the negative fake companion injected
     cube_negfc = inject_fcs_cube(cube, psfs_norm, angs, flevel=-flux, 
                                  plsc=plsc, 
                                  rad_arcs=[r*plsc],
@@ -62,7 +62,8 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp
     # Perform PCA to generate the processed image and extract the zone of interest                                     
     values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width,
                                  aperture_radius,initialState[0],initialState[1], 
-                                 display=display, cube_ref=cube_ref)
+                                 display=False, cube_ref=cube_ref, 
+                                 svd_mode=svd_mode)
     
     # Function of merit
     values = np.abs(values)
@@ -71,3 +72,5 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp
     N =len(values[values>0])    
     
     return chi2/(N-3)
+
+

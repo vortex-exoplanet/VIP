@@ -55,33 +55,43 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         header = hdulist[0].header
         if verbose:
             if len(data.shape)==1:
-                msg = "\nFits HDU:{:} data and header successfully loaded. Data"+\
-                    " shape: [{:}]"
+                msg = "\nFits HDU:{:} data and header successfully loaded. Data"
+                msg += " shape: [{:}]"
                 print msg.format(n, data.shape[0])
             if len(data.shape)==2:  
-                msg = "\nFits HDU:{:} data and header successfully loaded. Data"+\
-                    " shape: [{:},{:}]"
+                msg = "\nFits HDU:{:} data and header successfully loaded. Data"
+                msg += " shape: [{:},{:}]"
                 print msg.format(n, data.shape[0],data.shape[1])
             if len(data.shape)==3:
-                msg = "\nFits HDU:{:} data and header successfully loaded. Data"+\
-                    " shape: [{:},{:},{:}]"
+                msg = "\nFits HDU:{:} data and header successfully loaded. Data"
+                msg += " shape: [{:},{:},{:}]"
                 print msg.format(n, data.shape[0],data.shape[1],data.shape[2])
+            if len(data.shape)==4:
+                msg = "\nFits HDU:{:} data and header successfully loaded. Data"
+                msg += " shape: [{:},{:},{:},{:}]"
+                print msg.format(n, data.shape[0], data.shape[1], data.shape[2],
+                                 data.shape[3])
         hdulist.close()
         return data, header 
     else:
         if verbose:
             if len(data.shape)==1:
-                msg = "\nFits HDU:{:} data successfully loaded. Data"+\
-                    " shape: [{:}]"
+                msg = "\nFits HDU:{:} data successfully loaded. Data"
+                msg += " shape: [{:}]"
                 print msg.format(n, data.shape[0])
             if len(data.shape)==2:  
-                msg = "\nFits HDU:{:} data successfully loaded. Data"+\
-                    " shape: [{:},{:}]"
+                msg = "\nFits HDU:{:} data successfully loaded. Data"
+                msg += " shape: [{:},{:}]"
                 print msg.format(n, data.shape[0],data.shape[1])
             if len(data.shape)==3:
-                msg = "\nFits HDU:{:} data successfully loaded. Data"+\
-                    " shape: [{:},{:},{:}]"
+                msg = "\nFits HDU:{:} data successfully loaded. Data"
+                msg += " shape: [{:},{:},{:}]"
                 print msg.format(n, data.shape[0],data.shape[1],data.shape[2])
+            if len(data.shape)==4:
+                msg = "\nFits HDU:{:} data successfully loaded. Data"
+                msg += " shape: [{:},{:},{:},{:}]"
+                print msg.format(n, data.shape[0], data.shape[1], data.shape[2],
+                                 data.shape[3])
         hdulist.close()
         return data        
 

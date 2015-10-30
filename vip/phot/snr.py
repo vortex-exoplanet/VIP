@@ -334,16 +334,21 @@ def snr_ss(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
     
     if plot:
         fig, ax = plt.subplots(figsize=(6,6))
-        im = ax.imshow(array, origin='lower', interpolation='nearest')
-        fig.colorbar(im)
+        ax.imshow(array, origin='lower', interpolation='nearest')
         for i in range(xx.shape[0]):
+            # Circle takes coordinates as (X,Y)
             aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2., color='r', 
-                              fill=False)                                       # Coordinates (X,Y)
+                              fill=False, alpha=0.5)                                       
             ax.add_patch(aper)
-            cent = plt.Circle((xx[i], yy[i]), radius=0.5, color='r', fill=True) # Coordinates (X,Y)
+            cent = plt.Circle((xx[i], yy[i]), radius=0.5, color='r', fill=True,
+                              alpha=0.5)
             ax.add_patch(cent)
+            aper_source = plt.Circle((sourcex, sourcey), radius=0.7, 
+                                     color='b', fill=True, alpha=0.5)                                       
+            ax.add_patch(aper_source)
         ax.grid('off')
         plt.show()
+        plt.gray()
     
     if out_coor:
         return sourcey, sourcex, snr
@@ -402,20 +407,19 @@ def snr_peakstddev(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
     
     if plot:
         fig, ax = plt.subplots(figsize=(6,6))
-        im = ax.imshow(array, origin='lower', interpolation='nearest')
-        fig.colorbar(im)
-
+        ax.imshow(array, origin='lower', interpolation='nearest')
         circ = plt.Circle((centerx, centery), radius=inner_rad, color='r', 
                           fill=False) 
         ax.add_patch(circ)
         circ2 = plt.Circle((centerx, centery), radius=inner_rad+fwhm, color='r', 
                            fill=False) 
         ax.add_patch(circ2)
-        aper = plt.Circle((sourcex, sourcey), radius=fwhm/2., color='r', 
+        aper = plt.Circle((sourcex, sourcey), radius=fwhm/2., color='b', 
                           fill=False)                                           # Coordinates (X,Y)
         ax.add_patch(aper)
         plt.show()
-    
+        plt.gray()
+        
     if out_coor:
         return sourcey, sourcex, snr
     else:

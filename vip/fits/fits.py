@@ -10,13 +10,11 @@ __all__ = ['open_fits',
            'info_fits',
            'write_fits',
            'append_extension',
-           'verify_fits',
-           'display_fits_ds9',
-           'display_array_ds9']
+           'verify_fits']
+
 
 import os
 from astropy.io import fits
-from ..exlib.ds9 import DS9Win
 
 
 def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False, 
@@ -135,30 +133,6 @@ def info_fits(fitsfilename):
     """
     hdulist = fits.open(fitsfilename, memmap=True)
     hdulist.info()
-         
-         
-def display_fits_ds9(fitsfilename):
-    """Displays fits file in ds9 (which should be already installed in your
-    system along with XPA).
-    """
-    ds9 = DS9Win()
-    ds9.showFITSFile(fitsfilename)
-         
-         
-def display_array_ds9(*args):
-    """ Displays arrays listed in args in ds9 (which should be already installed 
-    in your system along with XPA).
-    """
-    ds9 = DS9Win()
-    ds9.xpaset('frame delete all')
-    ds9.xpaset('frame new')
-    ds9.xpaset('tile')
-    for i, array in enumerate(args):
-        if i==0: 
-            ds9.showArray(array)
-        else:    
-            ds9.xpaset('frame new')
-            ds9.showArray(array)
 
          
 def verify_fits(fits):

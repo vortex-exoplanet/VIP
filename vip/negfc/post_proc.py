@@ -9,18 +9,17 @@ import numpy as np
 from skimage.draw import circle
 from ..var import frame_center
 from ..pca import pca_annulus
-from ..fits import display_array_ds9
 
 
 def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius, 
-                        r_guess, theta_guess, cube_ref=None, svd_mode='randsvd',
-                        display=False):
+                        r_guess, theta_guess, cube_ref=None, svd_mode='lapack',
+                        debug=False):
     """
     Extracts a PCA-ed annulus from the cube and returns the flux values of the 
     pixels included in a circular aperture centered at a given position.
     
-    Paramters
-    ---------
+    Parameters
+    ----------
     cube: numpy.array
         The cube of fits images expressed as a numpy.array.
     angs: numpy.array
@@ -28,7 +27,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     ncomp: int
         The number of principal component.
     annulus_width: float
-        The width in pixel of the annulus on wich the PCA is performed.
+        The width in pixel of the annulus on which the PCA is performed.
     aperture_radius: float
         The radius of the circular aperture.
     r_guess: float
@@ -41,10 +40,10 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         chain, but should be the fixed initial guess.  
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    svd_mode : {'randsvd', 'eigen', 'lapack', 'arpack', 'opencv'}, str optional
+    svd_mode : {'lapack', 'eigen', 'randsvd', 'arpack', 'opencv'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
-    display: boolean
-        If True, the cube is displayed with ds9.        
+    debug: boolean
+        If True, the cube is returned along with the values.        
         
     Returns
     -------
@@ -54,10 +53,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     """
 
     pca_frame = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
-                            svd_mode)
-    
-    if display:
-        display_array_ds9(pca_frame)   
+                            svd_mode) 
 
     centy_fr, centx_fr = frame_center(cube[0])
     posy = r_guess * np.sin(np.deg2rad(theta_guess)) + centy_fr
@@ -66,5 +62,8 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
 
     values = pca_frame[indices]
     
-    return values
+    if debug:
+        return values, pca_frame
+    else:
+        return values
 

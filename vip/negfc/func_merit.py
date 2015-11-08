@@ -62,8 +62,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp
     # Perform PCA to generate the processed image and extract the zone of interest                                     
     values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width,
                                  aperture_radius,initialState[0],initialState[1], 
-                                 display=False, cube_ref=cube_ref, 
-                                 svd_mode=svd_mode)
+                                 cube_ref=cube_ref, svd_mode=svd_mode)
     
     # Function of merit
     values = np.abs(values)

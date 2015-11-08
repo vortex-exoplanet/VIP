@@ -43,18 +43,25 @@ From the root of the VIP package:
   $ python setup.py develop   
 
 
-Installation
-============
+Installation and dependencies
+=============================
 Having a python distribution installed, such as Canopy or Anaconda, will allow 
 easy and robust package management and avoid messing up with your system's default 
 python. An alternative is to use package managers like apt-get for Ubuntu or 
 Homebrew/MacPorts/Fink for OSX. I personally recommend using Anaconda which you
 can grab it from here: https://www.continuum.io/downloads. 
 
-A setup.py file that uses Setuptools Python package is included in the root 
-folder. It takes care of installing the dependencies for you. VIP depends on 
+A setup.py file (Setuptools Python package) is included in the root folder of 
+VIP. It takes care of installing most of the requirements for you. VIP depends on 
 existing packages from the Python ecosystem, such as numpy, scipy, matplotlib, 
 pandas, astropy, scikit-learn, scikit-image, photutils, emcee, etc.
+
+VIP ships a stripped-down version of RO.DS9 (Russell Owen) for convenient 
+xpaset/xpaget based interaction with DS9. VIP contains a class vipDS9 that works
+on top of RO.DS9 containing several useful methods for DS9 control such as 
+displaying arrays, manipulating regions, controlling the display options, etc. 
+VipDS9 functionality will only be available if you have DS9 and XPA installed 
+on your system PATH. 
 
 OpenCV (Open source Computer Vision) is used for fast image processing operations. 
 Opencv and its python bindings are usually difficult to install (can't be processed 
@@ -94,8 +101,10 @@ FAQ
   fast image transformations. You have to install it with your preferred 
   python distribution or .
 
-- Why do I get an XPAGET related error when importing VIP?
-  Please make sure you have XPA and XPAGET in your system path.
+- Why do I get a warning related to DS9/XPA when importing VIP?
+  Please make sure you have DS9 and XPA in your system path. If this is not
+  the case, VIP will import correctly but the class vipDS9 for controlling VIP 
+  won't be available. 
 
 - Why in linux do I get a matplotlib related error when importing VIP? 
   (Matplotlib backend_wx and backend_wxagg require wxPython >=2.8)

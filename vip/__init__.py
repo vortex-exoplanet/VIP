@@ -1,8 +1,3 @@
-"""
-VIP or Vortex Image Processing is a high-contrast ADI-SDI image processing 
-package/pipeline.
-"""
-
 from . import calib
 from . import conf
 from . import fits

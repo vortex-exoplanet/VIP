@@ -15,7 +15,7 @@ __all__ = ['firstguess_simplex',
 
 
 def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, annulus_width, 
-                       aperture_radius, cube_ref=None, svd_mode='randsvd', 
+                       aperture_radius, cube_ref=None, svd_mode='lapack', 
                        p_ini=None, options=None, verbose=False, **kwargs):               
     """
     Determine the position of a companion using the negative fake companion 
@@ -42,7 +42,7 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, annulus_width,
         The radius of the circular aperture.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    svd_mode : {'randsvd', 'eigen', 'lapack', 'arpack', 'opencv'}, str optional
+    svd_mode : {'lapack', 'eigen', 'randsvd', 'arpack', 'opencv'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     p_ini : np.array
         Position (r, theta) of the circular aperture center.
@@ -80,7 +80,7 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, annulus_width,
         
 def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm, 
                           annulus_width, ncomp, aperture_radius, cube_ref=None, 
-                          svd_mode='randsvd',f_range=None, display=False, 
+                          svd_mode='lapack',f_range=None, display=False, 
                           verbose=True, save=False, **kwargs):
     """
     Determine a first guess for the flux of a companion at a given position 
@@ -108,7 +108,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
         The radius of the circular aperture.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    svd_mode : {'randsvd', 'eigen', 'lapack', 'arpack', 'opencv'}, str optional
+    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack', 'opencv'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     f_range: numpy.array, optional
         The range of flux tested values. If None, 20 values between 0 and 5000
@@ -179,7 +179,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
 
 
 def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width, aperture_radius, 
-               planets_xy_coord, cube_ref=None, svd_mode='randsvd',  
+               planets_xy_coord, cube_ref=None, svd_mode='lapack',  
                p_ini=None, f_range=None, simplex=False, simplex_options=None, 
                display=False, verbose=True, save=False, figure_options={}):
     """ Determines a first guess for the position and the flux of a planet.
@@ -219,7 +219,7 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width, aperture_radius,
         The (x,y) position of the planet in the pca processed frame. 
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    svd_mode : {'randsvd', 'eigen', 'lapack', 'arpack', 'opencv'}, str optional
+    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack', 'opencv'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     p_ini: numpy.array
         Position (r, theta) of the circular aperture center.        

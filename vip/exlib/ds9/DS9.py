@@ -355,8 +355,8 @@ def setup(doRaise=False):
 
 
 errStr = setup(doRaise=False)
-if errStr:
-    warnings.warn(errStr)
+#if errStr:
+#    warnings.warn(errStr)
 
 _ArrayKeys = ("dim", "dims", "xdim", "ydim", "zdim", "bitpix", "skip", "arch")
 _DefTemplate = "ds9"
@@ -578,19 +578,18 @@ class DS9Win:
             return False
 
     def showArray(self, arr, **kargs):
-        """Display a 2-d or 3-d grayscale integer numpy arrays.
-        3-d images are displayed as data cubes, meaning one can
-        view a single z at a time or play through them as a movie,
-        that sort of thing.
+        """Display a 2-d or 3-d grayscale integer numpy arrays. 3-d images are 
+        displayed as data cubes, meaning one can view a single z at a time or 
+        play through them as a movie, that sort of thing.
         
         Inputs:
         - arr: a numpy array; must be 2-d or 3-d:
             2-d arrays have index order (y, x)
             3-d arrays are loaded as a data cube index order (z, y, x)
-        kargs: see Extra Keyword Arguments in the module doc string for information.
-        Keywords that specify array info (see doc for showBinFile for the list)
-        are ignored, because array info is determined from the array itself.
-        
+            
+        kargs: 
+        see Extra Keyword Arguments in the module doc string for information.
+
         Data types:
         - UInt8, Int16, Int32 and floating point types sent unmodified.
         - All other integer types are converted before transmission.
@@ -647,38 +646,8 @@ class DS9Win:
         
         for keyValue in kargs.iteritems():
             self.xpaset(cmd=" ".join(keyValue))
-
-# showBinFile is commented out because it is broken with ds9 3.0.3
-# (apparently due to a bug in ds9) and because it wasn't very useful
-#   def showBinFile(self, fname, **kargs):
-#       """Display a binary file in ds9.
-#       
-#       The following keyword arguments are used to specify the array:
-#       - xdim      # of points along x
-#       - ydim      # of points along y
-#       - dim       # of points along x = along y (only use for a square array)
-#       - zdim      # of points along z
-#       - bitpix    number of bits/pixel; negative if floating
-#       - arch  one of bigendian or littleendian (intel)
-#       
-#       The remaining keywords are extras treated as described
-#       in the module comment.
-#
-#       Note: integer data must be UInt8, Int16 or Int32
-#       (i.e. the formats supported by FITS).
-#       """
-#       arryDict = _splitDict(kargs, _ArrayKeys)
-#       if not arryDict:
-#           raise RuntimeError("must specify dim (or xdim and ydim) and bitpix")
-#
-#       arrInfo = "[%s]" % (_formatOptions(arryDict),)
-#       filePathPlusInfo = _expandPath(fname, arrInfo)
-#
-#       self.xpaset(cmd='file array "%s"' % (filePathPlusInfo,))
-#       
-#       for keyValue in kargs.iteritems():
-#           self.xpaset(cmd=" ".join(keyValue))
-    
+   
+   
     def showFITSFile(self, fname, **kargs):
         """Display a fits file in ds9.
         

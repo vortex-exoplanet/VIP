@@ -8,103 +8,205 @@ from __future__ import division
 from __future__ import print_function
 
 __author__ = 'C. Gomez, O. Absil @ ULg'
-__all__ = ['noise_per_annulus',
+__all__ = ['contrast_curve',
+           'noise_per_annulus',
            'throughput',
-           'throughput_single_branch']
+           'throughput_single_branch',
+           'aperture_flux']
 
 import numpy as np
 import photutils
 from scipy.interpolate import interp1d
 from scipy import stats
+from scipy.signal import savgol_filter
 from skimage.draw import circle
 from matplotlib import pyplot as plt
-from .fakecomp import inject_fcs_cube, inject_fc_frame
+from .fakecomp import inject_fcs_cube, inject_fc_frame, psf_norm
 from ..conf import timeInit, timing, VLT_NACO, LBT
 from ..var import frame_center, dist
-from ..calib import frame_crop
 
 
-def noise_per_annulus(array, separation, fwhm, verbose=False):
-    """ Measures the noise as the standard deviation of apertures defined in
-    each annulus with a given separation.
+
+def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot, 
+                   sigma=5, algo='pca', nbranch=1, ncomp=10, student=True, 
+                   plot=True, dpi=100, debug=False):
+    """ Computes the contrast curve for a given SIGMA (*sigma*) level. The 
+    contrast is calculated as sigma*noise/throughput. This implementation takes
+    into account the small sample statistics correction proposed in Mawet et al.
+    2014. 
     
     Parameters
     ----------
-    array : array_like
-        Input frame.
-    separation : float
-        Separation in pixels of the centers of the annuli measured from the 
-        center of the frame.
+    cube : array_like
+        The input cube without fake companions.
+    angle_list : array_like
+        Vector with the parallactic angles.
+    psf_template : array_like
+        Frame with the psf template for the fake companion(s).
+        PSF must be centered in array. Normalization is done internally.
     fwhm : float
         FWHM in pixels.
-    verbose : {False, True}, bool optional
-        If True prints information.
+    pxscale : float
+        Plate scale or pixel scale of the instrument. 
+    starphot : int or float or 1d array
+        If int or float it corresponds to the aperture photometry of the 
+        non-coronagraphic PSF which we use to scale the contrast. If a vector 
+        is given it must contain the photometry correction for each frame.
+    sigma : int
+        Sigma level for contrast calculation.
+    algo : {'pca', spca', 'subspca'}, string optional
+        The post-processing algorithm. One of the algorithms that throughput 
+        function supports.
+    nbranch : int optional
+        Number of branches on which to inject fakes companions. Each branch
+        is tested individually.
+    n_comp : int
+        Number of principal components if PCA or other subspace projection 
+        technique is used.   
+    student : {True, False}, bool optional
+        If True uses Student t correction to inject fake companion.      
+    plot : {True, False}, bool optional 
+        Whether to plot the final contrast curve or not. True by default.
+    dpi : int optional 
+        Dots per inch for the plots. 100 by default. 300 for printing quality.
+    debug : {False, True}, bool optional
+        Whether to print and plot additional info.
     
     Returns
     -------
-    noise : array_like
-        Vector with the noise value per annulus.
-    vector_radd : array_like
-        Vector with the radial distances values.
-    
-    """
-    if not array.ndim==2:
-        raise TypeError('Input array is not a frame or 2d array.')
-    
-    def find_coords(rad, sep):
-        npoints = (2*np.pi*rad)/sep
-        ang_step = 360/npoints
-        x = []
-        y = []
-        for i in range(int(npoints)): 
-            newx = rad * np.cos(np.deg2rad(ang_step * i))
-            newy = rad * np.sin(np.deg2rad(ang_step * i))
-            x.append(newx)
-            y.append(newy)
-        return np.array(y), np.array(x)
-    
-    centery, centerx = frame_center(array)
-    n_annuli = int(np.floor((centery)/separation))
-
-    x = centerx
-    y = centery
-    noise = []
-    vector_radd = []
-    if verbose:  print('{} annuli'.format(n_annuli-1))
+    cont_curve_samp : array_like
+        Final contrast for the input sigma, as seen in the plot.
+    cont_curve_samp_t : array_like
+        Contrast with the student t correction.
+    rad_samp : array_like
+        Vector of distances in arcseconds. 
         
-    for _ in range(n_annuli-1):
-        y -= separation
-        rad = dist(centery, centerx, y, x)
-        yy, xx = find_coords(rad, sep=fwhm)
-        yy += centery
-        xx += centerx
-             
-        fluxes = []
-        apertures = photutils.CircularAperture((xx, yy), fwhm/2.)
-        fluxes = photutils.aperture_photometry(array, apertures)
-        fluxes = np.array(fluxes['aperture_sum'])
+    """  
+    if not cube.ndim == 3:
+        raise TypeError('The input array is not a cube')
+    if not cube.shape[0] == angle_list.shape[0]:
+        raise TypeError('Input vector or parallactic angles has wrong length')
+    if not psf_template.ndim==2:
+        raise TypeError('Template PSF is not a frame')    
+
+    if isinstance(starphot, float) or isinstance(starphot, int):  pass
+    else:
+        if not starphot.shape[0] == cube.shape[0]:
+            raise TypeError('Correction vector has bad size')
+        cube = cube.copy()
+        for i in xrange(cube.shape[0]):
+            cube[i] = cube[i] / starphot[i]
+    
+    # throughput
+    print('Measuring the throughput \n')
+    res_throug = throughput(cube, angle_list, psf_template, fwhm, ncomp=ncomp, 
+                            nbranch=nbranch, full_output=True, algo=algo, 
+                            verbose=False)
+    vector_radd = res_throug[2] 
+    thruput_mean = res_throug[0][0]
+    frame_nofc = res_throug[5]
+    
+    if thruput_mean[-1]==0:
+        thruput_mean = thruput_mean[:-1]
+        vector_radd = vector_radd[:-1]
+    
+    # noise measured in the empty PCA-frame with better sampling (every 2 px)
+    noise_samp, rad_samp = noise_per_annulus(frame_nofc, 1, fwhm, False)    
+    cutin1 = np.where(rad_samp.astype(int)==vector_radd.astype(int).min())[0]
+    noise_samp = noise_samp[cutin1:]
+    rad_samp = rad_samp[cutin1:]
+    cutin2 = np.where(rad_samp.astype(int)==vector_radd.astype(int).max())[0]
+    noise_samp = noise_samp[:cutin2+1]
+    rad_samp = rad_samp[:cutin2+1]
+    
+    # interpolating the throughput vector
+    f = interp1d(vector_radd, thruput_mean, bounds_error=False, fill_value=0)
+    thruput_interp = f(rad_samp)      
+    
+    # smoothing the interpolated throughput and noise vectors using a 
+    # Savitzky-Golay filter
+    thruput_interp_sm = savgol_filter(thruput_interp, 
+                                      window_length=thruput_interp.shape[0]*0.1, 
+                                      polyorder=1, mode='nearest')
+    noise_samp_sm = savgol_filter(noise_samp, 
+                                  window_length=noise_samp.shape[0]*0.1, 
+                                  polyorder=1, mode='nearest')
+    
+    if debug:
+        print('SIGMA={}'.format(sigma))
+        if isinstance(starphot, float) or isinstance(starphot, int):
+            print('STARPHOT={}'.format(starphot))
         
-        noise_ann = np.std(fluxes)
-        noise.append(noise_ann) 
-        vector_radd.append(rad)
-        if verbose:
-            print('Radius(px) = {:} // Noise = {:.3f} '.format(rad, noise_ann))
-     
-    return np.array(noise), np.array(vector_radd)
+        plt.rc("savefig", dpi=dpi)
+        plt.figure(figsize=(8,4))
+        plt.plot(rad_samp*pxscale, thruput_interp, '.-', label='interpolated', 
+                 alpha=0.6)
+        plt.plot(vector_radd*pxscale, thruput_mean, '.', label='computed')
+        plt.plot(rad_samp*pxscale, thruput_interp_sm, ',-', label='smoothed', 
+                 lw=2)
+        plt.grid('on')
+        plt.xlabel('Angular separation [arcsec]')
+        plt.ylabel('Throughput')
+        plt.legend(loc='best')
+        
+        plt.figure(figsize=(8,4))
+        plt.plot(rad_samp*pxscale, noise_samp, '.', label='computed')
+        plt.plot(rad_samp*pxscale, noise_samp_sm, ',-', label='noise smoothed', 
+                 lw=2)
+        plt.grid('on')
+        plt.xlabel('Angular separation [arcsec]')
+        plt.ylabel('Noise')
+        plt.legend(loc='best')
+    
+    # student t correction
+    if student:
+        n_res_els = np.floor(rad_samp/fwhm*2*np.pi)
+        ss_corr = np.sqrt(1 + 1/(n_res_els-1))
+        sigma_student = stats.t.ppf(stats.norm.cdf(sigma), n_res_els)/ss_corr
+    
+    # calculating the contrast
+    if isinstance(starphot, float) or isinstance(starphot, int):
+        cont_curve_samp = ((sigma * noise_samp_sm)/thruput_interp_sm)/starphot
+        if student:
+            cont_curve_samp_t = ((sigma_student * noise_samp_sm)/ \
+                                 thruput_interp_sm)/starphot
+    else:
+        cont_curve_samp = ((sigma * noise_samp_sm)/thruput_interp_sm)
+        if student:
+            cont_curve_samp_t = ((sigma_student * noise_samp_sm)/ \
+                                 thruput_interp_sm)
+    # plotting
+    if plot or debug:
+        plt.rc("savefig", dpi=dpi)
+        plt.figure(figsize=(8,4))
+        plt.plot(rad_samp*pxscale, cont_curve_samp, '.-', label='gaussian')
+        if student:
+            plt.plot(rad_samp*pxscale, cont_curve_samp_t, '.-', 
+                     label='student t')
+        plt.xlabel('Angular separation [arcsec]')
+        plt.ylabel(str(sigma)+' sigma contrast')
+        plt.legend()
+        plt.grid('on', which='both')
+        plt.yscale('log')
+    
+    if student:
+        return cont_curve_samp, cont_curve_samp_t, rad_samp*pxscale
+    else:
+        return cont_curve_samp, rad_samp*pxscale
 
 
-def throughput(array, parangles, psf_template, fwhm, ncomp, algo='pca',
+def throughput(cube, angle_list, psf_template, fwhm, ncomp, algo='pca',
                nbranch=3, fc_rad_sep=3, instrument='naco27', student=True, 
-               full_output=False, **kwargs):
-    """ Measures the throughput for chosen and input dataset. The final 
-    throughput is the average of the same procedure measured in nbranch 
+               full_output=False, verbose=True, **algo_dict):
+    """ Measures the throughput for chosen algorithm and input dataset. The 
+    final throughput is the average of the same procedure measured in *nbranch* 
     azimutally equidistant branches.
     
     Parameters
     ----------
-    array : array_like
+    cube : array_like
         The input cube without fake companions.
-    parangles : array_like
+    angle_list : array_like
         Vector with the parallactic angles.
     psf_template : array_like
         Frame with the psf template for the fake companion(s).
@@ -124,12 +226,15 @@ def throughput(array, parangles, psf_template, fwhm, ncomp, algo='pca',
     fc_rad_sep : int optional
         Radial separation between the injection companions (in each of the 
         patterns) in FWHM. Must be large enough to avoid overlapping.  
-    student {True, False}, bool optional
-        If True uses Student correction to inject fake companion.
+    student : {True, False}, bool optional
+        If True uses Student t correction to inject fake companion.
+    **algo_dict
+        Any other valid parameter of the post-processing algorithms can be 
+        passed here.
     full_output : {False, True}, bool optional
         If True returns intermediate arrays.
-    **kwargs
-        Any other valid parameter of the pca algorithms can be passed here.
+    verbose : {True, False}, bool optional
+        If True prints out timing and information.
     
     Returns
     -------
@@ -160,68 +265,71 @@ def throughput(array, parangles, psf_template, fwhm, ncomp, algo='pca',
     from ..pca import pca 
     from ..pca import annular_pca, subannular_pca
     
+    array = cube
+    parangles = angle_list
+    
     if not array.ndim == 3:
-        raise TypeError('The input array is not a cube.')
+        raise TypeError('The input array is not a cube')
     if not array.shape[0] == parangles.shape[0]:
-        raise TypeError('Input vector or parallactic angles has wrong length.')
+        raise TypeError('Input vector or parallactic angles has wrong length')
     if not psf_template.ndim==2:
-        raise TypeError('Template PSF has wrong shape.')
-#     if not psf_template.shape[0]%2==0:
-#         psf_template = frame_crop(psf_template, psf_template.shape[0]-1)
+        raise TypeError('Template PSF is not a frame')
+    #if not psf_template.shape[0]%2==0:
+    #    psf_template = frame_crop(psf_template, psf_template.shape[0]-1)
     
     if instrument == 'naco27':
         plsc = VLT_NACO['plsc']
     elif instrument == 'lmircam':
         plsc = LBT['plsc']
     else:
-        raise TypeError('Instrument not recognized.')
+        raise TypeError('Instrument not recognized')
 
-    start_time = timeInit()
+    if verbose:  start_time = timeInit()
 
     #***************************************************************************    
     if algo=='spca':
         function = annular_pca
         frame_nofc = function(array, angle_list=parangles, fwhm=fwhm, 
-                              ncomp=ncomp, verbose=False, **kwargs)
+                              ncomp=ncomp, verbose=False, **algo_dict)
     elif algo=='pca':
         function = pca
         frame_nofc = function(array, angle_list=parangles, ncomp=ncomp, 
-                              verbose=False, **kwargs)
+                              verbose=False, **algo_dict)
     
     elif algo=='subspca':
         function = subannular_pca
         frame_nofc = function(array, angle_list=parangles, fwhm=fwhm, 
-                              ncomp=ncomp, verbose=False, **kwargs) 
+                              ncomp=ncomp, verbose=False, **algo_dict) 
     else:
-        raise TypeError('Algorithm not recognized.')
+        raise TypeError('Algorithm not recognized')
     
-    msg1 = 'Cube without fake companions processed with {:}.'
-    print(msg1.format(function.func_name))
-    timing(start_time)
+    if verbose:
+        msg1 = 'Cube without fake companions processed with {:}'
+        print(msg1.format(function.func_name))
+        timing(start_time)
     
     #***************************************************************************
     # Compute noise in concentric annuli
     noise, vector_radd = noise_per_annulus(frame_nofc,fwhm,fwhm,verbose=False)
-    print('Measured annulus-wise noise in resulting frame.')
-    timing(start_time)
+    if verbose:
+        print('Measured annulus-wise noise in resulting frame')
+        timing(start_time)
+    
+    # Checks if PSF has been normalized (so that flux in aperture = 1) and fix
+    # if needed
+    psf_template = psf_norm(psf_template, size=29, fwhm=fwhm)
     
     #***************************************************************************
-    # Prepare PSF template and normalize it so that flux in aperture = 1
-    aperture = photutils.CircularAperture((psf_template.shape[0]/2,
-                                           psf_template.shape[1]/2), fwhm/2.)
-    ap_phot = photutils.aperture_photometry(psf_template, aperture, 
-                                                  method='exact')
-    psf_template /= np.array(ap_phot['aperture_sum']) 
-
     # Initialize the fake companions
-    # radial separation between fake companions in terms of FWHM (must be integer)
     angle_branch = 360.0/nbranch        
     # signal-to-noise ratio of injected fake companions                                                     
-    snr_level = 7.0 * np.ones_like(noise)                                       
+    snr_level = 7.0 * np.ones_like(noise)         
+    # student correction translates the confidence intervals from gaussian to
+    # student-t and corrects for small sample statistics                              
     if student:
-        snr_level = stats.t.ppf(stats.norm.cdf(snr_level), 
-                        np.floor(vector_radd/fwhm*2*np.pi)) * \
-                        np.sqrt(1 + 1/(np.floor(vector_radd/fwhm*2*np.pi)-1))
+        n_res_els = np.floor(vector_radd/fwhm*2*np.pi)
+        ss_corr = np.sqrt(1 + 1/(n_res_els-1))
+        snr_level = stats.t.ppf(stats.norm.cdf(snr_level), n_res_els) / ss_corr
 
     thruput_arr = np.zeros((nbranch, noise.shape[0]))
     fc_map_all = np.zeros((nbranch*fc_rad_sep, array.shape[1], array.shape[2]))
@@ -249,43 +357,50 @@ def throughput(array, parangles, psf_template, fwhm, ncomp, algo='pca',
                         snr_level[irad+i*fc_rad_sep] * noise[irad+i*fc_rad_sep])
                 fcy.append(y)
                 fcx.append(x)
-            msg2 = 'Fake companions injected in branch {:} (pattern {:}/{:}).'
-            print(msg2.format(br+1, irad+1, fc_rad_sep))
-            timing(start_time)
+            
+            if verbose: 
+                msg2 = 'Fake companions injected in branch {:} (pattern {:}/{:})'
+                print(msg2.format(br+1, irad+1, fc_rad_sep))
+                timing(start_time)
 
             #*******************************************************************
             if algo=='spca':
                 frame_fc = function(cube_fc, angle_list=parangles, fwhm=fwhm,
-                                    ncomp=ncomp, verbose=False, **kwargs)
+                                    ncomp=ncomp, verbose=False, **algo_dict)
             elif algo=='pca':
                 frame_fc = function(cube_fc, angle_list=parangles, ncomp=ncomp,
-                                    verbose=False, **kwargs)
+                                    verbose=False, **algo_dict)
             
             elif algo=='subspca':
                 frame_fc = function(cube_fc, angle_list=parangles, fwhm=fwhm, 
-                                      ncomp=ncomp, verbose=False, **kwargs)     
+                                      ncomp=ncomp, verbose=False, **algo_dict)     
             
             else:
-                raise TypeError('Algorithm not recognized.')
-            msg3 = 'Cube with fake companions processed with {:}.'
-            print(msg3.format(function.func_name))
-            timing(start_time)
+                raise TypeError('Algorithm not recognized')
+            
+            if verbose:
+                msg3 = 'Cube with fake companions processed with {:}'
+                print(msg3.format(function.func_name))
+                timing(start_time)
 
             #*******************************************************************
             ratio = (frame_fc - frame_nofc) / fc_map
             thruput = aperture_flux(ratio, fcy, fcx, fwhm, ap_factor=0.5,
                                        mean=True, verbose=False)
-            msg4 = 'Measured the annulus-wise throughput of {:}.'
-            print(msg4.format(function.func_name))
-            timing(start_time)
+            
+            if verbose:
+                msg4 = 'Measured the annulus-wise throughput of {:}'
+                print(msg4.format(function.func_name))
+                timing(start_time)
             
             thruput_arr[br, irad::fc_rad_sep] = thruput
             fc_map_all[br*fc_rad_sep+irad, :, :] = fc_map
             frame_fc_all[br*fc_rad_sep+irad, :, :] = frame_fc
             cube_fc_all[br*fc_rad_sep+irad, :, :, :] = cube_fc
 
-    print('Finished measuring the throughput in {:} branches.'.format(nbranch))
-    timing(start_time)
+    if verbose:
+        print('Finished measuring the throughput in {:} branches'.format(nbranch))
+        timing(start_time)
     
     if full_output:
         return (thruput_arr, noise, vector_radd, cube_fc_all, frame_fc_all, 
@@ -412,9 +527,78 @@ def throughput_single_branch(array, parangles, psf_template, fwhm, n_comp,
         return cube_fc, frame_fc, frame_nofc, fc_map, ratio
     else:
         return throughput
+
+
+def noise_per_annulus(array, separation, fwhm, verbose=False):
+    """ Measures the noise as the standard deviation of apertures defined in
+    each annulus with a given separation.
+    
+    Parameters
+    ----------
+    array : array_like
+        Input frame.
+    separation : float
+        Separation in pixels of the centers of the annuli measured from the 
+        center of the frame.
+    fwhm : float
+        FWHM in pixels.
+    verbose : {False, True}, bool optional
+        If True prints information.
+    
+    Returns
+    -------
+    noise : array_like
+        Vector with the noise value per annulus.
+    vector_radd : array_like
+        Vector with the radial distances values.
+    
+    """
+    if not array.ndim==2:
+        raise TypeError('Input array is not a frame or 2d array.')
+    
+    def find_coords(rad, sep):
+        npoints = (2*np.pi*rad)/sep
+        ang_step = 360/npoints
+        x = []
+        y = []
+        for i in range(int(npoints)): 
+            newx = rad * np.cos(np.deg2rad(ang_step * i))
+            newy = rad * np.sin(np.deg2rad(ang_step * i))
+            x.append(newx)
+            y.append(newy)
+        return np.array(y), np.array(x)
+    
+    centery, centerx = frame_center(array)
+    n_annuli = int(np.floor((centery)/separation))
+
+    x = centerx
+    y = centery
+    noise = []
+    vector_radd = []
+    if verbose:  print('{} annuli'.format(n_annuli-1))
+        
+    for _ in range(n_annuli-1):
+        y -= separation
+        rad = dist(centery, centerx, y, x)
+        yy, xx = find_coords(rad, sep=fwhm)
+        yy += centery
+        xx += centerx
+             
+        fluxes = []
+        apertures = photutils.CircularAperture((xx, yy), fwhm/2.)
+        fluxes = photutils.aperture_photometry(array, apertures)
+        fluxes = np.array(fluxes['aperture_sum'])
+        
+        noise_ann = np.std(fluxes)
+        noise.append(noise_ann) 
+        vector_radd.append(rad)
+        if verbose:
+            print('Radius(px) = {:} // Noise = {:.3f} '.format(rad, noise_ann))
+     
+    return np.array(noise), np.array(vector_radd)
     
 
-def aperture_flux(array, yc, xc, fwhm, ap_factor=0.6, mean=False, verbose=False):
+def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
     """ Returns the sum of pixel values in a circular aperture centered on the
     input coordinates. 
     

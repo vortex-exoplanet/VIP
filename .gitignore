@@ -2,6 +2,8 @@ vip_pipeline.egg-info
 build
 dist
 
+tutorial/.ipynb_checkpoints/Tutorial_VIP-checkpoint.ipynb
+
 .settings
 .project
 .pydevproject

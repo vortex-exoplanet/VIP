@@ -330,8 +330,8 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     
     
     
-def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full', 
-                     annulus_width=2, svd_mode='randsvd', mask_center_px=5,
+def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, mode='full', 
+                     annulus_width=2, svd_mode='lapack', mask_center_px=5,
                      fmerit='px', min_snr=0, verbose=True, full_output=False, 
                      debug=False):
     """ Optimizes the number of principal components by doing a simple grid 
@@ -346,8 +346,8 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
         Input cube.
     angle_list : array_like, 1d
         Corresponding parallactic angle for each frame.
-    y, x : int
-        Y and X coordinates of the pixel where the source is located and whose
+   source_xy : tuple of floats
+        X and Y coordinates of the pixel where the source is located and whose
         SNR is going to be maximized.
     fwhm : float 
         Size of the PSF's FWHM in pixels. 
@@ -355,7 +355,7 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
         Mode for PCA processing (full-frame or just in an annulus).
     annulus_width : float, optional
         Width in pixels of the annulus in the case of the "annular" mode. 
-    svd_mode : {randsvd, eigen, lapack, arpack, opencv}, optional
+    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack', 'opencv'}, optional
         Switch for different ways of computing the SVD and selected PCs.
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
@@ -397,14 +397,14 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
         
         if fmerit=='max':
             yy, xx = draw.circle(y, x, fwhm/2.)
-            snr_pixels = [phot.snr_ss(frame, y_, x_, fwhm, plot=False, 
+            snr_pixels = [phot.snr_ss(frame, (x_,y_), fwhm, plot=False, 
                                       verbose=False) for y_, x_ in zip(yy, xx)]
             return np.max(snr_pixels)
         elif fmerit=='px':
             return phot.snr_ss(frame, y, x, fwhm, plot=False, verbose=False)
         elif fmerit=='mean':
             yy, xx = draw.circle(y, x, fwhm/2.)
-            snr_pixels = [phot.snr_ss(frame, y_, x_, fwhm, plot=False, 
+            snr_pixels = [phot.snr_ss(frame, (x_,y_), fwhm, plot=False, 
                                       verbose=False) for y_, x_ in zip(yy, xx)]                                      
             return np.mean(snr_pixels)
     
@@ -452,6 +452,7 @@ def pca_optimize_snr(cube, angle_list, y, x, fwhm, mode='full',
     
     if verbose: start_time = timeInit()
     n = cube.shape[0]
+    x, y = source_xy 
     
     # Up to min(n, 150) principal components. More isn't very realistic for any
     # ADI dataset I've tried. 

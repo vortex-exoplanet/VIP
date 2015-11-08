@@ -54,24 +54,24 @@ def frame_quick_report(array, fwhm, y=None, x=None , verbose=True):
         x = x[0]
         if verbose: 
             print
-            print('Coordinates of Max px Y,X = {:},{:}'.format(y,x))
+            print('Coordinates of Max px X,Y = {:},{:}'.format(x,y))
     else:
         if verbose: 
             print
-            print('Coordinates of chosen px Y,X = {:},{:}'.format(y,x))
+            print('Coordinates of chosen px X,Y = {:},{:}'.format(x,y))
     aper = photutils.CircularAperture((x, y), fwhm/2.)
     obj_flux = photutils.aperture_photometry(array, aper, method='exact')
     obj_flux = obj_flux['aperture_sum'][0]
     
     # we get the mean and stddev of SNRs on aperture
     yy, xx = draw.circle(y, x, fwhm/2.)
-    snr_pixels = [snr_ss(array, y_, x_, fwhm, plot=False, verbose=False) for \
+    snr_pixels = [snr_ss(array, (x_,y_), fwhm, plot=False, verbose=False) for \
                   y_, x_ in zip(yy, xx)]
     meansnr = np.mean(snr_pixels)
     stdsnr = np.std(snr_pixels)
     if verbose: 
         print('Central pixel SNR: ')
-        snr_ss(array, y, x, fwhm, plot=False, verbose=True)
+        snr_ss(array, (x,y), fwhm, plot=False, verbose=True)
         print('-----------------------------------------')
         print('In 1*FWHM circular aperture:')
         print('Integrated flux = {:.3f}'.format(obj_flux))
@@ -82,7 +82,7 @@ def frame_quick_report(array, fwhm, y=None, x=None , verbose=True):
         
     # we fit a 2d gaussian to the approx center px of the planet
     fy, fx = fit_2dgaussian(array, y, x, fwhm)
-    if verbose: print('Fitted Y,X = {:.3f},{:.3f}'.format(fy, fx))
+    if verbose: print('Fitted X,Y = {:.3f},{:.3f}'.format(fx, fy))
     
     return obj_flux, snr_pixels, fy, fx
     

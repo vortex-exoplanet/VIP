@@ -45,8 +45,7 @@ def frame_center(array, verbose=False):
 
     
 def get_square(array, size, y, x, position=False):                 
-    """ Returns an square subframe. If size is an even value it'll be increased
-    by one to make it odd.
+    """ Returns an square subframe. 
     
     Parameters
     ----------

@@ -18,7 +18,7 @@ import inspect
 import datetime
 import corner
 from matplotlib import pyplot as plt
-from ..fits import display_array_ds9, open_adicube, open_fits
+from ..fits import open_adicube, open_fits
 from ..phot import inject_fcs_cube
 from .post_proc import get_values_optimize
 import warnings
@@ -67,7 +67,7 @@ def lnprior(modelParameters, bounds):
 
 def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp, 
            aperture_radius, initialState, cube_ref=None, svd_mode='randsvd', 
-           display=False):
+           debug=False):
     """
     Define the likelihood log-function.
     
@@ -93,8 +93,8 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
         The initial guess for the position and the flux of the planet.
     cube_ref: array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    display: boolean
-        If True, the cube is displayed with ds9.        
+    debug: boolean
+        If True, the cube is returned along with the likelihood log-function.        
         
     Returns
     -------
@@ -110,10 +110,7 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
     # Create the cube with the negative fake companion injected
     cube_negfc = inject_fcs_cube(cube, psfs_norm, angs, flevel=-modelParameters[2], 
                                  plsc=plsc, rad_arcs=[modelParameters[0]*plsc],
-                                 n_branches=1, theta=modelParameters[1])
-                                 
-    if display:
-        display_array_ds9(cube_negfc)       
+                                 n_branches=1, theta=modelParameters[1])    
                                   
     # Perform PCA to generate the processed image and extract the zone of interest 
     values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width,
@@ -124,7 +121,10 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
     values = np.abs(values)
     lnlikelihood = -0.5*np.sum(values[values>0])
     
-    return lnlikelihood
+    if debug:
+        return lnlikelihood, cube_negfc
+    else:
+        return lnlikelihood
 
 
 def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, annulus_width, 
@@ -273,7 +273,7 @@ def gelman_rubin_from_chain(chain, burnin):
 
 def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
                         aperture_radius, initialState, cube_ref=None, 
-                        svd_mode='randsvd', nwalkers=1000, bounds=None,
+                        svd_mode='lapack', nwalkers=1000, bounds=None,
                         a=2.0, burnin=0.3, rhat_threshold=1.01, 
                         rhat_count_threshold=3, niteration_min=0.0,
                         niteration_limit=1e02, niteration_supp=0.0,
@@ -323,7 +323,7 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
         Each walker will start in a small ball around this preferred position.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    svd_mode : {'randsvd', 'eigen', 'lapack', 'arpack', 'opencv'}, str optional
+    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack', 'opencv'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     bounds: numpy.array or list, default=None, optional
         The prior knowledge on the model parameters. If None, large bounds will 

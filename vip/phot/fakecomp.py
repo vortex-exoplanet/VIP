@@ -138,7 +138,7 @@ def psf_norm(array, size, fwhm):
     ----------
     array: array_like
         The relative path to the psf fits image.
-    size : int
+    size : int or None
         Size of the squared subimage.
     fwhm: float
         The size of the Full Width Half Maximum in pixel.
@@ -149,9 +149,11 @@ def psf_norm(array, size, fwhm):
         The scaled psf.
 
     """
-    psfs = frame_crop(array, size) 
+    if size is not None:  psfs = frame_crop(array, size, verbose=False)
+     
     fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2.)
-    fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper)
+    fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper, 
+                                                   method='exact')
     
     fwhm_flux = np.array(fwhm_aper_phot['aperture_sum'])
     if fwhm_flux>1.1 or fwhm_flux<0.9:

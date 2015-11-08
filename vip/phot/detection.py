@@ -312,9 +312,9 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         x = xx[i] 
         if verbose: 
             print '_________________________________________'
-            print 'Y,X = ({:.1f},{:.1f})'.format(y, x)
+            print 'X,Y = ({:.1f},{:.1f})'.format(x,y)
         subim = get_square(array, size=15, y=y, x=x)
-        snr = snr_ss(array, y, x, fwhm, False, verbose=False)
+        snr = snr_ss(array, (x,y), fwhm, False, verbose=False)
         snr_list.append(snr)
         px_list.append(array[y,x])
         if snr >= snr_thresh and array[y,x]>0:
@@ -352,7 +352,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         print 'fit constraints while in CYAN circles those that passed them.'
         fig, ax = plt.subplots(figsize=(8,8))
         im = ax.imshow(array, origin='lower', interpolation='nearest', 
-                       cmap='gray')
+                       cmap='gray', alpha=0.8)
         colorbar_ax = fig.add_axes([0.92, 0.12, 0.03, 0.78])
         fig.colorbar(im, cax=colorbar_ax)
         ax.grid('off')
@@ -361,16 +361,17 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             y = yy_out[i]
             x = xx_out[i]
             circ = plt.Circle((x, y), radius=fwhm, color='red', fill=False,
-                              linewidth=2)
-            ax.text(x, y+1.5*fwhm, (int(y),int(x)), fontsize=10, color='red', 
-                    family='monospace', ha='center', va='top', weight='bold')
+                              linewidth=1.5, alpha=0.6)
+            ax.text(x, y+1.5*fwhm, (int(x), int(y)), fontsize=10, color='red', 
+                    family='monospace', ha='center', va='top', weight='bold', 
+                    alpha=0.6)
             ax.add_patch(circ)
         for i in xrange(yy_final.shape[0]):
             y = yy_final[i]
             x = xx_final[i]
             circ = plt.Circle((x, y), radius=fwhm, color='cyan', fill=False, 
                               linewidth=2)
-            ax.text(x, y+1.5*fwhm, (int(y),int(x)), fontsize=10, color='cyan', 
+            ax.text(x, y+1.5*fwhm, (int(x), int(y)), fontsize=10, color='cyan', 
                     weight='heavy', family='monospace', ha='center', va='top')
             ax.add_patch(circ)
         plt.show()

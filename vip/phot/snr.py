@@ -6,7 +6,7 @@ Module with SNR calculation functions.
 
 from __future__ import division
 
-__author__ = 'C. Gomez @ ULg, O. Absil @ ULg, B. Pairet @ UCL'
+__author__ = 'C. Gomez @ ULg, O. Absil @ ULg'
 __all__ = ['snr_ss',
            'snr_peakstddev',
            'snrmap',
@@ -20,7 +20,8 @@ from matplotlib import pyplot as plt
 from astropy.convolution import convolve, Tophat2DKernel
 from multiprocessing import Pool, cpu_count
 from ..conf import eval_func_tuple, timeInit, timing
-from ..var import get_annulus, frame_center, dist, gaussian_filter_sp
+from ..var import get_annulus, frame_center, dist
+from ..stats import mad
 
 
 def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
@@ -35,7 +36,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         Size in pixels of the FWHM.
     plot : {False, True}, bool optional
         If True plots the SNR map. 
-    mode : {'ss', 'peakstddev'}, string optional
+    mode : {'sss', 'peakstddev'}, string optional
         'sss' uses the approach with the small sample statistics penalty and
         'peakstddev' uses the peak(aperture)/std(annulus) version.
     source_mask : array_like, optional
@@ -62,22 +63,22 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
     mask = get_annulus(array, (fwhm/2)+1, width)
     mask = np.ma.make_mask(mask)
     yy, xx = np.where(mask)
-
+    coords = [(x,y) for (x,y) in zip(xx,yy)]
+        
     if not nproc:  
-        nproc = int((cpu_count()/2))  # Hyper-threading duplicates the number of cores
+        nproc = int((cpu_count()/2))  # Hyper-threading doubles the # of cores
     
     if mode == 'sss':
-        func = snr_ss
+        F = snr_ss
     elif mode == 'peakstddev':
-        func = snr_peakstddev
+        F = snr_peakstddev
     else:
         raise TypeError('\nMode not recognized.')
     
     if source_mask is None:
         pool = Pool(processes=int(nproc))                                        
-        res = pool.map(eval_func_tuple, itt.izip(itt.repeat(func),              
-                                                 itt.repeat(array),
-                                                 yy, xx, itt.repeat(fwhm),
+        res = pool.map(eval_func_tuple, itt.izip(itt.repeat(F),itt.repeat(array),
+                                                 coords, itt.repeat(fwhm),
                                                  itt.repeat(True)))       
         res = np.array(res)
         pool.close()
@@ -86,6 +87,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         snr = res[:,2]
         snrmap[yy.astype('int'), xx.astype('int')] = snr
     else:
+        # checking the mask with the sources
         if not array.shape == source_mask.shape:
             raise RuntimeError('Source mask has wrong size.')
         if source_mask[source_mask == 0].shape[0] == 0:
@@ -97,10 +99,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         
         soury, sourx = np.where(source_mask == 0)
         sources = []
-        ciry = []
-        cirx = []
-        anny = []
-        annx = []
+        ciry = []; cirx = []; anny = []; annx = []
         array_sources = array.copy()
         centery, centerx = frame_center(array)
         for (y,x) in zip(soury,sourx):
@@ -113,34 +112,21 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
             radd = dist(centery, centerx, y, x)
             tempay, tempax = get_annulus(array, int(np.floor(radd-fwhm)), 
                                     int(np.ceil(2*fwhm)), output_indices=True)
-            tempcy, tempcx = circle(y, x, int(np.ceil(1.5*fwhm)))
-            tempcy = list(tempcy)
-            tempcx = list(tempcx)
-            tempay = list(tempay)
-            tempax = list(tempax)
-            array_sources[tempcy, tempcx] =  np.median(array[tempay, tempax])
-            ciry += tempcy
-            cirx += tempcx
-            anny += tempay
-            annx += tempax
-        coor_ann = []
-        for (y,x) in zip(anny, annx):
-            if (y,x) not in zip(ciry, cirx):
-                coor_ann.append((y,x))
-        yy_ann = list(np.array(coor_ann)[:,0])
-        xx_ann = list(np.array(coor_ann)[:,1])
-        coor_rest = []
-        for (y,x) in zip(yy, xx):
-            if (y,x) not in zip(yy_ann, xx_ann):
-                coor_rest.append((y,x))
-        yy_rest = list(np.array(coor_rest)[:,0])
-        xx_rest = list(np.array(coor_rest)[:,1])
+            tempcy, tempcx = circle(y, x, int(np.ceil(1*fwhm)))
+            # masking the source position (using the MAD of pixels in annulus)
+            array_sources[tempcy, tempcx] = mad(array[tempay, tempax])
+            ciry += list(tempcy); cirx += list(tempcx)
+            anny += list(tempay); annx += list(tempax)
+
+        # coordinates of annulus without the sources
+        coor_ann = [(y,x) for (y,x) in zip(anny, annx) if (y,x) not in zip(ciry, cirx)]
+
+        # coordinates of the rest of the frame without the annulus
+        coor_rest = [(y,x) for (y,x) in zip(yy, xx) if (y,x) not in coor_ann]
         
         pool1 = Pool(processes=int(nproc))
-        res = pool1.map(eval_func_tuple, itt.izip(itt.repeat(func), 
-                                                  itt.repeat(array),
-                                                  yy_rest, xx_rest, 
-                                                  itt.repeat(fwhm),
+        res = pool1.map(eval_func_tuple, itt.izip(itt.repeat(F),itt.repeat(array),
+                                                  coor_rest, itt.repeat(fwhm),
                                                   itt.repeat(True)))       
         res = np.array(res)
         pool1.close()
@@ -150,10 +136,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         snrmap[yy.astype('int'), xx.astype('int')] = snr
         
         pool2 = Pool(processes=int(nproc))
-        res = pool2.map(eval_func_tuple, itt.izip(itt.repeat(func), 
+        res = pool2.map(eval_func_tuple, itt.izip(itt.repeat(F),
                                                   itt.repeat(array_sources),
-                                                  yy_ann, xx_ann, 
-                                                  itt.repeat(fwhm),
+                                                  coor_ann, itt.repeat(fwhm),
                                                   itt.repeat(True)))       
         res = np.array(res)
         pool2.close()
@@ -251,8 +236,8 @@ def snrmap_fast(array, fwhm, plot=False, verbose=False):
     return snrmap
     
     
-def snr_ss(array, sourcey, sourcex, fwhm, out_coor=False, plot=False, 
-           verbose=False, full_output=False, gauss_filter=False):
+def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False, 
+           verbose=False, full_output=False):
     # Leave the order of parameters as it is, the same for both snr functions
     # to be compatible with the snrmap parallel implementation
     """Calculates the SNR (signal to noise ratio) of a single planet in a 
@@ -264,10 +249,8 @@ def snr_ss(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
     ----------
     array : array_like, 2d
         Post-processed frame where we want to measure SNR.
-    sourcey : int
-        Y coordinate of the planet or test speckle.
-    sourcex : int
-        X coordinate of the planet or test speckle.
+    source_xy : tuple of floats
+        X and Y coordinates of the planet or test speckle.
     fwhm : float
         Size in pixels of the FWHM.
     out_coor: {False, True}, bool optional
@@ -279,8 +262,6 @@ def snr_ss(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
     full_output: {False, True}, bool optional
         If True returns back the snr value, the y, x input coordinates, noise 
         and flux.   
-    gauss_filter :  {False, True}, bool optional
-        Whether to apply a gaussian filter to the frame or not.
     
     Returns
     -------
@@ -293,20 +274,20 @@ def snr_ss(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
     if out_coor and full_output:
         raise TypeError('One of the 2 must be False')
     
+    sourcex, sourcey = source_xy 
+    
     centery, centerx = frame_center(array)
     rad = dist(centery,centerx,sourcey,sourcex)
-    
-    if gauss_filter:  array = gaussian_filter_sp(array, fwhm) 
-    
+        
     angle = np.arcsin(fwhm/2/rad)*2
-    number_circles = int(np.floor(2*np.pi/angle))
-    yy = np.zeros((number_circles))
-    xx = np.zeros((number_circles))
+    number_apertures = int(np.floor(2*np.pi/angle))
+    yy = np.zeros((number_apertures))
+    xx = np.zeros((number_apertures))
     cosangle = np.cos(angle)
     sinangle = np.sin(angle)
     xx[0] = sourcex - centerx
     yy[0] = sourcey - centery
-    for i in range(number_circles-1):
+    for i in range(number_apertures-1):
         xx[i+1] = cosangle*xx[i] + sinangle*yy[i] 
         yy[i+1] = cosangle*yy[i] - sinangle*xx[i] 
      
@@ -334,13 +315,13 @@ def snr_ss(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
     
     if plot:
         fig, ax = plt.subplots(figsize=(6,6))
-        ax.imshow(array, origin='lower', interpolation='nearest')
+        ax.imshow(array, origin='lower', interpolation='nearest', alpha=0.5, cmap='gray')
         for i in range(xx.shape[0]):
             # Circle takes coordinates as (X,Y)
             aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2., color='r', 
-                              fill=False, alpha=0.5)                                       
+                              fill=False, alpha=0.8)                                       
             ax.add_patch(aper)
-            cent = plt.Circle((xx[i], yy[i]), radius=0.5, color='r', fill=True,
+            cent = plt.Circle((xx[i], yy[i]), radius=0.8, color='r', fill=True,
                               alpha=0.5)
             ax.add_patch(cent)
             aper_source = plt.Circle((sourcex, sourcey), radius=0.7, 
@@ -348,7 +329,6 @@ def snr_ss(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
             ax.add_patch(aper_source)
         ax.grid('off')
         plt.show()
-        plt.gray()
     
     if out_coor:
         return sourcey, sourcex, snr
@@ -358,7 +338,7 @@ def snr_ss(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
         return snr
     
 
-def snr_peakstddev(array, sourcey, sourcex, fwhm, out_coor=False, plot=False, 
+def snr_peakstddev(array, (source_xy), fwhm, out_coor=False, plot=False, 
                    verbose=False):
     """Calculates the SNR (signal to noise ratio) of a single planet in a 
     post-processed (e.g. by LOCI or PCA) frame. The signal is taken as the ratio 
@@ -371,10 +351,8 @@ def snr_peakstddev(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
     ----------
     array : array_like, 2d
         Post-processed frame where we want to measure SNR.
-    sourcey : int
-        Y coordinate of the planet or test speckle.
-    sourcex : int
-        X coordinate of the planet or test speckle.
+    source_xy : tuple of floats
+        X and Y coordinates of the planet or test speckle.
     fwhm : float
         Size in pixels of the FWHM.
     out_coor: {False, True}, bool optional
@@ -390,6 +368,7 @@ def snr_peakstddev(array, sourcey, sourcex, fwhm, out_coor=False, plot=False,
         Value of the SNR for the given planet or test speckle.
     
     """     
+    sourcex, sourcey = source_xy 
     centery, centerx = frame_center(array)
     rad = dist(centery,centerx,sourcey,sourcex)  
     

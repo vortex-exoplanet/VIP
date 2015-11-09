@@ -23,6 +23,15 @@ In ./tutorial folder you can find a Jupyter notebook with a detailed tutorial
 of VIP. You can visualize it, without running it locally, here:
 http://nbviewer.ipython.org/github/vortex-exoplanet/VIP/blob/master/tutorial/Tutorial_VIP.ipynb
 
+Otherwise go the tutorial folder and run:
+
+.. code-block:: bash
+  
+  $ jupyter notebook
+  
+which will load the jupyter environment and open a web-page listing 
+Tutorial_vip.ipnb. Open it to run the VIP tutorial notebook. 
+
 Docstrings (internal documentation) are filled in for every function in VIP.
 Sphinx can be used to generate the documentation from the docstrings in html or
 pdf into docs folder (coming soon).
@@ -106,7 +115,7 @@ FAQ
   the case, VIP will import correctly but the class vipDS9 for controlling VIP 
   won't be available. 
 
-- Why in linux do I get a matplotlib related error when importing VIP? 
+- Why do I get, in linux, a matplotlib related error when importing VIP? 
   (Matplotlib backend_wx and backend_wxagg require wxPython >=2.8)
   If you use Canopy python distro then this is caused by the combination
   linux/Canopy. Nothing to do with the VIP pipeline. You may need to change the
@@ -114,6 +123,22 @@ FAQ
   backend from WXAgg to Qt4Agg. More info here:
   http://matplotlib.org/faq/usage_faq.html#what-is-a-backend
 
+- Why do I get, in OSX, the RuntimeError shown below?
+  (Python is not installed as a framework. The Mac OS X backend will not be able 
+  to function correctly if Python is not installed as a framework. See the 
+  Python documentation for more information on installing Python as a framework 
+  on Mac OS X. Please either reinstall Python as a framework, or try one of the 
+  other backends.)
+  Again, this is a matplotlib-backend issue (not VIP related). Read the link in
+  the previous question. It can be solved setting the backend to WXAgg or TkAgg.
+
+- I get an error: ValueError: "unknown locale: UTF-8" when importing VIP. 
+  It's not a VIP related problem. The problem must be solved if you add these 
+  lines in your ~/.bash_profile:
+  export LC_ALL=en_US.UTF-8
+  export LANG=en_US.UTF-8   
+   
+- 
 
 
 

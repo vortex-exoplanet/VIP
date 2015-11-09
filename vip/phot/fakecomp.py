@@ -124,7 +124,7 @@ def create_psf_template(array, size, fwhm=5, verbose=True, collapse='mean'):
     else:
         raise TypeError('Collapse mode not recognized.')
     
-    psf_normd = psf_norm(psf, size, fwhm, verbose)
+    psf_normd = psf_norm(psf, size, fwhm)
     
     if verbose:  
         print "Done scaled PSF template from the average of", n,"frames."

@@ -39,7 +39,7 @@ setup(
                       'corner',
                       'pandas >= 0.16',
                       'matplotlib >= 1.4.3',
-                      'scikit-learn >= 0.16',
+                      'scikit-learn >= 0.17',
                       'scikit-image >= 0.11',
                       'pytest',
                       'photutils >= 0.1',

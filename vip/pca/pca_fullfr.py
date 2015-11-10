@@ -401,7 +401,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, mode='full',
                                       verbose=False) for y_, x_ in zip(yy, xx)]
             return np.max(snr_pixels)
         elif fmerit=='px':
-            return phot.snr_ss(frame, y, x, fwhm, plot=False, verbose=False)
+            return phot.snr_ss(frame, (x,y), fwhm, plot=False, verbose=False)
         elif fmerit=='mean':
             yy, xx = draw.circle(y, x, fwhm/2.)
             snr_pixels = [phot.snr_ss(frame, (x_,y_), fwhm, plot=False, 

@@ -20,10 +20,11 @@ github.
 Documentation
 =============
 In ./tutorial folder you can find a Jupyter notebook with a detailed tutorial
-of VIP. You can visualize it, without running it locally, here:
+of VIP. You can visualize it, without running it locally, by just opening the 
+file in the github web interface or by using the notebook viewer service:
 http://nbviewer.ipython.org/github/vortex-exoplanet/VIP/blob/master/tutorial/Tutorial_VIP.ipynb
 
-Otherwise go the tutorial folder and run:
+For running the tutorial execute:
 
 .. code-block:: bash
   
@@ -135,10 +136,11 @@ FAQ
 - I get an error: ValueError: "unknown locale: UTF-8" when importing VIP. 
   It's not a VIP related problem. The problem must be solved if you add these 
   lines in your ~/.bash_profile:
+.. code-block:: bash
+
   export LC_ALL=en_US.UTF-8
   export LANG=en_US.UTF-8   
    
-- 
 
 
 

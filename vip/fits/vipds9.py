@@ -27,7 +27,7 @@ else:
 def display_array_ds9(*args):
     """ """
     ds9 = vipDS9()
-    ds9.display_arrays(*args)     
+    ds9.display(*args)     
 
 
 class vipDS9(object):

@@ -540,7 +540,7 @@ def subannular_pca_parallel(array, angle_list, radius_int=0, asize=1,
     
 def get_fwhm(instrument):
     """ Defines the FWHM for a given instrument based on its parameters defined
-    in a dictionary in vortex/cpar/param.py.                                    ### TODO: check final location
+    in a dictionary in vortex/conf/param.py.                                    
     """
     if instrument == 'naco27':                                                  
         if 'fwhm' in VLT_NACO:

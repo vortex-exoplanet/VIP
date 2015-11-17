@@ -19,6 +19,8 @@ from ..conf import timing, timeInit
 from ..var import frame_center, dist
 from .. import phot
 from .utils import pca_annulus, scale_cube_for_pca
+import warnings
+warnings.filterwarnings("ignore", category=Warning)
 
 
 def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
@@ -481,7 +483,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, mode='full',
     finalfr = pca(cube, angle_list, ncomp=opt_npc, full_output=False, 
                   verbose=False, mask_center_px=mask_center_px, 
                   svd_mode=svd_mode)    
-    _ = phot.frame_quick_report(finalfr, fwhm, y, x, verbose=verbose)
+    _ = phot.frame_quick_report(finalfr, fwhm, (x,y), verbose=verbose)
     
     if full_output:
         return opt_npc, finalfr

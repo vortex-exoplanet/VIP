@@ -17,7 +17,7 @@ from .snr import snr_ss
 from ..var import fit_2dgaussian
 
 
-def frame_quick_report(array, fwhm, y=None, x=None , verbose=True):
+def frame_quick_report(array, fwhm, source_xy=None, verbose=True):
     """ Gets information from given frame: Integrated flux in aperture, SNR of
     central pixel (max or given coordinates), mean SNR in aperture, fitted 
     coordinates (2d gaussian).
@@ -28,10 +28,8 @@ def frame_quick_report(array, fwhm, y=None, x=None , verbose=True):
         2d array or input frame.
     fwhm : float
         Size of the FWHM in pixels.
-    y : int, optional, None by default
-        Y coordinate of source center.
-    x : int, optional, None by default
-        X coordinate of source center.
+    source_xy : tuple of floats
+        X and Y coordinates of the source center.
     verbose : {True, False}, bool optional    
         If True prints to stdout the frame info.
         
@@ -47,18 +45,20 @@ def frame_quick_report(array, fwhm, y=None, x=None , verbose=True):
     """
     if not array.ndim == 2: raise TypeError('Array is not 2d.')
     
-    # we get integrated flux on aperture with diameter=1FWHM
-    if not y and not x:
+    if source_xy is not None: 
+        x, y = source_xy
+        if verbose: 
+            print
+            print('Coordinates of chosen px X,Y = {:},{:}'.format(x,y))
+    else:
         y, x = np.where(array == array.max())
         y = y[0]
         x = x[0]
         if verbose: 
             print
             print('Coordinates of Max px X,Y = {:},{:}'.format(x,y))
-    else:
-        if verbose: 
-            print
-            print('Coordinates of chosen px X,Y = {:},{:}'.format(x,y))
+    
+    # we get integrated flux on aperture with diameter=1FWHM
     aper = photutils.CircularAperture((x, y), fwhm/2.)
     obj_flux = photutils.aperture_photometry(array, aper, method='exact')
     obj_flux = obj_flux['aperture_sum'][0]

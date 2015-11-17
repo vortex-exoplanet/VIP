@@ -321,7 +321,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             if plot:
                 pp_subplots(subim, size=2)
             if verbose:  
-                _ = frame_quick_report(array, fwhm, y=y, x=x , verbose=verbose)
+                _ = frame_quick_report(array, fwhm, (x,y), verbose=verbose)
             yy_final.append(y)
             xx_final.append(x)
         else:
@@ -331,7 +331,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             if debug:
                 if plot:
                     pp_subplots(subim, size=2)
-                _ = frame_quick_report(array, fwhm, y=y, x=x , verbose=verbose)
+                _ = frame_quick_report(array, fwhm, (x,y), verbose=verbose)
             else:
                 if verbose:  print 'SNR = {:.3f}'.format(snr)
 

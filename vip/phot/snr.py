@@ -278,6 +278,8 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
     
     centery, centerx = frame_center(array)
     rad = dist(centery,centerx,sourcey,sourcex)
+    
+    sens = 'clock' #counterclock
         
     angle = np.arcsin(fwhm/2/rad)*2
     number_apertures = int(np.floor(2*np.pi/angle))
@@ -288,12 +290,15 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
     xx[0] = sourcex - centerx
     yy[0] = sourcey - centery
     for i in range(number_apertures-1):
-        xx[i+1] = cosangle*xx[i] + sinangle*yy[i] 
-        yy[i+1] = cosangle*yy[i] - sinangle*xx[i] 
-     
+        if sens=='clock':
+            xx[i+1] = cosangle*xx[i] + sinangle*yy[i] 
+            yy[i+1] = cosangle*yy[i] - sinangle*xx[i] 
+        elif sens=='counterclock':
+            xx[i+1] = cosangle*xx[i] - sinangle*yy[i] 
+            yy[i+1] = cosangle*yy[i] + sinangle*xx[i]           
+            
     xx[:] += centerx
     yy[:] += centery 
-        
     rad = fwhm/2.
     aperture = photutils.CircularAperture((xx, yy), r=rad)  # Coordinates (X,Y)                    
     fluxes = photutils.aperture_photometry(array, aperture, method='exact')    

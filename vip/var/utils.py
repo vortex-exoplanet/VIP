@@ -16,12 +16,25 @@ import os
 import numpy as np
 from matplotlib.pyplot import (figure, subplot, show, colorbar, rc, axes)
 from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from ..var import fit_2dgaussian, dist, frame_center
 from ..conf import VLT_NACO, LBT
 
 
 def pp_subplots(*args, **kwargs):
     """ Creating pyplot subplots dynamically. Friendly with jupyter notebooks.
+    
+    Parameters
+    ----------
+    rows : how many rows (to make a grid)
+    cmap : colormap
+    colorb : to attach a colorbar, off by default
+    vmax : for stretching the displayed pixels values
+    vmin : for stretching the displayed pixels values
+    dpi : dots per inch, for plot quality
+    title : title of the plot(s), None by default
+    noaxis : to remove the axis, on by default
+    
     """   
     if kwargs.has_key('rows'):
         rows = kwargs['rows']
@@ -31,10 +44,6 @@ def pp_subplots(*args, **kwargs):
         custom_cmap = kwargs['cmap']
     else:
         custom_cmap = 'CMRmap'
-    if kwargs.has_key('size'):
-        min_size = kwargs['size']
-    else:
-        min_size = 4
     if kwargs.has_key('colorb'):
         colorb = kwargs['colorb']
     else:
@@ -51,6 +60,14 @@ def pp_subplots(*args, **kwargs):
         rc("savefig", dpi=kwargs['dpi']) 
     else:
         rc("savefig", dpi=90) 
+    if kwargs.has_key('title'):
+        tit = kwargs['title']
+    else:
+        tit = None
+    if kwargs.has_key('noaxis'):
+        noax = kwargs['noaxis']
+    else:
+        noax = False
     
     if not isinstance(rows, int):
         raise(TypeError('Rows must be an integer'))
@@ -61,6 +78,7 @@ def pp_subplots(*args, **kwargs):
     else:
         cols = (num_plots/rows) + 1
     
+    min_size = 4
     max_hor_size = 13
     if rows==0:
         raise(TypeError('Rows must be greater than zero'))
@@ -74,16 +92,24 @@ def pp_subplots(*args, **kwargs):
             fig = figure(figsize=(min_size, 10))
         elif cols>1:
             fig = figure(figsize=(max_hor_size, 10))
-            
+    
+    if tit is not None:  fig.suptitle(tit, fontsize=14)
     fig.subplots_adjust(wspace=0.1)
     for i,v in enumerate(xrange(num_plots)):
         v += 1
         ax = subplot(rows,cols,v)
         im = ax.imshow(args[i], cmap=custom_cmap, interpolation='nearest', 
-                       origin='lower', vmin=vmin, vmax=vmax)
-        if colorb:  colorbar(im, ax=ax)
+                       origin='lower', vmin=vmin, vmax=vmax)      
+        if colorb: 
+            # create an axes on the right side of ax. The width of cax will be 5%
+            # of ax and the padding between cax and ax will be fixed at 0.05 inch. 
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="5%", pad=0.05)
+            colorbar(im, ax=ax, cax=cax)
         ax.grid('off')
+        if noax:  ax.set_axis_off()
     show()
+    
 
 
 def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False, 

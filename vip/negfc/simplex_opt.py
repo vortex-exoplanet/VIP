@@ -6,6 +6,7 @@ position of a companion using the Negative Fake Companion.
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from .func_merit import chisquare 
 
@@ -154,7 +155,6 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
     f0 = f_range[chi2r.argmin()]    
     
     if display:
-        import matplotlib.pyplot as plt
         plt.figure(figsize=kwargs.pop('figsize',(8,4)))
         plt.title(kwargs.pop('title',''))
         plt.xlim(kwargs.pop('xlim',[0,f_range.max()]))
@@ -169,6 +169,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
                        
         plt.xlabel("$f$")
         plt.ylabel("$\chi^2_{r}$")
+        plt.grid('on')
     if save:
         plt.savefig('chi2rVSflux.pdf')
     if display:
@@ -181,7 +182,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
 def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width, aperture_radius, 
                planets_xy_coord, cube_ref=None, svd_mode='lapack',  
                p_ini=None, f_range=None, simplex=False, simplex_options=None, 
-               display=False, verbose=True, save=False, figure_options={}):
+               display=False, verbose=True, save=False, figure_options=None):
     """ Determines a first guess for the position and the flux of a planet.
         
     We process the cube without injecting any negative fake companion. 
@@ -248,7 +249,12 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width, aperture_radius,
     n_planet = planets_xy_coord.shape[0]
 
     center_xy_coord = np.array([cube.shape[1]/2.,cube.shape[2]/2.])    
-
+    
+    if figure_options is None:
+        figure_options = {'color':'b', 'marker':'o',
+                          'xlim': [f_range[0]-10,f_range[-1]+10], 
+                          'title':r'$\chi^2_{r}$ vs flux'}
+    
     if f_range is None:
         f_range = np.linspace(0,2000,20)
     

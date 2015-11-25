@@ -109,7 +109,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01, wavelet=False,
     The radon transform comes from scikit-image package. Takes a few seconds to
     compute one radon transform with good resolution. The whole idea of this
     algorithm is based on Pueyo et al. 2014 paper: 
-    http://arxiv.org/abs/1409.6388 
+    http://arxiv.org/abs/1409.6388
     
     Parameters
     ----------
@@ -438,7 +438,8 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
 
 def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1, 
                               nproc=None, full_output=False, verbose=True, 
-                              save_shifts=False, debug=False):
+                              save_shifts=False, debug=False, 
+                              unmoving_star=True):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
     gaussian to a subimage centered at (pos_x, pos_y). This assumes the frames 
     don't have too large shifts (>5px). The frames are shifted using the 
@@ -469,6 +470,12 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1,
         Whether to save the shifts to a file in disk.
     debug : {False, True}, bool optional
         Whether to print to stdout the shifts or not. 
+    unmoving_star : {False, True}, bool optional
+        Whether the star centroid is expected to not move a lot within the 
+        frames of the input cube. If False, then an additional test is done to 
+        be sure the centroid fit returns a reasonable index value (close to the 
+        median of the centroid indices in the other frames) - hence not taking 
+        noise or a clump of uncorrected bad pixels.
         
     Returns
     -------
@@ -480,9 +487,9 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1,
     
     """    
     if not array.ndim == 3:
-        raise TypeError('Input array is not a cube or 3d array')
-    if not pos_x or not pos_y:
-        raise ValueError('Missing parameters POS_Y and/or POS_X')
+         raise TypeError('Input array is not a cube or 3d array')
+    # if not pos_x or not pos_y:
+    #     raise ValueError('Missing parameters POS_Y and/or POS_X')
     
     # If frame size is even we drop a row and a column
     if array.shape[1]%2==0:
@@ -503,6 +510,28 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1,
     size = np.zeros(n_frames)    
     for kk in range(n_frames):
         size[kk] = max(2,int(fwhm[kk]*subi_size))
+
+    if isinstance(pos_x,int) or isinstance(pos_y,int):
+        if isinstance(pos_x,int) and not isinstance(pos_y,int):
+            raise ValueError('pos_x and pos_y should have the same shape')
+        elif not isinstance(pos_x,int) and isinstance(pos_y,int):
+            raise ValueError('pos_x and pos_y should have the same shape')
+        pos_x_scal, pos_y_scal = pos_x, pos_y
+        pos_x, pos_y = np.zeros((n_frames)),np.zeros((n_frames))
+        pos_x[:], pos_y[:] = pos_x_scal, pos_y_scal
+
+    ### Precaution: some frames are dominated by noise and hence cannot be used
+    ### to find the star with a Moffat or Gaussian fit.
+    ### In that case, just replace the coordinates by the approximate ones
+    if unmoving_star:
+        star_approx_coords, star_not_present = approx_stellar_position(array,
+                                                                       fwhm,
+                                                                       True)
+        star_approx_coords.tolist()
+        star_not_present.tolist()
+    else:
+        star_approx_coords, star_not_present = [None]*n_frames, [None]*n_frames
+
     
     if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
         nproc = (cpu_count()/2) 
@@ -511,7 +540,9 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1,
         bar = pyprind.ProgBar(n_frames, stream=1, 
                               title='Looping through frames')
         for i in range(n_frames):
-            res.append(_centroid_2dg_frame(array, i, size[i], pos_y, pos_x))
+            res.append(_centroid_2dg_frame(array, i, size[i], pos_y[i], 
+                                           pos_x[i], star_approx_coords[i], 
+                                           star_not_present[i]))
             bar.update()
         res = np.array(res)
     elif nproc>1:
@@ -519,9 +550,11 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1,
         res = pool.map(eval_func_tuple,itt.izip(itt.repeat(_centroid_2dg_frame),
                                                 itt.repeat(array),
                                                 range(n_frames),
-                                                itt.repeat(size),
-                                                itt.repeat(pos_y), 
-                                                itt.repeat(pos_x))) 
+                                                size.tolist(),
+                                                pos_y.tolist(), 
+                                                pos_x.tolist(),
+                                                star_approx_coords,
+                                                star_not_present))  
         res = np.array(res)
         pool.close()
     y = cy - res[:,0]
@@ -679,18 +712,14 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         return array_recentered
 
 
-def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x):
+def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x,, 
+                        star_approx_coords=None, star_not_present=None):
     """ Finds the centroid by using a 2d gaussian fitting in one frame from a 
     cube. To be called from whitin cube_recenter_gauss2d_fit().
     """
 
-    if isinstance(size,float) or isinstance(size,int):
-        size_scal = size
-        size = np.zeros(cube.shape[0])
-        size[:] = size_scal
-
-    sub_image, y1, x1 = get_square(cube[frnum], size=size[frnum], y=pos_y, 
-                                   x=pos_x,position=True)
+    sub_image, y1, x1 = get_square(cube[frnum], size=size, y=pos_y, 
+                                   x=pos_x, position=True)
     sub_image = sub_image.byteswap().newbyteorder()
     # we check if the min pixel is located in the center (negative gaussian)
     miny, minx = np.where(sub_image==sub_image.min())
@@ -698,8 +727,13 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x):
     if np.allclose(miny, cy, atol=2) and np.allclose(minx, cx, atol=2):
         sub_image = -sub_image + np.abs(np.min(-sub_image))
         
-    x_i, y_i = photutils.morphology.centroid_2dg(sub_image)   
-    #x_i, y_i = photutils.morphology.centroid_com(sub_image)              
+    if star_approx_coords is not None and star_not_present is not None:
+        if star_not_present:
+            y_i,x_i = star_approx_coords
+        else:
+            x_i, y_i = photutils.morphology.centroid_2dg(sub_image)
+    else:
+        x_i, y_i = photutils.morphology.centroid_2dg(sub_image)
     y_i = y1 + y_i
     x_i = x1 + x_i
     return y_i, x_i

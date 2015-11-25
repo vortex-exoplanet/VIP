@@ -13,7 +13,7 @@ __all__ = ['detection',
 
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy.ndimage.filters import correlate, gaussian_filter
+from scipy.ndimage.filters import correlate
 from skimage import feature
 from astropy.stats import sigma_clipped_stats
 from astropy.stats import gaussian_fwhm_to_sigma, gaussian_sigma_to_fwhm
@@ -22,7 +22,8 @@ from astropy.modeling.models import Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter
 from photutils.detection import findstars
 from skimage.feature import peak_local_max
-from ..var import mask_circle, pp_subplots, get_square, frame_center
+from ..var import (mask_circle, pp_subplots, get_square, frame_center, 
+                   gaussian_filter_sp)
 from .snr import snr_ss
 from .frame_analysis import frame_quick_report
 
@@ -384,12 +385,13 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         return yy_final, xx_final
 
     
-def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None):
+def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None, 
+                     channels_peak=False):
     """Find the pixel coordinates of maximum in either a frame or a cube, 
     after convolution with gaussian. It first applies a gaussian filter, to 
     lower the probability of returning a hot pixel (although it may still 
     happen with clumps of hot pixels, hence the need for function 
-    "approx_stellar_position".
+    "approx_stellar_position").
     
     Parameters
     ----------
@@ -399,59 +401,92 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None):
         Input full width half maximum value of the PSF in pixels. This will be 
         used as the standard deviation for Gaussian kernel of the Gaussian 
         filtering.
-    approx_peak: 
-        List_like, vector of 2 components giving the approximate coordinates 
-        of the peak.
-    search_box: 
-        Scalar or list_like (of 2 components) giving the half-size in pixels 
-        of a box in which the peak is searched, aroung approx_peak.
+    approx_peak: 2 components list or array, opt
+        Gives the approximate coordinates of the peak.
+    search_box: float or 2 components list or array, opt
+        Gives the half-size in pixels of a box in which the peak is searched, 
+        around approx_peak. If float, it is assumed the same box size is wanted 
+        in both y and x. Note that this parameter should be provided if 
+        approx_peak is provided.
+    channels_peak: bool, {False, True}, opt
+        Whether returns the indices of the peak in each channel in addition to 
+        the global indices of the peak in the cube. If True, it would hence also
+        return two 1d-arrays. (note: only available if the input is a 3d cube)
 
     Returns
     -------
     zz_max, yy_max, xx_max : integers
         Indices of highest throughput channel
+    
     """
 
     ndims = len(obj_tmp.shape)
     assert ndims == 2 or ndims == 3, "Array is not two or three dimensional"
     
+    if approx_peak is not None:
+        assert len(approx_peak) == 2, "Approx peak is not two dimensional"
+        if isinstance(search_box,float) or isinstance(search_box,int):
+            sbox_y = search_box
+            sbox_x = search_box
+        elif len(search_box) == 2:
+            sbox_y = search_box[0]
+            sbox_x = search_box[1]
+        else:
+            msg = "The search box does not have the right number of elements"
+            raise ValueError(msg)
+        if ndims == 3:
+            n_z = obj_tmp.shape[0]
+            sbox = np.zeros([n_z,2*sbox_y+1,2*sbox_x+1])
+
     if ndims == 2:
-        gauss_filt_tmp = gaussian_filter(obj_tmp, fwhm)
-        if approx_peak == None:
+        gauss_filt_tmp = gaussian_filter_sp(obj_tmp, 
+                                            fwhm/gaussian_sigma_to_fwhm)
+        if approx_peak is None:
             ind_max = np.unravel_index(gauss_filt_tmp.argmax(), 
                                        gauss_filt_tmp.shape)
         else:
-            assert len(approx_peak) == 2, "Approx peak is not two dimensional"
-            nel_sbox = len(search_box)
-            msg = "The search box does not have the right number of elements"
-            assert nel_sbox == 1 or nel_sbox == 2, msg
-            if nel_sbox == 1:
-                search_box_y = search_box
-                search_box_x = search_box
-            else:
-                search_box_y = search_box[0]
-                search_box_x = search_box[1]
-            sbox = gauss_filt_tmp[approx_peak[0]-search_box_y:approx_peak[0]\
-                                  +search_box_y+1,approx_peak[1]-search_box_x\
-                                  :approx_peak[1]+search_box_x+1]
+            sbox = gauss_filt_tmp[approx_peak[0]-sbox_y:approx_peak[0]+sbox_y+1,
+                                  approx_peak[1]-sbox_x:approx_peak[1]+sbox_x+1]
             ind_max_sbox = np.unravel_index(sbox.argmax(), sbox.shape)
-            ind_max = (approx_peak[0]-search_box_y+ind_max_sbox[0],
-                       approx_peak[1]-search_box_x+ind_max_sbox[1])
+            ind_max = (approx_peak[0]-sbox_y+ind_max_sbox[0],
+                       approx_peak[1]-sbox_x+ind_max_sbox[1])
+
+        return ind_max
 
     if ndims == 3:
         n_z = obj_tmp.shape[0]
         gauss_filt_tmp = np.zeros_like(obj_tmp)
+        ind_ch_max = np.zeros([n_z,2])
 
-        msg2 = "The search for the peak in a 3D cube, with the approx peak"
-        msg2 +=  "option is not implemented.\n"
-        assert approx_peak == None, msg2
         for zz in range(n_z):
-            gauss_filt_tmp[zz] = gaussian_filter(obj_tmp[zz], fwhm[zz])
+            gauss_filt_tmp[zz] = gaussian_filter_sp(obj_tmp[zz], 
+                                                    fwhm[zz]/gaussian_sigma_to_fwhm)
+            if approx_peak is None:
+                ind_ch_max[zz] = np.unravel_index(gauss_filt_tmp[zz].argmax(), 
+                                                  gauss_filt_tmp[zz].shape)
+            else:
+                sbox[zz] = gauss_filt_tmp[zz, approx_peak[0]-sbox_y:\
+                                          approx_peak[0]+sbox_y+1,
+                                          approx_peak[1]-sbox_x:\
+                                          approx_peak[1]+sbox_x+1]
+                ind_max_sbox = np.unravel_index(sbox[zz].argmax(), 
+                                                sbox[zz].shape)
+                ind_ch_max[zz] = (approx_peak[0]-sbox_y+ind_max_sbox[0],
+                                  approx_peak[1]-sbox_x+ind_max_sbox[1])
 
-        ind_max = np.unravel_index(gauss_filt_tmp.argmax(), 
-                                   gauss_filt_tmp.shape)
-        
-    return ind_max
+        if approx_peak is None:
+            ind_max = np.unravel_index(gauss_filt_tmp.argmax(), 
+                                       gauss_filt_tmp.shape)
+        else:
+            ind_max_tmp = np.unravel_index(sbox.argmax(), 
+                                           sbox.shape)
+            ind_max = (ind_max_tmp[0]+approx_peak[0]-sbox_y,
+                       ind_max_tmp[1]+approx_peak[1]-sbox_x)
+
+        if channels_peak:
+            return ind_max, ind_ch_max
+        else:
+            return ind_max
 
 
 def mask_source_centers(array, fwhm, y, x):                                                  

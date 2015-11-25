@@ -436,7 +436,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
         return array_rec
   
 
-def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1, 
+def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5, 
                               nproc=None, full_output=False, verbose=True, 
                               save_shifts=False, debug=False, 
                               unmoving_star=True):
@@ -535,7 +535,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1,
     
     if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
         nproc = (cpu_count()/2) 
-    elif nproc==1:
+    if nproc==1:
         res = []
         bar = pyprind.ProgBar(n_frames, stream=1, 
                               title='Looping through frames')
@@ -554,7 +554,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=1,
                                                 pos_y.tolist(), 
                                                 pos_x.tolist(),
                                                 star_approx_coords,
-                                                star_not_present))  
+                                                star_not_present)) 
         res = np.array(res)
         pool.close()
     y = cy - res[:,0]
@@ -712,14 +712,14 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         return array_recentered
 
 
-def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x,, 
+def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x,
                         star_approx_coords=None, star_not_present=None):
     """ Finds the centroid by using a 2d gaussian fitting in one frame from a 
     cube. To be called from whitin cube_recenter_gauss2d_fit().
     """
 
-    sub_image, y1, x1 = get_square(cube[frnum], size=size, y=pos_y, 
-                                   x=pos_x, position=True)
+    sub_image, y1, x1 = get_square_robust(cube[frnum], size=size, y=pos_y, 
+                                           x=pos_x, position=True)
     sub_image = sub_image.byteswap().newbyteorder()
     # we check if the min pixel is located in the center (negative gaussian)
     miny, minx = np.where(sub_image==sub_image.min())
@@ -729,11 +729,13 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x,,
         
     if star_approx_coords is not None and star_not_present is not None:
         if star_not_present:
-            y_i,x_i = star_approx_coords
+            y_i, x_i = star_approx_coords
         else:
             x_i, y_i = photutils.morphology.centroid_2dg(sub_image)
+            #y_i, x_i = photutils.morphology.centroid_2dg(sub_image)
     else:
         x_i, y_i = photutils.morphology.centroid_2dg(sub_image)
+        #y_i, x_i = photutils.morphology.centroid_2dg(sub_image)
     y_i = y1 + y_i
     x_i = x1 + x_i
     return y_i, x_i

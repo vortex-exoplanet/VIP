@@ -9,26 +9,28 @@ from __future__ import division
 __author__ = 'C. Gomez @ ULg', 'O. Wertz'
 __all__ = ['pp_subplots',
            'plot_surface',
-           'lines_of_code',
-           'px2mas']
+           'lines_of_code']
 
 import os
 import numpy as np
 from matplotlib.pyplot import (figure, subplot, show, colorbar, rc, axes)
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from ..var import fit_2dgaussian, dist, frame_center
-from ..conf import VLT_NACO, LBT
+from .shapes import frame_center
 
 
 def pp_subplots(*args, **kwargs):
-    """ Creating pyplot subplots dynamically. Friendly with jupyter notebooks.
+    """ Creates pyplot subplots dynamically. It allows displaying images in 
+    jupyter notebooks easily, with shortcuts to functions for controlling the
+    settings of the plot. The function also fixes some annoying defaults of 
+    pyplot that do not work well for astro-data.
     
-    Parameters
-    ----------
-    rows : how many rows (to make a grid)
-    cmap : colormap
+    Parameters in **kwargs
+    ----------------------
+    rows : how many rows (subplots in a grid)
+    cmap : colormap to be used, CMRmap by default
     colorb : to attach a colorbar, off by default
+    grid : for showing a grid over the image, off by default
     vmax : for stretching the displayed pixels values
     vmin : for stretching the displayed pixels values
     dpi : dots per inch, for plot quality
@@ -48,6 +50,10 @@ def pp_subplots(*args, **kwargs):
         colorb = kwargs['colorb']
     else:
         colorb = False
+    if kwargs.has_key('grid'):
+        grid = kwargs['grid']
+    else:
+        grid = False
     if kwargs.has_key('vmax'):
         vmax = kwargs['vmax']
     else:
@@ -106,7 +112,10 @@ def pp_subplots(*args, **kwargs):
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             colorbar(im, ax=ax, cax=cax)
-        ax.grid('off')
+        if grid:  
+            ax.grid('on', which='both', color='w')
+        else:
+            ax.grid('off')
         if noax:  ax.set_axis_off()
     show()
     
@@ -143,12 +152,7 @@ def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False,
         x and y for the grid, and the intensity
         
     """        
-    if not center:
-        size = image.shape[0]
-        x = np.outer(np.arange(0,size,1), np.ones(size))
-        y = x.copy().T 
-        z = image
-    else: 
+    if center is not None: 
         if ds9_indexing:
             center = (center[0]-1,center[1]-1) 
             cx, cy = center
@@ -159,14 +163,33 @@ def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False,
         else:                   # otherwise, size is even
             x = np.outer(np.arange(0,size+1,1), np.ones(size+1))
         y = x.copy().T            
-        z = image[cy-size//2:cy+size//2+1,cx-size//2:cx+size//2+1]           
+        z = image[cy-size//2:cy+size//2+1,cx-size//2:cx+size//2+1]   
+    else:
+        cy, cx = frame_center(image)
+        if size is not None:
+            if size % 2:
+                x = np.outer(np.arange(0,size,1), np.ones(size))
+            else: 
+                x = np.outer(np.arange(0,size+1,1), np.ones(size+1))
+            y = x.copy().T
+            z = image[cy-size//2:cy+size//2+1,cx-size//2:cx+size//2+1]
+        else:
+            size = image.shape[0]
+            x = np.outer(np.arange(0,size,1), np.ones(size))
+            y = x.copy().T 
+            z = image        
     
-    figure(figsize=kwargs.pop('figsize',(5,5)))
+    figure(figsize=kwargs.pop('figsize',(6,6)))
     ax = axes(projection='3d')
+    ax.dist = 12
     ax.plot_surface(x, y, z, rstride=1, cstride=1, linewidth=0, **kwargs) 
     ax.set_xlabel('$x$')
     ax.set_ylabel('$y$')
     ax.set_zlabel('$I(x,y)$')
+    ax.xaxis._axinfo['label']['space_factor'] = 2
+    ax.yaxis._axinfo['label']['space_factor'] = 2
+    ax.zaxis._axinfo['label']['space_factor'] = 3.5
+    ax.zaxis._axinfo['ticklabel']['space_factor'] = 1.5
     ax.set_title('Data')
     show()
     
@@ -201,27 +224,27 @@ def lines_of_code():
 
 
 #TODO: move later to a separate module
-def px2mas(array, y, x, instrument='naco', fwhm=None):
-    """ Returns the distance in milliarcseconds of a source in a frame for a 
-    given instrument and pixel coordinates. 
-    """
-    if fwhm:
-        fy, fx = fit_2dgaussian(array, y, x, fwhm=fwhm)
-    else:
-        if instrument=='naco': 
-            INST = VLT_NACO
-        elif instrument=='lmircam':
-            INST = LBT
-        else:
-            raise TypeError('Instrument not recognized.')
-        fwhm = INST['lambdal']/INST['diam']*206265/INST['plsc'] 
-        fy, fx = fit_2dgaussian(array, y, x, fwhm)
-    
-    cy, cx = frame_center(array)
-    dist_px = dist(cy,cx,fy,fx)
-    dist_arcs = dist_px*INST['plsc']
-    dist_mas = dist_arcs/0.001
-    return dist_mas
+# def px2mas(array, y, x, instrument='naco', fwhm=None):
+#     """ Returns the distance in milliarcseconds of a source in a frame for a 
+#     given instrument and pixel coordinates. 
+#     """
+#     if fwhm:
+#         fy, fx = fit_2dgaussian(array, y, x, fwhm=fwhm)
+#     else:
+#         if instrument=='naco': 
+#             INST = VLT_NACO
+#         elif instrument=='lmircam':
+#             INST = LBT
+#         else:
+#             raise TypeError('Instrument not recognized.')
+#         fwhm = INST['lambdal']/INST['diam']*206265/INST['plsc'] 
+#         fy, fx = fit_2dgaussian(array, y, x, fwhm)
+#     
+#     cy, cx = frame_center(array)
+#     dist_px = dist(cy,cx,fy,fx)
+#     dist_arcs = dist_px*INST['plsc']
+#     dist_mas = dist_arcs/0.001
+#     return dist_mas
 
 
  

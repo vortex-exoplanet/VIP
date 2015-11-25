@@ -261,9 +261,9 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         V = V[:ncomp]
         if verbose: print('Done SVD/PCA with scipy linalg eigh functions')
         
-    # When num_px < num_frames (rare case) or we need all the PCs
+    # we transpose the matrix and will keep the left (transposed) SVs
     elif mode=='lapack':
-        U, S, V = linalg.svd(matrix, full_matrices=False)         
+        U, S, V = linalg.svd(matrix.T, full_matrices=False)         
         if debug: reconstruction(ncomp, U, S, V, 1)
         # we cut projection matrix according to the # of PCs
         V = V[:ncomp]                                             
@@ -291,6 +291,8 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
             
     if usv and mode!='opencv':
         return U, S, V
+    elif mode=='lapack':
+        return U.T
     else:
         return V
 

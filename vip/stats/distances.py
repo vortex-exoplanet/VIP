@@ -246,9 +246,6 @@ def cube_distance_to_frame(array, frame_ref, mode='full', dist='sad',
         plt.minorticks_on()
         plt.legend(fancybox=True, framealpha=0.5, fontsize=12, loc='best')
         plt.grid(which='both')
-    else:
-        print 'Median distance value : '+str(median_cor)
-        print 'Mean distance value : '+str(mean_cor)
         
     return lista
 

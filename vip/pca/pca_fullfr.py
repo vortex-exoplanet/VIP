@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore", category=Warning)
 
 
 def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
-        svd_mode='randsvd', scaling='mean', mask_center_px=None, 
+        svd_mode='lapack', scaling=None, mask_center_px=None, 
         full_output=False, verbose=True, debug=False):
     """ Algorithm where the reference PSF and the quasi-static speckle pattern 
     are modeled using Principal Component Analysis. Depending on the input
@@ -86,7 +86,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         ncomp2 goes up to the number of multi-spectral frames. 
     svd_mode : {'randsvd', 'eigen', 'lapack', 'arpack', 'opencv'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
-    scaling : {'mean', 'standard', None}, optional
+    scaling : {None, 'mean', 'standard'}, optional
         If "mean" then temporal px-wise mean subtraction is done, if "standard" 
         then mean centering plus scaling to unit variance is done. With None, no
         scaling is performed on the input data before SVD.

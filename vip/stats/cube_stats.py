@@ -156,8 +156,8 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False,
     size : int
         How many pixels in radial direction contains the annulus.
     plot : None,1,2, optional
-        If 1 it plots the mean, mean/std_dev and max.
-        If 2 it also plots the median, std_dev and the mean and std_dev 
+        If 1 it plots the mean, std_dev and max.
+        If 2 it also plots the median, mean/std_dev and the mean and std_dev 
         correlation. 
     full_out : {False,True}, optional
         If true it returns mean, std_dev, median, if false just the 
@@ -200,24 +200,24 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False,
             plt.close('Stats in annulus 1') 
             plt.close('Std_dev - mean in annulus')
             
-            plt.figure('Stats in annulus 1', figsize=(12, 8))    
+            plt.figure('Stats in annulus 1', figsize=(12, 4))    
             plt.grid('on')
             if n < 400:
                 plt.minorticks_on()
                 plt.xticks(range(0, n, 10))
-            plt.plot(mean, label='mean', lw = 0.8, ls='-')
-            plt.plot(mean/std_dev, label='mean/std_dev', lw = 0.8)
-            plt.plot(maxi, label='max', lw=0.8)
-            plt.legend(fancybox=True).get_frame().set_alpha(0.5)
+            plt.plot(mean, 'o-', label='mean', lw = 0.8, alpha=0.6)
+            plt.plot(std_dev, 'o-', label='std_dev', lw = 0.8, alpha=0.6)
+            plt.plot(maxi, 'o-', label='max', lw=0.8, alpha=0.6)
+            plt.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)
             
-            plt.axes([0.115,0.79,0.1,0.1])
+            plt.axes([0.095,0.79,0.1,0.1])
             plt.axis('off')
             if len(arr.shape) == 3:
                 annulus = get_annulus(arr[0], inner_radius, size)
             else:
                 annulus = get_annulus(arr, inner_radius, size)
             plt.imshow(annulus, origin = 'lower', interpolation="nearest", 
-                       cmap = plt.get_cmap('gray'))                             # shows annulus from 1st fr
+                       cmap = plt.get_cmap('CMRmap'))                           # shows annulus from 1st fr
             plt.xlim((widht/2)-(inner_radius+size), 
                      (widht/2)+(inner_radius+size))
             plt.ylim((height/2)-(inner_radius+size), 
@@ -227,7 +227,7 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False,
                 plt.figure('Stats in annulus 2', figsize=(12, 8))
                 plt.grid('on')
                 plt.minorticks_on()
-                plt.plot(std_dev, label='std dev', lw = 0.5, ls='-')
+                plt.plot(mean/std_dev, label='mean/std dev', lw = 0.5, ls='-')
                 plt.plot(median, label='median', lw = 0.8, ls='-')
                 plt.legend(fancybox=True).get_frame().set_alpha(0.5) 
                 

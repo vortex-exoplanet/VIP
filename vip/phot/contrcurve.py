@@ -111,7 +111,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         vector_radd = vector_radd[:-1]
     
     # noise measured in the empty PCA-frame with better sampling (every 2 px)
-    noise_samp, rad_samp = noise_per_annulus(frame_nofc, 1, fwhm, False)    
+    noise_samp, rad_samp = noise_per_annulus(frame_nofc, fwhm, fwhm, False)    
     cutin1 = np.where(rad_samp.astype(int)==vector_radd.astype(int).min())[0]
     noise_samp = noise_samp[cutin1:]
     rad_samp = rad_samp[cutin1:]

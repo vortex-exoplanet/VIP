@@ -9,6 +9,12 @@ VLT_NACO['diam']
 
 """
 
+VLT_SPHERE = {
+    'latitude' : -24.627,
+    'longitude' : -70.404,
+    'plsc' : 0.01225,                       # plate scale [arcsec]/px
+    'diam': 8.2,                            # telescope diameter [m]
+              }
 
 VLT_NACO = {
     'latitude' : -24.627,
@@ -20,7 +26,7 @@ VLT_NACO = {
     # header keywords
     'kw_categ' : 'HIERARCH ESO DPR CATG',   # header keyword for calibration frames: 'CALIB' / 'SCIENCE'
     'kw_type' : 'HIERARCH ESO DPR TYPE'     # header keyword for frame type: 'FLAT,SKY' / 'DARK' / 'OBJECT' / 'SKY'
-}
+            }
 
 VLT_SINFONI = {
     'latitude' : -24.627,
@@ -36,7 +42,7 @@ VLT_SINFONI = {
     # header keywords
     'kw_categ' : 'HIERARCH ESO DPR CATG',   # header keyword for calibration frames: 'CALIB' / 'SCIENCE'
     'kw_type' : 'HIERARCH ESO DPR TYPE'     # header keyword for frame type: 'FLAT,SKY' / 'DARK' / 'OBJECT' / 'SKY'
-}
+            }
 
 LBT = {
     'latitude' : 32.70131,                  # LBT's latitude in degrees
@@ -53,7 +59,7 @@ LBT = {
     'exptime' : 'EXPTIME',                  # nominal total integration time per pixel header keyword
     'acqtime' : 'ACQTIME',                  # total controller acquisition time header keyword    
     'filter' : 'LMIR_FW2'                   # filter
-}
+            }
 
 KECK_NIRC2 = {
     'plsc_narrow' : 0.009942,               # plate scale [arcsec]/px, narrow camera
@@ -62,6 +68,6 @@ KECK_NIRC2 = {
     'latitude' : 19.82636,                  # Keck's latitude in degrees
     # header keywords
     'camera_name' : 'CAMNAME'               # camera name bwt narrow, medium and wide
-}
+            }
 
 

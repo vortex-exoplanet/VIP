@@ -487,7 +487,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
     
     """    
     if not array.ndim == 3:
-         raise TypeError('Input array is not a cube or 3d array')
+        raise TypeError('Input array is not a cube or 3d array')
     # if not pos_x or not pos_y:
     #     raise ValueError('Missing parameters POS_Y and/or POS_X')
     

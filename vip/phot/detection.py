@@ -23,7 +23,7 @@ from astropy.modeling.fitting import LevMarLSQFitter
 from photutils.detection import findstars
 from skimage.feature import peak_local_max
 from ..var import (mask_circle, pp_subplots, get_square, frame_center, 
-                   gaussian_filter_sp)
+                   gaussian_filter_sp, fit_2dgaussian)
 from .snr import snr_ss
 from .frame_analysis import frame_quick_report
 
@@ -142,6 +142,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
                                y_stddev=fwhm*gaussian_fwhm_to_sigma, theta=0)
             
             sy, sx = np.indices(subim.shape)
+            fitter = LevMarLSQFitter() 
             fit = fitter(gauss, sx, sy, subim)
             
             # checking that the amplitude is positive > 0
@@ -188,22 +189,17 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     if not psf.ndim == 2 and psf.shape[0] < array.shape[0]:
         raise TypeError('Input psf is not a 2d array or has wrong size')
     
-    # Getting the FWHM with a 2d gaussian fit on the PSF
-    gauss = Gaussian2D(amplitude=1, x_mean=5, y_mean=5, x_stddev=3.5, 
-                       y_stddev=3.5, theta=0)
-    fitter = LevMarLSQFitter()                  # Levenberg-Marquardt algorithm
-    psf_subimage = get_square(psf, 9, frame_center(psf)[0],frame_center(psf)[1])
-    y, x = np.indices(psf_subimage.shape)
-    fit = fitter(gauss, x, y, psf_subimage)
-    fwhm = np.mean([fit.y_stddev.value*gaussian_sigma_to_fwhm, 
-                    fit.x_stddev.value*gaussian_sigma_to_fwhm])
+    # Getting the FWHM from the PSF array
+    _,_,fwhm_y,fwhm_x, _,_ = fit_2dgaussian(psf, full_output=True,verbose=False,
+                                               cent=(frame_center(psf)[1],
+                                                     frame_center(psf)[0]))
+    fwhm = np.mean([fwhm_x, fwhm_y])
     if verbose:  
         print 'FWHM =', fwhm
         print
-    if debug:  
-        print 'FWHM_y ', fit.y_stddev.value*gaussian_sigma_to_fwhm
-        print 'FWHM_x ', fit.x_stddev.value*gaussian_sigma_to_fwhm  
-        print
+    if debug:   
+        print 'FWHM_y', fwhm_y
+        print 'FWHM_x', fwhm_x
     
     # Masking the center, 2*lambda/D is the expected IWA
     if mask:  array = mask_circle(array, radius=fwhm)

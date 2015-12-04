@@ -171,7 +171,7 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
 
 
 
-def prepare_matrix(array, scaling='mean', mask_center_px=None, verbose=True):
+def prepare_matrix(array, scaling=None, mask_center_px=None, verbose=True):
     """ Builds the matrix for the SVD/PCA and other matrix decompositions, 
     centers the data and masks the frames central area if needed.
     
@@ -179,10 +179,13 @@ def prepare_matrix(array, scaling='mean', mask_center_px=None, verbose=True):
     ----------
     array : array_like
         Input cube, 3d array.
-    scaling : {'mean', 'standard', None}, optional
-        If "mean" then temporal px-wise mean subtraction is done, if "standard" 
-        then mean centering plus scaling to unit variance is done. With None, no
-        scaling is performed on the input data before SVD.
+    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done, with 
+        "spat-mean" then the spatial mean is subtracted, with "temp-standard" 
+        temporal mean centering plus scaling to unit variance is done and with
+        "spat-standard" spatial mean centering plus scaling to unit variance is
+        performed.  
     mask_center_px : None or Int, optional
         Whether to mask the center of the frames or not.
     verbose : {True, False}, bool optional
@@ -202,10 +205,14 @@ def prepare_matrix(array, scaling='mean', mask_center_px=None, verbose=True):
     
     if scaling==None:
         pass
-    elif scaling=='mean':
+    elif scaling=='temp-mean':
         matrix = scale(matrix, with_mean=True, with_std=False)
-    elif scaling=='standard':
-        matrix = scale(matrix, with_mean=True, with_std=True)                
+    elif scaling=='spat-mean':
+        matrix = scale(matrix, with_mean=True, with_std=False, axis=1)
+    elif scaling=='temp-standard':
+        matrix = scale(matrix, with_mean=True, with_std=True)
+    elif scaling=='spat-standard':
+        matrix = scale(matrix, with_mean=True, with_std=True, axis=1)                
     else:
         raise ValueError('Scaling mode not recognized')
     
@@ -237,6 +244,8 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
     
     def reconstruction(ncomp, U, S, V, var=1): 
         rec_matrix = np.dot(U, np.dot(np.diag(S), V))
+        if mode=='lapack':
+            rec_matrix = rec_matrix.T
         print('  Matrix reconstruction MAE =', mean_absolute_error(matrix, 
                                                                    rec_matrix))
         exp_var = (S ** 2) / matrix.shape[0]
@@ -251,13 +260,14 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         print(msg.format(ncomp, ratio_cumsum[ncomp-1]))
         
     if mode=='eigen':
+#         M = np.cov(matrix.T)
         M = np.dot(matrix, matrix.T)                             # covariance matrix
         e, EV = linalg.eigh(M)                                   # eigenvalues and eigenvectors
         pc = np.dot(EV.T, matrix)                                # PCs / compact trick
         V = pc[::-1]                                             # reverse since last eigenvectors are the ones we want 
         S = np.sqrt(e)[::-1]                                     # reverse since eigenvalues are in increasing order 
         for i in xrange(V.shape[1]): 
-            V[:,i] /= S
+            V[:,i] /= S                                          # scaling by the sqared root of eigenvalues
         V = V[:ncomp]
         if verbose: print('Done SVD/PCA with scipy linalg eigh functions')
         

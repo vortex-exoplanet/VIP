@@ -131,17 +131,18 @@ def create_psf_template(array, size, fwhm=5, verbose=True, collapse='mean'):
     return psf_normd
 
 
-def psf_norm(array, size, fwhm):
+def psf_norm(array, size=None, fwhm=4):
     """ Scales a PSF, so the 1*FWHM aperture flux equals 1.
     
     Parameters
     ----------
     array: array_like
-        The relative path to the psf fits image.
-    size : int or None
-        Size of the squared subimage.
-    fwhm: float
-        The size of the Full Width Half Maximum in pixel.
+        The psf 2d array.
+    size : int or None, optional
+        If int it will correspond to the size of the squared subimage to be 
+        cropped form the psf array.
+    fwhm: float, optional
+        The the Full Width Half Maximum in pixels.
         
     Returns
     -------
@@ -149,7 +150,10 @@ def psf_norm(array, size, fwhm):
         The scaled psf.
 
     """
-    if size is not None:  psfs = frame_crop(array, size, verbose=False)
+    if size is not None:  
+        psfs = frame_crop(array, size, verbose=False)
+    else:
+        psfs = array.copy()
      
     fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2.)
     fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper, 

@@ -81,7 +81,7 @@ def frame_quick_report(array, fwhm, source_xy=None, verbose=True):
         print('-----------------------------------------')
         
     # we fit a 2d gaussian to the approx center px of the planet
-    fy, fx = fit_2dgaussian(array, y, x, fwhm)
+    fy, fx = fit_2dgaussian(array, (x,y), fwhm)
     if verbose: print('Fitted X,Y = {:.3f},{:.3f}'.format(fx, fy))
     
     return obj_flux, snr_pixels, fy, fx

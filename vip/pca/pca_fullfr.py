@@ -86,10 +86,13 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         ncomp2 goes up to the number of multi-spectral frames. 
     svd_mode : {'randsvd', 'eigen', 'lapack', 'arpack', 'opencv'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
-    scaling : {None, 'mean', 'standard'}, optional
-        If "mean" then temporal px-wise mean subtraction is done, if "standard" 
-        then mean centering plus scaling to unit variance is done. With None, no
-        scaling is performed on the input data before SVD.
+    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done, with 
+        "spat-mean" then the spatial mean is subtracted, with "temp-standard" 
+        temporal mean centering plus scaling to unit variance is done and with
+        "spat-standard" spatial mean centering plus scaling to unit variance is
+        performed.  
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
         radius of the circular mask. 

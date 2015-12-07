@@ -45,29 +45,25 @@ class vipDS9(object):
     display : Displays one or multiple arrays
     file : Displays a FITS file
     get_crosshair : Gets the physical coordinates of the crosshair
-    grid : Sets the frames in a grid
     lock : Locks all frames to the current one
     pan : Sets the mode to pan or pans to given coordinates
     region : Manipulates regions in VIP ds9 window
     rotate : Rotates with a given angle
     save_array : Saves current ds9 frame array in given path as FITS
     scale : Scales to a given value
-    tile : Sets tile frames
+    tile : Sets tile mode
     zoom : Zooms to a given value or to fit
     xpaget : XPA get commands
     xpaset : XPA set commands
     
     """
     
-    def __init__(self, name='VIP', tileon=True, gridon=False):
+    def __init__(self, name='VIP', gridon=True):
         self.name = name
         self.win = DS9Win(self.name, doOpen=True)
-        self.tileon = tileon
         self.gridon = gridon
-        if self.tileon:
-            self.tile()
         if self.gridon:
-            self.grid()
+            self.tile('grid')
 
     def clear_frames(self):
         """ Clears all frames. """       
@@ -138,11 +134,6 @@ class vipDS9(object):
         """ Gets the physical coordinates of the crosshair. """
         self.win = DS9Win(self.name, doOpen=True)
         return self.win.xpaget('crosshair')
-        
-    def grid(self):
-        """ Sets the frames in a grid. """       
-        self.win = DS9Win(self.name, doOpen=True)
-        self.win.xpaset('tile grid')
   
     def lock(self, scale=True, colorbar=True, crosshair=True, slices=True):
         """ Locks all frames to the current one. """
@@ -221,10 +212,10 @@ class vipDS9(object):
         else:
             self.win.xpaset('scale open') 
         
-    def tile(self):
-        """ Sets tile frames. """       
+    def tile(self, mode='column'):
+        """ Sets tile frames. Mode can be: row, column or grid. """       
         self.win = DS9Win(self.name, doOpen=True)
-        self.win.xpaset('tile')
+        self.win.xpaset('tile mode '+mode)
 
     def unlock(self, scale=True, colorbar=True, crosshair=True, slices=True):
         """ Locks all frames to the current one. """

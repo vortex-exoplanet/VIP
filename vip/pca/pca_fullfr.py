@@ -11,8 +11,10 @@ __all__ = ['pca',
            'pca_optimize_snr']
 
 import numpy as np
+import pandas as pd
 import pyprind
 from skimage import draw
+from matplotlib import pyplot as plt
 from .utils import svd_wrapper, prepare_matrix, reshape_matrix
 from ..calib import cube_derotate, check_PA_vector, check_scal_vector
 from ..conf import timing, timeInit
@@ -142,7 +144,8 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         else:
             ref_lib = matrix
                        
-        V = svd_wrapper(ref_lib, svd_mode, ncomp, debug, verbose)
+        V = svd_wrapper(ref_lib, svd_mode, ncomp, debug, verbose)  
+              
         if verbose: timing(start_time)
         transformed = np.dot(V, matrix.T)
         reconstructed = np.dot(transformed.T, V)
@@ -263,7 +266,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
             
             # de-rotation of the PCA processed channels
             if ncomp2 > n:
-                ncomp = min(10, n)
+                ncomp2 = min(10, n)
                 msg = 'Number of PCs too high (max PCs={}), using instead {:} PCs.'
                 print msg.format(n, ncomp)
             res_ifs_adi = subtract_projection(residuals_cube_channels, None, 
@@ -335,12 +338,12 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     
     
     
-def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, mode='full', 
-                     annulus_width=2, svd_mode='lapack', mask_center_px=5,
-                     fmerit='px', min_snr=0, verbose=True, full_output=False, 
-                     debug=False):
+def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
+                     mode='full', annulus_width=2, svd_mode='lapack', 
+                     scaling=None, mask_center_px=None, fmerit='px', min_snr=0, 
+                     verbose=True, full_output=False, debug=False, plot=True):
     """ Optimizes the number of principal components by doing a simple grid 
-    search measuring the SNR for a given position in the frame (for ADI). 
+    search measuring the SNR for a given position in the frame (ADI, RDI). 
     The metric used could be the given pixel's SNR, the maximun SNR in a FWHM 
     circular aperture centred on the given coordinates or the mean SNR in the 
     same circular aperture. They yield slightly different results.
@@ -351,18 +354,27 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, mode='full',
         Input cube.
     angle_list : array_like, 1d
         Corresponding parallactic angle for each frame.
-   source_xy : tuple of floats
+    source_xy : tuple of floats
         X and Y coordinates of the pixel where the source is located and whose
         SNR is going to be maximized.
     fwhm : float 
-        Size of the PSF's FWHM in pixels. 
+        Size of the PSF's FWHM in pixels.
+    cube_ref : array_like, 3d, optional
+        Reference library cube. For Reference Star Differential Imaging. 
     mode : {'full', 'annular'}, optional
         Mode for PCA processing (full-frame or just in an annulus).
     annulus_width : float, optional
         Width in pixels of the annulus in the case of the "annular" mode. 
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack', 'opencv'}, optional
         Switch for different ways of computing the SVD and selected PCs.
-    mask_center_px : None or int
+    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done, with 
+        "spat-mean" then the spatial mean is subtracted, with "temp-standard" 
+        temporal mean centering plus scaling to unit variance is done and with
+        "spat-standard" spatial mean centering plus scaling to unit variance is
+        performed.  
+    mask_center_px : None or int, optional
         If None, no masking is done. If an integer > 1 then this value is the
         radius of the circular mask.  
     fmerit : {'px', 'max', 'mean'}
@@ -379,6 +391,8 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, mode='full',
         of PCs or not.
     debug : {False, True}, bool optional
         Whether to print debug information or not.
+    plot : {True, False}, optional
+        Whether to plot the SNR as function of PCs and final PCA frame or not.
 
     Returns
     -------
@@ -387,16 +401,24 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, mode='full',
     If full_output is True, the final processed frame is returned along with 
     the optimal number of principal components.
     """    
-    def get_snr(cube, angle_list, y, x, mode, svd_mode, fwhm, ncomp, fmerit):
+    def truncate_svd(matrix, angle_list, ncomp, V):            
+        transformed = np.dot(V[:ncomp], matrix.T)
+        reconstructed = np.dot(transformed.T, V[:ncomp])
+        residuals = matrix - reconstructed
+        frsize = np.sqrt(matrix.shape[1])                                       # only for square frames 
+        residuals_res = reshape_matrix(residuals, frsize, frsize)
+        _, frame = cube_derotate(residuals_res, angle_list)
+        return frame
+    
+    def get_snr(matrix, angle_list, cube_ref, y, x, mode, V, fwhm, ncomp, 
+                fmerit):
         if mode=='full':
-            frame = pca(cube, angle_list, ncomp=ncomp, full_output=False, 
-                        verbose=False, mask_center_px=mask_center_px, 
-                        svd_mode=svd_mode)
+            frame = truncate_svd(matrix, angle_list, ncomp, V)                  # only for full-frame
         elif mode=='annular':
             y_cent, x_cent = frame_center(cube[0])
             annulus_radius = dist(y_cent, x_cent, y, x)
             frame = pca_annulus(cube, angle_list, ncomp, annulus_width, 
-                                annulus_radius)
+                                annulus_radius, cube_ref)
         else:
             raise RuntimeError('Wrong mode.')            
         
@@ -413,29 +435,30 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, mode='full',
                                       verbose=False) for y_, x_ in zip(yy, xx)]                                      
             return np.mean(snr_pixels)
     
-    def grid(cube, angle_list, y, x, mode, svd_mode, fwhm, fmerit, step, inti, 
-             intf, debug):
+    def grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, step, inti, intf, 
+             debug):
         nsteps = 0
         #n = cube.shape[0]
         snrlist = []
         pclist = []
         counter = 0
-        if debug:  print 'Step current grid:', step
+        if debug:  
+            print 'Step current grid:', step
+            print 'PCs | SNR'
         for pc in range(inti, intf+1, step):
-            snr = get_snr(cube, angle_list, y, x, mode, svd_mode, fwhm, 
+            snr = get_snr(matrix, angle_list, cube_ref, y, x, mode, V, fwhm, 
                           pc, fmerit)
-            if nsteps>2 and snr<min_snr:  
-                print 'SNR too small'
-                break
+            if np.isnan(snr):  snr=0
             if nsteps>1 and snr<snrlist[-1]:  counter += 1
-            #if len(snrlist)>8 and np.all(np.diff(np.array(snrlist))[:-8] < 0 ) :
-            #    print 'SNR decreasing'
             snrlist.append(snr)
             pclist.append(pc)
             nsteps += 1
+            if nsteps>2 and snr<min_snr:  
+                if debug:  print 'SNR too small'
+                break
             if debug: 
                 print '{} {:.3f}'.format(pc, snr)
-            if counter==3:  
+            if counter==5:  
                 break 
         argm = np.argmax(snrlist)
         
@@ -447,11 +470,11 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, mode='full',
             print
         
         if argm==0:  
-            return 1, pclist, nsteps
+            return 1, pclist, snrlist, nsteps
         else:  
-            return argm, pclist, nsteps
+            return argm, pclist, snrlist, nsteps
     
-    #----------------------------------------------------
+    #---------------------------------------------------------------------------
     if not cube.ndim==3:
         raise TypeError('Input array is not a cube or 3d array')
     
@@ -459,33 +482,52 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, mode='full',
     n = cube.shape[0]
     x, y = source_xy 
     
-    # Up to min(n, 150) principal components. More isn't very realistic for any
-    # ADI dataset I've tried. 
-    argm, pclist, nsteps = grid(cube, angle_list, y, x, mode, svd_mode, fwhm, 
-                                fmerit, 20, 1, min(150, n), debug)
+    # Up to min(n, pcmax) principal components. 
+    pcmax = 200
     
-    argm2, pclist2, nsteps2 = grid(cube, angle_list, y, x, mode, svd_mode, fwhm,
-                                   fmerit, 10, pclist[argm-1], pclist[argm+1], 
-                                   debug)
+    matrix = prepare_matrix(cube, scaling, mask_center_px, verbose=False)
+    if cube_ref is not None:
+        ref_lib = prepare_matrix(cube_ref, scaling, mask_center_px, verbose=False)
+    else:
+        ref_lib = matrix    
+    V = svd_wrapper(ref_lib, svd_mode, pcmax, debug, verbose)
     
-    argm3, pclist3, nsteps3 = grid(cube, angle_list, y, x, mode, svd_mode, fwhm, 
-                                   fmerit, 1, pclist2[argm2-1], pclist2[argm2+1], 
-                                   debug)
+    argm, pclist, snrlist, nsteps = grid(matrix, angle_list, y, x, mode, V, fwhm, 
+                                         fmerit, 20, 1, min(pcmax, n), debug)
     
-    if debug:  
-        print '# of SVDs', nsteps+nsteps2+nsteps3
-        print
+    argm2, pclist2, snrlist2, nsteps2 = grid(matrix, angle_list, y, x, mode, V, 
+                                             fwhm, fmerit, 10, pclist[argm-1], 
+                                             pclist[argm+1], debug)
     
-    opt_npc = pclist3[argm3]
+    argm3, pclist3, snrlist3, nsteps3 = grid(matrix, angle_list, y, x, mode, V,
+                                             fwhm, fmerit, 1, pclist2[argm2-1], 
+                                             pclist2[argm2+1], debug)
+    opt_npc = pclist3[argm3]    
     if verbose:
-        msg = 'Optimal # of PCs = {}'
-        print msg.format(opt_npc)
+        print 'Number of evaluated steps', nsteps+nsteps2+nsteps3
+        msg = 'Optimal number of PCs = {}, for SNR={}'
+        print msg.format(opt_npc, snrlist3[argm3])
         print
         timing(start_time)
         
-    finalfr = pca(cube, angle_list, ncomp=opt_npc, full_output=False, 
-                  verbose=False, mask_center_px=mask_center_px, 
-                  svd_mode=svd_mode)    
+    finalfr = pca(cube, angle_list, cube_ref, ncomp=opt_npc, svd_mode=svd_mode,  
+                  mask_center_px=mask_center_px, scaling=scaling, verbose=False)    
+    if plot:  
+        # Plot of SNR as function of PCs
+        df2 = pd.DataFrame(np.array((pclist+pclist2+pclist3, 
+                                     snrlist+snrlist2+snrlist3)).T)
+        df2s = df2.sort(columns=0)
+        df2srd = df2s.drop_duplicates()
+        
+        plt.plot(np.array(df2srd.loc[:,0]), np.array(df2srd.loc[:,1]), '.-', 
+                 alpha=0.5)
+        plt.xlim(np.array(df2srd.loc[:,0]).min(), np.array(df2srd.loc[:,0]).max())
+        plt.ylim(0, np.array(df2srd.loc[:,1]).max()+1)
+        plt.xlabel('Number of PCs')
+        plt.ylabel('SNR')
+        plt.grid('on')
+        print
+        
     _ = phot.frame_quick_report(finalfr, fwhm, (x,y), verbose=verbose)
     
     if full_output:

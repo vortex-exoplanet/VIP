@@ -100,7 +100,7 @@ def pp_subplots(*args, **kwargs):
             fig = figure(figsize=(max_hor_size, 10))
     
     if tit is not None:  fig.suptitle(tit, fontsize=14)
-    fig.subplots_adjust(wspace=0.1)
+    fig.subplots_adjust(wspace=0.3)
     for i,v in enumerate(xrange(num_plots)):
         v += 1
         ax = subplot(rows,cols,v)

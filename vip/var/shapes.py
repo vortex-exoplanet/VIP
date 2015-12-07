@@ -30,15 +30,20 @@ def frame_center(array, verbose=False):
     odd numbers. Python uses 0-based indexing, so the coordinates of the central
     pixel of a 5x5 pixels frame are (2,2). Those are as well the coordinates of
     the center of that pixel (sub-pixel center of the frame).
-     
-    When the frame sides are even values, the coordinates returned are:
-    (side_length/2) - 1.  
-    """
+    """   
     y = array.shape[0]/2.       
     x = array.shape[1]/2.
-    # side length/2 - 1, because python has 0-based indexing
-    cy = np.ceil(y) - 1
-    cx = np.ceil(x) - 1
+    
+    # If frame size is even
+    if array.shape[0]%2==0:
+        cy = np.ceil(y)
+    else:
+        cy = np.ceil(y) - 1    # side length/2 - 1, python has 0-based indexing
+    if array.shape[1]%2==0:
+        cx = np.ceil(x)
+    else:
+        cx = np.ceil(x) - 1
+    
     if verbose:
         print 'Center px coordinates at x,y = ({:},{:})'.format(cy, cx)
     return cy, cx

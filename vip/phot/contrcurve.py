@@ -110,27 +110,25 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         thruput_mean = thruput_mean[:-1]
         vector_radd = vector_radd[:-1]
     
-    # noise measured in the empty PCA-frame with better sampling (every 2 px)
-    noise_samp, rad_samp = noise_per_annulus(frame_nofc, fwhm, fwhm, False)    
+    # noise measured in the empty PCA-frame with better sampling, every px
+    # starting from 1*FWHM
+    noise_samp, rad_samp = noise_per_annulus(frame_nofc, 1, fwhm, False)        
     cutin1 = np.where(rad_samp.astype(int)==vector_radd.astype(int).min())[0]
     noise_samp = noise_samp[cutin1:]
     rad_samp = rad_samp[cutin1:]
     cutin2 = np.where(rad_samp.astype(int)==vector_radd.astype(int).max())[0]
     noise_samp = noise_samp[:cutin2+1]
     rad_samp = rad_samp[:cutin2+1]
-    
+        
     # interpolating the throughput vector
     f = interp1d(vector_radd, thruput_mean, bounds_error=False, fill_value=0)
     thruput_interp = f(rad_samp)      
     
-    # smoothing the interpolated throughput and noise vectors using a 
-    # Savitzky-Golay filter
-    thruput_interp_sm = savgol_filter(thruput_interp, 
-                                      window_length=thruput_interp.shape[0]*0.1, 
-                                      polyorder=1, mode='nearest')
-    noise_samp_sm = savgol_filter(noise_samp, 
-                                  window_length=noise_samp.shape[0]*0.1, 
-                                  polyorder=1, mode='nearest')
+    # smoothing the throughput and noise vectors using a Savitzky-Golay filter
+    thruput_interp_sm = savgol_filter(thruput_interp, polyorder=1, mode='nearest',
+                                      window_length=thruput_interp.shape[0]*0.1)
+    noise_samp_sm = savgol_filter(noise_samp, polyorder=1, mode='nearest',
+                                  window_length=noise_samp.shape[0]*0.1)
     
     if debug:
         print('SIGMA={}'.format(sigma))
@@ -139,11 +137,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         
         plt.rc("savefig", dpi=dpi)
         plt.figure(figsize=(8,4))
-        plt.plot(rad_samp*pxscale, thruput_interp, '.-', label='interpolated', 
-                 alpha=0.6)
-        plt.plot(vector_radd*pxscale, thruput_mean, '.', label='computed')
         plt.plot(rad_samp*pxscale, thruput_interp_sm, ',-', label='smoothed', 
-                 lw=2)
+                 lw=2, alpha=0.5)
+        plt.plot(rad_samp*pxscale, thruput_interp, '.', label='interpolated')
+        plt.plot(vector_radd*pxscale, thruput_mean, '.', label='computed')
         plt.grid('on')
         plt.xlabel('Angular separation [arcsec]')
         plt.ylabel('Throughput')
@@ -152,7 +149,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         plt.figure(figsize=(8,4))
         plt.plot(rad_samp*pxscale, noise_samp, '.', label='computed')
         plt.plot(rad_samp*pxscale, noise_samp_sm, ',-', label='noise smoothed', 
-                 lw=2)
+                 lw=2, alpha=0.5)
         plt.grid('on')
         plt.xlabel('Angular separation [arcsec]')
         plt.ylabel('Noise')
@@ -181,8 +178,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         plt.figure(figsize=(8,4))
         plt.plot(rad_samp*pxscale, cont_curve_samp, '.-', label='gaussian')
         if student:
-            plt.plot(rad_samp*pxscale, cont_curve_samp_t, '.-', 
-                     label='student t')
+            plt.plot(rad_samp*pxscale, cont_curve_samp_t, '.-', label='student t')
         plt.xlabel('Angular separation [arcsec]')
         plt.ylabel(str(sigma)+' sigma contrast')
         plt.legend()
@@ -580,20 +576,21 @@ def noise_per_annulus(array, separation, fwhm, verbose=False):
     for _ in range(n_annuli-1):
         y -= separation
         rad = dist(centery, centerx, y, x)
-        yy, xx = find_coords(rad, sep=fwhm)
-        yy += centery
-        xx += centerx
-             
-        fluxes = []
-        apertures = photutils.CircularAperture((xx, yy), fwhm/2.)
-        fluxes = photutils.aperture_photometry(array, apertures)
-        fluxes = np.array(fluxes['aperture_sum'])
-        
-        noise_ann = np.std(fluxes)
-        noise.append(noise_ann) 
-        vector_radd.append(rad)
-        if verbose:
-            print('Radius(px) = {:} // Noise = {:.3f} '.format(rad, noise_ann))
+        if rad>=fwhm:
+            yy, xx = find_coords(rad, sep=fwhm)
+            yy += centery
+            xx += centerx
+                 
+            fluxes = []
+            apertures = photutils.CircularAperture((xx, yy), fwhm/2.)
+            fluxes = photutils.aperture_photometry(array, apertures)
+            fluxes = np.array(fluxes['aperture_sum'])
+            
+            noise_ann = np.std(fluxes)
+            noise.append(noise_ann) 
+            vector_radd.append(rad)
+            if verbose:
+                print('Radius(px) = {:} // Noise = {:.3f} '.format(rad, noise_ann))
      
     return np.array(noise), np.array(vector_radd)
     

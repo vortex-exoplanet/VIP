@@ -40,7 +40,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         chain, but should be the fixed initial guess.  
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    svd_mode : {'lapack', 'eigen', 'randsvd', 'arpack', 'opencv'}, str optional
+    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     debug: boolean
         If True, the cube is returned along with the values.        

@@ -43,7 +43,7 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, annulus_width,
         The radius of the circular aperture.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    svd_mode : {'lapack', 'eigen', 'randsvd', 'arpack', 'opencv'}, str optional
+    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     p_ini : np.array
         Position (r, theta) of the circular aperture center.
@@ -109,7 +109,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
         The radius of the circular aperture.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack', 'opencv'}, str optional
+    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     f_range: numpy.array, optional
         The range of flux tested values. If None, 20 values between 0 and 5000
@@ -167,8 +167,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
                                markeredgecolor=kwargs.pop('markeredgecolor','r'),
                                **kwargs)
                        
-        plt.xlabel("$f$")
-        plt.ylabel("$\chi^2_{r}$")
+        plt.xlabel("flux")
+        plt.ylabel("chi2r")
         plt.grid('on')
     if save:
         plt.savefig('chi2rVSflux.pdf')
@@ -220,7 +220,7 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width, aperture_radius,
         The (x,y) position of the planet in the pca processed frame. 
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack', 'opencv'}, str optional
+    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     p_ini: numpy.array
         Position (r, theta) of the circular aperture center.        
@@ -253,7 +253,7 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width, aperture_radius,
     if figure_options is None:
         figure_options = {'color':'b', 'marker':'o',
                           'xlim': [f_range[0]-10,f_range[-1]+10], 
-                          'title':r'$\chi^2_{r}$ vs flux'}
+                          'title':r'chi2r vs flux'}
     
     if f_range is None:
         f_range = np.linspace(0,2000,20)

@@ -13,7 +13,7 @@ __all__ = ['cube_stats_aperture',
 import numpy as np
 import scipy.stats
 from matplotlib import pyplot as plt
-from ..var import get_annulus, get_circle
+from ..var import get_annulus, get_circle, get_annulus_cube
 
 
 def cube_stats_aperture(arr, radius, y=None, x=None, plot=False, 
@@ -170,7 +170,7 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False,
     If full_out is true it returns mean, std_dev, median, if false 
     only the mean.
     """
-    if len(array.shape) == 2:
+    if array.ndim==2:
         height, widht = array.shape
         arr = array.copy()    
         
@@ -180,7 +180,7 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False,
         median = np.median(annulus)
         maxi = annulus.max()
             
-    if len(array.shape) == 3:
+    if array.ndim==3:
         n, height, widht = array.shape
         mean = np.empty(n)
         std_dev = np.empty(n)
@@ -199,29 +199,31 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False,
         if plot==1 or plot==2:
             plt.close('Stats in annulus 1') 
             plt.close('Std_dev - mean in annulus')
+            plt.close('Image crop')
+            
+            plt.figure('Image crop', figsize=(2,2))
+            if array.ndim==3:
+                temp = get_annulus_cube(array, inner_radius, size)
+                annulus = np.median(temp, axis=0)
+            else:
+                annulus = get_annulus(arr, inner_radius, size)
+            plt.imshow(annulus, origin = 'lower', interpolation="nearest", 
+                       cmap = plt.get_cmap('CMRmap'))                           
+            plt.xlim((widht/2)-(inner_radius+size), 
+                     (widht/2)+(inner_radius+size))
+            plt.ylim((height/2)-(inner_radius+size), 
+                     (height/2)+(inner_radius+size))
+            plt.axis('off')
             
             plt.figure('Stats in annulus 1', figsize=(12, 4))    
             plt.grid('on')
             if n < 400:
                 plt.minorticks_on()
                 plt.xticks(range(0, n, 10))
-            plt.plot(mean, 'o-', label='mean', lw = 0.8, alpha=0.6)
-            plt.plot(std_dev, 'o-', label='std_dev', lw = 0.8, alpha=0.6)
-            plt.plot(maxi, 'o-', label='max', lw=0.8, alpha=0.6)
-            plt.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)
-            
-            plt.axes([0.095,0.79,0.1,0.1])
-            plt.axis('off')
-            if len(arr.shape) == 3:
-                annulus = get_annulus(arr[0], inner_radius, size)
-            else:
-                annulus = get_annulus(arr, inner_radius, size)
-            plt.imshow(annulus, origin = 'lower', interpolation="nearest", 
-                       cmap = plt.get_cmap('CMRmap'))                           # shows annulus from 1st fr
-            plt.xlim((widht/2)-(inner_radius+size), 
-                     (widht/2)+(inner_radius+size))
-            plt.ylim((height/2)-(inner_radius+size), 
-                     (height/2)+(inner_radius+size))
+            plt.plot(mean, '.-', label='mean', lw = 0.8, alpha=0.6)
+            plt.plot(std_dev, '.-', label='std_dev', lw = 0.8, alpha=0.6)
+            plt.plot(maxi, '.-', label='max', lw=0.8, alpha=0.6)
+            plt.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)            
             
             if plot==2:
                 plt.figure('Stats in annulus 2', figsize=(12, 8))
@@ -242,7 +244,7 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False,
                 #print 'm = ', m, '  angle = ', np.rad2deg(np.arctan(m))
     
     if verbose:        
-        print "Done calculating stats in annulus"
+        pass #print "Done calculating stats in annulus"
     
     if full_out:
         return mean, std_dev, median, maxi

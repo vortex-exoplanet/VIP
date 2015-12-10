@@ -323,7 +323,7 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
         Each walker will start in a small ball around this preferred position.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack', 'opencv'}, str optional
+    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     bounds: numpy.array or list, default=None, optional
         The prior knowledge on the model parameters. If None, large bounds will 

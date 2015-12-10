@@ -20,7 +20,7 @@ from scipy import linalg
 from scipy.sparse.linalg import svds
 from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_absolute_error
-from sklearn.preprocessing import scale
+from sklearn.preprocessing import scale #,minmax_scale
 from ..var import mask_circle, get_annulus, get_square_robust, frame_center
 from ..calib import cube_derotate, cube_rescaling
 
@@ -135,7 +135,7 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         Radius of the annulus in pixels.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    svd_mode : {'randsvd', 'eigen', 'lapack', 'arpack', 'opencv'}, str optional
+    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     
     Returns
@@ -212,7 +212,9 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, verbose=True):
     elif scaling=='temp-standard':
         matrix = scale(matrix, with_mean=True, with_std=True)
     elif scaling=='spat-standard':
-        matrix = scale(matrix, with_mean=True, with_std=True, axis=1)                
+        matrix = scale(matrix, with_mean=True, with_std=True, axis=1)
+    #elif scaling=='minmax':
+    #    matrix = minmax_scale(matrix, feature_range=(0, 1000), axis=0)          
     else:
         raise ValueError('Scaling mode not recognized')
     
@@ -285,10 +287,6 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         U, S, V = svds(matrix, k=ncomp) 
         if debug: reconstruction(ncomp, U, S, V, -1)
         if verbose: print('Done SVD/PCA with scipy sparse SVD (ARPACK)')
-        
-    elif mode=='opencv':
-        _, V = cv2.PCACompute(matrix, maxComponents=ncomp)          # PCs
-        if verbose: print('Done SVD/PCA with opencv.')
 
     elif mode=='randsvd':
         U, S, V = randomized_svd(matrix, n_components=ncomp, n_iter=2, 
@@ -299,11 +297,15 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
     else:
         raise TypeError('The SVD mode is not available')
             
-    if usv and mode!='opencv':
-        return U, S, V
-    elif mode=='lapack':
-        return U.T
+    if usv:
+        if mode=='lapack':
+            return U.T, S, V.T
+        else:
+            return U, S, V
     else:
-        return V
+        if mode=='lapack':
+            return U.T
+        else:
+            return V
 
 

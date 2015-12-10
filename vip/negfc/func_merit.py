@@ -39,7 +39,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp
         Position (r, theta) of the circular aperture center.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    svd_mode : {'randsvd', 'eigen', 'lapack', 'arpack', 'opencv'}, str optional
+    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.         
 
     Returns

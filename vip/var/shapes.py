@@ -268,6 +268,7 @@ def get_annulus(array, inner_radius, width, output_values=False,
     """
     if not array.ndim == 2:
         raise TypeError('Input array is not a frame or 2d array.')
+    array = array.copy()
     cy, cx = frame_center(array)
     yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
     circle = (xx - cx)**2 + (yy - cy)**2                                                                               
@@ -352,7 +353,7 @@ def get_annulus_cube(array, inner_radius, width, output_values=False):
     values : array_like
         1d array with the values of the pixels in the circular region.
     array_masked : array_like
-        Input array with the circular mask applied.
+        Input array with the annular mask applied.
 
     """
     if not array.ndim == 3:

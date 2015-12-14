@@ -219,7 +219,7 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, verbose=True):
         raise ValueError('Scaling mode not recognized')
     
     if verbose:
-        print('Done creating and centering the matrix')  
+        print('Done building the matrix, NxP where N=# frames and P=# pixels per frame')  
     return matrix
      
 

@@ -115,7 +115,7 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
     return obj_tmp
     
 
-def approx_stellar_position(cube, fwhm, return_test=False):
+def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
     """FIND THE APPROX COORDS OF THE STAR IN EACH CHANNEL (even the ones 
     dominated by noise)
     
@@ -132,6 +132,8 @@ def approx_stellar_position(cube, fwhm, return_test=False):
         Whether the test result vector (a bool vector with whether the star 
         centroid could be find in the corresponding channel) should be returned
         as well, along with the approx stellar coordinates.
+    verbose: {True, False}, bool optional
+        Chooses whether to print some additional information. 
 
     Returns:
     --------
@@ -162,11 +164,12 @@ def approx_stellar_position(cube, fwhm, return_test=False):
     lim_sup_y = med_y+3*stddev_y
     lim_inf_x = med_x-3*stddev_x
     lim_sup_x = med_x+3*stddev_x
-
-    print "median y of star - 3sigma = ", lim_inf_y
-    print "median y of star + 3sigma = ", lim_sup_y
-    print "median x of star - 3sigma = ", lim_inf_x
-    print "median x of star + 3sigma = ", lim_sup_x
+    
+    if verbose:
+        print "median y of star - 3sigma = ", lim_inf_y
+        print "median y of star + 3sigma = ", lim_sup_y
+        print "median x of star - 3sigma = ", lim_inf_x
+        print "median x of star + 3sigma = ", lim_sup_x
 
     for zz in range(n_z):
         if ((star_tmp_idx[zz,0]<lim_inf_y) or (star_tmp_idx[zz,0]>lim_sup_y) or

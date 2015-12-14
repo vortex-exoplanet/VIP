@@ -439,7 +439,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
 def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5, 
                               nproc=None, full_output=False, verbose=True, 
                               save_shifts=False, debug=False, 
-                              unmoving_star=True):
+                              unmoving_star=False):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
     gaussian to a subimage centered at (pos_x, pos_y). This assumes the frames 
     don't have too large shifts (>5px). The frames are shifted using the 
@@ -472,7 +472,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         Whether to print to stdout the shifts or not. 
     unmoving_star : {False, True}, bool optional
         Whether the star centroid is expected to not move a lot within the 
-        frames of the input cube. If False, then an additional test is done to 
+        frames of the input cube. If True, then an additional test is done to 
         be sure the centroid fit returns a reasonable index value (close to the 
         median of the centroid indices in the other frames) - hence not taking 
         noise or a clump of uncorrected bad pixels.
@@ -732,10 +732,8 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x,
             y_i, x_i = star_approx_coords
         else:
             x_i, y_i = photutils.morphology.centroid_2dg(sub_image)
-            #y_i, x_i = photutils.morphology.centroid_2dg(sub_image)
     else:
         x_i, y_i = photutils.morphology.centroid_2dg(sub_image)
-        #y_i, x_i = photutils.morphology.centroid_2dg(sub_image)
     y_i = y1 + y_i
     x_i = x1 + x_i
     return y_i, x_i

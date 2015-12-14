@@ -254,7 +254,8 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
     fwhm : float
         Size in pixels of the FWHM.
     out_coor: {False, True}, bool optional
-        If True returns back the snr value and the y, x input coordinates.
+        If True returns back the snr value and the y, x input coordinates. In 
+        this case it overrides the full_output parameter.
     plot : {False, True}, bool optional
         Plots the frame and the apertures considered for clarity. 
     verbose: {True, False}, bool optional
@@ -267,6 +268,8 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
     -------
     snr : float
         Value of the SNR for the given planet or test speckle.
+        
+    sourcey, sourcex, f_source, fluxes.std(), snr
     
     """
     if not array.ndim==2:
@@ -319,7 +322,7 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
         print msg3.format(fluxes.std())
     
     if plot:
-        fig, ax = plt.subplots(figsize=(6,6))
+        _, ax = plt.subplots(figsize=(6,6))
         ax.imshow(array, origin='lower', interpolation='nearest', alpha=0.5, cmap='gray')
         for i in range(xx.shape[0]):
             # Circle takes coordinates as (X,Y)

@@ -410,7 +410,8 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
     If full_output is True, the final processed frame, and a cube with all the
     PCA frames are returned along with the optimal number of PCs.
     """    
-    def truncate_svd(matrix, angle_list, ncomp, V):            
+    def truncate_svd(matrix, angle_list, ncomp, V):    
+        """ One SVD computation. Only for full-frame"""        
         transformed = np.dot(V[:ncomp], matrix.T)
         reconstructed = np.dot(transformed.T, V[:ncomp])
         residuals = matrix - reconstructed
@@ -422,7 +423,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
     def get_snr(matrix, angle_list, cube_ref, y, x, mode, V, fwhm, ncomp, 
                 fmerit, full_output):
         if mode=='full':
-            frame = truncate_svd(matrix, angle_list, ncomp, V)                  # only for full-frame
+            frame = truncate_svd(matrix, angle_list, ncomp, V)                  
         elif mode=='annular':
             y_cent, x_cent = frame_center(cube[0])
             annulus_radius = dist(y_cent, x_cent, y, x)
@@ -433,26 +434,31 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         
         if fmerit=='max':
             yy, xx = draw.circle(y, x, fwhm/2.)
-            snr_pixels = [phot.snr_ss(frame, (x_,y_), fwhm, plot=False, 
-                                      verbose=False) for y_, x_ in zip(yy, xx)]
+            res = [phot.snr_ss(frame, (x_,y_), fwhm, plot=False, verbose=False, 
+                               full_output=True) for y_, x_ in zip(yy, xx)]
+            snr_pixels = np.array(res)[:,-1]
             if full_output:
                 return np.max(snr_pixels), frame
             else:
                 return np.max(snr_pixels)
         elif fmerit=='px':
-            snrpx = phot.snr_ss(frame, (x,y), fwhm, plot=False, verbose=False)
+            res = phot.snr_ss(frame, (x,y), fwhm, plot=False, verbose=False,
+                              full_output=True)
+            snrpx = res[-1]
             if full_output:
                 return snrpx, frame
             else:
                 return snrpx
         elif fmerit=='mean':
             yy, xx = draw.circle(y, x, fwhm/2.)
-            snr_pixels = [phot.snr_ss(frame, (x_,y_), fwhm, plot=False, 
-                                      verbose=False) for y_, x_ in zip(yy, xx)]  
+            res = [phot.snr_ss(frame, (x_,y_), fwhm, plot=False, verbose=False, 
+                               full_output=True) for y_, x_ in zip(yy, xx)]  
+            snr_pixels = np.array(res)[:,-1]
+            fluxes = np.array(res)[:,2]
             if full_output:
-                return np.mean(snr_pixels), frame
+                return np.mean(snr_pixels), np.mean(fluxes), frame
             else:                         
-                return np.mean(snr_pixels)
+                return np.mean(snr_pixels), np.mean(fluxes)
     
     def grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, step, inti, intf, 
              debug, full_output, truncate=True):
@@ -460,6 +466,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         #n = cube.shape[0]
         snrlist = []
         pclist = []
+        fluxlist = []
         if full_output:  frlist = []
         counter = 0
         if debug:  
@@ -467,15 +474,16 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             print 'PCs | SNR'
         for pc in range(inti, intf+1, step):
             if full_output:
-                snr, frame = get_snr(matrix, angle_list, cube_ref, y, x, mode, 
-                                     V, fwhm, pc, fmerit, full_output) 
+                snr, flux, frame = get_snr(matrix, angle_list, cube_ref, y, x, 
+                                           mode, V, fwhm, pc, fmerit, full_output) 
             else:
-                snr = get_snr(matrix, angle_list, cube_ref, y, x, mode, V, fwhm, 
-                              pc, fmerit, full_output)
+                snr, flux = get_snr(matrix, angle_list, cube_ref, y, x, mode, V, 
+                                    fwhm, pc, fmerit, full_output)
             if np.isnan(snr):  snr=0
             if nsteps>1 and snr<snrlist[-1]:  counter += 1
             snrlist.append(snr)
             pclist.append(pc)
+            fluxlist.append(flux)
             if full_output:  frlist.append(frame)
             nsteps += 1
             if truncate and nsteps>2 and snr<min_snr:  
@@ -498,9 +506,9 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         
         if argm==0:  argm = 1 
         if full_output:
-            return argm, pclist, snrlist, frlist
+            return argm, pclist, snrlist, fluxlist, frlist
         else: 
-            return argm, pclist, snrlist
+            return argm, pclist, snrlist, fluxlist
     
     #---------------------------------------------------------------------------
     if not cube.ndim==3:
@@ -540,8 +548,8 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
     if range_pcs is not None:
         grid1 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, step, 
                      pcmin, pcmax, debug, full_output, False)
-        if full_output:  argm, pclist, snrlist, frlist = grid1
-        else:  argm, pclist, snrlist = grid1
+        if full_output:  argm, pclist, snrlist, fluxlist, frlist = grid1
+        else:  argm, pclist, snrlist, fluxlist = grid1
         
         opt_npc = pclist[argm]    
         if verbose:
@@ -566,26 +574,37 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             plt.minorticks_on()
             plt.grid('on', 'major', linestyle='-', alpha=0.7)
             plt.grid('on', 'minor')
+            
+            plt.figure(figsize=(8,4), dpi=100)
+            plt.plot(pclist, fluxlist, '-', alpha=0.5)
+            plt.plot(pclist, fluxlist, 'o', alpha=0.8, color='green')
+            plt.xlim(np.array(pclist).min(), np.array(pclist).max())
+            plt.ylim(0, np.array(fluxlist).max()+1)
+            plt.xlabel('Number of PCs')
+            plt.ylabel('Flux in FWHM aperture [ADUs]')
+            plt.minorticks_on()
+            plt.grid('on', 'major', linestyle='-', alpha=0.7)
+            plt.grid('on', 'minor')           
             print
             
     # automatic "clever" grid
     else:
         grid1 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 
                      int(pcmax*0.1), pcmin, pcmax, debug, full_output)
-        if full_output:  argm, pclist, snrlist, frlist1 = grid1
-        else:  argm, pclist, snrlist = grid1
+        if full_output:  argm, pclist, snrlist, fluxlist, frlist1 = grid1
+        else:  argm, pclist, snrlist, fluxlist = grid1
         
         grid2 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 
                      int(pcmax*0.05), pclist[argm-1], pclist[argm+1], debug, 
                      full_output)
-        if full_output:  argm2, pclist2, snrlist2, frlist2 = grid2
-        else:  argm2, pclist2, snrlist2  = grid2
+        if full_output:  argm2, pclist2, snrlist2, fluxlist2, frlist2 = grid2
+        else:  argm2, pclist2, snrlist2, fluxlist2  = grid2
         
         grid3 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 1, 
                      pclist2[argm2-1], pclist2[argm2+1], debug, full_output, 
                      False)
-        if full_output:  _, pclist3, snrlist3, frlist3 = grid3
-        else:  _, pclist3, snrlist3  = grid3
+        if full_output:  _, pclist3, snrlist3, fluxlist3, frlist3 = grid3
+        else:  _, pclist3, snrlist3, fluxlist3 = grid3
         
         argm = np.argmax(snrlist3)
         opt_npc = pclist3[argm]    

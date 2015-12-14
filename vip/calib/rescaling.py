@@ -192,7 +192,7 @@ def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0,
                       [0,scale_y,(1.-scale_y)*ref_y]])
         array_out = cv2.warpAffine(array.astype(np.float32), M, 
                                    (array.shape[1], array.shape[0]), 
-                                   flags=cv2.INTER_LINEAR)
+                                   flags=cv2.INTER_CUBIC)
 
     else:
         msg="Pick a valid method: 'geometric_transform' or 'cv2.warp_affine'"

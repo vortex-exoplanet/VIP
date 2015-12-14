@@ -17,7 +17,8 @@ from ..var import frame_center
 
 
 
-def frame_px_resampling(array, scale, interpolation='bicubic'):
+def frame_px_resampling(array, scale, interpolation='bicubic', scale_y=None,
+                        scale_x=None):
     """ Resamples the pixels of a frame wrt to the center, changing the size
     of the frame. If 'scale' < 1 then the frame is downsampled and if 
     'scale' > 1 then its pixels are upsampled. Uses opencv for maximum speed. 
@@ -38,6 +39,12 @@ def frame_px_resampling(array, scale, interpolation='bicubic'):
         option for interpolation of noisy astronomical images. 
         Even with 'bicubic' interpolation, opencv library is several orders of
         magnitude faster than python similar functions (e.g. ndimage).
+    scale_y : float
+        Scale factor for upsampling or downsampling the frame along y. If 
+        provided, it takes priority on scale parameter.
+    scale_x : float
+        Scale factor for upsampling or downsampling the frame along x. If 
+        provided, it takes priority on scale parameter.
         
     Returns
     -------
@@ -46,6 +53,9 @@ def frame_px_resampling(array, scale, interpolation='bicubic'):
     """
     if not array.ndim == 2:
         raise TypeError('Input array is not a frame or 2d array.')
+
+    if scale_y is None: scale_y = scale
+    if scale_x is None: scale_x = scale
     
     if interpolation == 'bilinear':
         intp = cv2.INTER_LINEAR
@@ -56,13 +66,14 @@ def frame_px_resampling(array, scale, interpolation='bicubic'):
     else:
         raise TypeError('Interpolation method not recognized.')
     
-    array_resc = cv2.resize(array.astype(np.float32), (0,0), fx=scale, 
-                            fy=scale, interpolation=intp)
+    array_resc = cv2.resize(array.astype(np.float32), (0,0), fx=scale_x, 
+                            fy=scale_y, interpolation=intp)
     return array_resc
 
 
 
-def cube_px_resampling(array, scale, interpolation='bicubic'):
+def cube_px_resampling(array, scale, interpolation='bicubic', scale_y=None,
+                       scale_x=None):
     """ Wrapper of frame_px_resample() for resampling the frames of a cube with
     a single scale. Useful when we need to upsample (upsacaling) or downsample 
     (pixel binning) a set of frames, e.g. an ADI cube. 
@@ -82,6 +93,12 @@ def cube_px_resampling(array, scale, interpolation='bicubic'):
         option for interpolation of noisy astronomical images. 
         Even with 'bicubic' interpolation, opencv library is several orders of
         magnitude faster than python similar functions (e.g. ndimage).
+    scale_y : float
+        Scale factor for upsampling or downsampling the frame along y. If 
+        provided, it takes priority on scale parameter.
+    scale_x : float
+        Scale factor for upsampling or downsampling the frame along x. If 
+        provided, it takes priority on scale parameter.
         
     Returns
     -------
@@ -91,17 +108,21 @@ def cube_px_resampling(array, scale, interpolation='bicubic'):
     if not array.ndim==3:
         raise TypeError('Input array is not a cube or 3d array.')
     
-    array_resc = np.zeros((array.shape[0], int(array.shape[1]*scale), 
-                           int(array.shape[2]*scale)))
+    if scale_y is None: scale_y = scale
+    if scale_x is None: scale_x = scale
+
+    array_resc = np.zeros((array.shape[0], int(round(array.shape[1]*scale_y)), 
+                           int(round(array.shape[2]*scale_x))))
     for i in range(array.shape[0]):
         array_resc[i] = frame_px_resampling(array[i], scale=scale, 
-                                            interpolation=interpolation)
+                                            interpolation=interpolation,
+                                            scale_y=scale_y, scale_x=scale_x)
     return array_resc
 
 
 
 def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0, 
-                    method='geometric_transform'):
+                    method='geometric_transform', scale_y=None, scale_x=None):
     """
     Function to rescale a frame by a factor 'scale', wrt a reference point 
     ref_pt which by default is the center of the frame (typically the exact 
@@ -117,18 +138,26 @@ def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0,
         performed. By default the rotation is done with respect to the center 
         of the frame; central pixel if frame has odd size.
     scale : float
-        Scaling factor. If > 1, it will upsample the input array.        
+        Scaling factor. If > 1, it will upsample the input array equally along y
+        and x by this factor.      
     method: string, {'geometric_transform','cv2.warp_affine'}, optional
         String determining which library to apply to rescale. 
         Both options use a spline of order 3 for interpolation.
         Opencv is a few order of magnitudes faster than ndimage.
+    scale_y : float
+        Scaling factor only for y axis. If provided, it takes priority on scale
+        parameter.
+    scale_x : float
+        Scaling factor only for x axis. If provided, it takes priority on scale
+        parameter.
 
     Returns
     -------
     array_out : array_like
         Resulting frame.
     """
-    def _scale_func(output_coords,ref_y=0,ref_x=0, scaling=1.0):    
+    def _scale_func(output_coords,ref_y=0,ref_x=0, scaling=1.0, scaling_y=None,
+                    scaling_x=None):    
         """
         For each coordinate point in a new scaled image (output_coords), 
         coordinates in the image before the scaling are returned. 
@@ -138,8 +167,12 @@ def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0,
         interpolated value at the corresponding frame coordinates before the 
         scaling.
         """
-        return (ref_y+((output_coords[0]-ref_y)/scaling), 
-                ref_x+((output_coords[1]-ref_x)/scaling))
+        if scaling_y is None:
+            scaling_y = scaling
+        if scaling_x is None:
+            scaling_x = scaling
+        return (ref_y+((output_coords[0]-ref_y)/scaling_y), 
+                ref_x+((output_coords[1]-ref_x)/scaling_x))
 
     array_out = np.zeros_like(array)
     
@@ -149,10 +182,14 @@ def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0,
         geometric_transform(array, _scale_func, output_shape=array.shape, 
                             output = array_out, 
                             extra_keywords={'ref_y':ref_y,'ref_x':ref_x,
-                                            'scaling':scale})
+                                            'scaling':scale,'scaling_y':scale_y,
+                                            'scaling_x':scale_x})
 
     elif method == 'cv2.warp_affine':
-        M = np.array([[scale,0,(1.-scale)*ref_x],[0,scale,(1.-scale)*ref_y]])
+        if scale_y is None: scale_y = scale
+        if scale_x is None: scale_x = scale
+        M = np.array([[scale_x,0,(1.-scale_x)*ref_x],
+                      [0,scale_y,(1.-scale_y)*ref_y]])
         array_out = cv2.warpAffine(array.astype(np.float32), M, 
                                    (array.shape[1], array.shape[0]), 
                                    flags=cv2.INTER_LINEAR)
@@ -166,7 +203,7 @@ def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0,
     
     
 def cube_rescaling(array, scaling_list, ref_y=None, ref_x=None, 
-                   method='cv2.warp_affine'):
+                   method='cv2.warp_affine',scaling_y=None, scaling_x=None):
     """ 
     Function to rescale a cube, frame by frame, by a factor 'scale', with 
     respect to position (cy,cx). It calls frame_rescaling function.
@@ -185,6 +222,12 @@ def cube_rescaling(array, scaling_list, ref_y=None, ref_x=None,
         String determining which library to apply to rescale. 
         Both options use a spline of order 3 for interpolation.
         Opencv is a few order of magnitudes faster than ndimage.
+    scaling_y : 1D-array or list
+        Scaling factor only for y axis. If provided, it takes priority on 
+        scaling_list.
+    scaling_x : 1D-array or list
+        Scaling factor only for x axis. If provided, it takes priority on 
+        scaling_list.
         
     Returns
     -------
@@ -195,13 +238,17 @@ def cube_rescaling(array, scaling_list, ref_y=None, ref_x=None,
     """
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array.')
-    array_sc = np.zeros_like(array) 
+    array_sc = np.zeros_like(array)
+    if scaling_y is None: scaling_y = [None]*array.shape[0]
+    if scaling_x is None: scaling_x = [None]*array.shape[0]
     
     if not ref_y and not ref_x:  ref_y, ref_x = frame_center(array[0])
     
     for i in xrange(array.shape[0]): 
         array_sc[i] = frame_rescaling(array[i], ref_y=ref_y, ref_x=ref_x, 
-                                      scale=scaling_list[i], method=method)
+                                      scale=scaling_list[i], method=method,
+                                      scale_y=scaling_y[i], 
+                                      scale_x=scaling_x[i])
             
     array_out = np.median(array_sc, axis=0)              
     return array_sc, array_out

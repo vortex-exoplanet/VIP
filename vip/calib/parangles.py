@@ -105,27 +105,27 @@ def compute_derot_angles_PA(objname_tmp_A,digit_format=3,objname_tmp_B='',
     ----------
     objname_tmp_A: string
         Contains the common name of the cubes BEFORE the digits
-    digit_format: int, opt
+    digit_format: int, optional
         Number of digits in the name of the cube. The digits are supposed to be 
         the only changing part in the name of one cube to another.
-    objname_tmp_B: string, opt
+    objname_tmp_B: string, optional
         Contains the name of the cubes AFTER the digits
-    inpath: string, opt
+    inpath: string, optional
         Contains the full path of the directory with the data
-    writing: bool, optional {False,True}, opt
+    writing: bool, optional {False,True}, optional
         True if you want to write the derotation angles in a txt file.
-    outpath: string, opt
+    outpath: string, optional
         Contains the full path of the directory where you want the txt file to 
         be saved.
-    list_obj: integer list or 1-D array, opt
+    list_obj: integer list or 1-D array, optional
         List of the digits corresponding to the cubes to be considered.
         If not provided, the function will consider automatically all the cubes 
         with objname_tmp_A+digit+objname_tmp_B+'.fits' name structure in the 
         provided "inpath".
-    PosAng_st_key, PosAng_nd_key: strings, opt
+    PosAng_st_key, PosAng_nd_key: strings, optional
         Name of the keywords to be looked up in the header, to provide the PA 
         from North at start and end of integration.
-    verbose: bool, {False,True}, opt
+    verbose: bool, {False,True}, optional
         True if you want more info to be printed.
 
     Example:
@@ -220,29 +220,29 @@ def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
     -----------
     objname_tmp_A: string
         Contains the common name of the cubes BEFORE the digits
-    digit_format: int, opt
+    digit_format: int, optional
         Number of digits in the name of the cube. The digits are supposed to be 
         the only changing part in the name of one cube to another.
-    objname_tmp_B: string, opt
+    objname_tmp_B: string, optional
         Contains the name of the cubes AFTER the digits
-    inpath: string, opt
+    inpath: string, optional
         Contains the full path of the directory with the data
-    skew: bool, {False,True}, opt
+    skew: bool, {False,True}, optional
         True if you know there is a different rotation between y- and x- axes. 
         The code also detects automatically if there is >1deg skew between y and
         x axes. In case of skewing, 2 vectors of derotation angles are returned:
         one for x and one for y, instead of only one vector.
-    writing: bool, {False,True}, opt
+    writing: bool, {False,True}, optional
         True if you want to write the derotation angles in a txt file.
     outpath: string, opt
         Contains the full path of the directory where you want the txt file to 
         be saved.
-    list_obj: integer list or 1-D array, opt
+    list_obj: integer list or 1-D array, optional
         List of the digits corresponding to the cubes to be considered.
         If not provided, the function will consider automatically all the cubes 
         with objname_tmp_A+digit+objname_tmp_B+'.fits' name structure in the 
         provided "inpath".
-    cd11_key,cd12_key,cd21_key,cd22_key: strings, opt
+    cd11_key,cd12_key,cd21_key,cd22_key: strings, optional
         Name of the keywords to be looked up in the header, to provide the:
         - partial of first axis coordinate w.r.t. x   (cd11_key)
         - partial of first axis coordinate w.r.t. y   (cd12_key)
@@ -251,7 +251,7 @@ def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
         Default values are the ones in the headers of ESO or HST fits files.
         For more information, go to:
         http://www.stsci.edu/hst/HST_overview/documents/multidrizzle/ch44.html
-    verbose: boolean, {False,True}, opt
+    verbose: boolean, {False,True}, optional
         True if you want more info to be printed.
     Example:
     -------
@@ -362,7 +362,7 @@ def check_PA_vector(angle_list, unit='deg'):
     ----------
     angle_list: 1D-array_like
         Vector containing the derotation angles
-    unit: string, {'deg','rad'}, opt
+    unit: string, {'deg','rad'}, optional
         The unit type of the input angle list
     
     Returns

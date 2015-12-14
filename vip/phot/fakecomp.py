@@ -102,8 +102,11 @@ def create_psf_template(array, size, fwhm=5, verbose=True, collapse='mean'):
         Input cube.
     size : int
         Size of the squared subimage.
-    fwhm: float
+    fwhm: float, optional
         The size of the Full Width Half Maximum in pixel.
+    verbose : {True,False}, bool optional
+        Whether to print to stdout information about file opening, cropping and
+        completion of the psf template.
     collapse : {'mean','median'}, string optional
         Defines the way the frames are collapsed.
         
@@ -116,7 +119,7 @@ def create_psf_template(array, size, fwhm=5, verbose=True, collapse='mean'):
         raise TypeError('Array is not a cube or 3d array.')
     
     n = array.shape[0]
-    psf = cube_crop_frames(array, size=size)
+    psf = cube_crop_frames(array, size=size, verbose=verbose)
     if collapse=='mean':
         psf = np.mean(psf, axis=0)
     elif collapse=='median':

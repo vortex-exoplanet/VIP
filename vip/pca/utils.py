@@ -73,8 +73,8 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
     max_sc = np.amax(scal_list)
 
     if not inverse and max_sc > 1:
-        new_y = np.ceil(max_sc*y)
-        new_x = np.ceil(max_sc*x)
+        new_y = int(np.ceil(max_sc*y))
+        new_x = int(np.ceil(max_sc*x))
         if (new_y - y)%2 != 0: new_y = new_y+1
         if (new_x - x)%2 != 0: new_x = new_x+1
         pad_len_y = (new_y - y)//2

@@ -161,6 +161,10 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     #***************************************************************************
     if not cube.ndim>2:
         raise TypeError('Input array is not a 3d or 4d array')
+    if not cube.shape[0] == angle_list.shape[0]:
+        msg ='Angle list vector has wrong length. It must equal the number of \
+        frames in the cube.'
+        raise TypeError(msg)
     if cube_ref is not None:
         if not cube_ref.ndim==3:
             raise TypeError('Input reference array is not a cube or 3d array')
@@ -401,7 +405,8 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
     debug : {False, True}, bool optional
         Whether to print debug information or not.
     plot : {True, False}, optional
-        Whether to plot the SNR as function of PCs and final PCA frame or not.
+        Whether to plot the SNR and flux as functions of PCs and final PCA 
+        frame or not.
 
     Returns
     -------
@@ -437,18 +442,23 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             res = [phot.snr_ss(frame, (x_,y_), fwhm, plot=False, verbose=False, 
                                full_output=True) for y_, x_ in zip(yy, xx)]
             snr_pixels = np.array(res)[:,-1]
+            fluxes = np.array(res)[:,2]
+            argm = np.argmax(snr_pixels)
             if full_output:
-                return np.max(snr_pixels), frame
+                # integrated fluxes for the max snr
+                return np.max(snr_pixels), fluxes[argm], frame
             else:
-                return np.max(snr_pixels)
+                return np.max(snr_pixels), fluxes[argm]
         elif fmerit=='px':
             res = phot.snr_ss(frame, (x,y), fwhm, plot=False, verbose=False,
                               full_output=True)
             snrpx = res[-1]
+            fluxpx = np.array(res)[2]
             if full_output:
-                return snrpx, frame
+                # integrated fluxes for the given px
+                return snrpx, fluxpx, frame
             else:
-                return snrpx
+                return snrpx, fluxpx
         elif fmerit=='mean':
             yy, xx = draw.circle(y, x, fwhm/2.)
             res = [phot.snr_ss(frame, (x_,y_), fwhm, plot=False, verbose=False, 
@@ -456,6 +466,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             snr_pixels = np.array(res)[:,-1]
             fluxes = np.array(res)[:,2]
             if full_output:
+                # mean of the integrated fluxes (shifting the aperture)
                 return np.mean(snr_pixels), np.mean(fluxes), frame
             else:                         
                 return np.mean(snr_pixels), np.mean(fluxes)
@@ -581,7 +592,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             plt.xlim(np.array(pclist).min(), np.array(pclist).max())
             plt.ylim(0, np.array(fluxlist).max()+1)
             plt.xlabel('Number of PCs')
-            plt.ylabel('Flux in FWHM aperture [ADUs]')
+            plt.ylabel('Integrated Flux in FWHM aperture [ADUs]')
             plt.minorticks_on()
             plt.grid('on', 'major', linestyle='-', alpha=0.7)
             plt.grid('on', 'minor')           
@@ -609,7 +620,8 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         argm = np.argmax(snrlist3)
         opt_npc = pclist3[argm]    
         dfr = pd.DataFrame(np.array((pclist+pclist2+pclist3, 
-                                     snrlist+snrlist2+snrlist3)).T)  
+                                     snrlist+snrlist2+snrlist3,
+                                     fluxlist+fluxlist2+fluxlist3)).T)  
         dfrs = dfr.sort(columns=0)
         dfrsrd = dfrs.drop_duplicates()
         ind = np.array(dfrsrd.index)    
@@ -629,9 +641,9 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         if plot:     
             plt.figure(figsize=(8,4), dpi=100)    
             plt.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,1]), '-', 
-                     alpha=0.4)
+                     alpha=0.5)
             plt.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,1]), 'o',  
-                     alpha=0.6, color='blue')
+                     alpha=0.8, color='blue')
             plt.xlim(np.array(dfrsrd.loc[:,0]).min(), np.array(dfrsrd.loc[:,0]).max())
             plt.ylim(0, np.array(dfrsrd.loc[:,1]).max()+1)
             plt.xlabel('Number of PCs')
@@ -639,6 +651,19 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             plt.minorticks_on()
             plt.grid('on', 'major', linestyle='-', alpha=0.7)
             plt.grid('on', 'minor')
+            
+            plt.figure(figsize=(8,4), dpi=100)
+            plt.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), '-', 
+                     alpha=0.5)
+            plt.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), 'o', 
+                     alpha=0.8, color='green')
+            plt.xlim(np.array(pclist).min(), np.array(pclist).max())
+            plt.ylim(0, np.array(fluxlist).max()+1)
+            plt.xlabel('Number of PCs')
+            plt.ylabel('Integrated Flux in FWHM aperture [ADUs]')
+            plt.minorticks_on()
+            plt.grid('on', 'major', linestyle='-', alpha=0.7)
+            plt.grid('on', 'minor') 
             print
     
     finalfr = pca(cube, angle_list, cube_ref, ncomp=opt_npc, svd_mode=svd_mode,  

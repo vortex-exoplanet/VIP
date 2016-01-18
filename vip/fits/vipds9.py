@@ -213,9 +213,13 @@ class vipDS9(object):
             self.win.xpaset('scale open') 
         
     def tile(self, mode='column'):
-        """ Sets tile frames. Mode can be: row, column or grid. """       
+        """ Sets tile frames. Mode can be: off, row, column or grid. """       
         self.win = DS9Win(self.name, doOpen=True)
-        self.win.xpaset('tile mode '+mode)
+        if mode=='off':
+            self.win.xpaset('tile off')
+        else:
+            self.win.xpaset('tile on')
+            self.win.xpaset('tile mode '+mode)
 
     def unlock(self, scale=True, colorbar=True, crosshair=True, slices=True):
         """ Locks all frames to the current one. """

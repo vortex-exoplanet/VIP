@@ -31,7 +31,7 @@ setup(
     include_package_data=True,
     install_requires=['cython',
                       'numpy >= 1.8',
-                      'scipy >= 0.16',
+                      'scipy >= 0.17',
                       'ipython >= 3.2',
                       'jupyter',
                       'astropy >= 1.0.2',

@@ -120,9 +120,8 @@ FAQ
   aforementioned instructions.
 
 - Why do I get a warning related to DS9/XPA when importing VIP?
-  Please make sure you have DS9 and XPA in your system path. If this is not
-  the case, VIP will import correctly but the class vipDS9 for controlling VIP 
-  won't be available. 
+  Please make sure you have DS9 and XPA in your system path. Try installing it
+  with your system package management tool. 
 
 - Why do I get, in linux, a matplotlib related error when importing VIP? 
   (Matplotlib backend_wx and backend_wxagg require wxPython >=2.8)

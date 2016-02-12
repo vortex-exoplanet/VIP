@@ -21,6 +21,7 @@ from ..conf import timeInit, timing
 from ..conf import eval_func_tuple as EFT 
 from ..var import get_annulus_quad
 from ..pca.utils import svd_wrapper, reshape_matrix
+from ..stats import descriptive_stats
 from ..var import get_annulus
 
 
@@ -296,6 +297,7 @@ def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3,
                                                                verbose) 
         indices = get_annulus_quad(array[0], inner_radius, annulus_width)
          
+        #if ncomp is None and verbose:  print '# PCs info for each quadrant:' 
         #***********************************************************************
         # PCA matrix is created for each annular quadrant and centered if needed
         #***********************************************************************
@@ -311,13 +313,18 @@ def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3,
             # do PCA on the small matrix, where some frames are discarded 
             # according to the PA threshold, and return the residuals
             #*******************************************************************
+            ncomps = []
+            nfrslib = []          
             if nproc==1:
                 for frame in xrange(n):    
-                    residuals = do_pca_patch(matrix_quad, frame, angle_list, fwhm,
-                                             pa_threshold, center, ann_center, 
-                                             svd_mode, ncomp, min_frames_pca, 
-                                             debug)
-                    cube_out[frame][yy, xx] = residuals  
+                    res = do_pca_patch(matrix_quad, frame, angle_list, fwhm,
+                                       pa_threshold, center, ann_center, 
+                                       svd_mode, ncomp, min_frames_pca, 
+                                       debug)
+                    residuals = res[0]
+                    ncomps.append(res[1])
+                    nfrslib.append(res[2])
+                    cube_out[frame][yy, xx] = residuals 
             elif nproc>1:
                 #***************************************************************
                 # A multiprocessing pool is created to process the frames in a 
@@ -335,11 +342,21 @@ def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3,
                                              itt.repeat(ncomp),
                                              itt.repeat(min_frames_pca),
                                              itt.repeat(debug)))
-                residuals = np.array(res)
+                res = np.array(res)
+                residuals = np.array(res[:,0])
+                ncomps = res[:,1]
+                nfrslib = res[:,2]
                 pool.close()
                 for frame in xrange(n):
                     cube_out[frame][yy, xx] = residuals[frame]                          
-         
+            
+            # number of PCs printed for each annular quadrant     
+            if ncomp is None and verbose:  
+                descriptive_stats(ncomps, verbose=verbose, label='Numb PCs: ')
+            # number of frames in library printed for each annular quadrant
+            if verbose:
+                descriptive_stats(nfrslib, verbose=verbose, label='Size LIB: ')
+            
         if verbose:
             print 'Done PCA with {:} for current annulus'.format(svd_mode)
             timing(start_time)      
@@ -434,6 +451,18 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
         
         return lista
 
+    def do_pca_annulus(ncomp, matrix, svd_mode, noise_error, data_ref):
+        """ Actual PCA for the annulus """
+        #V = svd_wrapper(data_ref, svd_mode, ncomp, debug=False, verbose=False)
+        V = get_eigenvectors(ncomp, matrix, svd_mode, noise_error=noise_error, 
+                             data_ref=data_ref, debug=False)
+        # new variables as linear combinations of the original variables in 
+        # matrix.T with coefficientes from EV
+        transformed = np.dot(V, matrix.T) 
+        reconstructed = np.dot(V.T, transformed)
+        residuals = matrix - reconstructed.T  
+        return residuals, V.shape[0]
+
     #---------------------------------------------------------------------------
 
     if not array.ndim == 3:
@@ -466,12 +495,11 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
         matrix_ref = array_ref[:, yy, xx]
         
         corr = fr_ref_correlation(np.median(matrix, axis=0), matrix_ref)
-        #print corr
         indcorr = np.where(np.abs(corr)>=min_corr)
         data_ref = matrix_ref[indcorr]
-        #print data_ref.shape
-        
-        if data_ref.shape[0]<5:
+        nfrslib = data_ref.shape[0]
+                
+        if nfrslib<5:
             msg = 'Too few frames left (<5) fullfil the given correlation level.'
             msg += 'Try decreasing it'
             raise RuntimeError(msg)
@@ -479,17 +507,12 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
         matrix = scale(matrix, with_mean=True, with_std=True)
         data_ref = scale(data_ref, with_mean=True, with_std=True)        
         
-        #V = svd_wrapper(data_ref, svd_mode, ncomp, debug=False, verbose=False)
-        V = get_eigenvectors(ncomp, matrix, svd_mode, noise_error=10e-3, 
-                             data_ref=data_ref, debug=False)
-        # new variables as linear combinations of the original variables in 
-        # matrix.T with coefficientes from EV
-        transformed = np.dot(V, matrix.T) 
-        reconstructed = np.dot(V.T, transformed)
-        residuals = matrix - reconstructed.T    
+        residuals, ncomps = do_pca_annulus(ncomp, matrix, svd_mode, 10e-3, data_ref)  
         cube_out[:, yy, xx] = residuals  
             
         if verbose:
+            print '# frames in LIB = {}'.format(nfrslib)
+            print '# PCs = {}'.format(ncomps)
             print 'Done PCA with {:} for current annulus'.format(svd_mode)
             timing(start_time)      
          
@@ -605,7 +628,7 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, center,
     transformed = np.dot(curr_frame, V.T)
     reconstructed = np.dot(transformed.T, V)                        
     residuals = curr_frame - reconstructed     
-    return residuals   
+    return residuals, V.shape[0], data_ref.shape[0]   
 
 
 def get_eigenvectors(ncomp, data, svd_mode, noise_error=10e-3, max_evs=200, 
@@ -630,7 +653,7 @@ def get_eigenvectors(ncomp, data, svd_mode, noise_error=10e-3, max_evs=200,
         V_big = svd_wrapper(data_ref, svd_mode, min(data_ref.shape[0], max_evs),
                             False, False)
         # noise (stddev of residuals) to be lower than a given thr(10e-3)       # TODO: noise_error -> new PCA parameter?
-        while px_noise_decay > noise_error:
+        while px_noise_decay >= noise_error:
             ncomp += 1
             V = V_big[:ncomp]
             transformed = np.dot(data, V.T)
@@ -640,7 +663,6 @@ def get_eigenvectors(ncomp, data, svd_mode, noise_error=10e-3, max_evs=200,
             if ncomp>1: px_noise_decay = px_noise[-2] - px_noise[-1]
             #print 'ncomp {:} {:.4f} {:.4f}'.format(ncomp,px_noise[-1],px_noise_decay)
         
-        # TODO: PRINT OUT INFO SOMEHOW
         if debug: print 'ncomp', ncomp
         
     else:

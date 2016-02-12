@@ -12,29 +12,47 @@ import numpy as np
 from scipy.optimize import leastsq
 from astropy.modeling import models
 from astropy.modeling.fitting import LevMarLSQFitter
-from astropy.stats import gaussian_sigma_to_fwhm
-from .shapes import get_square_robust, frame_center
+from astropy.stats import gaussian_sigma_to_fwhm, gaussian_fwhm_to_sigma, sigma_clipped_stats
+from .shapes import get_square, frame_center
 from .utils import pp_subplots
 
 
-def fit_2dgaussian(array, cent=None, fwhm=4, full_output=False, verbose=True):
+def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4, 
+                   theta=0, threshold=False, sigfactor=6, full_output=False, 
+                   debug=False):
     """ Fitting a 2D Gaussian to the 2D distribution of the data with photutils.
     
     Parameters
     ----------
     array : array_like
         Input frame with a single PSF.
+    crop : {False, True}, optional
+        If True an square sub image will be cropped.
     cent : tuple of int, optional
-        X,Y integer position of source in the array for extracting a subframe. 
-        If None the center of the frame is used for cropping the subframe (then
-        the PSF is assumed to be ~ at the center of the frame). 
-    fwhm : float, optional    
-        Expected FWHM of the Gaussian.
+        X,Y integer position of source in the array for extracting the subimage. 
+        If None the center of the frame is used for cropping the subframe (the 
+        PSF is assumed to be ~ at the center of the frame). 
+    cropsize : int, optional
+        Size of the subimage.
+    fwhmx, fwhmy : float, optional
+        Initial values for the standard deviation of the fitted Gaussian, in px.
+    theta : float, optional
+        Angle of inclination of the 2d Gaussian counting from the positive X
+        axis.
+    threshold : {False, True}, optional
+        If True the background pixels will be replaced by small random Gaussian 
+        noise.
+    sigfactor : int, optional
+        The background pixels will be thresholded before fitting a 2d Gaussian
+        to the data using sigma clipped statistics. All values smaller than
+        (MEDIAN + sigfactor*STDDEV) will be replaced by small random Gaussian 
+        noise. 
     full_output : {False, True}, optional
         If False it returns just the centroid, if True also returns the 
         FWHM in X and Y (in pixels), the amplitude and the rotation angle.
-    verbose : {True, False}, optional
-        Whether to plot the arrays and print out fit results.
+    debug : {True, False}, optional
+        If True, the function prints out parameters of the fit and plots the
+        data, model and residuals.
         
     Returns
     -------
@@ -56,33 +74,59 @@ def fit_2dgaussian(array, cent=None, fwhm=4, full_output=False, verbose=True):
         Rotation angle.
     
     """
-    if cent is None:
-        ceny, cenx = frame_center(array)
-    else:
-        cenx, ceny = cent
+    if not array.ndim == 2:
+        raise TypeError('Input array is not a frame or 2d array')
     
-    # Cropping to 3*fwhm+1 
-    psf_subimage,suby,subx = get_square_robust(array, min(3*fwhm, array.shape[0]), 
-                                          ceny, cenx, position=True)    
+    # If frame size is even we drop last row and last column
+    if array.shape[0]%2==0:
+        array = array[:-1,:].copy()
+    if array.shape[1]%2==0:
+        array = array[:,:-1].copy()
+    
+    if crop:
+        if cent is None:
+            ceny, cenx = frame_center(array)
+        else:
+            cenx, ceny = cent
+        
+        imside = array.shape[0]
+        psf_subimage, suby, subx = get_square(array, min(cropsize, imside), 
+                                              ceny, cenx, position=True)  
+    else:
+        psf_subimage = array.copy()  
+    
+    if threshold:
+        _, clipmed, clipstd = sigma_clipped_stats(psf_subimage, sigma=2)
+        indi = np.where(psf_subimage<=clipmed+sigfactor*clipstd)
+        subimnoise = np.random.randn(psf_subimage.shape[0], psf_subimage.shape[1])*50
+        psf_subimage[indi] = subimnoise[indi]
 
-    yme, xme = frame_center(psf_subimage)
+    yme, xme = np.where(psf_subimage==psf_subimage.max())
     # Creating the 2D Gaussian model
     gauss = models.Gaussian2D(amplitude=psf_subimage.max(), x_mean=xme, 
-                              y_mean=yme, x_stddev=fwhm, y_stddev=fwhm, theta=0)
+                              y_mean=yme, x_stddev=fwhmx*gaussian_fwhm_to_sigma, 
+                              y_stddev=fwhmy*gaussian_fwhm_to_sigma, theta=theta)
     # Levenberg-Marquardt algorithm
     fitter = LevMarLSQFitter()                  
     y, x = np.indices(psf_subimage.shape)
-    fit = fitter(gauss, x, y, psf_subimage)
+    fit = fitter(gauss, x, y, psf_subimage, maxiter=1000, acc=1e-08)
 
-    mean_y = fit.y_mean.value + suby
-    mean_x = fit.x_mean.value + subx
+    if crop:
+        mean_y = fit.y_mean.value + suby
+        mean_x = fit.x_mean.value + subx
+    else:
+        mean_y = fit.y_mean.value
+        mean_x = fit.x_mean.value 
     fwhm_y = fit.y_stddev.value*gaussian_sigma_to_fwhm
     fwhm_x = fit.x_stddev.value*gaussian_sigma_to_fwhm 
     amplitude = fit.amplitude.value
     theta = fit.theta.value
     
-    if verbose:
-        pp_subplots(array, psf_subimage, colorb=True, grid=True)
+    if debug:
+        if threshold:  msg = 'Subimage thresholded / Model / Residuals'
+        else: msg = 'Subimage (no threshold) / Model / Residuals'
+        pp_subplots(psf_subimage, fit(x, y), psf_subimage-fit(x, y), 
+                    colorb=True, grid=True, title=msg)
         print 'FWHM_y =', fwhm_y
         print 'FWHM_x =', fwhm_x
         print

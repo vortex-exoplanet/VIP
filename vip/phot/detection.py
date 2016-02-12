@@ -190,9 +190,9 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         raise TypeError('Input psf is not a 2d array or has wrong size')
     
     # Getting the FWHM from the PSF array
-    _,_,fwhm_y,fwhm_x, _,_ = fit_2dgaussian(psf, full_output=True,verbose=False,
-                                               cent=(frame_center(psf)[1],
-                                                     frame_center(psf)[0]))
+    _,_,fwhm_y, fwhm_x,_,_ = fit_2dgaussian(psf, cent=(frame_center(psf)[1],
+                                                       frame_center(psf)[0]), 
+                                            debug=debug, full_output=True)    
     fwhm = np.mean([fwhm_x, fwhm_y])
     if verbose:  
         print 'FWHM =', fwhm
@@ -219,7 +219,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         print 'Background threshold = {:.3f}'.format(bkg_level)
         print
     
-    round = 0.3   # roundness constraint
+    #round = 0.3   # roundness constraint
     
     if mode=='lpeaks' or mode=='log' or mode=='dog':
         # Padding the image with zeros to avoid errors at the edges

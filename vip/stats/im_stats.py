@@ -11,19 +11,16 @@ __all__ = ['frame_histo_stats']
 
 import numpy as np
 from matplotlib import pyplot as plt
-from ..var import fit_2dgaussian
 
 
-def frame_histo_stats(image_array, gausfit=True, plot=True):
+def frame_histo_stats(image_array, plot=True):
     """Plots a frame with a colorbar, its histogram and some statistics: mean,
     median, maximum, minimum and standard deviation values.  
     
     Parameters
     ----------
     image_array : array_like
-        The input frame.
-    gausfit : {True, False}, bool optional
-        Whether to fit a 2d gaussian to the maximun value or not.    
+        The input frame.  
     plot : {True, False}, bool optional
         If True plots the frame and the histogram with the values.
         
@@ -47,9 +44,6 @@ def frame_histo_stats(image_array, gausfit=True, plot=True):
     maxim = vector.max()
     minim = vector.min()
     std = vector.std()
-    y, x = np.where(image_array == image_array.max())
-    if gausfit:  
-        fity, fitx = fit_2dgaussian(image_array, cy=y[0], cx=x[0])
     
     if plot is True:
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(14,5))
@@ -60,9 +54,6 @@ def frame_histo_stats(image_array, gausfit=True, plot=True):
               'Stddev = {:.3f}\n'.format(std) +\
               'Max = {:.3f}\n'.format(maxim) +\
               'Min = {:.3f}\n\n'.format(minim)
-        if gausfit:
-            txt += 'Max: fit X,fit Y \n' +\
-                   '({:.2f},{:.2f})'.format(fitx, fity)
         ax0.hist(vector, bins=bins, label=txt, alpha=0.5, histtype='stepfilled')
         ax0.set_yscale('log')
         ax0.set_title('Histogram')

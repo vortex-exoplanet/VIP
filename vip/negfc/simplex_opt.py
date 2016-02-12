@@ -17,7 +17,8 @@ __all__ = ['firstguess_simplex',
 
 def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, annulus_width, 
                        aperture_radius, cube_ref=None, svd_mode='lapack', 
-                       p_ini=None, options=None, verbose=False, **kwargs):               
+                       scaling='temp-mean', p_ini=None, options=None, 
+                       verbose=False, **kwargs):               
     """
     Determine the position of a companion using the negative fake companion 
     technique and a standard minimization algorithm (Default=Nelder-Mead) .
@@ -45,6 +46,11 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, annulus_width,
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
+    scaling : {'temp-mean', 'temp-standard'} or None, optional
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done and with 
+        "temp-standard" temporal mean centering plus scaling to unit variance 
+        is done. 
     p_ini : np.array
         Position (r, theta) of the circular aperture center.
     options: dict, optional
@@ -65,24 +71,20 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, annulus_width,
     if p_ini is None:
         p_ini = p
         
-    solu = minimize(chisquare, 
-                    p, 
-                    args=(cube,angs,plsc,psf,annulus_width,ncomp,
-                          aperture_radius,p_ini,cube_ref,svd_mode), 
+    solu = minimize(chisquare, p, args=(cube,angs,plsc,psf,annulus_width,ncomp,
+                                        aperture_radius,p_ini,cube_ref,svd_mode,
+                                        scaling), 
                     method = options.pop('method','Nelder-Mead'), 
-                    options=options,
-                    **kwargs)                       
+                    options=options, **kwargs)                       
 
-    if verbose:
-        print(solu)
-        
+    if verbose:  print(solu)
     return solu
     
         
 def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm, 
                           annulus_width, ncomp, aperture_radius, cube_ref=None, 
-                          svd_mode='lapack',f_range=None, display=False, 
-                          verbose=True, save=False, **kwargs):
+                          svd_mode='lapack', scaling='temp-mean', f_range=None, 
+                          display=False, verbose=True, save=False, **kwargs):
     """
     Determine a first guess for the flux of a companion at a given position 
     in the cube by doing a simple grid search evaluating the reduced chi2.
@@ -111,6 +113,11 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
+    scaling : {'temp-mean', 'temp-standard'} or None, optional
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done and with 
+        "temp-standard" temporal mean centering plus scaling to unit variance 
+        is done. 
     f_range: numpy.array, optional
         The range of flux tested values. If None, 20 values between 0 and 5000
         are tested.
@@ -147,7 +154,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
     for j, f_guess in enumerate(f_range):
         chi2r[j] = chisquare((r0,theta0,f_guess), cube, angs, PLSC, psf_norm, 
                              annulus_width, ncomp, aperture_radius,(r0,theta0),
-                             cube_ref=cube_ref, svd_mode=svd_mode)
+                             cube_ref=cube_ref, svd_mode=svd_mode, 
+                             scaling=scaling)
         if verbose:
             print '{}/{}   {:.3f}   {:.3f}'.format(j+1,n,f_guess,chi2r[j])
          
@@ -180,9 +188,10 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
 
 
 def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width, aperture_radius, 
-               planets_xy_coord, cube_ref=None, svd_mode='lapack',  
-               p_ini=None, f_range=None, simplex=False, simplex_options=None, 
-               display=False, verbose=True, save=False, figure_options=None):
+               planets_xy_coord, cube_ref=None, svd_mode='lapack', 
+               scaling='temp-mean', p_ini=None, f_range=None, simplex=False, 
+               simplex_options=None, display=False, verbose=True, save=False, 
+               figure_options=None):
     """ Determines a first guess for the position and the flux of a planet.
         
     We process the cube without injecting any negative fake companion. 
@@ -222,6 +231,11 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width, aperture_radius,
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
+    scaling : {'temp-mean', 'temp-standard'} or None, optional
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done and with 
+        "temp-standard" temporal mean centering plus scaling to unit variance 
+        is done. 
     p_ini: numpy.array
         Position (r, theta) of the circular aperture center.        
     f_range: numpy.array, optional
@@ -277,9 +291,10 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width, aperture_radius,
                                             center_xy_coord, cube, angs, PLSC,
                                             psfn, annulus_width, ncomp, 
                                             aperture_radius, f_range=f_range, 
-                                            cube_ref=cube_ref, svd_mode=svd_mode,  
-                                            display=display, verbose=verbose,
-                                            save=save, **figure_options)
+                                            cube_ref=cube_ref, svd_mode=svd_mode, 
+                                            scaling=scaling, display=display, 
+                                            verbose=verbose, save=save, 
+                                            **figure_options)
                                                                                                                     
         if verbose:
             msg3 = 'Planet {}: preliminary guess: (r,theta,f) = ({},{},{})'
@@ -293,8 +308,8 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width, aperture_radius,
             res = firstguess_simplex((r_pre,theta_pre,f_pre), cube, angs, psfn,
                                      PLSC, ncomp, annulus_width, aperture_radius,
                                      cube_ref=cube_ref, svd_mode=svd_mode,
-                                     p_ini=p_ini, options=simplex_options,
-                                     verbose=False)
+                                     scaling=scaling, p_ini=p_ini, 
+                                     options=simplex_options, verbose=False)
             
             r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x
             if verbose:
@@ -323,4 +338,6 @@ def firstguess(cube, angs, psfn, ncomp, PLSC, annulus_width, aperture_radius,
         print '************************************************************'
         
     return (r_0,theta_0,f_0)
+
+
         

@@ -14,13 +14,11 @@ import numpy as np
 import photutils
 from skimage import draw
 from .snr import snr_ss
-from ..var import fit_2dgaussian
 
 
 def frame_quick_report(array, fwhm, source_xy=None, verbose=True):
     """ Gets information from given frame: Integrated flux in aperture, SNR of
-    central pixel (max or given coordinates), mean SNR in aperture, fitted 
-    coordinates (2d gaussian).
+    central pixel (max or given coordinates), mean SNR in aperture.
     
     Parameters
     ----------
@@ -79,12 +77,8 @@ def frame_quick_report(array, fwhm, source_xy=None, verbose=True):
         print('Max SNR = {:.3f}, stddev SNRs = {:.3f}'.format(np.max(snr_pixels), 
                                                               stdsnr)) 
         print('-----------------------------------------')
-        
-    # we fit a 2d gaussian to the approx center px of the planet
-    fy, fx = fit_2dgaussian(array, (x,y), fwhm)
-    if verbose: print('Fitted X,Y = {:.3f},{:.3f}'.format(fx, fy))
     
-    return obj_flux, snr_pixels, fy, fx
+    return obj_flux, snr_pixels
     
 
 

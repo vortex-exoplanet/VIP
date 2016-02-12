@@ -13,7 +13,7 @@ from ..pca import pca_annulus
 
 def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius, 
                         r_guess, theta_guess, cube_ref=None, svd_mode='lapack',
-                        debug=False):
+                        scaling='temp-mean', debug=False):
     """
     Extracts a PCA-ed annulus from the cube and returns the flux values of the 
     pixels included in a circular aperture centered at a given position.
@@ -42,6 +42,11 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
+    scaling : {None, 'temp-mean', 'temp-standard'}
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done and with 
+        "temp-standard" temporal mean centering plus scaling to unit variance 
+        is done.
     debug: boolean
         If True, the cube is returned along with the values.        
         
@@ -53,7 +58,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     """
 
     pca_frame = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
-                            svd_mode) 
+                            svd_mode, scaling) 
 
     centy_fr, centx_fr = frame_center(cube[0])
     posy = r_guess * np.sin(np.deg2rad(theta_guess)) + centy_fr

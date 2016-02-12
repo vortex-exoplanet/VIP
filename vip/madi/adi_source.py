@@ -14,10 +14,10 @@ import numpy as np
 from ..conf import timeInit, timing
 from ..var import get_annulus, mask_circle
 from ..calib import cube_derotate, check_PA_vector
-from ..pca.pca_local import define_annuli, get_fwhm
+from ..pca.pca_local import define_annuli
 
-def adi(array, angle_list, fwhm=None, instrument=None, radius_int=0, asize=2, 
-        delta_rot=1, mode='simple', full_output=False, verbose=True):
+def adi(array, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1, 
+        mode='simple', full_output=False, verbose=True):
     """ Algorithm based on Marois et al. 2006 on Angular Differential Imaging.   
     First the median frame is subtracted, then the median of the four closest 
     frames taking into account the pa_threshold (field rotation).
@@ -29,10 +29,7 @@ def adi(array, angle_list, fwhm=None, instrument=None, radius_int=0, asize=2,
     angle_list : array_like, 1d
         Corresponding parallactic angle for each frame.
     fwhm : float
-        Known size of the FHWM in pixels to be used instead of the instrument 
-        default.
-    instrument: {'naco27, 'lmircam'}, optional
-        Defines the type of dataset. For cubes without proper headers.
+        Known size of the FHWM in pixels to be used. Default is 4.
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the 
         central circular area is discarded.
@@ -115,7 +112,6 @@ def adi(array, angle_list, fwhm=None, instrument=None, radius_int=0, asize=2,
         if verbose:  print 'Median psf reference subtracted'
     
     elif mode=='annular':   
-        if not fwhm:  fwhm = get_fwhm(instrument) 
         annulus_width = int(asize * fwhm)                            # equal size for all annuli
         n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    
         if verbose:  print 'N annuli =', n_annuli, ', FWHM =', fwhm, '\n'

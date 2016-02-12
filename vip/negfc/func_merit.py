@@ -10,7 +10,8 @@ from ..phot import inject_fcs_cube
 
 
 def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp, 
-              aperture_radius, initialState, cube_ref=None, svd_mode='randsvd'):
+              aperture_radius, initialState, cube_ref=None, svd_mode='randsvd',
+              scaling='temp-mean'):
     """
     Calculate the reduced chi2:
     \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -41,7 +42,12 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.         
-
+    scaling : {'temp-mean', 'temp-standard'} or None, optional
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done and with 
+        "temp-standard" temporal mean centering plus scaling to unit variance 
+        is done. 
+        
     Returns
     -------
     out: float
@@ -62,7 +68,8 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp
     # Perform PCA to generate the processed image and extract the zone of interest                                     
     values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width,
                                  aperture_radius,initialState[0],initialState[1], 
-                                 cube_ref=cube_ref, svd_mode=svd_mode)
+                                 cube_ref=cube_ref, svd_mode=svd_mode, 
+                                 scaling=scaling)
     
     # Function of merit
     values = np.abs(values)

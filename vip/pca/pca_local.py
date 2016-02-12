@@ -7,26 +7,28 @@ Module with local smart pca (annulus-wise) serial and parallel implementations.
 from __future__ import division 
 
 __author__ = 'C. Gomez @ ULg'
-__all__ = ['annular_pca', 
-           'subannular_pca', 
-           'subannular_pca_parallel']
-
-# TODO: to move here function scale_cube()
+__all__ = ['pca_adi_annular', 
+           'pca_adi_annular_quad',
+           'pca_rdi_annular']
 
 import numpy as np
 import itertools as itt
+from scipy import stats
 from multiprocessing import Pool, cpu_count
+from sklearn.preprocessing import scale
 from ..calib import cube_derotate, check_PA_vector
-from ..conf import timeInit, timing, eval_func_tuple, VLT_NACO, LBT 
+from ..conf import timeInit, timing
+from ..conf import eval_func_tuple as EFT 
 from ..var import get_annulus_quad
 from ..pca.utils import svd_wrapper, reshape_matrix
 from ..var import get_annulus
 
 
-def annular_pca(array, angle_list, radius_int=0, asize=2, delta_rot=1, ncomp=1,
-                svd_mode='randsvd', min_frames_pca=10, instrument=None, 
-                fwhm=None, center=True, full_output=False, verbose=True, 
-                debug=False):
+# TODO: TO BE DEPRECADTED soon. Redundant and outdated function. It's 
+# recommended to use pca_adi_annular_quad
+def pca_adi_annular(array, angle_list, radius_int=0, fwhm=4, asize=2, 
+                    delta_rot=1, ncomp=1, svd_mode='randsvd', min_frames_pca=10, 
+                    center=True, full_output=False, verbose=True, debug=False):
     """ Smart PCA (annular version) algorithm. On each annulus we discard 
     reference images taking into account the parallactic angle threshold.
      
@@ -39,13 +41,15 @@ def annular_pca(array, angle_list, radius_int=0, asize=2, delta_rot=1, ncomp=1,
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the 
         central circular area is discarded.
+    fwhm : float, optional
+        Known size of the FHWM in pixels to be used. Deafult is 4.
     asize : int, optional
         The size of the annuli, in FWHM. Default is 2.
     delta_rot : int, optional
         Factor for increasing the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1 FHWM on each side of the considered frame).
-    ncomp : None or int, optional
-        How many PCs are kept. If none it will be automatically determined.
+    ncomp : int, optional
+        How many PCs are kept.
     svd_mode : {randsvd, eigen, lapack, arpack, opencv}, optional
         Switch for different ways of computing the SVD and principal components.
     min_frames_pca : int, optional 
@@ -59,11 +63,6 @@ def annular_pca(array, angle_list, radius_int=0, asize=2, delta_rot=1, ncomp=1,
     full_output: boolean, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
-    instrument: {'naco27, 'lmircam'}, optional
-        Defines the type of dataset. For cubes without proper headers.
-    fwhm : float
-        Known size of the FHWM in pixels to be used instead of the instrument 
-        default.
     center : {True,False}, bool optional
         Whether to center the data or not.
     verbose : {True, False}, bool optional
@@ -86,16 +85,14 @@ def annular_pca(array, angle_list, radius_int=0, asize=2, delta_rot=1, ncomp=1,
         raise TypeError('Input array is not a cube or 3d array')
     if not array.shape[0] == angle_list.shape[0]:
         raise TypeError('Input vector or parallactic angles has wrong length')
-     
+    if not ncomp>1:
+        raise TypeError('Wrong number of PCs. Must be a positive integer') 
+    
     n, y, x = array.shape
-    if not fwhm:  fwhm = get_fwhm(instrument)
      
     if verbose:  start_time = timeInit()
     
-    angle_list = check_PA_vector(angle_list)
-    
-    if not ncomp: auto_ncomp = True
-    else: auto_ncomp = False    
+    angle_list = check_PA_vector(angle_list) 
 
     annulus_width = int(asize * fwhm)                                           # equal size for all annuli
     n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    
@@ -157,12 +154,6 @@ def annular_pca(array, angle_list, radius_int=0, asize=2, delta_rot=1, ncomp=1,
                 data = data_ref                                
             
             curr_frame = data_all[frame]                                        # current frame
-                         
-            #*******************************************************************
-            # If ncomp=None is calculated for current annular quadrant
-            #*******************************************************************
-            if auto_ncomp and frame==0:
-                ncomp = get_ncomp(data, svd_mode, debug) 
                         
             #*******************************************************************
             # Performing PCA according to "mode" flag. 'data' is the matrix used 
@@ -197,14 +188,24 @@ def annular_pca(array, angle_list, radius_int=0, asize=2, delta_rot=1, ncomp=1,
         return frame               
 
 
-def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1, 
-                   ncomp=1, svd_mode='randsvd', min_frames_pca=10, 
-                   instrument=None, fwhm=None, center=True, full_output=False, 
-                   verbose=True, debug=False):
-    """ Smart PCA (subannular version) algorithm. The PCA is computed locally 
-    in each quadrant of each annulus. On each annulus we discard reference 
-    images taking into account the parallactic angle threshold. 
+def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3, 
+                         delta_rot=1, ncomp=1, svd_mode='randsvd', nproc=1,
+                         min_frames_pca=10, center=True, full_output=False, 
+                         verbose=True, debug=False):
+    """ Smart PCA (quadrants of annulus version) algorithm. The PCA is computed 
+    locally in each quadrant of each annulus. On each annulus we discard 
+    reference images taking into account the parallactic angle threshold. 
      
+    Depending on parameter *nproc* the algorithm can work with several cores. 
+    It's been tested on a Linux and OSX. The ACCELERATE library for linear 
+    algebra calcularions, which comes by default in every OSX system, is broken 
+    for multiprocessing. Avoid using this function unless you have compiled 
+    Python against other linear algebra library. An easy fix is to install 
+    latest ANACONDA (2.5 or later) distribution which ships MKL library 
+    (replacing the problematic ACCELERATE). On linux with the default 
+    LAPACK/BLAS libraries it successfully distributes the processes among all 
+    the existing cores. 
+    
     Parameters
     ----------
     array : array_like, 3d
@@ -214,6 +215,8 @@ def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1,
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the 
         central circular area is discarded.
+    fwhm : float, optional
+        Known size of the FHWM in pixels to be used. Deafult is 4.
     asize : int, optional
         The size of the annuli, in FWHM. Default is 3.
     delta_rot : int, optional
@@ -223,6 +226,10 @@ def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1,
         How many PCs are kept. If none it will be automatically determined.
     svd_mode : {randsvd, eigen, lapack, arpack, opencv}, optional
         Switch for different ways of computing the SVD and principal components.
+    nproc : None or int, optional
+        Number of processes for parallel computing. If None the number of 
+        processes will be set to (cpu_count()/2). By default the algorithm works
+        in single-process mode.
     min_frames_pca : int, optional 
         Minimum number of frames in the PCA reference library. Be careful, when
         min_frames_pca <= ncomp, then for certain frames the subtracted low-rank
@@ -234,13 +241,8 @@ def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1,
     full_output: boolean, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
-    instrument: {'naco27, 'lmircam'}, optional
-        Defines the type of dataset. For cubes without proper headers.
-    fwhm : float
-        Know size of the FHWM in pixels to be used instead of the instrument 
     center : {True,False}, bool optional
-        Whether to center the data or not.
-        default.
+        Whether to center (mean subtract) the data or not.
     verbose : {True, False}, bool optional
         If True prints to stdout intermediate info. 
     debug : {False, True}, bool optional
@@ -263,26 +265,26 @@ def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1,
         raise TypeError('Input vector or parallactic angles has wrong length.')
      
     n, y, _ = array.shape
-    if not fwhm:  fwhm = get_fwhm(instrument)
      
     if verbose:  start_time = timeInit()
     
     angle_list = check_PA_vector(angle_list)
     
-    annulus_width = int(asize * fwhm)                                           # equal size for all annuli
+    annulus_width = int(asize * fwhm)                # equal size for all annuli
     n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    
     if verbose:
-        msg = '# annuli = {:}, Ann width = {:}, FWHM = {:.3f}\n'
+        msg = '# annuli = {:}, Ann width = {:}, FWHM = {:.3f}'
         print msg.format(n_annuli, annulus_width, fwhm) 
-        print 'PCA will be done locally per annulus and per quadrant.\n'
+        print
+        print 'PCA will be done locally per annulus and per quadrant'
+        print
      
-    if not ncomp: auto_ncomp = True
-    else: auto_ncomp = False
-     
+    if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
+        nproc = (cpu_count()/2)
+    
     #***************************************************************************
     # The annuli are built, and the corresponding PA thresholds for frame 
-    # rejection are calculated. The PA rejection is calculated at center of the 
-    # annulus.
+    # rejection are calculated (at the center of the annulus)
     #***************************************************************************
     cube_out = np.zeros_like(array)
     for ann in xrange(n_annuli):
@@ -295,61 +297,48 @@ def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1,
         indices = get_annulus_quad(array[0], inner_radius, annulus_width)
          
         #***********************************************************************
-        # We arrange the PCA matrix for each annular quadrant and center if 
-        # needed (removal of temporal mean).
+        # PCA matrix is created for each annular quadrant and centered if needed
         #***********************************************************************
         for quadrant in xrange(4):
             yy = indices[quadrant][0]
             xx = indices[quadrant][1]
-            matrix_quad = array[:, yy, xx]                                      # shape [nframes x npx_quad] 
+            matrix_quad = array[:, yy, xx]          # shape [nframes x npx_quad] 
  
             if center:  matrix_quad = matrix_quad - matrix_quad.mean(axis=0)
-             
+
             #*******************************************************************
-            # For each frame we find the frames to be rejected depending on the 
-            # radial distance from the center.
+            # For each frame we call the subfunction do_pca_patch that will 
+            # do PCA on the small matrix, where some frames are discarded 
+            # according to the PA threshold, and return the residuals
             #*******************************************************************
-            for frame in xrange(n):                                             
-                if pa_threshold != 0:
-                    if ann_center > fwhm*10:                                    ### TBD: fwhm*10
-                        indices_left = find_indices(angle_list, frame, 
-                                                    pa_threshold, True)
-                    else:
-                        indices_left = find_indices(angle_list, frame, 
-                                                    pa_threshold, False)
-                      
-                    data_ref = matrix_quad[indices_left]
-                    
-                    if data_ref.shape[0] <= min_frames_pca:
-                        msg = 'Too few frames left in the PCA library. '
-                        msg += 'Try decreasing either delta_rot or min_frames_pca.'
-                        raise RuntimeError(msg)
-                else:
-                    data_ref = matrix_quad
-                               
-                if center:
-                    data = data_ref - data_ref.mean(axis=0)                     # removing temporal mean
-                else:
-                    data = data_ref
-                                            
-                curr_frame = matrix_quad[frame]                                 # current frame
-                             
-                #**************************************************************
-                # If ncomp=None is calculated for current annular quadrant
-                #**************************************************************
-                if auto_ncomp and frame==0:
-                    ncomp = get_ncomp(data, svd_mode, debug)
-                 
+            if nproc==1:
+                for frame in xrange(n):    
+                    residuals = do_pca_patch(matrix_quad, frame, angle_list, fwhm,
+                                             pa_threshold, center, ann_center, 
+                                             svd_mode, ncomp, min_frames_pca, 
+                                             debug)
+                    cube_out[frame][yy, xx] = residuals  
+            elif nproc>1:
                 #***************************************************************
-                # Performing SVD/PCA according to "svd_mode" flag. 'data' is the 
-                # matrix for feeding the SVD.
-                #***************************************************************
-                V = svd_wrapper(data, svd_mode, ncomp, debug=False, verbose=False)
-                 
-                transformed = np.dot(curr_frame, V.T)
-                reconstructed = np.dot(transformed.T, V)                        # reference psf
-                residuals = curr_frame - reconstructed     
-                cube_out[frame][yy, xx] = residuals                            
+                # A multiprocessing pool is created to process the frames in a 
+                # parallel way. SVD/PCA is done in do_pca_patch function
+                #***************************************************************            
+                pool = Pool(processes=int(nproc))
+                res = pool.map(EFT, itt.izip(itt.repeat(do_pca_patch), 
+                                             itt.repeat(matrix_quad),
+                                             range(n), itt.repeat(angle_list),
+                                             itt.repeat(fwhm),
+                                             itt.repeat(pa_threshold),
+                                             itt.repeat(center),
+                                             itt.repeat(ann_center),
+                                             itt.repeat(svd_mode),
+                                             itt.repeat(ncomp),
+                                             itt.repeat(min_frames_pca),
+                                             itt.repeat(debug)))
+                residuals = np.array(res)
+                pool.close()
+                for frame in xrange(n):
+                    cube_out[frame][yy, xx] = residuals[frame]                          
          
         if verbose:
             print 'Done PCA with {:} for current annulus'.format(svd_mode)
@@ -366,59 +355,43 @@ def subannular_pca(array, angle_list, radius_int=0, asize=1, delta_rot=1,
         return cube_out, cube_der, frame 
     else:
         return frame 
-
-
-def subannular_pca_parallel(array, angle_list, radius_int=0, asize=1, 
-                            delta_rot=1, ncomp=1, instrument=None, fwhm=None, 
-                            center=True, nproc=None, svd_mode='randsvd',
-                            min_frames_pca=10,  full_output=False, verbose=True, 
-                            debug=False):
-    """ Local PCA (subannular version) parallel algorithm. The PCA is computed 
-    locally in each quadrant of each annulus. On each annulus we discard 
-    reference images taking into account the parallactic angle threshold. 
     
-    This algorithm is meant for machines with several cores. It has been
-    tested on a Linux and OSX. The OSX accelerate library, which comes by
-    default in every OSX system, is broken for multiprocessing. Avoid using
-    it unless you have compiled python against other linear algebra library.
-    On linux with the default LAPACK/BLAS libraries it succesfully distributes
-    the processes among all the existing cores.
+    
+    
+def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1, 
+                    ncomp=1, svd_mode='randsvd', min_corr=0.9, fwhm=4, 
+                    full_output=False, verbose=True, debug=False):
+    """ Annular PCA with Reference Library + Correlation + standardization
+    
+    In the case of having a large number of reference images, e.g. for a survey 
+    on a single instrument, we can afford a better selection of the library by 
+    constraining the correlation with the median of the science dataset and by 
+    working on an annulus-wise way. As with other local PCA algorithms in VIP
+    the number of principal components can be automatically adjusted by the
+    algorithm by minmizing the residuals in the given patch (a la LOCI). 
     
     Parameters
     ----------
     array : array_like, 3d
-        Input cube.
+        Input science cube.
     angle_list : array_like, 1d
         Corresponding parallactic angle for each frame.
+    array_ref : array_like, 3d
+        Reference library cube. For Reference Star Differential Imaging.
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the 
         central circular area is discarded.
     asize : int, optional
         The size of the annuli, in FWHM. Default is 3.
-    delta_rot : int, optional
-        Factor for increasing the parallactic angle threshold, expressed in FWHM.
-        Default is 1 (excludes 1 FHWM on each side of the considered frame).
     ncomp : int, optional
         How many PCs are kept. If none it will be automatically determined.
-    svd_mode : {randsvd, lapack, eigen, arpack, opencv}, str optional
+    svd_mode : {randsvd, eigen, lapack, arpack, opencv}, optional
         Switch for different ways of computing the SVD and principal components.
-    min_frames_pca : int, optional 
-        Minimum number of frames in the PCA reference library. Be careful, when
-        min_frames_pca <= ncomp, then for certain frames the subtracted low-rank
-        approximation is not optimal (getting a 10 PCs out of 2 frames is not
-        possible so the maximum number of PCs is used = 2). In practice the 
-        resulting frame may be more noisy. It is recommended to decrease 
-        delta_rot and have enough frames in the libraries to allow getting 
-        ncomp PCs.    
-    instrument: {'naco27, 'lmircam'}, optional
-        Defines the type of dataset. For cubes without proper headers.
-    fwhm : float
-        Know size of the FHWM in pixels to be used instead of the instrument 
-    center : {True,False}, bool optional
-        Whether to center the data or not.
-    nproc : int, optional
-        Number of processes for parallel computing. If None the number of 
-        processes will be set to (cpu_count()/2). 
+    min_corr : int, optional
+        Level of linear correlation between the library patches and the median 
+        of the science. Deafult is 0.9.
+    fwhm : float, optional
+        Known size of the FHWM in pixels to be used. Deafult is 4.
     full_output: boolean, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
@@ -435,22 +408,40 @@ def subannular_pca_parallel(array, angle_list, radius_int=0, asize=1,
     array_out : array_like, 3d 
         Cube of residuals.
     array_der : array_like, 3d
-        Cube residuals after de-rotation.
+        Cube residuals after de-rotation.    
     
     """
-    #### TODO: check LAPACK library that numpy is using and raise error
+    def define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width, 
+                      verbose):
+        """ Defining the annuli """
+        if ann == n_annuli-1:
+            inner_radius = radius_int + (ann*annulus_width-1)
+        else:                                                                                         
+            inner_radius = radius_int + ann*annulus_width
+        ann_center = (inner_radius+(annulus_width/2.0))
+        
+        if verbose:
+            msg2 = 'Annulus {:}, Inn radius = {:.2f}, Ann center = {:.2f} '
+            print msg2.format(int(ann+1),inner_radius, ann_center) 
+        return inner_radius, ann_center
     
-    if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2)
-    
+    def fr_ref_correlation(vector, matrix):
+        """ Getting the correlations """
+        lista = []
+        for i in xrange(matrix.shape[0]):
+            pears, _ = stats.pearsonr(vector, matrix[i])
+            lista.append(pears)
+        
+        return lista
+
+    #---------------------------------------------------------------------------
+
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array.')
     if not array.shape[0] == angle_list.shape[0]:
         raise TypeError('Input vector or parallactic angles has wrong length.')
-     
+    
     n, y, _ = array.shape
-    if not fwhm:  fwhm = get_fwhm(instrument)
-     
     if verbose:  start_time = timeInit()
     
     angle_list = check_PA_vector(angle_list)
@@ -462,69 +453,46 @@ def subannular_pca_parallel(array, angle_list, radius_int=0, asize=1,
         print msg.format(n_annuli, annulus_width, fwhm) 
         print 'PCA will be done locally per annulus and per quadrant.\n'
      
-    if not ncomp: auto_ncomp = True
-    else: auto_ncomp = False
-    
-    #***************************************************************************
-    # The annuli are built, and the corresponding PA thresholds for frame 
-    # rejection are calculated. The PA rejection is calculated at center of the 
-    # annulus
-    #***************************************************************************
     cube_out = np.zeros_like(array)
     for ann in xrange(n_annuli):
-        pa_threshold, inner_radius, ann_center = define_annuli(angle_list, ann, 
-                                                               n_annuli, 
-                                                               fwhm, radius_int, 
-                                                               annulus_width, 
-                                                               delta_rot,
-                                                               verbose)  
-        indices = get_annulus_quad(array[0], inner_radius, annulus_width)
+        inner_radius, _ = define_annuli(angle_list, ann, n_annuli, fwhm, 
+                                        radius_int, annulus_width, verbose) 
+        indices = get_annulus(array[0], inner_radius, annulus_width,
+                              output_indices=True)
+        yy = indices[0]
+        xx = indices[1]
+                    
+        matrix = array[:, yy, xx]                 # shape [nframes x npx_ann] 
+        matrix_ref = array_ref[:, yy, xx]
         
-        #***********************************************************************
-        # PCA matrix is created for each annular quadrant and centered if needed
-        #***********************************************************************
-        for quadrant in xrange(4):
-            yy = indices[quadrant][0]
-            xx = indices[quadrant][1]
-            matrix_quad = array[:, yy, xx]                                      # shape [nframes x npx_quad] 
-
-            if center:  matrix_quad = matrix_quad - matrix_quad.mean(axis=0)
-
-            #*******************************************************************
-            # If ncomp=None is calculated for current annular quadrant
-            #*******************************************************************
-            # noise minimization for # pcs definition ### TODO: to finish
-            if auto_ncomp:                                                      
-                ncomp = get_ncomp(matrix_quad, svd_mode, debug)
-                        
-            #*******************************************************************
-            # A multiprocessing pool is created to process frames in parallel.
-            # SVD/PCA is done in do_pca_patch function. 
-            #*******************************************************************            
-            pool = Pool(processes=int(nproc))
-            res = pool.map(eval_func_tuple, itt.izip(itt.repeat(do_pca_patch), 
-                                                     itt.repeat(matrix_quad),
-                                                     range(n),
-                                                     itt.repeat(angle_list),
-                                                     itt.repeat(fwhm),
-                                                     itt.repeat(pa_threshold),
-                                                     itt.repeat(center),
-                                                     itt.repeat(ann_center),
-                                                     itt.repeat(svd_mode),
-                                                     itt.repeat(ncomp),
-                                                     itt.repeat(min_frames_pca)))
-            residuals = np.array(res)
-            pool.close()
-            for fr in range(n):
-                cube_out[fr][yy, xx] = residuals[fr]
+        corr = fr_ref_correlation(np.median(matrix, axis=0), matrix_ref)
+        #print corr
+        indcorr = np.where(np.abs(corr)>=min_corr)
+        data_ref = matrix_ref[indcorr]
+        #print data_ref.shape
         
+        if data_ref.shape[0]<5:
+            msg = 'Too few frames left (<5) fullfil the given correlation level.'
+            msg += 'Try decreasing it'
+            raise RuntimeError(msg)
+
+        matrix = scale(matrix, with_mean=True, with_std=True)
+        data_ref = scale(data_ref, with_mean=True, with_std=True)        
+        
+        #V = svd_wrapper(data_ref, svd_mode, ncomp, debug=False, verbose=False)
+        V = get_eigenvectors(ncomp, matrix, svd_mode, noise_error=10e-3, 
+                             data_ref=data_ref, debug=False)
+        # new variables as linear combinations of the original variables in 
+        # matrix.T with coefficientes from EV
+        transformed = np.dot(V, matrix.T) 
+        reconstructed = np.dot(V.T, transformed)
+        residuals = matrix - reconstructed.T    
+        cube_out[:, yy, xx] = residuals  
+            
         if verbose:
             print 'Done PCA with {:} for current annulus'.format(svd_mode)
             timing(start_time)      
-        
-    #***************************************************************************
-    # Cube is derotated according to the parallactic angle and median combined
-    #***************************************************************************
+         
     cube_der, frame = cube_derotate(cube_out, angle_list)
     if verbose:
         print 'Done derotating and combining.'
@@ -536,31 +504,8 @@ def subannular_pca_parallel(array, angle_list, radius_int=0, asize=1,
     
     
     
-### Secondary functions ********************************************************
+### Help functions ********************************************************
     
-def get_fwhm(instrument):
-    """ Defines the FWHM for a given instrument based on its parameters defined
-    in a dictionary in vortex/conf/param.py.                                    
-    """
-    if instrument == 'naco27':                                                  
-        if 'fwhm' in VLT_NACO:
-            fwhm = VLT_NACO['fwhm']
-        else:
-            tel_diam = VLT_NACO['diam']
-            fwhm = VLT_NACO['lambdal']/tel_diam*206265/VLT_NACO['plsc'] 
-    elif instrument == 'lmircam':
-        if 'fwhm' in LBT:
-            fwhm = LBT['fwhm']
-        else:
-            fwhm = LBT['lambdal']/LBT['diam']*206265/LBT['plsc']                    
-    elif not instrument:
-        msg = 'One of parameters \'fwhm\' or \'instrument\' must be given'
-        raise RuntimeError(msg)
-    else:
-        raise RuntimeError('Instrument not recognized')   
-    return fwhm 
-
-
 def define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width, 
                   delta_rot, verbose):
     """ Function that defines the annuli geometry using the input parameters.
@@ -614,7 +559,7 @@ def find_indices(angle_list, frame, thr, truncate):
     half2 = range(index_foll,n)
 
     if truncate:
-        thr = int(n/2)                                                          ### TBD: leaving the n/2 closest frames   
+        thr = int(n/2)                 ### TODO: leaving the n/2 closest frames?   
         q = int(thr/2)
         if frame < thr: 
             half1 = range(max(0,index_prev-q),index_prev)
@@ -626,67 +571,36 @@ def find_indices(angle_list, frame, thr, truncate):
     return np.array(half1+half2)
 
 
-def get_ncomp(data, mode, debug):                                               ### TODO: redifine every m frames?
-    """ Defines the number of principal components automatically for each zone,
-    annulus or quadrant by minimizing the pixel noise (as the pixel standard
-    deviation in the residuals) decay once per zone (for frame 0).              
-    """
-    ncomp = 0              
-    #full_std = np.std(data, axis=0).mean()
-    #full_var = np.var(data, axis=0).sum()
-    #orig_px_noise = np.mean(np.std(data, axis=1))
-    px_noise = []
-    px_noise_decay = 1
-    #px_noise_i = 1
-    #while px_noise_i > input_px_noise*0.05:
-    while px_noise_decay > 10e-5:
-        ncomp += 1
-        V = svd_wrapper(data, mode, ncomp, debug=False, 
-                        verbose=False)
-        transformed = np.dot(data, V.T)
-        reconstructed = np.dot(transformed, V)                  # reference psf
-        residuals = data - reconstructed  
-        # noise (std of median frame) to be lower than a given thr(?)
-         
-        px_noise.append(np.std(np.median(residuals, axis=0)))         
-        #px_noise_i = px_noise[-1]
-        if ncomp>1: px_noise_decay = px_noise[-2] - px_noise[-1]
-        #print 'ncomp {:} {:.4f} {:.4f}'.format(ncomp, px_noise[-1], px_noise_decay)
-    if debug: print 'ncomp', ncomp
-    return ncomp
-
-
-def do_pca_patch(matrix_quad, frame, angle_list, fwhm, pa_threshold, center,
-                 ann_center, svd_mode, ncomp, min_frames_pca):
+def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, center,
+                 ann_center, svd_mode, ncomp, min_frames_pca, debug):
     """
     Does the SVD/PCA for each frame patch (small matrix). For each frame we 
     find the frames to be rejected depending on the radial distance from the 
     center.
     """
     if pa_threshold != 0:
-        if ann_center > fwhm*10:                            ### TBD: fwhm*10
+        if ann_center > fwhm*10:                   ### TODO: fwhm*10 is optimal?
             indices_left = find_indices(angle_list, frame, pa_threshold, True)
         else:
             indices_left = find_indices(angle_list, frame, pa_threshold, False)
          
-        data_ref = matrix_quad[indices_left]
+        data_ref = matrix[indices_left]
         
         if data_ref.shape[0] <= min_frames_pca:
             msg = 'Too few frames left in the PCA library. '
             msg += 'Try decreasing either delta_rot or min_frames_pca.'
-        raise RuntimeError(msg)
+            raise RuntimeError(msg)
     else:
-        data_ref = matrix_quad
+        data_ref = matrix
                   
     if center:                                          # removing temporal mean
         data = data_ref - data_ref.mean(axis=0)                     
     else:  
         data = data_ref
         
-    curr_frame = matrix_quad[frame]                     # current frame
+    curr_frame = matrix[frame]                     # current frame
     
-    # Performing SVD/PCA according to "svd_mode" flag
-    V = svd_wrapper(data, svd_mode, ncomp, debug=False, verbose=False)          
+    V = get_eigenvectors(ncomp, data, svd_mode, noise_error=10e-3, debug=False)         
     
     transformed = np.dot(curr_frame, V.T)
     reconstructed = np.dot(transformed.T, V)                        
@@ -694,3 +608,43 @@ def do_pca_patch(matrix_quad, frame, angle_list, fwhm, pa_threshold, center,
     return residuals   
 
 
+def get_eigenvectors(ncomp, data, svd_mode, noise_error=10e-3, max_evs=200, 
+                     data_ref=None, debug=False):
+    """ Choosing the size of the PCA truncation by Minimizing the residuals
+    when ncomp set to None.
+    """
+    if data_ref is None:
+        data_ref = data
+    
+    if ncomp is None:
+        # Defines the number of PCs automatically for each zone (quadrant) by 
+        # minimizing the pixel noise (as the pixel STDDEV of the residuals) 
+        # decay once per zone         
+        ncomp = 0              
+        #full_std = np.std(data, axis=0).mean()
+        #full_var = np.var(data, axis=0).sum()
+        #orig_px_noise = np.mean(np.std(data, axis=1))
+        px_noise = []
+        px_noise_decay = 1
+        # The eigenvectors (SVD/PCA) are obtained once    
+        V_big = svd_wrapper(data_ref, svd_mode, min(data_ref.shape[0], max_evs),
+                            False, False)
+        # noise (stddev of residuals) to be lower than a given thr(10e-3)       # TODO: noise_error -> new PCA parameter?
+        while px_noise_decay > noise_error:
+            ncomp += 1
+            V = V_big[:ncomp]
+            transformed = np.dot(data, V.T)
+            reconstructed = np.dot(transformed, V)                  
+            residuals = data - reconstructed  
+            px_noise.append(np.std((residuals)))         
+            if ncomp>1: px_noise_decay = px_noise[-2] - px_noise[-1]
+            #print 'ncomp {:} {:.4f} {:.4f}'.format(ncomp,px_noise[-1],px_noise_decay)
+        
+        # TODO: PRINT OUT INFO SOMEHOW
+        if debug: print 'ncomp', ncomp
+        
+    else:
+        # Performing SVD/PCA according to "svd_mode" flag
+        V = svd_wrapper(data_ref, svd_mode, ncomp, debug=False, verbose=False)   
+        
+    return V

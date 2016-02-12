@@ -17,7 +17,7 @@ import numpy as np
 from ..var import frame_center, get_square
 
 
-def cube_crop_frames(array, size, ceny=None, cenx=None, verbose=True):                         
+def cube_crop_frames(array, size, xy=None, verbose=True):                          
     """Crops frames in a cube (3d array). If size is an even value it'll be 
     increased by one to make it odd.
     
@@ -27,9 +27,9 @@ def cube_crop_frames(array, size, ceny=None, cenx=None, verbose=True):
         Input 3d array, cube.
     size : int
         Size of the desired central sub-array in each frame.
-    ceny, cenx : int
-        Y and X coordinates of new frame center. If you are getting the 
-        coordinates from ds9 increase by one, python has 0-based indexing.
+    xy : tuple of ints
+        X, Y coordinates of new frame center. If you are getting the 
+        coordinates from ds9 subtract 1, python has 0-based indexing.
     verbose : {True, False}, bool optional
         If True message of completion is showed.
     
@@ -49,7 +49,8 @@ def cube_crop_frames(array, size, ceny=None, cenx=None, verbose=True):
     # wing is added to the sides of the subframe center.
     wing = size/2           
     
-    if ceny and cenx:
+    if xy is not None:
+        cenx, ceny = xy 
         # Note the +1 when closing the interval (python doesn't include the 
         # endpoint)
         array_view = array[:,ceny-wing:ceny+wing+1,cenx-wing:cenx+wing+1].copy()

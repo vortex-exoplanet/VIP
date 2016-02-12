@@ -16,7 +16,7 @@ __all__ = ['prepare_matrix',
 
 import cv2
 import numpy as np
-from scipy import linalg
+from numpy import linalg
 from scipy.sparse.linalg import svds
 from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_absolute_error
@@ -115,7 +115,7 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
 
 
 def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
-                svd_mode='randsvd'):
+                svd_mode='lapack', scaling='temp-mean'):
     """
     PCA process the cube only for an annulus of a given width and at a given
     radial distance to the frame center. It returns a PCA processed frame with 
@@ -137,6 +137,11 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
+    scaling : {'temp-mean', 'temp-standard'} or None, optional
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done and with 
+        "temp-standard" temporal mean centering plus scaling to unit variance 
+        is done. 
     
     Returns
     -------
@@ -152,10 +157,17 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     yy, xx = indic                                                             
     
     data = cube[:, yy, xx]
-    #data = matrix_ann - matrix_ann.mean(axis=0) # centering?
-    
+    if scaling=='temp-standard':
+        data = scale(data, with_mean=True, with_std=True)
+    elif scaling=='temp-mean':
+        data = scale(data, with_mean=True, with_std=False)
+        
     if cube_ref is not None:
         data_svd = cube_ref[:, yy, xx]
+        if scaling=='temp-standard':
+            data_svd = scale(data_svd, with_mean=True, with_std=True)
+        elif scaling=='temp-mean':
+            data_svd = scale(data_svd, with_mean=True, with_std=False)
     else:
         data_svd = data
         
@@ -271,7 +283,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         for i in xrange(V.shape[1]): 
             V[:,i] /= S                                          # scaling by the sqared root of eigenvalues
         V = V[:ncomp]
-        if verbose: print('Done SVD/PCA with scipy linalg eigh functions')
+        if verbose: print('Done PCA with numpy linalg eigh functions')
         
     # we transpose the matrix and will keep the left (transposed) SVs
     elif mode=='lapack':
@@ -281,7 +293,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         V = V[:ncomp]                                             
         U = U[:,:ncomp]
         S = S[:ncomp]
-        if verbose: print('Done SVD/PCA with scipy SVD (LAPACK)')
+        if verbose: print('Done SVD/PCA with numpy SVD (LAPACK)')
             
     elif mode=='arpack':
         U, S, V = svds(matrix, k=ncomp) 

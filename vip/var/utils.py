@@ -189,7 +189,7 @@ def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False,
     ax.xaxis._axinfo['label']['space_factor'] = 2
     ax.yaxis._axinfo['label']['space_factor'] = 2
     ax.zaxis._axinfo['label']['space_factor'] = 3.5
-    ax.zaxis._axinfo['ticklabel']['space_factor'] = 1.5
+    #ax.zaxis._axinfo['ticklabel']['space_factor'] = 1.5
     ax.set_title('Data')
     show()
     
@@ -223,28 +223,6 @@ def lines_of_code():
     print msg.format(sum([x[0] for x in loclist]), path)
 
 
-#TODO: move later to a separate module
-# def px2mas(array, y, x, instrument='naco', fwhm=None):
-#     """ Returns the distance in milliarcseconds of a source in a frame for a 
-#     given instrument and pixel coordinates. 
-#     """
-#     if fwhm:
-#         fy, fx = fit_2dgaussian(array, y, x, fwhm=fwhm)
-#     else:
-#         if instrument=='naco': 
-#             INST = VLT_NACO
-#         elif instrument=='lmircam':
-#             INST = LBT
-#         else:
-#             raise TypeError('Instrument not recognized.')
-#         fwhm = INST['lambdal']/INST['diam']*206265/INST['plsc'] 
-#         fy, fx = fit_2dgaussian(array, y, x, fwhm)
-#     
-#     cy, cx = frame_center(array)
-#     dist_px = dist(cy,cx,fy,fx)
-#     dist_arcs = dist_px*INST['plsc']
-#     dist_mas = dist_arcs/0.001
-#     return dist_mas
 
 
  

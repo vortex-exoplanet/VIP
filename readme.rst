@@ -99,17 +99,25 @@ to 'install' with the develop flag:
   $ python setup.py develop
 
 In any case wait a couple of minutes until all the requirements are satisfied.
-We have experienced a few times that the setup script hangs while installing
-photutils. The reason for this is unknown. We recommend to kill the process 
-(Ctrl + C) and restart it again by re-running the setup command.
 
 
 FAQ
 ===
+- The VIP setup doesn't finish the job, it seems to be stuck. What do I do?
+  We have experienced a few times that the setup script hangs while installing
+  photutils. The reason why it crashes when compiling its own modules is unknown. 
+  We recommend to kill the process (Ctrl + C) and restart it again by re-running 
+  the setup command. A workaround is to install photutils before executing VIP
+  setup:
+  
+.. code-block:: bash
+
+  $ conda install photutils 
+   
 - Why do I get and error related to importing cv2 package when importing VIP?
   cv2 is the name of opencv bindings for python. This library is needed for
-  fast image transformations. You have to install it with your preferred 
-  python distribution or .
+  fast image transformations. You have to install by following the 
+  aforementioned instructions.
 
 - Why do I get a warning related to DS9/XPA when importing VIP?
   Please make sure you have DS9 and XPA in your system path. If this is not
@@ -136,6 +144,7 @@ FAQ
 - I get an error: ValueError: "unknown locale: UTF-8" when importing VIP. 
   It's not a VIP related problem. The problem must be solved if you add these 
   lines in your ~/.bash_profile:
+  
 .. code-block:: bash
 
   export LC_ALL=en_US.UTF-8

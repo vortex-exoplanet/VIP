@@ -66,8 +66,8 @@ def lnprior(modelParameters, bounds):
 
 
 def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp, 
-           aperture_radius, initialState, cube_ref=None, svd_mode='randsvd', 
-           debug=False):
+           aperture_radius, initialState, cube_ref=None, svd_mode='lapack', 
+           scaling='temp-mean', debug=False):
     """
     Define the likelihood log-function.
     
@@ -93,6 +93,13 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
         The initial guess for the position and the flux of the planet.
     cube_ref: array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
+    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
+        Switch for different ways of computing the SVD and selected PCs.
+    scaling : {'temp-mean', 'temp-standard'} or None, optional
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done and with 
+        "temp-standard" temporal mean centering plus scaling to unit variance 
+        is done. 
     debug: boolean
         If True, the cube is returned along with the likelihood log-function.        
         
@@ -115,7 +122,8 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
     # Perform PCA to generate the processed image and extract the zone of interest 
     values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width,
                                  aperture_radius,initialState[0],initialState[1],
-                                 cube_ref=cube_ref, svd_mode=svd_mode)
+                                 cube_ref=cube_ref, svd_mode=svd_mode,
+                                 scaling=scaling)
     
     # Function of merit
     values = np.abs(values)
@@ -129,9 +137,8 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
 
 def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, annulus_width, 
            ncomp, aperture_radius, initialState, cube_ref=None, 
-           svd_mode='randsvd', display=False):
-    """
-    Define the probability log-function as the sum between the prior and 
+           svd_mode='lapack', scaling='temp-mean', display=False):
+    """ Define the probability log-function as the sum between the prior and 
     likelihood log-funtions.
     
     Parameters
@@ -159,6 +166,13 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, annulus_width,
         The initial guess for the position and the flux of the planet. 
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
+    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
+        Switch for different ways of computing the SVD and selected PCs.
+    scaling : {'temp-mean', 'temp-standard'} or None, optional
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done and with 
+        "temp-standard" temporal mean centering plus scaling to unit variance 
+        is done. 
     display: boolean
         If True, the cube is displayed with ds9.        
         
@@ -176,7 +190,7 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, annulus_width,
     
     return lp + lnlike(modelParameters, cube, angs, plsc, psfs_norm, 
                        annulus_width, ncomp, aperture_radius, initialState, 
-                       cube_ref, svd_mode, display) 
+                       cube_ref, svd_mode, scaling, display) 
 
 
 def gelman_rubin(x):      
@@ -273,8 +287,8 @@ def gelman_rubin_from_chain(chain, burnin):
 
 def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
                         aperture_radius, initialState, cube_ref=None, 
-                        svd_mode='lapack', nwalkers=1000, bounds=None,
-                        a=2.0, burnin=0.3, rhat_threshold=1.01, 
+                        svd_mode='lapack', scaling='temp-mean', nwalkers=1000, 
+                        bounds=None, a=2.0, burnin=0.3, rhat_threshold=1.01, 
                         rhat_count_threshold=3, niteration_min=0.0,
                         niteration_limit=1e02, niteration_supp=0.0,
                         check_maxgap=1e04, threads=1, output_file=None,
@@ -325,6 +339,11 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
+    scaling : {'temp-mean', 'temp-standard'} or None, optional
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done and with 
+        "temp-standard" temporal mean centering plus scaling to unit variance 
+        is done. 
     bounds: numpy.array or list, default=None, optional
         The prior knowledge on the model parameters. If None, large bounds will 
         be automatically estimated from the initial state.
@@ -452,7 +471,8 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
     sampler = emcee.EnsembleSampler(nwalkers,dim,lnprob,a,
                                     args =([bounds,cubes,angs,plsc,psfs_norm,
                                             annulus_width,ncomp,aperture_radius,
-                                            initialState,cube_ref,svd_mode]),
+                                            initialState,cube_ref,svd_mode,
+                                            scaling]),
                                     threads=threads)
     
     duration_start = datetime.datetime.now()
@@ -834,7 +854,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, verbose=True,
             pourcentage = test/surface_total*100.
             if pourcentage > cfd:
                 if verbose:
-                    print 'pourcentage for {}: {}%'.format(label_file[j],pourcentage)
+                    print 'percentage for {}: {}%'.format(label_file[j],pourcentage)
                 break
         n_arg_min = n_arg_sort[:k].min()
         n_arg_max = n_arg_sort[:k+1].max()
@@ -856,8 +876,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, verbose=True,
         plt.plot(np.ones(2)*val_max[pKey[j]],[0,n[n_arg_sort[0]]],'--m')
         plt.xlabel(label[j]) 
         plt.ylabel('Counts')
-        
-        
+    
         if gaussianFit:
             import matplotlib.mlab as mlab
             from scipy.stats import norm

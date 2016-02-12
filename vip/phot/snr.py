@@ -5,6 +5,7 @@ Module with SNR calculation functions.
 """
 
 from __future__ import division
+from vip.var.utils import pp_subplots
 
 __author__ = 'C. Gomez @ ULg, O. Absil @ ULg'
 __all__ = ['snr_ss',
@@ -15,7 +16,7 @@ __all__ = ['snr_ss',
 import numpy as np
 import itertools as itt
 import photutils
-from skimage.draw import circle
+from skimage import draw
 from matplotlib import pyplot as plt
 from astropy.convolution import convolve, Tophat2DKernel
 from multiprocessing import Pool, cpu_count
@@ -43,7 +44,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         If exists, it takes into account existing sources. The mask is a ones
         2d array, with the same size as the input frame. The centers of the 
         known sources have a zero value.
-    nproc : int
+    nproc : int or None
         Number of processes for parallel computing.
     
     Returns
@@ -112,7 +113,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
             radd = dist(centery, centerx, y, x)
             tempay, tempax = get_annulus(array, int(np.floor(radd-fwhm)), 
                                     int(np.ceil(2*fwhm)), output_indices=True)
-            tempcy, tempcx = circle(y, x, int(np.ceil(1*fwhm)))
+            tempcy, tempcx = draw.circle(y, x, int(np.ceil(1*fwhm)))
             # masking the source position (using the MAD of pixels in annulus)
             array_sources[tempcy, tempcx] = mad(array[tempay, tempax])
             ciry += list(tempcy); cirx += list(tempcx)
@@ -147,19 +148,14 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         snr = res[:,2]
         snrmap[yy.astype('int'), xx.astype('int')] = snr
     
-    if plot:
-        plt.figure('snr')
-        plt.imshow(snrmap, origin='lower', interpolation='nearest')
-        plt.colorbar()
-        plt.grid(False)
-        plt.show()
+    if plot:  pp_subplots(snrmap, colorb=True, title='SNRmap')
         
     print "SNR map created using {:} processes.".format(nproc)
     timing(start_time)
     return snrmap
    
    
-def snrmap_fast(array, fwhm, plot=False, verbose=False):
+def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     """ Serial implementation of the SNR map generation function. To be used as
     a quick proxy of the snrmap generated using the small samples statistics
     definition. 
@@ -170,6 +166,8 @@ def snrmap_fast(array, fwhm, plot=False, verbose=False):
         Input frame.
     fwhm : float
         Size in pixels of the FWHM.
+    nproc : int or None
+        Number of processes for parallel computing.
     plot : {False, True}, bool optional
         If True plots the SNR map. 
     verbose: {True, False}
@@ -184,56 +182,65 @@ def snrmap_fast(array, fwhm, plot=False, verbose=False):
     if verbose:  start_time = timeInit()
     if not array.ndim==2:
         raise TypeError('Input array is not a 2d array or image.')
-    if plot:  plt.close('snr')
     
-    def snr_approx(array, sourcey, sourcex, fwhm):
-        """
-        array - convolved with top hat frame
-        """
-        #tophat_kernel = Tophat2DKernel(fwhm/2.)
-        #array = convolve(array, tophat_kernel) 
-        
-        centery, centerx = frame_center(array)
-        rad = dist(centery,centerx,sourcey,sourcex) 
-        ind_aper = circle(sourcey, sourcex, fwhm/2.)
-        
-        # noise : stddev in convolved array of px in 1px wide annulus
-        # masking the flux aperture * correction of number of res.elements
-        ind_ann = get_annulus(array, rad, 1, output_indices=True)
-        array2 = array.copy()
-        array2[ind_aper] = array[ind_ann].mean()   # quick-n-dirty mask
-        n2 = ((2*np.pi*rad)/fwhm) - 1
-        noise = array2[ind_ann].std()*np.sqrt(1+(1/n2))
-        
-        # signal : central px - the mean of the pxs in 1px annulus
-        signal = array[sourcey, sourcex] - array2[ind_ann].mean()
-    
-        return signal / noise
-    
+    cy, cx = frame_center(array)
     tophat_kernel = Tophat2DKernel(fwhm/2.)
     array = convolve(array, tophat_kernel)
-        
+            
     sizey, sizex = array.shape
     snrmap = np.zeros_like(array)
-    width = min(sizey,sizex)/2 - 1.5*fwhm
-    mask = get_annulus(array, fwhm, width)
+    width = min(sizey,sizex)/2 - 1.5*fwhm    
+    mask = get_annulus(array, (fwhm/2)+1, width-1)
     mask = np.ma.make_mask(mask)
     yy, xx = np.where(mask)
+    coords = [(x,y) for (x,y) in zip(xx,yy)]
     
-    for y,x in zip(yy,xx):
-        snrmap[y,x] = snr_approx(array, y, x, fwhm)       
+    if nproc is None:  
+        nproc = int((cpu_count()/2))  # Hyper-threading doubles the # of cores
+    
+    if nproc==1:
+        for y,x in zip(yy,xx):
+            snrmap[y,x] = _snr_approx(array, (x,y), fwhm, cy, cx)[2]       
+    elif nproc>1:
+        pool = Pool(processes=int(nproc))                                        
+        res = pool.map(eval_func_tuple, itt.izip(itt.repeat(_snr_approx),
+                                                 itt.repeat(array),
+                                                 coords, itt.repeat(fwhm),
+                                                 itt.repeat(cy),
+                                                 itt.repeat(cx)))       
+        res = np.array(res)
+        pool.close()
+        yy = res[:,0]
+        xx = res[:,1]
+        snr = res[:,2]
+        snrmap[yy.astype('int'), xx.astype('int')] = snr
         
-    if plot:
-        plt.figure('snr')
-        plt.imshow(snrmap, origin='lower', interpolation='nearest')
-        plt.colorbar()
-        plt.grid(False)
-        plt.show()
+    if plot:  pp_subplots(snrmap, colorb=True, title='SNRmap')
      
     if verbose:    
-        print "SNR map created"
+        print "SNR map created using {:} processes.".format(nproc)
         timing(start_time)
+        
     return snrmap
+
+def _snr_approx(array, (sourcex,sourcey), fwhm, centery, centerx):
+    """
+    array - frame convolved with top hat kernel 
+    """
+    rad = dist(centery,centerx,sourcey,sourcex) 
+    ind_aper = draw.circle(sourcey, sourcex, fwhm/2.)
+    # noise : STDDEV in convolved array of 1px wide annulus (while 
+    # masking the flux aperture) * correction of # of resolution elements
+    ind_ann = draw.circle_perimeter(int(centery), int(centerx), int(rad))
+    array2 = array.copy()
+    array2[ind_aper] = array[ind_ann].mean()   # quick-n-dirty mask
+    n2 = ((2*np.pi*rad)/fwhm) - 1
+    noise = array2[ind_ann].std()*np.sqrt(1+(1/n2))
+    # signal : central px minus the mean of the pxs (masked) in 1px annulus
+    signal = array[sourcey, sourcex] - array2[ind_ann].mean()
+    snr = signal / noise
+    return sourcex, sourcey, snr
+    
     
     
 def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False, 
@@ -300,6 +307,7 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
             xx[i+1] = cosangle*xx[i] - sinangle*yy[i] 
             yy[i+1] = cosangle*yy[i] + sinangle*xx[i]           
             
+    array = array + np.abs(array.min())        
     xx[:] += centerx
     yy[:] += centery 
     rad = fwhm/2.
@@ -312,7 +320,7 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
     fluxes = fluxes[1:]
     n2 = fluxes.shape[0]
     snr = (f_source - fluxes.mean())/(fluxes.std()*np.sqrt(1+(1/n2)))
-        
+    
     if verbose:
         msg1 = 'SNR = {:}' 
         msg2 = 'Flux = {:.3f}, Mean Flux BKG aper = {:.3f}'
@@ -380,9 +388,10 @@ def snr_peakstddev(array, (source_xy), fwhm, out_coor=False, plot=False,
     centery, centerx = frame_center(array)
     rad = dist(centery,centerx,sourcey,sourcex)  
     
+    array = array + np.abs(array.min()) 
     inner_rad = np.round(rad)-(fwhm/2.)
     an_coor = get_annulus(array, inner_rad, fwhm, output_indices=True)
-    ap_coor = circle(sourcey, sourcex, int(np.ceil(fwhm/2.)))
+    ap_coor = draw.circle(sourcey, sourcex, int(np.ceil(fwhm/2.)))
     array2 = array.copy()
     array2[ap_coor] = array[an_coor].mean()   # we 'mask' the flux aperture
     stddev = array2[an_coor].std()
@@ -393,7 +402,7 @@ def snr_peakstddev(array, (source_xy), fwhm, out_coor=False, plot=False,
         print msg.format(snr, peak, stddev)
     
     if plot:
-        fig, ax = plt.subplots(figsize=(6,6))
+        _, ax = plt.subplots(figsize=(6,6))
         ax.imshow(array, origin='lower', interpolation='nearest')
         circ = plt.Circle((centerx, centery), radius=inner_rad, color='r', 
                           fill=False) 

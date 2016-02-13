@@ -220,7 +220,6 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     if verbose:    
         print "SNR map created using {:} processes.".format(nproc)
         timing(start_time)
-        
     return snrmap
 
 def _snr_approx(array, (sourcex,sourcey), fwhm, centery, centerx):
@@ -239,7 +238,7 @@ def _snr_approx(array, (sourcex,sourcey), fwhm, centery, centerx):
     # signal : central px minus the mean of the pxs (masked) in 1px annulus
     signal = array[sourcey, sourcex] - array2[ind_ann].mean()
     snr = signal / noise
-    return sourcex, sourcey, snr
+    return sourcey, sourcex, snr
     
     
     

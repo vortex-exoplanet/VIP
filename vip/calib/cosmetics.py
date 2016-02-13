@@ -69,8 +69,8 @@ def cube_crop_frames(array, size, xy=None, verbose=True):
     return array_view
 
 
-def frame_crop(array, size, ceny=None, cenx=None, verbose=True):                         
-    """Crops frame (2d array). Wrapper of function vortex.var.shapes.get_square.
+def frame_crop(array, size, cenxy=None, verbose=True):                         
+    """Crops frame (2d array). Wrapper of function *vortex.var.get_square*.
     If size is an even value it'll be increased by one to make it odd.
     
     Parameters
@@ -79,7 +79,7 @@ def frame_crop(array, size, ceny=None, cenx=None, verbose=True):
         Input frame.
     size : int, odd
         Size of the subframe.
-    ceny, cenx : int
+    cenxy : tuple, optional
         Coordinates of the center of the subframe.
     verbose : {True, False}, bool optional
         If True message of completion is showed.
@@ -93,8 +93,10 @@ def frame_crop(array, size, ceny=None, cenx=None, verbose=True):
     if not array.ndim == 2:
         raise TypeError('Array is not a frame or 2d array')
     
-    if not ceny and not cenx:
+    if not cenxy:
         ceny, cenx = frame_center(array, verbose=False)
+    else:
+        cenx, ceny = cenxy
     array_view = get_square(array, size, ceny, cenx)    
     
     if verbose:

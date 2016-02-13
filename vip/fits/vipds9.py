@@ -14,20 +14,12 @@ error = setup(doRaise=False)
 
 if not error:
     from ..exlib.ds9 import DS9Win
-    __all__ = ['display_array_ds9', 
-               'vipDS9']
+    __all__ = ['vipDS9']
 else:
     __all__ = []
     print error
     print 'vipDS9 class that controls DS9 will not be available \n'
-         
-            
-### TODO: to preserve backward compatibility with existing code (notebooks).
-### Remove later.   
-def display_array_ds9(*args):
-    """ """
-    ds9 = vipDS9()
-    ds9.display(*args)     
+    
 
 
 class vipDS9(object):

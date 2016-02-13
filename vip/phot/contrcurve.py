@@ -496,6 +496,10 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
         Input frame.
     yc, xc : list or 1d arrays
         List of y and x coordinates of sources.
+    fwhm : float
+        FWHM in pixels.
+    ap_factor : int, optional
+        Diameter of aperture in terms of the FWHM.
     
     Returns
     -------

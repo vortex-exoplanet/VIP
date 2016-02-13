@@ -9,6 +9,7 @@ from __future__ import division
 __author__ = 'C. Gomez @ ULg', 'O. Wertz'
 __all__ = ['pp_subplots',
            'plot_surface',
+           'get_fwhm',
            'lines_of_code']
 
 import os
@@ -17,6 +18,15 @@ from matplotlib.pyplot import (figure, subplot, show, colorbar, rc, axes)
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from .shapes import frame_center
+
+
+def get_fwhm(lambd, diameter, pxscale):
+    """ Returnes the instrument FWHM [px] given the wavelenght [m], diameter [m] 
+    and plate/pixel scale [arcs/px]. In vip/conf/param.py can be found
+    dictionaries with the parameters for different instruments.                           
+    """
+    fwhm = lambd/diameter*206265/pxscale                    
+    return fwhm 
 
 
 def pp_subplots(*args, **kwargs):

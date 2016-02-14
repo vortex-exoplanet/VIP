@@ -123,6 +123,19 @@ FAQ
   Please make sure you have DS9 and XPA in your system path. Try installing it
   with your system package management tool. 
 
+- Why Python crashes when using some of the parallel functions, e.g. 
+  *pca_adi_annular_quad* and *run_mcmc_astrometry*?
+  This functions require running SVD on several processes and this can be 
+  problematic depending on the linear algebra libraries on your machine. We've
+  encountered this problem on OSX systems that use the ACCELERATE library for 
+  linear algebra calculations (default in every OSX system). For this library
+  the multiprocessing is broken. A workaround is to compile Python against other 
+  linear algebra library (e.g. OPENBLAS). An quick-n-easy fix is to install the
+  latest ANACONDA (2.5 or later) distribution which ships MKL library and 
+  effectively replaces ACCELERATE on OSX systems. On linux with the default 
+  LAPACK/BLAS libraries VIP successfully distributes the SVDs among all 
+  the existing cores. 
+
 - Why do I get, in linux, a matplotlib related error when importing VIP? 
   (Matplotlib backend_wx and backend_wxagg require wxPython >=2.8)
   If you use Canopy python distro then this is caused by the combination
@@ -148,6 +161,7 @@ FAQ
 
   export LC_ALL=en_US.UTF-8
   export LANG=en_US.UTF-8   
+   
    
 
 

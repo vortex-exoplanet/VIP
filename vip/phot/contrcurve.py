@@ -352,7 +352,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, ncomp,
             for i in range(radvec.shape[0]):
                 cube_fc = inject_fcs_cube(cube_fc, psf_template, parangles,
                         snr_level[irad+i*fc_rad_sep] * noise[irad+i*fc_rad_sep],
-                        pxscale, [radvec[i]*pxscale], theta=br*angle_branch)
+                        pxscale, [radvec[i]], theta=br*angle_branch,
+                        verbose=False)
                 y = cy + radvec[i] * np.sin(np.deg2rad(br*angle_branch))
                 x = cx + radvec[i] * np.cos(np.deg2rad(br*angle_branch))
                 fc_map = inject_fc_frame(fc_map, psf_template, y, x,

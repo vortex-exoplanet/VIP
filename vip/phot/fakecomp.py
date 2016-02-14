@@ -18,8 +18,8 @@ from ..calib import cube_crop_frames, frame_shift, frame_crop
 from ..var import frame_center
 
 
-def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_arcs, 
-                    n_branches=1, theta=0):
+def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists, 
+                    n_branches=1, theta=0, verbose=True):
     """ Injects fake companions in branches, at given radial distances.
     
     Parameters
@@ -29,17 +29,20 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_arcs,
     psf_template : array_like 
         2d array with the psf fake companion template. Must have an odd shape.
     flevel : float
-        Factor for controlling the brightness of the fake companion.
+        Factor for controlling the brightness of the fake companions.
     plsc : float
         Value of the plsc in pixels.
-    rad_arcs : list
-        Vector of radial distances of fake companions [arcsec].
+    rad_dists : list or array 1d
+        Vector of radial distances of fake companions in pixels.
     n_branches : int, optional
         Number of azimutal branches.
     theta : float, optional
         Angle in degrees for rotating the position of the first branch that by
-        default is located at zero degrees. Theta counts counterclockwise.
-        
+        default is located at zero degrees. Theta counts counterclockwise from
+        the positive x axis.
+    verbose : {True, False}, bool optional
+        If True prints out additional information. 
+    
     Returns
     -------
     array_out : array_like
@@ -53,7 +56,8 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_arcs,
     nframes = array.shape[0]
     ceny, cenx = frame_center(array[0])
     fc_fr = np.zeros_like(array[0], dtype=np.float64)
-    n_fc_rad = len(rad_arcs)
+    rad_dists = np.array(rad_dists)
+    n_fc_rad = rad_dists.shape[0]
     array_fc = psf_template.copy()
     # just to make it look cleaner
     array_fc[np.where(array_fc < 0.001)] = 0                                    
@@ -68,11 +72,21 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_arcs,
         for branch in xrange(n_branches):
             ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
             for i in xrange(n_fc_rad):
-                rad = rad_arcs[i]/plsc                                          
+                rad = rad_dists[i]                                         
                 y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                 x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
                 tmp = tmp + frame_shift(fc_fr, y, x)*flevel
         array_out[fr] = array[fr] + tmp
+    
+    if verbose:
+        for branch in xrange(n_branches):
+            print 'Branch 1:'
+            for i in xrange(n_fc_rad):
+                posy = rad_dists[i] * np.sin(np.deg2rad(theta)) + ceny
+                posx = rad_dists[i] * np.cos(np.deg2rad(theta)) + cenx
+                rad_arcs = rad_dists[i]*plsc
+                msg ='\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec ({:.2f} pxs)'
+                print msg.format(posx, posy, rad_arcs, rad_dists[i])
         
     return array_out
 

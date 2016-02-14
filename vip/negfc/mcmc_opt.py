@@ -65,8 +65,8 @@ def lnprior(modelParameters, bounds):
         return -np.inf
 
 
-def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp, 
-           aperture_radius, initialState, cube_ref=None, svd_mode='lapack', 
+def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width, 
+           ncomp, aperture_radius, initialState, cube_ref=None, svd_mode='lapack', 
            scaling='temp-mean', debug=False):
     """
     Define the likelihood log-function.
@@ -87,6 +87,8 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
         The width in pixel of the annulus on wich the PCA is performed.
     ncomp: int
         The number of principal components.
+    fwhm : float
+        The FHWM in pixels.
     aperture_radius: float
         The radius of the circular aperture.  
     initialState: numpy.array
@@ -116,12 +118,13 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
     
     # Create the cube with the negative fake companion injected
     cube_negfc = inject_fcs_cube(cube, psfs_norm, angs, flevel=-modelParameters[2], 
-                                 plsc=plsc, rad_arcs=[modelParameters[0]*plsc],
-                                 n_branches=1, theta=modelParameters[1])    
+                                 plsc=plsc, rad_dists=[modelParameters[0]],
+                                 n_branches=1, theta=modelParameters[1],
+                                 verbose=False)    
                                   
     # Perform PCA to generate the processed image and extract the zone of interest 
-    values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width,
-                                 aperture_radius,initialState[0],initialState[1],
+    values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width*fwhm,
+                                 aperture_radius*fwhm,initialState[0],initialState[1],
                                  cube_ref=cube_ref, svd_mode=svd_mode,
                                  scaling=scaling)
     
@@ -135,8 +138,8 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, annulus_width, ncomp,
         return lnlikelihood
 
 
-def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, annulus_width, 
-           ncomp, aperture_radius, initialState, cube_ref=None, 
+def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, fwhm, 
+           annulus_width, ncomp, aperture_radius, initialState, cube_ref=None, 
            svd_mode='lapack', scaling='temp-mean', display=False):
     """ Define the probability log-function as the sum between the prior and 
     likelihood log-funtions.
@@ -155,7 +158,9 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, annulus_width,
     plsc: float
         The platescale, in arcsec per pixel.
     psfs_norm: numpy.array
-        The scaled psf expressed as a numpy.array.    
+        The scaled psf expressed as a numpy.array.   
+    fwhm : float
+        The FHWM in pixels. 
     annulus_width: float
         The width in pixel of the annulus on wich the PCA is performed.
     ncomp: int
@@ -188,7 +193,7 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, annulus_width,
     if isinf(lp):
         return -np.inf       
     
-    return lp + lnlike(modelParameters, cube, angs, plsc, psfs_norm, 
+    return lp + lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm,
                        annulus_width, ncomp, aperture_radius, initialState, 
                        cube_ref, svd_mode, scaling, display) 
 
@@ -285,8 +290,8 @@ def gelman_rubin_from_chain(chain, burnin):
     return rhat
 
 
-def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
-                        aperture_radius, initialState, cube_ref=None, 
+def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, initialState, 
+                        fwhm=4, annulus_width=3, aperture_radius=4, cube_ref=None, 
                         svd_mode='lapack', scaling='temp-mean', nwalkers=1000, 
                         bounds=None, a=2.0, burnin=0.3, rhat_threshold=1.01, 
                         rhat_count_threshold=3, niteration_min=0.0,
@@ -326,9 +331,9 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
         The number of principal components.        
     plsc: float
         The platescale, in arcsec per pixel.  
-    annulus_width: float
+    annulus_width: float, optional
         The width in pixel of the annulus on wich the PCA is performed.
-    aperture_radius: float
+    aperture_radius: float, optional
         The radius of the circular aperture.        
     nwalkers: int optional
         The number of Goodman & Weare 'walkers'.
@@ -339,6 +344,7 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
+        'randsvd' is not recommended for the negative fake companion technique.
     scaling : {'temp-mean', 'temp-standard'} or None, optional
         With None, no scaling is performed on the input data before SVD. With 
         "temp-mean" then temporal px-wise mean subtraction is done and with 
@@ -444,6 +450,7 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
     limit = niteration_limit    
     supp = niteration_supp
     maxgap = check_maxgap 
+    initialState = np.array(initialState)
     
     if itermin > limit:
         itermin = 0
@@ -470,9 +477,9 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, annulus_width,
     
     sampler = emcee.EnsembleSampler(nwalkers,dim,lnprob,a,
                                     args =([bounds,cubes,angs,plsc,psfs_norm,
-                                            annulus_width,ncomp,aperture_radius,
-                                            initialState,cube_ref,svd_mode,
-                                            scaling]),
+                                            fwhm,annulus_width,ncomp,
+                                            aperture_radius,initialState,
+                                            cube_ref,svd_mode,scaling]),
                                     threads=threads)
     
     duration_start = datetime.datetime.now()

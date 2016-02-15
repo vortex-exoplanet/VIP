@@ -181,8 +181,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
                                markeredgecolor=kwargs.pop('markeredgecolor','r'),
                                **kwargs)
                        
-        plt.xlabel("flux")
-        plt.ylabel("chi2r")
+        plt.xlabel('flux')
+        plt.ylabel(r'$\chi^2_{r}$')
         plt.grid('on')
     if save:
         plt.savefig('chi2rVSflux.pdf')
@@ -342,9 +342,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
             centy, centx = frame_center(cube[0])
             posy = r_0 * np.sin(np.deg2rad(theta_0[index_planet])) + centy
             posx = r_0 * np.cos(np.deg2rad(theta_0[index_planet])) + centx
-            print posy, posx
             msg6 = 'Planet {}: simplex guess: (r_0,theta_0,f_0)=({:.3f}, {:.3f}'
-            msg6 += ', {:.3f}) or (X,Y)=({:.2f}, {:.2f})'
+            msg6 += ', {:.3f}) at (X,Y)=({:.2f}, {:.2f})'
             print msg6.format(index_planet, r_0[index_planet],
                               theta_0[index_planet], f_0[index_planet], posx[0], posy[0])
     

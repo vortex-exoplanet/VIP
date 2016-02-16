@@ -471,7 +471,7 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, initialState,
     
 
     if bounds is None:
-        bounds = [(initialState[0]-annulus_width/2.,initialState[0]+annulus_width/2.), #position
+        bounds = [(initialState[0]-annulus_width/2.,initialState[0]+annulus_width/2.), #radius
                   (initialState[1]-10,initialState[1]+10), #angle
                   (0,2*initialState[2])] #flux
     

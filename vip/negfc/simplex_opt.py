@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from .func_merit import chisquare 
 from ..var import frame_center
+from ..phot import psf_norm
 
 __all__ = ['firstguess_simplex',
            'firstguess_from_coord',
@@ -74,6 +75,10 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
     if p_ini is None:
         p_ini = p
         
+    # We crop the PSF and check if PSF has been normalized (so that flux in 
+    # 1*FWHM aperture = 1) and fix if needed
+    psf = psf_norm(psf, size=3*fwhm, fwhm=fwhm)
+        
     solu = minimize(chisquare, p, args=(cube,angs,plsc,psf,fwhm,annulus_width,
                                         aperture_radius,p_ini,ncomp,cube_ref,
                                         svd_mode,scaling), 
@@ -84,7 +89,7 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
     return solu
     
         
-def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm, 
+def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, 
                           fwhm, annulus_width, aperture_radius, ncomp, 
                           cube_ref=None, svd_mode='lapack', scaling='temp-mean', 
                           f_range=None, display=False, verbose=True, save=False, 
@@ -105,7 +110,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
         The parallactic angle fits image expressed as a numpy.array.         
     PLSC: float
         The platescale, in arcsec per pixel.
-    psf_norm: numpy.array
+    psf: numpy.array
         The scaled psf expressed as a numpy.array. 
     fwhm : float
         The FHWM in pixels.           
@@ -147,6 +152,9 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
     r0= np.sqrt(xy[0]**2+xy[1]**2)
     theta0 = np.mod(np.arctan2(xy[1],xy[0])/np.pi*180,360) 
 
+    # We crop the PSF and check if PSF has been normalized (so that flux in 
+    # 1*FWHM aperture = 1) and fix if needed
+    psf = psf_norm(psf, size=3*fwhm, fwhm=fwhm)
 
     if f_range is not None:    
         n = f_range.shape[0]
@@ -158,7 +166,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf_norm,
     if verbose:
         print 'Step | flux    | chi2r'
     for j, f_guess in enumerate(f_range):
-        chi2r[j] = chisquare((r0,theta0,f_guess), cube, angs, PLSC, psf_norm, 
+        chi2r[j] = chisquare((r0,theta0,f_guess), cube, angs, PLSC, psf, 
                              fwhm, annulus_width, aperture_radius,(r0,theta0),
                              ncomp, cube_ref=cube_ref, svd_mode=svd_mode, 
                              scaling=scaling)
@@ -272,7 +280,11 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     n_planet = planets_xy_coord.shape[0]
 
     center_xy_coord = np.array([cube.shape[1]/2.,cube.shape[2]/2.])    
-    
+
+    # We crop the PSF and check if PSF has been normalized (so that flux in 
+    # 1*FWHM aperture = 1) and fix if needed
+    psfn = psf_norm(psfn, size=3*fwhm, fwhm=fwhm)
+
     if figure_options is None:
         figure_options = {'color':'b', 'marker':'o', 
                           'xlim': [f_range[0]-10,f_range[-1]+10], 

@@ -146,11 +146,12 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
         
         corr = fr_ref_correlation(np.median(matrix, axis=0), matrix_ref)
         indcorr = np.where(np.abs(corr)>=min_corr)
+        #print indcorr
         data_ref = matrix_ref[indcorr]
         nfrslib = data_ref.shape[0]
                 
         if nfrslib<5:
-            msg = 'Too few frames left (<5) fullfil the given correlation level.'
+            msg = 'Too few frames left (<5) fulfill the given correlation level.'
             msg += 'Try decreasing it'
             raise RuntimeError(msg)
 

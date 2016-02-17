@@ -280,8 +280,6 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, ncomp,
     if algo=='pca-rdi-fullfr' or algo=='pca-rdi-annular':
         if cube_ref is None:
             raise TypeError('A reference cube must provided for RDI processing')
-    #if not psf_template.shape[0]%2==0:
-    #    psf_template = frame_crop(psf_template, psf_template.shape[0]-1)
 
     if verbose:  start_time = timeInit()
 
@@ -317,9 +315,9 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, ncomp,
         print('Measured annulus-wise noise in resulting frame')
         timing(start_time)
     
-    # Checks if PSF has been normalized (so that flux in aperture = 1) and fix
-    # if needed
-    psf_template = psf_norm(psf_template, size=29, fwhm=fwhm)
+    # We crop the PSF and check if PSF has been normalized (so that flux in 
+    # 1*FWHM aperture = 1) and fix if needed
+    psf_template = psf_norm(psf_template, size=3*fwhm, fwhm=fwhm)
     
     #***************************************************************************
     # Initialize the fake companions

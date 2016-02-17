@@ -19,7 +19,7 @@ import datetime
 import corner
 from matplotlib import pyplot as plt
 from ..fits import open_adicube, open_fits
-from ..phot import inject_fcs_cube
+from ..phot import inject_fcs_cube, psf_norm
 from .post_proc import get_values_optimize
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -290,12 +290,12 @@ def gelman_rubin_from_chain(chain, burnin):
     return rhat
 
 
-def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, initialState, 
+def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState, 
                         fwhm=4, annulus_width=3, aperture_radius=4, cube_ref=None, 
                         svd_mode='lapack', scaling='temp-mean', nwalkers=1000, 
                         bounds=None, a=2.0, burnin=0.3, rhat_threshold=1.01, 
-                        rhat_count_threshold=3, niteration_min=0.0,
-                        niteration_limit=1e02, niteration_supp=0.0,
+                        rhat_count_threshold=3, niteration_min=0,
+                        niteration_limit=1e02, niteration_supp=0,
                         check_maxgap=1e04, threads=1, output_file=None,
                         display=False, verbose=True, save=False):
     """
@@ -324,7 +324,7 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, initialState,
         The relative path to the cube of fits images OR the cube itself.
     angs: str or numpy.array
         The relative path to the parallactic angle fits image or the angs itself.
-    psfs_norm: str or numpy.array
+    psfn: str or numpy.array
         The relative path to the instrumental PSF fits image or the PSF itself.
         The PSF flux in a 1*FWHM aperture must equal 1.
     ncomp: int
@@ -432,13 +432,15 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, initialState,
             cubes = open_fits(cubes)
             angs = open_fits(angs, verbose=False)    
         
-        if isinstance(psfs_norm,str):
-            psfs_norm = open_fits(psfs_norm)
+        if isinstance(psfn,str):
+            psfn = open_fits(psfn)
         
         if verbose:
             print 'The data has been loaded. Let''s continue !'
     
-    #psfs_norm = psf_norm(psfs_norm, min(29, psfs_norm.shape[0]), fwhm)
+    # We crop the PSF and check if PSF has been normalized (so that flux in 
+    # 1*FWHM aperture = 1) and fix if needed
+    psfn = psf_norm(psfn, size=3*fwhm, fwhm=fwhm)
     
     # #########################################################################
     # Initialization of the variables
@@ -476,7 +478,7 @@ def run_mcmc_astrometry(cubes, angs, psfs_norm, ncomp, plsc, initialState,
                   (0,2*initialState[2])] #flux
     
     sampler = emcee.EnsembleSampler(nwalkers,dim,lnprob,a,
-                                    args =([bounds,cubes,angs,plsc,psfs_norm,
+                                    args =([bounds,cubes,angs,plsc,psfn,
                                             fwhm,annulus_width,ncomp,
                                             aperture_radius,initialState,
                                             cube_ref,svd_mode,scaling]),

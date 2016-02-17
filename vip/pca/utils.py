@@ -157,6 +157,7 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     yy, xx = indic                                                             
     
     data = cube[:, yy, xx]
+    
     if scaling=='temp-standard':
         data = scale(data, with_mean=True, with_std=True)
     elif scaling=='temp-mean':

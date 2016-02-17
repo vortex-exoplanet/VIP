@@ -15,7 +15,7 @@ __all__ = ['create_psf_template',
 import numpy as np
 import photutils
 from ..calib import cube_crop_frames, frame_shift, frame_crop
-from ..var import frame_center
+from ..var import frame_center, fit_2dgaussian
 
 
 def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists, 
@@ -164,14 +164,26 @@ def psf_norm(array, size=None, fwhm=4):
     Returns
     -------
     psf_norm: array_like
-        The scaled psf.
+        The normalized psf.
 
     """
     if size is not None:  
-        psfs = frame_crop(array, size, verbose=False)
+        psfs = frame_crop(array, min(int(size), array.shape[0]), verbose=False)
     else:
-        psfs = array.copy()
+        psfs = array.copy() 
      
+    # first we find the centroid and put it in the center of the array 
+    centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm, fwhmy=fwhm)
+    cy, cx = frame_center(psfs, verbose=False)
+    shiftx, shifty = centroidx - cx, centroidy - cy
+    psfs = frame_shift(psfs, -shifty, -shiftx)
+    for _ in range(2):
+        centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm, fwhmy=fwhm)
+        cy, cx = frame_center(psfs, verbose=False)
+        shiftx, shifty = centroidx - cx, centroidy - cy
+        psfs = frame_shift(psfs, -shifty, -shiftx)
+    
+    # we check whether the flux is normalized and fix it if needed
     fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2.)
     fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper, 
                                                    method='exact')

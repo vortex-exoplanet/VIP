@@ -23,7 +23,7 @@ from astropy.modeling.fitting import LevMarLSQFitter
 from photutils.detection import findstars
 from skimage.feature import peak_local_max
 from ..var import (mask_circle, pp_subplots, get_square, frame_center, 
-                   gaussian_filter_sp, fit_2dgaussian)
+                   frame_filter_gaussian2d, fit_2dgaussian)
 from .snr import snr_ss
 from .frame_analysis import frame_quick_report
 
@@ -435,7 +435,7 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
             sbox = np.zeros([n_z,2*sbox_y+1,2*sbox_x+1])
 
     if ndims == 2:
-        gauss_filt_tmp = gaussian_filter_sp(obj_tmp, 
+        gauss_filt_tmp = frame_filter_gaussian2d(obj_tmp, 
                                             fwhm/gaussian_sigma_to_fwhm)
         if approx_peak is None:
             ind_max = np.unravel_index(gauss_filt_tmp.argmax(), 
@@ -455,7 +455,7 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
         ind_ch_max = np.zeros([n_z,2])
 
         for zz in range(n_z):
-            gauss_filt_tmp[zz] = gaussian_filter_sp(obj_tmp[zz], 
+            gauss_filt_tmp[zz] = frame_filter_gaussian2d(obj_tmp[zz], 
                                                     fwhm[zz]/gaussian_sigma_to_fwhm)
             if approx_peak is None:
                 ind_ch_max[zz] = np.unravel_index(gauss_filt_tmp[zz].argmax(), 

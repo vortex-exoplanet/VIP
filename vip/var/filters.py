@@ -21,22 +21,43 @@ from astropy.stats import gaussian_fwhm_to_sigma
 from .shapes import frame_center
 
 
+def fft(array):
+    """ Performs the 2d discrete Fourier transform (using numpy's fft2 function) 
+    on the data from the original image. This produces a new representation of 
+    the image in which each pixel represents a spatial frequency and 
+    orientation, rather than an xy coordinate. When Fourier-transformed images 
+    are plotted graphically, the low frequencies are found at the centre; this 
+    is not what fft2 actually produces, so we need to also apply numpy's 
+    fftshift.
+    """
+    fft_array = np.fft.fftshift(np.fft.fft2(array))
+    return fft_array
+    
+def ifft(array):
+    """ Gets the inverse Fourier transform on the image. This produces an array 
+    of complex numbers whose absolute values correspond to the image in the 
+    original space.
+    """
+    new_array = np.abs(np.fft.ifft2(np.fft.ifftshift(array)))
+    return new_array
 
-def frame_filter_highpass(array, mode, median_size=5, kernel_size=5):
-    """ High-pass filter. 
+def frame_filter_highpass(array, mode, median_size=5, kernel_size=5, 
+                          fwhm_size=5):
+    """ High-pass filtering of input frame depending on parameter *mode*. The
+    results are very different with different *mode* and varying the rest of
+    parameters.
     
     Parameters
     ----------
     array : array_like
         Input array, 2d frame.
-    mode : {'conv', 'convfft'}
-        'conv' uses the multidimensional gaussian filter from scipy.ndimage and
-        'convfft' uses the fft convolution with a 2d Gaussian kernel.
+    mode : {''}
     median_size : int
         Size of the median box for filtering the low-pass image.
     kernel_size : 3 or 5
         Size of the Laplacian kernel for convolution. 
-        
+    fwhm_size : 
+    
     Returns
     -------
     filtered : array_like
@@ -71,6 +92,28 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5):
         # Subtracting the low_pass filtered (median) image from the image itself  
         medianed = median_filter(array, median_size, mode='nearest')
         filtered = array - medianed
+    
+    elif mode=='gauss-subt':
+        # Subtracting the low_pass filtered (median) image from the image itself  
+        gaussed = frame_filter_gaussian2d(array, fwhm_size, mode='conv')
+        filtered = array - gaussed
+        
+    elif mode=='fourier-butter':
+        # Designs an n-th order high-pass 2D Butterworth filter with cutin
+        # frequency f. pxd defines the number of pixels per unit of frequency 
+        # (e.g.,degrees of visual angle).
+        f = 0.5
+        pxd = float(2)
+        n = 100
+        rows, cols = array.shape
+        x = np.linspace(-0.5, 0.5, cols)  * cols / pxd
+        y = np.linspace(-0.5, 0.5, rows)  * rows / pxd
+        radius = np.sqrt((x**2)[np.newaxis] + (y**2)[:, np.newaxis])
+        filt = 1 / (1.0 + (radius / f)**(2*n))
+        filt = 1. - filt
+        array_fft = fft(array)
+        fft_new = array_fft * filt
+        filtered = ifft(fft_new)        
         
     else:
         raise TypeError('Mode not recognized')    
@@ -109,7 +152,7 @@ def frame_filter_gaussian2d(array, size_fwhm, mode='conv'):
         gaus = Gaussian2DKernel(stddev=size_fwhm*gaussian_fwhm_to_sigma)
         filtered = convolve_fft(array, gaus)
     else:
-        raise TypeError('Mode not recongnized')
+        raise TypeError('Mode not recognized')
     
     return filtered
 

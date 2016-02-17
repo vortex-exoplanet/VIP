@@ -97,7 +97,7 @@ def frame_crop(array, size, cenxy=None, verbose=True):
         ceny, cenx = frame_center(array, verbose=False)
     else:
         cenx, ceny = cenxy
-    array_view = get_square(array, size, ceny, cenx)    
+    array_view = get_square(array, size, ceny, cenx)  
     
     if verbose:
         print

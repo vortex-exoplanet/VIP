@@ -42,7 +42,7 @@ def ifft(array):
     return new_array
 
 def frame_filter_highpass(array, mode, median_size=5, kernel_size=5, 
-                          fwhm_size=5):
+                          fwhm_size=5, btw_cutoff=0.2, btw_order=2):
     """ High-pass filtering of input frame depending on parameter *mode*. The
     results are very different with different *mode* and varying the rest of
     parameters.
@@ -64,13 +64,50 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         High-pass filtered image.
         
     """
+    def butter2d_lp(size, cutoff, n=3):
+        """ Create low-pass 2D Butterworth filter. 
+        Function from PsychoPy library, copyright (C) 2010 Jonathan Peirce
+
+        Parameters
+        ----------
+        size : tuple
+            size of the filter
+        cutoff : float
+            relative cutoff frequency of the filter (0 - 1.0)
+        n : int, optional
+            order of the filter, the higher n is the sharper
+            the transition is.
+        
+        Returns
+        -------
+        numpy.ndarray
+          filter kernel in 2D centered
+        """
+        if not 0 < cutoff <= 1.0:
+            raise ValueError, 'Cutoff frequency must be between 0 and 1.0'
+    
+        if not isinstance(n, int):
+            raise ValueError, 'n must be an integer >= 1'
+    
+        rows, cols = size
+        x =  np.linspace(-0.5, 0.5, cols) * cols
+        y =  np.linspace(-0.5, 0.5, rows) * rows
+    
+        # An array with every pixel = radius relative to center
+        radius = np.sqrt((x**2)[np.newaxis] + (y**2)[:, np.newaxis])
+        # The filter
+        f = 1 / (1.0 + (radius / cutoff)**(2*n))   
+        return f
+    
+    #---------------------------------------------------------------------------
+    
     if not array.ndim==2:
         raise TypeError('Input array is not a frame or 2d array')
     
     if mode=='kernel-conv':
         # Performs convolution of the frame with a 3x3 or 5x5 Laplacian 
         # high-pass kernels. 
-        kernel3 = np.array([[-1, -1, -1], # A simple and very narrow highpass filter
+        kernel3 = np.array([[-1, -1, -1], # A simple and very narrow hp filter
                             [-1,  8, -1],
                             [-1, -1, -1]])
         #kernel3 = np.array([[0,  -1,  0],
@@ -79,13 +116,27 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         #kernel3 = np.array([[-0.17, -0.67, -0.17],
         #                    [-0.67, 3.33, -0.67],
         #                    [-0.17, -0.67, -0.17]])
-        kernel5 = np.array([[-1, -1, -1, -1, -1],
-                            [-1,  1,  2,  1, -1],
-                            [-1,  2,  4,  2, -1],
-                            [-1,  1,  2,  1, -1],
-                            [-1, -1, -1, -1, -1]])
+        #kernel5 = np.array([[-1, -1, -1, -1, -1],
+        #                    [-1,  1,  2,  1, -1],
+        #                    [-1,  2,  4,  2, -1],
+        #                    [-1,  1,  2,  1, -1],
+        #                    [-1, -1, -1, -1, -1]])
+        # above /4. +1 in central px
+        kernel5 = np.array([[-0.25, -0.25, -0.25, -0.25, -0.25],
+                            [-0.25,  0.25,  0.5 ,  0.25, -0.25],
+                            [-0.25,  0.5 ,  2.  ,  0.5 , -0.25],
+                            [-0.25,  0.25,  0.5 ,  0.25, -0.25],
+                            [-0.25, -0.25, -0.25, -0.25, -0.25]])
+        kernel7 = np.array([[-10, -5, -2, -1, -2, -5, -10],
+                            [-5,   0,  3,  4,  3,  0,  -5],
+                            [-2,   3,  6,  7,  6,  3,  -2],
+                            [-1,   4,  7,  8,  7,  4,  -1],
+                            [-2,   3,  6,  7,  6,  3,  -2],
+                            [-5,   0,  3,  4,  3,  0,  -5],
+                            [-10, -5, -2, -1, -2, -5, -10]])
         if kernel_size==3:  kernel = kernel3
         elif kernel_size==5:  kernel = kernel5
+        elif kernel_size==7:  kernel = kernel7
         filtered = convolve_fft(array, kernel)
     
     elif mode=='median-subt':
@@ -99,18 +150,9 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         filtered = array - gaussed
         
     elif mode=='fourier-butter':
-        # Designs an n-th order high-pass 2D Butterworth filter with cutin
-        # frequency f. pxd defines the number of pixels per unit of frequency 
-        # (e.g.,degrees of visual angle).
-        f = 0.5
-        pxd = float(2)
-        n = 100
-        rows, cols = array.shape
-        x = np.linspace(-0.5, 0.5, cols)  * cols / pxd
-        y = np.linspace(-0.5, 0.5, rows)  * rows / pxd
-        radius = np.sqrt((x**2)[np.newaxis] + (y**2)[:, np.newaxis])
-        filt = 1 / (1.0 + (radius / f)**(2*n))
-        filt = 1. - filt
+        # Designs an n-th order high-pass 2D Butterworth filter
+        filt = butter2d_lp(array.shape, cutoff=btw_cutoff, n=btw_order)
+        filt = 1. - filt                        
         array_fft = fft(array)
         fft_new = array_fft * filt
         filtered = ifft(fft_new)        

@@ -15,7 +15,7 @@ __all__ = ['create_psf_template',
 import numpy as np
 import photutils
 from ..calib import cube_crop_frames, frame_shift, frame_crop
-from ..var import frame_center, fit_2dgaussian
+from ..var import frame_center, fit_2dgaussian, get_circle
 
 
 def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists, 
@@ -27,7 +27,9 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
     array : array_like
         Input frame or cube.
     psf_template : array_like 
-        2d array with the psf fake companion template. Must have an odd shape.
+        2d array with the normalized psf template. It should have an odd shape.
+        It's recommended to run the function psf_norm to get a proper PSF
+        template.
     flevel : float
         Factor for controlling the brightness of the fake companions.
     plsc : float
@@ -58,9 +60,7 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
     fc_fr = np.zeros_like(array[0], dtype=np.float64)
     rad_dists = np.array(rad_dists)
     n_fc_rad = rad_dists.shape[0]
-    array_fc = psf_template.copy()
-    # just to make it look cleaner
-    array_fc[np.where(array_fc < 0.001)] = 0                                    
+    array_fc = psf_template.copy()                                   
     
     w = int(np.floor(size_fc/2.))
     # fcomp in the center of a zeros frame
@@ -148,7 +148,7 @@ def create_psf_template(array, size, fwhm=5, verbose=True, collapse='mean'):
     return psf_normd
 
 
-def psf_norm(array, size=None, fwhm=4):
+def psf_norm(array, size=None, fwhm=4, threshold=None, mask_core=None):
     """ Scales a PSF, so the 1*FWHM aperture flux equals 1.
     
     Parameters
@@ -160,6 +160,11 @@ def psf_norm(array, size=None, fwhm=4):
         cropped form the psf array.
     fwhm: float, optional
         The the Full Width Half Maximum in pixels.
+    threshold : None of float, optional
+        Sets to zero small values, trying to leave only the core of the PSF.
+    mask_core : None of float, optional
+        Sets the radius of a circular aperture for the core of the PSF, 
+        everything else will be set to zero.
         
     Returns
     -------
@@ -193,6 +198,12 @@ def psf_norm(array, size=None, fwhm=4):
         psf_norm = psfs/np.array(fwhm_aper_phot['aperture_sum'])
     else:
         psf_norm = psfs
+    
+    if threshold is not None:   
+        psf_norm[np.where(psf_norm < threshold)] = 0  
+    
+    if mask_core is not None:
+        psf_norm = get_circle(psf_norm, radius=mask_core)
     
     return psf_norm
 

@@ -113,6 +113,15 @@ FAQ
 .. code-block:: bash
 
   $ conda install photutils 
+  
+- Why the setup fails complaining about the lack of a Fortran compiler?
+  Fortran compilers are apparently needed for compiling Scipy from source. Make
+  sure there is a Fortran compiler in your system. A workaround is to install
+  Scipy through conda before running the setup script:
+  
+.. code-block:: bash
+
+  $ conda install scipy   
    
 - Why do I get and error related to importing cv2 package when importing VIP?
   cv2 is the name of opencv bindings for python. This library is needed for
@@ -125,7 +134,7 @@ FAQ
 
 - Why Python crashes when using some of the parallel functions, e.g. 
   *pca_adi_annular_quad* and *run_mcmc_astrometry*?
-  This functions require running SVD on several processes and this can be 
+  These functions require running SVD on several processes and this can be 
   problematic depending on the linear algebra libraries on your machine. We've
   encountered this problem on OSX systems that use the ACCELERATE library for 
   linear algebra calculations (default in every OSX system). For this library

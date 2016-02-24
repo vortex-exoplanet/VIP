@@ -28,7 +28,7 @@ def fft(array):
     orientation, rather than an xy coordinate. When Fourier-transformed images 
     are plotted graphically, the low frequencies are found at the centre; this 
     is not what fft2 actually produces, so we need to also apply numpy's 
-    fftshift.
+    fftshift (centering low frequencies).
     """
     fft_array = np.fft.fftshift(np.fft.fft2(array))
     return fft_array
@@ -36,7 +36,7 @@ def fft(array):
 def ifft(array):
     """ Gets the inverse Fourier transform on the image. This produces an array 
     of complex numbers whose absolute values correspond to the image in the 
-    original space.
+    original space (decentering).
     """
     new_array = np.abs(np.fft.ifft2(np.fft.ifftshift(array)))
     return new_array
@@ -51,12 +51,19 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     ----------
     array : array_like
         Input array, 2d frame.
-    mode : {''}
+    mode : {'kernel-conv', 'median-subt', 'gauss-subt', 'fourier-butter'}
+        Type of High-pass filtering.
     median_size : int
-        Size of the median box for filtering the low-pass image.
-    kernel_size : 3 or 5
+        Size of the median box for filtering the low-pass median filter.
+    kernel_size : 3, 5 or 7
         Size of the Laplacian kernel for convolution. 
-    fwhm_size : 
+    fwhm_size : int
+        Size of the Gaussian kernel for the low-pass Gaussian filter.
+    btw_cutoff : float
+        Frequency cutoff for low-pass 2d Butterworth filter.
+    btw_order : int
+        Order of low-pass 2d Butterworth filter.
+    
     
     Returns
     -------

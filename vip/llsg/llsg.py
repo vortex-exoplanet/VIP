@@ -230,3 +230,5 @@ def _llsg_subf(cube, indices, quadrant, rank, low_rank_mode, thresh, thresh_mode
                        max_iter, random_seed, debug=debug, 
                        full_output=full_output)
     return patch, yy, xx, quadrant
+
+

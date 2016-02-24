@@ -13,14 +13,18 @@ __all__ = ['bp_isolated_removal',
 
 import cv2
 import numpy as np
+import pyprind
 from skimage.draw import circle, ellipse
+from scipy.ndimage import median_filter
 from astropy.stats import sigma_clipped_stats
 from ..stats import sigma_filter
-from ..var import dist
+from ..var import dist, frame_center, pp_subplots
 from ..stats import clip_array
+from ..conf import timing, timeInit
     
     
-def bp_isolated_removal(array, bpm_mask, size=3, double_check=False):
+def bp_isolated_removal(array, bpm_mask=None, sigma_clip=3, num_neig=5, size=3, 
+                        protect_mask=False, radius=30, verbose=True):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is 
     replaced by the median of the adjacent pixels. This function is very fast
     but works only with isolated (sparse) pixels.
@@ -28,33 +32,82 @@ def bp_isolated_removal(array, bpm_mask, size=3, double_check=False):
     Parameters
     ----------
     array : array_like
-        Input frame or 2d array.
-    bpm_mask : array_like
-        Input bad pixel map.
-    size : {3, 5}, optional
+        Input 2d or 3d array.
+    bpm_mask : array_like, optional
+        Input bad pixel map. Zeros frame where the bad pixels have a value of 1.
+        If None is provided a bad pixel map will be created per frame using 
+        sigma clip statistics.
+    size : odd int, optional
         The size the box (size x size) of adjacent pixels for taking the median.
-    double_check : {False, True}, bool optional
-        Double check for still deviating px not captured in the bad pixel mask.
-         
+    num_neig : int, optional
+        The side of the square window around each pixel where the sigma and 
+        median are calculated. 
+    protect_mask :
+       
     Return
     ------
     frame : array_like
         Frame with bad pixels corrected.
     """
-    if not array.ndim == 2:
-        raise TypeError('Array is not a frame or 2d array')
-     
-    bpm_mask = bpm_mask.astype('bool')
-     
-    frame = array.copy()
-    smoothed = cv2.medianBlur(frame.astype(np.float32), size)
-    frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]      
-    if double_check:
-        indices = clip_array(frame, 3, 3, neighbor=True, num_neighbor=9)                                
-        frame[indices] = smoothed[indices]
-         
-    print "Done correcting bad pixels"
-    return frame
+    if array.ndim>3 or array.ndim<2:
+        raise TypeError('Array is not a 2d or 3d array')
+    if size%2==0:
+        raise TypeError('Size of the median blur kernel must be an odd integer')
+    
+    if bpm_mask is not None:
+        bpm_mask = bpm_mask.astype('bool')
+    
+    if verbose:  start = timeInit()
+    cy, cx = frame_center(array[0])
+    if array.ndim==2:
+        frame = array.copy()
+        if bpm_mask is None:
+            ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=True,
+                             num_neighbor=7)
+            bpm_mask = np.zeros_like(frame)
+            bpm_mask[ind] = 1
+            if protect_mask:
+                cir = circle(cy, cx, radius)
+                bpm_mask[cir] = 0
+            bpm_mask = bpm_mask.astype('bool')
+            #pp_subplots(bpm_mask)
+        
+        if size==3 or size==5:
+            smoothed = cv2.medianBlur(frame.astype(np.float32), size)
+        elif size>5:
+            smoothed = median_filter(frame, size, mode='nearest')
+        frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)] 
+        array_out = frame     
+    
+    elif array.ndim==3:
+        cube_out = array.copy()
+        n_frames = array.shape[0]
+        bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
+        for i in range(n_frames):
+            frame = cube_out[i]
+            if bpm_mask is None:
+                ind = clip_array(frame, sigma_clip, sigma_clip)
+                bpm_mask = np.zeros_like(frame)
+                bpm_mask[ind] = 1
+                if protect_mask:
+                    cir = circle(cy, cx, radius)
+                    bpm_mask[cir] = 0
+                bpm_mask = bpm_mask.astype('bool')
+                #pp_subplots(bpm_mask)
+            
+            if size==3 or size==5:
+                smoothed = cv2.medianBlur(frame.astype(np.float32), size)
+            elif size>5:
+                smoothed = median_filter(frame, size, mode='nearest')
+            frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)] 
+            bar.update()
+        array_out = cube_out
+    
+    if verbose: 
+        print
+        print "Done replacing bad pixels using the median of the neighbors"
+        timing(start)
+    return array_out
 
 
 def bp_annuli_removal(array, cy, cx, fwhm, sig=5., protect_psf=True, 

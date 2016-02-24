@@ -19,7 +19,7 @@ __all__ = ['firstguess_simplex',
 
 def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width, 
                        aperture_radius, cube_ref=None, svd_mode='lapack', 
-                       scaling='temp-mean', p_ini=None, options=None, 
+                       scaling=None, p_ini=None, options=None, 
                        verbose=False, **kwargs):               
     """
     Determine the position of a companion using the negative fake companion 
@@ -183,8 +183,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf,
         plt.ylim(kwargs.pop('ylim',[chi2r.min()*0.9,chi2r.max()*1.1]))
 
         plt.plot(f_range,chi2r,linestyle = kwargs.pop('linestyle','-'),
-                               color = kwargs.pop('color','r'),
-                               marker = kwargs.pop('marker','s'),
+                               color = kwargs.pop('color','b'),
+                               marker = kwargs.pop('marker','o'),
                                markerfacecolor=kwargs.pop('markerfacecolor','r'),
                                markeredgecolor=kwargs.pop('markeredgecolor','r'),
                                **kwargs)

@@ -7,13 +7,58 @@ Module with pixel and frame subsampling functions.
 from __future__ import division
 
 __author__ = 'C. Gomez @ ULg'
-__all__ = ['cube_subsample',
-           'cube_collapse_trimmean',
+__all__ = ['cube_collapse',
+           'cube_subsample',
            'cube_subsample_trimmean']
 
 import numpy as np
 import pandas as pn
+
+
+def cube_collapse(cube, mode='median', n=50):
+    """ Collapses a cube into a frame (3d array to 2d array) depending on the 
+    parameter *mode*. It's possible to perform a trimmed mean combination of the 
+    frames based on description in Brandt+ 2012.
     
+    Parameters
+    ----------
+    cube : array_like
+        Cube.
+    mode : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the images in the cube.
+    n : int, optional
+        Sets the discarded values at high and low ends. When n = N is the same
+        as taking the mean, when n = 1 is like taking the median.
+        
+    Returns
+    -------
+    frame : array_like
+        Output array, cube combined. 
+    """
+    arr = cube
+    if not arr.ndim == 3:
+        raise TypeError('The input array is not a cube or 3d array.')
+    
+    if mode=='mean':
+        frame = np.mean(arr, axis=0)
+    elif mode=='median':
+        frame = np.median(arr, axis=0)
+    elif mode=='sum':
+        frame = np.sum(arr, axis=0)
+    elif mode=='trimmean':
+        N = arr.shape[0]
+        if N % 2 == 0:
+            k = (N - n)//2
+        else:
+            k = (N - n)/2                                                               
+        
+        frame = np.empty_like(arr[0])                                    
+        for index, _ in np.ndenumerate(arr[0]):
+            sort = np.sort(arr[:,index[0],index[1]])
+            frame[index] = np.mean(sort[k:N-k])
+            
+    return frame
+
 
 def cube_subsample(array, n, mode="mean", parallactic=None, verbose=False):
     """Mean/Median combines frames in cube with window n.
@@ -72,37 +117,6 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=False):
         return arr
 
 
-def cube_collapse_trimmean(arr, n):
-    """Performs a trimmed mean combination of the frames in a cube. Based on 
-    description in Brandt+ 2012.
-    
-    Parameters
-    ----------
-    arr : array_like
-        Cube.
-    n : int
-        Sets the discarded values at high and low ends. When n = N is the same
-        as taking the mean, when n = 1 is like taking the median.
-        
-    Returns
-    -------
-    arr2 : array_like
-        Output array, cube combined. 
-    """
-    if not arr.ndim == 3:
-        raise TypeError('The input array is not a cube or 3d array.')
-    N = arr.shape[0]
-    if N % 2 == 0:
-        k = (N - n)//2
-    else:
-        k = (N - n)/2                                                               
-    arr2 = np.empty_like(arr[0])                                    
-    for index, _ in np.ndenumerate(arr[0]):
-        sort = np.sort(arr[:,index[0],index[1]])
-        arr2[index] = np.mean(sort[k:N-k])
-    return arr2
-
-
 def cube_subsample_trimmean(arr, n, m):
     """Performs a trimmed mean combination every m frames in a cube. Based on 
     description in Brandt+ 2012.
@@ -130,10 +144,10 @@ def cube_subsample_trimmean(arr, n, m):
     x = arr.shape[2]
     arr2 = np.empty([num+2, y, x]) 
     for i in xrange(num):                                                  
-        arr2[0] = cube_collapse_trimmean(arr[:m, :, :], n)                         
+        arr2[0] = cube_collapse(arr[:m, :, :], 'trimmean', n)                         
         if i > 0:
-            arr2[i] = cube_collapse_trimmean(arr[m*i:m*i+m, :, :], n)
-    arr2[num] = cube_collapse_trimmean(arr[-res:, :, :], n)     
+            arr2[i] = cube_collapse(arr[m*i:m*i+m, :, :], 'trimmean', n)
+    arr2[num] = cube_collapse(arr[-res:, :, :], 'trimmean', n)     
     arr_view = arr2[:num+1]                                                      # slicing until m+1 - last index not included
     print "\nDone trimmed mean over FITS-Cube with window m=" + str(m)
     return arr_view

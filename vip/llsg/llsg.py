@@ -13,7 +13,7 @@ from scipy.linalg import qr
 import itertools as itt
 from multiprocessing import Pool, cpu_count
 from ..conf import timeInit, timing
-from ..calib import cube_derotate
+from ..calib import cube_derotate, cube_collapse
 from ..stats import mad
 from ..var import get_annulus_quad
 from ..pca.utils import svd_wrapper
@@ -24,8 +24,8 @@ from ..conf import eval_func_tuple as EFT
 
 
 def llsg(cube, ang, fwhm, rank=10, thresh=1, max_iter=10, low_rank_mode='svd', 
-         thresh_mode='soft', nproc=1, radius_int=None, random_seed=None, 
-         full_output=False, verbose=True, debug=False):
+         thresh_mode='soft', nproc=1, radius_int=None, random_seed=None,
+         collapse='median', full_output=False, verbose=True, debug=False):
     """ 
     Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as 
     described in Gomez Gonzalez et al. 2016. This first version of our algorithm 
@@ -65,7 +65,9 @@ def llsg(cube, ang, fwhm, rank=10, thresh=1, max_iter=10, low_rank_mode='svd',
         The radius of the innermost annulus. By default is 0, if >0 then the 
         central circular area is discarded.
     random_seed : int or None, optional
-        Controls the seed for the Pseudo Random Number generator.   
+        Controls the seed for the Pseudo Random Number generator. 
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.  
     full_output: boolean, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
@@ -156,13 +158,16 @@ def llsg(cube, ang, fwhm, rank=10, thresh=1, max_iter=10, low_rank_mode='svd',
                     matrix_final_s[:, yy[q], xx[q]] = patch[q]
         
     if full_output:       
-        S_array_der, frame_s = cube_derotate(matrix_final_s, ang)
-        L_array_der, frame_l = cube_derotate(matrix_final_l, ang)
-        G_array_der, frame_g = cube_derotate(matrix_final_g, ang)
-
+        S_array_der = cube_derotate(matrix_final_s, ang)
+        frame_s = cube_collapse(S_array_der, mode=collapse)
+        L_array_der = cube_derotate(matrix_final_l, ang)
+        frame_l = cube_collapse(L_array_der, mode=collapse)
+        G_array_der = cube_derotate(matrix_final_g, ang)
+        frame_g = cube_collapse(G_array_der, mode=collapse)
     else:
-        S_array_der, frame_s = cube_derotate(matrix_final_s, ang)              
-    
+        S_array_der = cube_derotate(matrix_final_s, ang)              
+        frame_s = cube_collapse(S_array_der, mode=collapse)
+        
     if verbose:  timing(start_time) 
     
     if full_output:

@@ -13,11 +13,11 @@ __all__ = ['adi']
 import numpy as np
 from ..conf import timeInit, timing
 from ..var import get_annulus, mask_circle
-from ..calib import cube_derotate, check_PA_vector
+from ..calib import cube_derotate, cube_collapse, check_PA_vector
 from ..pca.pca_local import define_annuli
 
 def adi(array, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1, 
-        mode='simple', full_output=False, verbose=True):
+        mode='simple', collapse='median', full_output=False, verbose=True):
     """ Algorithm based on Marois et al. 2006 on Angular Differential Imaging.   
     First the median frame is subtracted, then the median of the four closest 
     frames taking into account the pa_threshold (field rotation).
@@ -42,6 +42,8 @@ def adi(array, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         In "simple" mode only the median frame is subtracted, in "annular" mode
         also the 4 closest frames given a PA threshold (annulus-wise) are 
         subtracted.
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays. 
@@ -158,7 +160,8 @@ def adi(array, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     else:
         raise RuntimeError('Mode not recognized')
     
-    cube_der, frame = cube_derotate(cube_out, angle_list)
+    cube_der = cube_derotate(cube_out, angle_list)
+    frame = cube_collapse(cube_der, mode=collapse)
     if verbose:
         print 'Done derotating and combining'
         timing(start_time)

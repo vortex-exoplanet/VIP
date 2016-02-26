@@ -1,15 +1,15 @@
 #! /usr/bin/env python
 
 """
-Module with cube cosmetic functions for SDI datasets.
+Module with functions for correcting bad pixels in cubes.
 """
 
 from __future__ import division
 
-__author__ = 'V. Christiaens', 'C. Gomez @ ULg'
-__all__ = ['bp_isolated_removal',
-           'bp_annuli_removal',
-           'bp_clump_removal']
+__author__ = 'C. Gomez @ ULg', 'V. Christiaens'
+__all__ = ['cube_fix_badpix_isolated',
+           'cube_fix_badpix_annuli',
+           'cube_fix_badpix_clump']
 
 import cv2
 import numpy as np
@@ -23,8 +23,8 @@ from ..stats import clip_array
 from ..conf import timing, timeInit
     
     
-def bp_isolated_removal(array, bpm_mask=None, sigma_clip=3, num_neig=5, size=3, 
-                        protect_mask=False, radius=30, verbose=True):
+def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5, 
+                             size=3, protect_mask=False, radius=30, verbose=True):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is 
     replaced by the median of the adjacent pixels. This function is very fast
     but works only with isolated (sparse) pixels.
@@ -37,12 +37,22 @@ def bp_isolated_removal(array, bpm_mask=None, sigma_clip=3, num_neig=5, size=3,
         Input bad pixel map. Zeros frame where the bad pixels have a value of 1.
         If None is provided a bad pixel map will be created per frame using 
         sigma clip statistics.
-    size : odd int, optional
-        The size the box (size x size) of adjacent pixels for taking the median.
+    sigma_clip : int, optional
+        In case no bad pixel mask is provided all the pixels above and below
+        sigma_clip*STDDEV will be marked as bad. 
     num_neig : int, optional
-        The side of the square window around each pixel where the sigma and 
-        median are calculated. 
-    protect_mask :
+        The side of the square window around each pixel where the sigma clipped
+        statistics are calculated (STDDEV and MEDIAN).
+    size : odd int, optional
+        The size the box (size x size) of adjacent pixels for the median filter. 
+    protect_mask : {False, True}, bool optional
+        If True a circular aperture at the center of the frames will be 
+        protected from any operation. With this we protect the star and vicinity.
+    radius : int, optional 
+        Radius of the circular aperture (at the center of the frames) for the 
+        protection mask.
+    verbose : {True, False}, bool optional
+        If True additional information will be printed. 
        
     Return
     ------
@@ -110,9 +120,9 @@ def bp_isolated_removal(array, bpm_mask=None, sigma_clip=3, num_neig=5, size=3,
     return array_out
 
 
-def bp_annuli_removal(array, cy, cx, fwhm, sig=5., protect_psf=True, 
-                      verbose=True, half_res_y=False, min_thr=None, 
-                      mid_thr=None, full_output=False):
+def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True, 
+                           verbose=True, half_res_y=False, min_thr=None, 
+                           mid_thr=None, full_output=False):
     """
     Function to correct the bad pixels annulus per annulus (centered on the 
     provided location of the star), in an input frame or cube.
@@ -395,9 +405,9 @@ def bp_annuli_removal(array, cy, cx, fwhm, sig=5., protect_psf=True,
 
 
 
-def bp_clump_removal(array, cy, cx, fwhm, sig=4., protect_psf=True, 
-                     verbose=True, half_res_y=False, min_thr=None, 
-                     mid_thr=None, max_nit=15, full_output=False):
+def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True, 
+                          verbose=True, half_res_y=False, min_thr=None, 
+                          mid_thr=None, max_nit=15, full_output=False):
     """
     Function to correct the bad pixels in obj_tmp. Slow alternative to 
     bp_annuli_removal to correct for bad pixels in either a frame or a spectral

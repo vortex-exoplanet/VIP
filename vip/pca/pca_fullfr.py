@@ -16,7 +16,8 @@ import pyprind
 from skimage import draw
 from matplotlib import pyplot as plt
 from .utils import svd_wrapper, prepare_matrix, reshape_matrix
-from ..calib import cube_derotate, check_PA_vector, check_scal_vector
+from ..calib import (cube_derotate, cube_collapse, check_PA_vector, 
+                     check_scal_vector)
 from ..conf import timing, timeInit
 from ..var import frame_center, dist
 from ..stats import descriptive_stats
@@ -30,7 +31,8 @@ warnings.filterwarnings("ignore", category=Warning)
 
 def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         svd_mode='lapack', scaling=None, mask_center_px=None, source_xy=None,
-        delta_rot=1, fwhm=4, full_output=False, verbose=True, debug=False):
+        delta_rot=1, fwhm=4, collapse='median', full_output=False, verbose=True, 
+        debug=False):
     """ Algorithm where the reference PSF and the quasi-static speckle pattern 
     are modeled using Principal Component Analysis. Depending on the input
     parameters this PCA function can work in ADI, RDI or SDI (IFS data) mode.
@@ -110,6 +112,8 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     delta_rot : int, optional
         Factor for increasing the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1 FHWM on each side of the considered frame).
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
@@ -316,8 +320,8 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
                                               ncomp2, scaling, mask_center_px, 
                                               debug, svd_mode, False, 
                                               full_output)
-            residuals_cube_channels_, frame = cube_derotate(res_ifs_adi, 
-                                                            angle_list)
+            residuals_cube_channels_ = cube_derotate(res_ifs_adi, angle_list)
+            frame = cube_collapse(residuals_cube_channels_, mode=collapse)
             if verbose:
                 msg = 'Done PCA per ADI multi-spectral frame, de-rotating and '
                 msg += 'combining'
@@ -343,7 +347,9 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
             recon = reshape_matrix(reconstructed, y, x)
         else:
             residuals_cube = residuals_result
-        residuals_cube_, frame = cube_derotate(residuals_cube, angle_list)
+        residuals_cube_ = cube_derotate(residuals_cube, angle_list)
+        frame = cube_collapse(residuals_cube_, mode=collapse)
+        
         if verbose:
             print 'Done de-rotating and combining'
             timing(start_time)
@@ -411,7 +417,8 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
                 descriptive_stats(nfrslib, verbose=verbose, label='Size LIB: ')
             
              
-        residuals_cube_, frame = cube_derotate(residuals_cube, angle_list)
+        residuals_cube_ = cube_derotate(residuals_cube, angle_list)
+        frame = cube_collapse(residuals_cube_, mode=collapse)
         if verbose:
             print 'Done de-rotating and combining'
             timing(start_time)
@@ -431,12 +438,12 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
 def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
                      mode='full', annulus_width=2, range_pcs=None, 
                      svd_mode='lapack', scaling=None, mask_center_px=None, 
-                     fmerit='px', min_snr=0, verbose=True, full_output=False, 
-                     debug=False, plot=True):
+                     fmerit='px', min_snr=0, collapse='median', verbose=True, 
+                     full_output=False, debug=False, plot=True):
     """ Optimizes the number of principal components by doing a simple grid 
     search measuring the SNR for a given position in the frame (ADI, RDI). 
-    The metric used could be the given pixel's SNR, the maximun SNR in a FWHM 
-    circular aperture centred on the given coordinates or the mean SNR in the 
+    The metric used could be the given pixel's SNR, the maximum SNR in a FWHM 
+    circular aperture centered on the given coordinates or the mean SNR in the 
     same circular aperture. They yield slightly different results.
     
     Parameters
@@ -482,6 +489,8 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
     min_snr : float
         Value for the minimum acceptable SNR. Setting this value higher will 
         reduce the steps.
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.
     verbose : {True, False}, bool optional
         If True prints intermediate info and timing.
     full_output : {False, True} bool optional
@@ -508,7 +517,8 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         residuals = matrix - reconstructed
         frsize = np.sqrt(matrix.shape[1])                                       # only for square frames 
         residuals_res = reshape_matrix(residuals, frsize, frsize)
-        _, frame = cube_derotate(residuals_res, angle_list)
+        residuals_res_der = cube_derotate(residuals_res, angle_list)
+        frame = cube_collapse(residuals_res_der, mode=collapse)
         return frame
     
     def get_snr(matrix, angle_list, cube_ref, y, x, mode, V, fwhm, ncomp, 

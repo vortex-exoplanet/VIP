@@ -22,7 +22,7 @@ from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_absolute_error
 from sklearn.preprocessing import scale #,minmax_scale
 from ..var import mask_circle, get_annulus, get_square_robust, frame_center
-from ..calib import cube_derotate, cube_rescaling
+from ..calib import cube_derotate, cube_collapse, cube_rescaling
 
 
 def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
@@ -115,7 +115,7 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
 
 
 def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
-                svd_mode='lapack', scaling='temp-mean'):
+                svd_mode='lapack', scaling='temp-mean', collapse='median'):
     """
     PCA process the cube only for an annulus of a given width and at a given
     radial distance to the frame center. It returns a PCA processed frame with 
@@ -142,6 +142,8 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         "temp-mean" then temporal px-wise mean subtraction is done and with 
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done. 
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.
     
     Returns
     -------
@@ -179,7 +181,8 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     residuals = data - reconstructed
     cube_zeros = np.zeros_like(cube)
     cube_zeros[:, yy, xx] = residuals
-    _, pca_frame = cube_derotate(cube_zeros, angs)
+    cube_res_der = cube_derotate(cube_zeros, angs)
+    pca_frame = cube_collapse(cube_res_der, mode=collapse)
     return pca_frame  
 
 

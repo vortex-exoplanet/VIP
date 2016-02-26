@@ -16,8 +16,7 @@ from matplotlib import pyplot as plt
 from ..var import get_annulus, get_circle, get_annulus_cube
 
 
-def cube_stats_aperture(arr, radius, y=None, x=None, plot=False, 
-                        full_output=False, verbose=True):                                                 
+def cube_stats_aperture(arr, radius, xy=None, plot=False, full_output=False):                                                 
     """Calculates statistics in an aperture on a 2D or 3D array and plots the 
     variation of the mean, median and standard deviation as a functions of time.
     
@@ -27,122 +26,113 @@ def cube_stats_aperture(arr, radius, y=None, x=None, plot=False,
         Input array.
     radius : int
         Radius.
-    plot : {False,True}, optional
-        If true it plots the mean, median and std dev.
+    xy : tuple of ints
+        Corrdinated of the center of the aperture
+    plot : None,1,2, optional
+        If 1 or True it plots the mean, std_dev and max. Also the histogram. 
+        If 2 it also plots the linear correlation between the median and the
+        std_dev. 
     full_output : {False,True}, optional
-        If true it returns mean, std_dev, median, if false just the 
-        mean.
-    verbose : {True,False}, bool optional
-        If false it turns off the print message.
+        If true it returns mean, std_dev, median, if false just the mean.
         
     Returns
     -------
     If full_out is true it returns the sum, mean, std_dev, median. If false 
     only the mean.
     """
-    if arr.ndim == 2:
-        height, widht = arr.shape
-        
-        if x and y:
+    if arr.ndim == 2:        
+        if xy is not None:
+            x, y = xy
             circle = get_circle(arr, radius, output_values=True, cy=y, cx=x)
         else:
             circle = get_circle(arr, radius, output_values=True)
-        suma = circle.sum()
+        maxi = circle.max()
         mean = circle.mean()
         std_dev = circle.std()
         median = np.median(circle)
             
     if arr.ndim == 3:
-        n, height, widht = arr.shape
+        n = arr.shape[0]
         mean = np.empty(n)
         std_dev = np.empty(n)
         median = np.empty(n)
-        suma = np.empty(n)
+        maxi = np.empty(n)
         
         values_circle = []
         for i in xrange(n):
-            if x and y:
+            if xy is not None:
+                x, y = xy
                 circle = get_circle(arr[i], radius, output_values=True, cy=y, cx=x)
             else:
                 circle = get_circle(arr[i], radius, output_values=True)
             values_circle.append(circle)
-            suma[i] = circle.sum()
+            maxi[i] = circle.max()
             mean[i] = circle.mean()
             std_dev[i] = circle.std()
             median[i] = np.median(circle)
         values_circle = np.array(values_circle).flatten()
         
-        if plot:
-            title1 = 'Stats in aperture'
-            title2 = 'Std_dev - mean in aperture'
-            title3 = 'Histogram'
-            plt.close(title1) 
-            plt.close(title2)
-            plt.close(title3)
-            
-            plt.figure(title1, figsize=(12, 8))    
-            plt.subplot(211)
-            plt.grid(which='major')
-            #plt.yscale('log')
-            if n < 400:
-                plt.minorticks_on()
-                plt.xticks(range(0, n, 10))
-            plt.plot(mean, label='mean', lw = 0.8, ls='-', alpha=0.6)
-            #plt.plot(suma, label='sum', lw = 0.8, alpha=0.6)
-            #plt.plot(mean/std_dev, label='mean/std_dev', lw = 0.8)
-            plt.legend(fancybox=True).get_frame().set_alpha(0.5)
-            plt.subplot(212)
-            plt.grid()
-            plt.minorticks_on()
-            #plt.yscale('log')
-            plt.plot(std_dev, label='std dev', lw = 0.5, ls='-', color='red', 
-                     alpha=0.6)
-            plt.plot(median, label='median', lw = 0.8, ls='-', alpha=0.6)
-            plt.legend(fancybox=True).get_frame().set_alpha(0.5) 
-            
-            plt.axes([0.80,0.55,0.1,0.1])
-            plt.axis('off')
-            if x and y:
-                circle_im = get_circle(arr.mean(axis=0), radius=radius, cy=y, cx=x)           
-                plt.imshow(circle_im, origin='lower', interpolation="nearest", 
-                           cmap=plt.get_cmap('gray'), alpha=0.5)                     
-                plt.xlim(x-radius, x+radius)
-                plt.ylim(y-radius, y+radius)
+        if plot==1 or plot==2:
+            plt.figure('Image crop (first slice)', figsize=(12,3))
+            if xy is not None:
+                x, y = xy
+                temp = get_circle(arr[0], radius, cy=y, cx=x)
             else:
-                circle_im = get_circle(arr.mean(axis=0), radius)
-                plt.imshow(circle_im, origin='lower', interpolation="nearest", 
-                           cmap=plt.get_cmap('gray'), alpha=0.5) 
-                plt.xlim((widht/2)-(radius), (widht/2)+(radius))
-                plt.ylim((height/2)-(radius), (height/2)+(radius))
+                temp = get_circle(arr[0], radius)
+            ax1 = plt.subplot(1, 2, 1)
+            ax1.imshow(temp, origin = 'lower', interpolation="nearest", 
+                       cmap = plt.get_cmap('gray'))                           
+            plt.axis('on')
+            ax2 = plt.subplot(1, 2, 2)
+            ax2.hist(values_circle, bins=int(np.sqrt(values_circle.shape[0])),
+                     alpha=0.5, histtype='stepfilled', label='Histogram')
+            ax2.legend()
+            ax2.tick_params(axis='x', labelsize=8)
+
+            fig = plt.figure('Stats in annulus', figsize=(12, 6))
+            fig.subplots_adjust(hspace=0.15)
+            ax1 = plt.subplot(3, 1, 1)
+            std_of_means = np.std(mean)
+            median_of_means = np.median(mean)
+            lab = 'mean (median={:.1f}, stddev={:.1f})'.format(median_of_means,
+                                                               std_of_means)
+            ax1.axhline(median_of_means, alpha=0.5, color='gray', lw=2, ls='--')
+            ax1.plot(mean, '.-', label=lab, lw = 0.8, alpha=0.6, marker='o', 
+                     color='b')
+            ax1.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)
+            ax1.grid(True)
+            plt.setp(ax1.get_xticklabels(), visible=False)
             
-            plt.figure(title2, figsize=(12, 8))
-            plt.scatter(std_dev, mean)
-            m, b = np.polyfit(std_dev, mean, 1)
-            corr, _ = scipy.stats.pearsonr(mean, std_dev)
-            plt.plot(std_dev, m*std_dev + b, '-', label=corr)
-            plt.xlabel('Mean')
-            plt.ylabel('Standard deviation')
-            plt.legend()
-            #print 'm = ', m, '  angle = ', np.rad2deg(np.arctan(m))
-            
-            plt.figure(title3)
-            plt.hist(values_circle, bins=np.sqrt(values_circle.shape[0]),
-                     alpha=0.5, histtype='stepfilled', label='Px values')
-            plt.legend()
-        
-            #plt.show(block=False)
-    
-    if verbose:        
-        print "Done calculating stats in circular aperture"
+            ax2 = plt.subplot(3, 1, 2, sharex=ax1)
+            ax2.plot(std_dev, '.-', label='std_dev', lw = 0.8, alpha=0.6, 
+                     marker='o', color='r')
+            ax2.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)
+            ax2.grid(True)
+            plt.setp(ax2.get_xticklabels(), visible=False)
+
+            ax3 = plt.subplot(3, 1, 3, sharex=ax1)
+            ax3.plot(maxi, '.-', label='max', lw=0.8, alpha=0.6, marker='o',
+                     color='g')
+            ax3.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)  
+            ax3.grid(True)  
+
+            if plot==2:
+                plt.figure('Std_dev - mean in annulus', figsize=(4, 4))                
+                plt.scatter(std_dev, mean, alpha=0.6)
+                m, b = np.polyfit(std_dev, mean, 1)
+                corr, _ = scipy.stats.pearsonr(mean, std_dev)
+                plt.plot(std_dev, m*std_dev + b, '-', label=corr, alpha=0.6)
+                plt.xlabel('Mean')
+                plt.ylabel('Standard deviation')
+                plt.legend()
     
     if full_output:
-        return suma, mean, std_dev, median
+        return mean, std_dev, median, maxi
     else:
         return mean
 
 
-def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False, 
-                       verbose=True):
+def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False):
     """Calculates statistics in a centered annulus on a 2D or 3D array and 
     plots the variation of the mean, median and standard deviation as a 
     functions of time.
@@ -156,14 +146,11 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False,
     size : int
         How many pixels in radial direction contains the annulus.
     plot : None,1,2, optional
-        If 1 it plots the mean, std_dev and max.
-        If 2 it also plots the median, mean/std_dev and the mean and std_dev 
-        correlation. 
+        If 1 or True it plots the mean, std_dev and max. Also the histogram. 
+        If 2 it also plots the linear correlation between the median and the
+        std_dev. 
     full_out : {False,True}, optional
-        If true it returns mean, std_dev, median, if false just the 
-        mean.
-    verbose : {True,False}, bool optional
-        If false it turns off the print message.
+        If true it returns mean, std_dev, median, if false just the mean.
         
     Returns
     -------
@@ -171,7 +158,6 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False,
     only the mean.
     """
     if array.ndim==2:
-        height, widht = array.shape
         arr = array.copy()    
         
         annulus = get_annulus(arr, inner_radius, size, output_values=True)
@@ -181,7 +167,7 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False,
         maxi = annulus.max()
             
     if array.ndim==3:
-        n, height, widht = array.shape
+        n = array.shape[0]
         mean = np.empty(n)
         std_dev = np.empty(n)
         median = np.empty(n)
@@ -189,7 +175,6 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False,
         
         for i in xrange(n):
             arr = array[i].copy() 
-            
             annulus = get_annulus(arr, inner_radius, size, output_values=True)
             mean[i] = annulus.mean()
             std_dev[i] = annulus.std()
@@ -197,55 +182,56 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False,
             maxi[i] = annulus.max()
             
         if plot==1 or plot==2:
-            plt.close('Stats in annulus 1') 
-            plt.close('Std_dev - mean in annulus')
-            plt.close('Image crop')
+            plt.figure('Image crop (first slice)', figsize=(12,3))
+            temp = get_annulus_cube(array, inner_radius, size)
+            ax1 = plt.subplot(1, 2, 1)
+            ax1.imshow(temp[0], origin = 'lower', interpolation="nearest", 
+                       cmap = plt.get_cmap('gray'))                           
+            plt.axis('on')
+            ax2 = plt.subplot(1, 2, 2)
+            values = temp[np.where(temp>0)]
+            ax2.hist(values.ravel(), bins=int(np.sqrt(values.shape[0])),
+                     alpha=0.5, histtype='stepfilled', label='Histogram')
+            ax2.legend()
+            ax2.tick_params(axis='x', labelsize=8)
             
-            plt.figure('Image crop', figsize=(2,2))
-            if array.ndim==3:
-                temp = get_annulus_cube(array, inner_radius, size)
-                annulus = np.median(temp, axis=0)
-            else:
-                annulus = get_annulus(arr, inner_radius, size)
-            plt.imshow(annulus, origin = 'lower', interpolation="nearest", 
-                       cmap = plt.get_cmap('CMRmap'))                           
-            plt.xlim((widht/2)-(inner_radius+size), 
-                     (widht/2)+(inner_radius+size))
-            plt.ylim((height/2)-(inner_radius+size), 
-                     (height/2)+(inner_radius+size))
-            plt.axis('off')
+            fig = plt.figure('Stats in annulus', figsize=(12, 6))
+            fig.subplots_adjust(hspace=0.15)
+            ax1 = plt.subplot(3, 1, 1)
+            std_of_means = np.std(mean)
+            median_of_means = np.median(mean)
+            lab = 'mean (median={:.1f}, stddev={:.1f})'.format(median_of_means,
+                                                               std_of_means)
+            ax1.axhline(median_of_means, alpha=0.5, color='gray', lw=2, ls='--')
+            ax1.plot(mean, '.-', label=lab, lw = 0.8, alpha=0.6, marker='o', 
+                     color='b')
+            ax1.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)
+            ax1.grid(True)
+            plt.setp(ax1.get_xticklabels(), visible=False)
             
-            plt.figure('Stats in annulus 1', figsize=(12, 4))    
-            plt.grid('on')
-            if n < 400:
-                plt.minorticks_on()
-                plt.xticks(range(0, n, 10))
-            plt.plot(mean, '.-', label='mean', lw = 0.8, alpha=0.6)
-            plt.plot(std_dev, '.-', label='std_dev', lw = 0.8, alpha=0.6)
-            plt.plot(maxi, '.-', label='max', lw=0.8, alpha=0.6)
-            plt.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)            
+            ax2 = plt.subplot(3, 1, 2, sharex=ax1)
+            ax2.plot(std_dev, '.-', label='std_dev', lw = 0.8, alpha=0.6, 
+                     marker='o', color='r')
+            ax2.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)
+            ax2.grid(True)
+            plt.setp(ax2.get_xticklabels(), visible=False)
+
+            ax3 = plt.subplot(3, 1, 3, sharex=ax1)
+            ax3.plot(maxi, '.-', label='max', lw=0.8, alpha=0.6, marker='o',
+                     color='g')
+            ax3.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)  
+            ax3.grid(True)          
             
             if plot==2:
-                plt.figure('Stats in annulus 2', figsize=(12, 8))
-                plt.grid('on')
-                plt.minorticks_on()
-                plt.plot(mean/std_dev, label='mean/std dev', lw = 0.5, ls='-')
-                plt.plot(median, label='median', lw = 0.8, ls='-')
-                plt.legend(fancybox=True).get_frame().set_alpha(0.5) 
-                
-                plt.figure('Std_dev - mean in annulus', figsize=(12, 8))
-                plt.scatter(std_dev, mean)
+                plt.figure('Std_dev - mean in annulus', figsize=(4, 4))                
+                plt.scatter(std_dev, mean, alpha=0.6)
                 m, b = np.polyfit(std_dev, mean, 1)
                 corr, _ = scipy.stats.pearsonr(mean, std_dev)
-                plt.plot(std_dev, m*std_dev + b, '-', label=corr)
+                plt.plot(std_dev, m*std_dev + b, '-', label=corr, alpha=0.6)
                 plt.xlabel('Mean')
                 plt.ylabel('Standard deviation')
                 plt.legend()
-                #print 'm = ', m, '  angle = ', np.rad2deg(np.arctan(m))
-    
-    if verbose:        
-        pass #print "Done calculating stats in annulus"
-    
+
     if full_out:
         return mean, std_dev, median, maxi
     else:

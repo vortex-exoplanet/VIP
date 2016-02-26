@@ -23,8 +23,8 @@ from ..stats import (cube_stats_aperture, cube_stats_annulus,
 
 
 def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=None, width=None, 
-                              top_sigma=1.0, low_sigma=1.0, plot=False, 
-                              verbose=True):             
+                              top_sigma=1.0, low_sigma=1.0, window=None, 
+                              plot=False, verbose=True):             
     """ Returns the list of bad frames from a cube using the px statistics in 
     a centered annulus or circular aperture. Frames that are more than a few 
     standard deviations discrepant are rejected. Should be applied on a 
@@ -46,6 +46,8 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=None, width=None,
         Top boundary for rejection.
     low_sigma : int, optional
         Lower boundary for rejection.
+    window : int, optional
+        Window for smoothing the median and getting the rejection statistic.
     plot : {'False','True'}, optional
         If true it plots the mean fluctuation as a function of the frames and 
         the boundaries.
@@ -72,15 +74,14 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=None, width=None,
     
     if mode=='annulus':
         mean_values,_,_,_ = cube_stats_annulus(array, inner_radius=in_radius, 
-                                             size=width, full_out=True,
-                                             verbose=verbose)
+                                             size=width, full_out=True)
     elif mode=='circle':
         _,mean_values,_,_ = cube_stats_aperture(array, radius=in_radius, 
-                                                full_output=True,
-                                                verbose=verbose)
+                                                full_output=True)
     else: 
         raise TypeError('Mode not recognized')
-    window = int(n/3.)
+    
+    if window is None:  window = int(n/3.)
     mean_smooth = pn.rolling_median(mean_values, window , center='True')
     temp = pn.Series(mean_smooth)
     temp = temp.fillna(method='backfill')

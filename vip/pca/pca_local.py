@@ -15,7 +15,7 @@ import itertools as itt
 from scipy import stats
 from multiprocessing import Pool, cpu_count
 from sklearn.preprocessing import scale
-from ..calib import cube_derotate, check_PA_vector
+from ..calib import cube_derotate, cube_collapse, check_PA_vector
 from ..conf import timeInit, timing
 from ..conf import eval_func_tuple as EFT 
 from ..var import get_annulus_quad
@@ -27,7 +27,8 @@ from ..var import get_annulus
 
 def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1, 
                     ncomp=1, svd_mode='randsvd', min_corr=0.9, fwhm=4, 
-                    full_output=False, verbose=True, debug=False):
+                    collapse='median', full_output=False, verbose=True, 
+                    debug=False):
     """ Annular PCA with Reference Library + Correlation + standardization
     
     In the case of having a large number of reference images, e.g. for a survey 
@@ -59,6 +60,8 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
         of the science. Deafult is 0.9.
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Deafult is 4.
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
@@ -167,7 +170,8 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
             print 'Done PCA with {:} for current annulus'.format(svd_mode)
             timing(start_time)      
          
-    cube_der, frame = cube_derotate(cube_out, angle_list)
+    cube_der = cube_derotate(cube_out, angle_list)
+    frame = cube_collapse(cube_der, mode=collapse)
     if verbose:
         print 'Done derotating and combining.'
         timing(start_time)
@@ -180,7 +184,8 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
 def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3, 
                          delta_rot=1, ncomp=1, svd_mode='randsvd', nproc=1,
                          min_frames_pca=10, tol=1e-1, center=True, 
-                         full_output=False, verbose=True, debug=False):
+                         collapse='median', full_output=False, verbose=True, 
+                         debug=False):
     """ Smart PCA (quadrants of annulus version) algorithm. The PCA is computed 
     locally in each quadrant of each annulus. On each annulus we discard 
     reference images taking into account the parallactic angle threshold. 
@@ -230,6 +235,8 @@ def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3,
     tol : float, optional
         Stopping criterion for choosing the number of PCs when *ncomp* is None.
         Lower values will lead to smaller residuals and more PCs.
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
@@ -356,7 +363,8 @@ def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3,
     #***************************************************************************
     # Cube is derotated according to the parallactic angle and median combined.
     #***************************************************************************
-    cube_der, frame = cube_derotate(cube_out, angle_list)
+    cube_der = cube_derotate(cube_out, angle_list)
+    frame = cube_collapse(cube_der, mode=collapse)
     if verbose:
         print 'Done derotating and combining.'
         timing(start_time)

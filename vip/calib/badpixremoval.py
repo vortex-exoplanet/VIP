@@ -24,7 +24,8 @@ from ..conf import timing, timeInit
     
     
 def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5, 
-                             size=3, protect_mask=False, radius=30, verbose=True):
+                             size=3, protect_mask=False, radius=30, verbose=True,
+                             debug=False):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is 
     replaced by the median of the adjacent pixels. This function is very fast
     but works only with isolated (sparse) pixels.
@@ -53,7 +54,10 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         protection mask.
     verbose : {True, False}, bool optional
         If True additional information will be printed. 
-       
+    debug : {False, True}, bool optional
+        If array is 2d and debug is True, the bpm_mask and the input array are
+        plotted.
+    
     Return
     ------
     frame : array_like
@@ -68,9 +72,10 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         bpm_mask = bpm_mask.astype('bool')
     
     if verbose:  start = timeInit()
-    cy, cx = frame_center(array[0])
+
     if array.ndim==2:
         frame = array.copy()
+        cy, cx = frame_center(frame)
         if bpm_mask is None:
             ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=True,
                              num_neighbor=7)
@@ -80,7 +85,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                 cir = circle(cy, cx, radius)
                 bpm_mask[cir] = 0
             bpm_mask = bpm_mask.astype('bool')
-            #pp_subplots(bpm_mask)
+            if debug:  pp_subplots(frame, bpm_mask)
         
         if size==3 or size==5:
             smoothed = cv2.medianBlur(frame.astype(np.float32), size)
@@ -90,6 +95,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         array_out = frame     
     
     elif array.ndim==3:
+        cy, cx = frame_center(array[0])
         cube_out = array.copy()
         n_frames = array.shape[0]
         bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')

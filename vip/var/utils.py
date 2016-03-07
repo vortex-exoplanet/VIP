@@ -39,7 +39,7 @@ def pp_subplots(*args, **kwargs):
     ----------------------
     rows : how many rows (subplots in a grid)
     cmap : colormap to be used, CMRmap by default
-    colorb : to attach a colorbar, off by default
+    colorb : to attach a colorbar, on by default
     grid : for showing a grid over the image, off by default
     vmax : for stretching the displayed pixels values
     vmin : for stretching the displayed pixels values
@@ -59,7 +59,7 @@ def pp_subplots(*args, **kwargs):
     if kwargs.has_key('colorb'):
         colorb = kwargs['colorb']
     else:
-        colorb = False
+        colorb = True
     if kwargs.has_key('grid'):
         grid = kwargs['grid']
     else:

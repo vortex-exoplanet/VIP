@@ -71,7 +71,9 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     dpi : int optional 
         Dots per inch for the plots. 100 by default. 300 for printing quality.
     debug : {False, True}, bool optional
-        Whether to print and plot additional info.
+        Whether to print and plot additional info such as the noise, throughput,
+        the contrast curve with different X axis and the delta magnitude intead
+        of constrast.
     **algo_dict
         Any other valid parameter of the post-processing algorithms can be 
         passed here.
@@ -102,7 +104,6 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             cube[i] = cube[i] / starphot[i]
     
     # throughput
-    print('Measuring the throughput \n')
     res_throug = throughput(cube, angle_list, psf_template, fwhm, pxscale, 
                             ncomp=ncomp, nbranch=nbranch, full_output=True, 
                             algo=algo, cube_ref=cube_ref, verbose=False, 
@@ -133,7 +134,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     thruput_interp_sm = savgol_filter(thruput_interp, polyorder=1, mode='nearest',
                                       window_length=thruput_interp.shape[0]*0.1)
     noise_samp_sm = savgol_filter(noise_samp, polyorder=1, mode='nearest',
-                                  window_length=noise_samp.shape[0]*0.1)
+                                window_length=noise_samp.shape[0]*0.1)
     
     if debug:
         print('SIGMA={}'.format(sigma))
@@ -177,18 +178,47 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         if student:
             cont_curve_samp_t = ((sigma_student * noise_samp_sm)/ \
                                  thruput_interp_sm)
+        
     # plotting
     if plot or debug:
         plt.rc("savefig", dpi=dpi)
         plt.figure(figsize=(8,4))
-        plt.plot(rad_samp*pxscale, cont_curve_samp, '.-', label='gaussian')
+        plt.plot(rad_samp*pxscale, cont_curve_samp, '.-', label='gaussian', 
+                 alpha=0.8)
         if student:
-            plt.plot(rad_samp*pxscale, cont_curve_samp_t, '.-', label='student t')
+            plt.plot(rad_samp*pxscale, cont_curve_samp_t, '.-', label='student t',
+                     alpha=0.8)
         plt.xlabel('Angular separation [arcsec]')
         plt.ylabel(str(sigma)+' sigma contrast')
         plt.legend()
         plt.grid('on', which='both')
         plt.yscale('log')
+        
+        if debug:
+            plt.figure(figsize=(8,4))
+            plt.plot(rad_samp, cont_curve_samp, '.-', label='gaussian', 
+                     alpha=0.8)
+            if student:
+                plt.plot(rad_samp, cont_curve_samp_t, '.-', label='student t',
+                         alpha=0.8)
+            plt.xlabel('Distance [pixels]')
+            plt.ylabel(str(sigma)+' sigma contrast')
+            plt.legend()
+            plt.grid('on', which='both')
+            plt.yscale('log')
+        
+            plt.rc("savefig", dpi=dpi)
+            plt.figure(figsize=(8,4))
+            plt.plot(rad_samp*pxscale, -2.5*np.log10(cont_curve_samp), '.-', 
+                     label='gaussian', alpha=0.8)
+            if student:
+                plt.plot(rad_samp*pxscale, -2.5*np.log10(cont_curve_samp_t), 
+                         '.-', label='student t', alpha=0.8)
+            plt.xlabel('Angular separation [arcsec]')
+            plt.ylabel('Delta magnitude')
+            plt.legend()
+            plt.gca().invert_yaxis()
+            plt.grid('on', which='both')
     
     if student:
         return cont_curve_samp, cont_curve_samp_t, rad_samp*pxscale

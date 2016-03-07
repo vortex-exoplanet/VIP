@@ -75,10 +75,6 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
     if p_ini is None:
         p_ini = p
         
-    # We crop the PSF and check if PSF has been normalized (so that flux in 
-    # 1*FWHM aperture = 1) and fix if needed
-    psf = psf_norm(psf, size=3*fwhm, fwhm=fwhm)
-        
     solu = minimize(chisquare, p, args=(cube,angs,plsc,psf,fwhm,annulus_width,
                                         aperture_radius,p_ini,ncomp,cube_ref,
                                         svd_mode,scaling), 
@@ -91,7 +87,7 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
         
 def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, 
                           fwhm, annulus_width, aperture_radius, ncomp, 
-                          cube_ref=None, svd_mode='lapack', scaling='temp-mean', 
+                          cube_ref=None, svd_mode='lapack', scaling=None, 
                           f_range=None, display=False, verbose=True, save=False, 
                           **kwargs):
     """
@@ -146,15 +142,10 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf,
     out : numpy.array
         The radial coordinates and the flux of the companion.
                 
-    """
-    
+    """  
     xy = planet-center
     r0= np.sqrt(xy[0]**2+xy[1]**2)
     theta0 = np.mod(np.arctan2(xy[1],xy[0])/np.pi*180,360) 
-
-    # We crop the PSF and check if PSF has been normalized (so that flux in 
-    # 1*FWHM aperture = 1) and fix if needed
-    psf = psf_norm(psf, size=3*fwhm, fwhm=fwhm)
 
     if f_range is not None:    
         n = f_range.shape[0]
@@ -162,33 +153,35 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf,
         n = 20
         f_range =  np.linspace(0,5000,n)
     
-    chi2r = np.zeros(n)
+    chi2r = []
     if verbose:
         print 'Step | flux    | chi2r'
+        
+    counter = 0
     for j, f_guess in enumerate(f_range):
-        chi2r[j] = chisquare((r0,theta0,f_guess), cube, angs, PLSC, psf, 
+        chi2r.append(chisquare((r0,theta0,f_guess), cube, angs, PLSC, psf, 
                              fwhm, annulus_width, aperture_radius,(r0,theta0),
                              ncomp, cube_ref=cube_ref, svd_mode=svd_mode, 
-                             scaling=scaling)
+                             scaling=scaling))
+        if chi2r[j] > chi2r[j-1]:  counter+=1 
+        if counter == 4:  break
         if verbose:
             print '{}/{}   {:.3f}   {:.3f}'.format(j+1,n,f_guess,chi2r[j])
          
     
-    f0 = f_range[chi2r.argmin()]    
+    chi2r = np.array(chi2r)
+    f0 = f_range[chi2r.argmin()]  
     
     if display:
         plt.figure(figsize=kwargs.pop('figsize',(8,4)))
         plt.title(kwargs.pop('title',''))
-        plt.xlim(kwargs.pop('xlim',[0,f_range.max()]))
-        plt.ylim(kwargs.pop('ylim',[chi2r.min()*0.9,chi2r.max()*1.1]))
-
-        plt.plot(f_range,chi2r,linestyle = kwargs.pop('linestyle','-'),
-                               color = kwargs.pop('color','b'),
-                               marker = kwargs.pop('marker','o'),
-                               markerfacecolor=kwargs.pop('markerfacecolor','r'),
-                               markeredgecolor=kwargs.pop('markeredgecolor','r'),
-                               **kwargs)
-                       
+        plt.xlim(f_range[0], f_range[:chi2r.shape[0]].max())
+        plt.ylim(chi2r.min()*0.9, chi2r.max()*1.1)  
+        plt.plot(f_range[:chi2r.shape[0]],chi2r,
+                 linestyle = kwargs.pop('linestyle','-'),
+                 color = kwargs.pop('color','gray'),
+                 marker = kwargs.pop('marker','.'),
+                 markerfacecolor='r', markeredgecolor='r', **kwargs)          
         plt.xlabel('flux')
         plt.ylabel(r'$\chi^2_{r}$')
         plt.grid('on')
@@ -203,7 +196,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf,
 
 def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4, 
                annulus_width=3, aperture_radius=4, cube_ref=None, 
-               svd_mode='lapack', scaling='temp-mean', p_ini=None, f_range=None, 
+               svd_mode='lapack', scaling=None, p_ini=None, f_range=None, 
                simplex=False, simplex_options=None, display=False, verbose=True, 
                save=False, figure_options=None):
     """ Determines a first guess for the position and the flux of a planet.
@@ -230,7 +223,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array.  
     psfn: numpy.array
-        The scaled psf expressed as a numpy.array.   
+        The centered and normalized (flux in a 1*FWHM aperture must equal 1) 
+        PSF 2d-array.
     ncomp: int
         The number of principal components.         
     plsc: float
@@ -276,19 +270,15 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     out : The radial coordinates and the flux of the companion.
 
     """
+    if figure_options is None:
+        figure_options = {'color':'gray', 'marker':'.', 
+                          'title':r'$\chi^2_{r}$ vs flux'}
+        
     planets_xy_coord = np.array(planets_xy_coord)
     n_planet = planets_xy_coord.shape[0]
 
     center_xy_coord = np.array([cube.shape[1]/2.,cube.shape[2]/2.])    
 
-    # We crop the PSF and check if PSF has been normalized (so that flux in 
-    # 1*FWHM aperture = 1) and fix if needed
-    psfn = psf_norm(psfn, size=3*fwhm, fwhm=fwhm)
-
-    if figure_options is None:
-        figure_options = {'color':'b', 'marker':'o', 
-                          'xlim': [f_range[0]-10,f_range[-1]+10], 
-                          'title':r'$\chi^2_{r}$ vs flux'}
     if f_range is None:  
         f_range = np.linspace(0,2000,20)
     if simplex_options is None:  

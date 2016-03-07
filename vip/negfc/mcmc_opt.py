@@ -20,7 +20,7 @@ import corner
 from matplotlib import pyplot as plt
 from ..fits import open_adicube, open_fits
 from ..phot import inject_fcs_cube, psf_norm
-from .post_proc import get_values_optimize
+from .func_merit import get_values_optimize
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -84,7 +84,7 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     psfs_norm: numpy.array
         The scaled psf expressed as a numpy.array.    
     annulus_width: float
-        The width in pixel of the annulus on wich the PCA is performed.
+        The width in pixel of the annulus on which the PCA is performed.
     ncomp: int
         The number of principal components.
     fwhm : float
@@ -114,7 +114,8 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     try:
         r, theta, flux = modelParameters
     except TypeError:
-        print('paraVector must be a tuple, {} was given'.format(type(modelParameters)))    
+        msg = 'paraVector must be a tuple, {} was given'
+        print(msg.format(type(modelParameters)))    
     
     # Create the cube with the negative fake companion injected
     cube_negfc = inject_fcs_cube(cube, psfs_norm, angs, flevel=-modelParameters[2], 
@@ -187,6 +188,8 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, fwhm,
         The probability log-function.
     
     """      
+    if initialState is None:
+        initialState = modelParameters
     
     lp = lnprior(modelParameters, bounds)
     
@@ -238,10 +241,8 @@ def gelman_rubin(x):
     B_over_n = np.sum((np.mean(x, 1) - np.mean(x)) ** 2) / (m - 1)
 
     # Calculate within-chain variances
-    W = np.sum(
-        [(x[i] - xbar) ** 2 for i,
-         xbar in enumerate(np.mean(x,
-                                   1))]) / (m * (n - 1))
+    W = np.sum([(x[i] - xbar) ** 2 for i, xbar in enumerate(np.mean(x,
+                                                           1))]) / (m * (n - 1))
     # (over) estimate of variance
     s2 = W * (n - 1) / n + B_over_n
 
@@ -294,9 +295,9 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
                         fwhm=4, annulus_width=3, aperture_radius=4, cube_ref=None, 
                         svd_mode='lapack', scaling='temp-mean', nwalkers=1000, 
                         bounds=None, a=2.0, burnin=0.3, rhat_threshold=1.01, 
-                        rhat_count_threshold=3, niteration_min=0,
+                        rhat_count_threshold=1, niteration_min=0,
                         niteration_limit=1e02, niteration_supp=0,
-                        check_maxgap=1e04, threads=1, output_file=None,
+                        check_maxgap=1e04, nproc=1, output_file=None,
                         display=False, verbose=True, save=False):
     """
     Run an affine invariant mcmc algorithm in order to determine the true 
@@ -326,7 +327,7 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
         The relative path to the parallactic angle fits image or the angs itself.
     psfn: str or numpy.array
         The relative path to the instrumental PSF fits image or the PSF itself.
-        The PSF flux in a 1*FWHM aperture must equal 1.
+        The PSF must be centered and the flux in a 1*FWHM aperture must equal 1.
     ncomp: int
         The number of principal components.        
     plsc: float
@@ -373,8 +374,8 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
         Number of iterations to run after having "reached the convergence".     
     check_maxgap: int, optional
         Maximum number of steps per walker between two Gelman-Rubin test.
-    threads: int, optional
-        The number of threads to use for parallelization. 
+    nproc: int, optional
+        The number of processes to use for parallelization. 
     output_file: str
         The name of the ouput file which contains the MCMC results 
         (if save is True).
@@ -438,10 +439,6 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
         if verbose:
             print 'The data has been loaded. Let''s continue !'
     
-    # We crop the PSF and check if PSF has been normalized (so that flux in 
-    # 1*FWHM aperture = 1) and fix if needed
-    psfn = psf_norm(psfn, size=3*fwhm, fwhm=fwhm)
-    
     # #########################################################################
     # Initialization of the variables
     # #########################################################################    
@@ -480,9 +477,9 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
     sampler = emcee.EnsembleSampler(nwalkers,dim,lnprob,a,
                                     args =([bounds,cubes,angs,plsc,psfn,
                                             fwhm,annulus_width,ncomp,
-                                            aperture_radius,initialState,
+                                            aperture_radius, initialState,
                                             cube_ref,svd_mode,scaling]),
-                                    threads=threads)
+                                    threads=nproc)
     
     duration_start = datetime.datetime.now()
     start = datetime.datetime.now()
@@ -540,7 +537,9 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
                 
                 with open('results/'+output_file+'/'+output_file+'_temp_k{}'.format(k),'wb') as fileSave:
                     myPickler = pickle.Pickler(fileSave)
-                    myPickler.dump({'chain':sampler.chain, 'lnprob':sampler.lnprobability, 'AR':sampler.acceptance_fraction})
+                    myPickler.dump({'chain':sampler.chain, 
+                                    'lnprob':sampler.lnprobability, 
+                                    'AR':sampler.acceptance_fraction})
                 
             ## We only test the rhat if we have reached the minimum number of steps.
             if (k+1) >= itermin and konvergence == np.inf:
@@ -640,7 +639,7 @@ def chain_zero_truncated(chain):
     -------
     out: numpy.array
         The truncated MCMC chain, that is to say, the chain which only contains 
-        relevant informations.
+        relevant information.
     
     """
     try:
@@ -787,9 +786,8 @@ def writeText(document,text):
             fileObject.write(defFormat % text)
 
 
-# -----------------------------------------------------------------------------              
-def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, verbose=True, 
-               save=False, **kwargs):
+def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
+               verbose=True, save=False, **kwargs):
     """
     Determine the highly probable value for each model parameter, as well as 
     the 1-sigma confidence interval.
@@ -799,11 +797,13 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, verbose=True,
     isamples: numpy.array
         The independent samples for each model parameter.        
     cfd: float, optional
-        The confidence leve given in percentage.    
+        The confidence level given in percentage.    
     bins: int, optional
         The number of bins used to sample the posterior distributions.        
     gaussianFit: boolean, optional
         If True, a gaussian fit is performed in order to determine (\mu,\sigma)
+    weights : (n, ) array_like or None, optional
+        An array of weights for each sample.
     verbose: boolean, optional
         Display informations in the shell.                
     save: boolean, optional
@@ -841,17 +841,24 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, verbose=True,
     if gaussianFit:
         mu = np.zeros(3)
         sigma = np.zeros_like(mu)
-        
-    for j in range(l):              
-        
-        import matplotlib.pyplot as plt 
+    
+    if gaussianFit:
+        fig,ax = plt.subplots(2,3, figsize=(14,8))
+    else:
+        fig,ax = plt.subplots(1,3, figsize=(14,4))
+    
+    for j in range(l):               
         label_file = ['r','theta','flux']    
         label = [r'$\Delta r$',r'$\Delta \theta$',r'$\Delta f$']
         
-        plt.figure()
-        n, bin_vertices, patches = plt.hist(isamples[:,j],bins=bins,
-                                            histtype=kwargs.get('histtype','step'), 
-                                            edgecolor=kwargs.get('edgecolor','blue'))
+        if gaussianFit:
+            n, bin_vertices, _ = ax[0][j].hist(isamples[:,j],bins=bins, 
+                                               weights=weights, histtype='step', 
+                                               edgecolor='gray')
+        else:
+            n, bin_vertices, _ = ax[j].hist(isamples[:,j],bins=bins, 
+                                            weights=weights, histtype='step', 
+                                            edgecolor='gray')
         bins_width = np.mean(np.diff(bin_vertices))
         surface_total = np.sum(np.ones_like(n)*bins_width * n)
         n_arg_sort = np.argsort(n)[::-1]
@@ -868,46 +875,53 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, verbose=True,
         n_arg_min = n_arg_sort[:k].min()
         n_arg_max = n_arg_sort[:k+1].max()
         
-        if n_arg_min == 0:
-            n_arg_min += 1
-            
-        if n_arg_max == bins:
-            n_arg_max -= 1        
+        if n_arg_min == 0:  n_arg_min += 1
+        if n_arg_max == bins:  n_arg_max -= 1        
         
         val_max[pKey[j]] = bin_vertices[n_arg_sort[0]]+bins_width/2.
-        confidenceInterval[pKey[j]] = np.array([bin_vertices[n_arg_min-1],bin_vertices[n_arg_max+1]]-val_max[pKey[j]])
+        confidenceInterval[pKey[j]] = np.array([bin_vertices[n_arg_min-1],
+                                                bin_vertices[n_arg_max+1]]-val_max[pKey[j]])
                         
         arg = (isamples[:,j]>=bin_vertices[n_arg_min-1])*(isamples[:,j]<=bin_vertices[n_arg_max+1])
-        n2, bins2, patches2 = plt.hist(isamples[arg,j],bins=bin_vertices,
-                                       facecolor=kwargs.get('facecolor','green'),
-                                       edgecolor=kwargs.get('edgecolor','blue'), histtype='stepfilled')
-        
-        plt.plot(np.ones(2)*val_max[pKey[j]],[0,n[n_arg_sort[0]]],'--m')
-        plt.xlabel(label[j]) 
-        plt.ylabel('Counts')
+        if gaussianFit:
+            _ = ax[0][j].hist(isamples[arg,j],bins=bin_vertices, 
+                              facecolor='gray', edgecolor='darkgray', 
+                              histtype='stepfilled', alpha=0.5)
+            ax[0][j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]], 
+                            linestyles='dashed', color='red')
+            ax[0][j].set_xlabel(label[j])
+            if j==0:  ax[0][j].set_ylabel('Counts')
+        else:
+            _ = ax[j].hist(isamples[arg,j],bins=bin_vertices, facecolor='gray', 
+                           edgecolor='darkgray', histtype='stepfilled', alpha=0.5)
+            ax[j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]], linestyles='dashed', 
+                         color='red')
+            ax[j].set_xlabel(label[j])
+            if j==0:  ax[j].set_ylabel('Counts')
     
         if gaussianFit:
             import matplotlib.mlab as mlab
             from scipy.stats import norm
-            plt.figure()
-            plt.hold('on')
-
-            (mu[j], sigma[j]) = norm.fit(isamples[:,j])
-            n_fit, bins_fit = np.histogram(isamples[:,j], bins, normed=1)
-            a, b, c = plt.hist(isamples[:,j], bins, normed=1,
-                               facecolor=kwargs.get('facecolor','green'),
-                               edgecolor=kwargs.get('edgecolor','blue'), 
-                               histtype=kwargs.get('histtype','step'))
-            y = mlab.normpdf( bins_fit, mu[j], sigma[j])
-            l = plt.plot(bins_fit, y, 'r--', linewidth=2, alpha=0.7) #/y.max()*n[n_arg_sort[0]]
             
-            plt.xlabel(label[j]) 
-            plt.ylabel('Counts')
+            (mu[j], sigma[j]) = norm.fit(isamples[:,j])
+            n_fit, bins_fit = np.histogram(isamples[:,j], bins, normed=1, 
+                                           weights=weights)
+            _= ax[1][j].hist(isamples[:,j], bins, normed=1, weights=weights, 
+                             facecolor='gray', edgecolor='darkgray', 
+                             histtype='step')
+            y = mlab.normpdf( bins_fit, mu[j], sigma[j])
+            ax[1][j].plot(bins_fit, y, 'r--', linewidth=2, alpha=0.7) 
+            
+            ax[1][j].set_xlabel(label[j])
+            if j==0:  ax[1][j].set_ylabel('Counts')
+            
             if title is not None:
-                plt.title(title+'   '+r"$\mu$ = {:.4f}, $\sigma$ = {:.4f}".format(mu[j],sigma[j]), fontsize=10, fontweight='bold')
+                msg = r"$\mu$ = {:.4f}, $\sigma$ = {:.4f}"
+                fig.title(title+'   '+msg.format(mu[j],sigma[j]), 
+                          fontsize=10, fontweight='bold')
         else:
             if title is not None:            
-                plt.title(title, fontsize=10, fontweight='bold')
+                fig.title(title, fontsize=10, fontweight='bold')
 
                     
         if save:
@@ -915,15 +929,21 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, verbose=True,
                 plt.savefig('confi_hist_{}_gaussFit.pdf'.format(label_file[j]))
             else:
                 plt.savefig('confi_hist_{}.pdf'.format(label_file[j]))
-        plt.show()
-
+        
+        plt.tight_layout(w_pad=0.001)
         
     if verbose:
         print ''
         print 'Confidence intervals:'
-        print 'r: {} [{},{}]'.format(val_max['r'],confidenceInterval['r'][0],confidenceInterval['r'][1])
-        print 'theta: {} [{},{}]'.format(val_max['theta'],confidenceInterval['theta'][0],confidenceInterval['theta'][1])
-        print 'flux: {} [{},{}]'.format(val_max['f'],confidenceInterval['f'][0],confidenceInterval['f'][1])
+        print 'r: {} [{},{}]'.format(val_max['r'],
+                                     confidenceInterval['r'][0],
+                                     confidenceInterval['r'][1])
+        print 'theta: {} [{},{}]'.format(val_max['theta'],
+                                         confidenceInterval['theta'][0],
+                                         confidenceInterval['theta'][1])
+        print 'flux: {} [{},{}]'.format(val_max['f'],
+                                        confidenceInterval['f'][0],
+                                        confidenceInterval['f'][1])
         if gaussianFit:
             print ''
             print 'Gaussian fit results:'
@@ -942,10 +962,15 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, verbose=True,
             if answer == 'y':
                 fileObject = open(output_file,'w')
             elif answer == 'n':
-                print("The file has not been created. The object cannot be created neither.")
+                msg = "The file has not been created. The object cannot be "
+                msg += "created neither."
+                print(msg)
                 raise IOError("No such file has been found")
             else:
-                print("You must choose between 'y' for yes and 'n' for no. The file has not been created. The object cannot be created neither.")
+                msg = "You must choose between 'y' for yes and 'n' for no. The "
+                msg += "file has not been created. The object cannot be "
+                msg += "created neither."
+                print()
                 raise IOError("No such file has been found")
         finally:
             fileObject.close()    
@@ -968,12 +993,15 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, verbose=True,
             else:
                 text = '{}: \t\t\t{:.3f} \t\t-{:.3f} \t\t+{:.3f}'
                 
-            writeText(output_file,text.format(pKey[i],val_max[pKey[i]],confidenceMin,confidenceMax))                   
+            writeText(output_file,text.format(pKey[i],val_max[pKey[i]],
+                                              confidenceMin,confidenceMax))                   
         
         writeText(output_file,' ')
         writeText(output_file,'Platescale = {} mas'.format(plsc*1000))
         text = '{}: \t\t{:.2f} \t\t-{:.2f} \t\t+{:.2f}'
-        writeText(output_file,text.format('r (mas)',val_max[pKey[0]]*plsc*1000,-confidenceInterval[pKey[0]][0]*plsc*1000,confidenceInterval[pKey[0]][1]*plsc*1000))
+        writeText(output_file,text.format('r (mas)', val_max[pKey[0]]*plsc*1000,
+                                          -confidenceInterval[pKey[0]][0]*plsc*1000,
+                                          confidenceInterval[pKey[0]][1]*plsc*1000))
 
     if gaussianFit:
         return (mu,sigma)

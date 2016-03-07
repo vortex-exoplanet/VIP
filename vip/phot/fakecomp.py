@@ -148,18 +148,18 @@ def create_psf_template(array, size, fwhm=5, verbose=True, collapse='mean'):
     return psf_normd
 
 
-def psf_norm(array, size=None, fwhm=4, threshold=None, mask_core=None):
+def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None):
     """ Scales a PSF, so the 1*FWHM aperture flux equals 1.
     
     Parameters
     ----------
     array: array_like
         The psf 2d array.
+    fwhm: float, optional
+        The the Full Width Half Maximum in pixels.
     size : int or None, optional
         If int it will correspond to the size of the squared subimage to be 
         cropped form the psf array.
-    fwhm: float, optional
-        The the Full Width Half Maximum in pixels.
     threshold : None of float, optional
         Sets to zero small values, trying to leave only the core of the PSF.
     mask_core : None of float, optional
@@ -175,18 +175,25 @@ def psf_norm(array, size=None, fwhm=4, threshold=None, mask_core=None):
     if size is not None:  
         psfs = frame_crop(array, min(int(size), array.shape[0]), verbose=False)
     else:
-        psfs = array.copy() 
-     
-    # first we find the centroid and put it in the center of the array 
-    centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm, fwhmy=fwhm)
+        psfs = array.copy()
+        # If frame size is even we drop last row and last column
+        if psfs.shape[0]%2==0:
+            psfs = psfs[:-1,:]
+        if psfs.shape[1]%2==0:
+            psfs = psfs[:,:-1]
+    
+    # we check if the psf is centered and fix it if needed
     cy, cx = frame_center(psfs, verbose=False)
-    shiftx, shifty = centroidx - cx, centroidy - cy
-    psfs = frame_shift(psfs, -shifty, -shiftx)
-    for _ in range(2):
+    if cy!=np.where(psfs==psfs.max())[0] or cx!=np.where(psfs==psfs.max())[1]:
+        # first we find the centroid and put it in the center of the array 
         centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm, fwhmy=fwhm)
-        cy, cx = frame_center(psfs, verbose=False)
         shiftx, shifty = centroidx - cx, centroidy - cy
         psfs = frame_shift(psfs, -shifty, -shiftx)
+        for _ in range(2):
+            centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm, fwhmy=fwhm)
+            cy, cx = frame_center(psfs, verbose=False)
+            shiftx, shifty = centroidx - cx, centroidy - cy
+            psfs = frame_shift(psfs, -shifty, -shiftx)
     
     # we check whether the flux is normalized and fix it if needed
     fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2.)

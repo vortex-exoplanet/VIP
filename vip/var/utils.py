@@ -37,17 +37,17 @@ def pp_subplots(*args, **kwargs):
     
     Parameters in **kwargs
     ----------------------
-    rows : how many rows (subplots in a grid)
     cmap : colormap to be used, CMRmap by default
     colorb : to attach a colorbar, on by default
+    dpi : dots per inch, for plot quality
     grid : for showing a grid over the image, off by default
+    noaxis : to remove the axis, on by default
+    rows : how many rows (subplots in a grid)
+    title : title of the plot(s), None by default
     vmax : for stretching the displayed pixels values
     vmin : for stretching the displayed pixels values
-    dpi : dots per inch, for plot quality
-    title : title of the plot(s), None by default
-    noaxis : to remove the axis, on by default
     
-    """   
+    """
     if kwargs.has_key('rows'):
         rows = kwargs['rows']
     else:
@@ -208,7 +208,7 @@ def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False,
  
 
 def lines_of_code():
-    """ Calculates the lines of code for VORTEX pipeline. Not objective measure 
+    """ Calculates the lines of code for VIP pipeline. Not objective measure 
     of developer's work! (note to self). 
     """
     cur_path = os.path.dirname(os.path.abspath(__file__))
@@ -219,7 +219,7 @@ def lines_of_code():
     loclist = []
 
     for pydir, _, pyfiles in os.walk(path):
-        if 'mod_ext_lib/' not in pydir:
+        if 'exlib/' not in pydir:
             for pyfile in pyfiles:
                 if pyfile not in ignore_set and pyfile.endswith(".py"):
                     totalpath = os.path.join(pydir, pyfile)

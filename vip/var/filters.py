@@ -1,13 +1,15 @@
 #! /usr/bin/env python
 
 """
-Module with frame filtering funcions
+Module with frame/cube filtering functionalities
 """
 
 from __future__ import division
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['frame_filter_highpass',
+           'cube_filter_highpass',
+           'cube_filter_iuwt',
            'frame_filter_gaussian2d',
            'wavelet_denoise',
            'gaussian_kernel']
@@ -15,11 +17,100 @@ __all__ = ['frame_filter_highpass',
 import pywt
 import numpy as np
 import photutils
+import pyprind
 from scipy.ndimage import gaussian_filter, median_filter      
 from astropy.convolution import convolve_fft, Gaussian2DKernel
 from astropy.stats import gaussian_fwhm_to_sigma
 from .shapes import frame_center
+from ..exlib import iuwt
 
+
+def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
+    """
+    
+    Parameters
+    ----------
+    cube : array_like
+        Input cube.
+    coeff : int, optional
+        Number of wavelet scales to be used in the decomposition.
+    rel_coeff : int, optional
+        Number of relevant coefficients. In other words how many wavelet scales
+        will represent in a better way our data. One or two scales are enough
+        for filtering our images.
+    full_output : {False, True}, bool optional
+        If True, an additional cube with the multiscale decomposition of each
+        frame will be returned.
+    
+    Returns
+    -------
+    cubeout : array_like
+        Output cube with the filtered frames.
+    
+    If full_output is True the filtered cube is returned together with the a 
+    4d cube containing the multiscale decomposition of each frame.
+    
+    """
+    cubeout = np.zeros_like(cube)
+    cube_coeff = np.zeros((cube.shape[0], coeff, cube.shape[1], cube.shape[2]))
+    n_frames = cube.shape[0]
+    
+    msg = 'Decomposing frames with the Isotropic Undecimated Wavelet Transform'
+    bar = pyprind.ProgBar(n_frames, stream=1, title=msg)
+    for i in range(n_frames):
+        res = iuwt.iuwt_decomposition(cube[i], coeff, store_smoothed=False)
+        cube_coeff[i] = res
+        for j in range(rel_coeff):
+            cubeout[i] += cube_coeff[i][j] 
+        bar.update()
+        
+    if full_output:
+        return cubeout, cube_coeff
+    else:
+        return cubeout
+
+
+def cube_filter_highpass(array, mode, median_size=5, kernel_size=5, 
+                          fwhm_size=5, btw_cutoff=0.2, btw_order=2):
+    """ Wrapper of *frame_filter_highpass* for cubes or 3d arrays.
+
+    Parameters
+    ----------
+    array : array_like
+        Input 3d array.
+    mode : {'kernel-conv', 'median-subt', 'gauss-subt', 'fourier-butter'}
+        Type of High-pass filtering.
+    median_size : int
+        Size of the median box for filtering the low-pass median filter.
+    kernel_size : 3, 5 or 7
+        Size of the Laplacian kernel for convolution. 
+    fwhm_size : int
+        Size of the Gaussian kernel for the low-pass Gaussian filter.
+    btw_cutoff : float
+        Frequency cutoff for low-pass 2d Butterworth filter.
+    btw_order : int
+        Order of low-pass 2d Butterworth filter.
+    
+    Returns
+    -------
+    filtered : array_like
+        High-pass filtered cube.
+    """
+    if not array.ndim==3:
+        raise TypeError('Input array is not a cube or 3d array')
+    
+    n_frames = array.shape[0]
+    array_out = np.zeros_like(array)
+    msg = 'Applying the High-Pass filter on cube frames'
+    bar = pyprind.ProgBar(n_frames, stream=1, title=msg)
+    for i in xrange(n_frames):
+        array_out[i] = frame_filter_highpass(array[i], mode, median_size, 
+                                            kernel_size, fwhm_size, btw_cutoff, 
+                                            btw_order)
+        bar.update()
+        
+    return array_out
+    
 
 def fft(array):
     """ Performs the 2d discrete Fourier transform (using numpy's fft2 function) 
@@ -63,7 +154,6 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         Frequency cutoff for low-pass 2d Butterworth filter.
     btw_order : int
         Order of low-pass 2d Butterworth filter.
-    
     
     Returns
     -------

@@ -611,7 +611,7 @@ class DS9Win:
         # if necessary, convert array type
         cnvType = _CnvDict.get(arr.dtype)
         if cnvType:
-#           print "converting array from %s to %s" % (arr.dtype, cnvType)
+            #print "converting array from %s to %s" % (arr.dtype, cnvType)
             arr = arr.astype(cnvType)
 
         # determine byte order of array (^ is xor)

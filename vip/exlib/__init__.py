@@ -4,5 +4,6 @@ using, but are not available through pypi.
 """
 
 from ds9 import *
+from iuwt import *
 
 __all__ = []

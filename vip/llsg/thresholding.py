@@ -21,6 +21,11 @@ def thresholding(array, threshold, mode):
     elif mode=='hard':
         j = np.abs(x) < threshold
         x[j] = 0
+    elif mode=='nng':
+        j = np.abs(x) <= threshold
+        x[j] = 0
+        j = np.abs(x) > threshold
+        x[j] = x[j] - threshold**2/x[j]
     elif mode=='greater':
         j = x < threshold
         x[j] = 0

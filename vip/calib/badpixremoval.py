@@ -23,7 +23,7 @@ from ..stats import clip_array
 from ..conf import timing, timeInit
     
     
-def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5, 
+def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=0, 
                              size=3, protect_mask=False, radius=30, verbose=True,
                              debug=False):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is 
@@ -43,7 +43,8 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         sigma_clip*STDDEV will be marked as bad. 
     num_neig : int, optional
         The side of the square window around each pixel where the sigma clipped
-        statistics are calculated (STDDEV and MEDIAN).
+        statistics are calculated (STDDEV and MEDIAN). If the value is equal to
+        0 then the statistics are computed in the whole frame.
     size : odd int, optional
         The size the box (size x size) of adjacent pixels for the median filter. 
     protect_mask : {False, True}, bool optional
@@ -73,12 +74,15 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         bpm_mask = bpm_mask.astype('bool')
     
     if verbose:  start = timeInit()
+    
+    if num_neig>0:  neigh=True
+    else:  neigh=False
 
     if array.ndim==2:
         frame = array.copy()
         cy, cx = frame_center(frame)
         if bpm_mask is None:
-            ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=True,
+            ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=neigh,
                              num_neighbor=num_neig)
             bpm_mask = np.zeros_like(frame)
             bpm_mask[ind] = 1
@@ -103,7 +107,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         for i in range(n_frames):
             frame = cube_out[i]
             if bpm_mask is None:
-                ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=True,
+                ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=neigh,
                                  num_neighbor=num_neig)
                 bpm_mask = np.zeros_like(frame)
                 bpm_mask[ind] = 1

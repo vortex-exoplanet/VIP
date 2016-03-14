@@ -55,8 +55,9 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     verbose : {True, False}, bool optional
         If True additional information will be printed. 
     debug : {False, True}, bool optional
-        If array is 2d and debug is True, the bpm_mask and the input array are
-        plotted.
+        If debug is True, the bpm_mask and the input array are plotted. If the
+        input array is a cube, a long output is to be expected. Better check the
+        results with single images.
     
     Return
     ------
@@ -78,7 +79,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         cy, cx = frame_center(frame)
         if bpm_mask is None:
             ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=True,
-                             num_neighbor=7)
+                             num_neighbor=num_neig)
             bpm_mask = np.zeros_like(frame)
             bpm_mask[ind] = 1
             if protect_mask:
@@ -102,14 +103,15 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         for i in range(n_frames):
             frame = cube_out[i]
             if bpm_mask is None:
-                ind = clip_array(frame, sigma_clip, sigma_clip)
+                ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=True,
+                                 num_neighbor=num_neig)
                 bpm_mask = np.zeros_like(frame)
                 bpm_mask[ind] = 1
                 if protect_mask:
                     cir = circle(cy, cx, radius)
                     bpm_mask[cir] = 0
                 bpm_mask = bpm_mask.astype('bool')
-                #pp_subplots(bpm_mask)
+                if debug:  pp_subplots(frame, bpm_mask)
             
             if size==3 or size==5:
                 smoothed = cv2.medianBlur(frame.astype(np.float32), size)

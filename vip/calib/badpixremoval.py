@@ -172,13 +172,13 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
     min_thr: {None,float}, optional
         Any pixel whose value is lower than this threshold (expressed in stddev)
         will be automatically considered bad and hence sigma_filtered. If None, 
-        it is not used (not recommended).
+        it is not used.
     mid_thr: {None, float}, optional
         Pixels whose value is lower than this threshold (expressed in stddev) 
         will have its neighbours checked; if there is at max. 1 neighbour pixel
         whose value is lower than (5+mid_thr)*stddev, then the pixel is 
         considered bad (as it means it is a cold pixel in the middle of 
-        significant signal). If None, it is not used (not recommended).
+        significant signal). If None, it is not used.
     full_output: bool, {False,True}, optional
         Whether to return as well the cube of bad pixel maps and the cube of 
         defined annuli.
@@ -335,7 +335,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                     # Poisson noise
                     rand_fac= 2.*(np.random.rand()-0.5)
                     obj_tmp_corr[yy,xx] = med_neig[rr] + \
-                                          np.sqrt(med_neig[rr])*rand_fac
+                                          np.sqrt(np.abs(med_neig[rr]))*rand_fac
 
                 # check median +- sig*stddev
                 elif (obj_tmp[yy,xx] < med_neig[rr]-sig*dev or 
@@ -346,7 +346,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                     # Poisson noise
                     rand_fac= 2.*(np.random.rand()-0.5)
                     obj_tmp_corr[yy,xx] = med_neig[rr] + \
-                                          np.sqrt(med_neig[rr])*rand_fac
+                                          np.sqrt(np.abs(med_neig[rr]))*rand_fac
 
                 # check mid_thr and neighbours
                 else:
@@ -355,12 +355,12 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                         neigh[neigh<(mid_thr+5.)*stddev].shape[0] < min_el):
                             bpix_map[yy,xx] = 1
                             # Gaussian noise
-                            obj_tmp_corr[yy,xx] = med_neig[rr] + \
-                                                  dev*np.random.randn()
+                            #obj_tmp_corr[yy,xx] = med_neig[rr] + \
+                            #                      dev*np.random.randn()
                             # Poisson noise
                             rand_fac= 2.*(np.random.rand()-0.5)
                             obj_tmp_corr[yy,xx] = med_neig[rr] + \
-                                                  np.sqrt(med_neig[rr])*rand_fac
+                                                  np.sqrt(np.abs(med_neig[rr]))*rand_fac
 
 
         #5/ Count bpix and uncorrect if within the circle

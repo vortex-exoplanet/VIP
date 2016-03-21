@@ -12,6 +12,7 @@ __all__ = ['mad',
 import numpy as np
 from scipy.ndimage.filters import generic_filter
 from scipy.stats import norm as Gaussian
+from ..stats import mad as median_absolute_deviation
 
 
 def mad(a, c=Gaussian.ppf(3/4.), axis=0, center=np.median):
@@ -114,7 +115,7 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3, verbose=F
 
 
 def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
-              num_neighbor=None):
+              num_neighbor=None, mad=False):
     """Sigma clipping for detecting outlying values in 2d array. If the parameter
     'neighbor' is True the clipping can be performed in a local patch around 
     each pixel, whose size depends on 'neighbor' parameter.
@@ -134,6 +135,9 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
     num_neighbor : int, optional
         The side of the square window around each pixel where the sigma and 
         median are calculated. 
+    mad : {False, True}, bool optional
+        If True, the median absolute deviation will be used instead of the 
+        standard deviation.
         
     Returns
     -------
@@ -150,8 +154,14 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
     if neighbor and num_neighbor:
         median = generic_filter(array, function=np.median, 
                                 size=(num_neighbor,num_neighbor), mode="mirror")
-        sigma = generic_filter(array, function=np.std, 
-                                size=(num_neighbor,num_neighbor), mode="mirror")
+        if mad:
+            sigma = generic_filter(array, function=median_absolute_deviation,                                 
+                                   size=(num_neighbor,num_neighbor), 
+                                   mode="mirror")
+        else:
+            sigma = generic_filter(array, function=np.std,                                 
+                                   size=(num_neighbor,num_neighbor), 
+                                   mode="mirror")
     else:
         median = np.median(values)
         sigma = values.std()

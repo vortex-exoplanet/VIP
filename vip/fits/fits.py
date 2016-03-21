@@ -10,7 +10,8 @@ __all__ = ['open_fits',
            'info_fits',
            'write_fits',
            'append_extension',
-           'verify_fits']
+           'verify_fits',
+           'byteswap_array']
 
 
 import os
@@ -47,7 +48,7 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     hdulist = fits.open(fitsfilename, memmap=True, 
                         ignore_missing_end=ignore_missing_end)
     data = hdulist[n].data
-    #if data.dtype.name == 'float32':  data = np.array(data, dtype='float64')
+    #if data.dtype.name == 'float64':  data = np.array(data, dtype='float32')
     
     if header:
         header = hdulist[0].header
@@ -126,6 +127,38 @@ def open_adicube(fitsfilename, verbose=True):
     print msg2.format(1, parangles.shape[0])
     
     return data, parangles
+
+
+def byteswap_array(array):
+    """ FITS files are stored in big-endian byte order. All modern CPUs are 
+    little-endian byte order, so at some point you have to byteswap the data. 
+    Some FITS readers (cfitsio, the fitsio python module) do the byteswap when 
+    reading the data from disk to memory, so we get numpy arrays in native 
+    (little-endian) byte order. Unfortunately, astropy.io.fits does not 
+    byteswap for us, and we get numpy arrays in non-native byte order. 
+    However, most of the time we never notice this because when you do any 
+    numpy operations on such arrays, numpy uses an intermediate buffer to 
+    byteswap the array behind the scenes and returns the result as a native 
+    byte order array. Some operations require the data to be byteswaped 
+    before and will complain about it. This function will help in this cases.
+    
+    
+    Notes
+    -----
+    http://docs.scipy.org/doc/numpy-1.10.1/user/basics.byteswapping.html
+    
+    Parameters
+    ----------
+    array : array_like
+        2d input array.
+        
+    Returns
+    -------
+    array_out : array_like
+        2d resulting array after the byteswap operation.
+    """
+    array_out = array.byteswap().newbyteorder()
+    return array_out
 
 
 def info_fits(fitsfilename):

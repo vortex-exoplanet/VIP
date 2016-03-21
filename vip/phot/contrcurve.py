@@ -418,7 +418,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, ncomp,
 
             #*******************************************************************
             ratio = (frame_fc - frame_nofc) / fc_map
-            thruput = aperture_flux(ratio, fcy, fcx, fwhm, ap_factor=0.5,
+            thruput = aperture_flux(ratio, fcy, fcx, fwhm, ap_factor=1,
                                     mean=True, verbose=False)
             
             #pp_subplots(frame_fc, frame_nofc, fc_map, ratio, colorb=True)
@@ -517,7 +517,7 @@ def noise_per_annulus(array, separation, fwhm, verbose=False):
 
 def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
     """ Returns the sum of pixel values in a circular aperture centered on the
-    input coordinates. 
+    input coordinates. The radius of the aperture is set as (ap_factor*fwhm)/2.
     
     Parameters
     ----------

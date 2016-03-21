@@ -163,7 +163,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     """
     def butter2d_lp(size, cutoff, n=3):
         """ Create low-pass 2D Butterworth filter. 
-        Function from PsychoPy library, copyright (C) 2010 Jonathan Peirce
+        Function from PsychoPy library, credits to Jonathan Peirce, 2010
 
         Parameters
         ----------

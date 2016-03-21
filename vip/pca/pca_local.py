@@ -27,8 +27,8 @@ from ..var import get_annulus
 
 def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1, 
                     ncomp=1, svd_mode='randsvd', min_corr=0.9, fwhm=4, 
-                    collapse='median', full_output=False, verbose=True, 
-                    debug=False):
+                    scaling='temp-standard', collapse='median', 
+                    full_output=False, verbose=True, debug=False):
     """ Annular PCA with Reference Library + Correlation + standardization
     
     In the case of having a large number of reference images, e.g. for a survey 
@@ -60,6 +60,13 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
         of the science. Deafult is 0.9.
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Deafult is 4.
+    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done, with 
+        "spat-mean" then the spatial mean is subtracted, with "temp-standard" 
+        temporal mean centering plus scaling to unit variance is done and with
+        "spat-standard" spatial mean centering plus scaling to unit variance is
+        performed.  
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
@@ -157,9 +164,24 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
             msg = 'Too few frames left (<5) fulfill the given correlation level.'
             msg += 'Try decreasing it'
             raise RuntimeError(msg)
-
-        matrix = scale(matrix, with_mean=True, with_std=True)
-        data_ref = scale(data_ref, with_mean=True, with_std=True)        
+        
+        if scaling==None:
+            matrix = matrix
+            data_ref = data_ref
+        elif scaling=='temp-mean':
+            matrix = scale(matrix, with_mean=True, with_std=False)
+            data_ref = scale(data_ref, with_mean=True, with_std=False)
+        elif scaling=='spat-mean':
+            matrix = scale(matrix, with_mean=True, with_std=False, axis=1)
+            data_ref = scale(data_ref, with_mean=True, with_std=False, axis=1)
+        elif scaling=='temp-standard':
+            matrix = scale(matrix, with_mean=True, with_std=True)
+            data_ref = scale(data_ref, with_mean=True, with_std=True)
+        elif scaling=='spat-standard':
+            matrix = scale(matrix, with_mean=True, with_std=True, axis=1)
+            data_ref = scale(data_ref, with_mean=True, with_std=True, axis=1)        
+        else:
+            raise RuntimeError('Scaling mode not recognized')      
         
         residuals, ncomps = do_pca_annulus(ncomp, matrix, svd_mode, 10e-3, data_ref)  
         cube_out[:, yy, xx] = residuals  
@@ -183,7 +205,7 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
 
 def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3, 
                          delta_rot=1, ncomp=1, svd_mode='randsvd', nproc=1,
-                         min_frames_pca=10, tol=1e-1, center=True, 
+                         min_frames_pca=10, tol=1e-1, scaling=None, 
                          collapse='median', full_output=False, verbose=True, 
                          debug=False):
     """ Smart PCA (quadrants of annulus version) algorithm. The PCA is computed 
@@ -240,8 +262,13 @@ def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3,
     full_output: boolean, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
-    center : {True,False}, bool optional
-        Whether to center (mean subtract) the data or not.
+    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done, with 
+        "spat-mean" then the spatial mean is subtracted, with "temp-standard" 
+        temporal mean centering plus scaling to unit variance is done and with
+        "spat-standard" spatial mean centering plus scaling to unit variance is
+        performed.  
     verbose : {True, False}, bool optional
         If True prints to stdout intermediate info. 
     debug : {False, True}, bool optional
@@ -297,15 +324,26 @@ def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3,
          
         #if ncomp is None and verbose:  print '# PCs info for each quadrant:' 
         #***********************************************************************
-        # PCA matrix is created for each annular quadrant and centered if needed
+        # PCA matrix is created for each annular quadrant and scaling if needed
         #***********************************************************************
         for quadrant in xrange(4):
             yy = indices[quadrant][0]
             xx = indices[quadrant][1]
             matrix_quad = array[:, yy, xx]          # shape [nframes x npx_quad] 
- 
-            if center:  matrix_quad = matrix_quad - matrix_quad.mean(axis=0)
-
+             
+            if scaling==None:
+                matrix_quad = matrix_quad
+            elif scaling=='temp-mean':
+                matrix_quad = scale(matrix_quad, with_mean=True, with_std=False)
+            elif scaling=='spat-mean':
+                matrix_quad = scale(matrix_quad, with_mean=True, with_std=False, axis=1)
+            elif scaling=='temp-standard':
+                matrix_quad = scale(matrix_quad, with_mean=True, with_std=True)
+            elif scaling=='spat-standard':
+                matrix_quad = scale(matrix_quad, with_mean=True, with_std=True, axis=1)
+            else:
+                raise RuntimeError('Scaling mode not recognized')
+            
             #*******************************************************************
             # For each frame we call the subfunction do_pca_patch that will 
             # do PCA on the small matrix, where some frames are discarded 
@@ -316,7 +354,7 @@ def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3,
             if nproc==1:
                 for frame in xrange(n):    
                     res = do_pca_patch(matrix_quad, frame, angle_list, fwhm,
-                                       pa_threshold, center, ann_center, 
+                                       pa_threshold, scaling, ann_center, 
                                        svd_mode, ncomp, min_frames_pca, tol,
                                        debug)
                     residuals = res[0]
@@ -334,7 +372,7 @@ def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3,
                                              range(n), itt.repeat(angle_list),
                                              itt.repeat(fwhm),
                                              itt.repeat(pa_threshold),
-                                             itt.repeat(center),
+                                             itt.repeat(scaling),
                                              itt.repeat(ann_center),
                                              itt.repeat(svd_mode),
                                              itt.repeat(ncomp),
@@ -441,7 +479,7 @@ def find_indices(angle_list, frame, thr, truncate):
     return np.array(half1+half2)
 
 
-def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, center,
+def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, scaling,
                  ann_center, svd_mode, ncomp, min_frames_pca, tol, debug):
     """
     Does the SVD/PCA for each frame patch (small matrix). For each frame we 
@@ -465,12 +503,8 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, center,
             raise RuntimeError(msg)
     else:
         data_ref = matrix
-                  
-    if center:                                          # removing temporal mean
-        data = data_ref - data_ref.mean(axis=0)                     
-    else:  
-        data = data_ref
-        
+    
+    data = data_ref
     curr_frame = matrix[frame]                     # current frame
     
     V = get_eigenvectors(ncomp, data, svd_mode, noise_error=tol, debug=False)        

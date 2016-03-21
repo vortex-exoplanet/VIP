@@ -5,6 +5,8 @@ Vortex Image Processing pipeline (VIP)
   Please cite Gomez Gonzalez et al. 2016 (in prep.) whenever you publish data 
   reduced with VIP.
 
+VIP is registered on the Astrophysics Source Code Library [ascl:1603.003]. 
+
 
 VIP is a package/pipeline for angular, reference star and spectral 
 differential imaging for exoplanet detection through high-contrast imaging. 
@@ -112,7 +114,7 @@ FAQ
   
 .. code-block:: bash
 
-  $ conda install photutils 
+  $ conda install --channel https://conda.anaconda.org/astropy photutils
   
 - Why the setup fails complaining about the lack of a Fortran compiler?
   Fortran compilers are apparently needed for compiling Scipy from source. Make

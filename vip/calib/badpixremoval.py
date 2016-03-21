@@ -23,12 +23,12 @@ from ..stats import clip_array
 from ..conf import timing, timeInit
     
     
-def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=0, 
-                             size=3, protect_mask=False, radius=30, verbose=True,
+def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5, 
+                             size=5, protect_mask=False, radius=30, verbose=True,
                              debug=False):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is 
     replaced by the median of the adjacent pixels. This function is very fast
-    but works only with isolated (sparse) pixels.
+    but works only with isolated (sparse) pixels. 
      
     Parameters
     ----------
@@ -37,7 +37,8 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=0,
     bpm_mask : array_like, optional
         Input bad pixel map. Zeros frame where the bad pixels have a value of 1.
         If None is provided a bad pixel map will be created per frame using 
-        sigma clip statistics.
+        sigma clip statistics. In the case of a cube the bad pixels will be 
+        computed on the mean frame of the stack.
     sigma_clip : int, optional
         In case no bad pixel mask is provided all the pixels above and below
         sigma_clip*STDDEV will be marked as bad. 
@@ -83,7 +84,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=0,
         cy, cx = frame_center(frame)
         if bpm_mask is None:
             ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=neigh,
-                             num_neighbor=num_neig)
+                             num_neighbor=num_neig, mad=True)
             bpm_mask = np.zeros_like(frame)
             bpm_mask[ind] = 1
             if protect_mask:
@@ -103,20 +104,22 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=0,
         cy, cx = frame_center(array[0])
         cube_out = array.copy()
         n_frames = array.shape[0]
+        
+        if bpm_mask is None:
+            ind = clip_array(np.mean(array, axis=0), sigma_clip, sigma_clip, 
+                             neighbor=neigh, num_neighbor=num_neig, mad=True)
+            bpm_mask = np.zeros_like(array[0])
+            bpm_mask[ind] = 1
+            if protect_mask:
+                cir = circle(cy, cx, radius)
+                bpm_mask[cir] = 0
+            bpm_mask = bpm_mask.astype('bool')
+        
+        if debug:  pp_subplots(bpm_mask)
+        
         bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
         for i in range(n_frames):
-            frame = cube_out[i]
-            if bpm_mask is None:
-                ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=neigh,
-                                 num_neighbor=num_neig)
-                bpm_mask = np.zeros_like(frame)
-                bpm_mask[ind] = 1
-                if protect_mask:
-                    cir = circle(cy, cx, radius)
-                    bpm_mask[cir] = 0
-                bpm_mask = bpm_mask.astype('bool')
-                if debug:  pp_subplots(frame, bpm_mask)
-            
+            frame = cube_out[i]            
             if size==3 or size==5:
                 smoothed = cv2.medianBlur(frame.astype(np.float32), size)
             elif size>5:

@@ -179,7 +179,7 @@ def llsg(cube, ang, fwhm, rank=10, thresh=1, max_iter=10, low_rank_mode='svd',
 
 def patch_rlrps(array, rank, low_rank_mode, thresh, thresh_mode, max_iter, 
                 random_seed, debug=False, full_output=False):
-    """ Patch decomposition based on GoDec/SSGoDec (Zhou & Tao 2011) """        
+    """ Patch decomposition based on GoDec/SSGoDec (Zhou & Tao 2011) """           
     ### Initializing L and S
     L = array
     S = np.zeros_like(L)

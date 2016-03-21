@@ -740,7 +740,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
     
     n_frames = array.shape[0]
     cy, cx = frame_center(array[0])
-    array_recentered = np.zeros_like(array)  
+    array_recentered = np.empty_like(array)  
 
     if isinstance(fwhm,float) or isinstance(fwhm,int):
         fwhm_scal = fwhm
@@ -880,7 +880,7 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
     
     n_frames = array.shape[0]
     cy, cx = frame_center(array[0])
-    array_recentered = np.zeros_like(array)  
+    array_recentered = np.empty_like(array)  
 
     if isinstance(fwhm,float) or isinstance(fwhm,int):
         fwhm_scal = fwhm

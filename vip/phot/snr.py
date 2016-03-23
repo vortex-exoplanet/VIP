@@ -19,10 +19,10 @@ import photutils
 from skimage import draw
 from matplotlib import pyplot as plt
 from astropy.convolution import convolve, Tophat2DKernel
+from astropy.stats import median_absolute_deviation as mad
 from multiprocessing import Pool, cpu_count
 from ..conf import eval_func_tuple, timeInit, timing
 from ..var import get_annulus, frame_center, dist
-from ..stats import mad
 
 
 def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):

@@ -12,9 +12,9 @@ import numpy as np
 from scipy.linalg import qr
 import itertools as itt
 from multiprocessing import Pool, cpu_count
+from astropy.stats import median_absolute_deviation as mad
 from ..conf import timeInit, timing
 from ..calib import cube_derotate, cube_collapse
-from ..stats import mad
 from ..var import get_annulus_quad
 from ..pca.utils import svd_wrapper
 from ..pca.pca_local import define_annuli

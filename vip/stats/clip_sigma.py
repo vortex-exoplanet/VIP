@@ -5,43 +5,13 @@ Module with sigma clipping functions.
 """
 
 __author__ = 'C. Gomez @ ULg', 'V. Christiaens'
-__all__ = ['mad',
-           'clip_array',
+__all__ = ['clip_array',
            'sigma_filter']
 
 import numpy as np
 from scipy.ndimage.filters import generic_filter
 from scipy.stats import norm as Gaussian
-from ..stats import mad as median_absolute_deviation
-
-
-def mad(a, c=Gaussian.ppf(3/4.), axis=0, center=np.median):
-    """
-    The Median Absolute Deviation along given axis of an array
-
-    Parameters
-    ----------
-    a : array-like
-        Input array.
-    c : float, optional
-        The normalization constant.  Defined as scipy.stats.norm.ppf(3/4.),
-        which is approximately .6745.
-    axis : int, optional
-        The defaul is 0.
-    center : callable or float
-        If a callable is provided, such as the default `np.median` then it
-        is expected to be called center(a). The axis argument will be applied
-        via np.apply_over_axes. Otherwise, provide a float.
-
-    Returns
-    -------
-    mad : float
-        `mad` = median(abs(`a` - center))/`c`
-    """
-    a = np.asarray(a)
-    if callable(center):
-        center = np.apply_over_axes(center, a, axis)
-    return np.median((np.fabs(a-center))/c, axis=axis)
+from astropy.stats import median_absolute_deviation
 
 
 def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3, verbose=False):

@@ -131,10 +131,14 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     thruput_interp = f(rad_samp)      
     
     # smoothing the throughput and noise vectors using a Savitzky-Golay filter
+    win1 = int(thruput_interp.shape[0]*0.1)
+    win2 = int(noise_samp.shape[0]*0.1)
+    if win1%2==0.:  win1 += 1
+    if win2%2==0.:  win2 += 1
     thruput_interp_sm = savgol_filter(thruput_interp, polyorder=1, mode='nearest',
-                                      window_length=thruput_interp.shape[0]*0.1)
+                                      window_length=win1)
     noise_samp_sm = savgol_filter(noise_samp, polyorder=1, mode='nearest',
-                                window_length=noise_samp.shape[0]*0.1)
+                                window_length=win2)
     
     if debug:
         print('SIGMA={}'.format(sigma))

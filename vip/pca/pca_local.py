@@ -7,21 +7,19 @@ Module with local smart pca (annulus-wise) serial and parallel implementations.
 from __future__ import division 
 
 __author__ = 'C. Gomez @ ULg'
-__all__ = ['pca_adi_annular_quad',
+__all__ = ['pca_adi_annular',
            'pca_rdi_annular']
 
 import numpy as np
 import itertools as itt
 from scipy import stats
 from multiprocessing import Pool, cpu_count
-from sklearn.preprocessing import scale
 from ..calib import cube_derotate, cube_collapse, check_PA_vector
 from ..conf import timeInit, timing
 from ..conf import eval_func_tuple as EFT 
-from ..var import get_annulus_quad
-from ..pca.utils import svd_wrapper
+from ..var import get_annulus_quad, get_annulus
+from ..pca.utils import svd_wrapper, matrix_scaling
 from ..stats import descriptive_stats
-from ..var import get_annulus
 
 
 
@@ -165,23 +163,8 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
             msg += 'Try decreasing it'
             raise RuntimeError(msg)
         
-        if scaling==None:
-            matrix = matrix
-            data_ref = data_ref
-        elif scaling=='temp-mean':
-            matrix = scale(matrix, with_mean=True, with_std=False)
-            data_ref = scale(data_ref, with_mean=True, with_std=False)
-        elif scaling=='spat-mean':
-            matrix = scale(matrix, with_mean=True, with_std=False, axis=1)
-            data_ref = scale(data_ref, with_mean=True, with_std=False, axis=1)
-        elif scaling=='temp-standard':
-            matrix = scale(matrix, with_mean=True, with_std=True)
-            data_ref = scale(data_ref, with_mean=True, with_std=True)
-        elif scaling=='spat-standard':
-            matrix = scale(matrix, with_mean=True, with_std=True, axis=1)
-            data_ref = scale(data_ref, with_mean=True, with_std=True, axis=1)        
-        else:
-            raise RuntimeError('Scaling mode not recognized')      
+        matrix = matrix_scaling(matrix, scaling)
+        data_ref = matrix_scaling(data_ref, scaling)
         
         residuals, ncomps = do_pca_annulus(ncomp, matrix, svd_mode, 10e-3, data_ref)  
         cube_out[:, yy, xx] = residuals  
@@ -203,11 +186,11 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
         return frame           
 
 
-def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3, 
-                         delta_rot=1, ncomp=1, svd_mode='randsvd', nproc=1,
-                         min_frames_pca=10, tol=1e-1, scaling=None, 
-                         collapse='median', full_output=False, verbose=True, 
-                         debug=False):
+def pca_adi_annular(array, angle_list, radius_int=0, fwhm=4, asize=3, 
+                    delta_rot=1, ncomp=1, svd_mode='randsvd', nproc=1,
+                    min_frames_pca=10, tol=1e-1, scaling=None, quad=False,
+                    collapse='median', full_output=False, verbose=True, 
+                    debug=False):
     """ Smart PCA (quadrants of annulus version) algorithm. The PCA is computed 
     locally in each quadrant of each annulus. On each annulus we discard 
     reference images taking into account the parallactic angle threshold. 
@@ -234,7 +217,8 @@ def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3,
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Deafult is 4.
     asize : int, optional
-        The size of the annuli, in FWHM. Default is 3.
+        The size of the annuli, in FWHM. Default is 3 which is recommended when 
+        *quad* is True. Smaller values are valid when *quad* is False.  
     delta_rot : int, optional
         Factor for increasing the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1 FHWM on each side of the considered frame).
@@ -257,6 +241,9 @@ def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3,
     tol : float, optional
         Stopping criterion for choosing the number of PCs when *ncomp* is None.
         Lower values will lead to smaller residuals and more PCs.
+    quad : {False, True}, bool optional
+        If False the images are processed in annular fashion. If True, quadrants
+        of annulus are used instead.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
@@ -314,86 +301,64 @@ def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3,
     #***************************************************************************
     cube_out = np.zeros_like(array)
     for ann in xrange(n_annuli):
-        pa_threshold, inner_radius, ann_center = define_annuli(angle_list, ann, 
-                                                               n_annuli, 
-                                                               fwhm, radius_int, 
-                                                               annulus_width, 
-                                                               delta_rot,
-                                                               verbose) 
-        indices = get_annulus_quad(array[0], inner_radius, annulus_width)
-         
-        #if ncomp is None and verbose:  print '# PCs info for each quadrant:' 
+        pa_thr,inner_radius,ann_center = define_annuli(angle_list, ann, n_annuli, 
+                                                       fwhm, radius_int, 
+                                                       annulus_width, delta_rot,
+                                                       verbose) 
+        
         #***********************************************************************
-        # PCA matrix is created for each annular quadrant and scaling if needed
+        # Quad Annular ADI-PCA
         #***********************************************************************
-        for quadrant in xrange(4):
-            yy = indices[quadrant][0]
-            xx = indices[quadrant][1]
-            matrix_quad = array[:, yy, xx]          # shape [nframes x npx_quad] 
-             
-            if scaling==None:
-                matrix_quad = matrix_quad
-            elif scaling=='temp-mean':
-                matrix_quad = scale(matrix_quad, with_mean=True, with_std=False)
-            elif scaling=='spat-mean':
-                matrix_quad = scale(matrix_quad, with_mean=True, with_std=False, axis=1)
-            elif scaling=='temp-standard':
-                matrix_quad = scale(matrix_quad, with_mean=True, with_std=True)
-            elif scaling=='spat-standard':
-                matrix_quad = scale(matrix_quad, with_mean=True, with_std=True, axis=1)
-            else:
-                raise RuntimeError('Scaling mode not recognized')
-            
+        if quad:        
+            indices = get_annulus_quad(array[0], inner_radius, annulus_width)
             #*******************************************************************
-            # For each frame we call the subfunction do_pca_patch that will 
-            # do PCA on the small matrix, where some frames are discarded 
-            # according to the PA threshold, and return the residuals
+            # PCA matrix is created for each annular quadrant and scaling if 
+            # needed
             #*******************************************************************
-            ncomps = []
-            nfrslib = []          
-            if nproc==1:
-                for frame in xrange(n):    
-                    res = do_pca_patch(matrix_quad, frame, angle_list, fwhm,
-                                       pa_threshold, scaling, ann_center, 
-                                       svd_mode, ncomp, min_frames_pca, tol,
-                                       debug)
-                    residuals = res[0]
-                    ncomps.append(res[1])
-                    nfrslib.append(res[2])
-                    cube_out[frame][yy, xx] = residuals 
-            elif nproc>1:
+            for quadrant in xrange(4):
+                yy = indices[quadrant][0]
+                xx = indices[quadrant][1]
+                matrix_quad = array[:, yy, xx]      # shape [nframes x npx_quad] 
+                 
+                matrix_quad = matrix_scaling(matrix_quad, scaling)              
+                #matrix_quad = matrix_quad - matrix_quad.mean(axis=0)
+                
                 #***************************************************************
-                # A multiprocessing pool is created to process the frames in a 
-                # parallel way. SVD/PCA is done in do_pca_patch function
-                #***************************************************************            
-                pool = Pool(processes=int(nproc))
-                res = pool.map(EFT, itt.izip(itt.repeat(do_pca_patch), 
-                                             itt.repeat(matrix_quad),
-                                             range(n), itt.repeat(angle_list),
-                                             itt.repeat(fwhm),
-                                             itt.repeat(pa_threshold),
-                                             itt.repeat(scaling),
-                                             itt.repeat(ann_center),
-                                             itt.repeat(svd_mode),
-                                             itt.repeat(ncomp),
-                                             itt.repeat(min_frames_pca),
-                                             itt.repeat(tol),
-                                             itt.repeat(debug)))
-                res = np.array(res)
-                residuals = np.array(res[:,0])
-                ncomps = res[:,1]
-                nfrslib = res[:,2]
-                pool.close()
+                # We loop the frames and do the PCA to obtain the residuals cube
+                #***************************************************************
+                residuals = do_pca_loop(matrix_quad, yy, xx, nproc, angle_list, 
+                                        fwhm, pa_thr, scaling, ann_center, 
+                                        svd_mode, ncomp, min_frames_pca, tol, 
+                                        debug, verbose)
+                
                 for frame in xrange(n):
-                    cube_out[frame][yy, xx] = residuals[frame]                          
+                    cube_out[frame][yy, xx] = residuals[frame] 
+        
+        #***********************************************************************
+        # Normal Annular ADI-PCA
+        #***********************************************************************
+        else:
+            indices = get_annulus(array[0], inner_radius, annulus_width, 
+                                  output_indices=True)
+            yy = indices[0]
+            xx = indices[1]
+            #*******************************************************************
+            # PCA matrix is created for each annular quadrant and scaling if 
+            # needed
+            #*******************************************************************
+            matrix_ann = array[:, yy, xx]
+            matrix_ann = matrix_scaling(matrix_ann, scaling)
 
-            # number of frames in library printed for each annular quadrant
-            if verbose:
-                descriptive_stats(nfrslib, verbose=verbose, label='Size LIB: ')
-            # number of PCs printed for each annular quadrant     
-            if ncomp is None and verbose:  
-                descriptive_stats(ncomps, verbose=verbose, label='Numb PCs: ')
+            #*******************************************************************
+            # We loop the frames and do the PCA to obtain the residuals cube
+            #*******************************************************************
+            residuals = do_pca_loop(matrix_ann, yy, xx, nproc, angle_list, fwhm, 
+                                    pa_thr, scaling, ann_center, svd_mode, 
+                                    ncomp, min_frames_pca, tol, debug, verbose)
             
+            for frame in xrange(n):
+                cube_out[frame][yy, xx] = residuals[frame] 
+
         if verbose:
             print 'Done PCA with {:} for current annulus'.format(svd_mode)
             timing(start_time)      
@@ -410,9 +375,20 @@ def pca_adi_annular_quad(array, angle_list, radius_int=0, fwhm=4, asize=3,
         return cube_out, cube_der, frame 
     else:
         return frame 
+        
     
     
-### Help functions ********************************************************
+###*****************************************************************************
+### Help functions for encapsulating portions of the main algorithms. They 
+### improve readability, debugging and code re-use *****************************
+###*****************************************************************************
+    
+def compute_pa_thresh(ann_center, fwhm, delta_rot=1):
+    """ Computes the parallactic angle theshold[degrees]
+    Replacing approximation: delta_rot * (fwhm/ann_center) / np.pi * 180
+    """
+    return np.rad2deg(2*np.arctan(delta_rot*fwhm/(2*ann_center)))
+    
     
 def define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width, 
                   delta_rot, verbose):
@@ -425,7 +401,7 @@ def define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
     else:                                                                                         
         inner_radius = radius_int + ann*annulus_width
     ann_center = (inner_radius+(annulus_width/2.0))
-    pa_threshold = delta_rot * (fwhm/ann_center) / np.pi*180
+    pa_threshold = compute_pa_thresh(ann_center, fwhm, delta_rot) 
      
     mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list))/2
     if pa_threshold >= mid_range - mid_range * 0.1:
@@ -465,11 +441,11 @@ def find_indices(angle_list, frame, thr, truncate):
     half1 = range(0,index_prev)
     half2 = range(index_foll,n)
     
-    # This truncation is done on the annuli after 5*FWHM and the goal is to 
-    # keep min(num_frames/2, 100) in the library after discarding those based on
+    # This truncation is done on the annuli after 15*FWHM and the goal is to 
+    # keep min(num_frames/2, 200) in the library after discarding those based on
     # the PA threshold
     if truncate:
-        thr = min(int(n/2), 100)                                                # TODO: 100 is optimal? new parameter? 
+        thr = min(int(n/2), 200)                                                # TODO: 200 is optimal? new parameter? 
         if frame < thr: 
             half1 = range(max(0,index_prev-int(thr/2)), index_prev)
             half2 = range(index_foll, min(index_foll+thr-len(half1),n))
@@ -479,6 +455,66 @@ def find_indices(angle_list, frame, thr, truncate):
     return np.array(half1+half2)
 
 
+
+def do_pca_loop(matrix, yy, xx, nproc, angle_list, fwhm, pa_threshold, scaling, 
+                ann_center, svd_mode, ncomp, min_frames_pca, tol, debug, verbose):
+    """
+    """
+    matrix_ann = matrix
+    n = matrix.shape[0]
+    #***************************************************************
+    # For each frame we call the subfunction do_pca_patch that will 
+    # do PCA on the small matrix, where some frames are discarded 
+    # according to the PA threshold, and return the residuals
+    #***************************************************************          
+    ncomps = []
+    nfrslib = []          
+    if nproc==1:
+        residualarr = []
+        for frame in xrange(n):   
+            res = do_pca_patch(matrix_ann, frame, angle_list, fwhm,
+                               pa_threshold, scaling, ann_center, 
+                               svd_mode, ncomp, min_frames_pca, tol,
+                               debug)
+            residualarr.append(res[0])
+            ncomps.append(res[1])
+            nfrslib.append(res[2])
+        residuals = np.array(residualarr)
+        
+    elif nproc>1:
+        #***********************************************************
+        # A multiprocessing pool is created to process the frames in 
+        # a parallel way. SVD/PCA is done in do_pca_patch function
+        #***********************************************************            
+        pool = Pool(processes=int(nproc))
+        res = pool.map(EFT, itt.izip(itt.repeat(do_pca_patch), 
+                                     itt.repeat(matrix_ann),
+                                     range(n), itt.repeat(angle_list),
+                                     itt.repeat(fwhm),
+                                     itt.repeat(pa_threshold),
+                                     itt.repeat(scaling),
+                                     itt.repeat(ann_center),
+                                     itt.repeat(svd_mode),
+                                     itt.repeat(ncomp),
+                                     itt.repeat(min_frames_pca),
+                                     itt.repeat(tol),
+                                     itt.repeat(debug)))
+        res = np.array(res)
+        residuals = np.array(res[:,0])
+        ncomps = res[:,1]
+        nfrslib = res[:,2]
+        pool.close()                         
+
+    # number of frames in library printed for each annular quadrant
+    if verbose:
+        descriptive_stats(nfrslib, verbose=verbose, label='Size LIB: ')
+    # number of PCs printed for each annular quadrant     
+    if ncomp is None and verbose:  
+        descriptive_stats(ncomps, verbose=verbose, label='Numb PCs: ')
+        
+    return residuals
+
+
 def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, scaling,
                  ann_center, svd_mode, ncomp, min_frames_pca, tol, debug):
     """
@@ -486,11 +522,11 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, scaling,
     find the frames to be rejected depending on the amount of rotation. The
     library is also truncated on the other end (frames too far or which have 
     rotated more) which are more decorrelated to keep the computational cost 
-    lower. This truncation is done on the annuli after 5*FWHM and the goal is
-    to keep min(num_frames/2, 100) in the library. 
+    lower. This truncation is done on the annuli after 10*FWHM and the goal is
+    to keep min(num_frames/2, 200) in the library. 
     """
     if pa_threshold != 0:
-        if ann_center > fwhm*5:                                                 # TODO: 5*FWHM optimal? new parameter?
+        if ann_center > fwhm*10:                                                 # TODO: 10*FWHM optimal? new parameter?
             indices_left = find_indices(angle_list, frame, pa_threshold, True)
         else:
             indices_left = find_indices(angle_list, frame, pa_threshold, False)
@@ -503,8 +539,10 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, scaling,
             raise RuntimeError(msg)
     else:
         data_ref = matrix
-    
+       
     data = data_ref
+    #data = data_ref - data_ref.mean(axis=0)
+    
     curr_frame = matrix[frame]                     # current frame
     
     V = get_eigenvectors(ncomp, data, svd_mode, noise_error=tol, debug=False)        
@@ -512,7 +550,7 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, scaling,
     transformed = np.dot(curr_frame, V.T)
     reconstructed = np.dot(transformed.T, V)                        
     residuals = curr_frame - reconstructed     
-    return residuals, V.shape[0], data_ref.shape[0]   
+    return residuals, V.shape[0], data_ref.shape[0]  
 
 
 # Also used in pca_rdi_annular -------------------------------------------------
@@ -555,3 +593,5 @@ def get_eigenvectors(ncomp, data, svd_mode, noise_error=1e-3, max_evs=200,
         V = svd_wrapper(data_ref, svd_mode, ncomp, debug=False, verbose=False)   
         
     return V
+
+

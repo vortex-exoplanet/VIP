@@ -24,7 +24,7 @@ from ..stats import (cube_stats_aperture, cube_stats_annulus,
 
 def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=None, width=None, 
                               top_sigma=1.0, low_sigma=1.0, window=None, 
-                              plot=False, verbose=True):             
+                              plot=True, verbose=True):             
     """ Returns the list of bad frames from a cube using the px statistics in 
     a centered annulus or circular aperture. Frames that are more than a few 
     standard deviations discrepant are rejected. Should be applied on a 
@@ -48,7 +48,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=None, width=None,
         Lower boundary for rejection.
     window : int, optional
         Window for smoothing the median and getting the rejection statistic.
-    plot : {'False','True'}, optional
+    plot : {True, False}, bool optional
         If true it plots the mean fluctuation as a function of the frames and 
         the boundaries.
     verbose : {True, False}, bool optional
@@ -216,8 +216,8 @@ def cube_detect_badfr_ellipticipy(array, fwhm, roundlo=-0.2, roundhi=0.2,
     return good_index_list, bad_index_list
 
 
-def cube_detect_badfr_correlation(array, frame_ref, dist='ssim', percentile=20,
-                                  plot=False, verbose=True):
+def cube_detect_badfr_correlation(array, frame_ref, dist='pearson', 
+                                  percentile=20, plot=True, verbose=True):
     """ Returns the list of bad frames from a cube by measuring the distance 
     (similarity) or correlation of the frames wrt a reference frame from the 
     same cube. Then the distance-correlation level is thresholded (percentile 
@@ -235,7 +235,7 @@ def cube_detect_badfr_correlation(array, frame_ref, dist='ssim', percentile=20,
         vortex.stats.distances.cube_distance(). SSIM is recommended.
     percentile : int
         The percentage of frames that will be discarded. 
-    plot : {'False','True'}, optional
+    plot : {True, False}, bool optional
         If true it plots the mean fluctuation as a function of the frames and 
         the boundaries.
     verbose : {True, False}, bool optional

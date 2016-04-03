@@ -23,7 +23,7 @@ from ..var import frame_center, dist
 from ..stats import descriptive_stats
 from .. import phot
 from .utils import pca_annulus, scale_cube_for_pca
-from .pca_local import find_indices
+from .pca_local import find_indices, compute_pa_thresh
 
 import warnings
 warnings.filterwarnings("ignore", category=Warning)
@@ -382,7 +382,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
             yc, xc = frame_center(cube[0], False)
             x1, y1 = source_xy
             ann_center = dist(yc, xc, y1, x1)
-            pa_thr = delta_rot * (fwhm/ann_center) / np.pi*180        
+            pa_thr = compute_pa_thresh(ann_center, fwhm, delta_rot)         
             mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list))/2
             if pa_thr >= mid_range - mid_range * 0.1:
                 new_pa_th = float(mid_range - mid_range * 0.1)
@@ -392,7 +392,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
                 pa_thr = new_pa_th     
             
             for frame in xrange(n):
-                if ann_center > fwhm*5:                                         # TODO: 5*FWHM optimal? new parameter?
+                if ann_center > fwhm*10:                                        # TODO: 10*FWHM optimal?
                     ind = find_indices(angle_list, frame, pa_thr, True)
                 else:
                     ind = find_indices(angle_list, frame, pa_thr, False)

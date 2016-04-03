@@ -124,12 +124,10 @@ def adi(array, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         #***********************************************************************
         cube_out = np.zeros_like(array) 
         for ann in xrange(n_annuli):
-            pa_threshold,inner_radius,ann_center = define_annuli(angle_list, 
-                                                                 ann, n_annuli, 
-                                                                 fwhm, radius_int, 
-                                                                 annulus_width, 
-                                                                 delta_rot,
-                                                                 verbose) 
+            pa_threshold,inner_radius,_= define_annuli(angle_list, ann, n_annuli, 
+                                                       fwhm, radius_int, 
+                                                       annulus_width, delta_rot,
+                                                       verbose) 
     
             indices = get_annulus(array[0], inner_radius, annulus_width, 
                                   output_indices=True)

@@ -18,7 +18,6 @@ __all__ = ['frame_shift',
 
 import numpy as np
 import cv2
-import photutils
 import pywt
 import itertools as itt
 import pyprind
@@ -28,7 +27,8 @@ from multiprocessing import Pool, cpu_count
 from image_registration import chi2_shift
 from matplotlib import pyplot as plt
 from . import approx_stellar_position
-from ..conf import timeInit, timing, eval_func_tuple
+from ..conf import timeInit, timing 
+from ..conf import eval_func_tuple as EFT
 from ..var import (get_square, get_square_robust, frame_center, wavelet_denoise,
                    get_annulus, pp_subplots, fit_2dmoffat, fit_2dgaussian)
 
@@ -431,15 +431,11 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01, wavelet=False,
         nproc = (cpu_count()/2) 
     pool = Pool(processes=int(nproc))  
     if satspots:
-        res = pool.map(eval_func_tuple,itt.izip(itt.repeat(_radon_costf2),              
-                                                itt.repeat(frame), 
-                                                itt.repeat(cent),
-                                                itt.repeat(radint), coords))        
+        res = pool.map(EFT,itt.izip(itt.repeat(_radon_costf2), itt.repeat(frame), 
+                                    itt.repeat(cent), itt.repeat(radint), coords))        
     else:
-        res = pool.map(eval_func_tuple,itt.izip(itt.repeat(_radon_costf),              
-                                                itt.repeat(frame), 
-                                                itt.repeat(cent),
-                                                itt.repeat(radint), coords)) 
+        res = pool.map(EFT,itt.izip(itt.repeat(_radon_costf), itt.repeat(frame), 
+                                    itt.repeat(cent), itt.repeat(radint), coords)) 
     costf = np.array(res)
     pool.close()
         
@@ -676,9 +672,9 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
   
 
 def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5, 
-                              nproc=None, full_output=False, verbose=True, 
-                              save_shifts=False, debug=False, 
-                              unmoving_star=False):
+                              nproc=1, full_output=False, verbose=True, 
+                              save_shifts=False, offset=None, negative=False, 
+                              debug=False):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
     gaussian to a subimage centered at (pos_x, pos_y). This assumes the frames 
     don't have too large shifts (>5px). The frames are shifted using the 
@@ -708,13 +704,8 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
     save_shifts : {False, True}, bool optional
         Whether to save the shifts to a file in disk.
     debug : {False, True}, bool optional
-        Whether to print to stdout the shifts or not. 
-    unmoving_star : {False, True}, bool optional
-        Whether the star centroid is expected to not move a lot within the 
-        frames of the input cube. If True, then an additional test is done to 
-        be sure the centroid fit returns a reasonable index value (close to the 
-        median of the centroid indices in the other frames) - hence not taking 
-        noise or a clump of uncorrected bad pixels.
+        If True the details of the fitting are shown. This might produce an
+        extremely long output and therefore is limited to <20 frames.
         
     Returns
     -------
@@ -727,8 +718,18 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
     """    
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
-    # if not pos_x or not pos_y:
-    #     raise ValueError('Missing parameters POS_Y and/or POS_X')
+    
+    if isinstance(fwhm,int):  pass
+    elif isinstance(fwhm,float):  fwhm = int(np.round(fwhm))
+    else:  raise TypeError('fwhm is not a float or int')
+        
+    if debug and array.shape[0]>20:
+        msg = 'Debug with a big array will produce a very long output. '
+        msg += 'Try with less than 20 frames in debug mode.'
+        raise RuntimeWarning(msg)
+        
+    if not isinstance(pos_x,int) or not isinstance(pos_y,int):
+        raise TypeError('pos_x and pos_y should be ints')
     
     # If frame size is even we drop a row and a column
     if array.shape[1]%2==0:
@@ -741,69 +742,43 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
     n_frames = array.shape[0]
     cy, cx = frame_center(array[0])
     array_recentered = np.empty_like(array)  
-
-    if isinstance(fwhm,float) or isinstance(fwhm,int):
-        fwhm_scal = fwhm
-        fwhm = np.zeros((n_frames))
-        fwhm[:] = fwhm_scal
-    size = np.zeros(n_frames)    
-    for kk in range(n_frames):
-        size[kk] = max(2,int(fwhm[kk]*subi_size))
-
-    if isinstance(pos_x,int) or isinstance(pos_y,int):
-        if isinstance(pos_x,int) and not isinstance(pos_y,int):
-            raise ValueError('pos_x and pos_y should have the same shape')
-        elif not isinstance(pos_x,int) and isinstance(pos_y,int):
-            raise ValueError('pos_x and pos_y should have the same shape')
-        pos_x_scal, pos_y_scal = pos_x, pos_y
-        pos_x, pos_y = np.zeros((n_frames)),np.zeros((n_frames))
-        pos_x[:], pos_y[:] = pos_x_scal, pos_y_scal
-
-    ### Precaution: some frames are dominated by noise and hence cannot be used
-    ### to find the star with a Moffat or Gaussian fit.
-    ### In that case, just replace the coordinates by the approximate ones
-    if unmoving_star:
-        star_approx_coords, star_not_present = approx_stellar_position(array,
-                                                                       fwhm,
-                                                                       True)
-        star_approx_coords.tolist()
-        star_not_present.tolist()
-    else:
-        star_approx_coords, star_not_present = [None]*n_frames, [None]*n_frames
-
     
     if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
         nproc = (cpu_count()/2) 
     if nproc==1:
         res = []
         bar = pyprind.ProgBar(n_frames, stream=1, 
-                              title='Looping through frames')
+                              title='2d Gauss-fitting, looping through frames')
         for i in range(n_frames):
-            res.append(_centroid_2dg_frame(array, i, size[i], pos_y[i], pos_x[i], 
-                                           debug, star_approx_coords[i], 
-                                           star_not_present[i]))
+            res.append(_centroid_2dg_frame(array, i, subi_size*fwhm, 
+                                           pos_y, pos_x, negative, debug))
             bar.update()
         res = np.array(res)
     elif nproc>1:
         pool = Pool(processes=int(nproc))  
-        res = pool.map(eval_func_tuple,itt.izip(itt.repeat(_centroid_2dg_frame),
-                                                itt.repeat(array),
-                                                range(n_frames),
-                                                size.tolist(),
-                                                pos_y.tolist(), 
-                                                pos_x.tolist(),
-                                                itt.repeat(debug), 
-                                                star_approx_coords,
-                                                star_not_present)) 
+        res = pool.map(EFT, itt.izip(itt.repeat(_centroid_2dg_frame),
+                                     itt.repeat(array),
+                                     range(n_frames),
+                                     subi_size*fwhm, pos_y, pos_x,
+                                     itt.repeat(negative),
+                                     itt.repeat(debug))) 
         res = np.array(res)
         pool.close()
     y = cy - res[:,0]
     x = cx - res[:,1]
-        
+    #return x, y
+    
+    if offset is not None:
+        offx, offy = offset
+        y -= offy
+        x -= offx
+    
+    bar2 = pyprind.ProgBar(n_frames, stream=1, title='Shifting the frames')
     for i in xrange(n_frames):
         if debug:  print y[i], x[i]
         array_recentered[i] = frame_shift(array[i], y[i], x[i])
-
+        bar2.update()
+        
     if verbose:  timing(start_time)
 
     if save_shifts: 
@@ -812,7 +787,6 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         return array_recentered, y, x
     else:
         return array_recentered
-
 
 
 def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5, 
@@ -925,14 +899,11 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         res = np.array(res)
     elif nproc>1:
         pool = Pool(processes=int(nproc))  
-        res = pool.map(eval_func_tuple,itt.izip(itt.repeat(_centroid_2dm_frame),
-                                                itt.repeat(array),
-                                                range(n_frames),
-                                                size.tolist(),
-                                                pos_y.tolist(), 
-                                                pos_x.tolist(),
-                                                star_approx_coords,
-                                                star_not_present)) 
+        res = pool.map(EFT,itt.izip(itt.repeat(_centroid_2dm_frame),
+                                    itt.repeat(array), range(n_frames),
+                                    size.tolist(), pos_y.tolist(), 
+                                    pos_x.tolist(), star_approx_coords,
+                                    star_not_present)) 
         res = np.array(res)
         pool.close()
     y = cy - res[:,0]
@@ -952,29 +923,18 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         return array_recentered
 
 
-def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, debug=False,
-                        star_approx_coords=None, star_not_present=None):
+def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug=False):
     """ Finds the centroid by using a 2d gaussian fitting in one frame from a 
     cube. To be called from whitin cube_recenter_gauss2d_fit().
     """
-    sub_image, y1, x1 = get_square_robust(cube[frnum], size=size+1, y=pos_y, 
-                                           x=pos_x, position=True)
-    sub_image = sub_image.byteswap().newbyteorder()
-    # we check if the min pixel is located in the center (negative gaussian)
-    miny, minx = np.where(sub_image==sub_image.min())
-    cy, cx = frame_center(sub_image)
-    if np.allclose(miny, cy, atol=2) and np.allclose(minx, cx, atol=2):
-        sub_image = -sub_image + np.abs(np.min(-sub_image))
+    sub_image, y1, x1 = get_square_robust(cube[frnum], size=size, y=pos_y, 
+                                          x=pos_x, position=True)
+
+    # negative gaussian fit
+    if negative:  sub_image = -sub_image + np.abs(np.min(-sub_image))
             
-    if star_approx_coords is not None and star_not_present is not None:
-        if star_not_present:
-            y_i, x_i = star_approx_coords
-        else:
-            y_i, x_i = fit_2dgaussian(sub_image, crop=False, threshold=False, 
-                                      sigfactor=1, debug=debug)
-    else:
-        y_i, x_i = fit_2dgaussian(sub_image, crop=False, threshold=False, 
-                                      sigfactor=1, debug=debug)
+    y_i, x_i = fit_2dgaussian(sub_image, crop=False, threshold=False, 
+                              sigfactor=1, debug=debug)
     y_i = y1 + y_i
     x_i = x1 + x_i
     return y_i, x_i

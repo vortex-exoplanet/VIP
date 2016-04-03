@@ -8,7 +8,8 @@ from __future__ import division
 from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg'
-__all__ = ['prepare_matrix',
+__all__ = ['matrix_scaling',
+           'prepare_matrix',
            'reshape_matrix',
            'svd_wrapper',
            'pca_annulus',
@@ -17,6 +18,7 @@ __all__ = ['prepare_matrix',
 import cv2
 import numpy as np
 from numpy import linalg
+from matplotlib import pyplot as plt 
 from scipy.sparse.linalg import svds
 from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_absolute_error
@@ -186,6 +188,26 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     return pca_frame  
 
 
+def matrix_scaling(matrix, scaling):
+    """ Scales a matrix using sklearn.preprocessing.scale function.
+    """
+    if scaling==None:
+        pass
+    elif scaling=='temp-mean':
+        matrix = scale(matrix, with_mean=True, with_std=False)
+    elif scaling=='spat-mean':
+        matrix = scale(matrix, with_mean=True, with_std=False, axis=1)
+    elif scaling=='temp-standard':
+        matrix = scale(matrix, with_mean=True, with_std=True)
+    elif scaling=='spat-standard':
+        matrix = scale(matrix, with_mean=True, with_std=True, axis=1)
+    #elif scaling=='minmax':
+    #    matrix = minmax_scale(matrix, feature_range=(0, 1000), axis=0)          
+    else:
+        raise ValueError('Scaling mode not recognized')
+    
+    return matrix 
+
 
 def prepare_matrix(array, scaling=None, mask_center_px=None, verbose=True):
     """ Builds the matrix for the SVD/PCA and other matrix decompositions, 
@@ -219,23 +241,11 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, verbose=True):
     nfr = array.shape[0]
     matrix = np.reshape(array, (nfr, -1))  # == for i: array[i].flatten()                            
     
-    if scaling==None:
-        pass
-    elif scaling=='temp-mean':
-        matrix = scale(matrix, with_mean=True, with_std=False)
-    elif scaling=='spat-mean':
-        matrix = scale(matrix, with_mean=True, with_std=False, axis=1)
-    elif scaling=='temp-standard':
-        matrix = scale(matrix, with_mean=True, with_std=True)
-    elif scaling=='spat-standard':
-        matrix = scale(matrix, with_mean=True, with_std=True, axis=1)
-    #elif scaling=='minmax':
-    #    matrix = minmax_scale(matrix, feature_range=(0, 1000), axis=0)          
-    else:
-        raise ValueError('Scaling mode not recognized')
+    matrix = matrix_scaling(matrix, scaling)
     
     if verbose:
-        print('Done building the matrix, NxP (N=# frames, P=# pixels per frame)')  
+        msg = 'Done building the matrix. Matrix shape [{:},{:}]'
+        print(msg.format(matrix.shape[0], matrix.shape[1]))  
     return matrix
      
 
@@ -247,7 +257,8 @@ def reshape_matrix(array, y, x):
 
 
 def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
-    """ Wrapper for different SVD libraries.
+    """ Wrapper for different SVD libraries with the option of showing the 
+    cumulative explained variance ratio.
     
     Note:
     ----
@@ -261,40 +272,77 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         raise TypeError('Input matrix is not a 2d array')
     
     def reconstruction(ncomp, U, S, V, var=1): 
-        rec_matrix = np.dot(U, np.dot(np.diag(S), V))
         if mode=='lapack':
+            rec_matrix = np.dot(U[:,:ncomp], np.dot(np.diag(S[:ncomp]), V[:ncomp]))
             rec_matrix = rec_matrix.T
-        print('  Matrix reconstruction MAE =', mean_absolute_error(matrix, 
-                                                                   rec_matrix))
-        exp_var = (S ** 2) / matrix.shape[0]
-        full_var = np.var(matrix, axis=0).sum()
-        explained_variance_ratio = exp_var / full_var           # Percentage of variance explained by each PC
-        if var==1:
-            pass    
+            print('  Matrix reconstruction MAE =', mean_absolute_error(matrix, 
+                                                                       rec_matrix))
+            exp_var = S**2
+            full_var = np.sum(S**2)
+            explained_variance_ratio = exp_var / full_var           # % of variance explained by each PC
+            ratio_cumsum = np.cumsum(explained_variance_ratio)
+        elif mode=='eigen':
+            exp_var = S**2
+            full_var = np.sum(S**2)
+            explained_variance_ratio = exp_var / full_var           # % of variance explained by each PC
+            ratio_cumsum = np.cumsum(explained_variance_ratio)
         else:
-            explained_variance_ratio = explained_variance_ratio[::-1]
-        ratio_cumsum = explained_variance_ratio.cumsum()
-        msg = '  Explained variance for {:} PCs = {:.5f}'
+            rec_matrix = np.dot(U, np.dot(np.diag(S), V))
+            print('  Matrix reconstruction MAE =', mean_absolute_error(matrix, 
+                                                                       rec_matrix))
+            exp_var = (S**2) / matrix.shape[0]
+            full_var = np.var(matrix, axis=0).sum()
+            explained_variance_ratio = exp_var / full_var           # % of variance explained by each PC       
+            if var==1:  pass    
+            else:  explained_variance_ratio = explained_variance_ratio[::-1]
+            ratio_cumsum = np.cumsum(explained_variance_ratio)
+            msg = '  This info makes sense when the matrix is mean centered '
+            msg += '(temp-mean scaling)'
+            print (msg)
+        
+        plt.figure(figsize=(10,4))
+        plt.step(range(explained_variance_ratio.shape[0]), 
+                 explained_variance_ratio, alpha=0.6, where='mid', 
+                 label='Individual explained variance ratio')
+        plt.plot(ratio_cumsum, '.-', alpha=0.6, 
+                 label='Cumulative explained variance ratio')
+        plt.xlim(-2, explained_variance_ratio.shape[0]+2)
+        plt.ylim(0, 1)
+        plt.ylabel('Explained variance ratio')
+        plt.xlabel('Principal components')
+        plt.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)
+        
+        msg = '  Cumulative explained variance ratio for {:} PCs = {:.5f}'
         print(msg.format(ncomp, ratio_cumsum[ncomp-1]))
         
+    if ncomp>min(matrix.shape[0],matrix.shape[1]):
+        msg = '{:} PCs can be obtained from a matrix with size [{:},{:}].'
+        msg += ' Increase the size of the patches or decrease the number of'
+        msg += ' principal components.'
+        raise RuntimeError(msg.format(ncomp, matrix.shape[0], matrix.shape[1]))
+        
     if mode=='eigen':
-#         M = np.cov(matrix.T)
+        # in our data n_frames is always smaller than n_pixels. In this setting
+        # by taking the covariance as np.dot(matrix.T,matrix) we get all 
+        # (n_pixels) eigenvectors but it is much slower and takes more memory 
         M = np.dot(matrix, matrix.T)                             # covariance matrix
         e, EV = linalg.eigh(M)                                   # eigenvalues and eigenvectors
-        pc = np.dot(EV.T, matrix)                                # PCs / compact trick
+        pc = np.dot(EV.T, matrix)                                # PCs using a compact trick when cov is MM'
         V = pc[::-1]                                             # reverse since last eigenvectors are the ones we want 
         S = np.sqrt(e)[::-1]                                     # reverse since eigenvalues are in increasing order 
+        if debug: reconstruction(ncomp, None, S, None)
         for i in xrange(V.shape[1]): 
-            V[:,i] /= S                                          # scaling by the sqared root of eigenvalues
+            V[:,i] /= S                                          # scaling by the square root of eigenvalues
         V = V[:ncomp]
         if verbose: print('Done PCA with numpy linalg eigh functions')
         
-    # we transpose the matrix and will keep the left (transposed) SVs
     elif mode=='lapack':
+        # in our data n_frames is always smaller than n_pixels. In this setting
+        # taking the SVD of M' and keeping the left (transposed) SVs is faster
+        # than taking the SVD of M and taking the right ones
         U, S, V = linalg.svd(matrix.T, full_matrices=False)         
-        if debug: reconstruction(ncomp, U, S, V, 1)
-        # we cut projection matrix according to the # of PCs
-        V = V[:ncomp]                                             
+        if debug: reconstruction(ncomp, U, S, V)
+        V = V[:ncomp]                                           # we cut projection matrix according to the # of PCs               
         U = U[:,:ncomp]
         S = S[:ncomp]
         if verbose: print('Done SVD/PCA with numpy SVD (LAPACK)')
@@ -307,7 +355,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
     elif mode=='randsvd':
         U, S, V = randomized_svd(matrix, n_components=ncomp, n_iter=2, 
                                  transpose='auto', random_state=None)
-        if debug: reconstruction(ncomp, U, S, V, 1)
+        if debug: reconstruction(ncomp, U, S, V)
         if verbose: print('Done SVD/PCA with randomized SVD')
 
     else:

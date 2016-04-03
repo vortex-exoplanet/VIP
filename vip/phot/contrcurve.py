@@ -29,7 +29,7 @@ from ..var import frame_center, dist, pp_subplots
 def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot, 
                    sigma=5, algo='pca-adi-fullfr', cube_ref=None, nbranch=1, 
                    ncomp=10, student=True, plot=True, dpi=100, debug=False,
-                   **algo_dict):
+                   verbose=True, **algo_dict):
     """ Computes the contrast curve for a given SIGMA (*sigma*) level. The 
     contrast is calculated as sigma*noise/throughput. This implementation takes
     into account the small sample statistics correction proposed in Mawet et al.
@@ -74,6 +74,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         Whether to print and plot additional info such as the noise, throughput,
         the contrast curve with different X axis and the delta magnitude intead
         of constrast.
+    verbose : {True, False}, bool optional
+        If True prints to stdout intermediate info and timing. 
     **algo_dict
         Any other valid parameter of the post-processing algorithms can be 
         passed here.
@@ -102,6 +104,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         cube = cube.copy()
         for i in xrange(cube.shape[0]):
             cube[i] = cube[i] / starphot[i]
+
+    if verbose:  start_time = timeInit()
     
     # throughput
     res_throug = throughput(cube, angle_list, psf_template, fwhm, pxscale, 
@@ -111,6 +115,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     vector_radd = res_throug[2] 
     thruput_mean = res_throug[0][0]
     frame_nofc = res_throug[5]
+    
+    if verbose:
+        msg1 = 'Finished calculating the throughput'
+        timing(start_time)
     
     if thruput_mean[-1]==0:
         thruput_mean = thruput_mean[:-1]
@@ -224,6 +232,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             plt.gca().invert_yaxis()
             plt.grid('on', which='both')
     
+    if verbose:  timing(start_time)
+    
     if student:
         return cont_curve_samp, cont_curve_samp_t, rad_samp*pxscale
     else:
@@ -300,7 +310,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, ncomp,
 
     """
     from ..pca.pca_fullfr import pca 
-    from ..pca.pca_local import pca_adi_annular_quad, pca_rdi_annular
+    from ..pca.pca_local import pca_adi_annular, pca_rdi_annular
     
     array = cube
     parangles = angle_list
@@ -327,7 +337,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, ncomp,
         frame_nofc = function(array, angle_list=parangles, ncomp=ncomp, 
                               cube_ref=cube_ref, verbose=False, **algo_dict)    
     elif algo=='pca-adi-annular':
-        function = pca_adi_annular_quad
+        function = pca_adi_annular
         frame_nofc = function(array, angle_list=parangles, fwhm=fwhm, 
                               ncomp=ncomp, verbose=False, **algo_dict) 
     elif algo=='pca-rdi-annular':

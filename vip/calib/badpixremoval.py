@@ -264,11 +264,10 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                                             xradius=rr_sma*ann_width, 
                                             shape=(n_y,n_x))
             else:
-                big_ell_idx = circle(cy=cy, cx=cx, radius=(rr_big+1)*ann_width,
+                big_ell_idx = circle(cy, cx, radius=(rr_big+1)*ann_width,
                                      shape=(n_y,n_x))
                 if rr != 0:
-                    small_ell_idx = circle(cy=cy, cx=cx, 
-                                           radius=rr_sma*ann_width, 
+                    small_ell_idx = circle(cy, cx, radius=rr_sma*ann_width, 
                                            shape=(n_y,n_x))
             big_ell_frame[big_ell_idx] = 1
             if rr!=0: sma_ell_frame[small_ell_idx] = 1
@@ -309,10 +308,10 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         # centered on the provided coordinates of the star
         if protect_psf:
             if half_res_y: 
-                circl_new = ellipse(cy=cy, cx=cx, yradius=0.9*fwhm, 
+                circl_new = ellipse(cy, cx, yradius=0.9*fwhm, 
                                     xradius=1.8*fwhm,shape=(n_y,n_x))
             else: 
-                circl_new = circle(cy=cy, cx=cx, radius=1.8*fwhm, 
+                circl_new = circle(cy, cx, radius=1.8*fwhm, 
                                    shape=(n_y, n_x))
         else: circl_new = []
 
@@ -520,9 +519,9 @@ def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True,
         # centered on the approximate coordinates of the star
         if protect_psf:
             if half_res_y: 
-                circl_new = ellipse(cy=int(cy/2), cx=cx, yradius=0.9*fwhm, 
+                circl_new = ellipse(int(cy/2), cx, yradius=0.9*fwhm, 
                                     xradius=1.8*fwhm, shape=(n_y, n_x))
-            else: circl_new = circle(cy=cy, cx=cx, radius=1.8*fwhm, 
+            else: circl_new = circle(cy, cx, radius=1.8*fwhm, 
                                      shape=(n_y, n_x))
         else: circl_new = []
         

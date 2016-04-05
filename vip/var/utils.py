@@ -38,52 +38,74 @@ def pp_subplots(*args, **kwargs):
     Parameters in **kwargs
     ----------------------
     cmap : colormap to be used, CMRmap by default
-    colorb : to attach a colorbar, on by default
+    cbar : to attach a colorbar, on by default
     dpi : dots per inch, for plot quality
     grid : for showing a grid over the image, off by default
+    horsp : horizontal gap between subplots
+    label : text for annotating on subplots
+    labelpad : padding of the label from the left bottom corner
+    labelsize : size of the labels
     noaxis : to remove the axis, on by default
     rows : how many rows (subplots in a grid)
     title : title of the plot(s), None by default
     vmax : for stretching the displayed pixels values
     vmin : for stretching the displayed pixels values
+    versp : vertical gap between subplots
     
     """
-    if kwargs.has_key('rows'):
-        rows = kwargs['rows']
-    else:
-        rows = 1
-    if kwargs.has_key('cmap'):
-        custom_cmap = kwargs['cmap']
-    else:
-        custom_cmap = 'CMRmap'
-    if kwargs.has_key('colorb'):
-        colorb = kwargs['colorb']
-    else:
-        colorb = True
-    if kwargs.has_key('grid'):
-        grid = kwargs['grid']
-    else:
-        grid = False
-    if kwargs.has_key('vmax'):
-        vmax = kwargs['vmax']
-    else:
-        vmax = None
-    if kwargs.has_key('vmin'):
-        vmin = kwargs['vmin']
-    else:
-        vmin = None
-    if kwargs.has_key('dpi'):
-        rc("savefig", dpi=kwargs['dpi']) 
-    else:
-        rc("savefig", dpi=90) 
-    if kwargs.has_key('title'):
-        tit = kwargs['title']
-    else:
-        tit = None
-    if kwargs.has_key('noaxis'):
-        noax = kwargs['noaxis']
-    else:
-        noax = False
+    parlist = ['cmap', 'cbar', 'dpi', 'grid', 'horsp', 'label', 'labelpad', 
+               'labelsize', 'noaxis', 'rows', 'title', 'vmax', 'vmin', 'versp']
+    
+    for key in kwargs.iterkeys():
+        if key not in parlist:
+            print "Parameter '{:}' not recognized".format(key)
+            print "Available parameters are: {:}".format(parlist)
+    
+    if kwargs.has_key('label'):  
+        label = kwargs['label']
+        if len(label) != len(args):
+            print "Not enough labels for all subplots"
+            label = None
+    else:  label = None
+    
+    if kwargs.has_key('labelsize'):  labelsize = kwargs['labelsize']
+    else:  labelsize = 12
+    
+    if kwargs.has_key('labelpad'):  labelpad = kwargs['labelpad']
+    else:  labelpad = 5
+    
+    if kwargs.has_key('rows'):  rows = kwargs['rows']
+    else:  rows = 1
+    
+    if kwargs.has_key('cmap'):  custom_cmap = kwargs['cmap']
+    else:  custom_cmap = 'CMRmap'
+    
+    if kwargs.has_key('cbar'):  colorb = kwargs['cbar']
+    else:  colorb = True
+    
+    if kwargs.has_key('grid'):  grid = kwargs['grid']
+    else:  grid = False
+    
+    if kwargs.has_key('vmax'):  vmax = kwargs['vmax']
+    else:  vmax = None
+    
+    if kwargs.has_key('vmin'):  vmin = kwargs['vmin']
+    else:  vmin = None
+    
+    if kwargs.has_key('dpi'):  rc("savefig", dpi=kwargs['dpi']) 
+    else:  rc("savefig", dpi=90) 
+    
+    if kwargs.has_key('title'):  tit = kwargs['title']
+    else:  tit = None
+    
+    if kwargs.has_key('noaxis'):  noax = kwargs['noaxis']
+    else:  noax = False
+    
+    if kwargs.has_key('horsp'):  hor_spacing = kwargs['horsp']
+    else:  hor_spacing = 0.2
+    
+    if kwargs.has_key('versp'):  ver_spacing = kwargs['versp']
+    else:  ver_spacing = 0
     
     if not isinstance(rows, int):
         raise(TypeError('Rows must be an integer'))
@@ -93,40 +115,38 @@ def pp_subplots(*args, **kwargs):
         cols = num_plots/rows
     else:
         cols = (num_plots/rows) + 1
-    
-    min_size = 4
-    max_hor_size = 13
+             
+    subplot_size = 4
     if rows==0:
         raise(TypeError('Rows must be greater than zero'))
-    elif rows==1:
-        if cols==1:
-            fig = figure(figsize=(min_size, min_size))
-        elif cols>1:
-            fig = figure(figsize=(max_hor_size, min_size*rows))
-    elif rows>1:
-        if cols==1:
-            fig = figure(figsize=(min_size, 10))
-        elif cols>1:
-            fig = figure(figsize=(max_hor_size, 10))
+    fig = figure(figsize=(cols*subplot_size, rows*subplot_size))
     
     if tit is not None:  fig.suptitle(tit, fontsize=14)
-    fig.subplots_adjust(wspace=0.3)
+    
     for i,v in enumerate(xrange(num_plots)):
         v += 1
         ax = subplot(rows,cols,v)
+        ax.set_aspect('equal')
         im = ax.imshow(args[i], cmap=custom_cmap, interpolation='nearest', 
-                       origin='lower', vmin=vmin, vmax=vmax)      
+                       origin='lower', vmin=vmin, vmax=vmax)  
+        if label is not None:
+            ax.annotate(label[i], xy=(labelpad,labelpad), color='white', 
+                        xycoords='axes pixels', weight='bold', size=labelsize)    
         if colorb: 
             # create an axes on the right side of ax. The width of cax will be 5%
             # of ax and the padding between cax and ax will be fixed at 0.05 inch. 
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
-            colorbar(im, ax=ax, cax=cax)
+            cb = colorbar(im, ax=ax, cax=cax, drawedges=False)
+            cb.outline.set_linewidth(0.1)
+            cb.ax.tick_params(labelsize=8) 
         if grid:  
             ax.grid('on', which='both', color='w')
         else:
             ax.grid('off')
         if noax:  ax.set_axis_off()
+    
+    fig.subplots_adjust(wspace=hor_spacing, hspace=ver_spacing)
     show()
     
 

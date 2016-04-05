@@ -149,7 +149,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         
     pca_frame = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
                             svd_mode, scaling) 
-    indices = circle(cy=posy, cx=posx, radius=aperture_radius)
+    indices = circle(posy, posx, radius=aperture_radius)
     values = pca_frame[indices]
     
     if debug:

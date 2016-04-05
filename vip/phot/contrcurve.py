@@ -117,7 +117,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     frame_nofc = res_throug[5]
     
     if verbose:
-        msg1 = 'Finished calculating the throughput'
+        msg1 = 'Finished the throughput calculation'
+        print(msg1)
         timing(start_time)
     
     if thruput_mean[-1]==0:

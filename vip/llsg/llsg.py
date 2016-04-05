@@ -15,7 +15,7 @@ from multiprocessing import Pool, cpu_count
 from astropy.stats import median_absolute_deviation as mad
 from ..conf import timeInit, timing
 from ..calib import cube_derotate, cube_collapse
-from ..var import get_annulus_quad
+from ..var import get_annulus_quad, frame_filter_lowpass
 from ..pca.utils import svd_wrapper
 from ..pca.pca_local import define_annuli
 from .thresholding import thresholding
@@ -25,7 +25,8 @@ from ..conf import eval_func_tuple as EFT
 
 def llsg(cube, ang, fwhm, rank=10, thresh=1, max_iter=10, low_rank_mode='svd', 
          thresh_mode='soft', nproc=1, radius_int=None, random_seed=None,
-         collapse='median', full_output=False, verbose=True, debug=False):
+         collapse='median', low_pass=False, full_output=False, verbose=True, 
+         debug=False):
     """ 
     Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as 
     described in Gomez Gonzalez et al. 2016. This first version of our algorithm 
@@ -68,6 +69,9 @@ def llsg(cube, ang, fwhm, rank=10, thresh=1, max_iter=10, low_rank_mode='svd',
         Controls the seed for the Pseudo Random Number generator. 
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.  
+    low_pass : {False, True}, bool optional
+        If True it performs a low_pass gaussian filter with kernel_size=fwhm on
+        the final image.
     full_output: boolean, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
@@ -173,7 +177,10 @@ def llsg(cube, ang, fwhm, rank=10, thresh=1, max_iter=10, low_rank_mode='svd',
     if full_output:
         return L_array_der, S_array_der, G_array_der, frame_l, frame_s, frame_g
     else:
-        return frame_s
+        if low_pass:
+            return frame_filter_lowpass(frame_s, 'gauss', fwhm_size=fwhm)
+        else:
+            return frame_s
     
 
 

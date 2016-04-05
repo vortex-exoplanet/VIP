@@ -197,7 +197,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf,
 def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4, 
                annulus_width=3, aperture_radius=4, cube_ref=None, 
                svd_mode='lapack', scaling=None, p_ini=None, f_range=None, 
-               simplex=False, simplex_options=None, display=False, verbose=True, 
+               simplex=True, simplex_options=None, display=False, verbose=True, 
                save=False, figure_options=None):
     """ Determines a first guess for the position and the flux of a planet.
         
@@ -280,7 +280,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     center_xy_coord = np.array([cube.shape[1]/2.,cube.shape[2]/2.])    
 
     if f_range is None:  
-        f_range = np.linspace(0,2000,20)
+        f_range = np.linspace(0,5000,20)
     if simplex_options is None:  
         simplex_options = {'xtol':1e-1, 'maxiter':500, 'maxfev':1000}
         

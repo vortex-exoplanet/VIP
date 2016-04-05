@@ -8,6 +8,7 @@ from __future__ import division
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['frame_filter_highpass',
+           'frame_filter_lowpass',
            'cube_filter_highpass',
            'cube_filter_iuwt',
            'frame_filter_gaussian2d',
@@ -259,6 +260,42 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         
     return filtered
 
+
+def frame_filter_lowpass(array, mode, median_size=5, fwhm_size=5):
+    """ Low-pass filtering of input frame depending on parameter *mode*. 
+    
+    Parameters
+    ----------
+    array : array_like
+        Input array, 2d frame.
+    mode : {'median', 'gauss'}
+        Type of low-pass filtering.
+    median_size : int
+        Size of the median box for filtering the low-pass median filter.
+    fwhm_size : int
+        Size of the Gaussian kernel for the low-pass Gaussian filter.
+    
+    Returns
+    -------
+    filtered : array_like
+        Low-pass filtered image.
+        
+    """
+    if not array.ndim==2:
+        raise TypeError('Input array is not a frame or 2d array')
+       
+    if mode=='median':
+        # creating the low_pass filtered (median) image 
+        filtered = median_filter(array, median_size, mode='nearest')
+    
+    elif mode=='gauss':
+        # creating the low_pass filtered (median) image 
+        filtered = frame_filter_gaussian2d(array, fwhm_size, mode='conv')    
+        
+    else:
+        raise TypeError('Mode not recognized')    
+        
+    return filtered
 
 
 def frame_filter_gaussian2d(array, size_fwhm, mode='conv'):

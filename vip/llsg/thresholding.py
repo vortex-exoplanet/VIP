@@ -32,4 +32,6 @@ def thresholding(array, threshold, mode):
     elif mode=='less':
         j = x > threshold
         x[j] = 0
+    else:
+        raise RuntimeError('Thresholding mode not recognized')
     return x

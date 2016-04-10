@@ -23,7 +23,7 @@ from ..stats import descriptive_stats
 
 
 
-def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1, 
+def pca_rdi_annular(cube, angle_list, array_ref, radius_int=0, asize=1, 
                     ncomp=1, svd_mode='randsvd', min_corr=0.9, fwhm=4, 
                     scaling='temp-standard', collapse='median', 
                     full_output=False, verbose=True, debug=False):
@@ -38,7 +38,7 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
     
     Parameters
     ----------
-    array : array_like, 3d
+    cube : array_like, 3d
         Input science cube.
     angle_list : array_like, 1d
         Corresponding parallactic angle for each frame.
@@ -122,7 +122,7 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
         return residuals, V.shape[0]
 
     #---------------------------------------------------------------------------
-
+    array = cube
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array.')
     if not array.shape[0] == angle_list.shape[0]:
@@ -186,7 +186,7 @@ def pca_rdi_annular(array, angle_list, array_ref, radius_int=0, asize=1,
         return frame           
 
 
-def pca_adi_annular(array, angle_list, radius_int=0, fwhm=4, asize=3, 
+def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3, 
                     delta_rot=1, ncomp=1, svd_mode='randsvd', nproc=1,
                     min_frames_pca=10, tol=1e-1, scaling=None, quad=False,
                     collapse='median', full_output=False, verbose=True, 
@@ -207,7 +207,7 @@ def pca_adi_annular(array, angle_list, radius_int=0, fwhm=4, asize=3,
     
     Parameters
     ----------
-    array : array_like, 3d
+    cube : array_like, 3d
         Input cube.
     angle_list : array_like, 1d
         Corresponding parallactic angle for each frame.
@@ -272,6 +272,7 @@ def pca_adi_annular(array, angle_list, radius_int=0, fwhm=4, asize=3,
         Cube residuals after de-rotation.
      
     """
+    array = cube
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array.')
     if not array.shape[0] == angle_list.shape[0]:

@@ -21,7 +21,7 @@ from numpy import linalg
 from matplotlib import pyplot as plt 
 from scipy.sparse.linalg import svds
 from sklearn.decomposition import randomized_svd
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.preprocessing import scale #,minmax_scale
 from ..var import mask_circle, get_annulus, get_square_robust, frame_center
 from ..calib import cube_derotate, cube_collapse, cube_rescaling
@@ -275,16 +275,19 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         if mode=='lapack':
             rec_matrix = np.dot(U[:,:ncomp], np.dot(np.diag(S[:ncomp]), V[:ncomp]))
             rec_matrix = rec_matrix.T
-            print('  Matrix reconstruction MAE =', mean_absolute_error(matrix, 
-                                                                       rec_matrix))
+            print('  Matrix reconstruction with {:} PCs:'.format(ncomp))
+            print('  Mean Absolute Error =', mean_absolute_error(matrix, 
+                                                                 rec_matrix))
+            print('  Mean Squared Error =', mean_squared_error(matrix,rec_matrix))
+            
             exp_var = S**2
             full_var = np.sum(S**2)
-            explained_variance_ratio = exp_var / full_var           # % of variance explained by each PC
+            explained_variance_ratio = exp_var / full_var        # % of variance explained by each PC
             ratio_cumsum = np.cumsum(explained_variance_ratio)
         elif mode=='eigen':
-            exp_var = S**2
+            exp_var = S**2                                       # squared because we previously took the sqrt of the EVals
             full_var = np.sum(S**2)
-            explained_variance_ratio = exp_var / full_var           # % of variance explained by each PC
+            explained_variance_ratio = exp_var / full_var        # % of variance explained by each PC
             ratio_cumsum = np.cumsum(explained_variance_ratio)
         else:
             rec_matrix = np.dot(U, np.dot(np.diag(S), V))
@@ -292,7 +295,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
                                                                        rec_matrix))
             exp_var = (S**2) / matrix.shape[0]
             full_var = np.var(matrix, axis=0).sum()
-            explained_variance_ratio = exp_var / full_var           # % of variance explained by each PC       
+            explained_variance_ratio = exp_var / full_var        # % of variance explained by each PC       
             if var==1:  pass    
             else:  explained_variance_ratio = explained_variance_ratio[::-1]
             ratio_cumsum = np.cumsum(explained_variance_ratio)
@@ -300,17 +303,31 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
             msg += '(temp-mean scaling)'
             print (msg)
         
-        plt.figure(figsize=(10,4))
-        plt.step(range(explained_variance_ratio.shape[0]), 
+        fig = plt.figure(figsize=(8,4))
+        fig.subplots_adjust(wspace=0.2)
+        ax1 = plt.subplot2grid((1,3), (0,0), colspan=2)
+        ax1.step(range(explained_variance_ratio.shape[0]), 
                  explained_variance_ratio, alpha=0.6, where='mid', 
                  label='Individual explained variance ratio')
-        plt.plot(ratio_cumsum, '.-', alpha=0.6, 
+        ax1.plot(ratio_cumsum, '.-', alpha=0.6, 
                  label='Cumulative explained variance ratio')
-        plt.xlim(-2, explained_variance_ratio.shape[0]+2)
-        plt.ylim(0, 1)
-        plt.ylabel('Explained variance ratio')
-        plt.xlabel('Principal components')
-        plt.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)
+        ax1.legend(loc='best', fancybox=True, fontsize='medium')
+        ax1.set_ylabel('Explained variance ratio')
+        ax1.set_xlabel('Principal components')
+        ax1.grid(linestyle='solid', alpha=0.2)
+        ax1.set_xlim(-10, explained_variance_ratio.shape[0]+10)
+        ax1.set_ylim(0, 1)
+        
+        trunc = 20
+        ax2 = plt.subplot2grid((1,3), (0,2), colspan=1)
+        #plt.setp(ax2.get_yticklabels(), visible=False)
+        ax2.step(range(trunc), explained_variance_ratio[:trunc], alpha=0.6, 
+                 where='mid')
+        ax2.plot(ratio_cumsum[:trunc], '.-', alpha=0.6)
+        ax2.set_xlabel('Principal components')
+        ax2.grid(linestyle='solid', alpha=0.2)
+        ax2.set_xlim(-2, trunc+2)
+        ax2.set_ylim(0, 1)
         
         msg = '  Cumulative explained variance ratio for {:} PCs = {:.5f}'
         print(msg.format(ncomp, ratio_cumsum[ncomp-1]))

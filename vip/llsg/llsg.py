@@ -23,10 +23,10 @@ from ..conf import eval_func_tuple as EFT
 
 
 
-def llsg(cube, ang, fwhm, rank=10, thresh=1, max_iter=10, low_rank_mode='svd', 
-         thresh_mode='soft', nproc=1, radius_int=None, random_seed=None,
-         collapse='median', low_pass=False, full_output=False, verbose=True, 
-         debug=False):
+def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10, 
+         low_rank_mode='svd', thresh_mode='soft', nproc=1, radius_int=None, 
+         random_seed=None, collapse='median', low_pass=False, full_output=False, 
+         verbose=True, debug=False):
     """ 
     Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as 
     described in Gomez Gonzalez et al. 2016. This first version of our algorithm 
@@ -112,8 +112,8 @@ def llsg(cube, ang, fwhm, rank=10, thresh=1, max_iter=10, low_rank_mode='svd',
         matrix_final_g = np.zeros_like(cube) 
     # The annuli are built
     for ann in xrange(n_annuli):
-        _, inner_radius, _ = define_annuli(ang, ann, n_annuli, fwhm, radius_int, 
-                                           annulus_width, 0, False)
+        _, inner_radius, _ = define_annuli(angle_list, ann, n_annuli, fwhm, 
+                                           radius_int, annulus_width, 0, False)
         indices = get_annulus_quad(cube[0], inner_radius, annulus_width)
         
         if nproc==1:
@@ -162,14 +162,14 @@ def llsg(cube, ang, fwhm, rank=10, thresh=1, max_iter=10, low_rank_mode='svd',
                     matrix_final_s[:, yy[q], xx[q]] = patch[q]
         
     if full_output:       
-        S_array_der = cube_derotate(matrix_final_s, ang)
+        S_array_der = cube_derotate(matrix_final_s, angle_list)
         frame_s = cube_collapse(S_array_der, mode=collapse)
-        L_array_der = cube_derotate(matrix_final_l, ang)
+        L_array_der = cube_derotate(matrix_final_l, angle_list)
         frame_l = cube_collapse(L_array_der, mode=collapse)
-        G_array_der = cube_derotate(matrix_final_g, ang)
+        G_array_der = cube_derotate(matrix_final_g, angle_list)
         frame_g = cube_collapse(G_array_der, mode=collapse)
     else:
-        S_array_der = cube_derotate(matrix_final_s, ang)              
+        S_array_der = cube_derotate(matrix_final_s, angle_list)              
         frame_s = cube_collapse(S_array_der, mode=collapse)
         
     if verbose:  timing(start_time) 

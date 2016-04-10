@@ -15,6 +15,7 @@ __all__ = ['contrast_curve',
 
 import numpy as np
 import photutils
+import inspect
 from scipy.interpolate import interp1d
 from scipy import stats
 from scipy.signal import savgol_filter
@@ -27,9 +28,8 @@ from ..var import frame_center, dist, pp_subplots
 
 
 def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot, 
-                   sigma=5, algo='pca-adi-fullfr', cube_ref=None, nbranch=1, 
-                   ncomp=10, student=True, plot=True, dpi=100, debug=False,
-                   verbose=True, **algo_dict):
+                   algo, sigma=5, nbranch=1, ncomp=10, student=True, plot=True, 
+                   dpi=100, debug=False, verbose=True, **algo_dict):
     """ Computes the contrast curve for a given SIGMA (*sigma*) level. The 
     contrast is calculated as sigma*noise/throughput. This implementation takes
     into account the small sample statistics correction proposed in Mawet et al.
@@ -52,12 +52,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         If int or float it corresponds to the aperture photometry of the 
         non-coronagraphic PSF which we use to scale the contrast. If a vector 
         is given it must contain the photometry correction for each frame.
+    algo : callable or function
+        The post-processing algorithm, e.g. vip.pca.pca.
     sigma : int
         Sigma level for contrast calculation.
-    algo : {'pca-adi-fullfr', 'pca-rdi-fullfr', 'pca-adi-annular', 'pca-rdi-annular'}, string optional
-        The post-processing algorithm.
-    cube_ref : array_like, 3d, optional
-        Reference library cube. For Reference Star Differential Imaging.
     nbranch : int optional
         Number of branches on which to inject fakes companions. Each branch
         is tested individually.
@@ -110,8 +108,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     # throughput
     res_throug = throughput(cube, angle_list, psf_template, fwhm, pxscale, 
                             ncomp=ncomp, nbranch=nbranch, full_output=True, 
-                            algo=algo, cube_ref=cube_ref, verbose=False, 
-                            **algo_dict)
+                            algo=algo, verbose=False, **algo_dict)
     vector_radd = res_throug[2] 
     thruput_mean = res_throug[0][0]
     frame_nofc = res_throug[5]
@@ -203,8 +200,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                      alpha=0.8)
         plt.xlabel('Angular separation [arcsec]')
         plt.ylabel(str(sigma)+' sigma contrast')
-        plt.legend()
-        plt.grid('on', which='both')
+        plt.legend(fancybox=True)
+        plt.grid('on', which='both', alpha=0.2, linestyle='solid')
         plt.yscale('log')
         
         if debug:
@@ -216,8 +213,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                          alpha=0.8)
             plt.xlabel('Distance [pixels]')
             plt.ylabel(str(sigma)+' sigma contrast')
-            plt.legend()
-            plt.grid('on', which='both')
+            plt.legend(fancybox=True)
+            plt.grid('on', which='both', alpha=0.2, linestyle='solid')
             plt.yscale('log')
         
             plt.rc("savefig", dpi=dpi)
@@ -229,9 +226,9 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                          '.-', label='student t', alpha=0.8)
             plt.xlabel('Angular separation [arcsec]')
             plt.ylabel('Delta magnitude')
-            plt.legend()
+            plt.legend(fancybox=True)
             plt.gca().invert_yaxis()
-            plt.grid('on', which='both')
+            plt.grid('on', which='both', alpha=0.2, linestyle='solid')
     
     if verbose:  timing(start_time)
     
@@ -241,9 +238,9 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         return cont_curve_samp, rad_samp*pxscale
 
 
-def throughput(cube, angle_list, psf_template, fwhm, pxscale, ncomp, 
-               algo='pca-adi-fullfr', cube_ref=None, nbranch=3, fc_rad_sep=3, 
-               student=True, full_output=False, verbose=True, **algo_dict):
+def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, ncomp, 
+               nbranch=3, fc_rad_sep=3, student=True, full_output=False, 
+               verbose=True, **algo_dict):
     """ Measures the throughput for chosen algorithm and input dataset. The 
     final throughput is the average of the same procedure measured in *nbranch* 
     azimutally equidistant branches.
@@ -261,13 +258,11 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, ncomp,
         FWHM in pixels.
     pxscale : float
         Plate scale in arcsec/px.
+    algo : callable or function
+        The post-processing algorithm, e.g. vip.pca.pca.
     n_comp : int
         Number of principal components if PCA or other subspace projection 
         technique is used.
-    algo : {'pca-adi-fullfr', 'pca-rdi-fullfr', 'pca-adi-annular', 'pca-rdi-annular'}, string optional
-        The post-processing algorithm.
-    cube_ref : array_like, 3d, optional
-        Reference library cube. For Reference Star Differential Imaging.
     nbranch : int optional
         Number of branches on which to inject fakes companions. Each branch
         is tested individually.
@@ -310,9 +305,6 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, ncomp,
         3 patterns.
 
     """
-    from ..pca.pca_fullfr import pca 
-    from ..pca.pca_local import pca_adi_annular, pca_rdi_annular
-    
     array = cube
     parangles = angle_list
     
@@ -322,39 +314,25 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, ncomp,
         raise TypeError('Input vector or parallactic angles has wrong length')
     if not psf_template.ndim==2:
         raise TypeError('Template PSF is not a frame or 2d array')
-    if algo=='pca-rdi-fullfr' or algo=='pca-rdi-annular':
-        if cube_ref is None:
-            raise TypeError('A reference cube must provided for RDI processing')
+    if not hasattr(algo, '__call__'):
+        raise TypeError('Parameter *algo* must be a callable function')
 
     if verbose:  start_time = timeInit()
-
-    #***************************************************************************    
-    if algo=='pca-adi-fullfr':
-        function = pca
-        frame_nofc = function(array, angle_list=parangles, ncomp=ncomp, 
+    #***************************************************************************
+    # Compute noise in concentric annuli on the "empty frame"  
+    if 'cube' and 'angle_list' and 'verbose' in inspect.getargspec(algo).args:
+        if 'fwhm' in inspect.getargspec(algo).args:
+            frame_nofc = algo(cube=array, angle_list=parangles, fwhm=fwhm, 
                               verbose=False, **algo_dict)
-    elif algo=='pca-rdi-fullfr':
-        function = pca
-        frame_nofc = function(array, angle_list=parangles, ncomp=ncomp, 
-                              cube_ref=cube_ref, verbose=False, **algo_dict)    
-    elif algo=='pca-adi-annular':
-        function = pca_adi_annular
-        frame_nofc = function(array, angle_list=parangles, fwhm=fwhm, 
-                              ncomp=ncomp, verbose=False, **algo_dict) 
-    elif algo=='pca-rdi-annular':
-        function = pca_rdi_annular
-        frame_nofc = function(array, angle_list=parangles, array_ref=cube_ref, 
-                              fwhm=fwhm, ncomp=ncomp, verbose=False, **algo_dict)         
-    else:
-        raise TypeError('Algorithm not recognized')
+        else:
+            frame_nofc = algo(array, angle_list=parangles, verbose=False, 
+                              **algo_dict)
     
     if verbose:
         msg1 = 'Cube without fake companions processed with {:}'
-        print(msg1.format(function.func_name))
+        print(msg1.format(algo.func_name))
         timing(start_time)
     
-    #***************************************************************************
-    # Compute noise in concentric annuli
     noise, vector_radd = noise_per_annulus(frame_nofc,fwhm,fwhm,verbose=False)
     if verbose:
         print('Measured annulus-wise noise in resulting frame')
@@ -410,25 +388,17 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, ncomp,
                 timing(start_time)
 
             #*******************************************************************
-            if algo=='pca-adi-fullfr':
-                frame_fc = function(cube_fc, angle_list=parangles, ncomp=ncomp,
-                                    verbose=False, **algo_dict)
-            elif algo=='pca-rdi-fullfr':
-                frame_fc = function(cube_fc, angle_list=parangles, ncomp=ncomp,
-                                    cube_ref=cube_ref, verbose=False, **algo_dict)
-            elif algo=='pca-adi-annular':
-                frame_fc = function(cube_fc, angle_list=parangles, fwhm=fwhm, 
-                                      ncomp=ncomp, verbose=False, **algo_dict)               
-            elif algo=='pca-rdi-annular':
-                frame_fc = function(cube_fc, angle_list=parangles, 
-                                    array_ref=cube_ref, fwhm=fwhm, ncomp=ncomp, 
-                                    verbose=False, **algo_dict)  
-            else:
-                raise TypeError('Algorithm not recognized')
+            if 'cube' and 'angle_list' and 'verbose' in inspect.getargspec(algo).args:
+                if 'fwhm' in inspect.getargspec(algo).args:
+                    frame_fc = algo(cube=cube_fc, angle_list=parangles, 
+                                    fwhm=fwhm, verbose=False, **algo_dict)
+                else:
+                    frame_fc = algo(cube=cube_fc, angle_list=parangles, 
+                                    verbose=False, **algo_dict)               
                         
             if verbose:
                 msg3 = 'Cube with fake companions processed with {:}'
-                print(msg3.format(function.func_name))
+                print(msg3.format(algo.func_name))
                 timing(start_time)
 
             #*******************************************************************
@@ -440,7 +410,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, ncomp,
             
             if verbose:
                 msg4 = 'Measured the annulus-wise throughput of {:}'
-                print(msg4.format(function.func_name))
+                print(msg4.format(algo.func_name))
                 timing(start_time)
             
             thruput_arr[br, irad::fc_rad_sep] = thruput

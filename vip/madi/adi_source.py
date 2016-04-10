@@ -16,7 +16,7 @@ from ..var import get_annulus, mask_circle
 from ..calib import cube_derotate, cube_collapse, check_PA_vector
 from ..pca.pca_local import define_annuli
 
-def adi(array, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1, 
+def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1, 
         mode='simple', collapse='median', full_output=False, verbose=True):
     """ Algorithm based on Marois et al. 2006 on Angular Differential Imaging.   
     First the median frame is subtracted, then the median of the four closest 
@@ -24,7 +24,7 @@ def adi(array, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     
     Parameters
     ----------
-    array : array_like, 3d
+    cube : array_like, 3d
         Input cube.
     angle_list : array_like, 1d
         Corresponding parallactic angle for each frame.
@@ -88,6 +88,9 @@ def adi(array, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         ind4 = index_foll+2
         if ind4>n: ind4=n
         return np.array(range(ind1,ind2)+range(ind3,ind4))
+    
+    #***************************************************************************
+    array = cube
     
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array.')

@@ -37,6 +37,7 @@ def pp_subplots(*args, **kwargs):
     
     Parameters in **kwargs
     ----------------------
+    arrow : show an arrow pointing to input px coordinates
     cmap : colormap to be used, CMRmap by default
     cbar : to attach a colorbar, on by default
     dpi : dots per inch, for plot quality
@@ -51,9 +52,9 @@ def pp_subplots(*args, **kwargs):
     vmax : for stretching the displayed pixels values
     vmin : for stretching the displayed pixels values
     versp : vertical gap between subplots
-    
+
     """
-    parlist = ['cmap', 'cbar', 'dpi', 'grid', 'horsp', 'label', 'labelpad', 
+    parlist = ['arrow', 'cmap', 'cbar', 'dpi', 'grid', 'horsp', 'label', 'labelpad', 
                'labelsize', 'noaxis', 'rows', 'title', 'vmax', 'vmin', 'versp']
     
     for key in kwargs.iterkeys():
@@ -64,9 +65,19 @@ def pp_subplots(*args, **kwargs):
     if kwargs.has_key('label'):  
         label = kwargs['label']
         if len(label) != len(args):
-            print "Not enough labels for all subplots"
+            print "The number of labels doesn't match the number of subplots"
             label = None
     else:  label = None
+    
+    if kwargs.has_key('arrow'):
+        if not isinstance(kwargs['arrow'], tuple):
+            print "Arrow must be a tuple (X,Y)"
+            show_arrow = False
+        else:
+            coor_arrow = kwargs['arrow']
+            show_arrow = True
+    else:  
+        show_arrow = False
     
     if kwargs.has_key('labelsize'):  labelsize = kwargs['labelsize']
     else:  labelsize = 12
@@ -102,7 +113,7 @@ def pp_subplots(*args, **kwargs):
     else:  noax = False
     
     if kwargs.has_key('horsp'):  hor_spacing = kwargs['horsp']
-    else:  hor_spacing = 0.2
+    else:  hor_spacing = 0.3
     
     if kwargs.has_key('versp'):  ver_spacing = kwargs['versp']
     else:  ver_spacing = 0
@@ -129,6 +140,11 @@ def pp_subplots(*args, **kwargs):
         ax.set_aspect('equal')
         im = ax.imshow(args[i], cmap=custom_cmap, interpolation='nearest', 
                        origin='lower', vmin=vmin, vmax=vmax)  
+        if show_arrow:
+            leng = 20
+            ax.arrow(coor_arrow[0]+2*leng, coor_arrow[1], -leng, 0, color='white', 
+                     head_width=6, head_length=4, width=2, length_includes_head=True)
+            
         if label is not None:
             ax.annotate(label[i], xy=(labelpad,labelpad), color='white', 
                         xycoords='axes pixels', weight='bold', size=labelsize)    

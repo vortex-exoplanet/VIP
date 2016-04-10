@@ -392,7 +392,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
                 pa_thr = new_pa_th     
             
             for frame in xrange(n):
-                if ann_center > fwhm*10:                                        # TODO: 10*FWHM optimal?
+                if ann_center > fwhm*3:                                         # TODO: 3 optimal value? new parameter?
                     ind = find_indices(angle_list, frame, pa_thr, True)
                 else:
                     ind = find_indices(angle_list, frame, pa_thr, False)
@@ -670,28 +670,26 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             cubeout = np.array((frlist))
 
         # Plot of SNR as function of PCs  
-        if plot:         
-            plt.figure(figsize=(8,4), dpi=100)
-            plt.plot(pclist, snrlist, '-', alpha=0.5)
-            plt.plot(pclist, snrlist, 'o', alpha=0.8, color='blue')
-            plt.xlim(np.array(pclist).min(), np.array(pclist).max())
-            plt.ylim(0, np.array(snrlist).max()+1)
-            plt.xlabel('Number of PCs')
-            plt.ylabel('SNR')
-            plt.minorticks_on()
-            plt.grid('on', 'major', linestyle='-', alpha=0.7)
-            plt.grid('on', 'minor')
+        if plot:    
+            plt.figure(figsize=(8,4))
+            ax1 = plt.subplot(211)     
+            ax1.plot(pclist, snrlist, '-', alpha=0.5)
+            ax1.plot(pclist, snrlist, 'o', alpha=0.5, color='blue')
+            ax1.set_xlim(np.array(pclist).min(), np.array(pclist).max())
+            ax1.set_ylim(0, np.array(snrlist).max()+1)
+            ax1.set_ylabel('SNR')
+            ax1.minorticks_on()
+            ax1.grid('on', 'major', linestyle='solid', alpha=0.4)
             
-            plt.figure(figsize=(8,4), dpi=100)
-            plt.plot(pclist, fluxlist, '-', alpha=0.5)
-            plt.plot(pclist, fluxlist, 'o', alpha=0.8, color='green')
-            plt.xlim(np.array(pclist).min(), np.array(pclist).max())
-            plt.ylim(0, np.array(fluxlist).max()+1)
-            plt.xlabel('Number of PCs')
-            plt.ylabel('Integrated Flux in FWHM aperture [ADUs]')
-            plt.minorticks_on()
-            plt.grid('on', 'major', linestyle='-', alpha=0.7)
-            plt.grid('on', 'minor')           
+            ax2 = plt.subplot(212)
+            ax2.plot(pclist, fluxlist, '-', alpha=0.5, color='green')
+            ax2.plot(pclist, fluxlist, 'o', alpha=0.5, color='green')
+            ax2.set_xlim(np.array(pclist).min(), np.array(pclist).max())
+            ax2.set_ylim(0, np.array(fluxlist).max()+1)
+            ax2.set_xlabel('Principal components')
+            ax2.set_ylabel('Flux in FWHM ap. [ADUs]')
+            ax2.minorticks_on()
+            ax2.grid('on', 'major', linestyle='solid', alpha=0.4)
             print
             
     # automatic "clever" grid
@@ -734,32 +732,31 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             cubeout = cubefrs[ind]
     
         # Plot of SNR as function of PCs  
-        if plot:     
-            plt.figure(figsize=(8,4), dpi=100)    
-            plt.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,1]), '-', 
+        if plot:   
+            plt.figure(figsize=(8,4))   
+            ax1 = plt.subplot(211)  
+            ax1.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,1]), '-', 
                      alpha=0.5)
-            plt.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,1]), 'o',  
-                     alpha=0.8, color='blue')
-            plt.xlim(np.array(dfrsrd.loc[:,0]).min(), np.array(dfrsrd.loc[:,0]).max())
-            plt.ylim(0, np.array(dfrsrd.loc[:,1]).max()+1)
-            plt.xlabel('Number of PCs')
-            plt.ylabel('SNR')
-            plt.minorticks_on()
-            plt.grid('on', 'major', linestyle='-', alpha=0.7)
-            plt.grid('on', 'minor')
+            ax1.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,1]), 'o',  
+                     alpha=0.5, color='blue')
+            ax1.set_xlim(np.array(dfrsrd.loc[:,0]).min(), np.array(dfrsrd.loc[:,0]).max())
+            ax1.set_ylim(0, np.array(dfrsrd.loc[:,1]).max()+1)
+            #ax1.set_xlabel('')
+            ax1.set_ylabel('SNR')
+            ax1.minorticks_on()
+            ax1.grid('on', 'major', linestyle='solid', alpha=0.4)
             
-            plt.figure(figsize=(8,4), dpi=100)
-            plt.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), '-', 
-                     alpha=0.5)
-            plt.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), 'o', 
-                     alpha=0.8, color='green')
-            plt.xlim(np.array(pclist).min(), np.array(pclist).max())
-            plt.ylim(0, np.array(fluxlist).max()+1)
-            plt.xlabel('Number of PCs')
-            plt.ylabel('Integrated Flux in FWHM aperture [ADUs]')
-            plt.minorticks_on()
-            plt.grid('on', 'major', linestyle='-', alpha=0.7)
-            plt.grid('on', 'minor') 
+            ax2 = plt.subplot(212)
+            ax2.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), '-', 
+                     alpha=0.5, color='green')
+            ax2.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), 'o', 
+                     alpha=0.5, color='green')
+            ax2.set_xlim(np.array(pclist).min(), np.array(pclist).max())
+            ax2.set_ylim(0, np.array(fluxlist).max()+1)
+            ax2.set_xlabel('Principal components')
+            ax2.set_ylabel('Flux in FWHM ap. [ADUs]')
+            ax2.minorticks_on()
+            ax2.grid('on', 'major', linestyle='solid', alpha=0.4)
             print
     
     finalfr = pca(cube, angle_list, cube_ref, ncomp=opt_npc, svd_mode=svd_mode,  

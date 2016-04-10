@@ -203,9 +203,11 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         raise TypeError('Input array is not a frame or 2d array')
     
     if mode=='kernel-conv':
-        # Performs convolution of the frame with a 3x3 or 5x5 Laplacian 
-        # high-pass kernels. 
-        kernel3 = np.array([[-1, -1, -1], # A simple and very narrow hp filter
+        # Performs convolution with Laplacian high-pass kernels. 
+        # a simple and very narrow hp filter
+        # Kernel "Laplacian" of size 3x3+1+1 with values from -1 to 8
+        # Forming a output range from -8 to 8 (Zero-Summing)
+        kernel3 = np.array([[-1, -1, -1], 
                             [-1,  8, -1],
                             [-1, -1, -1]])
         #kernel3 = np.array([[0,  -1,  0],
@@ -219,12 +221,21 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         #                    [-1,  2,  4,  2, -1],
         #                    [-1,  1,  2,  1, -1],
         #                    [-1, -1, -1, -1, -1]])
+        # Kernel "Laplacian" of size 5x5+2+2 with values from -4 to 4
+        # Forming a output range from -24 to 24 (Zero-Summing)
+        kernel5 = np.array([[-4, -1,  0, -1, -4],
+                            [-1,  2,  3,  2, -1],
+                            [ 0,  3,  4,  3,  0],
+                            [-1,  2,  3,  2, -1],
+                            [-4, -1,  0, -1, -4]])
         # above /4. +1 in central px
-        kernel5 = np.array([[-0.25, -0.25, -0.25, -0.25, -0.25],
-                            [-0.25,  0.25,  0.5 ,  0.25, -0.25],
-                            [-0.25,  0.5 ,  2.  ,  0.5 , -0.25],
-                            [-0.25,  0.25,  0.5 ,  0.25, -0.25],
-                            [-0.25, -0.25, -0.25, -0.25, -0.25]])
+        #kernel5 = np.array([[-0.25, -0.25, -0.25, -0.25, -0.25],
+        #                    [-0.25,  0.25,  0.5 ,  0.25, -0.25],
+        #                    [-0.25,  0.5 ,  2.  ,  0.5 , -0.25],
+        #                    [-0.25,  0.25,  0.5 ,  0.25, -0.25],
+        #                    [-0.25, -0.25, -0.25, -0.25, -0.25]])
+        # Kernel "Laplacian" of size 7x7+3+3 with values from -10 to 8
+        # Forming a output range from -1e+02 to 1e+02 (Zero-Summing)
         kernel7 = np.array([[-10, -5, -2, -1, -2, -5, -10],
                             [-5,   0,  3,  4,  3,  0,  -5],
                             [-2,   3,  6,  7,  6,  3,  -2],

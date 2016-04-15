@@ -39,7 +39,7 @@ def pp_subplots(*args, **kwargs):
     ----------------------
     arrow : show an arrow pointing to input px coordinates
     cmap : colormap to be used, CMRmap by default
-    cbar : to attach a colorbar, on by default
+    cbar or colorb : to attach a colorbar, on by default
     dpi : dots per inch, for plot quality
     grid : for showing a grid over the image, off by default
     horsp : horizontal gap between subplots
@@ -54,8 +54,9 @@ def pp_subplots(*args, **kwargs):
     versp : vertical gap between subplots
 
     """
-    parlist = ['arrow', 'cmap', 'cbar', 'dpi', 'grid', 'horsp', 'label', 'labelpad', 
-               'labelsize', 'noaxis', 'rows', 'title', 'vmax', 'vmin', 'versp']
+    parlist = ['arrow', 'cmap', 'cbar', 'colorb', 'dpi', 'grid', 'horsp', 'label', 
+               'labelpad', 'labelsize', 'noaxis', 'rows', 'title', 'vmax', 'vmin', 
+               'versp']
     
     for key in kwargs.iterkeys():
         if key not in parlist:
@@ -92,6 +93,8 @@ def pp_subplots(*args, **kwargs):
     else:  custom_cmap = 'CMRmap'
     
     if kwargs.has_key('cbar'):  colorb = kwargs['cbar']
+    else:  colorb = True
+    if kwargs.has_key('colorb'):  colorb = kwargs['colorb']
     else:  colorb = True
     
     if kwargs.has_key('grid'):  grid = kwargs['grid']

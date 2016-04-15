@@ -103,6 +103,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         for i in xrange(cube.shape[0]):
             cube[i] = cube[i] / starphot[i]
 
+    fwhm = int(np.round(fwhm))
+
     if verbose:  start_time = timeInit()
     
     # throughput
@@ -124,7 +126,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     
     # noise measured in the empty PCA-frame with better sampling, every px
     # starting from 1*FWHM
-    noise_samp, rad_samp = noise_per_annulus(frame_nofc, 1, int(fwhm), False)        
+    noise_samp, rad_samp = noise_per_annulus(frame_nofc, 1, fwhm, False)        
     cutin1 = np.where(rad_samp.astype(int)==vector_radd.astype(int).min())[0]
     noise_samp = noise_samp[cutin1:]
     rad_samp = rad_samp[cutin1:]
@@ -238,7 +240,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         return cont_curve_samp, rad_samp*pxscale
 
 
-def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, ncomp, 
+def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, 
                nbranch=3, fc_rad_sep=3, student=True, full_output=False, 
                verbose=True, **algo_dict):
     """ Measures the throughput for chosen algorithm and input dataset. The 
@@ -260,9 +262,6 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, ncomp,
         Plate scale in arcsec/px.
     algo : callable or function
         The post-processing algorithm, e.g. vip.pca.pca.
-    n_comp : int
-        Number of principal components if PCA or other subspace projection 
-        technique is used.
     nbranch : int optional
         Number of branches on which to inject fakes companions. Each branch
         is tested individually.
@@ -276,8 +275,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, ncomp,
     verbose : {True, False}, bool optional
         If True prints out timing and information.
     **algo_dict
-        Any other valid parameter of the post-processing algorithms can be 
-        passed here.
+        Parameters of the post-processing algorithms must be passed here.
     
     Returns
     -------
@@ -307,6 +305,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, ncomp,
     """
     array = cube
     parangles = angle_list
+    fwhm = int(np.round(fwhm))
     
     if not array.ndim == 3:
         raise TypeError('The input array is not a cube')

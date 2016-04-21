@@ -671,10 +671,9 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
         return array_rec
   
 
-def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5, 
-                              nproc=1, full_output=False, verbose=True, 
-                              save_shifts=False, offset=None, negative=False, 
-                              debug=False):
+def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1, 
+                              full_output=False, verbose=True, save_shifts=False, 
+                              offset=None, negative=False, debug=False):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
     gaussian to a subimage centered at (pos_x, pos_y). This assumes the frames 
     don't have too large shifts (>5px). The frames are shifted using the 
@@ -684,7 +683,7 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
     ----------
     array : array_like
         Input cube.
-    pos_y, pos_x : int
+    xy : tuple of int
         Coordinates of the center of the subimage.    
     fwhm : float or array_like
         FWHM size in pixels, either one value (float) that will be the same for
@@ -727,7 +726,9 @@ def cube_recenter_gauss2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         msg = 'Debug with a big array will produce a very long output. '
         msg += 'Try with less than 20 frames in debug mode.'
         raise RuntimeWarning(msg)
-        
+    
+    pos_x, pos_y = xy
+    
     if not isinstance(pos_x,int) or not isinstance(pos_y,int):
         raise TypeError('pos_x and pos_y should be ints')
     

@@ -17,7 +17,8 @@ from ..calib import cube_derotate, cube_collapse, check_PA_vector
 from ..pca.pca_local import define_annuli
 
 def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1, 
-        mode='simple', collapse='median', full_output=False, verbose=True):
+        mode='simple', nframes=4, collapse='median', full_output=False, 
+        verbose=True):
     """ Algorithm based on Marois et al. 2006 on Angular Differential Imaging.   
     First the median frame is subtracted, then the median of the four closest 
     frames taking into account the pa_threshold (field rotation).
@@ -42,6 +43,9 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         In "simple" mode only the median frame is subtracted, in "annular" mode
         also the 4 closest frames given a PA threshold (annulus-wise) are 
         subtracted.
+    nframes : even int optional
+        Number of frames to be used for building the optimized reference PSF 
+        when working in annular mode. 
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
@@ -61,7 +65,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         The derotated cube of residuals.
          
     """
-    def find_indices(angle_list, frame, thr):  
+    def find_indices(angle_list, frame, thr, nframes):  
         """ Returns the indices to be left in frames library for optimized ADI.
         To find a more pythonic way to do this!
         """
@@ -81,13 +85,16 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
             else:
                 index_foll += 1
 
-        ind1 = index_prev-2
-        if ind1<0: ind1=0
+        window = int(nframes/2)
+        ind1 = index_prev-window
+        ind1 = max(ind1, 0)
         ind2 = index_prev
         ind3 = index_foll
-        ind4 = index_foll+2
-        if ind4>n: ind4=n
-        return np.array(range(ind1,ind2)+range(ind3,ind4))
+        ind4 = index_foll+window
+        ind4 = min(ind4, n)
+        indices = np.array(range(ind1,ind2)+range(ind3,ind4))
+        #print ind1, ind2, ind3, ind4, indices
+        return indices
     
     #***************************************************************************
     array = cube
@@ -96,7 +103,9 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         raise TypeError('Input array is not a cube or 3d array.')
     if not array.shape[0] == angle_list.shape[0]:
         raise TypeError('Input vector or parallactic angles has wrong length.')
-        
+    if not nframes%2==0:
+        raise TypeError('nframes argument must be even value.')
+    
     n, y, _ = array.shape
      
     if verbose:  start_time = timeInit()
@@ -141,14 +150,14 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
             
             #*******************************************************************
             # A second optimized psf reference is subtracted from each frame. 
-            # For each frame we find 4 frames, given enough field rotation 
-            # (PA thresh), to construct this optimized psf reference.
+            # For each frame we find *nframes*, depending on the PA threshold, 
+            # to construct this optimized psf reference.
             #*******************************************************************
             for frame in xrange(n):                                                 
                 if pa_threshold != 0:
-                    indices_left = find_indices(angle_list, frame, pa_threshold)
+                    indices_left = find_indices(angle_list, frame, pa_threshold, 
+                                                nframes)
                     matrix_disc = matrix[indices_left]
-                    #print indices_left
                 else:
                     matrix_disc = matrix
             

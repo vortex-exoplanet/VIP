@@ -41,5 +41,3 @@ class redirect_output(object):
         sys.stderr = self.sys_stderr
         
     
-
-#if __name__ == "__main__":

@@ -12,7 +12,7 @@ import cv2
 from ..var import frame_center
 
 
-def frame_rotate(array, angle, interpolation='bicubic', cy=None, cx=None):
+def frame_rotate(array, angle, interpolation='bicubic', cxy=None):
     """ Rotates a frame.
     
     Parameters
@@ -28,7 +28,7 @@ def frame_rotate(array, angle, interpolation='bicubic', cy=None, cx=None):
         The 'bicubic' is the default. The 'nearneig' is the fastest method and
         the 'bicubic' the slowest of the three. The 'nearneig' is the poorer
         option for interpolation of noisy astronomical images.
-    cy, cx : float, optional
+    cxy : float, optional
         Coordinates X,Y  of the point with respect to which the rotation will be 
         performed. By default the rotation is done with respect to the center 
         of the frame; central pixel if frame has odd size.
@@ -44,7 +44,10 @@ def frame_rotate(array, angle, interpolation='bicubic', cy=None, cx=None):
     array = np.float32(array)
     y, x = array.shape
     
-    if not cy and not cx:  cy, cx = frame_center(array)
+    if not cxy:  
+        cy, cx = frame_center(array)
+    else:
+        cx, cy = cxy
     
     if interpolation == 'bilinear':
         intp = cv2.INTER_LINEAR
@@ -61,7 +64,7 @@ def frame_rotate(array, angle, interpolation='bicubic', cy=None, cx=None):
     return array_out
     
     
-def cube_derotate(array, angle_list, cy=None, cx=None):
+def cube_derotate(array, angle_list, cxy=None, nproc=1):
     """ Rotates an ADI cube to a common north given a vector with the 
     corresponding parallactic angles for each frame of the sequence. By default
     bicubic interpolation is used (opencv). 
@@ -72,10 +75,10 @@ def cube_derotate(array, angle_list, cy=None, cx=None):
         Input 3d array, cube.
     angle_list : list
         Vector containing the parallactic angles.
-    cy, cx : float, optional
+    cxy : tuple of int, optional
         Coordinates X,Y  of the point with respect to which the rotation will be 
         performed. By default the rotation is done with respect to the center 
-        of the frames; central pixel if the frames have odd size.
+        of the frames, as it is returned by the function vip.var.frame_center. 
     collapse : {'median','mean'}
         Way of collapsing the derotated cube.
         
@@ -88,13 +91,15 @@ def cube_derotate(array, angle_list, cy=None, cx=None):
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array.')
     array_der = np.zeros_like(array) 
-    y, x = array[0].shape
+    n_frames = array.shape[0]
     
-    if not cy and not cx:  cy, cx = frame_center(array[0])
+    if not cxy:
+        cy, cx = frame_center(array[0])
+        cxy = (cx, cy)
     
-    for i in xrange(array.shape[0]): 
-        M = cv2.getRotationMatrix2D((cx,cy), -angle_list[i], 1)
-        array_der[i] = cv2.warpAffine(array[i].astype(np.float32), M, (x, y))
-  
+    for i in xrange(n_frames): 
+        array_der[i] = frame_rotate(array[i], -angle_list[i], 
+                                    interpolation='bicubic', cxy=cxy)
+    
     return array_der
 

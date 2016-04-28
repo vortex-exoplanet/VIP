@@ -219,9 +219,10 @@ def cube_detect_badfr_ellipticipy(array, fwhm, roundlo=-0.2, roundhi=0.2,
 def cube_detect_badfr_correlation(array, frame_ref, dist='pearson', 
                                   percentile=20, plot=True, verbose=True):
     """ Returns the list of bad frames from a cube by measuring the distance 
-    (similarity) or correlation of the frames wrt a reference frame from the 
-    same cube. Then the distance-correlation level is thresholded (percentile 
-    parameter) to find the outliers. Should be applied on a recentered cube.
+    (similarity) or correlation of the frames (cropped to a 30x30 subframe) 
+    wrt a reference frame from the same cube. Then the distance/correlation 
+    level is thresholded (percentile parameter) to find the outliers. Should be 
+    applied on a recentered cube.
     
     Parameters
     ----------
@@ -258,16 +259,17 @@ def cube_detect_badfr_correlation(array, frame_ref, dist='pearson',
     
     n = array.shape[0]
     # the cube is cropped to the central area
-    subarray = cube_crop_frames(array, 30, verbose=False)
+    subarray = cube_crop_frames(array, min(30, array.shape[1]), verbose=False)
     distances = cube_distance(subarray, frame_ref, 'full', dist, plot=False)
-    
-    if dist=='ssim' or dist=='pearson' or dist=='spearman':
-        # measures of correlation or similarity 
+        
+    if dist=='ssim' or dist=='pearson' or dist=='spearman': # measures of correlation or similarity 
+        minval = np.min(distances[~np.isnan(distances)])
+        distances = np.nan_to_num(distances)
+        distances[np.where(distances==0)] = minval
         threshold = np.percentile(distances, percentile)
         indbad = np.where(distances <= threshold)
         indgood = np.where(distances > threshold)
-    else:
-        # measures of dissimilarity
+    else:                                                   # measures of dissimilarity
         threshold = np.percentile(distances, 100-percentile)
         indbad = np.where(distances >= threshold)
         indgood = np.where(distances < threshold)
@@ -282,7 +284,7 @@ def cube_detect_badfr_correlation(array, frame_ref, dist='pearson',
     
     if plot:
         lista = distances
-        _, ax = plt.subplots(figsize=(12,6))
+        _, ax = plt.subplots(figsize=(8,4))
         x = range(len(lista))
         ax.plot(x, lista, '-', color='blue', alpha=0.3)
         if n>5000:

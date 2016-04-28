@@ -303,16 +303,18 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
             msg += '(temp-mean scaling)'
             print (msg)
         
-        fig = plt.figure(figsize=(8,4))
-        fig.subplots_adjust(wspace=0.2)
+        lw = 2
+        alpha = 0.4
+        fig = plt.figure(figsize=(6,3))
+        fig.subplots_adjust(wspace=0.4)
         ax1 = plt.subplot2grid((1,3), (0,0), colspan=2)
         ax1.step(range(explained_variance_ratio.shape[0]), 
-                 explained_variance_ratio, alpha=0.6, where='mid', 
-                 label='Individual explained variance ratio')
-        ax1.plot(ratio_cumsum, '.-', alpha=0.6, 
-                 label='Cumulative explained variance ratio')
-        ax1.legend(loc='best', fancybox=True, fontsize='medium')
-        ax1.set_ylabel('Explained variance ratio')
+                 explained_variance_ratio, alpha=alpha, where='mid', 
+                 label='Individual EVR', lw=lw)
+        ax1.plot(ratio_cumsum, '.-', alpha=alpha, 
+                 label='Cumulative EVR', lw=lw)
+        ax1.legend(loc='best', frameon=False, fontsize='medium')
+        ax1.set_ylabel('Explained variance ratio (EVR)')
         ax1.set_xlabel('Principal components')
         ax1.grid(linestyle='solid', alpha=0.2)
         ax1.set_xlim(-10, explained_variance_ratio.shape[0]+10)
@@ -321,15 +323,16 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         trunc = 20
         ax2 = plt.subplot2grid((1,3), (0,2), colspan=1)
         #plt.setp(ax2.get_yticklabels(), visible=False)
-        ax2.step(range(trunc), explained_variance_ratio[:trunc], alpha=0.6, 
-                 where='mid')
-        ax2.plot(ratio_cumsum[:trunc], '.-', alpha=0.6)
+        ax2.step(range(trunc), explained_variance_ratio[:trunc], alpha=alpha, 
+                 where='mid', lw=lw)
+        ax2.plot(ratio_cumsum[:trunc], '.-', alpha=alpha, lw=lw)
         ax2.set_xlabel('Principal components')
         ax2.grid(linestyle='solid', alpha=0.2)
         ax2.set_xlim(-2, trunc+2)
         ax2.set_ylim(0, 1)
         
         msg = '  Cumulative explained variance ratio for {:} PCs = {:.5f}'
+        #plt.savefig('figure.pdf', dpi=300, bbox_inches='tight')
         print(msg.format(ncomp, ratio_cumsum[ncomp-1]))
         
     if ncomp>min(matrix.shape[0],matrix.shape[1]):

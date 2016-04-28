@@ -14,7 +14,7 @@ __all__ = ['pp_subplots',
 
 import os
 import numpy as np
-from matplotlib.pyplot import (figure, subplot, show, colorbar, rc, axes)
+from matplotlib.pyplot import (figure, subplot, show, colorbar, rc, axes, savefig)
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from .shapes import frame_center
@@ -48,6 +48,7 @@ def pp_subplots(*args, **kwargs):
     labelsize : size of the labels
     noaxis : to remove the axis, on by default
     rows : how many rows (subplots in a grid)
+    save : if a string is provided the plot is saved using this as the path
     title : title of the plot(s), None by default
     vmax : for stretching the displayed pixels values
     vmin : for stretching the displayed pixels values
@@ -55,8 +56,8 @@ def pp_subplots(*args, **kwargs):
 
     """
     parlist = ['arrow', 'cmap', 'cbar', 'colorb', 'dpi', 'grid', 'horsp', 'label', 
-               'labelpad', 'labelsize', 'noaxis', 'rows', 'title', 'vmax', 'vmin', 
-               'versp']
+               'labelpad', 'labelsize', 'noaxis', 'rows', 'save', 'title', 'vmax', 
+               'vmin', 'versp']
     
     for key in kwargs.iterkeys():
         if key not in parlist:
@@ -80,6 +81,12 @@ def pp_subplots(*args, **kwargs):
     else:  
         show_arrow = False
     
+    if kwargs.has_key('save') and isinstance(kwargs['save'], str):
+        save = True
+        savepath = kwargs['save']
+    else:
+        save = False
+    
     if kwargs.has_key('labelsize'):  labelsize = kwargs['labelsize']
     else:  labelsize = 12
     
@@ -90,7 +97,7 @@ def pp_subplots(*args, **kwargs):
     else:  rows = 1
     
     if kwargs.has_key('cmap'):  custom_cmap = kwargs['cmap']
-    else:  custom_cmap = 'CMRmap'
+    else:  custom_cmap = 'CMRmap' # 'RdBu_r'
     
     if kwargs.has_key('cbar'):  colorb = kwargs['cbar']
     else:  colorb = True
@@ -100,14 +107,33 @@ def pp_subplots(*args, **kwargs):
     if kwargs.has_key('grid'):  grid = kwargs['grid']
     else:  grid = False
     
-    if kwargs.has_key('vmax'):  vmax = kwargs['vmax']
-    else:  vmax = None
+    if kwargs.has_key('vmax'):  
+        if isinstance(kwargs['vmax'], tuple) or isinstance(kwargs['vmax'], list):
+            if len(kwargs['vmax']) != len(args):
+                print "Vmax is a tuple with not enough items, setting all to None"
+                vmax = [None for i in range(len(args))]
+            else:
+                vmax = kwargs['vmax']
+        else:
+            vmax = [kwargs['vmax'] for i in range(len(args))]
+    else:  vmax = [None for i in range(len(args))]
     
-    if kwargs.has_key('vmin'):  vmin = kwargs['vmin']
-    else:  vmin = None
+    if kwargs.has_key('vmin'):  
+        if isinstance(kwargs['vmin'], tuple) or isinstance(kwargs['vmin'], list):
+            if len(kwargs['vmin']) != len(args):
+                print "Vmax is a tuple with not enough items, setting all to None"
+                vmin = [None for i in range(len(args))]
+            else:
+                vmin = kwargs['vmin']
+        else:
+            vmin = [kwargs['vmin'] for i in range(len(args))]
+    else:  vmin = [None for i in range(len(args))]
     
-    if kwargs.has_key('dpi'):  rc("savefig", dpi=kwargs['dpi']) 
-    else:  rc("savefig", dpi=90) 
+    if kwargs.has_key('dpi'):  
+        dpi = kwargs['dpi']
+    else:  
+        dpi = 90 
+    rc("savefig", dpi=dpi)
     
     if kwargs.has_key('title'):  tit = kwargs['title']
     else:  tit = None
@@ -142,11 +168,11 @@ def pp_subplots(*args, **kwargs):
         ax = subplot(rows,cols,v)
         ax.set_aspect('equal')
         im = ax.imshow(args[i], cmap=custom_cmap, interpolation='nearest', 
-                       origin='lower', vmin=vmin, vmax=vmax)  
+                       origin='lower', vmin=vmin[i], vmax=vmax[i])  
         if show_arrow:
             leng = 20
             ax.arrow(coor_arrow[0]+2*leng, coor_arrow[1], -leng, 0, color='white', 
-                     head_width=6, head_length=4, width=2, length_includes_head=True)
+                     head_width=10, head_length=8, width=3, length_includes_head=True)
             
         if label is not None:
             ax.annotate(label[i], xy=(labelpad,labelpad), color='white', 
@@ -166,6 +192,7 @@ def pp_subplots(*args, **kwargs):
         if noax:  ax.set_axis_off()
     
     fig.subplots_adjust(wspace=hor_spacing, hspace=ver_spacing)
+    if save:  savefig(savepath, dpi=dpi, bbox_inches='tight')
     show()
     
 

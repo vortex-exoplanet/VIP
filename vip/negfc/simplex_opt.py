@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from .func_merit import chisquare 
 from ..var import frame_center
-from ..phot import psf_norm
 
 __all__ = ['firstguess_simplex',
            'firstguess_from_coord',

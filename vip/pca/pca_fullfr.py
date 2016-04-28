@@ -733,30 +733,34 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
     
         # Plot of SNR as function of PCs  
         if plot:   
-            plt.figure(figsize=(8,4))   
+            alpha = 0.4
+            lw = 2
+            plt.figure(figsize=(6,4))   
             ax1 = plt.subplot(211)  
             ax1.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,1]), '-', 
-                     alpha=0.5)
+                     alpha=alpha, color='blue', lw=lw)
             ax1.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,1]), 'o',  
-                     alpha=0.5, color='blue')
+                     alpha=alpha/2, color='blue')
             ax1.set_xlim(np.array(dfrsrd.loc[:,0]).min(), np.array(dfrsrd.loc[:,0]).max())
             ax1.set_ylim(0, np.array(dfrsrd.loc[:,1]).max()+1)
             #ax1.set_xlabel('')
             ax1.set_ylabel('S/N')
             ax1.minorticks_on()
-            ax1.grid('on', 'major', linestyle='solid', alpha=0.4)
+            ax1.grid('on', 'major', linestyle='solid', alpha=0.2)
             
             ax2 = plt.subplot(212)
             ax2.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), '-', 
-                     alpha=0.5, color='green')
+                     alpha=alpha, color='green', lw=lw)
             ax2.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), 'o', 
-                     alpha=0.5, color='green')
+                     alpha=alpha/2, color='green')
             ax2.set_xlim(np.array(pclist).min(), np.array(pclist).max())
-            ax2.set_ylim(0, np.array(fluxlist).max()+1)
+            #ax2.set_ylim(0, np.array(fluxlist).max()+1)
             ax2.set_xlabel('Principal components')
-            ax2.set_ylabel('Flux in FWHM ap. [ADUs]')
+            ax2.set_ylabel('Flux in FWHM aperture')
             ax2.minorticks_on()
-            ax2.grid('on', 'major', linestyle='solid', alpha=0.4)
+            ax2.set_yscale('log')
+            ax2.grid('on', 'major', linestyle='solid', alpha=0.2)
+            #plt.savefig('figure.pdf', dpi=300, bbox_inches='tight')
             print
     
     finalfr = pca(cube, angle_list, cube_ref, ncomp=opt_npc, svd_mode=svd_mode,  

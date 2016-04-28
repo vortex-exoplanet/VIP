@@ -107,9 +107,12 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     # throughput
     res_throug = throughput(cube, angle_list, psf_template, fwhm, pxscale, 
                             nbranch=nbranch, full_output=True, algo=algo,
-                            student=student, verbose=False, **algo_dict)
+                            verbose=False, **algo_dict)
     vector_radd = res_throug[2] 
-    thruput_mean = res_throug[0][0]
+    if res_throug[0].shape[0]>1:
+        thruput_mean = np.mean(res_throug[0], axis=0)
+    else:
+        thruput_mean = res_throug[0][0]
     frame_nofc = res_throug[5]
     
     if verbose:
@@ -172,9 +175,9 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         plt.legend(loc='best')
         plt.xlim(0, np.max(rad_samp*pxscale))
     
+    sig_label = sigma
     # student t correction
     if student:
-        sig_label = sigma
         n_res_els = np.floor(rad_samp/fwhm*2*np.pi)
         ss_corr = np.sqrt(1 + 1/(n_res_els-1))
         sigma = stats.t.ppf(stats.norm.cdf(sigma), n_res_els)/ss_corr
@@ -222,8 +225,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
 
 def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, 
-               nbranch=3, fc_rad_sep=3, student=True, full_output=False, 
-               verbose=True, **algo_dict):
+               nbranch=3, fc_rad_sep=3, full_output=False, verbose=True, 
+               **algo_dict):
     """ Measures the throughput for chosen algorithm and input dataset. The 
     final throughput is the average of the same procedure measured in *nbranch* 
     azimutally equidistant branches.
@@ -242,15 +245,15 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo,
     pxscale : float
         Plate scale in arcsec/px.
     algo : callable or function
-        The post-processing algorithm, e.g. vip.pca.pca.
+        The post-processing algorithm, e.g. vip.pca.pca. Third party Python 
+        algorithms can be plugged here. They must have the parameters: 'cube', 
+        'angle_list' and 'verbose'. Optionally a wrapper function can be used.
     nbranch : int optional
         Number of branches on which to inject fakes companions. Each branch
         is tested individually.
     fc_rad_sep : int optional
         Radial separation between the injection companions (in each of the 
         patterns) in FWHM. Must be large enough to avoid overlapping.  
-    student : {True, False}, bool optional
-        If True uses Student t correction to inject fake companion.
     full_output : {False, True}, bool optional
         If True returns intermediate arrays.
     verbose : {True, False}, bool optional
@@ -326,13 +329,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo,
     # Initialize the fake companions
     angle_branch = 360.0/nbranch        
     # signal-to-noise ratio of injected fake companions                                                     
-    snr_level = 7.0 * np.ones_like(noise)         
-    # student correction translates the confidence intervals from gaussian to
-    # student-t and corrects for small sample statistics                              
-    if student:
-        n_res_els = np.floor(vector_radd/fwhm*2*np.pi)
-        ss_corr = np.sqrt(1 + 1/(n_res_els-1))
-        snr_level = stats.t.ppf(stats.norm.cdf(snr_level), n_res_els) / ss_corr
+    snr_level = 10.0 * np.ones_like(noise)         
     
     thruput_arr = np.zeros((nbranch, noise.shape[0]))
     fc_map_all = np.zeros((nbranch*fc_rad_sep, array.shape[1], array.shape[2]))
@@ -385,9 +382,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo,
             ratio = (frame_fc - frame_nofc) / fc_map
             thruput = aperture_flux(ratio, fcy, fcx, fwhm, ap_factor=1,
                                     mean=True, verbose=False)
-            
-            #pp_subplots(frame_fc, frame_nofc, fc_map, ratio, colorb=True)
-            
+                        
             if verbose:
                 msg4 = 'Measured the annulus-wise throughput of {:}'
                 print(msg4.format(algo.func_name))

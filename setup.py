@@ -7,7 +7,7 @@ except ImportError:
     from distutils.core import setup
  
 
-readme = open('readme.rst').read()
+readme = open('README.rst').read()
 doclink = """
 Documentation
 -------------

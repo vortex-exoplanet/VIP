@@ -146,7 +146,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     thruput_interp_sm = savgol_filter(thruput_interp, polyorder=1, mode='nearest',
                                       window_length=win1)
     noise_samp_sm = savgol_filter(noise_samp, polyorder=1, mode='nearest',
-                                window_length=win2)
+                                  window_length=win2)
     
     if debug:
         print('SIGMA={}'.format(sigma))
@@ -158,8 +158,9 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         plt.plot(rad_samp*pxscale, thruput_interp_sm, ',-', label='smoothed', 
                  lw=2, alpha=0.5)
         plt.plot(rad_samp*pxscale, thruput_interp, '.', label='interpolated')
-        plt.plot(vector_radd*pxscale, thruput_mean, '.', label='computed')
-        plt.grid('on')
+        plt.plot(vector_radd*pxscale, thruput_mean, 'o', label='computed', 
+                 alpha=0.4, color='blue')
+        plt.grid('on', which='both', alpha=0.2, linestyle='solid')
         plt.xlabel('Angular separation [arcsec]')
         plt.ylabel('Throughput')
         plt.legend(loc='best')
@@ -169,10 +170,11 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         plt.plot(rad_samp*pxscale, noise_samp, '.', label='computed')
         plt.plot(rad_samp*pxscale, noise_samp_sm, ',-', label='noise smoothed', 
                  lw=2, alpha=0.5)
-        plt.grid('on')
+        plt.grid('on', alpha=0.2, linestyle='solid')
         plt.xlabel('Angular separation [arcsec]')
         plt.ylabel('Noise')
         plt.legend(loc='best')
+        plt.yscale('log')
         plt.xlim(0, np.max(rad_samp*pxscale))
     
     sig_label = sigma
@@ -196,10 +198,11 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         plt.rc("savefig", dpi=dpi)
         fig = plt.figure(figsize=(8,4))
         ax1 = fig.add_subplot(111)
-        ax1.plot(rad_samp*pxscale, cont_curve_samp, '.-', label=label,alpha=0.8)
+        con1, = ax1.plot(rad_samp*pxscale, cont_curve_samp, '-', alpha=0.8)
+        con2, = ax1.plot(rad_samp*pxscale, cont_curve_samp, '.', alpha=0.4)
         plt.xlabel('Angular separation [arcsec]')
         plt.ylabel(str(sig_label)+' sigma contrast')
-        plt.legend(fancybox=True, fontsize='small')
+        plt.legend([(con1, con2)], [label], fancybox=True, fontsize='medium')
         plt.grid('on', which='both', alpha=0.2, linestyle='solid')
         plt.yscale('log')
         ax1.set_xlim(0, np.max(rad_samp*pxscale))
@@ -210,11 +213,13 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         
         if debug:        
             plt.figure(figsize=(8,4))
-            plt.plot(rad_samp*pxscale, -2.5*np.log10(cont_curve_samp), '.-', 
-                     label=label, alpha=0.8)
+            con3, = plt.plot(rad_samp*pxscale, -2.5*np.log10(cont_curve_samp), '-', 
+                             alpha=0.8)
+            con4, = plt.plot(rad_samp*pxscale, -2.5*np.log10(cont_curve_samp), '.', 
+                             alpha=0.4)
             plt.xlabel('Angular separation [arcsec]')
             plt.ylabel('Delta magnitude')
-            plt.legend(fancybox=True, fontsize='small')
+            plt.legend([(con3, con4)], [label], fancybox=True, fontsize='medium')
             plt.gca().invert_yaxis()
             plt.grid('on', which='both', alpha=0.2, linestyle='solid')
             plt.xlim(0, np.max(rad_samp*pxscale))

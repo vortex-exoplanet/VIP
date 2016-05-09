@@ -67,9 +67,8 @@ def lnprior(modelParameters, bounds):
 
 def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width, 
            ncomp, aperture_radius, initialState, cube_ref=None, svd_mode='lapack', 
-           scaling='temp-mean', debug=False):
-    """
-    Define the likelihood log-function.
+           scaling='temp-mean', fmerit='sum', debug=False):
+    """ Define the likelihood log-function.
     
     Parameters
     ----------    
@@ -102,6 +101,9 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         "temp-mean" then temporal px-wise mean subtraction is done and with 
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done. 
+    fmerit : {'sum', 'stddev'}, string optional
+        Chooses the figure of merit to be used. stddev works better for close in
+        companions sitting on top of speckle noise.
     debug: boolean
         If True, the cube is returned along with the likelihood log-function.        
         
@@ -130,8 +132,13 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
                                  scaling=scaling)
     
     # Function of merit
-    values = np.abs(values)
-    lnlikelihood = -0.5*np.sum(values[values>0])
+    if fmerit=='sum':
+        values = np.abs(values)
+        lnlikelihood = -0.5*np.sum(values[values>0])
+    elif fmerit=='stddev':
+        lnlikelihood = np.std(values[values!=0])
+    else:
+        raise RuntimeError('fmerit choice not recognized')
     
     if debug:
         return lnlikelihood, cube_negfc
@@ -141,7 +148,7 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
 
 def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, fwhm, 
            annulus_width, ncomp, aperture_radius, initialState, cube_ref=None, 
-           svd_mode='lapack', scaling='temp-mean', display=False):
+           svd_mode='lapack', scaling='temp-mean', fmerit='sum', display=False):
     """ Define the probability log-function as the sum between the prior and 
     likelihood log-funtions.
     
@@ -179,6 +186,9 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, fwhm,
         "temp-mean" then temporal px-wise mean subtraction is done and with 
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done. 
+    fmerit : {'sum', 'stddev'}, string optional
+        Chooses the figure of merit to be used. stddev works better for close in
+        companions sitting on top of speckle noise.
     display: boolean
         If True, the cube is displayed with ds9.        
         
@@ -198,7 +208,7 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, fwhm,
     
     return lp + lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm,
                        annulus_width, ncomp, aperture_radius, initialState, 
-                       cube_ref, svd_mode, scaling, display) 
+                       cube_ref, svd_mode, scaling, fmerit, display) 
 
 
 def gelman_rubin(x):      
@@ -293,12 +303,12 @@ def gelman_rubin_from_chain(chain, burnin):
 
 def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState, 
                         fwhm=4, annulus_width=3, aperture_radius=4, cube_ref=None, 
-                        svd_mode='lapack', scaling='temp-mean', nwalkers=1000, 
-                        bounds=None, a=2.0, burnin=0.3, rhat_threshold=1.01, 
-                        rhat_count_threshold=1, niteration_min=0,
-                        niteration_limit=1e02, niteration_supp=0,
-                        check_maxgap=1e04, nproc=1, output_file=None,
-                        display=False, verbose=True, save=False):
+                        svd_mode='lapack', scaling='temp-mean', fmerit='sum', 
+                        nwalkers=1000, bounds=None, a=2.0, burnin=0.3, 
+                        rhat_threshold=1.01, rhat_count_threshold=1, 
+                        niteration_min=0, niteration_limit=1e02, 
+                        niteration_supp=0, check_maxgap=1e04, nproc=1, 
+                        output_file=None, display=False, verbose=True, save=False):
     """
     Run an affine invariant mcmc algorithm in order to determine the true 
     position and the flux of the planet using the 'Negative Fake Companion' 
@@ -351,6 +361,9 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
         "temp-mean" then temporal px-wise mean subtraction is done and with 
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done. 
+    fmerit : {'sum', 'stddev'}, string optional
+        Chooses the figure of merit to be used. stddev works better for close in
+        companions sitting on top of speckle noise.
     bounds: numpy.array or list, default=None, optional
         The prior knowledge on the model parameters. If None, large bounds will 
         be automatically estimated from the initial state.
@@ -478,7 +491,7 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
                                     args =([bounds,cubes,angs,plsc,psfn,
                                             fwhm,annulus_width,ncomp,
                                             aperture_radius, initialState,
-                                            cube_ref,svd_mode,scaling]),
+                                            cube_ref,svd_mode,scaling,fmerit]),
                                     threads=nproc)
     
     duration_start = datetime.datetime.now()

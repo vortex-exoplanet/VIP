@@ -12,7 +12,7 @@ from ..pca import pca_annulus
 
 def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,  
               aperture_radius, initialState, ncomp, cube_ref=None, 
-              svd_mode='lapack', scaling=None):
+              svd_mode='lapack', scaling=None, fmerit='sum'):
     """
     Calculate the reduced chi2:
     \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -50,6 +50,9 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         "temp-mean" then temporal px-wise mean subtraction is done and with 
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done. 
+    fmerit : {'sum', 'stddev'}, string optional
+        Chooses the figure of merit to be used. stddev works better for close in
+        companions sitting on top of speckle noise.
         
     Returns
     -------
@@ -74,12 +77,15 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
                                  svd_mode=svd_mode, scaling=scaling)
     
     # Function of merit
-    values = np.abs(values)
-    
-    chi2 = np.sum(values[values>0])
-    N =len(values[values>0])    
-    
-    return chi2/(N-3)
+    if fmerit=='sum':
+        values = np.abs(values)
+        chi2 = np.sum(values[values>0])
+        N =len(values[values>0])    
+        return chi2/(N-3)
+    elif fmerit=='stddev':
+        return np.std(values[values!=0]) 
+    else:
+        raise RuntimeError('fmerit choice not recognized')       
 
 
 

@@ -23,7 +23,7 @@ from ..stats import descriptive_stats
 
 
 
-def pca_rdi_annular(cube, angle_list, array_ref, radius_int=0, asize=1, 
+def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, 
                     ncomp=1, svd_mode='randsvd', min_corr=0.9, fwhm=4, 
                     scaling='temp-standard', collapse='median', 
                     full_output=False, verbose=True, debug=False):
@@ -42,7 +42,7 @@ def pca_rdi_annular(cube, angle_list, array_ref, radius_int=0, asize=1,
         Input science cube.
     angle_list : array_like, 1d
         Corresponding parallactic angle for each frame.
-    array_ref : array_like, 3d
+    cube_ref : array_like, 3d
         Reference library cube. For Reference Star Differential Imaging.
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the 
@@ -123,6 +123,7 @@ def pca_rdi_annular(cube, angle_list, array_ref, radius_int=0, asize=1,
 
     #---------------------------------------------------------------------------
     array = cube
+    array_ref = cube_ref
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array.')
     if not array.shape[0] == angle_list.shape[0]:

@@ -54,11 +54,15 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
     if not array.ndim==3: 
         raise TypeError('Array is not a cube or 3d array')
     
+    ceny, cenx = frame_center(array[0])
+    rad_dists = np.array(rad_dists)
+    if not rad_dists[-1]<array[0].shape[0]/2.:
+        msg = 'rad_dists last location is at the border (or outside) the field'
+        raise ValueError(msg)
+    
     size_fc = psf_template.shape[0]
     nframes = array.shape[0]
-    ceny, cenx = frame_center(array[0])
     fc_fr = np.zeros_like(array[0], dtype=np.float64)
-    rad_dists = np.array(rad_dists)
     n_fc_rad = rad_dists.shape[0]
     array_fc = psf_template.copy()                                   
     

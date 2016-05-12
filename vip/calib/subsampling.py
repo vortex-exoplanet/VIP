@@ -12,7 +12,6 @@ __all__ = ['cube_collapse',
            'cube_subsample_trimmean']
 
 import numpy as np
-import pandas as pn
 
 
 def cube_collapse(cube, mode='median', n=50):
@@ -60,7 +59,7 @@ def cube_collapse(cube, mode='median', n=50):
     return frame
 
 
-def cube_subsample(array, n, mode="mean", parallactic=None, verbose=False):
+def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
     """Mean/Median combines frames in cube with window n.
     
     Parameters
@@ -79,38 +78,38 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=False):
     arr_view : array_like
         Resulting array.
     angles : array_like
-        PA.
+        Parallactic angles.
     """
     if not array.ndim == 3:
         raise TypeError('The input array is not a cube or 3d array.')
-    m = int(array.shape[0]/n)                                                        
+    m = int(array.shape[0]/n) 
+    resid = array.shape[0]%n                                                       
     y = array.shape[1]
     x = array.shape[2]
     arr = np.empty([m, y, x]) 
-    if mode == 'median':
-        for i in xrange(m):                                                  
-            arr[i, :, :] = np.median(array[:n, :, :], axis=0)                   # first new frame,  mean of first n frames
-            if i >= 1:
-                arr[i, :, :] = np.median(array[n*i:n*i+n, :, :], axis=0) 
-    if mode=='mean':
-        for i in xrange(m):                                                  
-            arr[i, :, :] = np.mean(array[:n, :, :], axis=0)                         
-            if i >= 1:
-                arr[i, :, :] = np.mean(array[n*i:n*i+n, :, :], axis=0)
-    else:  
-        raise ValueError('Mode should be either Mean or Median.')
     if parallactic is not None:
-        angles = parallactic.byteswap().newbyteorder()
-        angles = pn.rolling_mean(angles, n, center=True)
-        angles = pn.DataFrame(angles)
-        angles = pn.DataFrame.fillna(angles, method='pad')
-        angles = pn.DataFrame.fillna(angles, method='bfill')
-        angles = np.array(angles)
-        angles = angles[0:m*n:n]
-    if array.shape[0]/n % 1 != 0:
-        print '\nInitial # of frames and window are not multiples. A few frames were dropped.'   
+        angles = np.zeros(m)
+        
+    if mode == 'median':  func = np.median
+    elif mode=='mean':  func = np.mean
+    else:  
+        raise ValueError('Mode should be either Mean or Median.') 
+        
+    for i in xrange(m):                                                  
+        arr[i, :, :] = func(array[:n, :, :], axis=0) 
+        if parallactic is not None:  angles[i] = func(parallactic[:n])
+        if i >= 1:
+            arr[i, :, :] = func(array[n*i:n*i+n, :, :], axis=0)
+            if parallactic is not None:
+                angles[i] = func(parallactic[n*i:n*i+n])
+
     if verbose:
-        print "Done {:} over FITS-Cube with window n = {:}".format(mode ,n)                            
+        print "Datacube subsampled by taking the {:} of {:} frames".format(mode ,n)
+        if resid > 0:
+            msg = "Initial # of frames and window are not multiples ({:} frames were dropped)"
+            print msg.format(resid)     
+        print "New cube contains {:} frames".format(m)
+                                   
     if parallactic is not None:
         return arr, angles
     else:

@@ -5,9 +5,8 @@ Vortex Image Processing pipeline (VIP)
   Please cite Gomez Gonzalez et al. 2016 (in prep.) whenever you publish data 
   reduced with VIP.
 
-VIP is registered on the Astrophysics Source Code Library [ascl:1603.003]. 
-
-
+VIP is registered on the Astrophysics Source Code Library [ascl:1603.003].
+  
 VIP is a package/pipeline for angular, reference star and spectral 
 differential imaging for exoplanet detection through high-contrast imaging. 
 VIP is being developed in Python 2.7.
@@ -21,23 +20,9 @@ github.
 
 Documentation
 =============
-In ./tutorial folder you can find a Jupyter notebook with a detailed tutorial
-of VIP. You can visualize it, without running it locally, by just opening the 
-file in the github web interface or by using the notebook viewer service:
-http://nbviewer.ipython.org/github/vortex-exoplanet/VIP/blob/master/tutorial/Tutorial_VIP.ipynb
-
-For running the tutorial execute:
-
-.. code-block:: bash
-  
-  $ jupyter notebook
-  
-which will load the jupyter environment and open a web-page listing 
-Tutorial_vip.ipnb. Open it to run the VIP tutorial notebook. 
-
-Docstrings (internal documentation) are filled in for every function in VIP.
-Sphinx can be used to generate the documentation from the docstrings in html or
-pdf into docs folder (coming soon).
+VIP tutorials (Jupyter notebook) was removed from the main VIP repository. It 
+will be updated and released in a separate repository. Documentation in HTML and
+PDF will be produced when VIP paper is published.
 
 
 Quick Setup Guide

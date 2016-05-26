@@ -21,6 +21,7 @@ from scipy import stats
 from scipy.signal import savgol_filter
 from skimage.draw import circle
 from matplotlib import pyplot as plt
+from pandas import DataFrame as DF
 from .fakecomp import inject_fcs_cube, inject_fc_frame, psf_norm
 from ..conf import timeInit, timing
 from ..var import frame_center, dist
@@ -93,13 +94,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     
     Returns
     -------
-    cont_curve_samp : array_like
-        Final contrast for the input sigma, as seen in the plot.
-    cont_curve_samp_t : array_like
-        Contrast with the student t correction.
-    rad_samp : array_like
-        Vector of distances in arcseconds. 
-        
+    datafr : pandas dataframe
+        Dataframe containing the sensitivity (Gaussian and Student corrected if
+        Student parameter is True), the interpolated throughput, the distance in 
+        pixels, the noise and the sigma corrected (if Student is True). 
     """  
     if not cube.ndim == 3:
         raise TypeError('The input array is not a cube')
@@ -143,7 +141,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         thruput_mean = thruput_mean[:-1]
         vector_radd = vector_radd[:-1]
     
-    # noise measured in the empty PCA-frame with better sampling, every px
+    # noise measured in the empty PP-frame with better sampling, every px
     # starting from 1*FWHM
     noise_samp, rad_samp = noise_per_annulus(frame_nofc, 1, fwhm, wedge, False)        
     cutin1 = np.where(rad_samp.astype(int)==vector_radd.astype(int).min())[0]
@@ -164,21 +162,21 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         f2 = InterpolatedUnivariateSpline(radvec_trans, trans, k=1)
         trans_interp = f2(rad_samp)
     
-    # smoothing the throughput and noise vectors using a Savitzky-Golay filter
+    # smoothing the noise vector using a Savitzky-Golay filter
     win = int(noise_samp.shape[0]*0.1)
     if win%2==0.:  win += 1
     noise_samp_sm = savgol_filter(noise_samp, polyorder=2, mode='nearest',
-                                window_length=win)
+                                  window_length=win)
     
     if debug:
-        print('SIGMA={}'.format(sigma))
+        print('SIGMA = {}'.format(sigma))
         if isinstance(starphot, float) or isinstance(starphot, int):
-            print('STARPHOT={}'.format(starphot))
+            print('STARPHOT = {}'.format(starphot))
         
         plt.rc("savefig", dpi=dpi)
         plt.figure(figsize=(8,4))
-        plt.plot(vector_radd*pxscale, thruput_mean, 'o', label='computed', 
-                 alpha=0.4)
+        plt.plot(vector_radd*pxscale, thruput_mean, '.', label='computed', 
+                 alpha=0.6)
         plt.plot(rad_samp*pxscale, thruput_interp, ',-', label='interpolated', 
                  lw=2, alpha=0.5)
         plt.grid('on', which='both', alpha=0.2, linestyle='solid')
@@ -195,61 +193,100 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         plt.xlabel('Angular separation [arcsec]')
         plt.ylabel('Noise')
         plt.legend(loc='best')
-        plt.yscale('log')
+        #plt.yscale('log')
         plt.xlim(0, np.max(rad_samp*pxscale))
-    
-    sig_label = sigma
-    # student t correction
-    if student:
-        n_res_els = np.floor(rad_samp/fwhm*2*np.pi)
-        ss_corr = np.sqrt(1 + 1/(n_res_els-1))
-        sigma = stats.t.ppf(stats.norm.cdf(sigma), n_res_els)/ss_corr
     
     # calculating the contrast
     if isinstance(starphot, float) or isinstance(starphot, int):
         cont_curve_samp = ((sigma * noise_samp_sm)/thruput_interp)/starphot
     else:
         cont_curve_samp = ((sigma * noise_samp_sm)/thruput_interp)
+    cont_curve_samp[np.where(cont_curve_samp<0)] = 1
+    cont_curve_samp[np.where(cont_curve_samp>1)] = 1
+        
+    # calculating the Student corrected contrast
+    if student:
+        n_res_els = np.floor(rad_samp/fwhm*2*np.pi)
+        ss_corr = np.sqrt(1 + 1/(n_res_els-1))
+        sigma_corr = stats.t.ppf(stats.norm.cdf(sigma), n_res_els)/ss_corr
+        if isinstance(starphot, float) or isinstance(starphot, int):
+            cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp)/starphot
+        else:    
+            cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp)
+        cont_curve_samp_corr[np.where(cont_curve_samp_corr<0)] = 1
+        cont_curve_samp_corr[np.where(cont_curve_samp_corr>1)] = 1
         
     if transmission is not None:  cont_curve_samp = cont_curve_samp*trans_interp
         
     # plotting
     if plot or debug:
-        if student:  label = 'CC (student-t correction)'
-        else:  label = 'CC (gaussian)'
+        if student:  
+            label = ['Sensitivity (Gaussian)', 
+                     'Sensitivity (Student-t correction)']
+        else:  label = ['Sensitivity (Gaussian)']
         
         plt.rc("savefig", dpi=dpi)
         fig = plt.figure(figsize=(8,4))
         ax1 = fig.add_subplot(111)
-        con1, = ax1.plot(rad_samp*pxscale, cont_curve_samp, '-', alpha=0.8)
-        con2, = ax1.plot(rad_samp*pxscale, cont_curve_samp, '.', alpha=0.4)
+        con1, = ax1.plot(rad_samp*pxscale, cont_curve_samp, '-', 
+                         alpha=0.2, lw=2, color='green')
+        con2, = ax1.plot(rad_samp*pxscale, cont_curve_samp, '.',
+                         alpha=0.2, color='green')
+        if student:
+            con3, = ax1.plot(rad_samp*pxscale, cont_curve_samp_corr, '-', 
+                             alpha=0.4, lw=2, color='blue')
+            con4, = ax1.plot(rad_samp*pxscale, cont_curve_samp_corr, '.',
+                             alpha=0.4, color='blue')
+            lege = [(con1, con2), (con3, con4)]
+        else:
+            lege = [(con1, con2)]
+        plt.legend(lege, label, fancybox=True, fontsize='medium')
         plt.xlabel('Angular separation [arcsec]')
-        plt.ylabel(str(sig_label)+' sigma contrast')
-        plt.legend([(con1, con2)], [label], fancybox=True, fontsize='medium')
+        plt.ylabel(str(sigma)+' sigma contrast')
         plt.grid('on', which='both', alpha=0.2, linestyle='solid')
-        plt.yscale('log')
+        ax1.set_yscale('log')
         ax1.set_xlim(0, np.max(rad_samp*pxscale))
-        ax2 = ax1.twiny()
-        ax2.set_xlabel('Distance [pixels]')
-        ax2.plot(rad_samp, cont_curve_samp, '',alpha=0.)
-        ax2.set_xlim(0, np.max(rad_samp))                                 
-        
+
         if debug:        
-            plt.figure(figsize=(8,4))
-            con3, = plt.plot(rad_samp*pxscale, -2.5*np.log10(cont_curve_samp), '-', 
-                             alpha=0.8)
-            con4, = plt.plot(rad_samp*pxscale, -2.5*np.log10(cont_curve_samp), '.', 
-                             alpha=0.4)
+            fig2 = plt.figure(figsize=(8,4))
+            ax3 = fig2.add_subplot(111)
+            cc_mags = -2.5*np.log10(cont_curve_samp)
+            con4, = ax3.plot(rad_samp*pxscale, cc_mags, '-', 
+                             alpha=0.2, lw=2, color='green')
+            con5, = ax3.plot(rad_samp*pxscale, cc_mags, '.', alpha=0.2,
+                             color='green')
+            if student:
+                cc_mags_corr = -2.5*np.log10(cont_curve_samp_corr)
+                con6, = ax3.plot(rad_samp*pxscale, cc_mags_corr, '-', 
+                                 alpha=0.4, lw=2, color='blue')
+                con7, = ax3.plot(rad_samp*pxscale, cc_mags_corr, '.', 
+                                 alpha=0.4, color='blue')
+                lege = [(con4, con5), (con6, con7)]
+            else:
+                lege = [(con4, con5)]
+            plt.legend(lege, label, fancybox=True, fontsize='medium')
             plt.xlabel('Angular separation [arcsec]')
             plt.ylabel('Delta magnitude')
-            plt.legend([(con3, con4)], [label], fancybox=True, fontsize='medium')
             plt.gca().invert_yaxis()
             plt.grid('on', which='both', alpha=0.2, linestyle='solid')
-            plt.xlim(0, np.max(rad_samp*pxscale))
+            ax3.set_xlim(0, np.max(rad_samp*pxscale))
+            ax4 = ax3.twiny()
+            ax4.set_xlabel('Distance [pixels]')
+            ax4.plot(rad_samp, cc_mags, '', alpha=0.)
+            ax4.set_xlim(0, np.max(rad_samp)) 
     
-    if verbose:  timing(start_time)
+    datafr0 = DF(data=cont_curve_samp, columns=['sensitivity (Gauss)'])
+    datafr2 = DF(data=thruput_interp, columns=['througput'])
+    datafr3 = DF(data=rad_samp, columns=['distance'])
+    datafr4 = DF(data=noise_samp_sm, columns=['noise'])        
+    if student:
+        datafr1 = DF(data=cont_curve_samp_corr, columns=['sensitivity (Student)'])
+        datafr5 = DF(data=sigma_corr, columns=['sigma corr'])
+        datafr = datafr0.join(datafr1).join(datafr2).join(datafr3).join(datafr4).join(datafr5)
+    else:
+        datafr = datafr0.join(datafr2).join(datafr3).join(datafr4)
     
-    return cont_curve_samp, rad_samp*pxscale
+    return datafr
 
 
 def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1, 
@@ -439,6 +476,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                                            fwhm, ap_factor=1, mean=False, 
                                            verbose=False)
             thruput = (recovered_flux)/injected_flux
+            thruput[np.where(thruput<0)] = 0
             
             thruput_arr[br, irad::fc_rad_sep] = thruput
             fc_map_all[br*fc_rad_sep+irad, :, :] = fc_map

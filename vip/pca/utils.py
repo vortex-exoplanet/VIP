@@ -244,7 +244,7 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, verbose=True):
     matrix = matrix_scaling(matrix, scaling)
     
     if verbose:
-        msg = 'Done building the matrix. Matrix shape [{:},{:}]'
+        msg = 'Done vectorizing the frames. Matrix shape [{:},{:}]'
         print(msg.format(matrix.shape[0], matrix.shape[1]))  
     return matrix
      

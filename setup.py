@@ -37,7 +37,7 @@ setup(
                       'astropy >= 1.0.2',
                       'emcee >= 2.1',
                       'corner >= 1.0.2',
-                      'pandas >= 0.16',
+                      'pandas >= 0.18',
                       'matplotlib >= 1.4.3',
                       'scikit-learn >= 0.17',
                       'scikit-image >= 0.11',

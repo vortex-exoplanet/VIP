@@ -15,6 +15,7 @@ __all__ = ['pp_subplots',
 import os
 import numpy as np
 from matplotlib.pyplot import (figure, subplot, show, colorbar, rc, axes, savefig)
+import matplotlib.colors as colors
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from .shapes import frame_center
@@ -46,6 +47,7 @@ def pp_subplots(*args, **kwargs):
     label : text for annotating on subplots
     labelpad : padding of the label from the left bottom corner
     labelsize : size of the labels
+    log : log colorscale
     noaxis : to remove the axis, on by default
     rows : how many rows (subplots in a grid)
     save : if a string is provided the plot is saved using this as the path
@@ -56,8 +58,8 @@ def pp_subplots(*args, **kwargs):
 
     """
     parlist = ['arrow', 'cmap', 'cbar', 'colorb', 'dpi', 'grid', 'horsp', 'label', 
-               'labelpad', 'labelsize', 'noaxis', 'rows', 'save', 'title', 'vmax', 
-               'vmin', 'versp']
+               'labelpad', 'labelsize', 'log', 'noaxis', 'rows', 'save', 'title', 
+               'vmax', 'vmin', 'versp']
     
     for key in kwargs.iterkeys():
         if key not in parlist:
@@ -95,6 +97,10 @@ def pp_subplots(*args, **kwargs):
     
     if kwargs.has_key('rows'):  rows = kwargs['rows']
     else:  rows = 1
+    
+    if kwargs.has_key('log') and kwargs['log'] is True:  
+        logscale = kwargs['log']
+    else:  logscale = False        
     
     if kwargs.has_key('cmap'):  custom_cmap = kwargs['cmap']
     else:  custom_cmap = 'CMRmap' # 'RdBu_r'
@@ -167,8 +173,11 @@ def pp_subplots(*args, **kwargs):
         v += 1
         ax = subplot(rows,cols,v)
         ax.set_aspect('equal')
+        if logscale:  norm = colors.LogNorm(vmin=args[i].min(), vmax=args[i].max())
+        else:  norm = None
         im = ax.imshow(args[i], cmap=custom_cmap, interpolation='nearest', 
-                       origin='lower', vmin=vmin[i], vmax=vmax[i])  
+                       origin='lower', vmin=vmin[i], vmax=vmax[i],
+                       norm=norm)  
         if show_arrow:
             leng = 20
             ax.arrow(coor_arrow[0]+2*leng, coor_arrow[1], -leng, 0, color='white', 

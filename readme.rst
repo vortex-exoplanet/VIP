@@ -20,7 +20,7 @@ github.
 
 Documentation
 =============
-VIP tutorials (Jupyter notebook) was removed from the main VIP repository. It 
+VIP tutorial (Jupyter notebook) was removed from the main VIP repository. It 
 will be updated and released in a separate repository. Documentation in HTML and
 PDF will be produced when VIP paper is published.
 

@@ -80,8 +80,10 @@ def cube_stats_aperture(arr, radius, xy=None, plot=False, full_output=False):
             else:
                 temp = get_circle(arr[0], radius)
             ax1 = plt.subplot(1, 2, 1)
+            ax1.imshow(arr[0], origin = 'lower', interpolation="nearest", 
+                       cmap = plt.get_cmap('gray'), alpha=0.8)
             ax1.imshow(temp, origin = 'lower', interpolation="nearest", 
-                       cmap = plt.get_cmap('gray'))                           
+                       cmap = plt.get_cmap('CMRmap'), alpha=0.6)                     
             plt.axis('on')
             ax2 = plt.subplot(1, 2, 2)
             ax2.hist(values_circle, bins=int(np.sqrt(values_circle.shape[0])),
@@ -185,8 +187,10 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False):
             plt.figure('Image crop (first slice)', figsize=(12,3))
             temp = get_annulus_cube(array, inner_radius, size)
             ax1 = plt.subplot(1, 2, 1)
+            ax1.imshow(array[0], origin = 'lower', interpolation="nearest", 
+                       cmap = plt.get_cmap('gray'), alpha=0.8) 
             ax1.imshow(temp[0], origin = 'lower', interpolation="nearest", 
-                       cmap = plt.get_cmap('gray'))                           
+                       cmap = plt.get_cmap('CMRmap'), alpha=0.6)                           
             plt.axis('on')
             ax2 = plt.subplot(1, 2, 2)
             values = temp[np.where(temp>0)]

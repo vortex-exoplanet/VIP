@@ -57,7 +57,7 @@ def cube_crop_frames(array, size, xy=None, verbose=True):
         if verbose:
             print 
             msg = "Cube cropped; new size [{:},{:},{:}] centered at ({:},{:})."
-            print msg.format(array.shape[0], size+1, size+1, ceny, cenx)
+            print msg.format(array.shape[0], size+1, size+1, cenx, ceny)
     else:  
         cy, cx = frame_center(array[0], verbose=False)
         array_view = array[:, cy-wing:cy+wing+1, cx-wing:cx+wing+1].copy()

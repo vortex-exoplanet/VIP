@@ -276,7 +276,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             ax4.set_xlim(0, np.max(rad_samp)) 
     
     datafr0 = DF(data=cont_curve_samp, columns=['sensitivity (Gauss)'])
-    datafr2 = DF(data=thruput_interp, columns=['througput'])
+    datafr2 = DF(data=thruput_interp, columns=['throughput'])
     datafr3 = DF(data=rad_samp, columns=['distance'])
     datafr4 = DF(data=noise_samp_sm, columns=['noise'])        
     if student:

@@ -5,7 +5,6 @@ Module with SNR calculation functions.
 """
 
 from __future__ import division
-from vip.var.utils import pp_subplots
 
 __author__ = 'C. Gomez @ ULg, O. Absil @ ULg'
 __all__ = ['snr_ss',
@@ -22,7 +21,7 @@ from astropy.convolution import convolve, Tophat2DKernel
 from astropy.stats import median_absolute_deviation as mad
 from multiprocessing import Pool, cpu_count
 from ..conf import eval_func_tuple, timeInit, timing
-from ..var import get_annulus, frame_center, dist
+from ..var import get_annulus, frame_center, dist, pp_subplots
 
 
 def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):

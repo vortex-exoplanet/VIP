@@ -41,6 +41,7 @@ setup(
                       'matplotlib >= 1.4.3',
                       'scikit-learn >= 0.17',
                       'scikit-image >= 0.11',
+                      'psutil',
                       'pytest',
                       'photutils >= 0.1',
                       'image_registration',

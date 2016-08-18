@@ -40,7 +40,7 @@ def pp_subplots(*args, **kwargs):
     ----------------------
     arrow : show an arrow pointing to input px coordinates
     cmap : colormap to be used, CMRmap by default
-    cbar or colorb : to attach a colorbar, on by default
+    colorb : to attach a colorbar, on by default
     dpi : dots per inch, for plot quality
     grid : for showing a grid over the image, off by default
     horsp : horizontal gap between subplots
@@ -48,6 +48,7 @@ def pp_subplots(*args, **kwargs):
     labelpad : padding of the label from the left bottom corner
     labelsize : size of the labels
     log : log colorscale
+    maxplot : sets the maximum number of subplots when the input is a 3d array
     noaxis : to remove the axis, on by default
     rows : how many rows (subplots in a grid)
     save : if a string is provided the plot is saved using this as the path
@@ -57,18 +58,34 @@ def pp_subplots(*args, **kwargs):
     versp : vertical gap between subplots
 
     """
-    parlist = ['arrow', 'cmap', 'cbar', 'colorb', 'dpi', 'grid', 'horsp', 'label', 
-               'labelpad', 'labelsize', 'log', 'noaxis', 'rows', 'save', 'title', 
-               'vmax', 'vmin', 'versp']
+    parlist = ['arrow', 'cmap', 'colorb', 'dpi', 'grid', 'horsp', 'label', 
+               'labelpad', 'labelsize', 'log', 'maxplots', 'noaxis', 'rows', 
+               'save', 'title', 'vmax', 'vmin', 'versp']
     
     for key in kwargs.iterkeys():
         if key not in parlist:
             print "Parameter '{:}' not recognized".format(key)
             print "Available parameters are: {:}".format(parlist)
     
+    num_plots = len(args)
+    if num_plots==1:
+        if args[0].ndim==3:
+            data = args[0]
+            if kwargs.has_key('maxplots'):  maxplots = kwargs['maxplots']
+            else:  maxplots = 10
+            num_plots = min(data.shape[0], maxplots)
+        else:
+            data = args
+    elif num_plots>1:
+        data = args
+        for i in range(num_plots):
+            if not args[i].ndim==2:
+                msg = "Accepted input: several 2d arrays (images) or a single 3d array"
+                raise TypeError(msg)
+    
     if kwargs.has_key('label'):  
         label = kwargs['label']
-        if len(label) != len(args):
+        if len(label) != num_plots:
             print "The number of labels doesn't match the number of subplots"
             label = None
     else:  label = None
@@ -105,8 +122,6 @@ def pp_subplots(*args, **kwargs):
     if kwargs.has_key('cmap'):  custom_cmap = kwargs['cmap']
     else:  custom_cmap = 'CMRmap' # 'RdBu_r'
     
-    if kwargs.has_key('cbar'):  colorb = kwargs['cbar']
-    else:  colorb = True
     if kwargs.has_key('colorb'):  colorb = kwargs['colorb']
     else:  colorb = True
     
@@ -115,25 +130,25 @@ def pp_subplots(*args, **kwargs):
     
     if kwargs.has_key('vmax'):  
         if isinstance(kwargs['vmax'], tuple) or isinstance(kwargs['vmax'], list):
-            if len(kwargs['vmax']) != len(args):
+            if len(kwargs['vmax']) != num_plots:
                 print "Vmax is a tuple with not enough items, setting all to None"
-                vmax = [None for i in range(len(args))]
+                vmax = [None for i in range(num_plots)]
             else:
                 vmax = kwargs['vmax']
         else:
-            vmax = [kwargs['vmax'] for i in range(len(args))]
-    else:  vmax = [None for i in range(len(args))]
+            vmax = [kwargs['vmax'] for i in range(num_plots)]
+    else:  vmax = [None for i in range(num_plots)]
     
     if kwargs.has_key('vmin'):  
         if isinstance(kwargs['vmin'], tuple) or isinstance(kwargs['vmin'], list):
-            if len(kwargs['vmin']) != len(args):
+            if len(kwargs['vmin']) != num_plots:
                 print "Vmax is a tuple with not enough items, setting all to None"
-                vmin = [None for i in range(len(args))]
+                vmin = [None for i in range(num_plots)]
             else:
                 vmin = kwargs['vmin']
         else:
-            vmin = [kwargs['vmin'] for i in range(len(args))]
-    else:  vmin = [None for i in range(len(args))]
+            vmin = [kwargs['vmin'] for i in range(num_plots)]
+    else:  vmin = [None for i in range(num_plots)]
     
     if kwargs.has_key('dpi'):  
         dpi = kwargs['dpi']
@@ -155,7 +170,6 @@ def pp_subplots(*args, **kwargs):
     
     if not isinstance(rows, int):
         raise(TypeError('Rows must be an integer'))
-    num_plots = len(args)
 
     if num_plots%rows==0:
         cols = num_plots/rows
@@ -173,9 +187,9 @@ def pp_subplots(*args, **kwargs):
         v += 1
         ax = subplot(rows,cols,v)
         ax.set_aspect('equal')
-        if logscale:  norm = colors.LogNorm(vmin=args[i].min(), vmax=args[i].max())
+        if logscale:  norm = colors.LogNorm(vmin=data[i].min(), vmax=data[i].max())
         else:  norm = None
-        im = ax.imshow(args[i], cmap=custom_cmap, interpolation='nearest', 
+        im = ax.imshow(data[i], cmap=custom_cmap, interpolation='nearest', 
                        origin='lower', vmin=vmin[i], vmax=vmax[i],
                        norm=norm)  
         if show_arrow:

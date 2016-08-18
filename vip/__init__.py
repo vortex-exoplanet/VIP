@@ -6,6 +6,7 @@ from . import fits
 from . import llsg
 from . import madi
 from . import negfc
+from . import nmf
 from . import pca
 from . import phot
 from . import stats

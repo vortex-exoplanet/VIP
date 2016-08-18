@@ -121,10 +121,11 @@ def open_adicube(fitsfilename, verbose=True):
     if not data.ndim ==3:
         raise TypeError('Input fits file does not contain a cube or 3d array.')
     parangles = hdulist[1].data 
-    msg1 = "\nFits HDU:{:} data successfully loaded. Data shape: [{:},{:},{:}]"
-    msg2 = "\nFits HDU:{:} data successfully loaded. Data shape: [{:}]"
-    print msg1.format(0, data.shape[0],data.shape[1],data.shape[2])
-    print msg2.format(1, parangles.shape[0])
+    if verbose:
+        msg1 = "\nFits HDU:{:} data successfully loaded. Data shape: [{:},{:},{:}]"
+        msg2 = "\nFits HDU:{:} data successfully loaded. Data shape: [{:}]"
+        print msg1.format(0, data.shape[0],data.shape[1],data.shape[2])
+        print msg2.format(1, parangles.shape[0])
     
     return data, parangles
 

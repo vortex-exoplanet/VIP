@@ -105,9 +105,9 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     ncomp: int
         The number of principal component.
     annulus_width: float
-        The width in pixel of the annulus on which the PCA is performed.
+        The width in pixels of the annulus on which the PCA is performed.
     aperture_radius: float
-        The radius of the circular aperture.
+        The radius in pixels of the circular aperture.
     r_guess: float
         The radial position of the center of the circular aperture. This 
         parameter is NOT the radial position of the candidate associated to the 

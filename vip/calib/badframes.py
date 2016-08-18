@@ -82,7 +82,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
         raise TypeError('Mode not recognized')
     
     if window is None:  window = int(n/3.)
-    mean_smooth = pn.rolling_median(mean_values, window , center='True')
+    mean_smooth = pn.rolling_median(mean_values, window , center=True)
     temp = pn.Series(mean_smooth)
     temp = temp.fillna(method='backfill')
     temp = temp.fillna(method='ffill')

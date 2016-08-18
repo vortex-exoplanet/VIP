@@ -271,8 +271,8 @@ def get_annulus(array, inner_radius, width, output_values=False,
     array = array.copy()
     cy, cx = frame_center(array)
     yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
-    circle = (xx - cx)**2 + (yy - cy)**2                                                                               
-    donut_mask = (circle <= (inner_radius + width)**2) & (circle >= inner_radius**2)
+    circle = np.sqrt((xx - cx)**2 + (yy - cy)**2)                                                                               
+    donut_mask = (circle <= (inner_radius + width)) & (circle >= inner_radius)
     if output_values and not output_indices:
         values = array[donut_mask]
         return values
@@ -318,11 +318,11 @@ def get_annulus_quad(array, inner_radius, width, output_values=False):
     
     cy, cx = frame_center(array)
     xx, yy = np.mgrid[:array.shape[0], :array.shape[1]]
-    circle = (xx - cx)**2 + (yy - cy)**2                                                                               
-    q1 = (circle >= inner_radius**2) & (circle <= (inner_radius + width)**2) & (xx >= cx) & (yy <= cy)  
-    q2 = (circle >= inner_radius**2) & (circle <= (inner_radius + width)**2) & (xx <= cx) & (yy <= cy)
-    q3 = (circle >= inner_radius**2) & (circle <= (inner_radius + width)**2) & (xx <= cx) & (yy >= cy)
-    q4 = (circle >= inner_radius**2) & (circle <= (inner_radius + width)**2) & (xx >= cx) & (yy >= cy)
+    circle = np.sqrt((xx - cx)**2 + (yy - cy)**2)                                                                               
+    q1 = (circle >= inner_radius) & (circle <= (inner_radius + width)) & (xx >= cx) & (yy <= cy)  
+    q2 = (circle >= inner_radius) & (circle <= (inner_radius + width)) & (xx <= cx) & (yy <= cy)
+    q3 = (circle >= inner_radius) & (circle <= (inner_radius + width)) & (xx <= cx) & (yy >= cy)
+    q4 = (circle >= inner_radius) & (circle <= (inner_radius + width)) & (xx >= cx) & (yy >= cy)
     
     if output_values:
         values = [array[mask] for mask in [q1,q2,q3,q4]]

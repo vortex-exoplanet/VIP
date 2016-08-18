@@ -83,13 +83,13 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     psfs_norm: numpy.array
         The scaled psf expressed as a numpy.array.    
     annulus_width: float
-        The width in pixel of the annulus on which the PCA is performed.
+        The width of the annulus of interest in terms of the FWHM.
     ncomp: int
         The number of principal components.
     fwhm : float
         The FHWM in pixels.
     aperture_radius: float
-        The radius of the circular aperture.  
+        The radius of the circular aperture in terms of the FWHM. 
     initialState: numpy.array
         The initial guess for the position and the flux of the planet.
     cube_ref: array_like, 3d, optional
@@ -316,17 +316,17 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
     
     This technique can be summarized as follows:
     
-    1)  We inject a negative fake companion (one candidat) at a given 
-        position and characterized by a given flux, both close to the excpected 
+    1)  We inject a negative fake companion (one candidate) at a given 
+        position and characterized by a given flux, both close to the expected 
         values.
     2)  We run PCA on an full annulus which pass through the initial guess, 
-        regardless of the position of the candidat.
+        regardless of the position of the candidate.
     3)  We extract the intensity values of all the pixels contained in a 
         circular aperture centered on the initial guess.
     4)  We calculate the function of merit. The associated chi^2 is given by
         chi^2 = sum(|I_j|) where j \in {1,...,N} with N the total number of 
         pixels contained in the circular aperture.        
-    The steps 1) to 4) are looped. At each iteration, the candidat model 
+    The steps 1) to 4) are looped. At each iteration, the candidate model 
     parameters are defined by the emcee Affine Invariant algorithm. 
     
     Parameters

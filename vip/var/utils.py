@@ -58,9 +58,9 @@ def pp_subplots(*args, **kwargs):
     versp : vertical gap between subplots
 
     """
-    parlist = ['arrow', 'cmap', 'colorb', 'dpi', 'grid', 'horsp', 'label', 
-               'labelpad', 'labelsize', 'log', 'maxplots', 'noaxis', 'rows', 
-               'save', 'title', 'vmax', 'vmin', 'versp']
+    parlist = ['arrow', 'cmap', 'colorb', 'dpi', 'getfig', 'grid', 'horsp',
+               'label', 'labelpad', 'labelsize', 'log', 'maxplots', 'noaxis',
+               'rows', 'save', 'title', 'vmax', 'vmin', 'versp']
     
     for key in kwargs.iterkeys():
         if key not in parlist:
@@ -82,8 +82,13 @@ def pp_subplots(*args, **kwargs):
             if not args[i].ndim==2:
                 msg = "Accepted input: several 2d arrays (images) or a single 3d array"
                 raise TypeError(msg)
-    
-    if kwargs.has_key('label'):  
+
+    if kwargs.has_key('getfig'):
+        getfig = kwargs['getfig']
+    else:
+        getfig = False
+
+    if kwargs.has_key('label'):
         label = kwargs['label']
         if len(label) != num_plots:
             print "The number of labels doesn't match the number of subplots"
@@ -216,8 +221,13 @@ def pp_subplots(*args, **kwargs):
     
     fig.subplots_adjust(wspace=hor_spacing, hspace=ver_spacing)
     if save:  savefig(savepath, dpi=dpi, bbox_inches='tight')
-    show()
-    
+
+    if getfig:
+        return fig
+    else:
+        show()
+
+
 
 
 def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False, 

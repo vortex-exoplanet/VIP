@@ -558,7 +558,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, **kwargs):
 
                 
 
-def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4, 
+def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4, 
                                  subi_size=None, full_output=False, verbose=True,
                                  save_shifts=False, debug=False):                          
     """ Recenters a cube of frames using the DFT upsampling method as 
@@ -576,7 +576,11 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
     array : array_like
         Input cube.
     cy_1, cx_1 : int
-        Coordinates of the center of the subimage for centroiding the 1st frame.    
+        Coordinates of the center of the subimage for fitting a 2d Gaussian and
+        centroiding the 1st frame. 
+    negative : {False, True}, optional
+        If True the centroiding of the 1st frames is done with a negative 
+        2d Gaussian fit.   
     fwhm : float, optional
         FWHM size in pixels.
     subi_size : int or None, optional
@@ -633,12 +637,12 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
     x = np.zeros((n_frames))
     y = np.zeros((n_frames))
     array_rec = array.copy()
-    
+
+    cy, cx = frame_center(array[0])
     # Centroiding first frame with 2d gaussian and shifting
     if subi_size is not None:
         size = int(fwhm*subi_size)
-        cy, cx = frame_center(array[0])
-        y1, x1 = _centroid_2dg_frame(array_rec, 0, size, cy_1, cx_1)
+        y1, x1 = _centroid_2dg_frame(array_rec, 0, size, cy_1, cx_1, negative)
         array_rec[0] = frame_shift(array_rec[0], shift_y=cy-y1, shift_x=cx-x1)
         x[0] = cx-x1
         y[0] = cy-y1
@@ -648,17 +652,16 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, fwhm=4,
     
     # Finding the shifts with DTF upsampling of each frame wrt the first
     bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
-    for i in xrange(1, n_frames):
+    for i in range(1, n_frames):
         dx, dy, _, _ = chi2_shift(array_rec[0], array[i], upsample_factor='auto')
         x[i] = -dx
         y[i] = -dy
         array_rec[i] = frame_shift(array[i], y[i], x[i])
         bar.update()
-    print
-    
+
     if debug:
         print  
-        for i in xrange(n_frames):  
+        for i in range(n_frames):
             print y[i], x[i]
         
     if verbose:  timing(start_time)
@@ -702,6 +705,12 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
         Whether to print to stdout the timing or not.
     save_shifts : {False, True}, bool optional
         Whether to save the shifts to a file in disk.
+    offset : tuple of floats, optional
+        If None the region of the frames used for the 2d Gaussian fit is shifted
+        to the center of the images (2d arrays). If a tuple is given is serves
+        as the offset of the fitted area wrt the center of the 2d arrays.
+    negative : {False, True}, optional
+        If True a negative 2d Gaussian fit is performed.
     debug : {False, True}, bool optional
         If True the details of the fitting are shown. This might produce an
         extremely long output and therefore is limited to <20 frames.
@@ -946,7 +955,6 @@ def _centroid_2dm_frame(cube, frnum, size, pos_y, pos_x,
     """ Finds the centroid by using a 2d moffat fitting in one frame from a 
     cube. To be called from whitin cube_recenter_moffat2d_fit().
     """
-
     sub_image, y1, x1 = get_square_robust(cube[frnum], size=size+1, y=pos_y, 
                                           x=pos_x,position=True)
     sub_image = sub_image.byteswap().newbyteorder()

@@ -17,7 +17,7 @@ from ..calib import cube_derotate, cube_collapse, check_PA_vector
 from ..pca.pca_local import define_annuli
 
 def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1, 
-        mode='simple', nframes=4, collapse='median', full_output=False, 
+        mode='fullfr', nframes=4, collapse='median', full_output=False, 
         verbose=True):
     """ Algorithm based on Marois et al. 2006 on Angular Differential Imaging.   
     First the median frame is subtracted, then the median of the four closest 
@@ -39,7 +39,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     delta_rot : int, optional
         Factor for increasing the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1 FHWM on each side of the considered frame).
-    mode : {"simple","annular"}, str optional
+    mode : {"fullfr","annular"}, str optional
         In "simple" mode only the median frame is subtracted, in "annular" mode
         also the 4 closest frames given a PA threshold (annulus-wise) are 
         subtracted.
@@ -118,7 +118,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     ref_psf = np.median(array, axis=0)
     array = array - ref_psf
     
-    if mode=='simple':
+    if mode=='fullfr':
         if radius_int>0:
             cube_out = mask_circle(array, radius_int)
         else:
@@ -135,7 +135,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         # the annulus.
         #***********************************************************************
         cube_out = np.zeros_like(array) 
-        for ann in xrange(n_annuli):
+        for ann in range(n_annuli):
             pa_threshold,inner_radius,_= define_annuli(angle_list, ann, n_annuli, 
                                                        fwhm, radius_int, 
                                                        annulus_width, delta_rot,
@@ -153,7 +153,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
             # For each frame we find *nframes*, depending on the PA threshold, 
             # to construct this optimized psf reference.
             #*******************************************************************
-            for frame in xrange(n):                                                 
+            for frame in range(n):
                 if pa_threshold != 0:
                     indices_left = find_indices(angle_list, frame, pa_threshold, 
                                                 nframes)

@@ -104,6 +104,15 @@ def cube_px_resampling(array, scale, interpolation='bicubic', scale_y=None,
     -------
     array_resc : array_like 
         Output cube with resampled frames.
+
+    Notes
+    -----
+    You should be aware that the interpolation
+    The interpolation with a cube that has zero background, but that
+    contains no negative value, you get several negative values in the output
+    cube. I assume that this is due to the interpolation, but it can have
+    significant side effects if one is not aware of that.
+
     """
     if not array.ndim==3:
         raise TypeError('Input array is not a cube or 3d array.')
@@ -117,6 +126,8 @@ def cube_px_resampling(array, scale, interpolation='bicubic', scale_y=None,
         array_resc[i] = frame_px_resampling(array[i], scale=scale, 
                                             interpolation=interpolation,
                                             scale_y=scale_y, scale_x=scale_x)
+        array_resc[i] /= scale**2
+
     return array_resc
 
 

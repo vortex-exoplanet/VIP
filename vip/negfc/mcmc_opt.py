@@ -18,6 +18,9 @@ import inspect
 import datetime
 import corner
 from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
+from matplotlib.mlab import normpdf
+from scipy.stats import norm
 from ..fits import open_adicube, open_fits
 from ..phot import inject_fcs_cube, psf_norm
 from .func_merit import get_values_optimize
@@ -684,13 +687,6 @@ def showWalk(chain, save=False, **kwargs):
     directory.         
     
     """
-    try:
-        import matplotlib.pyplot as plt
-        from matplotlib.ticker import MaxNLocator
-    except ImportError:
-        print("The module matplotlib is required to show the walk plot. Please, install it.")
-    
-    
     temp = np.where(chain[0,:,0] == 0.0)[0]
     if len(temp) != 0:
         chain = chain[:,:temp[0],:]
@@ -818,11 +814,11 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
     weights : (n, ) array_like or None, optional
         An array of weights for each sample.
     verbose: boolean, optional
-        Display informations in the shell.                
+        Display information in the shell.
     save: boolean, optional
         If "True", a txt file with the results is saved in the output repository.        
     kwargs: optional
-        Additional attributs are passed to the matplotlib hist() method.
+        Additional attributes are passed to the matplotlib hist() method.
         
     Returns
     -------
@@ -913,16 +909,13 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
             if j==0:  ax[j].set_ylabel('Counts')
     
         if gaussianFit:
-            import matplotlib.mlab as mlab
-            from scipy.stats import norm
-            
             (mu[j], sigma[j]) = norm.fit(isamples[:,j])
             n_fit, bins_fit = np.histogram(isamples[:,j], bins, normed=1, 
                                            weights=weights)
             _= ax[1][j].hist(isamples[:,j], bins, normed=1, weights=weights, 
                              facecolor='gray', edgecolor='darkgray', 
                              histtype='step')
-            y = mlab.normpdf( bins_fit, mu[j], sigma[j])
+            y = normpdf( bins_fit, mu[j], sigma[j])
             ax[1][j].plot(bins_fit, y, 'r--', linewidth=2, alpha=0.7) 
             
             ax[1][j].set_xlabel(label[j])
@@ -930,11 +923,11 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
             
             if title is not None:
                 msg = r"$\mu$ = {:.4f}, $\sigma$ = {:.4f}"
-                fig.title(title+'   '+msg.format(mu[j],sigma[j]), 
+                fig.suptitle(title+'   '+msg.format(mu[j],sigma[j]),
                           fontsize=10, fontweight='bold')
         else:
             if title is not None:            
-                fig.title(title, fontsize=10, fontweight='bold')
+                fig.suptitle(title, fontsize=10, fontweight='bold')
 
                     
         if save:

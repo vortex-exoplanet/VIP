@@ -100,7 +100,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
         indi = np.where(psf_subimage<=clipmed+sigfactor*clipstd)
         subimnoise = np.random.randn(psf_subimage.shape[0], psf_subimage.shape[1])*50
         psf_subimage[indi] = subimnoise[indi]
-
+    
     yme, xme = np.where(psf_subimage==psf_subimage.max())
     # Creating the 2D Gaussian model
     gauss = models.Gaussian2D(amplitude=psf_subimage.max(), x_mean=xme, 

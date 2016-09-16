@@ -57,18 +57,17 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
     ceny, cenx = frame_center(array[0])
     rad_dists = np.array(rad_dists)
     if not rad_dists[-1]<array[0].shape[0]/2.:
-        msg = 'rad_dists last location is at the border (or outside) the field'
+        msg = 'rad_dists last location is at the border (or outside) of the field'
         raise ValueError(msg)
     
     size_fc = psf_template.shape[0]
     nframes = array.shape[0]
     fc_fr = np.zeros_like(array[0], dtype=np.float64)
     n_fc_rad = rad_dists.shape[0]
-    array_fc = psf_template.copy()                                   
-    
+
     w = int(np.floor(size_fc/2.))
     # fcomp in the center of a zeros frame
-    fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc
+    fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = psf_template
 
     array_out = np.zeros_like(array)
     for fr in xrange(nframes):                                                  

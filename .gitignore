@@ -8,6 +8,7 @@ tutorial/.ipynb_checkpoints/Tutorial_VIP-checkpoint.ipynb
 .settings
 .project
 .pydevproject
+.idea
 
 *.pyc
 */*.pyc
@@ -16,4 +17,3 @@ tutorial/.ipynb_checkpoints/Tutorial_VIP-checkpoint.ipynb
 
 */.idea
 */*/.idea
-

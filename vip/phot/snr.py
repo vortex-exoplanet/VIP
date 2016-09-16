@@ -63,7 +63,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
     mask = get_annulus(array, (fwhm/2)+1, width)
     mask = np.ma.make_mask(mask)
     yy, xx = np.where(mask)
-    coords = [(x,y) for (x,y) in zip(xx,yy)]
+    coords = zip(xx,yy)
         
     if not nproc:  
         nproc = int((cpu_count()/2))  # Hyper-threading doubles the # of cores

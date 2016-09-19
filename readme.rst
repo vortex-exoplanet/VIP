@@ -29,7 +29,7 @@ will be updated and released in a separate repository.
 
 Documentation
 -------------
-Documentation can be found in here.
+Documentation can be found in http://vip.readthedocs.io/.
 
 
 Quick Setup Guide

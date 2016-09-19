@@ -107,11 +107,9 @@ def cube_px_resampling(array, scale, interpolation='bicubic', scale_y=None,
 
     Notes
     -----
-    You should be aware that the interpolation
-    The interpolation with a cube that has zero background, but that
-    contains no negative value, you get several negative values in the output
-    cube. I assume that this is due to the interpolation, but it can have
-    significant side effects if one is not aware of that.
+    Be aware that the interpolation used for the pixel rescaling can create
+    negative values at the transition from a background composed mostly of zeros
+    to a positive valued patch (e.g. an injected PSF template).
 
     """
     if not array.ndim==3:

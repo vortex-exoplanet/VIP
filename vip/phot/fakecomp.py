@@ -109,7 +109,7 @@ def inject_fc_frame(array, array_fc, pos_y, pos_x, flux):
     return array_out
 
 
-def create_psf_template(array, size, fwhm=5, verbose=True, collapse='mean'):
+def create_psf_template(array, size, fwhm=4, verbose=True, collapse='mean'):
     """ Creates a psf template from a cube of non-saturated off-axis frames of
     the star by taking the mean and normalizing the psf flux.
     
@@ -144,7 +144,7 @@ def create_psf_template(array, size, fwhm=5, verbose=True, collapse='mean'):
     else:
         raise TypeError('Collapse mode not recognized.')
     
-    psf_normd = psf_norm(psf, size, fwhm)
+    psf_normd = psf_norm(psf, size=size, fwhm=fwhm)
     
     if verbose:  
         print "Done scaled PSF template from the average of", n,"frames."

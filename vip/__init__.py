@@ -28,7 +28,7 @@ print "               `8'       o888o o888o               "
 print "---------------------------------------------------"  
 print "     Vortex Image Processing pipeline v"+__version__  
 print "---------------------------------------------------" 
-print "Please cite Gomez Gonzalez et al. 2016 (in prep.)  "
+print "Please cite Gomez Gonzalez et al. 2016 (submitted)  "
 print "whenever you publish data reduced with VIP. Thanks."
     
 

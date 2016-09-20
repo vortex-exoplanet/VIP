@@ -19,13 +19,12 @@ displaying arrays, manipulating regions, controlling the display options, etc.
 VipDS9 functionality will only be available if you have DS9 and XPA installed
 on your system PATH.
 
-OpenCV (Open source Computer Vision) is used for fast image processing operations.
-Opencv and its python bindings are usually difficult to install (can't be processed
-from the setup.py requirements) but fortunately with just one command we'll get it
-ready.
-
-Make sure to install OpenCV before running setup.py and make sure you have a C
-compiler installed in your system, like g++. With conda (anaconda) just type:
+Opencv (Open source Computer Vision) provides fast c++ image processing
+operations and is used by VIP (whenever it's possible) instead of python based
+libraries such as ndimage or scikit-image. This dependency is tricky to get
+install/compile, but having Anaconda python distribution the process takes just
+a command provided that you have a C compiler installed in your system, like g++.
+We'll use conda (core component of Anaconda) in this shell/terminal command:
 
 .. code-block:: bash
 

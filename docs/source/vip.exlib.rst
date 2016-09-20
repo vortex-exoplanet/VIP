@@ -1,6 +1,11 @@
 vip.exlib package
 =================
 
+Subpackage ``exlib`` contains external libraries self contained in VIP. For the
+moment only some DS9 bindings (stripped-down version of RO.DS9 python package
+by Russell Owen).
+
+
 Subpackages
 -----------
 
@@ -20,8 +25,6 @@ vip.exlib.iuwt module
     :show-inheritance:
 
 
-Module contents
----------------
 
 .. automodule:: vip.exlib
     :members:

@@ -145,6 +145,7 @@ html_theme_options = {
     'github_count': True,
     'github_type': 'star',
     'fixed_sidebar': True,
+    'analytics_id': 'UA-84473187-1',
 
     ### for classic theme
     #'stickysidebar': True,

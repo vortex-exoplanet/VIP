@@ -23,6 +23,7 @@ from matplotlib.mlab import normpdf
 from scipy.stats import norm
 from ..fits import open_adicube, open_fits
 from ..phot import inject_fcs_cube, psf_norm
+from ..conf import timeInit, timing
 from .func_merit import get_values_optimize
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -852,9 +853,9 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
         sigma = np.zeros_like(mu)
     
     if gaussianFit:
-        fig,ax = plt.subplots(2,3, figsize=(14,8))
+        fig,ax = plt.subplots(2,3, figsize=(12,8))
     else:
-        fig,ax = plt.subplots(1,3, figsize=(14,4))
+        fig,ax = plt.subplots(1,3, figsize=(12,4))
     
     for j in range(l):               
         label_file = ['r','theta','flux']    
@@ -902,9 +903,10 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
             if j==0:  ax[0][j].set_ylabel('Counts')
         else:
             _ = ax[j].hist(isamples[arg,j],bins=bin_vertices, facecolor='gray', 
-                           edgecolor='darkgray', histtype='stepfilled', alpha=0.5)
-            ax[j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]], linestyles='dashed', 
-                         color='red')
+                           edgecolor='darkgray', histtype='stepfilled',
+                           alpha=0.5)
+            ax[j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]],
+                         linestyles='dashed', color='red')
             ax[j].set_xlabel(label[j])
             if j==0:  ax[j].set_ylabel('Counts')
     
@@ -923,18 +925,17 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
             
             if title is not None:
                 msg = r"$\mu$ = {:.4f}, $\sigma$ = {:.4f}"
-                fig.suptitle(title+'   '+msg.format(mu[j],sigma[j]),
-                          fontsize=10, fontweight='bold')
+                ax[1][j].set_title(title+'   '+msg.format(mu[j],sigma[j]),
+                          fontsize=10)
         else:
             if title is not None:            
-                fig.suptitle(title, fontsize=10, fontweight='bold')
+                ax[1].set_title(title, fontsize=10)
 
-                    
-        if save:
-            if gaussianFit:
-                plt.savefig('confi_hist_{}_gaussFit.pdf'.format(label_file[j]))
-            else:
-                plt.savefig('confi_hist_{}.pdf'.format(label_file[j]))
+    if save:
+        if gaussianFit:
+            plt.savefig('confi_hist_flux_r_theta_gaussfit.pdf')
+        else:
+            plt.savefig('confi_hist_flux_r_theta.pdf')
         
         plt.tight_layout(w_pad=0.001)
         

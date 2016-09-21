@@ -8,10 +8,12 @@ from __future__ import division
 from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg'
-__all__ = ['eval_func_tuple', 'redirect_output']
+__all__ = ['eval_func_tuple', 'redirect_output', 'sep']
 
 import sys
 
+
+sep = '----------------------------------------------------------------------'
 
 def eval_func_tuple(f_args):
     """ Takes a tuple of a function and args, evaluates and returns result"""

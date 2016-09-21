@@ -17,7 +17,7 @@ from ..pca import prepare_matrix
 from ..conf import timing, timeInit
 
 
-def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=20,
+def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
         random_state=None, mask_center_px=None, full_output=False, verbose=True, 
         **kwargs):
     """ Non Negative Matrix Factorization for ADI sequences. Alternative to the

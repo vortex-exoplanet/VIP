@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Module
+
 """
 
 from __future__ import division
@@ -14,6 +14,7 @@ import numpy as np
 import photutils
 from skimage import draw
 from .snr import snr_ss
+from ..conf import sep
 
 
 def frame_quick_report(array, fwhm, source_xy=None, verbose=True):
@@ -42,41 +43,41 @@ def frame_quick_report(array, fwhm, source_xy=None, verbose=True):
         
     """
     if not array.ndim == 2: raise TypeError('Array is not 2d.')
-    
+
     if source_xy is not None: 
         x, y = source_xy
-        if verbose: 
-            print
-            print('Coordinates of chosen px X,Y = {:},{:}'.format(x,y))
+        if verbose:
+            print(sep)
+            print('Coordinates of chosen px (X,Y) = {:},{:}'.format(x,y))
     else:
         y, x = np.where(array == array.max())
         y = y[0]
         x = x[0]
-        if verbose: 
-            print
-            print('Coordinates of Max px X,Y = {:},{:}'.format(x,y))
+        if verbose:
+            print(sep)
+            print('Coordinates of Max px (X,Y) = {:},{:}'.format(x,y))
     
     # we get integrated flux on aperture with diameter=1FWHM
-    aper = photutils.CircularAperture((x, y), fwhm/2.)
+    aper = photutils.CircularAperture((x, y), r=fwhm/2.)
     obj_flux = photutils.aperture_photometry(array, aper, method='exact')
     obj_flux = obj_flux['aperture_sum'][0]
     
     # we get the mean and stddev of SNRs on aperture
     yy, xx = draw.circle(y, x, fwhm/2.)
-    snr_pixels = [snr_ss(array, (x_,y_), fwhm, plot=False, verbose=False) for \
+    snr_pixels = [snr_ss(array, (x_, y_), fwhm, plot=False, verbose=False) for \
                   y_, x_ in zip(yy, xx)]
     meansnr = np.mean(snr_pixels)
     stdsnr = np.std(snr_pixels)
+
     if verbose: 
-        print('Central pixel SNR: ')
-        snr_ss(array, (x,y), fwhm, plot=False, verbose=True)
-        print('-----------------------------------------')
-        print('In 1*FWHM circular aperture:')
-        print('Integrated flux = {:.3f}'.format(obj_flux))
-        print('Mean SNR = {:.3f}'.format(meansnr)) 
-        print('Max SNR = {:.3f}, stddev SNRs = {:.3f}'.format(np.max(snr_pixels), 
-                                                              stdsnr)) 
-        print('-----------------------------------------')
+        print('Central pixel S/N: ')
+        snr_ss(array, (x, y), fwhm, plot=False, verbose=True)
+        print(sep)
+        print('Inside 1xFWHM circular aperture:')
+        print('Mean S/N (shifting the aperture center) = {:.3f}'.format(meansnr))
+        print('Max S/N (shifting the aperture center) = {:.3f}'.format(np.max(snr_pixels)))
+        print('stddev S/NR (shifting the aperture center) = {:.3f}'.format(stdsnr))
+        print(sep)
     
     return obj_flux, snr_pixels
     

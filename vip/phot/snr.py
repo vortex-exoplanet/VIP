@@ -26,7 +26,7 @@ from ..var import get_annulus, frame_center, dist, pp_subplots
 
 def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
     """Parallel implementation of the SNR map generation function. Applies the 
-    SNR function (small samples penalty) at each pixel.
+    S/N function (small samples penalty) at each pixel.
     
     Parameters
     ----------
@@ -147,15 +147,15 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         snr = res[:,2]
         snrmap[yy.astype('int'), xx.astype('int')] = snr
     
-    if plot:  pp_subplots(snrmap, colorb=True, title='SNRmap')
+    if plot:  pp_subplots(snrmap, colorb=True, title='S/N map')
         
-    print "SNR map created using {:} processes.".format(nproc)
+    print "S/N map created using {:} processes.".format(nproc)
     timing(start_time)
     return snrmap
    
    
 def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
-    """ Serial implementation of the SNR map generation function. To be used as
+    """ Serial implementation of the S/N map generation function. To be used as
     a quick proxy of the snrmap generated using the small samples statistics
     definition. 
     
@@ -217,7 +217,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     if plot:  pp_subplots(snrmap, colorb=True, title='SNRmap')
      
     if verbose:    
-        print "SNR map created using {:} processes.".format(nproc)
+        print "S/N map created using {:} processes.".format(nproc)
         timing(start_time)
     return snrmap
 
@@ -248,7 +248,7 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
     """Calculates the SNR (signal to noise ratio) of a single planet in a 
     post-processed (e.g. by LOCI or PCA) frame. Uses the approach described in 
     Mawet et al. 2014 on small sample statistics, where a student t-test (eq. 9)
-    can be used to determine SNR (and contrast) in high contrast imaging. 
+    can be used to determine S/N (and contrast) in high contrast imaging.
     
     Parameters
     ----------
@@ -285,11 +285,11 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
     sourcex, sourcey = source_xy 
     
     centery, centerx = frame_center(array)
-    rad = dist(centery,centerx,sourcey,sourcex)
+    sep = dist(centery,centerx,sourcey,sourcex)
     
     sens = 'clock' #counterclock
         
-    angle = np.arcsin(fwhm/2/rad)*2
+    angle = np.arcsin(fwhm/2./sep)*2
     number_apertures = int(np.floor(2*np.pi/angle))
     yy = np.zeros((number_apertures))
     xx = np.zeros((number_apertures))
@@ -305,27 +305,27 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
             xx[i+1] = cosangle*xx[i] - sinangle*yy[i] 
             yy[i+1] = cosangle*yy[i] + sinangle*xx[i]           
             
-    array = array + np.abs(array.min())        
     xx[:] += centerx
     yy[:] += centery 
     rad = fwhm/2.
-    aperture = photutils.CircularAperture((xx, yy), r=rad)  # Coordinates (X,Y)                    
-    fluxes = photutils.aperture_photometry(array, aperture, method='exact')    
+    apertures = photutils.CircularAperture((xx, yy), r=rad)  # Coordinates (X,Y)
+    fluxes = photutils.aperture_photometry(array, apertures, method='exact')
+
     fluxes = np.array(fluxes['aperture_sum'])
-    f_source_ap = photutils.CircularAperture((sourcex, sourcey), rad)
-    f_source = photutils.aperture_photometry(array, f_source_ap, method='exact')
-    f_source = f_source['aperture_sum'][0]
+    f_source = fluxes[0].copy()
     fluxes = fluxes[1:]
     n2 = fluxes.shape[0]
     snr = (f_source - fluxes.mean())/(fluxes.std()*np.sqrt(1+(1/n2)))
     
     if verbose:
-        msg1 = 'SNR = {:}' 
-        msg2 = 'Flux = {:.3f}, Mean Flux BKG aper = {:.3f}'
-        msg3 = 'Stddev BKG aper = {:.3f}'
+        msg1 = 'S/N for the given pixel = {:}'
+        msg2 = 'Integrated flux in FWHM test aperture = {:.3f}'
+        msg3 = 'Mean of background apertures integrated fluxes = {:.3f}'
+        msg4 = 'Std-dev of background apertures integrated fluxes = {:.3f}'
         print msg1.format(snr)
-        print msg2.format(f_source, fluxes.mean())
-        print msg3.format(fluxes.std())
+        print msg2.format(f_source)
+        print msg3.format(fluxes.mean())
+        print msg4.format(fluxes.std())
     
     if plot:
         _, ax = plt.subplots(figsize=(6,6))
@@ -354,7 +354,7 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
 
 def snr_peakstddev(array, (source_xy), fwhm, out_coor=False, plot=False, 
                    verbose=False):
-    """Calculates the SNR (signal to noise ratio) of a single planet in a 
+    """Calculates the S/N (signal to noise ratio) of a single planet in a
     post-processed (e.g. by LOCI or PCA) frame. The signal is taken as the ratio 
     of pixel value of the planet (test speckle) and the noise computed as the 
     standard deviation of the pixels in an annulus at the same radial distance 
@@ -396,7 +396,7 @@ def snr_peakstddev(array, (source_xy), fwhm, out_coor=False, plot=False,
     peak = array[sourcey, sourcex] 
     snr = peak / stddev
     if verbose:
-        msg = "SNR = {:.3f}, Peak px = {:.3f}, Noise = {:.3f}"
+        msg = "S/N = {:.3f}, Peak px = {:.3f}, Noise = {:.3f}"
         print msg.format(snr, peak, stddev)
     
     if plot:

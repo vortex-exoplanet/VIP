@@ -43,7 +43,7 @@ setup(
                       'scikit-image >= 0.11',
                       'psutil',
                       'pytest',
-                      'photutils >= 0.1',
+                      'photutils >= 0.2.2',
                       'image_registration',
                       'FITS_tools',
                       'pywavelets',

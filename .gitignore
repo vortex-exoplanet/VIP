@@ -4,6 +4,7 @@ dist
 
 tutorial/.ipynb_checkpoints/Tutorial_VIP-checkpoint.ipynb
 docs/build
+vip/tests
 
 .settings
 .project

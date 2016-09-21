@@ -57,8 +57,9 @@ combine data analysis and visualization into an easily sharable format.
 
 Jupyter notebook tutorial
 -------------------------
-``VIP`` tutorial (Jupyter notebook) was removed from the main ``VIP`` repository. It
-will be updated and released in a separate repository.
+``VIP`` tutorial (Jupyter notebook) is available in `this repository
+<https://github.com/carlgogo/vip-tutorial>`_ and can be visualized online `here
+<http://nbviewer.jupyter.org/github/carlgogo/vip-tutorial/blob/master/Tutorial1_VIP_adi_pre-postproc_fluxpos_ccs.ipynb>`_.
 
 
 Quick Setup Guide

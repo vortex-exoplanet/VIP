@@ -24,6 +24,7 @@ from photutils.detection import findstars
 from skimage.feature import peak_local_max
 from ..var import (mask_circle, pp_subplots, get_square, frame_center, 
                    frame_filter_gaussian2d, fit_2dgaussian)
+from ..conf import sep
 from .snr import snr_ss
 from .frame_analysis import frame_quick_report
 
@@ -178,9 +179,9 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     
     def print_abort():
         if verbose:  
-            print '____________________________'
+            print sep
             print 'No potential sources found'
-            print '____________________________'
+            print sep
     
     # --------------------------------------------------------------------------
     
@@ -228,7 +229,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         
     if debug and plot and matched_filter:  
         print 'Input frame after matched filtering:'
-        pp_subplots(frame_det, size=6, rows=2, colorb=True)
+        pp_subplots(frame_det, rows=2, colorb=True)
         
     if mode=='lpeaks':
         # Finding local peaks (can be done in the correlated frame)                                           
@@ -308,7 +309,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         y = yy[i] 
         x = xx[i] 
         if verbose: 
-            print '_________________________________________'
+            print sep
             print 'X,Y = ({:.1f},{:.1f})'.format(x,y)
         subim = get_square(array, size=15, y=y, x=x)
         snr = snr_ss(array, (x,y), fwhm, False, verbose=False)
@@ -316,7 +317,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         px_list.append(array[y,x])
         if snr >= snr_thresh and array[y,x]>0:
             if plot:
-                pp_subplots(subim, size=2)
+                pp_subplots(subim)
             if verbose:  
                 _ = frame_quick_report(array, fwhm, (x,y), verbose=verbose)
             yy_final.append(y)
@@ -324,13 +325,11 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         else:
             yy_out.append(y)
             xx_out.append(x)
-            if verbose:  print 'SNR constraint NOT fulfilled'
+            if verbose:  print 'S/N constraint NOT fulfilled (S/N = {:.3f})'.format(snr)
             if debug:
                 if plot:
-                    pp_subplots(subim, size=2)
+                    pp_subplots(subim)
                 _ = frame_quick_report(array, fwhm, (x,y), verbose=verbose)
-            else:
-                if verbose:  print 'SNR = {:.3f}'.format(snr)
 
     if debug or full_output:
         table = Table([yy.tolist(), xx.tolist(), px_list, snr_list], 
@@ -343,11 +342,11 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     
     if plot: 
         print
-        print '_________________________________________'           
+        print sep
         print 'Input frame showing all the detected blobs / potential sources:'
         print 'In RED circles those that did not pass the SNR and 2dGaussian '
         print 'fit constraints while in CYAN circles those that passed them.'
-        fig, ax = plt.subplots(figsize=(8,8))
+        fig, ax = plt.subplots(figsize=(6,6))
         im = ax.imshow(array, origin='lower', interpolation='nearest', 
                        cmap='gray', alpha=0.8)
         colorbar_ax = fig.add_axes([0.92, 0.12, 0.03, 0.78])

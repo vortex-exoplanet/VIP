@@ -38,8 +38,8 @@ the github repository.
 
 The goal of ``VIP`` is to incorporate robust, efficient, easy-to-use, well-documented
 and open source implementations of high-contrast image processing algorithms to
-the interested scientific community. The main repository of ``VIP`` resides on Github,
-the standard for scientific open source code distribution, using Git as a
+the interested scientific community. The main repository of ``VIP`` resides on
+Github, the standard for scientific open source code distribution, using Git as a
 version control system. Github is a repository hosting service with an amazing
 web front-end for source-code management and collaboration. It provides features
 such as access control, bug tracking, feature requests, task management, and
@@ -48,11 +48,12 @@ wikis for every project.
 ``VIP`` is being developed in Python 2.7, a modern open source high-level programming
 language, able to express a large amount of functionality per line of code.
 Python has a vast ecosystem of scientific open source libraries/packages (e.g.
-numpy, scipy, astropy, scikit-learn, scikit-image) and many well-known libraries
-have python bindings as well (e.g. opencv). On top of that exist a great tool,
-the Jupyter (né IPython) notebook. A notebook file is simple a JSON document,
-containing text, source code, rich media output, and metadata. It allows to
-combine data analysis and visualization into an easily sharable format.
+``numpy``, ``scipy``, ``astropy``, ``scikit-learn``, ``scikit-image``) and many
+well-known libraries have python bindings as well (e.g. ``opencv``). On top of
+that exist a great tool, the ``Jupyter`` (né ``IPython``) notebook. A notebook
+file is simple a JSON document, containing text, source code, rich media output,
+and metadata. It allows to combine data analysis and visualization into an
+easily sharable format.
 
 
 Jupyter notebook tutorial
@@ -65,38 +66,18 @@ Jupyter notebook tutorial
 Quick Setup Guide
 ------------------
 
-Get the code from github by downloading it as a zip file or by cloning the
-repository (make sure your system has git installed):
+Run:
 
 .. code-block:: bash
 
-  $ git clone https://github.com/vortex-exoplanet/VIP.git
-
-Install opencv. If you use Anaconda run:
-
-.. code-block:: bash
-
-  $ conda install opencv
-
-From the root of the ``VIP`` package:
-
-.. code-block:: bash
-
-  $ python setup.py develop
-
-Start Python (IPython or Jupyter notebook) and check if the setup worked fine by
-importing ``VIP``:
-
-.. code-block:: python
-
-  import vip
-
+   $ pip install git+https://github.com/vortex-exoplanet/VIP.git
 
 
 Installation and dependencies
 ------------------------------
 
-You can find a more detailed description of ``VIP``'s dependencies here.
+Here you can find a more detailed description of ``VIP``'s dependencies, how to
+clone the repository and install ``Opencv`` (optional).
 
 .. toctree::
    :maxdepth: 2
@@ -106,8 +87,8 @@ You can find a more detailed description of ``VIP``'s dependencies here.
 Frequently asked questions
 ---------------------------
 
-Check out this questions if you find problems when installing or running ``VIP`` for
-the first time.
+Check out this questions if you find problems when installing or running ``VIP``
+for the first time.
 
 .. toctree::
    :maxdepth: 2
@@ -126,14 +107,14 @@ image rotation, pixel temporal and spatial subsampling. On top of that several
 pre-processing functions are available such as re-centering and bad frame
 detection.
 
-For Angular differential imaging (ADI) data several point spread gunction
+For Angular differential imaging (ADI) data several point spread function
 subtraction techniques are available, from a simple median subtraction to
 different low-rank approximations. Principal Component Analysis (PCA) methods
 are implemented in different flavours. Also PCA can process RDI and multiple
 channel SDI (IFS) data. ``VIP`` contains a first version of the Local Low-rank plus
 Sparse plus Gaussian-noise decomposition (LLSG, Gomez Gonzalez et al. 2016).
 
-Functions for Signal-to-noise ratio (S/R) estimation, S/R map generation are
+Functions for Signal-to-noise ratio (S/N) estimation and S/N map generation are
 included.
 
 Flux and position of point-like sources are estimated using the Negative Fake

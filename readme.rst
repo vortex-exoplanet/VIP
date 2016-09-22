@@ -35,15 +35,11 @@ Documentation can be found in http://vip.readthedocs.io/.
 
 Quick Setup Guide
 ------------------
-Install opencv. If you use Anaconda run:
-
-.. code-block:: bash
-  
-  $ conda install opencv
-
-From the root of the VIP package:
+Run:
 
 .. code-block:: bash
 
-  $ python setup.py develop   
+   $ pip install git+https://github.com/vortex-exoplanet/VIP.git
 
+Read the documentation for a detailed installation procedure (and optionally,
+how to install ``Opencv``).

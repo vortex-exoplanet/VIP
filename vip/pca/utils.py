@@ -15,7 +15,6 @@ __all__ = ['matrix_scaling',
            'pca_annulus',
            'scale_cube_for_pca']
 
-import cv2
 import numpy as np
 from numpy import linalg
 from matplotlib import pyplot as plt 

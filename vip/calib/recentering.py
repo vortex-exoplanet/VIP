@@ -17,10 +17,20 @@ __all__ = ['frame_shift',
            'cube_recenter_moffat2d_fit']
 
 import numpy as np
-import cv2
+import warnings
 import pywt
 import itertools as itt
 import pyprind
+
+try:
+    import cv2
+    no_opencv = False
+except ImportError:
+    msg = "Opencv python binding are missing (consult VIP documentation for "
+    msg += "Opencv installation instructions). Scipy.ndimage will be used instead."
+    warnings.warn(msg, ImportWarning)
+    no_opencv = True
+
 from scipy.ndimage.interpolation import shift
 from skimage.transform import radon
 from multiprocessing import Pool, cpu_count
@@ -33,7 +43,7 @@ from ..var import (get_square, get_square_robust, frame_center, wavelet_denoise,
                    get_annulus, pp_subplots, fit_2dmoffat, fit_2dgaussian)
 
 
-def frame_shift(array, shift_y, shift_x, lib='opencv', interpolation='bicubic'):
+def frame_shift(array, shift_y, shift_x, imlib='opencv', interpolation='bicubic'):
     """ Shifts an 2d array by shift_y, shift_x. Boundaries are filled with zeros. 
 
     Parameters
@@ -42,8 +52,9 @@ def frame_shift(array, shift_y, shift_x, lib='opencv', interpolation='bicubic'):
         Input 2d array.
     shift_y, shift_x: float
         Shifts in x and y directions.
-    lib : {'opencv', 'ndimage'}, string optional 
-        Whether to use opencv or ndimage library.
+    imlib : {'opencv', 'ndimage'}, string optional
+        Library used for image transformations. Opencv is faster than ndimage or
+        skimage.
     interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
         'nneighbor' stands for nearest-neighbor interpolation,
         'bilinear' stands for bilinear interpolation,
@@ -62,8 +73,11 @@ def frame_shift(array, shift_y, shift_x, lib='opencv', interpolation='bicubic'):
         raise TypeError ('Input array is not a frame or 2d array')
     
     image = array.copy()
+
+    if imlib not in ['ndimage', 'opencv']:
+        raise ValueError('Imlib not recognized, try opencv or ndimage')
     
-    if lib=='ndimage':
+    if imlib=='ndimage' or no_opencv:
         if interpolation == 'bilinear':
             intp = 1
         elif interpolation == 'bicubic':
@@ -75,7 +89,7 @@ def frame_shift(array, shift_y, shift_x, lib='opencv', interpolation='bicubic'):
         
         array_shifted = shift(image, (shift_y, shift_x), order=intp)
     
-    elif lib=='opencv':
+    else:
         if interpolation == 'bilinear':
             intp = cv2.INTER_LINEAR
         elif interpolation == 'bicubic':
@@ -89,9 +103,6 @@ def frame_shift(array, shift_y, shift_x, lib='opencv', interpolation='bicubic'):
         y, x = image.shape
         M = np.float32([[1,0,shift_x],[0,1,shift_y]])
         array_shifted = cv2.warpAffine(image, M, (x,y), flags=intp)
-        
-    else:
-        raise ValueError('Lib not recognized, try opencv or ndimage')
     
     return array_shifted
 

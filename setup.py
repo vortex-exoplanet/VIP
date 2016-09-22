@@ -1,53 +1,42 @@
 #!/usr/bin/env python
  
 import os
-try:
-    from setuptools import setup, find_packages
-except ImportError:
-    from distutils.core import setup
- 
+from setuptools import setup, find_packages
+from pip.req import parse_requirements
+from setuptools.command.install import install
 
-readme = open('README.rst').read()
-doclink = """
-Documentation
--------------
-TO-DO. Meanwhile please rely on the docstrings and jupyter tutorial. 
-"""
- 
+class InstallReqs(install):
+    def run(self):
+        print(" ********************** ")
+        print(" *** Installing VIP *** ")
+        print(" ********************** ")
+        os.system('pip install -r requirements')
+        install.run(self)
+
 PACKAGE_PATH = os.path.abspath(os.path.join(__file__, os.pardir))
+
+# parse_requirements() returns generator of pip.req.InstallRequirement objects
+install_reqs = parse_requirements(os.path.join(PACKAGE_PATH, 'requirements'),
+                                  session=False)
+requirements = [str(ir.req) for ir in install_reqs]
 
 with open(os.path.join(PACKAGE_PATH, 'VERSION')) as version_file:
     __version__ = version_file.read().strip()
+
+with open(os.path.join(PACKAGE_PATH, 'readme.rst')) as readme_file:
+    readme = readme_file.read()
  
 setup(
     name='vip',
     version=__version__,
-    description='Package for astronomical high-contrast image processing and exoplanet detection.',
-    long_description=readme + '\n\n' + doclink + '\n\n',
-    author='Carlos Gomez',
+    description='Package for astronomical high-contrast image processing.',
+    long_description=readme,
+    author='Carlos Gomez Gonzalez',
     author_email='cgomez@ulg.ac.be',
-    url='https://github.com/vortex-exoplanet/VIP',                    
+    url='https://github.com/vortex-exoplanet/VIP',
+    cmdclass={'install': InstallReqs},
     packages=find_packages(),
-    include_package_data=True,
-    install_requires=['cython',
-                      'numpy >= 1.8',
-                      'scipy >= 0.17',
-                      'ipython >= 3.2',
-                      'jupyter',
-                      'astropy >= 1.0.2',
-                      'emcee >= 2.1',
-                      'corner >= 1.0.2',
-                      'pandas >= 0.18',
-                      'matplotlib >= 1.4.3',
-                      'scikit-learn >= 0.17',
-                      'scikit-image >= 0.11',
-                      'psutil',
-                      'pytest',
-                      'photutils >= 0.2.2',
-                      'image_registration',
-                      'FITS_tools',
-                      'pywavelets',
-                      'pyprind'],
+    install_requires=requirements,
     zip_safe=False,
     classifiers=['Development Status :: 4 - Beta',
                  'Intended Audience :: Science/Research',

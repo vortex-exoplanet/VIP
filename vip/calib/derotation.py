@@ -8,11 +8,21 @@ __all__ = ['cube_derotate',
            'frame_rotate']
 
 import numpy as np
-import cv2
+import warnings
+try:
+    import cv2
+    no_opencv = False
+except ImportError:
+    msg = "Opencv python binding are missing (consult VIP documentation for "
+    msg += "Opencv installation instructions). Scikit-image will be used instead."
+    warnings.warn(msg, ImportWarning)
+    no_opencv = True
+
+from skimage.transform import rotate
 from ..var import frame_center
 
 
-def frame_rotate(array, angle, interpolation='bicubic', cxy=None):
+def frame_rotate(array, angle, imlib='opencv', interpolation='bicubic', cxy=None):
     """ Rotates a frame.
     
     Parameters
@@ -21,6 +31,9 @@ def frame_rotate(array, angle, interpolation='bicubic', cxy=None):
         Input frame, 2d array.
     angle : float
         Rotation angle.
+    imlib : {'opencv', 'skimage'}, str optional
+        Library used for image transformations. Opencv is faster than ndimage or
+        skimage.
     interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
         'nneighbor' stands for nearest-neighbor interpolation,
         'bilinear' stands for bilinear interpolation,
@@ -48,26 +61,53 @@ def frame_rotate(array, angle, interpolation='bicubic', cxy=None):
         cy, cx = frame_center(array)
     else:
         cx, cy = cxy
-    
-    if interpolation == 'bilinear':
-        intp = cv2.INTER_LINEAR
-    elif interpolation == 'bicubic':
-        intp= cv2.INTER_CUBIC
-    elif interpolation == 'nearneig':
-        intp = cv2.INTER_NEAREST
+
+    if imlib not in ['skimage', 'opencv']:
+        raise ValueError('Imlib not recognized, try opencv or ndimage')
+
+    if imlib=='skimage' or no_opencv:
+        if interpolation == 'bilinear':
+            order = 1
+        elif interpolation == 'bicubic':
+            order = 3
+        elif interpolation == 'nearneig':
+            order = 0
+        else:
+            raise TypeError('Interpolation method not recognized.')
+
+        min_val = np.min(array)
+        im_temp = array - min_val
+        max_val = np.max(im_temp)
+        im_temp /= max_val
+
+        array_out = rotate(im_temp, angle, order=order, center=cxy, cval=np.nan)
+
+        array_out *= max_val
+        array_out += min_val
+        array_out = np.nan_to_num(array_out)
+
     else:
-        raise TypeError('Interpolation method not recognized.')
-    
-    M = cv2.getRotationMatrix2D((cx,cy), angle, 1)
-    array_out = cv2.warpAffine(array.astype(np.float32), M, (x, y), flags=intp)
+        if interpolation == 'bilinear':
+            intp = cv2.INTER_LINEAR
+        elif interpolation == 'bicubic':
+            intp= cv2.INTER_CUBIC
+        elif interpolation == 'nearneig':
+            intp = cv2.INTER_NEAREST
+        else:
+            raise TypeError('Interpolation method not recognized.')
+
+        M = cv2.getRotationMatrix2D((cx,cy), angle, 1)
+        array_out = cv2.warpAffine(array.astype(np.float32), M, (x, y), flags=intp)
              
     return array_out
     
     
-def cube_derotate(array, angle_list, cxy=None, nproc=1):
-    """ Rotates an ADI cube to a common north given a vector with the 
-    corresponding parallactic angles for each frame of the sequence. By default
-    bicubic interpolation is used (opencv). 
+def cube_derotate(array, angle_list, imlib='opencv', interpolation='bicubic',
+                  cxy=None):
+    """ Rotates an cube (3d array or image sequence) providing a vector or
+    corrsponding angles. Serves for rotating an ADI sequence to a common north
+    given a vector with the corresponding parallactic angles for each frame. By
+    default bicubic interpolation is used (opencv).
     
     Parameters
     ----------
@@ -75,6 +115,16 @@ def cube_derotate(array, angle_list, cxy=None, nproc=1):
         Input 3d array, cube.
     angle_list : list
         Vector containing the parallactic angles.
+    imlib : {'opencv', 'skimage'}, str optional
+        Library used for image transformations. Opencv is usually faster than
+        ndimage or skimage.
+    interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
+        'nneighbor' stands for nearest-neighbor interpolation,
+        'bilinear' stands for bilinear interpolation,
+        'bicubic' for interpolation over 4x4 pixel neighborhood.
+        The 'bicubic' is the default. The 'nearneig' is the fastest method and
+        the 'bicubic' the slowest of the three. The 'nearneig' is the poorer
+        option for interpolation of noisy astronomical images.
     cxy : tuple of int, optional
         Coordinates X,Y  of the point with respect to which the rotation will be 
         performed. By default the rotation is done with respect to the center 
@@ -98,8 +148,8 @@ def cube_derotate(array, angle_list, cxy=None, nproc=1):
         cxy = (cx, cy)
         
     for i in xrange(n_frames): 
-        array_der[i] = frame_rotate(array[i], -angle_list[i], 
-                                    interpolation='bicubic', cxy=cxy)
+        array_der[i] = frame_rotate(array[i], -angle_list[i], imlib=imlib,
+                                    interpolation=interpolation, cxy=cxy)
     
     return array_der
 

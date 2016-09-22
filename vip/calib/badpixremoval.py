@@ -7,11 +7,11 @@ Module with functions for correcting bad pixels in cubes.
 from __future__ import division
 
 __author__ = 'C. Gomez @ ULg', 'V. Christiaens'
-__all__ = ['cube_fix_badpix_isolated',
+__all__ = ['frame_fix_badpix_isolated',
+           'cube_fix_badpix_isolated',
            'cube_fix_badpix_annuli',
            'cube_fix_badpix_clump']
 
-import cv2
 import numpy as np
 import pyprind
 from skimage.draw import circle, ellipse
@@ -21,8 +21,89 @@ from ..stats import sigma_filter
 from ..var import dist, frame_center, pp_subplots
 from ..stats import clip_array
 from ..conf import timing, timeInit
-    
-    
+
+
+def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
+                              size=5, protect_mask=False, radius=30, verbose=True,
+                              debug=False):
+    """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is
+     replaced by the median of the adjacent pixels. This function is very fast
+     but works only with isolated (sparse) pixels.
+
+     Parameters
+     ----------
+     array : array_like
+         Input 2d array.
+     bpm_mask : array_like, optional
+         Input bad pixel map. Zeros frame where the bad pixels have a value of 1.
+         If None is provided a bad pixel map will be created per frame using
+         sigma clip statistics. In the case of a cube the bad pixels will be
+         computed on the mean frame of the stack.
+     sigma_clip : int, optional
+         In case no bad pixel mask is provided all the pixels above and below
+         sigma_clip*STDDEV will be marked as bad.
+     num_neig : int, optional
+         The side of the square window around each pixel where the sigma clipped
+         statistics are calculated (STDDEV and MEDIAN). If the value is equal to
+         0 then the statistics are computed in the whole frame.
+     size : odd int, optional
+         The size the box (size x size) of adjacent pixels for the median filter.
+     protect_mask : {False, True}, bool optional
+         If True a circular aperture at the center of the frames will be
+         protected from any operation. With this we protect the star and vicinity.
+     radius : int, optional
+         Radius of the circular aperture (at the center of the frames) for the
+         protection mask.
+     verbose : {True, False}, bool optional
+         If True additional information will be printed.
+     debug : {False, True}, bool optional
+         If debug is True, the bpm_mask and the input array are plotted. If the
+         input array is a cube, a long output is to be expected. Better check the
+         results with single images.
+
+     Return
+     ------
+     frame : array_like
+         Frame with bad pixels corrected.
+     """
+    if not array.ndim == 2:
+        raise TypeError('Array is not a 2d array or single frame')
+    if size % 2 == 0:
+        raise TypeError('Size of the median blur kernel must be an odd integer')
+
+    if bpm_mask is not None:
+        bpm_mask = bpm_mask.astype('bool')
+
+    if verbose:  start = timeInit()
+
+    if num_neig > 0:
+        neigh = True
+    else:
+        neigh = False
+
+    frame = array.copy()
+    cy, cx = frame_center(frame)
+    if bpm_mask is None:
+        ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=neigh,
+                         num_neighbor=num_neig, mad=True)
+        bpm_mask = np.zeros_like(frame)
+        bpm_mask[ind] = 1
+        if protect_mask:
+            cir = circle(cy, cx, radius)
+            bpm_mask[cir] = 0
+        bpm_mask = bpm_mask.astype('bool')
+        if debug:  pp_subplots(frame, bpm_mask, title='Frame / Bad pixel mask')
+
+    smoothed = median_filter(frame, size, mode='nearest')
+    frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
+    array_out = frame
+
+    if verbose:
+        print "\nDone replacing bad pixels using the median of the neighbors"
+        timing(start)
+    return array_out
+
+
 def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5, 
                              size=5, protect_mask=False, radius=30, verbose=True,
                              debug=False):
@@ -33,7 +114,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     Parameters
     ----------
     array : array_like
-        Input 2d or 3d array.
+        Input 3d array.
     bpm_mask : array_like, optional
         Input bad pixel map. Zeros frame where the bad pixels have a value of 1.
         If None is provided a bad pixel map will be created per frame using 
@@ -63,11 +144,11 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     
     Return
     ------
-    frame : array_like
-        Frame with bad pixels corrected.
+    array_out : array_like
+        Cube with bad pixels corrected.
     """
-    if array.ndim>3 or array.ndim<2:
-        raise TypeError('Array is not a 2d or 3d array')
+    if not array.ndim == 3:
+        raise TypeError('Array is not a 3d array or cube')
     if size%2==0:
         raise TypeError('Size of the median blur kernel must be an odd integer')
     
@@ -78,59 +159,33 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     
     if num_neig>0:  neigh=True
     else:  neigh=False
-
-    if array.ndim==2:
-        frame = array.copy()
-        cy, cx = frame_center(frame)
-        if bpm_mask is None:
-            ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=neigh,
-                             num_neighbor=num_neig, mad=True)
-            bpm_mask = np.zeros_like(frame)
-            bpm_mask[ind] = 1
-            if protect_mask:
-                cir = circle(cy, cx, radius)
-                bpm_mask[cir] = 0
-            bpm_mask = bpm_mask.astype('bool')
-            if debug:  pp_subplots(frame, bpm_mask)
-        
-        if size==3 or size==5:
-            smoothed = cv2.medianBlur(frame.astype(np.float32), size)
-        elif size>5:
-            smoothed = median_filter(frame, size, mode='nearest')
-        frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)] 
-        array_out = frame     
     
-    elif array.ndim==3:
-        cy, cx = frame_center(array[0])
-        cube_out = array.copy()
-        n_frames = array.shape[0]
-        
-        if bpm_mask is None:
-            ind = clip_array(np.mean(array, axis=0), sigma_clip, sigma_clip, 
-                             neighbor=neigh, num_neighbor=num_neig, mad=True)
-            bpm_mask = np.zeros_like(array[0])
-            bpm_mask[ind] = 1
-            if protect_mask:
-                cir = circle(cy, cx, radius)
-                bpm_mask[cir] = 0
-            bpm_mask = bpm_mask.astype('bool')
-        
-        if debug:  pp_subplots(bpm_mask)
-        
-        bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
-        for i in range(n_frames):
-            frame = cube_out[i]            
-            if size==3 or size==5:
-                smoothed = cv2.medianBlur(frame.astype(np.float32), size)
-            elif size>5:
-                smoothed = median_filter(frame, size, mode='nearest')
-            frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)] 
-            bar.update()
-        array_out = cube_out
+    cy, cx = frame_center(array[0])
+    cube_out = array.copy()
+    n_frames = array.shape[0]
+
+    if bpm_mask is None:
+        ind = clip_array(np.mean(array, axis=0), sigma_clip, sigma_clip,
+                         neighbor=neigh, num_neighbor=num_neig, mad=True)
+        bpm_mask = np.zeros_like(array[0])
+        bpm_mask[ind] = 1
+        if protect_mask:
+            cir = circle(cy, cx, radius)
+            bpm_mask[cir] = 0
+        bpm_mask = bpm_mask.astype('bool')
+
+    if debug:  pp_subplots(bpm_mask, title='Bad pixel mask')
+
+    bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
+    for i in range(n_frames):
+        frame = cube_out[i]
+        smoothed = median_filter(frame, size, mode='nearest')
+        frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
+        bar.update()
+    array_out = cube_out
     
     if verbose: 
-        print
-        print "Done replacing bad pixels using the median of the neighbors"
+        print "/nDone replacing bad pixels using the median of the neighbors"
         timing(start)
     return array_out
 

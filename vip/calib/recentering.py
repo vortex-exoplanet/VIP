@@ -27,11 +27,12 @@ try:
     no_opencv = False
 except ImportError:
     msg = "Opencv python binding are missing (consult VIP documentation for "
-    msg += "Opencv installation instructions). Scipy.ndimage will be used instead."
+    msg += "Opencv installation instructions)"
     warnings.warn(msg, ImportWarning)
     no_opencv = True
 
-from scipy.ndimage.interpolation import shift
+from scipy.ndimage import fourier_shift
+from scipy.ndimage import shift
 from skimage.transform import radon
 from multiprocessing import Pool, cpu_count
 from image_registration import chi2_shift
@@ -43,7 +44,8 @@ from ..var import (get_square, get_square_robust, frame_center, wavelet_denoise,
                    get_annulus, pp_subplots, fit_2dmoffat, fit_2dgaussian)
 
 
-def frame_shift(array, shift_y, shift_x, imlib='opencv', interpolation='bicubic'):
+def frame_shift(array, shift_y, shift_x, imlib='ndimage-fourier',
+                interpolation='bicubic'):
     """ Shifts an 2d array by shift_y, shift_x. Boundaries are filled with zeros. 
 
     Parameters
@@ -52,32 +54,49 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv', interpolation='bicubic'
         Input 2d array.
     shift_y, shift_x: float
         Shifts in x and y directions.
-    imlib : {'opencv', 'ndimage'}, string optional
-        Library used for image transformations. Opencv is faster than ndimage or
-        skimage.
+    imlib : {'ndimage-fourier', 'opencv', 'ndimage-interp'}, string optional
+        Library or method used for performing the image shift.
     interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
-        'nneighbor' stands for nearest-neighbor interpolation,
-        'bilinear' stands for bilinear interpolation,
-        'bicubic' for interpolation over 4x4 pixel neighborhood.
-        The 'bicubic' is the default. The 'nearneig' is the fastest method and
-        the 'bicubic' the slowest of the three. The 'nearneig' is the poorer
-        option for interpolation of noisy astronomical images.
+        Only used in case of imlib is set to 'opencv' or 'ndimage-interp', where
+        the images are shifted via interpolation. 'nneighbor' stands for
+        nearest-neighbor, 'bilinear' stands for bilinear and 'bicubic' stands
+        for bicubic interpolation over 4x4 pixel neighborhood. 'bicubic' is the
+        default. The 'nearneig' is the fastest method and the 'bicubic' the
+        slowest of the three. The 'nearneig' is the poorer option for
+        interpolation of noisy astronomical images.
     
     Returns
     -------
     array_shifted : array_like
         Shifted 2d array.
-        
+
+    Notes
+    -----
+    Regarding the imlib parameter: 'ndimage-fourier', does a fourier shift
+    operation and preserves better the pixel values (therefore the flux and
+    photometry). 'ndimage-fourier' is used by default from VIP version 0.5.3.
+    Interpolation based shift ('opencv' and 'ndimage-interp') is faster than the
+    fourier shift. 'opencv' could be used when speed is critical and the flux
+    preservation is not that important.
+
     """
     if not array.ndim == 2:
         raise TypeError ('Input array is not a frame or 2d array')
     
     image = array.copy()
 
-    if imlib not in ['ndimage', 'opencv']:
-        raise ValueError('Imlib not recognized, try opencv or ndimage')
-    
-    if imlib=='ndimage' or no_opencv:
+    if imlib not in ['ndimage-fourier', 'ndimage-interp', 'opencv']:
+        msg = 'Imlib value not recognized, try ndimage-fourier, ndimage-interp '
+        msg += 'or opencv'
+        raise ValueError(msg)
+
+    if imlib=='ndimage-fourier':
+        shift_val = (shift_y, shift_x)
+        array_shifted = fourier_shift(np.fft.fftn(image), shift_val)
+        array_shifted = np.fft.ifftn(array_shifted)
+        array_shifted = array_shifted.real
+
+    elif imlib=='ndimage-interp':
         if interpolation == 'bilinear':
             intp = 1
         elif interpolation == 'bicubic':
@@ -89,7 +108,12 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv', interpolation='bicubic'
         
         array_shifted = shift(image, (shift_y, shift_x), order=intp)
     
-    else:
+    elif imlib=='opencv':
+        if no_opencv:
+            msg = 'Opencv python bindings cannot be imported. Install opencv or '
+            msg += 'set imlib to ndimage-fourier or ndimage-interp'
+            raise RuntimeError(msg)
+
         if interpolation == 'bilinear':
             intp = cv2.INTER_LINEAR
         elif interpolation == 'bicubic':
@@ -106,6 +130,9 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv', interpolation='bicubic'
     
     return array_shifted
 
+
+# TODO: expose 'imlib' parameter in the rest of functions that use frame_shift
+# function
 
 def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
                           debug=False): 

@@ -70,11 +70,11 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
     fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = psf_template
 
     array_out = np.zeros_like(array)
-    for fr in xrange(nframes):                                                  
+    for fr in range(nframes):
         tmp = np.zeros_like(array[0])
-        for branch in xrange(n_branches):
+        for branch in range(n_branches):
             ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
-            for i in xrange(n_fc_rad):
+            for i in range(n_fc_rad):
                 rad = rad_dists[i]                                         
                 y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                 x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
@@ -82,11 +82,12 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
         array_out[fr] = array[fr] + tmp
     
     if verbose:
-        for branch in xrange(n_branches):
-            print 'Branch 1:'
-            for i in xrange(n_fc_rad):
-                posy = rad_dists[i] * np.sin(np.deg2rad(theta)) + ceny
-                posx = rad_dists[i] * np.cos(np.deg2rad(theta)) + cenx
+        for branch in range(n_branches):
+            print 'Branch '+str(branch+1)+':'
+            for i in range(n_fc_rad):
+                ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
+                posy = rad_dists[i] * np.sin(ang) + ceny
+                posx = rad_dists[i] * np.cos(ang) + cenx
                 rad_arcs = rad_dists[i]*plsc
                 msg ='\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec ({:.2f} pxs)'
                 print msg.format(posx, posy, rad_arcs, rad_dists[i])

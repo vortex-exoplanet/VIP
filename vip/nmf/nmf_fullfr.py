@@ -11,7 +11,6 @@ __all__ = ['nmf']
 
 import numpy as np
 from sklearn.decomposition import NMF
-from numpy.random import RandomState
 from ..calib import cube_derotate, cube_collapse
 from ..pca import prepare_matrix
 from ..conf import timing, timeInit
@@ -69,10 +68,13 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
     if verbose:  start_time = timeInit()
     n, y, x = array.shape
     
-    matrix = prepare_matrix(cube, scaling, mask_center_px, verbose)
-    
+    matrix = prepare_matrix(cube, scaling, mask_center_px, mode='fullfr',
+                            verbose=verbose)
     matrix += np.abs(matrix.min())
-    if cube_ref is not None:  matrix_ref += np.abs(matrix_ref.min())
+    if cube_ref is not None:
+        matrix_ref = prepare_matrix(cube_ref, scaling, mask_center_px,
+                                    mode='fullfr', verbose=verbose)
+        matrix_ref += np.abs(matrix_ref.min())
            
     mod = NMF(n_components=ncomp, alpha=0, solver='cd', init='nndsvd', 
               max_iter=max_iter, random_state=random_state, **kwargs) 

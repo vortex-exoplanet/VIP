@@ -160,18 +160,11 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     yy, xx = indic                                                             
     
     data = cube[:, yy, xx]
-    
-    if scaling=='temp-standard':
-        data = scale(data, with_mean=True, with_std=True)
-    elif scaling=='temp-mean':
-        data = scale(data, with_mean=True, with_std=False)
-        
+    data = matrix_scaling(data, scaling)
+
     if cube_ref is not None:
         data_svd = cube_ref[:, yy, xx]
-        if scaling=='temp-standard':
-            data_svd = scale(data_svd, with_mean=True, with_std=True)
-        elif scaling=='temp-mean':
-            data_svd = scale(data_svd, with_mean=True, with_std=False)
+        data = matrix_scaling(data_svd, scaling)
     else:
         data_svd = data
         
@@ -208,7 +201,8 @@ def matrix_scaling(matrix, scaling):
     return matrix 
 
 
-def prepare_matrix(array, scaling=None, mask_center_px=None, verbose=True):
+def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
+                   annulus_radius=None, annulus_width=None, verbose=True):
     """ Builds the matrix for the SVD/PCA and other matrix decompositions, 
     centers the data and masks the frames central area if needed.
     
@@ -225,27 +219,56 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, verbose=True):
         performed.  
     mask_center_px : None or Int, optional
         Whether to mask the center of the frames or not.
+    mode : {'fullfr', 'annular'}
+        Whether to use the whole frames or a single annulus.
+    annulus_radius : float
+        Distance in pixels from the center of the frame to the center of the
+        annulus.
+    annulus_width : float
+        Width of the annulus in pixels.
     verbose : {True, False}, bool optional
-        If True prints intermediate info and timing. 
+        If True prints intermediate info and timing.
     
     Returns
     -------
+    If mode is `annular` then the indices of the annulus (yy, xx) are returned
+    along with the matrix.
+
     matrix : array_like
         Out matrix whose rows are vectorized frames from the input cube.
     
     """
-    if mask_center_px:
-        array = mask_circle(array, mask_center_px)
-    
-    nfr = array.shape[0]
-    matrix = np.reshape(array, (nfr, -1))  # == for i: array[i].flatten()                            
-    
-    matrix = matrix_scaling(matrix, scaling)
-    
-    if verbose:
-        msg = 'Done vectorizing the frames. Matrix shape [{:},{:}]'
-        print(msg.format(matrix.shape[0], matrix.shape[1]))  
-    return matrix
+    if mode == 'annular':
+        if annulus_radius is None or annulus_width is None:
+            msgerr = 'Annulus_radius and/or annulus_width can be None in annular '
+            msgerr += 'mode'
+            raise ValueError(msgerr)
+
+        ind = get_annulus(array[0], annulus_radius - annulus_width / 2.,
+                          annulus_width, output_indices=True)
+        yy, xx = ind
+        matrix = array[:, yy, xx]
+
+        matrix = matrix_scaling(matrix, scaling)
+
+        if verbose:
+            msg = 'Done vectorizing the cube annulus. Matrix shape [{:},{:}]'
+            print(msg.format(matrix.shape[0], matrix.shape[1]))
+        return matrix, ind
+
+    elif mode == 'fullfr':
+        if mask_center_px:
+            array = mask_circle(array, mask_center_px)
+
+        nfr = array.shape[0]
+        matrix = np.reshape(array, (nfr, -1))  # == for i: array[i].flatten()
+
+        matrix = matrix_scaling(matrix, scaling)
+
+        if verbose:
+            msg = 'Done vectorizing the frames. Matrix shape [{:},{:}]'
+            print(msg.format(matrix.shape[0], matrix.shape[1]))
+        return matrix
      
 
 def reshape_matrix(array, y, x):

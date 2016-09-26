@@ -223,8 +223,11 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
     delta_rot : int, optional
         Factor for increasing the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1 FHWM on each side of the considered frame).
-    ncomp : int, optional
-        How many PCs are kept. If none it will be automatically determined.
+    ncomp : int or list, optional
+        How many PCs are kept. If none it will be automatically determined. If a
+        list is provided and it matches the number of annuli then a different
+        number of PCs will be used for each annulus (starting with the innermost
+        one).
     svd_mode : {randsvd, eigen, lapack, arpack, opencv}, optional
         Switch for different ways of computing the SVD and principal components.
     nproc : None or int, optional
@@ -275,10 +278,10 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
     """
     array = cube
     if not array.ndim == 3:
-        raise TypeError('Input array is not a cube or 3d array.')
+        raise TypeError('Input array is not a cube or 3d array')
     if not array.shape[0] == angle_list.shape[0]:
-        raise TypeError('Input vector or parallactic angles has wrong length.')
-     
+        raise TypeError('Input vector or parallactic angles has wrong length')
+
     n, y, _ = array.shape
      
     if verbose:  start_time = timeInit()
@@ -303,6 +306,15 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
     #***************************************************************************
     cube_out = np.zeros_like(array)
     for ann in xrange(n_annuli):
+        if isinstance(ncomp, list):
+            if len(ncomp) == n_annuli:
+                ncompann = ncomp[ann]
+            else:
+                msg = 'If ncomp is a list, it must match the number of annuli'
+                raise TypeError(msg)
+        else:
+            ncompann = ncomp
+
         pa_thr,inner_radius,ann_center = define_annuli(angle_list, ann, n_annuli, 
                                                        fwhm, radius_int, 
                                                        annulus_width, delta_rot,
@@ -330,7 +342,7 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
                 #***************************************************************
                 residuals = do_pca_loop(matrix_quad, yy, xx, nproc, angle_list, 
                                         fwhm, pa_thr, scaling, ann_center, 
-                                        svd_mode, ncomp, min_frames_pca, tol, 
+                                        svd_mode, ncompann, min_frames_pca, tol,
                                         debug, verbose)
                 
                 for frame in xrange(n):
@@ -355,8 +367,8 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
             # We loop the frames and do the PCA to obtain the residuals cube
             #*******************************************************************
             residuals = do_pca_loop(matrix_ann, yy, xx, nproc, angle_list, fwhm, 
-                                    pa_thr, scaling, ann_center, svd_mode, 
-                                    ncomp, min_frames_pca, tol, debug, verbose)
+                                    pa_thr, scaling, ann_center, svd_mode,
+                                    ncompann, min_frames_pca, tol, debug, verbose)
             
             for frame in xrange(n):
                 cube_out[frame][yy, xx] = residuals[frame] 

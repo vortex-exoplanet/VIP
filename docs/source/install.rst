@@ -39,7 +39,18 @@ the process takes just a command (this is an optional step):
 
   $ conda install opencv
 
-For installing ``VIP`` in your system run setup.py:
+
+Also, optionally you can install the Intel Math Kernel Library (MKL)
+optimizations provided that you have Anaconda(>v2.5) and ``conda`` on your
+system. This is recommended along with ``Opencv`` for maximum speed on ``VIP``
+computations. Run:
+
+.. code-block:: bash
+
+  $ conda install mkl
+
+
+``VIP`` can be installed in your system run setup.py:
 
 .. code-block:: bash
 

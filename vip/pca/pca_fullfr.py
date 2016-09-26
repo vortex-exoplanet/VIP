@@ -22,7 +22,7 @@ from .utils import svd_wrapper, prepare_matrix, reshape_matrix
 from ..calib import (cube_derotate, cube_collapse, check_PA_vector, 
                      check_scal_vector)
 from ..conf import timing, timeInit, check_enough_memory, get_available_memory
-from ..var import frame_center, dist
+from ..var import frame_center, dist, get_annulus
 from ..stats import descriptive_stats
 from .. import phot
 from .utils import pca_annulus, scale_cube_for_pca
@@ -163,12 +163,15 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         """
         _, y, x = cube.shape
         if indices is not None and frame is not None:
-            matrix = prepare_matrix(cube, scaling, mask_center_px, False)
+            matrix = prepare_matrix(cube, scaling, mask_center_px, mode='fullfr',
+                                    verbose=False)
         else:
-            matrix = prepare_matrix(cube, scaling, mask_center_px, verbose)
+            matrix = prepare_matrix(cube, scaling, mask_center_px,
+                                    mode='fullfr', verbose=verbose)
               
         if cube_ref is not None:
-            ref_lib = prepare_matrix(cube_ref, scaling, mask_center_px, verbose)
+            ref_lib = prepare_matrix(cube_ref, scaling, mask_center_px,
+                                     mode = 'fullfr', verbose=verbose)
         else:
             ref_lib = matrix    
         
@@ -452,7 +455,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     
     
 def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
-                     mode='full', annulus_width=2, range_pcs=None, 
+                     mode='full', annulus_width=20, range_pcs=None,
                      svd_mode='lapack', scaling=None, mask_center_px=None, 
                      fmerit='px', min_snr=0, collapse='median', verbose=True, 
                      full_output=False, debug=False, plot=True):
@@ -475,8 +478,12 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         Size of the PSF's FWHM in pixels.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging. 
-    mode : {'full', 'annular'}, optional
-        Mode for PCA processing (full-frame or just in an annulus).
+    mode : {'fullfr', 'annular'}, optional
+        Mode for PCA processing (full-frame or just in an annulus). There is a
+        catch: the optimal number of PCs in full-frame may not coincide with the
+        one in annular mode. This is due to the fact that the annulus matrix is
+        smaller (less noisy, probably not containing the central star) and also
+        its intrinsic rank (smaller that in the full frame case).
     annulus_width : float, optional
         Width in pixels of the annulus in the case of the "annular" mode. 
     range_pcs : tuple, optional
@@ -526,8 +533,9 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
     If full_output is True, the final processed frame, and a cube with all the
     PCA frames are returned along with the optimal number of PCs.
     """    
-    def truncate_svd(matrix, angle_list, ncomp, V):    
-        """ One SVD computation. Only for full-frame"""        
+    def truncate_svd_get_finframe(matrix, angle_list, ncomp, V):
+        """ Projection, subtraction, derotation plus combination in one frame.
+        Only for full-frame"""
         transformed = np.dot(V[:ncomp], matrix.T)
         reconstructed = np.dot(transformed.T, V[:ncomp])
         residuals = matrix - reconstructed
@@ -536,18 +544,28 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         residuals_res_der = cube_derotate(residuals_res, angle_list)
         frame = cube_collapse(residuals_res_der, mode=collapse)
         return frame
-    
-    def get_snr(matrix, angle_list, cube_ref, y, x, mode, V, fwhm, ncomp, 
-                fmerit, full_output):
-        if mode=='full':
-            frame = truncate_svd(matrix, angle_list, ncomp, V)                  
+
+    def truncate_svd_get_finframe_ann(matrix, indices, angle_list, ncomp, V):
+        """ Projection, subtraction, derotation plus combination in one frame.
+        Only for annular mode"""
+        transformed = np.dot(V[:ncomp], matrix.T)
+        reconstructed = np.dot(transformed.T, V[:ncomp])
+        residuals_ann = matrix - reconstructed
+        residuals_res = np.zeros_like(cube)
+        residuals_res[:,indices[0],indices[1]] = residuals_ann
+        residuals_res_der = cube_derotate(residuals_res, angle_list)
+        frame = cube_collapse(residuals_res_der, mode=collapse)
+        return frame
+
+    def get_snr(matrix, angle_list, y, x, mode, V, fwhm, ncomp, fmerit,
+                full_output):
+        if mode=='fullfr':
+            frame = truncate_svd_get_finframe(matrix, angle_list, ncomp, V)
         elif mode=='annular':
-            y_cent, x_cent = frame_center(cube[0])
-            annulus_radius = dist(y_cent, x_cent, y, x)
-            frame = pca_annulus(cube, angle_list, ncomp, annulus_width, 
-                                annulus_radius, cube_ref)
+            frame = truncate_svd_get_finframe_ann(matrix, annind, angle_list,
+                                                  ncomp, V)
         else:
-            raise RuntimeError('Wrong mode.')            
+            raise RuntimeError('Wrong mode. Choose either full or annular')
         
         if fmerit=='max':
             yy, xx = draw.circle(y, x, fwhm/2.)
@@ -586,7 +604,6 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
     def grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, step, inti, intf, 
              debug, full_output, truncate=True):
         nsteps = 0
-        #n = cube.shape[0]
         snrlist = []
         pclist = []
         fluxlist = []
@@ -597,11 +614,11 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             print 'PCs | SNR'
         for pc in range(inti, intf+1, step):
             if full_output:
-                snr, flux, frame = get_snr(matrix, angle_list, cube_ref, y, x, 
-                                           mode, V, fwhm, pc, fmerit, full_output) 
+                snr, flux, frame = get_snr(matrix, angle_list, y, x, mode, V,
+                                           fwhm, pc, fmerit, full_output)
             else:
-                snr, flux = get_snr(matrix, angle_list, cube_ref, y, x, mode, V, 
-                                    fwhm, pc, fmerit, full_output)
+                snr, flux = get_snr(matrix, angle_list, y, x, mode, V, fwhm, pc,
+                                    fmerit, full_output)
             if np.isnan(snr):  snr=0
             if nsteps>1 and snr<snrlist[-1]:  counter += 1
             snrlist.append(snr)
@@ -658,15 +675,35 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         pcmax = 200
         pcmax = min(pcmax, n)
     
-    # Getting pcmax principal components (once)
-    matrix = prepare_matrix(cube, scaling, mask_center_px, verbose=False)
-    if cube_ref is not None:
-        ref_lib = prepare_matrix(cube_ref, scaling, mask_center_px, 
-                                 verbose=False)
+    # Getting `pcmax` principal components a single time
+    if mode=='fullfr':
+        matrix = prepare_matrix(cube, scaling, mask_center_px, verbose=False)
+        if cube_ref is not None:
+            ref_lib = prepare_matrix(cube_ref, scaling, mask_center_px,
+                                     verbose=False)
+        else:
+            ref_lib = matrix
+
+    elif mode=='annular':
+        y_cent, x_cent = frame_center(cube[0])
+        ann_radius = dist(y_cent, x_cent, y, x)
+        matrix, annind = prepare_matrix(cube, scaling, None, mode='annular',
+                                        annulus_radius=ann_radius,
+                                        annulus_width=annulus_width,
+                                        verbose=False)
+        if cube_ref is not None:
+            ref_lib = prepare_matrix(cube_ref, scaling, mask_center_px,
+                                     mode='annular', annulus_radius=ann_radius,
+                                     annulus_width=annulus_width, verbose=False)
+        else:
+            ref_lib = matrix
+
     else:
-        ref_lib = matrix    
+        raise RuntimeError('Wrong mode. Choose either fullfr or annular')
+
     V = svd_wrapper(ref_lib, svd_mode, pcmax, False, verbose)
-    
+
+
     # sequential grid
     if range_pcs is not None:
         grid1 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, step, 
@@ -778,9 +815,17 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             ax2.grid('on', 'major', linestyle='solid', alpha=0.2)
             #plt.savefig('figure.pdf', dpi=300, bbox_inches='tight')
             print
-    
-    finalfr = pca(cube, angle_list, cube_ref, ncomp=opt_npc, svd_mode=svd_mode,  
-                  mask_center_px=mask_center_px, scaling=scaling, verbose=False)  
+
+    if mode == 'fullfr':
+        finalfr = pca(cube, angle_list, cube_ref=cube_ref, ncomp=opt_npc,
+                      svd_mode=svd_mode, mask_center_px=mask_center_px,
+                      scaling=scaling, collapse=collapse, verbose=False)
+    elif mode == 'annular':
+        finalfr = pca_annulus(cube, angle_list, ncomp=opt_npc,
+                              annulus_width=annulus_width, r_guess=ann_radius,
+                              cube_ref=cube_ref, svd_mode=svd_mode,
+                              scaling=scaling, collapse=collapse)
+
     _ = phot.frame_quick_report(finalfr, fwhm, (x,y), verbose=verbose)
     
     if full_output:
@@ -828,6 +873,9 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
     
     """
     if verbose:  start = timeInit()
+    if not isinstance(cubepath, str):
+        msgerr = 'Cubepath must be a string with the full path of your fits file'
+        raise TypeError(msgerr)
       
     fitsfilename = cubepath
     hdulist = fits.open(fitsfilename, memmap=True)

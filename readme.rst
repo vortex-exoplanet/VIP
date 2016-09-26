@@ -16,9 +16,11 @@ differential imaging for exoplanet/disk detection through high-contrast imaging.
 VIP is being developed in Python 2.7.
 
 VIP is being developed within the VORTEX team @ University of Liege (Belgium).
-It's in alpha version meaning that the code will change drastically before the
-first release version. If you want to report a bug, suggest or add a
-functionality please create an issue on the github repository.
+Most of ``VIP``'s functionalities are mature but it doesn't mean it's
+free from bugs. The code will continue evolving and therefore all the feedback
+and contributions will be greatly appreciated. If you want to report a bug,
+suggest or add a functionality please create an issue or send a pull request on
+the github repository.
 
 
 Jupyter notebook tutorial
@@ -26,6 +28,14 @@ Jupyter notebook tutorial
 ``VIP`` tutorial (Jupyter notebook) is available in `this repository
 <https://github.com/carlgogo/vip-tutorial>`_ and can be visualized online `here
 <http://nbviewer.jupyter.org/github/carlgogo/vip-tutorial/blob/master/Tutorial1_VIP_adi_pre-postproc_fluxpos_ccs.ipynb>`_.
+If you are new to the Jupyter notebook application read the `beginner guide
+<https://jupyter-notebook-beginner-guide.readthedocs.io/en/latest/what_is_jupyter.html>`_.
+TL;DR download the tutorial from its repository and from the terminal run:
+
+.. code-block:: bash
+
+   $ cd <path_to_tutorial_folder>
+   $ jupyter-notebook
 
 
 Documentation

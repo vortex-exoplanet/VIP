@@ -76,7 +76,11 @@ linear algebra library (e.g. OPENBLAS). An quick-n-easy fix is to install the
 latest ANACONDA (2.5 or later) distribution which ships MKL library and
 effectively replaces ACCELERATE on OSX systems. On linux with the default
 LAPACK/BLAS libraries ``VIP`` successfully distributes the SVDs among all
-the existing cores.
+the existing cores. With ``conda`` you can run:
+
+.. code-block:: bash
+
+  $ conda install mkl
 
 
 I get an error: ValueError: "unknown locale: UTF-8" when importing ``VIP``.

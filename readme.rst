@@ -53,3 +53,10 @@ Run:
 
 Read the documentation for a detailed installation procedure (and optionally,
 how to install ``Opencv``).
+
+
+Mailing list
+------------
+You can subscribe to our `mailing <http://lists.astro.caltech.edu:88/mailman/listinfo/vip>`_
+list if you want to be informed of the latest developments of the ``VIP`` package
+(new versions and/or updates).

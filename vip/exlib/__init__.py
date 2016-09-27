@@ -1,5 +1,5 @@
 """
-Subpackage with external libraries (written by someone else) that vortex is 
+Subpackage with external libraries (written by someone else) that ``VIP`` is
 using, but are not available through pypi.
 """
 

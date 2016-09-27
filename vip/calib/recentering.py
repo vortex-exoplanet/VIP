@@ -34,10 +34,12 @@ except ImportError:
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
 from skimage.transform import radon
+from skimage.feature import register_translation
 from multiprocessing import Pool, cpu_count
-from image_registration import chi2_shift
+#from image_registration import chi2_shift
 from matplotlib import pyplot as plt
 from . import approx_stellar_position
+from . import frame_crop
 from ..conf import timeInit, timing 
 from ..conf import eval_func_tuple as EFT
 from ..var import (get_square, get_square_robust, frame_center, wavelet_denoise,
@@ -597,8 +599,9 @@ def cube_recenter_radon(array, full_output=False, verbose=True, **kwargs):
                 
 
 def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4, 
-                                 subi_size=None, full_output=False, verbose=True,
-                                 save_shifts=False, debug=False):                          
+                                 subi_size=None, upsample_factor=100,
+                                 full_output=False, verbose=True,
+                                 save_shifts=False, debug=False):
     """ Recenters a cube of frames using the DFT upsampling method as 
     proposed in Guizar et al. 2008 (see Notes) plus a chi^2, for determining
     automatically the upsampling factor, as implemented in the package 
@@ -625,6 +628,9 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
         Size of the square subimage sides in terms of FWHM that will be used
         to centroid to frist frame. If subi_size is None then the first frame
         is assumed to be centered already.
+    upsample_factor :  int optional
+        Upsampling factor (default 100). Images will be registered to within
+        1/upsample_factor of a pixel.
     full_output : {False, True}, bool optional
         Whether to return 2 1d arrays of shifts along with the recentered cube 
         or not.
@@ -645,19 +651,17 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     
     Notes
     -----
-    Package documentation for "Image Registration Methods for Astronomy":
-    https://github.com/keflavich/image_registration
-    http://image-registration.rtfd.org
+    Using the implementation from skimage.feature.register_translation.
     
     Guizar-Sicairos et al. "Efficient subpixel image registration algorithms," 
     Opt. Lett. 33, 156-158 (2008). 
     The algorithm registers two images (2-D rigid translation) within a fraction 
-    of a pixel specified by the user. 
-    Instead of computing a zero-padded FFT (fast Fourier transform), this code 
-    uses selective upsampling by a matrix-multiply DFT (discrete FT) to 
-    dramatically reduce computation time and memory without sacrificing 
-    accuracy. With this procedure all the image points are used to compute the 
-    upsampled cross-correlation in a very small neighborhood around its peak. 
+    of a pixel specified by the user. Instead of computing a zero-padded FFT
+    (fast Fourier transform), this code uses selective upsampling by a
+    matrix-multiply DFT (discrete FT) to dramatically reduce computation time
+    and memory without sacrificing accuracy. With this procedure all the image
+    points are used to compute the upsampled cross-correlation in a very small
+    neighborhood around its peak.
     
     """
     if not array.ndim == 3:
@@ -679,28 +683,44 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     cy, cx = frame_center(array[0])
     # Centroiding first frame with 2d gaussian and shifting
     if subi_size is not None:
-        size = int(fwhm*subi_size)
-        y1, x1 = _centroid_2dg_frame(array_rec, 0, size, cy_1, cx_1, negative)
-        array_rec[0] = frame_shift(array_rec[0], shift_y=cy-y1, shift_x=cx-x1)
+        size = int(np.round(fwhm*subi_size))
+        y1, x1 = _centroid_2dg_frame(array_rec, 0, size, cy_1, cx_1, negative,
+                                     debug=debug)
         x[0] = cx-x1
         y[0] = cy-y1
+        array_rec[0] = frame_shift(array_rec[0], shift_y=y[0], shift_x=x[0])
+        if verbose:
+            print "\nShift for first frame X,Y=({:.3f},{:.3f})".format(x[0],y[0])
+            print "The rest of the frames will be shifted by cross-correlation" \
+                  " with the first one"
+        if debug:
+            pp_subplots(frame_crop(array[0], size, verbose=False),
+                        frame_crop(array_rec[0], size, verbose=False),
+                        grid=True, title='original / shifted 1st frame subimage')
     else:
+        if verbose:
+            print "It's assumed that the first frame is well centered"
+            print "The rest of the frames will be shifted by cross-correlation" \
+                  " with the first one"
         x[0] = cx
         y[0] = cy
     
     # Finding the shifts with DTF upsampling of each frame wrt the first
     bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
     for i in range(1, n_frames):
-        dx, dy, _, _ = chi2_shift(array_rec[0], array[i], upsample_factor='auto')
-        x[i] = -dx
-        y[i] = -dy
-        array_rec[i] = frame_shift(array[i], y[i], x[i])
+        shift_yx, _, _ = register_translation(array_rec[0], array[i],
+                                              upsample_factor=upsample_factor)
+        y[i], x[i] = shift_yx
+        #dx, dy, _, _ = chi2_shift(array_rec[0], array[i], upsample_factor='auto')
+        #x[i] = -dx
+        #y[i] = -dy
+        array_rec[i] = frame_shift(array[i], shift_y=y[i], shift_x=x[i])
         bar.update()
 
     if debug:
-        print  
+        print "\nShifts in X and Y"
         for i in range(n_frames):
-            print y[i], x[i]
+            print x[i], y[i]
         
     if verbose:  timing(start_time)
         
@@ -823,7 +843,9 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
     
     bar2 = pyprind.ProgBar(n_frames, stream=1, title='Shifting the frames')
     for i in xrange(n_frames):
-        if debug:  print y[i], x[i]
+        if debug:
+            print "\nShifts in X and Y"
+            print x[i], y[i]
         array_recentered[i] = frame_shift(array[i], y[i], x[i])
         bar2.update()
         
@@ -958,7 +980,9 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
     x = cx - res[:,1]
         
     for i in xrange(n_frames):
-        if debug:  print y[i], x[i]
+        if debug:
+            print "\nShifts in X and Y"
+            print x[i], y[i]
         array_recentered[i] = frame_shift(array[i], y[i], x[i])
 
     if verbose:  timing(start_time)

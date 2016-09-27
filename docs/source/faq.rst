@@ -9,7 +9,8 @@ On linux, why do I get a matplotlib related error when importing ``VIP``?
 *ImportError: Matplotlib qt-based backends require an external PyQt4, PyQt5,
 or PySide package to be installed, but it was not found.*
 You may need to change the matplotlib backend. Find your matplotlibrc
-configuration file and change the backend from WXAgg to TkAgg. More info here:
+configuration file and change the backend from WXAgg to TkAgg (or the appropriate
+backend for your sytem). More info here:
 http://matplotlib.org/faq/usage_faq.html#what-is-a-backend. On linux the
 matplotlibrc file is located in:
 
@@ -25,13 +26,20 @@ Python documentation for more information on installing Python as a framework
 on Mac OS X. Please either reinstall Python as a framework, or try one of the
 other backends.*
 Again, this is a matplotlib-backend related issue. Read the link in the previous
-answer. It can be solved setting the backend to WXAgg or TkAgg.
+answer. It can be solved setting the backend to WXAgg or TkAgg. Optionally, you
+can change your matplotlib backend before importing ``VIP``:
+
+.. code-block:: python
+
+  import matplotlib as mpl
+  mpl.use('TkAgg')
+  import vip
 
 
-The ``VIP`` setup.py script doesn't finish the job, it seems to be stuck.
-What do I do?
+The ``VIP`` setup.py script doesn't finish the job, it seems to be stuck. What
+to do?
 This is very unlikely to happen with the latest versions of pip, setuptools
-and ``VIP``'s setup script. Anyway, if this happens kill the process
+and ``VIP``'s setup script. If you encounter this situation just kill the process
 (Ctrl + C) and start it again by re-running the setup command. A workaround
 is to install the problematic dependency before executing ``VIP`` setup:
 

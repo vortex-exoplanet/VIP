@@ -73,6 +73,13 @@ Run:
    $ pip install git+https://github.com/vortex-exoplanet/VIP.git
 
 
+Mailing list
+------------
+You can subscribe to our `mailing <http://lists.astro.caltech.edu:88/mailman/listinfo/vip>`_
+list if you want to be informed of the latest developments of the ``VIP`` package
+(new versions and/or updates).
+
+
 Installation and dependencies
 ------------------------------
 

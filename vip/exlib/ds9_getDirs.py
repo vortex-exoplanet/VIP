@@ -8,9 +8,9 @@ PlatformName: one of 'mac', 'win' or 'unix'
 
 getAppDirs(inclNone = False):
     Return up to two paths: the user's private and shared application support directory.
-    
+
     If a directory does not exist, its path is set to None.
-    
+
     A typical return on English system with inclNone True is:
     - MacOS X: [/Users/<username>/Library/Application Support,
         /Library/Application Support]
@@ -21,9 +21,9 @@ getAppDirs(inclNone = False):
 
 getAppSuppDirs(inclNone = False):
     Return up to two paths: the user's private and shared application support directory.
-    
+
     If a directory does not exist, its path is set to None.
-    
+
     A typical return on English system is:
     - MacOS X: [/Users/<username>/Library/Application Support,
         /Library/Application Support]
@@ -36,7 +36,7 @@ getDocsDir():
     Return the path to the user's documents directory.
 
     Return None if the directory does not exist.
-    
+
     A typical return on English system is:
     - MacOS X: /Users/<username>/Documents
     - Mac Classic: ?
@@ -50,7 +50,7 @@ getPrefsDirs(inclNone = False):
     Return up to two paths: the user's private and shared preferences directory.
 
     Return None if the directory does not exist.
-    
+
     A typical return on English system is:
     - MacOS X: [/Users/<username>/Library/Preferences,
         /Library/Preferences]
@@ -85,12 +85,12 @@ PlatformName = None
 
 try:
     # try Mac
-    from getMacDirs import getAppDirs, getAppSuppDirs, getDocsDir, getPrefsDirs
+    from .ds9_getMacDirs import getAppDirs, getAppSuppDirs, getDocsDir, getPrefsDirs
     PlatformName = 'mac'
 except ImportError:
     # try Windows
     try:
-        from getWinDirs import getAppDirs, getAppSuppDirs, getDocsDir, getPrefsDirs
+        from .ds9_getWinDirs import getAppDirs, getAppSuppDirs, getDocsDir, getPrefsDirs
         PlatformName = 'win'
     except ImportError:
         # assume Unix
@@ -101,7 +101,7 @@ except ImportError:
                 return [None, None]
             else:
                 return []
-                
+
         def getAppSuppDirs(inclNone = False):
             return getPrefsDirs(inclNone = inclNone)
 
@@ -121,7 +121,7 @@ def getHomeDir():
     """Return the path to the user's home directory.
 
     Return None if the directory cannot be determined.
-    
+
     A typical return on English system is:
     - MacOS X: /Users/<username>
     - Mac Classic: ?
@@ -153,4 +153,3 @@ if __name__ == '__main__':
         print('getAppSuppDirs(%s) = %r' % (inclNone, getAppSuppDirs(inclNone)))
         print('getPrefsDirs(%s)   = %r' % (inclNone, getPrefsDirs(inclNone)))
     print('getDocsDir()         = %r' % getDocsDir())
-

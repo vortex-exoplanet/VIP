@@ -1,13 +1,16 @@
 #! /usr/bin/env python
 
 """
-Module with the MCMC optimization for NFC technique.
+Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
 """
 
-__all__ = ['run_mcmc_astrometry',
+__author__ = 'O. Wertz, C. Gomez @ ULg'
+__all__ = ['lnprior',
+           'lnlike',
+           'mcmc_negfc_sampling',
            'chain_zero_truncated',
-           'showPDFCorner',
-           'showWalk',
+           'show_corner_plot',
+           'show_walk_plot',
            'confidence']
 
 import numpy as np
@@ -22,21 +25,21 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib.mlab import normpdf
 from scipy.stats import norm
 from ..fits import open_adicube, open_fits
-from ..phot import inject_fcs_cube, psf_norm
-from ..conf import timeInit, timing
-from .func_merit import get_values_optimize
+from ..phot import inject_fcs_cube
+from ..conf import timeInit, timing, sep
+from .simplex_fmerit import get_values_optimize
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 
-def lnprior(modelParameters, bounds):
+def lnprior(param, bounds):
     """
     Define the prior log-function.  
     
     Parameters
     ----------    
-    modelParameters: tuple
+    param: tuple
         The model parameters.
     bounds: list
         The bounds for each model parameter. 
@@ -52,14 +55,14 @@ def lnprior(modelParameters, bounds):
     """
     
     try:
-        r, theta, flux = modelParameters
+        r, theta, flux = param
     except TypeError:
-        print('paraVector must be a tuple, {} was given'.format(type(modelParameters)))
+        print('paraVector must be a tuple, {} was given'.format(type(param)))
 
     try:
         r_bounds, theta_bounds, flux_bounds = bounds
     except TypeError:
-        print('bounds must be a list of tuple, {} was given'.format(type(modelParameters)))        
+        print('bounds must be a list of tuple, {} was given'.format(type(param)))
         
     if r_bounds[0] <= r <= r_bounds[1] and \
        theta_bounds[0] <= theta <= theta_bounds[1] and \
@@ -69,14 +72,14 @@ def lnprior(modelParameters, bounds):
         return -np.inf
 
 
-def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width, 
-           ncomp, aperture_radius, initialState, cube_ref=None, svd_mode='lapack', 
-           scaling='temp-mean', fmerit='sum', debug=False):
+def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
+           ncomp, aperture_radius, initial_state, cube_ref=None, svd_mode='lapack',
+           scaling='temp-mean', fmerit='sum', collapse='median', debug=False):
     """ Define the likelihood log-function.
     
     Parameters
     ----------    
-    modelParameters: tuple
+    param: tuple
         The model parameters, typically (r, theta, flux).
     cube: numpy.array
         The cube of fits images expressed as a numpy.array.
@@ -84,7 +87,7 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         The parallactic angle fits image expressed as a numpy.array. 
     plsc: float
         The platescale, in arcsec per pixel.
-    psfs_norm: numpy.array
+    psf_norm: numpy.array
         The scaled psf expressed as a numpy.array.    
     annulus_width: float
         The width of the annulus of interest in terms of the FWHM.
@@ -94,7 +97,7 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         The FHWM in pixels.
     aperture_radius: float
         The radius of the circular aperture in terms of the FWHM. 
-    initialState: numpy.array
+    initial_state: numpy.array
         The initial guess for the position and the flux of the planet.
     cube_ref: array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
@@ -108,6 +111,10 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
         companions sitting on top of speckle noise.
+    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
+        Sets the way of collapsing the frames for producing a final image. If
+        None then the cube of residuals is used when measuring the function of
+        merit (instead of a single final frame).
     debug: boolean
         If True, the cube is returned along with the likelihood log-function.        
         
@@ -117,30 +124,24 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         The log of the likelihood.
         
     """    
-    try:
-        r, theta, flux = modelParameters
-    except TypeError:
-        msg = 'paraVector must be a tuple, {} was given'
-        print(msg.format(type(modelParameters)))    
-    
     # Create the cube with the negative fake companion injected
-    cube_negfc = inject_fcs_cube(cube, psfs_norm, angs, flevel=-modelParameters[2], 
-                                 plsc=plsc, rad_dists=[modelParameters[0]],
-                                 n_branches=1, theta=modelParameters[1],
-                                 verbose=False)    
+    cube_negfc = inject_fcs_cube(cube, psf_norm, angs, flevel=-param[2],
+                                 plsc=plsc, rad_dists=[param[0]], n_branches=1,
+                                 theta=param[1], verbose=False, imlib='opencv')
                                   
-    # Perform PCA to generate the processed image and extract the zone of interest 
+    # Perform PCA and extract the zone of interest
     values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width*fwhm,
-                                 aperture_radius*fwhm,initialState[0],initialState[1],
-                                 cube_ref=cube_ref, svd_mode=svd_mode,
-                                 scaling=scaling)
+                                 aperture_radius*fwhm, initial_state[0],
+                                 initial_state[1], cube_ref=cube_ref,
+                                 svd_mode=svd_mode, scaling=scaling,
+                                 collapse=collapse)
     
     # Function of merit
     if fmerit=='sum':
-        values = np.abs(values)
-        lnlikelihood = -0.5*np.sum(values[values>0])
+        lnlikelihood = -0.5 * np.sum(np.abs(values))
     elif fmerit=='stddev':
-        lnlikelihood = np.std(values[values!=0])
+        values = values[values!=0]
+        lnlikelihood = -1*np.std(np.abs(values))
     else:
         raise RuntimeError('fmerit choice not recognized')
     
@@ -150,15 +151,16 @@ def lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         return lnlikelihood
 
 
-def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, fwhm, 
-           annulus_width, ncomp, aperture_radius, initialState, cube_ref=None, 
-           svd_mode='lapack', scaling='temp-mean', fmerit='sum', display=False):
+def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
+           annulus_width, ncomp, aperture_radius, initial_state, cube_ref=None,
+           svd_mode='lapack', scaling='temp-mean', fmerit='sum',
+           collapse='median',display=False):
     """ Define the probability log-function as the sum between the prior and 
     likelihood log-funtions.
     
     Parameters
     ----------    
-    modelParameters: tuple
+    param: tuple
         The model parameters.
     bounds: list
         The bounds for each model parameter. 
@@ -169,7 +171,7 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, fwhm,
         The parallactic angle fits image expressed as a numpy.array. 
     plsc: float
         The platescale, in arcsec per pixel.
-    psfs_norm: numpy.array
+    psf_norm: numpy.array
         The scaled psf expressed as a numpy.array.   
     fwhm : float
         The FHWM in pixels. 
@@ -179,7 +181,7 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, fwhm,
         The number of principal components.
     aperture_radius: float
         The radius of the circular aperture.  
-    initialState: numpy.array
+    initial_state: numpy.array
         The initial guess for the position and the flux of the planet. 
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
@@ -193,6 +195,10 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, fwhm,
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
         companions sitting on top of speckle noise.
+    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
+        Sets the way of collapsing the frames for producing a final image. If
+        None then the cube of residuals is used when measuring the function of
+        merit (instead of a single final frame).
     display: boolean
         If True, the cube is displayed with ds9.        
         
@@ -202,17 +208,17 @@ def lnprob(modelParameters,bounds, cube, angs, plsc, psfs_norm, fwhm,
         The probability log-function.
     
     """      
-    if initialState is None:
-        initialState = modelParameters
+    if initial_state is None:
+        initial_state = param
     
-    lp = lnprior(modelParameters, bounds)
+    lp = lnprior(param, bounds)
     
     if isinf(lp):
         return -np.inf       
     
-    return lp + lnlike(modelParameters, cube, angs, plsc, psfs_norm, fwhm,
-                       annulus_width, ncomp, aperture_radius, initialState, 
-                       cube_ref, svd_mode, scaling, fmerit, display) 
+    return lp + lnlike(param, cube, angs, plsc, psf_norm, fwhm,
+                       annulus_width, ncomp, aperture_radius, initial_state,
+                       cube_ref, svd_mode, scaling, fmerit, collapse, display)
 
 
 def gelman_rubin(x):      
@@ -305,18 +311,18 @@ def gelman_rubin_from_chain(chain, burnin):
     return rhat
 
 
-def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState, 
+def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state,
                         fwhm=4, annulus_width=3, aperture_radius=4, cube_ref=None, 
-                        svd_mode='lapack', scaling='temp-mean', fmerit='sum', 
-                        nwalkers=1000, bounds=None, a=2.0, burnin=0.3, 
-                        rhat_threshold=1.01, rhat_count_threshold=1, 
+                        svd_mode='lapack', scaling='temp-mean', fmerit='sum',
+                        collapse='median', nwalkers=1000, bounds=None, a=2.0,
+                        burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1,
                         niteration_min=0, niteration_limit=1e02, 
                         niteration_supp=0, check_maxgap=1e04, nproc=1, 
                         output_file=None, display=False, verbose=True, save=False):
-    """
-    Run an affine invariant mcmc algorithm in order to determine the true 
-    position and the flux of the planet using the 'Negative Fake Companion' 
-    technique.
+    """ Runs an affine invariant mcmc sampling algorithm in order to determine
+    the position and the flux of the planet using the 'Negative Fake Companion'
+    technique. The result of this procedure is a chain with the samples from the
+    posterior distributions of each of the 3 parameters.
     
     This technique can be summarized as follows:
     
@@ -347,12 +353,12 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
     plsc: float
         The platescale, in arcsec per pixel.  
     annulus_width: float, optional
-        The width in pixel of the annulus on wich the PCA is performed.
+        The width in pixel of the annulus on which the PCA is performed.
     aperture_radius: float, optional
         The radius of the circular aperture.        
     nwalkers: int optional
         The number of Goodman & Weare 'walkers'.
-    initialState: numpy.array 
+    initial_state: numpy.array
         The first guess for the position and flux of the planet, respectively.
         Each walker will start in a small ball around this preferred position.
     cube_ref : array_like, 3d, optional
@@ -368,6 +374,10 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
         companions sitting on top of speckle noise.
+    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
+        Sets the way of collapsing the frames for producing a final image. If
+        None then the cube of residuals is used when measuring the function of
+        merit (instead of a single final frame).
     bounds: numpy.array or list, default=None, optional
         The prior knowledge on the model parameters. If None, large bounds will 
         be automatically estimated from the initial state.
@@ -419,11 +429,9 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
     threshold value for each model parameter.
     """ 
     if verbose:
-        print ''
-        print '***************************************************************'
-        print '***        Negative fake companion coupled with MCMC        ***'
-        print '***************************************************************'         
-        print ''
+        start_time = timeInit()
+        print "        MCMC sampler for the NEGFC technique       "
+        print sep
 
     # If required, one create the output folder.    
     if save:    
@@ -465,8 +473,8 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
     itermin = niteration_min
     limit = niteration_limit    
     supp = niteration_supp
-    maxgap = check_maxgap 
-    initialState = np.array(initialState)
+    maxgap = check_maxgap
+    initial_state = np.array(initial_state)
     
     if itermin > limit:
         itermin = 0
@@ -480,22 +488,23 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
         
     chain = np.empty([nwalkers,1,dim])
     isamples = np.empty(0)
-    pos = initialState + np.random.normal(0,1e-01,(nwalkers,3))
+    pos = initial_state + np.random.normal(0,1e-01,(nwalkers,3))
     nIterations = limit + supp
     rhat = np.zeros(dim)  
     stop = np.inf
     
 
     if bounds is None:
-        bounds = [(initialState[0]-annulus_width/2.,initialState[0]+annulus_width/2.), #radius
-                  (initialState[1]-10,initialState[1]+10), #angle
-                  (0,2*initialState[2])] #flux
+        bounds = [(initial_state[0]-annulus_width/2.,initial_state[0]+annulus_width/2.), #radius
+                  (initial_state[1]-10,initial_state[1]+10), #angle
+                  (0,2*initial_state[2])] #flux
     
     sampler = emcee.EnsembleSampler(nwalkers,dim,lnprob,a,
-                                    args =([bounds,cubes,angs,plsc,psfn,
-                                            fwhm,annulus_width,ncomp,
-                                            aperture_radius, initialState,
-                                            cube_ref,svd_mode,scaling,fmerit]),
+                                    args =([bounds, cubes, angs, plsc, psfn,
+                                            fwhm, annulus_width, ncomp,
+                                            aperture_radius, initial_state,
+                                            cube_ref, svd_mode, scaling, fmerit,
+                                            collapse]),
                                     threads=nproc)
     
     duration_start = datetime.datetime.now()
@@ -517,7 +526,7 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
                 q = 0.5
             else:
                 q = 1
-            print '{}        {}                {}'.format(k,elapsed*q,elapsed*(limit-k-1)*q)
+            print '{}\t\t{:.5f}\t\t\t{:.5f}'.format(k,elapsed*q,elapsed*(limit-k-1)*q)
             
         start = datetime.datetime.now()
 
@@ -632,12 +641,8 @@ def run_mcmc_astrometry(cubes, angs, psfn, ncomp, plsc, initialState,
         print ''        
         print("The file MCMC_results has been stored in the folder {}".format('results/'+output_file+'/'))
 
-    duration = (datetime.datetime.now()-duration_start).total_seconds()
-    if verbose:    
-        print ''
-        print '***************************************************************'
-        print("Total duration: {} sec".format(duration))   
-        print '***************************************************************'
+    if verbose:
+        timing(start_time)
                                     
     return chain_zero_truncated(chain)    
 
@@ -667,7 +672,7 @@ def chain_zero_truncated(chain):
     return chain[:,0:idxzero,:]
  
    
-def showWalk(chain, save=False, **kwargs):  
+def show_walk_plot(chain, save=False, **kwargs):
     """
     Display or save a figure showing the path of each walker during the MCMC run
     
@@ -719,7 +724,7 @@ def showWalk(chain, save=False, **kwargs):
         plt.show()                                  
 
 
-def showPDFCorner(chain, burnin=0.5, save=False, **kwargs):
+def show_corner_plot(chain, burnin=0.5, save=False, **kwargs):
     """
     Display or save a figure showing the corner plot (pdfs + correlation plots)
     

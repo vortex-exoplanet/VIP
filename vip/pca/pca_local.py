@@ -18,7 +18,7 @@ from ..calib import cube_derotate, cube_collapse, check_PA_vector
 from ..conf import timeInit, timing
 from ..conf import eval_func_tuple as EFT 
 from ..var import get_annulus_quad, get_annulus
-from ..pca.utils import svd_wrapper, matrix_scaling
+from ..pca.utils_pca import svd_wrapper, matrix_scaling
 from ..stats import descriptive_stats
 
 
@@ -192,11 +192,12 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
                     min_frames_pca=10, tol=1e-1, scaling=None, quad=False,
                     collapse='median', full_output=False, verbose=True, 
                     debug=False):
-    """ Smart PCA (quadrants of annulus version) algorithm. The PCA is computed 
-    locally in each quadrant of each annulus. On each annulus we discard 
-    reference images taking into account the parallactic angle threshold. 
+    """ Annular (smart) ADI PCA. The PCA model is computed locally in each
+    annulus (optionally quadrants of each annulus). For each annulus we discard
+    reference images taking into account a parallactic angle threshold
+    (set by ``delta_rot``).
      
-    Depending on parameter *nproc* the algorithm can work with several cores. 
+    Depending on parameter ``nproc`` the algorithm can work with several cores.
     It's been tested on a Linux and OSX. The ACCELERATE library for linear 
     algebra calcularions, which comes by default in every OSX system, is broken 
     for multiprocessing. Avoid using this function unless you have compiled 

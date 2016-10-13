@@ -1,8 +1,10 @@
 vip.conf package
 ================
 
-Subpackage ``conf`` contains configuration functions and internal utilities. It
-also contains a dictionary with parameters of high-contrast imaging instruments.
+.. automodule:: vip.conf
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 Submodules
 ----------
@@ -31,16 +33,12 @@ vip.conf.timing module
     :undoc-members:
     :show-inheritance:
 
-vip.conf.utils module
----------------------
+vip.conf.utils_conf module
+--------------------------
 
-.. automodule:: vip.conf.utils
+.. automodule:: vip.conf.utils_conf
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. automodule:: vip.conf
-    :members:
-    :undoc-members:
-    :show-inheritance:

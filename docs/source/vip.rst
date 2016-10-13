@@ -1,6 +1,11 @@
 vip package
 ===========
 
+.. automodule:: vip
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Subpackages
 -----------
 
@@ -19,7 +24,3 @@ Subpackages
     vip.stats
     vip.var
 
-.. automodule:: vip
-    :members:
-    :undoc-members:
-    :show-inheritance:

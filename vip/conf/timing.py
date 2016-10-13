@@ -8,7 +8,7 @@ __author__ = 'C. Gomez @ ULg'
 __all__ = ['timeInit', 'timing', 'timeFini']
 
 from datetime import datetime
-from .utils import sep
+from .utils_conf import sep
 
 def timeInit(verbose=True):
     """Sets and prints the time in which the script started.

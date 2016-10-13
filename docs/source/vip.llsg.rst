@@ -1,9 +1,10 @@
 vip.llsg package
 ================
 
-Subpackage ``LLSG`` contains the first version of our Local Low-rank plus Sparse
-plus Gaussian-noise decomposition (Gomez Gonzalez et al. 2016) for ADI data.
-
+.. automodule:: vip.llsg
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 Submodules
 ----------
@@ -16,7 +17,6 @@ vip.llsg.llsg module
     :undoc-members:
     :show-inheritance:
 
-
 vip.llsg.thresholding module
 ----------------------------
 
@@ -26,7 +26,3 @@ vip.llsg.thresholding module
     :show-inheritance:
 
 
-.. automodule:: vip.llsg
-    :members:
-    :undoc-members:
-    :show-inheritance:

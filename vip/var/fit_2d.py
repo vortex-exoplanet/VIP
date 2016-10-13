@@ -14,7 +14,7 @@ from astropy.modeling import models
 from astropy.modeling.fitting import LevMarLSQFitter
 from astropy.stats import gaussian_sigma_to_fwhm, gaussian_fwhm_to_sigma, sigma_clipped_stats
 from .shapes import get_square, frame_center
-from .utils import pp_subplots
+from .utils_var import pp_subplots
 
 
 def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4, 

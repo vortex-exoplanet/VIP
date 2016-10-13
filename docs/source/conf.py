@@ -21,10 +21,11 @@ import sys
 sys.path.insert(0, os.path.abspath('../../vip/'))
 
 
-with open(os.path.join(os.path.abspath('../../'), 'VERSION')) as version_file:
-    __version__ = version_file.read().strip()
+with open(os.path.join(os.path.abspath('../../vip/'), '__init__.py')) as init:
+    for line in init:
+        if "__version__ =" in line:
+            version = line.split('"')[1]
 
-version = __version__
 
 # -- General configuration ------------------------------------------------
 

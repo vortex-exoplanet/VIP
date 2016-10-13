@@ -1,14 +1,10 @@
 vip.stats package
 =================
 
-Subpackage ``stats`` contains functionalities such as:
-    - extracting statistics (mean, median, std dev, sum) in regions of a frame
-    or cube,
-    - median absolute deviation,
-    - sigma filtering of pixels in frames,
-    - distance (correlation) between the frames in a cube,
-    - distance (correlation) between a cube and a reference frame.
-
+.. automodule:: vip.stats
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 Submodules
 ----------
@@ -45,17 +41,12 @@ vip.stats.im_stats module
     :undoc-members:
     :show-inheritance:
 
+vip.stats.utils_stats module
+----------------------------
 
-vip.stats.utils module
-----------------------
-
-.. automodule:: vip.stats.utils
+.. automodule:: vip.stats.utils_stats
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. automodule:: vip.stats
-    :members:
-    :undoc-members:
-    :show-inheritance:

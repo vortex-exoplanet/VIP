@@ -18,14 +18,14 @@ from skimage import draw
 from astropy.io import fits
 from matplotlib import pyplot as plt
 from sklearn.decomposition import IncrementalPCA
-from .utils import svd_wrapper, prepare_matrix, reshape_matrix
+from .utils_pca import svd_wrapper, prepare_matrix, reshape_matrix
 from ..calib import (cube_derotate, cube_collapse, check_PA_vector, 
                      check_scal_vector)
 from ..conf import timing, timeInit, check_enough_memory, get_available_memory
 from ..var import frame_center, dist, get_annulus
 from ..stats import descriptive_stats
 from .. import phot
-from .utils import pca_annulus, scale_cube_for_pca
+from .utils_pca import pca_annulus, scale_cube_for_pca
 from .pca_local import find_indices, compute_pa_thresh
 
 import warnings

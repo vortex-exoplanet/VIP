@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Module with the function of merit definitions.
+Module with the function of merit definitions for the NEGFC optimization.
 """
 
 import numpy as np
@@ -10,9 +10,10 @@ from ..phot import inject_fcs_cube
 from ..var import frame_center
 from ..pca import pca_annulus
 
+
 def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,  
               aperture_radius, initialState, ncomp, cube_ref=None, 
-              svd_mode='lapack', scaling=None, fmerit='sum'):
+              svd_mode='lapack', scaling=None, fmerit='sum', collapse='median'):
     """
     Calculate the reduced chi2:
     \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -53,6 +54,10 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
         companions sitting on top of speckle noise.
+    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
+        Sets the way of collapsing the frames for producing a final image. If
+        None then the cube of residuals is used when measuring the function of
+        merit (instead of a single final frame).
         
     Returns
     -------
@@ -63,18 +68,19 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     try:
         r, theta, flux = modelParameters
     except TypeError:
-        print('paraVector must be a tuple, {} was given'.format(type(modelParameters)))    
-    
+        print('paraVector must be a tuple, {} was given'.format(type(modelParameters)))
+
     # Create the cube with the negative fake companion injected
     cube_negfc = inject_fcs_cube(cube, psfs_norm, angs, flevel=-flux, 
                                  plsc=plsc, rad_dists=[r], n_branches=1, 
                                  theta=theta, verbose=False)       
                                       
-    # Perform PCA to generate the processed image and extract the zone of interest                                     
+    # Perform PCA and extract the zone of interest
     values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width*fwhm,
                                  aperture_radius*fwhm, initialState[0],
                                  initialState[1], cube_ref=cube_ref, 
-                                 svd_mode=svd_mode, scaling=scaling)
+                                 svd_mode=svd_mode, scaling=scaling,
+                                 collapse=collapse)
     
     # Function of merit
     if fmerit=='sum':
@@ -91,7 +97,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
 
 def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius, 
                         r_guess, theta_guess, cube_ref=None, svd_mode='lapack',
-                        scaling=None, debug=False):
+                        scaling=None, collapse='median', debug=False):
     """
     Extracts a PCA-ed annulus from the cube and returns the flux values of the 
     pixels included in a circular aperture centered at a given position.
@@ -125,41 +131,44 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         "temp-mean" then temporal px-wise mean subtraction is done and with 
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done.
+    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
+        Sets the way of collapsing the frames for producing a final image. If
+        None then the cube of residuals is returned.
     debug: boolean
         If True, the cube is returned along with the values.        
         
     Returns
     -------
-    out: numpy.array
+    values: numpy.array
         The pixel values in the circular aperture after the PCA process.
+
+    If debug is True the PCA frame is returned (in case when collapse is not None)
         
     """
     centy_fr, centx_fr = frame_center(cube[0])
     posy = r_guess * np.sin(np.deg2rad(theta_guess)) + centy_fr
     posx = r_guess * np.cos(np.deg2rad(theta_guess)) + centx_fr
-    sizey, sizex = cube[0].shape
-    inter = annulus_width/2
-        
-    #print 'candidate R,theta:', r_guess, theta_guess
-    #print 'candidate X,Y', posx, posy
-    #print 'restricted [', inter, sizex-inter,']'
-    
-    if posx > sizex-inter or posx < inter :
-        msg = 'Try increasing the size of your frames, the annulus '
-        msg += 'and/or circular aperture used by the NegFC falls outside the FOV'
+    halfw = max(aperture_radius, annulus_width/2.)
+
+    # Checking annulus/aperture sizes. Assuming square frames
+    msg = 'The annulus and/or the circular aperture used by the NegFC falls '
+    msg += 'outside the FOV. Try increasing the size of your frames or '
+    msg += 'decreasing the annulus or aperture size'
+    if r_guess>centx_fr-halfw or r_guess<=halfw:
         raise RuntimeError(msg)
-    if posy > sizey-inter or posy < inter:
-        msg = 'Try increasing the size of your frames, the annulus '
-        msg += 'and/or circular aperture used by the NegFC falls outside the FOV'
-        raise RuntimeError(msg)    
         
-    pca_frame = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
-                            svd_mode, scaling) 
+    pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
+                          svd_mode, scaling, collapse=collapse)
     indices = circle(posy, posx, radius=aperture_radius)
-    values = pca_frame[indices]
-    
-    if debug:
-        return values, pca_frame
+    yy, xx = indices
+
+    if collapse is None:
+        values = pca_res[:, yy, xx].ravel()
+    else:
+        values = pca_res[yy, xx].ravel()
+
+    if debug and collapse is not None:
+        return values, pca_res
     else:
         return values
 

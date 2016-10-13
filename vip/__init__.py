@@ -1,4 +1,4 @@
-import os as _os
+from __future__ import (absolute_import)
 
 from . import calib
 from . import conf
@@ -12,10 +12,7 @@ from . import phot
 from . import stats
 from . import var
 
-PACKAGE_PATH = _os.path.abspath(_os.path.join(__file__, _os.pardir))[:-4]
-
-with open(_os.path.join(PACKAGE_PATH, 'VERSION')) as _version_file:
-    __version__ = _version_file.read().strip()
+__version__ = "0.5.5"
 
 print("---------------------------------------------------")
 print("         oooooo     oooo ooooo ooooooooo.          ")

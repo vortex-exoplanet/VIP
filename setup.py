@@ -20,15 +20,12 @@ install_reqs = parse_requirements(os.path.join(PACKAGE_PATH, 'requirements'),
                                   session=False)
 requirements = [str(ir.req) for ir in install_reqs]
 
-with open(os.path.join(PACKAGE_PATH, 'VERSION')) as version_file:
-    __version__ = version_file.read().strip()
-
 with open(os.path.join(PACKAGE_PATH, 'readme.rst')) as readme_file:
     readme = readme_file.read()
  
 setup(
     name='vip',
-    version=__version__,
+    #version=__version__,
     description='Package for astronomical high-contrast image processing.',
     long_description=readme,
     author='Carlos Gomez Gonzalez',

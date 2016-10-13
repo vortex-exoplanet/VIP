@@ -16,7 +16,7 @@ from astropy.stats import median_absolute_deviation as mad
 from ..conf import timeInit, timing
 from ..calib import cube_derotate, cube_collapse
 from ..var import get_annulus_quad, frame_filter_lowpass
-from ..pca.utils import svd_wrapper
+from ..pca.utils_pca import svd_wrapper
 from ..pca.pca_local import define_annuli
 from .thresholding import thresholding
 from ..conf import eval_func_tuple as EFT 

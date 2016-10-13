@@ -19,7 +19,7 @@ from ..var import frame_center, fit_2dgaussian, get_circle
 
 
 def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists, 
-                    n_branches=1, theta=0, verbose=True):
+                    n_branches=1, theta=0, imlib='opencv', verbose=True):
     """ Injects fake companions in branches, at given radial distances.
     
     Parameters
@@ -42,6 +42,9 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
         Angle in degrees for rotating the position of the first branch that by
         default is located at zero degrees. Theta counts counterclockwise from
         the positive x axis.
+    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+        Library or method used for image operations (shifts). Opencv is the
+        default for being the fastest.
     verbose : {True, False}, bool optional
         If True prints out additional information. 
     
@@ -78,7 +81,7 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
                 rad = rad_dists[i]                                         
                 y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                 x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
-                tmp = tmp + frame_shift(fc_fr, y, x)*flevel
+                tmp += frame_shift(fc_fr, y, x, imlib=imlib)*flevel
         array_out[fr] = array[fr] + tmp
     
     if verbose:

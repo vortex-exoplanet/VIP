@@ -116,7 +116,7 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
 
 
 def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
-                svd_mode='lapack', scaling='temp-mean', collapse='median'):
+                svd_mode='lapack', scaling=None, collapse='median'):
     """
     PCA process the cube only for an annulus of a given width and at a given
     radial distance to the frame center. It returns a PCA processed frame with 
@@ -138,33 +138,30 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
-    scaling : {'temp-mean', 'temp-standard'} or None, optional
-        With None, no scaling is performed on the input data before SVD. With 
-        "temp-mean" then temporal px-wise mean subtraction is done and with 
-        "temp-standard" temporal mean centering plus scaling to unit variance 
-        is done. 
-    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
-        Sets the way of collapsing the frames for producing a final image.
+    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
+        With None, no scaling is performed on the input data before SVD. With
+        "temp-mean" then temporal px-wise mean subtraction is done, with
+        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
+        temporal mean centering plus scaling to unit variance is done and with
+        "spat-standard" spatial mean centering plus scaling to unit variance is
+        performed.
+    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
+        Sets the way of collapsing the frames for producing a final image. If
+        None then the cube of residuals is returned.
     
     Returns
     -------
-    out: array_like
-        The annulus PCA-ed frame.
-        
+    Depending on ``collapse`` parameter a final collapsed frame or the cube of
+    residuals is returned.
     """
-    # annulus_width is divided by 2 to be sure that the radial distance r_guess 
-    # lies at the center of the annulus. If we don't divide, than r_guess 
-    # corresponds to the outer radius of the annulus.
-    indic = get_annulus(cube[0], r_guess-annulus_width/2., annulus_width,      
-                        output_indices=True)                                   
-    yy, xx = indic                                                             
-    
-    data = cube[:, yy, xx]
-    data = matrix_scaling(data, scaling)
+    data, ind = prepare_matrix(cube, scaling, mode='annular', annulus_radius=r_guess,
+                               annulus_width=annulus_width, verbose=False)
+    yy, xx = ind
 
     if cube_ref is not None:
-        data_svd = cube_ref[:, yy, xx]
-        data = matrix_scaling(data_svd, scaling)
+        data_svd, _  = prepare_matrix(cube_ref, scaling, mode='annular',
+                                      annulus_radius=r_guess,
+                                      annulus_width=annulus_width, verbose=False)
     else:
         data_svd = data
         
@@ -176,12 +173,24 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     cube_zeros = np.zeros_like(cube)
     cube_zeros[:, yy, xx] = residuals
     cube_res_der = cube_derotate(cube_zeros, angs)
-    pca_frame = cube_collapse(cube_res_der, mode=collapse)
-    return pca_frame  
+    if collapse is not None:
+        pca_frame = cube_collapse(cube_res_der, mode=collapse)
+        return pca_frame
+    else:
+        return cube_res_der
+
 
 
 def matrix_scaling(matrix, scaling):
     """ Scales a matrix using sklearn.preprocessing.scale function.
+
+    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
+    With None, no scaling is performed on the input data before SVD. With
+    "temp-mean" then temporal px-wise mean subtraction is done, with
+    "spat-mean" then the spatial mean is subtracted, with "temp-standard"
+    temporal mean centering plus scaling to unit variance is done and with
+    "spat-standard" spatial mean centering plus scaling to unit variance is
+    performed.
     """
     if scaling==None:
         pass
@@ -193,8 +202,6 @@ def matrix_scaling(matrix, scaling):
         matrix = scale(matrix, with_mean=True, with_std=True)
     elif scaling=='spat-standard':
         matrix = scale(matrix, with_mean=True, with_std=True, axis=1)
-    #elif scaling=='minmax':
-    #    matrix = minmax_scale(matrix, feature_range=(0, 1000), axis=0)          
     else:
         raise ValueError('Scaling mode not recognized')
     

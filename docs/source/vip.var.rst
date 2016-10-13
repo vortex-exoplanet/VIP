@@ -1,12 +1,10 @@
 vip.var package
 ===============
 
-Subpackage ``var`` has helping functions such as:
-    - image filtering,
-    - shapes extraction (annulus, squares subimages, circular apertures),
-    - plotting,
-    - 2d fitting (Gaussian, Moffat).
-
+.. automodule:: vip.var
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 Submodules
 ----------
@@ -35,17 +33,12 @@ vip.var.shapes module
     :undoc-members:
     :show-inheritance:
 
-vip.var.utils module
---------------------
+vip.var.utils_var module
+------------------------
 
-.. automodule:: vip.var.utils
+.. automodule:: vip.var.utils_var
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-
-.. automodule:: vip.var
-    :members:
-    :undoc-members:
-    :show-inheritance:

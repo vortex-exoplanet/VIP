@@ -1,9 +1,10 @@
 vip.nmf package
 ===============
 
-PSF reference approximation using Non-negative matrix factorization for ADI data
-is included in this subpackage.
-
+.. automodule:: vip.nmf
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 Submodules
 ----------
@@ -17,8 +18,3 @@ vip.nmf.nmf_fullfr module
     :show-inheritance:
 
 
-
-.. automodule:: vip.nmf
-    :members:
-    :undoc-members:
-    :show-inheritance:

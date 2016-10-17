@@ -224,7 +224,7 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
     delta_rot : int, optional
         Factor for increasing the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1 FHWM on each side of the considered frame).
-    ncomp : int or list, optional
+    ncomp : int or list or 1d numpy array, optional
         How many PCs are kept. If none it will be automatically determined. If a
         list is provided and it matches the number of annuli then a different
         number of PCs will be used for each annulus (starting with the innermost
@@ -307,7 +307,8 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
     #***************************************************************************
     cube_out = np.zeros_like(array)
     for ann in xrange(n_annuli):
-        if isinstance(ncomp, list):
+        if isinstance(ncomp, list) or isinstance(ncomp, np.ndarray):
+            ncomp = list(ncomp)
             if len(ncomp) == n_annuli:
                 ncompann = ncomp[ann]
             else:

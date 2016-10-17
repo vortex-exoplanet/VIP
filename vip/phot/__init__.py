@@ -1,5 +1,11 @@
 """
-Subpackage with photometry, signal-to-noise, detection related functions.
+Subpackage ``phot`` includes functionalities such as:
+    - signal-to-noise (S/R) estimation,
+    - S/R map generation,
+    - detection of point like sources (for pipelines),
+    - fake companions injection,
+    - algorithms throughput,
+    - contrast curve generation.
 """
 
 from contrcurve import *

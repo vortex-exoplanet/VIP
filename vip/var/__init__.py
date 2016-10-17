@@ -1,5 +1,9 @@
 """
-Subpackage with various functions needed from other subpackages. 
+Subpackage ``var`` has helping functions such as:
+    - image filtering,
+    - shapes extraction (annulus, squares subimages, circular apertures),
+    - plotting,
+    - 2d fitting (Gaussian, Moffat).
 """
 
 from filters import *

@@ -132,7 +132,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=2,
     probability from the parameter space with likelihood greater than the
     current likelihood constraint. The different methods all use the
     current set of active points as an indicator of where the target
-    parameter space lies, but differ in how they select new points from it.
+    parameter space lies, but differ in how they select new points from  it.
     "classic" is close to the method described in Skilling (2004).
     "single", Mukherjee, Parkinson & Liddle (2006), Determines a single
     ellipsoid that bounds all active points,

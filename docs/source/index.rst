@@ -63,16 +63,6 @@ Jupyter notebook tutorial
 <http://nbviewer.jupyter.org/github/carlgogo/vip-tutorial/blob/master/Tutorial1_VIP_adi_pre-postproc_fluxpos_ccs.ipynb>`_.
 
 
-Quick Setup Guide
-------------------
-
-Run:
-
-.. code-block:: bash
-
-   $ pip install git+https://github.com/vortex-exoplanet/VIP.git
-
-
 Mailing list
 ------------
 You can subscribe to our `mailing <http://lists.astro.caltech.edu:88/mailman/listinfo/vip>`_
@@ -80,8 +70,18 @@ list if you want to be informed of the latest developments of the ``VIP`` packag
 (new versions and/or updates).
 
 
+Quick Setup Guide
+-----------------
+
+TL;DR:
+
+.. code-block:: bash
+
+   $ pip install git+https://github.com/vortex-exoplanet/VIP.git
+
+
 Installation and dependencies
-------------------------------
+-----------------------------
 
 Here you can find a more detailed description of ``VIP``'s dependencies, how to
 clone the repository and install ``Opencv`` (optional).
@@ -92,7 +92,7 @@ clone the repository and install ``Opencv`` (optional).
    install
 
 Frequently asked questions
----------------------------
+--------------------------
 
 Check out this questions if you find problems when installing or running ``VIP``
 for the first time.
@@ -104,7 +104,7 @@ for the first time.
 
 
 Package structure
-------------------
+-----------------
 
 On the links below you can find the subpackages structure and access the
 docstrings (internal documentation) of each one of ``VIP``'s functions.
@@ -135,7 +135,7 @@ generation routines.
 
 
 API
-----
+---
 
 * :ref:`genindex`
 * :ref:`modindex`

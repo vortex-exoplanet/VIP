@@ -32,7 +32,7 @@ import warnings
 warnings.filterwarnings("ignore", category=Warning)
 
 
-def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
+def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         svd_mode='lapack', scaling=None, mask_center_px=None, source_xy=None,
         delta_rot=1, fwhm=4, collapse='median', check_mem=True, 
         full_output=False, verbose=True, debug=False):
@@ -209,10 +209,11 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     #***************************************************************************
     if not cube.ndim>2:
         raise TypeError('Input array is not a 3d or 4d array')
-    if not cube.shape[0] == angle_list.shape[0]:
-        msg ='Angle list vector has wrong length. It must equal the number of \
-        frames in the cube.'
-        raise TypeError(msg)
+    if angle_list is not None:
+        if not cube.shape[0] == angle_list.shape[0]:
+            msg = "Angle list vector has wrong length. It must equal the number"
+            msg += " frames in the cube."
+            raise TypeError(msg)
     if source_xy is not None and delta_rot is None or fwhm is None:
         msg = 'Delta_rot or fwhm parameters missing. They are needed for the ' 
         msg += 'PA-based rejection of frames from the library'  

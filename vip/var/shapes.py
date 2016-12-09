@@ -15,12 +15,73 @@ __all__ = ['dist',
            'get_annulus',
            'get_annulus_quad',
            'get_annulus_cube',
-           'mask_circle']
+           'mask_circle',
+           'create_ringed_spider_mask']
 
-import numpy as np    
+import numpy as np
+from skimage.draw import polygon, circle
+
+
+def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10, sp_angle=0):
+    """
+    Mask out information is outside the annulus and inside the spiders (zeros).
+
+    Parameters
+    ----------
+    im_shape : tuple of int
+        Tuple of length two with 2d array shape (Y,X).
+    ann_out : int
+        Outer radius of the annulus.
+    ann_in : int
+        Inner radius of the annulus.
+    sp_width : int
+        Width of the spider arms (3 branches).
+    sp_angle : int
+        angle of the first spider arm (on the positive horizontal axis) in
+        counter-clockwise sense.
+
+    Returns
+    -------
+    mask : array_like
+        2d array of zeros and ones.
+
+    """
+    mask = np.zeros(im_shape)
+
+    s = im_shape[0]
+    r = s/2.
+    theta = np.arctan2(sp_width/2., r)
+
+    t0 = np.array([theta,np.pi-theta,np.pi+theta,np.pi*2.-theta])
+    t1 = t0 + sp_angle/180. * np.pi
+    t2 = t1 + np.pi/3.
+    t3 = t2 + np.pi/3.
+
+    x1 = r * np.cos(t1) + s/2.
+    y1 = r * np.sin(t1) + s/2.
+    x2 = r * np.cos(t2) + s/2.
+    y2 = r * np.sin(t2) + s/2.
+    x3 = r * np.cos(t3) + s/2.
+    y3 = r * np.sin(t3) + s/2.
+
+    rr1, cc1 = polygon(y1, x1)
+    rr2, cc2 = polygon(y2, x2)
+    rr3, cc3 = polygon(y3, x3)
+
+    cy, cx = frame_center(mask)
+    rr0, cc0 = circle(cy, cx, min(ann_out, cy))
+    rr4, cc4 = circle(cy, cx, ann_in)
+
+    mask[rr0,cc0] = 1
+    mask[rr1,cc1] = 0
+    mask[rr2,cc2] = 0
+    mask[rr3,cc3] = 0
+    mask[rr4,cc4] = 0
+    return mask
+
 
 def dist(yc,xc,y1,x1):
-    """ Returns the distance between two points.
+    """ Returns the Euclidean distance between two points.
     """
     return np.sqrt((yc-y1)**2+(xc-x1)**2)
 

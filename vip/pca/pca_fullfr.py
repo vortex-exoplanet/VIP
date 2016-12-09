@@ -210,7 +210,8 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
     if not cube.ndim>2:
         raise TypeError('Input array is not a 3d or 4d array')
     if angle_list is not None:
-    	if (cube.ndim==3 and not (cube.shape[0] == angle_list.shape[0])) or  (cube.ndim==4 and not (cube.shape[1] == angle_list.shape[0])):
+    	if (cube.ndim==3 and not (cube.shape[0] == angle_list.shape[0])) or  \
+           (cube.ndim==4 and not (cube.shape[1] == angle_list.shape[0])):
     		msg = "Angle list vector has wrong length. It must equal the number"
         	msg += " frames in the cube."
         	raise TypeError(msg)

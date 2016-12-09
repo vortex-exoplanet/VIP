@@ -17,6 +17,7 @@ functionalities:
         - DFT upsampling or fourier cross-correlation (Guizar et al. 2008),
         - radon transform for broadband frames (Pueyo et al. 2014),
         - using satellite/waffle spots (fitting plus intersection).
+    - sky subtraction (PCA method).
 
 Astronomical calibration functionality like flat fielding and dark-sky
 subtraction, in spite of its simplicity was not included in VIP because of the
@@ -33,5 +34,7 @@ from derotation import *
 from parangles import *
 from recentering import *
 from rescaling import *
+from skysubtraction import *
 from subsampling import *
+
 

@@ -161,7 +161,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         radvec_trans = transmission[1]     
         f2 = InterpolatedUnivariateSpline(radvec_trans, trans, k=1)
         trans_interp = f2(rad_samp)
-    
+        thruput_interp *= trans_interp
+
     # smoothing the noise vector using a Savitzky-Golay filter
     win = int(noise_samp.shape[0]*0.1)
     if win%2==0.:  win += 1
@@ -215,9 +216,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp)
         cont_curve_samp_corr[np.where(cont_curve_samp_corr<0)] = 1
         cont_curve_samp_corr[np.where(cont_curve_samp_corr>1)] = 1
-        
-    if transmission is not None:  cont_curve_samp = cont_curve_samp*trans_interp
-        
+
     # plotting
     if plot or debug:
         if student:  

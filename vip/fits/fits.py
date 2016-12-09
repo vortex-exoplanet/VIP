@@ -15,7 +15,7 @@ __all__ = ['open_fits',
 
 
 import os
-from astropy.io import fits
+from astropy.io import fits as ap_fits
 
 
 def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False, 
@@ -45,7 +45,7 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     """
     if not fitsfilename.endswith('.fits'):
         fitsfilename = str(fitsfilename+'.fits')
-    hdulist = fits.open(fitsfilename, memmap=True, 
+    hdulist = ap_fits.open(fitsfilename, memmap=True,
                         ignore_missing_end=ignore_missing_end)
     data = hdulist[n].data
     #if data.dtype.name == 'float64':  data = np.array(data, dtype='float32')
@@ -116,7 +116,7 @@ def open_adicube(fitsfilename, verbose=True):
     """
     if not fitsfilename.endswith('.fits'):
         fitsfilename = str(fitsfilename+'.fits')
-    hdulist = fits.open(fitsfilename, memmap=True)
+    hdulist = ap_fits.open(fitsfilename, memmap=True)
     data = hdulist[0].data
     if not data.ndim ==3:
         raise TypeError('Input fits file does not contain a cube or 3d array.')
@@ -143,11 +143,6 @@ def byteswap_array(array):
     byte order array. Some operations require the data to be byteswaped 
     before and will complain about it. This function will help in this cases.
     
-    
-    Notes
-    -----
-    http://docs.scipy.org/doc/numpy-1.10.1/user/basics.byteswapping.html
-    
     Parameters
     ----------
     array : array_like
@@ -157,6 +152,12 @@ def byteswap_array(array):
     -------
     array_out : array_like
         2d resulting array after the byteswap operation.
+
+
+    Notes
+    -----
+    http://docs.scipy.org/doc/numpy-1.10.1/user/basics.byteswapping.html
+
     """
     array_out = array.byteswap().newbyteorder()
     return array_out
@@ -165,19 +166,25 @@ def byteswap_array(array):
 def info_fits(fitsfilename):
     """Prints the information about a fits file. 
     """
-    hdulist = fits.open(fitsfilename, memmap=True)
+    hdulist = ap_fits.open(fitsfilename, memmap=True)
     hdulist.info()
 
          
-def verify_fits(fits):
+def verify_fits(fitspath):
     """Verifies "the FITS standard" of a fits file or list of fits.
+
+    Parameters
+    ----------
+    fitspath : string
+        Path to the fits file or list with fits filename paths.
+
     """
-    if isinstance(fits, list):
-        for ffile in fits:
-            f = fits.open(ffile)
+    if isinstance(fitspath, list):
+        for ffile in fitspath:
+            f = ap_fits.open(ffile)
             f.verify()
     else:
-        f = fits.open(fits)
+        f = ap_fits.open(fitspath)
         f.verify()
     
     
@@ -205,9 +212,9 @@ def write_fits(filename, array, header=None, dtype32=True, verbose=True):
         os.remove(filename)                                     
         if verbose:
             print "\nFits file successfully overwritten"
-        fits.writeto(filename, array, header)                       
+        ap_fits.writeto(filename, array, header)
     else:
-        fits.writeto(filename, array, header)                       
+        ap_fits.writeto(filename, array, header)
         if verbose:
             print "\nFits file successfully saved"    
 
@@ -215,7 +222,7 @@ def write_fits(filename, array, header=None, dtype32=True, verbose=True):
 def append_extension(filename, array):
     """Appends an extension to fits file. 
     """
-    fits.append(filename, array)
+    ap_fits.append(filename, array)
     print "\nFits extension appended"
         
         

@@ -457,7 +457,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
     
     
 def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
-                     mode='full', annulus_width=20, range_pcs=None,
+                     mode='fullfr', annulus_width=20, range_pcs=None,
                      svd_mode='lapack', scaling=None, mask_center_px=None, 
                      fmerit='px', min_snr=0, collapse='median', verbose=True, 
                      full_output=False, debug=False, plot=True):

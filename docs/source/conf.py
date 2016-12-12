@@ -63,8 +63,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'VIP'
-copyright = u'2016, Carlos Gomez Gonzalez, Olivier Wertz & VORTEX team'
-author = u'Carlos Gomez Gonzalez, Olivier Wertz & VORTEX team'
+copyright = u'2016, Carlos Gomez Gonzalez & VORTEX team. Artwork by Cristina Gomez Gonzalez'
+author = u'Carlos Gomez Gonzalez & VORTEX team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

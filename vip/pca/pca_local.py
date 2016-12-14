@@ -133,16 +133,17 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1,
     if verbose:  start_time = timeInit()
     
     angle_list = check_PA_vector(angle_list)
-    
-    annulus_width = int(asize * fwhm)                                           # equal size for all annuli
+
+    fwhm = int(np.round(fwhm))
+    annulus_width = int(np.round(asize * fwhm))      # equal size for all annuli
     n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    
     if verbose:
-        msg = '# annuli = {:}, Ann width = {:}, FWHM = {:.3f}\n'
+        msg = '# annuli = {:}, Ann width = {:}, rounded FWHM = {:.3f}\n'
         print msg.format(n_annuli, annulus_width, fwhm) 
         print 'PCA will be done locally per annulus and per quadrant.\n'
      
     cube_out = np.zeros_like(array)
-    for ann in xrange(n_annuli):
+    for ann in range(n_annuli):
         inner_radius, _ = define_annuli(angle_list, ann, n_annuli, fwhm, 
                                         radius_int, annulus_width, verbose) 
         indices = get_annulus(array[0], inner_radius, annulus_width,
@@ -288,15 +289,14 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
     if verbose:  start_time = timeInit()
     
     angle_list = check_PA_vector(angle_list)
-    
-    annulus_width = int(asize * fwhm)                # equal size for all annuli
+
+    fwhm = int(np.round(fwhm))
+    annulus_width = int(np.round(asize * fwhm))      # equal size for all annuli
     n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    
     if verbose:
-        msg = '# annuli = {:}, Ann width = {:}, FWHM = {:.3f}'
-        print msg.format(n_annuli, annulus_width, fwhm) 
-        print
-        print 'PCA will be done locally per annulus and per quadrant'
-        print
+        msg = '# annuli = {:}, Ann width = {:}, rounded FWHM = {:.3f}'
+        print msg.format(n_annuli, annulus_width, fwhm), '\n'
+        print 'PCA per annulus (and per quadrant if requested)\n'
      
     if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
         nproc = (cpu_count()/2)
@@ -306,14 +306,16 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
     # rejection are calculated (at the center of the annulus)
     #***************************************************************************
     cube_out = np.zeros_like(array)
-    for ann in xrange(n_annuli):
+    for ann in range(n_annuli):
         if isinstance(ncomp, list) or isinstance(ncomp, np.ndarray):
             ncomp = list(ncomp)
             if len(ncomp) == n_annuli:
                 ncompann = ncomp[ann]
             else:
-                msg = 'If ncomp is a list, it must match the number of annuli'
-                raise TypeError(msg)
+                msge = 'If ncomp is a list, it must match the number of annuli'
+                msg = 'NCOMP : {}, N ANN : {}, ANN SIZE : {}, ANN WIDTH : {}'
+                print msg.format(ncomp, n_annuli, annulus_width, asize)
+                raise TypeError(msge)
         else:
             ncompann = ncomp
 
@@ -331,7 +333,7 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
             # PCA matrix is created for each annular quadrant and scaling if 
             # needed
             #*******************************************************************
-            for quadrant in xrange(4):
+            for quadrant in range(4):
                 yy = indices[quadrant][0]
                 xx = indices[quadrant][1]
                 matrix_quad = array[:, yy, xx]      # shape [nframes x npx_quad] 
@@ -347,7 +349,7 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
                                         svd_mode, ncompann, min_frames_pca, tol,
                                         debug, verbose)
                 
-                for frame in xrange(n):
+                for frame in range(n):
                     cube_out[frame][yy, xx] = residuals[frame] 
         
         #***********************************************************************
@@ -372,7 +374,7 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
                                     pa_thr, scaling, ann_center, svd_mode,
                                     ncompann, min_frames_pca, tol, debug, verbose)
             
-            for frame in xrange(n):
+            for frame in range(n):
                 cube_out[frame][yy, xx] = residuals[frame] 
 
         if verbose:

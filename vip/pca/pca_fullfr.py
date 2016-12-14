@@ -61,8 +61,10 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
     if a scaling vector is provided (triggered by *scale_list* parameter) and
     the cube is a 4d array [# channels, # adi-frames, Y, X], its assumed it 
     contains several multi-spectral ADI frames. A double PCA is performed, first
-    on each ADI multi-spectral frame (using *ncomp* PCs), then using each ADI
-    residual to exploit the rotation (using *ncomp2* PCs). 
+    on each ADI multi-spectral frame (using ``ncomp`` PCs), then using each ADI
+    residual to exploit the rotation (using ``ncomp2`` PCs). If ``ncomp2`` is
+    None only one PCA is performed on the ADI multi-spectral frames and then
+    the resulting frames are de-rotated and combined.
     
     Several SVD libraries can be used with almost (randsvd stands for randomized 
     SVD) the same result but different computing time.
@@ -239,8 +241,11 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
     if angle_list is None and scale_list is None:
         msg = 'Either the angles list of scale factors list must be provided'
         raise ValueError(msg)
-    if scale_list is not None and np.array(scale_list).ndim>1:
-        raise TypeError('Wrong scaling factors list. Must be a vector')  
+    if scale_list is not None:
+        if np.array(scale_list).ndim>1:
+            raise TypeError('Wrong scaling factors list. Must be a vector')
+        if not scale_list.shape[0]==cube.shape[0]:
+            raise TypeError('Scaling factors vector has wrong length')
     
     if verbose: start_time = timeInit()
     
@@ -298,7 +303,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
                 timing(start_time)
         
         #***********************************************************************
-        # RDI (IFS) + ADI: cube with multiple spectral channels + rotation
+        # SDI (IFS) + ADI: cube with multiple spectral channels + rotation
         # shape of cube: [# channels, # adi-frames, Y, X]
         #***********************************************************************
         elif cube.ndim==4 and angle_list is not None:
@@ -336,18 +341,29 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
             if ncomp2 > n:
                 ncomp2 = min(10, n)
                 msg = 'Number of PCs too high (max PCs={}), using instead {:} PCs.'
-                print msg.format(n, ncomp)
-            res_ifs_adi = subtract_projection(residuals_cube_channels, None, 
-                                              ncomp2, scaling, mask_center_px, 
-                                              debug, svd_mode, False, 
-                                              full_output)
-            residuals_cube_channels_ = cube_derotate(res_ifs_adi, angle_list)
-            frame = cube_collapse(residuals_cube_channels_, mode=collapse)
-            if verbose:
-                msg = 'Done PCA per ADI multi-spectral frame, de-rotating and '
-                msg += 'combining'
-                print msg
-                timing(start_time)
+                print msg.format(n, ncomp2)
+
+            elif ncomp2 is None:
+                residuals_cube_channels_ = cube_derotate(residuals_cube_channels,
+                                                         angle_list)
+                frame = cube_collapse(residuals_cube_channels_, mode=collapse)
+                if verbose:
+                    msg = 'De-rotating and combining'
+                    print msg
+                    timing(start_time)
+
+            else:
+                res_ifs_adi = subtract_projection(residuals_cube_channels, None,
+                                                  ncomp2, scaling, mask_center_px,
+                                                  debug, svd_mode, False,
+                                                  full_output)
+                residuals_cube_channels_ = cube_derotate(res_ifs_adi, angle_list)
+                frame = cube_collapse(residuals_cube_channels_, mode=collapse)
+                if verbose:
+                    msg = 'Done PCA per ADI multi-spectral frame, de-rotating and '
+                    msg += 'combining'
+                    print msg
+                    timing(start_time)
 
     #***************************************************************************
     # cube_ref triggers RDI+ADI
@@ -360,9 +376,9 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         residuals_result = subtract_projection(cube, cube_ref, ncomp, scaling, 
                                                mask_center_px, debug, svd_mode, 
                                                verbose, full_output)
-        if full_output: 
+        if full_output:
             residuals_cube = residuals_result[0]
-            reconstructed = residuals_result[1] 
+            reconstructed = residuals_result[1]
             V = residuals_result[2]
             pcs = reshape_matrix(V, y, x)
             recon = reshape_matrix(reconstructed, y, x)
@@ -370,7 +386,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
             residuals_cube = residuals_result
         residuals_cube_ = cube_derotate(residuals_cube, angle_list)
         frame = cube_collapse(residuals_cube_, mode=collapse)
-        
+
         if verbose:
             print 'Done de-rotating and combining'
             timing(start_time)

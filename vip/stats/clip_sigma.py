@@ -4,13 +4,14 @@
 Module with sigma clipping functions.
 """
 
+from __future__ import division, print_function
+
 __author__ = 'C. Gomez @ ULg', 'V. Christiaens'
 __all__ = ['clip_array',
            'sigma_filter']
 
 import numpy as np
 from scipy.ndimage.filters import generic_filter
-from scipy.stats import norm as Gaussian
 from astropy.stats import median_absolute_deviation
 
 
@@ -80,7 +81,7 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3, verbose=F
                 bp[wb[0][n],wb[1][n]] = 0
         nb = int(np.sum(bp))
     if verbose == True:
-        print 'Required number of iterations in the sigma filter: ', nit
+        print('Required number of iterations in the sigma filter: ', nit)
     return im
 
 

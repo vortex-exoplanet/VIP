@@ -30,7 +30,7 @@ def check_enough_memory(input_bytes, factor=1, verbose=True):
     ----------
     input_bytes : float
         The size in bytes of the inputs of a given function.
-    factor : int
+    factor : float
         Scales how much memory is needed in terms of the size of input_bytes.
     """
     mem = virtual_memory()

@@ -4,7 +4,7 @@
 Module with local smart pca (annulus-wise) serial and parallel implementations.
 """
 
-from __future__ import division 
+from __future__ import division, print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['pca_adi_annular',
@@ -97,13 +97,13 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1,
         
         if verbose:
             msg2 = 'Annulus {:}, Inn radius = {:.2f}, Ann center = {:.2f} '
-            print msg2.format(int(ann+1),inner_radius, ann_center) 
+            print(msg2.format(int(ann+1),inner_radius, ann_center))
         return inner_radius, ann_center
     
     def fr_ref_correlation(vector, matrix):
         """ Getting the correlations """
         lista = []
-        for i in xrange(matrix.shape[0]):
+        for i in range(matrix.shape[0]):
             pears, _ = stats.pearsonr(vector, matrix[i])
             lista.append(pears)
         
@@ -134,13 +134,12 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1,
     
     angle_list = check_PA_vector(angle_list)
 
-    fwhm = int(np.round(fwhm))
-    annulus_width = int(np.round(asize * fwhm))      # equal size for all annuli
-    n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    
+    annulus_width = asize * fwhm                     # equal size for all annuli
+    n_annuli = int(np.floor((y/2-radius_int)/annulus_width))
     if verbose:
-        msg = '# annuli = {:}, Ann width = {:}, rounded FWHM = {:.3f}\n'
-        print msg.format(n_annuli, annulus_width, fwhm) 
-        print 'PCA will be done locally per annulus and per quadrant.\n'
+        msg = '# annuli = {:}, Ann width = {:}, FWHM = {:.3f}\n'
+        print(msg.format(n_annuli, annulus_width, fwhm))
+        print('PCA will be done locally per annulus and per quadrant.\n')
      
     cube_out = np.zeros_like(array)
     for ann in range(n_annuli):
@@ -172,15 +171,15 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1,
         cube_out[:, yy, xx] = residuals  
             
         if verbose:
-            print '# frames in LIB = {}'.format(nfrslib)
-            print '# PCs = {}'.format(ncomps)
-            print 'Done PCA with {:} for current annulus'.format(svd_mode)
+            print('# frames in LIB = {}'.format(nfrslib))
+            print('# PCs = {}'.format(ncomps))
+            print('Done PCA with {:} for current annulus'.format(svd_mode))
             timing(start_time)      
          
     cube_der = cube_derotate(cube_out, angle_list)
     frame = cube_collapse(cube_der, mode=collapse)
     if verbose:
-        print 'Done derotating and combining.'
+        print('Done derotating and combining.')
         timing(start_time)
     if full_output:
         return cube_out, cube_der, frame 
@@ -290,13 +289,12 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
     
     angle_list = check_PA_vector(angle_list)
 
-    fwhm = int(np.round(fwhm))
-    annulus_width = int(np.round(asize * fwhm))      # equal size for all annuli
-    n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    
+    annulus_width = asize * fwhm                     # equal size for all annuli
+    n_annuli = int(np.floor((y/2-radius_int)/annulus_width))
     if verbose:
-        msg = '# annuli = {:}, Ann width = {:}, rounded FWHM = {:.3f}'
-        print msg.format(n_annuli, annulus_width, fwhm), '\n'
-        print 'PCA per annulus (and per quadrant if requested)\n'
+        msg = '# annuli = {:}, Ann width = {:}, FWHM = {:.3f}'
+        print(msg.format(n_annuli, annulus_width, fwhm), '\n')
+        print('PCA per annulus (and per quadrant if requested)\n')
      
     if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
         nproc = (cpu_count()/2)
@@ -314,7 +312,7 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
             else:
                 msge = 'If ncomp is a list, it must match the number of annuli'
                 msg = 'NCOMP : {}, N ANN : {}, ANN SIZE : {}, ANN WIDTH : {}'
-                print msg.format(ncomp, n_annuli, annulus_width, asize)
+                print(msg.format(ncomp, n_annuli, annulus_width, asize))
                 raise TypeError(msge)
         else:
             ncompann = ncomp
@@ -378,7 +376,7 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
                 cube_out[frame][yy, xx] = residuals[frame] 
 
         if verbose:
-            print 'Done PCA with {:} for current annulus'.format(svd_mode)
+            print('Done PCA with {:} for current annulus'.format(svd_mode))
             timing(start_time)      
          
     #***************************************************************************
@@ -387,7 +385,7 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
     cube_der = cube_derotate(cube_out, angle_list)
     frame = cube_collapse(cube_der, mode=collapse)
     if verbose:
-        print 'Done derotating and combining.'
+        print('Done derotating and combining.')
         timing(start_time)
     if full_output:
         return cube_out, cube_der, frame 
@@ -426,12 +424,12 @@ def define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
         new_pa_th = float(mid_range - mid_range * 0.1)
         if verbose:
             msg = 'PA threshold {:.2f} is too big, will be set to {:.2f}'
-            print msg.format(pa_threshold, new_pa_th)
+            print(msg.format(pa_threshold, new_pa_th))
         pa_threshold = new_pa_th
                          
     if verbose:
         msg2 = 'Annulus {:}, PA thresh = {:.2f}, Inn radius = {:.2f}, Ann center = {:.2f} '
-        print msg2.format(int(ann+1),pa_threshold,inner_radius, ann_center) 
+        print(msg2.format(int(ann+1),pa_threshold,inner_radius, ann_center))
     return pa_threshold, inner_radius, ann_center
 
 
@@ -443,13 +441,13 @@ def find_indices(angle_list, frame, thr, truncate):
     n = angle_list.shape[0]
     index_prev = 0 
     index_foll = frame                                  
-    for i in xrange(0, frame):
+    for i in range(0, frame):
         if np.abs(angle_list[frame]-angle_list[i]) < thr:
             index_prev = i
             break
         else:
             index_prev += 1
-    for k in xrange(frame, n):
+    for k in range(frame, n):
         if np.abs(angle_list[k]-angle_list[frame]) > thr:
             index_foll = k
             break
@@ -489,7 +487,7 @@ def do_pca_loop(matrix, yy, xx, nproc, angle_list, fwhm, pa_threshold, scaling,
     nfrslib = []          
     if nproc==1:
         residualarr = []
-        for frame in xrange(n):   
+        for frame in range(n):
             res = do_pca_patch(matrix_ann, frame, angle_list, fwhm,
                                pa_threshold, scaling, ann_center, 
                                svd_mode, ncomp, min_frames_pca, tol,
@@ -560,7 +558,6 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, scaling,
        
     data = data_ref
     #data = data_ref - data_ref.mean(axis=0)
-    
     curr_frame = matrix[frame]                     # current frame
     
     V = get_eigenvectors(ncomp, data, svd_mode, noise_error=tol, debug=False)        
@@ -604,7 +601,7 @@ def get_eigenvectors(ncomp, data, svd_mode, noise_error=1e-3, max_evs=200,
             if ncomp>1: px_noise_decay = px_noise[-2] - px_noise[-1]
             #print 'ncomp {:} {:.4f} {:.4f}'.format(ncomp,px_noise[-1],px_noise_decay)
         
-        if debug: print 'ncomp', ncomp
+        if debug: print('ncomp', ncomp)
         
     else:
         # Performing SVD/PCA according to "svd_mode" flag

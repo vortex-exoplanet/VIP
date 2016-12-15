@@ -4,8 +4,7 @@
 Module with contrast curve generation function.
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'C. Gomez, O. Absil @ ULg'
 __all__ = ['contrast_curve',
@@ -16,14 +15,14 @@ __all__ = ['contrast_curve',
 import numpy as np
 import photutils
 import inspect
-from scipy.interpolate import interp1d, InterpolatedUnivariateSpline
+from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy import stats
 from scipy.signal import savgol_filter
 from skimage.draw import circle
 from matplotlib import pyplot as plt
 from pandas import DataFrame as DF
 from .fakecomp import inject_fcs_cube, inject_fc_frame, psf_norm
-from ..conf import timeInit, timing
+from ..conf import timeInit, timing, sep
 from ..var import frame_center, dist
 
 
@@ -113,13 +112,20 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         if not starphot.shape[0] == cube.shape[0]:
             raise TypeError('Correction vector has bad size')
         cube = cube.copy()
-        for i in xrange(cube.shape[0]):
+        for i in range(cube.shape[0]):
             cube[i] = cube[i] / starphot[i]
 
-    fwhm = int(np.round(fwhm))
+    if verbose:
+        start_time = timeInit()
+        if isinstance(starphot, float) or isinstance(starphot, int):
+            msg0 = 'ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {},'
+            msg0 += ' STARPHOT = {}'
+            print(msg0.format(algo.func_name, fwhm, nbranch, sigma, starphot))
+        else:
+            msg0 = 'ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {}'
+            print(msg0.format(algo.func_name, fwhm, nbranch, sigma))
+        print(sep)
 
-    if verbose:  start_time = timeInit()
-    
     # throughput
     verbose_thru = False
     if verbose==2:  verbose_thru = True
@@ -133,8 +139,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     frame_nofc = res_throug[5]
     
     if verbose:
-        msg1 = 'Finished the throughput calculation'
-        print(msg1)
+        print('Finished the throughput calculation')
         timing(start_time)
     
     if thruput_mean[-1]==0:
@@ -143,7 +148,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     
     # noise measured in the empty PP-frame with better sampling, every px
     # starting from 1*FWHM
-    noise_samp, rad_samp = noise_per_annulus(frame_nofc, 1, fwhm, wedge, False)        
+    noise_samp, rad_samp = noise_per_annulus(frame_nofc, separation=1, fwhm=fwhm,
+                                             init_rad=fwhm, wedge=wedge)
     cutin1 = np.where(rad_samp.astype(int)==vector_radd.astype(int).min())[0]
     noise_samp = noise_samp[cutin1:]
     rad_samp = rad_samp[cutin1:]
@@ -170,10 +176,6 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                                   window_length=win)
     
     if debug:
-        print('SIGMA = {}'.format(sigma))
-        if isinstance(starphot, float) or isinstance(starphot, int):
-            print('STARPHOT = {}'.format(starphot))
-        
         plt.rc("savefig", dpi=dpi)
         plt.figure(figsize=(8,4))
         plt.plot(vector_radd*pxscale, thruput_mean, '.', label='computed', 
@@ -365,7 +367,6 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     """
     array = cube
     parangles = angle_list
-    fwhm = int(np.round(fwhm))
     
     if not array.ndim == 3:
         raise TypeError('The input array is not a cube')
@@ -403,7 +404,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
         timing(start_time)
     
     noise, vector_radd = noise_per_annulus(frame_nofc, separation=fwhm, 
-                                           fwhm=fwhm, wedge=wedge,verbose=False)  
+                                           fwhm=fwhm, wedge=wedge)
     vector_radd = vector_radd[inner_rad-1:]
     noise = noise[inner_rad-1:]
     if verbose:
@@ -494,8 +495,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     
 
 
-def noise_per_annulus(array, separation, fwhm, wedge=(0,360), verbose=False, 
-                      debug=False):
+def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0,360),
+                      verbose=False, debug=False):
     """ Measures the noise as the standard deviation of apertures defined in
     each annulus with a given separation.
     
@@ -508,6 +509,8 @@ def noise_per_annulus(array, separation, fwhm, wedge=(0,360), verbose=False,
         center of the frame.
     fwhm : float
         FWHM in pixels.
+    init_rad : float
+        Initial radial distance to be used. If None then the init_rad = FWHM.
     wedge : tuple of floats, optional
         Initial and Final angles for using a wedge. For example (-90,90) only
         considers the right side of an image. Be careful when using small 
@@ -530,8 +533,6 @@ def noise_per_annulus(array, separation, fwhm, wedge=(0,360), verbose=False,
         angular_range = fin_angle-init_angle
         npoints = (np.deg2rad(angular_range)*rad)/sep   #(2*np.pi*rad)/sep
         ang_step = angular_range/npoints   #360/npoints
-        #print (2*np.pi*rad)/sep, 360/((2*np.pi*rad)/sep)
-        #print angular_range, npoints, ang_step
         x = []
         y = []
         for i in range(int(npoints)): 
@@ -556,44 +557,41 @@ def noise_per_annulus(array, separation, fwhm, wedge=(0,360), verbose=False,
     noise = []
     vector_radd = []
     if verbose:  print('{} annuli'.format(n_annuli-1))
-    
+
+    if init_rad is None:  init_rad = fwhm
+
     if debug:
         _, ax = plt.subplots(figsize=(6,6))
         ax.imshow(array, origin='lower', interpolation='nearest', 
                   alpha=0.5, cmap='gray')
     
-    for _ in range(n_annuli-1):
-        y -= separation
+    for i in range(n_annuli-1):
+        y = centery + init_rad + separation*(i)
         rad = dist(centery, centerx, y, x)
-        if rad>=fwhm:
-            yy, xx = find_coords(rad, sep=fwhm, init_angle=init_angle,
-                                 fin_angle=fin_angle)
-            yy += centery
-            xx += centerx
-            
-            #print yy, xx
-                 
-            fluxes = []
-            apertures = photutils.CircularAperture((xx, yy), fwhm/2.)
-            fluxes = photutils.aperture_photometry(array, apertures)
-            fluxes = np.array(fluxes['aperture_sum'])
-            
-            noise_ann = np.std(fluxes)
-            noise.append(noise_ann) 
-            vector_radd.append(rad)
-            
-            if debug: 
-                for i in range(xx.shape[0]):
-                    # Circle takes coordinates as (X,Y)
-                    aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2., color='r', 
-                                  fill=False, alpha=0.8)                                       
-                    ax.add_patch(aper)
-                    cent = plt.Circle((xx[i], yy[i]), radius=0.8, color='r', 
-                                  fill=True, alpha=0.5)
-                    ax.add_patch(cent)
-                       
-            if verbose:
-                print('Radius(px) = {:}, Noise = {:.3f} '.format(rad, noise_ann))
+        yy, xx = find_coords(rad, fwhm, init_angle, fin_angle)
+        yy += centery
+        xx += centerx
+
+        apertures = photutils.CircularAperture((xx, yy), fwhm/2.)
+        fluxes = photutils.aperture_photometry(array, apertures)
+        fluxes = np.array(fluxes['aperture_sum'])
+
+        noise_ann = np.std(fluxes)
+        noise.append(noise_ann)
+        vector_radd.append(rad)
+
+        if debug:
+            for i in range(xx.shape[0]):
+                # Circle takes coordinates as (X,Y)
+                aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2., color='r',
+                              fill=False, alpha=0.8)
+                ax.add_patch(aper)
+                cent = plt.Circle((xx[i], yy[i]), radius=0.8, color='r',
+                              fill=True, alpha=0.5)
+                ax.add_patch(cent)
+
+        if verbose:
+            print('Radius(px) = {:}, Noise = {:.3f} '.format(rad, noise_ann))
      
     return np.array(noise), np.array(vector_radd)
 

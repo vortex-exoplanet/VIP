@@ -42,7 +42,7 @@ from . import approx_stellar_position
 from . import frame_crop
 from ..conf import time_ini, timing
 from ..conf import eval_func_tuple as EFT
-from ..var import (get_square, get_square_robust, frame_center, wavelet_denoise,
+from ..var import (get_square, get_square_robust, frame_center,
                    get_annulus, pp_subplots, fit_2dmoffat, fit_2dgaussian)
 
 

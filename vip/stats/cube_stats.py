@@ -59,7 +59,7 @@ def cube_stats_aperture(arr, radius, xy=None, plot=False, full_output=False):
         maxi = np.empty(n)
         
         values_circle = []
-        for i in xrange(n):
+        for i in range(n):
             if xy is not None:
                 x, y = xy
                 circle = get_circle(arr[i], radius, output_values=True, cy=y, cx=x)
@@ -175,7 +175,7 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False):
         median = np.empty(n)
         maxi = np.empty(n)
         
-        for i in xrange(n):
+        for i in range(n):
             arr = array[i].copy() 
             annulus = get_annulus(arr, inner_radius, size, output_values=True)
             mean[i] = annulus.mean()

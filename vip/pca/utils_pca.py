@@ -23,7 +23,7 @@ from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.preprocessing import scale #,minmax_scale
 from ..var import mask_circle, get_annulus, get_square_robust, frame_center
-from ..calib import cube_derotate, cube_collapse, cube_rescaling
+from ..preproc import cube_derotate, cube_collapse, cube_rescaling
 
 
 def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
@@ -380,7 +380,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         V = pc[::-1]                                             # reverse since last eigenvectors are the ones we want 
         S = np.sqrt(e)[::-1]                                     # reverse since eigenvalues are in increasing order 
         if debug: reconstruction(ncomp, None, S, None)
-        for i in xrange(V.shape[1]): 
+        for i in range(V.shape[1]):
             V[:,i] /= S                                          # scaling by the square root of eigenvalues
         V = V[:ncomp]
         if verbose: print('Done PCA with numpy linalg eigh functions')

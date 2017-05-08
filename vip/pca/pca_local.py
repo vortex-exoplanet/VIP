@@ -14,8 +14,8 @@ import numpy as np
 import itertools as itt
 from scipy import stats
 from multiprocessing import Pool, cpu_count
-from ..calib import cube_derotate, cube_collapse, check_PA_vector
-from ..conf import timeInit, timing
+from ..preproc import cube_derotate, cube_collapse, check_PA_vector
+from ..conf import time_ini, timing
 from ..conf import eval_func_tuple as EFT 
 from ..var import get_annulus_quad, get_annulus
 from ..pca.utils_pca import svd_wrapper, matrix_scaling
@@ -130,7 +130,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1,
         raise TypeError('Input vector or parallactic angles has wrong length.')
     
     n, y, _ = array.shape
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     
     angle_list = check_PA_vector(angle_list)
 
@@ -285,7 +285,7 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
 
     n, y, _ = array.shape
      
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     
     angle_list = check_PA_vector(angle_list)
 

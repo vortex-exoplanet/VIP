@@ -95,7 +95,7 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
     else:  
         raise ValueError('Mode should be either Mean or Median.') 
         
-    for i in xrange(m):                                                  
+    for i in range(m):
         arr[i, :, :] = func(array[:n, :, :], axis=0) 
         if parallactic is not None:  angles[i] = func(parallactic[:n])
         if i >= 1:
@@ -142,7 +142,7 @@ def cube_subsample_trimmean(arr, n, m):
     y = arr.shape[1]
     x = arr.shape[2]
     arr2 = np.empty([num+2, y, x]) 
-    for i in xrange(num):                                                  
+    for i in range(num):
         arr2[0] = cube_collapse(arr[:m, :, :], 'trimmean', n)                         
         if i > 0:
             arr2[i] = cube_collapse(arr[m*i:m*i+m, :, :], 'trimmean', n)

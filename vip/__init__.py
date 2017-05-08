@@ -1,6 +1,6 @@
 from __future__ import (absolute_import)
 
-from . import calib
+from . import preproc
 from . import conf
 from . import fits
 from . import llsg
@@ -12,7 +12,7 @@ from . import phot
 from . import stats
 from . import var
 
-__version__ = "0.6.2"
+__version__ = "0.7.0"
 
 print("---------------------------------------------------")
 print("         oooooo     oooo ooooo ooooooooo.          ")
@@ -25,5 +25,5 @@ print("               `8'       o888o o888o               ")
 print("---------------------------------------------------")
 print("     Vortex Image Processing pipeline v"+__version__)
 print("---------------------------------------------------")
-print("Please cite Gomez Gonzalez et al. 2016 (submitted) ")
+print("Please cite Gomez Gonzalez et al. 2017 (accepted) ")
 print("whenever you publish data reduced with VIP. Thanks.")

@@ -40,7 +40,7 @@ from multiprocessing import Pool, cpu_count
 from matplotlib import pyplot as plt
 from . import approx_stellar_position
 from . import frame_crop
-from ..conf import timeInit, timing 
+from ..conf import time_ini, timing
 from ..conf import eval_func_tuple as EFT
 from ..var import (get_square, get_square_robust, frame_center, wavelet_denoise,
                    get_annulus, pp_subplots, fit_2dmoffat, fit_2dgaussian)
@@ -327,7 +327,7 @@ def cube_recenter_satspots(array, xy, subim_size=19, sigfactor=6, debug=False):
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
 
-    start_time = timeInit()
+    start_time = time_ini()
 
     n_frames = array.shape[0]
     shift_x = np.zeros((n_frames))
@@ -335,7 +335,7 @@ def cube_recenter_satspots(array, xy, subim_size=19, sigfactor=6, debug=False):
     array_rec = []
     
     bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
-    for i in xrange(n_frames):
+    for i in range(n_frames):
         res = frame_center_satspots(array[i], xy, debug=debug, shift=True,
                                     subim_size=subim_size, sigfactor=sigfactor)
         array_rec.append(res[0])
@@ -367,22 +367,14 @@ def cube_recenter_satspots(array, xy, subim_size=19, sigfactor=6, debug=False):
 
 
 
-def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01, wavelet=False,
-                       threshold=1000, mask_center=None, nproc=None, 
-                       satspots=False, full_output=False,
-                       verbose=True, plot=True, debug=False):
+def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
+                       mask_center=None, nproc=None, satspots=False,
+                       full_output=False, verbose=True, plot=True, debug=False):
     """ Finding the center of a broadband (co-added) frame with speckles and 
     satellite spots elongated towards the star (center). 
     
-    The input frame might be processed with a wavelet filter to enhance the 
-    presence of the satellite spots or speckles. The type of wavelet used has
-    been tuned empirically, but probably is a per case situation that needs more 
-    careful attention. By default the frame is not filtered. 
-    
     The radon transform comes from scikit-image package. Takes a few seconds to
-    compute one radon transform with good resolution. The whole idea of this
-    algorithm is based on Pueyo et al. 2014 paper: 
-    http://arxiv.org/abs/1409.6388
+    compute one radon transform with good resolution. 
     
     Parameters
     ----------
@@ -396,10 +388,6 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01, wavelet=False,
         direction from the center in a hsize length with a given step.
     step : float, optional
         The step of the coordinates change.
-    wavelet : {False, True}, bool optional
-        Whether to perform a wavelet filtering of the input frame or not.
-    threshold : int, optional
-        Value for thresholding the wavelet coefficients.
     mask_center : None or int, optional
         If None the central area of the frame is kept. If int a centered zero 
         mask will be applied to the frame. By default the center isn't masked.
@@ -418,6 +406,11 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01, wavelet=False,
     optimy, optimx : float
         Values of the Y, X coordinates of the center of the frame based on the
         radon optimization.
+        
+    Notes
+    -----
+    The whole idea of this algorithm is based on Pueyo et al. 2014 paper: 
+    http://arxiv.org/abs/1409.6388
     
     """
     from .cosmetics import frame_crop
@@ -425,14 +418,9 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01, wavelet=False,
     if not array.ndim==2:
         raise TypeError('Input array is not a frame or 2d array')
 
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     frame = array.copy()
     frame = frame_crop(frame, cropsize, verbose=False)
-    if wavelet: 
-        frame = wavelet_denoise(frame, pywt.Wavelet('bior2.2'), threshold, 100)
-        if frame.shape[0] > cropsize:  
-            frame = frame[:-1,:-1]
-            
     listyx = np.linspace(start=-hsize, stop=hsize, num=2*hsize/step+1, 
                          endpoint=True)
     if not mask_center:
@@ -482,9 +470,9 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01, wavelet=False,
     if verbose:  
         msg = 'Done {} radon transform calls distributed in {} processes'
         print msg.format(len(coords), int(nproc))
-    
-    if plot:          
-        cost_bound = costf.reshape(listyx.shape[0], listyx.shape[0])
+
+    cost_bound = costf.reshape(listyx.shape[0], listyx.shape[0])
+    if plot:
         plt.contour(cost_bound, cmap='CMRmap', origin='lower', lw=1, hold='on')
         plt.imshow(cost_bound, cmap='CMRmap', origin='lower', 
                    interpolation='nearest')
@@ -575,7 +563,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, **kwargs):
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
 
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
 
     n_frames = array.shape[0]
     x = np.zeros((n_frames))
@@ -583,7 +571,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, **kwargs):
     array_rec = array.copy()
     
     bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
-    for i in xrange(n_frames):
+    for i in range(n_frames):
         y[i], x[i] = frame_center_radon(array[i], verbose=False, plot=False, 
                                         **kwargs)
         array_rec[i] = frame_shift(array[i], y[i], x[i])
@@ -673,7 +661,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     if array.shape[2]%2==0:
         array = array[:,:,1:].copy()
     
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     
     n_frames = array.shape[0]
     x = np.zeros((n_frames))
@@ -805,7 +793,7 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
     if array.shape[2]%2==0:
         array = array[:,:,1:].copy()
     
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     
     n_frames = array.shape[0]
     cy, cx = frame_center(array[0])
@@ -842,7 +830,7 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
         x -= offx
     
     bar2 = pyprind.ProgBar(n_frames, stream=1, title='Shifting the frames')
-    for i in xrange(n_frames):
+    for i in range(n_frames):
         if debug:
             print "\nShifts in X and Y"
             print x[i], y[i]
@@ -862,7 +850,7 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
 def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5, 
                                nproc=None, full_output=False, verbose=True, 
                                save_shifts=False, debug=False, 
-                               unmoving_star=True):
+                               unmoving_star=True, negative=False):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
     moffat to a subimage centered at (pos_x, pos_y). This assumes the frames 
     don't have too large shifts (>5px). The frames are shifted using the 
@@ -899,6 +887,8 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         be sure the centroid fit returns a reasonable index value (close to the 
         median of the centroid indices in the other frames) - hence not taking 
         noise or a clump of uncorrected bad pixels.
+    negative : {False, True}, optional
+        If True a negative 2d Moffat fit is performed.
         
     Returns
     -------
@@ -920,7 +910,7 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
     if array.shape[2]%2==0:
         array = array[:,:,1:].copy()
     
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     
     n_frames = array.shape[0]
     cy, cx = frame_center(array[0])
@@ -964,7 +954,7 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         for i in range(n_frames):
             res.append(_centroid_2dm_frame(array, i, size[i], pos_y[i], 
                                            pos_x[i], star_approx_coords[i], 
-                                           star_not_present[i]))
+                                           star_not_present[i], negative))
             bar.update()
         res = np.array(res)
     elif nproc>1:
@@ -973,13 +963,13 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
                                     itt.repeat(array), range(n_frames),
                                     size.tolist(), pos_y.tolist(), 
                                     pos_x.tolist(), star_approx_coords,
-                                    star_not_present)) 
+                                    star_not_present, negative))
         res = np.array(res)
         pool.close()
     y = cy - res[:,0]
     x = cx - res[:,1]
         
-    for i in xrange(n_frames):
+    for i in range(n_frames):
         if debug:
             print "\nShifts in X and Y"
             print x[i], y[i]
@@ -1013,18 +1003,16 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug=False):
 
 
 def _centroid_2dm_frame(cube, frnum, size, pos_y, pos_x, 
-                        star_approx_coords=None, star_not_present=None):
+                        star_approx_coords=None, star_not_present=None,
+                        negative=False):
     """ Finds the centroid by using a 2d moffat fitting in one frame from a 
     cube. To be called from whitin cube_recenter_moffat2d_fit().
     """
     sub_image, y1, x1 = get_square_robust(cube[frnum], size=size+1, y=pos_y, 
                                           x=pos_x,position=True)
     sub_image = sub_image.byteswap().newbyteorder()
-    # we check if the min pixel is located in the center (negative moffat)
-    miny, minx = np.where(sub_image==sub_image.min())
-    cy, cx = frame_center(sub_image)
-    if np.allclose(miny, cy, atol=2) and np.allclose(minx, cx, atol=2):
-        sub_image = -sub_image + np.abs(np.min(-sub_image))
+    # negative fit
+    if negative:  sub_image = -sub_image + np.abs(np.min(-sub_image))
         
     if star_approx_coords is not None and star_not_present is not None:
         if star_not_present:

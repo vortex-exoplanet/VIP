@@ -11,10 +11,11 @@ __author__ = 'C. Gomez @ ULg'
 __all__ = ['adi']
 
 import numpy as np
-from ..conf import timeInit, timing
+from ..conf import time_ini, timing
 from ..var import get_annulus, mask_circle
-from ..calib import cube_derotate, cube_collapse, check_PA_vector
+from ..preproc import cube_derotate, cube_collapse, check_PA_vector
 from ..pca.pca_local import define_annuli
+
 
 def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1, 
         mode='fullfr', nframes=4, collapse='median', full_output=False, 
@@ -72,13 +73,13 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         n = angle_list.shape[0]
         index_prev = 0 
         index_foll = frame                                  
-        for i in xrange(0, frame):
+        for i in range(0, frame):
             if np.abs(angle_list[frame]-angle_list[i]) < thr:
                 index_prev = i
                 break
             else:
                 index_prev += 1
-        for k in xrange(frame, n):
+        for k in range(frame, n):
             if np.abs(angle_list[k]-angle_list[frame]) > thr:
                 index_foll = k
                 break
@@ -108,7 +109,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     
     n, y, _ = array.shape
      
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     
     angle_list = check_PA_vector(angle_list)
     

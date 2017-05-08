@@ -20,7 +20,7 @@ from astropy.stats import sigma_clipped_stats
 from ..stats import sigma_filter
 from ..var import dist, frame_center, pp_subplots
 from ..stats import clip_array
-from ..conf import timing, timeInit
+from ..conf import timing, time_ini
 
 
 def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
@@ -74,7 +74,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     if bpm_mask is not None:
         bpm_mask = bpm_mask.astype('bool')
 
-    if verbose:  start = timeInit()
+    if verbose:  start = time_ini()
 
     if num_neig > 0:
         neigh = True
@@ -155,7 +155,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     if bpm_mask is not None:
         bpm_mask = bpm_mask.astype('bool')
     
-    if verbose:  start = timeInit()
+    if verbose:  start = time_ini()
     
     if num_neig>0:  neigh=True
     else:  neigh=False

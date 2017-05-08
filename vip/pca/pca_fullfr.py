@@ -19,9 +19,9 @@ from astropy.io import fits
 from matplotlib import pyplot as plt
 from sklearn.decomposition import IncrementalPCA
 from .utils_pca import svd_wrapper, prepare_matrix, reshape_matrix
-from ..calib import (cube_derotate, cube_collapse, check_PA_vector, 
-                     check_scal_vector)
-from ..conf import timing, timeInit, check_enough_memory, get_available_memory
+from ..preproc import (cube_derotate, cube_collapse, check_PA_vector,
+                       check_scal_vector)
+from ..conf import timing, time_ini, check_enough_memory, get_available_memory
 from ..var import frame_center, dist, get_annulus
 from ..stats import descriptive_stats
 from .. import phot
@@ -86,7 +86,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         Reference library cube. For Reference Star Differential Imaging.
     scale_list : 
         Scaling factors in case of IFS data. Normally, the scaling factors are
-        the central channel wavelength divided by the longest wavelength in the
+        the central channel wavelength divided by the shortest wavelength in the
         cube. More thorough approaches can be used to get the scaling factors.
     ncomp : int, optional
         How many PCs are used as a lower-dimensional subspace to project the
@@ -247,7 +247,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         if not scale_list.shape[0]==cube.shape[0]:
             raise TypeError('Scaling factors vector has wrong length')
     
-    if verbose: start_time = timeInit()
+    if verbose: start_time = time_ini()
     
     if check_mem:
         input_bytes = cube.nbytes
@@ -672,7 +672,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
     if not cube.ndim==3:
         raise TypeError('Input array is not a cube or 3d array')
     
-    if verbose: start_time = timeInit()
+    if verbose: start_time = time_ini()
     n = cube.shape[0]
     x, y = source_xy 
     
@@ -889,7 +889,7 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
     the final frame is returned.
     
     """
-    if verbose:  start = timeInit()
+    if verbose:  start = time_ini()
     if not isinstance(cubepath, str):
         msgerr = 'Cubepath must be a string with the full path of your fits file'
         raise TypeError(msgerr)

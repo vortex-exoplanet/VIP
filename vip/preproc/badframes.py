@@ -17,7 +17,7 @@ from matplotlib import pyplot as plt
 from photutils import detection
 from astropy.stats import sigma_clip
 from ..var import get_annulus
-from ..conf import timeInit, timing 
+from ..conf import time_ini, timing
 from ..stats import (cube_stats_aperture, cube_stats_annulus, 
                               cube_distance)
 
@@ -68,13 +68,13 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
         msgve = 'Inner radius and annulus size are too big (out of boundaries)'
         raise ValueError(msgve)
     
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     
     n = array.shape[0]
     
     if mode=='annulus':
         mean_values,_,_,_ = cube_stats_annulus(array, inner_radius=in_radius, 
-                                             size=width, full_out=True)
+                                               size=width, full_out=True)
     elif mode=='circle':
         _,mean_values,_,_ = cube_stats_aperture(array, radius=in_radius, 
                                                 full_output=True)
@@ -92,7 +92,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     good_index_list = []
     top_boundary = np.empty([n])
     bot_boundary = np.empty([n])
-    for i in xrange(n):
+    for i in range(n):
         if mode=='annulus':
             i_mean_value = get_annulus(array[i], inner_radius=in_radius, 
                                         width=width, output_values=True).mean()
@@ -169,7 +169,7 @@ def cube_detect_badfr_ellipticipy(array, fwhm, roundlo=-0.2, roundhi=0.2,
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
     
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     
     n = array.shape[0]
     
@@ -186,7 +186,7 @@ def cube_detect_badfr_ellipticipy(array, fwhm, roundlo=-0.2, roundhi=0.2,
     
     goodfr = []
     badfr = []
-    for i in xrange(n):
+    for i in range(n):
         # we create a circular gaussian kernel
         kernel = gauss2d_kernel(fwhm=fwhm, ratio=1.0, theta=0.0)  
         objs = find_objs(array[i], threshold=thr, kernel=kernel, 
@@ -255,7 +255,7 @@ def cube_detect_badfr_correlation(array, frame_ref, dist='pearson',
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
     
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     
     n = array.shape[0]
     # the cube is cropped to the central area

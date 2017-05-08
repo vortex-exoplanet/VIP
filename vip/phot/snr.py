@@ -20,7 +20,7 @@ from matplotlib import pyplot as plt
 from astropy.convolution import convolve, Tophat2DKernel
 from astropy.stats import median_absolute_deviation as mad
 from multiprocessing import Pool, cpu_count
-from ..conf import eval_func_tuple, timeInit, timing
+from ..conf import eval_func_tuple, time_ini, timing
 from ..var import get_annulus, frame_center, dist, pp_subplots
 
 
@@ -52,7 +52,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None):
         Frame with the same size as the input frame with each pixel.
         
     """
-    start_time = timeInit()
+    start_time = time_ini()
     if not array.ndim==2:
         raise TypeError('Input array is not a 2d array or image.')
     if plot:  plt.close('snr')
@@ -178,7 +178,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
         Frame with the same size as the input frame with each pixel.
         
     """       
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     if not array.ndim==2:
         raise TypeError('Input array is not a 2d array or image.')
     

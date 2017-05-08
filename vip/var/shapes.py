@@ -12,9 +12,11 @@ __all__ = ['dist',
            'get_square',
            'get_square_robust',
            'get_circle',
+           'get_ellipse',
            'get_annulus',
            'get_annulus_quad',
            'get_annulus_cube',
+           'get_ell_annulus',
            'mask_circle',
            'create_ringed_spider_mask']
 
@@ -104,7 +106,8 @@ def frame_center(array, verbose=False):
         cx = np.ceil(x)
     else:
         cx = np.ceil(x) - 1
-    
+
+    cy = int(cy); cx = int(cx)
     if verbose:
         print 'Center px coordinates at x,y = ({:},{:})'.format(cy, cx)
     return cy, cx
@@ -134,10 +137,11 @@ def get_square(array, size, y, x, position=False):
         raise TypeError('Input array is not a frame or 2d array.')
     
     if size%2!=0:  size -= 1 # making it odd to get the wing
-    wing = size/2    
+    wing = size/2
     # wing is added to the sides of the subframe center. Note the +1 when 
     # closing the interval (python doesn't include the endpoint)
-    array_view = array[y-wing:y+wing+1, x-wing:x+wing+1].copy()
+    array_view = array[int(y-wing):int(y+wing+1),
+                       int(x-wing):int(x+wing+1)].copy()
     
     if position:
         return array_view, y-wing, x-wing
@@ -235,7 +239,7 @@ def get_square_robust(array, size, y, x, position=False,
             y_fin = y+wing_y+1
             x_init = x-wing_x
             x_fin = x+wing_x+1
-            array_view = array[y_init:y_fin, x_init:x_fin]
+            array_view = array[int(y_init):int(y_fin), int(x_init):int(x_fin)]
             msg = "!!! WARNING: The square sub-array was changed to a "+\
                   "rectangular sub-array to fit within the borders of the "+\
                   "array. Now, [y_init,yfin]= ["+ str(y_init)+", "+ str(y_fin)+\
@@ -296,6 +300,73 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
         return values
     else:
         array_masked = array*circle_mask
+        return array_masked
+
+
+def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
+                output_indices=False):
+    """ Returns a centered elliptical region from a 2d ndarray. All the rest 
+    pixels are set to zeros.
+    
+    Parameters
+    ----------
+    array : array_like
+        Input 2d array or image. 
+    a : float or int
+        Semi-major axis.
+    b : float or int
+        Semi-minor axis.
+    PA : deg, float
+        The PA of the semi-major axis.
+    output_values : {False, True}, optional
+        If True returns the values of the pixels in the annulus.
+    cy, cx : int
+        Coordinates of the circle center.
+    output_indices : {False, True}, optional
+        If True returns the indices inside the annulus.
+    
+    Returns
+    -------
+    Depending on output_values, output_indices:
+    values : array_like
+        1d array with the values of the pixels in the circular region.
+    array_masked : array_like
+        Input array with the circular mask applied.
+    y, x : array_like
+        Coordinates of pixels in circle.
+    """
+
+    if not array.ndim == 2:
+        raise TypeError('Input array is not a frame or 2d array.')
+    sy, sx = array.shape
+    if not cy and not cx:
+        cy, cx = frame_center(array, verbose=False)
+
+    # Definition of other parameters of the ellipse
+    f = np.sqrt(a ** 2 - b ** 2)  # distance between center and foci of the ellipse
+    PA_rad = np.deg2rad(PA)
+    pos_f1 = (cy + f * np.cos(PA_rad), cx + f * np.sin(PA_rad))  # coords of first focus
+    pos_f2 = (cy - f * np.cos(PA_rad), cx - f * np.sin(PA_rad))  # coords of second focus
+
+    yy, xx = np.ogrid[:sy, :sx]
+    # ogrid is a multidim mesh creator (faster than mgrid)
+    ellipse = dist(yy, xx, pos_f1[0], pos_f1[1]) + dist(yy, xx, pos_f2[0],
+                                                        pos_f2[1])
+    ellipse_mask = ellipse < 2 * a  # mask of 1's and 0's
+
+    if output_values and not output_indices:
+        values = array[ellipse_mask]
+        return values
+    elif output_indices and not output_values:
+        indices = np.array(np.where(ellipse_mask))
+        y = indices[0]
+        x = indices[1]
+        return y, x
+    elif output_indices and output_values:
+        msg = 'output_values and output_indices cannot be both True.'
+        raise ValueError(msg)
+    else:
+        array_masked = array * ellipse_mask
         return array_masked
 
 
@@ -421,13 +492,109 @@ def get_annulus_cube(array, inner_radius, width, output_values=False):
         raise TypeError('Input array is not a cube or 3d array.')
     arr_annulus = np.empty_like(array)
     if output_values:
-        values = [get_annulus(array[i], inner_radius, width, output_values=True) for i in xrange(array.shape[0])]
+        values = []
+        for i in range(array.shape[0]):
+            values.append(get_annulus(array[i], inner_radius, width,
+                                      output_values=True))
         return np.array(values)
     else:
-        for i in xrange(array.shape[0]):
+        for i in range(array.shape[0]):
             arr_annulus[i] = get_annulus(array[i], inner_radius, width)
         return arr_annulus
     
+
+def get_ell_annulus(array, a, b, PA, width, output_values=False,
+                    output_indices=False, cy=None, cx=None):
+    """Returns a centered elliptical annulus from a 2d ndarray. All the rest 
+    pixels are set to zeros. 
+
+    Parameters
+    ----------
+    array : array_like
+        Input 2d array or image. 
+    a : flt
+        Semi-major axis.
+    b : flt
+        Semi-minor axis.
+    PA : deg
+        The PA of the semi-major axis.
+    width : flt
+        The size of the annulus along the semi-major axis; it is proportionnally 
+        thinner along the semi-minor axis).
+    output_values : {False, True}, optional
+        If True returns the values of the pixels in the annulus.
+    output_indices : {False, True}, optional
+        If True returns the indices inside the annulus.
+    cy,cx: float, optional
+        Location of the center of the annulus to be defined. If not provided, 
+    it assumes the annuli are centered on the frame.
+
+    Returns
+    -------
+    Depending on output_values, output_indices:
+    values : array_like
+        1d array with the values of the pixels in the annulus.
+    array_masked : array_like
+        Input array with the annular mask applied.
+    y, x : array_like
+        Coordinates of pixels in annulus.
+
+    """
+    if not array.ndim == 2:
+        raise TypeError('Input array is not a frame or 2d array.')
+    if cy is None or cx is None:
+        cy, cx = frame_center(array)
+    sy, sx = array.shape
+
+    width_a = width
+    width_b = width * b / a
+
+    # Definition of big ellipse
+    f_big = np.sqrt((a + width_a / 2.) ** 2 - (
+    b + width_b / 2.) ** 2)  # distance between center and foci of the ellipse
+    PA_rad = np.deg2rad(PA)
+    pos_f1_big = (cy + f_big * np.cos(PA_rad),
+                  cx + f_big * np.sin(PA_rad))  # coords of first focus
+    pos_f2_big = (cy - f_big * np.cos(PA_rad),
+                  cx - f_big * np.sin(PA_rad))  # coords of second focus
+
+    # Definition of small ellipse
+    f_sma = np.sqrt((a - width_a / 2.) ** 2 - (
+    b - width_b / 2.) ** 2)  # distance between center and foci of the ellipse
+    pos_f1_sma = (cy + f_sma * np.cos(PA_rad),
+                  cx + f_sma * np.sin(PA_rad))  # coords of first focus
+    pos_f2_sma = (cy - f_sma * np.cos(PA_rad),
+                  cx - f_sma * np.sin(PA_rad))  # coords of second focus
+
+    yy, xx = np.ogrid[:sy, :sx]
+    big_ellipse = dist(yy, xx, pos_f1_big[0], pos_f1_big[1]) + dist(yy, xx,
+                                                                    pos_f2_big[
+                                                                        0],
+                                                                    pos_f2_big[
+                                                                        1])
+    small_ellipse = dist(yy, xx, pos_f1_sma[0], pos_f1_sma[1]) + dist(yy, xx,
+                                                                      pos_f2_sma[
+                                                                          0],
+                                                                      pos_f2_sma[
+                                                                          1])
+    ell_ann_mask = (big_ellipse < 2 * (a + width / 2.)) & (
+    small_ellipse >= 2 * (a - width / 2.))  # mask of 1's and 0's
+
+    if output_values and not output_indices:
+        values = array[ell_ann_mask]
+        return values
+    elif output_indices and not output_values:
+        indices = np.array(np.where(ell_ann_mask))
+        y = indices[0]
+        x = indices[1]
+        return y, x
+    elif output_indices and output_values:
+        msg = 'output_values and output_indices cannot be both True.'
+        raise ValueError(msg)
+    else:
+        array_masked = array * ell_ann_mask
+        return array_masked
+
 
 def mask_circle(array, radius):                                      
     """ Masks (sets pixels to zero) a centered circle from a frame or cube. 
@@ -450,7 +617,7 @@ def mask_circle(array, radius):
         cy = sy/2
         cx = sx/2
         xx, yy = np.ogrid[:sy, :sx]
-        circle = (xx - cx)**2 + (yy - cy)**2               # squared distance to the center                                        
+        circle = (xx - cx)**2 + (yy - cy)**2    # squared distance to the center
         hole_mask = circle > radius**2                                             
         array_masked = array*hole_mask
         
@@ -459,10 +626,10 @@ def mask_circle(array, radius):
         cy = sy/2
         cx = sx/2
         xx, yy = np.ogrid[:sy, :sx]
-        circle = (xx - cx)**2 + (yy - cy)**2               # squared distance to the center                                        
+        circle = (xx - cx)**2 + (yy - cy)**2    # squared distance to the center
         hole_mask = circle > radius**2      
         array_masked = np.empty_like(array)
-        for i in xrange(n):
+        for i in range(n):
             array_masked[i] = array[i]*hole_mask
         
     return array_masked    

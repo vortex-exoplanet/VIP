@@ -147,7 +147,7 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='bicubic',
         cy, cx = frame_center(array[0])
         cxy = (cx, cy)
         
-    for i in xrange(n_frames): 
+    for i in range(n_frames):
         array_der[i] = frame_rotate(array[i], -angle_list[i], imlib=imlib,
                                     interpolation=interpolation, cxy=cxy)
     

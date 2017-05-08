@@ -4,7 +4,7 @@
 Various stat functions.
 """
 
-from __future__ import division
+from __future__ import division, print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['descriptive_stats']
@@ -27,10 +27,10 @@ def descriptive_stats(array, verbose=True, label='', mean=False, plot=False):
         msg = label
         if mean:
             msg += 'min={:.1f} / 1st QU={:.1f} / ave={:.1f} / med={:.1f} / 3rd QU={:.1f} / max={:.1f}'
-            print msg.format(mini, first_qu, mean, median, third_qu, maxi)
+            print(msg.format(mini, first_qu, mean, median, third_qu, maxi))
         else:
             msg += 'min={:.1f} / 1st QU={:.1f} / med={:.1f} / 3rd QU={:.1f} / max={:.1f}'
-            print msg.format(mini, first_qu, median, third_qu, maxi)
+            print(msg.format(mini, first_qu, median, third_qu, maxi))
     
     if plot:
         boxplot(array, vert=False, meanline=mean, showfliers=True, sym='.') #whis=range)

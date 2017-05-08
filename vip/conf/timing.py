@@ -1,16 +1,15 @@
 #! /usr/bin/env python
 
 """
-Module for timing functions.
+Functions for timing other functions/procedures.
 """
-
 __author__ = 'C. Gomez @ ULg'
-__all__ = ['timeInit', 'timing', 'timeFini']
+__all__ = ['time_ini', 'timing', 'time_fin']
 
 from datetime import datetime
 from .utils_conf import sep
 
-def timeInit(verbose=True):
+def time_ini(verbose=True):
     """Sets and prints the time in which the script started.
     
     Returns
@@ -25,16 +24,18 @@ def timeInit(verbose=True):
         print sep
     return start_time
 
+
 def timing(start_time):
     """Prints the execution time of a script. It requires the initialization 
-    with the function timeInit().
+    with the function time_ini().
     """
     print "Running time:  " + str(datetime.now()-start_time)
     print sep
 
-def timeFini(start_time):
+
+def time_fin(start_time):
     """Returns the execution time of a script. It requires the initialization 
-    with the function timeInit().
+    with the function time_ini().
     """
     return str(datetime.now()-start_time)
 

@@ -40,30 +40,36 @@ def cube_crop_frames(array, size, xy=None, verbose=True):
         
     """
     if not array.ndim == 3:
-        raise TypeError('\nArray is not 3d, not a cube.')
+        raise TypeError('\nArray is not 3d, not a cube')
+    if not isinstance(size, int):
+        raise TypeError('\nSize must be integer')
     
     if size%2!=0:  size -= 1
     if size >= array.shape[1]:
-        raise ValueError('The crop size is equal or bigger than the actual size.')
+        raise ValueError('The crop size is equal or bigger than the frame size')
     
     # wing is added to the sides of the subframe center.
-    wing = size/2           
+    wing = int(size/2)
     
     if xy is not None:
+        if not (isinstance(xy[0], int) or isinstance(xy[1], int)):
+            raise TypeError('\nXY must be a tuple of integers')
         cenx, ceny = xy 
         # Note the +1 when closing the interval (python doesn't include the 
         # endpoint)
-        array_view = array[:,ceny-wing:ceny+wing+1,cenx-wing:cenx+wing+1].copy()
+        array_view = array[:,int(ceny-wing):int(ceny+wing+1),
+                             int(cenx-wing):int(cenx+wing+1)].copy()
         if verbose:
             print 
-            msg = "Cube cropped; new size [{:},{:},{:}] centered at ({:},{:})."
+            msg = "Cube cropped; new size [{:},{:},{:}] centered at ({:},{:})"
             print msg.format(array.shape[0], size+1, size+1, cenx, ceny)
     else:  
         cy, cx = frame_center(array[0], verbose=False)
-        array_view = array[:, cy-wing:cy+wing+1, cx-wing:cx+wing+1].copy()
+        array_view = array[:, int(cy-wing):int(cy+wing+1),
+                              int(cx-wing):int(cx+wing+1)].copy()
         if verbose:
             print
-            msg = "Cube cropped with new size [{:},{:},{:}]."
+            msg = "Cube cropped with new size [{:},{:},{:}]"
             print msg.format(array.shape[0], size+1, size+1)
 
     return array_view
@@ -130,7 +136,7 @@ def cube_drop_frames(array, n, m):
     
     array_view = array[n:m+1, :, :].copy()
     print
-    print "Done discarding frames from FITS-Cube"
+    print "Done discarding frames from cube"
     return array_view  
 
 

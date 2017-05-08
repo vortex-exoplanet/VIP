@@ -14,7 +14,7 @@ __all__ = ['create_psf_template',
 
 import numpy as np
 import photutils
-from ..calib import cube_crop_frames, frame_shift, frame_crop
+from ..preproc import cube_crop_frames, frame_shift, frame_crop
 from ..var import frame_center, fit_2dgaussian, get_circle
 
 
@@ -65,12 +65,12 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
     
     size_fc = psf_template.shape[0]
     nframes = array.shape[0]
-    fc_fr = np.zeros_like(array[0], dtype=np.float64)
+    fc_fr = np.zeros_like(array[0], dtype=np.float64)  # TODO: why float64?
     n_fc_rad = rad_dists.shape[0]
 
     w = int(np.floor(size_fc/2.))
     # fcomp in the center of a zeros frame
-    fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = psf_template
+    fc_fr[int(ceny-w):int(ceny+w+1), int(cenx-w):int(cenx+w+1)] = psf_template
 
     array_out = np.zeros_like(array)
     for fr in range(nframes):

@@ -74,7 +74,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
     else:
         raise TypeError('Mode not recognized or missing parameters')
     
-    for i in xrange(n):
+    for i in range(n):
         if mode=='full':
             framei = array[i]
         elif mode=='annulus':
@@ -192,7 +192,7 @@ def cube_distance_to_frame(array, frame_ref, mode='full', dist='sad',
     else:
         raise TypeError('Mode not recognized or missing parameters')
     
-    for i in xrange(n):
+    for i in range(n):
         if mode=='full':
             framei = array[i]
         elif mode=='annulus':

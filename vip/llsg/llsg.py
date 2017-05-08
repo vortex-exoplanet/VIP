@@ -13,8 +13,8 @@ from scipy.linalg import qr
 import itertools as itt
 from multiprocessing import Pool, cpu_count
 from astropy.stats import median_absolute_deviation as mad
-from ..conf import timeInit, timing
-from ..calib import cube_derotate, cube_collapse
+from ..conf import time_ini, timing
+from ..preproc import cube_derotate, cube_collapse
 from ..var import get_annulus_quad, frame_filter_lowpass
 from ..pca.utils_pca import svd_wrapper
 from ..pca.pca_local import define_annuli
@@ -91,7 +91,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     """
     asize=2
     
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     n,y,x = cube.shape
     
     if not radius_int:  radius_int = 0
@@ -111,13 +111,13 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         matrix_final_l = np.zeros_like(cube)  
         matrix_final_g = np.zeros_like(cube) 
     # The annuli are built
-    for ann in xrange(n_annuli):
+    for ann in range(n_annuli):
         _, inner_radius, _ = define_annuli(angle_list, ann, n_annuli, fwhm, 
                                            radius_int, annulus_width, 0, False)
         indices = get_annulus_quad(cube[0], inner_radius, annulus_width)
         
         if nproc==1:
-            for quadrant in xrange(4):
+            for quadrant in range(4):
                 yy = indices[quadrant][0]
                 xx = indices[quadrant][1]
         
@@ -153,7 +153,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
             yy = res[:,1]
             xx = res[:,2]
             quadrant = res[:,3]
-            for q in xrange(4):
+            for q in range(4):
                 if full_output:
                     matrix_final_l[:, yy[q], xx[q]] = patch[q][0]
                     matrix_final_s[:, yy[q], xx[q]] = patch[q][1]

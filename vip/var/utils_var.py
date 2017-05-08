@@ -159,8 +159,7 @@ def pp_subplots(*args, **kwargs):
         dpi = kwargs['dpi']
     else:  
         dpi = 90 
-    rc("savefig", dpi=dpi)
-    
+
     if kwargs.has_key('title'):  tit = kwargs['title']
     else:  tit = None
     
@@ -184,11 +183,11 @@ def pp_subplots(*args, **kwargs):
     subplot_size = 4
     if rows==0:
         raise(TypeError('Rows must be greater than zero'))
-    fig = figure(figsize=(cols*subplot_size, rows*subplot_size))
+    fig = figure(figsize=(cols*subplot_size, rows*subplot_size), dpi=dpi)
     
     if tit is not None:  fig.suptitle(tit, fontsize=14)
     
-    for i,v in enumerate(xrange(num_plots)):
+    for i,v in enumerate(range(num_plots)):
         v += 1
         ax = subplot(rows,cols,v)
         ax.set_aspect('equal')

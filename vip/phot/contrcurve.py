@@ -13,6 +13,7 @@ __all__ = ['contrast_curve',
            'aperture_flux']
 
 import numpy as np
+import pandas as pd
 import photutils
 import inspect
 from scipy.interpolate import InterpolatedUnivariateSpline
@@ -20,17 +21,16 @@ from scipy import stats
 from scipy.signal import savgol_filter
 from skimage.draw import circle
 from matplotlib import pyplot as plt
-from pandas import DataFrame as DF
 from .fakecomp import inject_fcs_cube, inject_fc_frame, psf_norm
-from ..conf import timeInit, timing, sep
+from ..conf import time_ini, timing, sep
 from ..var import frame_center, dist
 
 
 
 def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot, 
                    algo, sigma=5, nbranch=1, theta=0, inner_rad=1, wedge=(0,360),
-                   student=True, transmission=None, plot=True, dpi=100, 
-                   debug=False, verbose=True, **algo_dict):
+                   student=True, transmission=None, smooth=True, plot=True,
+                   dpi=100, debug=False, verbose=True, **algo_dict):
     """ Computes the contrast curve for a given SIGMA (*sigma*) level. The 
     contrast is calculated as sigma*noise/throughput. This implementation takes
     into account the small sample statistics correction proposed in Mawet et al.
@@ -76,6 +76,9 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         If not None, then the tuple contains a vector with the factors to be 
         applied to the sensitivity and a vector of the radial distances [px] 
         where it is sampled (in this order). 
+    smooth : {True, False}, bool optional
+        If True the radial noise curve is smoothed with a Savitzky-Golay filter
+        of order 2. 
     plot : {True, False}, bool optional 
         Whether to plot the final contrast curve or not. True by default.
     dpi : int optional 
@@ -116,7 +119,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             cube[i] = cube[i] / starphot[i]
 
     if verbose:
-        start_time = timeInit()
+        start_time = time_ini()
         if isinstance(starphot, float) or isinstance(starphot, int):
             msg0 = 'ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {},'
             msg0 += ' STARPHOT = {}'
@@ -150,10 +153,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     # starting from 1*FWHM
     noise_samp, rad_samp = noise_per_annulus(frame_nofc, separation=1, fwhm=fwhm,
                                              init_rad=fwhm, wedge=wedge)
-    cutin1 = np.where(rad_samp.astype(int)==vector_radd.astype(int).min())[0]
+    cutin1 = np.where(rad_samp.astype(int)==vector_radd.astype(int).min())[0][0]
     noise_samp = noise_samp[cutin1:]
     rad_samp = rad_samp[cutin1:]
-    cutin2 = np.where(rad_samp.astype(int)==vector_radd.astype(int).max())[0]
+    cutin2 = np.where(rad_samp.astype(int)==vector_radd.astype(int).max())[0][0]
     noise_samp = noise_samp[:cutin2+1]
     rad_samp = rad_samp[:cutin2+1]
         
@@ -169,11 +172,14 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         trans_interp = f2(rad_samp)
         thruput_interp *= trans_interp
 
-    # smoothing the noise vector using a Savitzky-Golay filter
-    win = int(noise_samp.shape[0]*0.1)
-    if win%2==0.:  win += 1
-    noise_samp_sm = savgol_filter(noise_samp, polyorder=2, mode='nearest',
-                                  window_length=win)
+    if smooth:
+        # smoothing the noise vector using a Savitzky-Golay filter
+        win = int(noise_samp.shape[0]*0.1)
+        if win%2==0.:  win += 1
+        noise_samp_sm = savgol_filter(noise_samp, polyorder=2, mode='nearest',
+                                      window_length=win)
+    else:
+        noise_samp_sm = noise_samp
     
     if debug:
         plt.rc("savefig", dpi=dpi)
@@ -211,7 +217,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if student:
         n_res_els = np.floor(rad_samp/fwhm*2*np.pi)
         ss_corr = np.sqrt(1 + 1/(n_res_els-1))
-        sigma_corr = stats.t.ppf(stats.norm.cdf(sigma), n_res_els)/ss_corr
+        sigma_corr = stats.t.ppf(stats.norm.cdf(sigma), n_res_els)*ss_corr
         if isinstance(starphot, float) or isinstance(starphot, int):
             cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp)/starphot
         else:    
@@ -275,23 +281,22 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             ax4.set_xlabel('Distance [pixels]')
             ax4.plot(rad_samp, cc_mags, '', alpha=0.)
             ax4.set_xlim(0, np.max(rad_samp)) 
-    
-    datafr0 = DF(data=cont_curve_samp, columns=['sensitivity (Gauss)'])
-    datafr2 = DF(data=thruput_interp, columns=['throughput'])
-    datafr3 = DF(data=rad_samp, columns=['distance'])
-    datafr4 = DF(data=noise_samp_sm, columns=['noise'])        
+
     if student:
-        datafr1 = DF(data=cont_curve_samp_corr, columns=['sensitivity (Student)'])
-        datafr5 = DF(data=sigma_corr, columns=['sigma corr'])
-        datafr = datafr0.join(datafr1).join(datafr2).join(datafr3).join(datafr4).join(datafr5)
+        datafr = pd.DataFrame({'sensitivity (Gauss)': cont_curve_samp,
+                               'sensitivity (Student)':cont_curve_samp_corr,
+                               'throughput': thruput_interp,
+                               'distance': rad_samp, 'noise': noise_samp_sm,
+                               'sigma corr':sigma_corr})
     else:
-        datafr = datafr0.join(datafr2).join(datafr3).join(datafr4)
-    
+        datafr = pd.DataFrame({'sensitivity (Gauss)': cont_curve_samp,
+                               'throughput': thruput_interp,
+                               'distance': rad_samp, 'noise': noise_samp_sm})
     return datafr
 
 
 def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1, 
-               theta=0, inner_rad=1, fc_rad_sep=3, wedge=(0,360), 
+               theta=0, inner_rad=1, fc_rad_sep=3, wedge=(0,360),
                full_output=False, verbose=True, **algo_dict):
     """ Measures the throughput for chosen algorithm and input dataset. The 
     final throughput is the average of the same procedure measured in *nbranch* 
@@ -324,10 +329,10 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     inner_rad : int, optional
         Innermost radial distance to be considered in terms of FWHM.
     fc_rad_sep : int optional
-        Radial separation between the injection companions (in each of the 
+        Radial separation between the injected companions (in each of the 
         patterns) in FWHM. Must be large enough to avoid overlapping. With the
         maximum possible value, a single fake companion will be injected per
-        cube and algorithm post-processing (which greately affects computation
+        cube and algorithm post-processing (which greatly affects computation
         time).   
     wedge : tuple of floats, optional
         Initial and Final angles for using a wedge. For example (-90,90) only
@@ -387,7 +392,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
         msg = 'Only a single branch is allowed when working on a wedge'
         raise RuntimeError(msg)
 
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     #***************************************************************************
     # Compute noise in concentric annuli on the "empty frame"  
     if 'cube' and 'angle_list' and 'verbose' in inspect.getargspec(algo).args:
@@ -436,7 +441,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
             radvec = vector_radd[irad::fc_rad_sep]  
             cube_fc = array.copy()
             # filling map with small numbers
-            fc_map = np.ones_like(array[0]) * min(noise) * 1e-6                 
+            fc_map = np.ones_like(array[0]) * 1e-6
             fcy = []; fcx = []
             for i in range(radvec.shape[0]):
                 flux = snr_level[irad+i*fc_rad_sep] * noise[irad+i*fc_rad_sep]

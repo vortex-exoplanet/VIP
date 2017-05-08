@@ -26,7 +26,7 @@ from matplotlib.mlab import normpdf
 from scipy.stats import norm
 from ..fits import open_adicube, open_fits
 from ..phot import inject_fcs_cube
-from ..conf import timeInit, timing, sep
+from ..conf import time_ini, timing, sep
 from .simplex_fmerit import get_values_optimize
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -429,7 +429,7 @@ def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state,
     threshold value for each model parameter.
     """ 
     if verbose:
-        start_time = timeInit()
+        start_time = time_ini()
         print "        MCMC sampler for the NEGFC technique       "
         print sep
 

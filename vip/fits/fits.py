@@ -15,11 +15,12 @@ __all__ = ['open_fits',
 
 
 import os
+import numpy as np
 from astropy.io import fits as ap_fits
 
 
-def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False, 
-              verbose=True):
+def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
+              precision=np.float32, verbose=True):
     """Loads a fits file into a memory as numpy array.
     
     Parameters
@@ -30,6 +31,8 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         It chooses which HDU to open. Default is the first one.
     header : {False, True}, bool optional
         Whether to return the header along with the data or not.
+    precision : numpy dtype
+        Float precision, by default np.float32 or single precision float.
     ignore_missing_end : {False, True}, bool optional
         Allows to open fits files with a header missing END card.
     verbose : {True, False}, bool optional
@@ -46,9 +49,9 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     if not fitsfilename.endswith('.fits'):
         fitsfilename = str(fitsfilename+'.fits')
     hdulist = ap_fits.open(fitsfilename, memmap=True,
-                        ignore_missing_end=ignore_missing_end)
+                           ignore_missing_end=ignore_missing_end)
     data = hdulist[n].data
-    #if data.dtype.name == 'float64':  data = np.array(data, dtype='float32')
+    data = np.array(data, dtype=precision)
     
     if header:
         header = hdulist[0].header

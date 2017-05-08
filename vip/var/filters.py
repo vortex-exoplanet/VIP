@@ -12,10 +12,8 @@ __all__ = ['frame_filter_highpass',
            'cube_filter_highpass',
            'cube_filter_iuwt',
            'frame_filter_gaussian2d',
-           'wavelet_denoise',
            'gaussian_kernel']
 
-import pywt
 import numpy as np
 import photutils
 import pyprind
@@ -104,7 +102,7 @@ def cube_filter_highpass(array, mode, median_size=5, kernel_size=5,
     array_out = np.zeros_like(array)
     msg = 'Applying the High-Pass filter on cube frames'
     bar = pyprind.ProgBar(n_frames, stream=1, title=msg)
-    for i in xrange(n_frames):
+    for i in range(n_frames):
         array_out[i] = frame_filter_highpass(array[i], mode, median_size, 
                                             kernel_size, fwhm_size, btw_cutoff, 
                                             btw_order)
@@ -182,10 +180,10 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
           filter kernel in 2D centered
         """
         if not 0 < cutoff <= 1.0:
-            raise ValueError, 'Cutoff frequency must be between 0 and 1.0'
+            raise ValueError('Cutoff frequency must be between 0 and 1.0')
     
         if not isinstance(n, int):
-            raise ValueError, 'n must be an integer >= 1'
+            raise ValueError('n must be an integer >= 1')
     
         rows, cols = size
         x =  np.linspace(-0.5, 0.5, cols) * cols
@@ -342,56 +340,6 @@ def frame_filter_gaussian2d(array, size_fwhm, mode='conv'):
         raise TypeError('Mode not recognized')
     
     return filtered
-
-
-
-def wavelet_denoise(array, wavelet, threshold, levels, thrmode='hard'):
-    """ Wavelet filtering of a 2d array using Pywt library. First a 2d discrete
-    wavelet transform is performed followed by a hard or soft thresholding of 
-    the coefficients.
-    
-    Parameters
-    ----------
-    array : array_like
-        Input 2d array or image.
-    wavelet : Pywt wavelet object
-        Pywt wavelet object. Example: pywt.Wavelet('bior2.2')
-    threshold : int
-        Threshold on the wavelet coefficients.
-    levels : int
-        Wavelet levels to be used.
-    thrmode : {'hard','soft'}, optional
-        Mode of thresholding of the wavelet coefficients.
-    
-    Returns
-    -------
-    array_filtered : array_like
-        Filtered array with the same dimensions and size of the input one. 
-    
-    Notes
-    -----
-    Full documentation of the PyWavelets package here:
-    http://www.pybytes.com/pywavelets/
-    
-    For information on the builtin wavelets and how to use them:
-    http://www.pybytes.com/pywavelets/regression/wavelet.html
-    http://wavelets.pybytes.com
-    
-    """
-    if not array.ndim==2:
-        raise TypeError('Input array is not a frame or 2d array')
-    
-    WC = pywt.wavedec2(array, wavelet, level=levels)
-    if thrmode=='hard':
-        NWC = map(lambda x: pywt.thresholding.hard(x, threshold), WC)
-    elif thrmode=='soft':
-        NWC = map(lambda x: pywt.thresholding.soft(x, threshold), WC)
-    else:
-        raise ValueError('Threshold mode not recognized')
-    array_filtered = pywt.waverec2(NWC, wavelet)
-    
-    return array_filtered
-
    
     
 def gaussian_kernel(size, size_y=None):

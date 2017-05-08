@@ -11,9 +11,9 @@ __all__ = ['nmf']
 
 import numpy as np
 from sklearn.decomposition import NMF
-from ..calib import cube_derotate, cube_collapse
+from ..preproc import cube_derotate, cube_collapse
 from ..pca import prepare_matrix
-from ..conf import timing, timeInit
+from ..conf import timing, time_ini
 
 
 def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
@@ -65,7 +65,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
     
     """
     array = cube
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
     n, y, x = array.shape
     
     matrix = prepare_matrix(cube, scaling, mask_center_px, mode='fullfr',
@@ -95,7 +95,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
     residuals = matrix - reconstructed
                
     array_out = np.zeros_like(array)
-    for i in xrange(n):
+    for i in range(n):
         array_out[i] = residuals[i].reshape(y,x)
             
     array_der = cube_derotate(array_out, angle_list) 

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from .simplex_fmerit import chisquare
 from ..var import frame_center
-from ..conf import timeInit, timing, sep
+from ..conf import time_ini, timing, sep
 
 __all__ = ['firstguess_from_coord',
            'firstguess_simplex',
@@ -292,7 +292,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     out : The radial coordinates and the flux of the companion.
 
     """
-    if verbose:  start_time = timeInit()
+    if verbose:  start_time = time_ini()
 
     if figure_options is None:
         figure_options = {'color':'gray', 'marker':'.', 

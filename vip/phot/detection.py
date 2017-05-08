@@ -305,7 +305,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         yy -= pad
     
     # Checking SNR for potential sources
-    for i in xrange(yy.shape[0]):
+    for i in range(yy.shape[0]):
         y = yy[i] 
         x = xx[i] 
         if verbose: 
@@ -353,7 +353,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         fig.colorbar(im, cax=colorbar_ax)
         ax.grid('off')
         
-        for i in xrange(yy_out.shape[0]):
+        for i in range(yy_out.shape[0]):
             y = yy_out[i]
             x = xx_out[i]
             circ = plt.Circle((x, y), radius=fwhm, color='red', fill=False,
@@ -362,7 +362,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
                     family='monospace', ha='center', va='top', weight='bold', 
                     alpha=0.6)
             ax.add_patch(circ)
-        for i in xrange(yy_final.shape[0]):
+        for i in range(yy_final.shape[0]):
             y = yy_final[i]
             x = xx_final[i]
             circ = plt.Circle((x, y), radius=fwhm, color='cyan', fill=False, 

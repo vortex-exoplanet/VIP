@@ -15,7 +15,7 @@ import nestle
 import corner
 import numpy as np
 from matplotlib import pyplot as plt
-from ..conf import timeInit, timing
+from ..conf import time_ini, timing
 from .mcmc_sampling import lnlike, confidence, show_walk_plot
 
 
@@ -30,7 +30,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=2,
     result of this procedure is a a ``nestle`` object containing the samples
     from the posterior distributions of each of the 3 parameters. It provides
     pretty good results (value plus error bars) compared to a more CPU intensive
-    Monte Carlo approach as the affine invariant sampler.
+    Monte Carlo approach with the affine invariant sampler (``emcee``).
 
     Parameters
     ----------
@@ -195,7 +195,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=2,
                       fmerit='sum', ncomp=ncomp, collapse=collapse)
 
     # -------------------------------------------------------------------------
-    if verbose:  start = timeInit()
+    if verbose:  start = time_ini()
 
     if verbose:
         print('Prior bounds on parameters:')

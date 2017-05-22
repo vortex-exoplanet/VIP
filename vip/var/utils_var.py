@@ -125,7 +125,7 @@ def pp_subplots(*args, **kwargs):
     else:  logscale = False        
     
     if kwargs.has_key('cmap'):  custom_cmap = kwargs['cmap']
-    else:  custom_cmap = 'CMRmap' # 'RdBu_r'
+    else:  custom_cmap = 'magma' # 'CMRmap' 'RdBu_r'
     
     if kwargs.has_key('colorb'):  colorb = kwargs['colorb']
     else:  colorb = True
@@ -212,8 +212,12 @@ def pp_subplots(*args, **kwargs):
             cb = colorbar(im, ax=ax, cax=cax, drawedges=False)
             cb.outline.set_linewidth(0.1)
             cb.ax.tick_params(labelsize=8) 
-        if grid:  
-            ax.grid('on', which='both', color='w')
+        if grid:
+            ax.tick_params(axis='both', which='minor')
+            minor_ticks = np.arange(0, data[i].shape[0], 10)
+            ax.set_xticks(minor_ticks, minor=True)
+            ax.set_yticks(minor_ticks, minor=True)
+            ax.grid('on', which='minor', color='gray', linewidth=1, alpha=.6)
         else:
             ax.grid('off')
         if noax:  ax.set_axis_off()

@@ -4,7 +4,7 @@
 PCA algorithm performed on full frame for ADI, RDI or SDI (IFS data).
 """
 
-from __future__ import division 
+from __future__ import division, print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['pca',
@@ -556,7 +556,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         transformed = np.dot(V[:ncomp], matrix.T)
         reconstructed = np.dot(transformed.T, V[:ncomp])
         residuals = matrix - reconstructed
-        frsize = np.sqrt(matrix.shape[1])                                       # only for square frames 
+        frsize = int(np.sqrt(matrix.shape[1]))                                  # only for square frames
         residuals_res = reshape_matrix(residuals, frsize, frsize)
         residuals_res_der = cube_derotate(residuals_res, angle_list)
         frame = cube_collapse(residuals_res_der, mode=collapse)

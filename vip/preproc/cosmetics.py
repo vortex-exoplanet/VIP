@@ -40,9 +40,9 @@ def cube_crop_frames(array, size, xy=None, verbose=True):
         
     """
     if not array.ndim == 3:
-        raise TypeError('\nArray is not 3d, not a cube')
+        raise TypeError('Array is not 3d, not a cube')
     if not isinstance(size, int):
-        raise TypeError('\nSize must be integer')
+        raise TypeError('Size must be integer')
     
     if size%2!=0:  size -= 1
     if size >= array.shape[1]:
@@ -53,7 +53,7 @@ def cube_crop_frames(array, size, xy=None, verbose=True):
     
     if xy is not None:
         if not (isinstance(xy[0], int) or isinstance(xy[1], int)):
-            raise TypeError('\nXY must be a tuple of integers')
+            raise TypeError('XY must be a tuple of integers')
         cenx, ceny = xy 
         # Note the +1 when closing the interval (python doesn't include the 
         # endpoint)

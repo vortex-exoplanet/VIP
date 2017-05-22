@@ -259,7 +259,8 @@ def get_square_robust(array, size, y, x, position=False,
     else:
         # wing is added to the sides of the subframe center. Note the +1 when 
         # closing the interval (python doesn't include the endpoint)
-        array_view = array[y-wing_bef:y+wing_aft+1, x-wing_bef:x+wing_aft+1].copy()
+        array_view = array[int(y-wing_bef):int(y+wing_aft+1),
+                           int(x-wing_bef):int(x+wing_aft+1)].copy()
         if position: return array_view, y-wing_bef, x-wing_bef
         else: return array_view
 

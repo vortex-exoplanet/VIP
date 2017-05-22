@@ -436,8 +436,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     # each branch is computed separately
     for br in range(nbranch):
         # each pattern is computed separately. For each pattern the companions
-        # are separated by "fc_rad_sep * fwhm"
-        for irad in range(fc_rad_sep): 
+        # are separated by "fc_rad_sep * fwhm", interleaving the injections
+        for irad in range(fc_rad_sep):
             radvec = vector_radd[irad::fc_rad_sep]  
             cube_fc = array.copy()
             # filling map with small numbers

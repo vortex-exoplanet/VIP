@@ -334,7 +334,7 @@ def check_scal_vector(scal_vec):
     correct = False
 
     if isinstance(scal_vec, list):
-        scal_list = scal_vec.copy()
+        scal_list = scal_vec[:]
         nz = len(scal_list)
         scal_vec = np.zeros(nz)
         for ii in range(nz):

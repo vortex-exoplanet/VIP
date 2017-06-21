@@ -555,7 +555,7 @@ def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state,
             geom += 1
             lastcheck = k
             if display:
-                showWalk(chain)
+                show_walk_plot(chain)
                 
             if save:
                 import pickle                                    

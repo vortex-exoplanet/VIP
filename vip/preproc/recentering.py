@@ -406,6 +406,8 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     optimy, optimx : float
         Values of the Y, X coordinates of the center of the frame based on the
         radon optimization.
+    If full_output is True then the radon cost function surface is returned 
+    along with the optimal x and y.
         
     Notes
     -----
@@ -967,9 +969,10 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         pool = Pool(processes=int(nproc))  
         res = pool.map(EFT,itt.izip(itt.repeat(_centroid_2dm_frame),
                                     itt.repeat(array), range(n_frames),
-                                    size.tolist(), pos_y.tolist(), 
+                                    size.tolist(), pos_y.tolist(),
                                     pos_x.tolist(), star_approx_coords,
-                                    star_not_present, negative, fwhm))
+                                    star_not_present, itt.repeat(negative),
+                                    fwhm))
         res = np.array(res)
         pool.close()
     y = cy - res[:,0]

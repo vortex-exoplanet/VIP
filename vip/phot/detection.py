@@ -20,7 +20,6 @@ from astropy.stats import gaussian_fwhm_to_sigma, gaussian_sigma_to_fwhm
 from astropy.table import Table
 from astropy.modeling.models import Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter
-from photutils.detection import findstars
 from skimage.feature import peak_local_max
 from ..var import (mask_circle, pp_subplots, get_square, frame_center, 
                    frame_filter_gaussian2d, fit_2dgaussian)
@@ -28,6 +27,7 @@ from ..conf import sep
 from .snr import snr_ss
 from .frame_analysis import frame_quick_report
 
+# TODO: Add the option of computing and thresholding an S/N map
 
 def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False, 
               mask=True, snr_thresh=5, plot=True, debug=False, 
@@ -47,7 +47,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     bkg_sigma : float, optional
         The number standard deviations above the clipped median for setting the
         background level. 
-    mode : {'lpeaks','irafsf','daofind','log','dog'}, optional
+    mode : {'lpeaks','log','dog'}, optional
         Sets with algorithm to use. Each algorithm yields different results.
     matched_filter : {True, False}, bool optional
         Whether to correlate with the psf of not.
@@ -109,21 +109,6 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     Gaussian fit is done on each of the candidates constraining the position on 
     the subimage and the sigma of the fit. Finally the blobs are filtered based 
     on its SNR. 
-    
-    Irafsf. starfind algorithm (IRAF software) searches images for local density 
-    maxima that have a peak amplitude greater than threshold above the local 
-    background and have a PSF full-width half-maximum similar to the input fwhm. 
-    The objects' centroid, roundness (ellipticity), and sharpness are calculated 
-    using image moments. Finally the blobs are filtered based on its SNR. 
-    
-    Daofind. Searches images for local density maxima that have a peak amplitude 
-    greater than threshold (approximately; threshold is applied to a convolved 
-    image) and have a size and shape similar to the defined 2D Gaussian kernel. 
-    The Gaussian kernel is defined by the fwhm, ratio, theta, and sigma_radius 
-    input parameters. Daofind finds the object centroid by fitting the the 
-    marginal x and y 1D distributions of the Gaussian kernel to the marginal x 
-    and y distributions of the input (unconvolved) data image. Finally the blobs 
-    are filtered based on its SNR. 
                 
     """
     def check_blobs(array_padded, coords_temp, fwhm, debug):
@@ -219,9 +204,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         print 'Sigma clipped stddev = {:.3f}'.format(stddev)
         print 'Background threshold = {:.3f}'.format(bkg_level)
         print
-    
-    #round = 0.3   # roundness constraint
-    
+
     if mode=='lpeaks' or mode=='log' or mode=='dog':
         # Padding the image with zeros to avoid errors at the edges
         pad = 10
@@ -234,7 +217,8 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     if mode=='lpeaks':
         # Finding local peaks (can be done in the correlated frame)                                           
         coords_temp = peak_local_max(frame_det, threshold_abs=bkg_level, 
-                                     min_distance=fwhm, num_peaks=20)
+                                     min_distance=int(np.ceil(fwhm)),
+                                     num_peaks=20)
         coords = check_blobs(array_padded, coords_temp, fwhm, debug)          
         coords = np.array(coords)
         if verbose and coords.shape[0]>0:  print_coords(coords)
@@ -264,28 +248,9 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         coords = check_blobs(array_padded, coords, fwhm, debug)
         coords = np.array(coords)
         if coords.shape[0]>0 and verbose:  print_coords(coords)
-    
-    elif mode=='daofind':                 
-        tab = findstars.daofind(frame_det, fwhm=fwhm, threshold=bkg_level,
-                                roundlo=-round,roundhi=round)
-        coords = np.transpose((np.array(tab['ycentroid']), 
-                               np.array(tab['xcentroid'])))
-        if verbose:
-            print 'Blobs found:', len(coords)
-            print tab['ycentroid','xcentroid','roundness1','roundness2','flux']
-                  
-    elif mode=='irafsf':                
-        tab = findstars.irafstarfind(frame_det, fwhm=fwhm, 
-                                     threshold=bkg_level,
-                                     roundlo=0, roundhi=round)
-        coords = np.transpose((np.array(tab['ycentroid']), 
-                               np.array(tab['xcentroid'])))
-        if verbose:
-            print 'Blobs found:', len(coords)
-            print tab['ycentroid','xcentroid','fwhm','flux','roundness']
         
     else:
-        msg = 'Wrong mode. Available modes: lpeaks, daofind, irafsf, log, dog.'
+        msg = 'Wrong mode. Available modes: lpeaks, log, dog.'
         raise TypeError(msg)
 
     if coords.shape[0]==0:
@@ -299,23 +264,20 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     yy_out = []
     xx_out = []
     snr_list = []
-    px_list = []
-    if mode=='lpeaks' or mode=='log' or mode=='dog':
-        xx -= pad
-        yy -= pad
+    xx -= pad
+    yy -= pad
     
     # Checking SNR for potential sources
     for i in range(yy.shape[0]):
-        y = yy[i] 
-        x = xx[i] 
+        y = yy[i]
+        x = xx[i]
         if verbose: 
             print sep
             print 'X,Y = ({:.1f},{:.1f})'.format(x,y)
         subim = get_square(array, size=15, y=y, x=x)
         snr = snr_ss(array, (x,y), fwhm, False, verbose=False)
         snr_list.append(snr)
-        px_list.append(array[y,x])
-        if snr >= snr_thresh and array[y,x]>0:
+        if snr >= snr_thresh:
             if plot:
                 pp_subplots(subim)
             if verbose:  
@@ -332,8 +294,8 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
                 _ = frame_quick_report(array, fwhm, (x,y), verbose=verbose)
 
     if debug or full_output:
-        table = Table([yy.tolist(), xx.tolist(), px_list, snr_list], 
-                      names=('y','x','px_val','px_snr'))
+        table = Table([yy.tolist(), xx.tolist(), snr_list],
+                      names=('y','x','px_snr'))
         table.sort('px_snr')
     yy_final = np.array(yy_final) 
     xx_final = np.array(xx_final) 

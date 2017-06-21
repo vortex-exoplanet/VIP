@@ -155,7 +155,8 @@ def create_psf_template(array, size, fwhm=4, verbose=True, collapse='mean'):
     return psf_normd
 
 
-def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None):
+def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
+             full_output=True, verbose=True):
     """ Scales a PSF, so the 1*FWHM aperture flux equals 1.
     
     Parameters
@@ -204,21 +205,26 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None):
     
     # we check whether the flux is normalized and fix it if needed
     fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2.)
-    fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper, 
+    fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper,
                                                    method='exact')
-    
     fwhm_flux = np.array(fwhm_aper_phot['aperture_sum'])
+    if verbose:
+        print "Flux in 1xFWHM aperture: {}".format(fwhm_flux)
+
     if fwhm_flux>1.1 or fwhm_flux<0.9:
-        psf_norm = psfs/np.array(fwhm_aper_phot['aperture_sum'])
+        psf_norm_array = psfs/np.array(fwhm_aper_phot['aperture_sum'])
     else:
-        psf_norm = psfs
+        psf_norm_array = psfs
     
-    if threshold is not None:   
-        psf_norm[np.where(psf_norm < threshold)] = 0  
+    if threshold is not None:
+        psf_norm_array[np.where(psf_norm_array < threshold)] = 0
     
     if mask_core is not None:
-        psf_norm = get_circle(psf_norm, radius=mask_core)
-    
-    return psf_norm
+        psf_norm_array = get_circle(psf_norm_array, radius=mask_core)
+
+    if full_output:
+        return psf_norm_array, fwhm_flux
+    else:
+        return psf_norm_array
 
 

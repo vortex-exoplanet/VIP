@@ -4,7 +4,7 @@ VIP - Vortex Image Processing package
 Attribution
 ------------
 
-Please cite Gomez Gonzalez et al. 2017 (accepted, `arXiv<http://arxiv.org/abs/1705.06184>`_)
+Please cite Gomez Gonzalez et al. 2017 (http://iopscience.iop.org/article/10.3847/1538-3881/aa73d7/)
 whenever you publish data reduced with VIP. Astrophysics Source Code Library
 reference [ascl:1603.003].
 

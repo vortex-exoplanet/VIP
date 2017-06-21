@@ -506,8 +506,7 @@ def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state,
                                             cube_ref, svd_mode, scaling, fmerit,
                                             collapse]),
                                     threads=nproc)
-    
-    duration_start = datetime.datetime.now()
+                                    
     start = datetime.datetime.now()
 
     # #########################################################################

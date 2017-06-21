@@ -753,7 +753,7 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
         Whether to save the shifts to a file in disk.
     offset : tuple of floats, optional
         If None the region of the frames used for the 2d Gaussian fit is shifted
-        to the center of the images (2d arrays). If a tuple is given is serves
+        to the center of the images (2d arrays). If a tuple is given it serves
         as the offset of the fitted area wrt the center of the 2d arrays.
     negative : {False, True}, optional
         If True a negative 2d Gaussian fit is performed.
@@ -773,9 +773,13 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
     
-    if isinstance(fwhm,int):  pass
-    elif isinstance(fwhm,float):  fwhm = int(np.round(fwhm))
-    else:  raise TypeError('fwhm is not a float or int')
+    n_frames = array.shape[0]
+    if isinstance(fwhm,int) or isinstance(fwhm,float):  
+        fwhm_tmp = fwhm 
+        fwhm = np.zeros(n_frames)
+        fwhm[:] = fwhm_tmp
+    subfr_sz = subi_size*fwhm
+    subfr_sz = subfr_sz.astype(int)
         
     if debug and array.shape[0]>20:
         msg = 'Debug with a big array will produce a very long output. '
@@ -795,7 +799,6 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
     
     if verbose:  start_time = time_ini()
     
-    n_frames = array.shape[0]
     cy, cx = frame_center(array[0])
     array_recentered = np.empty_like(array)  
     
@@ -806,8 +809,8 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
         bar = pyprind.ProgBar(n_frames, stream=1, 
                               title='2d Gauss-fitting, looping through frames')
         for i in range(n_frames):
-            res.append(_centroid_2dg_frame(array, i, subi_size*fwhm, 
-                                           pos_y, pos_x, negative, debug))
+            res.append(_centroid_2dg_frame(array, i, subfr_sz[i], 
+                                           pos_y, pos_x, negative, debug, fwhm[i]))
             bar.update()
         res = np.array(res)
     elif nproc>1:
@@ -815,9 +818,12 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
         res = pool.map(EFT, itt.izip(itt.repeat(_centroid_2dg_frame),
                                      itt.repeat(array),
                                      range(n_frames),
-                                     subi_size*fwhm, pos_y, pos_x,
+                                     subfr_sz, 
+                                     itt.repeat(pos_y), 
+                                     itt.repeat(pos_x),
                                      itt.repeat(negative),
-                                     itt.repeat(debug))) 
+                                     itt.repeat(debug),
+                                     fwhm)) 
         res = np.array(res)
         pool.close()
     y = cy - res[:,0]
@@ -883,7 +889,7 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         Whether to print to stdout the shifts or not. 
     unmoving_star : {False, True}, bool optional
         Whether the star centroid is expected to not move a lot within the 
-        frames of the input cube. If False, then an additional test is done to 
+        frames of the input cube. If True, then an additional test is done to 
         be sure the centroid fit returns a reasonable index value (close to the 
         median of the centroid indices in the other frames) - hence not taking 
         noise or a clump of uncorrected bad pixels.
@@ -954,7 +960,7 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         for i in range(n_frames):
             res.append(_centroid_2dm_frame(array, i, size[i], pos_y[i], 
                                            pos_x[i], star_approx_coords[i], 
-                                           star_not_present[i], negative))
+                                           star_not_present[i], negative, fwhm[i]))
             bar.update()
         res = np.array(res)
     elif nproc>1:
@@ -963,7 +969,7 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
                                     itt.repeat(array), range(n_frames),
                                     size.tolist(), pos_y.tolist(), 
                                     pos_x.tolist(), star_approx_coords,
-                                    star_not_present, negative))
+                                    star_not_present, negative, fwhm))
         res = np.array(res)
         pool.close()
     y = cy - res[:,0]
@@ -985,9 +991,10 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         return array_recentered
 
 
-def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug=False):
+def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug=False, 
+                        fwhm=4):
     """ Finds the centroid by using a 2d gaussian fitting in one frame from a 
-    cube. To be called from whitin cube_recenter_gauss2d_fit().
+    cube. To be called from within cube_recenter_gauss2d_fit().
     """
     sub_image, y1, x1 = get_square_robust(cube[frnum], size=size, y=pos_y, 
                                           x=pos_x, position=True)
@@ -995,8 +1002,8 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug=False):
     # negative gaussian fit
     if negative:  sub_image = -sub_image + np.abs(np.min(-sub_image))
             
-    y_i, x_i = fit_2dgaussian(sub_image, crop=False, threshold=False, 
-                              sigfactor=1, debug=debug)
+    y_i, x_i = fit_2dgaussian(sub_image, crop=False, fwhmx=fwhm, fwhmy=fwhm, 
+                              threshold=False, sigfactor=1, debug=debug)
     y_i = y1 + y_i
     x_i = x1 + x_i
     return y_i, x_i
@@ -1004,9 +1011,9 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug=False):
 
 def _centroid_2dm_frame(cube, frnum, size, pos_y, pos_x, 
                         star_approx_coords=None, star_not_present=None,
-                        negative=False):
+                        negative=False, fwhm=4):
     """ Finds the centroid by using a 2d moffat fitting in one frame from a 
-    cube. To be called from whitin cube_recenter_moffat2d_fit().
+    cube. To be called from within cube_recenter_moffat2d_fit().
     """
     sub_image, y1, x1 = get_square_robust(cube[frnum], size=size+1, y=pos_y, 
                                           x=pos_x,position=True)
@@ -1018,9 +1025,9 @@ def _centroid_2dm_frame(cube, frnum, size, pos_y, pos_x,
         if star_not_present:
             y_i,x_i = star_approx_coords
         else:
-            y_i, x_i = fit_2dmoffat(sub_image, y1, x1, full_output=False)
+            y_i, x_i = fit_2dmoffat(sub_image, y1, x1, full_output=False, fwhm=fwhm)
     else:
-        y_i, x_i = fit_2dmoffat(sub_image, y1, x1, full_output=False)
+        y_i, x_i = fit_2dmoffat(sub_image, y1, x1, full_output=False, fwhm=fwhm)
     return y_i, x_i
 
 

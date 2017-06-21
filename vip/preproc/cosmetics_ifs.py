@@ -153,7 +153,7 @@ def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
     #1/ Write a 2-columns array with indices of all max pixel values in the cube
     star_tmp_idx = np.zeros([n_z,2])
     star_approx_idx = np.zeros([n_z,2])
-    test_result = np.zeros(n_z)
+    test_result = np.ones(n_z)
     for zz in range(n_z):
         star_tmp_idx[zz] = peak_coordinates(obj_tmp[zz], fwhm[zz])
         
@@ -174,22 +174,22 @@ def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
     for zz in range(n_z):
         if ((star_tmp_idx[zz,0]<lim_inf_y) or (star_tmp_idx[zz,0]>lim_sup_y) or
             (star_tmp_idx[zz,1]<lim_inf_x) or (star_tmp_idx[zz,1]>lim_sup_x)):
-            test_result[zz] = 1
+            test_result[zz] = 0
 
     #3/ Replace by the median of neighbouring good coordinates if need be
     for zz in range(n_z):             
-        if test_result[zz] == 1:
+        if test_result[zz] == 0:
             ii= 1
             inf_neigh = max(0,zz-ii)
             sup_neigh = min(n_z-1,zz+ii)
-            while test_result[inf_neigh] == 1 and test_result[sup_neigh] == 1:
+            while test_result[inf_neigh] == 0 and test_result[sup_neigh] == 0:
                 ii=ii+1
                 inf_neigh = max(0,zz-ii)
                 sup_neigh = min(n_z-1,zz+ii)
-            if test_result[inf_neigh] == 0 and test_result[sup_neigh] == 0:
+            if test_result[inf_neigh] == 1 and test_result[sup_neigh] == 1:
                 star_approx_idx[zz] = np.floor((star_tmp_idx[sup_neigh]+ \
                                                 star_tmp_idx[inf_neigh])/2.)
-            elif test_result[inf_neigh] == 0: 
+            elif test_result[inf_neigh] == 1: 
                 star_approx_idx[zz] = star_tmp_idx[inf_neigh]
             else: star_approx_idx[zz] = star_tmp_idx[sup_neigh]
         else: star_approx_idx[zz] = star_tmp_idx[zz]

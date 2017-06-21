@@ -145,7 +145,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
 
 
     
-def fit_2dmoffat(array, yy, xx, full_output=False):
+def fit_2dmoffat(array, yy, xx, full_output=False,fwhm=4):
     """Fits a star/planet with a 2D circular Moffat PSF.
     
     Parameters
@@ -158,6 +158,11 @@ def fit_2dmoffat(array, yy, xx, full_output=False):
     xx : int
         X integer position of the first pixel (0,0) of the subimage in the 
         whole image.
+    full_output: bool, opt
+        Whether to return floor, height, mean_y, mean_x, fwhm, beta, or just 
+        mean_y, mean_x
+    fwhm: float, opt
+        First estimate of the fwhm
     
     Returns
     -------

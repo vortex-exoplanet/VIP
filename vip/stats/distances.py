@@ -13,7 +13,6 @@ __all__ = ['cube_distance',
 import numpy as np
 import scipy.stats
 from matplotlib import pyplot as plt
-from skimage.measure import structural_similarity as ssim
 from ..var import get_annulus
 
 
@@ -34,11 +33,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
     The Spearman and Pearson correlation coefficients, vary between -1 and +1 
     with 0 implying no correlation. Correlations of -1 or +1 imply an exact 
     linear relationship. 
-    The Structural Similarity Index was proposed by Wang et al. 2004. 
-    (http://www.cns.nyu.edu/pub/eero/wang03-reprint.pdf)
-    SSIM varies between -1 and 1, where 1 means perfect similarity. SSIM 
-    attempts to model the perceived change in the structural information of the 
-    image. 
+
     
     Parameters
     ----------
@@ -48,7 +43,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
         Reference frame in the cube.
     mode : {'full','annulus'}, string optional
         Whether to use the full frames or a centered annulus.
-    dist : {'sad','euclidean','mse','pearson','spearman','ssim'}, str optional
+    dist : {'sad','euclidean','mse','pearson','spearman'}, str optional
         Which criterion to use.
     inradius : None or int, optional
         The inner radius when mode is 'annulus'.
@@ -92,9 +87,6 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
         elif dist=='spearman':
             spear, _ = scipy.stats.spearmanr(frame_ref.ravel(), framei.ravel())
             lista.append(spear)
-        elif dist=='ssim':
-            lista.append(ssim(frame_ref, framei, win_size=7, 
-                              dynamic_range=frame_ref.max() - frame_ref.min()))
         else:
             raise ValueError('Distance not recognized')
     lista = np.array(lista)

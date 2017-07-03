@@ -419,7 +419,6 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     # We crop the PSF and check if PSF has been normalized (so that flux in 
     # 1*FWHM aperture = 1) and fix if needed
     psf_template = psf_norm(psf_template, size=3*fwhm, fwhm=fwhm)
-
     
     #***************************************************************************
     # Initialize the fake companions

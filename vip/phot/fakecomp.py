@@ -156,7 +156,7 @@ def create_psf_template(array, size, fwhm=4, verbose=True, collapse='mean'):
 
 
 def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
-             full_output=True, verbose=True):
+             full_output=False, verbose=False):
     """ Scales a PSF, so the 1*FWHM aperture flux equals 1.
     
     Parameters

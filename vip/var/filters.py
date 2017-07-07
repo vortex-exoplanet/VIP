@@ -294,8 +294,8 @@ def frame_filter_lowpass(array, mode, median_size=5, fwhm_size=5):
         raise TypeError('Input array is not a frame or 2d array')
        
     if mode=='median':
-        # creating the low_pass filtered (median) image 
-        filtered = median_filter(array, median_size, mode='nearest')
+        # creating the low_pass filtered (median) image
+        filtered = median_filter(array, int(median_size), mode='nearest')
     
     elif mode=='gauss':
         # creating the low_pass filtered (median) image 

@@ -406,6 +406,8 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     optimy, optimx : float
         Values of the Y, X coordinates of the center of the frame based on the
         radon optimization.
+    If full_output is True then the radon cost function surface is returned 
+    along with the optimal x and y.
         
     Notes
     -----

@@ -231,9 +231,9 @@ def cube_detect_badfr_correlation(array, frame_ref, dist='pearson',
     frame_ref : int
         Index of the frame that will be used as a reference. Must be of course
         a frame taken with a good wavefront quality.
-    dist : {'sad','euclidean','mse','pearson','spearman','ssim'}, str optional
+    dist : {'sad','euclidean','mse','pearson','spearman'}, str optional
         One of the similarity or disimilarity measures from function 
-        vortex.stats.distances.cube_distance(). SSIM is recommended.
+        vip.stats.distances.cube_distance(). 
     percentile : int
         The percentage of frames that will be discarded. 
     plot : {True, False}, bool optional
@@ -262,7 +262,7 @@ def cube_detect_badfr_correlation(array, frame_ref, dist='pearson',
     subarray = cube_crop_frames(array, min(30, array.shape[1]), verbose=False)
     distances = cube_distance(subarray, frame_ref, 'full', dist, plot=False)
         
-    if dist=='ssim' or dist=='pearson' or dist=='spearman': # measures of correlation or similarity 
+    if dist=='pearson' or dist=='spearman': # measures of correlation or similarity
         minval = np.min(distances[~np.isnan(distances)])
         distances = np.nan_to_num(distances)
         distances[np.where(distances==0)] = minval

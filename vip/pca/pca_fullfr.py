@@ -710,7 +710,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
                                         annulus_width=annulus_width,
                                         verbose=False)
         if cube_ref is not None:
-            ref_lib = prepare_matrix(cube_ref, scaling, mask_center_px,
+            ref_lib, _ = prepare_matrix(cube_ref, scaling, mask_center_px,
                                      mode='annular', annulus_radius=ann_radius,
                                      annulus_width=annulus_width, verbose=False)
         else:

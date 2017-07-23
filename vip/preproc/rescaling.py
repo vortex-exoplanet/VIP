@@ -27,7 +27,7 @@ from scipy.ndimage.interpolation import geometric_transform
 from ..var import frame_center
 
 
-def frame_px_resampling(array, scale, interpolation='bicubic',
+def frame_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
                         scale_y=None, scale_x=None, keep_odd=True,
                         full_output=False):
     """ Resamples the pixels of a frame wrt to the center, changing the size
@@ -116,19 +116,43 @@ def frame_px_resampling(array, scale, interpolation='bicubic',
                 else:  # if downscaling => go to closest odd with even+1 (reversible)
                     scale_x = float(new_nx + 1) / nx
 
-    if interpolation == 'bilinear':
-        intp = cv2.INTER_LINEAR
-    elif interpolation == 'bicubic':
-        intp = cv2.INTER_CUBIC
-    elif interpolation == 'nearneig':
-        intp = cv2.INTER_NEAREST
-    elif interpolation == 'area':
-        intp = cv2.INTER_AREA
-    else:
-        raise TypeError('The interpolation method is not recognized.')
 
-    array_resc = cv2.resize(array.astype(np.float32), (0, 0), fx=scale_x,
-                            fy=scale_y, interpolation=intp)
+
+    if imlib not in ['skimage', 'opencv']:
+        raise ValueError('Imlib not recognized, try opencv or ndimage')
+
+    if imlib == 'skimage' or no_opencv:
+        if interpolation == 'bilinear':
+            order = 1
+        elif interpolation == 'bicubic':
+            order = 3
+        elif interpolation == 'nearneig':
+            order = 0
+        else:
+            raise TypeError('Interpolation method not recognized.')
+
+        min_val = np.min(array)
+        im_temp = array - min_val
+        max_val = np.max(im_temp)
+        im_temp /= max_val
+
+        array_resc = rescale(im_temp, scale=(scale_y, scale_x), order=order)
+
+        array_resc *= max_val
+        array_resc += min_val
+
+    else:
+        if interpolation == 'bilinear':
+            intp = cv2.INTER_LINEAR
+        elif interpolation == 'bicubic':
+            intp= cv2.INTER_CUBIC
+        elif interpolation == 'nearneig':
+            intp = cv2.INTER_NEAREST
+        else:
+            raise TypeError('Interpolation method not recognized.')
+
+        array_resc = cv2.resize(array.astype(np.float32), (0,0), fx=scale_x,
+                                fy=scale_y, interpolation=intp)
 
     array_resc /= (scale_y * scale_x)
 

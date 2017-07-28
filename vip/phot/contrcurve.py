@@ -174,7 +174,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     if smooth:
         # smoothing the noise vector using a Savitzky-Golay filter
-        win = int(noise_samp.shape[0]*0.1)
+        win = min(noise_samp.shape[0]-2,int(2*fwhm))
         if win%2==0.:  win += 1
         noise_samp_sm = savgol_filter(noise_samp, polyorder=2, mode='nearest',
                                       window_length=win)

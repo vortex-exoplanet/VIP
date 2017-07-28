@@ -8,7 +8,6 @@ from __future__ import division, print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['pca_adi_annular',
-           'pca_adi_annular2',
            'pca_rdi_annular']
 
 import numpy as np
@@ -186,7 +185,6 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1,
         return cube_out, cube_der, frame 
     else:
         return frame           
-
 
 
 def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3, 

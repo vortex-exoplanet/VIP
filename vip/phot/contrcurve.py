@@ -30,7 +30,8 @@ from ..var import frame_center, dist
 def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot, 
                    algo, sigma=5, nbranch=1, theta=0, inner_rad=1, wedge=(0,360),
                    student=True, transmission=None, smooth=True, plot=True,
-                   dpi=100, debug=False, verbose=True, **algo_dict):
+                   dpi=100, debug=False, verbose=True, output_path = None,
+                   object_name = None, frame_size = None, fix_y_lim = (), **algo_dict):
     """ Computes the contrast curve for a given SIGMA (*sigma*) level. The 
     contrast is calculated as sigma*noise/throughput. This implementation takes
     into account the small sample statistics correction proposed in Mawet et al.
@@ -90,6 +91,14 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     verbose : {True, False, 0, 1, 2} optional
         If True or 1 the function prints to stdout intermediate info and timing,
         if set to 2 more output will be shown. 
+    output_path: string
+        If provided, the contrast curve will be saved to this path.
+    object_name: string
+        Target name, used in the plot title
+    frame_size: int
+        Frame size used for generating the contrast curve, used in the plot title
+    fix_y_lim: tuple
+        If provided, the y axis limits will be fixed, for easier comparison between plots
     **algo_dict
         Any other valid parameter of the post-processing algorithms can be 
         passed here.
@@ -253,6 +262,22 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         plt.grid('on', which='both', alpha=0.2, linestyle='solid')
         ax1.set_yscale('log')
         ax1.set_xlim(0, np.max(rad_samp*pxscale))
+
+        # Give a title to the contrast curve plot
+        if object_name != None and frame_size != None:
+            plt.title(object_name+' '+ str(frame_size)+'+'+str(inner_rad), fontsize = 14)
+
+        # Option to fix the y-limit
+        if len(fix_y_lim) == 2:
+            min_y_lim = min(fix_y_lim[0], fix_y_lim[1])
+            max_y_lim = max(fix_y_lim[0], fix_y_lim[1])
+            ax1.set_ylim(min_y_lim, max_y_lim)
+        else:
+            print ('The provided y-limit boundaries are not valid.')
+
+        # Optionally, save the figure to a path
+        if output_path != None:
+            fig.savefig(output_path, dpi=100)
 
         if debug:        
             fig2 = plt.figure(figsize=(8,4))

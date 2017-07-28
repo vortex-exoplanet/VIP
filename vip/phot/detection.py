@@ -27,11 +27,13 @@ from ..conf import sep
 from .snr import snr_ss
 from .frame_analysis import frame_quick_report
 
+
 # TODO: Add the option of computing and thresholding an S/N map
 
 def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False, 
               mask=True, snr_thresh=5, plot=True, debug=False, 
-              full_output=False, verbose=True):                 
+              full_output=False, verbose=True, output_path=None,
+              object_name = None, frame_size=None, inner_rad=None, NIRC2angscale = False):                 
     """ Finds blobs in a 2d array. The algorithm is designed for automatically 
     finding planets in post-processed high contrast final frames. Blob can be 
     defined as a region of an image in which some properties are constant or 
@@ -64,6 +66,17 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         constraint or a table with all the blobs and the peak pixels and SNR.
     verbose : {True,False}, bool optional
         Whether to print to stdout information about found blobs.
+    output_path: string
+        If provided, the frames processed by blob detection are saved to that path.
+    object_name: string
+        Target name, used in the plot title
+    frame_size: int
+        Frame size of the pca, used in the plot title
+    inner_rad: int
+        Size of the mask in pca, as a unit of the FWHM, used in the plot title
+    NIRC2angscale: {False, True}
+        If True the plot axes are converted to angular scale (arcseconds,
+        assuming NIRC2's ~ 0.01 pixel scale)
     
     Returns
     -------
@@ -278,8 +291,8 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         snr = snr_ss(array, (x,y), fwhm, False, verbose=False)
         snr_list.append(snr)
         if snr >= snr_thresh:
-            if plot:
-                pp_subplots(subim)
+            #if plot:
+                #pp_subplots(subim)
             if verbose:  
                 _ = frame_quick_report(array, fwhm, (x,y), verbose=verbose)
             yy_final.append(y)
@@ -289,8 +302,8 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             xx_out.append(x)
             if verbose:  print 'S/N constraint NOT fulfilled (S/N = {:.3f})'.format(snr)
             if debug:
-                if plot:
-                    pp_subplots(subim)
+                #if plot:
+                    #pp_subplots(subim)
                 _ = frame_quick_report(array, fwhm, (x,y), verbose=verbose)
 
     if debug or full_output:
@@ -303,17 +316,45 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     xx_out = np.array(xx_out) 
     
     if plot: 
-        print
-        print sep
-        print 'Input frame showing all the detected blobs / potential sources:'
-        print 'In RED circles those that did not pass the SNR and 2dGaussian '
-        print 'fit constraints while in CYAN circles those that passed them.'
+        #print
+        #print sep
+        #print 'Input frame showing all the detected blobs / potential sources:'
+        #print 'In RED circles those that did not pass the SNR and 2dGaussian '
+        #print 'fit constraints while in CYAN circles those that passed them.'
         fig, ax = plt.subplots(figsize=(6,6))
         im = ax.imshow(array, origin='lower', interpolation='nearest', 
                        cmap='gray', alpha=0.8)
-        colorbar_ax = fig.add_axes([0.92, 0.12, 0.03, 0.78])
-        fig.colorbar(im, cax=colorbar_ax)
-        ax.grid('off')
+
+        # Option to plot axes in angular scale
+        if NIRC2angscale and frame_size != None:
+            from scipy.ndimage import gaussian_filter
+            import matplotlib.ticker as ticker
+            # Converting axes from pixels to arcseconds
+            # Find the middle value in the odd frame sizes
+            center_val = int((frame_size / 2.0) + 0.5)
+            def plot_format(x, pos):
+                'The two args are the value and tick position'
+                # 0.01 is the NIRC2 pixel scale
+                return '%1.2f' % abs((x-center_val)*0.01)
+
+            ticks_x = ticker.FuncFormatter(plot_format)
+            ax.xaxis.set_major_formatter(ticks_x)
+
+            ticks_y = ticker.FuncFormatter(plot_format)
+            ax.yaxis.set_major_formatter(ticks_y)
+
+            ax.set_xlabel("arcseconds", fontsize=12)
+            ax.set_ylabel("arcseconds", fontsize=12)
+            # Set the title of the plot
+            if object_name != None and inner_rad != None:
+                ax.set_title(object_name+' '+ str(frame_size)+'+'+str(inner_rad), fontsize=14)
+            array_smoothed = gaussian_filter(array, sigma=(2.3, 2.3), order=0)
+            plt.imshow(array_smoothed, origin='lower')
+
+        else:
+            colorbar_ax = fig.add_axes([0.92, 0.12, 0.03, 0.78])
+            fig.colorbar(im, cax=colorbar_ax)
+            ax.grid('off')
         
         for i in range(yy_out.shape[0]):
             y = yy_out[i]
@@ -332,7 +373,12 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             ax.text(x, y+1.5*fwhm, (int(x), int(y)), fontsize=10, color='cyan', 
                     weight='heavy', family='monospace', ha='center', va='top')
             ax.add_patch(circ)
-        plt.show()
+        # Save the plot if output path is provided
+        # Don't show the plot when running pipeline (i.e. when saving figures)
+        if output_path !=None:
+            plt.savefig(output_path, dpi= 100, bbox_inches='tight')
+        else:
+            plt.show()
     
     if debug:  print table
     

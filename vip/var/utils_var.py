@@ -56,11 +56,13 @@ def pp_subplots(*args, **kwargs):
     vmax : for stretching the displayed pixels values
     vmin : for stretching the displayed pixels values
     versp : vertical gap between subplots
+    NIRC2angscale: to plot figures in angular scale, assuming the Keck NIRC2 pixel scale
+    framesize: pixel size of the frame
 
     """
     parlist = ['arrow', 'cmap', 'colorb', 'dpi', 'getfig', 'grid', 'horsp',
                'label', 'labelpad', 'labelsize', 'log', 'maxplots', 'noaxis',
-               'rows', 'save', 'title', 'vmax', 'vmin', 'versp']
+               'rows', 'save', 'title', 'vmax', 'vmin', 'versp', 'NIRC2angscale', 'framesize']
     
     for key in kwargs.iterkeys():
         if key not in parlist:
@@ -171,6 +173,12 @@ def pp_subplots(*args, **kwargs):
     
     if kwargs.has_key('versp'):  ver_spacing = kwargs['versp']
     else:  ver_spacing = 0
+
+    if kwargs.has_key('NIRC2angscale'):  NIRC2angscale = kwargs['NIRC2angscale']
+    else:  NIRC2angscale = False
+
+    if kwargs.has_key('framesize'):  frame_size = kwargs['framesize']
+    else: frame_size = None
     
     if not isinstance(rows, int):
         raise(TypeError('Rows must be an integer'))
@@ -220,6 +228,24 @@ def pp_subplots(*args, **kwargs):
             ax.grid('on', which='minor', color='gray', linewidth=1, alpha=.6)
         else:
             ax.grid('off')
+
+        # Option to plot in angular scale, assuming Keck NIRC2's ~0.01 pixel scale
+        if NIRC2angscale and frame_size !=None:
+            import matplotlib.ticker as ticker
+            center_val = int((frame_size / 2.0) + 0.5)
+            # print center_val
+            def plot_format(x, pos):
+                'The two args are the value and tick position'
+                return '%1.2f' % abs((x - center_val) * 0.01)
+
+            ticks_x = ticker.FuncFormatter(plot_format)
+            ax.xaxis.set_major_formatter(ticks_x)
+            ticks_y = ticker.FuncFormatter(plot_format)
+            ax.yaxis.set_major_formatter(ticks_y)
+
+            ax.set_xlabel("arcseconds", fontsize=12)
+            ax.set_ylabel("arcseconds", fontsize=12)
+
         if noax:  ax.set_axis_off()
     
     fig.subplots_adjust(wspace=hor_spacing, hspace=ver_spacing)

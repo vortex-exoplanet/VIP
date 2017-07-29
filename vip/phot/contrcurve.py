@@ -272,8 +272,6 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             min_y_lim = min(fix_y_lim[0], fix_y_lim[1])
             max_y_lim = max(fix_y_lim[0], fix_y_lim[1])
             ax1.set_ylim(min_y_lim, max_y_lim)
-        else:
-            print ('The provided y-limit boundaries are not valid.')
 
         # Optionally, save the figure to a path
         if output_path != None:

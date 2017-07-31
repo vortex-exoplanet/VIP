@@ -155,9 +155,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     if plot:  
         pp_subplots(snrmap, colorb=True, title='S/N map')
 
-    # Option to plot snrmap in angular scale, using Keck NIRC2's ~0.01 pixel scale
-    # Also save plot to output_path
-    elif plot and output_path !=None and frame_size != None:
+    # Option to save snrmap in angular scale, using Keck NIRC2's ~0.01 pixel scale
+    # In this case, set plot = False
+    elif output_path !=None and frame_size != None:
         pp_subplots(snrmap, colorb=True, title='S/N map', save=output_path, vmin=-1, vmax=5, NIRC2angscale=True, framesize=frame_size)
         
     print "S/N map created using {:} processes.".format(nproc)

@@ -231,20 +231,36 @@ def pp_subplots(*args, **kwargs):
 
         # Option to plot in angular scale, assuming Keck NIRC2's ~0.01 pixel scale
         if NIRC2angscale and frame_size !=None:
-            import matplotlib.ticker as ticker
+            import matplotlib.pyplot as plt
+            # Converting axes from pixels to arcseconds
+            # Find the middle value in the odd frame sizes
             center_val = int((frame_size / 2.0) + 0.5)
-            # print center_val
-            def plot_format(x, pos):
-                'The two args are the value and tick position'
-                return '%1.2f' % abs((x - center_val) * 0.01)
+            # Place a tick every 0.5 arcseconds
+            half_num_ticks = center_val // 50
 
-            ticks_x = ticker.FuncFormatter(plot_format)
-            ax.xaxis.set_major_formatter(ticks_x)
-            ticks_y = ticker.FuncFormatter(plot_format)
-            ax.yaxis.set_major_formatter(ticks_y)
+            # Calculate the pixel locations at which to put ticks
+            ticks = []
+            for i in range(half_num_ticks, -half_num_ticks-1, -1):
+                # Avoid ticks not showing on the last pixel
+                if not center_val - (i) * 50 == frame_size:
+                    ticks.append(center_val - (i) * 50)
+                else:
+                    ticks.append((center_val - (i) * 50) - 1)
+                #print xticks
+            ax.set_xticks(ticks)
+            ax.set_yticks(ticks)
+
+            # Calculate the corresponding distance in arcseconds, measured from the center
+            labels = []
+            for i in range(half_num_ticks, -half_num_ticks-1, -1):
+                labels.append(0.0 - (i) * 0.5)
+                #print xlabels
+            ax.set_xticklabels(labels)
+            ax.set_yticklabels(labels)
 
             ax.set_xlabel("arcseconds", fontsize=12)
             ax.set_ylabel("arcseconds", fontsize=12)
+            plt.tick_params(axis='both', which='major', labelsize=10)
 
         if noax:  ax.set_axis_off()
     

@@ -29,10 +29,11 @@ from ..var import frame_center, dist
 
 def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot, 
                    algo, sigma=5, nbranch=1, theta=0, inner_rad=1, wedge=(0,360),
-                   student=True, transmission=None, smooth=True, plot=True,
-                   dpi=100, debug=False, verbose=True, output_path = None,
+                   fc_snr=10.0, student=True, transmission=None, smooth=True, plot=True,
+                   dpi=100, imlib='opencv', debug=False, verbose=True, save_plot = None,
                    object_name = None, frame_size = None, fix_y_lim = (), **algo_dict):
-    """ Computes the contrast curve for a given SIGMA (*sigma*) level. The 
+
+    """ Computes the contrast curve for a given SIGMA (*sigma*) level. The
     contrast is calculated as sigma*noise/throughput. This implementation takes
     into account the small sample statistics correction proposed in Mawet et al.
     2014. 
@@ -71,6 +72,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     wedge : tuple of floats, optional
         Initial and Final angles for using a wedge. For example (-90,90) only
         considers the right side of an image.
+    fc_snr: float optional
+            Signal to noise ratio of injected fake companions
     student : {True, False}, bool optional
         If True uses Student t correction to inject fake companion. 
     transmission : tuple of 2 1d arrays, optional
@@ -84,6 +87,9 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         Whether to plot the final contrast curve or not. True by default.
     dpi : int optional 
         Dots per inch for the plots. 100 by default. 300 for printing quality.
+    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+        Library or method used for image operations (shifts). Opencv is the
+        default for being the fastest.
     debug : {False, True}, bool optional
         Whether to print and plot additional info such as the noise, throughput,
         the contrast curve with different X axis and the delta magnitude instead
@@ -91,7 +97,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     verbose : {True, False, 0, 1, 2} optional
         If True or 1 the function prints to stdout intermediate info and timing,
         if set to 2 more output will be shown. 
-    output_path: string
+    save_plot: string
         If provided, the contrast curve will be saved to this path.
     object_name: string
         Target name, used in the plot title
@@ -143,8 +149,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if verbose==2:  verbose_thru = True
     res_throug = throughput(cube, angle_list, psf_template, fwhm, pxscale, 
                             nbranch=nbranch, theta=theta, inner_rad=inner_rad, 
-                            wedge=wedge, full_output=True, algo=algo, 
-                            verbose=verbose_thru, **algo_dict)                          
+                            wedge=wedge, fc_snr=fc_snr, full_output=True, algo=algo,
+                            imlib=imlib, verbose=verbose_thru, **algo_dict)
     vector_radd = res_throug[2] 
     if res_throug[0].shape[0]>1:  thruput_mean = np.mean(res_throug[0], axis=0)
     else:  thruput_mean = res_throug[0][0]
@@ -274,8 +280,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             ax1.set_ylim(min_y_lim, max_y_lim)
 
         # Optionally, save the figure to a path
-        if output_path != None:
-            fig.savefig(output_path, dpi=100)
+        if save_plot != None:
+            fig.savefig(save_plot, dpi=100)
 
         if debug:        
             fig2 = plt.figure(figsize=(8,4))
@@ -319,8 +325,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
 
 def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1, 
-               theta=0, inner_rad=1, fc_rad_sep=3, wedge=(0,360),
-               full_output=False, verbose=True, **algo_dict):
+               theta=0, inner_rad=1, fc_rad_sep=3, wedge=(0,360), fc_snr=10.0,
+               full_output=False, imlib='opencv', verbose=True, **algo_dict):
     """ Measures the throughput for chosen algorithm and input dataset. The 
     final throughput is the average of the same procedure measured in *nbranch* 
     azimutally equidistant branches.
@@ -360,8 +366,13 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     wedge : tuple of floats, optional
         Initial and Final angles for using a wedge. For example (-90,90) only
         considers the right side of an image.
+    fc_snr: float optional
+            Signal to noise ratio of injected fake companions
     full_output : {False, True}, bool optional
         If True returns intermediate arrays.
+    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+        Library or method used for image operations (shifts). Opencv is the
+        default for being the fastest.
     verbose : {True, False}, bool optional
         If True prints out timing and information.
     **algo_dict
@@ -445,9 +456,9 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     
     #***************************************************************************
     # Initialize the fake companions
-    angle_branch = angular_range/nbranch     
-    # signal-to-noise ratio of injected fake companions                                                     
-    snr_level = 10.0 * np.ones_like(noise)         
+    angle_branch = angular_range / nbranch
+    # signal-to-noise ratio of injected fake companions
+    snr_level = fc_snr * np.ones_like(noise)
     
     thruput_arr = np.zeros((nbranch, noise.shape[0]))
     fc_map_all = np.zeros((nbranch*fc_rad_sep, array.shape[1], array.shape[2]))
@@ -470,7 +481,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 flux = snr_level[irad+i*fc_rad_sep] * noise[irad+i*fc_rad_sep]
                 cube_fc = inject_fcs_cube(cube_fc, psf_template, parangles, flux,
                                           pxscale, rad_dists=[radvec[i]], 
-                                          theta=br*angle_branch + theta, 
+                                          theta=br*angle_branch + theta, imlib=imlib,
                                           verbose=False)
                 y = cy + radvec[i] * np.sin(np.deg2rad(br*angle_branch + theta))
                 x = cx + radvec[i] * np.cos(np.deg2rad(br*angle_branch + theta))

@@ -32,7 +32,7 @@ from .frame_analysis import frame_quick_report
 
 def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False, 
               mask=True, snr_thresh=5, plot=True, debug=False, 
-              full_output=False, verbose=True, output_path=None,
+              full_output=False, verbose=True, save_plot=None,
               object_name = None, frame_size=None, inner_rad=None, NIRC2angscale = False):                 
     """ Finds blobs in a 2d array. The algorithm is designed for automatically 
     finding planets in post-processed high contrast final frames. Blob can be 
@@ -66,7 +66,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         constraint or a table with all the blobs and the peak pixels and SNR.
     verbose : {True,False}, bool optional
         Whether to print to stdout information about found blobs.
-    output_path: string
+    save_plot: string
         If provided, the frames processed by blob detection are saved to that path.
     object_name: string
         Target name, used in the plot title
@@ -388,8 +388,8 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             ax.add_patch(circ)
         # Save the plot if output path is provided
         # Don't show the plot when running pipeline (i.e. when saving figures)
-        if output_path !=None:
-            plt.savefig(output_path, dpi= 100, bbox_inches='tight')
+        if save_plot !=None:
+            plt.savefig(save_plot, dpi= 100, bbox_inches='tight')
         else:
             plt.show()
     

@@ -74,7 +74,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
         transf_sci[:, i] = np.inner(sky_pcs, Msci_masked[i].T)
 
     Msky_pcs_masked = prepare_matrix(sky_pcs_cube_masked, scaling=None,
-                                             verbose=False)
+                                     verbose=False)
     mat_inv = np.linalg.inv(np.dot(Msky_pcs_masked, Msky_pcs_masked.T))
     transf_sci_scaled = np.dot(mat_inv, transf_sci)
 

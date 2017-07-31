@@ -98,7 +98,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     if threshold:
         _, clipmed, clipstd = sigma_clipped_stats(psf_subimage, sigma=2)
         indi = np.where(psf_subimage<=clipmed+sigfactor*clipstd)
-        subimnoise = np.random.randn(psf_subimage.shape[0], psf_subimage.shape[1])*50
+        subimnoise = np.random.randn(psf_subimage.shape[0], psf_subimage.shape[1])*clipstd#*50
         psf_subimage[indi] = subimnoise[indi]
     
     yme, xme = np.where(psf_subimage==psf_subimage.max())

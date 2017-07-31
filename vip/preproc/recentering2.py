@@ -110,7 +110,7 @@ min_spat_freq = 0.5, max_spat_freq = 3, fwhm = 8., debug = False , NegFit = True
         alignment_cube[0,:,:]=np.median(alignment_cube[1:(cube_sci.shape[0]+1),:,:],axis=0) 
         if(recenter_median):
             ## Recenter the median frame using a neg. gaussian fit
-            sub_image, y1, x1 = get_square_robust(alignment_cube[0,:,:], size=10, y=ceny,x=cenx, position=True)
+            sub_image, y1, x1 = get_square_robust(alignment_cube[0,:,:], size=int(fwhm)+1, y=ceny,x=cenx, position=True)
             if(NegFit):
                 sub_image = -sub_image + np.abs(np.min(-sub_image))       
             y_i, x_i = fit_2dgaussian(sub_image, crop=False, threshold=False,sigfactor=1, debug=debug)
@@ -121,7 +121,7 @@ min_spat_freq = 0.5, max_spat_freq = 3, fwhm = 8., debug = False , NegFit = True
             alignment_cube[0,:,:] = frame_shift(alignment_cube[0,:,:], yshift, xshift, imlib=imlib, interpolation=interpolation)
         
         # center the cube with stretched values
-        _,y_shift,x_shift = cube_recenter_dft_upsampling(np.log10((abs(alignment_cube)+1)**(gammaval)), ceny, cenx, fwhm=10, 
+        _,y_shift,x_shift = cube_recenter_dft_upsampling(np.log10((abs(alignment_cube)+1)**(gammaval)), ceny, cenx, fwhm=fwhm, 
                                          subi_size=None, full_output=True, verbose=False, save_shifts=False, debug=False)   
         
         print '\nSquare sum of shift vecs: '+str(np.sum(np.sqrt(y_shift**2+x_shift**2)))

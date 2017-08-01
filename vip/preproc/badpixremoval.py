@@ -94,7 +94,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         bpm_mask = bpm_mask.astype('bool')
         if debug:  pp_subplots(frame, bpm_mask, title='Frame / Bad pixel mask')
 
-    smoothed = median_filter(frame, size, mode='nearest')
+    smoothed = median_filter(frame, size, mode='mirror')
     frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
     array_out = frame
 

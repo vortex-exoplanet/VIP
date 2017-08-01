@@ -56,11 +56,13 @@ def pp_subplots(*args, **kwargs):
     vmax : for stretching the displayed pixels values
     vmin : for stretching the displayed pixels values
     versp : vertical gap between subplots
+    NIRC2angscale: to plot figures in angular scale, assuming the Keck NIRC2 pixel scale
+    framesize: pixel size of the frame
 
     """
     parlist = ['arrow', 'cmap', 'colorb', 'dpi', 'getfig', 'grid', 'horsp',
                'label', 'labelpad', 'labelsize', 'log', 'maxplots', 'noaxis',
-               'rows', 'save', 'title', 'vmax', 'vmin', 'versp']
+               'rows', 'save', 'title', 'vmax', 'vmin', 'versp', 'NIRC2angscale', 'framesize']
     
     for key in kwargs.iterkeys():
         if key not in parlist:
@@ -171,6 +173,12 @@ def pp_subplots(*args, **kwargs):
     
     if kwargs.has_key('versp'):  ver_spacing = kwargs['versp']
     else:  ver_spacing = 0
+
+    if kwargs.has_key('NIRC2angscale'):  NIRC2angscale = kwargs['NIRC2angscale']
+    else:  NIRC2angscale = False
+
+    if kwargs.has_key('framesize'):  frame_size = kwargs['framesize']
+    else: frame_size = None
     
     if not isinstance(rows, int):
         raise(TypeError('Rows must be an integer'))
@@ -220,6 +228,40 @@ def pp_subplots(*args, **kwargs):
             ax.grid('on', which='minor', color='gray', linewidth=1, alpha=.6)
         else:
             ax.grid('off')
+
+        # Option to plot in angular scale, assuming Keck NIRC2's ~0.01 pixel scale
+        if NIRC2angscale and frame_size !=None:
+            import matplotlib.pyplot as plt
+            # Converting axes from pixels to arcseconds
+            # Find the middle value in the odd frame sizes
+            center_val = int((frame_size / 2.0) + 0.5)
+            # Place a tick every 0.5 arcseconds
+            half_num_ticks = center_val // 50
+
+            # Calculate the pixel locations at which to put ticks
+            ticks = []
+            for i in range(half_num_ticks, -half_num_ticks-1, -1):
+                # Avoid ticks not showing on the last pixel
+                if not center_val - (i) * 50 == frame_size:
+                    ticks.append(center_val - (i) * 50)
+                else:
+                    ticks.append((center_val - (i) * 50) - 1)
+                #print xticks
+            ax.set_xticks(ticks)
+            ax.set_yticks(ticks)
+
+            # Calculate the corresponding distance in arcseconds, measured from the center
+            labels = []
+            for i in range(half_num_ticks, -half_num_ticks-1, -1):
+                labels.append(0.0 - (i) * 0.5)
+                #print xlabels
+            ax.set_xticklabels(labels)
+            ax.set_yticklabels(labels)
+
+            ax.set_xlabel("arcseconds", fontsize=12)
+            ax.set_ylabel("arcseconds", fontsize=12)
+            plt.tick_params(axis='both', which='major', labelsize=10)
+
         if noax:  ax.set_axis_off()
     
     fig.subplots_adjust(wspace=hor_spacing, hspace=ver_spacing)

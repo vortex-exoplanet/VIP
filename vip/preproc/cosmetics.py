@@ -17,7 +17,7 @@ import numpy as np
 from ..var import frame_center, get_square
 
 
-def cube_crop_frames(array, size, xy=None, verbose=True):                          
+def cube_crop_frames(array, size, xy=None, verbose=True, full_output = False):                          
     """Crops frames in a cube (3d array). If size is an even value it'll be 
     increased by one to make it odd.
     
@@ -32,7 +32,9 @@ def cube_crop_frames(array, size, xy=None, verbose=True):
         coordinates from ds9 subtract 1, python has 0-based indexing.
     verbose : {True, False}, bool optional
         If True message of completion is showed.
-    
+    full_output: {False, True}
+        If true, returns cenx and ceny in addition to array_view
+
     Returns
     -------
     array_view : array_like
@@ -72,7 +74,12 @@ def cube_crop_frames(array, size, xy=None, verbose=True):
             msg = "Cube cropped with new size [{:},{:},{:}]"
             print msg.format(array.shape[0], size+1, size+1)
 
-    return array_view
+    # Option to return the cenx and ceny for double checking that the frame crop
+    # did not exceed the limit
+    if full_output:
+        return array_view, cenx, ceny
+    else:
+        return array_view
 
 
 def frame_crop(array, size, cenxy=None, verbose=True):                         

@@ -475,7 +475,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
                      mode='fullfr', annulus_width=20, range_pcs=None,
                      svd_mode='lapack', scaling=None, mask_center_px=None, 
                      fmerit='px', min_snr=0, collapse='median', verbose=True, 
-                     full_output=False, debug=False, plot=True):
+                     full_output=False, debug=False, plot=True, save_plot = None):
     """ Optimizes the number of principal components by doing a simple grid 
     search measuring the SNR for a given position in the frame (ADI, RDI). 
     The metric used could be the given pixel's SNR, the maximum SNR in a FWHM 
@@ -542,6 +542,8 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
     plot : {True, False}, optional
         Whether to plot the SNR and flux as functions of PCs and final PCA 
         frame or not.
+    save_plot: string
+        If provided, the pc optimization plot will be saved to that path.
 
     Returns
     -------
@@ -832,6 +834,9 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             ax2.grid('on', 'major', linestyle='solid', alpha=0.2)
             #plt.savefig('figure.pdf', dpi=300, bbox_inches='tight')
             print()
+            # Optionally, save the contrast curve
+            if save_plot != None:
+                plt.savefig(save_plot, dpi=100, bbox_inches='tight')
 
     if mode == 'fullfr':
         finalfr = pca(cube, angle_list, cube_ref=cube_ref, ncomp=opt_npc,

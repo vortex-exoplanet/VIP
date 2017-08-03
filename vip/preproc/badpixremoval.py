@@ -179,7 +179,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
     for i in range(n_frames):
         frame = cube_out[i]
-        smoothed = median_filter(frame, size, mode='nearest')
+        smoothed = median_filter(frame, size, mode='mirror')
         frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
         bar.update()
     array_out = cube_out

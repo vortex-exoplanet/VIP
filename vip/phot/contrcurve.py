@@ -247,7 +247,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         else:  label = ['Sensitivity (Gaussian)']
 
         plt.rc("savefig", dpi=dpi)
-        fig = plt.figure(figsize=(8,4))
+        fig = plt.figure(figsize=(8,6))
         ax1 = fig.add_subplot(111)
         con1, = ax1.plot(rad_samp*pxscale, cont_curve_samp, '-',
                          alpha=0.2, lw=2, color='green')
@@ -270,7 +270,14 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
         # Give a title to the contrast curve plot
         if object_name != None and frame_size != None:
-            plt.title(object_name+' '+ str(frame_size)+'+'+str(inner_rad), fontsize = 14)
+            # Retrieve ncomp and pca_type info to use in title
+            ncomp = algo_dict['ncomp']
+            if algo_dict['cube_ref'] == None:
+                pca_type = 'ADI'
+            else:
+                pca_type = 'RDI'
+            plt.title(pca_type+' '+object_name+' '+str(ncomp)+'pc '+str(frame_size)+'+'+str(inner_rad),
+                      fontsize = 14)
 
         # Option to fix the y-limit
         if len(fix_y_lim) == 2:

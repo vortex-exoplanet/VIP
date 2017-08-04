@@ -33,7 +33,8 @@ from .frame_analysis import frame_quick_report
 def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False, 
               mask=True, snr_thresh=5, plot=True, debug=False, 
               full_output=False, verbose=True, save_plot=None,
-              object_name = None, frame_size=None, inner_rad=None, NIRC2angscale = False):                 
+              object_name = None, frame_size=None, inner_rad=None, 
+              pca_type = None, ncomp = None, NIRC2angscale = False):                 
     """ Finds blobs in a 2d array. The algorithm is designed for automatically 
     finding planets in post-processed high contrast final frames. Blob can be 
     defined as a region of an image in which some properties are constant or 
@@ -74,6 +75,10 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         Frame size of the pca, used in the plot title
     inner_rad: int
         Size of the mask in pca, as a unit of the FWHM, used in the plot title
+    pca_type: string
+        adi or rdi, used in the title
+    ncomp: int
+        Number of principal components used to compute the reduced frame, used in the title
     NIRC2angscale: {False, True}
         If True the plot axes are converted to angular scale (arcseconds,
         assuming NIRC2's ~ 0.01 pixel scale)
@@ -360,7 +365,8 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
 
             # Set the title of the plot
             if object_name != None and inner_rad != None:
-                ax.set_title(object_name+' '+ str(frame_size)+'+'+str(inner_rad), fontsize=14)
+                ax.set_title(pca_type + ' ' + object_name+' '+ str(ncomp) + 'pc ' + str(frame_size)+'+'+str(inner_rad),
+                             fontsize=14)
             array_smoothed = gaussian_filter(array, sigma=(2.3, 2.3), order=0)
             plt.imshow(array_smoothed, origin='lower')
 

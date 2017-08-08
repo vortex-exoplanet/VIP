@@ -475,7 +475,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
                      mode='fullfr', annulus_width=20, range_pcs=None,
                      svd_mode='lapack', scaling=None, mask_center_px=None, 
                      fmerit='px', min_snr=0, collapse='median', verbose=True, 
-                     full_output=False, debug=False, plot=True, save_plot = None):
+                     full_output=False, debug=False, plot=True, save_plot = None, plot_title = None):
     """ Optimizes the number of principal components by doing a simple grid 
     search measuring the SNR for a given position in the frame (ADI, RDI). 
     The metric used could be the given pixel's SNR, the maximum SNR in a FWHM 
@@ -544,6 +544,8 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         frame or not.
     save_plot: string
         If provided, the pc optimization plot will be saved to that path.
+    plot_title: string
+        If provided, the plot is titled
 
     Returns
     -------
@@ -819,6 +821,8 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             ax1.set_ylabel('S/N')
             ax1.minorticks_on()
             ax1.grid('on', 'major', linestyle='solid', alpha=0.2)
+            if plot_title != None:
+                ax1.set_title('Optimal pc: ' + str(opt_npc) + ' for ' + plot_title)
             
             ax2 = plt.subplot(212)
             ax2.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), '-', 

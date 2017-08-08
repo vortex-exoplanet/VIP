@@ -25,7 +25,7 @@ from ..var import get_annulus, frame_center, dist, pp_subplots
 
 
 def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
-    save_plot = None, frame_size = None):
+    save_plot = None, plot_title = None, frame_size = None):
     """Parallel implementation of the SNR map generation function. Applies the 
     S/N function (small samples penalty) at each pixel.
     
@@ -48,6 +48,8 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         Number of processes for parallel computing.
     save_plot: string
         If provided, the snr map is saved to this path
+    plot_title: string
+        If provided, the snr map is titled
     frame_size: int
         Used to convert the snr map to angular scale
     
@@ -158,7 +160,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     # Option to save snrmap in angular scale, using Keck NIRC2's ~0.01 pixel scale
     # In this case, set plot = False
     elif save_plot !=None and frame_size != None:
-        pp_subplots(snrmap, colorb=True, title='S/N map', save=save_plot, vmin=-1, vmax=5, NIRC2angscale=True, framesize=frame_size)
+        pp_subplots(snrmap, colorb=True, title=plot_title, save=save_plot, vmin=-1, vmax=5, NIRC2angscale=True, framesize=frame_size)
         
     print "S/N map created using {:} processes.".format(nproc)
     timing(start_time)

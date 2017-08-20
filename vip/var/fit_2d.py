@@ -9,6 +9,7 @@ __all__ = ['fit_2dgaussian',
            'fit_2dmoffat']
 
 import numpy as np
+import pandas as pd
 from scipy.optimize import leastsq
 from astropy.modeling import models
 from astropy.modeling.fitting import LevMarLSQFitter
@@ -139,7 +140,9 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
         print 'theta =', theta
     
     if full_output:
-        return mean_y, mean_x, fwhm_y, fwhm_x, amplitude, theta
+        return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
+                             'fwhm_y': fwhm_y, 'fwhm_x': fwhm_x,
+                             'amplitude': amplitude, 'theta': theta})
     else:
         return mean_y, mean_x
 

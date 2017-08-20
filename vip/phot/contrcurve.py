@@ -29,9 +29,10 @@ from ..var import frame_center, dist
 
 def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                    algo, sigma=5, nbranch=1, theta=0, inner_rad=1, wedge=(0,360),
-                   fc_snr=10.0, student=True, transmission=None, smooth=True, plot=True,
-                   dpi=100, imlib='opencv', debug=False, verbose=True, save_plot = None,
-                   object_name = None, frame_size = None, fix_y_lim = (), **algo_dict):
+                   fc_snr=10.0, student=True, transmission=None, smooth=True,
+                   plot=True, dpi=100, imlib='opencv', debug=False, verbose=True,
+                   save_plot=None, object_name=None, frame_size=None,
+                   fix_y_lim=(), figsize=(8,4), **algo_dict):
     """ Computes the contrast curve for a given SIGMA (*sigma*) level. The
     contrast is calculated as sigma*noise/throughput. This implementation takes
     into account the small sample statistics correction proposed in Mawet et al.
@@ -197,7 +198,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     if debug:
         plt.rc("savefig", dpi=dpi)
-        plt.figure(figsize=(8,4))
+        plt.figure(figsize=figsize, dpi=dpi)
         plt.plot(vector_radd*pxscale, thruput_mean, '.', label='computed',
                  alpha=0.6)
         plt.plot(rad_samp*pxscale, thruput_interp, ',-', label='interpolated',
@@ -208,7 +209,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         plt.legend(loc='best')
         plt.xlim(0, np.max(rad_samp*pxscale))
 
-        plt.figure(figsize=(8,4))
+        plt.figure(figsize=figsize, dpi=dpi)
         plt.plot(rad_samp*pxscale, noise_samp, '.', label='computed', alpha=0.6)
         plt.plot(rad_samp*pxscale, noise_samp_sm, ',-', label='noise smoothed',
                  lw=2, alpha=0.5)
@@ -247,7 +248,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         else:  label = ['Sensitivity (Gaussian)']
 
         plt.rc("savefig", dpi=dpi)
-        fig = plt.figure(figsize=(8,6))
+        fig = plt.figure(figsize=figsize, dpi=dpi)
         ax1 = fig.add_subplot(111)
         con1, = ax1.plot(rad_samp*pxscale, cont_curve_samp, '-',
                          alpha=0.2, lw=2, color='green')
@@ -290,7 +291,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             fig.savefig(save_plot, dpi=100)
             
         if debug:
-            fig2 = plt.figure(figsize=(8,4))
+            fig2 = plt.figure(figsize=figsize, dpi=dpi)
             ax3 = fig2.add_subplot(111)
             cc_mags = -2.5*np.log10(cont_curve_samp)
             con4, = ax3.plot(rad_samp*pxscale, cc_mags, '-',

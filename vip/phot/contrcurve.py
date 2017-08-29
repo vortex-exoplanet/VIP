@@ -287,7 +287,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             ax1.set_ylim(min_y_lim, max_y_lim)
 
         # Optionally, save the figure to a path
-        if save_plot != None:
+        if save_plot is not None:
             fig.savefig(save_plot, dpi=100)
             
         if debug:

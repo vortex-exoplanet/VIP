@@ -821,7 +821,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             ax1.set_ylabel('S/N')
             ax1.minorticks_on()
             ax1.grid('on', 'major', linestyle='solid', alpha=0.2)
-            if plot_title != None:
+            if plot_title is not None:
                 ax1.set_title('Optimal pc: ' + str(opt_npc) + ' for ' + plot_title)
             
             ax2 = plt.subplot(212)

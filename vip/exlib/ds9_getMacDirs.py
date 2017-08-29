@@ -56,7 +56,7 @@ def getMacUserSharedDirs(dirType, inclNone = False):
             dirType = dirType,
             doCreate = False,
         )
-        if (path != None) or inclNone:
+        if (path is not None) or inclNone:
             retDirs.append(path)
     return retDirs
 

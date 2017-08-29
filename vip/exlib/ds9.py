@@ -263,7 +263,7 @@ def _findDS9AndXPA():
             "SAOImage DS9.app/Contents/MacOS",
             "SAOImageDS9.app/Contents/MacOS",
         ], doRaise=False)
-        foundDS9 = (ds9Dir != None)
+        foundDS9 = (ds9Dir is not None)
         if foundDS9:
             _DS9Path = os.path.join(ds9Dir, "ds9")
         foundXPA = False

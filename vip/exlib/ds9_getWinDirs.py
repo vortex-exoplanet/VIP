@@ -94,7 +94,7 @@ def getAppDirs(inclNone = False):
     retDirs = []
     for dirType in (None, shellcon.CSIDL_PROGRAM_FILES):
         path = getStandardDir(dirType)
-        if (path != None) or inclNone:
+        if (path is not None) or inclNone:
             retDirs.append(path)
     return retDirs
 
@@ -112,7 +112,7 @@ def getAppSuppDirs(inclNone = False):
     retDirs = []
     for dirType in (shellcon.CSIDL_APPDATA, shellcon.CSIDL_COMMON_APPDATA):
         path = getStandardDir(dirType)
-        if (path != None) or inclNone:
+        if (path is not None) or inclNone:
             retDirs.append(path)
     return retDirs
 

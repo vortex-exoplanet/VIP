@@ -839,7 +839,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             #plt.savefig('figure.pdf', dpi=300, bbox_inches='tight')
             print()
             # Optionally, save the contrast curve
-            if save_plot != None:
+            if save_plot is not None:
                 plt.savefig(save_plot, dpi=100, bbox_inches='tight')
 
     if mode == 'fullfr':

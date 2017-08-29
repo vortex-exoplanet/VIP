@@ -270,7 +270,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         ax1.set_xlim(0, np.max(rad_samp*pxscale))
 
         # Give a title to the contrast curve plot
-        if object_name != None and frame_size != None:
+        if object_name is not None and frame_size is not None:
             # Retrieve ncomp and pca_type info to use in title
             ncomp = algo_dict['ncomp']
             if algo_dict['cube_ref'] is None:

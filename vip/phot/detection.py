@@ -331,7 +331,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
                        cmap='gray', alpha=0.8)
 
         # Option to plot axes in angular scale
-        if NIRC2angscale and frame_size != None:
+        if NIRC2angscale and frame_size is not None:
             from scipy.ndimage import gaussian_filter
             # Converting axes from pixels to arcseconds
             # Find the middle value in the odd frame sizes
@@ -364,7 +364,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             plt.tick_params(axis='both', which='major', labelsize=10)
 
             # Set the title of the plot
-            if object_name != None and inner_rad != None:
+            if object_name is not None and inner_rad is not None:
                 ax.set_title(pca_type + ' ' + object_name+' '+ str(ncomp) + 'pc ' + str(frame_size)+'+'+str(inner_rad),
                              fontsize=14)
             array_smoothed = gaussian_filter(array, sigma=(2.3, 2.3), order=0)
@@ -394,7 +394,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             ax.add_patch(circ)
         # Save the plot if output path is provided
         # Don't show the plot when running pipeline (i.e. when saving figures)
-        if save_plot !=None:
+        if save_plot is not None:
             plt.savefig(save_plot, dpi= 100, bbox_inches='tight')
         else:
             plt.show()

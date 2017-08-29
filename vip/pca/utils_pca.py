@@ -192,7 +192,7 @@ def matrix_scaling(matrix, scaling):
     "spat-standard" spatial mean centering plus scaling to unit variance is
     performed.
     """
-    if scaling==None:
+    if scaling is None:
         pass
     elif scaling=='temp-mean':
         matrix = scale(matrix, with_mean=True, with_std=False)

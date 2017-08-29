@@ -67,7 +67,7 @@ def getStandardDir(dirType):
     not change).
     """
 
-    if dirType == None:
+    if dirType is None:
         return None
     try:
         return shell.SHGetFolderPath(

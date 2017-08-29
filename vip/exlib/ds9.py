@@ -179,7 +179,7 @@ def _findApp(appName, subDirs = None, doRaise = True):
     Return None or raise RuntimeError if not found.
     """
     appDirs = getAppDirs()
-    if subDirs == None:
+    if subDirs is None:
         subDirs = [None]
     dirTrials = []
     for appDir in appDirs:

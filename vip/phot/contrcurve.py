@@ -273,7 +273,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         if object_name != None and frame_size != None:
             # Retrieve ncomp and pca_type info to use in title
             ncomp = algo_dict['ncomp']
-            if algo_dict['cube_ref'] == None:
+            if algo_dict['cube_ref'] is None:
                 pca_type = 'ADI'
             else:
                 pca_type = 'RDI'

@@ -33,7 +33,7 @@ def getStandardDir(domain, dirType, doCreate=False):
         If dirType is None, then returns None.
     - doCreate: try to create the directory if it does not exist?
     """
-    if dirType == None:
+    if dirType is None:
         return None
     try:
         fsref = Carbon.Folder.FSFindFolder(domain, dirType, doCreate)

@@ -159,7 +159,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     # In this case, set plot = False
     elif save_plot!=None:
         pp_subplots(snrmap, colorb=True, title=plot_title, save=save_plot,
-                    vmin=-1, vmax=5, angscale=True)
+                    vmin=-1, vmax=5, angscale=True, getfig = True)
         
     print "S/N map created using {:} processes.".format(nproc)
     timing(start_time)

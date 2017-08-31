@@ -770,12 +770,12 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
     # automatic "clever" grid
     else:
         grid1 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 
-                     int(pcmax*0.1), pcmin, pcmax, debug, full_output)
+                     max(int(pcmax*0.1),1), pcmin, pcmax, debug, full_output)
         if full_output:  argm, pclist, snrlist, fluxlist, frlist1 = grid1
         else:  argm, pclist, snrlist, fluxlist = grid1
         
         grid2 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 
-                     int(pcmax*0.05), pclist[argm-1], pclist[argm+1], debug, 
+                     max(int(pcmax*0.05),1), pclist[argm-1], pclist[argm+1], debug, 
                      full_output)
         if full_output:  argm2, pclist2, snrlist2, fluxlist2, frlist2 = grid2
         else:  argm2, pclist2, snrlist2, fluxlist2  = grid2
@@ -791,7 +791,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         dfr = pd.DataFrame(np.array((pclist+pclist2+pclist3, 
                                      snrlist+snrlist2+snrlist3,
                                      fluxlist+fluxlist2+fluxlist3)).T)  
-        dfrs = dfr.sort(columns=0)
+        dfrs = dfr.sort_values(0)
         dfrsrd = dfrs.drop_duplicates()
         ind = np.array(dfrsrd.index)    
         

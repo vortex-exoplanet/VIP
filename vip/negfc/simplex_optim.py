@@ -291,6 +291,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     -------
     out : The radial coordinates and the flux of the companion.
 
+    WARNING: POLAR ANGLE IS NOT THE CONVENTIONAL NORTH-TO-EAST P.A.
     """
     if verbose:  start_time = time_ini()
 

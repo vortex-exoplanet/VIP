@@ -193,10 +193,11 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     if not psf.ndim == 2 and psf.shape[0] < array.shape[0]:
         raise TypeError('Input psf is not a 2d array or has wrong size')
     
-    # Getting the FWHM from the PSF array
-    _,_,fwhm_y, fwhm_x,_,_ = fit_2dgaussian(psf, cent=(frame_center(psf)[1],
-                                                       frame_center(psf)[0]), 
-                                            debug=debug, full_output=True)    
+    # Getting the FWHM from the PSF array    
+    outdf = fit_2dgaussian(psf, cent=(frame_center(psf)[1],
+                                                       frame_center(psf)[0]),
+                                            debug=debug, full_output=True)
+    fwhm_x, fwhm_y = outdf.at[0,'fwhm_x'],outdf.at[0,'fwhm_y']
     fwhm = np.mean([fwhm_x, fwhm_y])
     if verbose:  
         print 'FWHM =', fwhm

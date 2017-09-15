@@ -30,8 +30,8 @@ from ..var import frame_center, dist
 def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                    algo, sigma=5, nbranch=1, theta=0, inner_rad=1, wedge=(0,360),
                    fc_snr=10.0, student=True, transmission=None, smooth=True,
-                   plot=True, dpi=100, imlib='opencv', debug=False, verbose=True,
-                   save_plot=None, object_name=None, frame_size=None,
+                   plot=True, dpi=100, imlib='opencv', debug=False, verbose=True, full_output=False,
+                   save_plot=None, object_name=None, frame_size=None, 
                    fix_y_lim=(), figsize=(8,4), **algo_dict):
     """ Computes the contrast curve for a given SIGMA (*sigma*) level. The
     contrast is calculated as sigma*noise/throughput. This implementation takes
@@ -97,6 +97,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     verbose : {True, False, 0, 1, 2} optional
         If True or 1 the function prints to stdout intermediate info and timing,
         if set to 2 more output will be shown. 
+    full_output : {False, True}, bool optional
+        If True returns intermediate arrays.
     save_plot: string
         If provided, the contrast curve will be saved to this path.
     object_name: string
@@ -115,6 +117,21 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         Dataframe containing the sensitivity (Gaussian and Student corrected if
         Student parameter is True), the interpolated throughput, the distance in
         pixels, the noise and the sigma corrected (if Student is True).
+
+    If full_output is True then the function returns: 
+        datafr, cube_fc_all, frame_fc_all, frame_nofc and fc_map_all.
+
+    cube_fc_all : array_like
+        4d array, with the 3 different pattern cubes with the injected fake
+        companions.
+    frame_fc_all : array_like
+        3d array with the 3 frames of the 3 (patterns) processed cubes with
+        companions.
+    frame_nofc : array_like
+        2d array, PCA processed frame without companions.
+    fc_map_all : array_like
+        3d array with 3 frames containing the position of the companions in the
+        3 patterns.
     """
     if not cube.ndim == 3:
         raise TypeError('The input array is not a cube')
@@ -154,7 +171,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     vector_radd = res_throug[2]
     if res_throug[0].shape[0]>1:  thruput_mean = np.mean(res_throug[0], axis=0)
     else:  thruput_mean = res_throug[0][0]
+    cube_fc_all = res_throug[3]
+    frame_fc_all = res_throug[4]
     frame_nofc = res_throug[5]
+    fc_map_all = res_throug[6]
 
     if verbose:
         print('Finished the throughput calculation')
@@ -328,7 +348,11 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         datafr = pd.DataFrame({'sensitivity (Gauss)': cont_curve_samp,
                                'throughput': thruput_interp,
                                'distance': rad_samp, 'noise': noise_samp_sm})
-    return datafr
+
+    if full_output:
+        return (datafr, cube_fc_all, frame_fc_all, frame_nofc, fc_map_all)
+    else: 
+        return datafr
 
 
 def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,

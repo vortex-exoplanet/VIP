@@ -157,7 +157,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
 
     # Option to save snrmap in angular scale, using Keck NIRC2's ~0.01 pixel scale
     # In this case, set plot = False
-    elif save_plot!=None:
+    elif save_plot is not None:
         pp_subplots(snrmap, colorb=True, title=plot_title, save=save_plot,
                     vmin=-1, vmax=5, angscale=True, getfig = True)
         

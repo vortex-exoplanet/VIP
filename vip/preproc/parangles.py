@@ -189,7 +189,7 @@ def compute_derot_angles_PA(objname_tmp_A,digit_format=3,objname_tmp_B='',
             print ii, ' -> ', rot[ii]
 
     if writing:
-        if outpath == '' or outpath == None: outpath=inpath
+        if outpath == '' or outpath is None: outpath=inpath
         f=open(outpath+'Parallactic_angles.txt','w')
         for ii in range(len(list_obj)):
             print >>f, rot[ii]
@@ -334,7 +334,7 @@ def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
             if skew: print 'rot2: ', ii, ' -> ', rot2[ii]
 
     if writing:
-        if outpath == '' or outpath == None: outpath=inpath
+        if outpath == '' or outpath is None: outpath=inpath
         f=open(outpath+'Parallactic_angles.txt','w')
         if skew:
             for ii in range(len(cd1_1)):

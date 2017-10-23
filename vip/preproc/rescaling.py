@@ -116,8 +116,6 @@ def frame_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
                 else:  # if downscaling => go to closest odd with even+1 (reversible)
                     scale_x = float(new_nx + 1) / nx
 
-
-
     if imlib not in ['skimage', 'opencv']:
         raise ValueError('Imlib not recognized, try opencv or ndimage')
 
@@ -137,7 +135,6 @@ def frame_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
         im_temp /= max_val
 
         array_resc = rescale(im_temp, scale=(scale_y, scale_x), order=order)
-
         array_resc *= max_val
         array_resc += min_val
 
@@ -305,8 +302,6 @@ def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0,
                                    (array.shape[1], array.shape[0]), 
                                    flags=cv2.INTER_CUBIC)
 
-    # TODO: For conservation of flux (e.g. in aperture 1xFWHM), what to do when
-    # there is a different scaling factor in x and y?
     if scale_y==scale_x:
         array_out /= scale ** 2
 

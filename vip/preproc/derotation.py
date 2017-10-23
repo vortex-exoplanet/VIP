@@ -19,7 +19,12 @@ except ImportError:
     no_opencv = True
 
 from skimage.transform import rotate
+from multiprocessing import Pool, cpu_count
+import itertools as itt
+from ..conf import eval_func_tuple as futup
 from ..var import frame_center
+
+data_array = None # holds the (implicitly mem-shared) data array
 
 
 def frame_rotate(array, angle, imlib='opencv', interpolation='bicubic', cxy=None):
@@ -103,7 +108,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='bicubic', cxy=None
     
     
 def cube_derotate(array, angle_list, imlib='opencv', interpolation='bicubic',
-                  cxy=None):
+                  cxy=None, nproc=1):
     """ Rotates an cube (3d array or image sequence) providing a vector or
     corrsponding angles. Serves for rotating an ADI sequence to a common north
     given a vector with the corresponding parallactic angles for each frame. By
@@ -140,16 +145,36 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='bicubic',
     """
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array.')
-    array_der = np.zeros_like(array) 
+    array_der = np.empty_like(array)
     n_frames = array.shape[0]
     
     if not cxy:
         cy, cx = frame_center(array[0])
         cxy = (cx, cy)
-        
-    for i in range(n_frames):
-        array_der[i] = frame_rotate(array[i], -angle_list[i], imlib=imlib,
-                                    interpolation=interpolation, cxy=cxy)
-    
+
+    if not nproc: nproc = int((cpu_count() / 2))
+
+    if nproc==1:
+        for i in range(n_frames):
+            array_der[i] = frame_rotate(array[i], -angle_list[i], imlib=imlib,
+                                        interpolation=interpolation, cxy=cxy)
+    elif nproc>1:
+        global data_array
+        data_array = array
+
+        pool = Pool(processes=int(nproc))
+        res = pool.map(futup, itt.izip(itt.repeat(_cube_rotate_mp),
+                                       range(n_frames), itt.repeat(angle_list),
+                                       itt.repeat(imlib),
+                                       itt.repeat(interpolation),
+                                       itt.repeat(cxy)))
+        pool.close()
+        array_der = np.array(res)
+
     return array_der
 
+
+def _cube_rotate_mp(num_fr, angle_list, imlib, interpolation, cxy):
+    framerot = frame_rotate(data_array[num_fr], -angle_list[num_fr],
+                            imlib, interpolation, cxy)
+    return framerot

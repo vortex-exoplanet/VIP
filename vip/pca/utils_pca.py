@@ -365,7 +365,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         print(msg.format(ncomp, ratio_cumsum[ncomp-1]))
         
     if ncomp>min(matrix.shape[0],matrix.shape[1]):
-        msg = '{:} PCs can be obtained from a matrix with size [{:},{:}].'
+        msg = '{:} PCs cannot be obtained from a matrix with size [{:},{:}].'
         msg += ' Increase the size of the patches or decrease the number of'
         msg += ' principal components.'
         raise RuntimeError(msg.format(ncomp, matrix.shape[0], matrix.shape[1]))

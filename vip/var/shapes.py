@@ -615,8 +615,7 @@ def mask_circle(array, radius):
     """
     if len(array.shape) == 2:
         sy, sx = array.shape
-        cy = sy/2
-        cx = sx/2
+        cy, cx = frame_center(array)
         xx, yy = np.ogrid[:sy, :sx]
         circle = (xx - cx)**2 + (yy - cy)**2    # squared distance to the center
         hole_mask = circle > radius**2                                             
@@ -624,10 +623,9 @@ def mask_circle(array, radius):
         
     if len(array.shape) == 3:
         n, sy, sx = array.shape
-        cy = sy/2
-        cx = sx/2
+        cy, cx = frame_center(array[0])
         xx, yy = np.ogrid[:sy, :sx]
-        circle = (xx - cx)**2 + (yy - cy)**2    # squared distance to the center
+        circle = (xx - cx)**2 + (yy -                       cy)**2    # squared distance to the center
         hole_mask = circle > radius**2      
         array_masked = np.empty_like(array)
         for i in range(n):

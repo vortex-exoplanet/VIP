@@ -302,7 +302,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     planets_xy_coord = np.array(planets_xy_coord)
     n_planet = planets_xy_coord.shape[0]
 
-    center_xy_coord = np.array([cube.shape[1]/2.,cube.shape[2]/2.])    
+    center_xy_coord = np.array(frame_center(cube[0]))
 
     if f_range is None:  
         f_range = np.linspace(0,5000,20)

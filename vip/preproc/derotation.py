@@ -163,7 +163,7 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='bicubic',
             cxy = (cx, cy)
 
         for i in xrange(n_frames):
-            vec_ang = np.ones((array.shape[0]))*-angle_list[i]
+            vec_ang = np.ones((array.shape[0]))*-angle_list[i] #For VIP (-) sign, for pyKLIP (+) sign
             array_der[:,i] = cube_derotate(array[:,i,:,:], vec_ang, imlib=imlib,
                                            interpolation=interpolation, cxy=cxy)
 

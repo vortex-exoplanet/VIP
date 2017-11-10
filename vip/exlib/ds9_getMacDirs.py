@@ -33,7 +33,7 @@ def getStandardDir(domain, dirType, doCreate=False):
         If dirType is None, then returns None.
     - doCreate: try to create the directory if it does not exist?
     """
-    if dirType == None:
+    if dirType is None:
         return None
     try:
         fsref = Carbon.Folder.FSFindFolder(domain, dirType, doCreate)
@@ -56,7 +56,7 @@ def getMacUserSharedDirs(dirType, inclNone = False):
             dirType = dirType,
             doCreate = False,
         )
-        if (path != None) or inclNone:
+        if (path is not None) or inclNone:
             retDirs.append(path)
     return retDirs
 

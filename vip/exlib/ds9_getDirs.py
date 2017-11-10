@@ -113,7 +113,7 @@ except ImportError:
                 return [getHomeDir(), None]
             else:
                 homeDir = getHomeDir()
-                if homeDir != None:
+                if homeDir is not None:
                     return [homeDir]
             return []
 

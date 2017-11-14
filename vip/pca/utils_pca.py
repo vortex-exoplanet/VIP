@@ -21,7 +21,9 @@ try:
     import cupy
     no_cupy = False
 except ImportError:
-    warnings.warn("Cupy is not installed", ImportWarning)
+    msg = "Cupy not found. Have a GPU? Consider setting up a CUDA environment "
+    msg += "and installing cupy >= 2.0.0"
+    warnings.warn(msg, ImportWarning)
     no_cupy = True
 
 import numpy as np

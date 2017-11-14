@@ -12,4 +12,3 @@ pandas >= 0.18
 matplotlib >= 1.4.3
 psutil
 pyprind
-cupy >= 2.0.0

@@ -12,7 +12,7 @@ from . import phot
 from . import stats
 from . import var
 
-__version__ = "0.7.6"
+__version__ = "0.8.0"
 
 print("---------------------------------------------------")
 print("         oooooo     oooo ooooo ooooooooo.          ")
@@ -23,6 +23,6 @@ print("             `888.8'      888   888                ")
 print("              `888'       888   888                ")
 print("               `8'       o888o o888o               ")
 print("---------------------------------------------------")
-print("     Vortex Image Processing pipeline v"+__version__)
+print("     Vortex Image Processing package v"+__version__)
 print("---------------------------------------------------")
 

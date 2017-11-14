@@ -59,7 +59,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='bicubic', cxy=None
     """
     if not array.ndim == 2:
         raise TypeError('Input array is not a frame or 2d array.')
-    array = np.float32(array)
+
     y, x = array.shape
     
     if not cxy:  

@@ -4,7 +4,7 @@
 PCA algorithm performed on full frame for ADI, RDI or SDI (IFS data).
 """
 
-from __future__ import division 
+from __future__ import division, print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['pca',
@@ -475,7 +475,8 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
                      mode='fullfr', annulus_width=20, range_pcs=None,
                      svd_mode='lapack', scaling=None, mask_center_px=None, 
                      fmerit='px', min_snr=0, collapse='median', verbose=True, 
-                     full_output=False, debug=False, plot=True):
+                     full_output=False, debug=False, plot=True, save_plot=None,
+                     plot_title=None):
     """ Optimizes the number of principal components by doing a simple grid 
     search measuring the SNR for a given position in the frame (ADI, RDI). 
     The metric used could be the given pixel's SNR, the maximum SNR in a FWHM 
@@ -542,6 +543,10 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
     plot : {True, False}, optional
         Whether to plot the SNR and flux as functions of PCs and final PCA 
         frame or not.
+    save_plot: string
+        If provided, the pc optimization plot will be saved to that path.
+    plot_title: string
+        If provided, the plot is titled
 
     Returns
     -------
@@ -556,7 +561,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         transformed = np.dot(V[:ncomp], matrix.T)
         reconstructed = np.dot(transformed.T, V[:ncomp])
         residuals = matrix - reconstructed
-        frsize = np.sqrt(matrix.shape[1])                                       # only for square frames 
+        frsize = int(np.sqrt(matrix.shape[1]))                                  # only for square frames
         residuals_res = reshape_matrix(residuals, frsize, frsize)
         residuals_res_der = cube_derotate(residuals_res, angle_list)
         frame = cube_collapse(residuals_res_der, mode=collapse)
@@ -710,7 +715,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
                                         annulus_width=annulus_width,
                                         verbose=False)
         if cube_ref is not None:
-            ref_lib = prepare_matrix(cube_ref, scaling, mask_center_px,
+            ref_lib, _ = prepare_matrix(cube_ref, scaling, mask_center_px,
                                      mode='annular', annulus_radius=ann_radius,
                                      annulus_width=annulus_width, verbose=False)
         else:
@@ -766,12 +771,12 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
     # automatic "clever" grid
     else:
         grid1 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 
-                     int(pcmax*0.1), pcmin, pcmax, debug, full_output)
+                     max(int(pcmax*0.1),1), pcmin, pcmax, debug, full_output)
         if full_output:  argm, pclist, snrlist, fluxlist, frlist1 = grid1
         else:  argm, pclist, snrlist, fluxlist = grid1
         
         grid2 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 
-                     int(pcmax*0.05), pclist[argm-1], pclist[argm+1], debug, 
+                     max(int(pcmax*0.05),1), pclist[argm-1], pclist[argm+1], debug, 
                      full_output)
         if full_output:  argm2, pclist2, snrlist2, fluxlist2, frlist2 = grid2
         else:  argm2, pclist2, snrlist2, fluxlist2  = grid2
@@ -787,7 +792,7 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         dfr = pd.DataFrame(np.array((pclist+pclist2+pclist3, 
                                      snrlist+snrlist2+snrlist3,
                                      fluxlist+fluxlist2+fluxlist3)).T)  
-        dfrs = dfr.sort(columns=0)
+        dfrs = dfr.sort_values(0)
         dfrsrd = dfrs.drop_duplicates()
         ind = np.array(dfrsrd.index)    
         
@@ -817,6 +822,8 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             ax1.set_ylabel('S/N')
             ax1.minorticks_on()
             ax1.grid('on', 'major', linestyle='solid', alpha=0.2)
+            if plot_title is not None:
+                ax1.set_title('Optimal pc: ' + str(opt_npc) + ' for ' + plot_title)
             
             ax2 = plt.subplot(212)
             ax2.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), '-', 
@@ -832,6 +839,10 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
             ax2.grid('on', 'major', linestyle='solid', alpha=0.2)
             #plt.savefig('figure.pdf', dpi=300, bbox_inches='tight')
             print()
+    
+    # Optionally, save the contrast curve
+    if save_plot != None:
+        plt.savefig(save_plot, dpi=100, bbox_inches='tight')
 
     if mode == 'fullfr':
         finalfr = pca(cube, angle_list, cube_ref=cube_ref, ncomp=opt_npc,

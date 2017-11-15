@@ -112,7 +112,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
         print msg1.format(bad, n, percent_bad_frames) 
 
     if plot:
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(10, 6), dpi=100)
         plt.plot(mean_values, 'o', label='mean fluctuation', lw = 1.4)
         plt.plot(mean_smooth, label='smoothed median', lw = 2, ls='-', alpha=0.5)
         plt.plot(top_boundary, label='top limit', lw = 1.4, ls='-')
@@ -216,7 +216,7 @@ def cube_detect_badfr_ellipticipy(array, fwhm, roundlo=-0.2, roundhi=0.2,
     return good_index_list, bad_index_list
 
 
-def cube_detect_badfr_correlation(array, frame_ref, dist='pearson', 
+def cube_detect_badfr_correlation(array, frame_ref, crop_size=30, dist='pearson',
                                   percentile=20, plot=True, verbose=True):
     """ Returns the list of bad frames from a cube by measuring the distance 
     (similarity) or correlation of the frames (cropped to a 30x30 subframe) 
@@ -231,9 +231,9 @@ def cube_detect_badfr_correlation(array, frame_ref, dist='pearson',
     frame_ref : int
         Index of the frame that will be used as a reference. Must be of course
         a frame taken with a good wavefront quality.
-    dist : {'sad','euclidean','mse','pearson','spearman','ssim'}, str optional
+    dist : {'sad','euclidean','mse','pearson','spearman'}, str optional
         One of the similarity or disimilarity measures from function 
-        vortex.stats.distances.cube_distance(). SSIM is recommended.
+        vip.stats.distances.cube_distance(). 
     percentile : int
         The percentage of frames that will be discarded. 
     plot : {True, False}, bool optional
@@ -259,10 +259,10 @@ def cube_detect_badfr_correlation(array, frame_ref, dist='pearson',
     
     n = array.shape[0]
     # the cube is cropped to the central area
-    subarray = cube_crop_frames(array, min(30, array.shape[1]), verbose=False)
+    subarray = cube_crop_frames(array, min(crop_size, array.shape[1]), verbose=False)
     distances = cube_distance(subarray, frame_ref, 'full', dist, plot=False)
         
-    if dist=='ssim' or dist=='pearson' or dist=='spearman': # measures of correlation or similarity 
+    if dist=='pearson' or dist=='spearman': # measures of correlation or similarity
         minval = np.min(distances[~np.isnan(distances)])
         distances = np.nan_to_num(distances)
         distances[np.where(distances==0)] = minval
@@ -284,7 +284,7 @@ def cube_detect_badfr_correlation(array, frame_ref, dist='pearson',
     
     if plot:
         lista = distances
-        _, ax = plt.subplots(figsize=(8,4))
+        _, ax = plt.subplots(figsize=(10, 6), dpi=100)
         x = range(len(lista))
         ax.plot(x, lista, '-', color='blue', alpha=0.3)
         if n>5000:

@@ -28,22 +28,20 @@ from ..var import frame_center
 
 
 def frame_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
-                        scale_y=None, scale_x=None):
+                        scale_y=None, scale_x=None, keep_odd=True,
+                        full_output=False):
     """ Resamples the pixels of a frame wrt to the center, changing the size
     of the frame. If 'scale' < 1 then the frame is downsampled and if 
-    'scale' > 1 then its pixels are upsampled. Several modes of interpolation
-    are available.
-    
+    'scale' > 1 then its pixels are upsampled. Uses opencv for maximum speed. 
+    Several modes of interpolation are available. 
+
     Parameters
     ----------
     array : array_like 
         Input frame, 2d array.
-    scale : float
+    scale : int or float
         Scale factor for upsampling or downsampling the frame.
-    imlib : {'opencv', 'skimage'}, str optional
-        Library used for image transformations. Opencv is faster than ndimage or
-        skimage.
-    interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
+    interpolation : {'bicubic', 'bilinear', 'nearneig', 'area'}, optional
         'nneighbor' stands for nearest-neighbor interpolation,
         'bilinear' stands for bilinear interpolation,
         'bicubic' for interpolation over 4x4 pixel neighborhood.
@@ -52,23 +50,71 @@ def frame_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
         option for interpolation of noisy astronomical images. 
         Even with 'bicubic' interpolation, opencv library is several orders of
         magnitude faster than python similar functions (e.g. ndimage).
-    scale_y : float
-        Scale factor for upsampling or downsampling the frame along y. If 
+    scale_y : int or float, opt
+        Scale factor for upsampling or downsampling the frame along y only. If 
         provided, it takes priority on scale parameter.
-    scale_x : float
-        Scale factor for upsampling or downsampling the frame along x. If 
+    scale_x : int or float, opt
+        Scale factor for upsampling or downsampling the frame along x only. If 
         provided, it takes priority on scale parameter.
-        
+    keep_odd: bool, opt
+        Will slightly modify the scale factor in order for the final frame size to keep
+        y and x sizes odd. This keyword does nothing if the input array has even
+        dimensions.
+    full_output: bool, opt
+        If True, it will also return the scale factor (slightly modified if keep_odd
+        was set to True)
+
     Returns
     -------
     array_resc : array_like 
         Output resampled frame.
     """
     if not array.ndim == 2:
-        raise TypeError('Input array is not a frame or 2d array')
+        raise TypeError('Input array is not a frame or 2d array.')
 
     if scale_y is None: scale_y = scale
     if scale_x is None: scale_x = scale
+
+    ny = array.shape[0]
+    nx = array.shape[1]
+
+    if keep_odd:
+        if ny % 2 != 0:  # original y size is odd?
+            new_ny = ny * scale_y  # check final size
+            if not new_ny > 0.5:
+                raise ValueError(
+                    "scale_y is too small; resulting array would be 0 size.")
+            # final size is decimal? => make it integer
+            if new_ny % 1 > 0.5:
+                scale_y = (new_ny + 1 - (new_ny % 1)) / ny
+            elif new_ny % 1 > 0:
+                scale_y = (new_ny - (new_ny % 1)) / ny
+            new_ny = ny * scale_y
+            # final size is even?
+            if new_ny % 2 == 0:
+                if scale_y > 1:  # if upscaling => go to closest odd with even-1
+                    scale_y = float(new_ny - 1) / ny
+                else:
+                    scale_y = float(new_ny + 1) / ny
+                    # if downscaling => go to closest odd with even+1 (reversible)
+
+        if nx % 2 != 0:  # original x size is odd?
+            new_nx = nx * scale_x  # check final size
+            if not new_nx > 0.5:
+                raise ValueError(
+                    "scale_x is too small; resulting array would be 0 size.")
+            # final size is decimal? => make it integer
+            if new_nx % 1 > 0.5:
+                scale_x = (new_nx + 1 - (new_nx % 1)) / nx
+            elif new_nx % 1 > 0:
+                scale_x = (new_nx - (new_nx % 1)) / nx
+            new_nx = nx * scale_x
+            # final size is even?
+            if new_nx % 2 == 0:
+                if scale_x > 1:  # if upscaling => go to closest odd with even-1
+                    scale_x = float(new_nx - 1) / nx
+                else:  # if downscaling => go to closest odd with even+1 (reversible)
+                    scale_x = float(new_nx + 1) / nx
 
     if imlib not in ['skimage', 'opencv']:
         raise ValueError('Imlib not recognized, try opencv or ndimage')
@@ -89,7 +135,6 @@ def frame_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
         im_temp /= max_val
 
         array_resc = rescale(im_temp, scale=(scale_y, scale_x), order=order)
-
         array_resc *= max_val
         array_resc += min_val
 
@@ -106,12 +151,16 @@ def frame_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
         array_resc = cv2.resize(array.astype(np.float32), (0,0), fx=scale_x,
                                 fy=scale_y, interpolation=intp)
 
-    # TODO: For conservation of flux (e.g. in aperture 1xFWHM), what to do when
-    # there is a different scaling factor in x and y?
-    if scale_y==scale_x:
-        array_resc /= scale ** 2
+    array_resc /= (scale_y * scale_x)
 
-    return array_resc
+    if full_output:
+        if scale_y == scale_x:
+            scale = scale_y
+        else:
+            scale = (scale_y, scale_x)
+        return array_resc, scale
+    else:
+        return array_resc
 
 
 
@@ -253,8 +302,6 @@ def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0,
                                    (array.shape[1], array.shape[0]), 
                                    flags=cv2.INTER_CUBIC)
 
-    # TODO: For conservation of flux (e.g. in aperture 1xFWHM), what to do when
-    # there is a different scaling factor in x and y?
     if scale_y==scale_x:
         array_out /= scale ** 2
 
@@ -334,7 +381,7 @@ def check_scal_vector(scal_vec):
     correct = False
 
     if isinstance(scal_vec, list):
-        scal_list = scal_vec.copy()
+        scal_list = scal_vec[:]
         nz = len(scal_list)
         scal_vec = np.zeros(nz)
         for ii in range(nz):

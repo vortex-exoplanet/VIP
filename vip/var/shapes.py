@@ -137,7 +137,7 @@ def get_square(array, size, y, x, position=False):
         raise TypeError('Input array is not a frame or 2d array.')
 
     if size%2!=0:  size -= 1 # making it odd to get the wing
-    wing = size/2
+    wing = int(size/2)
     # wing is added to the sides of the subframe center. Note the +1 when
     # closing the interval (python doesn't include the endpoint)
     array_view = array[int(y-wing):int(y+wing+1),
@@ -259,7 +259,8 @@ def get_square_robust(array, size, y, x, position=False,
     else:
         # wing is added to the sides of the subframe center. Note the +1 when
         # closing the interval (python doesn't include the endpoint)
-        array_view = array[int(y-wing_bef):int(y+wing_aft+1), int(x-wing_bef):int(x+wing_aft+1)].copy()
+        array_view = array[int(y-wing_bef):int(y+wing_aft+1),
+                           int(x-wing_bef):int(x+wing_aft+1)].copy()
         if position: return array_view, y-wing_bef, x-wing_bef
         else: return array_view
 
@@ -614,8 +615,7 @@ def mask_circle(array, radius):
     """
     if len(array.shape) == 2:
         sy, sx = array.shape
-        cy = sy/2
-        cx = sx/2
+        cy, cx = frame_center(array)
         xx, yy = np.ogrid[:sy, :sx]
         circle = (xx - cx)**2 + (yy - cy)**2    # squared distance to the center
         hole_mask = circle > radius**2
@@ -623,10 +623,9 @@ def mask_circle(array, radius):
 
     if len(array.shape) == 3:
         n, sy, sx = array.shape
-        cy = sy/2
-        cx = sx/2
+        cy, cx = frame_center(array[0])
         xx, yy = np.ogrid[:sy, :sx]
-        circle = (xx - cx)**2 + (yy - cy)**2    # squared distance to the center
+        circle = (xx - cx)**2 + (yy -                       cy)**2    # squared distance to the center
         hole_mask = circle > radius**2
         array_masked = np.empty_like(array)
         for i in range(n):

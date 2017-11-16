@@ -30,9 +30,14 @@ from ..fits import write_fits
 
 def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                    algo, sigma=5, nbranch=1, theta=0, inner_rad=1, wedge=(0,360),
-                   student=True, transmission=None, plot=True, dpi=100,
-                   debug=False, verbose=True, **algo_dict):
-    """ Computes the contrast curve for a given SIGMA (*sigma*) level. The contrast is calculated as sigma*noise/throughput. This implementation takes into account the small sample statistics correction proposed in Mawet et al. 2014.
+                   fc_snr=10.0, student=True, transmission=None, smooth=True,
+                   plot=True, dpi=100, imlib='opencv', debug=False, verbose=True, full_output=False,
+                   save_plot=None, object_name=None, frame_size=None,
+                   fix_y_lim=(), figsize=(8,4), **algo_dict):
+    """ Computes the contrast curve for a given SIGMA (*sigma*) level. The
+    contrast is calculated as sigma*noise/throughput. This implementation takes
+    into account the small sample statistics correction proposed in Mawet et al.
+    2014.
 
     Parameters
     ----------
@@ -68,16 +73,24 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     wedge : tuple of floats, optional
         Initial and Final angles for using a wedge. For example (-90,90) only
         considers the right side of an image.
+    fc_snr: float optional
+        Signal to noise ratio of injected fake companions
     student : {True, False}, bool optional
         If True uses Student t correction to inject fake companion.
     transmission : tuple of 2 1d arrays, optional
         If not None, then the tuple contains a vector with the factors to be
         applied to the sensitivity and a vector of the radial distances [px]
         where it is sampled (in this order).
+    smooth : {True, False}, bool optional
+        If True the radial noise curve is smoothed with a Savitzky-Golay filter
+        of order 2.
     plot : {True, False}, bool optional
         Whether to plot the final contrast curve or not. True by default.
     dpi : int optional
         Dots per inch for the plots. 100 by default. 300 for printing quality.
+    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+        Library or method used for image operations (shifts). Opencv is the
+        default for being the fastest.
     debug : {False, True}, bool optional
         Whether to print and plot additional info such as the noise, throughput,
         the contrast curve with different X axis and the delta magnitude instead
@@ -85,6 +98,16 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     verbose : {True, False, 0, 1, 2} optional
         If True or 1 the function prints to stdout intermediate info and timing,
         if set to 2 more output will be shown.
+    full_output : {False, True}, bool optional
+        If True returns intermediate arrays.
+    save_plot: string
+        If provided, the contrast curve will be saved to this path.
+    object_name: string
+        Target name, used in the plot title
+    frame_size: int
+        Frame size used for generating the contrast curve, used in the plot title
+    fix_y_lim: tuple
+        If provided, the y axis limits will be fixed, for easier comparison between plots
     **algo_dict
         Any other valid parameter of the post-processing algorithms can be
         passed here.
@@ -129,12 +152,17 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if verbose==2:  verbose_thru = True
     res_throug = throughput(cube, angle_list, psf_template, fwhm, pxscale,
                             nbranch=nbranch, theta=theta, inner_rad=inner_rad,
-                            wedge=wedge, full_output=True, algo=algo,
-                            verbose=verbose_thru, **algo_dict)
+
+                            wedge=wedge, fc_snr=fc_snr, full_output=True, algo=algo,
+                            imlib=imlib, verbose=verbose_thru, **algo_dict)
+
     vector_radd = res_throug[2]
     if res_throug[0].shape[0]>1:  thruput_mean = np.mean(res_throug[0], axis=0)
     else:  thruput_mean = res_throug[0][0]
+    cube_fc_all = res_throug[3]
+    frame_fc_all = res_throug[4]
     frame_nofc = res_throug[5]
+    fc_map_all = res_throug[6]
 
     if verbose:
         print('Finished the throughput calculation')
@@ -148,12 +176,12 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     # starting from 1*FWHM
     noise_samp, rad_samp = noise_per_annulus(frame_nofc, separation=1, fwhm=fwhm,
                                              init_rad=fwhm, wedge=wedge)
-    cutin1 = np.where(rad_samp.astype(int)==vector_radd.astype(int).min())[0]
-    noise_samp = noise_samp[int(cutin1):]
-    rad_samp = rad_samp[int(cutin1):]
-    cutin2 = np.where(rad_samp.astype(int)==vector_radd.astype(int).max())[0]
-    noise_samp = noise_samp[:int(cutin2)+1]
-    rad_samp = rad_samp[:int(cutin2)+1]
+    cutin1 = np.where(rad_samp.astype(int)==vector_radd.astype(int).min())[0][0]
+    noise_samp = noise_samp[cutin1:]
+    rad_samp = rad_samp[cutin1:]
+    cutin2 = np.where(rad_samp.astype(int)==vector_radd.astype(int).max())[0][0]
+    noise_samp = noise_samp[:cutin2+1]
+    rad_samp = rad_samp[:cutin2+1]
 
     # interpolating the throughput vector, spline order 2
     f = InterpolatedUnivariateSpline(vector_radd, thruput_mean, k=2)
@@ -167,15 +195,18 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         trans_interp = f2(rad_samp)
         thruput_interp *= trans_interp
 
-    # smoothing the noise vector using a Savitzky-Golay filter
-    win = int(noise_samp.shape[0]*0.1)
-    if win%2==0.:  win += 1
-    noise_samp_sm = savgol_filter(noise_samp, polyorder=2, mode='nearest',
-                                  window_length=win)
+    if smooth:
+        # smoothing the noise vector using a Savitzky-Golay filter
+        win = min(noise_samp.shape[0]-2,int(2*fwhm))
+        if win%2==0.:  win += 1
+        noise_samp_sm = savgol_filter(noise_samp, polyorder=2, mode='nearest',
+                                      window_length=win)
+    else:
+        noise_samp_sm = noise_samp
 
     if debug:
         plt.rc("savefig", dpi=dpi)
-        fig3 = plt.figure(figsize=(8,4))
+        plt.figure(figsize=figsize, dpi=dpi)
         plt.plot(vector_radd*pxscale, thruput_mean, '.', label='computed',
                  alpha=0.6)
         plt.plot(rad_samp*pxscale, thruput_interp, ',-', label='interpolated',
@@ -184,9 +215,9 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         plt.xlabel('Angular separation [arcsec]')
         plt.ylabel('Throughput')
         plt.legend(loc='best')
-        plt.xlim(0, np.max(rad_samp[:-30]*pxscale))
+        plt.xlim(0, np.max(rad_samp*pxscale))
 
-        fig4 = plt.figure(figsize=(8,4))
+        plt.figure(figsize=figsize, dpi=dpi)
         plt.plot(rad_samp*pxscale, noise_samp, '.', label='computed', alpha=0.6)
         plt.plot(rad_samp*pxscale, noise_samp_sm, ',-', label='noise smoothed',
                  lw=2, alpha=0.5)
@@ -195,9 +226,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         plt.ylabel('Noise')
         plt.legend(loc='best')
         #plt.yscale('log')
-        plt.xlim(0, np.max(rad_samp[:-30]*pxscale))
-        fig3.savefig("/Users/alan/throughput_ang_sep.pdf")
-        fig4.savefig("/Users/alan/noise_ang_sep.pdf")
+        plt.xlim(0, np.max(rad_samp*pxscale))
 
     # calculating the contrast
     if isinstance(starphot, float) or isinstance(starphot, int):
@@ -227,7 +256,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         else:  label = ['Sensitivity (Gaussian)']
 
         plt.rc("savefig", dpi=dpi)
-        fig = plt.figure(figsize=(8,4))
+        fig = plt.figure(figsize=figsize, dpi=dpi)
         ax1 = fig.add_subplot(111)
         con1, = ax1.plot(rad_samp*pxscale, cont_curve_samp, '-',
                          alpha=0.2, lw=2, color='green')
@@ -249,8 +278,29 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         ax1.set_xlim(0, np.max(rad_samp[:-30]*pxscale))
         fig.savefig("/Users/alan/contrastcurve.pdf")
 
+        # Give a title to the contrast curve plot
+        if object_name is not None and frame_size is not None:
+            # Retrieve ncomp and pca_type info to use in title
+            ncomp = algo_dict['ncomp']
+            if algo_dict['cube_ref'] is None:
+                pca_type = 'ADI'
+            else:
+                pca_type = 'RDI'
+            plt.title(pca_type+' '+object_name+' '+str(ncomp)+'pc '+str(frame_size)+'+'+str(inner_rad),
+                      fontsize = 14)
+
+        # Option to fix the y-limit
+        if len(fix_y_lim) == 2:
+            min_y_lim = min(fix_y_lim[0], fix_y_lim[1])
+            max_y_lim = max(fix_y_lim[0], fix_y_lim[1])
+            ax1.set_ylim(min_y_lim, max_y_lim)
+
+        # Optionally, save the figure to a path
+        if save_plot is not None:
+            fig.savefig(save_plot, dpi=100)
+
         if debug:
-            fig2 = plt.figure(figsize=(8,4))
+            fig2 = plt.figure(figsize=figsize, dpi=dpi)
             ax3 = fig2.add_subplot(111)
             cc_mags = -2.5*np.log10(cont_curve_samp)
             con4, = ax3.plot(rad_samp*pxscale, cc_mags, '-',
@@ -275,8 +325,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             ax4 = ax3.twiny()
             ax4.set_xlabel('Distance [pixels]')
             ax4.plot(rad_samp, cc_mags, '', alpha=0.)
-            ax4.set_xlim(0, np.max(rad_samp[:-30]))
-            fig2.savefig("/Users/alan/ang_sep_dmag.pdf")
+            ax4.set_xlim(0, np.max(rad_samp))
 
     datafr0 = DF(data=cont_curve_samp, columns=['sensitivity (Gauss)'])
     datafr2 = DF(data=thruput_interp, columns=['throughput'])
@@ -287,14 +336,19 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         datafr5 = DF(data=sigma_corr, columns=['sigma corr'])
         datafr = datafr0.join(datafr1).join(datafr2).join(datafr3).join(datafr4).join(datafr5)
     else:
-        datafr = datafr0.join(datafr2).join(datafr3).join(datafr4)
+        datafr = pd.DataFrame({'sensitivity (Gauss)': cont_curve_samp,
+                               'throughput': thruput_interp,
+                               'distance': rad_samp, 'noise': noise_samp_sm})
 
-    return datafr
+    if full_output:
+        return (datafr, cube_fc_all, frame_fc_all, frame_nofc, fc_map_all)
+    else:
+        return datafr
 
 
 def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
-               theta=0, inner_rad=1, outer_rad=None,fc_rad_sep=3, wedge=(0,360),
-               full_output=False, verbose=True, **algo_dict):
+               theta=0, inner_rad=1, outer_rad=None,fc_rad_sep=3, wedge=(0,360), fc_snr=10.0,
+               full_output=False, imlib='opencv', verbose=True, **algo_dict):
     """ Measures the throughput for chosen algorithm and input dataset. The
     final throughput is the average of the same procedure measured in *nbranch*
     azimutally equidistant branches.
@@ -326,16 +380,21 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     inner_rad : int, optional
         Innermost radial distance to be considered in terms of FWHM.
     fc_rad_sep : int optional
-        Radial separation between the injection companions (in each of the
+        Radial separation between the injected companions (in each of the
         patterns) in FWHM. Must be large enough to avoid overlapping. With the
         maximum possible value, a single fake companion will be injected per
-        cube and algorithm post-processing (which greately affects computation
+        cube and algorithm post-processing (which greatly affects computation
         time).
     wedge : tuple of floats, optional
         Initial and Final angles for using a wedge. For example (-90,90) only
         considers the right side of an image.
+    fc_snr: float optional
+        Signal to noise ratio of injected fake companions
     full_output : {False, True}, bool optional
         If True returns intermediate arrays.
+    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+        Library or method used for image operations (shifts). Opencv is the
+        default for being the fastest.
     verbose : {True, False}, bool optional
         If True prints out timing and information.
     **algo_dict

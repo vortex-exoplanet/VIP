@@ -94,7 +94,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         bpm_mask = bpm_mask.astype('bool')
         if debug:  pp_subplots(frame, bpm_mask, title='Frame / Bad pixel mask')
 
-    smoothed = median_filter(frame, size, mode='nearest')
+    smoothed = median_filter(frame, size, mode='mirror')
     frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
     array_out = frame
 
@@ -179,7 +179,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
     for i in range(n_frames):
         frame = cube_out[i]
-        smoothed = median_filter(frame, size, mode='nearest')
+        smoothed = median_filter(frame, size, mode='mirror')
         frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
         bar.update()
     array_out = cube_out
@@ -683,7 +683,7 @@ def find_outliers(frame, sig_dist, in_bpix=None, stddev=None,neighbor_box=3,
     nx = frame.shape[1]
     ny = frame.shape[0]
     bpix_map = np.zeros_like(frame)
-    if stddev == None: stddev = np.std(frame)
+    if stddev is None: stddev = np.std(frame)
     half_box = int(np.floor(neighbor_box/2.))
     
     if in_bpix is None:
@@ -827,7 +827,7 @@ def reject_outliers(data, test_value, m=5., stddev=None, DEBUG=False,
         0 if test_value is not an outlier. 1 otherwise. 
     """
 
-    if stddev == None: stddev = np.std(data)
+    if stddev is None: stddev = np.std(data)
     if min_thr is None:
         min_thr = min(np.amin(data),test_value)-1
     if mid_thr is None:

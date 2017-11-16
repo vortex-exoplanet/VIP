@@ -68,7 +68,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     """
     def find_indices(angle_list, frame, thr, nframes):  
         """ Returns the indices to be left in frames library for optimized ADI.
-        To find a more pythonic way to do this!
+        TO-DO: find a pythonic way to do this!
         """
         n = angle_list.shape[0]
         index_prev = 0 

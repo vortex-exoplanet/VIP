@@ -17,7 +17,7 @@ import numpy as np
 from ..var import frame_center, get_square
 
 
-def cube_crop_frames(array, size, xy=None, verbose=True):                          
+def cube_crop_frames(array, size, xy=None, verbose=True, full_output = False):                          
     """Crops frames in a cube (3d array). If size is an even value it'll be 
     increased by one to make it odd.
     
@@ -32,7 +32,9 @@ def cube_crop_frames(array, size, xy=None, verbose=True):
         coordinates from ds9 subtract 1, python has 0-based indexing.
     verbose : {True, False}, bool optional
         If True message of completion is showed.
-    
+    full_output: {False, True}
+        If true, returns cenx and ceny in addition to array_view
+
     Returns
     -------
     array_view : array_like
@@ -40,9 +42,9 @@ def cube_crop_frames(array, size, xy=None, verbose=True):
         
     """
     if not array.ndim == 3:
-        raise TypeError('\nArray is not 3d, not a cube')
+        raise TypeError('Array is not 3d, not a cube')
     if not isinstance(size, int):
-        raise TypeError('\nSize must be integer')
+        raise TypeError('Size must be integer')
     
     if size%2!=0:  size -= 1
     if size >= array.shape[1]:
@@ -53,7 +55,7 @@ def cube_crop_frames(array, size, xy=None, verbose=True):
     
     if xy is not None:
         if not (isinstance(xy[0], int) or isinstance(xy[1], int)):
-            raise TypeError('\nXY must be a tuple of integers')
+            raise TypeError('XY must be a tuple of integers')
         cenx, ceny = xy 
         # Note the +1 when closing the interval (python doesn't include the 
         # endpoint)
@@ -72,7 +74,12 @@ def cube_crop_frames(array, size, xy=None, verbose=True):
             msg = "Cube cropped with new size [{:},{:},{:}]"
             print msg.format(array.shape[0], size+1, size+1)
 
-    return array_view
+    # Option to return the cenx and ceny for double checking that the frame crop
+    # did not exceed the limit
+    if full_output:
+        return array_view, cenx, ceny
+    else:
+        return array_view
 
 
 def frame_crop(array, size, cenxy=None, verbose=True):                         

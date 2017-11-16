@@ -220,10 +220,14 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
         Known size of the FHWM in pixels to be used. Deafult is 4.
     asize : int, optional
         The size of the annuli, in FWHM. Default is 3 which is recommended when 
-        *quad* is True. Smaller values are valid when *quad* is False.  
+        ``quad`` is True. Smaller values are valid when ``quad`` is False.  
     delta_rot : int, optional
         Factor for increasing the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1 FHWM on each side of the considered frame).
+        According to Absil+13, a slightly better contrast can be reached for the 
+        innermost annuli if we consider a ``delta_rot`` condition as small as 
+        0.1 lambda/D. This is because at very small separation, the effect of 
+        speckle correlation is more significant than self-subtraction.
     ncomp : int or list or 1d numpy array, optional
         How many PCs are kept. If none it will be automatically determined. If a
         list is provided and it matches the number of annuli then a different
@@ -237,14 +241,14 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
         in single-process mode.
     min_frames_pca : int, optional 
         Minimum number of frames in the PCA reference library. Be careful, when
-        min_frames_pca <= ncomp, then for certain frames the subtracted low-rank
-        approximation is not optimal (getting a 10 PCs out of 2 frames is not
-        possible so the maximum number of PCs is used = 2). In practice the 
-        resulting frame may be more noisy. It is recommended to decrease 
-        delta_rot and have enough frames in the libraries to allow getting 
-        ncomp PCs.    
+        ``min_frames_pca`` <= ``ncomp``, then for certain frames the subtracted 
+        low-rank approximation is not optimal (getting a 10 PCs out of 2 frames 
+        is not possible so the maximum number of PCs is used = 2). In practice 
+        the resulting frame may be more noisy. It is recommended to decrease 
+        ``delta_rot`` and have enough frames in the libraries to allow getting 
+        ``ncomp`` PCs.    
     tol : float, optional
-        Stopping criterion for choosing the number of PCs when *ncomp* is None.
+        Stopping criterion for choosing the number of PCs when ``ncomp`` is None.
         Lower values will lead to smaller residuals and more PCs.
     quad : {False, True}, bool optional
         If False the images are processed in annular fashion. If True, quadrants

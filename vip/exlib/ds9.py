@@ -179,7 +179,7 @@ def _findApp(appName, subDirs = None, doRaise = True):
     Return None or raise RuntimeError if not found.
     """
     appDirs = getAppDirs()
-    if subDirs == None:
+    if subDirs is None:
         subDirs = [None]
     dirTrials = []
     for appDir in appDirs:
@@ -263,7 +263,7 @@ def _findDS9AndXPA():
             "SAOImage DS9.app/Contents/MacOS",
             "SAOImageDS9.app/Contents/MacOS",
         ], doRaise=False)
-        foundDS9 = (ds9Dir != None)
+        foundDS9 = (ds9Dir is not None)
         if foundDS9:
             _DS9Path = os.path.join(ds9Dir, "ds9")
         foundXPA = False

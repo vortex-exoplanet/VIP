@@ -18,10 +18,10 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../vip/'))
+sys.path.insert(0, os.path.abspath('../../vip_hci/'))
 
 
-with open(os.path.join(os.path.abspath('../../vip/'), '__init__.py')) as init:
+with open(os.path.join(os.path.abspath('../../vip_hci/'), '__init__.py')) as init:
     for line in init:
         if "__version__ =" in line:
             version = line.split('"')[1]
@@ -343,7 +343,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'vip-vorteximageprocessing', u'VIP Documentation',
+    (master_doc, 'vip_hci-vorteximageprocessing', u'VIP Documentation',
      [author], 1)
 ]
 

@@ -18,15 +18,16 @@ from skimage import draw
 from astropy.io import fits
 from matplotlib import pyplot as plt
 from sklearn.decomposition import IncrementalPCA
-from .utils_pca import svd_wrapper, prepare_matrix, reshape_matrix
+from .svd import svd_wrapper
+from .pca_local import find_indices, compute_pa_thresh
+from .utils_pca import (prepare_matrix, reshape_matrix, pca_annulus,
+                        scale_cube_for_pca)
 from ..preproc import (cube_derotate, cube_collapse, check_PA_vector,
                        check_scal_vector)
 from ..conf import timing, time_ini, check_enough_memory, get_available_memory
-from ..var import frame_center, dist, get_annulus
+from ..var import frame_center, dist
 from ..stats import descriptive_stats
 from .. import phot
-from .utils_pca import pca_annulus, scale_cube_for_pca
-from .pca_local import find_indices, compute_pa_thresh
 
 import warnings
 warnings.filterwarnings("ignore", category=Warning)
@@ -96,8 +97,19 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
     ncomp2 : int, optional
         How many PCs are used for IFS+ADI datacubes in the second stage PCA. 
         ncomp2 goes up to the number of multi-spectral frames. 
-    svd_mode : {'lapack', 'eigen', 'randsvd', 'arpack'}, str optional
-        Switch for different ways of computing the SVD and selected PCs.
+    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy', 'randcupy'}, str
+        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK 
+        linear algebra library through Numpy and it is the most conventional way 
+        of computing the SVD (deterministic result computed on CPU). ``arpack`` 
+        uses the ARPACK Fortran libraries accessible through Scipy (computation
+        on CPU). ``eigen`` computes the singular vectors through the 
+        eigendecomposition of the covariance M.M' (computation on CPU).
+        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn 
+        (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
+        of the SVD as in the LAPACK version. ``eigencupy`` offers the same 
+        method as with the ``eigen`` option but on GPU (through Cupy). 
+        ``randcupy`` is an adaptation of the randomized_svd algorith, where all 
+        the computations are done on a GPU. 
     scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
         With None, no scaling is performed on the input data before SVD. With 
         "temp-mean" then temporal px-wise mean subtraction is done, with 
@@ -511,8 +523,19 @@ def pca_optimize_snr(cube, angle_list, (source_xy), fwhm, cube_ref=None,
         and PC_MAX with step of 1. If a range is entered (as 
         (PC_INI, PC_MAX, STEP)) a grid will be evaluated between PC_INI and 
         PC_MAX with the given STEP.          
-    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, optional
-        Switch for different ways of computing the SVD and selected PCs.
+    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy', 'randcupy'}, str
+        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK 
+        linear algebra library through Numpy and it is the most conventional way 
+        of computing the SVD (deterministic result computed on CPU). ``arpack`` 
+        uses the ARPACK Fortran libraries accessible through Scipy (computation
+        on CPU). ``eigen`` computes the singular vectors through the 
+        eigendecomposition of the covariance M.M' (computation on CPU).
+        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn 
+        (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
+        of the SVD as in the LAPACK version. ``eigencupy`` offers the same 
+        method as with the ``eigen`` option but on GPU (through Cupy). 
+        ``randcupy`` is an adaptation of the randomized_svd algorith, where all 
+        the computations are done on a GPU. 
     scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
         With None, no scaling is performed on the input data before SVD. With 
         "temp-mean" then temporal px-wise mean subtraction is done, with 

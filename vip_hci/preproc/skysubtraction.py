@@ -23,7 +23,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
         3d array of sky frames.
     mask : array_like
         Mask indicating the region for the analysis. Can be created with the
-        function vip.var.create_ringed_spider_mask.
+        function vip_hci.var.create_ringed_spider_mask.
     ref_cube : array_like or None
         Reference cube.
     ncomp : int

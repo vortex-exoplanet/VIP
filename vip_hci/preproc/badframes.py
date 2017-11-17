@@ -233,7 +233,7 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30, dist='pearson'
         a frame taken with a good wavefront quality.
     dist : {'sad','euclidean','mse','pearson','spearman'}, str optional
         One of the similarity or disimilarity measures from function 
-        vip.stats.distances.cube_distance(). 
+        vip_hci.stats.distances.cube_distance(). 
     percentile : int
         The percentage of frames that will be discarded. 
     plot : {True, False}, bool optional

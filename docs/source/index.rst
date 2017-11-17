@@ -8,7 +8,7 @@
    :scale:  20 %
    :target: #
 
-.. include:: ../../README.rst
+.. include:: readme.rst
 
 
 Frequently asked questions

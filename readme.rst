@@ -1,17 +1,17 @@
 .. image:: https://badge.fury.io/py/vip-hci.svg
-    target: https://pypi.python.org/pypi/vip-hci
+    :target: https://pypi.python.org/pypi/vip-hci
 
 .. image:: https://img.shields.io/badge/Python-2.7-brightgreen.svg
-    target: https://pypi.python.org/pypi/vip-hci
+    :target: https://pypi.python.org/pypi/vip-hci
 
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
-    target: https://github.com/vortex-exoplanet/VIP/blob/master/LICENSE
+    :target: https://github.com/vortex-exoplanet/VIP/blob/master/LICENSE
 
 .. image:: https://img.shields.io/badge/arXiv-1705.06184%20-yellowgreen.svg
-    target: https://arxiv.org/abs/1705.06184
+    :target: https://arxiv.org/abs/1705.06184
 
 .. image:: https://readthedocs.org/projects/emcee/badge/?version=latest
-    target: http://vip.readthedocs.io/en/latest/?badge=latest
+    :target: http://vip.readthedocs.io/en/latest/?badge=latest
 
 
 VIP - Vortex Image Processing package

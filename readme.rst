@@ -1,5 +1,4 @@
 VIP - Vortex Image Processing package
-SPHERE/IFS Data reduction specified fork of VIP
 =====================================
 
 Attribution

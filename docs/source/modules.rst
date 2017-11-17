@@ -1,7 +1,7 @@
-vip
-===
+vip_hci
+=======
 
 .. toctree::
    :maxdepth: 4
 
-   vip
+   vip_hci

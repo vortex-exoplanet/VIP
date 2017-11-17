@@ -3,6 +3,7 @@ build
 dist
 
 docs/build
+docs/time
 vip_hci/tests
 
 .settings

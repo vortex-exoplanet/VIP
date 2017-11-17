@@ -54,7 +54,7 @@ setup(
     description='Package for astronomical high-contrast image processing.',
     long_description=README,
     license='MIT',
-    author='Carlos A. Gomez Gonzalez',
+    author='Carlos Alberto Gomez Gonzalez',
     author_email='carlosgg33@gmail.com',
     url='https://github.com/vortex-exoplanet/VIP',
     cmdclass={'install': InstallReqs},

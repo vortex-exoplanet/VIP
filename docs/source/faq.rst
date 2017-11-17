@@ -2,7 +2,11 @@
 FAQ
 ----
 First things first. Please make sure you have the latest version of ``VIP``.
-Please go and check the repository now!
+Please go and check the repository now. Alternatively, you can run:
+
+.. code-block:: bash
+
+  $ pip install --upgrade vip_hci
 
 
 * On linux, why do I get a matplotlib related error when importing ``VIP``?

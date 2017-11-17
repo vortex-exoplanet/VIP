@@ -6,7 +6,7 @@ Module containing functions for cubes frame registration.
 
 from __future__ import division
 
-__author__ = 'C. Gomez @ ULg, V. Christiaens @ ULg/UChile'
+__author__ = 'C. Gomez @ ULg, V. Christiaens @ ULg/UChile, G. Ruane'
 __all__ = ['frame_shift',
            'frame_center_radon',
            'frame_center_satspots',
@@ -14,11 +14,11 @@ __all__ = ['frame_shift',
            'cube_recenter_radon',
            'cube_recenter_dft_upsampling',
            'cube_recenter_gauss2d_fit',
-           'cube_recenter_moffat2d_fit']
+           'cube_recenter_moffat2d_fit',
+           'cube_recenter_via_speckles']
 
 import numpy as np
 import warnings
-import pywt
 import itertools as itt
 import pyprind
 
@@ -36,14 +36,15 @@ from scipy.ndimage import shift
 from skimage.transform import radon
 from skimage.feature import register_translation
 from multiprocessing import Pool, cpu_count
-#from image_registration import chi2_shift
 from matplotlib import pyplot as plt
 from . import approx_stellar_position
 from . import frame_crop
 from ..conf import time_ini, timing
 from ..conf import eval_func_tuple as EFT
 from ..var import (get_square, get_square_robust, frame_center,
-                   get_annulus, pp_subplots, fit_2dmoffat, fit_2dgaussian)
+                   get_annulus, pp_subplots, fit_2dmoffat, fit_2dgaussian,
+                   frame_filter_gaussian2d, frame_filter_lowpass)
+from ..preproc import cube_crop_frames
 
 
 def frame_shift(array, shift_y, shift_x, imlib='ndimage-fourier',
@@ -1039,6 +1040,189 @@ def _centroid_2dm_frame(cube, frnum, size, pos_y, pos_x,
     else:
         y_i, x_i = fit_2dmoffat(sub_image, y1, x1, full_output=False, fwhm=fwhm)
     return y_i, x_i
+
+
+def cube_recenter_via_speckles(cube_sci, cube_ref=None,
+                               alignment_iter=5, gammaval=1,
+                               min_spat_freq=0.5, max_spat_freq=3,
+                               fwhm=8., debug=False, negative=True,
+                               recenter_median=True, subframesize=151,
+                               imlib='opencv', interpolation='bilinear'):
+    """ Registers frames based on the median speckle pattern. Optionally centers 
+    based on the position of the vortex null in the median frame. Images are 
+    filtered to isolate speckle spatial frequencies.
+
+    Parameters
+    ----------
+    cube_sci : array_like  
+        Science cube.
+    cube_ref : array_like
+        Reference cube (e.g. for NIRC2 data in RDI mode). 
+    alignment_iter : int, optional  
+        Number of alignment iterations (recomputes median after each iteration). 
+    gammaval : int, optional 
+        Applies a gamma correction to emphasize speckles (useful for faint 
+        stars).
+    min_spat_freq : float, optional 
+        Spatial frequency for high pass filter. 
+    max_spat_freq : float, optional 
+        Spatial frequency for low pass filter. 
+    fwhm : float, optional 
+        Full width at half maximum. 
+    debug : {False, True}, optional 
+        Outputs extra info.
+    negative : {True, False}, optional
+        Use a negative gaussian fit to determine the center of the median frame.
+    recenter_median : {True, False}, optional 
+        Recenter the frames at each iteration based on the gaussian fit.
+    subframesize : int, optional
+        Sub-frame window size used. Should cover the region where speckles are 
+        the dominant noise source. 
+    imlib : str, optional 
+        Image processing library to use. 
+    interpolation : str, optional 
+        Interpolation method to use.
+
+
+    Returns
+    -------
+    array_shifted : array_like
+        Shifted 2d array.
+
+    If cube_ref is not None, returns:
+    cube_reg_sci: Registered science cube.
+    cube_reg_ref: Ref. cube registered to science frames.
+    cum_x_shifts_sci: Vector of x shifts for science frames.
+    cum_y_shifts_sci: Vector of y shifts for science frames.
+    cum_x_shifts_ref: Vector of x shifts for ref. frames.
+    cum_y_shifts_ref: Vector of y shifts for ref. frames.
+
+    Otherwise, returns: cube_reg_sci, cum_x_shifts_sci, cum_y_shifts_sci
+    """
+    if cube_ref is not None:
+        refStar = True
+    else:
+        refStar = False
+
+    cube_sci_subframe = cube_crop_frames(cube_sci, subframesize, verbose=False)
+    if (refStar):
+        cube_ref_subframe = cube_crop_frames(cube_ref, subframesize,
+                                             verbose=False)
+
+    ceny, cenx = frame_center(cube_sci_subframe[0, :, :])
+    print 'sub frame is ' + str(cube_sci_subframe.shape[1]) + 'x' + str(
+        cube_sci_subframe.shape[2])
+    print 'center pixel is (' + str(ceny) + ', ' + str(cenx) + ')'
+
+    # Make a copy of the sci and ref frames, filter them, will be used for alignment purposes
+    cube_sci_lpf = cube_sci_subframe.copy()
+    if refStar:
+        cube_ref_lpf = cube_ref_subframe.copy()
+
+    cube_sci_lpf = cube_sci_lpf - np.min(cube_sci_lpf)
+    if refStar:
+        cube_ref_lpf = cube_ref_lpf - np.min(cube_ref_lpf)
+
+    # Remove spatial frequencies <0.5 lam/D and >3lam/D to isolate speckles
+    for i in range(cube_sci.shape[0]):
+        cube_sci_lpf[i, :, :] = cube_sci_lpf[i, :, :] - frame_filter_lowpass(
+            cube_sci_lpf[i, :, :], 'median', median_size=fwhm * max_spat_freq)
+    if refStar:
+        for i in range(cube_ref.shape[0]):
+            cube_ref_lpf[i, :, :] = cube_ref_lpf[i, :,
+                                    :] - frame_filter_lowpass(
+                cube_ref_lpf[i, :, :], 'median',
+                median_size=fwhm * max_spat_freq)
+
+    for i in range(cube_sci.shape[0]):
+        cube_sci_lpf[i, :, :] = frame_filter_gaussian2d(cube_sci_lpf[i, :, :],
+                                                        min_spat_freq * fwhm)
+    if refStar:
+        for i in range(cube_ref.shape[0]):
+            cube_ref_lpf[i, :, :] = frame_filter_gaussian2d(
+                cube_ref_lpf[i, :, :], min_spat_freq * fwhm)
+
+    if refStar:
+        alignment_cube = np.zeros((1 + cube_sci.shape[0] + cube_ref.shape[0],
+                                   cube_sci_subframe.shape[1],
+                                   cube_sci_subframe.shape[2]))
+        alignment_cube[1:(cube_sci.shape[0] + 1), :, :] = cube_sci_lpf
+        alignment_cube[
+        (cube_sci.shape[0] + 1):(cube_sci.shape[0] + 2 + cube_ref.shape[0]), :,
+        :] = cube_ref_lpf
+    else:
+        alignment_cube = np.zeros((1 + cube_sci.shape[0],
+                                   cube_sci_subframe.shape[1],
+                                   cube_sci_subframe.shape[2]))
+        alignment_cube[1:(cube_sci.shape[0] + 1), :, :] = cube_sci_lpf
+
+    n_frames = alignment_cube.shape[
+        0]  # number of sci+ref frames + 1 for the median
+
+    cum_y_shifts = 0
+    cum_x_shifts = 0
+
+    for i in range(alignment_iter):
+
+        alignment_cube[0, :, :] = np.median(
+            alignment_cube[1:(cube_sci.shape[0] + 1), :, :], axis=0)
+        if (recenter_median):
+            ## Recenter the median frame using a neg. gaussian fit
+            sub_image, y1, x1 = get_square_robust(alignment_cube[0, :, :],
+                                                  size=int(fwhm) + 1, y=ceny,
+                                                  x=cenx, position=True)
+            if negative:
+                sub_image = -sub_image + np.abs(np.min(-sub_image))
+            y_i, x_i = fit_2dgaussian(sub_image, crop=False, threshold=False,
+                                      sigfactor=1, debug=debug)
+            yshift = ceny - (y1 + y_i)
+            xshift = cenx - (x1 + x_i)
+
+            print yshift, xshift
+            alignment_cube[0, :, :] = frame_shift(alignment_cube[0, :, :],
+                                                  yshift, xshift, imlib=imlib,
+                                                  interpolation=interpolation)
+
+        # center the cube with stretched values
+        _, y_shift, x_shift = cube_recenter_dft_upsampling(
+            np.log10((abs(alignment_cube) + 1) ** (gammaval)), ceny, cenx,
+            fwhm=fwhm,
+            subi_size=None, full_output=True, verbose=False, save_shifts=False,
+            debug=False)
+
+        print '\nSquare sum of shift vecs: ' + str(
+            np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2)))
+
+        for i in range(1, n_frames):
+            alignment_cube[i] = frame_shift(alignment_cube[i], y_shift[i],
+                                            x_shift[i], imlib=imlib,
+                                            interpolation=interpolation)
+
+        cum_y_shifts = cum_y_shifts + y_shift
+        cum_x_shifts = cum_x_shifts + x_shift
+
+    cum_y_shifts_sci = cum_y_shifts[1:(cube_sci.shape[0] + 1)]
+    cum_x_shifts_sci = cum_x_shifts[1:(cube_sci.shape[0] + 1)]
+
+    cube_reg_sci = cube_sci.copy()
+    for i in range(cube_sci.shape[0]):
+        cube_reg_sci[i] = frame_shift(cube_sci[i], cum_y_shifts_sci[i],
+                                      cum_x_shifts_sci[i], imlib=imlib,
+                                      interpolation=interpolation)
+
+    if refStar:
+        cube_reg_ref = cube_ref.copy()
+        cum_y_shifts_ref = cum_y_shifts[(cube_sci.shape[0] + 1):]
+        cum_x_shifts_ref = cum_x_shifts[(cube_sci.shape[0] + 1):]
+        for i in range(cube_ref.shape[0]):
+            cube_reg_ref[i] = frame_shift(cube_ref[i], cum_y_shifts_ref[i],
+                                          cum_x_shifts_ref[i], imlib=imlib,
+                                          interpolation=interpolation)
+
+    if cube_ref is not None:
+        return cube_reg_sci, cube_reg_ref, cum_x_shifts_sci, cum_y_shifts_sci, cum_x_shifts_ref, cum_y_shifts_ref
+    else:
+        return cube_reg_sci, cum_x_shifts_sci, cum_y_shifts_sci
 
 
 

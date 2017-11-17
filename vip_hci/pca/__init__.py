@@ -23,4 +23,5 @@ the computations amongst the available cores in your machine.
 
 from pca_fullfr import *
 from pca_local import *
+from svd import *
 from utils_pca import *

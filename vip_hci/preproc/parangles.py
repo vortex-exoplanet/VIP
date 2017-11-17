@@ -35,7 +35,7 @@ def compute_paral_angles(header, latitude, ra_key, dec_key, lst_key,
         Header of current frame.
     latitude : float
         Latitude of the observatory in degrees. The dictionaries in 
-        vip/conf/param.py can be used like: latitude=LBT['latitude'].
+        vip_hci/conf/param.py can be used like: latitude=LBT['latitude'].
     ra_key, dec_key, lst_key, acqtime_key, date_key : strings
         Keywords where the values are stored in the header.
         

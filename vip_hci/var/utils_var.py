@@ -24,7 +24,7 @@ from .shapes import frame_center
 
 def get_fwhm(lambd, diameter, pxscale):
     """ Returnes the instrument FWHM [px] given the wavelenght [m], diameter [m] 
-    and plate/pixel scale [arcs/px]. In vip/conf/param.py can be found
+    and plate/pixel scale [arcs/px]. In vip_hci/conf/param.py can be found
     dictionaries with the parameters for different instruments.                           
     """
     fwhm = lambd/diameter*206265/pxscale                    

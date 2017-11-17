@@ -59,7 +59,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='bicubic', cxy=None
     """
     if not array.ndim == 2:
         raise TypeError('Input array is not a frame or 2d array.')
-    array = np.float32(array)
+
     y, x = array.shape
     
     if not cxy:  
@@ -133,7 +133,7 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='bicubic',
     cxy : tuple of int, optional
         Coordinates X,Y  of the point with respect to which the rotation will be 
         performed. By default the rotation is done with respect to the center 
-        of the frames, as it is returned by the function vip.var.frame_center. 
+        of the frames, as it is returned by the function vip_hci.var.frame_center. 
     collapse : {'median','mean'}
         Way of collapsing the derotated cube.
         

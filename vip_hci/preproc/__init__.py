@@ -33,7 +33,6 @@ from cosmetics_ifs import *
 from derotation import *
 from parangles import *
 from recentering import *
-from recentering2 import *
 from rescaling import *
 from skysubtraction import *
 from subsampling import *

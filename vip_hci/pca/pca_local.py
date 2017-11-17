@@ -18,7 +18,8 @@ from ..preproc import cube_derotate, cube_collapse, check_PA_vector
 from ..conf import time_ini, timing
 from ..conf import eval_func_tuple as EFT 
 from ..var import get_annulus_quad, get_annulus
-from ..pca.utils_pca import svd_wrapper, matrix_scaling
+from .svd import svd_wrapper
+from .utils_pca import matrix_scaling
 from ..stats import descriptive_stats
 
 
@@ -51,8 +52,19 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1,
         The size of the annuli, in FWHM. Default is 3.
     ncomp : int, optional
         How many PCs are kept. If none it will be automatically determined.
-    svd_mode : {randsvd, eigen, lapack, arpack, opencv}, optional
-        Switch for different ways of computing the SVD and principal components.
+    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy', 'randcupy'}, str
+        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK 
+        linear algebra library through Numpy and it is the most conventional way 
+        of computing the SVD (deterministic result computed on CPU). ``arpack`` 
+        uses the ARPACK Fortran libraries accessible through Scipy (computation
+        on CPU). ``eigen`` computes the singular vectors through the 
+        eigendecomposition of the covariance M.M' (computation on CPU).
+        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn 
+        (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
+        of the SVD as in the LAPACK version. ``eigencupy`` offers the same 
+        method as with the ``eigen`` option but on GPU (through Cupy). 
+        ``randcupy`` is an adaptation of the randomized_svd algorith, where all 
+        the computations are done on a GPU. 
     min_corr : int, optional
         Level of linear correlation between the library patches and the median 
         of the science. Deafult is 0.9.
@@ -233,8 +245,19 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
         list is provided and it matches the number of annuli then a different
         number of PCs will be used for each annulus (starting with the innermost
         one).
-    svd_mode : {randsvd, eigen, lapack, arpack, opencv}, optional
-        Switch for different ways of computing the SVD and principal components.
+    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy', 'randcupy'}, str
+        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK 
+        linear algebra library through Numpy and it is the most conventional way 
+        of computing the SVD (deterministic result computed on CPU). ``arpack`` 
+        uses the ARPACK Fortran libraries accessible through Scipy (computation
+        on CPU). ``eigen`` computes the singular vectors through the 
+        eigendecomposition of the covariance M.M' (computation on CPU).
+        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn 
+        (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
+        of the SVD as in the LAPACK version. ``eigencupy`` offers the same 
+        method as with the ``eigen`` option but on GPU (through Cupy). 
+        ``randcupy`` is an adaptation of the randomized_svd algorith, where all 
+        the computations are done on a GPU. 
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of 
         processes will be set to (cpu_count()/2). By default the algorithm works

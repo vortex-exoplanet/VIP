@@ -56,7 +56,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         non-coronagraphic PSF which we use to scale the contrast. If a vector
         is given it must contain the photometry correction for each frame.
     algo : callable or function
-        The post-processing algorithm, e.g. vip.pca.pca.
+        The post-processing algorithm, e.g. vip_hci.pca.pca.
     sigma : int
         Sigma level for contrast calculation.
     nbranch : int optional
@@ -376,7 +376,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     pxscale : float
         Plate scale in arcsec/px.
     algo : callable or function
-        The post-processing algorithm, e.g. vip.pca.pca. Third party Python
+        The post-processing algorithm, e.g. vip_hci.pca.pca. Third party Python
         algorithms can be plugged here. They must have the parameters: 'cube',
         'angle_list' and 'verbose'. Optionally a wrapper function can be used.
     nbranch : int optional

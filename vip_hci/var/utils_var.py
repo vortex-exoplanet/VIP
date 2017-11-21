@@ -190,8 +190,7 @@ def pp_subplots(*args, **kwargs):
         if isinstance(kwargs['vmax'], tuple) or isinstance(kwargs['vmax'],
                                                            list):
             if len(kwargs['vmax']) != num_plots:
-                print(
-                "Vmax list does not have enough items, setting all to None")
+                print("Vmax list does not have enough items, setting all to None")
                 vmax = [None for i in range(num_plots)]
             else:
                 vmax = kwargs['vmax']

@@ -155,57 +155,33 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     residuals is returned.
     """
 
+    data, ind = prepare_matrix(cube, scaling, mode='annular',       annulus_radius=r_guess,
+                            annulus_width=annulus_width, verbose=False)
+    yy, xx = ind
+
+    if cube_ref is not None:
+        data_svd, _  = prepare_matrix(cube_ref, scaling, mode='annular',
+                                    annulus_radius=r_guess,
+                                    annulus_width=annulus_width, verbose=False)
+    else:
+        data_svd = data
+
+    V = svd_wrapper(data_svd, svd_mode, ncomp, debug=False, verbose=False)
+
+    transformed = np.dot(data, V.T)
+    reconstructed = np.dot(transformed, V)
+    residuals = data - reconstructed
+    cube_zeros = np.zeros_like(cube)
     if cube.ndim==3:
-        data, ind = prepare_matrix(cube, scaling, mode='annular',       annulus_radius=r_guess,
-                                annulus_width=annulus_width, verbose=False)
-        yy, xx = ind
-
-        if cube_ref is not None:
-            data_svd, _  = prepare_matrix(cube_ref, scaling, mode='annular',
-                                        annulus_radius=r_guess,
-                                        annulus_width=annulus_width, verbose=False)
-        else:
-            data_svd = data
-
-        V = svd_wrapper(data_svd, svd_mode, ncomp, debug=False, verbose=False)
-
-        transformed = np.dot(data, V.T)
-        reconstructed = np.dot(transformed, V)
-        residuals = data - reconstructed
-        cube_zeros = np.zeros_like(cube)
         cube_zeros[:, yy, xx] = residuals
-        cube_res_der = cube_derotate(cube_zeros, angs)
-        if collapse is not None:
-            pca_frame = cube_collapse(cube_res_der, mode=collapse)
-            return pca_frame
-        else:
-            return cube_res_der
-
-    if cube.ndim==4:
-        data, ind = prepare_matrix(cube, scaling, mode='annular',       annulus_radius=r_guess,
-                                annulus_width=annulus_width, verbose=False)
-        yy, xx = ind
-
-        if cube_ref is not None:
-            data_svd, _  = prepare_matrix(cube_ref, scaling, mode='annular',
-                                        annulus_radius=r_guess,
-                                        annulus_width=annulus_width, verbose=False)
-        else:
-            data_svd = data
-
-        V = svd_wrapper(data_svd, svd_mode, ncomp, debug=False, verbose=False)
-
-        transformed = np.dot(data, V.T)
-        reconstructed = np.dot(transformed, V)
-        residuals = data - reconstructed
-        cube_zeros = np.zeros_like(cube)
+    elif cube.ndim==4:
         cube_zeros[:, :, yy, xx] = residuals
-        cube_res_der = cube_derotate(cube_zeros, angs)
-        if collapse is not None:
-            pca_frame = cube_collapse(cube_res_der, mode=collapse)
-            return pca_frame
-        else:
-            return cube_res_der
+    cube_res_der = cube_derotate(cube_zeros, angs)
+    if collapse is not None:
+        pca_frame = cube_collapse(cube_res_der, mode=collapse)
+        return pca_frame
+    else:
+        return cube_res_der
 
 def matrix_scaling(matrix, scaling):
     """ Scales a matrix using sklearn.preprocessing.scale function.
@@ -271,73 +247,53 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
         Out matrix whose rows are vectorized frames from the input cube.
 
     """
-    #3D case
-    if array.ndim==3:
-        if mode == 'annular':
-            if annulus_radius is None or annulus_width is None:
-                msgerr = 'Annulus_radius and/or annulus_width can be None in annular '
-                msgerr += 'mode'
-                raise ValueError(msgerr)
 
+    if mode == 'annular':
+        if annulus_radius is None or annulus_width is None:
+            msgerr = 'Annulus_radius and/or annulus_width can be None in annular '
+            msgerr += 'mode'
+            raise ValueError(msgerr)
+
+        if cube.ndim==3:
             ind = get_annulus(array[0], annulus_radius - annulus_width / 2.,
                             annulus_width, output_indices=True)
             yy, xx = ind
             matrix = array[:, yy, xx]
-
-            matrix = matrix_scaling(matrix, scaling)
-
-            if verbose:
-                msg = 'Done vectorizing the cube annulus. Matrix shape [{:},{:}]'
-                print(msg.format(matrix.shape[0], matrix.shape[1]))
-            return matrix, ind
-
-        elif mode == 'fullfr':
-            if mask_center_px:
-                array = mask_circle(array, mask_center_px)
-
-            nfr = array.shape[0]
-            matrix = np.reshape(array, (nfr, -1))  # == for i: array[i].flatten()
-
-            matrix = matrix_scaling(matrix, scaling)
-
-            if verbose:
-                msg = 'Done vectorizing the frames. Matrix shape [{:},{:}]'
-                print(msg.format(matrix.shape[0], matrix.shape[1]))
-            return matrix
-
-    #4D case
-    if cube.ndim==4:
-        if mode == 'annular':
-            if annulus_radius is None or annulus_width is None:
-                msgerr = 'Annulus_radius and/or annulus_width can be None in annular '
-                msgerr += 'mode'
-                raise ValueError(msgerr)
-
+        elif cube.ndim==4:
             ind = get_annulus(array[0,0], annulus_radius - annulus_width / 2.,
                             annulus_width, output_indices=True)
             yy, xx = ind
             matrix = array[:, :, yy, xx]
 
-            matrix = matrix_scaling(matrix, scaling)
+        matrix = matrix_scaling(matrix, scaling)
 
-            if verbose:
-                msg = 'Done vectorizing the cube annulus. Matrix shape [{:},{:}]'
+        if verbose:
+            msg = 'Done vectorizing the cube annulus. Matrix shape [{:},{:}]'
+            if cube.ndim==3:
+                print(msg.format(matrix.shape[0], matrix.shape[1]))
+            elif cube.ndim==4:
                 print(msg.format(matrix.shape[0,0], matrix.shape[0,1]))
-            return matrix, ind
+        return matrix, ind
 
-        elif mode == 'fullfr':
-            if mask_center_px:
-                array = mask_circle(array, mask_center_px)
+    elif mode == 'fullfr':
+        if mask_center_px:
+            array = mask_circle(array, mask_center_px)
 
+        if cube.ndim==3:
+            nfr = array.shape[0]
+        elif cube.ndim==4:
             nfr = array.shape[0,0]
-            matrix = np.reshape(array, (nfr, -1))  # == for i: array[i].flatten()
+        matrix = np.reshape(array, (nfr, -1))  # == for i: array[i].flatten()
 
-            matrix = matrix_scaling(matrix, scaling)
+        matrix = matrix_scaling(matrix, scaling)
 
-            if verbose:
-                msg = 'Done vectorizing the frames. Matrix shape [{:},{:}]'
+        if verbose:
+            msg = 'Done vectorizing the frames. Matrix shape [{:},{:}]'
+            if cube.ndim==3:
+                print(msg.format(matrix.shape[0], matrix.shape[1]))
+            elif cube.ndim==4:
                 print(msg.format(matrix.shape[0,0], matrix.shape[0,1]))
-            return matrix
+        return matrix
 
 
 def reshape_matrix(array, y, x):
@@ -442,7 +398,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         V = pc[::-1]                                             # reverse since last eigenvectors are the ones we want
         S = np.sqrt(e)[::-1]                                     # reverse since eigenvalues are in increasing order
         if debug: reconstruction(ncomp, None, S, None)
-        for i in xrange(V.shape[1]):
+        for i in range(V.shape[1]):
             V[:,i] /= S                                          # scaling by the square root of eigenvalues
         V = V[:ncomp]
         if verbose: print('Done PCA with numpy linalg eigh functions')

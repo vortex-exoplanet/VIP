@@ -188,7 +188,7 @@ def inject_fc_frame(array, array_fc, pos_y, pos_x, flux):
     """ Injects a fake companion in a single frame at given coordinates.
     """
     if not (array.ndim==2 or array.ndim==3):
-        raise TypeError('Array is not a frame or 2d array.')
+        raise TypeError('Array is not a frame, 2d  or 3d array.')
     if array.ndim==2:
         size_fc = array_fc.shape[0]
         ceny, cenx = frame_center(array)

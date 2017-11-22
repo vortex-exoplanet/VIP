@@ -67,6 +67,7 @@ setup(
                  'Operating System :: POSIX :: Linux',
                  'Natural Language :: English',
                  'Programming Language :: Python :: 2.7',
+                 'Programming Language :: Python :: 3.6',
                  'Topic :: Scientific/Engineering :: Astronomy'
                  ] 
 )

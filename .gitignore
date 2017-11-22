@@ -1,11 +1,12 @@
-vip.egg-info
+vip_hci.egg-info
 build
 dist
 
-tutorial/.ipynb_checkpoints/Tutorial_VIP-checkpoint.ipynb
 docs/build
-vip/tests
+docs/time
+vip_hci/tests
 
+.cache
 .settings
 .project
 .pydevproject

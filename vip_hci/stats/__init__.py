@@ -1,0 +1,16 @@
+"""
+Subpackage ``stats`` contains functionalities such as:
+    - extracting statistics (mean, median, std dev, sum) in regions of a frame
+    or cube,
+    - median absolute deviation,
+    - sigma filtering of pixels in frames,
+    - distance (correlation) between the frames in a cube,
+    - distance (correlation) between a cube and a reference frame.
+"""
+from __future__ import absolute_import
+
+from .clip_sigma import *
+from .cube_stats import *
+from .distances import *
+from .im_stats import *
+from .utils_stats import *

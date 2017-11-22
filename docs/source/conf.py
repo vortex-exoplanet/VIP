@@ -18,10 +18,10 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../vip/'))
+sys.path.insert(0, os.path.abspath('../../vip_hci/'))
 
 
-with open(os.path.join(os.path.abspath('../../vip/'), '__init__.py')) as init:
+with open(os.path.join(os.path.abspath('../../vip_hci/'), '__init__.py')) as init:
     for line in init:
         if "__version__ =" in line:
             version = line.split('"')[1]
@@ -63,8 +63,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'VIP'
-copyright = u'2016, Carlos Gomez Gonzalez & VORTEX team. Artwork by Cristina Gomez Gonzalez'
-author = u'Carlos Gomez Gonzalez & VORTEX team'
+copyright = u'Carlos Alberto Gomez Gonzalez & VORTEX team. Logo by Cristina Gomez Gonzalez'
+author = u'Carlos Alberto Gomez Gonzalez & VORTEX team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -146,7 +146,7 @@ html_theme_options = {
     ### for alabaster theme
     'logo': 'logo.png',
     'logo_name': True,
-    'font_family': 'minion pro',
+    'font_family': 'Georgia',
     'github_banner': True,
     'github_repo': 'vortex-exoplanet/VIP',
     'github_count': True,
@@ -302,7 +302,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'VIP-VortexImageProcessing.tex', u'VIP Documentation',
-     u'Carlos Gomez Gonzalez, Olivier Wertz \\& VORTEX team', 'manual'),
+     u'Carlos Alberto Gomez Gonzalez, Olivier Wertz \\& VORTEX team', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -343,7 +343,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'vip-vorteximageprocessing', u'VIP Documentation',
+    (master_doc, 'vip_hci-vorteximageprocessing', u'VIP Documentation',
      [author], 1)
 ]
 

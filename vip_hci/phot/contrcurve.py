@@ -57,7 +57,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         non-coronagraphic PSF which we use to scale the contrast. If a vector
         is given it must contain the photometry correction for each frame.
     algo : callable or function
-        The post-processing algorithm, e.g. vip_hci.pca.pca.
+        The post-processing algorithm, e.g. vip.pca.pca.
     sigma : int
         Sigma level for contrast calculation.
     nbranch : int optional
@@ -141,10 +141,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         if isinstance(starphot, float) or isinstance(starphot, int):
             msg0 = 'ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {},'
             msg0 += ' STARPHOT = {}'
-            print(msg0.format(algo.__name__, fwhm, nbranch, sigma, starphot))
+            print(msg0.format(algo.func_name, fwhm, nbranch, sigma, starphot))
         else:
             msg0 = 'ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {}'
-            print(msg0.format(algo.__name__, fwhm, nbranch, sigma))
+            print(msg0.format(algo.func_name, fwhm, nbranch, sigma))
         print(sep)
 
     # throughput
@@ -367,7 +367,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     pxscale : float
         Plate scale in arcsec/px.
     algo : callable or function
-        The post-processing algorithm, e.g. vip_hci.pca.pca. Third party Python
+        The post-processing algorithm, e.g. vip.pca.pca. Third party Python
         algorithms can be plugged here. They must have the parameters: 'cube',
         'angle_list' and 'verbose'. Optionally a wrapper function can be used.
     nbranch : int optional
@@ -481,7 +481,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
 
     if verbose:
         msg1 = 'Cube without fake companions processed with {:}'
-        print(msg1.format(algo.__name__))
+        print(msg1.format(algo.func_name))
         timing(start_time)
 
     noise, vector_radd = noise_per_annulus(frame_nofc, separation=fwhm,
@@ -575,7 +575,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
             if verbose:
                 msg3 = 'Cube with fake companions processed with {:}'
                 msg3 += '\nMeasuring its annulus-wise throughput'
-                print(msg3.format(algo.__name__))
+                print(msg3.format(algo.func_name))
                 timing(start_time)
 
             #*******************************************************************

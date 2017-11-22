@@ -11,20 +11,17 @@ __author__ = 'C. Gomez @ ULg'
 __all__ = ['matrix_scaling',
            'prepare_matrix',
            'reshape_matrix',
+           'svd_wrapper',
            'pca_annulus',
            'scale_cube_for_pca']
 
 import numpy as np
-<<<<<<< HEAD:vip/pca/utils_pca.py
 from numpy import linalg
 from matplotlib import pyplot as plt
 from scipy.sparse.linalg import svds
 from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.preprocessing import scale #,minmax_scale
-=======
-from sklearn.preprocessing import scale
->>>>>>> 3bf9edb7f4129af6591c67341fd3048fce28df4a:vip_hci/pca/utils_pca.py
 from ..var import mask_circle, get_annulus, get_square_robust, frame_center
 from ..preproc import cube_derotate, cube_collapse, cube_rescaling
 
@@ -304,7 +301,6 @@ def reshape_matrix(array, y, x):
     reshaped frames.
     """
     return array.reshape(array.shape[0], y, x)
-<<<<<<< HEAD:vip/pca/utils_pca.py
 
 
 def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
@@ -442,5 +438,3 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
             return U.T
         else:
             return V
-=======
->>>>>>> 3bf9edb7f4129af6591c67341fd3048fce28df4a:vip_hci/pca/utils_pca.py

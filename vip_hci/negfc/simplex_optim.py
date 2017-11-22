@@ -4,6 +4,7 @@
 Module with simplex (Nelder-Mead) optimization for defining the flux and 
 position of a companion using the Negative Fake Companion.
 """
+from __future__ import print_function
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -95,7 +96,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf,
     
     chi2r = []
     if verbose:
-        print 'Step | flux    | chi2r'
+        print('Step | flux    | chi2r')
         
     counter = 0
     for j, f_guess in enumerate(f_range):
@@ -106,7 +107,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf,
         if chi2r[j] > chi2r[j-1]:  counter+=1 
         if counter == 4:  break
         if verbose:
-            print '{}/{}   {:.3f}   {:.3f}'.format(j+1,n,f_guess,chi2r[j])
+            print('{}/{}   {:.3f}   {:.3f}'.format(j+1,n,f_guess,chi2r[j]))
          
     
     chi2r = np.array(chi2r)
@@ -193,8 +194,8 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
         
     """    
     if verbose:
-        print ''
-        print '{} minimization is running...'.format(options.get('method','Nelder-Mead'))
+        print('')
+        print('{} minimization is running...'.format(options.get('method','Nelder-Mead')))
      
     if p_ini is None:
         p_ini = p
@@ -316,14 +317,14 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     
     for index_planet in range(n_planet):    
         if verbose:
-            print ''
-            print sep
-            print '             Planet {}           '.format(index_planet)
-            print sep
-            print ''
+            print('')
+            print(sep)
+            print('             Planet {}           '.format(index_planet))
+            print(sep)
+            print('')
             msg2 = 'Planet {}: flux estimation at the position [{},{}], running ...'
-            print msg2.format(index_planet,planets_xy_coord[index_planet,0],
-                              planets_xy_coord[index_planet,1])
+            print(msg2.format(index_planet,planets_xy_coord[index_planet,0],
+                              planets_xy_coord[index_planet,1]))
         
         res_init = firstguess_from_coord(planets_xy_coord[index_planet],
                                          center_xy_coord, cube, angs, plsc, psfn,
@@ -338,12 +339,12 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                                                                                                     
         if verbose:
             msg3 = 'Planet {}: preliminary guess: (r, theta, f)=({:.1f}, {:.1f}, {:.1f})'
-            print msg3.format(index_planet,r_pre, theta_pre, f_pre)
+            print(msg3.format(index_planet,r_pre, theta_pre, f_pre))
         
         if simplex:
             if verbose:
                 msg4 = 'Planet {}: Simplex Nelder-Mead minimization, running ...'
-                print msg4.format(index_planet)
+                print(msg4.format(index_planet))
                                                          
             res = firstguess_simplex((r_pre,theta_pre,f_pre), cube, angs, psfn,
                                      plsc, ncomp, fwhm, annulus_width, 
@@ -355,14 +356,14 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
             r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x
             if verbose:
                 msg5 = 'Planet {}: Success: {}, nit: {}, nfev: {}, chi2r: {}'
-                print msg5.format(index_planet,res.success,res.nit,res.nfev, 
-                                  res.fun)
-                print 'message: {}'.format(res.message)
+                print(msg5.format(index_planet,res.success,res.nit,res.nfev, 
+                                  res.fun))
+                print('message: {}'.format(res.message))
             
         else:
             if verbose:
                 msg4bis = 'Planet {}: Simplex Nelder-Mead minimization skipped.'
-                print msg4bis.format(index_planet)            
+                print(msg4bis.format(index_planet))            
             r_0[index_planet] = r_pre
             theta_0[index_planet] = theta_pre
             f_0[index_planet] = f_pre                               
@@ -373,11 +374,11 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
             posx = r_0 * np.cos(np.deg2rad(theta_0[index_planet])) + centx
             msg6 = 'Planet {}: simplex result: (r, theta, f)=({:.3f}, {:.3f}'
             msg6 += ', {:.3f}) at \n          (X,Y)=({:.2f}, {:.2f})'
-            print msg6.format(index_planet, r_0[index_planet],
-                              theta_0[index_planet], f_0[index_planet], posx[0], posy[0])
+            print(msg6.format(index_planet, r_0[index_planet],
+                              theta_0[index_planet], f_0[index_planet], posx[0], posy[0]))
     
     if verbose:
-        print '\n', sep, '\nDONE !\n', sep
+        print('\n', sep, '\nDONE !\n', sep)
         timing(start_time)
 
     return (r_0,theta_0,f_0)

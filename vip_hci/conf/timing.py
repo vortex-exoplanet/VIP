@@ -3,6 +3,7 @@
 """
 Functions for timing other functions/procedures.
 """
+from __future__ import print_function
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['time_ini', 'timing', 'time_fin']
 
@@ -19,9 +20,9 @@ def time_ini(verbose=True):
     """
     start_time = datetime.now()
     if verbose:
-        print sep
-        print "Starting time: " + start_time.strftime("%Y-%m-%d %H:%M:%S")
-        print sep
+        print(sep)
+        print("Starting time: " + start_time.strftime("%Y-%m-%d %H:%M:%S"))
+        print(sep)
     return start_time
 
 
@@ -29,8 +30,8 @@ def timing(start_time):
     """Prints the execution time of a script. It requires the initialization 
     with the function time_ini().
     """
-    print "Running time:  " + str(datetime.now()-start_time)
-    print sep
+    print("Running time:  " + str(datetime.now()-start_time))
+    print(sep)
 
 
 def time_fin(start_time):

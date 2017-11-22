@@ -4,6 +4,7 @@
 LLSG (Gomez Gonzalez et al. 2016)
 """
 from __future__ import division
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['llsg']

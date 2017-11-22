@@ -6,6 +6,7 @@ Carlos A. Gomez / ULg
 """
 
 from __future__ import division 
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['adi']
@@ -124,12 +125,12 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
             cube_out = mask_circle(array, radius_int)
         else:
             cube_out = array
-        if verbose:  print 'Median psf reference subtracted'
+        if verbose:  print('Median psf reference subtracted')
     
     elif mode=='annular':   
         annulus_width = int(asize * fwhm)                            # equal size for all annuli
         n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    
-        if verbose:  print 'N annuli =', n_annuli, ', FWHM =', fwhm, '\n'
+        if verbose:  print('N annuli =', n_annuli, ', FWHM =', fwhm, '\n')
         #***********************************************************************
         # The annuli are built, and the corresponding PA thresholds for frame 
         # rejection are calculated. The PA rejection is calculated at center of 
@@ -166,7 +167,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
                 curr_frame = matrix[frame]
                 subtracted = curr_frame - ref_psf_opt
                 cube_out[frame][yy, xx] = subtracted
-        if verbose:  print 'Optimized median psf reference subtracted'
+        if verbose:  print('Optimized median psf reference subtracted')
         
     else:
         raise RuntimeError('Mode not recognized')
@@ -174,7 +175,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     cube_der = cube_derotate(cube_out, angle_list)
     frame = cube_collapse(cube_der, mode=collapse)
     if verbose:
-        print 'Done derotating and combining'
+        print('Done derotating and combining')
         timing(start_time)
     if full_output:
         return cube_out, cube_der, frame 

@@ -5,6 +5,7 @@ Module with various functions.
 """
 
 from __future__ import division
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg', 'O. Wertz'
 __all__ = ['pp_subplots',
@@ -89,7 +90,7 @@ def pp_subplots(*args, **kwargs):
     if num_plots == 1:
         if args[0].ndim == 3:
             data = args[0]
-            if kwargs.has_key('maxplots'):
+            if 'maxplots' in kwargs:
                 maxplots = kwargs['maxplots']
             else:
                 maxplots = 10
@@ -106,7 +107,7 @@ def pp_subplots(*args, **kwargs):
 
     if 'rows' in kwargs:
         if not isinstance(kwargs['rows'], int):
-            raise (TypeError('Rows must be an integer'))
+            raise TypeError
         else:
             rows = kwargs['rows']
     else:
@@ -283,7 +284,7 @@ def pp_subplots(*args, **kwargs):
     # --------------------------------------------------------------------------
 
     subplot_size = 4
-    if rows==0: raise(TypeError('Rows must be greater than zero'))
+    if rows==0: raise TypeError
     fig = figure(figsize=(cols*subplot_size, rows*subplot_size), dpi=dpi)
     
     if tit is not None:  fig.suptitle(tit, fontsize=14)
@@ -484,10 +485,10 @@ def lines_of_code():
                                        totalpath.split(path)[1]) )
 
     for linenumbercount, filename in loclist: 
-        print "%05d lines in %s" % (linenumbercount, filename)
+        print("%05d lines in %s" % (linenumbercount, filename))
 
     msg = "\nTotal: {:} lines in ({:}) excluding external libraries."
-    print msg.format(sum([x[0] for x in loclist]), path)
+    print(msg.format(sum([x[0] for x in loclist]), path))
 
 
 

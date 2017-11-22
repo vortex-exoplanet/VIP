@@ -5,6 +5,7 @@ Module with detection algorithms.
 """
 
 from __future__ import division
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['detection',
@@ -164,27 +165,27 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
                 coords.append((suby+fit.y_mean.value,subx+fit.x_mean.value))
 
             if debug:
-                print 'Coordinates (Y,X): {:.3f},{:.3f}'.format(y, x)
-                print 'fit peak = {:.3f}'.format(fit.amplitude.value)
+                print('Coordinates (Y,X): {:.3f},{:.3f}'.format(y, x))
+                print('fit peak = {:.3f}'.format(fit.amplitude.value))
                 #print fit
                 msg = 'fwhm_y in px = {:.3f}, fwhm_x in px = {:.3f}'
-                print msg.format(fwhm_y, fwhm_x)
-                print 'mean fit fwhm = {:.3f}'.format(mean_fwhm_fit)
+                print(msg.format(fwhm_y, fwhm_x))
+                print('mean fit fwhm = {:.3f}'.format(mean_fwhm_fit))
                 pp_subplots(subim, colorb=True)
         return coords
 
     def print_coords(coords):
-        print 'Blobs found:', len(coords)
-        print ' ycen   xcen'
-        print '------ ------'
+        print('Blobs found:', len(coords))
+        print(' ycen   xcen')
+        print('------ ------')
         for i in range(len(coords[:,0])):
-            print '{:.3f} \t {:.3f}'.format(coords[i,0], coords[i,1])
+            print('{:.3f} \t {:.3f}'.format(coords[i,0], coords[i,1]))
 
     def print_abort():
         if verbose:
-            print sep
-            print 'No potential sources found'
-            print sep
+            print(sep)
+            print('No potential sources found')
+            print(sep)
 
     # --------------------------------------------------------------------------
 
@@ -198,11 +199,11 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     fwhm_x, fwhm_y = outdf.at[0,'fwhm_x'],outdf.at[0,'fwhm_y']
     fwhm = np.mean([fwhm_x, fwhm_y])
     if verbose:
-        print 'FWHM =', fwhm
-        print
+        print('FWHM =', fwhm)
+        print()
     if debug:
-        print 'FWHM_y', fwhm_y
-        print 'FWHM_x', fwhm_x
+        print('FWHM_y', fwhm_y)
+        print('FWHM_x', fwhm_x)
 
     # Masking the center, 2*lambda/D is the expected IWA
     if mask:  array = mask_circle(array, radius=fwhm)
@@ -217,10 +218,10 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     _, median, stddev = sigma_clipped_stats(frame_det, sigma=5, iters=None)
     bkg_level = median + (stddev * bkg_sigma)
     if debug:
-        print 'Sigma clipped median = {:.3f}'.format(median)
-        print 'Sigma clipped stddev = {:.3f}'.format(stddev)
-        print 'Background threshold = {:.3f}'.format(bkg_level)
-        print
+        print('Sigma clipped median = {:.3f}'.format(median))
+        print('Sigma clipped stddev = {:.3f}'.format(stddev))
+        print('Background threshold = {:.3f}'.format(bkg_level))
+        print()
 
     if mode=='lpeaks' or mode=='log' or mode=='dog':
         # Padding the image with zeros to avoid errors at the edges
@@ -228,7 +229,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         array_padded = np.lib.pad(array, pad, 'constant', constant_values=0)
 
     if debug and plot and matched_filter:
-        print 'Input frame after matched filtering:'
+        print('Input frame after matched filtering:')
         pp_subplots(frame_det, rows=2, colorb=True)
 
     if mode=='lpeaks':
@@ -289,8 +290,8 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         y = yy[i]
         x = xx[i]
         if verbose:
-            print sep
-            print 'X,Y = ({:.1f},{:.1f})'.format(x,y)
+            print(sep)
+            print('X,Y = ({:.1f},{:.1f})'.format(x,y))
         subim = get_square(array, size=15, y=y, x=x)
         snr = snr_ss(array, (x,y), fwhm, False, verbose=False)
         snr_list.append(snr)
@@ -304,7 +305,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         else:
             yy_out.append(y)
             xx_out.append(x)
-            if verbose:  print 'S/N constraint NOT fulfilled (S/N = {:.3f})'.format(snr)
+            if verbose:  print('S/N constraint NOT fulfilled (S/N = {:.3f})'.format(snr))
             if debug:
                 #if plot:
                     #pp_subplots(subim)
@@ -398,7 +399,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         else:
             plt.show()
 
-    if debug:  print table
+    if debug:  print(table)
 
     if full_output:
         return table, yy_final.shape[0]

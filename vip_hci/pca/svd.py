@@ -255,7 +255,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
 
     if usv:
         if mode == 'lapack':
-            return U.T, S, V.T
+            return V.T, S, U.T
         else:
             return U, S, V
     else:
@@ -263,6 +263,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
             return U.T
         else:
             return V
+
 
 
 def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',

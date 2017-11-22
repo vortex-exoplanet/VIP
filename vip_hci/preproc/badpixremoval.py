@@ -5,6 +5,7 @@ Module with functions for correcting bad pixels in cubes.
 """
 
 from __future__ import division
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg', 'V. Christiaens'
 __all__ = ['frame_fix_badpix_isolated',
@@ -99,7 +100,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     array_out = frame
 
     if verbose:
-        print "\nDone replacing bad pixels using the median of the neighbors"
+        print("\nDone replacing bad pixels using the median of the neighbors")
         timing(start)
     return array_out
 
@@ -185,7 +186,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     array_out = cube_out
     
     if verbose: 
-        print "/nDone replacing bad pixels using the median of the neighbors"
+        print("/nDone replacing bad pixels using the median of the neighbors")
         timing(start)
     return array_out
 
@@ -426,7 +427,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         bpix_map[circl_new] = 0
         obj_tmp_corr[circl_new] = obj_tmp[circl_new]
         if verbose:
-            print nbpix_tot, ' bpix in total, and ', nbpix_tbc, ' corrected.'
+            print(nbpix_tot, ' bpix in total, and ', nbpix_tbc, ' corrected.')
 
             
         # Unsquash all the frames
@@ -458,7 +459,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         if cy.shape[0] != n_z or cx.shape[0] != n_z: 
             raise ValueError('Please provide cy and cx as 1d-arr of size n_z')
         for i in range(n_z):
-            if verbose: print '************Frame # ', i,' *************'
+            if verbose: print('************Frame # ', i,' *************')
             obj_tmp[i],bpix_map[i],ann_frame_cumul[i]=bp_removal_2d(obj_tmp[i],
                                                                     cy[i], 
                                                                     cx[i],
@@ -601,7 +602,7 @@ def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True,
             if verbose:
                 msg = 'Iteration '+str(nit)+': '+str(nbpix_tot)+\
                       ' bpix in total, '+str(nbpix_tbc)+' to be corrected.'
-                print msg
+                print(msg)
             obj_tmp = sigma_filter(obj_tmp, bpix_map, neighbor_box=neighbor_box,
                                    min_neighbors=nneig, verbose=verbose)
             bpix_map = find_outliers(obj_tmp, sig_dist=sig, in_bpix=bpix_map,
@@ -612,7 +613,7 @@ def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True,
             bpix_map[circl_new] = 0
             bpix_map_cumul = bpix_map_cumul+bpix_map
 
-        if verbose:  print 'All bad pixels are corrected.'
+        if verbose:  print('All bad pixels are corrected.')
             
         if half_res_y:
             frame = obj_tmp.copy()
@@ -634,7 +635,7 @@ def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True,
         n_z = obj_tmp.shape[0]
         bpix_map_cumul = np.zeros_like(obj_tmp)
         for i in range(n_z):
-            if verbose: print '************Frame # ', i,' *************'
+            if verbose: print('************Frame # ', i,' *************')
             obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], cy[i], 
                                                           cx[i], fwhm[i], sig, 
                                                           protect_psf, verbose)
@@ -837,13 +838,13 @@ def reject_outliers(data, test_value, m=5., stddev=None, DEBUG=False,
     d = np.abs(data - med)
     mdev = np.median(d)
     if DEBUG:
-        print "data = ", data
-        print "median(data)= ", np.median(data)
-        print "d = ", d
-        print "mdev = ", mdev
-        print "stddev(box) = ", np.std(data)
-        print "stddev(frame) = ", stddev
-        print "max(d) = ", np.max(d)
+        print("data = ", data)
+        print("median(data)= ", np.median(data))
+        print("d = ", d)
+        print("mdev = ", mdev)
+        print("stddev(box) = ", np.std(data))
+        print("stddev(frame) = ", stddev)
+        print("max(d) = ", np.max(d))
 
     n_el = max(2.,0.05*data.shape[0])
     if test_value < min_thr or (test_value < mid_thr and 
@@ -853,9 +854,9 @@ def reject_outliers(data, test_value, m=5., stddev=None, DEBUG=False,
     elif max(np.max(d),np.abs(test_value-med)) > stddev:
         mdev = mdev if mdev>stddev else stddev
         s = d/mdev
-        if DEBUG: print "s =", s
+        if DEBUG: print("s =", s)
         test = np.abs((test_value-np.median(data))/mdev)
-        if DEBUG: print "test =", test
+        if DEBUG: print("test =", test)
         else:
             if test < m: test_result = 0
             else: test_result = 1

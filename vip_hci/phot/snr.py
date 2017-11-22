@@ -5,6 +5,7 @@ Module with SNR calculation functions.
 """
 
 from __future__ import division
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg, O. Absil @ ULg'
 __all__ = ['snr_ss',
@@ -161,7 +162,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         pp_subplots(snrmap, colorb=True, title=plot_title, save=save_plot,
                     vmin=-1, vmax=5, angscale=True, getfig = True)
         
-    print "S/N map created using {:} processes.".format(nproc)
+    print("S/N map created using {:} processes.".format(nproc))
     timing(start_time)
     return snrmap
    
@@ -229,14 +230,15 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     if plot:  pp_subplots(snrmap, colorb=True, title='SNRmap')
      
     if verbose:    
-        print "S/N map created using {:} processes.".format(nproc)
+        print("S/N map created using {:} processes.".format(nproc))
         timing(start_time)
     return snrmap
 
-def _snr_approx(array, (sourcex,sourcey), fwhm, centery, centerx):
+def _snr_approx(array, xxx_todo_changeme, fwhm, centery, centerx):
     """
     array - frame convolved with top hat kernel 
     """
+    (sourcex,sourcey) = xxx_todo_changeme
     rad = dist(centery,centerx,sourcey,sourcex) 
     ind_aper = draw.circle(sourcey, sourcex, fwhm/2.)
     # noise : STDDEV in convolved array of 1px wide annulus (while 
@@ -253,7 +255,7 @@ def _snr_approx(array, (sourcex,sourcey), fwhm, centery, centerx):
     
     
     
-def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False, 
+def snr_ss(array, xxx_todo_changeme1, fwhm, out_coor=False, plot=False, 
            verbose=False, full_output=False):
     # Leave the order of parameters as it is, the same for both snr functions
     # to be compatible with the snrmap parallel implementation
@@ -289,6 +291,7 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
     sourcey, sourcex, f_source, fluxes.std(), snr
     
     """
+    (source_xy) = xxx_todo_changeme1
     if not array.ndim==2:
         raise TypeError('Input array is not a frame or 2d array')
     if out_coor and full_output:
@@ -334,10 +337,10 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
         msg2 = 'Integrated flux in FWHM test aperture = {:.3f}'
         msg3 = 'Mean of background apertures integrated fluxes = {:.3f}'
         msg4 = 'Std-dev of background apertures integrated fluxes = {:.3f}'
-        print msg1.format(snr)
-        print msg2.format(f_source)
-        print msg3.format(fluxes.mean())
-        print msg4.format(fluxes.std())
+        print(msg1.format(snr))
+        print(msg2.format(f_source))
+        print(msg3.format(fluxes.mean()))
+        print(msg4.format(fluxes.std()))
     
     if plot:
         _, ax = plt.subplots(figsize=(6,6))
@@ -364,7 +367,7 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, plot=False,
         return snr
     
 
-def snr_peakstddev(array, (source_xy), fwhm, out_coor=False, plot=False, 
+def snr_peakstddev(array, xxx_todo_changeme2, fwhm, out_coor=False, plot=False, 
                    verbose=False):
     """Calculates the S/N (signal to noise ratio) of a single planet in a
     post-processed (e.g. by LOCI or PCA) frame. The signal is taken as the ratio 
@@ -394,6 +397,7 @@ def snr_peakstddev(array, (source_xy), fwhm, out_coor=False, plot=False,
         Value of the SNR for the given planet or test speckle.
     
     """     
+    (source_xy) = xxx_todo_changeme2
     sourcex, sourcey = source_xy 
     centery, centerx = frame_center(array)
     rad = dist(centery,centerx,sourcey,sourcex)  
@@ -409,7 +413,7 @@ def snr_peakstddev(array, (source_xy), fwhm, out_coor=False, plot=False,
     snr = peak / stddev
     if verbose:
         msg = "S/N = {:.3f}, Peak px = {:.3f}, Noise = {:.3f}"
-        print msg.format(snr, peak, stddev)
+        print(msg.format(snr, peak, stddev))
     
     if plot:
         _, ax = plt.subplots(figsize=(6,6))

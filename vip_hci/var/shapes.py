@@ -90,14 +90,14 @@ def dist(yc,xc,y1,x1):
 
 
 def frame_center(array, verbose=False):
-    """ Returns the coordinates y,x of a frame central pixel if the sides are 
+    """ Returns the coordinates y,x of a frame central pixel if the sides are
     odd numbers. Python uses 0-based indexing, so the coordinates of the central
     pixel of a 5x5 pixels frame are (2,2). Those are as well the coordinates of
     the center of that pixel (sub-pixel center of the frame).
-    """   
-    y = array.shape[0]/2.       
+    """
+    y = array.shape[0]/2.
     x = array.shape[1]/2.
-    
+
     # If frame size is even
     if array.shape[0]%2==0:
         cy = np.ceil(y)
@@ -113,10 +113,10 @@ def frame_center(array, verbose=False):
         print('Center px coordinates at x,y = ({:},{:})'.format(cy, cx))
     return cy, cx
 
-    
-def get_square(array, size, y, x, position=False):                 
-    """ Returns an square subframe. 
-    
+
+def get_square(array, size, y, x, position=False):
+    """ Returns an square subframe.
+
     Parameters
     ----------
     array : array_like
@@ -127,36 +127,36 @@ def get_square(array, size, y, x, position=False):
         Coordinates of the center of the subframe.
     position : {False, True}, optional
         If set to True return also the coordinates of the bottom-left vertex.
-        
+
     Returns
     -------
     array_view : array_like
         Sub array.
-        
+
     """
     if not array.ndim==2:
         raise TypeError('Input array is not a frame or 2d array.')
-    
+
     if size%2!=0:  size -= 1 # making it odd to get the wing
     wing = int(size/2)
-    # wing is added to the sides of the subframe center. Note the +1 when 
+    # wing is added to the sides of the subframe center. Note the +1 when
     # closing the interval (python doesn't include the endpoint)
     array_view = array[int(y-wing):int(y+wing+1),
                        int(x-wing):int(x+wing+1)].copy()
-    
+
     if position:
         return array_view, y-wing, x-wing
     else:
         return array_view
 
 
-def get_square_robust(array, size, y, x, position=False, 
+def get_square_robust(array, size, y, x, position=False,
                       out_borders='reduced_square', return_wings=False,
-                      strict=False):                 
-    """ 
+                      strict=False):
+    """
     Returns a square subframe from a larger array robustly (different options in
     case the requested subframe outpasses the borders of the larger array.
-    
+
     Parameters
     ----------
     array : array_like
@@ -168,50 +168,50 @@ def get_square_robust(array, size, y, x, position=False,
     position : bool, {False, True}, optional
         If set to True, returns also the coordinates of the left bottom vertex.
     out_borders: string {'reduced_square','rectangular', 'whatever'}, optional
-        Option that set what to do if the provided size is such that the 
+        Option that set what to do if the provided size is such that the
         sub-array exceeds the borders of the array:
-            - 'reduced_square' (default) -> returns a smaller square sub-array: 
+            - 'reduced_square' (default) -> returns a smaller square sub-array:
             the biggest that fits within the borders of the array (warning msg)
-            - 'rectangular' -> returns a cropped sub-array with only the part 
+            - 'rectangular' -> returns a cropped sub-array with only the part
             that fits within the borders of the array; thus a rectangle (warning
             msg)
-            - 'whatever' -> returns a square sub-array of the requested size, 
-            but filled with zeros where it outpasses the borders of the array 
+            - 'whatever' -> returns a square sub-array of the requested size,
+            but filled with zeros where it outpasses the borders of the array
             (warning msg)
     return_wings: bool, {False,True}, optional
         If True, the function only returns the size of the sub square
-        (this can be used to test that there will not be any size reduction of 
+        (this can be used to test that there will not be any size reduction of
         the requested square beforehand)
     strict: bool, {False, True}, optional
-        Set to True when you want an error to be raised if the size is not an 
+        Set to True when you want an error to be raised if the size is not an
         odd number. Else, the subsquare will be computed even if size is an even
-        number. In the later case, the center is placed in such a way that 
-        frame_center function of the sub_array would give the input center 
+        number. In the later case, the center is placed in such a way that
+        frame_center function of the sub_array would give the input center
         (at pixel = half dimension minus 1).
-        
+
     Returns
     -------
     default:
     array_view : array_like
-        Sub array of the requested dimensions (or smaller depending on its 
+        Sub array of the requested dimensions (or smaller depending on its
         location in the original array and the selected out_borders option)
 
-    if position is set to True and return_wing to False: 
-    array_view, y_coord, x_coord: array_like, int, int 
+    if position is set to True and return_wing to False:
+    array_view, y_coord, x_coord: array_like, int, int
         y_coord and x_coord are the indices of the left bottom vertex
 
-    if return_wing is set to True: 
+    if return_wing is set to True:
     wing: int
         the semi-size of the square in agreement with the out_borders option
     """
     if not array.ndim == 2:
         raise TypeError('Input array is not a frame or 2d array.')
-    
+
     n_y = array.shape[0]
     n_x = array.shape[1]
 
     if strict:
-        if size%2==0: 
+        if size%2==0:
             raise ValueError('The given size of the sub-square should be odd.')
         wing_bef = int((size-1)/2)
         wing_aft = wing_bef
@@ -224,7 +224,7 @@ def get_square_robust(array, size, y, x, position=False,
             wing_aft = wing_bef
 
     #Consider the case of the sub-array exceeding the array
-    if (y-wing_bef < 0 or y+wing_aft+1 >= n_y or x-wing_bef < 0 or 
+    if (y-wing_bef < 0 or y+wing_aft+1 >= n_y or x-wing_bef < 0 or
         x+wing_aft+1 >= n_x):
         if out_borders=='reduced_square':
             wing_bef = min(y,x,n_y-1-y,n_x-1-x)
@@ -256,9 +256,9 @@ def get_square_robust(array, size, y, x, position=False,
             print(msg)
 
     if return_wings: return wing_bef,wing_aft
-    
+
     else:
-        # wing is added to the sides of the subframe center. Note the +1 when 
+        # wing is added to the sides of the subframe center. Note the +1 when
         # closing the interval (python doesn't include the endpoint)
         array_view = array[int(y-wing_bef):int(y+wing_aft+1),
                            int(x-wing_bef):int(x+wing_aft+1)].copy()
@@ -266,21 +266,21 @@ def get_square_robust(array, size, y, x, position=False,
         else: return array_view
 
 
-def get_circle(array, radius, output_values=False, cy=None, cx=None):           
-    """Returns a centered circular region from a 2d ndarray. All the rest 
-    pixels are set to zeros. 
-    
+def get_circle(array, radius, output_values=False, cy=None, cx=None):
+    """Returns a centered circular region from a 2d ndarray. All the rest
+    pixels are set to zeros.
+
     Parameters
     ----------
     array : array_like
-        Input 2d array or image. 
+        Input 2d array or image.
     radius : int
         The radius of the circular region.
     output_values : {False, True}
         Sets the type of output.
     cy, cx : int
         Coordinates of the circle center.
-        
+
     Returns
     -------
     values : array_like
@@ -293,10 +293,10 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
     sy, sx = array.shape
     if not cy and not cx:
         cy, cx = frame_center(array, verbose=False)
-         
+
     yy, xx = np.ogrid[:sy, :sx]                                                 # ogrid is a multidim mesh creator (faster than mgrid)
-    circle = (yy - cy)**2 + (xx - cx)**2                                        # eq of circle. squared distance to the center                                        
-    circle_mask = circle < radius**2                                            # mask of 1's and 0's                                       
+    circle = (yy - cy)**2 + (xx - cx)**2                                        # eq of circle. squared distance to the center
+    circle_mask = circle < radius**2                                            # mask of 1's and 0's
     if output_values:
         values = array[circle_mask]
         return values
@@ -307,13 +307,13 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
 
 def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
                 output_indices=False):
-    """ Returns a centered elliptical region from a 2d ndarray. All the rest 
+    """ Returns a centered elliptical region from a 2d ndarray. All the rest
     pixels are set to zeros.
-    
+
     Parameters
     ----------
     array : array_like
-        Input 2d array or image. 
+        Input 2d array or image.
     a : float or int
         Semi-major axis.
     b : float or int
@@ -326,7 +326,7 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
         Coordinates of the circle center.
     output_indices : {False, True}, optional
         If True returns the indices inside the annulus.
-    
+
     Returns
     -------
     Depending on output_values, output_indices:
@@ -372,15 +372,15 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
         return array_masked
 
 
-def get_annulus(array, inner_radius, width, output_values=False, 
-                output_indices=False):                                          
-    """Returns a centerered annulus from a 2d ndarray. All the rest pixels are 
-    set to zeros. 
-    
+def get_annulus(array, inner_radius, width, output_values=False,
+                output_indices=False):
+    """Returns a centerered annulus from a 2d ndarray. All the rest pixels are
+    set to zeros.
+
     Parameters
     ----------
     array : array_like
-        Input 2d array or image. 
+        Input 2d array or image.
     inner_radius : float
         The inner radius of the donut region.
     width : int
@@ -389,7 +389,7 @@ def get_annulus(array, inner_radius, width, output_values=False,
         If True returns the values of the pixels in the annulus.
     output_indices : {False, True}, optional
         If True returns the indices inside the annulus.
-    
+
     Returns
     -------
     Depending on output_values, output_indices:
@@ -405,12 +405,12 @@ def get_annulus(array, inner_radius, width, output_values=False,
     array = array.copy()
     cy, cx = frame_center(array)
     yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
-    circle = np.sqrt((xx - cx)**2 + (yy - cy)**2)                                                                               
+    circle = np.sqrt((xx - cx)**2 + (yy - cy)**2)
     donut_mask = (circle <= (inner_radius + width)) & (circle >= inner_radius)
     if output_values and not output_indices:
         values = array[donut_mask]
         return values
-    elif output_indices and not output_values:      
+    elif output_indices and not output_values:
         indices = np.array(np.where(donut_mask))
         y = indices[0]
         x = indices[1]
@@ -420,16 +420,16 @@ def get_annulus(array, inner_radius, width, output_values=False,
     else:
         array_masked = array*donut_mask
         return array_masked
-    
 
-def get_annulus_quad(array, inner_radius, width, output_values=False):                                          
-    """ Returns indices or values in quadrants of a centerered annulus from a 
-    2d ndarray. 
-    
+
+def get_annulus_quad(array, inner_radius, width, output_values=False):
+    """ Returns indices or values in quadrants of a centerered annulus from a
+    2d ndarray.
+
     Parameters
     ----------
     array : array_like
-        Input 2d array or image. 
+        Input 2d array or image.
     inner_radius : int
         The inner radius of the donut region.
     width : int
@@ -437,7 +437,7 @@ def get_annulus_quad(array, inner_radius, width, output_values=False):
     output_values : {False, True}, optional
         If True returns the values of the pixels in the each quadrant instead
         of the indices.
-    
+
     Returns
     -------
     Depending on output_values:
@@ -445,42 +445,42 @@ def get_annulus_quad(array, inner_radius, width, output_values=False):
         Array with the values of the pixels in each quadrant of annulus.
     ind : array_like with shape [4,2,npix]
         Coordinates of pixels for each quadrant in annulus.
-        
+
     """
     if not array.ndim == 2:
         raise TypeError('Input array is not a frame or 2d array.')
-    
+
     cy, cx = frame_center(array)
     xx, yy = np.mgrid[:array.shape[0], :array.shape[1]]
-    circle = np.sqrt((xx - cx)**2 + (yy - cy)**2)                                                                               
-    q1 = (circle >= inner_radius) & (circle <= (inner_radius + width)) & (xx >= cx) & (yy <= cy)  
+    circle = np.sqrt((xx - cx)**2 + (yy - cy)**2)
+    q1 = (circle >= inner_radius) & (circle <= (inner_radius + width)) & (xx >= cx) & (yy <= cy)
     q2 = (circle >= inner_radius) & (circle <= (inner_radius + width)) & (xx <= cx) & (yy <= cy)
     q3 = (circle >= inner_radius) & (circle <= (inner_radius + width)) & (xx <= cx) & (yy >= cy)
     q4 = (circle >= inner_radius) & (circle <= (inner_radius + width)) & (xx >= cx) & (yy >= cy)
-    
+
     if output_values:
         values = [array[mask] for mask in [q1,q2,q3,q4]]
         return np.array(values)
-    else:      
-        ind = [np.array(np.where(mask)) for mask in [q1,q2,q3,q4]]          
+    else:
+        ind = [np.array(np.where(mask)) for mask in [q1,q2,q3,q4]]
         return np.array(ind)
 
-    
-def get_annulus_cube(array, inner_radius, width, output_values=False):     
-    """ Returns a centerered annulus from a 3d ndarray. All the rest pixels are 
-    set to zeros. 
-    
+
+def get_annulus_cube(array, inner_radius, width, output_values=False):
+    """ Returns a centerered annulus from a 3d ndarray. All the rest pixels are
+    set to zeros.
+
     Parameters
     ----------
     array : array_like
-        Input 2d array or image. 
+        Input 2d array or image.
     inner_radius : int
         The inner radius of the donut region.
     width : int
         The size of the annulus.
     output_values : {False, True}, optional
         If True returns the values of the pixels in the annulus.
-    
+
     Returns
     -------
     Depending on output_values:
@@ -503,17 +503,17 @@ def get_annulus_cube(array, inner_radius, width, output_values=False):
         for i in range(array.shape[0]):
             arr_annulus[i] = get_annulus(array[i], inner_radius, width)
         return arr_annulus
-    
+
 
 def get_ell_annulus(array, a, b, PA, width, output_values=False,
                     output_indices=False, cy=None, cx=None):
-    """Returns a centered elliptical annulus from a 2d ndarray. All the rest 
-    pixels are set to zeros. 
+    """Returns a centered elliptical annulus from a 2d ndarray. All the rest
+    pixels are set to zeros.
 
     Parameters
     ----------
     array : array_like
-        Input 2d array or image. 
+        Input 2d array or image.
     a : flt
         Semi-major axis.
     b : flt
@@ -521,14 +521,14 @@ def get_ell_annulus(array, a, b, PA, width, output_values=False,
     PA : deg
         The PA of the semi-major axis.
     width : flt
-        The size of the annulus along the semi-major axis; it is proportionnally 
+        The size of the annulus along the semi-major axis; it is proportionnally
         thinner along the semi-minor axis).
     output_values : {False, True}, optional
         If True returns the values of the pixels in the annulus.
     output_indices : {False, True}, optional
         If True returns the indices inside the annulus.
     cy,cx: float, optional
-        Location of the center of the annulus to be defined. If not provided, 
+        Location of the center of the annulus to be defined. If not provided,
     it assumes the annuli are centered on the frame.
 
     Returns
@@ -598,42 +598,38 @@ def get_ell_annulus(array, a, b, PA, width, output_values=False,
         return array_masked
 
 
-def mask_circle(array, radius):                                      
-    """ Masks (sets pixels to zero) a centered circle from a frame or cube. 
-    
+def mask_circle(array, radius):
+    """ Masks (sets pixels to zero) a centered circle from a frame or cube.
+
     Parameters
     ----------
     array : array_like
         Input frame or cube.
     radius : int
         Radius of the circular aperture.
-    
+
     Returns
     -------
     array_masked : array_like
         Masked frame or cube.
-        
+
     """
     if len(array.shape) == 2:
         sy, sx = array.shape
         cy, cx = frame_center(array)
         xx, yy = np.ogrid[:sy, :sx]
         circle = (xx - cx)**2 + (yy - cy)**2    # squared distance to the center
-        hole_mask = circle > radius**2                                             
+        hole_mask = circle > radius**2
         array_masked = array*hole_mask
-        
+
     if len(array.shape) == 3:
         n, sy, sx = array.shape
         cy, cx = frame_center(array[0])
         xx, yy = np.ogrid[:sy, :sx]
         circle = (xx - cx)**2 + (yy -                       cy)**2    # squared distance to the center
-        hole_mask = circle > radius**2      
+        hole_mask = circle > radius**2
         array_masked = np.empty_like(array)
         for i in range(n):
             array_masked[i] = array[i]*hole_mask
-        
-    return array_masked    
-    
 
-        
-
+    return array_masked

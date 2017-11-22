@@ -7,9 +7,10 @@ Subpackage ``stats`` contains functionalities such as:
     - distance (correlation) between the frames in a cube,
     - distance (correlation) between a cube and a reference frame.
 """
+from __future__ import absolute_import
 
-from clip_sigma import *
-from cube_stats import *
-from distances import *
-from im_stats import *
-from utils_stats import *
+from .clip_sigma import *
+from .cube_stats import *
+from .distances import *
+from .im_stats import *
+from .utils_stats import *

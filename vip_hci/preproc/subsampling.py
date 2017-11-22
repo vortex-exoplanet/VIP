@@ -5,6 +5,7 @@ Module with pixel and frame subsampling functions.
 """
 
 from __future__ import division
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['cube_collapse',
@@ -104,11 +105,11 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
                 angles[i] = func(parallactic[n*i:n*i+n])
 
     if verbose:
-        print "Datacube subsampled by taking the {:} of {:} frames".format(mode ,n)
+        print("Datacube subsampled by taking the {:} of {:} frames".format(mode ,n))
         if resid > 0:
             msg = "Initial # of frames and window are not multiples ({:} frames were dropped)"
-            print msg.format(resid)     
-        print "New cube contains {:} frames".format(m)
+            print(msg.format(resid))     
+        print("New cube contains {:} frames".format(m))
                                    
     if parallactic is not None:
         return arr, angles
@@ -148,7 +149,7 @@ def cube_subsample_trimmean(arr, n, m):
             arr2[i] = cube_collapse(arr[m*i:m*i+m, :, :], 'trimmean', n)
     arr2[num] = cube_collapse(arr[-res:, :, :], 'trimmean', n)     
     arr_view = arr2[:num+1]                                                      # slicing until m+1 - last index not included
-    print "\nDone trimmed mean over FITS-Cube with window m=" + str(m)
+    print("\nDone trimmed mean over FITS-Cube with window m=" + str(m))
     return arr_view
 
 

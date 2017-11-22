@@ -5,6 +5,7 @@ Module with NMF algorithm for ADI.
 """
 
 from __future__ import division 
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['nmf']
@@ -86,7 +87,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
         H = mod.fit(matrix).components_          
     
     if verbose:  
-        print 'Done NMF with sklearn.NMF.'
+        print('Done NMF with sklearn.NMF.')
         timing(start_time)
     # W: coefficients [n_frames, ncomp]
     W = mod.transform(matrix)
@@ -102,7 +103,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
     frame = cube_collapse(array_der, 'median') 
     
     if verbose:  
-        print 'Done derotating and combining.'
+        print('Done derotating and combining.')
         timing(start_time)
     if full_output:
         return H.reshape(ncomp,y,x), reconstructed.reshape(n,y,x), array_out, array_der, frame 

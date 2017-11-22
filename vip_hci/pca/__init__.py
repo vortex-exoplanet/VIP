@@ -20,8 +20,9 @@ time.
 - *parallel subannular PCA* which uses multiprocessing and allows to distribute
 the computations amongst the available cores in your machine.
 """
+from __future__ import absolute_import
 
-from pca_fullfr import *
-from pca_local import *
-from svd import *
-from utils_pca import *
+from .pca_fullfr import *
+from .pca_local import *
+from .svd import *
+from .utils_pca import *

@@ -3,6 +3,7 @@
 """
 Module with frame de-rotation routine for ADI.
 """
+from __future__ import print_function
 __author__ = 'V. Christiaens @ UChile/ULg, C. Gomez @ ULg'
 __all__ = ['compute_paral_angles',
            'compute_derot_angles_PA',
@@ -184,15 +185,15 @@ def compute_derot_angles_PA(objname_tmp_A,digit_format=3,objname_tmp_B='',
     rot = check_PA_vector(rot,'deg')
 
     if verbose:
-        print "This is the list of angles to be applied: "
+        print("This is the list of angles to be applied: ")
         for ii in range(len(list_obj)):
-            print ii, ' -> ', rot[ii]
+            print(ii, ' -> ', rot[ii])
 
     if writing:
         if outpath == '' or outpath is None: outpath=inpath
         f=open(outpath+'Parallactic_angles.txt','w')
         for ii in range(len(list_obj)):
-            print >>f, rot[ii]
+            print(rot[ii], file=f)
         f.close()
 
     return rot
@@ -328,20 +329,20 @@ def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
     if skew: rot2 = check_PA_vector(rot2,'rad')
 
     if verbose:
-        print "This is the list of angles to be applied: "
+        print("This is the list of angles to be applied: ")
         for ii in range(len(cd1_1)):
-            print ii, ' -> ', rot[ii]
-            if skew: print 'rot2: ', ii, ' -> ', rot2[ii]
+            print(ii, ' -> ', rot[ii])
+            if skew: print('rot2: ', ii, ' -> ', rot2[ii])
 
     if writing:
         if outpath == '' or outpath is None: outpath=inpath
         f=open(outpath+'Parallactic_angles.txt','w')
         if skew:
             for ii in range(len(cd1_1)):
-                print >>f, rot[ii], rot2[ii]
+                print(rot[ii], rot2[ii], file=f)
         else:
             for ii in range(len(cd1_1)):
-                print >>f, rot[ii]
+                print(rot[ii], file=f)
         f.close()
 
 

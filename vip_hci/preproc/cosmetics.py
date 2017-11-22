@@ -6,6 +6,7 @@ Also functions for cropping cubes.
 """
 
 from __future__ import division
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['cube_crop_frames',
@@ -62,17 +63,17 @@ def cube_crop_frames(array, size, xy=None, verbose=True, full_output = False):
         array_view = array[:,int(ceny-wing):int(ceny+wing+1),
                              int(cenx-wing):int(cenx+wing+1)].copy()
         if verbose:
-            print 
+            print() 
             msg = "Cube cropped; new size [{:},{:},{:}] centered at ({:},{:})"
-            print msg.format(array.shape[0], size+1, size+1, cenx, ceny)
+            print(msg.format(array.shape[0], size+1, size+1, cenx, ceny))
     else:  
         cy, cx = frame_center(array[0], verbose=False)
         array_view = array[:, int(cy-wing):int(cy+wing+1),
                               int(cx-wing):int(cx+wing+1)].copy()
         if verbose:
-            print
+            print()
             msg = "Cube cropped with new size [{:},{:},{:}]"
-            print msg.format(array.shape[0], size+1, size+1)
+            print(msg.format(array.shape[0], size+1, size+1))
 
     # Option to return the cenx and ceny for double checking that the frame crop
     # did not exceed the limit
@@ -115,8 +116,8 @@ def frame_crop(array, size, cenxy=None, verbose=True):
     array_view = get_square(array, size, ceny, cenx)  
     
     if verbose:
-        print
-        print "Done frame cropping"
+        print()
+        print("Done frame cropping")
     return array_view
 
 
@@ -142,8 +143,8 @@ def cube_drop_frames(array, n, m):
         raise TypeError('End index must be smaller than the # of frames')
     
     array_view = array[n:m+1, :, :].copy()
-    print
-    print "Done discarding frames from cube"
+    print()
+    print("Done discarding frames from cube")
     return array_view  
 
 

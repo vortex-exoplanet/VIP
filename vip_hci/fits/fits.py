@@ -3,6 +3,7 @@
 """
 Module with various fits handling functions.
 """
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['open_fits',
@@ -59,20 +60,20 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
             if len(data.shape)==1:
                 msg = "\nFits HDU:{:} data and header successfully loaded. Data"
                 msg += " shape: [{:}]"
-                print msg.format(n, data.shape[0])
+                print(msg.format(n, data.shape[0]))
             if len(data.shape)==2:  
                 msg = "\nFits HDU:{:} data and header successfully loaded. Data"
                 msg += " shape: [{:},{:}]"
-                print msg.format(n, data.shape[0],data.shape[1])
+                print(msg.format(n, data.shape[0],data.shape[1]))
             if len(data.shape)==3:
                 msg = "\nFits HDU:{:} data and header successfully loaded. Data"
                 msg += " shape: [{:},{:},{:}]"
-                print msg.format(n, data.shape[0],data.shape[1],data.shape[2])
+                print(msg.format(n, data.shape[0],data.shape[1],data.shape[2]))
             if len(data.shape)==4:
                 msg = "\nFits HDU:{:} data and header successfully loaded. Data"
                 msg += " shape: [{:},{:},{:},{:}]"
-                print msg.format(n, data.shape[0], data.shape[1], data.shape[2],
-                                 data.shape[3])
+                print(msg.format(n, data.shape[0], data.shape[1], data.shape[2],
+                                 data.shape[3]))
         hdulist.close()
         return data, header 
     else:
@@ -80,20 +81,20 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
             if len(data.shape)==1:
                 msg = "\nFits HDU:{:} data successfully loaded. Data"
                 msg += " shape: [{:}]"
-                print msg.format(n, data.shape[0])
+                print(msg.format(n, data.shape[0]))
             if len(data.shape)==2:  
                 msg = "\nFits HDU:{:} data successfully loaded. Data"
                 msg += " shape: [{:},{:}]"
-                print msg.format(n, data.shape[0],data.shape[1])
+                print(msg.format(n, data.shape[0],data.shape[1]))
             if len(data.shape)==3:
                 msg = "\nFits HDU:{:} data successfully loaded. Data"
                 msg += " shape: [{:},{:},{:}]"
-                print msg.format(n, data.shape[0],data.shape[1],data.shape[2])
+                print(msg.format(n, data.shape[0],data.shape[1],data.shape[2]))
             if len(data.shape)==4:
                 msg = "\nFits HDU:{:} data successfully loaded. Data"
                 msg += " shape: [{:},{:},{:},{:}]"
-                print msg.format(n, data.shape[0], data.shape[1], data.shape[2],
-                                 data.shape[3])
+                print(msg.format(n, data.shape[0], data.shape[1], data.shape[2],
+                                 data.shape[3]))
         hdulist.close()
         return data        
 
@@ -127,8 +128,8 @@ def open_adicube(fitsfilename, verbose=True):
     if verbose:
         msg1 = "\nFits HDU:{:} data successfully loaded. Data shape: [{:},{:},{:}]"
         msg2 = "\nFits HDU:{:} data successfully loaded. Data shape: [{:}]"
-        print msg1.format(0, data.shape[0],data.shape[1],data.shape[2])
-        print msg2.format(1, parangles.shape[0])
+        print(msg1.format(0, data.shape[0],data.shape[1],data.shape[2]))
+        print(msg2.format(1, parangles.shape[0]))
     
     return data, parangles
 
@@ -214,19 +215,19 @@ def write_fits(filename, array, header=None, dtype32=True, verbose=True):
     if os.path.exists(filename):
         os.remove(filename)                                     
         if verbose:
-            print "\nFits file successfully overwritten"
+            print("\nFits file successfully overwritten")
         ap_fits.writeto(filename, array, header)
     else:
         ap_fits.writeto(filename, array, header)
         if verbose:
-            print "\nFits file successfully saved"    
+            print("\nFits file successfully saved")    
 
 
 def append_extension(filename, array):
     """Appends an extension to fits file. 
     """
     ap_fits.append(filename, array)
-    print "\nFits extension appended"
+    print("\nFits extension appended")
         
         
     

@@ -7,9 +7,10 @@ Subpackage ``phot`` includes functionalities such as:
     - algorithms throughput,
     - contrast curve generation.
 """
+from __future__ import absolute_import
 
-from contrcurve import *
-from detection import *
-from fakecomp import *
-from frame_analysis import *
-from snr import *
+from .contrcurve import *
+from .detection import *
+from .fakecomp import *
+from .frame_analysis import *
+from .snr import *

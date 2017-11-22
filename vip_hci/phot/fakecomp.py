@@ -5,6 +5,7 @@ Module with fake companion injection functions.
 """
 
 from __future__ import division
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['create_psf_template',
@@ -86,14 +87,14 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
     
     if verbose:
         for branch in range(n_branches):
-            print 'Branch '+str(branch+1)+':'
+            print('Branch '+str(branch+1)+':')
             for i in range(n_fc_rad):
                 ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
                 posy = rad_dists[i] * np.sin(ang) + ceny
                 posx = rad_dists[i] * np.cos(ang) + cenx
                 rad_arcs = rad_dists[i]*plsc
                 msg ='\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec ({:.2f} pxs)'
-                print msg.format(posx, posy, rad_arcs, rad_dists[i])
+                print(msg.format(posx, posy, rad_arcs, rad_dists[i]))
         
     return array_out
 
@@ -151,7 +152,7 @@ def create_psf_template(array, size, fwhm=4, verbose=True, collapse='mean'):
     psf_normd = psf_norm(psf, size=size, fwhm=fwhm)
     
     if verbose:  
-        print "Done scaled PSF template from the average of", n,"frames."
+        print("Done scaled PSF template from the average of", n,"frames.")
     return psf_normd
 
 
@@ -209,7 +210,7 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
                                                    method='exact')
     fwhm_flux = np.array(fwhm_aper_phot['aperture_sum'])
     if verbose:
-        print "Flux in 1xFWHM aperture: {}".format(fwhm_flux)
+        print("Flux in 1xFWHM aperture: {}".format(fwhm_flux))
 
     if fwhm_flux>1.1 or fwhm_flux<0.9:
         psf_norm_array = psfs/np.array(fwhm_aper_phot['aperture_sum'])

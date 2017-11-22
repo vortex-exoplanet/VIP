@@ -3,6 +3,7 @@
 """
 Module for functions that check available memory, and input sizes.
 """
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['check_enough_memory',
@@ -16,8 +17,8 @@ def get_available_memory(verbose=True):
     """
     mem = virtual_memory()
     if verbose: 
-        print "System total memory = {:.3f} GB".format(mem.total/1e9)
-        print "System available memory = {:.3f} GB".format(mem.available/1e9)
+        print("System total memory = {:.3f} GB".format(mem.total/1e9))
+        print("System available memory = {:.3f} GB".format(mem.available/1e9))
     return mem.available
 
 
@@ -38,7 +39,7 @@ def check_enough_memory(input_bytes, factor=1, verbose=True):
     if load>mem.total:
         return False        # total physical memory is smaller than input
     if verbose:  
-        print "System available memory = {:} bytes".format(mem.available)
+        print("System available memory = {:} bytes".format(mem.available))
     if load>=mem.available:
         return False        # available memory is not enough
     else:

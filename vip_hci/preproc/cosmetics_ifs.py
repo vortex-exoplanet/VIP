@@ -5,6 +5,7 @@ Module with cube cosmetic functions for SDI datasets.
 """
 
 from __future__ import division
+from __future__ import print_function
 
 __author__ = 'V. Christiaens @ UChile/ULg, C. Gomez @ ULg'
 __all__ = ['cube_correct_nan',
@@ -59,7 +60,7 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
         min_neighbors = max_neigh
         msg = "Warning! min_neighbors was reduced to "+str(max_neigh) +\
               " to avoid bugs. \n"
-        print msg
+        print(msg)
 
     def nan_corr_2d(obj_tmp):
         n_x = obj_tmp.shape[1]
@@ -98,7 +99,7 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
     if ndims == 2:
         obj_tmp, nnanpix = nan_corr_2d(obj_tmp)
         if verbose:
-            print '\n There were ', nnanpix, ' nan pixels corrected.'
+            print('\n There were ', nnanpix, ' nan pixels corrected.')
 
     elif ndims == 3:
         n_z = obj_tmp.shape[0]
@@ -107,10 +108,10 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
             if verbose:
                 msg = 'In channel '+str(zz)+', there were '+str(nnanpix)
                 msg2 = ' nan pixels corrected.'
-                print msg+msg2
+                print(msg+msg2)
 
     if verbose:
-        print 'All nan pixels are corrected.'
+        print('All nan pixels are corrected.')
 
     return obj_tmp
     
@@ -166,10 +167,10 @@ def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
     lim_sup_x = med_x+3*stddev_x
     
     if verbose:
-        print "median y of star - 3sigma = ", lim_inf_y
-        print "median y of star + 3sigma = ", lim_sup_y
-        print "median x of star - 3sigma = ", lim_inf_x
-        print "median x of star + 3sigma = ", lim_sup_x
+        print("median y of star - 3sigma = ", lim_inf_y)
+        print("median y of star + 3sigma = ", lim_sup_y)
+        print("median x of star - 3sigma = ", lim_inf_x)
+        print("median x of star + 3sigma = ", lim_sup_x)
 
     for zz in range(n_z):
         if ((star_tmp_idx[zz,0]<lim_inf_y) or (star_tmp_idx[zz,0]>lim_sup_y) or

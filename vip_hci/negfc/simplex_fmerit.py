@@ -3,6 +3,7 @@
 """
 Module with the function of merit definitions for the NEGFC optimization.
 """
+from __future__ import print_function
 
 import numpy as np
 from skimage.draw import circle

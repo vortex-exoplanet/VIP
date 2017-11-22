@@ -3,6 +3,7 @@
 """
 2d fitting.
 """
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['fit_2dgaussian',
@@ -128,16 +129,16 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
         else: msg = 'Subimage (no threshold) / Model / Residuals'
         pp_subplots(psf_subimage, fit(x, y), psf_subimage-fit(x, y), 
                     colorb=True, grid=True, title=msg)
-        print 'FWHM_y =', fwhm_y
-        print 'FWHM_x =', fwhm_x
-        print
-        print 'centroid y =', mean_y
-        print 'centroid x =', mean_x
-        print 'centroid y subim =', fit.y_mean.value
-        print 'centroid x subim =', fit.x_mean.value
-        print 
-        print 'peak =', amplitude
-        print 'theta =', theta
+        print('FWHM_y =', fwhm_y)
+        print('FWHM_x =', fwhm_x)
+        print()
+        print('centroid y =', mean_y)
+        print('centroid x =', mean_x)
+        print('centroid y subim =', fit.y_mean.value)
+        print('centroid x subim =', fit.x_mean.value)
+        print() 
+        print('peak =', amplitude)
+        print('theta =', theta)
     
     if full_output:
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,

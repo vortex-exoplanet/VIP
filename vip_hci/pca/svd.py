@@ -26,7 +26,8 @@ from numpy import linalg
 from matplotlib import pyplot as plt 
 from scipy.sparse.linalg import svds
 from sklearn.decomposition import randomized_svd
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_squared_error as MSE
+from sklearn.metrics import mean_absolute_error as MAE
 from sklearn.utils import check_random_state
 
 
@@ -100,10 +101,8 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
                                 np.dot(np.diag(S[:ncomp]), V[:ncomp]))
             rec_matrix = rec_matrix.T
             print('  Matrix reconstruction with {:} PCs:'.format(ncomp))
-            print('  Mean Absolute Error =', mean_absolute_error(matrix,
-                                                                 rec_matrix))
-            print('  Mean Squared Error =',
-                  mean_squared_error(matrix, rec_matrix))
+            print('  Mean Absolute Error =', MAE(matrix, rec_matrix))
+            print('  Mean Squared Error =', MSE(matrix, rec_matrix))
 
             # see https://github.com/scikit-learn/scikit-learn/blob/c3980bcbabd9d2527548820581725df2904e4a0d/sklearn/decomposition/pca.py
             exp_var = (S ** 2) / (S.shape[0] - 1)
@@ -117,8 +116,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
             ratio_cumsum = np.cumsum(explained_variance_ratio)
         else:
             rec_matrix = np.dot(U, np.dot(np.diag(S), V))
-            print('  Matrix reconstruction MAE =', mean_absolute_error(matrix,
-                                                                       rec_matrix))
+            print('  Matrix reconstruction MAE =', MAE(matrix, rec_matrix))
             exp_var = (S ** 2) / (S.shape[0] - 1)
             full_var = np.var(matrix, axis=0).sum()
             explained_variance_ratio = exp_var / full_var   # % of variance explained by each PC
@@ -257,7 +255,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
 
     if usv:
         if mode == 'lapack':
-            return U.T, S, V.T
+            return V.T, S, U.T
         else:
             return U, S, V
     else:
@@ -265,6 +263,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
             return U.T
         else:
             return V
+
 
 
 def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',

@@ -6,6 +6,7 @@ docs/build
 docs/time
 vip_hci/tests
 
+.cache
 .settings
 .project
 .pydevproject

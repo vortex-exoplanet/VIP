@@ -83,7 +83,7 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
 
         w = int(np.floor(size_fc/2.))
         # fcomp in the center of a zeros frame
-        print ceny,cenx,w
+        print(ceny,cenx,w)
         fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = psf_template
 
         array_out = np.zeros_like(array)
@@ -100,14 +100,14 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
 
         if verbose:
             for branch in range(n_branches):
-                print 'Branch '+str(branch+1)+':'
+                print('Branch '+str(branch+1)+':')
                 for i in range(n_fc_rad):
                     ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
                     posy = rad_dists[i] * np.sin(ang) + ceny
                     posx = rad_dists[i] * np.cos(ang) + cenx
                     rad_arcs = rad_dists[i]*plsc
                     msg ='\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec ({:.2f} pxs)'
-                    print msg.format(posx, posy, rad_arcs, rad_dists[i])
+                    print(msg.format(posx, posy, rad_arcs, rad_dists[i]))
 
         return array_out
 
@@ -163,7 +163,7 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
         if verbose:
             if len(theta)>1:
                 for branch in range(n_branches):
-                    print 'Branch '+str(branch+1)+':'
+                    print('Branch '+str(branch+1)+':')
                     for i in range(n_fc_rad):
                         ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
                         posy = rad_dists[i] * np.sin(ang[i]) + ceny

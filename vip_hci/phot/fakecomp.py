@@ -146,9 +146,7 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
                     if isinstance(flevel,int)==True:
                         tmp += cube_shift(fc_fr, y, x, imlib=imlib)*flevel
                     else:
-                        #tmp += cube_shift(fc_fr, y, x, imlib=imlib)*flevel
                         shift = cube_shift(fc_fr, y, x, imlib=imlib)
-                        #tmp += shift * flevel
                         tmp += [shift[i]*flevel[i] for i in range(len(flevel))]
             array_out[:,fr] = array[:,fr] + tmp
 

@@ -166,7 +166,7 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
                     else:
                         posy = rad_dists[i] * np.sin(ang) + ceny
                         posx = rad_dists[i] * np.cos(ang) + cenx
-                        print msg.format(posx, posy, rad_arcs, rad_dists)
+                        print(msg.format(posx, posy, rad_arcs, rad_dists))
 
     return array_out
 

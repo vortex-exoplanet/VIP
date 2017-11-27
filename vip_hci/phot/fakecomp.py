@@ -153,7 +153,6 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
             array_out[:,fr] = array[:,fr] + tmp
 
         if verbose:
-            if len(theta)>1:
             for branch in range(n_branches):
                 print('Branch '+str(branch+1)+':')
                 for i in range(n_fc_rad):

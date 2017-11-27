@@ -11,7 +11,7 @@ __author__ = 'C. Gomez @ ULg'
 __all__ = ['create_psf_template',
            'psf_norm',
            'inject_fcs_cube',
-           'inject_fc_frame'
+           'inject_fc_frame',
            'cube_shift']
 
 import numpy as np

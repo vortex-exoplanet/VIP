@@ -5,24 +5,19 @@ Module with fake companion injection functions.
 """
 
 from __future__ import division
+from __future__ import print_function
 
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['create_psf_template',
            'psf_norm',
            'inject_fcs_cube',
-           'inject_fc_frame']
+           'inject_fc_frame'
+           'cube_shift']
 
 import numpy as np
 import photutils
 from ..preproc import cube_crop_frames, frame_shift, frame_crop
 from ..var import frame_center, fit_2dgaussian, get_circle
-
-def cube_shift(cube, y, x, imlib):
-    "Shifts the X-Y coordinates of a cube or 3D array by x and y values"
-    cube_out = np.zeros_like(cube)
-    for i in range(cube.shape[0]):
-        cube_out[i] = frame_shift(cube[i], y, x, imlib=imlib)
-    return cube_out
 
 def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
                     n_branches=1, theta=0, imlib='opencv', verbose=True):
@@ -140,9 +135,6 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
 
         array_out = np.zeros_like(array)
 
-        #if len(theta)>1:
-
-        #else:
         for fr in range(nframes_adi):
             tmp = np.zeros_like(fc_fr)
             for branch in range(n_branches):
@@ -162,25 +154,20 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
 
         if verbose:
             if len(theta)>1:
-                for branch in range(n_branches):
-                    print('Branch '+str(branch+1)+':')
-                    for i in range(n_fc_rad):
-                        ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
+            for branch in range(n_branches):
+                print('Branch '+str(branch+1)+':')
+                for i in range(n_fc_rad):
+                    ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
+                    rad_arcs = rad_dists[i]*plsc
+                    msg ='\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec ({:.2f} pxs)'
+                    if len(theta)>1:
                         posy = rad_dists[i] * np.sin(ang[i]) + ceny
                         posx = rad_dists[i] * np.cos(ang[i]) + cenx
-                        rad_arcs = rad_dists[i]*plsc
-                        msg ='\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec ({:.2f} pxs)'
                         print(msg.format(posx, posy, rad_arcs, rad_dists[i]))
-            else:
-                for branch in range(n_branches):
-                    print('Branch '+str(branch+1)+':')
-                    for i in range(n_fc_rad):
-                        ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
+                    else:
                         posy = rad_dists[i] * np.sin(ang) + ceny
                         posx = rad_dists[i] * np.cos(ang) + cenx
-                        rad_arcs = rad_dists[i]*plsc
-                        msg ='\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec ({:.2f} pxs)'
-                        #print msg.format(posx, posy, rad_arcs, rad_dists)
+                        print msg.format(posx, posy, rad_arcs, rad_dists)
 
     return array_out
 
@@ -327,3 +314,10 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
 
 
     return psf_norm
+
+def cube_shift(cube, y, x, imlib):
+    "Shifts the X-Y coordinates of a cube or 3D array by x and y values"
+    cube_out = np.zeros_like(cube)
+    for i in range(cube.shape[0]):
+        cube_out[i] = frame_shift(cube[i], y, x, imlib=imlib)
+    return cube_out

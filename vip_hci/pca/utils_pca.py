@@ -18,7 +18,7 @@ import numpy as np
 from sklearn.preprocessing import scale
 from ..var import mask_circle, get_annulus, get_square_robust, frame_center
 from ..preproc import cube_derotate, cube_collapse, cube_rescaling
-
+from .svd import svd_wrapper
 
 def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
                        x_in=1):

@@ -278,7 +278,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
     #***************************************************************************
     if scale_list is not None:
         if ncomp > z:
-            ncomp = min(10, z)
+            ncomp = min(ncomp, z)
             msg = 'Number of PCs too high (max PCs={}), using instead {:} PCs.'
             print(msg.format(z, ncomp))
         scale_list = check_scal_vector(scale_list)
@@ -350,8 +350,8 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
                 bar.update()
             
             # de-rotation of the PCA processed channels
-            if ncomp2 > n:
-                ncomp2 = min(10, n)
+            if ncomp2 > z:
+                ncomp2 = min(ncomp2, z)
                 msg = 'Number of PCs too high (max PCs={}), using instead {:} PCs.'
                 print(msg.format(n, ncomp2))
 

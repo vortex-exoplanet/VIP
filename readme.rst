@@ -60,7 +60,7 @@ If you are new to the Jupyter notebook application check out the `beginner guide
 <https://jupyter-notebook-beginner-guide.readthedocs.io/en/latest/what_is_jupyter.html>`_.
 
 
-TL;DR Guide
+TL;DR setup guide
 -----------------
 .. code-block:: bash
 

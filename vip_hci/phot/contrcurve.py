@@ -21,7 +21,7 @@ from scipy import stats
 from scipy.signal import savgol_filter
 from skimage.draw import circle
 from matplotlib import pyplot as plt
-from .fakecomp import inject_fcs_cube, inject_fc_frame, psf_norm
+from .fakecomp import cube_inject_companions, frame_inject_companion, psf_norm
 from ..conf import time_ini, timing, sep
 from ..var import frame_center, dist
 
@@ -297,8 +297,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                 pca_type = 'ADI'
             else:
                 pca_type = 'RDI'
-            plt.title(pca_type+' '+object_name+' '+str(ncomp)+'pc '+str(frame_size)+'+'+str(inner_rad),
-                      fontsize = 14)
+            title = pca_type + ' ' + object_name + ' ' + str(ncomp) + 'pc ' + str(frame_size) + '+' + str(inner_rad)
+            plt.title(title, fontsize = 14)
 
         # Option to fix the y-limit
         if len(fix_y_lim) == 2:
@@ -510,13 +510,13 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
             fcy = []; fcx = []
             for i in range(radvec.shape[0]):
                 flux = snr_level[irad+i*fc_rad_sep] * noise[irad+i*fc_rad_sep]
-                cube_fc = inject_fcs_cube(cube_fc, psf_template, parangles, flux,
-                                          pxscale, rad_dists=[radvec[i]],
-                                          theta=br*angle_branch + theta, imlib=imlib,
-                                          verbose=False)
+                cube_fc = cube_inject_companions(cube_fc, psf_template, parangles, flux,
+                                                 pxscale, rad_dists=[radvec[i]],
+                                                 theta=br*angle_branch + theta, imlib=imlib,
+                                                 verbose=False)
                 y = cy + radvec[i] * np.sin(np.deg2rad(br*angle_branch + theta))
                 x = cx + radvec[i] * np.cos(np.deg2rad(br*angle_branch + theta))
-                fc_map = inject_fc_frame(fc_map, psf_template, y, x, flux)
+                fc_map = frame_inject_companion(fc_map, psf_template, y, x, flux)
                 fcy.append(y); fcx.append(x)
 
             if verbose:

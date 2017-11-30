@@ -26,7 +26,7 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib.mlab import normpdf
 from scipy.stats import norm
 from ..fits import open_adicube, open_fits
-from ..phot import inject_fcs_cube
+from ..phot import cube_inject_companions
 from ..conf import time_ini, timing, sep
 from .simplex_fmerit import get_values_optimize
 import warnings
@@ -126,9 +126,9 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         
     """    
     # Create the cube with the negative fake companion injected
-    cube_negfc = inject_fcs_cube(cube, psf_norm, angs, flevel=-param[2],
-                                 plsc=plsc, rad_dists=[param[0]], n_branches=1,
-                                 theta=param[1], verbose=False, imlib='opencv')
+    cube_negfc = cube_inject_companions(cube, psf_norm, angs, flevel=-param[2],
+                                        plsc=plsc, rad_dists=[param[0]], n_branches=1,
+                                        theta=param[1], verbose=False, imlib='opencv')
                                   
     # Perform PCA and extract the zone of interest
     values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width*fwhm,

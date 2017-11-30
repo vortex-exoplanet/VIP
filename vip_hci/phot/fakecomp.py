@@ -10,17 +10,30 @@ from __future__ import print_function
 __author__ = 'C. Gomez @ ULg'
 __all__ = ['create_psf_template',
            'psf_norm',
+           'cube_inject_companions',
+           'frame_inject_companion',
            'inject_fcs_cube',
-           'inject_fc_frame',
-           'cube_shift']
+           'inject_fc_frame']
 
 import numpy as np
 import photutils
 from ..preproc import cube_crop_frames, frame_shift, frame_crop
 from ..var import frame_center, fit_2dgaussian, get_circle
 
-def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
-                    n_branches=1, theta=0, imlib='opencv', verbose=True):
+
+### TODO: remove this in a later version of VIP. Created for backward compatibility
+def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc,
+                    rad_dists, n_branches=1, theta=0, imlib='opencv',
+                    verbose=True):
+    return cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
+                                  rad_dists, n_branches, theta, imlib, verbose)
+def inject_fc_frame(array, array_fc, pos_y, pos_x, flux):
+    return frame_inject_companion(array, array_fc, pos_y, pos_x, flux)
+
+
+def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
+                           rad_dists, n_branches=1, theta=0, imlib='opencv',
+                           verbose=True):
     """ Injects fake companions in branches, at given radial distances.
 
     Parameters
@@ -30,8 +43,8 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
     psf_template : array_like
         2d array with the normalized psf template. It should have an odd shape.
         It's recommended to run the function psf_norm to get a proper PSF
-        template.
-    flevel : float
+        template. In the ADI+IFS case it must be a 3d array.
+    flevel : float or list
         Factor for controlling the brightness of the fake companions.
     plsc : float
         Value of the plsc in pixels.
@@ -57,10 +70,12 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
     """
 
     if not (array.ndim==3 or array.ndim==4):
-        raise TypeError('Array is not a cube, 3d or 4d array')
+        raise ValueError('Array is not a cube, 3d or 4d array')
+    if array.ndim==4:
+        if not psf_template.ndim==3:
+            raise ValueError('Psf must be a 3d array')
 
-# 3d case
-
+    # ADI case
     if array.ndim==3:
 
         ceny, cenx = frame_center(array[0])
@@ -73,12 +88,11 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
 
         size_fc = psf_template.shape[0]
         nframes = array.shape[0]
-        fc_fr = np.zeros_like(array[0], dtype=np.float64)
+        fc_fr = np.zeros_like(array[0])
         n_fc_rad = rad_dists.shape[0]
 
         w = int(np.floor(size_fc/2.))
         # fcomp in the center of a zeros frame
-        print(ceny,cenx,w)
         fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = psf_template
 
         array_out = np.zeros_like(array)
@@ -106,7 +120,7 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
 
         return array_out
 
-    # 4d case
+    # ADI+IFS case
     if array.ndim==4 and psf_template.ndim==3:
 
         ceny, cenx = frame_center(array[0,0])
@@ -143,10 +157,10 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
                     rad = rad_dists[i]
                     y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
-                    if isinstance(flevel,int)==True:
-                        tmp += cube_shift(fc_fr, y, x, imlib=imlib)*flevel
+                    if isinstance(flevel, int) or isinstance(flevel, float):
+                        tmp += _cube_shift(fc_fr, y, x, imlib=imlib) * flevel
                     else:
-                        shift = cube_shift(fc_fr, y, x, imlib=imlib)
+                        shift = _cube_shift(fc_fr, y, x, imlib=imlib)
                         tmp += [shift[i]*flevel[i] for i in range(len(flevel))]
             array_out[:,fr] = array[:,fr] + tmp
 
@@ -157,18 +171,14 @@ def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc, rad_dists,
                     ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
                     rad_arcs = rad_dists[i]*plsc
                     msg ='\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec ({:.2f} pxs)'
-                    if len(theta)>1:
-                        posy = rad_dists[i] * np.sin(ang[i]) + ceny
-                        posx = rad_dists[i] * np.cos(ang[i]) + cenx
-                        print(msg.format(posx, posy, rad_arcs, rad_dists[i]))
-                    else:
-                        posy = rad_dists[i] * np.sin(ang) + ceny
-                        posx = rad_dists[i] * np.cos(ang) + cenx
-                        print(msg.format(posx, posy, rad_arcs, rad_dists))
+                    posy = rad_dists[i] * np.sin(ang) + ceny
+                    posx = rad_dists[i] * np.cos(ang) + cenx
+                    print(msg.format(posx, posy, rad_arcs, rad_dists[i]))
 
     return array_out
 
-def inject_fc_frame(array, array_fc, pos_y, pos_x, flux):
+
+def frame_inject_companion(array, array_fc, pos_y, pos_x, flux):
     """ Injects a fake companion in a single frame at given coordinates.
     """
     if not (array.ndim==2 or array.ndim==3):
@@ -189,7 +199,8 @@ def inject_fc_frame(array, array_fc, pos_y, pos_x, flux):
         w = int(np.floor(size_fc/2.))
         # fcomp in the center of a zeros frame
         fc_fr[:, ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc
-        array_out = array + cube_shift(fc_fr, pos_y-ceny, pos_x-cenx, imlib='opencv')*flux
+        array_out = array + _cube_shift(fc_fr, pos_y - ceny, pos_x - cenx,
+                                        imlib='opencv') * flux
 
     return array_out
 
@@ -312,8 +323,9 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
 
     return psf_norm
 
-def cube_shift(cube, y, x, imlib):
-    "Shifts the X-Y coordinates of a cube or 3D array by x and y values"
+
+def _cube_shift(cube, y, x, imlib):
+    " Shifts the X-Y coordinates of a cube or 3D array by x and y values"
     cube_out = np.zeros_like(cube)
     for i in range(cube.shape[0]):
         cube_out[i] = frame_shift(cube[i], y, x, imlib=imlib)

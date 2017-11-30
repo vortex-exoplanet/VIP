@@ -7,7 +7,7 @@ from __future__ import print_function
 
 import numpy as np
 from skimage.draw import circle
-from ..phot import inject_fcs_cube
+from ..phot import cube_inject_companions
 from ..var import frame_center
 from ..pca import pca_annulus
 
@@ -72,9 +72,9 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         print('paraVector must be a tuple, {} was given'.format(type(modelParameters)))
 
     # Create the cube with the negative fake companion injected
-    cube_negfc = inject_fcs_cube(cube, psfs_norm, angs, flevel=-flux, 
-                                 plsc=plsc, rad_dists=[r], n_branches=1, 
-                                 theta=theta, verbose=False)       
+    cube_negfc = cube_inject_companions(cube, psfs_norm, angs, flevel=-flux,
+                                        plsc=plsc, rad_dists=[r], n_branches=1,
+                                        theta=theta, verbose=False)       
                                       
     # Perform PCA and extract the zone of interest
     values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width*fwhm,

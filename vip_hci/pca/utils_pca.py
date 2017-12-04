@@ -20,7 +20,7 @@ from matplotlib import pyplot as plt
 from scipy.sparse.linalg import svds
 from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from sklearn.preprocessing import scale #,minmax_scale
+from sklearn.preprocessing import scale
 from ..var import mask_circle, get_annulus, get_square_robust, frame_center
 from ..preproc import cube_derotate, cube_collapse, cube_rescaling
 from .svd import svd_wrapper

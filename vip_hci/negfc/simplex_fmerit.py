@@ -146,61 +146,30 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     If debug is True the PCA frame is returned (in case when collapse is not None)
 
     """
-    if cube.ndim==3:
-        centy_fr, centx_fr = frame_center(cube[0])
+    centy_fr, centx_fr = frame_center(cube[0])
 
-        posy = r_guess * np.sin(np.deg2rad(theta_guess)) + centy_fr
-        posx = r_guess * np.cos(np.deg2rad(theta_guess)) + centx_fr
-        halfw = max(aperture_radius, annulus_width/2.)
+    posy = r_guess * np.sin(np.deg2rad(theta_guess)) + centy_fr
+    posx = r_guess * np.cos(np.deg2rad(theta_guess)) + centx_fr
+    halfw = max(aperture_radius, annulus_width/2.)
 
-        # Checking annulus/aperture sizes. Assuming square frames
-        msg = 'The annulus and/or the circular aperture used by the NegFC falls '
-        msg += 'outside the FOV. Try increasing the size of your frames or '
-        msg += 'decreasing the annulus or aperture size'
-        if r_guess>centx_fr-halfw or r_guess<=halfw:
-            raise RuntimeError(msg)
+    # Checking annulus/aperture sizes. Assuming square frames
+    msg = 'The annulus and/or the circular aperture used by the NegFC falls '
+    msg += 'outside the FOV. Try increasing the size of your frames or '
+    msg += 'decreasing the annulus or aperture size'
+    if r_guess>centx_fr-halfw or r_guess<=halfw:
+        raise RuntimeError(msg)
 
-        pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
-                            svd_mode, scaling, collapse=collapse)
-        indices = circle(posy, posx, radius=aperture_radius)
-        yy, xx = indices
+    pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
+                        svd_mode, scaling, collapse=collapse)
+    indices = circle(posy, posx, radius=aperture_radius)
+    yy, xx = indices
 
-        if collapse is None:
-            values = pca_res[:, yy, xx].ravel()
-        else:
-            values = pca_res[yy, xx].ravel()
+    if collapse is None:
+        values = pca_res[:, yy, xx].ravel()
+    else:
+        values = pca_res[yy, xx].ravel()
 
-        if debug and collapse is not None:
-            return values, pca_res
-        else:
-            return values
-
-    if cube.ndim==4:
-        centy_fr, centx_fr = frame_center(cube[0,0])
-        posy = r_guess * np.sin(np.deg2rad(theta_guess)) + centy_fr
-        posx = r_guess * np.cos(np.deg2rad(theta_guess)) + centx_fr
-        halfw = max(aperture_radius, annulus_width/2.)
-
-        # Checking annulus/aperture sizes. Assuming square frames
-        msg = 'The annulus and/or the circular aperture used by the NegFC falls '
-        msg += 'outside the FOV. Try increasing the size of your frames or '
-        msg += 'decreasing the annulus or aperture size'
-        if r_guess>centx_fr-halfw or r_guess<=halfw:
-            raise RuntimeError(msg)
-
-        pca_res = np.zeros_like(cube[0])
-
-        for i in range(cube[0].shape):
-            pca_res[i] = pca_annulus(cube[i], angs, ncomp, annulus_width, r_guess, cube_ref,
-                                svd_mode, scaling, collapse=collapse)
-        indices = circle(posy, posx, radius=aperture_radius)
-        yy, xx = indices
-        if collapse is None:
-            values = pca_res[:, yy, xx].ravel()
-        else:
-            values = pca_res[yy, xx].ravel()
-
-        if debug and collapse is not None:
-            return values, pca_res
-        else:
-            return values
+    if debug and collapse is not None:
+        return values, pca_res
+    else:
+        return values

@@ -254,12 +254,12 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
             msgerr += 'mode'
             raise ValueError(msgerr)
 
-        if cube.ndim==3:
+        if array.ndim==3:
             ind = get_annulus(array[0], annulus_radius - annulus_width / 2.,
                             annulus_width, output_indices=True)
             yy, xx = ind
             matrix = array[:, yy, xx]
-        elif cube.ndim==4:
+        elif array.ndim==4:
             ind = get_annulus(array[0,0], annulus_radius - annulus_width / 2.,
                             annulus_width, output_indices=True)
             yy, xx = ind
@@ -269,9 +269,9 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
 
         if verbose:
             msg = 'Done vectorizing the cube annulus. Matrix shape [{:},{:}]'
-            if cube.ndim==3:
+            if array.ndim==3:
                 print(msg.format(matrix.shape[0], matrix.shape[1]))
-            elif cube.ndim==4:
+            elif array.ndim==4:
                 print(msg.format(matrix.shape[0,0], matrix.shape[0,1]))
         return matrix, ind
 
@@ -279,9 +279,9 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
         if mask_center_px:
             array = mask_circle(array, mask_center_px)
 
-        if cube.ndim==3:
+        if array.ndim==3:
             nfr = array.shape[0]
-        elif cube.ndim==4:
+        elif array.ndim==4:
             nfr = array.shape[0,0]
         matrix = np.reshape(array, (nfr, -1))  # == for i: array[i].flatten()
 
@@ -289,9 +289,9 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
 
         if verbose:
             msg = 'Done vectorizing the frames. Matrix shape [{:},{:}]'
-            if cube.ndim==3:
+            if array.ndim==3:
                 print(msg.format(matrix.shape[0], matrix.shape[1]))
-            elif cube.ndim==4:
+            elif array.ndim==4:
                 print(msg.format(matrix.shape[0,0], matrix.shape[0,1]))
         return matrix
 

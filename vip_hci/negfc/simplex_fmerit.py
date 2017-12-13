@@ -12,31 +12,31 @@ from ..var import frame_center
 from ..pca import pca_annulus
 
 
-def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
-              aperture_radius, initialState, ncomp, cube_ref=None,
+def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,  
+              aperture_radius, initialState, ncomp, cube_ref=None, 
               svd_mode='lapack', scaling=None, fmerit='sum', collapse='median'):
     """
     Calculate the reduced chi2:
     \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
-    where N is the number of pixels within a circular aperture centered on the
+    where N is the number of pixels within a circular aperture centered on the 
     first estimate of the planet position, and I_j the j-th pixel intensity.
-
+    
     Parameters
-    ----------
+    ----------    
     modelParameters: tuple
         The model parameters, typically (r, theta, flux).
     cube: numpy.array
         The cube of fits images expressed as a numpy.array.
     angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+        The parallactic angle fits image expressed as a numpy.array. 
     plsc: float
         The platescale, in arcsec per pixel.
     psfs_norm: numpy.array
-        The scaled psf expressed as a numpy.array.
+        The scaled psf expressed as a numpy.array.    
     fwhm : float
         The FHWM in pixels.
     annulus_width: int, optional
-        The width in terms of the FWHM of the annulus on which the PCA is done.
+        The width in terms of the FWHM of the annulus on which the PCA is done.      
     aperture_radius: int, optional
         The radius of the circular aperture in terms of the FWHM.
     initialState: numpy.array
@@ -46,12 +46,12 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
-        Switch for different ways of computing the SVD and selected PCs.
+        Switch for different ways of computing the SVD and selected PCs.        
     scaling : {'temp-mean', 'temp-standard'} or None, optional
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done and with
-        "temp-standard" temporal mean centering plus scaling to unit variance
-        is done.
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done and with 
+        "temp-standard" temporal mean centering plus scaling to unit variance 
+        is done. 
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
         companions sitting on top of speckle noise.
@@ -59,13 +59,13 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
-
+        
     Returns
     -------
     out: float
         The reduced chi squared.
-
-    """
+        
+    """   
     try:
         r, theta, flux = modelParameters
     except TypeError:
@@ -74,35 +74,35 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     # Create the cube with the negative fake companion injected
     cube_negfc = cube_inject_companions(cube, psfs_norm, angs, flevel=-flux,
                                         plsc=plsc, rad_dists=[r], n_branches=1,
-                                        theta=theta, verbose=False)
-
+                                        theta=theta, verbose=False)       
+                                      
     # Perform PCA and extract the zone of interest
     values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width*fwhm,
                                  aperture_radius*fwhm, initialState[0],
-                                 initialState[1], cube_ref=cube_ref,
+                                 initialState[1], cube_ref=cube_ref, 
                                  svd_mode=svd_mode, scaling=scaling,
                                  collapse=collapse)
-
+    
     # Function of merit
     if fmerit=='sum':
         values = np.abs(values)
         chi2 = np.sum(values[values>0])
-        N =len(values[values>0])
+        N =len(values[values>0])    
         return chi2/(N-3)
     elif fmerit=='stddev':
-        return np.std(values[values!=0])
+        return np.std(values[values!=0]) 
     else:
-        raise RuntimeError('fmerit choice not recognized')
+        raise RuntimeError('fmerit choice not recognized')      
 
 
 
-def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
+def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius, 
                         r_guess, theta_guess, cube_ref=None, svd_mode='lapack',
                         scaling=None, collapse='median', debug=False):
     """
-    Extracts a PCA-ed annulus from the cube and returns the flux values of the
+    Extracts a PCA-ed annulus from the cube and returns the flux values of the 
     pixels included in a circular aperture centered at a given position.
-
+    
     Parameters
     ----------
     cube: numpy.array
@@ -116,35 +116,35 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     aperture_radius: float
         The radius in pixels of the circular aperture.
     r_guess: float
-        The radial position of the center of the circular aperture. This
-        parameter is NOT the radial position of the candidate associated to the
+        The radial position of the center of the circular aperture. This 
+        parameter is NOT the radial position of the candidate associated to the 
         Markov chain, but should be the fixed initial guess.
     theta_guess: float
-        The angular position of the center of the circular aperture. This
-        parameter is NOT the angular position of the candidate associated to the
-        Markov chain, but should be the fixed initial guess.
+        The angular position of the center of the circular aperture. This 
+        parameter is NOT the angular position of the candidate associated to the 
+        Markov chain, but should be the fixed initial guess.  
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     scaling : {None, 'temp-mean', 'temp-standard'}
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done and with
-        "temp-standard" temporal mean centering plus scaling to unit variance
+        With None, no scaling is performed on the input data before SVD. With 
+        "temp-mean" then temporal px-wise mean subtraction is done and with 
+        "temp-standard" temporal mean centering plus scaling to unit variance 
         is done.
     collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is returned.
     debug: boolean
-        If True, the cube is returned along with the values.
-
+        If True, the cube is returned along with the values.        
+        
     Returns
     -------
     values: numpy.array
         The pixel values in the circular aperture after the PCA process.
 
     If debug is True the PCA frame is returned (in case when collapse is not None)
-
+        
     """
     if cube.ndim==3:
         centy_fr, centx_fr = frame_center(cube[0])

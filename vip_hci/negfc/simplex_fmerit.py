@@ -36,7 +36,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     fwhm : float
         The FHWM in pixels.
     annulus_width: int, optional
-        The width in terms of the FWHM of the annulus on which the PCA is done.      
+        The width in terms of the FWHM of the annulus on which the PCA is done.       
     aperture_radius: int, optional
         The radius of the circular aperture in terms of the FWHM.
     initialState: numpy.array
@@ -46,7 +46,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
-        Switch for different ways of computing the SVD and selected PCs.        
+        Switch for different ways of computing the SVD and selected PCs.         
     scaling : {'temp-mean', 'temp-standard'} or None, optional
         With None, no scaling is performed on the input data before SVD. With 
         "temp-mean" then temporal px-wise mean subtraction is done and with 
@@ -65,7 +65,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     out: float
         The reduced chi squared.
         
-    """   
+    """    
     try:
         r, theta, flux = modelParameters
     except TypeError:
@@ -92,7 +92,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     elif fmerit=='stddev':
         return np.std(values[values!=0]) 
     else:
-        raise RuntimeError('fmerit choice not recognized')      
+        raise RuntimeError('fmerit choice not recognized')       
 
 
 
@@ -182,4 +182,3 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         return values, pca_res
     else:
         return values
-    

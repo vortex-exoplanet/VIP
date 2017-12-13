@@ -146,7 +146,10 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     If debug is True the PCA frame is returned (in case when collapse is not None)
         
     """
-    centy_fr, centx_fr = frame_center(cube[0])
+    if cube.ndim==3:
+        centy_fr, centx_fr = frame_center(cube[0])
+    if cube.ndim==4:
+        centy_fr, centx_fr = frame_center(cube[0,0])
     posy = r_guess * np.sin(np.deg2rad(theta_guess)) + centy_fr
     posx = r_guess * np.cos(np.deg2rad(theta_guess)) + centx_fr
     halfw = max(aperture_radius, annulus_width/2.)
@@ -157,9 +160,16 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     msg += 'decreasing the annulus or aperture size'
     if r_guess>centx_fr-halfw or r_guess<=halfw:
         raise RuntimeError(msg)
-        
-    pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
+
+    if cube.ndim==3:
+        pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
                           svd_mode, scaling, collapse=collapse)
+    if cube.ndim==4:
+        pca_res = np.zeros_like(cube[0])
+        for i in range(cube[0].shape):
+            pca_res[i] = pca_annulus(cube[i], angs, ncomp, annulus_width, r_guess, cube_ref,
+                                svd_mode, scaling, collapse=collapse)
+
     indices = circle(posy, posx, radius=aperture_radius)
     yy, xx = indices
 

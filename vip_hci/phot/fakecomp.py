@@ -21,7 +21,7 @@ from ..preproc import cube_crop_frames, frame_shift, frame_crop
 from ..var import frame_center, fit_2dgaussian, get_circle
 
 
-### TODO: remove this in a later version of VIP. Created for backward compatibility
+### TODO: remove this in VIP v1.0.0. Created for backward compatibility
 def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc,
                     rad_dists, n_branches=1, theta=0, imlib='opencv',
                     verbose=True):

@@ -14,6 +14,7 @@ __all__ = ['dist',
            'get_square_robust',
            'get_circle',
            'get_ellipse',
+           'get_annulus_segments',
            'get_annulus',
            'get_annulus_quad',
            'get_annulus_cube',
@@ -372,6 +373,75 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
         return array_masked
 
 
+def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
+                         output_values=False):
+    """ Returns indices or values in segments of a centerered annulus from a
+    2d ndarray.
+
+    Parameters
+    ----------
+    array : array_like
+        Input 2d array or image.
+    inner_radius : int
+        The inner radius of the donut region.
+    width : int
+        The size of the annulus.
+    nsegm : int
+        Number of segments of annulus to be extracted.
+    theta_init : int
+        Initial azimuth [degrees] of the first segment, counting from the postivie
+        y-axis clockwise.
+    output_values : {False, True}, optional
+        If True returns the values of the pixels in the each quadrant instead
+        of the indices.
+
+    Returns
+    -------
+    indices : list with lenght nsegm
+        Coordinates of pixels for each annulus segment.
+    If output_values is True the pixel values are returned instead.
+
+    """
+    if not array.ndim == 2:
+        raise TypeError('Input array is not a frame or 2d array.')
+    if not isinstance(nsegm, int):
+        raise TypeError('nsegm must be an integer.')
+    if not isinstance(inner_radius, int):
+        raise TypeError('inner_radius must be an integer.')
+    if not isinstance(width, int):
+        raise TypeError('width must be an integer.')
+
+    cy, cx = frame_center(array)
+    azimuth_coverage = np.deg2rad(int(np.floor(360 / nsegm)))
+
+    xx, yy = np.mgrid[:array.shape[0], :array.shape[1]]
+    rad = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
+    phi = np.arctan2(yy - cy, xx - cx)
+    phirot = phi % (2 * np.pi)
+    outer_radius = inner_radius + width
+    indices = []
+
+    for i in range(nsegm):
+        phistart = np.deg2rad(theta_init) + (i * azimuth_coverage)
+        if i == 0: phi_init = phistart
+        phiend = phistart + azimuth_coverage
+        if phiend < phirot[cy * 2, cx - 1]:
+            indices.append(
+                np.where((rad >= inner_radius) & (rad < outer_radius) & \
+                         (phirot >= phistart) & (phirot < phiend)))
+        else:
+            indices.append(
+                np.where((rad >= inner_radius) & (rad < outer_radius) & \
+                         ((phirot >= phistart) | (phirot < phi_init))))
+
+    if output_values:
+        values = [array[segment] for segment in indices]
+        return np.array(values)
+    else:
+        return indices
+
+
+### TODO: remove this in VIP v1.0.0. Replaced with get_annulus_segments
 def get_annulus(array, inner_radius, width, output_values=False, 
                 output_indices=False):                                          
     """Returns a centerered annulus from a 2d ndarray. All the rest pixels are 
@@ -422,6 +492,7 @@ def get_annulus(array, inner_radius, width, output_values=False,
         return array_masked
     
 
+### TODO: remove this in VIP v1.0.0. Replaced with get_annulus_segments
 def get_annulus_quad(array, inner_radius, width, output_values=False):                                          
     """ Returns indices or values in quadrants of a centerered annulus from a 
     2d ndarray. 
@@ -465,7 +536,8 @@ def get_annulus_quad(array, inner_radius, width, output_values=False):
         ind = [np.array(np.where(mask)) for mask in [q1,q2,q3,q4]]          
         return np.array(ind)
 
-    
+
+### TODO: VIP v1.0.0: make use of get_annulus_segments instead
 def get_annulus_cube(array, inner_radius, width, output_values=False):     
     """ Returns a centerered annulus from a 3d ndarray. All the rest pixels are 
     set to zeros. 
@@ -569,18 +641,11 @@ def get_ell_annulus(array, a, b, PA, width, output_values=False,
                   cx - f_sma * np.sin(PA_rad))  # coords of second focus
 
     yy, xx = np.ogrid[:sy, :sx]
-    big_ellipse = dist(yy, xx, pos_f1_big[0], pos_f1_big[1]) + dist(yy, xx,
-                                                                    pos_f2_big[
-                                                                        0],
-                                                                    pos_f2_big[
-                                                                        1])
-    small_ellipse = dist(yy, xx, pos_f1_sma[0], pos_f1_sma[1]) + dist(yy, xx,
-                                                                      pos_f2_sma[
-                                                                          0],
-                                                                      pos_f2_sma[
-                                                                          1])
-    ell_ann_mask = (big_ellipse < 2 * (a + width / 2.)) & (
-    small_ellipse >= 2 * (a - width / 2.))  # mask of 1's and 0's
+    big_ellipse = dist(yy, xx, pos_f1_big[0], pos_f1_big[1]) + \
+                  dist(yy, xx, pos_f2_big[0], pos_f2_big[ 1])
+    small_ellipse = dist(yy, xx, pos_f1_sma[0], pos_f1_sma[1]) + \
+                    dist(yy, xx, pos_f2_sma[0], pos_f2_sma[1])
+    ell_ann_mask = (big_ellipse < 2 * (a + width / 2.)) & (small_ellipse >= 2 * (a - width / 2.))  # mask of 1's and 0's
 
     if output_values and not output_indices:
         values = array[ell_ann_mask]
@@ -626,7 +691,7 @@ def mask_circle(array, radius):
         n, sy, sx = array.shape
         cy, cx = frame_center(array[0])
         xx, yy = np.ogrid[:sy, :sx]
-        circle = (xx - cx)**2 + (yy -                       cy)**2    # squared distance to the center
+        circle = (xx - cx)**2 + (yy - cy)**2    # squared distance to the center
         hole_mask = circle > radius**2      
         array_masked = np.empty_like(array)
         for i in range(n):

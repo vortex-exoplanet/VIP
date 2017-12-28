@@ -4,7 +4,7 @@
 Module with frame de-rotation routine for ADI.
 """
 from __future__ import print_function
-__author__ = 'V. Christiaens @ UChile/ULg, C. Gomez @ ULg'
+__author__ = 'V. Christiaens @ UChile/ULg, Carlos Alberto Gomez Gonzalez'
 __all__ = ['compute_paral_angles',
            'compute_derot_angles_PA',
            'compute_derot_angles_CD',

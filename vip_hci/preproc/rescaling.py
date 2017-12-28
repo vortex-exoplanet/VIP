@@ -3,7 +3,7 @@
 """
 Module with frame resampling/rescaling functions.
 """
-__author__ = 'C. Gomez @ ULg, V. Christiaens @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens @ ULg'
 __all__ = ['frame_px_resampling',
            'cube_px_resampling',
            'frame_rescaling',
@@ -27,13 +27,12 @@ from scipy.ndimage.interpolation import geometric_transform
 from ..var import frame_center
 
 
-def frame_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
+def frame_px_resampling(array, scale, imlib='opencv', interpolation='lanczos4',
                         scale_y=None, scale_x=None, keep_odd=True,
                         full_output=False):
     """ Resamples the pixels of a frame wrt to the center, changing the size
-    of the frame. If 'scale' < 1 then the frame is downsampled and if 
-    'scale' > 1 then its pixels are upsampled. Uses opencv for maximum speed. 
-    Several modes of interpolation are available. 
+    of the frame. If ``scale`` < 1 then the frame is downsampled and if
+    ``scale`` > 1 then its pixels are upsampled.
 
     Parameters
     ----------
@@ -41,15 +40,17 @@ def frame_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
         Input frame, 2d array.
     scale : int or float
         Scale factor for upsampling or downsampling the frame.
-    interpolation : {'bicubic', 'bilinear', 'nearneig', 'area'}, optional
-        'nneighbor' stands for nearest-neighbor interpolation,
-        'bilinear' stands for bilinear interpolation,
-        'bicubic' for interpolation over 4x4 pixel neighborhood.
-        The 'bicubic' is the default. The 'nearneig' is the fastest method and
-        the 'bicubic' the slowest of the three. The 'nearneig' is the poorer
-        option for interpolation of noisy astronomical images. 
-        Even with 'bicubic' interpolation, opencv library is several orders of
-        magnitude faster than python similar functions (e.g. ndimage).
+    imlib : {'opencv', 'skimage'}, str optional
+        Library used for image transformations. Opencv is faster than ndimage or
+        skimage.
+    interpolation : str, optional
+        For 'skimage' library: 'nearneig', bilinear', 'bicuadratic', 'bicubic',
+        'biquartic', 'biquintic'. The 'nearneig' interpolation is the fastest
+        and the 'biquintic' the slowest. The 'nearneig' is the poorer
+        option for interpolation of noisy astronomical images.
+        For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
+        The 'nearneig' interpolation is the fastest and the 'lanczos4' the
+        slowest and accurate. 'lanczos4' is the default.
     scale_y : int or float, opt
         Scale factor for upsampling or downsampling the frame along y only. If 
         provided, it takes priority on scale parameter.
@@ -57,12 +58,12 @@ def frame_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
         Scale factor for upsampling or downsampling the frame along x only. If 
         provided, it takes priority on scale parameter.
     keep_odd: bool, opt
-        Will slightly modify the scale factor in order for the final frame size to keep
-        y and x sizes odd. This keyword does nothing if the input array has even
-        dimensions.
+        Will slightly modify the scale factor in order for the final frame size
+        to keep y and x sizes odd. This keyword does nothing if the input array
+        has even dimensions.
     full_output: bool, opt
-        If True, it will also return the scale factor (slightly modified if keep_odd
-        was set to True)
+        If True, it will also return the scale factor (slightly modified if
+        ``keep_odd`` was set to True).
 
     Returns
     -------
@@ -116,18 +117,21 @@ def frame_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
                 else:  # if downscaling => go to closest odd with even+1 (reversible)
                     scale_x = float(new_nx + 1) / nx
 
-    if imlib not in ['skimage', 'opencv']:
-        raise ValueError('Imlib not recognized, try opencv or ndimage')
-
-    if imlib == 'skimage' or no_opencv:
-        if interpolation == 'bilinear':
+    if imlib == 'skimage':
+        if interpolation == 'nearneig':
+            order = 0
+        elif interpolation == 'bilinear':
             order = 1
+        elif interpolation == 'bicuadratic':
+            order = 2
         elif interpolation == 'bicubic':
             order = 3
-        elif interpolation == 'nearneig':
-            order = 0
+        elif interpolation == 'biquartic':
+            order = 4
+        elif interpolation == 'biquintic':
+            order = 5
         else:
-            raise TypeError('Interpolation method not recognized.')
+            raise TypeError('Skimage interpolation method not recognized.')
 
         min_val = np.min(array)
         im_temp = array - min_val
@@ -138,18 +142,28 @@ def frame_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
         array_resc *= max_val
         array_resc += min_val
 
-    else:
+    elif imlib == 'opencv':
+        if no_opencv:
+            msg = 'Opencv python bindings cannot be imported. Install opencv or'
+            msg += ' set imlib to skimage.'
+            raise RuntimeError(msg)
+
         if interpolation == 'bilinear':
             intp = cv2.INTER_LINEAR
         elif interpolation == 'bicubic':
             intp= cv2.INTER_CUBIC
         elif interpolation == 'nearneig':
             intp = cv2.INTER_NEAREST
+        elif interpolation == 'lanczos4':
+            intp = cv2.INTER_LANCZOS4
         else:
-            raise TypeError('Interpolation method not recognized.')
+            raise TypeError('Opencv interpolation method not recognized.')
 
         array_resc = cv2.resize(array.astype(np.float32), (0,0), fx=scale_x,
                                 fy=scale_y, interpolation=intp)
+
+    else:
+        raise ValueError('Image transformation library not recognized.')
 
     array_resc /= (scale_y * scale_x)
 
@@ -164,11 +178,11 @@ def frame_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
 
 
 
-def cube_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
+def cube_px_resampling(array, scale, imlib='opencv', interpolation='lanczos4',
                        scale_y=None, scale_x=None):
-    """ Wrapper of frame_px_resample() for resampling the frames of a cube with
-    a single scale. Useful when we need to upsample (upsacaling) or downsample 
-    (pixel binning) a set of frames, e.g. an ADI cube. 
+    """ Wrapper of ``frame_px_resampling`` for resampling the frames of a cube
+    with a single scale factor. Useful when we need to upsample (upscaling) or
+    downsample (pixel binning) a set of frames, e.g. an ADI cube.
     
     Parameters
     ----------
@@ -176,18 +190,12 @@ def cube_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
         Input frame, 2d array.
     scale : float
         Scale factor for upsampling or downsampling the frames in the cube.
-    imlib : {'opencv', 'skimage'}, str optional
-        Library used for image transformations. Opencv is faster than ndimage or
-        skimage.
-    interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
-        'nneighbor' stands for nearest-neighbor interpolation,
-        'bilinear' stands for bilinear interpolation,
-        'bicubic' for interpolation over 4x4 pixel neighborhood.
-        The 'bicubic' is the default. The 'nearneig' is the fastest method and
-        the 'bicubic' the slowest of the three. The 'nearneig' is the poorer
-        option for interpolation of noisy astronomical images. 
-        Even with 'bicubic' interpolation, opencv library is several orders of
-        magnitude faster than python similar functions (e.g. ndimage).
+    imlib : str optional
+        See the documentation of the ``vip_hci.preproc.frame_px_resampling``
+        function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_px_resampling``
+        function.
     scale_y : float
         Scale factor for upsampling or downsampling the frame along y. If 
         provided, it takes priority on scale parameter.
@@ -207,7 +215,7 @@ def cube_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
     to a positive valued patch (e.g. an injected PSF template).
 
     """
-    if not array.ndim==3:
+    if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array.')
     
     if scale_y is None: scale_y = scale
@@ -222,13 +230,12 @@ def cube_px_resampling(array, scale, imlib='opencv', interpolation='bicubic',
     return np.array(array_resc)
 
 
-
-def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0, 
-                    imlib='opencv', scale_y=None, scale_x=None):
-    """ Function to rescale a frame by a factor 'scale', wrt a reference point
-    ref_pt which by default is the center of the frame (typically the exact 
-    location of the star). However, it keeps the same dimensions. It uses spline 
-    interpolation of order 3 to find the new values in the output array.
+### TODO: Merge with ``frame_px_resampling``?
+def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0, imlib='opencv',
+                    interpolation='lanczos4', scale_y=None, scale_x=None):
+    """ Function to rescale a frame by a factor ``scale``, wrt a reference point
+    which by default is the center of the frame (typically the exact location
+    of the star). However, it keeps the same dimensions.
     
     Parameters
     ----------
@@ -241,10 +248,17 @@ def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0,
     scale : float
         Scaling factor. If > 1, it will upsample the input array equally along y
         and x by this factor.      
-    imlib: string, {'ndimage','opencv'}, optional
-        String determining which library to apply to rescale. 
-        Both options use a spline of order 3 for interpolation.
-        Opencv is a few order of magnitudes faster than ndimage.
+    imlib : {'opencv', 'ndimage'}, str optional
+        Library used for image transformations. Opencv is faster than ndimage or
+        skimage.
+    interpolation : str, optional
+        For 'ndimage' library: 'nearneig', bilinear', 'bicuadratic', 'bicubic',
+        'biquartic', 'biquintic'. The 'nearneig' interpolation is the fastest
+        and the 'biquintic' the slowest. The 'nearneig' is the poorer
+        option for interpolation of noisy astronomical images.
+        For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
+        The 'nearneig' interpolation is the fastest and the 'lanczos4' the
+        slowest and accurate. 'lanczos4' is the default.
     scale_y : float
         Scaling factor only for y axis. If provided, it takes priority on scale
         parameter.
@@ -261,12 +275,10 @@ def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0,
                     scaling_x=None):    
         """
         For each coordinate point in a new scaled image (output_coords), 
-        coordinates in the image before the scaling are returned. 
-        This scaling function is used within geometric_transform (in 
-        frame_rescaling), 
-        which, for each point in the output image, will compute the (spline)
-        interpolated value at the corresponding frame coordinates before the 
-        scaling.
+        coordinates in the image before the scaling are returned. This scaling
+        function is used within geometric_transform which, for each point in the
+        output image, will compute the (spline) interpolated value at the
+        corresponding frame coordinates before the scaling.
         """
         if scaling_y is None:
             scaling_y = scaling
@@ -281,26 +293,58 @@ def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0,
     if not ref_y and not ref_x:
         ref_y, ref_x = frame_center(array)
 
-    if imlib not in ['ndimage', 'opencv']:
-        raise ValueError('Imlib not recognized, try opencv or ndimage')
-
-    if imlib == 'ndimage' or no_opencv:
+    if imlib == 'ndimage':
         outshap = array.shape
-        array_out = geometric_transform(array, _scale_func, output_shape=outshap,
+
+        if interpolation == 'nearneig':
+            order = 0
+        elif interpolation == 'bilinear':
+            order = 1
+        elif interpolation == 'bicuadratic':
+            order = 2
+        elif interpolation == 'bicubic':
+            order = 3
+        elif interpolation == 'biquartic':
+            order = 4
+        elif interpolation == 'biquintic':
+            order = 5
+        else:
+            raise TypeError('Scipy.ndimage interpolation method not recognized.')
+
+        array_out = geometric_transform(array, _scale_func, order=order,
+                                        output_shape=outshap,
                                         extra_keywords={'ref_y':ref_y,
                                                         'ref_x':ref_x,
                                                         'scaling':scale,
                                                         'scaling_y':scale_y,
                                                         'scaling_x':scale_x})
 
-    else:
+    elif imlib == 'opencv':
+        if no_opencv:
+            msg = 'Opencv python bindings cannot be imported. Install opencv or'
+            msg += ' set imlib to skimage.'
+            raise RuntimeError(msg)
+
+        if interpolation == 'bilinear':
+            intp = cv2.INTER_LINEAR
+        elif interpolation == 'bicubic':
+            intp= cv2.INTER_CUBIC
+        elif interpolation == 'nearneig':
+            intp = cv2.INTER_NEAREST
+        elif interpolation == 'lanczos4':
+            intp = cv2.INTER_LANCZOS4
+        else:
+            raise TypeError('Opencv interpolation method not recognized.')
+
         if scale_y is None: scale_y = scale
         if scale_x is None: scale_x = scale
         M = np.array([[scale_x,0,(1.-scale_x)*ref_x],
                       [0,scale_y,(1.-scale_y)*ref_y]])
         array_out = cv2.warpAffine(array.astype(np.float32), M, 
-                                   (array.shape[1], array.shape[0]), 
-                                   flags=cv2.INTER_CUBIC)
+                                   (array.shape[1], array.shape[0]), flags=intp)
+
+    else:
+        raise ValueError('Image transformation library not recognized.')
 
     if scale_y==scale_x:
         array_out /= scale ** 2
@@ -309,10 +353,11 @@ def frame_rescaling(array, ref_y=None, ref_x=None, scale=1.0,
 
     
     
-def cube_rescaling(array, scaling_list, ref_y=None, ref_x=None, 
-                   imlib='opencv', scaling_y=None, scaling_x=None):
-    """ Function to rescale a cube, frame by frame, by a factor 'scale', with
-    respect to position (cy,cx). It calls frame_rescaling function.
+def cube_rescaling(array, scaling_list, ref_y=None, ref_x=None, imlib='opencv',
+                   interpolation='lanczos4', scaling_y=None, scaling_x=None):
+    """ Function to rescale a cube, frame by frame, by a factor ``scale``, with
+    respect to position (``ref_y``, ``ref_x``). It calls ``frame_rescaling``
+    function.
     
     Parameters
     ----------
@@ -324,10 +369,12 @@ def cube_rescaling(array, scaling_list, ref_y=None, ref_x=None,
         Coordinates X,Y  of the point with respect to which the rescaling will be
         performed. By default the rescaling is done with respect to the center 
         of the frames; central pixel if the frames have odd size.
-    imlib: {'opencv', 'ndimage'}, optional
-        String determining which library to apply to rescale. 
-        Both options use a spline of order 3 for interpolation.
-        Opencv is a few order of magnitudes faster than ndimage.
+    imlib : str optional
+        See the documentation of the ``vip_hci.preproc.frame_rescaling``
+        function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rescaling``
+        function.
     scaling_y : 1D-array or list
         Scaling factor only for y axis. If provided, it takes priority on 
         scaling_list.
@@ -349,12 +396,15 @@ def cube_rescaling(array, scaling_list, ref_y=None, ref_x=None,
     if scaling_y is None: scaling_y = [None]*array.shape[0]
     if scaling_x is None: scaling_x = [None]*array.shape[0]
     
-    if not ref_y and not ref_x:  ref_y, ref_x = frame_center(array[0])
+    if not ref_y and not ref_x:
+        ref_y, ref_x = frame_center(array[0])
     
     for i in range(array.shape[0]):
         array_sc[i] = frame_rescaling(array[i], ref_y=ref_y, ref_x=ref_x, 
                                       scale=scaling_list[i], imlib=imlib,
-                                      scale_y=scaling_y[i], scale_x=scaling_x[i])
+                                      interpolation=interpolation,
+                                      scale_y=scaling_y[i],
+                                      scale_x=scaling_x[i])
             
     array_out = np.median(array_sc, axis=0)              
     return array_sc, array_out

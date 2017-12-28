@@ -7,7 +7,7 @@ Module with fake companion injection functions.
 from __future__ import division
 from __future__ import print_function
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['create_psf_template',
            'psf_norm',
            'cube_inject_companions',
@@ -33,7 +33,7 @@ def inject_fc_frame(array, array_fc, pos_y, pos_x, flux):
 
 def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                            rad_dists, n_branches=1, theta=0, imlib='opencv',
-                           verbose=True):
+                           interpolation='lanczos4', verbose=True):
     """ Injects fake companions in branches, at given radial distances.
 
     Parameters
@@ -56,9 +56,10 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         Angle in degrees for rotating the position of the first branch that by
         default is located at zero degrees. Theta counts counterclockwise from
         the positive x axis.
-    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
-        Library or method used for image operations (shifts). Opencv is the
-        default for being the fastest.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     verbose : {True, False}, bool optional
         If True prints out additional information.
 
@@ -104,7 +105,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     rad = rad_dists[i]
                     y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
-                    tmp += frame_shift(fc_fr, y, x, imlib=imlib)*flevel
+                    tmp += frame_shift(fc_fr, y, x, imlib=imlib,
+                                       interpolation=interpolation) * flevel
                     array_out[fr] = array[fr] + tmp
 
         if verbose:
@@ -158,9 +160,11 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
                     if isinstance(flevel, int) or isinstance(flevel, float):
-                        tmp += _cube_shift(fc_fr, y, x, imlib=imlib) * flevel
+                        tmp += _cube_shift(fc_fr, y, x, imlib=imlib,
+                                           interpolation=interpolation) * flevel
                     else:
-                        shift = _cube_shift(fc_fr, y, x, imlib=imlib)
+                        shift = _cube_shift(fc_fr, y, x, imlib=imlib,
+                                            interpolation=interpolation)
                         tmp += [shift[i]*flevel[i] for i in range(len(flevel))]
             array_out[:,fr] = array[:,fr] + tmp
 
@@ -178,7 +182,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     return array_out
 
 
-def frame_inject_companion(array, array_fc, pos_y, pos_x, flux):
+def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
+                           imlib='opencv', interpolation='lanczos4'):
     """ Injects a fake companion in a single frame at given coordinates.
     """
     if not (array.ndim==2 or array.ndim==3):
@@ -190,7 +195,8 @@ def frame_inject_companion(array, array_fc, pos_y, pos_x, flux):
         w = int(np.floor(size_fc/2.))
         # fcomp in the center of a zeros frame
         fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc
-        array_out = array + frame_shift(fc_fr, pos_y-ceny, pos_x-cenx)*flux
+        array_out = array + frame_shift(fc_fr, pos_y-ceny, pos_x-cenx, imlib,
+                                        interpolation) * flux
 
     if array.ndim==3:
         size_fc = array_fc.shape[1]
@@ -200,7 +206,7 @@ def frame_inject_companion(array, array_fc, pos_y, pos_x, flux):
         # fcomp in the center of a zeros frame
         fc_fr[:, ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc
         array_out = array + _cube_shift(fc_fr, pos_y - ceny, pos_x - cenx,
-                                        imlib='opencv') * flux
+                                        imlib, interpolation) * flux
 
     return array_out
 
@@ -248,7 +254,8 @@ def create_psf_template(array, size, fwhm=4, verbose=True, collapse='mean'):
 
 
 def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
-             full_output=False, verbose=False):
+             imlib='opencv', interpolation='lanczos4', full_output=False,
+             verbose=False):
     """ Scales a PSF, so the 1*FWHM aperture flux equals 1.
 
     Parameters
@@ -265,12 +272,23 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
     mask_core : None of float, optional
         Sets the radius of a circular aperture for the core of the PSF,
         everything else will be set to zero.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    full_output : {False, True}, bool optional
+        If True the flux in a FWHM aperture is returned along with the
+        normalized PSF.
+    verbose : {False, True}, bool optional
+        If True intermediate results are printed out.
 
     Returns
     -------
     psf_norm: array_like
         The normalized psf.
 
+    If ``full_output`` is True the flux in a FWHM aperture is returned along
+    with the normalized PSF.
     """
 
     if size is not None:
@@ -289,7 +307,8 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
         # first we find the centroid and put it in the center of the array
         centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm, fwhmy=fwhm)
         shiftx, shifty = centroidx - cx, centroidy - cy
-        psfs = frame_shift(psfs, -shifty, -shiftx)
+        psfs = frame_shift(psfs, -shifty, -shiftx, imlib=imlib,
+                           interpolation=interpolation)
         for _ in range(2):
             centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm, fwhmy=fwhm)
             cy, cx = frame_center(psfs, verbose=False)
@@ -324,9 +343,9 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
     return psf_norm
 
 
-def _cube_shift(cube, y, x, imlib):
+def _cube_shift(cube, y, x, imlib, interpolation):
     " Shifts the X-Y coordinates of a cube or 3D array by x and y values"
     cube_out = np.zeros_like(cube)
     for i in range(cube.shape[0]):
-        cube_out[i] = frame_shift(cube[i], y, x, imlib=imlib)
+        cube_out[i] = frame_shift(cube[i], y, x, imlib, interpolation)
     return cube_out

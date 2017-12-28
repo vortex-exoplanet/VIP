@@ -5,7 +5,7 @@ Module for functions that check available memory, and input sizes.
 """
 from __future__ import print_function
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['check_enough_memory',
            'get_available_memory']
 

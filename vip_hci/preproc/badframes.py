@@ -7,7 +7,7 @@ Module with functions for outlier frame detection.
 from __future__ import division
 from __future__ import print_function
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_detect_badfr_pxstats',
            'cube_detect_badfr_ellipticipy',
            'cube_detect_badfr_correlation']

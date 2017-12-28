@@ -6,7 +6,7 @@ LLSG (Gomez Gonzalez et al. 2016)
 from __future__ import division
 from __future__ import print_function
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['llsg']
 
 import numpy as np
@@ -26,8 +26,9 @@ from ..conf import eval_func_tuple as EFT
 
 def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10, 
          low_rank_mode='svd', thresh_mode='soft', nproc=1, radius_int=None, 
-         random_seed=None, collapse='median', low_pass=False, full_output=False, 
-         verbose=True, debug=False):
+         random_seed=None, imlib='opencv', interpolation='lanczos4',
+         collapse='median', low_pass=False, full_output=False, verbose=True,
+         debug=False):
     """ 
     Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as 
     described in Gomez Gonzalez et al. 2016. This first version of our algorithm 
@@ -67,7 +68,11 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         The radius of the innermost annulus. By default is 0, if >0 then the 
         central circular area is discarded.
     random_seed : int or None, optional
-        Controls the seed for the Pseudo Random Number generator. 
+        Controls the seed for the Pseudo Random Number generator.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.  
     low_pass : {False, True}, bool optional
@@ -163,11 +168,14 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
                     matrix_final_s[:, yy[q], xx[q]] = patch[q]
         
     if full_output:       
-        S_array_der = cube_derotate(matrix_final_s, angle_list)
+        S_array_der = cube_derotate(matrix_final_s, angle_list, imlib=imlib,
+                                    interpolation=interpolation)
         frame_s = cube_collapse(S_array_der, mode=collapse)
-        L_array_der = cube_derotate(matrix_final_l, angle_list)
+        L_array_der = cube_derotate(matrix_final_l, angle_list, imlib=imlib,
+                                    interpolation=interpolation)
         frame_l = cube_collapse(L_array_der, mode=collapse)
-        G_array_der = cube_derotate(matrix_final_g, angle_list)
+        G_array_der = cube_derotate(matrix_final_g, angle_list, imlib=imlib,
+                                    interpolation=interpolation)
         frame_g = cube_collapse(G_array_der, mode=collapse)
     else:
         S_array_der = cube_derotate(matrix_final_s, angle_list)              
@@ -183,7 +191,6 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         else:
             return frame_s
     
-
 
 def patch_rlrps(array, rank, low_rank_mode, thresh, thresh_mode, max_iter, 
                 random_seed, debug=False, full_output=False):

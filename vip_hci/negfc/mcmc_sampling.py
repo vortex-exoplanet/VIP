@@ -5,7 +5,7 @@ Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
 """
 from __future__ import print_function
 
-__author__ = 'O. Wertz, C. Gomez @ ULg'
+__author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez'
 __all__ = ['lnprior',
            'lnlike',
            'mcmc_negfc_sampling',
@@ -35,8 +35,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 def lnprior(param, bounds):
-    """
-    Define the prior log-function.  
+    """ Define the prior log-function.
     
     Parameters
     ----------    
@@ -49,10 +48,8 @@ def lnprior(param, bounds):
     Returns
     -------
     out: float. 
-        0           --  All the model parameters satisfy the prior 
-                        conditions defined here.
-        -np.inf     --  At least one model parameters is out of bounds.
-    
+        0 if all the model parameters satisfy the prior conditions defined here.
+        -np.inf if at least one model parameters is out of bounds.
     """
     
     try:
@@ -74,8 +71,9 @@ def lnprior(param, bounds):
 
 
 def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
-           ncomp, aperture_radius, initial_state, cube_ref=None, svd_mode='lapack',
-           scaling='temp-mean', fmerit='sum', collapse='median', debug=False):
+           ncomp, aperture_radius, initial_state, cube_ref=None,
+           svd_mode='lapack', scaling='temp-mean', fmerit='sum', imlib='opencv',
+           interpolation='lanczos4', collapse='median', debug=False):
     """ Define the likelihood log-function.
     
     Parameters
@@ -112,6 +110,10 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
         companions sitting on top of speckle noise.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
@@ -127,24 +129,27 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
     """    
     # Create the cube with the negative fake companion injected
     cube_negfc = cube_inject_companions(cube, psf_norm, angs, flevel=-param[2],
-                                        plsc=plsc, rad_dists=[param[0]], n_branches=1,
-                                        theta=param[1], verbose=False, imlib='opencv')
+                                        plsc=plsc, rad_dists=[param[0]],
+                                        n_branches=1, theta=param[1],
+                                        imlib=imlib, interpolation=interpolation,
+                                        verbose=False)
                                   
     # Perform PCA and extract the zone of interest
     values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width*fwhm,
                                  aperture_radius*fwhm, initial_state[0],
                                  initial_state[1], cube_ref=cube_ref,
                                  svd_mode=svd_mode, scaling=scaling,
+                                 imlib=imlib, interpolation=interpolation,
                                  collapse=collapse)
     
     # Function of merit
-    if fmerit=='sum':
+    if fmerit == 'sum':
         lnlikelihood = -0.5 * np.sum(np.abs(values))
-    elif fmerit=='stddev':
-        values = values[values!=0]
+    elif fmerit == 'stddev':
+        values = values[values != 0]
         lnlikelihood = -1*np.std(np.abs(values))
     else:
-        raise RuntimeError('fmerit choice not recognized')
+        raise RuntimeError('fmerit choice not recognized.')
     
     if debug:
         return lnlikelihood, cube_negfc
@@ -154,8 +159,8 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
 
 def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
            annulus_width, ncomp, aperture_radius, initial_state, cube_ref=None,
-           svd_mode='lapack', scaling='temp-mean', fmerit='sum',
-           collapse='median',display=False):
+           svd_mode='lapack', scaling='temp-mean', fmerit='sum', imlib='opencv',
+           interpolation='lanczos4', collapse='median', display=False):
     """ Define the probability log-function as the sum between the prior and 
     likelihood log-funtions.
     
@@ -196,6 +201,10 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
         companions sitting on top of speckle noise.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
@@ -219,7 +228,8 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
     
     return lp + lnlike(param, cube, angs, plsc, psf_norm, fwhm,
                        annulus_width, ncomp, aperture_radius, initial_state,
-                       cube_ref, svd_mode, scaling, fmerit, collapse, display)
+                       cube_ref, svd_mode, scaling, fmerit, imlib,
+                       interpolation, collapse, display)
 
 
 def gelman_rubin(x):      
@@ -312,14 +322,16 @@ def gelman_rubin_from_chain(chain, burnin):
     return rhat
 
 
-def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state,
-                        fwhm=4, annulus_width=3, aperture_radius=4, cube_ref=None, 
+def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
+                        annulus_width=3, aperture_radius=4, cube_ref=None,
                         svd_mode='lapack', scaling='temp-mean', fmerit='sum',
+                        imlib='opencv', interpolation='lanczos4',
                         collapse='median', nwalkers=1000, bounds=None, a=2.0,
                         burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1,
                         niteration_min=0, niteration_limit=1e02, 
                         niteration_supp=0, check_maxgap=1e04, nproc=1, 
-                        output_file=None, display=False, verbose=True, save=False):
+                        output_file=None, display=False, verbose=True,
+                        save=False):
     """ Runs an affine invariant mcmc sampling algorithm in order to determine
     the position and the flux of the planet using the 'Negative Fake Companion'
     technique. The result of this procedure is a chain with the samples from the
@@ -500,12 +512,12 @@ def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state,
                   (initial_state[1]-10,initial_state[1]+10), #angle
                   (0,2*initial_state[2])] #flux
     
-    sampler = emcee.EnsembleSampler(nwalkers,dim,lnprob,a,
+    sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a,
                                     args =([bounds, cubes, angs, plsc, psfn,
                                             fwhm, annulus_width, ncomp,
                                             aperture_radius, initial_state,
                                             cube_ref, svd_mode, scaling, fmerit,
-                                            collapse]),
+                                            imlib, interpolation, collapse]),
                                     threads=nproc)
                                     
     start = datetime.datetime.now()
@@ -685,7 +697,7 @@ def show_walk_plot(chain, save=False, **kwargs):
     save: boolean, default: False
         If True, a pdf file is created.
     kwargs:
-        Additional attributs are passed to the matplotlib plot method.
+        Additional attributes are passed to the matplotlib plot method.
                                                         
     Returns
     -------
@@ -697,26 +709,19 @@ def show_walk_plot(chain, save=False, **kwargs):
     if len(temp) != 0:
         chain = chain[:,:temp[0],:]
 
-        
     labels = kwargs.pop('labels',["$r$",r"$\theta$","$f$"])
-    
     fig, axes = plt.subplots(3, 1, sharex=True, figsize=kwargs.pop('figsize',(8,6)))
-    
     axes[2].set_xlabel(kwargs.pop('xlabel','step number'))
     axes[2].set_xlim(kwargs.pop('xlim',[0,chain.shape[1]]))
-    
     color = kwargs.pop('color','k')    
     alpha = kwargs.pop('alpha',0.4)
-    
     for j in range(3):            
         axes[j].plot(chain[:,:,j].T, color=color, 
                                      alpha=alpha,
                                      **kwargs)
         axes[j].yaxis.set_major_locator(MaxNLocator(5))
         axes[j].set_ylabel(labels[j])
-            
     fig.tight_layout(h_pad=0.0)
-    
     if save:
         plt.savefig('walk_plot.pdf')
         plt.close(fig)
@@ -752,8 +757,7 @@ def show_corner_plot(chain, burnin=0.5, save=False, **kwargs):
     ImportError
     
     """
-    #burnin = kwargs.pop('burnin',0)
-    try:    
+    try:
         temp = np.where(chain[0,:,0] == 0.0)[0]
         if len(temp) != 0:
             chain = chain[:,:temp[0],:]
@@ -761,7 +765,6 @@ def show_corner_plot(chain, burnin=0.5, save=False, **kwargs):
         chain = chain[:,int(np.floor(burnin*(length-1))):length,:].reshape((-1,3))
     except IndexError:
         pass
-        
 
     if chain.shape[0] == 0:
         print("It seems that the chain is empty. Have you already run the MCMC ?")

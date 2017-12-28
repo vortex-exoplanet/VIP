@@ -6,7 +6,7 @@ Module for image statistics.
 
 from __future__ import division
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['frame_histo_stats']
 
 import numpy as np

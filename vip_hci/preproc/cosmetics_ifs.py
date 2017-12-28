@@ -7,7 +7,7 @@ Module with cube cosmetic functions for SDI datasets.
 from __future__ import division
 from __future__ import print_function
 
-__author__ = 'V. Christiaens @ UChile/ULg, C. Gomez @ ULg'
+__author__ = 'V. Christiaens @ UChile/ULg, Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_correct_nan',
            'approx_stellar_position']
 

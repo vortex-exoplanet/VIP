@@ -4,7 +4,7 @@
 Functions for timing other functions/procedures.
 """
 from __future__ import print_function
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['time_ini', 'timing', 'time_fin']
 
 from datetime import datetime

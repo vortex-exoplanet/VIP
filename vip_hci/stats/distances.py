@@ -6,7 +6,7 @@ Distance between images.
 
 from __future__ import division
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_distance',
            'cube_distance_to_frame']
 

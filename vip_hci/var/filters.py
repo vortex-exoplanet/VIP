@@ -6,7 +6,7 @@ Module with frame/cube filtering functionalities
 
 from __future__ import division
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['frame_filter_highpass',
            'frame_filter_lowpass',
            'cube_filter_highpass',

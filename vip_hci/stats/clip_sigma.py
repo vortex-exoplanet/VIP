@@ -6,7 +6,7 @@ Module with sigma clipping functions.
 
 from __future__ import division, print_function
 
-__author__ = 'C. Gomez @ ULg', 'V. Christiaens'
+__author__ = 'Carlos Alberto Gomez Gonzalez', 'V. Christiaens'
 __all__ = ['clip_array',
            'sigma_filter']
 

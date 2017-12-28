@@ -7,7 +7,7 @@ Module with helping functions.
 from __future__ import division
 from __future__ import print_function
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['matrix_scaling',
            'prepare_matrix',
            'reshape_matrix',
@@ -20,8 +20,9 @@ from ..var import mask_circle, get_annulus, get_square_robust, frame_center
 from ..preproc import cube_derotate, cube_collapse, cube_rescaling
 from .svd import svd_wrapper
 
+
 def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
-                       x_in=1):
+                       x_in=1, imlib='opencv', interpolation='lanczos4'):
     """
     Wrapper to scale or descale a cube by factors given in scal_list, without 
     any loss of information (zero-padding if scaling > 1).
@@ -48,6 +49,12 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
        Initial y and x sizes.
        In case the cube is descaled, these values will be used to crop back the
        cubes/frames to their original size.
+    imlib : str optional
+        See the documentation of the ``vip_hci.preproc.frame_rescaling``
+        function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rescaling``
+        function.
 
     Returns:
     --------
@@ -89,7 +96,8 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
         cy,cx = frame_center(cube[0])
 
     # (de)scale the cube, so that a planet would now move radially
-    cube,frame = cube_rescaling(big_cube,var_list,ref_y=cy, ref_x=cx)
+    cube,frame = cube_rescaling(big_cube,var_list,ref_y=cy, ref_x=cx,
+                                imlib=imlib, interpolation=interpolation)
 
     if inverse:
         if max_sc > 1:
@@ -110,7 +118,8 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
 
 
 def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
-                svd_mode='lapack', scaling=None, collapse='median'):
+                svd_mode='lapack', scaling=None, collapse='median',
+                imlib='opencv', interpolation='lanczos4'):
     """
     PCA process the cube only for an annulus of a given width and at a given
     radial distance to the frame center. It returns a PCA processed frame with 
@@ -142,20 +151,25 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is returned.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     
     Returns
     -------
     Depending on ``collapse`` parameter a final collapsed frame or the cube of
     residuals is returned.
     """
-    data, ind = prepare_matrix(cube, scaling, mode='annular', annulus_radius=r_guess,
-                               annulus_width=annulus_width, verbose=False)
+    data, ind = prepare_matrix(cube, scaling, mode='annular',
+                               annulus_radius=r_guess, verbose=False,
+                               annulus_width=annulus_width)
     yy, xx = ind
 
     if cube_ref is not None:
         data_svd, _  = prepare_matrix(cube_ref, scaling, mode='annular',
-                                      annulus_radius=r_guess,
-                                      annulus_width=annulus_width, verbose=False)
+                                      annulus_radius=r_guess, verbose=False,
+                                      annulus_width=annulus_width)
     else:
         data_svd = data
         
@@ -166,7 +180,8 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     residuals = data - reconstructed
     cube_zeros = np.zeros_like(cube)
     cube_zeros[:, yy, xx] = residuals
-    cube_res_der = cube_derotate(cube_zeros, angs)
+    cube_res_der = cube_derotate(cube_zeros, angs, imlib=imlib,
+                                 interpolation=interpolation)
     if collapse is not None:
         pca_frame = cube_collapse(cube_res_der, mode=collapse)
         return pca_frame

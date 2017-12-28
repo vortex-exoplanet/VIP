@@ -7,7 +7,7 @@ Module with various functions.
 from __future__ import division
 from __future__ import print_function
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['dist',
            'frame_center',
            'get_square',

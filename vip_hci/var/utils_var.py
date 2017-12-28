@@ -7,7 +7,7 @@ Module with various functions.
 from __future__ import division
 from __future__ import print_function
 
-__author__ = 'C. Gomez @ ULg', 'O. Wertz'
+__author__ = 'Carlos Alberto Gomez Gonzalez, O. Wertz'
 __all__ = ['pp_subplots',
            'plot_surface',
            'get_fwhm',

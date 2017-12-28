@@ -6,7 +6,7 @@ Module for stats of a fits-cube.
 
 from __future__ import division 
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_stats_aperture',
            'cube_stats_annulus']
 

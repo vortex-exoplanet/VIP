@@ -7,7 +7,7 @@ Module containing functions for cubes frame registration.
 from __future__ import division
 from __future__ import print_function
 
-__author__ = 'C. Gomez @ ULg, V. Christiaens @ ULg/UChile, G. Ruane'
+__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens @ ULg/UChile, G. Ruane'
 __all__ = ['frame_shift',
            'frame_center_radon',
            'frame_center_satspots',
@@ -48,9 +48,9 @@ from ..var import (get_square, get_square_robust, frame_center,
 from ..preproc import cube_crop_frames
 
 
-def frame_shift(array, shift_y, shift_x, imlib='ndimage-fourier',
-                interpolation='bicubic'):
-    """ Shifts an 2d array by shift_y, shift_x. Boundaries are filled with zeros. 
+def frame_shift(array, shift_y, shift_x, imlib='opencv',
+                interpolation='lanczos4'):
+    """ Shifts a 2D array by shift_y, shift_x. Boundaries are filled with zeros.
 
     Parameters
     ----------
@@ -58,41 +58,33 @@ def frame_shift(array, shift_y, shift_x, imlib='ndimage-fourier',
         Input 2d array.
     shift_y, shift_x: float
         Shifts in x and y directions.
-    imlib : {'ndimage-fourier', 'opencv', 'ndimage-interp'}, string optional
+    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
         Library or method used for performing the image shift.
+        'ndimage-fourier', does a fourier shift operation and preserves better
+        the pixel values (therefore the flux and photometry). Interpolation
+        based shift ('opencv' and 'ndimage-interp') is faster than the fourier
+        shift. 'opencv' is recommended when speed is critical.
     interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
         Only used in case of imlib is set to 'opencv' or 'ndimage-interp', where
-        the images are shifted via interpolation. 'nneighbor' stands for
-        nearest-neighbor, 'bilinear' stands for bilinear and 'bicubic' stands
-        for bicubic interpolation over 4x4 pixel neighborhood. 'bicubic' is the
-        default. The 'nearneig' is the fastest method and the 'bicubic' the
-        slowest of the three. The 'nearneig' is the poorer option for
-        interpolation of noisy astronomical images.
+        the images are shifted via interpolation.
+        For 'ndimage-interp' library: 'nearneig', bilinear', 'bicuadratic',
+        'bicubic', 'biquartic', 'biquintic'. The 'nearneig' interpolation is
+        the fastest and the 'biquintic' the slowest. The 'nearneig' is the
+        poorer option for interpolation of noisy astronomical images.
+        For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
+        The 'nearneig' interpolation is the fastest and the 'lanczos4' the
+        slowest and accurate. 'lanczos4' is the default.
     
     Returns
     -------
     array_shifted : array_like
         Shifted 2d array.
 
-    Notes
-    -----
-    Regarding the imlib parameter: 'ndimage-fourier', does a fourier shift
-    operation and preserves better the pixel values (therefore the flux and
-    photometry). 'ndimage-fourier' is used by default from VIP version 0.5.3.
-    Interpolation based shift ('opencv' and 'ndimage-interp') is faster than the
-    fourier shift. 'opencv' could be used when speed is critical and the flux
-    preservation is not that important.
-
     """
     if not array.ndim == 2:
-        raise TypeError ('Input array is not a frame or 2d array')
+        raise TypeError('Input array is not a frame or 2d array')
     
     image = array.copy()
-
-    if imlib not in ['ndimage-fourier', 'ndimage-interp', 'opencv']:
-        msg = 'Imlib value not recognized, try ndimage-fourier, ndimage-interp '
-        msg += 'or opencv'
-        raise ValueError(msg)
 
     if imlib=='ndimage-fourier':
         shift_val = (shift_y, shift_x)
@@ -101,16 +93,22 @@ def frame_shift(array, shift_y, shift_x, imlib='ndimage-fourier',
         array_shifted = array_shifted.real
 
     elif imlib=='ndimage-interp':
-        if interpolation == 'bilinear':
-            intp = 1
+        if interpolation == 'nearneig':
+            order = 0
+        elif interpolation == 'bilinear':
+            order = 1
+        elif interpolation == 'bicuadratic':
+            order = 2
         elif interpolation == 'bicubic':
-            intp= 3
-        elif interpolation == 'nearneig':
-            intp = 0
+            order = 3
+        elif interpolation == 'biquartic':
+            order = 4
+        elif interpolation == 'biquintic':
+            order = 5
         else:
-            raise TypeError('Interpolation method not recognized.')
+            raise TypeError('Scipy.ndimage interpolation method not recognized.')
         
-        array_shifted = shift(image, (shift_y, shift_x), order=intp)
+        array_shifted = shift(image, (shift_y, shift_x), order=order)
     
     elif imlib=='opencv':
         if no_opencv:
@@ -124,22 +122,25 @@ def frame_shift(array, shift_y, shift_x, imlib='ndimage-fourier',
             intp= cv2.INTER_CUBIC
         elif interpolation == 'nearneig':
             intp = cv2.INTER_NEAREST
+        elif interpolation == 'lanczos4':
+            intp = cv2.INTER_LANCZOS4
         else:
-            raise TypeError('Interpolation method not recognized.')
+            raise TypeError('Opencv interpolation method not recognized.')
         
         image = np.float32(image)
         y, x = image.shape
         M = np.float32([[1,0,shift_x],[0,1,shift_y]])
         array_shifted = cv2.warpAffine(image, M, (x,y), flags=intp)
+
+    else:
+        raise ValueError('Image transformation library not recognized.')
     
     return array_shifted
 
 
-# TODO: expose 'imlib' parameter in the rest of functions that use frame_shift
-# function
-
 def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
-                          debug=False): 
+                          imlib='opencv', interpolation='lanczos4',
+                          debug=False):
     """ Finds the center of a frame with waffle/satellite spots (e.g. for 
     VLT/SPHERE). The method used to determine the center is by centroiding the
     4 spots via a 2d Gaussian fit and finding the intersection of the 
@@ -164,7 +165,11 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
         (MEDIAN + sigfactor*STDDEV) will be replaced by small random Gaussian 
         noise. 
     shift : {False, True}, optional 
-        If True the image is shifted with bicubic interpolation. 
+        If True the image is shifted.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     debug : {False, True}, optional 
         If True debug information is printed and plotted.
     
@@ -280,7 +285,8 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
             print('Shifts (X,Y):', shiftx, shifty)
         
         if shift:
-            array_rec = frame_shift(array, shifty, shiftx)
+            array_rec = frame_shift(array, shifty, shiftx, imlib=imlib,
+                                    interpolation=interpolation)
             return array_rec, shifty, shiftx
         else:
             return shifty, shiftx
@@ -539,9 +545,10 @@ def _radon_costf2(frame, cent, radint, coords):
 
 
       
-def cube_recenter_radon(array, full_output=False, verbose=True, **kwargs):
+def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
+                        interpolation='lanczos4', **kwargs):
     """ Recenters a cube looping through its frames and calling the 
-    frame_center_radon() function. 
+    ``frame_center_radon`` function.
     
     Parameters
     ----------
@@ -551,9 +558,13 @@ def cube_recenter_radon(array, full_output=False, verbose=True, **kwargs):
         If True the recentered cube is returned along with the y and x shifts.
     verbose : {True, False}, bool optional
         Whether to print timing and intermediate information to stdout.
-    
-    Optional parameters (keywords and values) can be passed to the     
-    frame_center_radon function. 
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    kwargs : dict
+        Optional parameters (keywords and values) can be passed to the
+        ``frame_center_radon`` function.
     
     Returns
     -------
@@ -578,7 +589,8 @@ def cube_recenter_radon(array, full_output=False, verbose=True, **kwargs):
     for i in range(n_frames):
         y[i], x[i] = frame_center_radon(array[i], verbose=False, plot=False, 
                                         **kwargs)
-        array_rec[i] = frame_shift(array[i], y[i], x[i])
+        array_rec[i] = frame_shift(array[i], y[i], x[i], imlib=imlib,
+                                   interpolation=interpolation)
         bar.update()
         
     if verbose:  timing(start_time)
@@ -592,6 +604,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, **kwargs):
 
 def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4, 
                                  subi_size=None, upsample_factor=100,
+                                 imlib='opencv', interpolation='lanczos4',
                                  full_output=False, verbose=True,
                                  save_shifts=False, debug=False):
     """ Recenters a cube of frames using the DFT upsampling method as 
@@ -623,6 +636,10 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     upsample_factor :  int optional
         Upsampling factor (default 100). Images will be registered to within
         1/upsample_factor of a pixel.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     full_output : {False, True}, bool optional
         Whether to return 2 1d arrays of shifts along with the recentered cube 
         or not.
@@ -680,7 +697,8 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
                                      debug=debug)
         x[0] = cx-x1
         y[0] = cy-y1
-        array_rec[0] = frame_shift(array_rec[0], shift_y=y[0], shift_x=x[0])
+        array_rec[0] = frame_shift(array_rec[0], shift_y=y[0], shift_x=x[0],
+                                   imlib=imlib, interpolation=interpolation)
         if verbose:
             print("\nShift for first frame X,Y=({:.3f},{:.3f})".format(x[0],y[0]))
             print("The rest of the frames will be shifted by cross-correlation" \
@@ -706,7 +724,8 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
         #dx, dy, _, _ = chi2_shift(array_rec[0], array[i], upsample_factor='auto')
         #x[i] = -dx
         #y[i] = -dy
-        array_rec[i] = frame_shift(array[i], shift_y=y[i], shift_x=x[i])
+        array_rec[i] = frame_shift(array[i], shift_y=y[i], shift_x=x[i],
+                                   imlib=imlib, interpolation=interpolation)
         bar.update()
 
     if debug:
@@ -724,8 +743,9 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
         return array_rec
   
 
-def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1, 
-                              full_output=False, verbose=True, save_shifts=False, 
+def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
+                              imlib='opencv', interpolation='lanczos4',
+                              full_output=False, verbose=True, save_shifts=False,
                               offset=None, negative=False, debug=False,
                               threshold=False):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
@@ -749,6 +769,10 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
     nproc : int or None, optional
         Number of processes (>1) for parallel computing. If 1 then it runs in 
         serial. If None the number of processes will be set to (cpu_count()/2).
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     full_output : {False, True}, bool optional
         Whether to return 2 1d arrays of shifts along with the recentered cube 
         or not.
@@ -847,7 +871,8 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
         if debug:
             print("\nShifts in X and Y")
             print(x[i], y[i])
-        array_recentered[i] = frame_shift(array[i], y[i], x[i])
+        array_recentered[i] = frame_shift(array[i], y[i], x[i], imlib=imlib,
+                                          interpolation=interpolation)
         bar2.update()
         
     if verbose:  timing(start_time)
@@ -861,8 +886,9 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
 
 
 def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5, 
-                               nproc=None, full_output=False, verbose=True, 
-                               save_shifts=False, debug=False, 
+                               nproc=None, imlib='opencv',
+                               interpolation='lanczos4', full_output=False,
+                               verbose=True, save_shifts=False, debug=False,
                                unmoving_star=True, negative=False):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
     moffat to a subimage centered at (pos_x, pos_y). This assumes the frames 
@@ -885,6 +911,10 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
     nproc : int or None, optional
         Number of processes (>1) for parallel computing. If 1 then it runs in 
         serial. If None the number of processes will be set to (cpu_count()/2).
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     full_output : {False, True}, bool optional
         Whether to return 2 1d arrays of shifts along with the recentered cube 
         or not.
@@ -967,20 +997,17 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         for i in range(n_frames):
             res.append(_centroid_2dm_frame(array, i, size[i], pos_y[i], 
                                            pos_x[i], star_approx_coords[i], 
-                                           star_not_present[i], negative, fwhm[i]))
+                                           star_not_present[i], negative,
+                                           fwhm[i]))
             bar.update()
         res = np.array(res)
     elif nproc>1:
         pool = Pool(processes=int(nproc))  
         res = pool.map(EFT,itt.izip(itt.repeat(_centroid_2dm_frame),
-                                    itt.repeat(array), 
-                                    range(n_frames),
-                                    size.tolist(), 
-                                    pos_y.tolist(), 
-                                    pos_x.tolist(), 
-                                    star_approx_coords,
-                                    star_not_present, 
-                                    itt.repeat(negative), 
+                                    itt.repeat(array), range(n_frames),
+                                    size.tolist(), pos_y.tolist(),
+                                    pos_x.tolist(), star_approx_coords,
+                                    star_not_present, itt.repeat(negative),
                                     fwhm))
         res = np.array(res)
         pool.close()
@@ -991,7 +1018,8 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         if debug:
             print("\nShifts in X and Y")
             print(x[i], y[i])
-        array_recentered[i] = frame_shift(array[i], y[i], x[i])
+        array_recentered[i] = frame_shift(array[i], y[i], x[i], imlib=imlib,
+                                          interpolation=interpolation)
 
     if verbose:  timing(start_time)
 
@@ -1106,9 +1134,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None,
         refStar = False
 
     cube_sci_subframe = cube_crop_frames(cube_sci, subframesize, verbose=False)
-    if (refStar):
-        cube_ref_subframe = cube_crop_frames(cube_ref, subframesize,
-                                             verbose=False)
+    if (refStar): cube_ref_subframe = cube_crop_frames(cube_ref, subframesize,
+                                                       verbose=False)
 
     ceny, cenx = frame_center(cube_sci_subframe[0, :, :])
     print('sub frame is ' + str(cube_sci_subframe.shape[1]) + 'x' + str(
@@ -1157,8 +1184,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None,
                                    cube_sci_subframe.shape[2]))
         alignment_cube[1:(cube_sci.shape[0] + 1), :, :] = cube_sci_lpf
 
-    n_frames = alignment_cube.shape[
-        0]  # number of sci+ref frames + 1 for the median
+    n_frames = alignment_cube.shape[0]  # number of sci+ref frames + 1 for the median
 
     cum_y_shifts = 0
     cum_x_shifts = 0

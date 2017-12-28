@@ -6,7 +6,7 @@ Module with local smart pca (annulus-wise) serial and parallel implementations.
 
 from __future__ import division, print_function
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['pca_adi_annular',
            'pca_rdi_annular']
 
@@ -26,7 +26,8 @@ from ..stats import descriptive_stats
 
 def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, 
                     ncomp=1, svd_mode='randsvd', min_corr=0.9, fwhm=4, 
-                    scaling='temp-standard', collapse='median', 
+                    scaling='temp-standard', imlib='opencv',
+                    interpolation='lanczos4', collapse='median',
                     full_output=False, verbose=True, debug=False):
     """ Annular PCA with Reference Library + Correlation + standardization
     
@@ -76,7 +77,11 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1,
         "spat-mean" then the spatial mean is subtracted, with "temp-standard" 
         temporal mean centering plus scaling to unit variance is done and with
         "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.  
+        performed.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
@@ -188,7 +193,8 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1,
             print('Done PCA with {:} for current annulus'.format(svd_mode))
             timing(start_time)      
          
-    cube_der = cube_derotate(cube_out, angle_list)
+    cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
+                             interpolation=interpolation)
     frame = cube_collapse(cube_der, mode=collapse)
     if verbose:
         print('Done derotating and combining.')
@@ -202,8 +208,8 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1,
 def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3, 
                     delta_rot=1, ncomp=1, svd_mode='randsvd', nproc=1,
                     min_frames_pca=10, tol=1e-1, scaling=None, quad=False,
-                    collapse='median', full_output=False, verbose=True, 
-                    debug=False):
+                    imlib='opencv', interpolation='lanczos4', collapse='median',
+                    full_output=False, verbose=True, debug=False):
     """ Annular (smart) ADI PCA. The PCA model is computed locally in each
     annulus (optionally quadrants of each annulus). For each annulus we discard
     reference images taking into account a parallactic angle threshold
@@ -276,6 +282,10 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
     quad : {False, True}, bool optional
         If False the images are processed in annular fashion. If True, quadrants
         of annulus are used instead.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
@@ -409,7 +419,8 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
     #***************************************************************************
     # Cube is derotated according to the parallactic angle and median combined.
     #***************************************************************************
-    cube_der = cube_derotate(cube_out, angle_list)
+    cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
+                             interpolation=interpolation)
     frame = cube_collapse(cube_der, mode=collapse)
     if verbose:
         print('Done derotating and combining.')

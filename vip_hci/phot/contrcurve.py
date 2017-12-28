@@ -357,7 +357,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
 def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                theta=0, inner_rad=1, fc_rad_sep=3, wedge=(0,360), fc_snr=10.0,
-               full_output=False, imlib='opencv', verbose=True, **algo_dict):
+               full_output=False, imlib='opencv', interpolation='lanczos4',
+               verbose=True, **algo_dict):
     """ Measures the throughput for chosen algorithm and input dataset. The
     final throughput is the average of the same procedure measured in *nbranch*
     azimutally equidistant branches.
@@ -401,9 +402,10 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
         Signal to noise ratio of injected fake companions
     full_output : {False, True}, bool optional
         If True returns intermediate arrays.
-    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
-        Library or method used for image operations (shifts). Opencv is the
-        default for being the fastest.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     verbose : {True, False}, bool optional
         If True prints out timing and information.
     **algo_dict
@@ -510,13 +512,16 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
             fcy = []; fcx = []
             for i in range(radvec.shape[0]):
                 flux = snr_level[irad+i*fc_rad_sep] * noise[irad+i*fc_rad_sep]
-                cube_fc = cube_inject_companions(cube_fc, psf_template, parangles, flux,
-                                                 pxscale, rad_dists=[radvec[i]],
-                                                 theta=br*angle_branch + theta, imlib=imlib,
-                                                 verbose=False)
+                cube_fc = cube_inject_companions(cube_fc, psf_template,
+                                                 parangles, flux, pxscale,
+                                                 rad_dists=[radvec[i]],
+                                                 theta=br*angle_branch + theta,
+                                                 imlib=imlib, verbose=False,
+                                                 interpolation=interpolation)
                 y = cy + radvec[i] * np.sin(np.deg2rad(br*angle_branch + theta))
                 x = cx + radvec[i] * np.cos(np.deg2rad(br*angle_branch + theta))
-                fc_map = frame_inject_companion(fc_map, psf_template, y, x, flux)
+                fc_map = frame_inject_companion(fc_map, psf_template, y, x,
+                                                flux, imlib, interpolation)
                 fcy.append(y); fcx.append(x)
 
             if verbose:

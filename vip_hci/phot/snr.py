@@ -7,7 +7,7 @@ Module with SNR calculation functions.
 from __future__ import division
 from __future__ import print_function
 
-__author__ = 'C. Gomez @ ULg, O. Absil @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez, O. Absil @ ULg'
 __all__ = ['snr_ss',
            'snr_peakstddev',
            'snrmap',

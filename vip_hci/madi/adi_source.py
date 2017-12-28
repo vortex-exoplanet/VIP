@@ -8,7 +8,7 @@ Carlos A. Gomez / ULg
 from __future__ import division 
 from __future__ import print_function
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['adi']
 
 import numpy as np
@@ -19,8 +19,8 @@ from ..pca.pca_local import define_annuli
 
 
 def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1, 
-        mode='fullfr', nframes=4, collapse='median', full_output=False, 
-        verbose=True):
+        mode='fullfr', nframes=4, imlib='opencv', interpolation='lanczos4',
+        collapse='median', full_output=False, verbose=True):
     """ Algorithm based on Marois et al. 2006 on Angular Differential Imaging.   
     First the median frame is subtracted, then the median of the four closest 
     frames taking into account the pa_threshold (field rotation).
@@ -47,7 +47,11 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         subtracted.
     nframes : even int optional
         Number of frames to be used for building the optimized reference PSF 
-        when working in annular mode. 
+        when working in annular mode.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
@@ -172,7 +176,8 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     else:
         raise RuntimeError('Mode not recognized')
     
-    cube_der = cube_derotate(cube_out, angle_list)
+    cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
+                             interpolation=interpolation)
     frame = cube_collapse(cube_der, mode=collapse)
     if verbose:
         print('Done derotating and combining')

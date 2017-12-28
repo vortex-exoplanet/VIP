@@ -7,7 +7,7 @@ Module with NMF algorithm for ADI.
 from __future__ import division 
 from __future__ import print_function
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['nmf']
 
 import numpy as np
@@ -18,8 +18,9 @@ from ..conf import timing, time_ini
 
 
 def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
-        random_state=None, mask_center_px=None, full_output=False, verbose=True, 
-        **kwargs):
+        random_state=None, mask_center_px=None, imlib='opencv',
+        interpolation='lanczos4', collapse='median', full_output=False,
+        verbose=True, **kwargs):
     """ Non Negative Matrix Factorization for ADI sequences. Alternative to the
     full-frame ADI-PCA processing that does not rely on SVD or ED for obtaining
     a low-rank approximation of the datacube. This function embeds the 
@@ -49,7 +50,13 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
         Controls the seed for the Pseudo Random Number generator.
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
-        radius of the circular mask. 
+        radius of the circular mask.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
@@ -99,8 +106,9 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
     for i in range(n):
         array_out[i] = residuals[i].reshape(y,x)
             
-    array_der = cube_derotate(array_out, angle_list) 
-    frame = cube_collapse(array_der, 'median') 
+    array_der = cube_derotate(array_out, angle_list, imlib=imlib,
+                              interpolation=interpolation)
+    frame = cube_collapse(array_der, mode=collapse)
     
     if verbose:  
         print('Done derotating and combining.')

@@ -7,7 +7,7 @@ Module with functions for computing SVDs.
 from __future__ import division
 from __future__ import print_function
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['svd_wrapper',
            'randomized_svd_gpu']
 

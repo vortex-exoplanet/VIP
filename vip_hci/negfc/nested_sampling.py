@@ -7,7 +7,7 @@ nested sampling (``nestle``).
 
 from __future__ import print_function
 
-__author__ = 'C. Gomez @ ULg',
+__author__ = 'Carlos Alberto Gomez Gonzalez',
 __all__ = ['nested_negfc_sampling',
            'nested_sampling_results']
 

@@ -5,7 +5,7 @@
 
 from __future__ import division
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['thresholding']
 
 import numpy as np

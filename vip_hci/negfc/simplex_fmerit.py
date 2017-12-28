@@ -14,7 +14,8 @@ from ..pca import pca_annulus
 
 def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,  
               aperture_radius, initialState, ncomp, cube_ref=None, 
-              svd_mode='lapack', scaling=None, fmerit='sum', collapse='median'):
+              svd_mode='lapack', scaling=None, fmerit='sum', collapse='median',
+              imlib='opencv', interpolation='lanczos4'):
     """
     Calculate the reduced chi2:
     \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -59,6 +60,10 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
         
     Returns
     -------
@@ -74,7 +79,8 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     # Create the cube with the negative fake companion injected
     cube_negfc = cube_inject_companions(cube, psfs_norm, angs, flevel=-flux,
                                         plsc=plsc, rad_dists=[r], n_branches=1,
-                                        theta=theta, verbose=False)       
+                                        theta=theta, imlib=imlib, verbose=False,
+                                        interpolation=interpolation)
                                       
     # Perform PCA and extract the zone of interest
     values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width*fwhm,
@@ -98,7 +104,8 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
 
 def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius, 
                         r_guess, theta_guess, cube_ref=None, svd_mode='lapack',
-                        scaling=None, collapse='median', debug=False):
+                        scaling=None, imlib='opencv', interpolation='lanczos4',
+                        collapse='median', debug=False):
     """
     Extracts a PCA-ed annulus from the cube and returns the flux values of the 
     pixels included in a circular aperture centered at a given position.
@@ -132,6 +139,10 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         "temp-mean" then temporal px-wise mean subtraction is done and with 
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is returned.
@@ -155,11 +166,12 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     msg = 'The annulus and/or the circular aperture used by the NegFC falls '
     msg += 'outside the FOV. Try increasing the size of your frames or '
     msg += 'decreasing the annulus or aperture size'
-    if r_guess>centx_fr-halfw or r_guess<=halfw:
+    if r_guess > centx_fr-halfw or r_guess <= halfw:
         raise RuntimeError(msg)
         
     pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
-                          svd_mode, scaling, collapse=collapse)
+                          svd_mode, scaling, imlib=imlib,
+                          interpolation=interpolation, collapse=collapse)
     indices = circle(posy, posx, radius=aperture_radius)
     yy, xx = indices
 

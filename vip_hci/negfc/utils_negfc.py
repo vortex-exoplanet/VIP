@@ -13,7 +13,8 @@ import math
 from matplotlib.pyplot import plot, xlim, ylim, hold, axes, gca, show
 
 
-def cube_planet_free(planet_parameter, cube, angs, psfn, plsc):
+def cube_planet_free(planet_parameter, cube, angs, psfn, plsc, imlib='opencv',
+                     interpolation='lanczos4'):
     """
     Return a cube in which we have injected negative fake companion at the
     position/flux given by planet_parameter.
@@ -30,6 +31,10 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, plsc):
         The scaled psf expressed as a numpy.array.
     plsc: float
         The platescale, in arcsec per pixel.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
 
     Returns
     -------
@@ -52,6 +57,7 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, plsc):
                                      flevel=-planet_parameter[i, 2],
                                      plsc=plsc, rad_dists=[planet_parameter[i, 0]],
                                      n_branches=1, theta=planet_parameter[i, 1],
+                                     imlib=imlib, interpolation=interpolation,
                                      verbose=False)
     return cpf
 

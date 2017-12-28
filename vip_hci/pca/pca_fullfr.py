@@ -6,7 +6,7 @@ PCA algorithm performed on full frame for ADI, RDI or SDI (IFS data).
 
 from __future__ import division, print_function
 
-__author__ = 'C. Gomez @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['pca',
            'pca_incremental',
            'pca_optimize_snr']
@@ -35,8 +35,9 @@ warnings.filterwarnings("ignore", category=Warning)
 
 def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         svd_mode='lapack', scaling=None, mask_center_px=None, source_xy=None,
-        delta_rot=1, fwhm=4, collapse='median', check_mem=True, 
-        full_output=False, verbose=True, debug=False):
+        delta_rot=1, fwhm=4, imlib='opencv', interpolation='lanczos4',
+        collapse='median', check_mem=True, full_output=False, verbose=True,
+        debug=False):
     """ Algorithm where the reference PSF and the quasi-static speckle pattern 
     are modeled using Principal Component Analysis. Depending on the input
     parameters this PCA function can work in ADI, RDI or SDI (IFS data) mode.
@@ -126,6 +127,10 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         PA criterion will be used to reject frames from the library. 
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Default value is 4.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     delta_rot : int, optional
         Factor for increasing the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1 FHWM on each side of the considered frame).
@@ -357,7 +362,8 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
 
             elif ncomp2 is None:
                 residuals_cube_channels_ = cube_derotate(residuals_cube_channels,
-                                                         angle_list)
+                                                         angle_list, imlib=imlib,
+                                                         interpolation=interpolation)
                 frame = cube_collapse(residuals_cube_channels_, mode=collapse)
                 if verbose:
                     print('De-rotating and combining')
@@ -368,7 +374,10 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
                                                   ncomp2, scaling, mask_center_px,
                                                   debug, svd_mode, False,
                                                   full_output)
-                residuals_cube_channels_ = cube_derotate(res_ifs_adi, angle_list)
+                residuals_cube_channels_ = cube_derotate(res_ifs_adi,
+                                                         angle_list,
+                                                         imlib=imlib,
+                                                         interpolation=interpolation)
                 frame = cube_collapse(residuals_cube_channels_, mode=collapse)
                 if verbose:
                     msg = 'Done PCA per ADI multi-spectral frame, de-rotating '
@@ -395,7 +404,8 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
             recon = reshape_matrix(reconstructed, y, x)
         else:
             residuals_cube = residuals_result
-        residuals_cube_ = cube_derotate(residuals_cube, angle_list)
+        residuals_cube_ = cube_derotate(residuals_cube, angle_list, imlib=imlib,
+                                        interpolation=interpolation)
         frame = cube_collapse(residuals_cube_, mode=collapse)
 
         if verbose:
@@ -463,9 +473,9 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
             # number of frames in library printed for each annular quadrant
             if verbose:
                 descriptive_stats(nfrslib, verbose=verbose, label='Size LIB: ')
-            
-             
-        residuals_cube_ = cube_derotate(residuals_cube, angle_list)
+
+        residuals_cube_ = cube_derotate(residuals_cube, angle_list, imlib=imlib,
+                                        interpolation=interpolation)
         frame = cube_collapse(residuals_cube_, mode=collapse)
         if verbose:
             print('Done de-rotating and combining')
@@ -486,7 +496,8 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
 def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
                      mode='fullfr', annulus_width=20, range_pcs=None,
                      svd_mode='lapack', scaling=None, mask_center_px=None, 
-                     fmerit='px', min_snr=0, collapse='median', verbose=True, 
+                     fmerit='px', min_snr=0, imlib='opencv',
+                     interpolation='lanczos4', collapse='median', verbose=True,
                      full_output=False, debug=False, plot=True, save_plot=None,
                      plot_title=None):
     """ Optimizes the number of principal components by doing a simple grid 
@@ -553,6 +564,10 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
     min_snr : float
         Value for the minimum acceptable SNR. Setting this value higher will 
         reduce the steps.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     verbose : {True, False}, bool optional
@@ -586,7 +601,8 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
         residuals = matrix - reconstructed
         frsize = int(np.sqrt(matrix.shape[1]))                                  # only for square frames
         residuals_res = reshape_matrix(residuals, frsize, frsize)
-        residuals_res_der = cube_derotate(residuals_res, angle_list)
+        residuals_res_der = cube_derotate(residuals_res, angle_list, imlib=imlib,
+                                          interpolation=interpolation)
         frame = cube_collapse(residuals_res_der, mode=collapse)
         return frame
 
@@ -598,7 +614,8 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
         residuals_ann = matrix - reconstructed
         residuals_res = np.zeros_like(cube)
         residuals_res[:,indices[0],indices[1]] = residuals_ann
-        residuals_res_der = cube_derotate(residuals_res, angle_list)
+        residuals_res_der = cube_derotate(residuals_res, angle_list, imlib=imlib,
+                                          interpolation=interpolation)
         frame = cube_collapse(residuals_res_der, mode=collapse)
         return frame
 
@@ -749,13 +766,14 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
 
     V = svd_wrapper(ref_lib, svd_mode, pcmax, False, verbose)
 
-
     # sequential grid
     if range_pcs is not None:
         grid1 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, step, 
                      pcmin, pcmax, debug, full_output, False)
-        if full_output:  argm, pclist, snrlist, fluxlist, frlist = grid1
-        else:  argm, pclist, snrlist, fluxlist = grid1
+        if full_output:
+            argm, pclist, snrlist, fluxlist, frlist = grid1
+        else:
+            argm, pclist, snrlist, fluxlist = grid1
         
         opt_npc = pclist[argm]    
         if verbose:
@@ -795,20 +813,26 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
     else:
         grid1 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 
                      max(int(pcmax*0.1),1), pcmin, pcmax, debug, full_output)
-        if full_output:  argm, pclist, snrlist, fluxlist, frlist1 = grid1
-        else:  argm, pclist, snrlist, fluxlist = grid1
+        if full_output:
+            argm, pclist, snrlist, fluxlist, frlist1 = grid1
+        else:
+            argm, pclist, snrlist, fluxlist = grid1
         
         grid2 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 
                      max(int(pcmax*0.05),1), pclist[argm-1], pclist[argm+1], debug, 
                      full_output)
-        if full_output:  argm2, pclist2, snrlist2, fluxlist2, frlist2 = grid2
-        else:  argm2, pclist2, snrlist2, fluxlist2  = grid2
+        if full_output:
+            argm2, pclist2, snrlist2, fluxlist2, frlist2 = grid2
+        else:
+            argm2, pclist2, snrlist2, fluxlist2 = grid2
         
         grid3 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 1, 
                      pclist2[argm2-1], pclist2[argm2+1], debug, full_output, 
                      False)
-        if full_output:  _, pclist3, snrlist3, fluxlist3, frlist3 = grid3
-        else:  _, pclist3, snrlist3, fluxlist3 = grid3
+        if full_output:
+            _, pclist3, snrlist3, fluxlist3, frlist3 = grid3
+        else:
+            _, pclist3, snrlist3, fluxlist3 = grid3
         
         argm = np.argmax(snrlist3)
         opt_npc = pclist3[argm]    
@@ -870,12 +894,14 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
     if mode == 'fullfr':
         finalfr = pca(cube, angle_list, cube_ref=cube_ref, ncomp=opt_npc,
                       svd_mode=svd_mode, mask_center_px=mask_center_px,
-                      scaling=scaling, collapse=collapse, verbose=False)
+                      scaling=scaling, imlib=imlib, interpolation=interpolation,
+                      collapse=collapse, verbose=False)
     elif mode == 'annular':
         finalfr = pca_annulus(cube, angle_list, ncomp=opt_npc,
                               annulus_width=annulus_width, r_guess=ann_radius,
                               cube_ref=cube_ref, svd_mode=svd_mode,
-                              scaling=scaling, collapse=collapse)
+                              scaling=scaling, collapse=collapse, imlib=imlib,
+                              interpolation=interpolation)
 
     _ = phot.frame_quick_report(finalfr, fwhm, (x,y), verbose=verbose)
     
@@ -886,7 +912,9 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
 
 
 def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None, 
-                    batch_ratio=0.1, ncomp=10, verbose=True, full_output=False):
+                    batch_ratio=0.1, ncomp=10, imlib='opencv',
+                    interpolation='lanczos4', collapse='median',
+                    verbose=True, full_output=False):
     """ Computes the full-frame PCA-ADI algorithm in batches, for processing 
     fits files larger than the available system memory. It uses the incremental 
     PCA algorithm from scikit-learn. 
@@ -909,6 +937,12 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
     ncomp : int, optional
         How many PCs are used as a lower-dimensional subspace to project the
         target frames.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.
     verbose : {True, False}, bool optional
         If True prints intermediate info and timing. 
     full_output: boolean, optional
@@ -999,8 +1033,9 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
         resid_der = cube_derotate(resid.reshape(batch.shape[0], 
                                                 batch.shape[1],
                                                 batch.shape[2]), 
-                                  angle_list[intini:intfin])
-        medians.append(cube_collapse(resid_der, 'median'))
+                                  angle_list[intini:intfin], imlib=imlib,
+                                  interpolation=interpolation)
+        medians.append(cube_collapse(resid_der, mode=collapse))
     if res>0:
         batch = hdulist[n].data[intfin:]
         batch = batch - mean
@@ -1010,8 +1045,9 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
         resid_der = cube_derotate(resid.reshape(batch.shape[0], 
                                                 batch.shape[1],
                                                 batch.shape[2]), 
-                                  angle_list[intfin:])
-        medians.append(cube_collapse(resid_der, 'median'))
+                                  angle_list[intfin:], imlib=imlib,
+                                  interpolation=interpolation)
+        medians.append(cube_collapse(resid_der, mode=collapse))
     del(matrix)
     del(batch)
 

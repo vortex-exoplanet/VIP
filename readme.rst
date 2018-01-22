@@ -14,8 +14,8 @@ VIP - Vortex Image Processing package
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
     :target: https://github.com/vortex-exoplanet/VIP/blob/master/LICENSE
 
-.. image:: https://img.shields.io/badge/arXiv-1705.06184%20-yellowgreen.svg
-    :target: https://arxiv.org/abs/1705.06184
+.. image:: https://img.shields.io/badge/arXiv-1801.04151%20-yellowgreen.svg
+    :target: https://arxiv.org/abs/1801.04151
 
 .. image:: https://readthedocs.org/projects/vip/badge/?version=latest
     :target: http://vip.readthedocs.io/en/latest/?badge=latest

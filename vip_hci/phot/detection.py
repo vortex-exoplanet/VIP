@@ -195,7 +195,8 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         raise TypeError('Input psf is not a 2d array or has wrong size')
         
     # Getting the FWHM from the PSF array
-    outdf = fit_2dgaussian(psf, cent=(frame_center(psf)[1],frame_center(psf)[0]),debug=debug, full_output=True)
+    cenpsf = frame_center(psf)
+    outdf = fit_2dgaussian(psf, cent=(cenpsf), debug=debug, full_output=True)
     fwhm_x, fwhm_y = outdf.at[0,'fwhm_x'],outdf.at[0,'fwhm_y']
     fwhm = np.mean([fwhm_x, fwhm_y])
     if verbose:
@@ -206,7 +207,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         print('FWHM_x', fwhm_x)
 
     # Masking the center, 2*lambda/D is the expected IWA
-    if mask:  array = mask_circle(array, radius=fwhm)
+    if mask: array = mask_circle(array, radius=fwhm)
 
     # Matched filter
     if matched_filter:
@@ -223,7 +224,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         print('Background threshold = {:.3f}'.format(bkg_level))
         print()
 
-    if mode=='lpeaks' or mode=='log' or mode=='dog':
+    if mode == 'lpeaks' or mode == 'log' or mode == 'dog':
         # Padding the image with zeros to avoid errors at the edges
         pad = 10
         array_padded = np.lib.pad(array, pad, 'constant', constant_values=0)
@@ -232,7 +233,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         print('Input frame after matched filtering:')
         pp_subplots(frame_det, rows=2, colorb=True)
 
-    if mode=='lpeaks':
+    if mode == 'lpeaks':
         # Finding local peaks (can be done in the correlated frame)
         coords_temp = peak_local_max(frame_det, threshold_abs=bkg_level,
                                      min_distance=int(np.ceil(fwhm)),
@@ -241,7 +242,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         coords = np.array(coords)
         if verbose and coords.shape[0]>0:  print_coords(coords)
 
-    elif mode=='log':
+    elif mode == 'log':
         sigma = fwhm*gaussian_fwhm_to_sigma
         coords = feature.blob_log(frame_det.astype('float'),
                                   threshold=bkg_level,
@@ -254,7 +255,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         coords = np.array(coords)
         if coords.shape[0]>0 and verbose:  print_coords(coords)
 
-    elif mode=='dog':
+    elif mode == 'dog':
         sigma = fwhm*gaussian_fwhm_to_sigma
         coords = feature.blob_dog(frame_det.astype('float'),
                                   threshold=bkg_level,
@@ -296,8 +297,6 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         snr = snr_ss(array, (x,y), fwhm, False, verbose=False)
         snr_list.append(snr)
         if snr >= snr_thresh:
-            #if plot:
-                #pp_subplots(subim)
             if verbose:
                 _ = frame_quick_report(array, fwhm, (x,y), verbose=verbose)
             yy_final.append(y)
@@ -307,8 +306,6 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             xx_out.append(x)
             if verbose:  print('S/N constraint NOT fulfilled (S/N = {:.3f})'.format(snr))
             if debug:
-                #if plot:
-                    #pp_subplots(subim)
                 _ = frame_quick_report(array, fwhm, (x,y), verbose=verbose)
 
     if debug or full_output:

@@ -14,6 +14,14 @@ __all__ = ['frame_filter_highpass',
            'frame_filter_gaussian2d',
            'gaussian_kernel']
 
+import warnings
+try:
+    import cv2
+    no_opencv = False
+except ImportError:
+    msg = "Opencv python bindings are missing."
+    warnings.warn(msg, ImportWarning)
+    no_opencv = True
 import numpy as np
 import photutils
 import pyprind
@@ -54,7 +62,7 @@ def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
     cube_coeff = np.zeros((cube.shape[0], coeff, cube.shape[1], cube.shape[2]))
     n_frames = cube.shape[0]
     
-    msg = 'Decomposing frames with the Isotropic Undecimated Wavelet Transform'
+    msg = 'Decomposing frames with the Isotropic Undecimated Wavelet Transform.'
     bar = pyprind.ProgBar(n_frames, stream=1, title=msg)
     for i in range(n_frames):
         res = iuwt.iuwt_decomposition(cube[i], coeff, store_smoothed=False)
@@ -69,44 +77,49 @@ def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
         return cubeout
 
 
-def cube_filter_highpass(array, mode, median_size=5, kernel_size=5, 
-                          fwhm_size=5, btw_cutoff=0.2, btw_order=2):
-    """ Wrapper of *frame_filter_highpass* for cubes or 3d arrays.
+def cube_filter_highpass(array, mode='laplacian', median_size=5, kernel_size=5,
+                         fwhm_size=5, btw_cutoff=0.2, btw_order=2,
+                         verbose=True):
+    """ Wrapper of ``frame_filter_highpass`` for cubes or 3d arrays.
 
     Parameters
     ----------
     array : array_like
         Input 3d array.
-    mode : {'kernel-conv', 'median-subt', 'gauss-subt', 'fourier-butter'}
-        Type of High-pass filtering.
-    median_size : int
-        Size of the median box for filtering the low-pass median filter.
-    kernel_size : 3, 5 or 7
-        Size of the Laplacian kernel for convolution. 
-    fwhm_size : int
-        Size of the Gaussian kernel for the low-pass Gaussian filter.
+    mode : str, optional
+        See the documentation of the ``frame_filter_highpass`` function.
+    median_size : int, optional
+        See the documentation of the ``frame_filter_highpass`` function.
+    kernel_size : int, optional
+        See the documentation of the ``frame_filter_highpass`` function.
+    fwhm_size : int, optional
+        See the documentation of the ``frame_filter_highpass`` function.
     btw_cutoff : float
-        Frequency cutoff for low-pass 2d Butterworth filter.
+        See the documentation of the ``frame_filter_highpass`` function.
     btw_order : int
-        Order of low-pass 2d Butterworth filter.
+        See the documentation of the ``frame_filter_highpass`` function.
+    verbose : boolean, optional
+        If True timing and progress bar are shown.
     
     Returns
     -------
     filtered : array_like
         High-pass filtered cube.
     """
-    if not array.ndim==3:
+    if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
     
     n_frames = array.shape[0]
     array_out = np.zeros_like(array)
-    msg = 'Applying the High-Pass filter on cube frames'
-    bar = pyprind.ProgBar(n_frames, stream=1, title=msg)
+    if verbose:
+        msg = 'Applying the high-pass filter on cube frames:'
+        bar = pyprind.ProgBar(n_frames, stream=1, title=msg, bar_char='.')
     for i in range(n_frames):
         array_out[i] = frame_filter_highpass(array[i], mode, median_size, 
                                             kernel_size, fwhm_size, btw_cutoff, 
                                             btw_order)
-        bar.update()
+        if verbose:
+            bar.update()
         
     return array_out
     
@@ -122,7 +135,8 @@ def fft(array):
     """
     fft_array = np.fft.fftshift(np.fft.fft2(array))
     return fft_array
-    
+
+
 def ifft(array):
     """ Gets the inverse Fourier transform on the image. This produces an array 
     of complex numbers whose absolute values correspond to the image in the 
@@ -131,28 +145,38 @@ def ifft(array):
     new_array = np.abs(np.fft.ifft2(np.fft.ifftshift(array)))
     return new_array
 
+
 def frame_filter_highpass(array, mode, median_size=5, kernel_size=5, 
                           fwhm_size=5, btw_cutoff=0.2, btw_order=2):
-    """ High-pass filtering of input frame depending on parameter *mode*. The
-    results are very different with different *mode* and varying the rest of
+    """ High-pass filtering of input frame depending on parameter ``mode``. The
+    filtered image properties will depend on the ``mode`` and the relevant
     parameters.
     
     Parameters
     ----------
     array : array_like
         Input array, 2d frame.
-    mode : {'kernel-conv', 'median-subt', 'gauss-subt', 'fourier-butter'}
-        Type of High-pass filtering.
-    median_size : int
+    mode : {'laplacian', 'laplacian-conv', 'median-subt', 'gauss-subt', 'fourier-butter'}
+        Type of High-pass filtering. ``laplacian`` applies a Laplacian fiter
+        with kernel size defined by ``kernel_size`` using the Opencv library.
+        ``laplacian-conv`` applies a Laplacian high-pass filter by defining a
+        kernel (with ``kernel_size``) and using the ``convolve_fft`` Astropy
+        function. ``median-subt`` subtracts a median low-pass filtered version
+        of the image. ``gauss-subt`` subtracts a Gaussian low-pass filtered
+        version of the image. ``fourier-butter`` applies a high-pass 2D
+        Butterworth filter in Fourier domain.
+    median_size : int, optional
         Size of the median box for filtering the low-pass median filter.
-    kernel_size : 3, 5 or 7
-        Size of the Laplacian kernel for convolution. 
-    fwhm_size : int
-        Size of the Gaussian kernel for the low-pass Gaussian filter.
+    kernel_size : int, optional
+        Size of the Laplacian kernel used in ``laplacian`` mode. It must be an
+        positive odd integer value.
+    fwhm_size : int, optional
+        Size of the Gaussian kernel used in ``gaus-subt`` mode.
     btw_cutoff : float
-        Frequency cutoff for low-pass 2d Butterworth filter.
+        Frequency cutoff for low-pass 2d Butterworth filter used in
+        ``fourier-butter`` mode.
     btw_order : int
-        Order of low-pass 2d Butterworth filter.
+        Order of low-pass 2d Butterworth filter used in ``fourier-butter`` mode.
     
     Returns
     -------
@@ -180,14 +204,14 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
           filter kernel in 2D centered
         """
         if not 0 < cutoff <= 1.0:
-            raise ValueError('Cutoff frequency must be between 0 and 1.0')
+            raise ValueError('Cutoff frequency must be between 0 and 1.0.')
     
         if not isinstance(n, int):
-            raise ValueError('n must be an integer >= 1')
+            raise ValueError('n must be an integer >= 1.')
     
         rows, cols = size
-        x =  np.linspace(-0.5, 0.5, cols) * cols
-        y =  np.linspace(-0.5, 0.5, rows) * rows
+        x = np.linspace(-0.5, 0.5, cols) * cols
+        y = np.linspace(-0.5, 0.5, rows) * rows
     
         # An array with every pixel = radius relative to center
         radius = np.sqrt((x**2)[np.newaxis] + (y**2)[:, np.newaxis])
@@ -197,66 +221,59 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     
     #---------------------------------------------------------------------------
     
-    if not array.ndim==2:
-        raise TypeError('Input array is not a frame or 2d array')
+    if not array.ndim == 2:
+        raise TypeError("Input array is not a frame or 2d array.")
     
-    if mode=='kernel-conv':
-        # Performs convolution with Laplacian high-pass kernels. 
-        # a simple and very narrow hp filter
-        # Kernel "Laplacian" of size 3x3+1+1 with values from -1 to 8
-        # Forming a output range from -8 to 8 (Zero-Summing)
-        kernel3 = np.array([[-1, -1, -1], 
-                            [-1,  8, -1],
+    if mode == 'laplacian':
+        # Applying a Laplacian high-pass kernel
+        if kernel_size % 2 == 0 or kernel_size < 0:
+            raise ValueError("Kernel size must be an odd and positive value.")
+        if not no_opencv:
+            msg = "Opencv bindings are missing. Trying a convolution with a "
+            msg += "Laplacian kernel instead."
+
+        filtered = cv2.Laplacian(-array, cv2.CV_32F, ksize=kernel_size)
+
+    elif mode == 'laplacian-conv':
+        # Applying a Laplacian high-pass kernel defining a kernel and using
+        # the convolve_fft Astropy function
+        kernel3 = np.array([[-1, -1, -1],
+                            [-1, 8, -1],
                             [-1, -1, -1]])
-        #kernel3 = np.array([[0,  -1,  0],
-        #                    [-1, 4, -1],
-        #                    [0, -1,  0]])
-        #kernel3 = np.array([[-0.17, -0.67, -0.17],
-        #                    [-0.67, 3.33, -0.67],
-        #                    [-0.17, -0.67, -0.17]])
-        #kernel5 = np.array([[-1, -1, -1, -1, -1],
-        #                    [-1,  1,  2,  1, -1],
-        #                    [-1,  2,  4,  2, -1],
-        #                    [-1,  1,  2,  1, -1],
-        #                    [-1, -1, -1, -1, -1]])
-        # Kernel "Laplacian" of size 5x5+2+2 with values from -4 to 4
-        # Forming a output range from -24 to 24 (Zero-Summing)
-        kernel5 = np.array([[-4, -1,  0, -1, -4],
-                            [-1,  2,  3,  2, -1],
-                            [ 0,  3,  4,  3,  0],
-                            [-1,  2,  3,  2, -1],
-                            [-4, -1,  0, -1, -4]])
-        # above /4. +1 in central px
-        #kernel5 = np.array([[-0.25, -0.25, -0.25, -0.25, -0.25],
-        #                    [-0.25,  0.25,  0.5 ,  0.25, -0.25],
-        #                    [-0.25,  0.5 ,  2.  ,  0.5 , -0.25],
-        #                    [-0.25,  0.25,  0.5 ,  0.25, -0.25],
-        #                    [-0.25, -0.25, -0.25, -0.25, -0.25]])
-        # Kernel "Laplacian" of size 7x7+3+3 with values from -10 to 8
-        # Forming a output range from -1e+02 to 1e+02 (Zero-Summing)
+        kernel5 = np.array([[-4, -1, 0, -1, -4],
+                            [-1, 2, 3, 2, -1],
+                            [0, 3, 4, 3, 0],
+                            [-1, 2, 3, 2, -1],
+                            [-4, -1, 0, -1, -4]])
         kernel7 = np.array([[-10, -5, -2, -1, -2, -5, -10],
-                            [-5,   0,  3,  4,  3,  0,  -5],
-                            [-2,   3,  6,  7,  6,  3,  -2],
-                            [-1,   4,  7,  8,  7,  4,  -1],
-                            [-2,   3,  6,  7,  6,  3,  -2],
-                            [-5,   0,  3,  4,  3,  0,  -5],
+                            [-5, 0, 3, 4, 3, 0, -5],
+                            [-2, 3, 6, 7, 6, 3, -2],
+                            [-1, 4, 7, 8, 7, 4, -1],
+                            [-2, 3, 6, 7, 6, 3, -2],
+                            [-5, 0, 3, 4, 3, 0, -5],
                             [-10, -5, -2, -1, -2, -5, -10]])
-        if kernel_size==3:  kernel = kernel3
-        elif kernel_size==5:  kernel = kernel5
-        elif kernel_size==7:  kernel = kernel7
-        filtered = convolve_fft(array, kernel)
+        if kernel_size == 3:
+            kernel = kernel3
+        elif kernel_size == 5:
+            kernel = kernel5
+        elif kernel_size == 7:
+            kernel = kernel7
+        else:
+            raise ValueError('Kernel size must be either 3, 5 or 7.')
+        filtered = convolve_fft(array, kernel, normalize_kernel=False,
+                                nan_treatment='fill')
     
-    elif mode=='median-subt':
+    elif mode == 'median-subt':
         # Subtracting the low_pass filtered (median) image from the image itself  
         medianed = median_filter(array, median_size, mode='nearest')
         filtered = array - medianed
     
-    elif mode=='gauss-subt':
+    elif mode == 'gauss-subt':
         # Subtracting the low_pass filtered (median) image from the image itself  
         gaussed = frame_filter_gaussian2d(array, fwhm_size, mode='conv')
         filtered = array - gaussed
         
-    elif mode=='fourier-butter':
+    elif mode == 'fourier-butter':
         # Designs an n-th order high-pass 2D Butterworth filter
         filt = butter2d_lp(array.shape, cutoff=btw_cutoff, n=btw_order)
         filt = 1. - filt                        
@@ -265,7 +282,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         filtered = ifft(fft_new)        
         
     else:
-        raise TypeError('Mode not recognized')    
+        raise TypeError('Mode not recognized.')
         
     return filtered
 
@@ -291,7 +308,7 @@ def frame_filter_lowpass(array, mode, median_size=5, fwhm_size=5):
         
     """
     if not array.ndim==2:
-        raise TypeError('Input array is not a frame or 2d array')
+        raise TypeError('Input array is not a frame or 2d array.')
        
     if mode=='median':
         # creating the low_pass filtered (median) image
@@ -302,7 +319,7 @@ def frame_filter_lowpass(array, mode, median_size=5, fwhm_size=5):
         filtered = frame_filter_gaussian2d(array, fwhm_size, mode='conv')    
         
     else:
-        raise TypeError('Mode not recognized')    
+        raise TypeError('Mode not recognized.')
         
     return filtered
 
@@ -327,7 +344,7 @@ def frame_filter_gaussian2d(array, size_fwhm, mode='conv'):
         
     """
     if not array.ndim==2:
-        raise TypeError('Input array is not a frame or 2d array')
+        raise TypeError('Input array is not a frame or 2d array.')
     
     if mode=='conv':
         filtered = gaussian_filter(array, sigma=size_fwhm*gaussian_fwhm_to_sigma, 
@@ -337,7 +354,7 @@ def frame_filter_gaussian2d(array, size_fwhm, mode='conv'):
         gaus = Gaussian2DKernel(stddev=size_fwhm*gaussian_fwhm_to_sigma)
         filtered = convolve_fft(array, gaus)
     else:
-        raise TypeError('Mode not recognized')
+        raise TypeError('Mode not recognized.')
     
     return filtered
    

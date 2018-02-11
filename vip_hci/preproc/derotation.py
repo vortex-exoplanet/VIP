@@ -13,8 +13,7 @@ try:
     import cv2
     no_opencv = False
 except ImportError:
-    msg = "Opencv python binding are missing (consult VIP documentation for "
-    msg += "Opencv installation instructions). Scikit-image will be used instead."
+    msg = "Opencv python bindings are missing."
     warnings.warn(msg, ImportWarning)
     no_opencv = True
 
@@ -64,12 +63,12 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
 
     y, x = array.shape
     
-    if not cxy:  
+    if cxy is None:
         cy, cx = frame_center(array)
     else:
         cx, cy = cxy
 
-    if imlib=='skimage':
+    if imlib == 'skimage':
         if interpolation == 'nearneig':
             order = 0
         elif interpolation == 'bilinear':
@@ -96,7 +95,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
         array_out += min_val
         array_out = np.nan_to_num(array_out)
 
-    elif imlib=='opencv':
+    elif imlib == 'opencv':
         if no_opencv:
             msg = 'Opencv python bindings cannot be imported. Install opencv or'
             msg += ' set imlib to skimage.'
@@ -155,20 +154,17 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
     """
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array.')
-    array_der = np.empty_like(array)
+    array_der = np.zeros_like(array)
     n_frames = array.shape[0]
-    
-    if not cxy:
-        cy, cx = frame_center(array[0])
-        cxy = (cx, cy)
 
-    if not nproc: nproc = int((cpu_count() / 2))
+    if not nproc:
+        nproc = int((cpu_count() / 2))
 
-    if nproc==1:
+    if nproc == 1:
         for i in range(n_frames):
             array_der[i] = frame_rotate(array[i], -angle_list[i], imlib=imlib,
                                         interpolation=interpolation, cxy=cxy)
-    elif nproc>1:
+    elif nproc > 1:
         global data_array
         data_array = array
 

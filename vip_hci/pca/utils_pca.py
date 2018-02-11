@@ -8,15 +8,11 @@ from __future__ import division
 from __future__ import print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['matrix_scaling',
-           'prepare_matrix',
-           'reshape_matrix',
-           'pca_annulus',
+__all__ = ['pca_annulus',
            'scale_cube_for_pca']
 
 import numpy as np
-from sklearn.preprocessing import scale
-from ..var import mask_circle, get_annulus, get_square_robust, frame_center
+from ..var import get_square_robust, frame_center, prepare_matrix
 from ..preproc import cube_derotate, cube_collapse, cube_rescaling
 from .svd import svd_wrapper
 
@@ -190,105 +186,4 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
 
 
 
-def matrix_scaling(matrix, scaling):
-    """ Scales a matrix using sklearn.preprocessing.scale function.
 
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
-    With None, no scaling is performed on the input data before SVD. With
-    "temp-mean" then temporal px-wise mean subtraction is done, with
-    "spat-mean" then the spatial mean is subtracted, with "temp-standard"
-    temporal mean centering plus scaling to unit variance is done and with
-    "spat-standard" spatial mean centering plus scaling to unit variance is
-    performed.
-    """
-    if scaling is None:
-        pass
-    elif scaling=='temp-mean':
-        matrix = scale(matrix, with_mean=True, with_std=False)
-    elif scaling=='spat-mean':
-        matrix = scale(matrix, with_mean=True, with_std=False, axis=1)
-    elif scaling=='temp-standard':
-        matrix = scale(matrix, with_mean=True, with_std=True)
-    elif scaling=='spat-standard':
-        matrix = scale(matrix, with_mean=True, with_std=True, axis=1)
-    else:
-        raise ValueError('Scaling mode not recognized')
-    
-    return matrix 
-
-
-def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
-                   annulus_radius=None, annulus_width=None, verbose=True):
-    """ Builds the matrix for the SVD/PCA and other matrix decompositions, 
-    centers the data and masks the frames central area if needed.
-    
-    Parameters
-    ----------
-    array : array_like
-        Input cube, 3d array.
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
-        With None, no scaling is performed on the input data before SVD. With 
-        "temp-mean" then temporal px-wise mean subtraction is done, with 
-        "spat-mean" then the spatial mean is subtracted, with "temp-standard" 
-        temporal mean centering plus scaling to unit variance is done and with
-        "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.  
-    mask_center_px : None or Int, optional
-        Whether to mask the center of the frames or not.
-    mode : {'fullfr', 'annular'}
-        Whether to use the whole frames or a single annulus.
-    annulus_radius : float
-        Distance in pixels from the center of the frame to the center of the
-        annulus.
-    annulus_width : float
-        Width of the annulus in pixels.
-    verbose : {True, False}, bool optional
-        If True prints intermediate info and timing.
-    
-    Returns
-    -------
-    If mode is `annular` then the indices of the annulus (yy, xx) are returned
-    along with the matrix.
-
-    matrix : array_like
-        Out matrix whose rows are vectorized frames from the input cube.
-    
-    """
-    if mode == 'annular':
-        if annulus_radius is None or annulus_width is None:
-            msgerr = 'Annulus_radius and/or annulus_width can be None in annular '
-            msgerr += 'mode'
-            raise ValueError(msgerr)
-
-        ind = get_annulus(array[0], annulus_radius - annulus_width / 2.,
-                          annulus_width, output_indices=True)
-        yy, xx = ind
-        matrix = array[:, yy, xx]
-
-        matrix = matrix_scaling(matrix, scaling)
-
-        if verbose:
-            msg = 'Done vectorizing the cube annulus. Matrix shape [{:},{:}]'
-            print(msg.format(matrix.shape[0], matrix.shape[1]))
-        return matrix, ind
-
-    elif mode == 'fullfr':
-        if mask_center_px:
-            array = mask_circle(array, mask_center_px)
-
-        nfr = array.shape[0]
-        matrix = np.reshape(array, (nfr, -1))  # == for i: array[i].flatten()
-
-        matrix = matrix_scaling(matrix, scaling)
-
-        if verbose:
-            msg = 'Done vectorizing the frames. Matrix shape [{:},{:}]'
-            print(msg.format(matrix.shape[0], matrix.shape[1]))
-        return matrix
-     
-
-def reshape_matrix(array, y, x):
-    """ Converts a matrix whose rows are vectorized frames to a cube with 
-    reshaped frames.
-    """
-    return array.reshape(array.shape[0], y, x)

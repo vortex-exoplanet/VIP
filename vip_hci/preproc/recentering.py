@@ -27,8 +27,7 @@ try:
     import cv2
     no_opencv = False
 except ImportError:
-    msg = "Opencv python binding are missing (consult VIP documentation for "
-    msg += "Opencv installation instructions)"
+    msg = "Opencv python bindings are missing."
     warnings.warn(msg, ImportWarning)
     no_opencv = True
 

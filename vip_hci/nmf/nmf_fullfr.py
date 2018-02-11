@@ -13,7 +13,7 @@ __all__ = ['nmf']
 import numpy as np
 from sklearn.decomposition import NMF
 from ..preproc import cube_derotate, cube_collapse
-from ..pca import prepare_matrix
+from ..var import prepare_matrix
 from ..conf import timing, time_ini
 
 

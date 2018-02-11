@@ -20,12 +20,11 @@ from matplotlib import pyplot as plt
 from sklearn.decomposition import IncrementalPCA
 from .svd import svd_wrapper
 from .pca_local import find_indices, compute_pa_thresh
-from .utils_pca import (prepare_matrix, reshape_matrix, pca_annulus,
-                        scale_cube_for_pca)
+from .utils_pca import (pca_annulus, scale_cube_for_pca)
 from ..preproc import (cube_derotate, cube_collapse, check_PA_vector,
                        check_scal_vector)
 from ..conf import timing, time_ini, check_enough_memory, get_available_memory
-from ..var import frame_center, dist
+from ..var import frame_center, dist, prepare_matrix, reshape_matrix
 from ..stats import descriptive_stats
 from .. import phot
 
@@ -232,7 +231,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         if (cube.ndim==3 and not (cube.shape[0] == angle_list.shape[0])) or  \
            (cube.ndim==4 and not (cube.shape[1] == angle_list.shape[0])):
             msg = "Angle list vector has wrong length. It must equal the number"
-            msg += " frames in the cube."
+            msg += " frames in the cube"
             raise TypeError(msg)
     if source_xy is not None and delta_rot is None or fwhm is None:
         msg = 'Delta_rot or fwhm parameters missing. They are needed for the ' 

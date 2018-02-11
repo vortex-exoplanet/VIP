@@ -9,7 +9,8 @@ from __future__ import print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['svd_wrapper',
-           'randomized_svd_gpu']
+           'randomized_svd_gpu',
+           'get_eigenvectors']
 
 import warnings
 try:
@@ -29,9 +30,11 @@ from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import mean_absolute_error as MAE
 from sklearn.utils import check_random_state
+from ..var import matrix_scaling
 
 
-def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
+def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
+                random_state=None):
     """ Wrapper for different SVD libraries (CPU and GPU). 
       
     Parameters
@@ -205,7 +208,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
 
     elif mode == 'randsvd':
         U, S, V = randomized_svd(matrix, n_components=ncomp, n_iter=2,
-                                 transpose='auto', random_state=None)
+                                 transpose='auto', random_state=random_state)
         if debug: reconstruction(ncomp, U, S, V)
         if verbose: print('Done SVD/PCA with randomized SVD')
 
@@ -264,6 +267,69 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False):
         else:
             return V
 
+
+def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
+                     cevr=0.9, max_evs=None, data_ref=None, debug=False):
+    """ Getting ``ncomp`` eigenvectors. Choosing the size of the PCA truncation
+    when ``ncomp`` is set to None.
+    """
+    no_dataref = False
+    if data_ref is None:
+        no_dataref = True
+        data_ref = data
+
+    if max_evs is None:
+        max_evs = min(data_ref.shape[0], data_ref.shape[1])
+
+    if ncomp is None:
+        ncomp = 0
+        V_big = svd_wrapper(data_ref, svd_mode, max_evs, False, False)
+
+        if mode=='noise':
+            data_ref_sc = matrix_scaling(data_ref, 'temp-standard')
+            data_sc = matrix_scaling(data, 'temp-standard')
+            V_sc = svd_wrapper(data_ref_sc, svd_mode, max_evs, False, False)
+
+            px_noise = []
+            px_noise_decay = 1
+            # Noise (px stddev of residuals) to be lower than a given threshold
+            while px_noise_decay >= noise_error:
+                ncomp += 1
+                V = V_sc[:ncomp]
+                if no_dataref:
+                    transformed = np.dot(data_sc, V.T)
+                    reconstructed = np.dot(transformed, V)
+                else:
+                    transformed = np.dot(V, data_sc)
+                    reconstructed = np.dot(transformed.T, V).T
+                residuals = data_sc - reconstructed
+                curr_noise = np.std((np.median(residuals, axis=0)))
+                px_noise.append(curr_noise)
+                if ncomp > 1:
+                    px_noise_decay = px_noise[-2] - curr_noise
+                # print '{:} {:.4f} {:.4f}'.format(ncomp, curr_noise, px_noise_decay)
+            V = V_big[:ncomp]
+
+        elif mode=='cevr':
+            data_sc = matrix_scaling(data, 'temp-mean')
+            _, S, _ = svd_wrapper(data_sc, svd_mode, min(data_sc.shape[0],
+                                                         data_sc.shape[1]),
+                                  False, False, usv=True)
+            exp_var = (S ** 2) / (S.shape[0] - 1)
+            full_var = np.sum(exp_var)
+            explained_variance_ratio = exp_var / full_var  # % of variance explained by each PC
+            ratio_cumsum = np.cumsum(explained_variance_ratio)
+            ncomp = np.searchsorted(ratio_cumsum, cevr) + 1
+            V = V_big[:ncomp]
+
+        if debug:
+            print('ncomp', ncomp)
+
+    else:
+        # Performing SVD/PCA according to "svd_mode" flag
+        V = svd_wrapper(data_ref, svd_mode, ncomp, debug=False, verbose=False)
+
+    return V
 
 
 def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',

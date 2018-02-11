@@ -16,15 +16,15 @@ import numpy as np
 
 
 def cube_collapse(cube, mode='median', n=50):
-    """ Collapses a cube into a frame (3d array to 2d array) depending on the 
-    parameter *mode*. It's possible to perform a trimmed mean combination of the 
+    """ Collapses a cube into a frame (3D array -> 2D array) depending on the
+    parameter ``mode``. It's possible to perform a trimmed mean combination of the
     frames based on description in Brandt+ 2012.
     
     Parameters
     ----------
     cube : array_like
         Cube.
-    mode : {'median', 'mean', 'sum', 'trimmean'}, str optional
+    mode : {'median', 'mean', 'sum', 'trimmean', 'max'}, str optional
         Sets the way of collapsing the images in the cube.
     n : int, optional
         Sets the discarded values at high and low ends. When n = N is the same
@@ -39,13 +39,15 @@ def cube_collapse(cube, mode='median', n=50):
     if not arr.ndim == 3:
         raise TypeError('The input array is not a cube or 3d array.')
     
-    if mode=='mean':
+    if mode == 'mean':
         frame = np.mean(arr, axis=0)
-    elif mode=='median':
+    elif mode == 'median':
         frame = np.median(arr, axis=0)
-    elif mode=='sum':
+    elif mode == 'sum':
         frame = np.sum(arr, axis=0)
-    elif mode=='trimmean':
+    elif mode == 'max':
+        frame = np.max(arr, axis=0)
+    elif mode == 'trimmean':
         N = arr.shape[0]
         if N % 2 == 0:
             k = (N - n)//2
@@ -54,7 +56,7 @@ def cube_collapse(cube, mode='median', n=50):
         
         frame = np.empty_like(arr[0])                                    
         for index, _ in np.ndenumerate(arr[0]):
-            sort = np.sort(arr[:,index[0],index[1]])
+            sort = np.sort(arr[:, index[0], index[1]])
             frame[index] = np.mean(sort[k:N-k])
             
     return frame

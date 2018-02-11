@@ -333,7 +333,7 @@ def snr_ss(array, xxx_todo_changeme1, fwhm, out_coor=False, plot=False,
     snr = (f_source - fluxes.mean())/(fluxes.std()*np.sqrt(1+(1/n2)))
     
     if verbose:
-        msg1 = 'S/N for the given pixel = {:}'
+        msg1 = 'S/N for the given pixel = {:.3f}'
         msg2 = 'Integrated flux in FWHM test aperture = {:.3f}'
         msg3 = 'Mean of background apertures integrated fluxes = {:.3f}'
         msg4 = 'Std-dev of background apertures integrated fluxes = {:.3f}'

@@ -17,9 +17,8 @@ from multiprocessing import Pool, cpu_count
 from ..preproc import cube_derotate, cube_collapse, check_PA_vector
 from ..conf import time_ini, timing
 from ..conf import eval_func_tuple as EFT 
-from ..var import get_annulus_quad, get_annulus
-from .svd import svd_wrapper
-from .utils_pca import matrix_scaling
+from ..var import get_annulus_quad, get_annulus, matrix_scaling
+from .svd import get_eigenvectors
 from ..stats import descriptive_stats
 
 
@@ -432,10 +431,9 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
         
     
     
-###*****************************************************************************
-### Help functions for encapsulating portions of the main algorithms. They 
-### improve readability, debugging and code re-use *****************************
-###*****************************************************************************
+################################################################################
+### Help functions (encapsulating portions of the main algos)
+################################################################################
     
 def compute_pa_thresh(ann_center, fwhm, delta_rot=1):
     """ Computes the parallactic angle theshold[degrees]
@@ -499,7 +497,7 @@ def find_indices(angle_list, frame, thr, truncate):
     # keep min(num_frames/2, 200) in the library after discarding those based on
     # the PA threshold
     if truncate:
-        thr = min(int(n/2), 200)                                                # TODO: 200 is optimal? new parameter? 
+        thr = min(int(n/2), 200)    # TODO: new parameter?
         if frame < thr: 
             half1 = range(max(0,index_prev-int(thr/2)), index_prev)
             half2 = range(index_foll, min(index_foll+thr-len(half1),n))
@@ -580,7 +578,7 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, scaling,
     to keep min(num_frames/2, 200) in the library. 
     """
     if pa_threshold != 0:
-        if ann_center > fwhm*10:                                                 # TODO: 10*FWHM optimal? new parameter?
+        if ann_center > fwhm*10:    # TODO: 10*FWHM optimal? new parameter?
             indices_left = find_indices(angle_list, frame, pa_threshold, True)
         else:
             indices_left = find_indices(angle_list, frame, pa_threshold, False)
@@ -606,45 +604,5 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, scaling,
     return residuals, V.shape[0], data_ref.shape[0]  
 
 
-# Also used in pca_rdi_annular -------------------------------------------------
-def get_eigenvectors(ncomp, data, svd_mode, noise_error=1e-3, max_evs=200, 
-                     data_ref=None, debug=False):
-    """ Choosing the size of the PCA truncation by Minimizing the residuals
-    when ncomp set to None.
-    """
-    if data_ref is None:
-        data_ref = data
-    
-    if ncomp is None:
-        # Defines the number of PCs automatically for each zone (quadrant) by 
-        # minimizing the pixel noise (as the pixel STDDEV of the residuals) 
-        # decay once per zone         
-        ncomp = 0              
-        #full_std = np.std(data, axis=0).mean()
-        #full_var = np.var(data, axis=0).sum()
-        #orig_px_noise = np.mean(np.std(data, axis=1))
-        px_noise = []
-        px_noise_decay = 1
-        # The eigenvectors (SVD/PCA) are obtained once    
-        V_big = svd_wrapper(data_ref, svd_mode, min(data_ref.shape[0], max_evs),
-                            False, False)
-        # noise (stddev of residuals) to be lower than a given thr              
-        while px_noise_decay >= noise_error:
-            ncomp += 1
-            V = V_big[:ncomp]
-            transformed = np.dot(data, V.T)
-            reconstructed = np.dot(transformed, V)                  
-            residuals = data - reconstructed  
-            px_noise.append(np.std((residuals)))         
-            if ncomp>1: px_noise_decay = px_noise[-2] - px_noise[-1]
-            #print 'ncomp {:} {:.4f} {:.4f}'.format(ncomp,px_noise[-1],px_noise_decay)
-        
-        if debug: print('ncomp', ncomp)
-        
-    else:
-        # Performing SVD/PCA according to "svd_mode" flag
-        V = svd_wrapper(data_ref, svd_mode, ncomp, debug=False, verbose=False)   
-        
-    return V
 
 

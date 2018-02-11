@@ -20,10 +20,14 @@ __all__ = ['dist',
            'get_annulus_cube',
            'get_ell_annulus',
            'mask_circle',
-           'create_ringed_spider_mask']
+           'create_ringed_spider_mask',
+           'matrix_scaling',
+           'prepare_matrix',
+           'reshape_matrix']
 
 import numpy as np
 from skimage.draw import polygon, circle
+from sklearn.preprocessing import scale
 
 
 def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10, sp_angle=0):
@@ -91,25 +95,11 @@ def dist(yc,xc,y1,x1):
 
 
 def frame_center(array, verbose=False):
-    """ Returns the coordinates y,x of a frame central pixel if the sides are 
-    odd numbers. Python uses 0-based indexing, so the coordinates of the central
-    pixel of a 5x5 pixels frame are (2,2). Those are as well the coordinates of
-    the center of that pixel (sub-pixel center of the frame).
+    """ Returns the coordinates y,x of an image center.
     """   
-    y = array.shape[0]/2.       
-    x = array.shape[1]/2.
-    
-    # If frame size is even
-    if array.shape[0]%2==0:
-        cy = np.ceil(y)
-    else:
-        cy = np.ceil(y) - 1    # side length/2 - 1, python has 0-based indexing
-    if array.shape[1]%2==0:
-        cx = np.ceil(x)
-    else:
-        cx = np.ceil(x) - 1
+    cy = int(array.shape[0]/2. - 0.5)
+    cx = int(array.shape[1]/2. - 0.5)
 
-    cy = int(cy); cx = int(cx)
     if verbose:
         print('Center px coordinates at x,y = ({:},{:})'.format(cy, cx))
     return cy, cx
@@ -412,27 +402,35 @@ def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
         raise TypeError('width must be an integer.')
 
     cy, cx = frame_center(array)
-    azimuth_coverage = np.deg2rad(int(np.floor(360 / nsegm)))
+    azimuth_coverage = np.deg2rad(int(np.ceil(360 / nsegm)))
+    twopi = 2 * np.pi
 
     xx, yy = np.mgrid[:array.shape[0], :array.shape[1]]
     rad = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
     phi = np.arctan2(yy - cy, xx - cx)
-    phirot = phi % (2 * np.pi)
+    phirot = phi % (twopi)
     outer_radius = inner_radius + width
     indices = []
 
     for i in range(nsegm):
-        phistart = np.deg2rad(theta_init) + (i * azimuth_coverage)
-        if i == 0: phi_init = phistart
-        phiend = phistart + azimuth_coverage
-        if phiend < phirot[cy * 2, cx - 1]:
+        phi_start = np.deg2rad(theta_init) + (i * azimuth_coverage)
+        phi_end = phi_start + azimuth_coverage
+
+        if phi_start < twopi and phi_end > twopi:
             indices.append(
-                np.where((rad >= inner_radius) & (rad < outer_radius) & \
-                         (phirot >= phistart) & (phirot < phiend)))
+                np.where((rad >= inner_radius) & (rad < outer_radius) &
+                         (phirot >= phi_start) & (phirot <= twopi) |
+                         (rad >= inner_radius) & (rad < outer_radius) &
+                         (phirot >= 0) & (phirot < phi_end - twopi)))
+        elif phi_start >= twopi and phi_end > twopi:
+            indices.append(
+                np.where((rad >= inner_radius) & (rad < outer_radius) &
+                         (phirot >= phi_start - twopi) &
+                         (phirot < phi_end - twopi)))
         else:
             indices.append(
-                np.where((rad >= inner_radius) & (rad < outer_radius) & \
-                         ((phirot >= phistart) | (phirot < phi_init))))
+                    np.where((rad >= inner_radius) & (rad < outer_radius) &
+                             (phirot >= phi_start) & (phirot < phi_end)))
 
     if output_values:
         values = [array[segment] for segment in indices]
@@ -697,8 +695,111 @@ def mask_circle(array, radius):
         for i in range(n):
             array_masked[i] = array[i]*hole_mask
         
-    return array_masked    
-    
+    return array_masked
+
+
+def matrix_scaling(matrix, scaling):
+    """ Scales a matrix using sklearn.preprocessing.scale function.
+
+    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
+    With None, no scaling is performed on the input data before SVD. With
+    "temp-mean" then temporal px-wise mean subtraction is done, with
+    "spat-mean" then the spatial mean is subtracted, with "temp-standard"
+    temporal mean centering plus scaling to unit variance is done and with
+    "spat-standard" spatial mean centering plus scaling to unit variance is
+    performed.
+    """
+    if scaling is None:
+        pass
+    elif scaling == 'temp-mean':
+        matrix = scale(matrix, with_mean=True, with_std=False)
+    elif scaling == 'spat-mean':
+        matrix = scale(matrix, with_mean=True, with_std=False, axis=1)
+    elif scaling == 'temp-standard':
+        matrix = scale(matrix, with_mean=True, with_std=True)
+    elif scaling == 'spat-standard':
+        matrix = scale(matrix, with_mean=True, with_std=True, axis=1)
+    else:
+        raise ValueError('Scaling mode not recognized')
+
+    return matrix
+
+
+def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
+                   annulus_radius=None, annulus_width=None, verbose=True):
+    """ Builds the matrix for the SVD/PCA and other matrix decompositions,
+    centers the data and masks the frames central area if needed.
+
+    Parameters
+    ----------
+    array : array_like
+        Input cube, 3d array.
+    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
+        With None, no scaling is performed on the input data before SVD. With
+        "temp-mean" then temporal px-wise mean subtraction is done, with
+        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
+        temporal mean centering plus scaling to unit variance is done and with
+        "spat-standard" spatial mean centering plus scaling to unit variance is
+        performed.
+    mask_center_px : None or Int, optional
+        Whether to mask the center of the frames or not.
+    mode : {'fullfr', 'annular'}
+        Whether to use the whole frames or a single annulus.
+    annulus_radius : float
+        Distance in pixels from the center of the frame to the center of the
+        annulus.
+    annulus_width : float
+        Width of the annulus in pixels.
+    verbose : {True, False}, bool optional
+        If True prints intermediate info and timing.
+
+    Returns
+    -------
+    If mode is `annular` then the indices of the annulus (yy, xx) are returned
+    along with the matrix.
+
+    matrix : array_like
+        Out matrix whose rows are vectorized frames from the input cube.
+
+    """
+    if mode == 'annular':
+        if annulus_radius is None or annulus_width is None:
+            msgerr = 'Annulus_radius and/or annulus_width can be None in annular '
+            msgerr += 'mode'
+            raise ValueError(msgerr)
+
+        ind = get_annulus(array[0], annulus_radius - annulus_width / 2.,
+                          annulus_width, output_indices=True)
+        yy, xx = ind
+        matrix = array[:, yy, xx]
+
+        matrix = matrix_scaling(matrix, scaling)
+
+        if verbose:
+            msg = 'Done vectorizing the cube annulus. Matrix shape [{:},{:}]'
+            print(msg.format(matrix.shape[0], matrix.shape[1]))
+        return matrix, ind
+
+    elif mode == 'fullfr':
+        if mask_center_px:
+            array = mask_circle(array, mask_center_px)
+
+        nfr = array.shape[0]
+        matrix = np.reshape(array, (nfr, -1))  # == for i: array[i].flatten()
+
+        matrix = matrix_scaling(matrix, scaling)
+
+        if verbose:
+            msg = 'Done vectorizing the frames. Matrix shape [{:},{:}]'
+            print(msg.format(matrix.shape[0], matrix.shape[1]))
+        return matrix
+
+
+def reshape_matrix(array, y, x):
+    """ Converts a matrix whose rows are vectorized frames to a cube with
+    reshaped frames.
+    """
+    return array.reshape(array.shape[0], y, x)
 
         
 

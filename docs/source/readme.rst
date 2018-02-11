@@ -35,9 +35,9 @@ the interested scientific community. The main repository of ``VIP`` resides on
 open source code distribution, using Git as a version control system.
 
 ``VIP`` started as the effort of `Carlos Alberto Gomez Gonzalez <https://carlgogo.github.io/>`_,
-a former PhD student within the `VORTEX team <http://www.vortex.ulg.ac.be/>`_
-(Liege, Belgium). ``VIP``'s development is led by C. Gomez with contributions
-made by collaborator from several teams (take a look at the tab contributors on
+a former PhD student of the `VORTEX team <http://www.vortex.ulg.ac.be/>`_
+(ULiege, Belgium). ``VIP``'s development is led by C. Gomez with contributions
+made by collaborators from several teams (take a look at the tab contributors on
 ``VIP``'s Github repository). Most of ``VIP``'s functionalities are mature but
 it doesn't mean it's free from bugs. The code is continuously evolving and
 therefore feedback/contributions are greatly appreciated. If you want to report

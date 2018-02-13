@@ -31,7 +31,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
          residuals_tol=1e-1, cevr=0.9, thresh_mode='soft', nproc=1,
          asize=None, n_segments=4, azimuth_overlap=None, radius_int=None,
          random_seed=None, imlib='opencv', interpolation='lanczos4',
-         high_pass=False, collapse='median', full_output=False, verbose=True,
+         high_pass=None, collapse='median', full_output=False, verbose=True,
          debug=False):
     """ Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as
     described in Gomez Gonzalez et al. 2016. This first version of our algorithm
@@ -228,22 +228,22 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
 
             else:
                 pool = Pool(processes=int(nproc))
-                res = pool.map(EFT, itt.izip(itt.repeat(_decompose_patch),
-                                             itt.repeat(indices),
-                                             range(n_segments_ann),
-                                             itt.repeat(n_segments_ann),
-                                             itt.repeat(rank),
-                                             itt.repeat(low_rank_ref),
-                                             itt.repeat(low_rank_mode),
-                                             itt.repeat(thresh),
-                                             itt.repeat(thresh_mode),
-                                             itt.repeat(max_iter),
-                                             itt.repeat(auto_rank_mode),
-                                             itt.repeat(cevr),
-                                             itt.repeat(residuals_tol),
-                                             itt.repeat(random_seed),
-                                             itt.repeat(debug),
-                                             itt.repeat(full_output)))
+                res = pool.map(EFT, zip(itt.repeat(_decompose_patch),
+                                        itt.repeat(indices),
+                                        range(n_segments_ann),
+                                        itt.repeat(n_segments_ann),
+                                        itt.repeat(rank),
+                                        itt.repeat(low_rank_ref),
+                                        itt.repeat(low_rank_mode),
+                                        itt.repeat(thresh),
+                                        itt.repeat(thresh_mode),
+                                        itt.repeat(max_iter),
+                                        itt.repeat(auto_rank_mode),
+                                        itt.repeat(cevr),
+                                        itt.repeat(residuals_tol),
+                                        itt.repeat(random_seed),
+                                        itt.repeat(debug),
+                                        itt.repeat(full_output)))
                 patches = np.array(res)
                 pool.close()
 

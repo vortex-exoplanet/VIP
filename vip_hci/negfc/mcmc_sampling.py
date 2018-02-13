@@ -6,9 +6,7 @@ Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
 from __future__ import print_function
 
 __author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez'
-__all__ = ['lnprior',
-           'lnlike',
-           'mcmc_negfc_sampling',
+__all__ = ['mcmc_negfc_sampling',
            'chain_zero_truncated',
            'show_corner_plot',
            'show_walk_plot',

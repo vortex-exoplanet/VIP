@@ -80,11 +80,11 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10, sp_angle
     rr0, cc0 = circle(cy, cx, min(ann_out, cy))
     rr4, cc4 = circle(cy, cx, ann_in)
 
-    mask[rr0,cc0] = 1
-    mask[rr1,cc1] = 0
-    mask[rr2,cc2] = 0
-    mask[rr3,cc3] = 0
-    mask[rr4,cc4] = 0
+    mask[rr0, cc0] = 1
+    mask[rr1, cc1] = 0
+    mask[rr2, cc2] = 0
+    mask[rr3, cc3] = 0
+    mask[rr4, cc4] = 0
     return mask
 
 
@@ -97,8 +97,8 @@ def dist(yc,xc,y1,x1):
 def frame_center(array, verbose=False):
     """ Returns the coordinates y,x of an image center.
     """   
-    cy = int(array.shape[0]/2. - 0.5)
-    cx = int(array.shape[1]/2. - 0.5)
+    cy = array.shape[0]/2. - 0.5
+    cx = array.shape[1]/2. - 0.5
 
     if verbose:
         print('Center px coordinates at x,y = ({:},{:})'.format(cy, cx))
@@ -112,11 +112,15 @@ def get_square(array, size, y, x, position=False):
     ----------
     array : array_like
         Input frame.
-    size : int, odd
+    size : int
         Size of the subframe.
-    y, x : int
-        Coordinates of the center of the subframe.
-    position : {False, True}, optional
+    y : int
+        Y coordinate of the center of the subframe (obtained with the function
+        ``frame_center``).
+    x : int
+        X coordinate of the center of the subframe (obtained with the function
+        ``frame_center``).
+    position : bool optional
         If set to True return also the coordinates of the bottom-left vertex.
         
     Returns
@@ -125,13 +129,15 @@ def get_square(array, size, y, x, position=False):
         Sub array.
         
     """
-    if not array.ndim==2:
+    if not array.ndim == 2:
         raise TypeError('Input array is not a frame or 2d array.')
     
-    if size%2!=0:  size -= 1 # making it odd to get the wing
-    wing = int(size/2)
-    # wing is added to the sides of the subframe center. Note the +1 when 
-    # closing the interval (python doesn't include the endpoint)
+    # wing is added to the sides of the subframe center
+    if size%2 != 0:
+        wing = int(np.floor(size / 2.))
+    else:
+        wing = (size / 2.) - 0.5
+    # +1 because python doesn't include the endpoint when slicing
     array_view = array[int(y-wing):int(y+wing+1),
                        int(x-wing):int(x+wing+1)].copy()
     
@@ -246,15 +252,18 @@ def get_square_robust(array, size, y, x, position=False,
                   " exceeds the borders of the array."
             print(msg)
 
-    if return_wings: return wing_bef,wing_aft
+    if return_wings:
+        return wing_bef,wing_aft
     
     else:
         # wing is added to the sides of the subframe center. Note the +1 when 
         # closing the interval (python doesn't include the endpoint)
         array_view = array[int(y-wing_bef):int(y+wing_aft+1),
                            int(x-wing_bef):int(x+wing_aft+1)].copy()
-        if position: return array_view, y-wing_bef, x-wing_bef
-        else: return array_view
+        if position:
+            return array_view, y-wing_bef, x-wing_bef
+        else:
+            return array_view
 
 
 def get_circle(array, radius, output_values=False, cy=None, cx=None):           

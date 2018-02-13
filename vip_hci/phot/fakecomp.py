@@ -21,12 +21,15 @@ from ..preproc import cube_crop_frames, frame_shift, frame_crop
 from ..var import frame_center, fit_2dgaussian, get_circle
 
 
-### TODO: remove this in VIP v1.0.0. Created for backward compatibility
+# TODO: remove this in VIP v1.0.0. Created for backward compatibility
 def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc,
                     rad_dists, n_branches=1, theta=0, imlib='opencv',
                     verbose=True):
     return cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                                   rad_dists, n_branches, theta, imlib, verbose)
+
+
+# TODO: remove this in VIP v1.0.0. Created for backward compatibility
 def inject_fc_frame(array, array_fc, pos_y, pos_x, flux):
     return frame_inject_companion(array, array_fc, pos_y, pos_x, flux)
 
@@ -70,20 +73,22 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
     """
 
-    if not (array.ndim==3 or array.ndim==4):
+    if not (array.ndim == 3 or array.ndim == 4):
         raise ValueError('Array is not a cube, 3d or 4d array')
-    if array.ndim==4:
-        if not psf_template.ndim==3:
+    if array.ndim == 4:
+        if not psf_template.ndim == 3:
             raise ValueError('Psf must be a 3d array')
 
     # ADI case
-    if array.ndim==3:
-
+    if array.ndim == 3:
+        # TODO: extend to even-sized psf arrays
+        if psf_template.shape[1]%2 == 0:
+            raise ValueError("Only odd-sized PSF is accepted")
         ceny, cenx = frame_center(array[0])
         ceny = int(float(ceny))
         cenx = int(float(cenx))
         rad_dists = np.array(rad_dists)
-        if not rad_dists[-1]<array[0].shape[0]/2.:
+        if not rad_dists[-1] < array[0].shape[0]/2.:
             msg = 'rad_dists last location is at the border (or outside) of the field'
             raise ValueError(msg)
 
@@ -123,18 +128,20 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         return array_out
 
     # ADI+IFS case
-    if array.ndim==4 and psf_template.ndim==3:
-
+    if array.ndim == 4 and psf_template.ndim == 3:
+        # TODO: extend to even-sized psf arrays
+        if psf_template.shape[2] % 2 == 0:
+            raise ValueError("Only odd-sized PSF is accepted")
         ceny, cenx = frame_center(array[0,0])
         ceny = int(float(ceny))
         cenx = int(float(cenx))
         rad_dists = np.array(rad_dists)
-        wavs = array[:,0,0,0]
         if not rad_dists[-1]<array[0].shape[1]/2.:
             msg = 'rad_dists last location is at the border (or outside) of the field'
             raise ValueError(msg)
 
-        sizey = array.shape[2]; sizex = array.shape[3]
+        sizey = array.shape[2]
+        sizex = array.shape[3]
         size_fc = psf_template.shape[2] # considering square frames
         nframes_wav = array.shape[0]
         nframes_adi = array.shape[1]
@@ -144,7 +151,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         for i in range(nframes_wav):
             w = int(np.floor(size_fc/2.))
             # fcomp in the center of a zeros frame
-            if (psf_template[0].shape[1]%2)==0:
+            if (psf_template[0].shape[1]%2) == 0:
                 fc_fr[i, ceny-w:ceny+w, cenx-w:cenx+w] = psf_template[i]
             else:
                 fc_fr[i, ceny-w:ceny+w+1, cenx-w:cenx+w+1] = psf_template[i]
@@ -184,24 +191,29 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
 def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
                            imlib='opencv', interpolation='lanczos4'):
-    """ Injects a fake companion in a single frame at given coordinates.
+    """ Injects a fake companion in a single frame (it could be a single
+     multi-wavelength frame) at given coordinates.
     """
-    if not (array.ndim==2 or array.ndim==3):
-        raise TypeError('Array is not a frame, 2d  or 3d array.')
-    if array.ndim==2:
+    if not (array.ndim == 2 or array.ndim == 3):
+        raise TypeError('Array is not a 2d or 3d array.')
+    if array.ndim == 2:
         size_fc = array_fc.shape[0]
         ceny, cenx = frame_center(array)
-        fc_fr = np.zeros_like(array, dtype=np.float64)
+        ceny = int(ceny)
+        cenx = int(cenx)
+        fc_fr = np.zeros_like(array)
         w = int(np.floor(size_fc/2.))
         # fcomp in the center of a zeros frame
         fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc
         array_out = array + frame_shift(fc_fr, pos_y-ceny, pos_x-cenx, imlib,
                                         interpolation) * flux
 
-    if array.ndim==3:
+    if array.ndim == 3:
         size_fc = array_fc.shape[1]
         ceny, cenx = frame_center(array[0])
-        fc_fr = np.zeros_like(array, dtype=np.float64)
+        ceny = int(ceny)
+        cenx = int(cenx)
+        fc_fr = np.zeros_like(array)
         w = int(np.floor(size_fc/2.))
         # fcomp in the center of a zeros frame
         fc_fr[:, ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc
@@ -234,14 +246,14 @@ def create_psf_template(array, size, fwhm=4, verbose=True, collapse='mean'):
     psf_normd : array_like
         Normalized PSF.
     """
-    if not array.ndim==3 or array.ndim==4:
+    if not (array.ndim == 3 or array.ndim == 4):
         raise TypeError('Array is not a cube, 3d or 4d array.')
 
     n = array.shape[0]
     psf = cube_crop_frames(array, size=size, verbose=verbose)
-    if collapse=='mean':
+    if collapse == 'mean':
         psf = np.mean(psf, axis=0)
-    elif collapse=='median':
+    elif collapse == 'median':
         psf = np.median(psf, axis=0)
     else:
         raise TypeError('Collapse mode not recognized.')
@@ -256,14 +268,15 @@ def create_psf_template(array, size, fwhm=4, verbose=True, collapse='mean'):
 def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
              imlib='opencv', interpolation='lanczos4', full_output=False,
              verbose=False):
-    """ Scales a PSF, so the 1*FWHM aperture flux equals 1.
+    """ Scales a PSF (2d or 3d array), so the 1*FWHM aperture flux equals 1.
 
     Parameters
     ----------
     array: array_like
-        The psf 2d or 3d array.
-    fwhm: float, optional
-        The the Full Width Half Maximum in pixels.
+        The PSF, 2d (ADI data) or 3d array (IFS data).
+    fwhm: int or float or 1d array, optional
+        The the Full Width Half Maximum in pixels. It can handle a different
+        FWHM value for different wavelengths (IFS data).
     size : int or None, optional
         If int it will correspond to the size of the squared subimage to be
         cropped form the psf array.
@@ -276,10 +289,10 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
-    full_output : {False, True}, bool optional
+    full_output : bool, optional
         If True the flux in a FWHM aperture is returned along with the
         normalized PSF.
-    verbose : {False, True}, bool optional
+    verbose : bool, optional
         If True intermediate results are printed out.
 
     Returns
@@ -290,57 +303,92 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
     If ``full_output`` is True the flux in a FWHM aperture is returned along
     with the normalized PSF.
     """
+    def psf_norm_2d(array, fwhm, size, threshold, mask_core, imlib,
+                    interpolation, full_output, verbose):
+        """ Helper function for 2d case """
+        if size is not None:
+            if size < array.shape[0]:
+                psfs = frame_crop(array, size, verbose=False)
+            else:
+                psfs = array.copy()
+        else:
+            psfs = array.copy()
+            # TODO: verify correct handling of even/odd cases (old behavior: if
+            # frame size is even we drop last row and last column)
+            if psfs.shape[0]%2 == 0:
+                psfs = psfs[:-1, :]
+            if psfs.shape[1]%2 == 0:
+                psfs = psfs[:, :-1]
 
-    if size is not None:
-        psfs = frame_crop(array, min(int(size), array.shape[0]), verbose=False)
-    else:
-        psfs = array.copy()
-        # If frame size is even we drop last row and last column
-        if psfs.shape[0]%2==0:
-            psfs = psfs[:-1,:]
-        if psfs.shape[1]%2==0:
-            psfs = psfs[:,:-1]
-
-    # we check if the psf is centered and fix it if needed
-    cy, cx = frame_center(psfs, verbose=False)
-    if cy!=np.where(psfs==psfs.max())[0] or cx!=np.where(psfs==psfs.max())[1]:
-        # first we find the centroid and put it in the center of the array
-        centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm, fwhmy=fwhm)
-        shiftx, shifty = centroidx - cx, centroidy - cy
-        psfs = frame_shift(psfs, -shifty, -shiftx, imlib=imlib,
-                           interpolation=interpolation)
-        for _ in range(2):
+        # we check if the psf is centered and fix it if needed
+        cy, cx = frame_center(psfs, verbose=False)
+        maxpxy = np.where(psfs == psfs.max())[0]
+        maxpxx = np.where(psfs == psfs.max())[1]
+        if cy != maxpxy or cx != maxpxx:
+            # first we find the centroid and put it in the center of the array
             centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm, fwhmy=fwhm)
-            cy, cx = frame_center(psfs, verbose=False)
             shiftx, shifty = centroidx - cx, centroidy - cy
-            psfs = frame_shift(psfs, -shifty, -shiftx)
+            psfs = frame_shift(psfs, -shifty, -shiftx, imlib=imlib,
+                               interpolation=interpolation)
+            for _ in range(2):
+                centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm,
+                                                      fwhmy=fwhm)
+                cy, cx = frame_center(psfs, verbose=False)
+                shiftx, shifty = centroidx - cx, centroidy - cy
+                psfs = frame_shift(psfs, -shifty, -shiftx)
 
-    # we check whether the flux is normalized and fix it if needed
-    fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2.)
-    fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper,
-                                                   method='exact')
-    fwhm_flux = np.array(fwhm_aper_phot['aperture_sum'])
-    if verbose:
-        print("Flux in 1xFWHM aperture: {}".format(fwhm_flux))
+        # we check whether the flux is normalized and fix it if needed
+        fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2.)
+        fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper,
+                                                       method='exact')
+        fwhm_flux = np.array(fwhm_aper_phot['aperture_sum'])
+        if verbose:
+            print("Flux in 1xFWHM aperture: {}".format(fwhm_flux))
 
-    if fwhm_flux>1.1 or fwhm_flux<0.9:
-        psf_norm_array = psfs/np.array(fwhm_aper_phot['aperture_sum'])
-    else:
-        psf_norm_array = psfs
+        if fwhm_flux > 1.1 or fwhm_flux < 0.9:
+            psf_norm_array = psfs / np.array(fwhm_aper_phot['aperture_sum'])
+        else:
+            psf_norm_array = psfs
 
-    if threshold is not None:
-        psf_norm_array[np.where(psf_norm_array < threshold)] = 0
+        if threshold is not None:
+            psf_norm_array[np.where(psf_norm_array < threshold)] = 0
 
-    if mask_core is not None:
-        psf_norm_array = get_circle(psf_norm_array, radius=mask_core)
+        if mask_core is not None:
+            psf_norm_array = get_circle(psf_norm_array, radius=mask_core)
 
-    if full_output:
-        return psf_norm_array, fwhm_flux
-    else:
-        return psf_norm_array
+        if full_output:
+            return psf_norm_array, fwhm_flux
+        else:
+            return psf_norm_array
+    #---------------------------------------------------------------------------
 
+    if array.ndim == 2:
+        res = psf_norm_2d(array, fwhm, size, threshold, mask_core, imlib,
+                          interpolation, full_output, verbose)
 
-    return psf_norm
+    elif array.ndim == 3:
+        if isinstance(fwhm, (int, float)):
+            fwhm = [fwhm for _ in range(array.shape[0])]
+        array_out = np.zeros((array.shape[0], size, size))
+        if full_output:
+            fwhm_flux = np.zeros((array.shape[0]))
+
+        for fr in range(array.shape[0]):
+            restemp = psf_norm_2d(array[fr], fwhm[fr], size, threshold,
+                                  mask_core, imlib, interpolation, full_output,
+                                  False)
+            if full_output:
+                array_out[fr] = restemp[0]
+                fwhm_flux[fr] = restemp[1]
+            else:
+                array_out[fr] = restemp
+
+        if full_output:
+            res = (array_out, fwhm_flux)
+        else:
+            res = array_out
+
+    return res
 
 
 def _cube_shift(cube, y, x, imlib, interpolation):

@@ -42,7 +42,7 @@ made by collaborators from several teams (take a look at the tab contributors on
 it doesn't mean it's free from bugs. The code is continuously evolving and
 therefore feedback/contributions are greatly appreciated. If you want to report
 a bug, suggest or add a functionality please create an issue or send a pull
-request on `this repository <https://github.com/vortex-exoplanet/VIP>`_.
+request `here <https://github.com/vortex-exoplanet/VIP>`_.
 
 
 Documentation

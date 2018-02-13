@@ -96,7 +96,8 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         ncomp is the number of PCs from the library of spectral channels. 
     ncomp2 : int, optional
         How many PCs are used for IFS+ADI datacubes in the second stage PCA. 
-        ncomp2 goes up to the number of multi-spectral frames. 
+        ncomp2 goes up to the number ADI frames. If None then the second stage
+        of the PCA is ignored and the residuals are derotated and combined.
     svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy', 'randcupy'}, str
         Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK 
         linear algebra library through Numpy and it is the most conventional way 
@@ -193,7 +194,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         else:
             ref_lib = matrix    
         
-        if indices is not None and frame is not None:                           # one row (frame) at a time
+        if indices is not None and frame is not None:   # one row (frame) at a time
             ref_lib = ref_lib[indices]
             if ref_lib.shape[0] <= 10:
                 msg = 'Too few frames left in the PCA library (<10). '
@@ -209,7 +210,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
                 return ref_lib.shape[0], residuals, reconstructed
             else:
                 return ref_lib.shape[0], residuals
-        else:                                                                   # the whole matrix
+        else:   # the whole matrix
             V = svd_wrapper(ref_lib, svd_mode, ncomp, debug, verbose)  
                   
             if verbose: timing(start_time)
@@ -263,7 +264,8 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         if not scale_list.shape[0]==cube.shape[0]:
             raise TypeError('Scaling factors vector has wrong length')
     
-    if verbose: start_time = time_ini()
+    if verbose:
+        start_time = time_ini()
     
     if check_mem:
         input_bytes = cube.nbytes
@@ -322,7 +324,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         # SDI (IFS) + ADI: cube with multiple spectral channels + rotation
         # shape of cube: [# channels, # adi-frames, Y, X]
         #***********************************************************************
-        elif cube.ndim==4 and angle_list is not None:
+        elif cube.ndim == 4 and angle_list is not None:
             if verbose:  
                 print('{:} spectral channels in IFS cube'.format(z))
                 print('{:} ADI frames in all channels'.format(n))
@@ -353,22 +355,20 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
                 residuals_cube_channels[i] = frame
                 bar.update()
             
-            # de-rotation of the PCA processed channels
-            if ncomp2 > z:
-                ncomp2 = min(ncomp2, z)
-                msg = 'Number of PCs too high (max PCs={}), using instead {:} PCs.'
-                print(msg.format(n, ncomp2))
-
-            elif ncomp2 is None:
+            # de-rotation of the PCA processed channels, ADI fashion
+            if ncomp2 is None:
                 residuals_cube_channels_ = cube_derotate(residuals_cube_channels,
-                                                         angle_list, imlib=imlib,
-                                                         interpolation=interpolation)
+                                                    angle_list, imlib=imlib,
+                                                    interpolation=interpolation)
                 frame = cube_collapse(residuals_cube_channels_, mode=collapse)
                 if verbose:
                     print('De-rotating and combining')
                     timing(start_time)
-
             else:
+                if ncomp2 > n:
+                    ncomp2 = min(ncomp2, n)
+                    msg = 'Number of PCs too high (max PCs={}), using instead {:} PCs.'
+                    print(msg.format(n, ncomp2))
                 res_ifs_adi = subtract_projection(residuals_cube_channels, None,
                                                   ncomp2, scaling, mask_center_px,
                                                   debug, svd_mode, False,

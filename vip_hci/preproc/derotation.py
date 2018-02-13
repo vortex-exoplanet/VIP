@@ -169,11 +169,10 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         data_array = array
 
         pool = Pool(processes=int(nproc))
-        res = pool.map(futup, itt.izip(itt.repeat(_cube_rotate_mp),
-                                       range(n_frames), itt.repeat(angle_list),
-                                       itt.repeat(imlib),
-                                       itt.repeat(interpolation),
-                                       itt.repeat(cxy)))
+        res = pool.map(futup, zip(itt.repeat(_cube_rotate_mp),
+                                  range(n_frames), itt.repeat(angle_list),
+                                  itt.repeat(imlib), itt.repeat(interpolation),
+                                  itt.repeat(cxy)))
         pool.close()
         array_der = np.array(res)
 

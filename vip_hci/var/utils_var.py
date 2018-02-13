@@ -130,13 +130,18 @@ def pp_subplots(*args, **kwargs):
             else:
                 show_circle = True
                 coor_circle = kwargs['circle']
-    else: show_circle = False
+    else:
+        show_circle = False
 
-    if 'circlerad' in kwargs: circle_rad = kwargs['circlerad']
-    else: circle_rad = 6
+    if 'circlerad' in kwargs:
+        circle_rad = kwargs['circlerad']
+    else:
+        circle_rad = 6
 
-    if 'circlealpha' in kwargs: circle_alpha = kwargs['circlealpha']
-    else: circle_alpha = 0.8
+    if 'circlealpha' in kwargs:
+        circle_alpha = kwargs['circlealpha']
+    else:
+        circle_alpha = 0.8
 
     # ARROW --------------------------------------------------------------------
     if 'arrow' in kwargs:
@@ -149,14 +154,20 @@ def pp_subplots(*args, **kwargs):
     else:
         show_arrow = False
 
-    if 'arrowshiftx' in kwargs: arrow_shiftx = kwargs['arrowshiftx']
-    else: arrow_shiftx = 5
+    if 'arrowshiftx' in kwargs:
+        arrow_shiftx = kwargs['arrowshiftx']
+    else:
+        arrow_shiftx = 5
 
-    if 'arrowlength' in kwargs: arrow_length = kwargs['arrowlength']
-    else: arrow_length = 20
+    if 'arrowlength' in kwargs:
+        arrow_length = kwargs['arrowlength']
+    else:
+        arrow_length = 20
 
-    if 'arrowalpha' in kwargs: arrow_alpha = kwargs['arrowalpha']
-    else: arrow_alpha = 0.8
+    if 'arrowalpha' in kwargs:
+        arrow_alpha = kwargs['arrowalpha']
+    else:
+        arrow_alpha = 0.8
 
     # LABEL --------------------------------------------------------------------
     if 'label' in kwargs:
@@ -167,24 +178,36 @@ def pp_subplots(*args, **kwargs):
     else:
         label = None
 
-    if 'labelsize' in kwargs: labelsize = kwargs['labelsize']
-    else: labelsize = 12
+    if 'labelsize' in kwargs:
+        labelsize = kwargs['labelsize']
+    else:
+        labelsize = 12
 
-    if 'labelpad' in kwargs: labelpad = kwargs['labelpad']
-    else: labelpad = 5
+    if 'labelpad' in kwargs:
+        labelpad = kwargs['labelpad']
+    else:
+        labelpad = 5
 
     # GRID ---------------------------------------------------------------------
-    if 'grid' in kwargs: grid = kwargs['grid']
-    else: grid = False
+    if 'grid' in kwargs:
+        grid = kwargs['grid']
+    else:
+        grid = False
 
-    if 'gridcolor' in kwargs: grid_color = kwargs['gridcolor']
-    else:  grid_color = '#f7f7f7'
+    if 'gridcolor' in kwargs:
+        grid_color = kwargs['gridcolor']
+    else:
+        grid_color = '#f7f7f7'
 
-    if 'gridspacing' in kwargs: grid_spacing = kwargs['gridspacing']
-    else:  grid_spacing = 10
+    if 'gridspacing' in kwargs:
+        grid_spacing = kwargs['gridspacing']
+    else:
+        grid_spacing = 10
 
-    if 'gridalpha' in kwargs: grid_alpha = kwargs['gridalpha']
-    else:  grid_alpha = 0.3
+    if 'gridalpha' in kwargs:
+        grid_alpha = kwargs['gridalpha']
+    else:
+        grid_alpha = 0.3
 
     # VMAX-VMIN ----------------------------------------------------------------
     if 'vmax' in kwargs:
@@ -225,21 +248,32 @@ def pp_subplots(*args, **kwargs):
     else:
         show_cross = False
     if 'crossalpha' in kwargs: cross_alpha = kwargs['crossalpha']
-    else: cross_alpha = 0.4
+    else:
+        cross_alpha = 0.4
 
     # AXIS - ANGSCALE ----------------------------------------------------------
-    if 'angscale' in kwargs: angscale = kwargs['angscale']
-    else:  angscale = False
-    if 'angticksep' in kwargs: angticksep = kwargs['angticksep']
-    else: angticksep = 50
-    if 'pxscale' in kwargs: pxscale = kwargs['pxscale']
-    else: pxscale = 0.01 # default for Keck/NIRC2
-    if 'axis' in kwargs:  show_axis = kwargs['axis']
-    else:  show_axis = True
+    if 'angscale' in kwargs:
+        angscale = kwargs['angscale']
+    else:
+        angscale = False
+    if 'angticksep' in kwargs:
+        angticksep = kwargs['angticksep']
+    else:
+        angticksep = 50
+    if 'pxscale' in kwargs:
+        pxscale = kwargs['pxscale']
+    else:
+        pxscale = 0.01 # default for Keck/NIRC2
+    if 'axis' in kwargs:
+        show_axis = kwargs['axis']
+    else:
+        show_axis = True
     # --------------------------------------------------------------------------
 
-    if 'showcent' in kwargs: show_center = True
-    else: show_center = False
+    if 'showcent' in kwargs:
+        show_center = True
+    else:
+        show_center = False
 
     if 'getfig' in kwargs:
         getfig = kwargs['getfig']
@@ -254,7 +288,8 @@ def pp_subplots(*args, **kwargs):
     
     if 'log' in kwargs and kwargs['log'] is True:
         logscale = kwargs['log']
-    else: logscale = False
+    else:
+        logscale = False
 
     # Defaults previously used: 'magma','CMRmap','RdBu_r'
     if 'cmap' in kwargs:
@@ -264,27 +299,38 @@ def pp_subplots(*args, **kwargs):
         else:
             if not len(custom_cmap)==num_plots:
                 raise RuntimeError('Cmap list does not have enough items')
-    else: custom_cmap = ['viridis' for i in range(num_plots)]
+    else:
+        custom_cmap = ['viridis' for i in range(num_plots)]
 
-    if 'colorb' in kwargs: colorb = kwargs['colorb']
-    else: colorb = True
+    if 'colorb' in kwargs:
+        colorb = kwargs['colorb']
+    else:
+        colorb = True
     
-    if 'dpi' in kwargs: dpi = kwargs['dpi']
-    else: dpi = 90
+    if 'dpi' in kwargs:
+        dpi = kwargs['dpi']
+    else:
+        dpi = 90
 
-    if 'title' in kwargs: tit = kwargs['title']
-    else: tit = None
+    if 'title' in kwargs:
+        tit = kwargs['title']
+    else:
+        tit = None
     
-    if 'horsp' in kwargs: hor_spacing = kwargs['horsp']
-    else: hor_spacing = 0.3
+    if 'horsp' in kwargs:
+        hor_spacing = kwargs['horsp']
+    else:
+        hor_spacing = 0.3
     
-    if 'versp' in kwargs: ver_spacing = kwargs['versp']
-    else: ver_spacing = 0
+    if 'versp' in kwargs:
+        ver_spacing = kwargs['versp']
+    else:
+        ver_spacing = 0
 
     # --------------------------------------------------------------------------
 
     subplot_size = 4
-    if rows==0: raise TypeError
+    if rows == 0: raise TypeError
     fig = figure(figsize=(cols*subplot_size, rows*subplot_size), dpi=dpi)
     
     if tit is not None:  fig.suptitle(tit, fontsize=14)
@@ -385,8 +431,6 @@ def pp_subplots(*args, **kwargs):
         return fig
     else:
         show()
-
-
 
 
 def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False, 

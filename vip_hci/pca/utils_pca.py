@@ -8,8 +8,7 @@ from __future__ import division
 from __future__ import print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['pca_annulus',
-           'scale_cube_for_pca']
+__all__ = []
 
 import numpy as np
 from ..var import get_square_robust, frame_center, prepare_matrix
@@ -42,9 +41,8 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
        or not; i.e. True is to descale the cube (typically after a first scaling
        has already been done)
     y_in, x-in:
-       Initial y and x sizes.
-       In case the cube is descaled, these values will be used to crop back the
-       cubes/frames to their original size.
+       Initial y and x sizes. In case the cube is descaled, these values will
+       be used to crop back the cubes/frames to their original size.
     imlib : str optional
         See the documentation of the ``vip_hci.preproc.frame_rescaling``
         function.
@@ -92,20 +90,21 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
         cy,cx = frame_center(cube[0])
 
     # (de)scale the cube, so that a planet would now move radially
-    cube,frame = cube_rescaling(big_cube,var_list,ref_y=cy, ref_x=cx,
-                                imlib=imlib, interpolation=interpolation)
+    cube, frame = cube_rescaling(big_cube, var_list, ref_y=cy, ref_x=cx,
+                                 imlib=imlib, interpolation=interpolation)
 
     if inverse:
         if max_sc > 1:
+            # TODO: check the use of get_square_robust
             frame = get_square_robust(frame,max(y_in,x_in), cy,cx,strict=False)
             if full_output:
                 n_z = cube.shape[0]
                 array_old = cube.copy()
                 cube = np.zeros([n_z,max(y_in,x_in),max(y_in,x_in)])
                 for zz in range(n_z):
+                    # TODO: check the use of get_square_robust
                     cube[zz]=get_square_robust(array_old[zz],max(y_in,x_in), 
                                                cy,cx,strict=False)
-
 
     if full_output: 
         return cube,frame,y,x,cy,cx

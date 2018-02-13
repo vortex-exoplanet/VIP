@@ -22,12 +22,11 @@ from .svd import get_eigenvectors
 from ..stats import descriptive_stats
 
 
-
 def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, 
                     ncomp=1, svd_mode='randsvd', min_corr=0.9, fwhm=4, 
                     scaling='temp-standard', imlib='opencv',
                     interpolation='lanczos4', collapse='median',
-                    full_output=False, verbose=True, debug=False):
+                    full_output=False, verbose=True):
     """ Annular PCA with Reference Library + Correlation + standardization
     
     In the case of having a large number of reference images, e.g. for a survey 
@@ -87,9 +86,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1,
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
     verbose : {True, False}, bool optional
-        If True prints to stdout intermediate info. 
-    debug : {False, True}, bool optional
-        Whether to output some intermediate information.
+        If True prints to stdout intermediate info.
     
     Returns
     -------
@@ -204,7 +201,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1,
         return frame           
 
 
-def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3, 
+def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
                     delta_rot=1, ncomp=1, svd_mode='randsvd', nproc=1,
                     min_frames_pca=10, tol=1e-1, scaling=None, quad=False,
                     imlib='opencv', interpolation='lanczos4', collapse='median',
@@ -219,10 +216,7 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
     algebra calcularions, which comes by default in every OSX system, is broken 
     for multiprocessing. Avoid using this function unless you have compiled 
     Python against other linear algebra library. An easy fix is to install 
-    latest ANACONDA (2.5 or later) distribution which ships MKL library 
-    (replacing the problematic ACCELERATE). On linux with the default 
-    LAPACK/BLAS libraries it successfully distributes the processes among all 
-    the existing cores. 
+    (ana)conda and the openblas or MKL libraries (replacing ACCELERATE).
     
     Parameters
     ----------
@@ -378,10 +372,10 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
                 #***************************************************************
                 # We loop the frames and do the PCA to obtain the residuals cube
                 #***************************************************************
-                residuals = do_pca_loop(matrix_quad, yy, xx, nproc, angle_list, 
-                                        fwhm, pa_thr, scaling, ann_center, 
-                                        svd_mode, ncompann, min_frames_pca, tol,
-                                        debug, verbose)
+                residuals = do_pca_loop(matrix_quad, nproc, angle_list, fwhm,
+                                        pa_thr, scaling, ann_center, svd_mode,
+                                        ncompann, min_frames_pca, tol, debug,
+                                        verbose)
                 
                 for frame in range(n):
                     cube_out[frame][yy, xx] = residuals[frame] 
@@ -404,9 +398,9 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
             #*******************************************************************
             # We loop the frames and do the PCA to obtain the residuals cube
             #*******************************************************************
-            residuals = do_pca_loop(matrix_ann, yy, xx, nproc, angle_list, fwhm, 
-                                    pa_thr, scaling, ann_center, svd_mode,
-                                    ncompann, min_frames_pca, tol, debug, verbose)
+            residuals = do_pca_loop(matrix_ann, nproc, angle_list, fwhm, pa_thr,
+                                    scaling, ann_center, svd_mode, ncompann,
+                                    min_frames_pca, tol, debug, verbose)
             
             for frame in range(n):
                 cube_out[frame][yy, xx] = residuals[frame] 
@@ -504,11 +498,11 @@ def find_indices(angle_list, frame, thr, truncate):
         else:
             half2 = range(index_foll, min(n, int(thr/2+index_foll)))
             half1 = range(max(0,index_prev-thr+len(half2)), index_prev)
-    return np.array(half1+half2)
+    return np.array(list(half1) + list(half2))
 
 
 
-def do_pca_loop(matrix, yy, xx, nproc, angle_list, fwhm, pa_threshold, scaling, 
+def do_pca_loop(matrix, nproc, angle_list, fwhm, pa_threshold, scaling,
                 ann_center, svd_mode, ncomp, min_frames_pca, tol, debug, verbose):
     """
     """
@@ -521,40 +515,34 @@ def do_pca_loop(matrix, yy, xx, nproc, angle_list, fwhm, pa_threshold, scaling,
     #***************************************************************          
     ncomps = []
     nfrslib = []          
-    if nproc==1:
+    if nproc == 1:
         residualarr = []
         for frame in range(n):
             res = do_pca_patch(matrix_ann, frame, angle_list, fwhm,
-                               pa_threshold, scaling, ann_center, 
-                               svd_mode, ncomp, min_frames_pca, tol,
-                               debug)
+                               pa_threshold, ann_center, svd_mode, ncomp,
+                               min_frames_pca, tol, debug)
             residualarr.append(res[0])
             ncomps.append(res[1])
             nfrslib.append(res[2])
         residuals = np.array(residualarr)
         
-    elif nproc>1:
+    elif nproc > 1:
         #***********************************************************
         # A multiprocessing pool is created to process the frames in 
         # a parallel way. SVD/PCA is done in do_pca_patch function
         #***********************************************************            
         pool = Pool(processes=int(nproc))
-        res = pool.map(EFT, itt.izip(itt.repeat(do_pca_patch), 
-                                     itt.repeat(matrix_ann),
-                                     range(n), itt.repeat(angle_list),
-                                     itt.repeat(fwhm),
-                                     itt.repeat(pa_threshold),
-                                     itt.repeat(scaling),
-                                     itt.repeat(ann_center),
-                                     itt.repeat(svd_mode),
-                                     itt.repeat(ncomp),
-                                     itt.repeat(min_frames_pca),
-                                     itt.repeat(tol),
-                                     itt.repeat(debug)))
+        res = pool.map(EFT, zip(itt.repeat(do_pca_patch),
+                                itt.repeat(matrix_ann), range(n),
+                                itt.repeat(angle_list), itt.repeat(fwhm),
+                                itt.repeat(pa_threshold),
+                                itt.repeat(ann_center), itt.repeat(svd_mode),
+                                itt.repeat(ncomp), itt.repeat(min_frames_pca),
+                                itt.repeat(tol)))
         res = np.array(res)
         residuals = np.array(res[:,0])
-        ncomps = res[:,1]
-        nfrslib = res[:,2]
+        ncomps = res[:, 1]
+        nfrslib = res[:, 2]
         pool.close()                         
 
     # number of frames in library printed for each annular quadrant
@@ -567,8 +555,8 @@ def do_pca_loop(matrix, yy, xx, nproc, angle_list, fwhm, pa_threshold, scaling,
     return residuals
 
 
-def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, scaling,
-                 ann_center, svd_mode, ncomp, min_frames_pca, tol, debug):
+def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
+                 svd_mode, ncomp, min_frames_pca, tol):
     """
     Does the SVD/PCA for each frame patch (small matrix). For each frame we 
     find the frames to be rejected depending on the amount of rotation. The

@@ -26,29 +26,31 @@ from ..conf import time_ini, timing, sep
 from ..var import frame_center, dist
 
 
-
 def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
-                   algo, sigma=5, nbranch=1, theta=0, inner_rad=1, wedge=(0,360),
-                   fc_snr=10.0, student=True, transmission=None, smooth=True,
-                   plot=True, dpi=100, imlib='opencv', debug=False, verbose=True, full_output=False,
-                   save_plot=None, object_name=None, frame_size=None, 
-                   fix_y_lim=(), figsize=(8,4), **algo_dict):
-    """ Computes the contrast curve for a given SIGMA (*sigma*) level. The
-    contrast is calculated as sigma*noise/throughput. This implementation takes
-    into account the small sample statistics correction proposed in Mawet et al.
-    2014.
+                   algo, sigma=5, nbranch=1, theta=0, inner_rad=1,
+                   wedge=(0,360), fc_snr=10.0, student=True, transmission=None,
+                   smooth=True, plot=True, dpi=100, imlib='opencv', debug=False,
+                   verbose=True, full_output=False, save_plot=None,
+                   object_name=None, frame_size=None, fix_y_lim=(),
+                   figsize=(8,4), **algo_dict):
+    """ Computes the contrast curve at a given SIGMA (``sigma``) level for an
+    ADI cube or ADI+IFS cube. The contrast is calculated as
+    sigma*noise/throughput. This implementation takes into account the small
+    sample statistics correction proposed in Mawet et al. 2014.
 
     Parameters
     ----------
     cube : array_like
-        The input cube without fake companions.
+        The input cube, 2d (ADI data) or 3d array (IFS data), without fake
+        companions.
     angle_list : array_like
         Vector with the parallactic angles.
     psf_template : array_like
         Frame with the psf template for the fake companion(s).
         PSF must be centered in array. Normalization is done internally.
-    fwhm : float
-        FWHM in pixels.
+    fwhm: int or float or 1d array, optional
+        The the Full Width Half Maximum in pixels. It can handle a different
+        FWHM value for different wavelengths (IFS data).
     pxscale : float
         Plate scale or pixel scale of the instrument.
     starphot : int or float or 1d array
@@ -133,16 +135,21 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         3d array with 3 frames containing the position of the companions in the
         3 patterns.
     """
-    if not cube.ndim == 3:
-        raise TypeError('The input array is not a cube')
-    if not cube.shape[0] == angle_list.shape[0]:
-        raise TypeError('Input vector or parallactic angles has wrong length')
-    if not psf_template.ndim==2:
-        raise TypeError('Template PSF is not a frame')
+    if not (cube.ndim == 3 or cube.ndim == 4):
+        raise TypeError('The input array is not a 3d or 4d cube')
+    if cube.ndim == 3 and (not cube.shape[0] == angle_list.shape[0]):
+        raise TypeError('Input parallactic angles vector has wrong length')
+    if cube.ndim == 4 and (not cube.shape[1] == angle_list.shape[0]):
+        raise TypeError('Input parallactic angles vector has wrong length')
+    if cube.ndim == 3 and not psf_template.ndim == 2:
+        raise TypeError('Template PSF is not a frame (for ADI case)')
+    if cube.ndim == 4 and not psf_template.ndim == 3:
+        raise TypeError('Template PSF is not a cube (for ADI+IFS case)')
     if transmission is not None:
-        if not isinstance(transmission, tuple) or not len(transmission)==2:
+        if not isinstance(transmission, tuple) or not len(transmission) == 2:
             raise TypeError('transmission must be a tuple with 2 1d vectors')
-    if isinstance(starphot, float) or isinstance(starphot, int):  pass
+    if isinstance(starphot, float) or isinstance(starphot, int):
+        pass
     else:
         if not starphot.shape[0] == cube.shape[0]:
             raise TypeError('Correction vector has bad size')
@@ -163,14 +170,18 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     # throughput
     verbose_thru = False
-    if verbose==2:  verbose_thru = True
+    if verbose == 2:
+        verbose_thru = True
     res_throug = throughput(cube, angle_list, psf_template, fwhm, pxscale,
                             nbranch=nbranch, theta=theta, inner_rad=inner_rad,
-                            wedge=wedge, fc_snr=fc_snr, full_output=True, algo=algo,
-                            imlib=imlib, verbose=verbose_thru, **algo_dict)
+                            wedge=wedge, fc_snr=fc_snr, full_output=True,
+                            algo=algo, imlib=imlib, verbose=verbose_thru,
+                            **algo_dict)
     vector_radd = res_throug[2]
-    if res_throug[0].shape[0]>1:  thruput_mean = np.mean(res_throug[0], axis=0)
-    else:  thruput_mean = res_throug[0][0]
+    if res_throug[0].shape[0] > 1:
+        thruput_mean = np.mean(res_throug[0], axis=0)
+    else:
+        thruput_mean = res_throug[0][0]
     cube_fc_all = res_throug[3]
     frame_fc_all = res_throug[4]
     frame_nofc = res_throug[5]
@@ -180,7 +191,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         print('Finished the throughput calculation')
         timing(start_time)
 
-    if thruput_mean[-1]==0:
+    if thruput_mean[-1] == 0:
         thruput_mean = thruput_mean[:-1]
         vector_radd = vector_radd[:-1]
 
@@ -210,7 +221,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if smooth:
         # smoothing the noise vector using a Savitzky-Golay filter
         win = min(noise_samp.shape[0]-2,int(2*fwhm))
-        if win%2==0.:  win += 1
+        if win%2 == 0.:
+            win += 1
         noise_samp_sm = savgol_filter(noise_samp, polyorder=2, mode='nearest',
                                       window_length=win)
     else:
@@ -297,7 +309,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                 pca_type = 'ADI'
             else:
                 pca_type = 'RDI'
-            title = pca_type + ' ' + object_name + ' ' + str(ncomp) + 'pc ' + str(frame_size) + '+' + str(inner_rad)
+            title = pca_type + ' ' + object_name + ' ' + str(ncomp)
+            title += 'pc ' + str(frame_size) + '+' + str(inner_rad)
             plt.title(title, fontsize = 14)
 
         # Option to fix the y-limit
@@ -350,7 +363,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                                'distance': rad_samp, 'noise': noise_samp_sm})
 
     if full_output:
-        return (datafr, cube_fc_all, frame_fc_all, frame_nofc, fc_map_all)
+        return datafr, cube_fc_all, frame_fc_all, frame_nofc, fc_map_all
     else: 
         return datafr
 
@@ -359,21 +372,23 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                theta=0, inner_rad=1, fc_rad_sep=3, wedge=(0,360), fc_snr=10.0,
                full_output=False, imlib='opencv', interpolation='lanczos4',
                verbose=True, **algo_dict):
-    """ Measures the throughput for chosen algorithm and input dataset. The
-    final throughput is the average of the same procedure measured in *nbranch*
-    azimutally equidistant branches.
+    """ Measures the throughput for chosen algorithm and input dataset (ADI or
+    ADI+IFS). The final throughput is the average of the same procedure measured
+    in ``nbranch`` azimutally equidistant branches.
 
     Parameters
-    ----------
+    ---------_
     cube : array_like
-        The input cube without fake companions.
+        The input cube, 2d (ADI data) or 3d array (IFS data), without fake
+        companions.
     angle_list : array_like
         Vector with the parallactic angles.
     psf_template : array_like
         Frame with the psf template for the fake companion(s).
         PSF must be centered in array. Normalization is done internally.
-    fwhm : float
-        FWHM in pixels.
+    fwhm: int or float or 1d array, optional
+        The the Full Width Half Maximum in pixels. It can handle a different
+        FWHM value for different wavelengths (IFS data).
     pxscale : float
         Plate scale in arcsec/px.
     algo : callable or function
@@ -440,26 +455,52 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     array = cube
     parangles = angle_list
 
-    if not array.ndim == 3:
-        raise TypeError('The input array is not a cube')
-    if not array.shape[0] == parangles.shape[0]:
-        raise TypeError('Input vector or parallactic angles has wrong length')
-    if not psf_template.ndim==2:
-        raise TypeError('Template PSF is not a frame or 2d array')
-    if not hasattr(algo, '__call__'):
-        raise TypeError('Parameter *algo* must be a callable function')
-    if not fc_rad_sep>=3 or not fc_rad_sep<=int((array.shape[1]/2.)/fwhm)-1:
-        msg = 'Too large separation between companions in the radial patterns. '
-        msg += 'Should lie between 3 and {:}'
-        raise ValueError(msg.format(int((array.shape[1]/2.)/fwhm)-1))
-    if not isinstance(inner_rad, int):
-        raise TypeError('inner_rad must be an integer')
-    angular_range = wedge[1]-wedge[0]
-    if nbranch>1 and angular_range<360:
-        msg = 'Only a single branch is allowed when working on a wedge'
-        raise RuntimeError(msg)
+    if not (array.ndim == 3 or array.ndim == 4):
+        raise TypeError('The input array is not a 3d or 4d cube')
+    else:
+        if array.ndim == 3:
+            if not array.shape[0] == parangles.shape[0]:
+                msg = 'Input parallactic angles vector has wrong length'
+                raise TypeError(msg)
+            if not psf_template.ndim == 2:
+                raise TypeError('Template PSF is not a frame or 2d array')
+            maxfcsep = int((array.shape[1]/2.)/fwhm)-1
+            if not fc_rad_sep >= 3 or not fc_rad_sep <= maxfcsep:
+                msg = 'Too large separation between companions in the radial '
+                msg += 'patterns. Should lie between 3 and {:}'
+                raise ValueError(msg.format(maxfcsep))
 
-    if verbose:  start_time = time_ini()
+        elif array.ndim == 4:
+            if not array.shape[1] == parangles.shape[0]:
+                msg = 'Input vector or parallactic angles has wrong length'
+                raise TypeError(msg)
+            if not psf_template.ndim == 3:
+                raise TypeError('Template PSF is not a frame, 3d array')
+            if 'scale_list' not in algo_dict:
+                raise ValueError('Vector of wavelength not found')
+            else:
+                if not algo_dict['scale_list'].shape[0] == array.shape[0]:
+                    raise TypeError('Input wavelength vector has wrong length')
+                maxfcsep = int((array.shape[2] / 2.) / fwhm) - 1
+                if not fc_rad_sep >= 3 or not fc_rad_sep <= maxfcsep:
+                    msg = 'Too large separation between companions in the '
+                    msg += 'radial patterns. Should lie between 3 and {:}'
+                    raise ValueError(msg.format(maxfcsep))
+
+        # TODO: extend to even-sized psf arrays
+        if psf_template.shape[1]%2 == 0:
+            raise ValueError("Only odd-sized PSF is accepted")
+        if not hasattr(algo, '__call__'):
+            raise TypeError('Parameter *algo* must be a callable function')
+        if not isinstance(inner_rad, int):
+            raise TypeError('inner_rad must be an integer')
+        angular_range = wedge[1] - wedge[0]
+        if nbranch > 1 and angular_range < 360:
+            msg = 'Only a single branch is allowed when working on a wedge'
+            raise RuntimeError(msg)
+
+    if verbose:
+        start_time = time_ini()
     #***************************************************************************
     # Compute noise in concentric annuli on the "empty frame"
     if 'cube' and 'angle_list' and 'verbose' in inspect.getargspec(algo).args:
@@ -483,83 +524,202 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
         print('Measured annulus-wise noise in resulting frame')
         timing(start_time)
 
-    # We crop the PSF and check if PSF has been normalized (so that flux in
-    # 1*FWHM aperture = 1) and fix if needed
-    psf_template = psf_norm(psf_template, size=3*fwhm, fwhm=fwhm)
+    if cube.ndim == 3:
+        # We crop the PSF and check if PSF has been normalized (so that flux in
+        # 1*FWHM aperture = 1) and fix if needed
+        # TODO: verify it handles odd and even-sized cases
+        new_psf_size = 3*fwhm
+        if new_psf_size%2 == 0:
+            new_psf_size += 1
+        psf_template = psf_norm(psf_template, size=min(new_psf_size,
+                                                       psf_template.shape[1]),
+                                fwhm=fwhm)
 
-    #***************************************************************************
-    # Initialize the fake companions
-    angle_branch = angular_range / nbranch
-    # signal-to-noise ratio of injected fake companions
-    snr_level = fc_snr * np.ones_like(noise)
-    
-    thruput_arr = np.zeros((nbranch, noise.shape[0]))
-    fc_map_all = np.zeros((nbranch*fc_rad_sep, array.shape[1], array.shape[2]))
-    frame_fc_all = fc_map_all.copy()
-    cube_fc_all = np.zeros((nbranch*fc_rad_sep, array.shape[0], array.shape[1],
-                            array.shape[2]))
-    cy, cx = frame_center(array[0])
+        #***********************************************************************
+        # Initialize the fake companions
+        angle_branch = angular_range / nbranch
+        # signal-to-noise ratio of injected fake companions
+        snr_level = fc_snr * np.ones_like(noise)
 
-    # each branch is computed separately
-    for br in range(nbranch):
-        # each pattern is computed separately. For each pattern the companions
-        # are separated by "fc_rad_sep * fwhm", interleaving the injections
-        for irad in range(fc_rad_sep):
-            radvec = vector_radd[irad::fc_rad_sep]
-            cube_fc = array.copy()
-            # filling map with small numbers
-            fc_map = np.ones_like(array[0]) * 1e-6
-            fcy = []; fcx = []
-            for i in range(radvec.shape[0]):
-                flux = snr_level[irad+i*fc_rad_sep] * noise[irad+i*fc_rad_sep]
-                cube_fc = cube_inject_companions(cube_fc, psf_template,
-                                                 parangles, flux, pxscale,
-                                                 rad_dists=[radvec[i]],
-                                                 theta=br*angle_branch + theta,
-                                                 imlib=imlib, verbose=False,
-                                                 interpolation=interpolation)
-                y = cy + radvec[i] * np.sin(np.deg2rad(br*angle_branch + theta))
-                x = cx + radvec[i] * np.cos(np.deg2rad(br*angle_branch + theta))
-                fc_map = frame_inject_companion(fc_map, psf_template, y, x,
-                                                flux, imlib, interpolation)
-                fcy.append(y); fcx.append(x)
+        thruput_arr = np.zeros((nbranch, noise.shape[0]))
+        fc_map_all = np.zeros((nbranch * fc_rad_sep, array.shape[1],
+                               array.shape[2]))
+        frame_fc_all = fc_map_all.copy()
+        cube_fc_all = np.zeros((nbranch * fc_rad_sep, array.shape[0],
+                                array.shape[1], array.shape[2]))
+        cy, cx = frame_center(array[0])
 
-            if verbose:
-                msg2 = 'Fake companions injected in branch {:} (pattern {:}/{:})'
-                print(msg2.format(br+1, irad+1, fc_rad_sep))
-                timing(start_time)
+        # each branch is computed separately
+        for br in range(nbranch):
+            # each pattern is computed separately. For each one the companions
+            # are separated by "fc_rad_sep * fwhm", interleaving the injections
+            for irad in range(fc_rad_sep):
+                radvec = vector_radd[irad::fc_rad_sep]
+                cube_fc = array.copy()
+                # filling map with small numbers
+                fc_map = np.ones_like(array[0]) * 1e-6
+                fcy = []
+                fcx = []
+                for i in range(radvec.shape[0]):
+                    flux = snr_level[irad+i*fc_rad_sep] * noise[irad + i *
+                                                                fc_rad_sep]
+                    cube_fc = cube_inject_companions(cube_fc, psf_template,
+                                                     parangles, flux, pxscale,
+                                                     rad_dists=[radvec[i]],
+                                                     theta=br*angle_branch +
+                                                           theta,
+                                                     imlib=imlib, verbose=False,
+                                                     interpolation=interpolation)
+                    y = cy + radvec[i] * np.sin(np.deg2rad(br * angle_branch +
+                                                           theta))
+                    x = cx + radvec[i] * np.cos(np.deg2rad(br * angle_branch +
+                                                           theta))
+                    fc_map = frame_inject_companion(fc_map, psf_template, y, x,
+                                                    flux, imlib, interpolation)
+                    fcy.append(y)
+                    fcx.append(x)
 
-            #*******************************************************************
-            if 'cube' and 'angle_list' and 'verbose' in inspect.getargspec(algo).args:
-                if 'fwhm' in inspect.getargspec(algo).args:
-                    frame_fc = algo(cube=cube_fc, angle_list=parangles,
-                                    fwhm=fwhm, verbose=False, **algo_dict)
+                if verbose:
+                    msg2 = 'Fake companions injected in branch {:} '
+                    msg2 += '(pattern {:}/{:})'
+                    print(msg2.format(br+1, irad+1, fc_rad_sep))
+                    timing(start_time)
+
+                #***************************************************************
+                if 'cube' and 'angle_list' and 'verbose' in inspect.getargspec(algo).args:
+                    if 'fwhm' in inspect.getargspec(algo).args:
+                        frame_fc = algo(cube=cube_fc, angle_list=parangles,
+                                        fwhm=fwhm, verbose=False, **algo_dict)
+                    else:
+                        frame_fc = algo(cube=cube_fc, angle_list=parangles,
+                                        verbose=False, **algo_dict)
                 else:
-                    frame_fc = algo(cube=cube_fc, angle_list=parangles,
-                                    verbose=False, **algo_dict)
+                    msg = 'Input algorithm must have at least 3 parameters: '
+                    msg += 'cube, angle_list and versbose'
+                    raise ValueError(msg)
 
-            if verbose:
-                msg3 = 'Cube with fake companions processed with {:}'
-                msg3 += '\nMeasuring its annulus-wise throughput'
-                print(msg3.format(algo.__name__))
-                timing(start_time)
+                if verbose:
+                    msg3 = 'Cube with fake companions processed with {:}'
+                    msg3 += '\nMeasuring its annulus-wise throughput'
+                    print(msg3.format(algo.__name__))
+                    timing(start_time)
 
-            #*******************************************************************
-            injected_flux = aperture_flux(fc_map, fcy, fcx, fwhm, ap_factor=1,
-                                          mean=False, verbose=False)
-            recovered_flux = aperture_flux((frame_fc - frame_nofc), fcy, fcx,
-                                           fwhm, ap_factor=1, mean=False,
-                                           verbose=False)
-            thruput = (recovered_flux)/injected_flux
-            thruput[np.where(thruput<0)] = 0
+                #***************************************************************
+                injected_flux = aperture_flux(fc_map, fcy, fcx, fwhm,
+                                              ap_factor=1, mean=False,
+                                              verbose=False)
+                recovered_flux = aperture_flux((frame_fc - frame_nofc), fcy,
+                                               fcx, fwhm, ap_factor=1,
+                                               mean=False, verbose=False)
+                thruput = recovered_flux / injected_flux
+                thruput[np.where(thruput < 0)] = 0
 
-            thruput_arr[br, irad::fc_rad_sep] = thruput
-            fc_map_all[br*fc_rad_sep+irad, :, :] = fc_map
-            frame_fc_all[br*fc_rad_sep+irad, :, :] = frame_fc
-            cube_fc_all[br*fc_rad_sep+irad, :, :, :] = cube_fc
+                thruput_arr[br, irad::fc_rad_sep] = thruput
+                fc_map_all[br*fc_rad_sep+irad, :, :] = fc_map
+                frame_fc_all[br*fc_rad_sep+irad, :, :] = frame_fc
+                cube_fc_all[br*fc_rad_sep+irad, :, :, :] = cube_fc
+
+    elif cube.ndim == 4:
+        if isinstance(fwhm, (int, float)):
+            fwhm = [fwhm for _ in range(array.shape[0])]
+
+        # We crop the PSF and check if PSF has been normalized (so that flux in
+        # 1*FWHM aperture = 1) and fix if needed
+        new_psf_size = 3 * np.max(fwhm)
+        if new_psf_size%2 == 0:
+            new_psf_size += 1
+
+        psf_template = psf_norm(psf_template, fwhm=fwhm,
+                                size=min(new_psf_size, psf_template.shape[1]))
+
+        # **********************************************************************
+        # Initialize the fake companions
+        angle_branch = angular_range / nbranch
+        # signal-to-noise ratio of injected fake companions
+        snr_level = 10.0 * np.ones_like(noise)
+
+        thruput_arr = np.zeros((nbranch, noise.shape[0]))
+        fc_map_all = np.zeros((nbranch * fc_rad_sep, array.shape[0],
+                               array.shape[2], array.shape[3]))
+        frame_fc_all = fc_map_all.copy()
+        cube_fc_all = np.zeros(
+            (nbranch * fc_rad_sep, array.shape[0], array.shape[1],
+             array.shape[2], array.shape[3]))
+        cy, cx = frame_center(array[0, 0])
+
+        # each branch is computed separately
+        for br in range(nbranch):
+            # each pattern is computed separately. For each pattern the
+            # companions are separated by "fc_rad_sep * fwhm"
+            # radius = vector_radd[irad::fc_rad_sep]
+            for irad in range(fc_rad_sep):
+                radvec = vector_radd[irad::fc_rad_sep]
+                thetavec = range(int(theta), int(theta) + 360,
+                                 int(360 / len(radvec)))
+                cube_fc = array.copy()
+                # filling map with small numbers
+                fc_map = np.ones_like(array[:, 0]) * 1e-6
+                fcy = []
+                fcx = []
+                for i in range(radvec.shape[0]):
+                    flux = snr_level[irad + i * fc_rad_sep] * noise[irad + i * \
+                                                                    fc_rad_sep]
+                    cube_fc = cube_inject_companions(cube_fc, psf_template,
+                                                     parangles, flux, pxscale,
+                                                     rad_dists=[radvec[i]],
+                                                     theta=thetavec[i],
+                                                     verbose=False)
+                    y = cy + radvec[i] * np.sin(np.deg2rad(br * angle_branch +
+                                                           thetavec[i]))
+                    x = cx + radvec[i] * np.cos(np.deg2rad(br * angle_branch +
+                                                           thetavec[i]))
+                    fc_map = frame_inject_companion(fc_map, psf_template, y, x,
+                                                    flux)
+                    fcy.append(y)
+                    fcx.append(x)
+
+                if verbose:
+                    msg2 = 'Fake companions injected in branch {:} '
+                    msg2 += '(pattern {:}/{:})'
+                    print(msg2.format(br + 1, irad + 1, fc_rad_sep))
+                    timing(start_time)
+
+                # **************************************************************
+                if 'cube' and 'angle_list' and 'verbose' in inspect.getargspec(
+                        algo).args:
+                    if 'fwhm' in inspect.getargspec(algo).args:
+                        frame_fc = algo(cube=cube_fc, angle_list=parangles,
+                                        fwhm=fwhm, verbose=False, **algo_dict)
+                    else:
+                        frame_fc = algo(cube=cube_fc, angle_list=parangles,
+                                        verbose=False, **algo_dict)
+
+                if verbose:
+                    msg3 = 'Cube with fake companions processed with {:}'
+                    msg3 += '\nMeasuring its annulus-wise throughput'
+                    print(msg3.format(algo.__name__))
+                    timing(start_time)
+
+                # **************************************************************
+                injected_flux = [aperture_flux(fc_map[i], fcy, fcx, fwhm[i],
+                                               ap_factor=1, mean=False,
+                                               verbose=False) for i in
+                                range(array.shape[0])]
+                injected_flux = np.mean(injected_flux, axis=0)
+                recovered_flux = aperture_flux((frame_fc - frame_nofc), fcy,
+                                               fcx, np.mean(fwhm), ap_factor=1,
+                                               mean=False, verbose=False)
+                thruput = recovered_flux / injected_flux
+                thruput[np.where(thruput < 0)] = 0
+
+                thruput_arr[br, irad::fc_rad_sep] = thruput
+                fc_map_all[br * fc_rad_sep + irad, :, :] = fc_map
+                frame_fc_all[br * fc_rad_sep + irad, :, :] = frame_fc
+                cube_fc_all[br * fc_rad_sep + irad, :, :, :, :] = cube_fc
 
     if verbose:
-        print('Finished measuring the throughput in {:} branches'.format(nbranch))
+        msg = 'Finished measuring the throughput in {:} branches'
+        print(msg.format(nbranch))
         timing(start_time)
 
     if full_output:
@@ -567,7 +727,6 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 frame_nofc, fc_map_all)
     else:
         return thruput_arr, vector_radd
-
 
 
 def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0,360),

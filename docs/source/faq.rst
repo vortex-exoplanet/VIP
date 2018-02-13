@@ -23,21 +23,11 @@ matplotlibrc file is located in:
   $HOME/.config/matplotlib/matplotlibrc
 
 
-* Why do I get, in OSX, the following RuntimeError?
-*Python is not installed as a framework. The Mac OS X backend will not be able
-to function correctly if Python is not installed as a framework. See the
-Python documentation for more information on installing Python as a framework
-on Mac OS X. Please either reinstall Python as a framework, or try one of the
-other backends.*
-Again, this is a matplotlib-backend related issue. Read the link in the previous
-answer. It can be solved setting the backend to WXAgg or TkAgg. Optionally, you
-can change your matplotlib backend **before** importing ``VIP``:
-
-.. code-block:: python
-
-  import matplotlib as mpl
-  mpl.use('TkAgg')
-  import vip
+* I get a RuntimeError (Python is not installed as a framework) in Macosx,
+when using python3 and conda. Why?
+This is caused by using matplotlib with virtual environments or conda in Macosx,
+and has nothing to do with VIP. See 'Working with Matplotlib on OSX' in the
+Matplotlib FAQ for more information.
 
 
 * The ``VIP`` setup.py script doesn't finish the job, it seems to be stuck. What

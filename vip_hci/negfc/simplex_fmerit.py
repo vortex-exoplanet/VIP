@@ -5,11 +5,13 @@ Module with the function of merit definitions for the NEGFC optimization.
 """
 from __future__ import print_function
 
+__all__ = []
+
 import numpy as np
 from skimage.draw import circle
 from ..phot import cube_inject_companions
 from ..var import frame_center
-from ..pca import pca_annulus
+from ..pca.utils_pca import pca_annulus
 
 
 def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,  

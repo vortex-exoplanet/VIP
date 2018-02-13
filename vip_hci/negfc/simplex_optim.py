@@ -13,9 +13,7 @@ from .simplex_fmerit import chisquare
 from ..var import frame_center
 from ..conf import time_ini, timing, sep
 
-__all__ = ['firstguess_from_coord',
-           'firstguess_simplex',
-           'firstguess']
+__all__ = ['firstguess']
 
 
 

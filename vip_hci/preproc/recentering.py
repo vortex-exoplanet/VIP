@@ -85,13 +85,13 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
     
     image = array.copy()
 
-    if imlib=='ndimage-fourier':
+    if imlib == 'ndimage-fourier':
         shift_val = (shift_y, shift_x)
         array_shifted = fourier_shift(np.fft.fftn(image), shift_val)
         array_shifted = np.fft.ifftn(array_shifted)
         array_shifted = array_shifted.real
 
-    elif imlib=='ndimage-interp':
+    elif imlib == 'ndimage-interp':
         if interpolation == 'nearneig':
             order = 0
         elif interpolation == 'bilinear':
@@ -109,7 +109,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
         
         array_shifted = shift(image, (shift_y, shift_x), order=order)
     
-    elif imlib=='opencv':
+    elif imlib == 'opencv':
         if no_opencv:
             msg = 'Opencv python bindings cannot be imported. Install opencv or '
             msg += 'set imlib to ndimage-fourier or ndimage-interp'
@@ -226,7 +226,8 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
         raise TypeError('Input array is not a frame or 2d array')
     if not len(xy) == 4:
         raise TypeError('Input waffle spot coordinates in wrong format')
-    
+
+    # TODO: verify correct handling of even/odd cases
     # If frame size is even we drop last row and last column
     if array.shape[0]%2==0:
         array = array[:-1,:].copy()
@@ -468,11 +469,11 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
         nproc = (cpu_count()/2) 
     pool = Pool(processes=int(nproc))  
     if satspots:
-        res = pool.map(EFT,itt.izip(itt.repeat(_radon_costf2), itt.repeat(frame), 
-                                    itt.repeat(cent), itt.repeat(radint), coords))        
+        res = pool.map(EFT, zip(itt.repeat(_radon_costf2), itt.repeat(frame),
+                                itt.repeat(cent), itt.repeat(radint), coords))
     else:
-        res = pool.map(EFT,itt.izip(itt.repeat(_radon_costf), itt.repeat(frame), 
-                                    itt.repeat(cent), itt.repeat(radint), coords)) 
+        res = pool.map(EFT, zip(itt.repeat(_radon_costf), itt.repeat(frame),
+                                itt.repeat(cent), itt.repeat(radint), coords))
     costf = np.array(res)
     pool.close()
         
@@ -674,7 +675,8 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     """
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
-    
+
+    # TODO: verify correct handling of even/odd cases
     # If frame size is even we drop a row and a column
     if array.shape[1]%2==0:
         array = array[:,1:,:].copy()
@@ -818,7 +820,8 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
     
     if not isinstance(pos_x,int) or not isinstance(pos_y,int):
         raise TypeError('pos_x and pos_y should be ints')
-    
+
+    # TODO: verify correct handling of even/odd cases
     # If frame size is even we drop a row and a column
     if array.shape[1]%2==0:
         array = array[:,1:,:].copy()
@@ -844,20 +847,15 @@ def cube_recenter_gauss2d_fit(array, xy, fwhm=4, subi_size=5, nproc=1,
         res = np.array(res)
     elif nproc>1:
         pool = Pool(processes=int(nproc))  
-        res = pool.map(EFT, itt.izip(itt.repeat(_centroid_2dg_frame),
-                                     itt.repeat(array),
-                                     range(n_frames),
-                                     subfr_sz, 
-                                     itt.repeat(pos_y), 
-                                     itt.repeat(pos_x),
-                                     itt.repeat(negative),
-                                     itt.repeat(debug),
-                                     fwhm,
-                                     itt.repeat(threshold))) 
+        res = pool.map(EFT, zip(itt.repeat(_centroid_2dg_frame),
+                                itt.repeat(array), range(n_frames), subfr_sz,
+                                itt.repeat(pos_y), itt.repeat(pos_x),
+                                itt.repeat(negative), itt.repeat(debug), fwhm,
+                                itt.repeat(threshold)))
         res = np.array(res)
         pool.close()
-    y = cy - res[:,0]
-    x = cx - res[:,1]
+    y = cy - res[:, 0]
+    x = cx - res[:, 1]
     #return x, y
     
     if offset is not None:
@@ -945,7 +943,8 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         raise TypeError('Input array is not a cube or 3d array')
     # if not pos_x or not pos_y:
     #     raise ValueError('Missing parameters POS_Y and/or POS_X')
-    
+
+    # TODO: verify correct handling of even/odd cases
     # If frame size is even we drop a row and a column
     if array.shape[1]%2==0:
         array = array[:,1:,:].copy()
@@ -1002,12 +1001,11 @@ def cube_recenter_moffat2d_fit(array, pos_y, pos_x, fwhm=4, subi_size=5,
         res = np.array(res)
     elif nproc>1:
         pool = Pool(processes=int(nproc))  
-        res = pool.map(EFT,itt.izip(itt.repeat(_centroid_2dm_frame),
-                                    itt.repeat(array), range(n_frames),
-                                    size.tolist(), pos_y.tolist(),
-                                    pos_x.tolist(), star_approx_coords,
-                                    star_not_present, itt.repeat(negative),
-                                    fwhm))
+        res = pool.map(EFT, zip(itt.repeat(_centroid_2dm_frame),
+                                itt.repeat(array), range(n_frames),
+                                size.tolist(), pos_y.tolist(),
+                                pos_x.tolist(), star_approx_coords,
+                                star_not_present, itt.repeat(negative), fwhm))
         res = np.array(res)
         pool.close()
     y = cy - res[:,0]
@@ -1193,7 +1191,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None,
         alignment_cube[0, :, :] = np.median(
             alignment_cube[1:(cube_sci.shape[0] + 1), :, :], axis=0)
         if (recenter_median):
-            ## Recenter the median frame using a neg. gaussian fit
+            # TODO: verify get_square_robust is needed. Check size=int(fwhm)+1
+            # Recenter the median frame using a neg. gaussian fit
             sub_image, y1, x1 = get_square_robust(alignment_cube[0, :, :],
                                                   size=int(fwhm) + 1, y=ceny,
                                                   x=cenx, position=True)

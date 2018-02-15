@@ -1,5 +1,5 @@
-vip_hci.exlib package
-=====================
+vip\_hci.exlib package
+======================
 
 .. automodule:: vip_hci.exlib
     :members:
@@ -9,40 +9,8 @@ vip_hci.exlib package
 Submodules
 ----------
 
-vip_hci.exlib.ds9 module
-------------------------
-
-.. automodule:: vip_hci.exlib.ds9
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-vip_hci.exlib.ds9_getDirs module
---------------------------------
-
-.. automodule:: vip_hci.exlib.ds9_getDirs
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-vip_hci.exlib.ds9_getMacDirs module
------------------------------------
-
-.. automodule:: vip_hci.exlib.ds9_getMacDirs
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-vip_hci.exlib.ds9_getWinDirs module
------------------------------------
-
-.. automodule:: vip_hci.exlib.ds9_getWinDirs
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-vip_hci.exlib.iuwt module
--------------------------
+vip\_hci.exlib.iuwt module
+--------------------------
 
 .. automodule:: vip_hci.exlib.iuwt
     :members:

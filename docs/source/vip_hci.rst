@@ -1,5 +1,5 @@
-vip_hci package
-===============
+vip\_hci package
+================
 
 .. automodule:: vip_hci
     :members:
@@ -14,6 +14,7 @@ Subpackages
     vip_hci.conf
     vip_hci.exlib
     vip_hci.fits
+    vip_hci.frdiff
     vip_hci.llsg
     vip_hci.madi
     vip_hci.negfc

@@ -1,5 +1,5 @@
-vip_hci.pca package
-===================
+vip\_hci.pca package
+====================
 
 .. automodule:: vip_hci.pca
     :members:
@@ -9,32 +9,32 @@ vip_hci.pca package
 Submodules
 ----------
 
-vip_hci.pca.pca_fullfr module
------------------------------
+vip\_hci.pca.pca\_fullfr module
+-------------------------------
 
 .. automodule:: vip_hci.pca.pca_fullfr
     :members:
     :undoc-members:
     :show-inheritance:
 
-vip_hci.pca.pca_local module
-----------------------------
+vip\_hci.pca.pca\_local module
+------------------------------
 
 .. automodule:: vip_hci.pca.pca_local
     :members:
     :undoc-members:
     :show-inheritance:
 
-vip_hci.pca.svd module
-----------------------
+vip\_hci.pca.svd module
+-----------------------
 
 .. automodule:: vip_hci.pca.svd
     :members:
     :undoc-members:
     :show-inheritance:
 
-vip_hci.pca.utils_pca module
-----------------------------
+vip\_hci.pca.utils\_pca module
+------------------------------
 
 .. automodule:: vip_hci.pca.utils_pca
     :members:

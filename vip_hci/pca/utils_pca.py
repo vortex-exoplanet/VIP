@@ -162,9 +162,9 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     yy, xx = ind
 
     if cube_ref is not None:
-        data_svd, _  = prepare_matrix(cube_ref, scaling, mode='annular',
-                                      annulus_radius=r_guess, verbose=False,
-                                      annulus_width=annulus_width)
+        data_svd, _ = prepare_matrix(cube_ref, scaling, mode='annular',
+                                     annulus_radius=r_guess, verbose=False,
+                                     annulus_width=annulus_width)
     else:
         data_svd = data
         
@@ -175,13 +175,22 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     residuals = data - reconstructed
     cube_zeros = np.zeros_like(cube)
     cube_zeros[:, yy, xx] = residuals
-    cube_res_der = cube_derotate(cube_zeros, angs, imlib=imlib,
-                                 interpolation=interpolation)
-    if collapse is not None:
-        pca_frame = cube_collapse(cube_res_der, mode=collapse)
-        return pca_frame
+
+    if angs is not None:
+        cube_res_der = cube_derotate(cube_zeros, angs, imlib=imlib,
+                                     interpolation=interpolation)
+        if collapse is not None:
+            pca_frame = cube_collapse(cube_res_der, mode=collapse)
+            return pca_frame
+        else:
+            return cube_res_der
+
     else:
-        return cube_res_der
+        if collapse is not None:
+            pca_frame = cube_collapse(cube_zeros, mode=collapse)
+            return pca_frame
+        else:
+            return cube_zeros
 
 
 

@@ -17,7 +17,7 @@ from multiprocessing import Pool, cpu_count
 from astropy.stats import median_absolute_deviation
 from ..conf import time_ini, timing
 from ..preproc import cube_derotate, cube_collapse
-from ..var import (get_annulus_segments, cube_filter_highpass, pp_subplots)
+from ..var import (get_annulus_segments, cube_filter_highpass)
 from ..pca.svd import svd_wrapper, get_eigenvectors
 from .thresholding import thresholding
 from ..conf import eval_func_tuple as EFT

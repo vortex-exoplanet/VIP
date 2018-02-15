@@ -1,5 +1,5 @@
-vip_hci.nmf package
-===================
+vip\_hci.nmf package
+====================
 
 .. automodule:: vip_hci.nmf
     :members:
@@ -9,8 +9,8 @@ vip_hci.nmf package
 Submodules
 ----------
 
-vip_hci.nmf.nmf_fullfr module
------------------------------
+vip\_hci.nmf.nmf\_fullfr module
+-------------------------------
 
 .. automodule:: vip_hci.nmf.nmf_fullfr
     :members:

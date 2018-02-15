@@ -1,5 +1,5 @@
-vip_hci.llsg package
-====================
+vip\_hci.llsg package
+=====================
 
 .. automodule:: vip_hci.llsg
     :members:
@@ -9,16 +9,16 @@ vip_hci.llsg package
 Submodules
 ----------
 
-vip_hci.llsg.llsg module
-------------------------
+vip\_hci.llsg.llsg module
+-------------------------
 
 .. automodule:: vip_hci.llsg.llsg
     :members:
     :undoc-members:
     :show-inheritance:
 
-vip_hci.llsg.thresholding module
---------------------------------
+vip\_hci.llsg.thresholding module
+---------------------------------
 
 .. automodule:: vip_hci.llsg.thresholding
     :members:

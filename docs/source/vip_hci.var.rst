@@ -1,5 +1,5 @@
-vip_hci.var package
-===================
+vip\_hci.var package
+====================
 
 .. automodule:: vip_hci.var
     :members:
@@ -9,32 +9,32 @@ vip_hci.var package
 Submodules
 ----------
 
-vip_hci.var.filters module
---------------------------
+vip\_hci.var.filters module
+---------------------------
 
 .. automodule:: vip_hci.var.filters
     :members:
     :undoc-members:
     :show-inheritance:
 
-vip_hci.var.fit_2d module
--------------------------
+vip\_hci.var.fit\_2d module
+---------------------------
 
 .. automodule:: vip_hci.var.fit_2d
     :members:
     :undoc-members:
     :show-inheritance:
 
-vip_hci.var.shapes module
--------------------------
+vip\_hci.var.shapes module
+--------------------------
 
 .. automodule:: vip_hci.var.shapes
     :members:
     :undoc-members:
     :show-inheritance:
 
-vip_hci.var.utils_var module
-----------------------------
+vip\_hci.var.utils\_var module
+------------------------------
 
 .. automodule:: vip_hci.var.utils_var
     :members:

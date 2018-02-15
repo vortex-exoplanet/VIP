@@ -1,7 +1,7 @@
-vip\_hci.madi package
-=====================
+vip\_hci.frdiff package
+=======================
 
-.. automodule:: vip_hci.madi
+.. automodule:: vip_hci.frdiff
     :members:
     :undoc-members:
     :show-inheritance:
@@ -9,10 +9,10 @@ vip\_hci.madi package
 Submodules
 ----------
 
-vip\_hci.madi.adi\_source module
+vip\_hci.frdiff.framediff module
 --------------------------------
 
-.. automodule:: vip_hci.madi.adi_source
+.. automodule:: vip_hci.frdiff.framediff
     :members:
     :undoc-members:
     :show-inheritance:

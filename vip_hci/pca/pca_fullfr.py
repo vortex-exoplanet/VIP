@@ -21,7 +21,7 @@ from sklearn.decomposition import IncrementalPCA
 from .svd import svd_wrapper
 from .pca_local import find_indices, compute_pa_thresh
 from .utils_pca import (pca_annulus, scale_cube_for_pca)
-from ..preproc import (cube_derotate, cube_collapse, check_PA_vector,
+from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector)
 from ..conf import timing, time_ini, check_enough_memory, get_available_memory
 from ..var import frame_center, dist, prepare_matrix, reshape_matrix
@@ -277,7 +277,8 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
             msgerr += 'use the incremental PCA (for ADI)'
             raise RuntimeError(msgerr)
         
-    if angle_list is not None:  angle_list = check_PA_vector(angle_list)
+    if angle_list is not None:
+        angle_list = check_pa_vector(angle_list)
 
     #***************************************************************************
     # scale_list triggers SDI(IFS)

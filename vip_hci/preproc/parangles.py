@@ -1,14 +1,16 @@
 #! /usr/bin/env python
 
 """
-Module with frame de-rotation routine for ADI.
+Module with frame parallactica angles calculations and de-rotation routines for
+ADI.
 """
 from __future__ import print_function
+
 __author__ = 'V. Christiaens @ UChile/ULg, Carlos Alberto Gomez Gonzalez'
 __all__ = ['compute_paral_angles',
-           'compute_derot_angles_PA',
-           'compute_derot_angles_CD',
-           'check_PA_vector']
+           'compute_derot_angles_pa',
+           'compute_derot_angles_cd',
+           'check_pa_vector']
 
 import math
 import numpy as np
@@ -78,8 +80,7 @@ def compute_paral_angles(header, latitude, ra_key, dec_key, lst_key,
     
     return pa.value
 
-
-def compute_derot_angles_PA(objname_tmp_A,digit_format=3,objname_tmp_B='',
+def compute_derot_angles_pa(objname_tmp_A,digit_format=3,objname_tmp_B='',
                             inpath='./',writing=False, outpath='./', 
                             list_obj=None, 
                             PosAng_st_key='HIERARCH ESO ADA POSANG',
@@ -182,7 +183,7 @@ def compute_derot_angles_PA(objname_tmp_A,digit_format=3,objname_tmp_B='',
         rot[ii]=0.-(posang_st[ii]+posang_nd[ii])/2.
 
     # Check and correct to output at the right format
-    rot = check_PA_vector(rot,'deg')
+    rot = check_pa_vector(rot,'deg')
 
     if verbose:
         print("This is the list of angles to be applied: ")
@@ -198,8 +199,7 @@ def compute_derot_angles_PA(objname_tmp_A,digit_format=3,objname_tmp_B='',
 
     return rot
 
-
-def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
+def compute_derot_angles_cd(objname_tmp_A, digit_format=3,objname_tmp_B='',
                             inpath='./', skew=False, writing=False, 
                             outpath='./', list_obj=None, cd11_key='CD1_1', 
                             cd12_key='CD1_2', cd21_key='CD2_1', 
@@ -325,8 +325,9 @@ def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
             raise ValueError(msg+msg2)
 
     # Check and correct to output at the right format
-    rot = check_PA_vector(rot,'rad')
-    if skew: rot2 = check_PA_vector(rot2,'rad')
+    rot = check_pa_vector(rot,'rad')
+    if skew:
+        rot2 = check_pa_vector(rot2,'rad')
 
     if verbose:
         print("This is the list of angles to be applied: ")
@@ -345,12 +346,13 @@ def compute_derot_angles_CD(objname_tmp_A, digit_format=3,objname_tmp_B='',
                 print(rot[ii], file=f)
         f.close()
 
+    if skew:
+        return rot, rot2
+    else:
+        return rot
 
-    if skew: return rot, rot2
-    else: return rot
 
-
-def check_PA_vector(angle_list, unit='deg'):
+def check_pa_vector(angle_list, unit='deg'):
     """ Checks if the angle list has the right format to avoid any bug in the 
     pca-adi algorithm. The right format complies to 3 criteria:
        1) angles are expressed in degree

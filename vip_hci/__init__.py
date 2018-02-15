@@ -3,6 +3,7 @@ from __future__ import (absolute_import)
 from . import preproc
 from . import conf
 from . import fits
+from . import frdiff
 from . import llsg
 from . import madi
 from . import negfc
@@ -12,7 +13,7 @@ from . import phot
 from . import stats
 from . import var
 
-__version__ = "0.8.8"
+__version__ = "0.8.9"
 
 
 print("---------------------------------------------------")

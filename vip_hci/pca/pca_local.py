@@ -14,7 +14,7 @@ import numpy as np
 import itertools as itt
 from scipy import stats
 from multiprocessing import Pool, cpu_count
-from ..preproc import cube_derotate, cube_collapse, check_PA_vector
+from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import time_ini, timing
 from ..conf import eval_func_tuple as EFT 
 from ..var import get_annulus_quad, get_annulus, matrix_scaling
@@ -145,7 +145,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1,
     n, y, _ = array.shape
     if verbose:  start_time = time_ini()
     
-    angle_list = check_PA_vector(angle_list)
+    angle_list = check_pa_vector(angle_list)
 
     annulus_width = asize * fwhm                     # equal size for all annuli
     n_annuli = int(np.floor((y/2-radius_int)/annulus_width))
@@ -315,19 +315,20 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
 
     n, y, _ = array.shape
      
-    if verbose:  start_time = time_ini()
+    if verbose:
+        start_time = time_ini()
     
-    angle_list = check_PA_vector(angle_list)
+    angle_list = check_pa_vector(angle_list)
 
     annulus_width = asize * fwhm                     # equal size for all annuli
-    n_annuli = int(np.floor((y/2-radius_int)/annulus_width))
+    n_annuli = int(np.floor((y/2 - radius_int) / annulus_width))
     if verbose:
         msg = '# annuli = {:}, Ann width = {:}, FWHM = {:.3f}'
         print(msg.format(n_annuli, annulus_width, fwhm), '\n')
         print('PCA per annulus (and per quadrant if requested)\n')
      
     if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2)
+        nproc = (cpu_count() / 2)
     
     #***************************************************************************
     # The annuli are built, and the corresponding PA thresholds for frame 

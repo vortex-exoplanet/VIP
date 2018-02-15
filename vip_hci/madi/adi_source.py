@@ -12,18 +12,25 @@ __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['adi']
 
 import numpy as np
+import itertools as itt
+from multiprocessing import Pool, cpu_count
 from ..conf import time_ini, timing
 from ..var import get_annulus, mask_circle
-from ..preproc import cube_derotate, cube_collapse, check_PA_vector
+from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..pca.pca_local import define_annuli
+from ..conf import eval_func_tuple as EFT
+
+
+array = None
 
 
 def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1, 
         mode='fullfr', nframes=4, imlib='opencv', interpolation='lanczos4',
-        collapse='median', full_output=False, verbose=True):
+        collapse='median', nproc=1, full_output=False, verbose=True):
     """ Algorithm based on Marois et al. 2006 on Angular Differential Imaging.   
-    First the median frame is subtracted, then the median of the four closest 
-    frames taking into account the pa_threshold (field rotation).
+    First the median frame is subtracted, then (in annular `mode``) the median
+    of the four closest frames taking into account the pa_threshold (field
+    rotation).
     
     Parameters
     ----------
@@ -54,10 +61,14 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
-    full_output: boolean, optional
+    nproc : None or int, optional
+        Number of processes for parallel computing. If None the number of
+        processes will be set to (cpu_count()/2). By default the algorithm works
+        in single-process mode.
+    full_output: bool, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays. 
-    verbose : {True, False}, bool optional
+    verbose : bool, optional
         If True prints to stdout intermediate info.
         
     Returns
@@ -71,107 +82,72 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         The derotated cube of residuals.
          
     """
-    def find_indices(angle_list, frame, thr, nframes):  
-        """ Returns the indices to be left in frames library for optimized ADI.
-        TO-DO: find a pythonic way to do this!
-        """
-        n = angle_list.shape[0]
-        index_prev = 0 
-        index_foll = frame                                  
-        for i in range(0, frame):
-            if np.abs(angle_list[frame]-angle_list[i]) < thr:
-                index_prev = i
-                break
-            else:
-                index_prev += 1
-        for k in range(frame, n):
-            if np.abs(angle_list[k]-angle_list[frame]) > thr:
-                index_foll = k
-                break
-            else:
-                index_foll += 1
-
-        window = int(nframes/2)
-        ind1 = index_prev-window
-        ind1 = max(ind1, 0)
-        ind2 = index_prev
-        ind3 = index_foll
-        ind4 = index_foll+window
-        ind4 = min(ind4, n)
-        indices = np.array(range(ind1,ind2)+range(ind3,ind4))
-        #print ind1, ind2, ind3, ind4, indices
-        return indices
-    
-    #***************************************************************************
+    global array
     array = cube
     
     if not array.ndim == 3:
-        raise TypeError('Input array is not a cube or 3d array.')
+        raise TypeError('Input array is not a cube or 3d array')
     if not array.shape[0] == angle_list.shape[0]:
-        raise TypeError('Input vector or parallactic angles has wrong length.')
-    if not nframes%2==0:
-        raise TypeError('nframes argument must be even value.')
+        raise TypeError('Input vector or parallactic angles has wrong length')
+    if not nframes % 2 == 0:
+        raise TypeError('nframes argument must be even value')
     
     n, y, _ = array.shape
      
-    if verbose:  start_time = time_ini()
+    if verbose:
+        start_time = time_ini()
+
+    if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
+        nproc = (cpu_count()/2)
+
+    angle_list = check_pa_vector(angle_list)
     
-    angle_list = check_PA_vector(angle_list)
-    
-    #***************************************************************************
-    # The median frame (basic psf reference) is first subtracted from each frame.
-    #***************************************************************************      
-    ref_psf = np.median(array, axis=0)
-    array = array - ref_psf
-    
-    if mode=='fullfr':
-        if radius_int>0:
+    # The median frame (basic psf reference) is first subtracted from each frame
+    model_psf = np.median(array, axis=0)
+    array = array - model_psf
+
+    # Depending on the ``mode``
+    if mode == 'fullfr':
+        if radius_int > 0:
             cube_out = mask_circle(array, radius_int)
         else:
             cube_out = array
-        if verbose:  print('Median psf reference subtracted')
+        if verbose:
+            print('Median psf reference subtracted')
     
-    elif mode=='annular':   
-        annulus_width = int(asize * fwhm)                            # equal size for all annuli
-        n_annuli = int(np.floor((y/2-radius_int)/annulus_width))    
-        if verbose:  print('N annuli =', n_annuli, ', FWHM =', fwhm, '\n')
-        #***********************************************************************
-        # The annuli are built, and the corresponding PA thresholds for frame 
-        # rejection are calculated. The PA rejection is calculated at center of 
-        # the annulus.
-        #***********************************************************************
-        cube_out = np.zeros_like(array) 
-        for ann in range(n_annuli):
-            pa_threshold,inner_radius,_= define_annuli(angle_list, ann, n_annuli, 
-                                                       fwhm, radius_int, 
-                                                       annulus_width, delta_rot,
-                                                       verbose) 
-    
-            indices = get_annulus(array[0], inner_radius, annulus_width, 
-                                  output_indices=True)
-            yy = indices[0]
-            xx = indices[1]
-            
-            matrix = array[:, yy, xx]    # shape [nframes x npx_annulus]
-            
-            #*******************************************************************
-            # A second optimized psf reference is subtracted from each frame. 
-            # For each frame we find *nframes*, depending on the PA threshold, 
-            # to construct this optimized psf reference.
-            #*******************************************************************
-            for frame in range(n):
-                if pa_threshold != 0:
-                    indices_left = find_indices(angle_list, frame, pa_threshold, 
-                                                nframes)
-                    matrix_disc = matrix[indices_left]
-                else:
-                    matrix_disc = matrix
-            
-                ref_psf_opt = np.median(matrix_disc, axis=0)
-                curr_frame = matrix[frame]
-                subtracted = curr_frame - ref_psf_opt
-                cube_out[frame][yy, xx] = subtracted
-        if verbose:  print('Optimized median psf reference subtracted')
+    elif mode == 'annular':
+        annulus_width = int(asize * fwhm)  # equal size for all annuli
+        n_annuli = int(np.floor((y / 2 - radius_int) / annulus_width))
+        if verbose:
+            print('N annuli =', n_annuli, ', FWHM =', fwhm, '\n')
+
+        cube_out = np.zeros_like(array)
+
+        if nproc == 1:
+            for ann in range(n_annuli):
+                mres, yy, xx = _median_subt_ann(ann, angle_list, n_annuli, fwhm,
+                                                radius_int, annulus_width,
+                                                delta_rot, nframes, verbose)
+                cube_out[:, yy, xx] = mres
+        elif nproc > 1:
+            pool = Pool(processes=int(nproc))
+            res = pool.map(EFT, zip(itt.repeat(_median_subt_ann),
+                                    range(n_annuli), itt.repeat(angle_list),
+                                    itt.repeat(n_annuli), itt.repeat(fwhm),
+                                    itt.repeat(radius_int),
+                                    itt.repeat(annulus_width),
+                                    itt.repeat(delta_rot), itt.repeat(nframes),
+                                    itt.repeat(verbose)))
+            res = np.array(res)
+            pool.close()
+            mres = res[:, 0]
+            yy = res[:, 1]
+            xx = res[:, 2]
+            for ann in range(n_annuli):
+                cube_out[:, yy[ann], xx[ann]] = mres[ann]
+
+        if verbose:
+            print('Optimized median psf reference subtracted')
         
     else:
         raise RuntimeError('Mode not recognized')
@@ -186,4 +162,83 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         return cube_out, cube_der, frame 
     else:
         return frame 
+
+
+def _median_subt_ann(ann, angle_list, n_annuli, fwhm, radius_int, annulus_width,
+                     delta_rot, nframes, verbose):
+    """ Optimized median subtraction for a given annulus.
+    """
+    n = array.shape[0]
+
+    # The annulus is built, and the corresponding PA thresholds for frame
+    # rejection are calculated. The PA rejection is calculated at center of
+    # the annulus
+    pa_thr, inner_radius, _ = define_annuli(angle_list, ann, n_annuli, fwhm,
+                                            radius_int, annulus_width,
+                                            delta_rot, verbose)
+
+    indices = get_annulus(array[0], inner_radius, annulus_width,
+                          output_indices=True)
+    yy = indices[0]
+    xx = indices[1]
+    matrix = array[:, yy, xx]  # shape [n x npx_annulus]
+    matrix_res = np.zeros_like(matrix)
+
+    # A second optimized psf reference is subtracted from each frame.
+    # For each frame we find ``nframes``, depending on the PA threshold,
+    # to construct this optimized psf reference
+    for frame in range(n):
+        if pa_thr != 0:
+            indices_left = _find_indices(angle_list, frame, pa_thr, nframes)
+            matrix_disc = matrix[indices_left]
+        else:
+            matrix_disc = matrix
+
+        ref_psf_opt = np.median(matrix_disc, axis=0)
+        curr_frame = matrix[frame]
+        subtracted = curr_frame - ref_psf_opt
+        matrix_res[frame] = subtracted
+
+    return matrix_res, yy, xx
+
+
+def _find_indices(angle_list, frame, thr, nframes=None, out_closest=False):
+    """ Returns the indices to be left in frames library for optimized ADI.
+
+    nframes : int, optional
+        Number of indices to be left.
+    """
+    n = angle_list.shape[0]
+    index_prev = 0
+    index_foll = frame
+    for i in range(0, frame):
+        if np.abs(angle_list[frame] - angle_list[i]) < thr:
+            index_prev = i
+            break
+        else:
+            index_prev += 1
+    for k in range(frame, n):
+        if np.abs(angle_list[k] - angle_list[frame]) > thr:
+            index_foll = k
+            break
+        else:
+            index_foll += 1
+
+    if nframes is not None:
+        window = int(nframes/2)
+    else:
+        window = n
+
+    ind1 = index_prev-window
+    ind1 = max(ind1, 0)
+    ind2 = index_prev
+    ind3 = index_foll
+    ind4 = index_foll+window
+    ind4 = min(ind4, n)
+    indices = np.array(list(range(ind1, ind2)) + list(range(ind3, ind4)))
+
+    if out_closest:
+        return index_prev, index_foll
+    else:
+        return indices
 

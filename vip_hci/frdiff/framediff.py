@@ -19,7 +19,7 @@ from ..var import get_annulus_segments, pp_subplots
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import time_ini, timing
 from ..pca.utils_pca import pca_annulus
-from ..pca.pca_local import define_annuli
+from ..pca.pca_local import _define_annuli
 from ..madi.adi_source import _find_indices
 from ..conf import eval_func_tuple as EFT
 
@@ -143,7 +143,7 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
 
     n_frames = array.shape[0]
 
-    pa_threshold, in_rad, ann_center = define_annuli(angles, ann, n_annuli,
+    pa_threshold, in_rad, ann_center = _define_annuli(angles, ann, n_annuli,
                                                      fwhm, radius_int, asize,
                                                      delta_rot, verbose)
     if ncomp is not None:

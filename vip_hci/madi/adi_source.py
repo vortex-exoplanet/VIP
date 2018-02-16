@@ -17,7 +17,7 @@ from multiprocessing import Pool, cpu_count
 from ..conf import time_ini, timing
 from ..var import get_annulus, mask_circle
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
-from ..pca.pca_local import define_annuli
+from ..pca.pca_local import _define_annuli
 from ..conf import eval_func_tuple as EFT
 
 
@@ -173,7 +173,7 @@ def _median_subt_ann(ann, angle_list, n_annuli, fwhm, radius_int, annulus_width,
     # The annulus is built, and the corresponding PA thresholds for frame
     # rejection are calculated. The PA rejection is calculated at center of
     # the annulus
-    pa_thr, inner_radius, _ = define_annuli(angle_list, ann, n_annuli, fwhm,
+    pa_thr, inner_radius, _ = _define_annuli(angle_list, ann, n_annuli, fwhm,
                                             radius_int, annulus_width,
                                             delta_rot, verbose)
 

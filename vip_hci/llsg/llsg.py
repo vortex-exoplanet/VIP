@@ -195,13 +195,14 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         matrix_g = np.zeros((n_rots, n, y, x))
 
     # Looping the he annuli
-    print('Processing annulus: ')
+    if verbose:
+        print('Processing annulus: ')
     for ann in range(n_annuli):
         inner_radius = annulus_width * ann
         n_segments_ann = n_segments[ann]
-        print('{} : in_rad={}, n_segm={}'.format(ann+1, inner_radius,
-                                                 n_segments_ann))
-
+        if verbose:
+            print('{} : in_rad={}, n_segm={}'.format(ann+1, inner_radius,
+                                                     n_segments_ann))
         for i in range(n_rots):
             theta_init = i * azimuth_overlap
             indices = get_annulus_segments(cube[0], inner_radius,
@@ -286,12 +287,6 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
                             for k in range(n_rots)]
         list_frame_s = [cube_collapse(list_s_array_der[k], mode=collapse)
                         for k in range(n_rots)]
-
-        # if high_pass is not None:
-        #     for k in range(n_rots):
-        #         list_frame_s[k] = frame_filter_highpass(list_frame_s[k],
-        #                                                 mode='laplacian',
-        #                                                 fwhm_size=high_pass)
 
         # list_frame_s = []
         # for nr in range(n_rots):

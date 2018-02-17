@@ -141,9 +141,9 @@ you could use ``conda``:
 
   $ conda install opencv
 
-``VIP`` contains a class ``vip_hci.fits.ds9`` that enables, through pyDS9, the
-interaction with a DS9 window (displaying numpy arrays, controlling the display
-options, etc).
+``VIP`` contains a class ``vip_hci.fits.ds9`` that enables, through ``pyds9``,
+the interaction with a DS9 window (displaying numpy arrays, controlling the
+display options, etc).
 
 Also, optionally you can install the Intel Math Kernel Library (MKL)
 optimizations provided that you have Anaconda(>v2.5) and ``conda`` on your

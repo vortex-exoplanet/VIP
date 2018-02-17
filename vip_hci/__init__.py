@@ -13,7 +13,7 @@ from . import phot
 from . import stats
 from . import var
 
-__version__ = "0.8.9"
+__version__ = "0.9.0"
 
 
 print("---------------------------------------------------")

@@ -318,7 +318,7 @@ def _decompose_patch(indices, i_patch, n_segments_ann, rank, low_rank_ref,
     data_segm = cube_init[:, yy, xx]
 
     if low_rank_ref:
-        ref_segments = range(n_segments_ann)
+        ref_segments = list(range(n_segments_ann))
         ref_segments.pop(j)
         for m, n in enumerate(ref_segments):
             if m == 0:

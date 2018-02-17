@@ -1,5 +1,5 @@
-vip\_hci.fits package
-=====================
+vip\_hci\.fits package
+======================
 
 .. automodule:: vip_hci.fits
     :members:
@@ -9,10 +9,18 @@ vip\_hci.fits package
 Submodules
 ----------
 
-vip\_hci.fits.fits module
--------------------------
+vip\_hci\.fits\.fits module
+---------------------------
 
 .. automodule:: vip_hci.fits.fits
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+vip\_hci\.fits\.vipds9 module
+-----------------------------
+
+.. automodule:: vip_hci.fits.vipds9
     :members:
     :undoc-members:
     :show-inheritance:

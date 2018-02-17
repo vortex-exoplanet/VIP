@@ -297,7 +297,7 @@ def pp_subplots(*args, **kwargs):
         if not isinstance(custom_cmap, list):
             custom_cmap = [kwargs['cmap'] for i in range(num_plots)]
         else:
-            if not len(custom_cmap)==num_plots:
+            if not len(custom_cmap) == num_plots:
                 raise RuntimeError('Cmap list does not have enough items')
     else:
         custom_cmap = ['viridis' for i in range(num_plots)]
@@ -325,15 +325,17 @@ def pp_subplots(*args, **kwargs):
     if 'versp' in kwargs:
         ver_spacing = kwargs['versp']
     else:
-        ver_spacing = 0
+        ver_spacing = 0.2
 
     # --------------------------------------------------------------------------
 
     subplot_size = 4
-    if rows == 0: raise TypeError
+    if rows == 0:
+        raise ValueError('Rows must be a positive integer')
     fig = figure(figsize=(cols*subplot_size, rows*subplot_size), dpi=dpi)
     
-    if tit is not None:  fig.suptitle(tit, fontsize=14)
+    if tit is not None:
+        fig.suptitle(tit, fontsize=14)
     
     for i,v in enumerate(range(num_plots)):
         frame_size = data[i].shape[0]  # assuming square frames
@@ -342,8 +344,10 @@ def pp_subplots(*args, **kwargs):
         v += 1
         ax = subplot(rows,cols,v)
         ax.set_aspect('equal')
-        if logscale:  norm = colors.LogNorm(vmin=data[i].min(), vmax=data[i].max())
-        else:  norm = None
+        if logscale:
+            norm = colors.LogNorm(vmin=data[i].min(), vmax=data[i].max())
+        else:
+            norm = None
         im = ax.imshow(data[i], cmap=custom_cmap[i], interpolation='nearest',
                        origin='lower', vmin=vmin[i], vmax=vmax[i],
                        norm=norm)

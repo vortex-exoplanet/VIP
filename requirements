@@ -12,3 +12,5 @@ matplotlib >= 1.4.3
 psutil
 pyprind
 opencv-python
+sphinx <= 1.5.6
+git+git://github.com/ericmandel/pyds9.git

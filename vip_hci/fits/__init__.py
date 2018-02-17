@@ -9,4 +9,5 @@ Subpackage ``fits`` includes fits handling functions:
 from __future__ import absolute_import
 
 from .fits import *
+from .vipds9 import *
 

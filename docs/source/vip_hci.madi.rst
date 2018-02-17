@@ -1,5 +1,5 @@
-vip\_hci.madi package
-=====================
+vip\_hci\.madi package
+======================
 
 .. automodule:: vip_hci.madi
     :members:
@@ -9,8 +9,8 @@ vip\_hci.madi package
 Submodules
 ----------
 
-vip\_hci.madi.adi\_source module
---------------------------------
+vip\_hci\.madi\.adi\_source module
+----------------------------------
 
 .. automodule:: vip_hci.madi.adi_source
     :members:

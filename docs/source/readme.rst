@@ -69,12 +69,12 @@ TL;DR setup guide
 
 Installation and dependencies
 -----------------------------
-The benefits of using a Python package manager (distribution), such as Anaconda or
-Canopy, are many. Mainly, it brings easy and robust package management and
-avoids messing up with your system's default python. An alternative is to use
-package managers like apt-get for Ubuntu or
-Homebrew/MacPorts/Fink for Macos. I personally recommend using Miniconda which you
-can find here: https://conda.io/miniconda.html.
+The benefits of using a Python package manager (distribution), such as
+(ana)conda or Canopy, are many. Mainly, it brings easy and robust package
+management and avoids messing up with your system's default python. An
+alternative is to use package managers like apt-get for Ubuntu or
+Homebrew/MacPorts/Fink for Macos. I personally recommend using Miniconda which
+you can find here: https://conda.io/miniconda.html.
 
 ``VIP`` depends on existing packages from the Python ecosystem, such as
 ``numpy``, ``scipy``, ``matplotlib``, ``pandas``, ``astropy``, ``scikit-learn``,
@@ -141,12 +141,9 @@ you could use ``conda``:
 
   $ conda install opencv
 
-``VIP`` ships a stripped-down version of ``RO.DS9`` (by Russell Owen) for convenient
-``xpaset/xpaget`` based interaction with ``DS9``. ``VIP`` contains a class
-``vipDS9`` that works on top of ``RO.DS9`` containing several useful methods for
-``DS9`` control such as displaying arrays, manipulating regions, controlling the
-display options, etc. ``VipDS9`` functionality will only be available if you have
-``DS9`` and ``XPA`` installed on your system PATH.
+``VIP`` contains a class ``vip_hci.fits.ds9`` that enables, through pyDS9, the
+interaction with a DS9 window (displaying numpy arrays, controlling the display
+options, etc).
 
 Also, optionally you can install the Intel Math Kernel Library (MKL)
 optimizations provided that you have Anaconda(>v2.5) and ``conda`` on your
@@ -159,7 +156,7 @@ computations. Run:
 
 Starting from version 0.8.0 ``VIP`` offers the possibility of computing SVDs
 on GPU by using ``cupy``. This remains an optional requirement, to be installed
-by the user, as it requires having a real (good) GPU card and a proper CUDA
+by the user, as it requires having a decent GPU card and a proper CUDA
 environment.
 
 Loading VIP

@@ -30,10 +30,10 @@ array = None
 def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
                n_similar=None, delta_rot=0.5, radius_int=2, asize=4, ncomp=None,
                nproc=1, verbose=True, debug=False):
-    """ Frame differencing algorithm. It uses vector (using separately the
-    pixels from different annuli of ``asize`` width) distance to create pairs
-    of most similar images. Then it performs pair-wise subtraction and combines
-    the residuals.
+    """ Frame differencing algorithm. It uses vector distance (depending on
+    ``metric``), using separately the pixels from different annuli of ``asize``
+    width, to create pairs of most similar images. Then it performs pair-wise
+    subtraction and combines the residuals.
     
     Parameters
     ----------
@@ -88,7 +88,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
 
     y = array.shape[1]
     if not asize < np.floor((y / 2)):
-        raise ValueError("Asize is too large")
+        raise ValueError("asize is too large")
 
     angle_list = check_pa_vector(angle_list)
     n_annuli = int(np.floor((y / 2 - radius_int) / asize))
@@ -144,20 +144,20 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     n_frames = array.shape[0]
 
     pa_threshold, in_rad, ann_center = _define_annuli(angles, ann, n_annuli,
-                                                     fwhm, radius_int, asize,
-                                                     delta_rot, verbose)
+                                                      fwhm, radius_int, asize,
+                                                      delta_rot, verbose)
     if ncomp is not None:
         arrayin = pca_annulus(array, None, ncomp, asize, ann_center,
                               svd_mode='lapack', scaling=None, collapse=None)
     else:
         arrayin = array
 
-    yy, xx = get_annulus_segments(array[0], inner_radius=in_rad,
-                                  width=asize, nsegm=1)[0]
+    yy, xx = get_annulus_segments(array[0], inner_radius=in_rad, width=asize,
+                                  nsegm=1)[0]
     values = arrayin[:, yy, xx]  # n_frames x n_pxs_annulus
 
     if debug:
-        print('Done taking pixel intensities from quadrants in annuli.')
+        print('Done taking pixel intensities from annulus.')
         timing(start_time)
 
     mat_dists_ann_full = pairwise_distances(values, metric=metric)
@@ -192,7 +192,7 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     cube_res = []
     if n_similar is not None:
         if not n_similar >= 3:
-            raise ValueError("N_similar must be >= 3 or None")
+            raise ValueError("n_similar must be >= 3 or None")
         for i in range(n_frames):
             vector = pn.DataFrame(mat_dists_ann[i])
             vector.columns = ['i']

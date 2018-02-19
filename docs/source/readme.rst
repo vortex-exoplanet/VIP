@@ -174,9 +174,9 @@ Now you can start finding exoplanets!
 
 Mailing list
 ------------
-You can subscribe to our `mailing <http://lists.astro.caltech.edu:88/mailman/listinfo/vip>`_
-list if you want to be informed of the latest developments of the ``VIP`` package
-(new versions and/or updates).
+Please subscribe to our `mailing <http://lists.astro.caltech.edu:88/mailman/listinfo/vip>`_
+list if you want to be informed of ``VIP``'s latest developments (new versions
+and/or updates).
 
 
 Attribution

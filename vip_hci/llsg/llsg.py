@@ -227,7 +227,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
                     else:
                         matrix_s[i, :, yy, xx] = patch
 
-            else:
+            elif nproc > 1:
                 pool = Pool(processes=int(nproc))
                 res = pool.map(EFT, zip(itt.repeat(_decompose_patch),
                                         itt.repeat(indices),
@@ -258,6 +258,9 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
                         matrix_g[i, :, yy, xx] = patches[j][2]
                     else:
                         matrix_s[i, :, yy, xx] = patches[j]
+
+            else:
+                raise ValueError("nproc must be a positive integer")
 
     if full_output:
         list_s_array_der = [cube_derotate(matrix_s[k], angle_list, imlib=imlib,

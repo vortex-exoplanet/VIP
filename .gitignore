@@ -6,6 +6,8 @@ docs/build
 docs/time
 vip_hci/tests
 
+submit_pypi.sh
+
 .pytest_cache
 .cache
 .settings

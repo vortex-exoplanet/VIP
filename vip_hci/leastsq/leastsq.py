@@ -28,10 +28,12 @@ array = None
 
 
 def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
-          delta_rot=0.5, radius_int=2, asize=4, n_segments=4, nproc=1,
+          delta_rot=0.5, radius_int=0, asize=4, n_segments=4, nproc=1,
           solver='lstsq', tol=1e-3, verbose=True, full_output=False):
     """ LOCI style algorithm that models a PSF (for ADI data) with a
-    least-square combination of neighbouring frames.
+    least-square combination of neighbouring frames (solving the equation
+    a x = b by computing a vector x of coefficients that minimizes the
+    Euclidean 2-norm || b - a x ||^2).
     
     Parameters
     ----------
@@ -49,9 +51,6 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     dist_threshold : int
         Indices with a distance larger thatn ``dist_threshold`` percentile will
         initially discarded.
-    n_similar : None or int, optional
-        If a postive integer value is given, then a median combination of
-        ``n_similar`` frames will be used instead of the most similar one.
     delta_rot : int
         Minimum parallactic angle distance between the pairs.
     radius_int : int, optional
@@ -59,6 +58,9 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         central circular area is discarded.
     asize : int, optional
         The size of the annuli, in pixels.
+    n_segments : int or list of ints, optional
+        The number of segments for each annulus. When a single integer is given
+        it is used for all annuli.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to (cpu_count()/2). By default the algorithm works
@@ -75,14 +77,18 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         subtraction).
     verbose: bool, optional
         If True prints info to stdout.
-    debug : bool, optional
-        If True the distance matrices will be plotted and additional information
-        will be given.
+    full_output: bool, optional
+        Whether to return the final median combined image only or with other
+        intermediate arrays.
         
     Returns
     -------
-    final_frame : array_like, 2d
-        Median combination of the de-rotated cube.
+    frame_der_median : array_like, 2d
+        Median combination of the de-rotated cube of residuals.
+
+    If ``full_output`` is True, the following intermediate arrays are returned:
+    cube_res, cube_der, frame_der_median
+
     """
     global array
     array = cube
@@ -121,7 +127,7 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     cube_res = np.zeros((array.shape[0], array.shape[1], array.shape[2]))
     for ann in range(n_annuli):
         n_segments_ann = n_segments[ann]
-        inner_radius_ann = annulus_width * ann
+        inner_radius_ann = radius_int + ann*annulus_width
 
         indices = get_annulus_segments(array[0], inner_radius=inner_radius_ann,
                                        width=asize, nsegm=n_segments_ann)
@@ -157,10 +163,9 @@ def _leastsq_ann(indices, ann, n_annuli, fwhm, angles, delta_rot, metric,
     """
     start_time = time_ini(False)
 
-    pa_threshold, in_rad, ann_center = _define_annuli(angles, ann, n_annuli,
-                                                      fwhm, radius_int, asize,
-                                                      delta_rot, n_segments_ann,
-                                                      verbose)
+    pa_threshold, _, _ = _define_annuli(angles, ann, n_annuli, fwhm, radius_int,
+                                        asize, delta_rot, n_segments_ann,
+                                        verbose)
     res = []
     if nproc == 1:
         for j in range(n_segments_ann):
@@ -219,9 +224,13 @@ def _leastsq_patch(nseg, indices, angles, pa_threshold, metric, dist_threshold,
             A = values[ind_ref]
             b = values[i]
             if solver == 'lstsq':
-                coef = sp.linalg.lstsq(A.T, b, cond=tol)[0]
+                coef = sp.linalg.lstsq(A.T, b, cond=tol)[0]     # SVD method
             elif solver == 'nnls':
                 coef = sp.optimize.nnls(A.T, b)[0]
+            elif solver == 'lsq':
+                coef = sp.optimize.lsq_linear(A.T, b, bounds=(0, 1),
+                                              method='trf',
+                                              lsq_solver='lsmr')['x']
             else:
                 raise ValueError("solver not recognized")
 

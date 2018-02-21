@@ -11,6 +11,7 @@ __all__ = ['fit_2dgaussian',
 
 import numpy as np
 import pandas as pd
+import photutils
 from scipy.optimize import leastsq
 from astropy.modeling import models
 from astropy.modeling.fitting import LevMarLSQFitter
@@ -41,18 +42,18 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     theta : float, optional
         Angle of inclination of the 2d Gaussian counting from the positive X
         axis.
-    threshold : {False, True}, optional
-        If True the background pixels will be replaced by small random Gaussian 
-        noise.
+    threshold : bool, optional
+        If True the background pixels (estimated using sigma clipped statistics)
+        will be replaced by small random Gaussian noise.
     sigfactor : int, optional
         The background pixels will be thresholded before fitting a 2d Gaussian
         to the data using sigma clipped statistics. All values smaller than
         (MEDIAN + sigfactor*STDDEV) will be replaced by small random Gaussian 
         noise. 
-    full_output : {False, True}, optional
+    full_output : bool, optional
         If False it returns just the centroid, if True also returns the 
         FWHM in X and Y (in pixels), the amplitude and the rotation angle.
-    debug : {True, False}, optional
+    debug : bool, optional
         If True, the function prints out parameters of the fit and plots the
         data, model and residuals.
         
@@ -79,12 +80,6 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     if not array.ndim == 2:
         raise TypeError('Input array is not a frame or 2d array')
     
-    # If frame size is even we drop last row and last column
-    if array.shape[0]%2==0:
-        array = array[:-1,:].copy()
-    if array.shape[1]%2==0:
-        array = array[:,:-1].copy()
-    
     if crop:
         if cent is None:
             ceny, cenx = frame_center(array)
@@ -99,19 +94,22 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     
     if threshold:
         _, clipmed, clipstd = sigma_clipped_stats(psf_subimage, sigma=2)
-        indi = np.where(psf_subimage<=clipmed+sigfactor*clipstd)
-        subimnoise = np.random.randn(psf_subimage.shape[0], psf_subimage.shape[1])*clipstd#*50
+        indi = np.where(psf_subimage <= clipmed + sigfactor * clipstd)
+        subimnoise = np.random.randn(psf_subimage.shape[0],
+                                     psf_subimage.shape[1]) * clipstd
         psf_subimage[indi] = subimnoise[indi]
-    
-    yme, xme = np.where(psf_subimage==psf_subimage.max())
+
     # Creating the 2D Gaussian model
-    gauss = models.Gaussian2D(amplitude=psf_subimage.max(), x_mean=xme, 
-                              y_mean=yme, x_stddev=fwhmx*gaussian_fwhm_to_sigma, 
-                              y_stddev=fwhmy*gaussian_fwhm_to_sigma, theta=theta)
+    init_amplitude = np.ptp(psf_subimage)
+    xcom, ycom = photutils.centroid_com(psf_subimage)
+    gauss = models.Gaussian2D(amplitude=init_amplitude, theta=theta,
+                              x_mean=xcom, y_mean=ycom,
+                              x_stddev=fwhmx * gaussian_fwhm_to_sigma,
+                              y_stddev=fwhmy * gaussian_fwhm_to_sigma)
     # Levenberg-Marquardt algorithm
     fitter = LevMarLSQFitter()                  
     y, x = np.indices(psf_subimage.shape)
-    fit = fitter(gauss, x, y, psf_subimage, maxiter=1000, acc=1e-08)
+    fit = fitter(gauss, x, y, psf_subimage)
 
     if crop:
         mean_y = fit.y_mean.value + suby
@@ -149,7 +147,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
 
 
     
-def fit_2dmoffat(array, yy, xx, full_output=False,fwhm=4):
+def fit_2dmoffat(array, yy, xx, full_output=False):
     """Fits a star/planet with a 2D circular Moffat PSF.
     
     Parameters
@@ -165,8 +163,6 @@ def fit_2dmoffat(array, yy, xx, full_output=False,fwhm=4):
     full_output: bool, opt
         Whether to return floor, height, mean_y, mean_x, fwhm, beta, or just 
         mean_y, mean_x
-    fwhm: float, opt
-        First estimate of the fwhm
     
     Returns
     -------
@@ -183,30 +179,31 @@ def fit_2dmoffat(array, yy, xx, full_output=False,fwhm=4):
     beta : float
         "beta" parameter of the moffat function.
     """
-    maxi = array.max() # find starting values
-    floor = np.ma.median(array.flatten())
-    height = maxi - floor
-    if height==0.0: # if star is saturated it could be that 
-        floor = np.mean(array.flatten())  # median value is 32767 or 65535 --> height=0
-        height = maxi - floor
-
-    mean_y = (np.shape(array)[0]-1)/2
-    mean_x = (np.shape(array)[1]-1)/2
-
-    fwhm = np.sqrt(np.sum((array>floor+height/2.).flatten()))
-
-    beta = 4
-    
-    p0 = floor, height, mean_y, mean_x, fwhm, beta
-
     def moffat(floor, height, mean_y, mean_x, fwhm, beta): # def Moffat function
-        alpha = 0.5*fwhm/np.sqrt(2.**(1./beta)-1.)    
+        alpha = 0.5*fwhm/np.sqrt(2.**(1./beta)-1.)
         return lambda y,x: floor + height/((1.+(((x-mean_x)**2+(y-mean_y)**2)/\
                                                 alpha**2.))**beta)
 
     def err(p,data):
         return np.ravel(moffat(*p)(*np.indices(data.shape))-data)
+    ############################################################################
+
+    maxi = array.max()  # find starting values
+    floor = np.ma.median(array.flatten())
+    height = maxi - floor
+    if height == 0.0:   # if star is saturated it could be that
+        floor = np.mean(array.flatten())
+        height = maxi - floor
+
+    mean_y = (np.shape(array)[0]-1)/2
+    mean_x = (np.shape(array)[1]-1)/2
+
+    fwhm = np.sqrt(np.sum((array > floor+height/2.).flatten()))
+
+    beta = 4
     
+    p0 = floor, height, mean_y, mean_x, fwhm, beta
+
     p = leastsq(err, p0, args=(array), maxfev=1000)
     p = p[0]
     

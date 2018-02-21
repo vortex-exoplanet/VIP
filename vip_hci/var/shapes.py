@@ -105,8 +105,8 @@ def frame_center(array, verbose=False):
     return cy, cx
 
     
-def get_square(array, size, y, x, position=False):                 
-    """ Returns an square subframe. 
+def get_square(array, size, y, x, position=False, force=False):
+    """ Returns an square subframe from a 2d array or image.
     
     Parameters
     ----------
@@ -120,8 +120,11 @@ def get_square(array, size, y, x, position=False):
     x : int
         X coordinate of the center of the subframe (obtained with the function
         ``frame_center``).
-    position : bool optional
+    position : bool, optional
         If set to True return also the coordinates of the bottom-left vertex.
+    force : bool, optional
+        Size and the size of the array must be both even or odd. With ``force``
+        set to True this condition can be avoided.
         
     Returns
     -------
@@ -131,15 +134,36 @@ def get_square(array, size, y, x, position=False):
     """
     if not array.ndim == 2:
         raise TypeError('Input array is not a frame or 2d array.')
-    
+
+    ary, arx = array.shape
+
+    if not force:
+        if ary % 2 == 0:    # assuming square frames
+            if size % 2 != 0:
+                size += 1
+                print('size is odd (while frame size is even)')
+                print('Setting size to {} pixels'.format(size))
+        else:
+            if size % 2 == 0:
+                size += 1
+                print('size is even (while frame size is odd)')
+                print('Setting size to {} pixels'.format(size))
+
     # wing is added to the sides of the subframe center
-    if size%2 != 0:
+    if size % 2 != 0:
         wing = int(np.floor(size / 2.))
     else:
         wing = (size / 2.) - 0.5
-    # +1 because python doesn't include the endpoint when slicing
-    array_view = array[int(y-wing):int(y+wing+1),
-                       int(x-wing):int(x+wing+1)].copy()
+
+    y0 = int(y-wing)
+    y1 = int(y+wing+1)  # +1 cause endpoint is excluded when slicing
+    x0 = int(x-wing)
+    x1 = int(x+wing+1)
+    if (y0 or x0) < 0 or (y1 or x1) > ary:   # assuming square frames
+        msg = 'square cannot be obtained given the size and y,x combination'
+        raise RuntimeError(msg)
+
+    array_view = array[y0: y1, x0: x1].copy()
     
     if position:
         return array_view, y-wing, x-wing
@@ -147,6 +171,8 @@ def get_square(array, size, y, x, position=False):
         return array_view
 
 
+# TODO: Check this function is needed, if not remove and replace by get_square
+# TODO: Check handling even sized frames
 def get_square_robust(array, size, y, x, position=False, 
                       out_borders='reduced_square', return_wings=False,
                       strict=False):                 

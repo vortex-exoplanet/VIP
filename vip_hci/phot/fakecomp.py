@@ -11,9 +11,7 @@ __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['create_psf_template',
            'psf_norm',
            'cube_inject_companions',
-           'frame_inject_companion',
-           'inject_fcs_cube',
-           'inject_fc_frame']
+           'frame_inject_companion']
 
 import numpy as np
 import photutils
@@ -21,19 +19,7 @@ from ..preproc import cube_crop_frames, frame_shift, frame_crop
 from ..var import frame_center, fit_2dgaussian, get_circle
 
 
-# TODO: remove this in VIP v1.0.0. Created for backward compatibility
-def inject_fcs_cube(array, psf_template, angle_list, flevel, plsc,
-                    rad_dists, n_branches=1, theta=0, imlib='opencv',
-                    verbose=True):
-    return cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
-                                  rad_dists, n_branches, theta, imlib, verbose)
-
-
-# TODO: remove this in VIP v1.0.0. Created for backward compatibility
-def inject_fc_frame(array, array_fc, pos_y, pos_x, flux):
-    return frame_inject_companion(array, array_fc, pos_y, pos_x, flux)
-
-
+# TODO: Check handling even sized frames
 def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                            rad_dists, n_branches=1, theta=0, imlib='opencv',
                            interpolation='lanczos4', verbose=True):
@@ -72,7 +58,6 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         Output array with the injected fake companions.
 
     """
-
     if not (array.ndim == 3 or array.ndim == 4):
         raise ValueError('Array is not a cube, 3d or 4d array')
     if array.ndim == 4:
@@ -81,15 +66,15 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
     # ADI case
     if array.ndim == 3:
-        # TODO: extend to even-sized psf arrays
-        if psf_template.shape[1]%2 == 0:
+        if psf_template.shape[1] % 2 == 0:
             raise ValueError("Only odd-sized PSF is accepted")
         ceny, cenx = frame_center(array[0])
         ceny = int(float(ceny))
         cenx = int(float(cenx))
         rad_dists = np.array(rad_dists)
         if not rad_dists[-1] < array[0].shape[0]/2.:
-            msg = 'rad_dists last location is at the border (or outside) of the field'
+            msg = 'rad_dists last location is at the border (or outside) '
+            msg += 'of the field'
             raise ValueError(msg)
 
         size_fc = psf_template.shape[0]

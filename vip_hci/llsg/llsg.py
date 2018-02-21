@@ -105,12 +105,12 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         optimal value when ``fwhm`` is ~4.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
-    full_output: boolean, optional
+    full_output: bool, optional
         Whether to return the final median combined image only or with other
         intermediate arrays.
-    verbose : {True, False}, bool optional
+    verbose : bool, optional
         If True prints to stdout intermediate info.
-    debug : {False, True}, bool optional
+    debug : bool, optional
         Whether to output some intermediate information.
 
     Returns
@@ -198,7 +198,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     if verbose:
         print('Processing annulus: ')
     for ann in range(n_annuli):
-        inner_radius = annulus_width * ann
+        inner_radius = radius_int + ann * annulus_width
         n_segments_ann = n_segments[ann]
         if verbose:
             print('{} : in_rad={}, n_segm={}'.format(ann+1, inner_radius,

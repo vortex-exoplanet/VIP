@@ -423,9 +423,9 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
     center for each annulus.
     """
     if ann == n_annuli-1:
-        inner_radius = radius_int + (ann*annulus_width-1)
+        inner_radius = radius_int + (ann * annulus_width - 1)
     else:                                                                                         
-        inner_radius = radius_int + ann*annulus_width
+        inner_radius = radius_int + ann * annulus_width
     ann_center = (inner_radius+(annulus_width/2.0))
     pa_threshold = compute_pa_thresh(ann_center, fwhm, delta_rot) 
      

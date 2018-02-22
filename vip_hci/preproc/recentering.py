@@ -224,13 +224,6 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
         raise TypeError('Input array is not a frame or 2d array')
     if not len(xy) == 4:
         raise TypeError('Input waffle spot coordinates in wrong format')
-
-    # TODO: verify correct handling of even/odd cases
-    # If frame size is even we drop last row and last column
-    if array.shape[0]%2==0:
-        array = array[:-1,:].copy()
-    if array.shape[1]%2==0:
-        array = array[:,:-1].copy()
     
     cy, cx = frame_center(array)
     

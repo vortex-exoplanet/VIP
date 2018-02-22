@@ -23,13 +23,13 @@ from .utils_var import pp_subplots
 def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4, 
                    theta=0, threshold=False, sigfactor=6, full_output=False, 
                    debug=False):
-    """ Fitting a 2D Gaussian to the 2D distribution of the data with photutils.
+    """ Fitting a 2D Gaussian to the 2D distribution of the data.
     
     Parameters
     ----------
     array : array_like
         Input frame with a single PSF.
-    crop : {False, True}, optional
+    crop : bool, optional
         If True an square sub image will be cropped.
     cent : tuple of int, optional
         X,Y integer position of source in the array for extracting the subimage. 

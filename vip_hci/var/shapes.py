@@ -123,8 +123,8 @@ def get_square(array, size, y, x, position=False, force=False):
     position : bool, optional
         If set to True return also the coordinates of the bottom-left vertex.
     force : bool, optional
-        Size and the size of the array must be both even or odd. With ``force``
-        set to True this condition can be avoided.
+        Size and the size of the 2d array must be both even or odd. With
+        ``force`` set to True this condition can be avoided.
         
     Returns
     -------
@@ -141,13 +141,13 @@ def get_square(array, size, y, x, position=False, force=False):
         if ary % 2 == 0:    # assuming square frames
             if size % 2 != 0:
                 size += 1
-                print('size is odd (while frame size is even)')
-                print('Setting size to {} pixels'.format(size))
+                print('`Size` is odd (while frame size is even)')
+                print('Setting `size` to {} pixels'.format(size))
         else:
             if size % 2 == 0:
                 size += 1
-                print('size is even (while frame size is odd)')
-                print('Setting size to {} pixels'.format(size))
+                print('`Size` is even (while frame size is odd)')
+                print('Setting `size` to {} pixels'.format(size))
 
     # wing is added to the sides of the subframe center
     if size % 2 != 0:

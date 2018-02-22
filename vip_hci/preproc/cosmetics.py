@@ -22,7 +22,8 @@ from ..stats import sigma_filter
 from ..var import frame_center, get_square
 
 
-def cube_crop_frames(array, size, xy=None, verbose=True, full_output=False):
+def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
+                     full_output=False):
     """Crops frames in a cube (3d or 4d array).
     
     Parameters
@@ -34,6 +35,9 @@ def cube_crop_frames(array, size, xy=None, verbose=True, full_output=False):
     xy : tuple of ints
         X, Y coordinates of new frame center. If you are getting the
         coordinates from ds9 subtract 1, python has 0-based indexing.
+    force : bool, optional
+        ``Size`` and the size of the frames must be both even or odd. With
+        ``force`` set to True this condition can be avoided.
     verbose : bool optional
         If True message of completion is showed.
     full_output: bool optional
@@ -49,16 +53,30 @@ def cube_crop_frames(array, size, xy=None, verbose=True, full_output=False):
         raise TypeError('Array is not a cube, 3d or 4d array')
     if not isinstance(size, int):
         raise TypeError('Size must be integer')
-    if array.shape[2]%2 == 0:   # assuming square frames, both 3d or 4d case
-        if size%2 != 0:
-            msg = "Warning: the new size is odd and the original frame size is"
-            msg += " even. Make sure you are setting properly xy parameter"
-            print(msg)
+
+    if not force:
+        if array.shape[2] % 2 == 0:    # assuming square frames
+            if size % 2 != 0:
+                size += 1
+                print('`Size` is odd (while frame size is even)')
+                print('Setting `size` to {} pixels'.format(size))
+        else:
+            if size % 2 == 0:
+                size += 1
+                print('`Size` is even (while frame size is odd)')
+                print('Setting `size` to {} pixels'.format(size))
     else:
-        if size % 2 == 0:
-            msg = "Warning: the new size is even and the original frame size is"
-            msg += " odd. Make sure you are setting properly xy parameter"
-            print(msg)
+        if array.shape[2] % 2 == 0: # assuming square frames, both 3d or 4d case
+            if size % 2 != 0:
+                msg = "Warning: the new size is odd and the original frame "
+                msg += " size is even. Make sure you are setting properly `xy`"
+                print(msg)
+        else:
+            if size % 2 == 0:
+                msg = "Warning: the new size is even and the original frame "
+                msg += " size is odd. Make sure you are setting properly `xy`"
+                print(msg)
+
     if xy is not None:
         if not (isinstance(xy[0], int) or isinstance(xy[1], int)):
             raise TypeError('XY must be a tuple of integers')
@@ -66,7 +84,7 @@ def cube_crop_frames(array, size, xy=None, verbose=True, full_output=False):
         raise ValueError('The new size is equal or bigger than the frame size')
     
     # wing is added to the sides of the subframe center
-    if size%2 != 0:
+    if size % 2 != 0:
         wing = int(np.floor(size / 2.))
     else:
         wing = (size / 2.) - 0.5
@@ -95,22 +113,22 @@ def cube_crop_frames(array, size, xy=None, verbose=True, full_output=False):
         array_view = array[:, :, int(ceny - wing):int(ceny + wing + 1),
                            int(cenx - wing):int(cenx + wing + 1)]
         if verbose:
-            msg = "\nCube cropped; new size [{:},{:},{:},{:}] centered at ({:},{:})"
+            msg = "\nCube cropped; new size [{:},{:},{:},{:}] "
+            msg += "centered at ({:},{:})"
             print(msg.format(array_view.shape[0], array_view.shape[1],
                              array_view.shape[2], array_view.shape[3],
                              cenx, ceny))
 
-    # Option to return the cenx and ceny for double checking that the frame crop
-    # did not exceed the limit
+    # Option to return the cenx and ceny
     if full_output:
         return array_view, cenx, ceny
     else:
         return array_view
 
 
-def frame_crop(array, size, cenxy=None, verbose=True):                         
-    """Crops a square frame (2d array).
-    
+def frame_crop(array, size, cenxy=None, force=False, verbose=True):
+    """ Crops a square frame (2d array). Uses the ``get_square`` function.
+
     Parameters
     ----------
     array : array_like
@@ -119,6 +137,9 @@ def frame_crop(array, size, cenxy=None, verbose=True):
         Size of the subframe.
     cenxy : tuple, optional
         Coordinates of the center of the subframe.
+    force : bool, optional
+        Size and the size of the 2d array must be both even or odd. With
+        ``force`` set to True this condition can be avoided.
     verbose : bool optional
         If True message of completion is showed.
         
@@ -138,7 +159,7 @@ def frame_crop(array, size, cenxy=None, verbose=True):
         ceny, cenx = frame_center(array, verbose=False)
     else:
         cenx, ceny = cenxy
-    array_view = get_square(array, size, ceny, cenx)  
+    array_view = get_square(array, size, ceny, cenx, force=force)
     
     if verbose:
         print("\nDone frame cropping")

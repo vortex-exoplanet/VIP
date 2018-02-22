@@ -524,13 +524,13 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
         print('Measured annulus-wise noise in resulting frame')
         timing(start_time)
 
+    # We crop the PSF and check if PSF has been normalized (so that flux in
+    # 1*FWHM aperture = 1) and fix if needed
+    new_psf_size = 3 * fwhm
+    if new_psf_size % 2 == 0:
+        new_psf_size += 1
+
     if cube.ndim == 3:
-        # We crop the PSF and check if PSF has been normalized (so that flux in
-        # 1*FWHM aperture = 1) and fix if needed
-        # TODO: verify it handles odd and even-sized cases
-        new_psf_size = 3*fwhm
-        if new_psf_size%2 == 0:
-            new_psf_size += 1
         psf_template = psf_norm(psf_template, size=min(new_psf_size,
                                                        psf_template.shape[1]),
                                 fwhm=fwhm)
@@ -622,12 +622,6 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     elif cube.ndim == 4:
         if isinstance(fwhm, (int, float)):
             fwhm = [fwhm for _ in range(array.shape[0])]
-
-        # We crop the PSF and check if PSF has been normalized (so that flux in
-        # 1*FWHM aperture = 1) and fix if needed
-        new_psf_size = 3 * np.max(fwhm)
-        if new_psf_size%2 == 0:
-            new_psf_size += 1
 
         psf_template = psf_norm(psf_template, fwhm=fwhm,
                                 size=min(new_psf_size, psf_template.shape[1]))

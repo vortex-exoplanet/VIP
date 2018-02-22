@@ -59,9 +59,8 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
         The rescaled cube, its median, the new y and x shapes of the cube, and 
         the new centers cy and cx of the frames
     """
-    #First pad the cube with zeros appropriately to not loose info when scaling
-    # the cube.
-    # TBD next: pad with random gaussian noise instead of zeros. Padding with 
+    # Cube zeros-padding to avoid loosing info when scaling the cube
+    # TODO: pad with random gaussian noise instead of zeros. Padding with
     # only zeros can make the svd not converge in a pca per zone.
 
     n, y, x = cube.shape
@@ -71,8 +70,10 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
     if not inverse and max_sc > 1:
         new_y = int(np.ceil(max_sc*y))
         new_x = int(np.ceil(max_sc*x))
-        if (new_y - y)%2 != 0: new_y = new_y+1
-        if (new_x - x)%2 != 0: new_x = new_x+1
+        if (new_y - y) % 2 != 0:
+            new_y = new_y+1
+        if (new_x - x) % 2 != 0:
+            new_x = new_x+1
         pad_len_y = (new_y - y)//2
         pad_len_x = (new_x - x)//2
         big_cube = np.pad(cube, ((0,0), (pad_len_y, pad_len_y), 
@@ -82,12 +83,12 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
         big_cube = cube.copy()
 
     n, y, x = big_cube.shape
-    cy,cx = frame_center(big_cube[0])
+    cy, cx = frame_center(big_cube[0])
     var_list = scal_list
 
     if inverse:
         var_list = 1./scal_list[:]
-        cy,cx = frame_center(cube[0])
+        cy, cx = frame_center(cube[0])
 
     # (de)scale the cube, so that a planet would now move radially
     cube, frame = cube_rescaling(big_cube, var_list, ref_y=cy, ref_x=cx,
@@ -96,18 +97,18 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
     if inverse:
         if max_sc > 1:
             # TODO: check the use of get_square_robust
-            frame = get_square_robust(frame,max(y_in,x_in), cy,cx,strict=False)
+            frame = get_square_robust(frame,max(y_in,x_in), cy, cx,strict=False)
             if full_output:
                 n_z = cube.shape[0]
                 array_old = cube.copy()
-                cube = np.zeros([n_z,max(y_in,x_in),max(y_in,x_in)])
+                cube = np.zeros([n_z,max(y_in, x_in), max(y_in, x_in)])
                 for zz in range(n_z):
                     # TODO: check the use of get_square_robust
-                    cube[zz]=get_square_robust(array_old[zz],max(y_in,x_in), 
-                                               cy,cx,strict=False)
+                    cube[zz] = get_square_robust(array_old[zz],max(y_in, x_in),
+                                                 cy, cx, strict=False)
 
     if full_output: 
-        return cube,frame,y,x,cy,cx
+        return cube, frame, y, x, cy, cx
     else: 
         return frame
 

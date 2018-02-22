@@ -114,7 +114,6 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
     # ADI+IFS case
     if array.ndim == 4 and psf_template.ndim == 3:
-        # TODO: extend to even-sized psf arrays
         if psf_template.shape[2] % 2 == 0:
             raise ValueError("Only odd-sized PSF is accepted")
         ceny, cenx = frame_center(array[0,0])
@@ -172,6 +171,14 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     print(msg.format(posx, posy, rad_arcs, rad_dists[i]))
 
     return array_out
+
+
+def _cube_shift(cube, y, x, imlib, interpolation):
+    """ Shifts the X-Y coordinates of a cube or 3D array by x and y values. """
+    cube_out = np.zeros_like(cube)
+    for i in range(cube.shape[0]):
+        cube_out[i] = frame_shift(cube[i], y, x, imlib, interpolation)
+    return cube_out
 
 
 def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
@@ -251,8 +258,8 @@ def create_psf_template(array, size, fwhm=4, verbose=True, collapse='mean'):
 
 
 def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
-             imlib='opencv', interpolation='lanczos4', full_output=False,
-             verbose=False):
+             imlib='opencv', interpolation='lanczos4', force_odd=True,
+             full_output=False, verbose=False):
     """ Scales a PSF (2d or 3d array), so the 1*FWHM aperture flux equals 1.
 
     Parameters
@@ -274,6 +281,10 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    force_odd : str, optional
+        If True the resulting array will have odd size (and the PSF will be
+        placed at its center). If False, and the frame size is even, then the
+        PSF will be put at the center of an even-sized frame.
     full_output : bool, optional
         If True the flux in a FWHM aperture is returned along with the
         normalized PSF.
@@ -288,33 +299,30 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
     If ``full_output`` is True the flux in a FWHM aperture is returned along
     with the normalized PSF.
     """
-    def psf_norm_2d(array, fwhm, size, threshold, mask_core, imlib,
-                    interpolation, full_output, verbose):
-        """ Helper function for 2d case """
+    def psf_norm_2d(array, fwhm, size, threshold, mask_core, full_output,
+                    verbose):
+        """ 2d case """
         if size is not None:
             if size < array.shape[0]:
-                psfs = frame_crop(array, size, verbose=False)
+                psfs = frame_crop(array, size, force=force_odd, verbose=False)
             else:
                 psfs = array.copy()
         else:
             psfs = array.copy()
-            # TODO: verify correct handling of even/odd cases (old behavior: if
-            # frame size is even we drop last row and last column)
-            if psfs.shape[0]%2 == 0:
-                psfs = psfs[:-1, :]
-            if psfs.shape[1]%2 == 0:
-                psfs = psfs[:, :-1]
 
         # we check if the psf is centered and fix it if needed
         cy, cx = frame_center(psfs, verbose=False)
-        maxpxy = np.where(psfs == psfs.max())[0]
-        maxpxx = np.where(psfs == psfs.max())[1]
-        if cy != maxpxy or cx != maxpxx:
+        xcom, ycom = photutils.centroid_com(psfs)
+        if not (np.allclose(cy, ycom, atol=1e-2) or
+                np.allclose(cx, xcom, atol=1e-2)):
             # first we find the centroid and put it in the center of the array
             centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm, fwhmy=fwhm)
             shiftx, shifty = centroidx - cx, centroidy - cy
-            psfs = frame_shift(psfs, -shifty, -shiftx, imlib=imlib,
+            psfs = frame_shift(array, -shifty, -shiftx, imlib=imlib,
                                interpolation=interpolation)
+            if size is not None:
+                psfs = frame_crop(psfs, size, force=force_odd, verbose=False)
+
             for _ in range(2):
                 centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm,
                                                       fwhmy=fwhm)
@@ -345,13 +353,38 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
             return psf_norm_array, fwhm_flux
         else:
             return psf_norm_array
-    #---------------------------------------------------------------------------
+    ############################################################################
 
     if array.ndim == 2:
-        res = psf_norm_2d(array, fwhm, size, threshold, mask_core, imlib,
-                          interpolation, full_output, verbose)
+        y, x = array.shape
+        if size is not None:
+            if force_odd and size % 2 == 0:
+                size += 1
+                msg = "`Force_odd` is True therefore `size` was set to {}"
+                print(msg.format(size))
+        else:
+            if force_odd and y % 2 == 0:
+                size = y - 1
+                msg = "`Force_odd` is True and frame size is even, therefore "
+                msg += "new frame size was set to {}"
+                print(msg.format(size))
+        res = psf_norm_2d(array, fwhm, size, threshold, mask_core, full_output,
+                          verbose)
 
     elif array.ndim == 3:
+        y, x = array[0].shape
+        if size is not None:
+            if force_odd and size % 2 == 0:
+                size += 1
+                msg = "`Force_odd` is True therefore `size` was set to {}"
+                print(msg.format(size))
+        else:
+            if force_odd and y % 2 == 0:
+                size = y - 1
+                msg = "`Force_odd` is True and frame size is even, therefore "
+                msg += "new frame size was set to {}"
+                print(msg.format(size))
+
         if isinstance(fwhm, (int, float)):
             fwhm = [fwhm for _ in range(array.shape[0])]
         array_out = np.zeros((array.shape[0], size, size))
@@ -360,8 +393,7 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
 
         for fr in range(array.shape[0]):
             restemp = psf_norm_2d(array[fr], fwhm[fr], size, threshold,
-                                  mask_core, imlib, interpolation, full_output,
-                                  False)
+                                  mask_core, full_output, False)
             if full_output:
                 array_out[fr] = restemp[0]
                 fwhm_flux[fr] = restemp[1]
@@ -376,9 +408,4 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
     return res
 
 
-def _cube_shift(cube, y, x, imlib, interpolation):
-    " Shifts the X-Y coordinates of a cube or 3D array by x and y values"
-    cube_out = np.zeros_like(cube)
-    for i in range(cube.shape[0]):
-        cube_out[i] = frame_shift(cube[i], y, x, imlib, interpolation)
-    return cube_out
+

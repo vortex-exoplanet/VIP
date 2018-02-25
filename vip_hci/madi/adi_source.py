@@ -2,7 +2,6 @@
 
 """
 Module with ADI algorithm (median psf subtraction).
-Carlos A. Gomez / ULg
 """
 
 from __future__ import division 
@@ -17,8 +16,8 @@ from multiprocessing import Pool, cpu_count
 from ..conf import time_ini, timing
 from ..var import get_annulus, mask_circle
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
-from ..pca.pca_local import _define_annuli
 from ..conf import eval_func_tuple as EFT
+from .adi_utils import _find_indices, _define_annuli
 
 
 array = None
@@ -174,8 +173,8 @@ def _median_subt_ann(ann, angle_list, n_annuli, fwhm, radius_int, annulus_width,
     # rejection are calculated. The PA rejection is calculated at center of
     # the annulus
     pa_thr, inner_radius, _ = _define_annuli(angle_list, ann, n_annuli, fwhm,
-                                            radius_int, annulus_width,
-                                            delta_rot, verbose)
+                                             radius_int, annulus_width,
+                                             delta_rot, 1, verbose)
 
     indices = get_annulus(array[0], inner_radius, annulus_width,
                           output_indices=True)
@@ -201,44 +200,4 @@ def _median_subt_ann(ann, angle_list, n_annuli, fwhm, radius_int, annulus_width,
 
     return matrix_res, yy, xx
 
-
-def _find_indices(angle_list, frame, thr, nframes=None, out_closest=False):
-    """ Returns the indices to be left in frames library for optimized ADI.
-
-    nframes : int, optional
-        Number of indices to be left.
-    """
-    n = angle_list.shape[0]
-    index_prev = 0
-    index_foll = frame
-    for i in range(0, frame):
-        if np.abs(angle_list[frame] - angle_list[i]) < thr:
-            index_prev = i
-            break
-        else:
-            index_prev += 1
-    for k in range(frame, n):
-        if np.abs(angle_list[k] - angle_list[frame]) > thr:
-            index_foll = k
-            break
-        else:
-            index_foll += 1
-
-    if nframes is not None:
-        window = int(nframes/2)
-    else:
-        window = n
-
-    ind1 = index_prev-window
-    ind1 = max(ind1, 0)
-    ind2 = index_prev
-    ind3 = index_foll
-    ind4 = index_foll+window
-    ind4 = min(ind4, n)
-    indices = np.array(list(range(ind1, ind2)) + list(range(ind3, ind4)))
-
-    if out_closest:
-        return index_prev, index_foll
-    else:
-        return indices
 

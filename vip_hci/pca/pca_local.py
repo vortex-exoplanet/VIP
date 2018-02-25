@@ -17,9 +17,10 @@ from multiprocessing import Pool, cpu_count
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import time_ini, timing
 from ..conf import eval_func_tuple as EFT 
-from ..var import get_annulus_segments, matrix_scaling
-from .svd import get_eigenvectors
+from ..var import get_annulus_segments, matrix_scaling, get_annulus
+from ..madi.adi_utils import _find_indices, _define_annuli
 from ..stats import descriptive_stats
+from .svd import get_eigenvectors
 
 
 def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, 
@@ -409,80 +410,6 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=3,
 ### Help functions (encapsulating portions of the main algos)
 ################################################################################
     
-def compute_pa_thresh(ann_center, fwhm, delta_rot=1):
-    """ Computes the parallactic angle theshold[degrees]
-    Replacing approximation: delta_rot * (fwhm/ann_center) / np.pi * 180
-    """
-    return np.rad2deg(2*np.arctan(delta_rot*fwhm/(2*ann_center)))
-    
-    
-def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
-                  delta_rot, n_segments, verbose):
-    """ Function that defines the annuli geometry using the input parameters.
-    Returns the parallactic angle threshold, the inner radius and the annulus
-    center for each annulus.
-    """
-    if ann == n_annuli-1:
-        inner_radius = radius_int + (ann * annulus_width - 1)
-    else:                                                                                         
-        inner_radius = radius_int + ann * annulus_width
-    ann_center = (inner_radius+(annulus_width/2.0))
-    pa_threshold = compute_pa_thresh(ann_center, fwhm, delta_rot) 
-     
-    mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list))/2
-    if pa_threshold >= mid_range - mid_range * 0.1:
-        new_pa_th = float(mid_range - mid_range * 0.1)
-        if verbose:
-            msg = 'PA threshold {:.2f} is too big, will be set to {:.2f}'
-            print(msg.format(pa_threshold, new_pa_th))
-        pa_threshold = new_pa_th
-                         
-    if verbose:
-        msg2 = 'Annulus {:}, PA thresh = {:.2f}, Inn radius = {:.2f}, '
-        msg2 += 'Ann center = {:.2f}, N segments = {:} '
-        print(msg2.format(int(ann+1), pa_threshold, inner_radius, ann_center,
-                          n_segments))
-    return pa_threshold, inner_radius, ann_center
-
-
-def find_indices(angle_list, frame, thr, truncate, max_frames=200):
-    """ Returns the indices to be left in pca library.  
-    
-    # TODO: find a more pythonic way to to this!
-    """
-    n = angle_list.shape[0]
-    index_prev = 0 
-    index_foll = frame                                  
-    for i in range(0, frame):
-        if np.abs(angle_list[frame]-angle_list[i]) < thr:
-            index_prev = i
-            break
-        else:
-            index_prev += 1
-    for k in range(frame, n):
-        if np.abs(angle_list[k]-angle_list[frame]) > thr:
-            index_foll = k
-            break
-        else:
-            index_foll += 1
-    
-    half1 = range(0,index_prev)
-    half2 = range(index_foll,n)
-    
-    # This truncation is done on the annuli after 10*FWHM and the goal is to
-    # keep min(num_frames/2, 200) in the library after discarding those based on
-    # the PA threshold
-    if truncate:
-        thr = min(int(n/2), max_frames)
-        if frame < thr: 
-            half1 = range(max(0,index_prev-int(thr/2)), index_prev)
-            half2 = range(index_foll, min(index_foll+thr-len(half1),n))
-        else:
-            half2 = range(index_foll, min(n, int(thr/2+index_foll)))
-            half1 = range(max(0,index_prev-thr+len(half2)), index_prev)
-    return np.array(list(half1) + list(half2))
-
-
 def do_pca_loop(matrix, nproc, angle_list, fwhm, pa_threshold, ann_center,
                 svd_mode, ncomp, min_frames_lib, max_frames_lib, tol, verbose):
     """
@@ -548,10 +475,12 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
     """
     if pa_threshold != 0:
         if ann_center > fwhm*10:    # TODO: 10*FWHM optimal? new parameter?
-            indices_left = find_indices(angle_list, frame, pa_threshold, True,
-                                        max_frames_lib)
+            indices_left = _find_indices(angle_list, frame, pa_threshold,
+                                         truncate=True,
+                                         max_frames=max_frames_lib)
         else:
-            indices_left = find_indices(angle_list, frame, pa_threshold, False)
+            indices_left = _find_indices(angle_list, frame, pa_threshold,
+                                         truncate=False)
          
         data_ref = matrix[indices_left]
         

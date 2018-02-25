@@ -295,7 +295,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         if no_torch:
             raise RuntimeError('Pytorch is not installed')
         a_gpu = torch.Tensor.cuda(torch.from_numpy(matrix.T))
-        u_gpu, s_gpu, vh_gpu = torch.svd()
+        u_gpu, s_gpu, vh_gpu = torch.svd(a_gpu)
         V = np.array(vh_gpu)[:ncomp]
         S = np.array(s_gpu)[:ncomp]
         U = np.array(u_gpu)[:, :ncomp]

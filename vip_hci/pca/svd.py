@@ -299,7 +299,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         if verbose:
             print('Done SVD/PCA with pytorch (GPU)')
 
-    if mode == 'eigenpytorch':
+    elif mode == 'eigenpytorch':
         if no_torch:
             raise RuntimeError('Pytorch is not installed')
         a_gpu = torch.from_numpy(matrix)

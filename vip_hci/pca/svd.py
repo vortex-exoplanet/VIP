@@ -512,7 +512,7 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
             return U[:, :n_components], s[:n_components], V[:n_components, :]
 
     elif lib == 'pytorch':
-        M = a_gpu = torch.Tensor.cuda(torch.from_numpy(M.astype('float32')))
+        M = torch.Tensor.cuda(torch.from_numpy(M.astype('float32')))
 
         # Generating normal random vectors with shape: (M.shape[1], n_random)
         Q = torch.cuda.FloatTensor(M.shape[1], n_random).normal_()

@@ -515,7 +515,7 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
         M = a_gpu = torch.Tensor.cuda(torch.from_numpy(M))
 
         # Generating normal random vectors with shape: (M.shape[1], n_random)
-        Q = torch.randn(M.shape[1], n_random)
+        Q = torch.cuda.FloatTensor(M.shape[1], n_random).normal_()
 
         # Perform power iterations with Q to further 'imprint' the top
         # singular vectors of M in Q

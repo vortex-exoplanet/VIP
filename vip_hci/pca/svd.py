@@ -21,6 +21,14 @@ except ImportError:
     msg += "and installing cupy >= 2.0.0"
     warnings.warn(msg, ImportWarning)
     no_cupy = True
+try:
+    import torch
+    no_torch = False
+except ImportError:
+    msg = "Pytorch not found. Have a GPU? Consider setting up a CUDA "
+    msg += "environment and installing pytorch"
+    warnings.warn(msg, ImportWarning)
+    no_torch = True
 
 import numpy as np
 from numpy import linalg
@@ -41,7 +49,8 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
     ----------
     matrix : array_like, 2d
         2d input matrix.
-    mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy', 'randcupy'}, str
+    mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
+            'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
         Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK 
         linear algebra library through Numpy and it is the most conventional way 
         of computing the SVD (deterministic result computed on CPU). ``arpack`` 
@@ -52,8 +61,13 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
         of the SVD as in the LAPACK version. ``eigencupy`` offers the same 
         method as with the ``eigen`` option but on GPU (through Cupy). 
-        ``randcupy`` is an adaptation of the randomized_svd algorith, where all 
-        the computations are done on a GPU. 
+        ``randcupy`` is an adaptation of the randomized_svd algorithm, where all
+        the computations are done on a GPU (through Cupy). ``pytorch`` uses the
+        Pytorch library for GPU computation of the SVD. ``eigenpytorch`` offers
+        the same method as with the ``eigen`` option but on GPU (through
+        Pytorch). ``randpytorch`` is an adaptation of the randomized_svd
+        algorithm, where all the linear algebra computations are done on a GPU
+        (through Pytorch).
     ncomp : int
         Number of singular vectors to be obtained. In the cases when the full
         SVD is computed (LAPACK, ARPACK, EIGEN, CUPY), the matrix of singular 
@@ -93,9 +107,15 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
     * For ``cupy`` SVD mode see:
     https://docs-cupy.chainer.org/en/stable/reference/generated/cupy.linalg.svd.html
     
-    * For ``eigencupy`` SVD mode see:
-    https://docs-cupy.chainer.org/en/master/reference/generated/cupy.linalg.eigh.html   
-    
+    * For ``eigencupy`` mode see:
+    https://docs-cupy.chainer.org/en/master/reference/generated/cupy.linalg.eigh.html
+
+    * For ``pytorch`` SVD mode see:
+    http://pytorch.org/docs/master/torch.html#torch.svd
+
+    * For ``eigenpytorch`` mode see:
+    http://pytorch.org/docs/master/torch.html#torch.eig
+
     """
 
     def reconstruction(ncomp, U, S, V, var=1):
@@ -169,8 +189,10 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         raise TypeError('Input matrix is not a 2d array')
 
     if usv:
-        if mode not in ('lapack', 'arpack', 'randsvd', 'cupy', 'randcupy'):
-            msg = 'Returning USV is supported with modes lapack, arpack, randsvd, cupy or randcupy'
+        if mode not in ('lapack', 'arpack', 'randsvd', 'cupy', 'randcupy',
+                        'pytorch', 'randpytorch'):
+            msg = "Returning USV is supported with modes lapack, arpack, "
+            msg += "randsvd, cupy, randcupy, pytorch or randpytorch"
             raise ValueError(msg)
 
     if ncomp > min(matrix.shape[0], matrix.shape[1]):
@@ -185,35 +207,44 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         pc = np.dot(EV.T, matrix)           # PCs using a compact trick when cov is MM'
         V = pc[::-1]                        # reverse since last eigenvectors are the ones we want
         S = np.sqrt(e)[::-1]                # reverse since eigenvalues are in increasing order
-        if debug: reconstruction(ncomp, None, S, None)
+        if debug:
+            reconstruction(ncomp, None, S, None)
         for i in range(V.shape[1]):
             V[:, i] /= S                    # scaling by the square root of eigenvalues
         V = V[:ncomp]
-        if verbose: print('Done PCA with numpy linalg eigh functions')
+        if verbose:
+            print('Done PCA with numpy linalg eigh functions')
 
     elif mode == 'lapack':
         # n_frames is usually smaller than n_pixels. In this setting taking the SVD of M'
         # and keeping the left (transposed) SVs is faster than taking the SVD of M (right SVs)
         U, S, V = linalg.svd(matrix.T, full_matrices=False)
-        if debug: reconstruction(ncomp, U, S, V)
+        if debug:
+            reconstruction(ncomp, U, S, V)
         V = V[:ncomp]                       # we cut projection matrix according to the # of PCs
         U = U[:, :ncomp]
         S = S[:ncomp]
-        if verbose: print('Done SVD/PCA with numpy SVD (LAPACK)')
+        if verbose:
+            print('Done SVD/PCA with numpy SVD (LAPACK)')
 
     elif mode == 'arpack':
         U, S, V = svds(matrix, k=ncomp)
-        if debug: reconstruction(ncomp, U, S, V, -1)
-        if verbose: print('Done SVD/PCA with scipy sparse SVD (ARPACK)')
+        if debug:
+            reconstruction(ncomp, U, S, V, -1)
+        if verbose:
+            print('Done SVD/PCA with scipy sparse SVD (ARPACK)')
 
     elif mode == 'randsvd':
         U, S, V = randomized_svd(matrix, n_components=ncomp, n_iter=2,
                                  transpose='auto', random_state=random_state)
-        if debug: reconstruction(ncomp, U, S, V)
-        if verbose: print('Done SVD/PCA with randomized SVD')
+        if debug:
+            reconstruction(ncomp, U, S, V)
+        if verbose:
+            print('Done SVD/PCA with randomized SVD')
 
     elif mode == 'cupy':
-        if no_cupy: raise RuntimeError('Cupy is not installed')
+        if no_cupy:
+            raise RuntimeError('Cupy is not installed')
         a_gpu = cupy.array(matrix)
         a_gpu = cupy.asarray(a_gpu)  # move the data to the current device
         u_gpu, s_gpu, vh_gpu = cupy.linalg.svd(a_gpu, full_matrices=True,
@@ -225,19 +256,24 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             S = cupy.asnumpy(S)
             U = u_gpu[:, :ncomp]
             U = cupy.asnumpy(U)
-        if verbose: print('Done SVD/PCA with cupy (GPU)')
+        if verbose:
+            print('Done SVD/PCA with cupy (GPU)')
 
     elif mode == 'randcupy':
-        if no_cupy: raise RuntimeError('Cupy is not installed')
-        U, S, V = randomized_svd_gpu(matrix, ncomp, n_iter=2)
+        if no_cupy:
+            raise RuntimeError('Cupy is not installed')
+        U, S, V = randomized_svd_gpu(matrix, ncomp, n_iter=2, lib='cupy')
         V = cupy.asnumpy(V)
         S = cupy.asnumpy(S)
         U = cupy.asnumpy(U)
-        if debug: reconstruction(ncomp, U, S, V)
-        if verbose: print('Done randomized SVD/PCA with cupy (GPU)')
+        if debug:
+            reconstruction(ncomp, U, S, V)
+        if verbose:
+            print('Done randomized SVD/PCA with cupy (GPU)')
 
     elif mode == 'eigencupy':
-        if no_cupy: raise RuntimeError('Cupy is not installed')
+        if no_cupy:
+            raise RuntimeError('Cupy is not installed')
         a_gpu = cupy.array(matrix)
         a_gpu = cupy.asarray(a_gpu)         # move the data to the current device
         C = cupy.dot(a_gpu, a_gpu.T)        # covariance matrix
@@ -245,24 +281,63 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         pc = cupy.dot(EV.T, a_gpu)          # PCs using a compact trick when cov is MM'
         V = pc[::-1]                        # reverse since last eigenvectors are the ones we want
         S = cupy.sqrt(e)[::-1]              # reverse since eigenvalues are in increasing order
-        if debug: reconstruction(ncomp, None, S, None)
+        if debug:
+            reconstruction(ncomp, None, S, None)
         for i in range(V.shape[1]):
             V[:, i] /= S                    # scaling by the square root of eigenvalues
         V = V[:ncomp]
         V = cupy.asnumpy(V)
         S = cupy.asnumpy(S)
-        if verbose: print('Done PCA with cupy eigh function (GPU)')
+        if verbose:
+            print('Done PCA with cupy eigh function (GPU)')
+
+    elif mode == 'pytorch':
+        if no_torch:
+            raise RuntimeError('Pytorch is not installed')
+        a_gpu = torch.Tensor.cuda(torch.from_numpy(matrix.T))
+        u_gpu, s_gpu, vh_gpu = torch.svd(a_gpu)
+        V = np.array(vh_gpu)[:ncomp]
+        S = np.array(s_gpu)[:ncomp]
+        U = np.array(u_gpu)[:, :ncomp]
+        if verbose:
+            print('Done SVD/PCA with pytorch (GPU)')
+
+    elif mode == 'eigenpytorch':
+        if no_torch:
+            raise RuntimeError('Pytorch is not installed')
+        a_gpu = torch.Tensor.cuda(torch.from_numpy(matrix))
+        C = torch.mm(a_gpu, torch.transpose(a_gpu, 0, 1))
+        e, EV = torch.eig(C, eigenvectors=True)
+        pc = torch.mm(torch.transpose(EV, 0, 1), a_gpu)
+        V = np.array(pc)
+        S = np.array(torch.sqrt(e[:, 0]))
+        if debug:
+            reconstruction(ncomp, None, S, None)
+        for i in range(V.shape[1]):
+            V[:, i] /= S
+        V = np.array(V)[:ncomp]
+        if verbose:
+            print('Done PCA with pytorch eig function')
+
+    elif mode == 'randpytorch':
+        if no_torch:
+            raise RuntimeError('Pytorch is not installed')
+        U, S, V = randomized_svd_gpu(matrix, ncomp, n_iter=2, lib='pytorch')
+        if debug:
+            reconstruction(ncomp, U, S, V)
+        if verbose:
+            print('Done randomized SVD/PCA with randomized pytorch (GPU)')
 
     else:
         raise ValueError('The SVD mode is not available')
 
     if usv:
-        if mode == 'lapack':
+        if mode == 'lapack' or mode=='pytorch':
             return V.T, S, U.T
         else:
             return U, S, V
     else:
-        if mode == 'lapack':
+        if mode == 'lapack' or mode=='pytorch':
             return U.T
         else:
             return V
@@ -333,7 +408,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
 
 
 def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
-                       transpose='auto', random_state=0):
+                       transpose='auto', random_state=0, lib='cupy'):
     """Computes a truncated randomized SVD on GPU. Adapted from Sklearn.
 
     Parameters
@@ -365,6 +440,8 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
         generator; If RandomState instance, random_state is the random number
         generator; If None, the random number generator is the RandomState
         instance used by `np.random`.
+    lib : {'cupy', 'pytorch'}, str optional
+        Chooses the GPU library to be used.
 
     Notes
     -----
@@ -396,38 +473,72 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
 
     if transpose == 'auto':
         transpose = n_samples < n_features
-    if transpose: M = M.T       # this implementation is a bit faster with smaller shape[1]
-
-    M = cupy.array(M)
-    M = cupy.asarray(M)
-
-    # Generating normal random vectors with shape: (M.shape[1], n_random)
-    Q = random_state.normal(size=(M.shape[1], n_random))
-    Q = cupy.array(Q)
-    Q = cupy.asarray(Q)
-
-    # Perform power iterations with Q to further 'imprint' the top
-    # singular vectors of M in Q
-    for i in range(n_iter):
-        Q = cupy.dot(M, Q)
-        Q = cupy.dot(M.T, Q)
-
-    # Sample the range of M using by linear projection of Q. Extract an orthonormal basis
-    Q, _ = cupy.linalg.qr(cupy.dot(M, Q), mode='reduced')
-
-    # project M to the (k + p) dimensional space using the basis vectors
-    B = cupy.dot(Q.T, M)
-
-    B = cupy.array(B)
-    Q = cupy.array(Q)
-    # compute the SVD on the thin matrix: (k + p) wide
-    Uhat, s, V = cupy.linalg.svd(B, full_matrices=False, compute_uv=True)
-    del B
-    U = cupy.dot(Q, Uhat)
-
     if transpose:
-        # transpose back the results according to the input convention
-        return V[:n_components, :].T, s[:n_components], U[:, :n_components].T
-    else:
-        return U[:, :n_components], s[:n_components], V[:n_components, :]
+        M = M.T # this implementation is a bit faster with smaller shape[1]
+
+    if lib == 'cupy':
+        M = cupy.array(M)
+        M = cupy.asarray(M)
+
+        # Generating normal random vectors with shape: (M.shape[1], n_random)
+        Q = random_state.normal(size=(M.shape[1], n_random))
+        Q = cupy.array(Q)
+        Q = cupy.asarray(Q)
+
+        # Perform power iterations with Q to further 'imprint' the top
+        # singular vectors of M in Q
+        for i in range(n_iter):
+            Q = cupy.dot(M, Q)
+            Q = cupy.dot(M.T, Q)
+
+        # Sample the range of M using by linear projection of Q. Extract an orthonormal basis
+        Q, _ = cupy.linalg.qr(cupy.dot(M, Q), mode='reduced')
+
+        # project M to the (k + p) dimensional space using the basis vectors
+        B = cupy.dot(Q.T, M)
+
+        B = cupy.array(B)
+        Q = cupy.array(Q)
+        # compute the SVD on the thin matrix: (k + p) wide
+        Uhat, s, V = cupy.linalg.svd(B, full_matrices=False, compute_uv=True)
+        del B
+        U = cupy.dot(Q, Uhat)
+
+        if transpose:
+            # transpose back the results according to the input convention
+            return V[:n_components, :].T, s[:n_components], U[:,
+                                                            :n_components].T
+        else:
+            return U[:, :n_components], s[:n_components], V[:n_components, :]
+
+    elif lib == 'pytorch':
+        M = torch.Tensor.cuda(torch.from_numpy(M.astype('float32')))
+
+        # Generating normal random vectors with shape: (M.shape[1], n_random)
+        Q = torch.cuda.FloatTensor(M.shape[1], n_random).normal_()
+
+        # Perform power iterations with Q to further 'imprint' the top
+        # singular vectors of M in Q
+        for i in range(n_iter):
+            Q = torch.mm(M, Q)
+            Q = torch.mm(torch.transpose(M, 0, 1), Q)
+
+        # Sample the range of M using by linear projection of Q. Extract an orthonormal basis
+        Q, _ = torch.qr(torch.mm(M, Q))
+
+        # project M to the (k + p) dimensional space using the basis vectors
+        B = torch.mm(torch.transpose(Q, 0, 1), M)
+
+        # compute the SVD on the thin matrix: (k + p) wide
+        Uhat, s, V = torch.svd(B)
+        del B
+        U = torch.mm(Q, Uhat)
+
+        if transpose:
+            # transpose back the results according to the input convention
+            return (torch.transpose(V[:n_components, :], 0, 1),
+                    s[:n_components],
+                    torch.transpose(U[:, :n_components], 0, 1))
+        else:
+            return U[:, :n_components], s[:n_components], V[:n_components, :]
 

@@ -19,8 +19,7 @@ from ..var import get_annulus_segments, pp_subplots
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import time_ini, timing
 from ..pca.utils_pca import pca_annulus
-from ..pca.pca_local import _define_annuli
-from ..madi.adi_source import _find_indices
+from ..madi.adi_utils import _compute_pa_thresh, _find_indices, _define_annuli
 from ..conf import eval_func_tuple as EFT
 
 
@@ -145,7 +144,7 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
 
     pa_threshold, in_rad, ann_center = _define_annuli(angles, ann, n_annuli,
                                                       fwhm, radius_int, asize,
-                                                      delta_rot, verbose)
+                                                      delta_rot, 1, verbose)
     if ncomp is not None:
         arrayin = pca_annulus(array, None, ncomp, asize, ann_center,
                               svd_mode='lapack', scaling=None, collapse=None)
@@ -253,3 +252,66 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     return frame_der_median
 
 
+def _pw_rot_res(cube, angle_list, fwhm=4, delta_rot=0.5, inner_radius=2,
+                asize=4, verbose=True, debug=False):
+    """
+
+    Parameters
+    ----------
+    cube : array_like, 3d
+        Input cube.
+    angle_list : array_like, 1d
+        Corresponding parallactic angle for each frame.
+    fwhm : float, optional
+        Known size of the FHWM in pixels to be used. Default is 4.
+    delta_rot : int
+        Minimum parallactic angle distance between the pairs.
+    inner_radius : int, optional
+        The radius of the innermost annulus. By default is 0, if >0 then the
+        central circular area is discarded.
+    asize : int, optional
+        The size of the annuli, in pixels.
+    verbose: bool, optional
+        If True prints info to stdout.
+    debug : bool, optional
+        If True the distance matrices will be plotted and additional information
+        will be given.
+
+    Returns
+    -------
+    final_frame : array_like, 2d
+
+    """
+    array = cube
+
+    if verbose:
+        start_time = time_ini()
+
+    n_frames = array.shape[0]
+    y = array.shape[1]
+    if not asize < np.floor((y / 2)):
+        raise ValueError("asize is too large")
+
+    angle_list = check_pa_vector(angle_list)
+
+    ann_center = (inner_radius + (asize / 2.0))
+    pa_threshold = _compute_pa_thresh(ann_center, fwhm, delta_rot)
+    if debug:
+        print(pa_threshold)
+
+    # annulus-wise pair-wise subtraction
+    res = []
+    for i in range(n_frames):
+        indp, indn = _find_indices(angle_list, i, pa_threshold,
+                                   out_closest=True)
+        if debug:
+            print(indp, indn)
+
+        res.append(array[i] - array[indn])
+        if indn == n_frames-1: break
+
+    if verbose:
+        print('Done processing annulus')
+        timing(start_time)
+
+    return np.array(res)

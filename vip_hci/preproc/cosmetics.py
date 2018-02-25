@@ -81,7 +81,8 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
         if not (isinstance(xy[0], int) or isinstance(xy[1], int)):
             raise TypeError('XY must be a tuple of integers')
     if size >= array.shape[2]:  # assuming square frames, both 3d or 4d case
-        raise ValueError('The new size is equal or bigger than the frame size')
+        msg = "The new size is equal to or bigger than the initial frame size"
+        raise ValueError(msg)
     
     # wing is added to the sides of the subframe center
     if size % 2 != 0:

@@ -19,8 +19,8 @@ from astropy.io import fits
 from matplotlib import pyplot as plt
 from sklearn.decomposition import IncrementalPCA
 from .svd import svd_wrapper
-from .pca_local import find_indices, compute_pa_thresh
-from .utils_pca import (pca_annulus, scale_cube_for_pca)
+from ..madi.adi_utils import _find_indices, _compute_pa_thresh
+from .utils_pca import pca_annulus, scale_cube_for_pca
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector)
 from ..conf import timing, time_ini, check_enough_memory, get_available_memory
@@ -440,7 +440,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
             yc, xc = frame_center(cube[0], False)
             x1, y1 = source_xy
             ann_center = dist(yc, xc, y1, x1)
-            pa_thr = compute_pa_thresh(ann_center, fwhm, delta_rot)         
+            pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
             mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list))/2
             if pa_thr >= mid_range - mid_range * 0.1:
                 new_pa_th = float(mid_range - mid_range * 0.1)
@@ -450,14 +450,15 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
                 pa_thr = new_pa_th     
             
             for frame in range(n):
-                if ann_center > fwhm*3:                                         # TODO: 3 optimal value? new parameter?
-                    ind = find_indices(angle_list, frame, pa_thr, True)
+                if ann_center > fwhm*3: # TODO: 3 optimal value? new parameter?
+                    ind = _find_indices(angle_list, frame, pa_thr,
+                                        truncate=True)
                 else:
-                    ind = find_indices(angle_list, frame, pa_thr, False)
+                    ind = _find_indices(angle_list, frame, pa_thr)
                 
                 res_result = subtract_projection(cube, None, ncomp, scaling, 
                                                  mask_center_px, debug, 
-                                                 svd_mode,verbose,full_output,
+                                                 svd_mode, verbose, full_output,
                                                  ind, frame)
                 if full_output:
                     nfrslib.append(res_result[0])

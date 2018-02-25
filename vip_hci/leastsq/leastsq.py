@@ -16,12 +16,11 @@ import pandas as pn
 import itertools as itt
 from multiprocessing import Pool, cpu_count
 from sklearn.metrics import pairwise_distances
-from vip_hci.var import get_annulus_segments
-from vip_hci.preproc import cube_derotate, cube_collapse, check_pa_vector
-from vip_hci.conf import time_ini, timing
-from vip_hci.pca.pca_local import _define_annuli
-from vip_hci.madi.adi_source import _find_indices
-from vip_hci.conf import eval_func_tuple as EFT
+from ..var import get_annulus_segments
+from ..preproc import cube_derotate, cube_collapse, check_pa_vector
+from ..conf import time_ini, timing
+from ..madi.adi_utils import _find_indices, _define_annuli
+from ..conf import eval_func_tuple as EFT
 
 
 array = None

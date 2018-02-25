@@ -141,7 +141,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     if full_output:
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm_y': fwhm_y, 'fwhm_x': fwhm_x,
-                             'amplitude': amplitude, 'theta': theta})
+                             'amplitude': amplitude, 'theta': theta}, index=[0])
     else:
         return mean_y, mean_x
 

@@ -189,8 +189,10 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         raise TypeError('Input matrix is not a 2d array')
 
     if usv:
-        if mode not in ('lapack', 'arpack', 'randsvd', 'cupy', 'randcupy'):
-            msg = 'Returning USV is supported with modes lapack, arpack, randsvd, cupy or randcupy'
+        if mode not in ('lapack', 'arpack', 'randsvd', 'cupy', 'randcupy',
+                        'pytorch', 'randpytorch'):
+            msg = "Returning USV is supported with modes lapack, arpack, "
+            msg += "randsvd, cupy, randcupy, pytorch or randpytorch"
             raise ValueError(msg)
 
     if ncomp > min(matrix.shape[0], matrix.shape[1]):
@@ -292,7 +294,8 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
     elif mode == 'pytorch':
         if no_torch:
             raise RuntimeError('Pytorch is not installed')
-        u_gpu, s_gpu, vh_gpu = torch.svd(torch.from_numpy(matrix.T))
+        a_gpu = torch.Tensor.cuda(torch.from_numpy(matrix.T))
+        u_gpu, s_gpu, vh_gpu = torch.svd()
         V = np.array(vh_gpu)[:ncomp]
         S = np.array(s_gpu)[:ncomp]
         U = np.array(u_gpu)[:, :ncomp]
@@ -302,7 +305,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
     elif mode == 'eigenpytorch':
         if no_torch:
             raise RuntimeError('Pytorch is not installed')
-        a_gpu = torch.from_numpy(matrix)
+        a_gpu = torch.Tensor.cuda(torch.from_numpy(matrix))
         C = torch.mm(a_gpu, torch.transpose(a_gpu, 0, 1))
         e, EV = torch.eig(C, eigenvectors=True)
         pc = torch.mm(torch.transpose(EV, 0, 1), a_gpu)
@@ -509,7 +512,7 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
             return U[:, :n_components], s[:n_components], V[:n_components, :]
 
     elif lib == 'pytorch':
-        M = torch.from_numpy(M)
+        M = a_gpu = torch.Tensor.cuda(torch.from_numpy(M))
 
         # Generating normal random vectors with shape: (M.shape[1], n_random)
         Q = torch.randn(M.shape[1], n_random)

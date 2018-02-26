@@ -42,7 +42,7 @@ from ..var import matrix_scaling
 
 
 def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
-                random_state=None):
+                random_state=None, to_numpy=False):
     """ Wrapper for different SVD libraries (CPU and GPU). 
       
     Parameters
@@ -76,8 +76,15 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         If True the explained variance ratio is computed and displayed.
     verbose: bool
         If True intermediate information is printed out.
-    usv : {False, True}, bool optional
+    usv : bool optional
         If True the 3 terms of the SVD factorization are returned.
+    random_state : int, RandomState instance or None, optional
+        If int, random_state is the seed used by the random number generator.
+        If RandomState instance, random_state is the random number generator.
+        If None, the random number generator is the RandomState instance used
+        by np.random. Used for ``randsvd`` mode.
+    to_numpy : bool, optional
+        If True the arrays computed in GPU are converted to numpy ndarrays.
     
     Returns
     -------
@@ -250,12 +257,15 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         u_gpu, s_gpu, vh_gpu = cupy.linalg.svd(a_gpu, full_matrices=True,
                                                compute_uv=True)
         V = vh_gpu[:ncomp]
-        V = cupy.asnumpy(V)
+        if to_numpy:
+            V = cupy.asnumpy(V)
         if usv:
             S = s_gpu[:ncomp]
-            S = cupy.asnumpy(S)
+            if to_numpy:
+                S = cupy.asnumpy(S)
             U = u_gpu[:, :ncomp]
-            U = cupy.asnumpy(U)
+            if to_numpy:
+                U = cupy.asnumpy(U)
         if verbose:
             print('Done SVD/PCA with cupy (GPU)')
 
@@ -263,9 +273,10 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         if no_cupy:
             raise RuntimeError('Cupy is not installed')
         U, S, V = randomized_svd_gpu(matrix, ncomp, n_iter=2, lib='cupy')
-        V = cupy.asnumpy(V)
-        S = cupy.asnumpy(S)
-        U = cupy.asnumpy(U)
+        if to_numpy:
+            V = cupy.asnumpy(V)
+            S = cupy.asnumpy(S)
+            U = cupy.asnumpy(U)
         if debug:
             reconstruction(ncomp, U, S, V)
         if verbose:
@@ -286,8 +297,9 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         for i in range(V.shape[1]):
             V[:, i] /= S                    # scaling by the square root of eigenvalues
         V = V[:ncomp]
-        V = cupy.asnumpy(V)
-        S = cupy.asnumpy(S)
+        if to_numpy:
+            V = cupy.asnumpy(V)
+            S = cupy.asnumpy(S)
         if verbose:
             print('Done PCA with cupy eigh function (GPU)')
 
@@ -296,9 +308,10 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             raise RuntimeError('Pytorch is not installed')
         a_gpu = torch.Tensor.cuda(torch.from_numpy(matrix.T))
         u_gpu, s_gpu, vh_gpu = torch.svd(a_gpu)
-        V = np.array(vh_gpu)[:ncomp]
-        S = np.array(s_gpu)[:ncomp]
-        U = np.array(u_gpu)[:, :ncomp]
+        if to_numpy:
+            V = np.array(vh_gpu)[:ncomp]
+            S = np.array(s_gpu)[:ncomp]
+            U = np.array(u_gpu)[:, :ncomp]
         if verbose:
             print('Done SVD/PCA with pytorch (GPU)')
 
@@ -315,7 +328,8 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             reconstruction(ncomp, None, S, None)
         for i in range(V.shape[1]):
             V[:, i] /= S
-        V = np.array(V)[:ncomp]
+        if to_numpy:
+            V = np.array(V)[:ncomp]
         if verbose:
             print('Done PCA with pytorch eig function')
 
@@ -323,6 +337,10 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         if no_torch:
             raise RuntimeError('Pytorch is not installed')
         U, S, V = randomized_svd_gpu(matrix, ncomp, n_iter=2, lib='pytorch')
+        if to_numpy:
+            V = np.array(vh_gpu)[:ncomp]
+            S = np.array(s_gpu)[:ncomp]
+            U = np.array(u_gpu)[:, :ncomp]
         if debug:
             reconstruction(ncomp, U, S, V)
         if verbose:

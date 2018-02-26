@@ -309,7 +309,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         u_gpu, s_gpu, vh_gpu = torch.svd(a_gpu)
         V = vh_gpu[:ncomp]
         S = s_gpu[:ncomp]
-        U = u_gpu[:ncomp]
+        U = torch.transpose(u_gpu, 0, 1)[:ncomp]
         if to_numpy:
             V = np.array(V)
             S = np.array(S)
@@ -366,10 +366,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         if mode == 'lapack':
             return U.T
         elif mode == 'pytorch':
-            if to_numpy:
-                return U.T
-            else:
-                return torch.transpose(U, 0, 1)
+            return U
         else:
             return V
 

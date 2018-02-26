@@ -42,7 +42,7 @@ from ..var import matrix_scaling
 
 
 def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
-                random_state=None, to_numpy=False):
+                random_state=None, to_numpy=True):
     """ Wrapper for different SVD libraries (CPU and GPU). 
       
     Parameters
@@ -84,8 +84,9 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         If None, the random number generator is the RandomState instance used
         by np.random. Used for ``randsvd`` mode.
     to_numpy : bool, optional
-        If True the arrays computed in GPU are converted to numpy ndarrays.
-    
+        If True (by default) the arrays computed in GPU are transferred from
+        VRAM and converted to numpy ndarrays.
+
     Returns
     -------
     The right singular vectors of the input matrix. If ``usv`` is True it 

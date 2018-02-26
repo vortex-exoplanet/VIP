@@ -359,7 +359,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             if to_numpy:
                 return V.T, S, U.T
             else:
-                return torch.transpose(V), S, torch.transpose(U)
+                return torch.transpose(V, 0, 1), S, torch.transpose(U, 0, 1)
         else:
             return U, S, V
     else:
@@ -369,7 +369,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             if to_numpy:
                 return U.T
             else:
-                return torch.transpose(U)
+                return torch.transpose(U, 0, 1)
         else:
             return V
 

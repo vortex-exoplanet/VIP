@@ -338,9 +338,9 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             raise RuntimeError('Pytorch is not installed')
         U, S, V = randomized_svd_gpu(matrix, ncomp, n_iter=2, lib='pytorch')
         if to_numpy:
-            V = np.array(vh_gpu)[:ncomp]
-            S = np.array(s_gpu)[:ncomp]
-            U = np.array(u_gpu)[:, :ncomp]
+            V = np.array(V)[:ncomp]
+            S = np.array(S)[:ncomp]
+            U = np.array(U)[:, :ncomp]
         if debug:
             reconstruction(ncomp, U, S, V)
         if verbose:

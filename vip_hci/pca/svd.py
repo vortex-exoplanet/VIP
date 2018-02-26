@@ -353,13 +353,23 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         raise ValueError('The SVD mode is not available')
 
     if usv:
-        if mode == 'lapack' or mode=='pytorch':
+        if mode == 'lapack':
             return V.T, S, U.T
+        elif mode == 'pytorch':
+            if to_numpy:
+                return V.T, S, U.T
+            else:
+                return torch.transpose(V), S, torch.transpose(U)
         else:
             return U, S, V
     else:
-        if mode == 'lapack' or mode=='pytorch':
+        if mode == 'lapack':
             return U.T
+        elif mode == 'pytorch':
+            if to_numpy:
+                return U.T
+            else:
+                return torch.transpose(U)
         else:
             return V
 

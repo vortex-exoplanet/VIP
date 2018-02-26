@@ -22,6 +22,7 @@ VIP - Vortex Image Processing package
 
 
 ::
+
     ---------------------------------------------------
             oooooo     oooo ooooo ooooooooo.
              `888.     .8'  `888' `888   `Y88.

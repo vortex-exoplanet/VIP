@@ -15,6 +15,7 @@ Subpackages
     vip_hci.exlib
     vip_hci.fits
     vip_hci.frdiff
+    vip_hci.leastsq
     vip_hci.llsg
     vip_hci.madi
     vip_hci.negfc

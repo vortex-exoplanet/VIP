@@ -17,4 +17,12 @@ vip\_hci\.madi\.adi\_source module
     :undoc-members:
     :show-inheritance:
 
+vip\_hci\.madi\.adi\_utils module
+---------------------------------
+
+.. automodule:: vip_hci.madi.adi_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 

@@ -299,7 +299,6 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         V = V[:ncomp]
         if to_numpy:
             V = cupy.asnumpy(V)
-            S = cupy.asnumpy(S)
         if verbose:
             print('Done PCA with cupy eigh function (GPU)')
 
@@ -308,10 +307,13 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             raise RuntimeError('Pytorch is not installed')
         a_gpu = torch.Tensor.cuda(torch.from_numpy(matrix.T))
         u_gpu, s_gpu, vh_gpu = torch.svd(a_gpu)
+        V = vh_gpu[:ncomp]
+        S = s_gpu[:ncomp]
+        U = u_gpu[:ncomp]
         if to_numpy:
-            V = np.array(vh_gpu)[:ncomp]
-            S = np.array(s_gpu)[:ncomp]
-            U = np.array(u_gpu)[:, :ncomp]
+            V = np.array(vh_gpu)
+            S = np.array(s_gpu)
+            U = np.array(u_gpu)
         if verbose:
             print('Done SVD/PCA with pytorch (GPU)')
 
@@ -328,8 +330,9 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             reconstruction(ncomp, None, S, None)
         for i in range(V.shape[1]):
             V[:, i] /= S
+        V = V[:ncomp]
         if to_numpy:
-            V = np.array(V)[:ncomp]
+            V = np.array(V)
         if verbose:
             print('Done PCA with pytorch eig function')
 
@@ -338,9 +341,9 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             raise RuntimeError('Pytorch is not installed')
         U, S, V = randomized_svd_gpu(matrix, ncomp, n_iter=2, lib='pytorch')
         if to_numpy:
-            V = np.array(V)[:ncomp]
-            S = np.array(S)[:ncomp]
-            U = np.array(U)[:, :ncomp]
+            V = np.array(V)
+            S = np.array(S)
+            U = np.array(U)
         if debug:
             reconstruction(ncomp, U, S, V)
         if verbose:

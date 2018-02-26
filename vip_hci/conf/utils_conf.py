@@ -8,7 +8,7 @@ from __future__ import division
 from __future__ import print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['eval_func_tuple', 'redirect_output', 'sep']
+__all__ = []
 
 import sys
 

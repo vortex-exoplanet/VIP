@@ -324,8 +324,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         a_gpu = torch.Tensor.cuda(torch.from_numpy(matrix))
         C = torch.mm(a_gpu, torch.transpose(a_gpu, 0, 1))
         e, EV = torch.eig(C, eigenvectors=True)
-        pc = torch.mm(torch.transpose(EV, 0, 1), a_gpu)
-        V = np.array(pc)
+        V = torch.mm(torch.transpose(EV, 0, 1), a_gpu)
         S = np.array(torch.sqrt(e[:, 0]))
         if debug:
             reconstruction(ncomp, None, S, None)

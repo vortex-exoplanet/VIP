@@ -38,7 +38,7 @@ from multiprocessing import Pool, cpu_count
 from matplotlib import pyplot as plt
 from . import frame_crop
 from ..conf import time_ini, timing
-from ..conf import eval_func_tuple as EFT
+from ..conf.utils_conf import eval_func_tuple as EFT
 from ..var import (get_square, frame_center, get_annulus, pp_subplots,
                    fit_2dmoffat, fit_2dgaussian, frame_filter_gaussian2d,
                    frame_filter_lowpass)

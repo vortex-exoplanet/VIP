@@ -11,7 +11,9 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from .simplex_fmerit import chisquare
 from ..var import frame_center
-from ..conf import time_ini, timing, sep
+from ..conf import time_ini, timing
+from ..conf.utils_conf import sep
+
 
 __all__ = ['firstguess']
 

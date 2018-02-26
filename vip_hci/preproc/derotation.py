@@ -20,7 +20,7 @@ except ImportError:
 from skimage.transform import rotate
 from multiprocessing import Pool, cpu_count
 import itertools as itt
-from ..conf import eval_func_tuple as futup
+from ..conf.utils_conf import eval_func_tuple as futup
 from ..var import frame_center
 
 data_array = None # holds the (implicitly mem-shared) data array

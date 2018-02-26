@@ -16,7 +16,7 @@ from multiprocessing import Pool, cpu_count
 from ..conf import time_ini, timing
 from ..var import get_annulus, mask_circle
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
-from ..conf import eval_func_tuple as EFT
+from ..conf.utils_conf import eval_func_tuple as EFT
 from .adi_utils import _find_indices, _define_annuli
 
 

@@ -20,7 +20,7 @@ from ..preproc import cube_derotate, cube_collapse
 from ..var import get_annulus_segments, cube_filter_highpass
 from ..pca.svd import svd_wrapper, get_eigenvectors
 from .thresholding import thresholding
-from ..conf import eval_func_tuple as EFT
+from ..conf.utils_conf import eval_func_tuple as EFT
 
 
 cube_init = None

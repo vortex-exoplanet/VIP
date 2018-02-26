@@ -14,7 +14,7 @@ import numpy as np
 import photutils
 from skimage import draw
 from .snr import snr_ss
-from ..conf import sep
+from ..conf.utils_conf import sep
 
 
 def frame_quick_report(array, fwhm, source_xy=None, verbose=True):

@@ -21,7 +21,8 @@ from matplotlib import pyplot as plt
 from astropy.convolution import convolve, Tophat2DKernel
 from astropy.stats import median_absolute_deviation as mad
 from multiprocessing import Pool, cpu_count
-from ..conf import eval_func_tuple, time_ini, timing
+from ..conf.utils_conf import eval_func_tuple
+from ..conf import time_ini, timing
 from ..var import get_annulus, frame_center, dist, pp_subplots
 
 

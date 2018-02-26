@@ -311,9 +311,9 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         S = s_gpu[:ncomp]
         U = u_gpu[:ncomp]
         if to_numpy:
-            V = np.array(vh_gpu)
-            S = np.array(s_gpu)
-            U = np.array(u_gpu)
+            V = np.array(V)
+            S = np.array(S)
+            U = np.array(U)
         if verbose:
             print('Done SVD/PCA with pytorch (GPU)')
 

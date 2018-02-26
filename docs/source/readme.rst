@@ -1,3 +1,15 @@
+    \---------------------------------------------------
+    \        oooooo     oooo ooooo ooooooooo.
+    \         `888.     .8'  `888' `888   `Y88.
+    \          `888.   .8'    888   888   .d88'
+    \           `888. .8'     888   888ooo88P'
+    \            `888.8'      888   888
+    \             `888'       888   888
+    \              `8'       o888o o888o
+    \---------------------------------------------------
+    \         Vortex Image Processing package
+    \---------------------------------------------------
+
 VIP - Vortex Image Processing package
 =====================================
 
@@ -19,19 +31,6 @@ VIP - Vortex Image Processing package
 
 .. image:: https://readthedocs.org/projects/vip/badge/?version=latest
     :target: http://vip.readthedocs.io/en/latest/?badge=latest
-
-
-    ---------------------------------------------------
-            oooooo     oooo ooooo ooooooooo.
-             `888.     .8'  `888' `888   `Y88.
-              `888.   .8'    888   888   .d88'         
-               `888. .8'     888   888ooo88P'
-                `888.8'      888   888
-                 `888'       888   888
-                  `8'       o888o o888o
-    ---------------------------------------------------
-             Vortex Image Processing package
-    ---------------------------------------------------
 
 
 Introduction

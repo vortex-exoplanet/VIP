@@ -541,22 +541,22 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
             return U[:, :n_components], s[:n_components], V[:n_components, :]
 
     elif lib == 'pytorch':
-        M = torch.Tensor.cuda(torch.from_numpy(M.astype('float32')))
+        M_gpu = torch.Tensor.cuda(torch.from_numpy(M.astype('float32')))
 
         # Generating normal random vectors with shape: (M.shape[1], n_random)
-        Q = torch.cuda.FloatTensor(M.shape[1], n_random).normal_()
+        Q = torch.cuda.FloatTensor(M_gpu.shape[1], n_random).normal_()
 
         # Perform power iterations with Q to further 'imprint' the top
         # singular vectors of M in Q
         for i in range(n_iter):
-            Q = torch.mm(M, Q)
-            Q = torch.mm(torch.transpose(M, 0, 1), Q)
+            Q = torch.mm(M_gpu, Q)
+            Q = torch.mm(torch.transpose(M_gpu, 0, 1), Q)
 
         # Sample the range of M using by linear projection of Q. Extract an orthonormal basis
-        Q, _ = torch.qr(torch.mm(M, Q))
+        Q, _ = torch.qr(torch.mm(M_gpu, Q))
 
         # project M to the (k + p) dimensional space using the basis vectors
-        B = torch.mm(torch.transpose(Q, 0, 1), M)
+        B = torch.mm(torch.transpose(Q, 0, 1), M_gpu)
 
         # compute the SVD on the thin matrix: (k + p) wide
         Uhat, s, V = torch.svd(B)

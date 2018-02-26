@@ -42,7 +42,7 @@ from ..var import matrix_scaling
 
 
 def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
-                random_state=None):
+                random_state=None, to_numpy=True):
     """ Wrapper for different SVD libraries (CPU and GPU). 
       
     Parameters
@@ -76,9 +76,17 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         If True the explained variance ratio is computed and displayed.
     verbose: bool
         If True intermediate information is printed out.
-    usv : {False, True}, bool optional
+    usv : bool optional
         If True the 3 terms of the SVD factorization are returned.
-    
+    random_state : int, RandomState instance or None, optional
+        If int, random_state is the seed used by the random number generator.
+        If RandomState instance, random_state is the random number generator.
+        If None, the random number generator is the RandomState instance used
+        by np.random. Used for ``randsvd`` mode.
+    to_numpy : bool, optional
+        If True (by default) the arrays computed in GPU are transferred from
+        VRAM and converted to numpy ndarrays.
+
     Returns
     -------
     The right singular vectors of the input matrix. If ``usv`` is True it 
@@ -250,12 +258,15 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         u_gpu, s_gpu, vh_gpu = cupy.linalg.svd(a_gpu, full_matrices=True,
                                                compute_uv=True)
         V = vh_gpu[:ncomp]
-        V = cupy.asnumpy(V)
+        if to_numpy:
+            V = cupy.asnumpy(V)
         if usv:
             S = s_gpu[:ncomp]
-            S = cupy.asnumpy(S)
+            if to_numpy:
+                S = cupy.asnumpy(S)
             U = u_gpu[:, :ncomp]
-            U = cupy.asnumpy(U)
+            if to_numpy:
+                U = cupy.asnumpy(U)
         if verbose:
             print('Done SVD/PCA with cupy (GPU)')
 
@@ -263,9 +274,10 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         if no_cupy:
             raise RuntimeError('Cupy is not installed')
         U, S, V = randomized_svd_gpu(matrix, ncomp, n_iter=2, lib='cupy')
-        V = cupy.asnumpy(V)
-        S = cupy.asnumpy(S)
-        U = cupy.asnumpy(U)
+        if to_numpy:
+            V = cupy.asnumpy(V)
+            S = cupy.asnumpy(S)
+            U = cupy.asnumpy(U)
         if debug:
             reconstruction(ncomp, U, S, V)
         if verbose:
@@ -286,36 +298,41 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         for i in range(V.shape[1]):
             V[:, i] /= S                    # scaling by the square root of eigenvalues
         V = V[:ncomp]
-        V = cupy.asnumpy(V)
-        S = cupy.asnumpy(S)
+        if to_numpy:
+            V = cupy.asnumpy(V)
         if verbose:
             print('Done PCA with cupy eigh function (GPU)')
 
     elif mode == 'pytorch':
         if no_torch:
             raise RuntimeError('Pytorch is not installed')
-        a_gpu = torch.Tensor.cuda(torch.from_numpy(matrix.T))
+        a_gpu = torch.Tensor.cuda(torch.from_numpy(matrix.astype('float32').T))
         u_gpu, s_gpu, vh_gpu = torch.svd(a_gpu)
-        V = np.array(vh_gpu)[:ncomp]
-        S = np.array(s_gpu)[:ncomp]
-        U = np.array(u_gpu)[:, :ncomp]
+        V = vh_gpu[:ncomp]
+        S = s_gpu[:ncomp]
+        U = torch.transpose(u_gpu, 0, 1)[:ncomp]
+        if to_numpy:
+            V = np.array(V)
+            S = np.array(S)
+            U = np.array(U)
         if verbose:
             print('Done SVD/PCA with pytorch (GPU)')
 
     elif mode == 'eigenpytorch':
         if no_torch:
             raise RuntimeError('Pytorch is not installed')
-        a_gpu = torch.Tensor.cuda(torch.from_numpy(matrix))
+        a_gpu = torch.Tensor.cuda(torch.from_numpy(matrix.astype('float32')))
         C = torch.mm(a_gpu, torch.transpose(a_gpu, 0, 1))
         e, EV = torch.eig(C, eigenvectors=True)
-        pc = torch.mm(torch.transpose(EV, 0, 1), a_gpu)
-        V = np.array(pc)
-        S = np.array(torch.sqrt(e[:, 0]))
+        V = torch.mm(torch.transpose(EV, 0, 1), a_gpu)
+        S = torch.sqrt(e[:, 0])
         if debug:
             reconstruction(ncomp, None, S, None)
         for i in range(V.shape[1]):
             V[:, i] /= S
-        V = np.array(V)[:ncomp]
+        V = V[:ncomp]
+        if to_numpy:
+            V = np.array(V)
         if verbose:
             print('Done PCA with pytorch eig function')
 
@@ -323,6 +340,10 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         if no_torch:
             raise RuntimeError('Pytorch is not installed')
         U, S, V = randomized_svd_gpu(matrix, ncomp, n_iter=2, lib='pytorch')
+        if to_numpy:
+            V = np.array(V)
+            S = np.array(S)
+            U = np.array(U)
         if debug:
             reconstruction(ncomp, U, S, V)
         if verbose:
@@ -332,13 +353,20 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         raise ValueError('The SVD mode is not available')
 
     if usv:
-        if mode == 'lapack' or mode=='pytorch':
+        if mode == 'lapack':
             return V.T, S, U.T
+        elif mode == 'pytorch':
+            if to_numpy:
+                return V.T, S, U.T
+            else:
+                return torch.transpose(V, 0, 1), S, torch.transpose(U, 0, 1)
         else:
             return U, S, V
     else:
-        if mode == 'lapack' or mode=='pytorch':
+        if mode == 'lapack':
             return U.T
+        elif mode == 'pytorch':
+            return U
         else:
             return V
 
@@ -512,22 +540,22 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
             return U[:, :n_components], s[:n_components], V[:n_components, :]
 
     elif lib == 'pytorch':
-        M = torch.Tensor.cuda(torch.from_numpy(M.astype('float32')))
+        M_gpu = torch.Tensor.cuda(torch.from_numpy(M.astype('float32')))
 
         # Generating normal random vectors with shape: (M.shape[1], n_random)
-        Q = torch.cuda.FloatTensor(M.shape[1], n_random).normal_()
+        Q = torch.cuda.FloatTensor(M_gpu.shape[1], n_random).normal_()
 
         # Perform power iterations with Q to further 'imprint' the top
         # singular vectors of M in Q
         for i in range(n_iter):
-            Q = torch.mm(M, Q)
-            Q = torch.mm(torch.transpose(M, 0, 1), Q)
+            Q = torch.mm(M_gpu, Q)
+            Q = torch.mm(torch.transpose(M_gpu, 0, 1), Q)
 
         # Sample the range of M using by linear projection of Q. Extract an orthonormal basis
-        Q, _ = torch.qr(torch.mm(M, Q))
+        Q, _ = torch.qr(torch.mm(M_gpu, Q))
 
         # project M to the (k + p) dimensional space using the basis vectors
-        B = torch.mm(torch.transpose(Q, 0, 1), M)
+        B = torch.mm(torch.transpose(Q, 0, 1), M_gpu)
 
         # compute the SVD on the thin matrix: (k + p) wide
         Uhat, s, V = torch.svd(B)

@@ -20,7 +20,7 @@ from ..var import get_annulus_segments
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import time_ini, timing
 from ..madi.adi_utils import _find_indices, _define_annuli
-from ..conf import eval_func_tuple as EFT
+from ..conf.utils_conf import eval_func_tuple as EFT
 
 
 array = None

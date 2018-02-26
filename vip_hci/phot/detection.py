@@ -24,7 +24,7 @@ from astropy.modeling.fitting import LevMarLSQFitter
 from skimage.feature import peak_local_max
 from ..var import (mask_circle, pp_subplots, get_square, frame_center,
                    frame_filter_gaussian2d, fit_2dgaussian)
-from ..conf import sep
+from ..conf.utils_conf import sep
 from .snr import snr_ss
 from .frame_analysis import frame_quick_report
 

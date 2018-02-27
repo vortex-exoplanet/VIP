@@ -8,7 +8,14 @@ from __future__ import print_function
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['ds9']
 
-import pyds9
+import warnings
+try:
+    import pyds9
+    no_opencv = False
+except ImportError:
+    msg = "Pyds9 not available."
+    warnings.warn(msg, ImportWarning)
+    no_pyds9 = True
 
 
 class ds9(object):

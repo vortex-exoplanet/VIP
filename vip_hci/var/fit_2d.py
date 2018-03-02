@@ -64,17 +64,14 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     mean_x : float
         Source centroid x position on input array from fitting.
         
-    If *full_output* is True it returns:
-    mean_y, mean_x : floats
-        Centroid. 
-    fwhm_y : float
-        FHWM in Y in pixels. 
-    fwhm_x : float
-        FHWM in X in pixels.
-    amplitude : float
-        Amplitude of the Gaussian.
-    theta : float
-        Rotation angle.
+    If ``full_output`` is True it returns a Pandas dataframe containing the
+    following columns:
+    'amplitude' : Float value. Amplitude of the Gaussian.
+    'centroid_x' : Float value. X coordinate of the centroid.
+    'centroid_y' : Float value. Y coordinate of the centroid.
+    'fwhm_x' : Float value. FHWM in X [px].
+    'fwhm_y' : Float value. FHWM in Y [px].
+    'theta' : Float value. Rotation angle.
     
     """
     if not array.ndim == 2:

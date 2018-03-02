@@ -57,8 +57,8 @@ made by collaborators from several teams (take a look at the tab contributors on
 ``VIP``'s Github repository). Most of ``VIP``'s functionalities are mature but
 it doesn't mean it's free from bugs. The code is continuously evolving and
 therefore feedback/contributions are greatly appreciated. If you want to report
-a bug, suggest or add a functionality please create an issue or send a pull
-request `here <https://github.com/vortex-exoplanet/VIP>`_.
+a bug or suggest a functionality please create an issue on Github. Pull
+requests are very welcomed!
 
 
 Documentation
@@ -159,21 +159,22 @@ you could use ``conda``:
 
 ``VIP`` contains a class ``vip_hci.fits.ds9`` that enables, through ``pyds9``,
 the interaction with a DS9 window (displaying numpy arrays, controlling the
-display options, etc).
-
-Also, optionally you can install the Intel Math Kernel Library (MKL)
-optimizations provided that you have Anaconda(>v2.5) and ``conda`` on your
-system. This is recommended along with ``Opencv`` for maximum speed on ``VIP``
-computations. Run:
+display options, etc). ``pyds9`` is an optional requirement and must be
+installed from the latest development version:
 
 .. code-block:: bash
 
-  $ conda install mkl
+    $ pip install git+git://github.com/ericmandel/pyds9.git#egg=pyds9
 
-Starting from version 0.8.0 ``VIP`` offers the possibility of computing SVDs
-on GPU by using ``cupy``. This remains an optional requirement, to be installed
-by the user, as it requires having a decent GPU card and a proper CUDA
-environment.
+Also, you can install the Intel Math Kernel Library (MKL) optimizations
+(provided that you have a recent version of ``conda``) or ``openblas``
+libraries. Either of them can be installed with ``conda install``. This is
+recommended along with ``Opencv`` for maximum speed on ``VIP`` computations.
+
+``VIP`` offers the possibility of computing SVDs on GPU by using ``cupy``
+(starting from version 0.8.0) or ''pytorch`` (from version 0.9.2). These remain
+as optional requirements, to be installed by the user, as well as a proper CUDA
+environment (and a decent GPU card).
 
 Loading VIP
 ^^^^^^^^^^^

@@ -185,7 +185,7 @@ def cube_drop_frames(array, n, m):
         Cube with new size (axis 0).
 
     """
-    if m>array.shape[0]:
+    if m > array.shape[0]:
         raise TypeError('End index must be smaller than the # of frames')
 
     array_view = array[n:m+1, :, :].copy()
@@ -207,7 +207,7 @@ def frame_remove_stripes(array):
 
 def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
                      half_res_y=False):
-    """Sigma filtering of nan pixels in a whole frame or cube. Intended for
+    """Sigma filtering of nan pixels in a whole frame or cube. Tested on
     SINFONI data.
 
     Parameters
@@ -220,9 +220,9 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
     min_neighbors : int, optional
         Minimum number of good neighboring pixels to be able to correct the
         bad/nan pixels.
-    verbose: {False,True} bool, optional
+    verbose: bool, optional
         Whether to print more information or not during processing
-    half_res_y: bool, {True,False}, optional
+    half_res_y: bool, optional
         Whether the input data have every couple of 2 rows identical, i.e. there
         is twice less angular resolution vertically than horizontally (e.g.
         SINFONI data). The algorithm goes twice faster if this option is
@@ -233,22 +233,6 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
     obj_tmp : array_like
         Output cube with corrected nan pixels in each frame
     """
-
-    obj_tmp = cube.copy()
-
-    ndims = obj_tmp.ndim
-    if ndims != 2 and ndims != 3:
-        raise TypeError("Input object is not two or three dimensional")
-
-    if neighbor_box < 3 or neighbor_box % 2 == 0:
-        raise ValueError('neighbor_box should be an odd value greater than 3')
-    max_neigh = sum(range(3, neighbor_box + 2, 2))
-    if min_neighbors > max_neigh:
-        min_neighbors = max_neigh
-        msg = "Warning! min_neighbors was reduced to " + str(max_neigh) + \
-              " to avoid bugs. \n"
-        print(msg)
-
     def nan_corr_2d(obj_tmp):
         n_x = obj_tmp.shape[1]
         n_y = obj_tmp.shape[0]
@@ -281,6 +265,22 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
                 obj_tmp[yy] = frame[int(yy / 2)]
 
         return obj_tmp, nnanpix
+    ############################################################################
+
+    obj_tmp = cube.copy()
+
+    ndims = obj_tmp.ndim
+    if ndims != 2 and ndims != 3:
+        raise TypeError("Input object is not two or three dimensional")
+
+    if neighbor_box < 3 or neighbor_box % 2 == 0:
+        raise ValueError('neighbor_box should be an odd value greater than 3')
+    max_neigh = sum(range(3, neighbor_box + 2, 2))
+    if min_neighbors > max_neigh:
+        min_neighbors = max_neigh
+        msg = "Warning! min_neighbors was reduced to " + str(max_neigh) + \
+              " to avoid bugs. \n"
+        print(msg)
 
     if ndims == 2:
         obj_tmp, nnanpix = nan_corr_2d(obj_tmp)
@@ -315,11 +315,11 @@ def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
         This will be used as the standard deviation for Gaussian kernel
         of the Gaussian filtering.
         If float, it is assumed the same for all channels.
-    return_test: bool, {False,True}, optional
+    return_test: bool, optional
         Whether the test result vector (a bool vector with whether the star
         centroid could be find in the corresponding channel) should be returned
         as well, along with the approx stellar coordinates.
-    verbose: {True, False}, bool optional
+    verbose: bool, optional
         Chooses whether to print some additional information.
 
     Returns:

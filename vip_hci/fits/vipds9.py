@@ -6,17 +6,17 @@ Module with a function for displaying numpy arrays on DS9 (wrapper of pyds9).
 from __future__ import print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['ds9']
 
 import warnings
 try:
     import pyds9
-    no_opencv = False
+    no_pyds9 = False
+    __all__ = ['ds9']
 except ImportError:
     msg = "Pyds9 not available."
     warnings.warn(msg, ImportWarning)
     no_pyds9 = True
-
+    __all__ = []
 
 class ds9(object):
     """ Creates a DS9 window (named 'VIP_ds9') using pyDS9 functionality.

@@ -25,8 +25,8 @@ from ..conf import timing, time_ini
 
 
 def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
-                              size=5, protect_mask=False, radius=30, verbose=True,
-                              debug=False):
+                              size=5, protect_mask=False, radius=30,
+                              verbose=True, debug=False):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is
      replaced by the median of the adjacent pixels. This function is very fast
      but works only with isolated (sparse) pixels.
@@ -49,15 +49,15 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
          0 then the statistics are computed in the whole frame.
      size : odd int, optional
          The size the box (size x size) of adjacent pixels for the median filter.
-     protect_mask : {False, True}, bool optional
+     protect_mask : bool, optional
          If True a circular aperture at the center of the frames will be
          protected from any operation. With this we protect the star and vicinity.
      radius : int, optional
          Radius of the circular aperture (at the center of the frames) for the
          protection mask.
-     verbose : {True, False}, bool optional
+     verbose : bool, optional
          If True additional information will be printed.
-     debug : {False, True}, bool optional
+     debug : bool, optional
          If debug is True, the bpm_mask and the input array are plotted. If the
          input array is a cube, a long output is to be expected. Better check the
          results with single images.
@@ -93,7 +93,8 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
             cir = circle(cy, cx, radius)
             bpm_mask[cir] = 0
         bpm_mask = bpm_mask.astype('bool')
-        if debug:  pp_subplots(frame, bpm_mask, title='Frame / Bad pixel mask')
+        if debug:
+            pp_subplots(frame, bpm_mask, title='Frame / Bad pixel mask')
 
     smoothed = median_filter(frame, size, mode='mirror')
     frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
@@ -130,15 +131,16 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         0 then the statistics are computed in the whole frame.
     size : odd int, optional
         The size the box (size x size) of adjacent pixels for the median filter. 
-    protect_mask : {False, True}, bool optional
+    protect_mask : bool, optional
         If True a circular aperture at the center of the frames will be 
-        protected from any operation. With this we protect the star and vicinity.
+        protected from any operation. With this we protect the star and its
+        vicinity.
     radius : int, optional 
         Radius of the circular aperture (at the center of the frames) for the 
         protection mask.
-    verbose : {True, False}, bool optional
+    verbose : bool, optional
         If True additional information will be printed. 
-    debug : {False, True}, bool optional
+    debug : bool, optional
         If debug is True, the bpm_mask and the input array are plotted. If the
         input array is a cube, a long output is to be expected. Better check the
         results with single images.
@@ -150,7 +152,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     """
     if not array.ndim == 3:
         raise TypeError('Array is not a 3d array or cube')
-    if size%2==0:
+    if size % 2 == 0:
         raise TypeError('Size of the median blur kernel must be an odd integer')
     
     if bpm_mask is not None:
@@ -158,8 +160,10 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     
     if verbose:  start = time_ini()
     
-    if num_neig>0:  neigh=True
-    else:  neigh=False
+    if num_neig > 0:
+        neigh = True
+    else:
+        neigh = False
     
     cy, cx = frame_center(array[0])
     cube_out = array.copy()
@@ -175,7 +179,8 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
             bpm_mask[cir] = 0
         bpm_mask = bpm_mask.astype('bool')
 
-    if debug:  pp_subplots(bpm_mask, title='Bad pixel mask')
+    if debug:
+        pp_subplots(bpm_mask, title='Bad pixel mask')
 
     bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
     for i in range(n_frames):
@@ -267,7 +272,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
 
         # Squash the frame if twice less resolved vertically than horizontally
         if half_res_y:
-            if n_y%2 != 0: 
+            if n_y % 2 != 0:
                 msg = 'The input frames do not have of an even number of rows. '
                 msg2 = 'Hence, you should not use option half_res_y = True'
                 raise ValueError(msg+msg2)
@@ -416,10 +421,9 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                             #obj_tmp_corr[yy,xx] = med_neig[rr] + \
                             #                      dev*np.random.randn()
                             # Poisson noise
-                            rand_fac= 2.*(np.random.rand()-0.5)
+                            rand_fac = 2.*(np.random.rand()-0.5)
                             obj_tmp_corr[yy,xx] = med_neig[rr] + \
                                                   np.sqrt(np.abs(med_neig[rr]))*rand_fac
-
 
         #5/ Count bpix and uncorrect if within the circle
         nbpix_tot = np.sum(bpix_map)
@@ -429,7 +433,6 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         if verbose:
             print(nbpix_tot, ' bpix in total, and ', nbpix_tbc, ' corrected.')
 
-            
         # Unsquash all the frames
         if half_res_y:
             frame = obj_tmp_corr.copy()
@@ -446,12 +449,10 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
 
         return obj_tmp_corr, bpix_map, ann_frame_cumul
 
-
     if ndims == 2:
         obj_tmp, bpix_map, ann_frame_cumul = bp_removal_2d(obj_tmp, cy, cx, 
                                                            fwhm, sig, 
                                                            protect_psf, verbose)
-
     if ndims == 3:
         n_z = obj_tmp.shape[0]
         bpix_map = np.zeros_like(obj_tmp)
@@ -459,20 +460,16 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         if cy.shape[0] != n_z or cx.shape[0] != n_z: 
             raise ValueError('Please provide cy and cx as 1d-arr of size n_z')
         for i in range(n_z):
-            if verbose: print('************Frame # ', i,' *************')
-            obj_tmp[i],bpix_map[i],ann_frame_cumul[i]=bp_removal_2d(obj_tmp[i],
-                                                                    cy[i], 
-                                                                    cx[i],
-                                                                    fwhm[i],
-                                                                    sig,
-                                                                    protect_psf,
-                                                                    verbose)
+            if verbose:
+                print('************Frame # ', i,' *************')
+            res_i = bp_removal_2d(obj_tmp[i], cy[i], cx[i], fwhm[i], sig,
+                                  protect_psf, verbose)
+            obj_tmp[i], bpix_map[i], ann_frame_cumul[i] = res_i
  
     if full_output:
         return obj_tmp, bpix_map, ann_frame_cumul
     else:
         return obj_tmp
-
 
 
 def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True, 
@@ -613,7 +610,8 @@ def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True,
             bpix_map[circl_new] = 0
             bpix_map_cumul = bpix_map_cumul+bpix_map
 
-        if verbose:  print('All bad pixels are corrected.')
+        if verbose:
+            print('All bad pixels are corrected.')
             
         if half_res_y:
             frame = obj_tmp.copy()
@@ -778,7 +776,7 @@ def find_outliers(frame, sig_dist, in_bpix=None, stddev=None,neighbor_box=3,
     return bpix_map
 
 
-def reject_outliers(data, test_value, m=5., stddev=None, DEBUG=False, 
+def reject_outliers(data, test_value, m=5., stddev=None, debug=False,
                     min_thr=None, mid_thr=None):
     """ FUNCTION TO REJECT OUTLIERS FROM A SET
     Instead of the classic standard deviation criterion (e.g. 5-sigma), the 
@@ -809,7 +807,7 @@ def reject_outliers(data, test_value, m=5., stddev=None, DEBUG=False,
         departure in value of only one pixel could make it appear as a bad 
         pixel. If stddev is not provided, the stddev of data is used (not 
         recommended).
-    DEBUG: Bool, {False,True}.
+    debug: Bool, {False,True}.
         If True, the different variables involved will be printed out.
     min_thr: {None,float}, optional
         Any pixel whose value is lower than this threshold (expressed in adu)
@@ -828,16 +826,17 @@ def reject_outliers(data, test_value, m=5., stddev=None, DEBUG=False,
         0 if test_value is not an outlier. 1 otherwise. 
     """
 
-    if stddev is None: stddev = np.std(data)
+    if stddev is None:
+        stddev = np.std(data)
     if min_thr is None:
-        min_thr = min(np.amin(data),test_value)-1
+        min_thr = min(np.amin(data), test_value)-1
     if mid_thr is None:
-        mid_thr = min(np.amin(data),test_value)-1
+        mid_thr = min(np.amin(data), test_value)-1
 
     med = np.median(data)
     d = np.abs(data - med)
     mdev = np.median(d)
-    if DEBUG:
+    if debug:
         print("data = ", data)
         print("median(data)= ", np.median(data))
         print("d = ", d)
@@ -846,7 +845,7 @@ def reject_outliers(data, test_value, m=5., stddev=None, DEBUG=False,
         print("stddev(frame) = ", stddev)
         print("max(d) = ", np.max(d))
 
-    n_el = max(2.,0.05*data.shape[0])
+    n_el = max(2., 0.05*data.shape[0])
     if test_value < min_thr or (test_value < mid_thr and 
                                 data[data<(mid_thr+5*stddev)].shape[0] < n_el):
         test_result = 1
@@ -854,12 +853,16 @@ def reject_outliers(data, test_value, m=5., stddev=None, DEBUG=False,
     elif max(np.max(d),np.abs(test_value-med)) > stddev:
         mdev = mdev if mdev>stddev else stddev
         s = d/mdev
-        if DEBUG: print("s =", s)
+        if debug:
+            print("s =", s)
         test = np.abs((test_value-np.median(data))/mdev)
-        if DEBUG: print("test =", test)
+        if debug:
+            print("test =", test)
         else:
-            if test < m: test_result = 0
-            else: test_result = 1
+            if test < m:
+                test_result = 0
+            else:
+                test_result = 1
     else:
         test_result = 0
 

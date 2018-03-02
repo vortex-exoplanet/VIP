@@ -7,6 +7,7 @@ docs/time
 vip_hci/tests
 
 submit_pypi.sh
+update_sphinx.sh
 
 .pytest_cache
 .cache

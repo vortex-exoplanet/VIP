@@ -263,7 +263,7 @@ def pp_subplots(*args, **kwargs):
     if 'pxscale' in kwargs:
         pxscale = kwargs['pxscale']
     else:
-        pxscale = 0.01 # default for Keck/NIRC2
+        pxscale = 0.01  # default for Keck/NIRC2
     if 'axis' in kwargs:
         show_axis = kwargs['axis']
     else:
@@ -285,11 +285,6 @@ def pp_subplots(*args, **kwargs):
         savepath = kwargs['save']
     else:
         save = False
-    
-    if 'log' in kwargs and kwargs['log'] is True:
-        logscale = kwargs['log']
-    else:
-        logscale = False
 
     # Defaults previously used: 'magma','CMRmap','RdBu_r'
     if 'cmap' in kwargs:
@@ -301,6 +296,11 @@ def pp_subplots(*args, **kwargs):
                 raise RuntimeError('Cmap list does not have enough items')
     else:
         custom_cmap = ['viridis' for i in range(num_plots)]
+
+    if 'log' in kwargs and kwargs['log'] is True:
+        logscale = kwargs['log']
+    else:
+        logscale = False
 
     if 'colorb' in kwargs:
         colorb = kwargs['colorb']
@@ -337,18 +337,20 @@ def pp_subplots(*args, **kwargs):
     if tit is not None:
         fig.suptitle(tit, fontsize=14)
     
-    for i,v in enumerate(range(num_plots)):
-        frame_size = data[i].shape[0]  # assuming square frames
-        cy, cx = frame_center(data[i])
+    for i, v in enumerate(range(num_plots)):
+        image = data[i].copy()
+        frame_size = image.shape[0]  # assuming square frames
+        cy, cx = frame_center(image)
 
         v += 1
-        ax = subplot(rows,cols,v)
+        ax = subplot(rows, cols, v)
         ax.set_aspect('equal')
         if logscale:
-            norm = colors.LogNorm(vmin=data[i].min(), vmax=data[i].max())
+            image += np.abs(image.min())
+            norm = colors.LogNorm(vmin=max(image.min(), 0.1), vmax=image.max())
         else:
             norm = None
-        im = ax.imshow(data[i], cmap=custom_cmap[i], interpolation='nearest',
+        im = ax.imshow(image, cmap=custom_cmap[i], interpolation='nearest',
                        origin='lower', vmin=vmin[i], vmax=vmax[i],
                        norm=norm)
 
@@ -398,27 +400,25 @@ def pp_subplots(*args, **kwargs):
         else:
             ax.grid('off')
 
-        # assuming Keck NIRC2's ~0.01 pixel scale
         if angscale:
             # Converting axes from pixels to arcseconds
-            half_num_ticks = cy // angticksep
+            half_num_ticks = int(np.round(cy // angticksep))
 
             # Calculate the pixel locations at which to put ticks
             ticks = []
-            for i in range(half_num_ticks, -half_num_ticks-1, -1):
+            for t in range(half_num_ticks, -half_num_ticks-1, -1):
                 # Avoid ticks not showing on the last pixel
-                if not cy - (i) * angticksep == frame_size:
-                    ticks.append(cy - (i) * angticksep)
+                if not cy - t * angticksep == frame_size:
+                    ticks.append(cy - t * angticksep)
                 else:
-                    ticks.append((cy - (i) * angticksep) - 1)
-                #print xticks
+                    ticks.append((cy - t * angticksep) - 1)
             ax.set_xticks(ticks)
             ax.set_yticks(ticks)
 
             # Corresponding distance in arcseconds, measured from the center
             labels = []
-            for i in range(half_num_ticks, -half_num_ticks-1, -1):
-                labels.append(0.0 - (i) * (angticksep*pxscale))
+            for t in range(half_num_ticks, -half_num_ticks-1, -1):
+                labels.append(0.0 - t * (angticksep * pxscale))
                 #print xlabels
             ax.set_xticklabels(labels)
             ax.set_yticklabels(labels)
@@ -426,10 +426,12 @@ def pp_subplots(*args, **kwargs):
             ax.set_ylabel("arcseconds", fontsize=12)
             ax.tick_params(axis='both', which='major', labelsize=10)
 
-        if not show_axis:  ax.set_axis_off()
+        if not show_axis:
+            ax.set_axis_off()
     
     fig.subplots_adjust(wspace=hor_spacing, hspace=ver_spacing)
-    if save:  savefig(savepath, dpi=dpi, bbox_inches='tight')
+    if save:
+        savefig(savepath, dpi=dpi, bbox_inches='tight')
 
     if getfig:
         return fig

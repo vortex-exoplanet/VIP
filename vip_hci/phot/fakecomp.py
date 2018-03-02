@@ -36,7 +36,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     flevel : float or list
         Factor for controlling the brightness of the fake companions.
     plsc : float
-        Value of the plsc in pixels.
+        Value of the plsc in arcsec/px.
     rad_dists : list or array 1d
         Vector of radial distances of fake companions in pixels.
     n_branches : int, optional
@@ -157,7 +157,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                         shift = _cube_shift(fc_fr, y, x, imlib=imlib,
                                             interpolation=interpolation)
                         tmp += [shift[i]*flevel[i] for i in range(len(flevel))]
-            array_out[:,fr] = array[:,fr] + tmp
+            array_out[:, fr] = array[:, fr] + tmp
 
         if verbose:
             for branch in range(n_branches):

@@ -524,15 +524,18 @@ def _radon_costf2(frame, cent, radint, coords):
     frame_shifted = frame_shift(frame, coords[0], coords[1])
     frame_shifted_ann = get_annulus(frame_shifted, radint, cent-radint)
     samples = 10
-    theta = np.hstack((np.linspace(start=40, stop=50, num=samples, endpoint=False), 
-                   np.linspace(start=130, stop=140, num=samples, endpoint=False),
-                   np.linspace(start=220, stop=230, num=samples, endpoint=False),
-                   np.linspace(start=310, stop=320, num=samples, endpoint=False)))
+    theta = np.hstack((np.linspace(start=40, stop=50, num=samples,
+                                   endpoint=False),
+                       np.linspace(start=130, stop=140, num=samples,
+                                   endpoint=False),
+                       np.linspace(start=220, stop=230, num=samples,
+                                   endpoint=False),
+                       np.linspace(start=310, stop=320, num=samples,
+                                   endpoint=False)))
     
     sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
     costf = np.sum(np.abs(sinogram[cent,:]))
     return costf
-
 
       
 def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
@@ -593,16 +596,14 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
         return array_rec
 
 
-# TODO: verify correct handling of even/odd cases
-def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4, 
+def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
                                  subi_size=None, upsample_factor=100,
                                  imlib='opencv', interpolation='lanczos4',
                                  full_output=False, verbose=True,
                                  save_shifts=False, debug=False):
     """ Recenters a cube of frames using the DFT upsampling method as 
-    proposed in Guizar et al. 2008 (see Notes) plus a chi^2, for determining
-    automatically the upsampling factor, as implemented in the package 
-    'image_registration' (see Notes).
+    proposed in Guizar et al. 2008 and implemented in the
+    ``register_translation`` fundtion from scikit-learn.
     
     The algorithm (DFT upsampling) obtains an initial estimate of the 
     cross-correlation peak by an FFT and then refines the shift estimation by 
@@ -616,30 +617,30 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     cy_1, cx_1 : int
         Coordinates of the center of the subimage for fitting a 2d Gaussian and
         centroiding the 1st frame. 
-    negative : {False, True}, optional
+    negative : bool, optional
         If True the centroiding of the 1st frames is done with a negative 
         2d Gaussian fit.   
     fwhm : float, optional
         FWHM size in pixels.
     subi_size : int or None, optional
-        Size of the square subimage sides in terms of FWHM that will be used
-        to centroid to frist frame. If subi_size is None then the first frame
-        is assumed to be centered already.
-    upsample_factor :  int optional
+        Size of the square subimage sides in pixels, used to centroid to first
+        frame. If subi_size is None then the first frame is assumed to be
+        centered already.
+    upsample_factor : int, optional
         Upsampling factor (default 100). Images will be registered to within
         1/upsample_factor of a pixel.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
-    full_output : {False, True}, bool optional
+    full_output : bool, optional
         Whether to return 2 1d arrays of shifts along with the recentered cube 
         or not.
-    verbose : {True, False}, bool optional
+    verbose : bool, optional
         Whether to print to stdout the timing or not.
-    save_shifts : {False, True}, bool optional
+    save_shifts : bool, optional
         Whether to save the shifts to a file in disk.
-    debug : {False, True}, bool optional
+    debug : bool, optional
         Whether to print to stdout the shifts or not. 
     
     Returns
@@ -668,6 +669,20 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
 
+    n_frames, sizey, sizex = array.shape
+    if not isinstance(subi_size, int):
+        raise ValueError('subi_size must be an integer')
+    if sizey % 2 == 0:
+        if subi_size % 2 != 0:
+            subi_size += 1
+            print('subi_size is odd (while frame size is even)')
+            print('Setting subi_size to {} pixels'.format(subi_size))
+    else:
+        if subi_size % 2 == 0:
+            subi_size += 1
+            print('subi_size is even (while frame size is odd)')
+            print('Setting subi_size to {} pixels'.format(subi_size))
+
     if verbose:
         start_time = time_ini()
     
@@ -678,39 +693,43 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
 
     cy, cx = frame_center(array[0])
     # Centroiding first frame with 2d gaussian and shifting
+    msg0 = "The rest of the frames will be shifted by cross-correlation "
+    msg0 += "wrt the first one"
     if subi_size is not None:
-        size = int(np.round(fwhm*subi_size))
-        y1, x1 = _centroid_2dg_frame(array_rec, 0, size, cy_1, cx_1, negative,
-                                     debug=debug)
-        x[0] = cx-x1
-        y[0] = cy-y1
+        y1, x1 = _centroid_2dg_frame(array_rec, 0, subi_size, cy_1, cx_1,
+                                     negative, debug, fwhm)
+        x[0] = cx - x1
+        y[0] = cy - y1
         array_rec[0] = frame_shift(array_rec[0], shift_y=y[0], shift_x=x[0],
                                    imlib=imlib, interpolation=interpolation)
         if verbose:
-            print("\nShift for first frame X,Y=({:.3f},{:.3f})".format(x[0],y[0]))
-            print("The rest of the frames will be shifted by cross-correlation" \
-                  " with the first one")
+            msg = "Shift for first frame X,Y=({:.3f}, {:.3f})"
+            print(msg.format(x[0], y[0]))
+            print(msg0)
         if debug:
-            pp_subplots(frame_crop(array[0], size, verbose=False),
-                        frame_crop(array_rec[0], size, verbose=False),
-                        grid=True, title='original / shifted 1st frame subimage')
+            titd = "original / shifted 1st frame subimage"
+            pp_subplots(frame_crop(array[0], subi_size, verbose=False),
+                        frame_crop(array_rec[0], subi_size, verbose=False),
+                        grid=True, title=titd)
     else:
         if verbose:
-            print("It's assumed that the first frame is well centered")
-            print("The rest of the frames will be shifted by cross-correlation" \
-                  " with the first one")
+            print("The first frame is assumed to be well centered.")
+            print(msg0)
         x[0] = cx
         y[0] = cy
     
     # Finding the shifts with DTF upsampling of each frame wrt the first
-    bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
+    if verbose:
+        tit = "Looping through frames"
+        bar = pyprind.ProgBar(n_frames-1, stream=1, title=tit)
     for i in range(1, n_frames):
         shift_yx, _, _ = register_translation(array_rec[0], array[i],
                                               upsample_factor=upsample_factor)
         y[i], x[i] = shift_yx
         array_rec[i] = frame_shift(array[i], shift_y=y[i], shift_x=x[i],
                                    imlib=imlib, interpolation=interpolation)
-        bar.update()
+        if verbose:
+            bar.update()
 
     if debug:
         print("\nShifts in X and Y")
@@ -796,11 +815,11 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
 
-    n_frames, y, x = array.shape
+    n_frames, sizey, sizex = array.shape
 
     if not isinstance(subi_size, int):
         raise ValueError('subi_size must be an integer')
-    if y % 2 == 0:
+    if sizey % 2 == 0:
         if subi_size % 2 != 0:
             subi_size += 1
             print('subi_size is odd (while frame size is even)')
@@ -837,15 +856,18 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         raise ValueError('model not recognized')
     
     if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2) 
+        nproc = (cpu_count()/2)
+
     if nproc == 1:
         res = []
-        bar = pyprind.ProgBar(n_frames, stream=1, 
-                              title='2d Gauss-fitting, looping through frames')
+        if verbose:
+            tit = '2d Gauss-fitting, looping through frames'
+            bar = pyprind.ProgBar(n_frames, stream=1, title=tit)
         for i in range(n_frames):
             res.append(func(array, i, subi_size, pos_y, pos_x, negative, debug,
                             fwhm[i], threshold))
-            bar.update()
+            if verbose:
+                bar.update()
         res = np.array(res)
     elif nproc > 1:
         pool = Pool(processes=int(nproc))  
@@ -864,14 +886,16 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         y -= offy
         x -= offx
     
-    bar2 = pyprind.ProgBar(n_frames, stream=1, title='Shifting the frames')
+    if verbose:
+        bar2 = pyprind.ProgBar(n_frames, stream=1, title='Shifting the frames')
     for i in range(n_frames):
         if debug:
             print("\nShifts in X and Y")
             print(x[i], y[i])
         array_recentered[i] = frame_shift(array[i], y[i], x[i], imlib=imlib,
                                           interpolation=interpolation)
-        bar2.update()
+        if verbose:
+            bar2.update()
         
     if verbose:
         timing(start_time)

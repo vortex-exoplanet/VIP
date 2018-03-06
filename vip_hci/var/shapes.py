@@ -166,7 +166,7 @@ def get_square(array, size, y, x, position=False, force=False):
     array_view = array[y0: y1, x0: x1].copy()
     
     if position:
-        return array_view, y-wing, x-wing
+        return array_view, y0, x0
     else:
         return array_view
 

@@ -24,6 +24,5 @@ Subpackages
     vip_hci.phot
     vip_hci.preproc
     vip_hci.stats
-    vip_hci.tests
     vip_hci.var
 

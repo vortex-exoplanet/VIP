@@ -8,24 +8,13 @@ import pytest
 
 
 def test_cube_with_gauss2d():
-    def create_cube_with_gauss2d(shape=(4, 9, 9), x_mean=4., y_mean=4,
-                                 x_stddev=1, y_stddev=1):
-        nframes, sizex, sizey = shape
-        gauss = Gaussian2D(amplitude=1, x_mean=x_mean, y_mean=y_mean,
-                           x_stddev=x_stddev, y_stddev=y_stddev)
-        x = np.arange(sizex)
-        y = np.arange(sizey)
-        x, y = np.meshgrid(x, y)
-        gaus_im = gauss(x, y)
-        return np.array([gaus_im for i in range(nframes)])
-    ############################################################################
-
+    """ Testing the ADI frame-to-frame recentering functions. """
     n_frames = 6
-    megerrg = 'Error when recentering with Gaussian fitting'
-    msgerrm = 'Error when recentering with Moffat fitting'
-    megerrd = 'Error when recentering with DFT upsampling'
+    megerrg = 'Error when recentering with 2d Gaussian fitting method'
+    msgerrm = 'Error when recentering with 2d Moffat fitting method'
+    megerrd = 'Error when recentering with DFT upsampling method'
 
-    ### odd case ###
+    # ODD case #
     cube1 = create_cube_with_gauss2d(shape=(n_frames, 9, 9), x_mean=4, y_mean=4,
                                      x_stddev=1, y_stddev=1)
     randax1 = np.random.uniform(-1, 1, size=n_frames)
@@ -51,7 +40,7 @@ def test_cube_with_gauss2d():
     assert mean_squared_error(randax1, -shixd) < 1e-2, megerrd
     assert mean_squared_error(randay1, -shiyd) < 1e-2, megerrd
 
-    ### even case ###
+    # EVEN case #
     cube2 = create_cube_with_gauss2d(shape=(n_frames, 10, 10), x_mean=4.5,
                                      y_mean=4.5, x_stddev=1, y_stddev=1)
     randax2 = np.random.uniform(-1, 1, size=n_frames)
@@ -76,3 +65,15 @@ def test_cube_with_gauss2d():
                                                    full_output=True)
     assert mean_squared_error(randax2, -shixd) < 1e-2, megerrd
     assert mean_squared_error(randay2, -shiyd) < 1e-2, megerrd
+
+
+def create_cube_with_gauss2d(shape=(4, 9, 9), x_mean=4., y_mean=4,
+                             x_stddev=1, y_stddev=1):
+    nframes, sizex, sizey = shape
+    gauss = Gaussian2D(amplitude=1, x_mean=x_mean, y_mean=y_mean,
+                       x_stddev=x_stddev, y_stddev=y_stddev)
+    x = np.arange(sizex)
+    y = np.arange(sizey)
+    x, y = np.meshgrid(x, y)
+    gaus_im = gauss(x, y)
+    return np.array([gaus_im for _ in range(nframes)])

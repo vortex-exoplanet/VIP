@@ -23,15 +23,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from .shapes import frame_center
 
 
-def get_fwhm(lambd, diameter, pxscale):
-    """ Returnes the instrument FWHM [px] given the wavelenght [m], diameter [m] 
-    and plate/pixel scale [arcs/px]. In vip_hci/conf/param.py can be found
-    dictionaries with the parameters for different instruments.                           
-    """
-    fwhm = lambd/diameter*206265/pxscale                    
-    return fwhm 
-
-
 def pp_subplots(*args, **kwargs):
     """ Wrapper for easy creation of pyplot subplots. It is convenient for 
     displaying VIP images in jupyter notebooks. 
@@ -432,11 +423,12 @@ def pp_subplots(*args, **kwargs):
     fig.subplots_adjust(wspace=hor_spacing, hspace=ver_spacing)
     if save:
         savefig(savepath, dpi=dpi, bbox_inches='tight')
-
-    if getfig:
-        return fig
+        if getfig:
+            return fig
     else:
         show()
+        if getfig:
+            return fig
 
 
 def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False, 
@@ -532,7 +524,7 @@ def lines_of_code():
                 if pyfile not in ignore_set and pyfile.endswith(".py"):
                     totalpath = os.path.join(pydir, pyfile)
                     loclist.append((len(open(totalpath,"r").read().splitlines()),
-                                       totalpath.split(path)[1]) )
+                                    totalpath.split(path)[1]))
 
     for linenumbercount, filename in loclist: 
         print("%05d lines in %s" % (linenumbercount, filename))
@@ -541,7 +533,13 @@ def lines_of_code():
     print(msg.format(sum([x[0] for x in loclist]), path))
 
 
-
+def get_fwhm(lambd, diameter, pxscale):
+    """ Returns the instrument FWHM [px] given the wavelenght [m], diameter [m]
+    and plate/pixel scale [arcs/px]. In vip_hci/conf/param.py can be found
+    dictionaries with the parameters for different instruments.
+    """
+    fwhm = lambd/diameter*206265/pxscale
+    return fwhm
 
  
 

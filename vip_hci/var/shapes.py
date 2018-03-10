@@ -26,11 +26,66 @@ __all__ = ['dist',
            'reshape_matrix']
 
 import numpy as np
-from skimage.draw import polygon, circle
+from skimage.draw import polygon
+from skimage.draw import circle
 from sklearn.preprocessing import scale
 
 
-def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10, sp_angle=0):
+def mask_circle(array, radius, fillwith=0, mode='in'):
+    """ Masks the pixels inside/outside (depending on ``mode``) of a centered
+    circle from a frame or cube, replacing the values by ``fillwith``.
+
+    Parameters
+    ----------
+    array : array_like
+        Input frame or cube.
+    radius : int
+        Radius of the circular aperture.
+    fillwith : int, float or np.nan, optional
+        Value to put instead of the masked out pixels.
+    mode : {'in', 'out'}, optional
+        When set to 'in' then the pixels inside the radius are set to
+        ``fillwith``. When set to 'out' the pixels outside the circular mask are
+        set to ``fillwith``.
+
+    Returns
+    -------
+    array_masked : array_like
+        Masked frame or cube.
+    """
+    if not isinstance(fillwith, (int, float)):
+        raise ValueError('`Fillwith` must be integer, float or np.nan')
+
+    if array.ndim == 2:
+        cy, cx = frame_center(array)
+    elif array.ndim == 3:
+        cy, cx = frame_center(array[0])
+    ind = circle(cy, cx, radius)
+
+    if mode == 'in':
+        array_masked = array.copy()
+    elif mode == 'out':
+        array_masked = np.ones_like(array) * np.nan
+
+    if mode == 'in':
+        if array.ndim == 2:
+            array_masked[ind] = fillwith
+        elif array.ndim == 3:
+            for i in range(array.shape[0]):
+                array_masked[i][ind] = fillwith
+
+    elif mode == 'out':
+        if array.ndim == 2:
+            array_masked[ind] = array[ind]
+        elif array.ndim == 3:
+            for i in range(array.shape[0]):
+                array_masked[i][ind] = array[i][ind]
+
+    return array_masked
+
+
+def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
+                              sp_angle=0):
     """
     Mask out information is outside the annulus and inside the spiders (zeros).
 
@@ -320,9 +375,9 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
     if not cy and not cx:
         cy, cx = frame_center(array, verbose=False)
          
-    yy, xx = np.ogrid[:sy, :sx]                                                 # ogrid is a multidim mesh creator (faster than mgrid)
-    circle = (yy - cy)**2 + (xx - cx)**2                                        # eq of circle. squared distance to the center                                        
-    circle_mask = circle < radius**2                                            # mask of 1's and 0's                                       
+    yy, xx = np.ogrid[:sy, :sx]             # ogrid is a multidim mesh creator (faster than mgrid)
+    circle = (yy - cy)**2 + (xx - cx)**2    # eq of circle. squared distance to the center
+    circle_mask = circle < radius**2        # mask of 1's and 0's
     if output_values:
         values = array[circle_mask]
         return values
@@ -694,43 +749,6 @@ def get_ell_annulus(array, a, b, PA, width, output_values=False,
     else:
         array_masked = array * ell_ann_mask
         return array_masked
-
-
-def mask_circle(array, radius):                                      
-    """ Masks (sets pixels to zero) a centered circle from a frame or cube. 
-    
-    Parameters
-    ----------
-    array : array_like
-        Input frame or cube.
-    radius : int
-        Radius of the circular aperture.
-    
-    Returns
-    -------
-    array_masked : array_like
-        Masked frame or cube.
-        
-    """
-    if len(array.shape) == 2:
-        sy, sx = array.shape
-        cy, cx = frame_center(array)
-        xx, yy = np.ogrid[:sy, :sx]
-        circle = (xx - cx)**2 + (yy - cy)**2    # squared distance to the center
-        hole_mask = circle > radius**2                                             
-        array_masked = array*hole_mask
-        
-    if len(array.shape) == 3:
-        n, sy, sx = array.shape
-        cy, cx = frame_center(array[0])
-        xx, yy = np.ogrid[:sy, :sx]
-        circle = (xx - cx)**2 + (yy - cy)**2    # squared distance to the center
-        hole_mask = circle > radius**2      
-        array_masked = np.empty_like(array)
-        for i in range(n):
-            array_masked[i] = array[i]*hole_mask
-        
-    return array_masked
 
 
 def matrix_scaling(matrix, scaling):

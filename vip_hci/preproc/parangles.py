@@ -17,7 +17,7 @@ import numpy as np
 import os
 from ..fits import open_fits
 from astropy.coordinates import FK5
-from astropy.coordinates.sky_coordinate import SkyCoord
+from astropy.coordinates import sky_coordinate
 from astropy.time import Time
 from astropy.units import hourangle, degree 
 
@@ -52,8 +52,8 @@ def compute_paral_angles(header, latitude, ra_key, dec_key, lst_key,
     # equatorial coordinates in J2000
     ra = header[ra_key]                                                         
     dec = header[dec_key]   
-    coor = SkyCoord(ra=ra, dec=dec, unit=(hourangle,degree), frame=FK5, 
-                    equinox='J2000.0')
+    coor = sky_coordinate.SkyCoord(ra=ra, dec=dec, unit=(hourangle,degree),
+                                   frame=FK5, equinox='J2000.0')
     # recalculate for DATE-OBS (precession)
     coor_curr = coor.transform_to(FK5(equinox=obs_epoch))
     
@@ -79,6 +79,7 @@ def compute_paral_angles(header, latitude, ra_key, dec_key, lst_key,
     #if dec_curr.value > latitude:  pa = (pa.value + 360) % 360
     
     return pa.value
+
 
 def compute_derot_angles_pa(objname_tmp_A,digit_format=3,objname_tmp_B='',
                             inpath='./',writing=False, outpath='./', 
@@ -198,6 +199,7 @@ def compute_derot_angles_pa(objname_tmp_A,digit_format=3,objname_tmp_B='',
         f.close()
 
     return rot
+
 
 def compute_derot_angles_cd(objname_tmp_A, digit_format=3,objname_tmp_B='',
                             inpath='./', skew=False, writing=False, 

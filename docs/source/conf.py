@@ -18,14 +18,14 @@
 #
 import os
 import sys
-from unittest.mock import MagicMock
+from mock import Mock as MagicMock
 
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         return MagicMock()
 
-MOCK_MODULES = ['photutils', 'astropy']
+MOCK_MODULES = ['photutils', 'astropy', 'astropy.stats']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
@@ -51,8 +51,8 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    #'sphinx.ext.githubpages',
     'sphinx.ext.napoleon'
+    # 'sphinx.ext.githubpages',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

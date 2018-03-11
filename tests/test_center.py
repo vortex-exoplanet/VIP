@@ -1,8 +1,9 @@
 from __future__ import division, print_function
 
 import numpy as np
-from astropy.modeling.models import Gaussian2D
-from vip_hci.preproc import cube_recenter_2dfit, cube_recenter_dft_upsampling, frame_shift
+from astropy.modeling import models
+from vip_hci.preproc import (cube_recenter_2dfit, cube_recenter_dft_upsampling,
+                             frame_shift)
 from sklearn.metrics import mean_squared_error
 import pytest
 
@@ -70,8 +71,8 @@ def test_cube_with_gauss2d():
 def create_cube_with_gauss2d(shape=(4, 9, 9), x_mean=4., y_mean=4,
                              x_stddev=1, y_stddev=1):
     nframes, sizex, sizey = shape
-    gauss = Gaussian2D(amplitude=1, x_mean=x_mean, y_mean=y_mean,
-                       x_stddev=x_stddev, y_stddev=y_stddev)
+    gauss = models.Gaussian2D(amplitude=1, x_mean=x_mean, y_mean=y_mean,
+                              x_stddev=x_stddev, y_stddev=y_stddev)
     x = np.arange(sizex)
     y = np.arange(sizey)
     x, y = np.meshgrid(x, y)

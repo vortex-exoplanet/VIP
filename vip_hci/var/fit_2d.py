@@ -13,8 +13,7 @@ import numpy as np
 import pandas as pd
 import photutils
 from scipy.optimize import leastsq
-from astropy.modeling import models
-from astropy.modeling.fitting import LevMarLSQFitter
+from astropy.modeling import models, fitting
 from astropy.stats import gaussian_sigma_to_fwhm, gaussian_fwhm_to_sigma, sigma_clipped_stats
 from .shapes import get_square, frame_center
 from .utils_var import pp_subplots
@@ -104,7 +103,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
                               x_stddev=fwhmx * gaussian_fwhm_to_sigma,
                               y_stddev=fwhmy * gaussian_fwhm_to_sigma)
     # Levenberg-Marquardt algorithm
-    fitter = LevMarLSQFitter()                  
+    fitter = fitting.LevMarLSQFitter()
     y, x = np.indices(psf_subimage.shape)
     fit = fitter(gauss, x, y, psf_subimage)
 

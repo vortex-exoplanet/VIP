@@ -19,8 +19,7 @@ from skimage import feature
 from astropy.stats import sigma_clipped_stats
 from astropy.stats import gaussian_fwhm_to_sigma, gaussian_sigma_to_fwhm
 from astropy.table import Table
-from astropy.modeling.models import Gaussian2D
-from astropy.modeling.fitting import LevMarLSQFitter
+from astropy.modeling import models, fitting
 from skimage.feature import peak_local_max
 from ..var import (mask_circle, pp_subplots, get_square, frame_center,
                    frame_filter_gaussian2d, fit_2dgaussian)
@@ -141,13 +140,13 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
                                            y+pad, x+pad, position=True)
             cy, cx = frame_center(subim)
 
-            gauss = Gaussian2D(amplitude=subim.max(),
-                               x_mean=cx, y_mean=cy,
-                               x_stddev=fwhm*gaussian_fwhm_to_sigma,
-                               y_stddev=fwhm*gaussian_fwhm_to_sigma, theta=0)
+            gauss = models.Gaussian2D(amplitude=subim.max(), x_mean=cx,
+                                      y_mean=cy, theta=0,
+                                      x_stddev=fwhm*gaussian_fwhm_to_sigma,
+                                      y_stddev=fwhm*gaussian_fwhm_to_sigma)
 
             sy, sx = np.indices(subim.shape)
-            fitter = LevMarLSQFitter()
+            fitter = fitting.LevMarLSQFitter()
             fit = fitter(gauss, sx, sy, subim)
 
             # checking that the amplitude is positive > 0

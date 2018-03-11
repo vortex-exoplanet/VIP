@@ -19,8 +19,7 @@ from photutils import detection
 from astropy.stats import sigma_clip
 from ..var import get_annulus
 from ..conf import time_ini, timing
-from ..stats import (cube_stats_aperture, cube_stats_annulus, 
-                              cube_distance)
+from ..stats import cube_stats_aperture, cube_stats_annulus, cube_distance
 
 
 def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10, 

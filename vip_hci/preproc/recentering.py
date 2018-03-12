@@ -229,28 +229,28 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
     
     # Upper left
     si1, y1, x1 = get_square(array, subim_size, xy[0][1], xy[0][0], position=True)
-    cent2dgx_1, cent2dgy_1 = fit_2dgaussian(si1, theta=135, crop=False, 
+    cent2dgy_1, cent2dgx_1 = fit_2dgaussian(si1, theta=135, crop=False, 
                                             threshold=True, sigfactor=sigfactor, 
                                             debug=debug)
     cent2dgx_1 += x1
     cent2dgy_1 += y1
     # Upper right
     si2, y2, x2 = get_square(array, subim_size, xy[1][1], xy[1][0], position=True)
-    cent2dgx_2, cent2dgy_2 = fit_2dgaussian(si2, theta=45, crop=False, 
+    cent2dgy_2, cent2dgx_2 = fit_2dgaussian(si2, theta=45, crop=False, 
                                             threshold=True, sigfactor=sigfactor, 
                                             debug=debug)
     cent2dgx_2 += x2
     cent2dgy_2 += y2 
     #  Lower left
     si3, y3, x3 = get_square(array, subim_size, xy[2][1], xy[2][0], position=True)
-    cent2dgx_3, cent2dgy_3 = fit_2dgaussian(si3, theta=45, crop=False, 
+    cent2dgy_3, cent2dgx_3 = fit_2dgaussian(si3, theta=45, crop=False, 
                                             threshold=True, sigfactor=sigfactor, 
                                             debug=debug)
     cent2dgx_3 += x3
     cent2dgy_3 += y3
     #  Lower right
     si4, y4, x4 = get_square(array, subim_size, xy[3][1], xy[3][0], position=True)
-    cent2dgx_4, cent2dgy_4 = fit_2dgaussian(si4, theta=135, crop=False, 
+    cent2dgy_4, cent2dgx_4 = fit_2dgaussian(si4, theta=135, crop=False, 
                                             threshold=True, sigfactor=sigfactor, 
                                             debug=debug)
     cent2dgx_4 += x4

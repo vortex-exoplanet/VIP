@@ -670,18 +670,21 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
         raise TypeError('Input array is not a cube or 3d array')
 
     n_frames, sizey, sizex = array.shape
-    if not isinstance(subi_size, int):
-        raise ValueError('subi_size must be an integer')
-    if sizey % 2 == 0:
-        if subi_size % 2 != 0:
-            subi_size += 1
-            print('subi_size is odd (while frame size is even)')
-            print('Setting subi_size to {} pixels'.format(subi_size))
+    if subi_size is None:
+        pass
     else:
-        if subi_size % 2 == 0:
-            subi_size += 1
-            print('subi_size is even (while frame size is odd)')
-            print('Setting subi_size to {} pixels'.format(subi_size))
+        if not isinstance(subi_size, int):
+            raise ValueError('subi_size must be an integer or None')
+        if sizey % 2 == 0:
+            if subi_size % 2 != 0:
+                subi_size += 1
+                print('subi_size is odd (while frame size is even)')
+                print('Setting subi_size to {} pixels'.format(subi_size))
+        else:
+            if subi_size % 2 == 0:
+                subi_size += 1
+                print('subi_size is even (while frame size is odd)')
+                print('Setting subi_size to {} pixels'.format(subi_size))
 
     if verbose:
         start_time = time_ini()

@@ -670,9 +670,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
         raise TypeError('Input array is not a cube or 3d array')
 
     n_frames, sizey, sizex = array.shape
-    if subi_size is None:
-        pass
-    else:
+    if subi_size is not None:
         if not isinstance(subi_size, int):
             raise ValueError('subi_size must be an integer or None')
         if sizey % 2 == 0:

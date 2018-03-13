@@ -11,12 +11,12 @@ __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = []
 
 import numpy as np
-from ..var import get_square_robust, frame_center, prepare_matrix
-from ..preproc import cube_derotate, cube_collapse, cube_rescaling
+from ..var import get_square, frame_center, prepare_matrix
+from ..preproc import cube_derotate, cube_collapse, cube_rescaling_wavelengths
 from .svd import svd_wrapper
 
 
-def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
+def scale_cube_for_pca(cube, scal_list, full_output=True, inverse=False, y_in=1,
                        x_in=1, imlib='opencv', interpolation='lanczos4'):
     """
     Wrapper to scale or descale a cube by factors given in scal_list, without 
@@ -44,11 +44,9 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
        Initial y and x sizes. In case the cube is descaled, these values will
        be used to crop back the cubes/frames to their original size.
     imlib : str optional
-        See the documentation of the ``vip_hci.preproc.frame_rescaling``
-        function.
+        See the documentation of ``vip_hci.preproc.cube_rescaling_wavelengths``.
     interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rescaling``
-        function.
+        See the documentation of ``vip_hci.preproc.cube_rescaling_wavelengths``.
 
     Returns:
     --------
@@ -91,21 +89,20 @@ def scale_cube_for_pca(cube,scal_list, full_output=True, inverse=False, y_in=1,
         cy, cx = frame_center(cube[0])
 
     # (de)scale the cube, so that a planet would now move radially
-    cube, frame = cube_rescaling(big_cube, var_list, ref_y=cy, ref_x=cx,
-                                 imlib=imlib, interpolation=interpolation)
+    cube = cube_rescaling_wavelengths(big_cube, var_list, ref_xy=(cx, cy),
+                                      imlib=imlib, interpolation=interpolation)
+    frame = np.median(cube, axis=0)
 
     if inverse:
         if max_sc > 1:
-            # TODO: check the use of get_square_robust
-            frame = get_square_robust(frame,max(y_in,x_in), cy, cx,strict=False)
+            siz = max(y_in, x_in)
+            frame = get_square(frame, siz , cy, cx)
             if full_output:
                 n_z = cube.shape[0]
                 array_old = cube.copy()
-                cube = np.zeros([n_z,max(y_in, x_in), max(y_in, x_in)])
+                cube = np.zeros([n_z, siz, siz])
                 for zz in range(n_z):
-                    # TODO: check the use of get_square_robust
-                    cube[zz] = get_square_robust(array_old[zz],max(y_in, x_in),
-                                                 cy, cx, strict=False)
+                    cube[zz] = get_square(array_old[zz], siz, cy, cx)
 
     if full_output: 
         return cube, frame, y, x, cy, cx

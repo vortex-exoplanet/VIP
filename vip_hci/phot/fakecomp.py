@@ -266,9 +266,11 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
     ----------
     array: array_like
         The PSF, 2d (ADI data) or 3d array (IFS data).
-    fwhm: int or float or 1d array, optional
+    fwhm: int, float, 1d array or str, optional
         The the Full Width Half Maximum in pixels. It can handle a different
-        FWHM value for different wavelengths (IFS data).
+        FWHM value for different wavelengths (IFS data). If set to 'fit' then
+        a 2D Gaussian fit (assuming the PSF is centered in the array) to
+        estimate the FWHM in 2D or 3D PSF arrays.
     size : int or None, optional
         If int it will correspond to the size of the squared subimage to be
         cropped form the psf array.
@@ -335,8 +337,6 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
         fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper,
                                                        method='exact')
         fwhm_flux = np.array(fwhm_aper_phot['aperture_sum'])
-        if verbose:
-            print("Flux in 1xFWHM aperture: {}".format(fwhm_flux))
 
         if fwhm_flux > 1.1 or fwhm_flux < 0.9:
             psf_norm_array = psfs / np.array(fwhm_aper_phot['aperture_sum'])
@@ -350,6 +350,8 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
             psf_norm_array = get_circle(psf_norm_array, radius=mask_core)
 
         if full_output:
+            if verbose:
+                print("Flux in 1xFWHM aperture: {}".format(fwhm_flux))
             return psf_norm_array, fwhm_flux
         else:
             return psf_norm_array
@@ -368,11 +370,19 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
                 msg = "`Force_odd` is True and frame size is even, therefore "
                 msg += "new frame size was set to {}"
                 print(msg.format(size))
+
+        if fwhm == 'fit':
+            fit = fit_2dgaussian(array, full_output=True)
+            fwhm = np.mean((fit['fwhm_x'], fit['fwhm_y']))
+            if verbose:
+                print("Mean FWHM :\n{}".format(fwhm))
+
         res = psf_norm_2d(array, fwhm, size, threshold, mask_core, full_output,
                           verbose)
+        return res
 
     elif array.ndim == 3:
-        y, x = array[0].shape
+        n, y, x = array.shape
         if size is not None:
             if force_odd and size % 2 == 0:
                 size += 1
@@ -387,25 +397,36 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
 
         if isinstance(fwhm, (int, float)):
             fwhm = [fwhm for _ in range(array.shape[0])]
-        array_out = np.zeros((array.shape[0], size, size))
+        elif fwhm == 'fit':
+            fits_vect = [fit_2dgaussian(array[i], full_output=True) for i
+                         in range(n)]
+            fwhmx = [fits_vect[i]['fwhm_x'] for i in range(n)]
+            fwhmy = [fits_vect[i]['fwhm_y'] for i in range(n)]
+            fwhm_vect = [np.mean((fwhmx[i], fwhmy[i])) for i in range(n)]
+            fwhm = np.array(fwhm_vect)
+            if verbose:
+                print("Mean FWHM :\n{}".format(fwhm))
+
+        array_out = []
         if full_output:
-            fwhm_flux = np.zeros((array.shape[0]))
+            fwhm_flux = np.zeros(n)
 
         for fr in range(array.shape[0]):
             restemp = psf_norm_2d(array[fr], fwhm[fr], size, threshold,
                                   mask_core, full_output, False)
             if full_output:
-                array_out[fr] = restemp[0]
+                array_out.append(restemp[0])
                 fwhm_flux[fr] = restemp[1]
             else:
-                array_out[fr] = restemp
+                array_out.append(restemp)
 
+        array_out = np.array(array_out)
         if full_output:
-            res = (array_out, fwhm_flux)
+            if verbose:
+                print("Flux in 1xFWHM aperture :\n{}".format(fwhm_flux))
+            return array_out, fwhm_flux
         else:
-            res = array_out
-
-    return res
+            return array_out
 
 
 

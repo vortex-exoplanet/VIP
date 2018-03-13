@@ -202,12 +202,11 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
         """
         A = (p1[1] - p2[1])
         B = (p2[0] - p1[0])
-        C = (p1[0]*p2[1] - p2[0]*p1[1])
+        C = (p1[0] * p2[1] - p2[0] * p1[1])
         return A, B, -C
 
     def intersection(L1, L2):
-        """ finds intersection point (if any) of 2 lines provided 
-        by coefs
+        """ finds intersection point (if any) of 2 lines provided by coefs
         """
         D  = L1[0] * L2[1] - L1[1] * L2[0]
         Dx = L1[2] * L2[1] - L1[1] * L2[2]
@@ -215,7 +214,7 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
         if D != 0:
             x = Dx / D
             y = Dy / D
-            return x,y
+            return x, y
         else:
             return False
         

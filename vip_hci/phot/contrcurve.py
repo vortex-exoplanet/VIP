@@ -622,7 +622,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
 
     elif cube.ndim == 4:
         if isinstance(fwhm, (int, float)):
-            fwhm = [fwhm for _ in range(array.shape[0])]
+            fwhm = [fwhm]*array.shape[0]
 
         psf_template = psf_norm(psf_template, fwhm=fwhm,
                                 size=min(new_psf_size, psf_template.shape[1]))

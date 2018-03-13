@@ -111,7 +111,7 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
 
     annulus_width = asize
     if isinstance(n_segments, int):
-        n_segments = [n_segments for _ in range(n_annuli)]
+        n_segments = [n_segments]*n_annuli
     elif n_segments == 'auto':
         n_segments = []
         n_segments.append(2)    # for first annulus

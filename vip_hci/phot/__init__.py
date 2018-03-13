@@ -1,7 +1,7 @@
 """
-Subpackage ``phot`` includes functionalities such as:
-    - signal-to-noise (S/R) estimation,
-    - S/R map generation,
+Subpackage ``phot`` includes:
+    - signal-to-noise (S/N) estimation,
+    - S/N map generation,
     - detection of point like sources (for pipelines),
     - fake companions injection,
     - algorithms throughput,

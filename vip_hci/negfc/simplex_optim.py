@@ -370,7 +370,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
             r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x
             if verbose:
                 msg5 = 'Planet {}: Success: {}, nit: {}, nfev: {}, chi2r: {}'
-                print(msg5.format(index_planet,res.success,res.nit,res.nfev, 
+                print(msg5.format(index_planet, res.success, res.nit, res.nfev,
                                   res.fun))
                 print('message: {}'.format(res.message))
             

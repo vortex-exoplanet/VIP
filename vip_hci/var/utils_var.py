@@ -439,8 +439,8 @@ def pp_subplots(*args, **kwargs):
             return fig
 
 
-def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False, 
-                 **kwargs):
+def plot_surface(image, center_xy=None, size=15, output=False, title=None,
+                 zlim=None, **kwargs):
     """
     Create a surface plot from image.
     
@@ -451,15 +451,17 @@ def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False,
     ----------
     image : numpy.array
         The image as a numpy.array.
-    center : tuple of 2 int (optional, default=None)
+    center_xy : tuple of 2 int or None, optional
         If None, the whole image will be plotted. Otherwise, it grabs a square
-        subimage at the 'center' (Y,X) from the image.
+        subimage at the position X,Y from the image.
     size : int (optional, default=15)
         It corresponds to the size of a square in the image.
     output : {False, True}, bool optional
         Whether to output the grids and intensities or not.
-    ds9_indexing : {False, True}, bool optional 
-        If True the coordinates are in X,Y convention and in 1-indexed format.
+    title : str, optional
+        Sets the title for the surface plot.
+    zlim : tuple, optional
+        Tuple with the range of values (min,max) for the Z axis.
     kwargs:
         Additional attributes are passed to the matplotlib figure() and 
         plot_surface() method.        
@@ -469,19 +471,19 @@ def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False,
     out : tuple of 3 numpy.array
         x and y for the grid, and the intensity
         
-    """        
-    if center is not None: 
-        if ds9_indexing:
-            center = (center[0]-1,center[1]-1) 
-            cx, cy = center
-        else:
-            cy, cx = center
-        if size % 2:            # if size is odd             
-            x = np.outer(np.arange(0,size,1), np.ones(size))
+    """
+    if not isinstance(center_xy, tuple):
+        raise ValueError('`center_xy` must be a tuple')
+
+    if center_xy is not None:
+        cx = int(center_xy[0])
+        cy = int(center_xy[1])
+        if size % 2:            # if size is odd
+            x = np.outer(np.arange(0, size, 1), np.ones(size))
         else:                   # otherwise, size is even
-            x = np.outer(np.arange(0,size+1,1), np.ones(size+1))
+            x = np.outer(np.arange(0, size+1, 1), np.ones(size+1))
         y = x.copy().T            
-        z = image[cy-size//2:cy+size//2+1,cx-size//2:cx+size//2+1]   
+        z = image[cy-size//2: cy+size//2+1, cx-size//2: cx+size//2+1]
     else:
         cy, cx = frame_center(image)
         if size is not None:
@@ -493,22 +495,21 @@ def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False,
             z = image[cy-size//2:cy+size//2+1,cx-size//2:cx+size//2+1]
         else:
             size = image.shape[0]
-            x = np.outer(np.arange(0,size,1), np.ones(size))
+            x = np.outer(np.arange(0, size, 1), np.ones(size))
             y = x.copy().T 
             z = image        
     
-    figure(figsize=kwargs.pop('figsize',(6,6)))
+    figure(figsize=kwargs.pop('figsize', (6, 6)))
     ax = axes(projection='3d')
-    ax.dist = 12
+    ax.dist = 10
     ax.plot_surface(x, y, z, rstride=1, cstride=1, linewidth=0, **kwargs) 
-    ax.set_xlabel('$x$')
-    ax.set_ylabel('$y$')
-    ax.set_zlabel('$I(x,y)$')
-    ax.xaxis._axinfo['label']['space_factor'] = 2
-    ax.yaxis._axinfo['label']['space_factor'] = 2
-    ax.zaxis._axinfo['label']['space_factor'] = 3.5
-    #ax.zaxis._axinfo['ticklabel']['space_factor'] = 1.5
-    ax.set_title('Data')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('I(x,y)')
+    ax.set_zlim(zlim[0], zlim[1])
+
+    if title is not None:
+        ax.set_title(title)
     show()
     
     if output:

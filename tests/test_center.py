@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+import matplotlib
+matplotlib.use("agg") # fix for Travis CI
+
 import numpy as np
 from astropy.modeling import models
 import vip_hci as vip

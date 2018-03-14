@@ -372,7 +372,8 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
 
 
 def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
-                     cevr=0.9, max_evs=None, data_ref=None, debug=False):
+                     cevr=0.9, max_evs=None, data_ref=None, debug=False,
+                     collapse=False):
     """ Getting ``ncomp`` eigenvectors. Choosing the size of the PCA truncation
     when ``ncomp`` is set to None.
     """
@@ -389,8 +390,13 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
         V_big = svd_wrapper(data_ref, svd_mode, max_evs, False, False)
 
         if mode=='noise':
-            data_ref_sc = matrix_scaling(data_ref, 'temp-standard')
-            data_sc = matrix_scaling(data, 'temp-standard')
+            if not collapse:
+                data_ref_sc = matrix_scaling(data_ref, 'temp-mean')
+                data_sc = matrix_scaling(data, 'temp-mean')
+            else:
+                data_ref_sc = matrix_scaling(data_ref, 'temp-standard')
+                data_sc = matrix_scaling(data, 'temp-standard')
+
             V_sc = svd_wrapper(data_ref_sc, svd_mode, max_evs, False, False)
 
             px_noise = []
@@ -406,7 +412,10 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
                     transformed = np.dot(V, data_sc)
                     reconstructed = np.dot(transformed.T, V).T
                 residuals = data_sc - reconstructed
-                curr_noise = np.std((np.median(residuals, axis=0)))
+                if not collapse:
+                    curr_noise = np.std(residuals)
+                else:
+                    curr_noise = np.std((np.median(residuals, axis=0)))
                 px_noise.append(curr_noise)
                 if ncomp > 1:
                     px_noise_decay = px_noise[-2] - curr_noise
@@ -430,6 +439,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
 
     else:
         # Performing SVD/PCA according to "svd_mode" flag
+        ncomp = min(ncomp, min(data_ref.shape[0], data_ref.shape[1]))
         V = svd_wrapper(data_ref, svd_mode, ncomp, debug=False, verbose=False)
 
     return V

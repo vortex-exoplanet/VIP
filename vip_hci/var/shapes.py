@@ -15,7 +15,6 @@ __all__ = ['dist',
            'get_ellipse',
            'get_annulus_segments',
            'get_annulus',
-           'get_annulus_quad',
            'get_annulus_cube',
            'get_ell_annulus',
            'mask_circle',
@@ -361,13 +360,13 @@ def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
 
     """
     if not array.ndim == 2:
-        raise TypeError('Input array is not a frame or 2d array.')
+        raise TypeError('Input array is not a frame or 2d array')
     if not isinstance(nsegm, int):
-        raise TypeError('nsegm must be an integer.')
+        raise TypeError('`nsegm` must be an integer')
     if not isinstance(inner_radius, int):
-        raise TypeError('inner_radius must be an integer.')
+        raise TypeError('`inner_radius` must be an integer')
     if not isinstance(width, int):
-        raise TypeError('width must be an integer.')
+        raise TypeError('`width` must be an integer')
 
     cy, cx = frame_center(array)
     azimuth_coverage = np.deg2rad(int(np.ceil(360 / nsegm)))
@@ -437,7 +436,7 @@ def get_annulus(array, inner_radius, width, output_values=False,
         Coordinates of pixels in annulus.
     """
     if not array.ndim == 2:
-        raise TypeError('Input array is not a frame or 2d array.')
+        raise TypeError('Input array is not a frame or 2d array')
     array = array.copy()
     cy, cx = frame_center(array)
     yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
@@ -452,55 +451,10 @@ def get_annulus(array, inner_radius, width, output_values=False,
         x = indices[1]
         return y, x
     elif output_indices and output_values:
-        raise ValueError('output_values and output_indices cannot be both True.')
+        raise ValueError('output_values and output_indices cannot be both True')
     else:
         array_masked = array*donut_mask
         return array_masked
-    
-
-### TODO: remove this in VIP v1.0.0. Replaced with get_annulus_segments
-def get_annulus_quad(array, inner_radius, width, output_values=False):                                          
-    """ Returns indices or values in quadrants of a centerered annulus from a 
-    2d ndarray. 
-    
-    Parameters
-    ----------
-    array : array_like
-        Input 2d array or image. 
-    inner_radius : int
-        The inner radius of the donut region.
-    width : int
-        The size of the annulus.
-    output_values : {False, True}, optional
-        If True returns the values of the pixels in the each quadrant instead
-        of the indices.
-    
-    Returns
-    -------
-    Depending on output_values:
-    values : array_like with shape [4, npix]
-        Array with the values of the pixels in each quadrant of annulus.
-    ind : array_like with shape [4,2,npix]
-        Coordinates of pixels for each quadrant in annulus.
-        
-    """
-    if not array.ndim == 2:
-        raise TypeError('Input array is not a frame or 2d array.')
-    
-    cy, cx = frame_center(array)
-    xx, yy = np.mgrid[:array.shape[0], :array.shape[1]]
-    circle = np.sqrt((xx - cx)**2 + (yy - cy)**2)                                                                               
-    q1 = (circle >= inner_radius) & (circle <= (inner_radius + width)) & (xx >= cx) & (yy <= cy)  
-    q2 = (circle >= inner_radius) & (circle <= (inner_radius + width)) & (xx <= cx) & (yy <= cy)
-    q3 = (circle >= inner_radius) & (circle <= (inner_radius + width)) & (xx <= cx) & (yy >= cy)
-    q4 = (circle >= inner_radius) & (circle <= (inner_radius + width)) & (xx >= cx) & (yy >= cy)
-    
-    if output_values:
-        values = [array[mask] for mask in [q1,q2,q3,q4]]
-        return np.array(values)
-    else:      
-        ind = [np.array(np.where(mask)) for mask in [q1,q2,q3,q4]]          
-        return np.array(ind)
 
 
 ### TODO: VIP v1.0.0: make use of get_annulus_segments instead

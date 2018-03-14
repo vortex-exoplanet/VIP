@@ -57,14 +57,14 @@ def frame_quick_report(array, fwhm, source_xy=None, verbose=True):
             x, y = xy
             if verbose:
                 print(sep)
-                print('Coordinates of chosen px (X,Y) = {:},{:}'.format(x,y))
+                print('Coords of chosen px (X,Y) = {:.3f},{:.3f}'.format(x, y))
         else:
             y, x = np.where(array == array.max())
             y = y[0]
             x = x[0]
             if verbose:
                 print(sep)
-                print('Coordinates of Max px (X,Y) = {:},{:}'.format(x,y))
+                print('Coords of Max px (X,Y) = {:.3f},{:.3f}'.format(x, y))
 
         # we get integrated flux on aperture with diameter=1FWHM
         aper = photutils.CircularAperture((x, y), r=fwhm/2.)

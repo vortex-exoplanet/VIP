@@ -46,7 +46,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     array : array_like, 2d
         Input frame.
     psf : array_like
-        Input psf.
+        Input psf, normalized with ``vip_hci.phot.psf_norm``.
     bkg_sigma : float, optional
         The number standard deviations above the clipped median for setting the
         background level.
@@ -134,10 +134,12 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         x_temp = coords_temp[:,1]
         coords = []
         # Fitting a 2d gaussian to each local maxima position
-        for y,x in zip(y_temp,x_temp):
-            subim, suby, subx = get_square(array_padded,
-                                           2*int(np.ceil(fwhm)),
-                                           y+pad, x+pad, position=True)
+        for y, x in zip(y_temp, x_temp):
+            subsi = 2 * int(np.ceil(fwhm))
+            if subsi %2 == 0:
+                subsi += 1
+            subim, suby, subx = get_square(array_padded, subsi, y+pad, x+pad,
+                                           position=True)
             cy, cx = frame_center(subim)
 
             gauss = models.Gaussian2D(amplitude=subim.max(), x_mean=cx,
@@ -157,16 +159,16 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             fwhm_y = fit.y_stddev.value*gaussian_sigma_to_fwhm
             fwhm_x = fit.x_stddev.value*gaussian_sigma_to_fwhm
             mean_fwhm_fit = np.mean([np.abs(fwhm_x), np.abs(fwhm_y)])
-            if fit.amplitude.value>0 \
+            if fit.amplitude.value > 0 \
             and np.allclose(fit.y_mean.value, cy, atol=2) \
             and np.allclose(fit.x_mean.value, cx, atol=2) \
             and np.allclose(mean_fwhm_fit, fwhm, atol=3):
-                coords.append((suby+fit.y_mean.value,subx+fit.x_mean.value))
+                coords.append((suby + fit.y_mean.value,
+                               subx + fit.x_mean.value))
 
             if debug:
                 print('Coordinates (Y,X): {:.3f},{:.3f}'.format(y, x))
                 print('fit peak = {:.3f}'.format(fit.amplitude.value))
-                #print fit
                 msg = 'fwhm_y in px = {:.3f}, fwhm_x in px = {:.3f}'
                 print(msg.format(fwhm_y, fwhm_x))
                 print('mean fit fwhm = {:.3f}'.format(mean_fwhm_fit))
@@ -177,7 +179,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         print('Blobs found:', len(coords))
         print(' ycen   xcen')
         print('------ ------')
-        for i in range(len(coords[:,0])):
+        for i in range(len(coords[:, 0])):
             print('{:.3f} \t {:.3f}'.format(coords[i,0], coords[i,1]))
 
     def print_abort():
@@ -196,17 +198,17 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     # Getting the FWHM from the PSF array
     cenpsf = frame_center(psf)
     outdf = fit_2dgaussian(psf, cent=(cenpsf), debug=debug, full_output=True)
-    fwhm_x, fwhm_y = outdf.at[0,'fwhm_x'],outdf.at[0,'fwhm_y']
+    fwhm_x, fwhm_y = outdf['fwhm_x'], outdf['fwhm_y']
     fwhm = np.mean([fwhm_x, fwhm_y])
     if verbose:
-        print('FWHM =', fwhm)
-        print()
+        print('FWHM = {:.2f} pxs\n'.format(fwhm))
     if debug:
         print('FWHM_y', fwhm_y)
         print('FWHM_x', fwhm_x)
 
     # Masking the center, 2*lambda/D is the expected IWA
-    if mask: array = mask_circle(array, radius=fwhm)
+    if mask:
+        array = mask_circle(array, radius=fwhm)
 
     # Matched filter
     if matched_filter:
@@ -239,49 +241,48 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
                                      num_peaks=20)
         coords = check_blobs(array_padded, coords_temp, fwhm, debug)
         coords = np.array(coords)
-        if verbose and coords.shape[0]>0:  print_coords(coords)
+        if verbose and coords.shape[0] > 0:
+            print_coords(coords)
 
     elif mode == 'log':
         sigma = fwhm*gaussian_fwhm_to_sigma
         coords = feature.blob_log(frame_det.astype('float'),
                                   threshold=bkg_level,
                                   min_sigma=sigma-.5, max_sigma=sigma+.5)
-        if len(coords)==0:
+        if len(coords) == 0:
             print_abort()
             return 0, 0
         coords = coords[:,:2]
         coords = check_blobs(array_padded, coords, fwhm, debug)
         coords = np.array(coords)
-        if coords.shape[0]>0 and verbose:  print_coords(coords)
+        if coords.shape[0] > 0 and verbose:
+            print_coords(coords)
 
     elif mode == 'dog':
         sigma = fwhm*gaussian_fwhm_to_sigma
         coords = feature.blob_dog(frame_det.astype('float'),
-                                  threshold=bkg_level,
-                                  min_sigma=sigma-.5, max_sigma=sigma+.5)
-        if len(coords)==0:
+                                  threshold=bkg_level, min_sigma=sigma-.5,
+                                  max_sigma=sigma+.5)
+        if len(coords) == 0:
             print_abort()
             return 0, 0
-        coords = coords[:,:2]
+        coords = coords[:, :2]
         coords = check_blobs(array_padded, coords, fwhm, debug)
         coords = np.array(coords)
-        if coords.shape[0]>0 and verbose:  print_coords(coords)
+        if coords.shape[0] > 0 and verbose:
+            print_coords(coords)
 
     else:
         msg = 'Wrong mode. Available modes: lpeaks, log, dog.'
         raise TypeError(msg)
 
-    if coords.shape[0]==0:
+    if coords.shape[0] == 0:
         print_abort()
         return 0, 0
 
-    yy = coords[:,0]
-    xx = coords[:,1]
-    yy_final = []
-    xx_final = []
-    yy_out = []
-    xx_out = []
-    snr_list = []
+    yy = coords[:, 0]
+    xx = coords[:, 1]
+    yy_final = [] ; xx_final = []; yy_out = []; xx_out = []; snr_list = []
     xx -= pad
     yy -= pad
 
@@ -303,13 +304,14 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         else:
             yy_out.append(y)
             xx_out.append(x)
-            if verbose:  print('S/N constraint NOT fulfilled (S/N = {:.3f})'.format(snr))
+            if verbose:
+                print('S/N constraint NOT fulfilled (S/N = {:.3f})'.format(snr))
             if debug:
                 _ = frame_quick_report(array, fwhm, (x,y), verbose=verbose)
 
     if debug or full_output:
         table = Table([yy.tolist(), xx.tolist(), snr_list],
-                      names=('y','x','px_snr'))
+                      names=('y', 'x', 'px_snr'))
         table.sort('px_snr')
     yy_final = np.array(yy_final)
     xx_final = np.array(xx_final)
@@ -317,11 +319,6 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     xx_out = np.array(xx_out)
 
     if plot:
-        #print
-        #print sep
-        #print 'Input frame showing all the detected blobs / potential sources:'
-        #print 'In RED circles those that did not pass the SNR and 2dGaussian '
-        #print 'fit constraints while in CYAN circles those that passed them.'
         fig, ax = plt.subplots(figsize=(6,6))
         im = ax.imshow(array, origin='lower', interpolation='nearest',
                        cmap='gray', alpha=0.8)
@@ -343,7 +340,6 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
                     ticks.append(center_val - (i) * 50)
                 else:
                     ticks.append((center_val - (i) * 50) - 1)
-                #print xticks
             ax.set_xticks(ticks)
             ax.set_yticks(ticks)
 
@@ -351,7 +347,6 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             labels = []
             for i in range(half_num_ticks, -half_num_ticks-1, -1):
                 labels.append(0.0 - (i) * 0.5)
-                #print xlabels
             ax.set_xticklabels(labels)
             ax.set_yticklabels(labels)
 

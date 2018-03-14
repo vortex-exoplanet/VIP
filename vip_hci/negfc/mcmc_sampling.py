@@ -862,7 +862,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         
         test = 0
         pourcentage = 0
-        for k,jj in enumerate(n_arg_sort):
+        for k, jj in enumerate(n_arg_sort):
             test = test + bins_width*n[jj]
             pourcentage = test/surface_total*100.
             if pourcentage > cfd:
@@ -873,14 +873,17 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         n_arg_min = n_arg_sort[:k].min()
         n_arg_max = n_arg_sort[:k+1].max()
         
-        if n_arg_min == 0:  n_arg_min += 1
-        if n_arg_max == bins:  n_arg_max -= 1        
+        if n_arg_min == 0:
+            n_arg_min += 1
+        if n_arg_max == bins:
+            n_arg_max -= 1
         
         val_max[pKey[j]] = bin_vertices[n_arg_sort[0]]+bins_width/2.
         confidenceInterval[pKey[j]] = np.array([bin_vertices[n_arg_min-1],
-                                                bin_vertices[n_arg_max+1]]-val_max[pKey[j]])
+                                                bin_vertices[n_arg_max+1]] - val_max[pKey[j]])
                         
-        arg = (isamples[:,j]>=bin_vertices[n_arg_min-1])*(isamples[:,j]<=bin_vertices[n_arg_max+1])
+        arg = (isamples[:, j] >= bin_vertices[n_arg_min - 1]) * \
+              (isamples[:, j] <= bin_vertices[n_arg_max + 1])
         if gaussian_fit:
             _ = ax[0][j].hist(isamples[arg,j],bins=bin_vertices, 
                               facecolor='gray', edgecolor='darkgray', 
@@ -888,7 +891,27 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             ax[0][j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]], 
                             linestyles='dashed', color='red')
             ax[0][j].set_xlabel(label[j])
-            if j==0:  ax[0][j].set_ylabel('Counts')
+            if j == 0:
+                ax[0][j].set_ylabel('Counts')
+
+            (mu[j], sigma[j]) = norm.fit(isamples[:, j])
+            n_fit, bins_fit = np.histogram(isamples[:, j], bins, normed=1,
+                                           weights=weights)
+            _ = ax[1][j].hist(isamples[:, j], bins, normed=1, weights=weights,
+                              facecolor='gray', edgecolor='darkgray',
+                              histtype='step')
+            y = normpdf(bins_fit, mu[j], sigma[j])
+            ax[1][j].plot(bins_fit, y, 'r--', linewidth=2, alpha=0.7)
+
+            ax[1][j].set_xlabel(label[j])
+            if j == 0:
+                ax[1][j].set_ylabel('Counts')
+
+            if title is not None:
+                msg = r"$\mu$ = {:.4f}, $\sigma$ = {:.4f}"
+                ax[1][j].set_title(title + '   ' + msg.format(mu[j], sigma[j]),
+                                   fontsize=10)
+
         else:
             _ = ax[j].hist(isamples[arg,j],bins=bin_vertices, facecolor='gray', 
                            edgecolor='darkgray', histtype='stepfilled',
@@ -896,40 +919,23 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             ax[j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]],
                          linestyles='dashed', color='red')
             ax[j].set_xlabel(label[j])
-            if j==0:  ax[j].set_ylabel('Counts')
-    
-        if gaussian_fit:
-            (mu[j], sigma[j]) = norm.fit(isamples[:,j])
-            n_fit, bins_fit = np.histogram(isamples[:,j], bins, normed=1, 
-                                           weights=weights)
-            _= ax[1][j].hist(isamples[:,j], bins, normed=1, weights=weights, 
-                             facecolor='gray', edgecolor='darkgray', 
-                             histtype='step')
-            y = normpdf( bins_fit, mu[j], sigma[j])
-            ax[1][j].plot(bins_fit, y, 'r--', linewidth=2, alpha=0.7) 
-            
-            ax[1][j].set_xlabel(label[j])
-            if j==0:  ax[1][j].set_ylabel('Counts')
-            
+            if j == 0:
+                ax[j].set_ylabel('Counts')
+
             if title is not None:
-                msg = r"$\mu$ = {:.4f}, $\sigma$ = {:.4f}"
-                ax[1][j].set_title(title+'   '+msg.format(mu[j],sigma[j]),
-                          fontsize=10)
-        else:
-            if title is not None:            
                 ax[1].set_title(title, fontsize=10)
+
+        plt.tight_layout(w_pad=0.1)
 
     if save:
         if gaussian_fit:
             plt.savefig('confi_hist_flux_r_theta_gaussfit.pdf')
         else:
             plt.savefig('confi_hist_flux_r_theta.pdf')
-        
-        plt.tight_layout(w_pad=0.001)
-        
+
     if verbose:
         print('')
-        print('Confidence intervals:')
+        print('\nConfidence intervals:')
         print('r: {} [{},{}]'.format(val_max['r'],
                                      confidenceInterval['r'][0],
                                      confidenceInterval['r'][1]))

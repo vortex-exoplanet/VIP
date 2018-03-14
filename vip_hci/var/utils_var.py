@@ -506,8 +506,8 @@ def plot_surface(image, center_xy=None, size=15, output=False, title=None,
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('I(x,y)')
-    ax.set_zlim(zlim[0], zlim[1])
-
+    if zlim is not None and isinstance(zlim, tuple):
+        ax.set_zlim(zlim[0], zlim[1])
     if title is not None:
         ax.set_title(title)
     show()

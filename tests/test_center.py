@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from __future__ import print_function, division
 
 import matplotlib
 matplotlib.use("agg") # fix for Travis CI
@@ -232,7 +232,7 @@ def test_dft(debug=False):
         html("<h2>===== test_dft =====</h2>")
 
     method = cube_recenter_dft_upsampling
-    method_args_etc = dict(verbose=True, full_output=True)
+    method_args_additional = dict(verbose=True, full_output=True)
     errormsg = 'Error when recentering with DFT upsampling method'
     n_frames = 6
 
@@ -248,10 +248,10 @@ def test_dft(debug=False):
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
                                     stddev=1)
 
-    method_args = dict(cy_1=mean, cx_1=mean, subi_size=None, negative=False)
+    method_args = dict(cy_1=mean, cx_1=mean, subi_size=None, negative=False,
+                       **method_args_additional)
     do_recenter(method, cube, randax, randay, errormsg=errormsg,
-                mse_skip_first=True, debug=debug, **method_args,
-                **method_args_etc)
+                mse_skip_first=True, debug=debug, **method_args)
 
     #===== even, subi_size
     size = 10
@@ -259,10 +259,10 @@ def test_dft(debug=False):
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
                                     stddev=1)
 
-    method_args = dict(cy_1=mean, cx_1=mean, subi_size=8, negative=False)
+    method_args = dict(cy_1=mean, cx_1=mean, subi_size=8, negative=False,
+                       **method_args_additional)
     do_recenter(method, cube, randax, randay, errormsg=errormsg,
-                mse_skip_first=True, debug=debug, **method_args,
-                **method_args_etc)
+                mse_skip_first=True, debug=debug, **method_args)
 
     #===== odd negative (ring), subi_size
     size = 15
@@ -271,10 +271,10 @@ def test_dft(debug=False):
                                          mean=mean, stddev_outer=3,
                                          stddev_inner=2)
 
-    method_args = dict(cy_1=mean, cx_1=mean, subi_size=12, negative=True)
+    method_args = dict(cy_1=mean, cx_1=mean, subi_size=12, negative=True,
+                       **method_args_additional)
     do_recenter(method, cube, randax, randay, errormsg=errormsg,
-                mse_skip_first=True, debug=debug, **method_args,
-                **method_args_etc)
+                mse_skip_first=True, debug=debug, **method_args)
 
     #===== even negative (ring), subi_size=None
     size = 16
@@ -283,10 +283,10 @@ def test_dft(debug=False):
                                          mean=mean, stddev_outer=3,
                                          stddev_inner=2)
 
-    method_args = dict(cy_1=mean, cx_1=mean, subi_size=None, negative=True)
+    method_args = dict(cy_1=mean, cx_1=mean, subi_size=None, negative=True,
+                       **method_args_additional)
     do_recenter(method, cube, randax, randay, errormsg=errormsg,
-                mse_skip_first=True, debug=debug, **method_args,
-                **method_args_etc)
+                mse_skip_first=True, debug=debug, **method_args)
 
 
 def test_dft_image(debug=False):

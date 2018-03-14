@@ -396,7 +396,7 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
                 print(msg.format(size))
 
         if isinstance(fwhm, (int, float)):
-            fwhm = [fwhm for _ in range(array.shape[0])]
+            fwhm = [fwhm]*array.shape[0]
         elif fwhm == 'fit':
             fits_vect = [fit_2dgaussian(array[i], full_output=True) for i
                          in range(n)]

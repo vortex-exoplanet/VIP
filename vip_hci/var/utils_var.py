@@ -206,13 +206,13 @@ def pp_subplots(*args, **kwargs):
                                                            list):
             if len(kwargs['vmax']) != num_plots:
                 print("Vmax list does not have enough items, setting all to None")
-                vmax = [None for i in range(num_plots)]
+                vmax = [None]*num_plots
             else:
                 vmax = kwargs['vmax']
         else:
             vmax = [kwargs['vmax'] for i in range(num_plots)]
     else:
-        vmax = [None for i in range(num_plots)]
+        vmax = [None]*num_plots
 
     if 'vmin' in kwargs:
         if isinstance(kwargs['vmin'], tuple) or isinstance(kwargs['vmin'],
@@ -220,13 +220,13 @@ def pp_subplots(*args, **kwargs):
             if len(kwargs['vmin']) != num_plots:
                 print(
                 "Vmax list does not have enough items, setting all to None")
-                vmin = [None for i in range(num_plots)]
+                vmin = [None]*num_plots
             else:
                 vmin = kwargs['vmin']
         else:
-            vmin = [kwargs['vmin'] for i in range(num_plots)]
+            vmin = [kwargs['vmin']]*num_plots
     else:
-        vmin = [None for i in range(num_plots)]
+        vmin = [None]*num_plots
 
     # CROSS --------------------------------------------------------------------
     if 'cross' in kwargs:

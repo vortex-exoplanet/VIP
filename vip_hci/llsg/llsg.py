@@ -170,7 +170,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     if n_segments is None:
         n_segments = [4 for _ in range(n_annuli)]   # as in the paper
     elif isinstance(n_segments, int):
-        n_segments = [n_segments for _ in range(n_annuli)]
+        n_segments = [n_segments]*n_annuli
     elif n_segments == 'auto':
         n_segments = []
         n_segments.append(2)    # for first annulus

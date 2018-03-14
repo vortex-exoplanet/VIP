@@ -36,6 +36,13 @@ plots = vip.var.pp_subplots
 #                                        888
 
 
+def resource(*args):
+    try:
+        import os
+        return os.path.join(os.path.dirname(os.path.realpath(__file__)), *args)
+    except: # __file__ is not available
+        return os.path.join(*args)
+
 def shift_cube(cube, randax, randay):
     return np.array([frame_shift(cube[i], randay[i], randax[i])
                      for i in range(cube.shape[0])])
@@ -296,7 +303,7 @@ def test_dft_image(debug=False):
     n_frames = 6
 
     #===== datacube
-    img = vip.fits.open_fits('naco_betapic_single.fits')
+    img = vip.fits.open_fits(resource('naco_betapic_single.fits'))
     cube = np.array([img, ] * n_frames)
 
     #===== shift
@@ -322,7 +329,7 @@ def test_satspots_image(debug=False):
     n_frames = 6
 
     #===== datacube
-    img = vip.fits.open_fits('SPHERE_satspots_centered.fits')
+    img = vip.fits.open_fits(resource('SPHERE_satspots_centered.fits'))
     cube = np.array([img, ] * n_frames)
 
     #===== shift

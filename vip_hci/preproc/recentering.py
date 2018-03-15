@@ -161,13 +161,13 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
         to the data using sigma clipped statistics. All values smaller than
         (MEDIAN + sigfactor*STDDEV) will be replaced by small random Gaussian 
         noise. 
-    shift : {False, True}, optional 
+    shift : bool, optional
         If True the image is shifted.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
-    debug : {False, True}, optional 
+    debug : bool, optional
         If True debug information is printed and plotted.
     
     Returns
@@ -285,7 +285,8 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
         return 0
 
 
-def cube_recenter_satspots(array, xy, subim_size=19, sigfactor=6, debug=False):
+def cube_recenter_satspots(array, xy, subim_size=19, sigfactor=6, plot=True,
+                           debug=False, verbose=True):
     """ Function analog to frame_center_satspots but for image sequences. It 
     actually will call frame_center_satspots for each image in the cube. The
     function also returns the shifted images (not recommended to use when the 
@@ -308,11 +309,15 @@ def cube_recenter_satspots(array, xy, subim_size=19, sigfactor=6, debug=False):
         The background pixels will be thresholded before fitting a 2d Gaussian
         to the data using sigma clipped statistics. All values smaller than
         (MEDIAN + sigfactor*STDDEV) will be replaced by small random Gaussian 
-        noise. 
-    debug : {False, True}, optional 
+        noise.
+    plot : bool, optional
+        Whether to plot the shifts.
+    debug : bool, optional
         If True debug information is printed and plotted (fit and residuals,
         intersections and shifts). This has to be used carefully as it can 
-        produce too much output and plots. 
+        produce too much output and plots.
+    verbose : bool, optional
+        Whether to print to stdout the timing and aditional info.
     
     Returns
     ------- 
@@ -325,40 +330,48 @@ def cube_recenter_satspots(array, xy, subim_size=19, sigfactor=6, debug=False):
     if not array.ndim == 3:
         raise TypeError('Input array is not a cube or 3d array')
 
-    start_time = time_ini()
+    if verbose:
+        start_time = time_ini()
 
     n_frames = array.shape[0]
     shift_x = np.zeros((n_frames))
     shift_y = np.zeros((n_frames))
     array_rec = []
     
-    bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
+    if verbose:
+        msg = 'Looping through the frames'
+        bar = pyprind.ProgBar(n_frames, stream=1, title=msg)
     for i in range(n_frames):
         res = frame_center_satspots(array[i], xy, debug=debug, shift=True,
                                     subim_size=subim_size, sigfactor=sigfactor)
         array_rec.append(res[0])
         shift_y[i] = res[1] 
         shift_x[i] = res[2]          
-        bar.update()
+        if verbose:
+            bar.update()
        
-    timing(start_time)
+    if verbose:
+        timing(start_time)
 
-    plt.figure(figsize=(13,4))
-    plt.plot(shift_x, '.-', lw=0.5, color='green', label='Shifts X')
-    plt.plot(shift_y, '.-', lw=0.5, color='blue', label='Shifts Y')
-    plt.xlim(0, shift_y.shape[0]+5)
-    _=plt.xticks(range(0,n_frames,5))
-    plt.legend()
+    if plot:
+        plt.figure(figsize=(13,4))
+        plt.plot(shift_x, '.-', lw=0.5, color='green', label='Shifts X')
+        plt.plot(shift_y, '.-', lw=0.5, color='blue', label='Shifts Y')
+        plt.xlim(0, shift_y.shape[0] + 5)
+        _ = plt.xticks(range(0, n_frames, 5))
+        plt.legend()
 
-    print('AVE X,Y', np.mean(shift_x), np.mean(shift_y))
-    print('MED X,Y', np.median(shift_x), np.median(shift_y))
-    print('STD X,Y', np.std(shift_x), np.std(shift_y))
+        plt.figure()
+        a = 0.5
+        b = int(np.sqrt(n_frames))
+        _ = plt.hist(shift_x, bins=b, alpha=a, color='green', label='Shifts X')
+        _ = plt.hist(shift_y, bins=b, alpha=a, color='blue', label='Shifts Y')
+        plt.legend()
 
-    plt.figure()
-    b = int(np.sqrt(n_frames))
-    _ = plt.hist(shift_x, bins=b, alpha=0.5, color='green', label='Shifts X')
-    _ = plt.hist(shift_y, bins=b, alpha=0.5, color='blue', label='Shifts Y')
-    plt.legend()
+    if verbose:
+        print('AVE X,Y', np.mean(shift_x), np.mean(shift_y))
+        print('MED X,Y', np.median(shift_x), np.median(shift_y))
+        print('STD X,Y', np.std(shift_x), np.std(shift_y))
 
     array_rec = np.array(array_rec) 
     return array_rec, shift_y, shift_x
@@ -393,9 +406,9 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
         processes will be set to (cpu_count()/2). 
     verbose : {True, False}, bool optional
         Whether to print to stdout some messages and info.
-    plot : {True, False}, bool optional
+    plot : bool, optional
         Whether to plot the radon cost function. 
-    debug : {False, True}, bool optional
+    debug : bool, optional
         Whether to print and plot intermediate info.
     
     Returns

@@ -1,8 +1,5 @@
 from __future__ import print_function, division
 
-import matplotlib
-matplotlib.use("agg") # fix for Travis CI
-
 import numpy as np
 from astropy.modeling import models
 import vip_hci as vip
@@ -291,7 +288,6 @@ def test_dft(debug=False):
 
 def test_dft_image(debug=False):
     """
-
     notes:
     ======
     don't forget to specify `mse_skip_first`, as the shift of the first frame 
@@ -341,7 +337,7 @@ def test_satspots_image(debug=False):
 
     #===== recenter
     spotcoords = [(222, 290), (290, 290), (222, 222), (290, 222)]  # NW NE SW SE
-    method_args = dict(xy=spotcoords, subim_size=25)
+    method_args = dict(xy=spotcoords, subim_size=25, plot=False, verbose=False)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 **method_args)
 
@@ -364,7 +360,7 @@ def test_satspots(debug=False):
     randay = np.random.uniform(0, shift_magnitude, size=n_frames)
 
     #===== recenter
-    method_args = dict(xy=spotcoords, subim_size=9)
+    method_args = dict(xy=spotcoords, subim_size=9, plot=False, verbose=False)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 **method_args)
 

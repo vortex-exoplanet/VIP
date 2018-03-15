@@ -220,7 +220,7 @@ class ds9(object):
         else:
             self.window.set('scale open')
 
-    def set(self, paramlist, data=None, data_func=None):
+    def set(self, paramlist, data=None, data_func=-1):
         """ XPA set command. Sends data or commands to ds9. See:
         http://ds9.si.edu/doc/ref/xpa.html
         """

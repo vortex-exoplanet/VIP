@@ -7,7 +7,6 @@ from vip_hci.preproc import (cube_recenter_2dfit, cube_recenter_dft_upsampling,
                              cube_recenter_satspots, frame_shift)
 from sklearn.metrics import mean_squared_error
 
-
 try:
     from IPython.core.display import display, HTML
     def html(s):
@@ -336,7 +335,7 @@ def test_satspots_image(debug=False):
     randay = np.random.uniform(-1, 1, size=n_frames)
 
     #===== recenter
-    spotcoords = [(222, 290), (290, 290), (222, 222), (290, 222)]  # NW NE SW SE
+    spotcoords = [(41, 109), (109, 109), (41, 41), (109, 41)]  # NW NE SW SE
     method_args = dict(xy=spotcoords, subim_size=25, plot=False, verbose=False)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 **method_args)

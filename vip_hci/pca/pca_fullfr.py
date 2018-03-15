@@ -73,9 +73,9 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
     
     References
     ----------
-    KLIP: http://arxiv.org/abs/1207.4197
-    pynpoint: http://arxiv.org/abs/1207.6637
-    IFS data: http://arxiv.org/abs/1409.6388
+    | KLIP: http://arxiv.org/abs/1207.4197
+    | pynpoint: http://arxiv.org/abs/1207.6637
+    | IFS data: http://arxiv.org/abs/1409.6388
     
     Parameters
     ----------
@@ -153,8 +153,9 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         Median combination of the de-rotated/re-scaled residuals cube.
     
     If full_output is True then it returns: return pcs, recon, residuals_cube, 
-    residuals_cube_ and frame. The PCs are not returned when a PA rejection 
-    criterion is applied (when *source_xy* is entered). 
+      residuals_cube_ and frame. The PCs are not returned when a PA rejection 
+      criterion is applied (when *source_xy* is entered). 
+
     pcs : array_like, 3d
         Cube with the selected principal components.
     recon : array_like, 3d
@@ -165,7 +166,8 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         Cube of residuals after de-rotation/re-scaling.
         
     In the case of IFS+ADI data the it returns: residuals_cube_channels, 
-    residuals_cube_channels_ and frame
+      residuals_cube_channels_ and frame
+
     residuals_cube_channels : array_like
         Cube with the residuals of the first stage PCA.
     residuals_cube_channels_ : array_like

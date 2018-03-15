@@ -111,9 +111,10 @@ def pp_subplots(*args, **kwargs):
 
     # CIRCLE -------------------------------------------------------------------
     if 'circle' in kwargs:
-        if not isinstance(kwargs['circle'], list) and isinstance(kwargs['circle'], tuple):
+        if not isinstance(kwargs['circle'], list) and \
+           isinstance(kwargs['circle'], tuple):
             show_circle = True
-            coor_circle = [kwargs['circle'] for i in range(num_plots)]
+            coor_circle = [kwargs['circle']]*num_plots
         else:
             if not isinstance(kwargs['circle'][0], tuple):
                 print("Circle must be a tuple (X,Y) or list of tuples (X,Y)")
@@ -193,33 +194,30 @@ def pp_subplots(*args, **kwargs):
     if 'gridspacing' in kwargs:
         grid_spacing = kwargs['gridspacing']
     else:
-        grid_spacing = 10
+        grid_spacing = None
 
     if 'gridalpha' in kwargs:
         grid_alpha = kwargs['gridalpha']
     else:
-        grid_alpha = 0.3
+        grid_alpha = 0.4
 
     # VMAX-VMIN ----------------------------------------------------------------
     if 'vmax' in kwargs:
-        if isinstance(kwargs['vmax'], tuple) or isinstance(kwargs['vmax'],
-                                                           list):
+        if isinstance(kwargs['vmax'], (tuple, list)):
             if len(kwargs['vmax']) != num_plots:
-                print("Vmax list does not have enough items, setting all to None")
+                print("Vmax does not list enough items, setting all to None")
                 vmax = [None]*num_plots
             else:
                 vmax = kwargs['vmax']
         else:
-            vmax = [kwargs['vmax'] for i in range(num_plots)]
+            vmax = [kwargs['vmax']]*num_plots
     else:
         vmax = [None]*num_plots
 
     if 'vmin' in kwargs:
-        if isinstance(kwargs['vmin'], tuple) or isinstance(kwargs['vmin'],
-                                                           list):
+        if isinstance(kwargs['vmin'], (tuple, list)):
             if len(kwargs['vmin']) != num_plots:
-                print(
-                "Vmax list does not have enough items, setting all to None")
+                print("Vmin does not list enough items, setting all to None")
                 vmin = [None]*num_plots
             else:
                 vmin = kwargs['vmin']
@@ -238,15 +236,12 @@ def pp_subplots(*args, **kwargs):
             show_cross = True
     else:
         show_cross = False
-    if 'crossalpha' in kwargs: cross_alpha = kwargs['crossalpha']
+    if 'crossalpha' in kwargs:
+        cross_alpha = kwargs['crossalpha']
     else:
         cross_alpha = 0.4
 
     # AXIS - ANGSCALE ----------------------------------------------------------
-    if 'angscale' in kwargs:
-        angscale = kwargs['angscale']
-    else:
-        angscale = False
     if 'angticksep' in kwargs:
         angticksep = kwargs['angticksep']
     else:
@@ -255,6 +250,12 @@ def pp_subplots(*args, **kwargs):
         pxscale = kwargs['pxscale']
     else:
         pxscale = 0.01  # default for Keck/NIRC2
+    if 'angscale' in kwargs:
+        angscale = kwargs['angscale']
+        if angscale:
+            print("`Pixel scale set to {}`".format(pxscale))
+    else:
+        angscale = False
     if 'axis' in kwargs:
         show_axis = kwargs['axis']
     else:
@@ -281,12 +282,12 @@ def pp_subplots(*args, **kwargs):
     if 'cmap' in kwargs:
         custom_cmap = kwargs['cmap']
         if not isinstance(custom_cmap, list):
-            custom_cmap = [kwargs['cmap'] for i in range(num_plots)]
+            custom_cmap = [kwargs['cmap']]*num_plots
         else:
             if not len(custom_cmap) == num_plots:
                 raise RuntimeError('Cmap list does not have enough items')
     else:
-        custom_cmap = ['viridis' for i in range(num_plots)]
+        custom_cmap = ['viridis']*num_plots
 
     if 'log' in kwargs and kwargs['log'] is True:
         logscale = kwargs['log']
@@ -323,7 +324,7 @@ def pp_subplots(*args, **kwargs):
     subplot_size = 4
     if rows == 0:
         raise ValueError('Rows must be a positive integer')
-    fig = figure(figsize=(cols*subplot_size, rows*subplot_size), dpi=dpi)
+    fig = figure(figsize=(cols * subplot_size, rows * subplot_size), dpi=dpi)
     
     if tit is not None:
         fig.suptitle(tit, fontsize=14)
@@ -332,6 +333,14 @@ def pp_subplots(*args, **kwargs):
         image = data[i].copy()
         frame_size = image.shape[0]  # assuming square frames
         cy, cx = frame_center(image)
+        if grid_spacing is None:
+            if cy < 10:
+                grid_spacing = 1
+            elif cy >= 10:
+                if cy % 2 == 0:
+                    grid_spacing = 4
+                else:
+                    grid_spacing = 5
 
         v += 1
         ax = subplot(rows, cols, v)
@@ -386,8 +395,8 @@ def pp_subplots(*args, **kwargs):
             minor_ticks = np.arange(0, data[i].shape[0], grid_spacing)
             ax.set_xticks(minor_ticks, minor=True)
             ax.set_yticks(minor_ticks, minor=True)
-            ax.grid('on', which='minor', color=grid_color, linewidth=1,
-                    alpha=grid_alpha)
+            ax.grid('on', which='minor', color=grid_color, linewidth=0.5,
+                    alpha=grid_alpha, linestyle='dashed')
         else:
             ax.grid('off')
 
@@ -410,7 +419,6 @@ def pp_subplots(*args, **kwargs):
             labels = []
             for t in range(half_num_ticks, -half_num_ticks-1, -1):
                 labels.append(0.0 - t * (angticksep * pxscale))
-                #print xlabels
             ax.set_xticklabels(labels)
             ax.set_yticklabels(labels)
             ax.set_xlabel("arcseconds", fontsize=12)
@@ -431,8 +439,8 @@ def pp_subplots(*args, **kwargs):
             return fig
 
 
-def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False, 
-                 **kwargs):
+def plot_surface(image, center_xy=None, size=15, output=False, title=None,
+                 zlim=None, **kwargs):
     """
     Create a surface plot from image.
     
@@ -443,15 +451,17 @@ def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False,
     ----------
     image : numpy.array
         The image as a numpy.array.
-    center : tuple of 2 int (optional, default=None)
+    center_xy : tuple of 2 int or None, optional
         If None, the whole image will be plotted. Otherwise, it grabs a square
-        subimage at the 'center' (Y,X) from the image.
+        subimage at the position X,Y from the image.
     size : int (optional, default=15)
         It corresponds to the size of a square in the image.
     output : {False, True}, bool optional
         Whether to output the grids and intensities or not.
-    ds9_indexing : {False, True}, bool optional 
-        If True the coordinates are in X,Y convention and in 1-indexed format.
+    title : str, optional
+        Sets the title for the surface plot.
+    zlim : tuple, optional
+        Tuple with the range of values (min,max) for the Z axis.
     kwargs:
         Additional attributes are passed to the matplotlib figure() and 
         plot_surface() method.        
@@ -461,19 +471,19 @@ def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False,
     out : tuple of 3 numpy.array
         x and y for the grid, and the intensity
         
-    """        
-    if center is not None: 
-        if ds9_indexing:
-            center = (center[0]-1,center[1]-1) 
-            cx, cy = center
-        else:
-            cy, cx = center
-        if size % 2:            # if size is odd             
-            x = np.outer(np.arange(0,size,1), np.ones(size))
+    """
+    if not isinstance(center_xy, tuple):
+        raise ValueError('`center_xy` must be a tuple')
+
+    if center_xy is not None:
+        cx = int(center_xy[0])
+        cy = int(center_xy[1])
+        if size % 2:            # if size is odd
+            x = np.outer(np.arange(0, size, 1), np.ones(size))
         else:                   # otherwise, size is even
-            x = np.outer(np.arange(0,size+1,1), np.ones(size+1))
+            x = np.outer(np.arange(0, size+1, 1), np.ones(size+1))
         y = x.copy().T            
-        z = image[cy-size//2:cy+size//2+1,cx-size//2:cx+size//2+1]   
+        z = image[cy-size//2: cy+size//2+1, cx-size//2: cx+size//2+1]
     else:
         cy, cx = frame_center(image)
         if size is not None:
@@ -485,22 +495,22 @@ def plot_surface(image, center=None, size=15, output=False, ds9_indexing=False,
             z = image[cy-size//2:cy+size//2+1,cx-size//2:cx+size//2+1]
         else:
             size = image.shape[0]
-            x = np.outer(np.arange(0,size,1), np.ones(size))
+            x = np.outer(np.arange(0, size, 1), np.ones(size))
             y = x.copy().T 
             z = image        
     
-    figure(figsize=kwargs.pop('figsize',(6,6)))
+    figure(figsize=kwargs.pop('figsize', (6, 6)))
     ax = axes(projection='3d')
-    ax.dist = 12
+    ax.dist = 10
     ax.plot_surface(x, y, z, rstride=1, cstride=1, linewidth=0, **kwargs) 
-    ax.set_xlabel('$x$')
-    ax.set_ylabel('$y$')
-    ax.set_zlabel('$I(x,y)$')
-    ax.xaxis._axinfo['label']['space_factor'] = 2
-    ax.yaxis._axinfo['label']['space_factor'] = 2
-    ax.zaxis._axinfo['label']['space_factor'] = 3.5
-    #ax.zaxis._axinfo['ticklabel']['space_factor'] = 1.5
-    ax.set_title('Data')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('I(x,y)')
+    if zlim is not None:
+        if isinstance(zlim, tuple):
+            ax.set_zlim(zlim[0], zlim[1])
+    if title is not None:
+        ax.set_title(title)
     show()
     
     if output:

@@ -779,7 +779,7 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
         opt_npc = pclist[argm]    
         if verbose:
             print('Number of steps', len(pclist))
-            msg = 'Optimal number of PCs = {}, for SNR={}'
+            msg = 'Optimal number of PCs = {}, for SNR={:.3f}'
             print(msg.format(opt_npc, snrlist[argm]))
             print()
             timing(start_time)
@@ -789,7 +789,7 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
 
         # Plot of SNR as function of PCs  
         if plot:    
-            plt.figure(figsize=(8,4))
+            plt.figure(figsize=(8, 4))
             ax1 = plt.subplot(211)     
             ax1.plot(pclist, snrlist, '-', alpha=0.5)
             ax1.plot(pclist, snrlist, 'o', alpha=0.5, color='blue')
@@ -846,7 +846,7 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
         
         if verbose:
             print('Number of evaluated steps', ind.shape[0])
-            msg = 'Optimal number of PCs = {}, for SNR={}'
+            msg = 'Optimal number of PCs = {}, for SNR={:.3f}'
             print(msg.format(opt_npc, snrlist3[argm]), '\n')
             timing(start_time)
         
@@ -866,7 +866,6 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
                      alpha=alpha/2, color='blue')
             ax1.set_xlim(np.array(dfrsrd.loc[:,0]).min(), np.array(dfrsrd.loc[:,0]).max())
             ax1.set_ylim(0, np.array(dfrsrd.loc[:,1]).max()+1)
-            #ax1.set_xlabel('')
             ax1.set_ylabel('S/N')
             ax1.minorticks_on()
             ax1.grid('on', 'major', linestyle='solid', alpha=0.2)
@@ -885,11 +884,10 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
             ax2.minorticks_on()
             ax2.set_yscale('log')
             ax2.grid('on', 'major', linestyle='solid', alpha=0.2)
-            #plt.savefig('figure.pdf', dpi=300, bbox_inches='tight')
             print()
     
     # Optionally, save the contrast curve
-    if save_plot != None:
+    if save_plot is not None:
         plt.savefig(save_plot, dpi=100, bbox_inches='tight')
 
     if mode == 'fullfr':
@@ -995,7 +993,7 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
         print(msg2.format(batch_size, hdulist[n].data[:batch_size].nbytes/1e9),
               '\n')
                 
-    res = n_frames%batch_size
+    res = n_frames % batch_size
     for i in range(0, int(n_frames/batch_size)):
         intini = i*batch_size
         intfin = (i+1)*batch_size
@@ -1006,7 +1004,7 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
             print('Batch size in memory = {:.3f} MB'.format(batch.nbytes/1e6))
         matrix = prepare_matrix(batch, verbose=False)
         ipca.partial_fit(matrix)
-    if res>0:
+    if res > 0:
         batch = hdulist[n].data[intfin:]
         msg = 'Processing batch [{},{}] with shape {}'
         if verbose:
@@ -1015,7 +1013,8 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
         matrix = prepare_matrix(batch, verbose=False)
         ipca.partial_fit(matrix)
     
-    if verbose:  timing(start)
+    if verbose:
+        timing(start)
     
     V = ipca.components_
     mean = ipca.mean_.reshape(batch.shape[1], batch.shape[2])
@@ -1037,7 +1036,7 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
                                   angle_list[intini:intfin], imlib=imlib,
                                   interpolation=interpolation)
         medians.append(cube_collapse(resid_der, mode=collapse))
-    if res>0:
+    if res > 0:
         batch = hdulist[n].data[intfin:]
         batch = batch - mean
         matrix = prepare_matrix(batch, verbose=False)
@@ -1055,7 +1054,8 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
     medians = np.array(medians)
     frame = np.median(medians, axis=0)
     
-    if verbose:  timing(start)
+    if verbose:
+        timing(start)
 
     if full_output:
         pcs = reshape_matrix(V, y, x)

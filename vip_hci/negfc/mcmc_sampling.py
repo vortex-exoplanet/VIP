@@ -258,8 +258,9 @@ def gelman_rubin(x):
         
     """
     if np.shape(x) < (2,):
-        raise ValueError(
-            'Gelman-Rubin diagnostic requires multiple chains of the same length.')
+        msg = 'Gelman-Rubin diagnostic requires multiple chains of the same '
+        msg += 'length'
+        raise ValueError(msg)
 
     try:
         m, n = np.shape(x)
@@ -271,8 +272,8 @@ def gelman_rubin(x):
     B_over_n = np.sum((np.mean(x, 1) - np.mean(x)) ** 2) / (m - 1)
 
     # Calculate within-chain variances
-    W = np.sum([(x[i] - xbar) ** 2 for i, xbar in enumerate(np.mean(x,
-                                                           1))]) / (m * (n - 1))
+    W = np.sum([(x[i] - xbar) ** 2 for i, xbar in
+                enumerate(np.mean(x, 1))]) / (m * (n - 1))
     # (over) estimate of variance
     s2 = W * (n - 1) / n + B_over_n
 
@@ -286,10 +287,10 @@ def gelman_rubin(x):
 
 
 def gelman_rubin_from_chain(chain, burnin):
-    """
-    Pack the MCMC chain and determine the Gelman-Rubin \hat{R} statistical test.
-    In other words, two sub-sets are extracted from the chain (burnin parts are
-    taken into account) and the Gelman-Rubin statistical test is performed.
+    """ Pack the MCMC chain and determine the Gelman-Rubin \hat{R} statistical
+    test. In other words, two sub-sets are extracted from the chain (burnin
+    parts are taken into account) and the Gelman-Rubin statistical test is
+    performed.
     
     Parameters
     ----------
@@ -306,22 +307,18 @@ def gelman_rubin_from_chain(chain, burnin):
     """
     dim = chain.shape[2]
     k = chain.shape[1]
-    
-    threshold0 = int(floor(burnin*k))
-    threshold1 = int(floor((1-burnin)*k*0.25))   
-    
+    thr0 = int(floor(burnin*k))
+    thr1 = int(floor((1-burnin) * k *0.25))
     rhat = np.zeros(dim)
-    
     for j in range(dim):
-        part1 = chain[:,threshold0:threshold0+threshold1,j].reshape((-1))
-        part2 = chain[:,threshold0+3*threshold1:threshold0+4*threshold1,j].reshape((-1))
+        part1 = chain[:, thr0:thr0+thr1, j].reshape((-1))
+        part2 = chain[:, thr0+3*thr1:thr0+4*thr1, j].reshape((-1))
         series = np.vstack((part1,part2))
         rhat[j] = gelman_rubin(series)
-        
     return rhat
 
 
-def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
+def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         annulus_width=3, aperture_radius=4, cube_ref=None,
                         svd_mode='lapack', scaling='temp-mean', fmerit='sum',
                         imlib='opencv', interpolation='lanczos4',
@@ -329,7 +326,7 @@ def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1,
                         niteration_min=0, niteration_limit=1e02, 
                         niteration_supp=0, check_maxgap=1e04, nproc=1, 
-                        output_file=None, display=False, verbose=True,
+                        output_file=None, display=False, verbosity=0,
                         save=False):
     """ Runs an affine invariant mcmc sampling algorithm in order to determine
     the position and the flux of the planet using the 'Negative Fake Companion'
@@ -337,29 +334,27 @@ def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     posterior distributions of each of the 3 parameters.
     
     This technique can be summarized as follows:
-    
-    1)  We inject a negative fake companion (one candidate) at a given 
-        position and characterized by a given flux, both close to the expected 
-        values.
-    2)  We run PCA on an full annulus which pass through the initial guess, 
-        regardless of the position of the candidate.
-    3)  We extract the intensity values of all the pixels contained in a 
-        circular aperture centered on the initial guess.
-    4)  We calculate the function of merit. The associated chi^2 is given by
-        chi^2 = sum(|I_j|) where j \in {1,...,N} with N the total number of 
-        pixels contained in the circular aperture.        
+    1) We inject a negative fake companion (one candidate) at a given position
+    and characterized by a given flux, both close to the expected values.
+    2) We run PCA on an full annulus which pass through the initial guess,
+    regardless of the position of the candidate.
+    3) We extract the intensity values of all the pixels contained in a
+    circular aperture centered on the initial guess.
+    4) We calculate the function of merit. The associated chi^2 is given by
+    chi^2 = sum(|I_j|) where j \in {1,...,N} with N the total number of pixels
+    contained in the circular aperture.
     The steps 1) to 4) are looped. At each iteration, the candidate model 
     parameters are defined by the emcee Affine Invariant algorithm. 
     
     Parameters
     ----------  
-    cubes: str or numpy.array
-        The relative path to the cube of fits images OR the cube itself.
-    angs: str or numpy.array
-        The relative path to the parallactic angle fits image or the angs itself.
-    psfn: str or numpy.array
-        The relative path to the instrumental PSF fits image or the PSF itself.
-        The PSF must be centered and the flux in a 1*FWHM aperture must equal 1.
+    cube: numpy.array
+        ADI fits cube.
+    angs: numpy.array
+        The parallactic angle vector.
+    psfn: numpy.array
+        PSF array. The PSF must be centered and the flux in a 1*FWHM aperture
+        must equal 1 (use ``vip_hci.phot.psf_norm``).
     ncomp: int
         The number of principal components.        
     plsc: float
@@ -386,6 +381,10 @@ def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
         companions sitting on top of speckle noise.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
@@ -415,15 +414,15 @@ def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         Maximum number of steps per walker between two Gelman-Rubin test.
     nproc: int, optional
         The number of processes to use for parallelization. 
-    output_file: str
-        The name of the ouput file which contains the MCMC results 
-        (if save is True).
-    display: boolean
+    output_file: str, optional
+        The name of the output file which contains the MCMC results in the case
+        ``save`` is True.
+    display: bool, optional
         If True, the walk plot is displayed at each evaluation of the Gelman-
         Rubin test.
-    verbose: boolean
-        Display informations in the shell.
-    save: boolean
+    verbosity: 0, 1 or 2, optional
+        Verbosity level. 0 for no output and 2 for full information.
+    save: bool, optional
         If True, the MCMC results are pickled.
                     
     Returns
@@ -439,8 +438,8 @@ def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     
     The parameter 'rhat_threshold' can be a numpy.array with individual 
     threshold value for each model parameter.
-    """ 
-    if verbose:
+    """
+    if verbosity == 1 or verbosity == 2:
         start_time = time_ini()
         print("        MCMC sampler for the NEGFC technique       ")
         print(sep)
@@ -459,29 +458,17 @@ def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         if not os.path.exists('results/'+output_file):
             os.makedirs('results/'+output_file)
 
-            
-    # #########################################################################
-    # If required, one opens the source files
-    # #########################################################################
-    if isinstance(cubes,str) and isinstance(angs,str):
-        if angs is None:
-            cubes, angs = open_adicube(cubes, verbose=False)
-        else:
-            cubes = open_fits(cubes)
-            angs = open_fits(angs, verbose=False)    
-        
-        if isinstance(psfn,str):
-            psfn = open_fits(psfn)
-        
-        if verbose:
-            print('The data has been loaded. Let''s continue !')
+    if not isinstance(cube, np.ndarray) or not cube.ndim == 3:
+        raise ValueError('`cube` must be a 3D numpy array')
+
+    if cube_ref is not None:
+        if not isinstance(cube_ref, np.ndarray) or not cube_ref.ndim == 3:
+            raise ValueError('`cube_ref` must be a 3D numpy array')
     
     # #########################################################################
     # Initialization of the variables
     # #########################################################################    
-    dim = 3 # There are 3 model parameters, resp. the radial and angular 
-            # position of the planet and its flux.
-    
+    dim = 3     # There are 3 model parameters: rad, theta, flux
     itermin = niteration_min
     limit = niteration_limit    
     supp = niteration_supp
@@ -490,79 +477,73 @@ def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     
     if itermin > limit:
         itermin = 0
-        print("'niteration_min' must be < 'niteration_limit'.")
-        
+
     fraction = 0.3
     geom = 0
     lastcheck = 0
     konvergence = np.inf
     rhat_count = 0
-        
-    chain = np.empty([nwalkers,1,dim])
+    chain = np.empty([nwalkers, 1, dim])
     isamples = np.empty(0)
-    pos = initial_state + np.random.normal(0,1e-01,(nwalkers,3))
+    pos = initial_state + np.random.normal(0, 1e-01, (nwalkers, 3))
     nIterations = limit + supp
     rhat = np.zeros(dim)  
     stop = np.inf
-    
 
     if bounds is None:
-        bounds = [(initial_state[0]-annulus_width/2.,initial_state[0]+annulus_width/2.), #radius
-                  (initial_state[1]-10,initial_state[1]+10), #angle
-                  (0,2*initial_state[2])] #flux
+        bounds = [(initial_state[0] - annulus_width/2.,
+                   initial_state[0] + annulus_width/2.),  # radius
+                  (initial_state[1] - 10, initial_state[1] + 10),   # angle
+                  (0, 2 * initial_state[2])]   # flux
     
     sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a,
-                                    args =([bounds, cubes, angs, plsc, psfn,
-                                            fwhm, annulus_width, ncomp,
-                                            aperture_radius, initial_state,
-                                            cube_ref, svd_mode, scaling, fmerit,
-                                            imlib, interpolation, collapse]),
+                                    args=([bounds, cube, angs, plsc, psfn,
+                                           fwhm, annulus_width, ncomp,
+                                           aperture_radius, initial_state,
+                                           cube_ref, svd_mode, scaling, fmerit,
+                                           imlib, interpolation, collapse]),
                                     threads=nproc)
-                                    
     start = datetime.datetime.now()
 
     # #########################################################################
     # Affine Invariant MCMC run
-    # ######################################################################### 
-    if verbose:
-        print('')
-        print('Start of the MCMC run ...')
+    # #########################################################################
+    if verbosity == 2:
+        print('\nStart of the MCMC run ...')
         print('Step  |  Duration/step (sec)  |  Remaining Estimated Time (sec)')
                              
-    for k, res in enumerate(sampler.sample(pos,iterations=nIterations,
+    for k, res in enumerate(sampler.sample(pos, iterations=nIterations,
                                            storechain=True)):
         elapsed = (datetime.datetime.now()-start).total_seconds()
-        if verbose:
+        if verbosity == 2:
             if k == 0:
                 q = 0.5
             else:
                 q = 1
-            print('{}\t\t{:.5f}\t\t\t{:.5f}'.format(k,elapsed*q,elapsed*(limit-k-1)*q))
+            print('{}\t\t{:.5f}\t\t\t{:.5f}'.format(k, elapsed * q,
+                                                    elapsed * (limit-k-1) * q))
             
         start = datetime.datetime.now()
 
         # ---------------------------------------------------------------------        
-        # Store the state manually in order to handle with dynamical sized chain.
+        # Store the state manually in order to handle with dynamical sized chain
         # ---------------------------------------------------------------------    
-        ## Check if the size of the chain is long enough.
+        # Check if the size of the chain is long enough.
         s = chain.shape[1]
-        if k+1 > s: #if not, one doubles the chain length
+        if k+1 > s:     # if not, one doubles the chain length
             empty = np.zeros([nwalkers,2*s,dim])
             chain = np.concatenate((chain,empty),axis=1)
-        ## Store the state of the chain
-        chain[:,k] = res[0]
-        
-        
+        # Store the state of the chain
+        chain[:, k] = res[0]
+
         # ---------------------------------------------------------------------
         # If k meets the criterion, one tests the non-convergence.
         # ---------------------------------------------------------------------              
-        criterion = np.amin([ceil(itermin*(1+fraction)**geom),\
-                            lastcheck+floor(maxgap)])
-   
+        criterion = np.amin([ceil(itermin*(1+fraction)**geom),
+                             lastcheck+floor(maxgap)])
         if k == criterion:
-            if verbose:
-                print('')
-                print('   Gelman-Rubin statistic test in progress ...') 
+            if verbosity == 2:
+                print('\n   Gelman-Rubin statistic test in progress ...')
             
             geom += 1
             lastcheck = k
@@ -570,89 +551,90 @@ def mcmc_negfc_sampling(cubes, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                 show_walk_plot(chain)
                 
             if save:
-                import pickle                                    
-                
-                with open('results/'+output_file+'/'+output_file+'_temp_k{}'.format(k),'wb') as fileSave:
+                import pickle
+                fname = 'results/'+output_file+'/'+output_file+'_temp_k{}'.format(k)
+                with open(fname, 'wb') as fileSave:
                     myPickler = pickle.Pickler(fileSave)
-                    myPickler.dump({'chain':sampler.chain, 
-                                    'lnprob':sampler.lnprobability, 
-                                    'AR':sampler.acceptance_fraction})
+                    myPickler.dump({'chain': sampler.chain,
+                                    'lnprob': sampler.lnprobability,
+                                    'AR': sampler.acceptance_fraction})
                 
-            ## We only test the rhat if we have reached the minimum number of steps.
+            # We only test the rhat if we have reached the min # of steps
             if (k+1) >= itermin and konvergence == np.inf:
-                threshold0 = int(floor(burnin*k))
-                threshold1 = int(floor((1-burnin)*k*0.25))
+                thr0 = int(floor(burnin*k))
+                thr1 = int(floor((1-burnin)*k*0.25))
 
                 # We calculate the rhat for each model parameter.
                 for j in range(dim):
-                    part1 = chain[:,threshold0:threshold0+threshold1,j].reshape((-1))
-                    part2 = chain[:,threshold0+3*threshold1:threshold0+4*threshold1,j].reshape((-1))
-                    series = np.vstack((part1,part2))
+                    part1 = chain[:, thr0:thr0 + thr1, j].reshape((-1))
+                    part2 = chain[:, thr0 + 3 * thr1:thr0 + 4 * thr1, j].reshape((-1))
+                    series = np.vstack((part1, part2))
                     rhat[j] = gelman_rubin(series)   
-                if verbose:    
+                if verbosity == 1 or verbosity == 2:
                     print('   r_hat = {}'.format(rhat))
-                    print('   r_hat <= threshold = {}'.format(rhat <= rhat_threshold))
-                    print('')
+                    cond = rhat <= rhat_threshold
+                    print('   r_hat <= threshold = {} \n'.format(cond))
                 # We test the rhat.
-                if (rhat <= rhat_threshold).all(): #and rhat_count < rhat_count_threshold: 
+                if (rhat <= rhat_threshold).all():
                     rhat_count += 1
                     if rhat_count < rhat_count_threshold:
-                        print("Gelman-Rubin test OK {}/{}".format(rhat_count,rhat_count_threshold))
+                        if verbosity == 1 or verbosity == 2:
+                            msg = "Gelman-Rubin test OK {}/{}"
+                            print(msg.format(rhat_count, rhat_count_threshold))
                     elif rhat_count >= rhat_count_threshold:
-                        print('... ==> convergence reached')
+                        if verbosity == 1 or verbosity == 2:
+                            print('... ==> convergence reached')
                         konvergence = k
-                        stop = konvergence + supp                       
-                #elif (rhat <= rhat_threshold).all() and rhat_count >= rhat_count_threshold:
-                #    print '... ==> convergence reached'
-                #    konvergence = k
-                #    stop = konvergence + supp
+                        stop = konvergence + supp
                 else:
                     rhat_count = 0
 
-        if (k+1) >= stop: #Then we have reached the maximum number of steps for our Markov chain.
-            print('We break the loop because we have reached convergence')
+        # We have reached the maximum number of steps for our Markov chain.
+        if (k+1) >= stop:
+            if verbosity == 1 or verbosity == 2:
+                print('We break the loop because we have reached convergence')
             break
       
     if k == nIterations-1:
-        print("We have reached the limit number of steps without having converged")
+        if verbosity == 1 or verbosity == 2:
+            msg = "We have reached the limit # of steps without convergence"
+            print(msg)
             
     # #########################################################################
     # Construction of the independent samples
     # ######################################################################### 
-            
-    temp = np.where(chain[0,:,0] == 0.0)[0]
+    temp = np.where(chain[0, :, 0] == 0.0)[0]
     if len(temp) != 0:
         idxzero = temp[0]
     else:
         idxzero = chain.shape[1]
     
-    idx = np.amin([np.floor(2e05/nwalkers),np.floor(0.1*idxzero)])
+    idx = int(np.amin([np.floor(2e05/nwalkers), np.floor(0.1*idxzero)]))
     if idx == 0:
-        isamples = chain[:,0:idxzero,:] 
+        isamples = chain[:, 0:idxzero, :]
     else:
-        isamples = chain[:,idxzero-idx:idxzero,:]
+        isamples = chain[:, idxzero-idx:idxzero, :]
 
     if save:
         import pickle
-        
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
-        input_parameters = {j : values[j] for j in args[1:]}        
+        input_parameters = {j: values[j] for j in args[1:]}
         
-        output = {'isamples':isamples,
+        output = {'isamples': isamples,
                   'chain': chain_zero_truncated(chain),
                   'input_parameters': input_parameters,
                   'AR': sampler.acceptance_fraction,
                   'lnprobability': sampler.lnprobability}
                   
-        with open('results/'+output_file+'/MCMC_results','wb') as fileSave:
+        with open('results/'+output_file+'/MCMC_results', 'wb') as fileSave:
             myPickler = pickle.Pickler(fileSave)
             myPickler.dump(output)
         
-        print('')        
-        print("The file MCMC_results has been stored in the folder {}".format('results/'+output_file+'/'))
+        msg = "\nThe file MCMC_results has been stored in the folder {}"
+        print(msg.format('results/'+output_file+'/'))
 
-    if verbose:
+    if verbosity == 1 or verbosity == 2:
         timing(start_time)
                                     
     return chain_zero_truncated(chain)    
@@ -673,14 +655,12 @@ def chain_zero_truncated(chain):
     out: numpy.array
         The truncated MCMC chain, that is to say, the chain which only contains 
         relevant information.
-    
     """
     try:
-        idxzero = np.where(chain[0,:,0] == 0.0)[0][0]
+        idxzero = np.where(chain[0, :, 0] == 0.0)[0][0]
     except:
-        idxzero = chain.shape[1]        
-
-    return chain[:,0:idxzero,:]
+        idxzero = chain.shape[1]
+    return chain[:, 0:idxzero, :]
  
    
 def show_walk_plot(chain, save=False, **kwargs):
@@ -704,20 +684,19 @@ def show_walk_plot(chain, save=False, **kwargs):
     directory.         
     
     """
-    temp = np.where(chain[0,:,0] == 0.0)[0]
+    temp = np.where(chain[0, :, 0] == 0.0)[0]
     if len(temp) != 0:
-        chain = chain[:,:temp[0],:]
+        chain = chain[:, :temp[0], :]
 
-    labels = kwargs.pop('labels',["$r$",r"$\theta$","$f$"])
-    fig, axes = plt.subplots(3, 1, sharex=True, figsize=kwargs.pop('figsize',(8,6)))
-    axes[2].set_xlabel(kwargs.pop('xlabel','step number'))
-    axes[2].set_xlim(kwargs.pop('xlim',[0,chain.shape[1]]))
-    color = kwargs.pop('color','k')    
-    alpha = kwargs.pop('alpha',0.4)
+    labels = kwargs.pop('labels', ["$r$", r"$\theta$", "$f$"])
+    fig, axes = plt.subplots(3, 1, sharex=True,
+                             figsize=kwargs.pop('figsize', (8, 6)))
+    axes[2].set_xlabel(kwargs.pop('xlabel', 'step number'))
+    axes[2].set_xlim(kwargs.pop('xlim', [0, chain.shape[1]]))
+    color = kwargs.pop('color', 'k')
+    alpha = kwargs.pop('alpha', 0.4)
     for j in range(3):            
-        axes[j].plot(chain[:,:,j].T, color=color, 
-                                     alpha=alpha,
-                                     **kwargs)
+        axes[j].plot(chain[:, :, j].T, color=color, alpha=alpha, **kwargs)
         axes[j].yaxis.set_major_locator(MaxNLocator(5))
         axes[j].set_ylabel(labels[j])
     fig.tight_layout(h_pad=0.0)
@@ -757,19 +736,20 @@ def show_corner_plot(chain, burnin=0.5, save=False, **kwargs):
     
     """
     try:
-        temp = np.where(chain[0,:,0] == 0.0)[0]
+        temp = np.where(chain[0, :, 0] == 0.0)[0]
         if len(temp) != 0:
-            chain = chain[:,:temp[0],:]
+            chain = chain[:, :temp[0], :]
         length = chain.shape[1] 
-        chain = chain[:,int(np.floor(burnin*(length-1))):length,:].reshape((-1,3))
+        chain = chain[:, int(np.floor(burnin*(length-1))):length, :].reshape((-1,3))
     except IndexError:
         pass
 
     if chain.shape[0] == 0:
-        print("It seems that the chain is empty. Have you already run the MCMC ?")
+        print("It seems the chain is empty. Have you already run the MCMC?")
     else: 
-        fig = corner.corner(chain, labels=kwargs.pop('labels',["$r$",r"$\theta$","$f$"]), **kwargs)
-    
+        fig = corner.corner(chain, labels=kwargs.pop('labels',
+                                                     ["$r$",r"$\theta$","$f$"]),
+                            **kwargs)
     if save:
         plt.savefig('corner_plot.pdf')
         plt.close(fig)
@@ -777,33 +757,7 @@ def show_corner_plot(chain, burnin=0.5, save=False, **kwargs):
         plt.show()
 
 
-def writeText(document,text):
-    """
-    Write a line of text in a txt file.
-    
-    Parameters
-    ----------
-    document: str
-        The path to the file to append or create.        
-    text: str
-        The text to write.
-        
-    Returns
-    -------
-    None
-        
-    """
-    with open(document,'a') as fileObject:
-        if isinstance(text,str):
-            fileObject.write("%s \n" % text)
-        elif isinstance(text,tuple):
-            defFormat = "%s"
-            for k in range(1,len(text)):
-                defFormat += "\t %s"
-            fileObject.write(defFormat % text)
-
-
-def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
+def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                verbose=True, save=False, **kwargs):
     """
     Determine the highly probable value for each model parameter, as well as 
@@ -817,7 +771,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
         The confidence level given in percentage.    
     bins: int, optional
         The number of bins used to sample the posterior distributions.        
-    gaussianFit: boolean, optional
+    gaussian_fit: boolean, optional
         If True, a gaussian fit is performed in order to determine (\mu,\sigma)
     weights : (n, ) array_like or None, optional
         An array of weights for each sample.
@@ -835,6 +789,32 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
         interval.
         
     """
+    def writeText(document, text):
+        """
+        Write a line of text in a txt file.
+
+        Parameters
+        ----------
+        document: str
+            The path to the file to append or create.
+        text: str
+            The text to write.
+
+        Returns
+        -------
+        None
+
+        """
+        with open(document, 'a') as fileObject:
+            if isinstance(text, str):
+                fileObject.write("%s \n" % text)
+            elif isinstance(text, tuple):
+                defFormat = "%s"
+                for k in range(1, len(text)):
+                    defFormat += "\t %s"
+                fileObject.write(defFormat % text)
+    ############################################################################
+
     plsc = kwargs.pop('plsc',0.001)
     title = kwargs.pop('title',None)        
         
@@ -855,11 +835,11 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
     #########################################    
     ##  Determine the confidence interval  ##
     #########################################
-    if gaussianFit:
+    if gaussian_fit:
         mu = np.zeros(3)
         sigma = np.zeros_like(mu)
     
-    if gaussianFit:
+    if gaussian_fit:
         fig,ax = plt.subplots(2,3, figsize=(12,8))
     else:
         fig,ax = plt.subplots(1,3, figsize=(12,4))
@@ -868,7 +848,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
         label_file = ['r','theta','flux']    
         label = [r'$\Delta r$',r'$\Delta \theta$',r'$\Delta f$']
         
-        if gaussianFit:
+        if gaussian_fit:
             n, bin_vertices, _ = ax[0][j].hist(isamples[:,j],bins=bins, 
                                                weights=weights, histtype='step', 
                                                edgecolor='gray')
@@ -882,32 +862,56 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
         
         test = 0
         pourcentage = 0
-        for k,jj in enumerate(n_arg_sort):
+        for k, jj in enumerate(n_arg_sort):
             test = test + bins_width*n[jj]
             pourcentage = test/surface_total*100.
             if pourcentage > cfd:
                 if verbose:
-                    print('percentage for {}: {}%'.format(label_file[j],pourcentage))
+                    msg = 'percentage for {}: {}%'
+                    print(msg.format(label_file[j],pourcentage))
                 break
         n_arg_min = n_arg_sort[:k].min()
         n_arg_max = n_arg_sort[:k+1].max()
         
-        if n_arg_min == 0:  n_arg_min += 1
-        if n_arg_max == bins:  n_arg_max -= 1        
+        if n_arg_min == 0:
+            n_arg_min += 1
+        if n_arg_max == bins:
+            n_arg_max -= 1
         
         val_max[pKey[j]] = bin_vertices[n_arg_sort[0]]+bins_width/2.
         confidenceInterval[pKey[j]] = np.array([bin_vertices[n_arg_min-1],
-                                                bin_vertices[n_arg_max+1]]-val_max[pKey[j]])
+                                                bin_vertices[n_arg_max+1]] - val_max[pKey[j]])
                         
-        arg = (isamples[:,j]>=bin_vertices[n_arg_min-1])*(isamples[:,j]<=bin_vertices[n_arg_max+1])
-        if gaussianFit:
+        arg = (isamples[:, j] >= bin_vertices[n_arg_min - 1]) * \
+              (isamples[:, j] <= bin_vertices[n_arg_max + 1])
+        if gaussian_fit:
             _ = ax[0][j].hist(isamples[arg,j],bins=bin_vertices, 
                               facecolor='gray', edgecolor='darkgray', 
                               histtype='stepfilled', alpha=0.5)
             ax[0][j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]], 
                             linestyles='dashed', color='red')
             ax[0][j].set_xlabel(label[j])
-            if j==0:  ax[0][j].set_ylabel('Counts')
+            if j == 0:
+                ax[0][j].set_ylabel('Counts')
+
+            (mu[j], sigma[j]) = norm.fit(isamples[:, j])
+            n_fit, bins_fit = np.histogram(isamples[:, j], bins, normed=1,
+                                           weights=weights)
+            _ = ax[1][j].hist(isamples[:, j], bins, normed=1, weights=weights,
+                              facecolor='gray', edgecolor='darkgray',
+                              histtype='step')
+            y = normpdf(bins_fit, mu[j], sigma[j])
+            ax[1][j].plot(bins_fit, y, 'r--', linewidth=2, alpha=0.7)
+
+            ax[1][j].set_xlabel(label[j])
+            if j == 0:
+                ax[1][j].set_ylabel('Counts')
+
+            if title is not None:
+                msg = r"$\mu$ = {:.4f}, $\sigma$ = {:.4f}"
+                ax[1][j].set_title(title + '   ' + msg.format(mu[j], sigma[j]),
+                                   fontsize=10)
+
         else:
             _ = ax[j].hist(isamples[arg,j],bins=bin_vertices, facecolor='gray', 
                            edgecolor='darkgray', histtype='stepfilled',
@@ -915,40 +919,23 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
             ax[j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]],
                          linestyles='dashed', color='red')
             ax[j].set_xlabel(label[j])
-            if j==0:  ax[j].set_ylabel('Counts')
-    
-        if gaussianFit:
-            (mu[j], sigma[j]) = norm.fit(isamples[:,j])
-            n_fit, bins_fit = np.histogram(isamples[:,j], bins, normed=1, 
-                                           weights=weights)
-            _= ax[1][j].hist(isamples[:,j], bins, normed=1, weights=weights, 
-                             facecolor='gray', edgecolor='darkgray', 
-                             histtype='step')
-            y = normpdf( bins_fit, mu[j], sigma[j])
-            ax[1][j].plot(bins_fit, y, 'r--', linewidth=2, alpha=0.7) 
-            
-            ax[1][j].set_xlabel(label[j])
-            if j==0:  ax[1][j].set_ylabel('Counts')
-            
+            if j == 0:
+                ax[j].set_ylabel('Counts')
+
             if title is not None:
-                msg = r"$\mu$ = {:.4f}, $\sigma$ = {:.4f}"
-                ax[1][j].set_title(title+'   '+msg.format(mu[j],sigma[j]),
-                          fontsize=10)
-        else:
-            if title is not None:            
                 ax[1].set_title(title, fontsize=10)
 
+        plt.tight_layout(w_pad=0.1)
+
     if save:
-        if gaussianFit:
+        if gaussian_fit:
             plt.savefig('confi_hist_flux_r_theta_gaussfit.pdf')
         else:
             plt.savefig('confi_hist_flux_r_theta.pdf')
-        
-        plt.tight_layout(w_pad=0.001)
-        
+
     if verbose:
         print('')
-        print('Confidence intervals:')
+        print('\nConfidence intervals:')
         print('r: {} [{},{}]'.format(val_max['r'],
                                      confidenceInterval['r'][0],
                                      confidenceInterval['r'][1]))
@@ -958,7 +945,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
         print('flux: {} [{},{}]'.format(val_max['f'],
                                         confidenceInterval['f'][0],
                                         confidenceInterval['f'][1]))
-        if gaussianFit:
+        if gaussian_fit:
             print('')
             print('Gaussian fit results:')
             print('r: {} +-{}'.format(mu[0],sigma[0]))
@@ -1017,9 +1004,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussianFit=False, weights=None,
                                           -confidenceInterval[pKey[0]][0]*plsc*1000,
                                           confidenceInterval[pKey[0]][1]*plsc*1000))
 
-    if gaussianFit:
-        return (mu,sigma)
+    if gaussian_fit:
+        return mu, sigma
     else:
-        return (val_max,confidenceInterval)           
-
-        
+        return val_max, confidenceInterval

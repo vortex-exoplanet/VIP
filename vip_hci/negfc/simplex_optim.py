@@ -18,15 +18,13 @@ from ..conf.utils_conf import sep
 __all__ = ['firstguess']
 
 
-
-def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, 
-                          fwhm, annulus_width, aperture_radius, ncomp, 
-                          cube_ref=None, svd_mode='lapack', scaling=None, 
-                          fmerit='sum', imlib='opencv', interpolation='lanczos4',
+def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
+                          annulus_width, aperture_radius, ncomp, cube_ref=None,
+                          svd_mode='lapack', scaling=None, fmerit='sum',
+                          imlib='opencv', interpolation='lanczos4',
                           collapse='median', f_range=None, display=False,
-                          verbose=True, save=False, **kwargs):
-    """
-    Determine a first guess for the flux of a companion at a given position 
+                          verbose=True, save=False, debug=False, **kwargs):
+    """ Determine a first guess for the flux of a companion at a given position
     in the cube by doing a simple grid search evaluating the reduced chi2.
     
     Parameters
@@ -90,14 +88,14 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf,
                 
     """  
     xy = planet-center
-    r0 = np.sqrt(xy[0]**2+xy[1]**2)
-    theta0 = np.mod(np.arctan2(xy[1],xy[0])/np.pi*180,360) 
+    r0 = np.sqrt(xy[0]**2 + xy[1]**2)
+    theta0 = np.mod(np.arctan2(xy[1], xy[0]) / np.pi*180, 360)
 
     if f_range is not None:    
         n = f_range.shape[0]
     else:
-        n = 20
-        f_range = np.linspace(0,5000,n)
+        n = 100
+        f_range = np.linspace(0, 5000, n)
     
     chi2r = []
     if verbose:
@@ -105,30 +103,31 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf,
         
     counter = 0
     for j, f_guess in enumerate(f_range):
-        chi2r.append(chisquare((r0,theta0,f_guess), cube, angs, PLSC, psf, 
-                                fwhm, annulus_width, aperture_radius,(r0,theta0),
-                                ncomp, cube_ref, svd_mode, scaling, fmerit,
-                                collapse, imlib, interpolation))
+        chi2r.append(chisquare((r0, theta0, f_guess), cube, angs, PLSC, psf,
+                               fwhm, annulus_width, aperture_radius,
+                               (r0, theta0), ncomp, cube_ref, svd_mode,
+                               scaling, fmerit, collapse, imlib, interpolation,
+                               debug))
         if chi2r[j] > chi2r[j-1]:
             counter += 1
         if counter == 4:
             break
         if verbose:
-            print('{}/{}   {:.3f}   {:.3f}'.format(j+1,n,f_guess,chi2r[j]))
+            print('{}/{}   {:.3f}   {:.3f}'.format(j+1, n, f_guess, chi2r[j]))
 
     chi2r = np.array(chi2r)
     f0 = f_range[chi2r.argmin()]  
 
     if display:
-        plt.figure(figsize=kwargs.pop('figsize',(8,4)))
+        plt.figure(figsize=kwargs.pop('figsize', (8, 4)))
         plt.title(kwargs.pop('title',''))
         plt.xlim(f_range[0], f_range[:chi2r.shape[0]].max())
         plt.ylim(chi2r.min()*0.9, chi2r.max()*1.1)
         plt.plot(f_range[:chi2r.shape[0]],chi2r,
                  linestyle=kwargs.pop('linestyle','-'),
                  color=kwargs.pop('color','gray'),
-                 marker=kwargs.pop('marker','.'),
-                 markerfacecolor='r', markeredgecolor='r', **kwargs)
+                 marker=kwargs.pop('marker','.'), markerfacecolor='r',
+                 markeredgecolor='r', **kwargs)
         plt.xlabel('flux')
         plt.ylabel(r'$\chi^2_{r}$')
         plt.grid('on')
@@ -137,7 +136,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf,
     if display:
         plt.show()
 
-    return (r0,theta0,f0)       
+    return r0, theta0, f0
 
 
 def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width, 
@@ -195,7 +194,7 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
     options: dict, optional
         The scipy.optimize.minimize options.
     verbose : boolean, optional
-        If True, informations are displayed in the shell.
+        If True, additional information is printed out.
         
     Returns
     -------
@@ -204,24 +203,21 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
         
     """    
     if verbose:
-        msg = '\n{} minimization is running...'
-        print(msg.format(options.get('method','Nelder-Mead')))
+        print('\nNelder-Mead minimization is running...')
      
     if p_ini is None:
         p_ini = p
 
-    solu = minimize(chisquare, p, args=(cube, angs, plsc, psf, fwhm, annulus_width,
-                                        aperture_radius, p_ini, ncomp, cube_ref,
-                                        svd_mode, scaling, fmerit, collapse,
-                                        imlib, interpolation),
-                    method=options.pop('method','Nelder-Mead'),
-                    options=options, **kwargs)                       
+    solu = minimize(chisquare, p, args=(cube, angs, plsc, psf, fwhm,
+                                        annulus_width, aperture_radius, p_ini,
+                                        ncomp, cube_ref, svd_mode, scaling,
+                                        fmerit, collapse, imlib, interpolation),
+                    method='Nelder-Mead', options=options, **kwargs)
 
     if verbose:
         print(solu)
     return solu
     
-
 
 def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4, 
                annulus_width=3, aperture_radius=4, cube_ref=None, 
@@ -291,16 +287,16 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     f_range: numpy.array, optional
         The range of flux tested values. If None, 20 values between 0 and 5000
         are tested.
-    simplex: boolean, optional
+    simplex: bool, optional
         If True, the Nelder-Mead minimization is performed after the flux grid
         search.
     simplex_options: dict, optional
         The scipy.optimize.minimize options.
     display: boolean, optional
         If True, the figure chi2 vs. flux is displayed.
-    verbose: boolean
+    verbose: bool, optional
         If True, display intermediate info in the shell.
-    save: boolean, optional
+    save: bool, optional
         If True, the figure chi2 vs. flux is saved.
     figure_options: dict, optional
         Additional parameters are passed to the matplotlib plot method.    
@@ -313,21 +309,16 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     -----
     Polar angle is not the conventional NORTH-TO-EAST P.A.
     """
-    if verbose:  start_time = time_ini()
+    if verbose:
+        start_time = time_ini()
 
     if figure_options is None:
-        figure_options = {'color':'gray', 'marker':'.', 
-                          'title':r'$\chi^2_{r}$ vs flux'}
+        figure_options = {'color': 'gray', 'marker':'.',
+                          'title': r'$\chi^2_{r}$ vs flux'}
         
     planets_xy_coord = np.array(planets_xy_coord)
     n_planet = planets_xy_coord.shape[0]
-
     center_xy_coord = np.array(frame_center(cube[0]))
-
-    if f_range is None:  
-        f_range = np.linspace(0,5000,20)
-    if simplex_options is None:  
-        simplex_options = {'xtol':1e-1, 'maxiter':500, 'maxfev':1000}
 
     r_0 = np.zeros(n_planet)
     theta_0 = np.zeros_like(r_0)
@@ -339,8 +330,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
             print('             Planet {}           '.format(index_planet))
             print(sep+'\n')
             msg2 = 'Planet {}: flux estimation at the position [{},{}], running ...'
-            print(msg2.format(index_planet,planets_xy_coord[index_planet,0],
-                              planets_xy_coord[index_planet,1]))
+            print(msg2.format(index_planet, planets_xy_coord[index_planet, 0],
+                              planets_xy_coord[index_planet, 1]))
         
         res_init = firstguess_from_coord(planets_xy_coord[index_planet],
                                          center_xy_coord, cube, angs, plsc, psfn,
@@ -348,13 +339,12 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                          ncomp, f_range=f_range,
                                          cube_ref=cube_ref, svd_mode=svd_mode,
                                          scaling=scaling, fmerit=fmerit,
-                                         imlib=imlib,
+                                         imlib=imlib, collapse=collapse,
                                          interpolation=interpolation,
-                                         collapse=collapse, display=display,
-                                         verbose=verbose, save=save,
-                                         **figure_options)
+                                         display=display, verbose=verbose,
+                                         save=save, **figure_options)
         r_pre, theta_pre, f_pre = res_init
-                                                                                                                    
+
         if verbose:
             msg3 = 'Planet {}: preliminary guess: (r, theta, f)=({:.1f}, {:.1f}, {:.1f})'
             print(msg3.format(index_planet,r_pre, theta_pre, f_pre))
@@ -363,9 +353,13 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
             if verbose:
                 msg4 = 'Planet {}: Simplex Nelder-Mead minimization, running ...'
                 print(msg4.format(index_planet))
+
+            if simplex_options is None:
+                simplex_options = {'xatol': 1e-6, 'fatol': 1e-6, 'maxiter': 800,
+                                   'maxfev': 2000}
                                                          
-            res = firstguess_simplex((r_pre,theta_pre,f_pre), cube, angs, psfn,
-                                     plsc, ncomp, fwhm, annulus_width, 
+            res = firstguess_simplex((r_pre, theta_pre, f_pre), cube, angs,
+                                     psfn, plsc, ncomp, fwhm, annulus_width,
                                      aperture_radius, cube_ref=cube_ref, 
                                      svd_mode=svd_mode, scaling=scaling,
                                      fmerit=fmerit, imlib=imlib,
@@ -376,7 +370,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
             r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x
             if verbose:
                 msg5 = 'Planet {}: Success: {}, nit: {}, nfev: {}, chi2r: {}'
-                print(msg5.format(index_planet,res.success,res.nit,res.nfev, 
+                print(msg5.format(index_planet, res.success, res.nit, res.nfev,
                                   res.fun))
                 print('message: {}'.format(res.message))
             

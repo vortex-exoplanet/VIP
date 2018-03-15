@@ -672,6 +672,8 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     if subi_size is not None:
         if not isinstance(subi_size, int):
             raise ValueError('subi_size must be an integer or None')
+        if subi_size < fwhm:
+            raise ValueError('`subi_size` (value in pixels) is too small')
         if sizey % 2 == 0:
             if subi_size % 2 != 0:
                 subi_size += 1
@@ -751,7 +753,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                         nproc=1, imlib='opencv', interpolation='lanczos4',
                         offset=None, negative=False, threshold=False,
                         save_shifts=False, full_output=False, verbose=True,
-                        debug=False,):
+                        debug=False):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
     Gaussian or Moffat to a subimage centered at ``xy``. This assumes the frames
     don't have too large shifts (>5px). The frames are shifted using the 
@@ -818,7 +820,9 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     n_frames, sizey, sizex = array.shape
 
     if not isinstance(subi_size, int):
-        raise ValueError('subi_size must be an integer')
+        raise ValueError('`subi_size` must be an integer')
+    if subi_size < fwhm:
+        raise ValueError('`subi_size` (value in pixels) is too small')
     if sizey % 2 == 0:
         if subi_size % 2 != 0:
             subi_size += 1

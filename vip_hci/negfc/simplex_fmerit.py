@@ -10,14 +10,14 @@ __all__ = []
 import numpy as np
 from skimage.draw import circle
 from ..phot import cube_inject_companions
-from ..var import frame_center
+from ..var import frame_center, pp_subplots
 from ..pca.utils_pca import pca_annulus
 
 
 def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,  
               aperture_radius, initialState, ncomp, cube_ref=None, 
               svd_mode='lapack', scaling=None, fmerit='sum', collapse='median',
-              imlib='opencv', interpolation='lanczos4'):
+              imlib='opencv', interpolation='lanczos4', debug=False):
     """
     Calculate the reduced chi2:
     \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -76,7 +76,8 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     try:
         r, theta, flux = modelParameters
     except TypeError:
-        print('paraVector must be a tuple, {} was given'.format(type(modelParameters)))
+        msg = 'modelParameters must be a tuple, {} was given'
+        print(msg.format(type(modelParameters)))
 
     # Create the cube with the negative fake companion injected
     cube_negfc = cube_inject_companions(cube, psfs_norm, angs, flevel=-flux,
@@ -85,32 +86,35 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
                                         interpolation=interpolation)
                                       
     # Perform PCA and extract the zone of interest
-    values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width*fwhm,
+    res = get_values_optimize(cube_negfc, angs, ncomp, annulus_width*fwhm,
                                  aperture_radius*fwhm, initialState[0],
                                  initialState[1], cube_ref=cube_ref, 
                                  svd_mode=svd_mode, scaling=scaling,
-                                 collapse=collapse)
+                                 collapse=collapse, debug=debug)
+    if debug and collapse is not None:
+        values, frpca = res
+        pp_subplots(frpca)
+    else:
+        values = res
     
     # Function of merit
-    if fmerit=='sum':
+    if fmerit == 'sum':
         values = np.abs(values)
-        chi2 = np.sum(values[values>0])
-        N =len(values[values>0])    
-        return chi2/(N-3)
-    elif fmerit=='stddev':
-        return np.std(values[values!=0]) 
+        chi2 = np.sum(values[values > 0])
+        N = len(values[values > 0])
+        return chi2 / (N-3)
+    elif fmerit == 'stddev':
+        return np.std(values[values != 0])
     else:
-        raise RuntimeError('fmerit choice not recognized')       
-
+        raise RuntimeError('`fmerit` choice not recognized')
 
 
 def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius, 
                         r_guess, theta_guess, cube_ref=None, svd_mode='lapack',
                         scaling=None, imlib='opencv', interpolation='lanczos4',
                         collapse='median', debug=False):
-    """
-    Extracts a PCA-ed annulus from the cube and returns the flux values of the 
-    pixels included in a circular aperture centered at a given position.
+    """ Extracts a PCA-ed annulus from the cube and returns the flux values of
+    the pixels included in a circular aperture centered at a given position.
     
     Parameters
     ----------

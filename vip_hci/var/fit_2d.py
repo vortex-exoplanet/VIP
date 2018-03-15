@@ -119,18 +119,18 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     theta = fit.theta.value
     
     if debug:
-        if threshold:  msg = 'Subimage thresholded / Model / Residuals'
-        else: msg = 'Subimage (no threshold) / Model / Residuals'
-        pp_subplots(psf_subimage, fit(x, y), psf_subimage-fit(x, y), 
-                    colorb=True, grid=True, title=msg)
+        if threshold:
+            msg = ['Subimage thresholded', 'Model', 'Residuals']
+        else:
+            msg = ['Subimage', 'Model', 'Residuals']
+        pp_subplots(psf_subimage, fit(x, y), psf_subimage-fit(x, y),
+                    grid=True, gridspacing=1, label=msg)
         print('FWHM_y =', fwhm_y)
-        print('FWHM_x =', fwhm_x)
-        print()
+        print('FWHM_x =', fwhm_x, '\n')
         print('centroid y =', mean_y)
         print('centroid x =', mean_x)
         print('centroid y subim =', fit.y_mean.value)
-        print('centroid x subim =', fit.x_mean.value)
-        print() 
+        print('centroid x subim =', fit.x_mean.value, '\n')
         print('peak =', amplitude)
         print('theta =', theta)
     

@@ -269,4 +269,4 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None):
     print('\nConfidence intervals')
     _ = confidence(res.samples[indburnin:], cfd=68, bins=bins,
                    weights=res.weights[indburnin:],
-                   gaussianFit=True, verbose=True, save=False)
+                   gaussian_fit=True, verbose=True, save=False)

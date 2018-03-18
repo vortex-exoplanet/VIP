@@ -262,10 +262,9 @@ def pp_subplots(*args, **kwargs):
         show_axis = True
     # --------------------------------------------------------------------------
 
-    if 'showcent' in kwargs:
+    show_center = False
+    if 'showcent' in kwargs and kwargs['showcent']:
         show_center = True
-    else:
-        show_center = False
 
     if 'getfig' in kwargs:
         getfig = kwargs['getfig']

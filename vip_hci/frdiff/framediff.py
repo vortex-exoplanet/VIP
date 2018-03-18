@@ -296,8 +296,8 @@ def _pw_rot_res(cube, angle_list, fwhm=4, delta_rot=0.5, inner_radius=2,
 
     ann_center = (inner_radius + (asize / 2.0))
     pa_threshold = _compute_pa_thresh(ann_center, fwhm, delta_rot)
-    if debug:
-        print(pa_threshold)
+    if verbose:
+        print('PA thresh {:.3f}'.format(pa_threshold))
 
     # annulus-wise pair-wise subtraction
     res = []

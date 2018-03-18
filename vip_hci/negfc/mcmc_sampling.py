@@ -739,8 +739,9 @@ def show_corner_plot(chain, burnin=0.5, save=False, **kwargs):
         temp = np.where(chain[0, :, 0] == 0.0)[0]
         if len(temp) != 0:
             chain = chain[:, :temp[0], :]
-        length = chain.shape[1] 
-        chain = chain[:, int(np.floor(burnin*(length-1))):length, :].reshape((-1,3))
+        length = chain.shape[1]
+        indburn = int(np.floor(burnin*(length-1)))
+        chain = chain[:, indburn:length, :].reshape((-1, 3))
     except IndexError:
         pass
 
@@ -748,8 +749,8 @@ def show_corner_plot(chain, burnin=0.5, save=False, **kwargs):
         print("It seems the chain is empty. Have you already run the MCMC?")
     else: 
         fig = corner.corner(chain, labels=kwargs.pop('labels',
-                                                     ["$r$",r"$\theta$","$f$"]),
-                            **kwargs)
+                                                     ["$r$", r"$\theta$",
+                                                      "$f$"]), **kwargs)
     if save:
         plt.savefig('corner_plot.pdf')
         plt.close(fig)

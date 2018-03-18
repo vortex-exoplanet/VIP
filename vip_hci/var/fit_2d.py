@@ -14,7 +14,8 @@ import pandas as pd
 import photutils
 from scipy.optimize import leastsq
 from astropy.modeling import models, fitting
-from astropy.stats import gaussian_sigma_to_fwhm, gaussian_fwhm_to_sigma, sigma_clipped_stats
+from astropy.stats import (gaussian_sigma_to_fwhm, gaussian_fwhm_to_sigma,
+                           sigma_clipped_stats)
 from .shapes import get_square, frame_center
 from .utils_var import pp_subplots
 

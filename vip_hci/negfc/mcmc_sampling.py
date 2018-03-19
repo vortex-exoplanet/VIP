@@ -791,28 +791,6 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         interval.
         
     """
-    def writeText(document, text):
-        """
-        Write a line of text in a txt file.
-
-        Parameters
-        ----------
-        document: str
-            The path to the file to append or create.
-        text: str or tuple
-            The text to write.
-
-        Returns
-        -------
-        None
-
-        """
-        with open(document, 'a') as fileObject:
-            if isinstance(text, str):
-                fileObject.write("{} \n".format(text))
-            elif isinstance(text, tuple):
-                fileObject.write("\t ".join(str(_) for _ in text))
-    ############################################################################
 
     plsc = kwargs.pop('plsc', 0.001)
     title = kwargs.pop('title', None)        
@@ -956,55 +934,35 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     ##  Write inference results in a text file  ##
     ##############################################    
     if save:         
-        try:
-            fileObject = open(output_file, 'r')
-        except IOError: # if the file doesn't exist, we create it (empty)
-            answer = 'y'
-            if answer == 'y':
-                fileObject = open(output_file, 'w')
-            elif answer == 'n':
-                msg = "The file has not been created. The object cannot be "
-                msg += "created neither."
-                print(msg)
-                raise IOError("No such file has been found")
-            else:
-                msg = "You must choose between 'y' for yes and 'n' for no. The "
-                msg += "file has not been created. The object cannot be "
-                msg += "created neither."
-                print()
-                raise IOError("No such file has been found")
-        finally:
-            fileObject.close()    
-    
-        writeText(output_file, '###########################')
-        writeText(output_file, '####   INFERENCE TEST   ###')
-        writeText(output_file, '###########################')
-        writeText(output_file, ' ')
-        writeText(output_file, 'Results of the MCMC fit')
-        writeText(output_file, '----------------------- ')
-        writeText(output_file, ' ')
-        writeText(output_file, '>> Position and flux of the planet '
-            '(highly probable):')
-        writeText(output_file, '{} % confidence interval'.format(cfd))
-        writeText(output_file, ' ')
-        for i in range(3):
-            confidenceMax = confidenceInterval[pKey[i]][1]
-            confidenceMin = -confidenceInterval[pKey[i]][0]
-            if i == 2:
-                text = '{}: \t\t\t{:.3f} \t-{:.3f} \t+{:.3f}'
-            else:
-                text = '{}: \t\t\t{:.3f} \t\t-{:.3f} \t\t+{:.3f}'
-                
-            writeText(output_file, text.format(pKey[i], val_max[pKey[i]],
-                                               confidenceMin, confidenceMax))                   
-        
-        writeText(output_file, ' ')
-        writeText(output_file, 'Platescale = {} mas'.format(plsc*1000))
-        text = '{}: \t\t{:.2f} \t\t-{:.2f} \t\t+{:.2f}'.format(
-                    'r (mas)', val_max[pKey[0]]*plsc*1000,
-                    -confidenceInterval[pKey[0]][0]*plsc*1000,
-                    confidenceInterval[pKey[0]][1]*plsc*1000)
-        writeText(output_file, text)
+        with open(output_file, "w") as f:
+            f.write('###########################')
+            f.write('####   INFERENCE TEST   ###')
+            f.write('###########################')
+            f.write(' ')
+            f.write('Results of the MCMC fit')
+            f.write('----------------------- ')
+            f.write(' ')
+            f.write('>> Position and flux of the planet (highly probable):')
+            f.write('{} % confidence interval'.format(cfd))
+            f.write(' ')
+
+            for i in range(3):
+                confidenceMax = confidenceInterval[pKey[i]][1]
+                confidenceMin = -confidenceInterval[pKey[i]][0]
+                if i == 2:
+                    text = '{}: \t\t\t{:.3f} \t-{:.3f} \t+{:.3f}'
+                else:
+                    text = '{}: \t\t\t{:.3f} \t\t-{:.3f} \t\t+{:.3f}'
+                    
+                f.write(text.format(pKey[i], val_max[pKey[i]],
+                                    confidenceMin, confidenceMax))                   
+            
+            f.write(' ')
+            f.write('Platescale = {} mas'.format(plsc*1000))
+            f.write('{}: \t\t{:.2f} \t\t-{:.2f} \t\t+{:.2f}'.format(
+                        'r (mas)', val_max[pKey[0]]*plsc*1000,
+                        -confidenceInterval[pKey[0]][0]*plsc*1000,
+                        confidenceInterval[pKey[0]][1]*plsc*1000))
 
     if gaussian_fit:
         return mu, sigma

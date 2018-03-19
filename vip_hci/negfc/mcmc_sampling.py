@@ -556,11 +556,11 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
             if save:
                 import pickle
                 fname = 'results/{f}/{f}_temp_k{k}'.format(f=output_file, k=k)
+                data = {'chain': sampler.chain,
+                        'lnprob': sampler.lnprobability,
+                         'AR': sampler.acceptance_fraction}
                 with open(fname, 'wb') as fileSave:
-                    myPickler = pickle.Pickler(fileSave)
-                    myPickler.dump({'chain': sampler.chain,
-                                    'lnprob': sampler.lnprobability,
-                                    'AR': sampler.acceptance_fraction})
+                    pickle.dump(data, fileSave)
                 
             # We only test the rhat if we have reached the min # of steps
             if (k+1) >= itermin and konvergence == np.inf:

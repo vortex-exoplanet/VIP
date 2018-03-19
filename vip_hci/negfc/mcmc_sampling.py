@@ -15,7 +15,6 @@ __all__ = ['mcmc_negfc_sampling',
 import numpy as np
 import os
 import emcee
-from math import isinf, floor, ceil
 import inspect
 import datetime
 import corner
@@ -224,8 +223,8 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
     
     lp = lnprior(param, bounds)
     
-    if isinf(lp):
-        return -np.inf
+    if np.isinf(lp):
+        return -np.inf       
     
     return lp + lnlike(param, cube, angs, plsc, psf_norm, fwhm,
                        annulus_width, ncomp, aperture_radius, initial_state,
@@ -309,8 +308,8 @@ def gelman_rubin_from_chain(chain, burnin):
     """
     dim = chain.shape[2]
     k = chain.shape[1]
-    thr0 = int(floor(burnin*k))
-    thr1 = int(floor((1-burnin) * k *0.25))
+    thr0 = int(np.floor(burnin*k))
+    thr1 = int(np.floor((1-burnin) * k * 0.25))
     rhat = np.zeros(dim)
     for j in range(dim):
         part1 = chain[:, thr0:thr0+thr1, j].reshape((-1))
@@ -541,8 +540,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         # ---------------------------------------------------------------------
         # If k meets the criterion, one tests the non-convergence.
         # ---------------------------------------------------------------------
-        criterion = np.amin([ceil(itermin*(1+fraction)**geom),
-                             lastcheck+floor(maxgap)])
+        criterion = np.amin([np.ceil(itermin*(1+fraction)**geom),
+                             lastcheck+np.floor(maxgap)])
         if k == criterion:
             if verbosity == 2:
                 print('\n   Gelman-Rubin statistic test in progress ...')
@@ -563,8 +562,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                 
             # We only test the rhat if we have reached the min # of steps
             if (k+1) >= itermin and konvergence == np.inf:
-                thr0 = int(floor(burnin*k))
-                thr1 = int(floor((1-burnin)*k*0.25))
+                thr0 = int(np.floor(burnin*k))
+                thr1 = int(np.floor((1-burnin)*k*0.25))
 
                 # We calculate the rhat for each model parameter.
                 for j in range(dim):

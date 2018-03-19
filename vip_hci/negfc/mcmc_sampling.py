@@ -313,8 +313,8 @@ def gelman_rubin_from_chain(chain, burnin):
     thr1 = int(floor((1-burnin) * k *0.25))
     rhat = np.zeros(dim)
     for j in range(dim):
-        part1 = chain[:, thr0:thr0+thr1, j].reshape(-1)
-        part2 = chain[:, thr0+3*thr1:thr0+4*thr1, j].reshape(-1)
+        part1 = chain[:, thr0:thr0+thr1, j].reshape((-1))
+        part2 = chain[:, thr0+3*thr1:thr0+4*thr1, j].reshape((-1))
         series = np.vstack((part1,part2))
         rhat[j] = gelman_rubin(series)
     return rhat

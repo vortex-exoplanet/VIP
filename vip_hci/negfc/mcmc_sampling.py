@@ -135,7 +135,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
                                         verbose=False)
                                   
     # Perform PCA and extract the zone of interest
-    values = get_values_optimize(cube_negfc,angs,ncomp,annulus_width*fwhm,
+    values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width*fwhm,
                                  aperture_radius*fwhm, initial_state[0],
                                  initial_state[1], cube_ref=cube_ref,
                                  svd_mode=svd_mode, scaling=scaling,
@@ -147,7 +147,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         lnlikelihood = -0.5 * np.sum(np.abs(values))
     elif fmerit == 'stddev':
         values = values[values != 0]
-        lnlikelihood = -1*np.std(np.abs(values))
+        lnlikelihood = -np.std(np.abs(values))
     else:
         raise RuntimeError('fmerit choice not recognized.')
     
@@ -314,7 +314,7 @@ def gelman_rubin_from_chain(chain, burnin):
     for j in range(dim):
         part1 = chain[:, thr0:thr0+thr1, j].reshape((-1))
         part2 = chain[:, thr0+3*thr1:thr0+4*thr1, j].reshape((-1))
-        series = np.vstack((part1,part2))
+        series = np.vstack((part1, part2))
         rhat[j] = gelman_rubin(series)
     return rhat
 
@@ -325,8 +325,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         imlib='opencv', interpolation='lanczos4',
                         collapse='median', nwalkers=1000, bounds=None, a=2.0,
                         burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1,
-                        niteration_min=0, niteration_limit=1e02,
-                        niteration_supp=0, check_maxgap=1e04, nproc=1,
+                        niteration_min=0, niteration_limit=1e2,
+                        niteration_supp=0, check_maxgap=1e4, nproc=1,
                         output_file=None, display=False, verbosity=0,
                         save=False):
     """ Runs an affine invariant mcmc sampling algorithm in order to determine
@@ -461,11 +461,11 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                 raise
 
 
-    if not isinstance(cube, np.ndarray) or not cube.ndim == 3:
+    if not isinstance(cube, np.ndarray) or cube.ndim != 3:
         raise ValueError('`cube` must be a 3D numpy array')
 
     if cube_ref is not None:
-        if not isinstance(cube_ref, np.ndarray) or not cube_ref.ndim == 3:
+        if not isinstance(cube_ref, np.ndarray) or cube_ref.ndim != 3:
             raise ValueError('`cube_ref` must be a 3D numpy array')
     
     # #########################################################################
@@ -488,7 +488,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     rhat_count = 0
     chain = np.empty([nwalkers, 1, dim])
     isamples = np.empty(0)
-    pos = initial_state + np.random.normal(0, 1e-01, (nwalkers, 3))
+    pos = initial_state + np.random.normal(0, 1e-1, (nwalkers, 3))
     nIterations = limit + supp
     rhat = np.zeros(dim)
     stop = np.inf
@@ -534,8 +534,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         # Check if the size of the chain is long enough.
         s = chain.shape[1]
         if k+1 > s:     # if not, one doubles the chain length
-            empty = np.zeros([nwalkers,2*s,dim])
-            chain = np.concatenate((chain,empty),axis=1)
+            empty = np.zeros([nwalkers, 2*s, dim])
+            chain = np.concatenate((chain, empty), axis=1)
         # Store the state of the chain
         chain[:, k] = res[0]
 
@@ -594,7 +594,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                     rhat_count = 0
 
         # We have reached the maximum number of steps for our Markov chain.
-        if (k+1) >= stop:
+        if k+1 >= stop:
             if verbosity == 1 or verbosity == 2:
                 print('We break the loop because we have reached convergence')
             break
@@ -612,7 +612,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     else:
         idxzero = chain.shape[1]
     
-    idx = int(np.amin([np.floor(2e05/nwalkers), np.floor(0.1*idxzero)]))
+    idx = int(np.amin([np.floor(2e5/nwalkers), np.floor(0.1*idxzero)]))
     if idx == 0:
         isamples = chain[:, 0:idxzero, :]
     else:

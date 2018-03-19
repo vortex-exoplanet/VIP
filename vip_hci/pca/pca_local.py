@@ -44,12 +44,13 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=2,
         central circular area is discarded.
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Deafult is 4.
-    asize : int, optional
+    asize : scalar, optional
         The size of the annuli, in FWHM. Default is 3.
-    n_segments : int or list of ints, optional
+    n_segments : int or list of ints or 'auto', optional
         The number of segments for each annulus. When a single integer is given
-        it is used for all annuli.
-    delta_rot : int, optional
+        it is used for all annuli. When set to 'auto', the number of segments is
+        automatically determined for every annulus, based on the annulus width.
+    delta_rot : scalar, optional
         Factor for increasing the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1 FHWM on each side of the considered frame).
         According to Absil+13, a slightly better contrast can be reached for the 
@@ -76,13 +77,12 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=2,
         the computations are done on a GPU. 
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of 
-        processes will be set to (cpu_count()/2). By default the algorithm works
-        in single-process mode. It's been tested on a Linux and Macosx. The
-        ACCELERATE library for linear algebra calculations, which comes by
-        default in every Macosx system, is broken for multiprocessing. Avoid
-        using this function unless you have compiled Python against other
-        linear algebra library. An easy fix is to install (ana)conda and the
-        openblas or MKL libraries (replacing ACCELERATE).
+        processes will be set to (cpu_count()/2). It's been tested on a Linux
+        and Macosx. The ACCELERATE library for linear algebra calculations,
+        which comes by default in every Macosx system, is broken for
+        multiprocessing. Avoid using this function unless you have compiled
+        Python against other linear algebra library. An easy fix is to install
+        (ana)conda and the openblas or MKL libraries (replacing ACCELERATE).
     min_frames_lib : int, optional
         Minimum number of frames in the PCA reference library.
     max_frames_lib : int, optional
@@ -123,9 +123,9 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=2,
      
     """
     array = cube
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
-    if not array.shape[0] == angle_list.shape[0]:
+    if array.shape[0] != angle_list.shape[0]:
         raise TypeError('Input vector or parallactic angles has wrong length')
 
     n, y, _ = array.shape
@@ -151,12 +151,12 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=2,
             n_segments.append(int(np.ceil(360 / ang)))
 
     if verbose:
-        msg = '# annuli = {:}, Ann width = {:}, FWHM = {:.3f} \n'
+        msg = '# annuli = {}, Ann width = {}, FWHM = {:.3f} \n'
         print(msg.format(n_annuli, annulus_width, fwhm))
         print('PCA per annulus (or annular segment)\n')
 
     if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count() / 2)
+        nproc = cpu_count() // 2
     
     #***************************************************************************
     # The annuli are built, and the corresponding PA thresholds for frame 
@@ -165,7 +165,6 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=2,
     cube_out = np.zeros_like(array)
     for ann in range(n_annuli):
         if isinstance(ncomp, list) or isinstance(ncomp, np.ndarray):
-            ncomp = list(ncomp)
             if len(ncomp) == n_annuli:
                 ncompann = ncomp[ann]
             else:
@@ -201,7 +200,7 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=2,
                 cube_out[frame][yy, xx] = residuals[frame]
 
         if verbose:
-            print('Done PCA with {:} for current annulus'.format(svd_mode))
+            print('Done PCA with {} for current annulus'.format(svd_mode))
             timing(start_time)      
          
     #***************************************************************************
@@ -244,7 +243,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
         radius_int : int, optional
             The radius of the innermost annulus. By default is 0, if >0 then the
             central circular area is discarded.
-        asize : int, optional
+        asize : scalar, optional
             The size of the annuli, in FWHM. Default is 3.
         ncomp : int, optional
             How many PCs are kept. If none it will be automatically determined.
@@ -308,7 +307,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
             ann_center = (inner_radius + (annulus_width / 2.0))
 
             if verbose:
-                msg2 = 'Annulus {:}, Inn radius = {:.2f}, Ann center = {:.2f} '
+                msg2 = 'Annulus {}, Inn radius = {:.2f}, Ann center = {:.2f} '
                 print(msg2.format(int(ann + 1), inner_radius, ann_center))
             return inner_radius, ann_center
 
@@ -336,9 +335,9 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
         # ---------------------------------------------------------------------------
         array = cube
         array_ref = cube_ref
-        if not array.ndim == 3:
+        if array.ndim != 3:
             raise TypeError('Input array is not a cube or 3d array.')
-        if not array.shape[0] == angle_list.shape[0]:
+        if array.shape[0] != angle_list.shape[0]:
             raise TypeError(
                 'Input vector or parallactic angles has wrong length.')
 
@@ -350,7 +349,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
         annulus_width = asize * fwhm  # equal size for all annuli
         n_annuli = int(np.floor((y / 2 - radius_int) / annulus_width))
         if verbose:
-            msg = '# annuli = {:}, Ann width = {:}, FWHM = {:.3f}\n'
+            msg = '# annuli = {}, Ann width = {}, FWHM = {:.3f}\n'
             print(msg.format(n_annuli, annulus_width, fwhm))
             print('PCA will be done locally per annulus and per quadrant.\n')
 
@@ -387,7 +386,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
             if verbose:
                 print('# frames in LIB = {}'.format(nfrslib))
                 print('# PCs = {}'.format(ncomps))
-                print('Done PCA with {:} for current annulus'.format(svd_mode))
+                print('Done PCA with {} for current annulus'.format(svd_mode))
                 timing(start_time)
 
         cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,

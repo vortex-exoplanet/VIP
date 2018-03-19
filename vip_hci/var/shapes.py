@@ -331,7 +331,7 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
 
 
 def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
-                         output_values=False):
+                         optim_scale_fact=1, output_values=False):
     """ Returns indices or values in segments of a centerered annulus from a
     2d ndarray.
 
@@ -348,6 +348,9 @@ def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
     theta_init : int
         Initial azimuth [degrees] of the first segment, counting from the postivie
         y-axis clockwise.
+    optim_scale_fact : scalar
+        Enlargen the width of the segments, which can then be used as
+        optimization segments (like LOCI).
     output_values : {False, True}, optional
         If True returns the values of the pixels in the each quadrant instead
         of the indices.
@@ -372,7 +375,7 @@ def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
     rad = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
     phi = np.arctan2(yy - cy, xx - cx)
     phirot = phi % (twopi)
-    outer_radius = inner_radius + width
+    outer_radius = inner_radius + (width*optim_scale_fact)
     indices = []
 
     for i in range(nsegm):

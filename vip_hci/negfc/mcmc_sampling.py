@@ -447,17 +447,19 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
 
     # If required, one create the output folder.
     if save:
-        if not os.path.exists('results'):
-            os.makedirs('results')
         
         if output_file is None:
-            datetime_today = datetime.datetime.today()
-            output_file = str(datetime_today.year)+str(datetime_today.month)+\
-                          str(datetime_today.day)+'_'+str(datetime_today.hour)+\
-                          str(datetime_today.minute)+str(datetime_today.second)
-        
-        if not os.path.exists('results/'+output_file):
+            output_file = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+        try:
             os.makedirs('results/'+output_file)
+        except OSError as exc:
+            if exc.errno == 17 and os.path.isdir('results/'+output_file):
+                # errno.EEXIST == 17 -> File exists
+                pass
+            else:
+                raise
+
 
     if not isinstance(cube, np.ndarray) or not cube.ndim == 3:
         raise ValueError('`cube` must be a 3D numpy array')

@@ -53,13 +53,12 @@ def lnprior(param, bounds):
     try:
         r, theta, flux = param
     except TypeError:
-        print('paraVector must be a tuple, {} was given'.format(type(param)))
+        print('param must be a tuple, {} given'.format(type(param)))
 
     try:
         r_bounds, theta_bounds, flux_bounds = bounds
     except TypeError:
-        print('bounds must be a list of tuple, {} was given'.format(
-                                                                   type(param)))
+        print('bounds must be a list of tuple, {} given'.format(type(bounds)))
         
     if r_bounds[0] <= r <= r_bounds[1] and \
        theta_bounds[0] <= theta <= theta_bounds[1] and \

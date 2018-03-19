@@ -802,8 +802,8 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     except:
         l = 1
      
-    confidenceInterval = dict()  
-    val_max = dict()
+    confidenceInterval = {}
+    val_max = {}
     pKey = ['r', 'theta', 'f']
     
     if cfd == 100:
@@ -817,9 +817,9 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         sigma = np.zeros_like(mu)
     
     if gaussian_fit:
-        fig,ax = plt.subplots(2,3, figsize=(12,8))
+        fig, ax = plt.subplots(2, 3, figsize=(12,8))
     else:
-        fig,ax = plt.subplots(1,3, figsize=(12,4))
+        fig, ax = plt.subplots(1, 3, figsize=(12,4))
     
     for j in range(l):               
         label_file = ['r', 'theta', 'flux']    
@@ -863,21 +863,21 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         arg = (isamples[:, j] >= bin_vertices[n_arg_min - 1]) * \
               (isamples[:, j] <= bin_vertices[n_arg_max + 1])
         if gaussian_fit:
-            _ = ax[0][j].hist(isamples[arg,j],bins=bin_vertices, 
-                              facecolor='gray', edgecolor='darkgray', 
-                              histtype='stepfilled', alpha=0.5)
+            ax[0][j].hist(isamples[arg,j], bins=bin_vertices, 
+                          facecolor='gray', edgecolor='darkgray', 
+                          histtype='stepfilled', alpha=0.5)
             ax[0][j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]], 
                             linestyles='dashed', color='red')
             ax[0][j].set_xlabel(label[j])
             if j == 0:
                 ax[0][j].set_ylabel('Counts')
 
-            (mu[j], sigma[j]) = norm.fit(isamples[:, j])
+            mu[j], sigma[j] = norm.fit(isamples[:, j])
             n_fit, bins_fit = np.histogram(isamples[:, j], bins, normed=1,
                                            weights=weights)
-            _ = ax[1][j].hist(isamples[:, j], bins, normed=1, weights=weights,
-                              facecolor='gray', edgecolor='darkgray',
-                              histtype='step')
+            ax[1][j].hist(isamples[:, j], bins, normed=1, weights=weights,
+                          facecolor='gray', edgecolor='darkgray',
+                          histtype='step')
             y = normpdf(bins_fit, mu[j], sigma[j])
             ax[1][j].plot(bins_fit, y, 'r--', linewidth=2, alpha=0.7)
 
@@ -886,14 +886,14 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                 ax[1][j].set_ylabel('Counts')
 
             if title is not None:
-                msg = r"$\mu$ = {:.4f}, $\sigma$ = {:.4f}"
-                ax[1][j].set_title(title + '   ' + msg.format(mu[j], sigma[j]),
+                msg = r"{}   $\mu$ = {:.4f}, $\sigma$ = {:.4f}"
+                ax[1][j].set_title(msg.format(title, mu[j], sigma[j]),
                                    fontsize=10)
 
         else:
-            _ = ax[j].hist(isamples[arg,j],bins=bin_vertices, facecolor='gray', 
-                           edgecolor='darkgray', histtype='stepfilled',
-                           alpha=0.5)
+            ax[j].hist(isamples[arg,j],bins=bin_vertices, facecolor='gray', 
+                       edgecolor='darkgray', histtype='stepfilled',
+                       alpha=0.5)
             ax[j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]],
                          linestyles='dashed', color='red')
             ax[j].set_xlabel(label[j])
@@ -912,8 +912,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             plt.savefig('confi_hist_flux_r_theta.pdf')
 
     if verbose:
-        print('')
-        print('\nConfidence intervals:')
+        print('\n\nConfidence intervals:')
         print('r: {} [{},{}]'.format(val_max['r'],
                                      confidenceInterval['r'][0],
                                      confidenceInterval['r'][1]))
@@ -924,7 +923,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                                         confidenceInterval['f'][0],
                                         confidenceInterval['f'][1]))
         if gaussian_fit:
-            print('')
+            print()
             print('Gaussian fit results:')
             print('r: {} +-{}'.format(mu[0], sigma[0]))
             print('theta: {} +-{}'.format(mu[1], sigma[1]))
@@ -959,8 +958,8 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             
             f.write(' ')
             f.write('Platescale = {} mas'.format(plsc*1000))
-            f.write('{}: \t\t{:.2f} \t\t-{:.2f} \t\t+{:.2f}'.format(
-                        'r (mas)', val_max[pKey[0]]*plsc*1000,
+            f.write('r (mas): \t\t{:.2f} \t\t-{:.2f} \t\t+{:.2f}'.format(
+                        val_max[pKey[0]]*plsc*1000,
                         -confidenceInterval[pKey[0]][0]*plsc*1000,
                         confidenceInterval[pKey[0]][1]*plsc*1000))
 

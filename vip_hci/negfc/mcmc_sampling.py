@@ -59,7 +59,8 @@ def lnprior(param, bounds):
     try:
         r_bounds, theta_bounds, flux_bounds = bounds
     except TypeError:
-        print('bounds must be a list of tuple, {} was given'.format(type(param)))
+        print('bounds must be a list of tuple, {} was given'.format(
+                                                                   type(param)))
         
     if r_bounds[0] <= r <= r_bounds[1] and \
        theta_bounds[0] <= theta <= theta_bounds[1] and \
@@ -130,7 +131,8 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
     cube_negfc = cube_inject_companions(cube, psf_norm, angs, flevel=-param[2],
                                         plsc=plsc, rad_dists=[param[0]],
                                         n_branches=1, theta=param[1],
-                                        imlib=imlib, interpolation=interpolation,
+                                        imlib=imlib,
+                                        interpolation=interpolation,
                                         verbose=False)
                                   
     # Perform PCA and extract the zone of interest
@@ -311,8 +313,8 @@ def gelman_rubin_from_chain(chain, burnin):
     thr1 = int(floor((1-burnin) * k *0.25))
     rhat = np.zeros(dim)
     for j in range(dim):
-        part1 = chain[:, thr0:thr0+thr1, j].reshape((-1))
-        part2 = chain[:, thr0+3*thr1:thr0+4*thr1, j].reshape((-1))
+        part1 = chain[:, thr0:thr0+thr1, j].reshape(-1)
+        part2 = chain[:, thr0+3*thr1:thr0+4*thr1, j].reshape(-1)
         series = np.vstack((part1,part2))
         rhat[j] = gelman_rubin(series)
     return rhat
@@ -552,7 +554,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                 
             if save:
                 import pickle
-                fname = 'results/'+output_file+'/'+output_file+'_temp_k{}'.format(k)
+                fname = 'results/{f}/{f}_temp_k{k}'.format(f=output_file, k=k)
                 with open(fname, 'wb') as fileSave:
                     myPickler = pickle.Pickler(fileSave)
                     myPickler.dump({'chain': sampler.chain,
@@ -566,8 +568,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
 
                 # We calculate the rhat for each model parameter.
                 for j in range(dim):
-                    part1 = chain[:, thr0:thr0 + thr1, j].reshape((-1))
-                    part2 = chain[:, thr0 + 3 * thr1:thr0 + 4 * thr1, j].reshape((-1))
+                    part1 = chain[:, thr0:thr0 + thr1, j].reshape(-1)
+                    part2 = chain[:, thr0 + 3 * thr1:thr0 + 4 * thr1, j
+                                 ].reshape(-1)
                     series = np.vstack((part1, part2))
                     rhat[j] = gelman_rubin(series)   
                 if verbosity == 1 or verbosity == 2:
@@ -597,8 +600,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
       
     if k == nIterations-1:
         if verbosity == 1 or verbosity == 2:
-            msg = "We have reached the limit # of steps without convergence"
-            print(msg)
+            print("We have reached the limit # of steps without convergence")
             
     # #########################################################################
     # Construction of the independent samples
@@ -628,8 +630,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                   'lnprobability': sampler.lnprobability}
                   
         with open('results/'+output_file+'/MCMC_results', 'wb') as fileSave:
-            myPickler = pickle.Pickler(fileSave)
-            myPickler.dump(output)
+            pickle.dump(output, fileSave)
         
         msg = "\nThe file MCMC_results has been stored in the folder {}"
         print(msg.format('results/'+output_file+'/'))
@@ -747,10 +748,9 @@ def show_corner_plot(chain, burnin=0.5, save=False, **kwargs):
 
     if chain.shape[0] == 0:
         print("It seems the chain is empty. Have you already run the MCMC?")
-    else: 
-        fig = corner.corner(chain, labels=kwargs.pop('labels',
-                                                     ["$r$", r"$\theta$",
-                                                      "$f$"]), **kwargs)
+    else:
+        labels = kwargs.pop('labels', ["$r$", r"$\theta$", "$f$"])
+        fig = corner.corner(chain, labels=labels, **kwargs)
     if save:
         plt.savefig('corner_plot.pdf')
         plt.close(fig)
@@ -779,7 +779,8 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     verbose: boolean, optional
         Display information in the shell.
     save: boolean, optional
-        If "True", a txt file with the results is saved in the output repository.        
+        If "True", a txt file with the results is saved in the output
+        repository.        
     kwargs: optional
         Additional attributes are passed to the matplotlib hist() method.
         
@@ -798,7 +799,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         ----------
         document: str
             The path to the file to append or create.
-        text: str
+        text: str or tuple
             The text to write.
 
         Returns
@@ -808,27 +809,24 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         """
         with open(document, 'a') as fileObject:
             if isinstance(text, str):
-                fileObject.write("%s \n" % text)
+                fileObject.write("{} \n".format(text))
             elif isinstance(text, tuple):
-                defFormat = "%s"
-                for k in range(1, len(text)):
-                    defFormat += "\t %s"
-                fileObject.write(defFormat % text)
+                fileObject.write("\t ".join(str(_) for _ in text))
     ############################################################################
 
-    plsc = kwargs.pop('plsc',0.001)
-    title = kwargs.pop('title',None)        
+    plsc = kwargs.pop('plsc', 0.001)
+    title = kwargs.pop('title', None)        
         
-    output_file = kwargs.pop('filename','confidence.txt')
+    output_file = kwargs.pop('filename', 'confidence.txt')
         
     try:
         l = isamples.shape[1]        
-    except Exception:
+    except:
         l = 1
      
     confidenceInterval = dict()  
     val_max = dict()
-    pKey = ['r','theta','f']
+    pKey = ['r', 'theta', 'f']
     
     if cfd == 100:
         cfd = 99.9
@@ -846,15 +844,15 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         fig,ax = plt.subplots(1,3, figsize=(12,4))
     
     for j in range(l):               
-        label_file = ['r','theta','flux']    
-        label = [r'$\Delta r$',r'$\Delta \theta$',r'$\Delta f$']
+        label_file = ['r', 'theta', 'flux']    
+        label = [r'$\Delta r$', r'$\Delta \theta$', r'$\Delta f$']
         
         if gaussian_fit:
-            n, bin_vertices, _ = ax[0][j].hist(isamples[:,j],bins=bins, 
+            n, bin_vertices, _ = ax[0][j].hist(isamples[:,j], bins=bins, 
                                                weights=weights, histtype='step', 
                                                edgecolor='gray')
         else:
-            n, bin_vertices, _ = ax[j].hist(isamples[:,j],bins=bins, 
+            n, bin_vertices, _ = ax[j].hist(isamples[:,j], bins=bins, 
                                             weights=weights, histtype='step', 
                                             edgecolor='gray')
         bins_width = np.mean(np.diff(bin_vertices))
@@ -869,7 +867,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             if pourcentage > cfd:
                 if verbose:
                     msg = 'percentage for {}: {}%'
-                    print(msg.format(label_file[j],pourcentage))
+                    print(msg.format(label_file[j], pourcentage))
                 break
         n_arg_min = n_arg_sort[:k].min()
         n_arg_max = n_arg_sort[:k+1].max()
@@ -881,7 +879,8 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         
         val_max[pKey[j]] = bin_vertices[n_arg_sort[0]]+bins_width/2.
         confidenceInterval[pKey[j]] = np.array([bin_vertices[n_arg_min-1],
-                                                bin_vertices[n_arg_max+1]] - val_max[pKey[j]])
+                                               bin_vertices[n_arg_max+1]]
+                                               - val_max[pKey[j]])
                         
         arg = (isamples[:, j] >= bin_vertices[n_arg_min - 1]) * \
               (isamples[:, j] <= bin_vertices[n_arg_max + 1])
@@ -949,20 +948,20 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         if gaussian_fit:
             print('')
             print('Gaussian fit results:')
-            print('r: {} +-{}'.format(mu[0],sigma[0]))
-            print('theta: {} +-{}'.format(mu[1],sigma[1]))
-            print('f: {} +-{}'.format(mu[2],sigma[2]))
+            print('r: {} +-{}'.format(mu[0], sigma[0]))
+            print('theta: {} +-{}'.format(mu[1], sigma[1]))
+            print('f: {} +-{}'.format(mu[2], sigma[2]))
 
     ##############################################
     ##  Write inference results in a text file  ##
     ##############################################    
     if save:         
         try:
-            fileObject = open(output_file,'r')
+            fileObject = open(output_file, 'r')
         except IOError: # if the file doesn't exist, we create it (empty)
             answer = 'y'
             if answer == 'y':
-                fileObject = open(output_file,'w')
+                fileObject = open(output_file, 'w')
             elif answer == 'n':
                 msg = "The file has not been created. The object cannot be "
                 msg += "created neither."
@@ -977,16 +976,17 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         finally:
             fileObject.close()    
     
-        writeText(output_file,'###########################')
-        writeText(output_file,'####   INFERENCE TEST   ###')
-        writeText(output_file,'###########################')
-        writeText(output_file,' ')
-        writeText(output_file,'Results of the MCMC fit')
-        writeText(output_file,'----------------------- ')
-        writeText(output_file,' ')
-        writeText(output_file,'>> Position and flux of the planet (highly probable):')
-        writeText(output_file,'{} % confidence interval'.format(cfd))
-        writeText(output_file,' ')
+        writeText(output_file, '###########################')
+        writeText(output_file, '####   INFERENCE TEST   ###')
+        writeText(output_file, '###########################')
+        writeText(output_file, ' ')
+        writeText(output_file, 'Results of the MCMC fit')
+        writeText(output_file, '----------------------- ')
+        writeText(output_file, ' ')
+        writeText(output_file, '>> Position and flux of the planet '
+            '(highly probable):')
+        writeText(output_file, '{} % confidence interval'.format(cfd))
+        writeText(output_file, ' ')
         for i in range(3):
             confidenceMax = confidenceInterval[pKey[i]][1]
             confidenceMin = -confidenceInterval[pKey[i]][0]
@@ -995,15 +995,16 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             else:
                 text = '{}: \t\t\t{:.3f} \t\t-{:.3f} \t\t+{:.3f}'
                 
-            writeText(output_file,text.format(pKey[i],val_max[pKey[i]],
-                                              confidenceMin,confidenceMax))                   
+            writeText(output_file, text.format(pKey[i], val_max[pKey[i]],
+                                               confidenceMin, confidenceMax))                   
         
-        writeText(output_file,' ')
-        writeText(output_file,'Platescale = {} mas'.format(plsc*1000))
-        text = '{}: \t\t{:.2f} \t\t-{:.2f} \t\t+{:.2f}'
-        writeText(output_file,text.format('r (mas)', val_max[pKey[0]]*plsc*1000,
-                                          -confidenceInterval[pKey[0]][0]*plsc*1000,
-                                          confidenceInterval[pKey[0]][1]*plsc*1000))
+        writeText(output_file, ' ')
+        writeText(output_file, 'Platescale = {} mas'.format(plsc*1000))
+        text = '{}: \t\t{:.2f} \t\t-{:.2f} \t\t+{:.2f}'.format(
+                    'r (mas)', val_max[pKey[0]]*plsc*1000,
+                    -confidenceInterval[pKey[0]][0]*plsc*1000,
+                    confidenceInterval[pKey[0]][1]*plsc*1000)
+        writeText(output_file, text)
 
     if gaussian_fit:
         return mu, sigma

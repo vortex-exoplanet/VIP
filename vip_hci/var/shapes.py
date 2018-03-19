@@ -339,9 +339,9 @@ def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
     ----------
     array : array_like
         Input 2d array or image.
-    inner_radius : int
+    inner_radius : scalar
         The inner radius of the donut region.
-    width : int
+    width : scalar
         The size of the annulus.
     nsegm : int
         Number of segments of annulus to be extracted.
@@ -363,10 +363,6 @@ def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
         raise TypeError('Input array is not a frame or 2d array')
     if not isinstance(nsegm, int):
         raise TypeError('`nsegm` must be an integer')
-    if not isinstance(inner_radius, int):
-        raise TypeError('`inner_radius` must be an integer')
-    if not isinstance(width, int):
-        raise TypeError('`width` must be an integer')
 
     cy, cx = frame_center(array)
     azimuth_coverage = np.deg2rad(int(np.ceil(360 / nsegm)))

@@ -123,17 +123,13 @@ class ds9(object):
             The arrays to be displayed.
         **kwargs : dictionary, optional
             Only one parameter is admitted: ``keep_frames``. When
-            ``keep_frames`` is passed and is set to True, the new arrays are
-            displayed in the existing window (creating new ds9 frames). If no
-            ``keep_frames`` is given or if it is set to False, then the existing
-            ds9 frames are not preserved.
+            ``keep_frames`` is set to True (default), the new arrays are
+            displayed in the existing window (creating new ds9 frames).
+            Otherwise the existing ds9 frames are not preserved.
         """
         self.window = pyds9.DS9(self.window_name)
 
-        if 'keep_frames' in kwargs:
-            if not kwargs['keep_frames']:
-                self.delete_frame(all_frames=True)
-        else:
+        if kwargs.get("keep_frames", True):
             self.delete_frame(all_frames=True)
 
         self.tile()

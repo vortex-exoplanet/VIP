@@ -30,7 +30,7 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     least-square combination of neighbouring frames (solving the equation
     a x = b by computing a vector x of coefficients that minimizes the
     Euclidean 2-norm || b - a x ||^2).
-    
+
     Parameters
     ----------
     cube : array_like, 3d
@@ -76,7 +76,7 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     full_output: bool, optional
         Whether to return the final median combined image only or with other
         intermediate arrays.
-        
+
     Returns
     -------
     frame_der_median : array_like, 2d

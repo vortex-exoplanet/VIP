@@ -339,16 +339,16 @@ def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
     ----------
     array : array_like
         Input 2d array or image.
-    inner_radius : scalar
+    inner_radius : float
         The inner radius of the donut region.
-    width : scalar
+    width : float
         The size of the annulus.
     nsegm : int
         Number of segments of annulus to be extracted.
     theta_init : int
         Initial azimuth [degrees] of the first segment, counting from the postivie
         y-axis clockwise.
-    optim_scale_fact : scalar
+    optim_scale_fact : float
         Enlargen the width of the segments, which can then be used as
         optimization segments (like LOCI).
     output_values : {False, True}, optional

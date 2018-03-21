@@ -44,13 +44,13 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=2,
         central circular area is discarded.
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Deafult is 4.
-    asize : scalar, optional
+    asize : float, optional
         The size of the annuli, in FWHM. Default is 3.
     n_segments : int or list of ints or 'auto', optional
         The number of segments for each annulus. When a single integer is given
         it is used for all annuli. When set to 'auto', the number of segments is
         automatically determined for every annulus, based on the annulus width.
-    delta_rot : scalar, optional
+    delta_rot : float, optional
         Factor for increasing the parallactic angle threshold, expressed in
         FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
         frame). According to Absil+13, a slightly better contrast can be reached
@@ -243,7 +243,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the
         central circular area is discarded.
-    asize : scalar, optional
+    asize : float, optional
         The size of the annuli, in FWHM. Default is 3.
     ncomp : int, optional
         How many PCs are kept. If none it will be automatically determined.

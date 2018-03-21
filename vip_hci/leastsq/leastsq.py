@@ -54,17 +54,19 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         central circular area is discarded.
     asize : int, optional
         The size of the annuli, in pixels.
-    n_segments : int or list of ints, optional
+    n_segments : int or list of int or 'auto', optional
         The number of segments for each annulus. When a single integer is given
-        it is used for all annuli.
+        it is used for all annuli. When set to 'auto', the number of segments is
+        automatically determined for every annulus, based on the annulus width.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to (cpu_count()/2). By default the algorithm works
         in single-process mode.
-    solver : {'lstsq', 'nnls'}, str optional
+    solver : {'lstsq', 'nnls', 'lsq'}, str optional
         Choosing the solver of the least squares problem. ``lstsq`` uses the
         standard scipy least squares solver. ``nnls`` uses the scipy
-        non-negative least squares solver.
+        non-negative least-squares solver. ``lsq`` uses the linear least-squares
+        solver.
     tol : float, optional
         Valid when ``solver`` is set to lstsq. Sets the cutoff for 'small'
         singular values; used to determine effective rank of a. Singular values

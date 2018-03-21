@@ -4,8 +4,7 @@
 Module with a frame differencing algorithm for ADI post-processing.
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['xloci']
@@ -94,18 +93,18 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         start_time = time_ini()
 
     y = array.shape[1]
-    if not asize < np.floor((y / 2)):
+    if not asize < np.floor(y / 2):
         raise ValueError("asize is too large")
 
     angle_list = check_pa_vector(angle_list)
     n_annuli = int(np.floor((y / 2 - radius_int) / asize))
     if verbose:
-        msg = "{:} annuli. Performing least-square combination and "
+        msg = "{} annuli. Performing least-square combination and "
         msg += "subtraction:\n"
         print(msg.format(n_annuli))
 
     if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2)
+        nproc = cpu_count() // 2
 
     annulus_width = asize
     if isinstance(n_segments, int):
@@ -121,7 +120,7 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
             n_segments.append(int(np.ceil(360/ang)))
 
     # annulus-wise least-squares combination and subtraction
-    cube_res = np.zeros((array.shape[0], array.shape[1], array.shape[2]))
+    cube_res = np.zeros_like(array)
     for ann in range(n_annuli):
         n_segments_ann = n_segments[ann]
         inner_radius_ann = radius_int + ann*annulus_width
@@ -163,15 +162,15 @@ def _leastsq_ann(array, indices, ann, n_annuli, fwhm, angles, delta_rot, metric,
     pa_threshold, _, _ = _define_annuli(angles, ann, n_annuli, fwhm, radius_int,
                                         asize, delta_rot, n_segments_ann,
                                         verbose)
-    res = []
     if nproc == 1:
+        res = []
         for j in range(n_segments_ann):
             segm_res = _leastsq_patch(array, j, indices, angles, pa_threshold,
                                       metric, dist_threshold, solver, tol)
             res.append(segm_res)
 
     elif nproc > 1:
-        pool = Pool(processes=int(nproc))
+        pool = Pool(processes=nproc)
         res = pool.map(EFT, zip(itt.repeat(_leastsq_patch), itt.repeat(array),
                                 range(n_segments_ann), itt.repeat(indices),
                                 itt.repeat(angles), itt.repeat(pa_threshold),
@@ -215,7 +214,7 @@ def _leastsq_patch(array, nseg, indices, angles, pa_threshold, metric,
     matrix_res = np.zeros((values.shape[0], yy.shape[0]))
     for i in range(n_frames):
         vector = pn.DataFrame(mat_dists_ann[i])
-        vector.columns = ['i']
+        vector.columns = [i]
         if vector.sum().values != 0:
             ind_ref = np.where(~np.isnan(vector))[0]
             A = values[ind_ref]

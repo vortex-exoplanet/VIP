@@ -7,10 +7,66 @@ Module for image statistics.
 from __future__ import division
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['frame_histo_stats']
+__all__ = ['frame_histo_stats',
+           'average_radial_profile']
 
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
+from ..var import frame_center
+from ..preproc import cube_collapse
+
+
+def average_radial_profile(array, sep=1, collapse='median', plot=True):
+    """ Calculates the average radial profile of an image. If a cube is
+    passed it's first collapsed.
+
+    Parameters
+    ----------
+    array : array_like, 2d or 3d
+        Input image or cube.
+    sep : int, optional
+        The average radial profile is recorded every ``sep`` pixels.
+    collapse : str, optional
+        The method for combining the images, when array is cube.
+    plot : bool, optional
+        If True the profile is plotted.
+
+    Returns
+    -------
+    df : dataframe
+        Pandas dataframe with the radial profile and distances.
+
+    """
+    if array.ndim == 3:
+        frame = cube_collapse(array, mode=collapse)
+    elif array.ndim == 2:
+        frame = array
+
+    cy, cx = frame_center(frame)
+    x, y = np.indices((frame.shape))
+    r = np.sqrt((x - cx) ** 2 + (y - cy) ** 2)
+    r = r.astype(int)
+    tbin = np.bincount(r.ravel(), frame.ravel())
+    nr = np.bincount(r.ravel())
+    radprofile = tbin / nr
+
+    radists = np.arange(1, int(cy), sep)
+    radprofile_radists = radprofile[radists - 1]
+    nr_radists = nr[radists - 1]
+    df = pd.DataFrame(
+        {'rad': radists - 1, 'radprof': radprofile_radists, 'npx': nr_radists})
+
+    if plot:
+        plt.figure(figsize=(10, 4), dpi=100)
+        plt.plot(radists - 1, radprofile_radists, '.-', alpha=0.6)
+        plt.grid(which='both', alpha=0.6)
+        plt.xlabel('Pixels')
+        plt.ylabel('Counts')
+        plt.minorticks_on()
+        plt.xlim(0)
+
+    return df
 
 
 def frame_histo_stats(image_array, plot=True):
@@ -21,7 +77,7 @@ def frame_histo_stats(image_array, plot=True):
     ----------
     image_array : array_like
         The input frame.  
-    plot : {True, False}, bool optional
+    plot : bool, optional
         If True plots the frame and the histogram with the values.
         
     Return
@@ -70,7 +126,3 @@ def frame_histo_stats(image_array, plot=True):
         
     return mean, median, std, maxim, minim
 
-
-
-
-    

@@ -51,12 +51,12 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=2,
         it is used for all annuli. When set to 'auto', the number of segments is
         automatically determined for every annulus, based on the annulus width.
     delta_rot : scalar, optional
-        Factor for increasing the parallactic angle threshold, expressed in FWHM.
-        Default is 1 (excludes 1 FHWM on each side of the considered frame).
-        According to Absil+13, a slightly better contrast can be reached for the 
-        innermost annuli if we consider a ``delta_rot`` condition as small as 
-        0.1 lambda/D. This is because at very small separation, the effect of 
-        speckle correlation is more significant than self-subtraction.
+        Factor for increasing the parallactic angle threshold, expressed in
+        FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
+        frame). According to Absil+13, a slightly better contrast can be reached
+        for the innermost annuli if we consider a ``delta_rot`` condition as
+        small as 0.1 lambda/D. This is because at very small separation, the
+        effect of speckle correlation is more significant than self-subtraction.
     ncomp : int or list or 1d numpy array, optional
         How many PCs are kept. If none it will be automatically determined. If a
         list is provided and it matches the number of annuli then a different
@@ -90,8 +90,8 @@ def pca_adi_annular(cube, angle_list, radius_int=0, fwhm=4, asize=2,
         10*FWHM. The more distant/decorrelated frames are removed from the
         library.
     tol : float, optional
-        Stopping criterion for choosing the number of PCs when ``ncomp`` is None.
-        Lower values will lead to smaller residuals and more PCs.
+        Stopping criterion for choosing the number of PCs when ``ncomp``
+        is None. Lower values will lead to smaller residuals and more PCs.
     scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
         With None, no scaling is performed on the input data before SVD. With
         "temp-mean" then temporal px-wise mean subtraction is done, with
@@ -332,7 +332,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
         residuals = matrix - reconstructed.T
         return residuals, V.shape[0]
 
-    # ---------------------------------------------------------------------------
+    #---------------------------------------------------------------------------
     array = cube
     array_ref = cube_ref
     if array.ndim != 3:
@@ -372,8 +372,8 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
         nfrslib = data_ref.shape[0]
 
         if nfrslib < 5:
-            msg = 'Too few frames left (<5) fulfill the given correlation level.'
-            msg += 'Try decreasing it'
+            msg = 'Too few frames left (<5) fulfill the given correlation'
+            msg += ' level. Try decreasing it'
             raise RuntimeError(msg)
 
         matrix = matrix_scaling(matrix, scaling)

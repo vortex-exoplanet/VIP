@@ -23,9 +23,6 @@ from ..madi.adi_utils import _find_indices, _define_annuli
 from ..conf.utils_conf import eval_func_tuple as EFT
 
 
-array = None
-
-
 def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
           delta_rot=0.5, radius_int=0, asize=4, n_segments=4, nproc=1,
           solver='lstsq', tol=1e-3, verbose=True, full_output=False):
@@ -89,7 +86,6 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     cube_res, cube_der, frame_der_median
 
     """
-    global array
     array = cube
 
     if verbose:
@@ -131,7 +127,7 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         indices = get_annulus_segments(array[0], inner_radius=inner_radius_ann,
                                        width=asize, nsegm=n_segments_ann)
 
-        res_ann = _leastsq_ann(indices, ann, n_annuli, fwhm, angle_list,
+        res_ann = _leastsq_ann(array, indices, ann, n_annuli, fwhm, angle_list,
                                delta_rot, metric, dist_threshold, radius_int,
                                asize, n_segments_ann, nproc, solver, tol,
                                verbose)
@@ -154,7 +150,7 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         return frame_der_median
 
 
-def _leastsq_ann(indices, ann, n_annuli, fwhm, angles, delta_rot, metric,
+def _leastsq_ann(array, indices, ann, n_annuli, fwhm, angles, delta_rot, metric,
                  dist_threshold, radius_int, asize, n_segments_ann, nproc,
                  solver, tol, verbose):
     """ Helper function for xloci. Least-squares combination and subtraction
@@ -168,13 +164,13 @@ def _leastsq_ann(indices, ann, n_annuli, fwhm, angles, delta_rot, metric,
     res = []
     if nproc == 1:
         for j in range(n_segments_ann):
-            segm_res = _leastsq_patch(j, indices, angles, pa_threshold, metric,
-                                      dist_threshold, solver, tol)
+            segm_res = _leastsq_patch(array, j, indices, angles, pa_threshold,
+                                      metric, dist_threshold, solver, tol)
             res.append(segm_res)
 
     elif nproc > 1:
         pool = Pool(processes=int(nproc))
-        res = pool.map(EFT, zip(itt.repeat(_leastsq_patch),
+        res = pool.map(EFT, zip(itt.repeat(_leastsq_patch), itt.repeat(array),
                                 range(n_segments_ann), itt.repeat(indices),
                                 itt.repeat(angles), itt.repeat(pa_threshold),
                                 itt.repeat(metric), itt.repeat(dist_threshold),
@@ -190,8 +186,8 @@ def _leastsq_ann(indices, ann, n_annuli, fwhm, angles, delta_rot, metric,
     return res
 
 
-def _leastsq_patch(nseg, indices, angles, pa_threshold, metric, dist_threshold,
-                   solver, tol):
+def _leastsq_patch(array, nseg, indices, angles, pa_threshold, metric,
+                   dist_threshold, solver, tol):
     """ Helper function for _leastsq_ann.
     """
     yy = indices[nseg][0]

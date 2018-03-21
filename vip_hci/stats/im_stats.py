@@ -14,7 +14,6 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from ..var import frame_center
-from ..preproc import cube_collapse
 
 
 def average_radial_profile(array, sep=1, collapse='median', plot=True):
@@ -38,6 +37,7 @@ def average_radial_profile(array, sep=1, collapse='median', plot=True):
         Pandas dataframe with the radial profile and distances.
 
     """
+    from ..preproc import cube_collapse
     if array.ndim == 3:
         frame = cube_collapse(array, mode=collapse)
     elif array.ndim == 2:

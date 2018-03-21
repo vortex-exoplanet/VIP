@@ -223,182 +223,182 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
                     scaling='temp-standard', imlib='opencv',
                     interpolation='lanczos4', collapse='median',
                     full_output=False, verbose=True):
-        """ Annular PCA with Reference Library + Correlation + standardization
+    """ Annular PCA with Reference Library + Correlation + standardization
 
-        In the case of having a large number of reference images, e.g. for a survey
-        on a single instrument, we can afford a better selection of the library by
-        constraining the correlation with the median of the science dataset and by
-        working on an annulus-wise way. As with other local PCA algorithms in VIP
-        the number of principal components can be automatically adjusted by the
-        algorithm by minmizing the residuals in the given patch (a la LOCI).
+    In the case of having a large number of reference images, e.g. for a survey
+    on a single instrument, we can afford a better selection of the library by
+    constraining the correlation with the median of the science dataset and by
+    working on an annulus-wise way. As with other local PCA algorithms in VIP
+    the number of principal components can be automatically adjusted by the
+    algorithm by minmizing the residuals in the given patch (a la LOCI).
 
-        Parameters
-        ----------
-        cube : array_like, 3d
-            Input science cube.
-        angle_list : array_like, 1d
-            Corresponding parallactic angle for each frame.
-        cube_ref : array_like, 3d
-            Reference library cube. For Reference Star Differential Imaging.
-        radius_int : int, optional
-            The radius of the innermost annulus. By default is 0, if >0 then the
-            central circular area is discarded.
-        asize : scalar, optional
-            The size of the annuli, in FWHM. Default is 3.
-        ncomp : int, optional
-            How many PCs are kept. If none it will be automatically determined.
-        svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy', 'randcupy'}, str
-            Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK
-            linear algebra library through Numpy and it is the most conventional way
-            of computing the SVD (deterministic result computed on CPU). ``arpack``
-            uses the ARPACK Fortran libraries accessible through Scipy (computation
-            on CPU). ``eigen`` computes the singular vectors through the
-            eigendecomposition of the covariance M.M' (computation on CPU).
-            ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn
-            (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
-            of the SVD as in the LAPACK version. ``eigencupy`` offers the same
-            method as with the ``eigen`` option but on GPU (through Cupy).
-            ``randcupy`` is an adaptation of the randomized_svd algorith, where all
-            the computations are done on a GPU.
-        min_corr : int, optional
-            Level of linear correlation between the library patches and the median
-            of the science. Deafult is 0.9.
-        fwhm : float, optional
-            Known size of the FHWM in pixels to be used. Deafult is 4.
-        scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
-            With None, no scaling is performed on the input data before SVD. With
-            "temp-mean" then temporal px-wise mean subtraction is done, with
-            "spat-mean" then the spatial mean is subtracted, with "temp-standard"
-            temporal mean centering plus scaling to unit variance is done and with
-            "spat-standard" spatial mean centering plus scaling to unit variance is
-            performed.
-        imlib : str, optional
-            See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-        interpolation : str, optional
-            See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-        collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
-            Sets the way of collapsing the frames for producing a final image.
-        full_output: boolean, optional
-            Whether to return the final median combined image only or with other
-            intermediate arrays.
-        verbose : {True, False}, bool optional
-            If True prints to stdout intermediate info.
+    Parameters
+    ----------
+    cube : array_like, 3d
+        Input science cube.
+    angle_list : array_like, 1d
+        Corresponding parallactic angle for each frame.
+    cube_ref : array_like, 3d
+        Reference library cube. For Reference Star Differential Imaging.
+    radius_int : int, optional
+        The radius of the innermost annulus. By default is 0, if >0 then the
+        central circular area is discarded.
+    asize : scalar, optional
+        The size of the annuli, in FWHM. Default is 3.
+    ncomp : int, optional
+        How many PCs are kept. If none it will be automatically determined.
+    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy', 'randcupy'}, str
+        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK
+        linear algebra library through Numpy and it is the most conventional way
+        of computing the SVD (deterministic result computed on CPU). ``arpack``
+        uses the ARPACK Fortran libraries accessible through Scipy (computation
+        on CPU). ``eigen`` computes the singular vectors through the
+        eigendecomposition of the covariance M.M' (computation on CPU).
+        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn
+        (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
+        of the SVD as in the LAPACK version. ``eigencupy`` offers the same
+        method as with the ``eigen`` option but on GPU (through Cupy).
+        ``randcupy`` is an adaptation of the randomized_svd algorith, where all
+        the computations are done on a GPU.
+    min_corr : int, optional
+        Level of linear correlation between the library patches and the median
+        of the science. Deafult is 0.9.
+    fwhm : float, optional
+        Known size of the FHWM in pixels to be used. Deafult is 4.
+    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
+        With None, no scaling is performed on the input data before SVD. With
+        "temp-mean" then temporal px-wise mean subtraction is done, with
+        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
+        temporal mean centering plus scaling to unit variance is done and with
+        "spat-standard" spatial mean centering plus scaling to unit variance is
+        performed.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.
+    full_output: boolean, optional
+        Whether to return the final median combined image only or with other
+        intermediate arrays.
+    verbose : {True, False}, bool optional
+        If True prints to stdout intermediate info.
 
-        Returns
-        -------
-        frame : array_like, 2d
-            Median combination of the de-rotated cube.
-        If full_output is True:
-        array_out : array_like, 3d
-            Cube of residuals.
-        array_der : array_like, 3d
-            Cube residuals after de-rotation.
+    Returns
+    -------
+    frame : array_like, 2d
+        Median combination of the de-rotated cube.
+    If full_output is True:
+    array_out : array_like, 3d
+        Cube of residuals.
+    array_der : array_like, 3d
+        Cube residuals after de-rotation.
 
-        """
+    """
 
-        def define_annuli(angle_list, ann, n_annuli, fwhm, radius_int,
-                          annulus_width,
-                          verbose):
-            """ Defining the annuli """
-            if ann == n_annuli - 1:
-                inner_radius = radius_int + (ann * annulus_width - 1)
-            else:
-                inner_radius = radius_int + ann * annulus_width
-            ann_center = (inner_radius + (annulus_width / 2.0))
-
-            if verbose:
-                msg2 = 'Annulus {}, Inn radius = {:.2f}, Ann center = {:.2f} '
-                print(msg2.format(int(ann + 1), inner_radius, ann_center))
-            return inner_radius, ann_center
-
-        def fr_ref_correlation(vector, matrix):
-            """ Getting the correlations """
-            lista = []
-            for i in range(matrix.shape[0]):
-                pears, _ = stats.pearsonr(vector, matrix[i])
-                lista.append(pears)
-
-            return lista
-
-        def do_pca_annulus(ncomp, matrix, svd_mode, noise_error, data_ref):
-            """ PCA for given annulus """
-            V = get_eigenvectors(ncomp, matrix, svd_mode,
-                                 noise_error=noise_error,
-                                 data_ref=data_ref, debug=False)
-            # new variables as linear combinations of the original variables in
-            # matrix.T with coefficientes from EV
-            transformed = np.dot(V, matrix.T)
-            reconstructed = np.dot(V.T, transformed)
-            residuals = matrix - reconstructed.T
-            return residuals, V.shape[0]
-
-        # ---------------------------------------------------------------------------
-        array = cube
-        array_ref = cube_ref
-        if array.ndim != 3:
-            raise TypeError('Input array is not a cube or 3d array.')
-        if array.shape[0] != angle_list.shape[0]:
-            raise TypeError(
-                'Input vector or parallactic angles has wrong length.')
-
-        n, y, _ = array.shape
-        if verbose:  start_time = time_ini()
-
-        angle_list = check_pa_vector(angle_list)
-
-        annulus_width = asize * fwhm  # equal size for all annuli
-        n_annuli = int(np.floor((y / 2 - radius_int) / annulus_width))
-        if verbose:
-            msg = '# annuli = {}, Ann width = {}, FWHM = {:.3f}\n'
-            print(msg.format(n_annuli, annulus_width, fwhm))
-            print('PCA will be done locally per annulus and per quadrant.\n')
-
-        cube_out = np.zeros_like(array)
-        for ann in range(n_annuli):
-            inner_radius, _ = define_annuli(angle_list, ann, n_annuli, fwhm,
-                                            radius_int, annulus_width, verbose)
-            indices = get_annulus(array[0], inner_radius, annulus_width,
-                                  output_indices=True)
-            yy = indices[0]
-            xx = indices[1]
-
-            matrix = array[:, yy, xx]  # shape [nframes x npx_ann]
-            matrix_ref = array_ref[:, yy, xx]
-
-            corr = fr_ref_correlation(np.median(matrix, axis=0), matrix_ref)
-            indcorr = np.where(np.abs(corr) >= min_corr)
-            # print indcorr
-            data_ref = matrix_ref[indcorr]
-            nfrslib = data_ref.shape[0]
-
-            if nfrslib < 5:
-                msg = 'Too few frames left (<5) fulfill the given correlation level.'
-                msg += 'Try decreasing it'
-                raise RuntimeError(msg)
-
-            matrix = matrix_scaling(matrix, scaling)
-            data_ref = matrix_scaling(data_ref, scaling)
-
-            residuals, ncomps = do_pca_annulus(ncomp, matrix, svd_mode, 10e-3,
-                                               data_ref)
-            cube_out[:, yy, xx] = residuals
-
-            if verbose:
-                print('# frames in LIB = {}'.format(nfrslib))
-                print('# PCs = {}'.format(ncomps))
-                print('Done PCA with {} for current annulus'.format(svd_mode))
-                timing(start_time)
-
-        cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
-                                 interpolation=interpolation)
-        frame = cube_collapse(cube_der, mode=collapse)
-        if verbose:
-            print('Done derotating and combining.')
-            timing(start_time)
-        if full_output:
-            return cube_out, cube_der, frame
+    def define_annuli(angle_list, ann, n_annuli, fwhm, radius_int,
+                      annulus_width,
+                      verbose):
+        """ Defining the annuli """
+        if ann == n_annuli - 1:
+            inner_radius = radius_int + (ann * annulus_width - 1)
         else:
-            return frame
+            inner_radius = radius_int + ann * annulus_width
+        ann_center = (inner_radius + (annulus_width / 2.0))
+
+        if verbose:
+            msg2 = 'Annulus {}, Inn radius = {:.2f}, Ann center = {:.2f} '
+            print(msg2.format(int(ann + 1), inner_radius, ann_center))
+        return inner_radius, ann_center
+
+    def fr_ref_correlation(vector, matrix):
+        """ Getting the correlations """
+        lista = []
+        for i in range(matrix.shape[0]):
+            pears, _ = stats.pearsonr(vector, matrix[i])
+            lista.append(pears)
+
+        return lista
+
+    def do_pca_annulus(ncomp, matrix, svd_mode, noise_error, data_ref):
+        """ PCA for given annulus """
+        V = get_eigenvectors(ncomp, matrix, svd_mode,
+                             noise_error=noise_error,
+                             data_ref=data_ref, debug=False)
+        # new variables as linear combinations of the original variables in
+        # matrix.T with coefficientes from EV
+        transformed = np.dot(V, matrix.T)
+        reconstructed = np.dot(V.T, transformed)
+        residuals = matrix - reconstructed.T
+        return residuals, V.shape[0]
+
+    # ---------------------------------------------------------------------------
+    array = cube
+    array_ref = cube_ref
+    if array.ndim != 3:
+        raise TypeError('Input array is not a cube or 3d array.')
+    if array.shape[0] != angle_list.shape[0]:
+        raise TypeError(
+            'Input vector or parallactic angles has wrong length.')
+
+    n, y, _ = array.shape
+    if verbose:  start_time = time_ini()
+
+    angle_list = check_pa_vector(angle_list)
+
+    annulus_width = asize * fwhm  # equal size for all annuli
+    n_annuli = int(np.floor((y / 2 - radius_int) / annulus_width))
+    if verbose:
+        msg = '# annuli = {}, Ann width = {}, FWHM = {:.3f}\n'
+        print(msg.format(n_annuli, annulus_width, fwhm))
+        print('PCA will be done locally per annulus and per quadrant.\n')
+
+    cube_out = np.zeros_like(array)
+    for ann in range(n_annuli):
+        inner_radius, _ = define_annuli(angle_list, ann, n_annuli, fwhm,
+                                        radius_int, annulus_width, verbose)
+        indices = get_annulus(array[0], inner_radius, annulus_width,
+                              output_indices=True)
+        yy = indices[0]
+        xx = indices[1]
+
+        matrix = array[:, yy, xx]  # shape [nframes x npx_ann]
+        matrix_ref = array_ref[:, yy, xx]
+
+        corr = fr_ref_correlation(np.median(matrix, axis=0), matrix_ref)
+        indcorr = np.where(np.abs(corr) >= min_corr)
+        # print indcorr
+        data_ref = matrix_ref[indcorr]
+        nfrslib = data_ref.shape[0]
+
+        if nfrslib < 5:
+            msg = 'Too few frames left (<5) fulfill the given correlation level.'
+            msg += 'Try decreasing it'
+            raise RuntimeError(msg)
+
+        matrix = matrix_scaling(matrix, scaling)
+        data_ref = matrix_scaling(data_ref, scaling)
+
+        residuals, ncomps = do_pca_annulus(ncomp, matrix, svd_mode, 10e-3,
+                                           data_ref)
+        cube_out[:, yy, xx] = residuals
+
+        if verbose:
+            print('# frames in LIB = {}'.format(nfrslib))
+            print('# PCs = {}'.format(ncomps))
+            print('Done PCA with {} for current annulus'.format(svd_mode))
+            timing(start_time)
+
+    cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
+                             interpolation=interpolation)
+    frame = cube_collapse(cube_der, mode=collapse)
+    if verbose:
+        print('Done derotating and combining.')
+        timing(start_time)
+    if full_output:
+        return cube_out, cube_der, frame
+    else:
+        return frame
 
 
 ################################################################################

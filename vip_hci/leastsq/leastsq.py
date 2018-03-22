@@ -231,7 +231,6 @@ def _leastsq_patch(array, nseg, indices, indices_opt, angles, pa_threshold,
     matrix_res = np.zeros((values.shape[0], yy.shape[0]))
     for i in range(n_frames):
         vector = pn.DataFrame(mat_dists_ann[i])
-        vector.columns = [i]
         if vector.sum().values != 0:
             ind_ref = np.where(~np.isnan(vector))[0]
             A = values_opt[ind_ref]

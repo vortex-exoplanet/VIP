@@ -62,11 +62,10 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         Number of processes for parallel computing. If None the number of
         processes will be set to (cpu_count()/2). By default the algorithm works
         in single-process mode.
-    solver : {'lstsq', 'nnls', 'lsq'}, str optional
+    solver : {'lstsq', 'nnls'}, str optional
         Choosing the solver of the least squares problem. ``lstsq`` uses the
         standard scipy least squares solver. ``nnls`` uses the scipy
-        non-negative least-squares solver. ``lsq`` uses the linear least-squares
-        solver.
+        non-negative least-squares solver.
     tol : float, optional
         Valid when ``solver`` is set to lstsq. Sets the cutoff for 'small'
         singular values; used to determine effective rank of a. Singular values
@@ -239,7 +238,7 @@ def _leastsq_patch(array, nseg, indices, indices_opt, angles, pa_threshold,
                 coef = sp.linalg.lstsq(A.T, b, cond=tol)[0]     # SVD method
             elif solver == 'nnls':
                 coef = sp.optimize.nnls(A.T, b)[0]
-            elif solver == 'lsq':
+            elif solver == 'lsq': # TODO
                 coef = sp.optimize.lsq_linear(A.T, b, bounds=(0, 1),
                                               method='trf',
                                               lsq_solver='lsmr')['x']

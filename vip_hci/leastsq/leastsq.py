@@ -4,8 +4,7 @@
 Module with a frame differencing algorithm for ADI post-processing.
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['xloci']
@@ -28,12 +27,13 @@ array = None
 
 def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
           delta_rot=0.5, radius_int=0, asize=4, n_segments=4, nproc=1,
-          solver='lstsq', tol=1e-3, verbose=True, full_output=False):
+          solver='lstsq', tol=1e-3, optim_scale_fact=1, verbose=True,
+          full_output=False):
     """ LOCI style algorithm that models a PSF (for ADI data) with a
     least-square combination of neighbouring frames (solving the equation
     a x = b by computing a vector x of coefficients that minimizes the
     Euclidean 2-norm || b - a x ||^2).
-    
+
     Parameters
     ----------
     cube : array_like, 3d
@@ -57,9 +57,10 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         central circular area is discarded.
     asize : int, optional
         The size of the annuli, in pixels.
-    n_segments : int or list of ints, optional
+    n_segments : int or list of int or 'auto', optional
         The number of segments for each annulus. When a single integer is given
-        it is used for all annuli.
+        it is used for all annuli. When set to 'auto', the number of segments is
+        automatically determined for every annulus, based on the annulus width.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to (cpu_count()/2). By default the algorithm works
@@ -67,19 +68,24 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     solver : {'lstsq', 'nnls'}, str optional
         Choosing the solver of the least squares problem. ``lstsq`` uses the
         standard scipy least squares solver. ``nnls`` uses the scipy
-        non-negative least squares solver.
+        non-negative least-squares solver.
     tol : float, optional
         Valid when ``solver`` is set to lstsq. Sets the cutoff for 'small'
         singular values; used to determine effective rank of a. Singular values
         smaller than ``tol * largest_singular_value`` are considered zero.
         Smaller values of ``tol`` lead to smaller residuals (more aggressive
         subtraction).
+    optim_scale_fact : float, optional
+        If >1, the least-squares optimization is performed on a larger segment,
+        similar to LOCI. The optimization segments share the same inner radius,
+        mean angular position and angular width as their corresponding
+        subtraction segments.
     verbose: bool, optional
         If True prints info to stdout.
     full_output: bool, optional
         Whether to return the final median combined image only or with other
         intermediate arrays.
-        
+
     Returns
     -------
     frame_der_median : array_like, 2d
@@ -96,18 +102,18 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         start_time = time_ini()
 
     y = array.shape[1]
-    if not asize < np.floor((y / 2)):
+    if not asize < np.floor(y / 2):
         raise ValueError("asize is too large")
 
     angle_list = check_pa_vector(angle_list)
     n_annuli = int(np.floor((y / 2 - radius_int) / asize))
     if verbose:
-        msg = "{:} annuli. Performing least-square combination and "
+        msg = "{} annuli. Performing least-square combination and "
         msg += "subtraction:\n"
         print(msg.format(n_annuli))
 
     if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2)
+        nproc = cpu_count() // 2
 
     annulus_width = asize
     if isinstance(n_segments, int):
@@ -123,7 +129,7 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
             n_segments.append(int(np.ceil(360/ang)))
 
     # annulus-wise least-squares combination and subtraction
-    cube_res = np.zeros((array.shape[0], array.shape[1], array.shape[2]))
+    cube_res = np.zeros_like(array)
     for ann in range(n_annuli):
         n_segments_ann = n_segments[ann]
         inner_radius_ann = radius_int + ann*annulus_width
@@ -131,10 +137,14 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         indices = get_annulus_segments(array[0], inner_radius=inner_radius_ann,
                                        width=asize, nsegm=n_segments_ann)
 
-        res_ann = _leastsq_ann(indices, ann, n_annuli, fwhm, angle_list,
-                               delta_rot, metric, dist_threshold, radius_int,
-                               asize, n_segments_ann, nproc, solver, tol,
-                               verbose)
+        ind_opt = get_annulus_segments(array[0], inner_radius=inner_radius_ann,
+                                       width=asize, nsegm=n_segments_ann,
+                                       optim_scale_fact=optim_scale_fact)
+
+        res_ann = _leastsq_ann(indices, ind_opt, ann, n_annuli, fwhm,
+                               angle_list, delta_rot, metric, dist_threshold,
+                               radius_int, asize, n_segments_ann, nproc, solver,
+                               tol, verbose)
 
         for j in range(n_segments_ann):
             yy = indices[j][0]
@@ -154,9 +164,9 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         return frame_der_median
 
 
-def _leastsq_ann(indices, ann, n_annuli, fwhm, angles, delta_rot, metric,
-                 dist_threshold, radius_int, asize, n_segments_ann, nproc,
-                 solver, tol, verbose):
+def _leastsq_ann(indices, indices_opt, ann, n_annuli, fwhm, angles, delta_rot,
+                 metric, dist_threshold, radius_int, asize, n_segments_ann,
+                 nproc, solver, tol, verbose):
     """ Helper function for xloci. Least-squares combination and subtraction
     for each segment in an annulus, applying a rotation threshold.
     """
@@ -165,20 +175,22 @@ def _leastsq_ann(indices, ann, n_annuli, fwhm, angles, delta_rot, metric,
     pa_threshold, _, _ = _define_annuli(angles, ann, n_annuli, fwhm, radius_int,
                                         asize, delta_rot, n_segments_ann,
                                         verbose)
-    res = []
     if nproc == 1:
+        res = []
         for j in range(n_segments_ann):
-            segm_res = _leastsq_patch(j, indices, angles, pa_threshold, metric,
-                                      dist_threshold, solver, tol)
+            segm_res = _leastsq_patch(j, indices, indices_opt, angles,
+                                      pa_threshold, metric, dist_threshold,
+                                      solver, tol)
             res.append(segm_res)
 
     elif nproc > 1:
-        pool = Pool(processes=int(nproc))
+        pool = Pool(processes=nproc)
         res = pool.map(EFT, zip(itt.repeat(_leastsq_patch),
                                 range(n_segments_ann), itt.repeat(indices),
-                                itt.repeat(angles), itt.repeat(pa_threshold),
-                                itt.repeat(metric), itt.repeat(dist_threshold),
-                                itt.repeat(solver), itt.repeat(tol)))
+                                itt.repeat(indices_opt), itt.repeat(angles),
+                                itt.repeat(pa_threshold), itt.repeat(metric),
+                                itt.repeat(dist_threshold), itt.repeat(solver),
+                                itt.repeat(tol)))
         pool.close()
 
     else:
@@ -190,13 +202,18 @@ def _leastsq_ann(indices, ann, n_annuli, fwhm, angles, delta_rot, metric,
     return res
 
 
-def _leastsq_patch(nseg, indices, angles, pa_threshold, metric, dist_threshold,
-                   solver, tol):
+def _leastsq_patch(nseg, indices, indices_opt, angles, pa_threshold, metric,
+                   dist_threshold, solver, tol):
     """ Helper function for _leastsq_ann.
     """
     yy = indices[nseg][0]
     xx = indices[nseg][1]
     values = array[:, yy, xx]  # n_frames x n_pxs_segment
+
+    yy_opt = indices_opt[nseg][0]
+    xx_opt = indices_opt[nseg][0]
+    values_opt = array[:, yy_opt, xx_opt]
+
     n_frames = array.shape[0]
 
     mat_dists_ann_full = pairwise_distances(values, metric=metric)
@@ -217,16 +234,15 @@ def _leastsq_patch(nseg, indices, angles, pa_threshold, metric, dist_threshold,
     matrix_res = np.zeros((values.shape[0], yy.shape[0]))
     for i in range(n_frames):
         vector = pn.DataFrame(mat_dists_ann[i])
-        vector.columns = ['i']
         if vector.sum().values != 0:
             ind_ref = np.where(~np.isnan(vector))[0]
-            A = values[ind_ref]
-            b = values[i]
+            A = values_opt[ind_ref]
+            b = values_opt[i]
             if solver == 'lstsq':
                 coef = sp.linalg.lstsq(A.T, b, cond=tol)[0]     # SVD method
             elif solver == 'nnls':
                 coef = sp.optimize.nnls(A.T, b)[0]
-            elif solver == 'lsq':
+            elif solver == 'lsq': # TODO
                 coef = sp.optimize.lsq_linear(A.T, b, bounds=(0, 1),
                                               method='trf',
                                               lsq_solver='lsmr')['x']

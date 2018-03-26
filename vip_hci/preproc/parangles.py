@@ -4,7 +4,7 @@
 Module with frame parallactica angles calculations and de-rotation routines for
 ADI.
 """
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'V. Christiaens @ UChile/ULg, Carlos Alberto Gomez Gonzalez'
 __all__ = ['compute_paral_angles',

@@ -122,7 +122,7 @@ def open_adicube(fitsfilename, verbose=True):
         fitsfilename = str(fitsfilename+'.fits')
     hdulist = ap_fits.open(fitsfilename, memmap=True)
     data = hdulist[0].data
-    if not data.ndim ==3:
+    if data.ndim != 3:
         raise TypeError('Input fits file does not contain a cube or 3d array.')
     parangles = hdulist[1].data 
     if verbose:

@@ -184,7 +184,7 @@ def get_square(array, size, y, x, position=False, force=False):
         Sub array.
         
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
 
     ary, arx = array.shape
@@ -245,7 +245,7 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
     array_masked : array_like
         Input array with the circular mask applied.
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
     sy, sx = array.shape
     if not cy and not cx:
@@ -295,7 +295,7 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
         Coordinates of pixels in circle.
     """
 
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
     sy, sx = array.shape
     if not cy and not cx:
@@ -361,7 +361,7 @@ def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
     If output_values is True the pixel values are returned instead.
 
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
     if not isinstance(nsegm, int):
         raise TypeError('`nsegm` must be an integer')
@@ -433,7 +433,7 @@ def get_annulus(array, inner_radius, width, output_values=False,
     y, x : array_like
         Coordinates of pixels in annulus.
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
     array = array.copy()
     cy, cx = frame_center(array)
@@ -480,7 +480,7 @@ def get_annulus_cube(array, inner_radius, width, output_values=False):
         Input array with the annular mask applied.
 
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array.')
     arr_annulus = np.empty_like(array)
     if output_values:
@@ -532,7 +532,7 @@ def get_ell_annulus(array, a, b, PA, width, output_values=False,
         Coordinates of pixels in annulus.
 
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
     if cy is None or cx is None:
         cy, cx = frame_center(array)

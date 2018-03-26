@@ -717,7 +717,7 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
             return argm, pclist, snrlist, fluxlist
     
     #---------------------------------------------------------------------------
-    if not cube.ndim==3:
+    if cube.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
     
     if verbose: start_time = time_ini()

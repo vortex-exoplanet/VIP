@@ -106,7 +106,7 @@ def cube_filter_highpass(array, mode='laplacian', median_size=5, kernel_size=5,
     filtered : array_like
         High-pass filtered cube.
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
     
     n_frames = array.shape[0]
@@ -221,7 +221,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     
     #---------------------------------------------------------------------------
     
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError("Input array is not a frame or 2d array.")
     
     if mode == 'laplacian':
@@ -307,7 +307,7 @@ def frame_filter_lowpass(array, mode, median_size=5, fwhm_size=5):
         Low-pass filtered image.
         
     """
-    if not array.ndim==2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
        
     if mode=='median':
@@ -343,7 +343,7 @@ def frame_filter_gaussian2d(array, size_fwhm, mode='conv'):
         Convolved image.
         
     """
-    if not array.ndim==2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
     
     if mode=='conv':

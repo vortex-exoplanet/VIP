@@ -60,7 +60,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
         Resulting frame.
         
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
 
     y, x = array.shape
@@ -154,7 +154,7 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         Resulting cube with de-rotated frames.
         
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array.')
     array_der = np.zeros_like(array)
     n_frames = array.shape[0]

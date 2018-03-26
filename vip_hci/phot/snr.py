@@ -59,7 +59,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         
     """
     start_time = time_ini()
-    if not array.ndim==2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a 2d array or image.')
     if plot:  plt.close('snr')
         
@@ -93,7 +93,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         snrmap[yy.astype('int'), xx.astype('int')] = snr
     else:
         # checking the mask with the sources
-        if not array.shape == source_mask.shape:
+        if array.shape != source_mask.shape:
             raise RuntimeError('Source mask has wrong size.')
         if source_mask[source_mask == 0].shape[0] == 0:
             msg = 'Input source mask is empty.'
@@ -189,7 +189,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     """       
     if verbose:
         start_time = time_ini()
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a 2d array or image.')
     
     cy, cx = frame_center(array)
@@ -287,7 +287,7 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
     sourcey, sourcex, f_source, fluxes.std(), snr
     
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
     if out_coor and full_output:
         raise TypeError('One of the 2 must be False')

@@ -43,7 +43,7 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
         Output array with corrected bad/nan pixels
     
     """
-    if not frame_tmp.ndim == 2:
+    if frame_tmp.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
 
     sz_y = frame_tmp.shape[0]  # get image y-dim
@@ -128,7 +128,7 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
         If out_good argument is false, returns a vector with the outlier px.
     
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError("Input array is not two dimensional (frame)\n")
 
     values = array.copy()

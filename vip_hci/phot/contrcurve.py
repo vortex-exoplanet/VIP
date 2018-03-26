@@ -136,15 +136,15 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         3d array with 3 frames containing the position of the companions in the
         3 patterns.
     """
-    if not (cube.ndim == 3 or cube.ndim == 4):
+    if cube.ndim != 3 and cube.ndim != 4:
         raise TypeError('The input array is not a 3d or 4d cube')
-    if cube.ndim == 3 and (not cube.shape[0] == angle_list.shape[0]):
+    if cube.ndim == 3 and (cube.shape[0] != angle_list.shape[0]):
         raise TypeError('Input parallactic angles vector has wrong length')
-    if cube.ndim == 4 and (not cube.shape[1] == angle_list.shape[0]):
+    if cube.ndim == 4 and (cube.shape[1] != angle_list.shape[0]):
         raise TypeError('Input parallactic angles vector has wrong length')
-    if cube.ndim == 3 and not psf_template.ndim == 2:
+    if cube.ndim == 3 and psf_template.ndim != 2:
         raise TypeError('Template PSF is not a frame (for ADI case)')
-    if cube.ndim == 4 and not psf_template.ndim == 3:
+    if cube.ndim == 4 and psf_template.ndim != 3:
         raise TypeError('Template PSF is not a cube (for ADI+IFS case)')
     if transmission is not None:
         if not isinstance(transmission, tuple) or not len(transmission) == 2:
@@ -152,7 +152,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if isinstance(starphot, float) or isinstance(starphot, int):
         pass
     else:
-        if not starphot.shape[0] == cube.shape[0]:
+        if starphot.shape[0] != cube.shape[0]:
             raise TypeError('Correction vector has bad size')
         cube = cube.copy()
         for i in range(cube.shape[0]):
@@ -456,34 +456,34 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     array = cube
     parangles = angle_list
 
-    if not (array.ndim == 3 or array.ndim == 4):
+    if array.ndim != 3 and array.ndim != 4:
         raise TypeError('The input array is not a 3d or 4d cube')
     else:
         if array.ndim == 3:
-            if not array.shape[0] == parangles.shape[0]:
+            if array.shape[0] != parangles.shape[0]:
                 msg = 'Input parallactic angles vector has wrong length'
                 raise TypeError(msg)
-            if not psf_template.ndim == 2:
+            if psf_template.ndim != 2:
                 raise TypeError('Template PSF is not a frame or 2d array')
             maxfcsep = int((array.shape[1]/2.)/fwhm)-1
-            if not fc_rad_sep >= 3 or not fc_rad_sep <= maxfcsep:
+            if fc_rad_sep < 3 or fc_rad_sep > maxfcsep:
                 msg = 'Too large separation between companions in the radial '
                 msg += 'patterns. Should lie between 3 and {:}'
                 raise ValueError(msg.format(maxfcsep))
 
         elif array.ndim == 4:
-            if not array.shape[1] == parangles.shape[0]:
+            if array.shape[1] != parangles.shape[0]:
                 msg = 'Input vector or parallactic angles has wrong length'
                 raise TypeError(msg)
-            if not psf_template.ndim == 3:
+            if psf_template.ndim != 3:
                 raise TypeError('Template PSF is not a frame, 3d array')
             if 'scale_list' not in algo_dict:
                 raise ValueError('Vector of wavelength not found')
             else:
-                if not algo_dict['scale_list'].shape[0] == array.shape[0]:
+                if algo_dict['scale_list'].shape[0] != array.shape[0]:
                     raise TypeError('Input wavelength vector has wrong length')
                 maxfcsep = int((array.shape[2] / 2.) / fwhm) - 1
-                if not fc_rad_sep >= 3 or not fc_rad_sep <= maxfcsep:
+                if fc_rad_sep < 3 or fc_rad_sep > maxfcsep:
                     msg = 'Too large separation between companions in the '
                     msg += 'radial patterns. Should lie between 3 and {:}'
                     raise ValueError(msg.format(maxfcsep))
@@ -772,7 +772,7 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0,360),
         return np.array(y), np.array(x)
     #___________________________________________________________________
 
-    if not array.ndim==2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
     if not isinstance(wedge, tuple):
         raise TypeError('Wedge must be a tuple with the initial and final angles')

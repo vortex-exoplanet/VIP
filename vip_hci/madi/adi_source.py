@@ -83,11 +83,11 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     global array
     array = cube
     
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
-    if not array.shape[0] == angle_list.shape[0]:
+    if array.shape[0] != angle_list.shape[0]:
         raise TypeError('Input vector or parallactic angles has wrong length')
-    if not nframes % 2 == 0:
+    if nframes % 2 != 0:
         raise TypeError('nframes argument must be even value')
     
     n, y, _ = array.shape

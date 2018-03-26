@@ -77,7 +77,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
         Shifted 2d array.
 
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
     
     image = array.copy()
@@ -218,9 +218,9 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
             return False
         
     #---------------------------------------------------------------------------
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
-    if not len(xy) == 4:
+    if len(xy) != 4:
         raise TypeError('Input waffle spot coordinates in wrong format')
     
     cy, cx = frame_center(array)
@@ -326,7 +326,7 @@ def cube_recenter_satspots(array, xy, subim_size=19, sigfactor=6, plot=True,
         Shifts Y,X to get to the true center for each image.
     
     """    
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
 
     if verbose:
@@ -426,7 +426,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     """
     from .cosmetics import frame_crop
     
-    if not array.ndim==2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
 
     if verbose:  start_time = time_ini()
@@ -579,7 +579,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
         Shifts in y and x.
      
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
 
     if verbose:
@@ -677,7 +677,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     neighborhood around its peak.
     
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
 
     n_frames, sizey, sizex = array.shape
@@ -826,7 +826,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     if verbose:
         start_time = time_ini()
 
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
 
     n_frames, sizey, sizex = array.shape

@@ -121,7 +121,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     list_l_array_der, list_s_array_der, list_g_array_der, frame_l, frame_s, frame_g
 
     """
-    if not cube.ndim == 3:
+    if cube.ndim != 3:
         raise TypeError("Input array is not a cube (3d array)")
     if not cube.shape[0] == angle_list.shape[0]:
         msg = "Angle list vector has wrong length. It must equal the number"

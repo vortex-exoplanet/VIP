@@ -57,7 +57,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         Output array with the injected fake companions.
 
     """
-    if not (array.ndim == 3 or array.ndim == 4):
+    if array.ndim != 3 and array.ndim != 4:
         raise ValueError('Array is not a cube, 3d or 4d array')
     if array.ndim == 4:
         if not psf_template.ndim == 3:
@@ -237,7 +237,7 @@ def create_psf_template(array, size, fwhm=4, verbose=True, collapse='mean'):
     psf_normd : array_like
         Normalized PSF.
     """
-    if not (array.ndim == 3 or array.ndim == 4):
+    if array.ndim != 3 and array.ndim != 4:
         raise TypeError('Array is not a cube, 3d or 4d array.')
 
     n = array.shape[0]

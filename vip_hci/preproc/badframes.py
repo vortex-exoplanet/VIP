@@ -61,7 +61,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
         1d array of bad frames indices.
     
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
     if in_radius+width > array[0].shape[0]/2:
         msgve = 'Inner radius and annulus size are too big (out of boundaries)'
@@ -166,7 +166,7 @@ def cube_detect_badfr_ellipticipy(array, fwhm, roundlo=-0.2, roundhi=0.2,
     respectively.
     
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
     
     if verbose:  start_time = time_ini()
@@ -252,7 +252,7 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30, dist='pearson'
     """
     from .cosmetics import cube_crop_frames
     
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
     
     if verbose:  start_time = time_ini()

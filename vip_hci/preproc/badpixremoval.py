@@ -66,7 +66,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
      frame : array_like
          Frame with bad pixels corrected.
      """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Array is not a 2d array or single frame')
     if size % 2 == 0:
         raise TypeError('Size of the median blur kernel must be an odd integer')
@@ -149,7 +149,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     array_out : array_like
         Cube with bad pixels corrected.
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Array is not a 3d array or cube')
     if size % 2 == 0:
         raise TypeError('Size of the median blur kernel must be an odd integer')

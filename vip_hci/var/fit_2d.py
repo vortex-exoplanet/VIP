@@ -74,7 +74,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     'theta' : Float value. Rotation angle.
     
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
     
     if crop:

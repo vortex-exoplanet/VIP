@@ -90,7 +90,7 @@ def pp_subplots(*args, **kwargs):
     elif num_plots > 1:
         data = args
         for i in range(num_plots):
-            if not args[i].ndim == 2:
+            if args[i].ndim != 2:
                 msg = "Wrong input. Must be either several 2d arrays (images) "
                 msg += "or a single 3d array"
                 raise TypeError(msg)

@@ -42,7 +42,7 @@ def frame_quick_report(array, fwhm, source_xy=None, verbose=True):
     meansnr_pixels : list of floats
         Mean S/N of pixels in 1xFWHM apertures centered on ``source_xy``.
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Array is not 2d.')
 
     if not isinstance(source_xy, list):

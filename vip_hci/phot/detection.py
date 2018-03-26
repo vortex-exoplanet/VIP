@@ -189,9 +189,9 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
 
     # --------------------------------------------------------------------------
 
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
-    if not psf.ndim == 2 and psf.shape[0] < array.shape[0]:
+    if psf.ndim != 2 and psf.shape[0] < array.shape[0]:
         raise TypeError('Input psf is not a 2d array or has wrong size')
         
     # Getting the FWHM from the PSF array
@@ -335,7 +335,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             ticks = []
             for i in range(half_num_ticks, -half_num_ticks-1, -1):
                 # Avoid ticks not showing on the last pixel
-                if not center_val - (i) * 50 == frame_size:
+                if center_val - (i) * 50 != frame_size:
                     ticks.append(center_val - (i) * 50)
                 else:
                     ticks.append((center_val - (i) * 50) - 1)
@@ -520,7 +520,7 @@ def mask_source_centers(array, fwhm, y, x):
         Mask frame.
 
     """
-    if not array.ndim==2:
+    if array.ndim != 2:
         raise TypeError('Wrong input array shape.')
 
     frame = array.copy()

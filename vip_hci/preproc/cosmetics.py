@@ -48,7 +48,7 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
         Cube with cropped frames.
         
     """
-    if not (array.ndim == 3 or array.ndim == 4):
+    if array.ndim != 3 and array.ndim != 4:
         raise TypeError('Array is not a cube, 3d or 4d array')
     if not isinstance(size, int):
         raise TypeError('Size must be integer')
@@ -149,7 +149,7 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
         Sub array.
         
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Array is not a frame or 2d array')
     if size >= array.shape[0]:
         msg = 'Cropping size is equal or larger than the original size'

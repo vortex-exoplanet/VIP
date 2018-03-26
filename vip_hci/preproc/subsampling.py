@@ -35,7 +35,7 @@ def cube_collapse(cube, mode='median', n=50):
         Output array, cube combined. 
     """
     arr = cube
-    if not arr.ndim == 3:
+    if arr.ndim != 3:
         raise TypeError('The input array is not a cube or 3d array.')
     
     if mode == 'mean':
@@ -82,7 +82,7 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
     angles : array_like
         Parallactic angles.
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('The input array is not a cube or 3d array.')
     m = int(array.shape[0]/n) 
     resid = array.shape[0]%n                                                       
@@ -137,7 +137,7 @@ def cube_subsample_trimmean(arr, n, m):
     arr_view : array_like
         Output array, cube combined. 
     """    
-    if not arr.ndim == 3:
+    if arr.ndim != 3:
         raise TypeError('The input array is not a cube or 3d array.')
     num = int(arr.shape[0]/m)
     res = int(arr.shape[0]%m)                                                       

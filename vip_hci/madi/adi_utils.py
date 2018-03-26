@@ -89,7 +89,7 @@ def _find_indices(angle_list, frame, thr, nframes=None, out_closest=False,
             if truncate:
                 thr = min(n//2, max_frames)
                 if frame < thr:
-                    half1 = range(max(0, index_prev - thr//2)), index_prev)
+                    half1 = range(max(0, index_prev - thr//2), index_prev)
                     half2 = range(index_foll,
                                   min(index_foll + thr - len(half1), n))
                 else:

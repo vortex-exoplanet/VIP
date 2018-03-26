@@ -3,7 +3,7 @@
 """
 LLSG (Gomez Gonzalez et al. 2016)
 """
-from __future__ import division print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['llsg']

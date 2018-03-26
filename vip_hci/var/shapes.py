@@ -564,7 +564,7 @@ def get_ell_annulus(array, a, b, PA, width, output_values=False,
     small_ellipse = dist(yy, xx, pos_f1_sma[0], pos_f1_sma[1]) + \
                     dist(yy, xx, pos_f2_sma[0], pos_f2_sma[1])
     ell_ann_mask = ((big_ellipse < 2 * (a + width / 2)) &
-                    (small_ellipse >= 2 * (a - width / 2)) # mask of 1's and 0's
+                    (small_ellipse >= 2 * (a - width / 2)))# mask of 1's and 0's
 
     if output_values and not output_indices:
         values = array[ell_ann_mask]

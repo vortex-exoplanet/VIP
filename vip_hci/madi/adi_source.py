@@ -4,8 +4,7 @@
 Module with ADI algorithm (median psf subtraction).
 """
 
-from __future__ import division 
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['adi']
@@ -116,7 +115,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     
     elif mode == 'annular':
         annulus_width = int(asize * fwhm)  # equal size for all annuli
-        n_annuli = int(np.floor((y / 2 - radius_int) / annulus_width))
+        n_annuli = int((y / 2 - radius_int) / annulus_width)
         if verbose:
             print('N annuli =', n_annuli, ', FWHM =', fwhm, '\n')
 

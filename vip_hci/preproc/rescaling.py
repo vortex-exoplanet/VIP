@@ -3,6 +3,8 @@
 """
 Module with frame px resampling/rescaling functions.
 """
+from __future__ import division, print_function
+
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens @ ULg'
 __all__ = ['frame_px_resampling',
            'cube_px_resampling',

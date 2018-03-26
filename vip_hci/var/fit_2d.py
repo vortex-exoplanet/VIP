@@ -3,7 +3,7 @@
 """
 2d fitting.
 """
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['fit_2dgaussian',
@@ -177,8 +177,8 @@ def fit_2dmoffat(array, yy, xx, full_output=False):
         "beta" parameter of the moffat function.
     """
     def moffat(floor, height, mean_y, mean_x, fwhm, beta): # def Moffat function
-        alpha = 0.5*fwhm/np.sqrt(2.**(1./beta)-1.)
-        return lambda y,x: floor + height/((1.+(((x-mean_x)**2+(y-mean_y)**2)/\
+        alpha = 0.5*fwhm/np.sqrt(2**(1/beta)-1)
+        return lambda y,x: floor + height/((1+(((x-mean_x)**2+(y-mean_y)**2)/\
                                                 alpha**2.))**beta)
 
     def err(p,data):
@@ -188,14 +188,14 @@ def fit_2dmoffat(array, yy, xx, full_output=False):
     maxi = array.max()  # find starting values
     floor = np.ma.median(array.flatten())
     height = maxi - floor
-    if height == 0.0:   # if star is saturated it could be that
+    if height == 0:   # if star is saturated it could be that
         floor = np.mean(array.flatten())
         height = maxi - floor
 
     mean_y = (np.shape(array)[0]-1)/2
     mean_x = (np.shape(array)[1]-1)/2
 
-    fwhm = np.sqrt(np.sum((array > floor+height/2.).flatten()))
+    fwhm = np.sqrt(np.sum((array > floor+height/2).flatten()))
 
     beta = 4
     

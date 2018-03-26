@@ -3,7 +3,7 @@
 """
 Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
 """
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez'
 __all__ = ['mcmc_negfc_sampling',
@@ -700,7 +700,7 @@ def show_walk_plot(chain, save=False, **kwargs):
         axes[j].plot(chain[:, :, j].T, color=color, alpha=alpha, **kwargs)
         axes[j].yaxis.set_major_locator(MaxNLocator(5))
         axes[j].set_ylabel(labels[j])
-    fig.tight_layout(h_pad=0.0)
+    fig.tight_layout(h_pad=0)
     if save:
         plt.savefig('walk_plot.pdf')
         plt.close(fig)
@@ -841,7 +841,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         pourcentage = 0
         for k, jj in enumerate(n_arg_sort):
             test = test + bins_width*n[jj]
-            pourcentage = test/surface_total*100.
+            pourcentage = test/surface_total*100
             if pourcentage > cfd:
                 if verbose:
                     msg = 'percentage for {}: {}%'

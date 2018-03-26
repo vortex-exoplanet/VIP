@@ -4,8 +4,7 @@
 Module with various functions.
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, O. Wertz'
 __all__ = ['pp_subplots',
@@ -417,7 +416,7 @@ def pp_subplots(*args, **kwargs):
             # Corresponding distance in arcseconds, measured from the center
             labels = []
             for t in range(half_num_ticks, -half_num_ticks-1, -1):
-                labels.append(0.0 - t * (angticksep * pxscale))
+                labels.append(-t * (angticksep * pxscale))
             ax.set_xticklabels(labels)
             ax.set_yticklabels(labels)
             ax.set_xlabel("arcseconds", fontsize=12)

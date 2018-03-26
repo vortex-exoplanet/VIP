@@ -4,7 +4,7 @@
 Module with sky subtraction function.
 """
 
-from __future__ import division
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_subtract_sky_pca']

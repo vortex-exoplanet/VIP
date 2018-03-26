@@ -3,7 +3,7 @@
 """
 Module with the function of merit definitions for the NEGFC optimization.
 """
-from __future__ import print_function
+from __future__ import division, print_function
 
 __all__ = []
 
@@ -166,7 +166,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     centy_fr, centx_fr = frame_center(cube[0])
     posy = r_guess * np.sin(np.deg2rad(theta_guess)) + centy_fr
     posx = r_guess * np.cos(np.deg2rad(theta_guess)) + centx_fr
-    halfw = max(aperture_radius, annulus_width/2.)
+    halfw = max(aperture_radius, annulus_width/2)
 
     # Checking annulus/aperture sizes. Assuming square frames
     msg = 'The annulus and/or the circular aperture used by the NegFC falls '

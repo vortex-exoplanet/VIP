@@ -4,8 +4,7 @@
 Module with various functions.
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['dist',
@@ -110,20 +109,20 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
     mask = np.zeros(im_shape)
 
     s = im_shape[0]
-    r = s/2.
-    theta = np.arctan2(sp_width/2., r)
+    r = s/2
+    theta = np.arctan2(sp_width/2, r)
 
-    t0 = np.array([theta,np.pi-theta,np.pi+theta,np.pi*2.-theta])
-    t1 = t0 + sp_angle/180. * np.pi
-    t2 = t1 + np.pi/3.
-    t3 = t2 + np.pi/3.
+    t0 = np.array([theta, np.pi-theta, np.pi+theta, np.pi*2 - theta])
+    t1 = t0 + sp_angle/180 * np.pi
+    t2 = t1 + np.pi/3
+    t3 = t2 + np.pi/3
 
-    x1 = r * np.cos(t1) + s/2.
-    y1 = r * np.sin(t1) + s/2.
-    x2 = r * np.cos(t2) + s/2.
-    y2 = r * np.sin(t2) + s/2.
-    x3 = r * np.cos(t3) + s/2.
-    y3 = r * np.sin(t3) + s/2.
+    x1 = r * np.cos(t1) + s/2
+    y1 = r * np.sin(t1) + s/2
+    x2 = r * np.cos(t2) + s/2
+    y2 = r * np.sin(t2) + s/2
+    x3 = r * np.cos(t3) + s/2
+    y3 = r * np.sin(t3) + s/2
 
     rr1, cc1 = polygon(y1, x1)
     rr2, cc2 = polygon(y2, x2)
@@ -150,8 +149,8 @@ def dist(yc,xc,y1,x1):
 def frame_center(array, verbose=False):
     """ Returns the coordinates y,x of an image center.
     """   
-    cy = array.shape[0]/2. - 0.5
-    cx = array.shape[1]/2. - 0.5
+    cy = array.shape[0]/2 - 0.5
+    cx = array.shape[1]/2 - 0.5
 
     if verbose:
         print('Center px coordinates at x,y = ({:},{:})'.format(cy, cx))
@@ -204,9 +203,9 @@ def get_square(array, size, y, x, position=False, force=False):
 
     # wing is added to the sides of the subframe center
     if size % 2 != 0:
-        wing = int(np.floor(size / 2.))
+        wing = size/2
     else:
-        wing = (size / 2.) - 0.5
+        wing = size/2 - 0.5
 
     y0 = int(y-wing)
     y1 = int(y+wing+1)  # +1 cause endpoint is excluded when slicing
@@ -543,8 +542,8 @@ def get_ell_annulus(array, a, b, PA, width, output_values=False,
     width_b = width * b / a
 
     # Definition of big ellipse
-    f_big = np.sqrt((a + width_a / 2.) ** 2 - (
-    b + width_b / 2.) ** 2)  # distance between center and foci of the ellipse
+    f_big = np.sqrt((a + width_a / 2) ** 2 - (b + width_b / 2) ** 2)
+            # distance between center and foci of the ellipse
     PA_rad = np.deg2rad(PA)
     pos_f1_big = (cy + f_big * np.cos(PA_rad),
                   cx + f_big * np.sin(PA_rad))  # coords of first focus
@@ -552,8 +551,8 @@ def get_ell_annulus(array, a, b, PA, width, output_values=False,
                   cx - f_big * np.sin(PA_rad))  # coords of second focus
 
     # Definition of small ellipse
-    f_sma = np.sqrt((a - width_a / 2.) ** 2 - (
-    b - width_b / 2.) ** 2)  # distance between center and foci of the ellipse
+    f_sma = np.sqrt((a - width_a / 2) ** 2 - (b - width_b / 2) ** 2)
+            # distance between center and foci of the ellipse
     pos_f1_sma = (cy + f_sma * np.cos(PA_rad),
                   cx + f_sma * np.sin(PA_rad))  # coords of first focus
     pos_f2_sma = (cy - f_sma * np.cos(PA_rad),
@@ -564,7 +563,8 @@ def get_ell_annulus(array, a, b, PA, width, output_values=False,
                   dist(yy, xx, pos_f2_big[0], pos_f2_big[ 1])
     small_ellipse = dist(yy, xx, pos_f1_sma[0], pos_f1_sma[1]) + \
                     dist(yy, xx, pos_f2_sma[0], pos_f2_sma[1])
-    ell_ann_mask = (big_ellipse < 2 * (a + width / 2.)) & (small_ellipse >= 2 * (a - width / 2.))  # mask of 1's and 0's
+    ell_ann_mask = ((big_ellipse < 2 * (a + width / 2)) &
+                    (small_ellipse >= 2 * (a - width / 2)) # mask of 1's and 0's
 
     if output_values and not output_indices:
         values = array[ell_ann_mask]
@@ -652,7 +652,7 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
             msgerr += 'mode'
             raise ValueError(msgerr)
 
-        ind = get_annulus(array[0], annulus_radius - annulus_width / 2.,
+        ind = get_annulus(array[0], annulus_radius - annulus_width / 2,
                           annulus_width, output_indices=True)
         yy, xx = ind
         matrix = array[:, yy, xx]

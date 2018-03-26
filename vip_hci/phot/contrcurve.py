@@ -222,7 +222,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if smooth:
         # smoothing the noise vector using a Savitzky-Golay filter
         win = min(noise_samp.shape[0]-2,int(2*fwhm))
-        if win%2 == 0.:
+        if win%2 == 0:
             win += 1
         noise_samp_sm = savgol_filter(noise_samp, polyorder=2, mode='nearest',
                                       window_length=win)
@@ -650,7 +650,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
             for irad in range(fc_rad_sep):
                 radvec = vector_radd[irad::fc_rad_sep]
                 thetavec = range(int(theta), int(theta) + 360,
-                                 int(360 / len(radvec)))
+                                 360 // len(radvec))
                 cube_fc = array.copy()
                 # filling map with small numbers
                 fc_map = np.ones_like(array[:, 0]) * 1e-6
@@ -801,7 +801,7 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0,360),
         yy += centery
         xx += centerx
 
-        apertures = photutils.CircularAperture((xx, yy), fwhm/2.)
+        apertures = photutils.CircularAperture((xx, yy), fwhm/2)
         fluxes = photutils.aperture_photometry(array, apertures)
         fluxes = np.array(fluxes['aperture_sum'])
 
@@ -812,7 +812,7 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0,360),
         if debug:
             for i in range(xx.shape[0]):
                 # Circle takes coordinates as (X,Y)
-                aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2., color='r',
+                aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2, color='r',
                               fill=False, alpha=0.8)
                 ax.add_patch(aper)
                 cent = plt.Circle((xx[i], yy[i]), radius=0.8, color='r',
@@ -863,12 +863,12 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
     flux = np.zeros((n_obj))
     for i, (y, x) in enumerate(zip(yc, xc)):
         if mean:
-            ind = circle(y, x,  (ap_factor*fwhm)/2.)
+            ind = circle(y, x,  (ap_factor*fwhm)/2)
             values = array[ind]
             obj_flux = np.mean(values)
         else:
-            aper = photutils.CircularAperture((x, y), (ap_factor*fwhm)/2.)
             obj_flux = photutils.aperture_photometry(array, aper, method='exact')
+            aper = photutils.CircularAperture((x, y), (ap_factor*fwhm)/2)
             obj_flux = np.array(obj_flux['aperture_sum'])
         flux[i] = obj_flux
 

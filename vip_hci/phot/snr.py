@@ -4,8 +4,7 @@
 Module with S/N calculation functions.
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, O. Absil @ ULg'
 __all__ = ['snr_ss',
@@ -110,13 +109,13 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         centery, centerx = frame_center(array)
         for (y,x) in zip(soury,sourx):
             radd = dist(centery, centerx, y, x)
-            if int(np.floor(radd)) < centery - np.ceil(fwhm):
+            if int(radd) < centery - np.ceil(fwhm):
                 sources.append((y,x))
         
         for source in sources:
             y, x = source        
             radd = dist(centery, centerx, y, x)
-            tempay, tempax = get_annulus(array, int(np.floor(radd-fwhm)), 
+            tempay, tempax = get_annulus(array, int(radd-fwhm), 
                                     int(np.ceil(2*fwhm)), output_indices=True)
             tempcy, tempcx = draw.circle(y, x, int(np.ceil(1*fwhm)))
             # masking the source position (using the MAD of pixels in annulus)
@@ -194,7 +193,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
         raise TypeError('Input array is not a 2d array or image.')
     
     cy, cx = frame_center(array)
-    tophat_kernel = Tophat2DKernel(fwhm/2.)
+    tophat_kernel = Tophat2DKernel(fwhm/2)
     array = convolve(array, tophat_kernel)
             
     sizey, sizex = array.shape
@@ -300,7 +299,7 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
     
     sens = 'clock' #counterclock
         
-    angle = np.arcsin(fwhm/2./sep)*2
+    angle = np.arcsin(fwhm/2/sep)*2
     number_apertures = int(np.floor(2*np.pi/angle))
     yy = np.zeros((number_apertures))
     xx = np.zeros((number_apertures))
@@ -343,7 +342,7 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
         ax.imshow(array, origin='lower', interpolation='nearest', alpha=0.5, cmap='gray')
         for i in range(xx.shape[0]):
             # Circle takes coordinates as (X,Y)
-            aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2., color='r', 
+            aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2, color='r', 
                               fill=False, alpha=0.8)                                       
             ax.add_patch(aper)
             cent = plt.Circle((xx[i], yy[i]), radius=0.8, color='r', fill=True,
@@ -398,9 +397,9 @@ def snr_peakstddev(array, source_xy, fwhm, out_coor=False, plot=False,
     rad = dist(centery,centerx,sourcey,sourcex)  
     
     array = array + np.abs(array.min()) 
-    inner_rad = np.round(rad)-(fwhm/2.)
+    inner_rad = np.round(rad) - fwhm/2
     an_coor = get_annulus(array, inner_rad, fwhm, output_indices=True)
-    ap_coor = draw.circle(sourcey, sourcex, int(np.ceil(fwhm/2.)))
+    ap_coor = draw.circle(sourcey, sourcex, int(np.ceil(fwhm/2)))
     array2 = array.copy()
     array2[ap_coor] = array[an_coor].mean()   # we 'mask' the flux aperture
     stddev = array2[an_coor].std()

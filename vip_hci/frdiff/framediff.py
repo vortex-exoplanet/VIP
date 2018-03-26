@@ -4,8 +4,7 @@
 Module with a frame differencing algorithm for ADI post-processing.
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['frame_diff']
@@ -86,11 +85,11 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         start_time = time_ini()
 
     y = array.shape[1]
-    if not asize < np.floor((y / 2)):
+    if not asize < y // 2:
         raise ValueError("asize is too large")
 
     angle_list = check_pa_vector(angle_list)
-    n_annuli = int(np.floor((y / 2 - radius_int) / asize))
+    n_annuli = int((y / 2 - radius_int) / asize)
     if verbose:
         if ncomp is not None:
             msg = "{:} annuli. Performing annular PCA subtraction with {:} PCs "
@@ -175,10 +174,10 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
         print(msg.format(metric, ann+1))
         timing(start_time)
 
-    threshold = np.percentile(mat_dists_ann[mat_dists_ann != 0.0],
+    threshold = np.percentile(mat_dists_ann[mat_dists_ann != 0],
                               dist_threshold)
     mat_dists_ann[mat_dists_ann > threshold] = np.nan
-    mat_dists_ann[mat_dists_ann == 0.0] = np.nan
+    mat_dists_ann[mat_dists_ann == 0] = np.nan
     if not mat_dists_ann[~np.isnan(mat_dists_ann)].size > 0:
         raise RuntimeError('No pairs left. Decrease thresholds')
 
@@ -289,12 +288,12 @@ def _pw_rot_res(cube, angle_list, fwhm=4, delta_rot=0.5, inner_radius=2,
 
     n_frames = array.shape[0]
     y = array.shape[1]
-    if not asize < np.floor((y / 2)):
+    if not asize < y // 2:
         raise ValueError("asize is too large")
 
     angle_list = check_pa_vector(angle_list)
 
-    ann_center = (inner_radius + (asize / 2.0))
+    ann_center = inner_radius + (asize / 2)
     pa_threshold = _compute_pa_thresh(ann_center, fwhm, delta_rot)
     if verbose:
         print('PA thresh {:.3f}'.format(pa_threshold))

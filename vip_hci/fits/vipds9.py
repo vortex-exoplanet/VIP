@@ -3,7 +3,7 @@
 """
 Module with a function for displaying numpy arrays on DS9 (wrapper of pyds9).
 """
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 

@@ -4,7 +4,7 @@
 Distance between images.
 """
 
-from __future__ import division
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_distance',

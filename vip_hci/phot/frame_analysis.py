@@ -4,8 +4,7 @@
 
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['frame_quick_report']
@@ -67,12 +66,12 @@ def frame_quick_report(array, fwhm, source_xy=None, verbose=True):
                 print('Coords of Max px (X,Y) = {:.3f},{:.3f}'.format(x, y))
 
         # we get integrated flux on aperture with diameter=1FWHM
-        aper = photutils.CircularAperture((x, y), r=fwhm/2.)
+        aper = photutils.CircularAperture((x, y), r=fwhm/2)
         obj_flux_i = photutils.aperture_photometry(array, aper, method='exact')
         obj_flux_i = obj_flux_i['aperture_sum'][0]
 
         # we get the mean and stddev of SNRs on aperture
-        yy, xx = draw.circle(y, x, fwhm/2.)
+        yy, xx = draw.circle(y, x, fwhm/2)
         snr_pixels_i = [snr_ss(array, (x_, y_), fwhm, plot=False, verbose=False)\
                         for y_, x_ in zip(yy, xx)]
         meansnr_i = np.mean(snr_pixels_i)

@@ -3,6 +3,7 @@ Code with the Isotropic Undecimated Wavelet Transform, taken (Aug 24, 2015) from
 https://github.com/ratt-ru/PyMORESANE/
 Credits to J. S. Kenyon
 """
+from __future__ import division, print_function
 
 import numpy as np
 import multiprocessing as mp

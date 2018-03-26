@@ -4,8 +4,7 @@
 Module containing functions for cubes frame registration.
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens @ ULg/UChile, G. Ruane'
 __all__ = ['frame_shift',
@@ -462,7 +461,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
             pp_subplots(frame, sinogram)
             print(np.sum(np.abs(sinogram[cent,:])))
         else:
-            theta = np.linspace(start=0., stop=360., num=cent*2, endpoint=False)
+            theta = np.linspace(start=0, stop=360, num=cent*2, endpoint=False)
             sinogram = radon(frame, theta=theta, circle=True)
             pp_subplots(frame, sinogram)
             print(np.sum(np.abs(sinogram[cent,:])))
@@ -523,7 +522,7 @@ def _radon_costf(frame, cent, radint, coords):
     """
     frame_shifted = frame_shift(frame, coords[0], coords[1])
     frame_shifted_ann = get_annulus(frame_shifted, radint, cent-radint)
-    theta = np.linspace(start=0., stop=360., num=frame_shifted_ann.shape[0],    
+    theta = np.linspace(start=0, stop=360, num=frame_shifted_ann.shape[0],    
                     endpoint=False)
     sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
     costf = np.sum(np.abs(sinogram[cent,:]))

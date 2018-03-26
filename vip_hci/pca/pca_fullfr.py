@@ -996,7 +996,7 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
               '\n')
                 
     res = n_frames % batch_size
-    for i in range(0, int(n_frames/batch_size)):
+    for i in range(0, n_frames//batch_size):
         intini = i*batch_size
         intfin = (i+1)*batch_size
         batch = hdulist[n].data[intini:intfin]
@@ -1024,7 +1024,7 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
     if verbose:
         print('\nReconstructing and obtaining residuals')
     medians = []
-    for i in range(0, int(n_frames/batch_size)):
+    for i in range(0, n_frames//batch_size):
         intini = i*batch_size
         intfin = (i+1)*batch_size
         batch = hdulist[n].data[intini:intfin]

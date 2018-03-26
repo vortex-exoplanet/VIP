@@ -4,8 +4,7 @@
 Module with functions for correcting bad pixels in cubes.
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens'
 __all__ = ['frame_fix_badpix_isolated',
@@ -277,7 +276,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                 msg2 = 'Hence, you should not use option half_res_y = True'
                 raise ValueError(msg+msg2)
             n_y = int(n_y/2)
-            cy = int(cy/2.)
+            cy = int(cy/2)
             frame = obj_tmp.copy()
             obj_tmp = np.zeros([n_y,n_x])
             for yy in range(n_y):
@@ -288,8 +287,9 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
 
         #2/ Define each annulus, its median and stddev
         ymax = max(cy,n_y-cy)
-        if half_res_y: ymax *= 2.
         xmax = max(cx,n_x-cx)
+        if half_res_y:
+            ymax *= 2
         rmax = np.sqrt(ymax**2+xmax**2)
         # the annuli definition is optimized for Airy rings
         ann_width = max(1.5,0.61*fwhm) 
@@ -316,12 +316,12 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                 rr_sma= rr
             if half_res_y:
                 big_ell_idx = ellipse(cy=cy, cx=cx, 
-                                      yradius=((rr_big+1)*ann_width)/2., 
+                                      yradius=((rr_big+1)*ann_width)/2, 
                                       xradius=(rr_big+1)*ann_width, 
                                       shape=(n_y,n_x))
                 if rr != 0:
                     small_ell_idx = ellipse(cy=cy, cx=cx, 
-                                            yradius=(rr_sma*ann_width)/2., 
+                                            yradius=(rr_sma*ann_width)/2, 
                                             xradius=rr_sma*ann_width, 
                                             shape=(n_y,n_x))
             else:
@@ -342,9 +342,9 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
             neigh = neighbours[rr,:n_neig[rr]]
             n_removal = 0
             n_pix_init = neigh.shape[0]
-            while neigh.shape[0] > 10 and n_removal < n_pix_init/10.:
+            while neigh.shape[0] > 10 and n_removal < n_pix_init/10:
                 min_neigh = np.amin(neigh)
-                if reject_outliers(neigh, min_neigh, m=5., stddev=stddev,
+                if reject_outliers(neigh, min_neigh, m=5, stddev=stddev,
                                    min_thr=min_thr*stddev,
                                    mid_thr=mid_thr*stddev):
                     min_idx = np.argmin(neigh)
@@ -352,7 +352,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                     n_removal += 1
                 else:
                     max_neigh = np.amax(neigh)
-                    if reject_outliers(neigh, max_neigh, m=5., stddev=stddev,
+                    if reject_outliers(neigh, max_neigh, m=5, stddev=stddev,
                                        min_thr=min_thr*stddev, 
                                        mid_thr=mid_thr*stddev):
                         max_idx = np.argmax(neigh)
@@ -361,7 +361,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                     else: break
             n_neig[rr] = neigh.shape[0]
             neighbours[rr,:n_neig[rr]] = neigh
-            neighbours[rr,n_neig[rr]:] = 0.
+            neighbours[rr,n_neig[rr]:] = 0
             med_neig[rr] = np.median(neigh)
             std_neig[rr] = np.std(neigh)
         
@@ -396,7 +396,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                     # Gaussian noise
                     #obj_tmp_corr[yy,xx] = med_neig[rr] +dev*np.random.randn()
                     # Poisson noise
-                    rand_fac= 2.*(np.random.rand()-0.5)
+                    rand_fac= 2*(np.random.rand()-0.5)
                     obj_tmp_corr[yy,xx] = med_neig[rr] + \
                                           np.sqrt(np.abs(med_neig[rr]))*rand_fac
 
@@ -407,21 +407,21 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                     # Gaussian noise
                     #obj_tmp_corr[yy,xx] = med_neig[rr] +dev*np.random.randn()
                     # Poisson noise
-                    rand_fac= 2.*(np.random.rand()-0.5)
+                    rand_fac= 2*(np.random.rand()-0.5)
                     obj_tmp_corr[yy,xx] = med_neig[rr] + \
                                           np.sqrt(np.abs(med_neig[rr]))*rand_fac
 
                 # check mid_thr and neighbours
                 else:
-                    min_el = max(2.,0.05*n_neig[rr])
+                    min_el = max(2, 0.05*n_neig[rr])
                     if (obj_tmp[yy,xx] < mid_thr*stddev and 
-                        neigh[neigh<(mid_thr+5.)*stddev].shape[0] < min_el):
+                        neigh[neigh<(mid_thr+5)*stddev].shape[0] < min_el):
                             bpix_map[yy,xx] = 1
                             # Gaussian noise
                             #obj_tmp_corr[yy,xx] = med_neig[rr] + \
                             #                      dev*np.random.randn()
                             # Poisson noise
-                            rand_fac = 2.*(np.random.rand()-0.5)
+                            rand_fac = 2*(np.random.rand()-0.5)
                             obj_tmp_corr[yy,xx] = med_neig[rr] + \
                                                   np.sqrt(np.abs(med_neig[rr]))*rand_fac
 
@@ -683,7 +683,7 @@ def find_outliers(frame, sig_dist, in_bpix=None, stddev=None,neighbor_box=3,
     ny = frame.shape[0]
     bpix_map = np.zeros_like(frame)
     if stddev is None: stddev = np.std(frame)
-    half_box = int(np.floor(neighbor_box/2.))
+    half_box = int(neighbor_box/2)
     
     if in_bpix is None:
         for xx in range(nx):
@@ -845,7 +845,7 @@ def reject_outliers(data, test_value, m=5., stddev=None, debug=False,
         print("stddev(frame) = ", stddev)
         print("max(d) = ", np.max(d))
 
-    n_el = max(2., 0.05*data.shape[0])
+    n_el = max(2, 0.05*data.shape[0])
     if test_value < min_thr or (test_value < mid_thr and 
                                 data[data<(mid_thr+5*stddev)].shape[0] < n_el):
         test_result = 1

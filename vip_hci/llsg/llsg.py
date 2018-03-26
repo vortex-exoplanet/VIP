@@ -3,8 +3,7 @@
 """
 LLSG (Gomez Gonzalez et al. 2016)
 """
-from __future__ import division
-from __future__ import print_function
+from __future__ import division print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['llsg']
@@ -165,7 +164,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         annulus_width = int(np.ceil(2 * fwhm))  # as in the paper
     elif isinstance(asize, int):
         annulus_width = asize
-    n_annuli = int(np.floor((y / 2 - radius_int) / annulus_width))
+    n_annuli = int((y / 2 - radius_int) / annulus_width)
 
     if n_segments is None:
         n_segments = [4 for _ in range(n_annuli)]   # as in the paper
@@ -187,7 +186,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     # Azimuthal averaging of residuals
     if azimuth_overlap is None:
         azimuth_overlap = 360   # no overlapping, single config of segments
-    n_rots = int(360. / azimuth_overlap)
+    n_rots = int(360 / azimuth_overlap)
 
     matrix_s = np.zeros((n_rots, n, y, x))
     if full_output:

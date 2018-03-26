@@ -59,8 +59,8 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
         gp = 1 - bp                         # temporary good pixel map
         for n in range(nb):
             #0/ Determine the box around each pixel
-            half_box = np.floor(neighbor_box/2.)
             hbox_b = min(half_box,wb[0][n])        # half size of the box at the
+            half_box = np.floor(neighbor_box/2)
                                                    # bottom of the pixel
             hbox_t = min(half_box,sz_y-1-wb[0][n]) # half size of the box at the
                                                    # top of the pixel

@@ -5,7 +5,7 @@ Module with functions for posterior sampling of the NEGFC parameters using
 nested sampling (``nestle``).
 """
 
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez',
 __all__ = ['nested_negfc_sampling',
@@ -264,7 +264,7 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None):
                         labels=["$r$", r"$\theta$", "$f$"],
                         weights=res.weights[indburnin:], range=ranges,
                         plot_contours=True)
-    fig.set_size_inches(8., 8.)
+    fig.set_size_inches(8, 8)
 
     print('\nConfidence intervals')
     _ = confidence(res.samples[indburnin:], cfd=68, bins=bins,

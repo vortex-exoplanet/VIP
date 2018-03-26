@@ -203,7 +203,7 @@ def get_square(array, size, y, x, position=False, force=False):
 
     # wing is added to the sides of the subframe center
     if size % 2 != 0:
-        wing = size/2
+        wing = size//2
     else:
         wing = size/2 - 0.5
 

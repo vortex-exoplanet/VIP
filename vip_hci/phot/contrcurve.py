@@ -867,8 +867,8 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
             values = array[ind]
             obj_flux = np.mean(values)
         else:
-            obj_flux = photutils.aperture_photometry(array, aper, method='exact')
             aper = photutils.CircularAperture((x, y), (ap_factor*fwhm)/2)
+            obj_flux = photutils.aperture_photometry(array, aper, method='exact')
             obj_flux = np.array(obj_flux['aperture_sum'])
         flux[i] = obj_flux
 

@@ -63,7 +63,7 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         automatically determined for every annulus, based on the annulus width.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
-        processes will be set to (cpu_count()/2). By default the algorithm works
+        processes will be set to cpu_count()/2. By default the algorithm works
         in single-process mode.
     solver : {'lstsq', 'nnls'}, str optional
         Choosing the solver of the least squares problem. ``lstsq`` uses the
@@ -112,8 +112,8 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         msg += "subtraction:\n"
         print(msg.format(n_annuli))
 
-    if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = cpu_count() // 2
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     annulus_width = asize
     if isinstance(n_segments, int):

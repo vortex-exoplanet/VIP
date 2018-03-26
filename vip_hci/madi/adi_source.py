@@ -62,7 +62,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         Sets the way of collapsing the frames for producing a final image.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
-        processes will be set to (cpu_count()/2). By default the algorithm works
+        processes will be set to cpu_count()/2. By default the algorithm works
         in single-process mode.
     full_output: bool, optional
         Whether to return the final median combined image only or with other 
@@ -96,8 +96,8 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     if verbose:
         start_time = time_ini()
 
-    if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2)
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     angle_list = check_pa_vector(angle_list)
     
@@ -129,7 +129,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
                                                 delta_rot, nframes, verbose)
                 cube_out[:, yy, xx] = mres
         elif nproc > 1:
-            pool = Pool(processes=int(nproc))
+            pool = Pool(processes=nproc)
             res = pool.map(EFT, zip(itt.repeat(_median_subt_ann),
                                     range(n_annuli), itt.repeat(angle_list),
                                     itt.repeat(n_annuli), itt.repeat(fwhm),

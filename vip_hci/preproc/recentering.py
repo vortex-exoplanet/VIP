@@ -403,7 +403,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
         mask will be applied to the frame. By default the center isn't masked.
     nproc : int, optional
         Number of processes for parallel computing. If None the number of 
-        processes will be set to (cpu_count()/2). 
+        processes will be set to cpu_count()/2. 
     verbose : {True, False}, bool optional
         Whether to print to stdout some messages and info.
     plot : bool, optional
@@ -467,9 +467,9 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
             pp_subplots(frame, sinogram)
             print(np.sum(np.abs(sinogram[cent,:])))
 
-    if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2) 
-    pool = Pool(processes=int(nproc))  
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
+    pool = Pool(processes=nproc)
     if satspots:
         res = pool.map(EFT, zip(itt.repeat(_radon_costf2), itt.repeat(frame),
                                 itt.repeat(cent), itt.repeat(radint), coords))
@@ -481,7 +481,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
         
     if verbose:  
         msg = 'Done {} radon transform calls distributed in {} processes'
-        print(msg.format(len(coords), int(nproc)))
+        print(msg.format(len(coords), nproc))
 
     cost_bound = costf.reshape(listyx.shape[0], listyx.shape[0])
     if plot:
@@ -872,8 +872,8 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     else:
         raise ValueError('model not recognized')
     
-    if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2)
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     if nproc == 1:
         res = []
@@ -887,7 +887,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                 bar.update()
         res = np.array(res)
     elif nproc > 1:
-        pool = Pool(processes=int(nproc))  
+        pool = Pool(processes=nproc)  
         res = pool.map(EFT, zip(itt.repeat(func), itt.repeat(array),
                                 range(n_frames), itt.repeat(subi_size),
                                 itt.repeat(pos_y), itt.repeat(pos_x),

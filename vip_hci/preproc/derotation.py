@@ -20,7 +20,7 @@ except ImportError:
 from skimage.transform import rotate
 from multiprocessing import Pool, cpu_count
 import itertools as itt
-from ..conf.utils_conf import eval_func_tuple as futup
+from ..conf.utils_conf import eval_func_tuple as EFT
 from ..var import frame_center
 
 data_array = None # holds the (implicitly mem-shared) data array
@@ -157,8 +157,8 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
     array_der = np.zeros_like(array)
     n_frames = array.shape[0]
 
-    if not nproc:
-        nproc = int((cpu_count() / 2))
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     if nproc == 1:
         for i in range(n_frames):
@@ -168,11 +168,10 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         global data_array
         data_array = array
 
-        pool = Pool(processes=int(nproc))
-        res = pool.map(futup, zip(itt.repeat(_cube_rotate_mp),
-                                  range(n_frames), itt.repeat(angle_list),
-                                  itt.repeat(imlib), itt.repeat(interpolation),
-                                  itt.repeat(cxy)))
+        pool = Pool(processes=nproc)
+        res = pool.map(EFT, zip(itt.repeat(_cube_rotate_mp), range(n_frames),
+                                itt.repeat(angle_list), itt.repeat(imlib),
+                                itt.repeat(interpolation), itt.repeat(cxy)))
         pool.close()
         array_der = np.array(res)
 

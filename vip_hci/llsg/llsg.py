@@ -78,7 +78,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         Sets the type of thresholding.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
-        processes will be set to (cpu_count()/2). By default the algorithm works
+        processes will be set to cpu_count()/2. By default the algorithm works
         in single-process mode.
     asize : int or None, optional
         If ``asize`` is None then each annulus will have a width of ``2*asize``.
@@ -157,8 +157,8 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     if radius_int is None:
         radius_int = 0
 
-    if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2)
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     # Same number of pixels per annulus
     if asize is None:
@@ -228,7 +228,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
                         matrix_s[i, :, yy, xx] = patch
 
             elif nproc > 1:
-                pool = Pool(processes=int(nproc))
+                pool = Pool(processes=nproc)
                 res = pool.map(EFT, zip(itt.repeat(_decompose_patch),
                                         itt.repeat(indices),
                                         range(n_segments_ann),

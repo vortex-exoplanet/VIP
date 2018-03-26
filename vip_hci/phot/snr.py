@@ -21,7 +21,7 @@ from matplotlib import pyplot as plt
 from astropy.convolution import convolve, Tophat2DKernel
 from astropy.stats import median_absolute_deviation as mad
 from multiprocessing import Pool, cpu_count
-from ..conf.utils_conf import eval_func_tuple
+from ..conf.utils_conf import eval_func_tuple as EFT
 from ..conf import time_ini, timing
 from ..var import get_annulus, frame_center, dist, pp_subplots
 
@@ -72,8 +72,8 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     yy, xx = np.where(mask)
     coords = zip(xx,yy)
         
-    if not nproc:  
-        nproc = int((cpu_count()/2))  # Hyper-threading doubles the # of cores
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
     
     if mode == 'sss':
         F = snr_ss
@@ -83,10 +83,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         raise TypeError('\nMode not recognized.')
     
     if source_mask is None:
-        pool = Pool(processes=int(nproc))                                        
-        res = pool.map(eval_func_tuple, zip(itt.repeat(F),itt.repeat(array),
-                                            coords, itt.repeat(fwhm),
-                                            itt.repeat(True)))
+        pool = Pool(processes=nproc)                                        
+        res = pool.map(EFT, zip(itt.repeat(F),itt.repeat(array), coords,
+                                itt.repeat(fwhm), itt.repeat(True)))
         res = np.array(res)
         pool.close()
         yy = res[:, 0]
@@ -131,10 +130,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         # coordinates of the rest of the frame without the annulus
         coor_rest = [(y,x) for (y,x) in zip(yy, xx) if (y,x) not in coor_ann]
         
-        pool1 = Pool(processes=int(nproc))
-        res = pool1.map(eval_func_tuple, zip(itt.repeat(F),itt.repeat(array),
-                                             coor_rest, itt.repeat(fwhm),
-                                             itt.repeat(True)))
+        pool1 = Pool(processes=nproc)
+        res = pool1.map(EFT, zip(itt.repeat(F),itt.repeat(array), coor_rest,
+                                 itt.repeat(fwhm), itt.repeat(True)))
         res = np.array(res)
         pool1.close()
         yy = res[:,0]
@@ -142,11 +140,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         snr = res[:,2]
         snrmap[yy.astype('int'), xx.astype('int')] = snr
         
-        pool2 = Pool(processes=int(nproc))
-        res = pool2.map(eval_func_tuple, zip(itt.repeat(F),
-                                             itt.repeat(array_sources),
-                                             coor_ann, itt.repeat(fwhm),
-                                             itt.repeat(True)))
+        pool2 = Pool(processes=nproc)
+        res = pool2.map(EFT, zip(itt.repeat(F), itt.repeat(array_sources),
+                                 coor_ann, itt.repeat(fwhm), itt.repeat(True)))
         res = np.array(res)
         pool2.close()
         yy = res[:,0]
@@ -210,17 +206,16 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     coords = [(x, y) for (x, y) in zip(xx, yy)]
     
     if nproc is None:  
-        nproc = int((cpu_count()/2))  # Hyper-threading doubles the # of cores
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
     
     if nproc == 1:
         for y,x in zip(yy, xx):
             snrmap[y,x] = _snr_approx(array, (x, y), fwhm, cy, cx)[2]
     elif nproc > 1:
-        pool = Pool(processes=int(nproc))                                        
-        res = pool.map(eval_func_tuple, zip(itt.repeat(_snr_approx),
-                                            itt.repeat(array), coords,
-                                            itt.repeat(fwhm), itt.repeat(cy),
-                                            itt.repeat(cx)))
+        pool = Pool(processes=nproc)                                        
+        res = pool.map(EFT, zip(itt.repeat(_snr_approx), itt.repeat(array),
+                                coords,itt.repeat(fwhm), itt.repeat(cy),
+                                itt.repeat(cx)))
         res = np.array(res)
         pool.close()
         yy = res[:, 0]

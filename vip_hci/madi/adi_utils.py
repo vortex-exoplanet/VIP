@@ -27,7 +27,7 @@ def _find_indices(angle_list, frame, thr, nframes=None, out_closest=False,
         Index of the current frame for which we are applying the PA threshold.
     thr : float
         PA threshold.
-    nframes : int, optional
+    nframes : int or None, optional
         Number of indices to be left. For annular ADI median subtraction,
         where we keep the closest frames (after the PA threshold). If None then
         all the indices are returned (after the PA threshold).

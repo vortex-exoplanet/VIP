@@ -512,7 +512,7 @@ def plot_surface(image, center_xy=None, size=15, output=False, title=None,
     show()
     
     if output:
-        return (x,y,z)
+        return x, y, z
  
 
 def lines_of_code():

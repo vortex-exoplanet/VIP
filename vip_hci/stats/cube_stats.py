@@ -160,7 +160,7 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False):
     If full_out is true it returns mean, std_dev, median, if false 
     only the mean.
     """
-    if array.ndim==2:
+    if array.ndim == 2:
         arr = array.copy()    
         
         annulus = get_annulus(arr, inner_radius, size, output_values=True)
@@ -169,7 +169,7 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False):
         median = np.median(annulus)
         maxi = annulus.max()
             
-    if array.ndim==3:
+    if array.ndim == 3:
         n = array.shape[0]
         mean = np.empty(n)
         std_dev = np.empty(n)

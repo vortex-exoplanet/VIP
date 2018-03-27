@@ -36,11 +36,11 @@ def check_enough_memory(input_bytes, factor=1, verbose=True):
     """
     mem = virtual_memory()
     load = factor*input_bytes
-    if load>mem.total:
+    if load > mem.total:
         return False        # total physical memory is smaller than input
     if verbose:  
         print("System available memory = {:} bytes".format(mem.available))
-    if load>=mem.available:
+    if load >= mem.available:
         return False        # available memory is not enough
     else:
         return True         # enough available memory

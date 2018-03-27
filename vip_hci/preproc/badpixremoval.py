@@ -289,17 +289,18 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         _, _, stddev = sigma_clipped_stats(obj_tmp, sigma=2.5)
 
         #2/ Define each annulus, its median and stddev
-        ymax = max(cy,n_y-cy)
-        xmax = max(cx,n_x-cx)
+        
+        ymax = max(cy, n_y-cy)
+        xmax = max(cx, n_x-cx)
         if half_res_y:
             ymax *= 2
         rmax = np.sqrt(ymax**2+xmax**2)
         # the annuli definition is optimized for Airy rings
-        ann_width = max(1.5,0.61*fwhm) 
+        ann_width = max(1.5, 0.61*fwhm) 
         nrad = int(rmax/ann_width)+1
-        d_bord_max = max(n_y-cy,cy,n_x-cx,cx)
+        d_bord_max = max(n_y-cy, cy, n_x-cx, cx)
         if half_res_y:
-            d_bord_max = max(2*(n_y-cy),2*cy,n_x-cx,cx)
+            d_bord_max = max(2*(n_y-cy), 2*cy, n_x-cx, cx)
 
         big_ell_frame = np.zeros_like(obj_tmp)
         sma_ell_frame = np.zeros_like(obj_tmp)
@@ -373,7 +374,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         if protect_psf:
             if half_res_y: 
                 circl_new = ellipse(cy, cx, yradius=0.9*fwhm, 
-                                    xradius=1.8*fwhm,shape=(n_y,n_x))
+                                    xradius=1.8*fwhm, shape=(n_y,n_x))
             else: 
                 circl_new = circle(cy, cx, radius=1.8*fwhm, 
                                    shape=(n_y, n_x))
@@ -388,7 +389,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                 if half_res_y:
                     rad = np.sqrt((2*(cy-yy))**2+(cx-xx)**2)
                 else:
-                    rad = dist(cy,cx,yy,xx)
+                    rad = dist(cy, cx, yy, xx)
                 rr = int(rad/ann_width)
                 neigh = neighbours[rr,:n_neig[rr]]
                 dev = max(stddev,min(std_neig[rr],med_neig[rr]))
@@ -565,10 +566,10 @@ def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True,
         fwhm_round = int(round(fwhm))
         # This should reduce the chance to accidently correct a bright planet:
         if fwhm_round % 2 == 0:
-            neighbor_box = max(3,fwhm_round+1) 
+            neighbor_box = max(3, fwhm_round+1) 
         else:
-            neighbor_box = max(3,fwhm_round)
-        nneig = sum(np.arange(3,neighbor_box+2,2))
+            neighbor_box = max(3, fwhm_round)
+        nneig = sum(np.arange(3, neighbor_box+2, 2))
 
         
         #1/ Create a tuple-array with coordinates of a circle of radius 1.8*fwhm
@@ -646,8 +647,8 @@ def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True,
         return obj_tmp
     
     
-def find_outliers(frame, sig_dist, in_bpix=None, stddev=None,neighbor_box=3,
-                  min_thr=None,mid_thr=None):
+def find_outliers(frame, sig_dist, in_bpix=None, stddev=None, neighbor_box=3,
+                  min_thr=None, mid_thr=None):
     """ Provides a bad pixel (or outlier) map for a given frame.
 
     Parameters
@@ -693,13 +694,13 @@ def find_outliers(frame, sig_dist, in_bpix=None, stddev=None,neighbor_box=3,
             for yy in range(ny):
                 #0/ Determine the box of neighbouring pixels
                 # half size of the box at the bottom of the pixel
-                hbox_b = min(half_box,yy)        
+                hbox_b = min(half_box, yy)        
                 # half size of the box at the top of the pixel
-                hbox_t = min(half_box,ny-1-yy)   
+                hbox_t = min(half_box, ny-1-yy)   
                 # half size of the box to the left of the pixel
-                hbox_l = min(half_box,xx)
+                hbox_l = min(half_box, xx)
                 # half size of the box to the right of the pixel  
-                hbox_r = min(half_box,nx-1-xx)    
+                hbox_r = min(half_box, nx-1-xx)    
                 # but in case we are at an edge, we want to extend the box by 
                 # one row/column of px in the direction opposite to the edge:
                 if yy > ny-1-half_box:

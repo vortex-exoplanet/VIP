@@ -143,7 +143,7 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
 def dist(yc,xc,y1,x1):
     """ Returns the Euclidean distance between two points.
     """
-    return np.sqrt((yc-y1)**2+(xc-x1)**2)
+    return np.sqrt((yc-y1)**2 + (xc-x1)**2)
 
 
 def frame_center(array, verbose=False):
@@ -374,7 +374,7 @@ def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
     xx, yy = np.mgrid[:array.shape[0], :array.shape[1]]
     rad = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
     phi = np.arctan2(yy - cy, xx - cx)
-    phirot = phi % (twopi)
+    phirot = phi % twopi
     outer_radius = inner_radius + (width*optim_scale_fact)
     indices = []
 

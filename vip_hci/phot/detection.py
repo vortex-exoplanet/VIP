@@ -337,10 +337,10 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             ticks = []
             for i in range(half_num_ticks, -half_num_ticks-1, -1):
                 # Avoid ticks not showing on the last pixel
-                if center_val - (i) * 50 != frame_size:
-                    ticks.append(center_val - (i) * 50)
+                if center_val - i * 50 != frame_size:
+                    ticks.append(center_val - i * 50)
                 else:
-                    ticks.append((center_val - (i) * 50) - 1)
+                    ticks.append((center_val - i * 50) - 1)
             ax.set_xticks(ticks)
             ax.set_yticks(ticks)
 
@@ -348,7 +348,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             # the center
             labels = []
             for i in range(half_num_ticks, -half_num_ticks-1, -1):
-                labels.append(0.0 - (i) * 0.5)
+                labels.append(0.0 - i * 0.5)
             ax.set_xticklabels(labels)
             ax.set_yticklabels(labels)
 

@@ -244,7 +244,7 @@ def _snr_approx(array, source_xy, fwhm, centery, centerx):
     ind_ann = draw.circle_perimeter(int(centery), int(centerx), int(rad))
     array2 = array.copy()
     array2[ind_aper] = array[ind_ann].mean()   # quick-n-dirty mask
-    n2 = ((2*np.pi*rad)/fwhm) - 1
+    n2 = (2*np.pi*rad)/fwhm - 1
     noise = array2[ind_ann].std()*np.sqrt(1+(1/n2))
     # signal : central px minus the mean of the pxs (masked) in 1px annulus
     signal = array[sourcey, sourcex] - array2[ind_ann].mean()

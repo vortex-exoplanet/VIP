@@ -224,7 +224,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     if smooth:
         # smoothing the noise vector using a Savitzky-Golay filter
-        win = min(noise_samp.shape[0]-2,int(2*fwhm))
+        win = min(noise_samp.shape[0]-2, int(2*fwhm))
         if win%2 == 0:
             win += 1
         noise_samp_sm = savgol_filter(noise_samp, polyorder=2, mode='nearest',
@@ -260,7 +260,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if isinstance(starphot, float) or isinstance(starphot, int):
         cont_curve_samp = ((sigma * noise_samp_sm)/thruput_interp)/starphot
     else:
-        cont_curve_samp = ((sigma * noise_samp_sm)/thruput_interp)
+        cont_curve_samp = (sigma * noise_samp_sm)/thruput_interp
     cont_curve_samp[np.where(cont_curve_samp<0)] = 1
     cont_curve_samp[np.where(cont_curve_samp>1)] = 1
 
@@ -273,7 +273,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp
                                    )/starphot
         else:
-            cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp)
+            cont_curve_samp_corr = (sigma_corr * noise_samp_sm)/thruput_interp
         cont_curve_samp_corr[np.where(cont_curve_samp_corr<0)] = 1
         cont_curve_samp_corr[np.where(cont_curve_samp_corr>1)] = 1
 
@@ -281,8 +281,9 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if plot or debug:
         if student:
             label = ['Sensitivity (Gaussian)',
-                     'Sensitivity (Student-t correction)']
-        else:  label = ['Sensitivity (Gaussian)']
+            'Sensitivity (Student-t correction)']
+        else:
+            label = ['Sensitivity (Gaussian)']
 
         plt.rc("savefig", dpi=dpi)
         fig = plt.figure(figsize=figsize, dpi=dpi)

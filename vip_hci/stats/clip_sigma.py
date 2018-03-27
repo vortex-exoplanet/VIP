@@ -59,14 +59,14 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
         gp = 1 - bp                         # temporary good pixel map
         for n in range(nb):
             #0/ Determine the box around each pixel
-            hbox_b = min(half_box,wb[0][n])        # half size of the box at the
             half_box = np.floor(neighbor_box/2)
+            hbox_b = min(half_box, wb[0][n])       # half size of the box at the
                                                    # bottom of the pixel
-            hbox_t = min(half_box,sz_y-1-wb[0][n]) # half size of the box at the
+            hbox_t = min(half_box, sz_y-1-wb[0][n])# half size of the box at the
                                                    # top of the pixel
-            hbox_l = min(half_box,wb[1][n])        # half size of the box to the
+            hbox_l = min(half_box, wb[1][n])       # half size of the box to the
                                                    # left of the pixel
-            hbox_r = min(half_box,sz_x-1-wb[1][n]) # half size of the box to the
+            hbox_r = min(half_box, sz_x-1-wb[1][n])# half size of the box to the
                                                    # right of the pixel
             # but in case we are at an edge, we want to extend the box by one 
             # row/column of pixels in the direction opposite to the edge to 

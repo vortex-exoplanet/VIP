@@ -103,8 +103,8 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     # annulus-wise pair-wise subtraction
-    final_frame = []
     if nproc == 1:
+        final_frame = []
         for ann in range(n_annuli):
             res_ann = _pairwise_ann(ann, n_annuli, fwhm, angle_list, delta_rot,
                                     metric, dist_threshold, n_similar,

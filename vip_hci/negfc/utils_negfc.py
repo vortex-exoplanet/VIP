@@ -56,8 +56,8 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, plsc, imlib='opencv',
             cube_temp = cpf
 
         cpf = cube_inject_companions(cube_temp, psfn, angs,
-                                     flevel=-planet_parameter[i, 2],
-                                     plsc=plsc, rad_dists=[planet_parameter[i, 0]],
+                                     flevel=-planet_parameter[i, 2], plsc=plsc,
+                                     rad_dists=[planet_parameter[i, 0]],
                                      n_branches=1, theta=planet_parameter[i, 1],
                                      imlib=imlib, interpolation=interpolation,
                                      verbose=False)
@@ -186,9 +186,10 @@ def ds9index_to_polar(y, x, ceny=0, cenx=0):
     Note that ds9 index (x,y) = Python matrix index (y,x). Furthermore, when an 
     image M is displayed with DS9, the coordinates of the center of the pixel 
     associated with M[0,0] is (1,1). Then, there is a shift of (0.5, 0.5) of the
-    center of the coordinate system. As a conclusion, when you read (x_ds9, y_ds9)
-    on a image displayed with DS9, the corresponding position is (y-0.5, x-0.5)
-    and the associated pixel value is M(np.floor(y)-1,np.floor(x)-1).
+    center of the coordinate system. As a conclusion, when you read
+    (x_ds9, y_ds9) on a image displayed with DS9, the corresponding position is
+    (y-0.5, x-0.5) and the associated pixel value is
+    M(np.floor(y)-1,np.floor(x)-1).
     
     Parameters
     ----------
@@ -217,9 +218,10 @@ def polar_to_ds9index(r, theta, ceny=0, cenx=0):
     Note that ds9 index (x,y) = Python matrix index (y,x). Furthermore, when an 
     image M is displayed with DS9, the coordinates of the center of the pixel 
     associated with M[0,0] is (1,1). Then, there is a shift of (0.5, 0.5) of the
-    center of the coordinate system. As a conclusion, when you read (x_ds9, y_ds9)
-    on a image displayed with DS9, the corresponding position is (y-0.5, x-0.5)
-    and the associated pixel value is M(np.floor(y)-1,np.floor(x)-1).
+    center of the coordinate system. As a conclusion, when you read
+    (x_ds9, y_ds9) on a image displayed with DS9, the corresponding position is
+    (y-0.5, x-0.5) and the associated pixel value is
+    M(np.floor(y)-1,np.floor(x)-1).
     
     Parameters
     ----------

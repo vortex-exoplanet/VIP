@@ -206,9 +206,9 @@ def cube_rescaling_wavelengths(array, scaling_list, ref_xy=None, imlib='opencv',
 
     def _frame_rescaling(array, ref_xy=None, scale=1.0, imlib='opencv',
                          interpolation='lanczos4', scale_y=None, scale_x=None):
-        """ Function to rescale a frame by a factor ``scale``, wrt a reference point
-        which by default is the center of the frame (typically the exact location
-        of the star). However, it keeps the same dimensions.
+        """ Function to rescale a frame by a factor ``scale``, wrt a reference
+        point which by default is the center of the frame (typically the exact
+        location of the star). However, it keeps the same dimensions.
 
         Parameters
         ----------

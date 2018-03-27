@@ -35,7 +35,8 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
      array : array_like
          Input 2d array.
      bpm_mask : array_like, optional
-         Input bad pixel map. Zeros frame where the bad pixels have a value of 1.
+         Input bad pixel map. Zeros frame where the bad pixels have a value of
+         1.
          If None is provided a bad pixel map will be created per frame using
          sigma clip statistics. In the case of a cube the bad pixels will be
          computed on the mean frame of the stack.
@@ -47,10 +48,12 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
          statistics are calculated (STDDEV and MEDIAN). If the value is equal to
          0 then the statistics are computed in the whole frame.
      size : odd int, optional
-         The size the box (size x size) of adjacent pixels for the median filter.
+         The size the box (size x size) of adjacent pixels for the median
+         filter.
      protect_mask : bool, optional
          If True a circular aperture at the center of the frames will be
-         protected from any operation. With this we protect the star and vicinity.
+         protected from any operation. With this we protect the star and
+         vicinity.
      radius : int, optional
          Radius of the circular aperture (at the center of the frames) for the
          protection mask.
@@ -58,8 +61,8 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
          If True additional information will be printed.
      debug : bool, optional
          If debug is True, the bpm_mask and the input array are plotted. If the
-         input array is a cube, a long output is to be expected. Better check the
-         results with single images.
+         input array is a cube, a long output is to be expected. Better check
+         the results with single images.
 
      Return
      ------
@@ -106,8 +109,8 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
 
 
 def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5, 
-                             size=5, protect_mask=False, radius=30, verbose=True,
-                             debug=False):
+                             size=5, protect_mask=False, radius=30,
+                             verbose=True, debug=False):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is 
     replaced by the median of the adjacent pixels. This function is very fast
     but works only with isolated (sparse) pixels. 
@@ -423,7 +426,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                             # Poisson noise
                             rand_fac = 2*(np.random.rand()-0.5)
                             obj_tmp_corr[yy,xx] = med_neig[rr] + \
-                                                  np.sqrt(np.abs(med_neig[rr]))*rand_fac
+                                          np.sqrt(np.abs(med_neig[rr]))*rand_fac
 
         #5/ Count bpix and uncorrect if within the circle
         nbpix_tot = np.sum(bpix_map)

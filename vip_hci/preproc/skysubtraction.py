@@ -47,8 +47,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
 
     # Getting the EVs from the sky cube
     Msky = prepare_matrix(sky_cube, scaling=None, verbose=False)
-    sky_pcs = svd_wrapper(Msky, 'lapack', sky_cube.shape[0], False,
-                                  False)
+    sky_pcs = svd_wrapper(Msky, 'lapack', sky_cube.shape[0], False, False)
     sky_pcs_cube = sky_pcs.reshape(sky_cube.shape[0], sky_cube.shape[1],
                                    sky_cube.shape[1])
 
@@ -59,8 +58,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
         masked_image = np.copy(sci_cube[i])
         masked_image[ind_masked] = 0
         sci_cube_masked[i] = masked_image
-    Msci_masked = prepare_matrix(sci_cube_masked, scaling=None,
-                                         verbose=False)
+    Msci_masked = prepare_matrix(sci_cube_masked, scaling=None, verbose=False)
 
     # Masking the PCs learned from the skies
     sky_pcs_cube_masked = np.zeros_like(sky_pcs_cube)
@@ -103,8 +101,8 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
 
         ref_cube_skysub = np.zeros_like(ref_cube)
         for i in range(Mref_masked.shape[0]):
-            sky_opt = np.array([np.sum(
-                transf_ref_scaled[j, i] * sky_pcs_cube[j] for j in range(ncomp))])
+            sky_opt = np.array([np.sum(transf_ref_scaled[j, i] * sky_pcs_cube[j]
+                                       for j in range(ncomp))])
             ref_cube_skysub[i] = ref_cube[i] - sky_opt
 
         return sci_cube_skysub, ref_cube_skysub

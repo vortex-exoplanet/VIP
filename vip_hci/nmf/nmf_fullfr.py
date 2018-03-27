@@ -113,7 +113,8 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
         print('Done derotating and combining.')
         timing(start_time)
     if full_output:
-        return H.reshape(ncomp,y,x), reconstructed.reshape(n,y,x), array_out, array_der, frame 
+        return (H.reshape(ncomp,y,x), reconstructed.reshape(n,y,x), array_out,
+                array_der, frame )
     else:
         return frame
     

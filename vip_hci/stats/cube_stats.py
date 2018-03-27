@@ -62,7 +62,8 @@ def cube_stats_aperture(arr, radius, xy=None, plot=False, full_output=False):
         for i in range(n):
             if xy is not None:
                 x, y = xy
-                circle = get_circle(arr[i], radius, output_values=True, cy=y, cx=x)
+                circle = get_circle(arr[i], radius, output_values=True,
+                                    cy=y, cx=x)
             else:
                 circle = get_circle(arr[i], radius, output_values=True)
             values_circle.append(circle)

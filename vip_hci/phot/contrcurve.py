@@ -107,9 +107,11 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     object_name: string
         Target name, used in the plot title
     frame_size: int
-        Frame size used for generating the contrast curve, used in the plot title
+        Frame size used for generating the contrast curve, used in the plot
+        title
     fix_y_lim: tuple
-        If provided, the y axis limits will be fixed, for easier comparison between plots
+        If provided, the y axis limits will be fixed, for easier comparison
+        between plots
     **algo_dict
         Any other valid parameter of the post-processing algorithms can be
         passed here.
@@ -198,8 +200,9 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     # noise measured in the empty PP-frame with better sampling, every px
     # starting from 1*FWHM
-    noise_samp, rad_samp = noise_per_annulus(frame_nofc, separation=1, fwhm=fwhm,
-                                             init_rad=fwhm, wedge=wedge)
+    noise_samp, rad_samp = noise_per_annulus(frame_nofc, separation=1,
+                                             fwhm=fwhm, init_rad=fwhm,
+                                             wedge=wedge)
     cutin1 = np.where(rad_samp.astype(int)==vector_radd.astype(int).min())[0][0]
     noise_samp = noise_samp[cutin1:]
     rad_samp = rad_samp[cutin1:]
@@ -267,7 +270,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         ss_corr = np.sqrt(1 + 1/(n_res_els-1))
         sigma_corr = stats.t.ppf(stats.norm.cdf(sigma), n_res_els)*ss_corr
         if isinstance(starphot, float) or isinstance(starphot, int):
-            cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp)/starphot
+            cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp
+                                   )/starphot
         else:
             cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp)
         cont_curve_samp_corr[np.where(cont_curve_samp_corr<0)] = 1
@@ -571,7 +575,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                                                      theta=br*angle_branch +
                                                            theta,
                                                      imlib=imlib, verbose=False,
-                                                     interpolation=interpolation)
+                                                     interpolation=
+                                                        interpolation)
                     y = cy + radvec[i] * np.sin(np.deg2rad(br * angle_branch +
                                                            theta))
                     x = cx + radvec[i] * np.cos(np.deg2rad(br * angle_branch +
@@ -779,7 +784,8 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0,360),
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
     if not isinstance(wedge, tuple):
-        raise TypeError('Wedge must be a tuple with the initial and final angles')
+        raise TypeError('Wedge must be a tuple with the initial and final '
+                        'angles')
 
     init_angle, fin_angle = wedge
     centery, centerx = frame_center(array)
@@ -872,7 +878,8 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
             obj_flux = np.mean(values)
         else:
             aper = photutils.CircularAperture((x, y), (ap_factor*fwhm)/2)
-            obj_flux = photutils.aperture_photometry(array, aper, method='exact')
+            obj_flux = photutils.aperture_photometry(array, aper,
+                                                     method='exact')
             obj_flux = np.array(obj_flux['aperture_sum'])
         flux[i] = obj_flux
 

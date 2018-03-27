@@ -230,7 +230,7 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
         size = indices.shape[0]
         angles_list = np.zeros((size))
         for i in range(size):
-            angles_list[i] = angles[indices[i][0]]  # filter of the angles vector
+            angles_list[i] = angles[indices[i][0]] # filter of the angles vector
 
         cube_res = np.zeros((size, yy.shape[0]))
         # pair-wise subtraction

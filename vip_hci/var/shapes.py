@@ -649,9 +649,8 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
     """
     if mode == 'annular':
         if annulus_radius is None or annulus_width is None:
-            msgerr = 'Annulus_radius and/or annulus_width can be None in annular '
-            msgerr += 'mode'
-            raise ValueError(msgerr)
+            raise ValueError('Annulus_radius and/or annulus_width can be None '
+                             'in annular mode')
 
         ind = get_annulus(array[0], annulus_radius - annulus_width / 2,
                           annulus_width, output_indices=True)

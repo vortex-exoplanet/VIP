@@ -97,9 +97,9 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
 # TODO: If possible, replace this function using astropy.stats.sigma_clip
 def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
                num_neighbor=None, mad=False):
-    """Sigma clipping for detecting outlying values in 2d array. If the parameter
-    'neighbor' is True the clipping can be performed in a local patch around 
-    each pixel, whose size depends on 'neighbor' parameter.
+    """Sigma clipping for detecting outlying values in 2d array. If the
+    parameter 'neighbor' is True the clipping can be performed in a local patch
+    around each pixel, whose size depends on 'neighbor' parameter.
     
     Parameters
     ----------
@@ -153,10 +153,12 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
     bad2 = values > (median + upper_sigma * sigma)
     
     if out_good:
-        good = np.where(good1 & good2)                                          # normal px indices in both good1 and good2
+        # normal px indices in both good1 and good2
+        good = np.where(good1 & good2)
         return good
     else:
-        bad = np.where(bad1 | bad2)                                             # deviating px indices in either bad1 or bad2
+        # deviating px indices in either bad1 or bad2
+        bad = np.where(bad1 | bad2)
         return bad
     
   

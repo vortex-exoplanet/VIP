@@ -347,7 +347,8 @@ def frame_filter_gaussian2d(array, size_fwhm, mode='conv'):
         raise TypeError('Input array is not a frame or 2d array.')
     
     if mode=='conv':
-        filtered = gaussian_filter(array, sigma=size_fwhm*gaussian_fwhm_to_sigma, 
+        filtered = gaussian_filter(array,
+                                   sigma=size_fwhm*gaussian_fwhm_to_sigma, 
                                    order=0, mode='nearest')
     elif mode=='convfft':
         # FFT Convolution with a 2d gaussian kernel created with Astropy.

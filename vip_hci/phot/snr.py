@@ -124,7 +124,8 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
             anny += list(tempay); annx += list(tempax)
 
         # coordinates of annulus without the sources
-        coor_ann = [(y,x) for (y,x) in zip(anny, annx) if (y,x) not in zip(ciry, cirx)]
+        coor_ann = [(y,x) for (y,x) in zip(anny, annx)
+                    if (y,x) not in zip(ciry, cirx)]
 
         # coordinates of the rest of the frame without the annulus
         coor_rest = [(y,x) for (y,x) in zip(yy, xx) if (y,x) not in coor_ann]
@@ -152,8 +153,8 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     if plot:  
         pp_subplots(snrmap, colorb=True, title='S/N map')
 
-    # Option to save snrmap in angular scale, using Keck NIRC2's ~0.01 pixel scale
-    # In this case, set plot = False
+    # Option to save snrmap in angular scale, using Keck NIRC2's ~0.01 pixel
+    # scale. In this case, set plot = False
     elif save_plot is not None:
         pp_subplots(snrmap, colorb=True, title=plot_title, save=save_plot,
                     vmin=-1, vmax=5, angscale=True, getfig = True)
@@ -339,7 +340,8 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
     
     if plot:
         _, ax = plt.subplots(figsize=(6,6))
-        ax.imshow(array, origin='lower', interpolation='nearest', alpha=0.5, cmap='gray')
+        ax.imshow(array, origin='lower', interpolation='nearest', alpha=0.5,
+                  cmap='gray')
         for i in range(xx.shape[0]):
             # Circle takes coordinates as (X,Y)
             aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2, color='r', 

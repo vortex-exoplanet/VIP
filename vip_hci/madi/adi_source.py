@@ -44,8 +44,9 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     asize : int, optional
         The size of the annuli, in FWHM. Default is 2.
     delta_rot : int, optional
-        Factor for increasing the parallactic angle threshold, expressed in FWHM.
-        Default is 1 (excludes 1 FHWM on each side of the considered frame).
+        Factor for increasing the parallactic angle threshold, expressed in
+        FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
+        frame).
     mode : {"fullfr","annular"}, str optional
         In "simple" mode only the median frame is subtracted, in "annular" mode
         also the 4 closest frames given a PA threshold (annulus-wise) are 

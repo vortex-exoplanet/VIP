@@ -6,7 +6,8 @@ Module containing functions for cubes frame registration.
 
 from __future__ import division, print_function
 
-__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens @ ULg/UChile, G. Ruane'
+__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens @ ULg/UChile, '\
+             'G. Ruane'
 __all__ = ['frame_shift',
            'frame_center_radon',
            'frame_center_satspots',
@@ -102,14 +103,14 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
         elif interpolation == 'biquintic':
             order = 5
         else:
-            raise TypeError('Scipy.ndimage interpolation method not recognized.')
+            raise TypeError('Scipy.ndimage interpolation method not recognized')
         
         array_shifted = shift(image, (shift_y, shift_x), order=order)
     
     elif imlib == 'opencv':
         if no_opencv:
-            msg = 'Opencv python bindings cannot be imported. Install opencv or '
-            msg += 'set imlib to ndimage-fourier or ndimage-interp'
+            msg = 'Opencv python bindings cannot be imported. Install opencv or'
+            msg += ' set imlib to ndimage-fourier or ndimage-interp'
             raise RuntimeError(msg)
 
         if interpolation == 'bilinear':
@@ -121,7 +122,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
         elif interpolation == 'lanczos4':
             intp = cv2.INTER_LANCZOS4
         else:
-            raise TypeError('Opencv interpolation method not recognized.')
+            raise TypeError('Opencv interpolation method not recognized')
         
         image = np.float32(image)
         y, x = image.shape
@@ -129,7 +130,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
         array_shifted = cv2.warpAffine(image, M, (x,y), flags=intp)
 
     else:
-        raise ValueError('Image transformation library not recognized.')
+        raise ValueError('Image transformation library not recognized')
     
     return array_shifted
 
@@ -226,28 +227,32 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
     cy, cx = frame_center(array)
     
     # Upper left
-    si1, y1, x1 = get_square(array, subim_size, xy[0][1], xy[0][0], position=True)
+    si1, y1, x1 = get_square(array, subim_size, xy[0][1], xy[0][0],
+                             position=True)
     cent2dgy_1, cent2dgx_1 = fit_2dgaussian(si1, theta=135, crop=False, 
                                             threshold=True, sigfactor=sigfactor, 
                                             debug=debug)
     cent2dgx_1 += x1
     cent2dgy_1 += y1
     # Upper right
-    si2, y2, x2 = get_square(array, subim_size, xy[1][1], xy[1][0], position=True)
+    si2, y2, x2 = get_square(array, subim_size, xy[1][1], xy[1][0],
+                             position=True)
     cent2dgy_2, cent2dgx_2 = fit_2dgaussian(si2, theta=45, crop=False, 
                                             threshold=True, sigfactor=sigfactor, 
                                             debug=debug)
     cent2dgx_2 += x2
     cent2dgy_2 += y2 
     #  Lower left
-    si3, y3, x3 = get_square(array, subim_size, xy[2][1], xy[2][0], position=True)
+    si3, y3, x3 = get_square(array, subim_size, xy[2][1], xy[2][0],
+                             position=True)
     cent2dgy_3, cent2dgx_3 = fit_2dgaussian(si3, theta=45, crop=False, 
                                             threshold=True, sigfactor=sigfactor, 
                                             debug=debug)
     cent2dgx_3 += x3
     cent2dgy_3 += y3
     #  Lower right
-    si4, y4, x4 = get_square(array, subim_size, xy[3][1], xy[3][0], position=True)
+    si4, y4, x4 = get_square(array, subim_size, xy[3][1], xy[3][0],
+                             position=True)
     cent2dgy_4, cent2dgx_4 = fit_2dgaussian(si4, theta=135, crop=False, 
                                             threshold=True, sigfactor=sigfactor, 
                                             debug=debug)
@@ -1072,13 +1077,14 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                    cube_sci_subframe.shape[2]))
         alignment_cube[1:(cube_sci.shape[0] + 1), :, :] = cube_sci_lpf
 
-    n_frames = alignment_cube.shape[0]  # number of sci+ref frames + 1 for the median
+    n_frames = alignment_cube.shape[0]   # num sci+ref frames + 1 for the median
 
     cum_y_shifts = 0
     cum_x_shifts = 0
 
     for i in range(alignment_iter):
-        alignment_cube[0] = np.median(alignment_cube[1:(cube_sci.shape[0] + 1), :, :], axis=0)
+        alignment_cube[0] = np.median(alignment_cube[1:(cube_sci.shape[0] + 1),
+                                                     :, :], axis=0)
         if recenter_median:
             # Recenter the median frame using a neg. gaussian fit
             sub_image, y1, x1 = get_square(alignment_cube[0], size=int(fwhm),
@@ -1132,7 +1138,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                           interpolation=interpolation)
 
     if cube_ref is not None:
-        return cube_reg_sci, cube_reg_ref, cum_x_shifts_sci, cum_y_shifts_sci, cum_x_shifts_ref, cum_y_shifts_ref
+        return (cube_reg_sci, cube_reg_ref, cum_x_shifts_sci, cum_y_shifts_sci,
+                cum_x_shifts_ref, cum_y_shifts_ref)
     else:
         return cube_reg_sci, cum_x_shifts_sci, cum_y_shifts_sci
 

@@ -193,7 +193,6 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
             raise ValueError("n_similar must be >= 3 or None")
         for i in range(n_frames):
             vector = pn.DataFrame(mat_dists_ann[i])
-            vector.columns = ['i']
             if vector.sum().values == 0:
                 continue
             else:
@@ -211,7 +210,6 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
         ind = []
         for i in range(n_frames):
             vector = pn.DataFrame(mat_dists_ann[i])
-            vector.columns = ['i']
             if vector.sum().values == 0:
                 continue
             else:

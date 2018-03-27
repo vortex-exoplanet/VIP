@@ -1050,8 +1050,8 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
                                   angle_list[intfin:], imlib=imlib,
                                   interpolation=interpolation)
         medians.append(cube_collapse(resid_der, mode=collapse))
-    del(matrix)
-    del(batch)
+    del matrix
+    del batch
 
     medians = np.array(medians)
     frame = np.median(medians, axis=0)

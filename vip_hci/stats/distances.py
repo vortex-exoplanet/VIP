@@ -4,7 +4,7 @@
 Distance between images.
 """
 
-from __future__ import division
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_distance',
@@ -63,7 +63,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
         1d array of distances for each frame wrt the reference one.
 
     """
-    if not array.ndim ==3:
+    if array.ndim != 3:
         raise TypeError('The input array is not a cube or 3d array')
     lista = []
     n = array.shape[0]
@@ -186,7 +186,7 @@ def cube_distance_to_frame(array, frame_ref, mode='full', dist='sad',
         1d array of distances for each frame wrt the reference one.
 
     """
-    if not array.ndim ==3:
+    if array.ndim != 3:
         raise TypeError('The input array is not a cube or 3d array')
     lista = []
     n = array.shape[0]

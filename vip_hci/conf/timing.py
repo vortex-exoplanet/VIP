@@ -3,7 +3,8 @@
 """
 Functions for timing other functions/procedures.
 """
-from __future__ import print_function
+from __future__ import division, print_function
+
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['time_ini', 'timing', 'time_fin']
 

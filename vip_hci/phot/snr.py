@@ -4,8 +4,7 @@
 Module with S/N calculation functions.
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, O. Absil @ ULg'
 __all__ = ['snr_ss',
@@ -21,7 +20,7 @@ from matplotlib import pyplot as plt
 from astropy.convolution import convolve, Tophat2DKernel
 from astropy.stats import median_absolute_deviation as mad
 from multiprocessing import Pool, cpu_count
-from ..conf.utils_conf import eval_func_tuple
+from ..conf.utils_conf import eval_func_tuple as EFT
 from ..conf import time_ini, timing
 from ..var import get_annulus, frame_center, dist, pp_subplots
 
@@ -60,7 +59,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         
     """
     start_time = time_ini()
-    if not array.ndim==2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a 2d array or image.')
     if plot:  plt.close('snr')
         
@@ -72,8 +71,8 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     yy, xx = np.where(mask)
     coords = zip(xx,yy)
         
-    if not nproc:  
-        nproc = int((cpu_count()/2))  # Hyper-threading doubles the # of cores
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
     
     if mode == 'sss':
         F = snr_ss
@@ -83,10 +82,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         raise TypeError('\nMode not recognized.')
     
     if source_mask is None:
-        pool = Pool(processes=int(nproc))                                        
-        res = pool.map(eval_func_tuple, zip(itt.repeat(F),itt.repeat(array),
-                                            coords, itt.repeat(fwhm),
-                                            itt.repeat(True)))
+        pool = Pool(processes=nproc)                                        
+        res = pool.map(EFT, zip(itt.repeat(F),itt.repeat(array), coords,
+                                itt.repeat(fwhm), itt.repeat(True)))
         res = np.array(res)
         pool.close()
         yy = res[:, 0]
@@ -95,7 +93,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         snrmap[yy.astype('int'), xx.astype('int')] = snr
     else:
         # checking the mask with the sources
-        if not array.shape == source_mask.shape:
+        if array.shape != source_mask.shape:
             raise RuntimeError('Source mask has wrong size.')
         if source_mask[source_mask == 0].shape[0] == 0:
             msg = 'Input source mask is empty.'
@@ -111,13 +109,13 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         centery, centerx = frame_center(array)
         for (y,x) in zip(soury,sourx):
             radd = dist(centery, centerx, y, x)
-            if int(np.floor(radd)) < centery - np.ceil(fwhm):
+            if int(radd) < centery - np.ceil(fwhm):
                 sources.append((y,x))
         
         for source in sources:
             y, x = source        
             radd = dist(centery, centerx, y, x)
-            tempay, tempax = get_annulus(array, int(np.floor(radd-fwhm)), 
+            tempay, tempax = get_annulus(array, int(radd-fwhm), 
                                     int(np.ceil(2*fwhm)), output_indices=True)
             tempcy, tempcx = draw.circle(y, x, int(np.ceil(1*fwhm)))
             # masking the source position (using the MAD of pixels in annulus)
@@ -131,10 +129,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         # coordinates of the rest of the frame without the annulus
         coor_rest = [(y,x) for (y,x) in zip(yy, xx) if (y,x) not in coor_ann]
         
-        pool1 = Pool(processes=int(nproc))
-        res = pool1.map(eval_func_tuple, zip(itt.repeat(F),itt.repeat(array),
-                                             coor_rest, itt.repeat(fwhm),
-                                             itt.repeat(True)))
+        pool1 = Pool(processes=nproc)
+        res = pool1.map(EFT, zip(itt.repeat(F),itt.repeat(array), coor_rest,
+                                 itt.repeat(fwhm), itt.repeat(True)))
         res = np.array(res)
         pool1.close()
         yy = res[:,0]
@@ -142,11 +139,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         snr = res[:,2]
         snrmap[yy.astype('int'), xx.astype('int')] = snr
         
-        pool2 = Pool(processes=int(nproc))
-        res = pool2.map(eval_func_tuple, zip(itt.repeat(F),
-                                             itt.repeat(array_sources),
-                                             coor_ann, itt.repeat(fwhm),
-                                             itt.repeat(True)))
+        pool2 = Pool(processes=nproc)
+        res = pool2.map(EFT, zip(itt.repeat(F), itt.repeat(array_sources),
+                                 coor_ann, itt.repeat(fwhm), itt.repeat(True)))
         res = np.array(res)
         pool2.close()
         yy = res[:,0]
@@ -194,11 +189,11 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     """       
     if verbose:
         start_time = time_ini()
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a 2d array or image.')
     
     cy, cx = frame_center(array)
-    tophat_kernel = Tophat2DKernel(fwhm/2.)
+    tophat_kernel = Tophat2DKernel(fwhm/2)
     array = convolve(array, tophat_kernel)
             
     sizey, sizex = array.shape
@@ -210,17 +205,16 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     coords = [(x, y) for (x, y) in zip(xx, yy)]
     
     if nproc is None:  
-        nproc = int((cpu_count()/2))  # Hyper-threading doubles the # of cores
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
     
     if nproc == 1:
         for y,x in zip(yy, xx):
             snrmap[y,x] = _snr_approx(array, (x, y), fwhm, cy, cx)[2]
     elif nproc > 1:
-        pool = Pool(processes=int(nproc))                                        
-        res = pool.map(eval_func_tuple, zip(itt.repeat(_snr_approx),
-                                            itt.repeat(array), coords,
-                                            itt.repeat(fwhm), itt.repeat(cy),
-                                            itt.repeat(cx)))
+        pool = Pool(processes=nproc)                                        
+        res = pool.map(EFT, zip(itt.repeat(_snr_approx), itt.repeat(array),
+                                coords,itt.repeat(fwhm), itt.repeat(cy),
+                                itt.repeat(cx)))
         res = np.array(res)
         pool.close()
         yy = res[:, 0]
@@ -293,7 +287,7 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
     sourcey, sourcex, f_source, fluxes.std(), snr
     
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
     if out_coor and full_output:
         raise TypeError('One of the 2 must be False')
@@ -305,7 +299,7 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
     
     sens = 'clock' #counterclock
         
-    angle = np.arcsin(fwhm/2./sep)*2
+    angle = np.arcsin(fwhm/2/sep)*2
     number_apertures = int(np.floor(2*np.pi/angle))
     yy = np.zeros((number_apertures))
     xx = np.zeros((number_apertures))
@@ -348,7 +342,7 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
         ax.imshow(array, origin='lower', interpolation='nearest', alpha=0.5, cmap='gray')
         for i in range(xx.shape[0]):
             # Circle takes coordinates as (X,Y)
-            aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2., color='r', 
+            aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2, color='r', 
                               fill=False, alpha=0.8)                                       
             ax.add_patch(aper)
             cent = plt.Circle((xx[i], yy[i]), radius=0.8, color='r', fill=True,
@@ -403,9 +397,9 @@ def snr_peakstddev(array, source_xy, fwhm, out_coor=False, plot=False,
     rad = dist(centery,centerx,sourcey,sourcex)  
     
     array = array + np.abs(array.min()) 
-    inner_rad = np.round(rad)-(fwhm/2.)
+    inner_rad = np.round(rad) - fwhm/2
     an_coor = get_annulus(array, inner_rad, fwhm, output_indices=True)
-    ap_coor = draw.circle(sourcey, sourcex, int(np.ceil(fwhm/2.)))
+    ap_coor = draw.circle(sourcey, sourcex, int(np.ceil(fwhm/2)))
     array2 = array.copy()
     array2[ap_coor] = array[an_coor].mean()   # we 'mask' the flux aperture
     stddev = array2[an_coor].std()

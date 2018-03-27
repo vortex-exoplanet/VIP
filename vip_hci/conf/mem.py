@@ -3,7 +3,7 @@
 """
 Module for functions that check available memory, and input sizes.
 """
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['check_enough_memory',

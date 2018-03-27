@@ -4,8 +4,7 @@
 Module with ADI helper functions.
 """
 
-from __future__ import division 
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = []
@@ -70,7 +69,7 @@ def _find_indices(angle_list, frame, thr, nframes=None, out_closest=False,
         if nframes is not None:
             # For annular ADI median subtraction, returning n_frames closest
             # indices (after PA thresholding)
-            window = int(nframes/2)
+            window = nframes // 2
             ind1 = index_prev-window
             ind1 = max(ind1, 0)
             ind2 = index_prev
@@ -88,13 +87,13 @@ def _find_indices(angle_list, frame, thr, nframes=None, out_closest=False,
             # is to keep min(num_frames/2, 200) in the library after discarding
             # those based on the PA threshold
             if truncate:
-                thr = min(int(n / 2), max_frames)
+                thr = min(n//2, max_frames)
                 if frame < thr:
-                    half1 = range(max(0, index_prev - int(thr / 2)), index_prev)
+                    half1 = range(max(0, index_prev - thr//2), index_prev)
                     half2 = range(index_foll,
                                   min(index_foll + thr - len(half1), n))
                 else:
-                    half2 = range(index_foll, min(n, int(thr / 2 + index_foll)))
+                    half2 = range(index_foll, min(n, thr//2 + index_foll))
                     half1 = range(max(0, index_prev - thr + len(half2)),
                                   index_prev)
             indices = np.array(list(half1) + list(half2))
@@ -119,7 +118,7 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
         inner_radius = radius_int + (ann * annulus_width - 1)
     else:
         inner_radius = radius_int + ann * annulus_width
-    ann_center = (inner_radius + (annulus_width / 2.0))
+    ann_center = inner_radius + (annulus_width / 2)
     pa_threshold = _compute_pa_thresh(ann_center, fwhm, delta_rot)
 
     mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list)) / 2

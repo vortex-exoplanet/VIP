@@ -5,6 +5,8 @@ Module with post-processing related functions called from within the NFC
 algorithm.
 """
 
+from __future__ import division, print_function
+
 __all__ = ['cube_planet_free']
 
 import numpy as np
@@ -91,7 +93,7 @@ def radial_to_eq(r=1, t=0, rError=0, tError=0, display=False):
     dec = (r * np.cos(math.radians(t)))   
     u, v = (ra, dec)
     
-    nu = np.mod(np.pi/2.-math.radians(t), 2*np.pi)
+    nu = np.mod(np.pi/2-math.radians(t), 2*np.pi)
     a, b = (rError,r*np.sin(math.radians(tError)))
 
     beta = np.linspace(0,2*np.pi,5000)

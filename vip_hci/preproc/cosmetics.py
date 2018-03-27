@@ -5,8 +5,7 @@ Module with cosmetics procedures. Contains the function for bad pixel fixing.
 Also functions for cropping cubes. 
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens @ UChile/ULg'
 __all__ = ['cube_crop_frames',
@@ -49,7 +48,7 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
         Cube with cropped frames.
         
     """
-    if not (array.ndim == 3 or array.ndim == 4):
+    if array.ndim != 3 and array.ndim != 4:
         raise TypeError('Array is not a cube, 3d or 4d array')
     if not isinstance(size, int):
         raise TypeError('Size must be integer')
@@ -86,9 +85,9 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
     
     # wing is added to the sides of the subframe center
     if size % 2 != 0:
-        wing = int(np.floor(size / 2.))
+        wing = int(size/2)
     else:
-        wing = (size / 2.) - 0.5
+        wing = (size / 2) - 0.5
 
     if array.ndim == 3:
         if xy is not None:
@@ -150,7 +149,7 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
         Sub array.
         
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Array is not a frame or 2d array')
     if size >= array.shape[0]:
         msg = 'Cropping size is equal or larger than the original size'
@@ -377,7 +376,7 @@ def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
                 sup_neigh = min(n_z - 1, zz + ii)
             if test_result[inf_neigh] == 1 and test_result[sup_neigh] == 1:
                 star_approx_idx[zz] = np.floor((star_tmp_idx[sup_neigh] + \
-                                                star_tmp_idx[inf_neigh]) / 2.)
+                                                star_tmp_idx[inf_neigh]) / 2)
             elif test_result[inf_neigh] == 1:
                 star_approx_idx[zz] = star_tmp_idx[inf_neigh]
             else:

@@ -4,8 +4,7 @@
 Module with a frame differencing algorithm for ADI post-processing.
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['frame_diff']
@@ -66,7 +65,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         The pairwise subtraction will be performed on these residuals.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
-        processes will be set to (cpu_count()/2). By default the algorithm works
+        processes will be set to cpu_count()/2. By default the algorithm works
         in single-process mode.
     verbose: bool, optional
         If True prints info to stdout.
@@ -86,11 +85,11 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         start_time = time_ini()
 
     y = array.shape[1]
-    if not asize < np.floor((y / 2)):
+    if not asize < y // 2:
         raise ValueError("asize is too large")
 
     angle_list = check_pa_vector(angle_list)
-    n_annuli = int(np.floor((y / 2 - radius_int) / asize))
+    n_annuli = int((y / 2 - radius_int) / asize)
     if verbose:
         if ncomp is not None:
             msg = "{:} annuli. Performing annular PCA subtraction with {:} PCs "
@@ -100,8 +99,8 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
             msg = "{:} annuli. Performing pair-wise subtraction:\n"
             print(msg.format(n_annuli))
 
-    if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2)
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     # annulus-wise pair-wise subtraction
     final_frame = []
@@ -112,7 +111,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
                                     radius_int, asize, ncomp, verbose, debug)
             final_frame.append(res_ann)
     elif nproc > 1:
-        pool = Pool(processes=int(nproc))
+        pool = Pool(processes=nproc)
         res = pool.map(EFT, zip(itt.repeat(_pairwise_ann), range(n_annuli),
                                 itt.repeat(n_annuli), itt.repeat(fwhm),
                                 itt.repeat(angle_list), itt.repeat(delta_rot),
@@ -175,10 +174,10 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
         print(msg.format(metric, ann+1))
         timing(start_time)
 
-    threshold = np.percentile(mat_dists_ann[mat_dists_ann != 0.0],
+    threshold = np.percentile(mat_dists_ann[mat_dists_ann != 0],
                               dist_threshold)
     mat_dists_ann[mat_dists_ann > threshold] = np.nan
-    mat_dists_ann[mat_dists_ann == 0.0] = np.nan
+    mat_dists_ann[mat_dists_ann == 0] = np.nan
     if not mat_dists_ann[~np.isnan(mat_dists_ann)].size > 0:
         raise RuntimeError('No pairs left. Decrease thresholds')
 
@@ -289,12 +288,12 @@ def _pw_rot_res(cube, angle_list, fwhm=4, delta_rot=0.5, inner_radius=2,
 
     n_frames = array.shape[0]
     y = array.shape[1]
-    if not asize < np.floor((y / 2)):
+    if not asize < y // 2:
         raise ValueError("asize is too large")
 
     angle_list = check_pa_vector(angle_list)
 
-    ann_center = (inner_radius + (asize / 2.0))
+    ann_center = inner_radius + (asize / 2)
     pa_threshold = _compute_pa_thresh(ann_center, fwhm, delta_rot)
     if verbose:
         print('PA thresh {:.3f}'.format(pa_threshold))

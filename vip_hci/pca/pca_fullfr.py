@@ -717,7 +717,7 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
             return argm, pclist, snrlist, fluxlist
     
     #---------------------------------------------------------------------------
-    if not cube.ndim==3:
+    if cube.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
     
     if verbose: start_time = time_ini()
@@ -996,7 +996,7 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
               '\n')
                 
     res = n_frames % batch_size
-    for i in range(0, int(n_frames/batch_size)):
+    for i in range(0, n_frames//batch_size):
         intini = i*batch_size
         intfin = (i+1)*batch_size
         batch = hdulist[n].data[intini:intfin]
@@ -1024,7 +1024,7 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
     if verbose:
         print('\nReconstructing and obtaining residuals')
     medians = []
-    for i in range(0, int(n_frames/batch_size)):
+    for i in range(0, n_frames//batch_size):
         intini = i*batch_size
         intfin = (i+1)*batch_size
         batch = hdulist[n].data[intini:intfin]

@@ -3,6 +3,8 @@
 """
 Module with frame px resampling/rescaling functions.
 """
+from __future__ import division, print_function
+
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens @ ULg'
 __all__ = ['frame_px_resampling',
            'cube_px_resampling',
@@ -48,7 +50,7 @@ def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic'):
         Output cube with resampled frames.
 
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array.')
 
     array_resc = []
@@ -88,7 +90,7 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic'):
     array_resc : array_like 
         Output resampled frame.
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
 
     if isinstance(scale, tuple):
@@ -231,7 +233,7 @@ def cube_rescaling_wavelengths(array, scaling_list, ref_xy=None, imlib='opencv',
         array_out : array_like
             Resulting frame.
         """
-        if not array.ndim == 2:
+        if array.ndim != 2:
             raise TypeError('Input array is not a frame or 2d array.')
 
         if scale_y is None:
@@ -296,7 +298,7 @@ def cube_rescaling_wavelengths(array, scaling_list, ref_xy=None, imlib='opencv',
         return array_out
 
     ############################################################################
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
 
     array_sc = []

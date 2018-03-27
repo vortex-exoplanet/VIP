@@ -4,8 +4,7 @@
 Module with fake companion injection functions.
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['create_psf_template',
@@ -58,7 +57,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         Output array with the injected fake companions.
 
     """
-    if not (array.ndim == 3 or array.ndim == 4):
+    if array.ndim != 3 and array.ndim != 4:
         raise ValueError('Array is not a cube, 3d or 4d array')
     if array.ndim == 4:
         if not psf_template.ndim == 3:
@@ -82,7 +81,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         fc_fr = np.zeros_like(array[0])
         n_fc_rad = rad_dists.shape[0]
 
-        w = int(np.floor(size_fc/2.))
+        w = int(size_fc/2)
         # fcomp in the center of a zeros frame
         fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = psf_template
 
@@ -238,7 +237,7 @@ def create_psf_template(array, size, fwhm=4, verbose=True, collapse='mean'):
     psf_normd : array_like
         Normalized PSF.
     """
-    if not (array.ndim == 3 or array.ndim == 4):
+    if array.ndim != 3 and array.ndim != 4:
         raise TypeError('Array is not a cube, 3d or 4d array.')
 
     n = array.shape[0]
@@ -333,7 +332,7 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
                 psfs = frame_shift(psfs, -shifty, -shiftx)
 
         # we check whether the flux is normalized and fix it if needed
-        fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2.)
+        fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2)
         fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper,
                                                        method='exact')
         fwhm_flux = np.array(fwhm_aper_phot['aperture_sum'])

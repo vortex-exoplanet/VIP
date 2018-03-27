@@ -4,8 +4,7 @@
 Module with ADI algorithm (median psf subtraction).
 """
 
-from __future__ import division 
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['adi']
@@ -62,7 +61,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         Sets the way of collapsing the frames for producing a final image.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
-        processes will be set to (cpu_count()/2). By default the algorithm works
+        processes will be set to cpu_count()/2. By default the algorithm works
         in single-process mode.
     full_output: bool, optional
         Whether to return the final median combined image only or with other 
@@ -84,11 +83,11 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     global array
     array = cube
     
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
-    if not array.shape[0] == angle_list.shape[0]:
+    if array.shape[0] != angle_list.shape[0]:
         raise TypeError('Input vector or parallactic angles has wrong length')
-    if not nframes % 2 == 0:
+    if nframes % 2 != 0:
         raise TypeError('nframes argument must be even value')
     
     n, y, _ = array.shape
@@ -96,8 +95,8 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     if verbose:
         start_time = time_ini()
 
-    if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2)
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     angle_list = check_pa_vector(angle_list)
     
@@ -116,7 +115,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
     
     elif mode == 'annular':
         annulus_width = int(asize * fwhm)  # equal size for all annuli
-        n_annuli = int(np.floor((y / 2 - radius_int) / annulus_width))
+        n_annuli = int((y / 2 - radius_int) / annulus_width)
         if verbose:
             print('N annuli =', n_annuli, ', FWHM =', fwhm, '\n')
 
@@ -129,7 +128,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
                                                 delta_rot, nframes, verbose)
                 cube_out[:, yy, xx] = mres
         elif nproc > 1:
-            pool = Pool(processes=int(nproc))
+            pool = Pool(processes=nproc)
             res = pool.map(EFT, zip(itt.repeat(_median_subt_ann),
                                     range(n_annuli), itt.repeat(angle_list),
                                     itt.repeat(n_annuli), itt.repeat(fwhm),

@@ -3,8 +3,7 @@
 """
 LLSG (Gomez Gonzalez et al. 2016)
 """
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['llsg']
@@ -78,7 +77,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         Sets the type of thresholding.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
-        processes will be set to (cpu_count()/2). By default the algorithm works
+        processes will be set to cpu_count()/2. By default the algorithm works
         in single-process mode.
     asize : int or None, optional
         If ``asize`` is None then each annulus will have a width of ``2*asize``.
@@ -122,7 +121,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     list_l_array_der, list_s_array_der, list_g_array_der, frame_l, frame_s, frame_g
 
     """
-    if not cube.ndim == 3:
+    if cube.ndim != 3:
         raise TypeError("Input array is not a cube (3d array)")
     if not cube.shape[0] == angle_list.shape[0]:
         msg = "Angle list vector has wrong length. It must equal the number"
@@ -157,15 +156,15 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     if radius_int is None:
         radius_int = 0
 
-    if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2)
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     # Same number of pixels per annulus
     if asize is None:
         annulus_width = int(np.ceil(2 * fwhm))  # as in the paper
     elif isinstance(asize, int):
         annulus_width = asize
-    n_annuli = int(np.floor((y / 2 - radius_int) / annulus_width))
+    n_annuli = int((y / 2 - radius_int) / annulus_width)
 
     if n_segments is None:
         n_segments = [4 for _ in range(n_annuli)]   # as in the paper
@@ -187,7 +186,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     # Azimuthal averaging of residuals
     if azimuth_overlap is None:
         azimuth_overlap = 360   # no overlapping, single config of segments
-    n_rots = int(360. / azimuth_overlap)
+    n_rots = int(360 / azimuth_overlap)
 
     matrix_s = np.zeros((n_rots, n, y, x))
     if full_output:
@@ -228,7 +227,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
                         matrix_s[i, :, yy, xx] = patch
 
             elif nproc > 1:
-                pool = Pool(processes=int(nproc))
+                pool = Pool(processes=nproc)
                 res = pool.map(EFT, zip(itt.repeat(_decompose_patch),
                                         itt.repeat(indices),
                                         range(n_segments_ann),

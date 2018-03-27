@@ -4,7 +4,7 @@
 Module with frame/cube filtering functionalities
 """
 
-from __future__ import division
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['frame_filter_highpass',
@@ -106,7 +106,7 @@ def cube_filter_highpass(array, mode='laplacian', median_size=5, kernel_size=5,
     filtered : array_like
         High-pass filtered cube.
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
     
     n_frames = array.shape[0]
@@ -203,8 +203,8 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         numpy.ndarray
           filter kernel in 2D centered
         """
-        if not 0 < cutoff <= 1.0:
-            raise ValueError('Cutoff frequency must be between 0 and 1.0.')
+        if not 0 < cutoff <= 1:
+            raise ValueError('Cutoff frequency must be between 0 and 1.')
     
         if not isinstance(n, int):
             raise ValueError('n must be an integer >= 1.')
@@ -216,12 +216,12 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         # An array with every pixel = radius relative to center
         radius = np.sqrt((x**2)[np.newaxis] + (y**2)[:, np.newaxis])
         # The filter
-        f = 1 / (1.0 + (radius / cutoff)**(2*n))   
+        f = 1 / (1 + (radius / cutoff)**(2*n))   
         return f
     
     #---------------------------------------------------------------------------
     
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError("Input array is not a frame or 2d array.")
     
     if mode == 'laplacian':
@@ -276,7 +276,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     elif mode == 'fourier-butter':
         # Designs an n-th order high-pass 2D Butterworth filter
         filt = butter2d_lp(array.shape, cutoff=btw_cutoff, n=btw_order)
-        filt = 1. - filt                        
+        filt = 1 - filt                        
         array_fft = fft(array)
         fft_new = array_fft * filt
         filtered = ifft(fft_new)        
@@ -307,7 +307,7 @@ def frame_filter_lowpass(array, mode, median_size=5, fwhm_size=5):
         Low-pass filtered image.
         
     """
-    if not array.ndim==2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
        
     if mode=='median':
@@ -343,7 +343,7 @@ def frame_filter_gaussian2d(array, size_fwhm, mode='conv'):
         Convolved image.
         
     """
-    if not array.ndim==2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
     
     if mode=='conv':
@@ -371,7 +371,7 @@ def gaussian_kernel(size, size_y=None):
     g = np.exp(-(x**2/float(size)+y**2/float(size_y)))
 
     fwhm = size
-    fwhm_aper = photutils.CircularAperture((frame_center(g)), fwhm/2.)
+    fwhm_aper = photutils.CircularAperture(frame_center(g), fwhm/2)
     fwhm_aper_phot = photutils.aperture_photometry(g, fwhm_aper)
     g_norm = g/np.array(fwhm_aper_phot['aperture_sum'])
      

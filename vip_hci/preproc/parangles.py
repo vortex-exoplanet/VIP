@@ -4,7 +4,7 @@
 Module with frame parallactica angles calculations and de-rotation routines for
 ADI.
 """
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'V. Christiaens @ UChile/ULg, Carlos Alberto Gomez Gonzalez'
 __all__ = ['compute_paral_angles',
@@ -181,7 +181,7 @@ def compute_derot_angles_pa(objname_tmp_A,digit_format=3,objname_tmp_B='',
     # Write the vector containing parallactic angles
     rot = np.zeros(len(list_obj))
     for ii in range(len(list_obj)):
-        rot[ii]=0.-(posang_st[ii]+posang_nd[ii])/2.
+        rot[ii]=-(posang_st[ii]+posang_nd[ii])/2
 
     # Check and correct to output at the right format
     rot = check_pa_vector(rot,'deg')
@@ -317,8 +317,8 @@ def compute_derot_angles_cd(objname_tmp_A, digit_format=3,objname_tmp_B='',
             rot[ii]=0
             rot2[ii]=0
         else:
-            rot[ii]=0.-np.arctan2(sgn*cd1_2[ii],sgn*cd1_1[ii])
-            rot2[ii]=0.-np.arctan2(-cd2_1[ii],cd2_2[ii])
+            rot[ii]=-np.arctan2(sgn*cd1_2[ii],sgn*cd1_1[ii])
+            rot2[ii]=-np.arctan2(-cd2_1[ii],cd2_2[ii])
             if rot2[ii] < 0:
                 rot2[ii] = (2*math.pi)+rot2[ii]
         if np.floor(rot[ii]) != np.floor(rot2[ii]):

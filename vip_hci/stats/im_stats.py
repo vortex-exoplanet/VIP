@@ -4,7 +4,7 @@
 Module for image statistics.
 """
 
-from __future__ import division
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['frame_histo_stats',

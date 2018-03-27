@@ -63,7 +63,7 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         automatically determined for every annulus, based on the annulus width.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
-        processes will be set to (cpu_count()/2). By default the algorithm works
+        processes will be set to cpu_count()/2. By default the algorithm works
         in single-process mode.
     solver : {'lstsq', 'nnls'}, str optional
         Choosing the solver of the least squares problem. ``lstsq`` uses the
@@ -102,18 +102,18 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         start_time = time_ini()
 
     y = array.shape[1]
-    if not asize < np.floor(y / 2):
+    if not asize < y // 2:
         raise ValueError("asize is too large")
 
     angle_list = check_pa_vector(angle_list)
-    n_annuli = int(np.floor((y / 2 - radius_int) / asize))
+    n_annuli = int((y / 2 - radius_int) / asize)
     if verbose:
         msg = "{} annuli. Performing least-square combination and "
         msg += "subtraction:\n"
         print(msg.format(n_annuli))
 
-    if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = cpu_count() // 2
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     annulus_width = asize
     if isinstance(n_segments, int):
@@ -226,10 +226,10 @@ def _leastsq_patch(nseg, indices, indices_opt, angles, pa_threshold, metric,
     else:
         mat_dists_ann = mat_dists_ann_full
 
-    threshold = np.percentile(mat_dists_ann[mat_dists_ann != 0.0],
+    threshold = np.percentile(mat_dists_ann[mat_dists_ann != 0],
                               dist_threshold)
     mat_dists_ann[mat_dists_ann > threshold] = np.nan
-    mat_dists_ann[mat_dists_ann == 0.0] = np.nan
+    mat_dists_ann[mat_dists_ann == 0] = np.nan
 
     matrix_res = np.zeros((values.shape[0], yy.shape[0]))
     for i in range(n_frames):

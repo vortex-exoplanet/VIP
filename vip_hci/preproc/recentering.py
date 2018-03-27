@@ -4,8 +4,7 @@
 Module containing functions for cubes frame registration.
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens @ ULg/UChile, G. Ruane'
 __all__ = ['frame_shift',
@@ -78,7 +77,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
         Shifted 2d array.
 
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
     
     image = array.copy()
@@ -219,9 +218,9 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
             return False
         
     #---------------------------------------------------------------------------
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
-    if not len(xy) == 4:
+    if len(xy) != 4:
         raise TypeError('Input waffle spot coordinates in wrong format')
     
     cy, cx = frame_center(array)
@@ -327,7 +326,7 @@ def cube_recenter_satspots(array, xy, subim_size=19, sigfactor=6, plot=True,
         Shifts Y,X to get to the true center for each image.
     
     """    
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
 
     if verbose:
@@ -403,7 +402,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
         mask will be applied to the frame. By default the center isn't masked.
     nproc : int, optional
         Number of processes for parallel computing. If None the number of 
-        processes will be set to (cpu_count()/2). 
+        processes will be set to cpu_count()/2. 
     verbose : {True, False}, bool optional
         Whether to print to stdout some messages and info.
     plot : bool, optional
@@ -427,7 +426,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     """
     from .cosmetics import frame_crop
     
-    if not array.ndim==2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
 
     if verbose:  start_time = time_ini()
@@ -462,14 +461,14 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
             pp_subplots(frame, sinogram)
             print(np.sum(np.abs(sinogram[cent,:])))
         else:
-            theta = np.linspace(start=0., stop=360., num=cent*2, endpoint=False)
+            theta = np.linspace(start=0, stop=360, num=cent*2, endpoint=False)
             sinogram = radon(frame, theta=theta, circle=True)
             pp_subplots(frame, sinogram)
             print(np.sum(np.abs(sinogram[cent,:])))
 
-    if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2) 
-    pool = Pool(processes=int(nproc))  
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
+    pool = Pool(processes=nproc)
     if satspots:
         res = pool.map(EFT, zip(itt.repeat(_radon_costf2), itt.repeat(frame),
                                 itt.repeat(cent), itt.repeat(radint), coords))
@@ -481,7 +480,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
         
     if verbose:  
         msg = 'Done {} radon transform calls distributed in {} processes'
-        print(msg.format(len(coords), int(nproc)))
+        print(msg.format(len(coords), nproc))
 
     cost_bound = costf.reshape(listyx.shape[0], listyx.shape[0])
     if plot:
@@ -523,7 +522,7 @@ def _radon_costf(frame, cent, radint, coords):
     """
     frame_shifted = frame_shift(frame, coords[0], coords[1])
     frame_shifted_ann = get_annulus(frame_shifted, radint, cent-radint)
-    theta = np.linspace(start=0., stop=360., num=frame_shifted_ann.shape[0],    
+    theta = np.linspace(start=0, stop=360, num=frame_shifted_ann.shape[0],    
                     endpoint=False)
     sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
     costf = np.sum(np.abs(sinogram[cent,:]))
@@ -580,7 +579,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
         Shifts in y and x.
      
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
 
     if verbose:
@@ -678,7 +677,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     neighborhood around its peak.
     
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
 
     n_frames, sizey, sizex = array.shape
@@ -827,7 +826,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     if verbose:
         start_time = time_ini()
 
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
 
     n_frames, sizey, sizex = array.shape
@@ -872,8 +871,8 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     else:
         raise ValueError('model not recognized')
     
-    if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2)
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     if nproc == 1:
         res = []
@@ -887,7 +886,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                 bar.update()
         res = np.array(res)
     elif nproc > 1:
-        pool = Pool(processes=int(nproc))  
+        pool = Pool(processes=nproc)  
         res = pool.map(EFT, zip(itt.repeat(func), itt.repeat(array),
                                 range(n_frames), itt.repeat(subi_size),
                                 itt.repeat(pos_y), itt.repeat(pos_x),

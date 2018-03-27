@@ -3,6 +3,8 @@
 """
 Module with frame de-rotation routine for ADI.
 """
+from __future__ import division, print_function
+
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_derotate',
            'frame_rotate']
@@ -20,7 +22,7 @@ except ImportError:
 from skimage.transform import rotate
 from multiprocessing import Pool, cpu_count
 import itertools as itt
-from ..conf.utils_conf import eval_func_tuple as futup
+from ..conf.utils_conf import eval_func_tuple as EFT
 from ..var import frame_center
 
 data_array = None # holds the (implicitly mem-shared) data array
@@ -58,7 +60,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
         Resulting frame.
         
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
 
     y, x = array.shape
@@ -152,13 +154,13 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         Resulting cube with de-rotated frames.
         
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array.')
     array_der = np.zeros_like(array)
     n_frames = array.shape[0]
 
-    if not nproc:
-        nproc = int((cpu_count() / 2))
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     if nproc == 1:
         for i in range(n_frames):
@@ -168,11 +170,10 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         global data_array
         data_array = array
 
-        pool = Pool(processes=int(nproc))
-        res = pool.map(futup, zip(itt.repeat(_cube_rotate_mp),
-                                  range(n_frames), itt.repeat(angle_list),
-                                  itt.repeat(imlib), itt.repeat(interpolation),
-                                  itt.repeat(cxy)))
+        pool = Pool(processes=nproc)
+        res = pool.map(EFT, zip(itt.repeat(_cube_rotate_mp), range(n_frames),
+                                itt.repeat(angle_list), itt.repeat(imlib),
+                                itt.repeat(interpolation), itt.repeat(cxy)))
         pool.close()
         array_der = np.array(res)
 

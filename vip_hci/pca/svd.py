@@ -193,7 +193,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
 
     # --------------------------------------------------------------------------
 
-    if not matrix.ndim == 2:
+    if matrix.ndim != 2:
         raise TypeError('Input matrix is not a 2d array')
 
     if usv:

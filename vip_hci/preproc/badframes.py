@@ -108,7 +108,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     if verbose:
         bad = len(bad_index_list)
         percent_bad_frames = (bad*100)/n
-        msg1 = "Done detecting bad frames from cube: {:} out of {:} ({:.3}%)"
+        msg1 = "Done detecting bad frames from cube: {} out of {} ({:.3}%)"
         print(msg1.format(bad, n, percent_bad_frames)) 
 
     if plot:
@@ -209,7 +209,7 @@ def cube_detect_badfr_ellipticipy(array, fwhm, roundlo=-0.2, roundhi=0.2,
     if verbose:
         bad = len(bad_index_list)
         percent_bad_frames = (bad*100)/n
-        msg1 = "Done detecting bad frames from cube: {:} out of {:} ({:.3}%)"
+        msg1 = "Done detecting bad frames from cube: {} out of {} ({:.3}%)"
         print(msg1.format(bad, n, percent_bad_frames)) 
     
     if verbose:  timing(start_time)
@@ -284,7 +284,7 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     if verbose:
         bad = len(bad_index_list)
         percent_bad_frames = (bad*100)/n
-        msg1 = "Done detecting bad frames from cube: {:} out of {:} ({:.3}%)"
+        msg1 = "Done detecting bad frames from cube: {} out of {} ({:.3}%)"
         print(msg1.format(bad, n, percent_bad_frames)) 
     
     if plot:

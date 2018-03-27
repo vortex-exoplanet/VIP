@@ -288,7 +288,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
     if scale_list is not None:
         if ncomp > z:
             ncomp = min(ncomp, z)
-            msg = 'Number of PCs too high (max PCs={}), using instead {:} PCs.'
+            msg = 'Number of PCs too high (max PCs={}), using {} PCs instead.'
             print(msg.format(z, ncomp))
         scale_list = check_scal_vector(scale_list)
         
@@ -297,7 +297,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         #***********************************************************************
         if cube.ndim==3:
             if verbose:  
-                print('{:} spectral channels in IFS cube'.format(z))
+                print('{} spectral channels in IFS cube'.format(z))
             # cube has been re-scaled to have the planets moving radially
             cube, _, y, x, _, _ = scpca(cube, scale_list)
             residuals_result = subtract_projection(cube, None, ncomp, scaling, 
@@ -328,8 +328,8 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         #***********************************************************************
         elif cube.ndim == 4 and angle_list is not None:
             if verbose:  
-                print('{:} spectral channels in IFS cube'.format(z))
-                print('{:} ADI frames in all channels'.format(n))
+                print('{} spectral channels in IFS cube'.format(z))
+                print('{} ADI frames in all channels'.format(n))
             residuals_cube_channels = np.zeros((n, y_in, x_in))
             
             bar = pyprind.ProgBar(n, stream=1, 
@@ -393,7 +393,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
     elif cube_ref is not None:
         if ncomp > n:
             ncomp = min(ncomp,n)
-            msg = 'Number of PCs too high (max PCs={}), using instead {:} PCs.'
+            msg = 'Number of PCs too high (max PCs={}), using {} PCs instead.'
             print(msg.format(n, ncomp))
         residuals_result = subtract_projection(cube, cube_ref, ncomp, scaling, 
                                                mask_center_px, debug, svd_mode, 
@@ -420,7 +420,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
     else:
         if ncomp > n:
             ncomp = min(ncomp,n)
-            msg = 'Number of PCs too high (max PCs={}), using instead {:} PCs.'
+            msg = 'Number of PCs too high (max PCs={}), using {} PCs instead.'
             print(msg.format(n, ncomp))
         
         if source_xy is None:
@@ -995,9 +995,9 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
         batch_size = int(n_frames/(total_size/(batch_ratio*aval_mem)))
     
     if verbose:
-        msg1 = "Cube with {:} frames ({:.3f} GB)"
+        msg1 = "Cube with {} frames ({:.3f} GB)"
         print(msg1.format(n_frames, hdulist[n].data.nbytes/1e9))
-        msg2 = "Batch size set to {:} frames ({:.3f} GB)\n"
+        msg2 = "Batch size set to {} frames ({:.3f} GB)\n"
         print(msg2.format(batch_size, hdulist[n].data[:batch_size].nbytes/1e9))
                 
     res = n_frames % batch_size

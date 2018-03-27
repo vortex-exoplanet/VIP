@@ -131,7 +131,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             rec_matrix = np.dot(U[:, :ncomp],
                                 np.dot(np.diag(S[:ncomp]), V[:ncomp]))
             rec_matrix = rec_matrix.T
-            print('  Matrix reconstruction with {:} PCs:'.format(ncomp))
+            print('  Matrix reconstruction with {} PCs:'.format(ncomp))
             print('  Mean Absolute Error =', MAE(matrix, rec_matrix))
             print('  Mean Squared Error =', MSE(matrix, rec_matrix))
 
@@ -187,7 +187,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         ax2.set_xlim(-2, trunc + 2)
         ax2.set_ylim(0, 1)
 
-        msg = '  Cumulative explained variance ratio for {:} PCs = {:.5f}'
+        msg = '  Cumulative explained variance ratio for {} PCs = {:.5f}'
         # plt.savefig('figure.pdf', dpi=300, bbox_inches='tight')
         print(msg.format(ncomp, ratio_cumsum[ncomp - 1]))
 
@@ -204,7 +204,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             raise ValueError(msg)
 
     if ncomp > min(matrix.shape[0], matrix.shape[1]):
-        msg = '{:} PCs cannot be obtained from a matrix with size [{:},{:}].'
+        msg = '{} PCs cannot be obtained from a matrix with size [{},{}].'
         msg += ' Increase the size of the patches or request less PCs'
         raise RuntimeError(msg.format(ncomp, matrix.shape[0], matrix.shape[1]))
 
@@ -419,7 +419,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
                 px_noise.append(curr_noise)
                 if ncomp > 1:
                     px_noise_decay = px_noise[-2] - curr_noise
-                # print '{:} {:.4f} {:.4f}'.format(ncomp, curr_noise, px_noise_decay)
+                # print '{} {:.4f} {:.4f}'.format(ncomp, curr_noise, px_noise_decay)
             V = V_big[:ncomp]
 
         elif mode=='cevr':

@@ -39,7 +39,7 @@ def check_enough_memory(input_bytes, factor=1, verbose=True):
     if load > mem.total:
         return False        # total physical memory is smaller than input
     if verbose:  
-        print("System available memory = {:} bytes".format(mem.available))
+        print("System available memory = {} bytes".format(mem.available))
     if load >= mem.available:
         return False        # available memory is not enough
     else:

@@ -315,8 +315,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                 pca_type = 'ADI'
             else:
                 pca_type = 'RDI'
-            title = pca_type + ' ' + object_name + ' ' + str(ncomp)
-            title += 'pc ' + str(frame_size) + '+' + str(inner_rad)
+            title = "{} {} {}pc {} + {}".format(pca_type, object_name, ncomp,
+                                                frame_size, inner_rad)
             plt.title(title, fontsize = 14)
 
         # Option to fix the y-limit
@@ -473,7 +473,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
             maxfcsep = int((array.shape[1]/2.)/fwhm)-1
             if fc_rad_sep < 3 or fc_rad_sep > maxfcsep:
                 msg = 'Too large separation between companions in the radial '
-                msg += 'patterns. Should lie between 3 and {:}'
+                msg += 'patterns. Should lie between 3 and {}'
                 raise ValueError(msg.format(maxfcsep))
 
         elif array.ndim == 4:
@@ -490,7 +490,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 maxfcsep = int((array.shape[2] / 2.) / fwhm) - 1
                 if fc_rad_sep < 3 or fc_rad_sep > maxfcsep:
                     msg = 'Too large separation between companions in the '
-                    msg += 'radial patterns. Should lie between 3 and {:}'
+                    msg += 'radial patterns. Should lie between 3 and {}'
                     raise ValueError(msg.format(maxfcsep))
 
         # TODO: extend to even-sized psf arrays
@@ -519,7 +519,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                               **algo_dict)
 
     if verbose:
-        msg1 = 'Cube without fake companions processed with {:}'
+        msg1 = 'Cube without fake companions processed with {}'
         print(msg1.format(algo.__name__))
         timing(start_time)
 
@@ -588,8 +588,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                     fcx.append(x)
 
                 if verbose:
-                    msg2 = 'Fake companions injected in branch {:} '
-                    msg2 += '(pattern {:}/{:})'
+                    msg2 = 'Fake companions injected in branch {} '
+                    msg2 += '(pattern {}/{})'
                     print(msg2.format(br+1, irad+1, fc_rad_sep))
                     timing(start_time)
 
@@ -609,7 +609,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                     raise ValueError(msg)
 
                 if verbose:
-                    msg3 = 'Cube with fake companions processed with {:}'
+                    msg3 = 'Cube with fake companions processed with {}'
                     msg3 += '\nMeasuring its annulus-wise throughput'
                     print(msg3.format(algo.__name__))
                     timing(start_time)
@@ -683,8 +683,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                     fcx.append(x)
 
                 if verbose:
-                    msg2 = 'Fake companions injected in branch {:} '
-                    msg2 += '(pattern {:}/{:})'
+                    msg2 = 'Fake companions injected in branch {} '
+                    msg2 += '(pattern {}/{})'
                     print(msg2.format(br + 1, irad + 1, fc_rad_sep))
                     timing(start_time)
 
@@ -700,7 +700,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                                         verbose=False, **algo_dict)
 
                 if verbose:
-                    msg3 = 'Cube with fake companions processed with {:}'
+                    msg3 = 'Cube with fake companions processed with {}'
                     msg3 += '\nMeasuring its annulus-wise throughput'
                     print(msg3.format(algo.__name__))
                     timing(start_time)
@@ -723,7 +723,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 cube_fc_all[br * fc_rad_sep + irad, :, :, :, :] = cube_fc
 
     if verbose:
-        msg = 'Finished measuring the throughput in {:} branches'
+        msg = 'Finished measuring the throughput in {} branches'
         print(msg.format(nbranch))
         timing(start_time)
 
@@ -831,7 +831,7 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0,360),
                 ax.add_patch(cent)
 
         if verbose:
-            print('Radius(px) = {:}, Noise = {:.3f} '.format(rad, noise_ann))
+            print('Radius(px) = {}, Noise = {:.3f} '.format(rad, noise_ann))
 
     return np.array(noise), np.array(vector_radd)
 
@@ -885,7 +885,7 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
         flux[i] = obj_flux
 
         if verbose:
-            print('Coordinates of object {:} : ({:},{:})'.format(i, y, x))
+            print('Coordinates of object {} : ({},{})'.format(i, y, x))
             print('Object Flux = {:.2f}'.format(flux[i]))
 
     return flux

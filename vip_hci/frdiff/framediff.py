@@ -92,11 +92,11 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     n_annuli = int((y / 2 - radius_int) / asize)
     if verbose:
         if ncomp is not None:
-            msg = "{:} annuli. Performing annular PCA subtraction with {:} PCs "
+            msg = "{} annuli. Performing annular PCA subtraction with {} PCs "
             msg += "and pair-wise subtraction:\n"
             print(msg.format(n_annuli, ncomp))
         else:
-            msg = "{:} annuli. Performing pair-wise subtraction:\n"
+            msg = "{} annuli. Performing pair-wise subtraction:\n"
             print(msg.format(n_annuli))
 
     if nproc is None:
@@ -170,7 +170,7 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
 
     if debug:
         #pp_subplots(mat_dists_ann)
-        msg = 'Done calculating the {:} distance for annulus {:}'
+        msg = 'Done calculating the {} distance for annulus {}'
         print(msg.format(metric, ann+1))
         timing(start_time)
 

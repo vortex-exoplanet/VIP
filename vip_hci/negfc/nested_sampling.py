@@ -202,7 +202,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=2,
         print('Radius [{},{}]'.format(init[0] - w[0], init[0] + w[0], ))
         print('Theta [{},{}]'.format(init[1] - w[1], init[1] + w[1]))
         print('Flux [{},{}]'.format(init[2] - w[2], init[2] + w[2]))
-        print('\nUsing {:} active points'.format(npoints))
+        print('\nUsing {} active points'.format(npoints))
 
     res = nestle.sample(f, prior_transform, ndim=3, method=method,
                         npoints=npoints, rstate=rstate, dlogz=dlogz,

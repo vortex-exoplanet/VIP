@@ -130,8 +130,8 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
         pa_threshold = new_pa_th
 
     if verbose:
-        msg2 = 'Annulus {:}, PA thresh = {:.2f}, Inn radius = {:.2f}, '
-        msg2 += 'Ann center = {:.2f}, N segments = {:} '
-        print(msg2.format(int(ann + 1), pa_threshold, inner_radius, ann_center,
+        msg2 = 'Annulus {}, PA thresh = {:.2f}, Inn radius = {:.2f}, '
+        msg2 += 'Ann center = {:.2f}, N segments = {} '
+        print(msg2.format(ann+1, pa_threshold, inner_radius, ann_center,
                           n_segments))
     return pa_threshold, inner_radius, ann_center

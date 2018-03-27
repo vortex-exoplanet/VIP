@@ -181,7 +181,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
             n_segments.append(int(np.ceil(360/ang)))
 
     if verbose:
-        print('Annuli = {:}'.format(n_annuli))
+        print('Annuli = {}'.format(n_annuli))
 
     # Azimuthal averaging of residuals
     if azimuth_overlap is None:

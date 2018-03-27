@@ -1030,9 +1030,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                                        verbose=False)
 
     ceny, cenx = frame_center(cube_sci_subframe[0, :, :])
-    print('sub frame is ' + str(cube_sci_subframe.shape[1]) + 'x' + str(
-        cube_sci_subframe.shape[2]))
-    print('center pixel is (' + str(ceny) + ', ' + str(cenx) + ')')
+    print('sub frame is {}x{}'.format(cube_sci_subframe.shape[1],
+                                      cube_sci_subframe.shape[2]))
+    print('center pixel is ({}, {})'.format(ceny, cenx))
 
     # Make a copy of the sci and ref frames, filter them.
     # will be used for alignment purposes

@@ -153,7 +153,7 @@ def frame_center(array, verbose=False):
     cx = array.shape[1]/2 - 0.5
 
     if verbose:
-        print('Center px coordinates at x,y = ({:},{:})'.format(cy, cx))
+        print('Center px coordinates at x,y = ({},{})'.format(cy, cx))
     return cy, cx
 
     
@@ -660,7 +660,7 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
         matrix = matrix_scaling(matrix, scaling)
 
         if verbose:
-            msg = 'Done vectorizing the cube annulus. Matrix shape [{:},{:}]'
+            msg = 'Done vectorizing the cube annulus. Matrix shape [{},{}]'
             print(msg.format(matrix.shape[0], matrix.shape[1]))
         return matrix, ind
 
@@ -674,7 +674,7 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
         matrix = matrix_scaling(matrix, scaling)
 
         if verbose:
-            msg = 'Done vectorizing the frames. Matrix shape [{:},{:}]'
+            msg = 'Done vectorizing the frames. Matrix shape [{},{}]'
             print(msg.format(matrix.shape[0], matrix.shape[1]))
         return matrix
 

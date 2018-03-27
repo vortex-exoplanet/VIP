@@ -159,7 +159,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         pp_subplots(snrmap, colorb=True, title=plot_title, save=save_plot,
                     vmin=-1, vmax=5, angscale=True, getfig = True)
         
-    print("S/N map created using {:} processes.".format(nproc))
+    print("S/N map created using {} processes.".format(nproc))
     timing(start_time)
     return snrmap
    
@@ -227,7 +227,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
         pp_subplots(snrmap, colorb=True, title='SNRmap')
      
     if verbose:    
-        print("S/N map created using {:} processes.".format(nproc))
+        print("S/N map created using {} processes.".format(nproc))
         timing(start_time)
     return snrmap
 

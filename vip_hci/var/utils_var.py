@@ -72,8 +72,8 @@ def pp_subplots(*args, **kwargs):
     
     for key in kwargs.keys():
         if key not in parlist:
-            print("Parameter '{:}' not recognized".format(key))
-            print("Available parameters are: {:}".format(parlist))
+            print("Parameter '{}' not recognized".format(key))
+            print("Available parameters are: {}".format(parlist))
 
     # GEOM ---------------------------------------------------------------------
     num_plots = len(args)
@@ -535,9 +535,9 @@ def lines_of_code():
                                     totalpath.split(path)[1]))
 
     for linenumbercount, filename in loclist: 
-        print("%05d lines in %s" % (linenumbercount, filename))
+        print("{:05d} lines in {}".format(linenumbercount, filename))
 
-    msg = "\nTotal: {:} lines in ({:}) excluding external libraries."
+    msg = "\nTotal: {} lines in ({}) excluding external libraries."
     print(msg.format(sum([x[0] for x in loclist]), path))
 
 

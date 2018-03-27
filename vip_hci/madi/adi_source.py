@@ -118,7 +118,7 @@ def adi(cube, angle_list, fwhm=4, radius_int=0, asize=2, delta_rot=1,
         annulus_width = int(asize * fwhm)  # equal size for all annuli
         n_annuli = int((y / 2 - radius_int) / annulus_width)
         if verbose:
-            print('N annuli =', n_annuli, ', FWHM =', fwhm, '\n')
+            print('N annuli = {}, FWHM = {}\n'.format(n_annuli, fwhm))
 
         cube_out = np.zeros_like(array)
 

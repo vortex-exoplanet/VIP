@@ -99,7 +99,7 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
         array_view = array[:, int(ceny-wing):int(ceny+wing+1),
                            int(cenx-wing):int(cenx+wing+1)]
         if verbose:
-            msg = "\nCube cropped; new size [{:},{:},{:}] centered at ({:},{:})"
+            msg = "\nCube cropped; new size [{},{},{}] centered at ({},{})"
             print(msg.format(array_view.shape[0], array_view.shape[1],
                              array_view.shape[2], cenx, ceny))
 
@@ -113,8 +113,8 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
         array_view = array[:, :, int(ceny - wing):int(ceny + wing + 1),
                            int(cenx - wing):int(cenx + wing + 1)]
         if verbose:
-            msg = "\nCube cropped; new size [{:},{:},{:},{:}] "
-            msg += "centered at ({:},{:})"
+            msg = "\nCube cropped; new size [{},{},{},{}] "
+            msg += "centered at ({},{})"
             print(msg.format(array_view.shape[0], array_view.shape[1],
                              array_view.shape[2], array_view.shape[3],
                              cenx, ceny))

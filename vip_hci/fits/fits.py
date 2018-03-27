@@ -48,7 +48,7 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         Dictionary containing the fits header.
     """
     if not fitsfilename.endswith('.fits'):
-        fitsfilename = str(fitsfilename+'.fits')
+        fitsfilename = fitsfilename+'.fits'
     hdulist = ap_fits.open(fitsfilename, memmap=True,
                            ignore_missing_end=ignore_missing_end)
     data = hdulist[n].data
@@ -58,20 +58,20 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         header = hdulist[0].header
         if verbose:
             if len(data.shape)==1:
-                msg = "\nFits HDU:{:} data and header successfully loaded. Data"
-                msg += " shape: [{:}]"
+                msg = "\nFits HDU:{} data and header successfully loaded. Data"
+                msg += " shape: [{}]"
                 print(msg.format(n, data.shape[0]))
             if len(data.shape)==2:  
-                msg = "\nFits HDU:{:} data and header successfully loaded. Data"
-                msg += " shape: [{:},{:}]"
+                msg = "\nFits HDU:{} data and header successfully loaded. Data"
+                msg += " shape: [{},{}]"
                 print(msg.format(n, data.shape[0],data.shape[1]))
             if len(data.shape)==3:
-                msg = "\nFits HDU:{:} data and header successfully loaded. Data"
-                msg += " shape: [{:},{:},{:}]"
+                msg = "\nFits HDU:{} data and header successfully loaded. Data"
+                msg += " shape: [{},{},{}]"
                 print(msg.format(n, data.shape[0],data.shape[1],data.shape[2]))
             if len(data.shape)==4:
-                msg = "\nFits HDU:{:} data and header successfully loaded. Data"
-                msg += " shape: [{:},{:},{:},{:}]"
+                msg = "\nFits HDU:{} data and header successfully loaded. Data"
+                msg += " shape: [{},{},{},{}]"
                 print(msg.format(n, data.shape[0], data.shape[1], data.shape[2],
                                  data.shape[3]))
         hdulist.close()
@@ -79,20 +79,20 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     else:
         if verbose:
             if len(data.shape)==1:
-                msg = "\nFits HDU:{:} data successfully loaded. Data"
-                msg += " shape: [{:}]"
+                msg = "\nFits HDU:{} data successfully loaded. Data"
+                msg += " shape: [{}]"
                 print(msg.format(n, data.shape[0]))
             if len(data.shape)==2:  
-                msg = "\nFits HDU:{:} data successfully loaded. Data"
-                msg += " shape: [{:},{:}]"
+                msg = "\nFits HDU:{} data successfully loaded. Data"
+                msg += " shape: [{},{}]"
                 print(msg.format(n, data.shape[0],data.shape[1]))
             if len(data.shape)==3:
-                msg = "\nFits HDU:{:} data successfully loaded. Data"
-                msg += " shape: [{:},{:},{:}]"
+                msg = "\nFits HDU:{} data successfully loaded. Data"
+                msg += " shape: [{},{},{}]"
                 print(msg.format(n, data.shape[0],data.shape[1],data.shape[2]))
             if len(data.shape)==4:
-                msg = "\nFits HDU:{:} data successfully loaded. Data"
-                msg += " shape: [{:},{:},{:},{:}]"
+                msg = "\nFits HDU:{} data successfully loaded. Data"
+                msg += " shape: [{},{},{},{}]"
                 print(msg.format(n, data.shape[0], data.shape[1], data.shape[2],
                                  data.shape[3]))
         hdulist.close()
@@ -126,8 +126,8 @@ def open_adicube(fitsfilename, verbose=True):
         raise TypeError('Input fits file does not contain a cube or 3d array.')
     parangles = hdulist[1].data 
     if verbose:
-        msg1 = "\nFits HDU:{:} data successfully loaded. Data shape: [{:},{:},{:}]"
-        msg2 = "\nFits HDU:{:} data successfully loaded. Data shape: [{:}]"
+        msg1 = "\nFits HDU:{} data successfully loaded. Data shape: [{},{},{}]"
+        msg2 = "\nFits HDU:{} data successfully loaded. Data shape: [{}]"
         print(msg1.format(0, data.shape[0],data.shape[1],data.shape[2]))
         print(msg2.format(1, parangles.shape[0]))
     

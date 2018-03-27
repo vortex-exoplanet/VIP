@@ -601,9 +601,8 @@ def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True,
         while nbpix_tbc > 0 and nit < max_nit:
             nit = nit+1
             if verbose:
-                msg = 'Iteration '+str(nit)+': '+str(nbpix_tot)+\
-                      ' bpix in total, '+str(nbpix_tbc)+' to be corrected.'
-                print(msg)
+                print("Iteration {}: {} bpix in total, {} to be "
+                      "corrected".format(nit, nbpix_tot, nbpix_tbc))
             obj_tmp = sigma_filter(obj_tmp, bpix_map, neighbor_box=neighbor_box,
                                    min_neighbors=nneig, verbose=verbose)
             bpix_map = find_outliers(obj_tmp, sig_dist=sig, in_bpix=bpix_map,

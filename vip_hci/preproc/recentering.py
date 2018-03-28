@@ -537,7 +537,7 @@ def _radon_costf(frame, cent, radint, coords):
     theta = np.linspace(start=0, stop=360, num=frame_shifted_ann.shape[0],    
                     endpoint=False)
     sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
-    costf = np.sum(np.abs(sinogram[cent,:]))
+    costf = np.sum(np.abs(sinogram[int(cent),:]))
     return costf
                 
                 
@@ -557,7 +557,7 @@ def _radon_costf2(frame, cent, radint, coords):
                                    endpoint=False)))
     
     sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
-    costf = np.sum(np.abs(sinogram[cent,:]))
+    costf = np.sum(np.abs(sinogram[int(cent),:]))
     return costf
 
       

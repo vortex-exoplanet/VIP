@@ -156,13 +156,13 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
     """
     if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array.')
-    array_der = np.zeros_like(array)
     n_frames = array.shape[0]
 
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     if nproc == 1:
+        array_der = np.zeros_like(array)
         for i in range(n_frames):
             array_der[i] = frame_rotate(array[i], -angle_list[i], imlib=imlib,
                                         interpolation=interpolation, cxy=cxy)

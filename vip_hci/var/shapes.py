@@ -248,7 +248,7 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
     sy, sx = array.shape
-    if not cy and not cx:
+    if cy is None or cx is None:
         cy, cx = frame_center(array, verbose=False)
          
     yy, xx = np.ogrid[:sy, :sx]             # ogrid is a multidim mesh creator (faster than mgrid)
@@ -279,8 +279,9 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
         The PA of the semi-major axis.
     output_values : {False, True}, optional
         If True returns the values of the pixels in the annulus.
-    cy, cx : int
-        Coordinates of the circle center.
+    cy, cx : int or None
+        Coordinates of the circle center. If ``None``, the center is determined
+        by the ``frame_center`` function.
     output_indices : {False, True}, optional
         If True returns the indices inside the annulus.
     
@@ -298,7 +299,7 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
     sy, sx = array.shape
-    if not cy and not cx:
+    if cy is None or cx is None:
         cy, cx = frame_center(array, verbose=False)
 
     # Definition of other parameters of the ellipse

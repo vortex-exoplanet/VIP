@@ -504,8 +504,9 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
         start_time = time_ini()
     #***************************************************************************
     # Compute noise in concentric annuli on the "empty frame"
-    if 'cube' and 'angle_list' and 'verbose' in inspect.getargspec(algo).args:
-        if 'fwhm' in inspect.getargspec(algo).args:
+    argl = inspect.getargspec(algo).args
+    if 'cube' in argl and 'angle_list' in argl and 'verbose' in argl:
+        if 'fwhm' in argl:
             frame_nofc = algo(cube=array, angle_list=parangles, fwhm=fwhm,
                               verbose=False, **algo_dict)
         else:
@@ -587,8 +588,10 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                     timing(start_time)
 
                 #***************************************************************
-                if 'cube' and 'angle_list' and 'verbose' in inspect.getargspec(algo).args:
-                    if 'fwhm' in inspect.getargspec(algo).args:
+                argl = inspect.getargspec(algo).args
+                if ('cube' in argl and 'angle_list' in argl 
+                                                         and 'verbose' in argl):
+                    if 'fwhm' in argl:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
                                         fwhm=fwhm, verbose=False, **algo_dict)
                     else:
@@ -680,9 +683,10 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                     timing(start_time)
 
                 # **************************************************************
-                if 'cube' and 'angle_list' and 'verbose' in inspect.getargspec(
-                        algo).args:
-                    if 'fwhm' in inspect.getargspec(algo).args:
+                argl = inspect.getargspec(algo).args
+                if ('cube' in argl and 'angle_list' in argl
+                                                         and 'verbose' in argl):
+                    if 'fwhm' in argl:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
                                         fwhm=fwhm, verbose=False, **algo_dict)
                     else:

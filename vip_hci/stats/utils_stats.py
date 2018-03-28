@@ -16,7 +16,8 @@ from matplotlib.pyplot import boxplot
 def descriptive_stats(array, verbose=True, label='', mean=False, plot=False):
     """ Simple statistics from vector.
     """
-    if mean:  mean = np.mean(array)
+    if mean:
+        mean_ = np.mean(array)
     median = np.median(array)
     mini = np.min(array)
     maxi = np.max(array)
@@ -27,7 +28,7 @@ def descriptive_stats(array, verbose=True, label='', mean=False, plot=False):
         msg = label
         if mean:
             msg += 'min={:.1f} / 1st QU={:.1f} / ave={:.1f} / med={:.1f} / 3rd QU={:.1f} / max={:.1f}'
-            print(msg.format(mini, first_qu, mean, median, third_qu, maxi))
+            print(msg.format(mini, first_qu, mean_, median, third_qu, maxi))
         else:
             msg += 'min={:.1f} / 1st QU={:.1f} / med={:.1f} / 3rd QU={:.1f} / max={:.1f}'
             print(msg.format(mini, first_qu, median, third_qu, maxi))
@@ -36,6 +37,6 @@ def descriptive_stats(array, verbose=True, label='', mean=False, plot=False):
         boxplot(array, vert=False, meanline=mean, showfliers=True, sym='.') #whis=range)
     
     if mean:
-        return mini, first_qu, mean, median, third_qu, maxi
+        return mini, first_qu, mean_, median, third_qu, maxi
     else:
         return mini, first_qu, median, third_qu, maxi

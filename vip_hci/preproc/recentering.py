@@ -468,15 +468,27 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
 
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
-    pool = Pool(processes=nproc)
+    
     if satspots:
-        res = pool.map(EFT, zip(itt.repeat(_radon_costf2), itt.repeat(frame),
-                                itt.repeat(cent), itt.repeat(radint), coords))
+        costfkt = _radon_costf2
     else:
-        res = pool.map(EFT, zip(itt.repeat(_radon_costf), itt.repeat(frame),
-                                itt.repeat(cent), itt.repeat(radint), coords))
-    costf = np.array(res)
-    pool.close()
+        costfkt = _radon_costf
+
+
+    if nproc == 1:
+        costf = []
+        for coord in coords:
+            res = costfkt(frame, cent, radint, coord)
+            costf.append(res)
+        costf = np.array(costf)
+    elif nproc > 1:
+        pool = Pool(processes=nproc)  
+        res = pool.map(EFT, zip(itt.repeat(costfkt),
+                                itt.repeat(frame), itt.repeat(cent),
+                                itt.repeat(radint), coords))
+
+        costf = np.array(res)
+        pool.close()
         
     if verbose:  
         msg = 'Done {} radon transform calls distributed in {} processes'
@@ -525,7 +537,7 @@ def _radon_costf(frame, cent, radint, coords):
     theta = np.linspace(start=0, stop=360, num=frame_shifted_ann.shape[0],    
                     endpoint=False)
     sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
-    costf = np.sum(np.abs(sinogram[cent,:]))
+    costf = np.sum(np.abs(sinogram[int(cent),:]))
     return costf
                 
                 
@@ -545,7 +557,7 @@ def _radon_costf2(frame, cent, radint, coords):
                                    endpoint=False)))
     
     sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
-    costf = np.sum(np.abs(sinogram[cent,:]))
+    costf = np.sum(np.abs(sinogram[int(cent),:]))
     return costf
 
       

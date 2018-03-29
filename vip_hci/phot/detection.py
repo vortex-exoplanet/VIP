@@ -533,7 +533,8 @@ def mask_source_centers(array, fwhm, y, x):
         frame = mask_circle(frame, radius=2*fwhm)
         yy, xx = detection(frame, fwhm, plot=False, mode='log')
     else:
-        yy = np.array(y); xx = np.array(x)
+        yy = np.array(y)
+        xx = np.array(x)
     mask = np.ones_like(array)
     # center sources become zeros
     mask[yy.astype('int'), xx.astype('int')] = 0

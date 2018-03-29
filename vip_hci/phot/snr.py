@@ -120,8 +120,10 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
             tempcy, tempcx = draw.circle(y, x, int(np.ceil(1*fwhm)))
             # masking the source position (using the MAD of pixels in annulus)
             array_sources[tempcy, tempcx] = mad(array[tempay, tempax])
-            ciry += list(tempcy); cirx += list(tempcx)
-            anny += list(tempay); annx += list(tempax)
+            ciry += list(tempcy)
+            cirx += list(tempcx)
+            anny += list(tempay)
+            annx += list(tempax)
 
         # coordinates of annulus without the sources
         coor_ann = [(y,x) for (y,x) in zip(anny, annx)

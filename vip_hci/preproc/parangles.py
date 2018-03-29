@@ -81,8 +81,8 @@ def compute_paral_angles(header, latitude, ra_key, dec_key, lst_key,
     return pa.value
 
 
-def compute_derot_angles_pa(objname_tmp_A,digit_format=3,objname_tmp_B='',
-                            inpath='./',writing=False, outpath='./', 
+def compute_derot_angles_pa(objname_tmp_A, digit_format=3, objname_tmp_B='',
+                            inpath='./', writing=False, outpath='./', 
                             list_obj=None, 
                             PosAng_st_key='HIERARCH ESO ADA POSANG',
                             PosAng_nd_key='HIERARCH ESO ADA POSANG END', 
@@ -201,7 +201,7 @@ def compute_derot_angles_pa(objname_tmp_A,digit_format=3,objname_tmp_B='',
     return rot
 
 
-def compute_derot_angles_cd(objname_tmp_A, digit_format=3,objname_tmp_B='',
+def compute_derot_angles_cd(objname_tmp_A, digit_format=3, objname_tmp_B='',
                             inpath='./', skew=False, writing=False, 
                             outpath='./', list_obj=None, cd11_key='CD1_1', 
                             cd12_key='CD1_2', cd21_key='CD2_1', 
@@ -320,7 +320,7 @@ def compute_derot_angles_cd(objname_tmp_A, digit_format=3,objname_tmp_B='',
             rot[ii]=-np.arctan2(sgn*cd1_2[ii],sgn*cd1_1[ii])
             rot2[ii]=-np.arctan2(-cd2_1[ii],cd2_2[ii])
             if rot2[ii] < 0:
-                rot2[ii] = (2*math.pi)+rot2[ii]
+                rot2[ii] = 2*math.pi + rot2[ii]
         if np.floor(rot[ii]) != np.floor(rot2[ii]):
             msg = "There is more than 1deg skewness between y and x! "
             msg2 = "Please re-run the function with argument skew=True"

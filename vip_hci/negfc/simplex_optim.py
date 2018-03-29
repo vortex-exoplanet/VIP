@@ -329,29 +329,33 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
             print('\n'+sep)
             print('             Planet {}           '.format(index_planet))
             print(sep+'\n')
-            msg2 = 'Planet {}: flux estimation at the position [{},{}], running ...'
+            msg2 = 'Planet {}: flux estimation at the position [{},{}], '
+            msg2 += 'running ...'
             print(msg2.format(index_planet, planets_xy_coord[index_planet, 0],
                               planets_xy_coord[index_planet, 1]))
         
         res_init = firstguess_from_coord(planets_xy_coord[index_planet],
-                                         center_xy_coord, cube, angs, plsc, psfn,
-                                         fwhm, annulus_width, aperture_radius,
-                                         ncomp, f_range=f_range,
-                                         cube_ref=cube_ref, svd_mode=svd_mode,
-                                         scaling=scaling, fmerit=fmerit,
-                                         imlib=imlib, collapse=collapse,
-                                         interpolation=interpolation,
+                                         center_xy_coord, cube, angs, plsc,
+                                         psfn, fwhm, annulus_width,
+                                         aperture_radius, ncomp,
+                                         f_range=f_range, cube_ref=cube_ref,
+                                         svd_mode=svd_mode, scaling=scaling,
+                                         fmerit=fmerit, imlib=imlib,
+                                         collapse=collapse,
+                                         nterpolation=interpolation,
                                          display=display, verbose=verbose,
                                          save=save, **figure_options)
         r_pre, theta_pre, f_pre = res_init
 
         if verbose:
-            msg3 = 'Planet {}: preliminary guess: (r, theta, f)=({:.1f}, {:.1f}, {:.1f})'
+            msg3 = 'Planet {}: preliminary guess: (r, theta, f)=({:.1f}, '
+            msg3 += '{:.1f}, {:.1f})'
             print(msg3.format(index_planet,r_pre, theta_pre, f_pre))
         
         if simplex:
             if verbose:
-                msg4 = 'Planet {}: Simplex Nelder-Mead minimization, running ...'
+                msg4 = 'Planet {}: Simplex Nelder-Mead minimization, '
+                msg4 += 'running ...'
                 print(msg4.format(index_planet))
 
             if simplex_options is None:
@@ -389,7 +393,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
             msg6 = 'Planet {}: simplex result: (r, theta, f)=({:.3f}, {:.3f}'
             msg6 += ', {:.3f}) at \n          (X,Y)=({:.2f}, {:.2f})'
             print(msg6.format(index_planet, r_0[index_planet],
-                              theta_0[index_planet], f_0[index_planet], posx[0], posy[0]))
+                              theta_0[index_planet], f_0[index_planet],
+                              posx[0], posy[0]))
     
     if verbose:
         print('\n', sep, '\nDONE !\n', sep)

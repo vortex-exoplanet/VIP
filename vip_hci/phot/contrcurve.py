@@ -107,9 +107,11 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     object_name: string
         Target name, used in the plot title
     frame_size: int
-        Frame size used for generating the contrast curve, used in the plot title
+        Frame size used for generating the contrast curve, used in the plot
+        title
     fix_y_lim: tuple
-        If provided, the y axis limits will be fixed, for easier comparison between plots
+        If provided, the y axis limits will be fixed, for easier comparison
+        between plots
     **algo_dict
         Any other valid parameter of the post-processing algorithms can be
         passed here.
@@ -198,8 +200,9 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     # noise measured in the empty PP-frame with better sampling, every px
     # starting from 1*FWHM
-    noise_samp, rad_samp = noise_per_annulus(frame_nofc, separation=1, fwhm=fwhm,
-                                             init_rad=fwhm, wedge=wedge)
+    noise_samp, rad_samp = noise_per_annulus(frame_nofc, separation=1,
+                                             fwhm=fwhm, init_rad=fwhm,
+                                             wedge=wedge)
     cutin1 = np.where(rad_samp.astype(int)==vector_radd.astype(int).min())[0][0]
     noise_samp = noise_samp[cutin1:]
     rad_samp = rad_samp[cutin1:]
@@ -221,7 +224,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     if smooth:
         # smoothing the noise vector using a Savitzky-Golay filter
-        win = min(noise_samp.shape[0]-2,int(2*fwhm))
+        win = min(noise_samp.shape[0]-2, int(2*fwhm))
         if win%2 == 0:
             win += 1
         noise_samp_sm = savgol_filter(noise_samp, polyorder=2, mode='nearest',
@@ -257,7 +260,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if isinstance(starphot, float) or isinstance(starphot, int):
         cont_curve_samp = ((sigma * noise_samp_sm)/thruput_interp)/starphot
     else:
-        cont_curve_samp = ((sigma * noise_samp_sm)/thruput_interp)
+        cont_curve_samp = (sigma * noise_samp_sm)/thruput_interp
     cont_curve_samp[np.where(cont_curve_samp<0)] = 1
     cont_curve_samp[np.where(cont_curve_samp>1)] = 1
 
@@ -267,9 +270,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         ss_corr = np.sqrt(1 + 1/(n_res_els-1))
         sigma_corr = stats.t.ppf(stats.norm.cdf(sigma), n_res_els)*ss_corr
         if isinstance(starphot, float) or isinstance(starphot, int):
-            cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp)/starphot
+            cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp
+                                   )/starphot
         else:
-            cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp)
+            cont_curve_samp_corr = (sigma_corr * noise_samp_sm)/thruput_interp
         cont_curve_samp_corr[np.where(cont_curve_samp_corr<0)] = 1
         cont_curve_samp_corr[np.where(cont_curve_samp_corr>1)] = 1
 
@@ -277,8 +281,9 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if plot or debug:
         if student:
             label = ['Sensitivity (Gaussian)',
-                     'Sensitivity (Student-t correction)']
-        else:  label = ['Sensitivity (Gaussian)']
+            'Sensitivity (Student-t correction)']
+        else:
+            label = ['Sensitivity (Gaussian)']
 
         plt.rc("savefig", dpi=dpi)
         fig = plt.figure(figsize=figsize, dpi=dpi)
@@ -310,8 +315,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                 pca_type = 'ADI'
             else:
                 pca_type = 'RDI'
-            title = pca_type + ' ' + object_name + ' ' + str(ncomp)
-            title += 'pc ' + str(frame_size) + '+' + str(inner_rad)
+            title = "{} {} {}pc {} + {}".format(pca_type, object_name, ncomp,
+                                                frame_size, inner_rad)
             plt.title(title, fontsize = 14)
 
         # Option to fix the y-limit
@@ -468,7 +473,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
             maxfcsep = int((array.shape[1]/2.)/fwhm)-1
             if fc_rad_sep < 3 or fc_rad_sep > maxfcsep:
                 msg = 'Too large separation between companions in the radial '
-                msg += 'patterns. Should lie between 3 and {:}'
+                msg += 'patterns. Should lie between 3 and {}'
                 raise ValueError(msg.format(maxfcsep))
 
         elif array.ndim == 4:
@@ -485,7 +490,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 maxfcsep = int((array.shape[2] / 2.) / fwhm) - 1
                 if fc_rad_sep < 3 or fc_rad_sep > maxfcsep:
                     msg = 'Too large separation between companions in the '
-                    msg += 'radial patterns. Should lie between 3 and {:}'
+                    msg += 'radial patterns. Should lie between 3 and {}'
                     raise ValueError(msg.format(maxfcsep))
 
         # TODO: extend to even-sized psf arrays
@@ -514,7 +519,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                               **algo_dict)
 
     if verbose:
-        msg1 = 'Cube without fake companions processed with {:}'
+        msg1 = 'Cube without fake companions processed with {}'
         print(msg1.format(algo.__name__))
         timing(start_time)
 
@@ -571,7 +576,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                                                      theta=br*angle_branch +
                                                            theta,
                                                      imlib=imlib, verbose=False,
-                                                     interpolation=interpolation)
+                                                     interpolation=
+                                                        interpolation)
                     y = cy + radvec[i] * np.sin(np.deg2rad(br * angle_branch +
                                                            theta))
                     x = cx + radvec[i] * np.cos(np.deg2rad(br * angle_branch +
@@ -582,8 +588,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                     fcx.append(x)
 
                 if verbose:
-                    msg2 = 'Fake companions injected in branch {:} '
-                    msg2 += '(pattern {:}/{:})'
+                    msg2 = 'Fake companions injected in branch {} '
+                    msg2 += '(pattern {}/{})'
                     print(msg2.format(br+1, irad+1, fc_rad_sep))
                     timing(start_time)
 
@@ -603,7 +609,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                     raise ValueError(msg)
 
                 if verbose:
-                    msg3 = 'Cube with fake companions processed with {:}'
+                    msg3 = 'Cube with fake companions processed with {}'
                     msg3 += '\nMeasuring its annulus-wise throughput'
                     print(msg3.format(algo.__name__))
                     timing(start_time)
@@ -677,8 +683,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                     fcx.append(x)
 
                 if verbose:
-                    msg2 = 'Fake companions injected in branch {:} '
-                    msg2 += '(pattern {:}/{:})'
+                    msg2 = 'Fake companions injected in branch {} '
+                    msg2 += '(pattern {}/{})'
                     print(msg2.format(br + 1, irad + 1, fc_rad_sep))
                     timing(start_time)
 
@@ -694,7 +700,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                                         verbose=False, **algo_dict)
 
                 if verbose:
-                    msg3 = 'Cube with fake companions processed with {:}'
+                    msg3 = 'Cube with fake companions processed with {}'
                     msg3 += '\nMeasuring its annulus-wise throughput'
                     print(msg3.format(algo.__name__))
                     timing(start_time)
@@ -717,7 +723,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 cube_fc_all[br * fc_rad_sep + irad, :, :, :, :] = cube_fc
 
     if verbose:
-        msg = 'Finished measuring the throughput in {:} branches'
+        msg = 'Finished measuring the throughput in {} branches'
         print(msg.format(nbranch))
         timing(start_time)
 
@@ -779,7 +785,8 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0,360),
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
     if not isinstance(wedge, tuple):
-        raise TypeError('Wedge must be a tuple with the initial and final angles')
+        raise TypeError('Wedge must be a tuple with the initial and final '
+                        'angles')
 
     init_angle, fin_angle = wedge
     centery, centerx = frame_center(array)
@@ -824,7 +831,7 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0,360),
                 ax.add_patch(cent)
 
         if verbose:
-            print('Radius(px) = {:}, Noise = {:.3f} '.format(rad, noise_ann))
+            print('Radius(px) = {}, Noise = {:.3f} '.format(rad, noise_ann))
 
     return np.array(noise), np.array(vector_radd)
 
@@ -872,12 +879,13 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
             obj_flux = np.mean(values)
         else:
             aper = photutils.CircularAperture((x, y), (ap_factor*fwhm)/2)
-            obj_flux = photutils.aperture_photometry(array, aper, method='exact')
+            obj_flux = photutils.aperture_photometry(array, aper,
+                                                     method='exact')
             obj_flux = np.array(obj_flux['aperture_sum'])
         flux[i] = obj_flux
 
         if verbose:
-            print('Coordinates of object {:} : ({:},{:})'.format(i, y, x))
+            print('Coordinates of object {} : ({},{})'.format(i, y, x))
             print('Object Flux = {:.2f}'.format(flux[i]))
 
     return flux

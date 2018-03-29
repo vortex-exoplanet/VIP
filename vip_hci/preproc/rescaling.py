@@ -17,8 +17,7 @@ try:
     import cv2
     no_opencv = False
 except ImportError:
-    msg = "Opencv python bindings are missing."
-    warnings.warn(msg, ImportWarning)
+    warnings.warn("Opencv python bindings are missing.", ImportWarning)
     no_opencv = True
 
 from scipy.ndimage.interpolation import geometric_transform, zoom
@@ -142,7 +141,7 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic'):
     else:
         raise ValueError('Image transformation library not recognized')
 
-    array_resc /= (scale_y * scale_x)
+    array_resc /= scale_y * scale_x
     return array_resc
 
 
@@ -201,14 +200,14 @@ def cube_rescaling_wavelengths(array, scaling_list, ref_xy=None, imlib='opencv',
             scale_y = scaling
         if scale_x is None:
             scale_x = scaling
-        return (ref_y + ((output_coords[0] - ref_y) / scale_y),
-                ref_x + ((output_coords[1] - ref_x) / scale_x))
+        return (ref_y + (output_coords[0] - ref_y) / scale_y,
+                ref_x + (output_coords[1] - ref_x) / scale_x)
 
     def _frame_rescaling(array, ref_xy=None, scale=1.0, imlib='opencv',
                          interpolation='lanczos4', scale_y=None, scale_x=None):
-        """ Function to rescale a frame by a factor ``scale``, wrt a reference point
-        which by default is the center of the frame (typically the exact location
-        of the star). However, it keeps the same dimensions.
+        """ Function to rescale a frame by a factor ``scale``, wrt a reference
+        point which by default is the center of the frame (typically the exact
+        location of the star). However, it keeps the same dimensions.
 
         Parameters
         ----------
@@ -294,7 +293,7 @@ def cube_rescaling_wavelengths(array, scaling_list, ref_xy=None, imlib='opencv',
         else:
             raise ValueError('Image transformation library not recognized')
 
-        array_out /= (scale_y * scale_x)
+        array_out /= scale_y * scale_x
         return array_out
 
     ############################################################################

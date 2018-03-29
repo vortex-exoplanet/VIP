@@ -106,8 +106,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     posy = rad_dists[i] * np.sin(ang) + ceny
                     posx = rad_dists[i] * np.cos(ang) + cenx
                     rad_arcs = rad_dists[i]*plsc
-                    msg ='\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec ({:.2f} pxs)'
-                    print(msg.format(posx, posy, rad_arcs, rad_dists[i]))
+                    print('\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec '
+                          '({:.2f} pxs)'.format(posx, posy, rad_arcs,
+                                               rad_dists[i]))
 
         return array_out
 
@@ -120,15 +121,15 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         cenx = int(float(cenx))
         rad_dists = np.array(rad_dists)
         if not rad_dists[-1]<array[0].shape[1]/2.:
-            msg = 'rad_dists last location is at the border (or outside) of the field'
-            raise ValueError(msg)
+            raise ValueError('rad_dists last location is at the border (or '
+                             'outside) of the field')
 
         sizey = array.shape[2]
         sizex = array.shape[3]
         size_fc = psf_template.shape[2] # considering square frames
         nframes_wav = array.shape[0]
         nframes_adi = array.shape[1]
-        fc_fr = np.zeros((nframes_wav, sizey, sizex), dtype=np.float64) # now a 3d cube
+        fc_fr = np.zeros((nframes_wav, sizey, sizex), dtype=np.float64) #-> 3d
         n_fc_rad = rad_dists.shape[0]
 
         for i in range(nframes_wav):
@@ -164,10 +165,11 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                 for i in range(n_fc_rad):
                     ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
                     rad_arcs = rad_dists[i]*plsc
-                    msg ='\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec ({:.2f} pxs)'
                     posy = rad_dists[i] * np.sin(ang) + ceny
                     posx = rad_dists[i] * np.cos(ang) + cenx
-                    print(msg.format(posx, posy, rad_arcs, rad_dists[i]))
+                    print('\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec '
+                          '({:.2f} pxs)'.format(posx, posy, rad_arcs,
+                                                rad_dists[i]))
 
     return array_out
 

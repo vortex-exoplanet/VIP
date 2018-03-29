@@ -20,7 +20,7 @@ from matplotlib import pyplot as plt
 from sklearn.decomposition import IncrementalPCA
 from .svd import svd_wrapper
 from ..madi.adi_utils import _find_indices, _compute_pa_thresh
-from .utils_pca import pca_annulus, scale_cube_for_pca
+from .utils_pca import pca_annulus, scale_cube_for_pca as scpca
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector)
 from ..conf import timing, time_ini, check_enough_memory, get_available_memory
@@ -288,7 +288,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
     if scale_list is not None:
         if ncomp > z:
             ncomp = min(ncomp, z)
-            msg = 'Number of PCs too high (max PCs={}), using instead {:} PCs.'
+            msg = 'Number of PCs too high (max PCs={}), using {} PCs instead.'
             print(msg.format(z, ncomp))
         scale_list = check_scal_vector(scale_list)
         
@@ -297,9 +297,9 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         #***********************************************************************
         if cube.ndim==3:
             if verbose:  
-                print('{:} spectral channels in IFS cube'.format(z))
+                print('{} spectral channels in IFS cube'.format(z))
             # cube has been re-scaled to have the planets moving radially
-            cube, _, y, x, _, _ = scale_cube_for_pca(cube, scale_list)
+            cube, _, y, x, _, _ = scpca(cube, scale_list)
             residuals_result = subtract_projection(cube, None, ncomp, scaling, 
                                                    mask_center_px,debug,svd_mode, 
                                                    verbose, full_output)
@@ -309,16 +309,15 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
                 V = residuals_result[2]
                 pcs = reshape_matrix(V, y, x)
                 recon = reshape_matrix(reconstructed, y, x)
-                residuals_cube_,frame,_,_,_,_ = scale_cube_for_pca(residuals_cube, 
-                                                        scale_list,
-                                                        full_output=full_output,
-                                                        inverse=True, y_in=y_in, 
-                                                        x_in=x_in)
+                residuals_cube_,frame,_,_,_,_ = scpca(residuals_cube, scale_list,
+                                                      full_output=full_output,
+                                                      inverse=True, y_in=y_in, 
+                                                      x_in=x_in)
             else:
                 residuals_cube = residuals_result
-                frame = scale_cube_for_pca(residuals_cube, scale_list,
-                                           full_output=full_output,
-                                           inverse=True, y_in=y_in, x_in=x_in)
+                frame = scpca(residuals_cube, scale_list,
+                              full_output=full_output, inverse=True, y_in=y_in,
+                              x_in=x_in)
             if verbose:
                 print('Done re-scaling and combining')
                 timing(start_time)
@@ -329,14 +328,14 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
         #***********************************************************************
         elif cube.ndim == 4 and angle_list is not None:
             if verbose:  
-                print('{:} spectral channels in IFS cube'.format(z))
-                print('{:} ADI frames in all channels'.format(n))
+                print('{} spectral channels in IFS cube'.format(z))
+                print('{} ADI frames in all channels'.format(n))
             residuals_cube_channels = np.zeros((n, y_in, x_in))
             
             bar = pyprind.ProgBar(n, stream=1, 
                                   title='Looping through ADI frames')
             for i in range(n):
-                cube_res, _, y, x, _, _ = scale_cube_for_pca(cube[:,i,:,:], 
+                cube_res, _, y, x, _, _ = scpca(cube[:,i,:,:], 
                                                              scale_list)
                 residuals_result = subtract_projection(cube_res, None, ncomp,
                                                        scaling, mask_center_px, 
@@ -344,23 +343,22 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
                                                        full_output)
                 if full_output:
                     residuals_cube = residuals_result[0]
-                    _,frame,_,_,_,_ = scale_cube_for_pca(residuals_cube, 
-                                                         scale_list,
-                                                         full_output=full_output,
-                                                         inverse=True, y_in=y_in, 
-                                                         x_in=x_in)
+                    _,frame,_,_,_,_ = scpca(residuals_cube, scale_list,
+                                            full_output=full_output,
+                                            inverse=True, y_in=y_in, x_in=x_in)
                 else:
                     residuals_cube = residuals_result
-                    frame = scale_cube_for_pca(residuals_cube, scale_list,
-                                               full_output=full_output,
-                                               inverse=True,y_in=y_in,x_in=x_in)
+                    frame = scpca(residuals_cube, scale_list,
+                                  full_output=full_output, inverse=True,
+                                  y_in=y_in, x_in=x_in)
                 
                 residuals_cube_channels[i] = frame
                 bar.update()
             
             # de-rotation of the PCA processed channels, ADI fashion
             if ncomp2 is None:
-                residuals_cube_channels_ = cube_derotate(residuals_cube_channels,
+                residuals_cube_channels_ = cube_derotate(
+                                                    residuals_cube_channels,
                                                     angle_list, imlib=imlib,
                                                     interpolation=interpolation)
                 frame = cube_collapse(residuals_cube_channels_, mode=collapse)
@@ -370,16 +368,18 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
             else:
                 if ncomp2 > n:
                     ncomp2 = min(ncomp2, n)
-                    msg = 'Number of PCs too high (max PCs={}), using instead {:} PCs.'
+                    msg = 'Number of PCs too high (max PCs={}), using {} PCs '
+                    msg += 'instead.'
                     print(msg.format(n, ncomp2))
                 res_ifs_adi = subtract_projection(residuals_cube_channels, None,
-                                                  ncomp2, scaling, mask_center_px,
-                                                  debug, svd_mode, False,
-                                                  full_output)
+                                                  ncomp2, scaling,
+                                                  mask_center_px, debug,
+                                                  svd_mode, False, full_output)
                 residuals_cube_channels_ = cube_derotate(res_ifs_adi,
                                                          angle_list,
                                                          imlib=imlib,
-                                                         interpolation=interpolation)
+                                                         interpolation=
+                                                             interpolation)
                 frame = cube_collapse(residuals_cube_channels_, mode=collapse)
                 if verbose:
                     msg = 'Done PCA per ADI multi-spectral frame, de-rotating '
@@ -393,7 +393,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
     elif cube_ref is not None:
         if ncomp > n:
             ncomp = min(ncomp,n)
-            msg = 'Number of PCs too high (max PCs={}), using instead {:} PCs.'
+            msg = 'Number of PCs too high (max PCs={}), using {} PCs instead.'
             print(msg.format(n, ncomp))
         residuals_result = subtract_projection(cube, cube_ref, ncomp, scaling, 
                                                mask_center_px, debug, svd_mode, 
@@ -420,7 +420,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
     else:
         if ncomp > n:
             ncomp = min(ncomp,n)
-            msg = 'Number of PCs too high (max PCs={}), using instead {:} PCs.'
+            msg = 'Number of PCs too high (max PCs={}), using {} PCs instead.'
             print(msg.format(n, ncomp))
         
         if source_xy is None:
@@ -447,7 +447,8 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
             if pa_thr >= mid_range - mid_range * 0.1:
                 new_pa_th = float(mid_range - mid_range * 0.1)
                 if verbose:
-                    msg = 'PA threshold {:.2f} is too big, will be set to {:.2f}'
+                    msg = 'PA threshold {:.2f} is too big, will be set to '
+                    msg += '{:.2f}'
                     print(msg.format(pa_thr, new_pa_th))
                 pa_thr = new_pa_th     
             
@@ -466,12 +467,14 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
                     nfrslib.append(res_result[0])
                     residual_frame = res_result[1]
                     recon_frame = res_result[2]
-                    residuals_cube[frame] = residual_frame.reshape(cube[0].shape) 
+                    residuals_cube[frame] = residual_frame.reshape(
+                                                              cube[0].shape) 
                     recon_cube[frame] = recon_frame.reshape(cube[0].shape) 
                 else:
                     nfrslib.append(res_result[0])
                     residual_frame = res_result[1]
-                    residuals_cube[frame] = residual_frame.reshape(cube[0].shape) 
+                    residuals_cube[frame] = residual_frame.reshape(
+                                                              cube[0].shape) 
             
             # number of frames in library printed for each annular quadrant
             if verbose:
@@ -602,9 +605,10 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
         transformed = np.dot(V[:ncomp], matrix.T)
         reconstructed = np.dot(transformed.T, V[:ncomp])
         residuals = matrix - reconstructed
-        frsize = int(np.sqrt(matrix.shape[1]))                                  # only for square frames
+        frsize = int(np.sqrt(matrix.shape[1]))          # only for square frames
         residuals_res = reshape_matrix(residuals, frsize, frsize)
-        residuals_res_der = cube_derotate(residuals_res, angle_list, imlib=imlib,
+        residuals_res_der = cube_derotate(residuals_res, angle_list,
+                                          imlib=imlib,
                                           interpolation=interpolation)
         frame = cube_collapse(residuals_res_der, mode=collapse)
         return frame
@@ -617,7 +621,8 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
         residuals_ann = matrix - reconstructed
         residuals_res = np.zeros_like(cube)
         residuals_res[:,indices[0],indices[1]] = residuals_ann
-        residuals_res_der = cube_derotate(residuals_res, angle_list, imlib=imlib,
+        residuals_res_der = cube_derotate(residuals_res, angle_list,
+                                          imlib=imlib,
                                           interpolation=interpolation)
         frame = cube_collapse(residuals_res_der, mode=collapse)
         return frame
@@ -707,7 +712,8 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
                 print('Interval for next grid: ', pclist[argm-1], 'to',
                       pclist[argm+1])
             except:
-                print('The optimal SNR seems to be outside of the given PC range')
+                print('The optimal SNR seems to be outside of the given '
+                      'PC range')
             print()
         
         if argm==0:  argm = 1 
@@ -822,8 +828,8 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
             argm, pclist, snrlist, fluxlist = grid1
         
         grid2 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 
-                     max(int(pcmax*0.05),1), pclist[argm-1], pclist[argm+1], debug, 
-                     full_output)
+                     max(int(pcmax*0.05),1), pclist[argm-1], pclist[argm+1],
+                     debug, full_output)
         if full_output:
             argm2, pclist2, snrlist2, fluxlist2, frlist2 = grid2
         else:
@@ -866,13 +872,15 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
                      alpha=alpha, color='blue', lw=lw)
             ax1.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,1]), 'o',  
                      alpha=alpha/2, color='blue')
-            ax1.set_xlim(np.array(dfrsrd.loc[:,0]).min(), np.array(dfrsrd.loc[:,0]).max())
+            ax1.set_xlim(np.array(dfrsrd.loc[:,0]).min(),
+                         np.array(dfrsrd.loc[:,0]).max())
             ax1.set_ylim(0, np.array(dfrsrd.loc[:,1]).max()+1)
             ax1.set_ylabel('S/N')
             ax1.minorticks_on()
             ax1.grid('on', 'major', linestyle='solid', alpha=0.2)
             if plot_title is not None:
-                ax1.set_title('Optimal pc: ' + str(opt_npc) + ' for ' + plot_title)
+                ax1.set_title('Optimal pc: {} for {}'.format(opt_npc,
+                                                             plot_title))
             
             ax2 = plt.subplot(212)
             ax2.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), '-', 
@@ -960,8 +968,8 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
     """
     if verbose:  start = time_ini()
     if not isinstance(cubepath, str):
-        msgerr = 'Cubepath must be a string with the full path of your fits file'
-        raise TypeError(msgerr)
+        raise TypeError('Cubepath must be a string with the full path of your '
+                        'fits file')
       
     fitsfilename = cubepath
     hdulist = fits.open(fitsfilename, memmap=True)
@@ -977,9 +985,8 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
         except:  
             raise RuntimeError('Parallactic angles were not provided')
     if not n_frames==angle_list.shape[0]:
-        msg ='Angle list vector has wrong length. It must equal the number of \
-        frames in the cube.'
-        raise TypeError(msg)
+        raise TypeError('Angle list vector has wrong length. It must equal the '
+                        'number of frames in the cube.')
     
     ipca = IncrementalPCA(n_components=ncomp)
     
@@ -989,11 +996,10 @@ def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None,
         batch_size = int(n_frames/(total_size/(batch_ratio*aval_mem)))
     
     if verbose:
-        msg1 = "Cube with {:} frames ({:.3f} GB)"
+        msg1 = "Cube with {} frames ({:.3f} GB)"
         print(msg1.format(n_frames, hdulist[n].data.nbytes/1e9))
-        msg2 = "Batch size set to {:} frames ({:.3f} GB)"
-        print(msg2.format(batch_size, hdulist[n].data[:batch_size].nbytes/1e9),
-              '\n')
+        msg2 = "Batch size set to {} frames ({:.3f} GB)\n"
+        print(msg2.format(batch_size, hdulist[n].data[:batch_size].nbytes/1e9))
                 
     res = n_frames % batch_size
     for i in range(0, n_frames//batch_size):

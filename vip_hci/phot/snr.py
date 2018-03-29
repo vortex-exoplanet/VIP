@@ -120,11 +120,14 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
             tempcy, tempcx = draw.circle(y, x, int(np.ceil(1*fwhm)))
             # masking the source position (using the MAD of pixels in annulus)
             array_sources[tempcy, tempcx] = mad(array[tempay, tempax])
-            ciry += list(tempcy); cirx += list(tempcx)
-            anny += list(tempay); annx += list(tempax)
+            ciry += list(tempcy)
+            cirx += list(tempcx)
+            anny += list(tempay)
+            annx += list(tempax)
 
         # coordinates of annulus without the sources
-        coor_ann = [(y,x) for (y,x) in zip(anny, annx) if (y,x) not in zip(ciry, cirx)]
+        coor_ann = [(y,x) for (y,x) in zip(anny, annx)
+                    if (y,x) not in zip(ciry, cirx)]
 
         # coordinates of the rest of the frame without the annulus
         coor_rest = [(y,x) for (y,x) in zip(yy, xx) if (y,x) not in coor_ann]
@@ -152,13 +155,13 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     if plot:  
         pp_subplots(snrmap, colorb=True, title='S/N map')
 
-    # Option to save snrmap in angular scale, using Keck NIRC2's ~0.01 pixel scale
-    # In this case, set plot = False
+    # Option to save snrmap in angular scale, using Keck NIRC2's ~0.01 pixel
+    # scale. In this case, set plot = False
     elif save_plot is not None:
         pp_subplots(snrmap, colorb=True, title=plot_title, save=save_plot,
                     vmin=-1, vmax=5, angscale=True, getfig = True)
         
-    print("S/N map created using {:} processes.".format(nproc))
+    print("S/N map created using {} processes.".format(nproc))
     timing(start_time)
     return snrmap
    
@@ -226,7 +229,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
         pp_subplots(snrmap, colorb=True, title='SNRmap')
      
     if verbose:    
-        print("S/N map created using {:} processes.".format(nproc))
+        print("S/N map created using {} processes.".format(nproc))
         timing(start_time)
     return snrmap
 
@@ -243,7 +246,7 @@ def _snr_approx(array, source_xy, fwhm, centery, centerx):
     ind_ann = draw.circle_perimeter(int(centery), int(centerx), int(rad))
     array2 = array.copy()
     array2[ind_aper] = array[ind_ann].mean()   # quick-n-dirty mask
-    n2 = ((2*np.pi*rad)/fwhm) - 1
+    n2 = (2*np.pi*rad)/fwhm - 1
     noise = array2[ind_ann].std()*np.sqrt(1+(1/n2))
     # signal : central px minus the mean of the pxs (masked) in 1px annulus
     signal = array[sourcey, sourcex] - array2[ind_ann].mean()
@@ -339,7 +342,8 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
     
     if plot:
         _, ax = plt.subplots(figsize=(6,6))
-        ax.imshow(array, origin='lower', interpolation='nearest', alpha=0.5, cmap='gray')
+        ax.imshow(array, origin='lower', interpolation='nearest', alpha=0.5,
+                  cmap='gray')
         for i in range(xx.shape[0]):
             # Circle takes coordinates as (X,Y)
             aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2, color='r', 

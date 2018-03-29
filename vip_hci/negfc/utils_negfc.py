@@ -56,8 +56,8 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, plsc, imlib='opencv',
             cube_temp = cpf
 
         cpf = cube_inject_companions(cube_temp, psfn, angs,
-                                     flevel=-planet_parameter[i, 2],
-                                     plsc=plsc, rad_dists=[planet_parameter[i, 0]],
+                                     flevel=-planet_parameter[i, 2], plsc=plsc,
+                                     rad_dists=[planet_parameter[i, 0]],
                                      n_branches=1, theta=planet_parameter[i, 1],
                                      imlib=imlib, interpolation=interpolation,
                                      verbose=False)
@@ -96,7 +96,7 @@ def radial_to_eq(r=1, t=0, rError=0, tError=0, display=False):
     nu = np.mod(np.pi/2-math.radians(t), 2*np.pi)
     a, b = (rError,r*np.sin(math.radians(tError)))
 
-    beta = np.linspace(0,2*np.pi,5000)
+    beta = np.linspace(0, 2*np.pi, 5000)
     x, y = (u + (a * np.cos(beta) * np.cos(nu) - b * np.sin(beta) * np.sin(nu)),
             v + (b * np.sin(beta) * np.cos(nu) + a * np.cos(beta) * np.sin(nu)))
     
@@ -150,7 +150,7 @@ def cart_to_polar(y, x, ceny=0, cenx=0):
     r = np.sqrt((y-ceny)**2 + (x-cenx)**2)
     theta = np.degrees(np.arctan2(y-ceny, x-cenx)) 
     
-    return (r,np.mod(theta,360))   
+    return r, np.mod(theta,360)
 
 
 def polar_to_cart(r, theta, ceny=0, cenx=0):
@@ -175,7 +175,7 @@ def polar_to_cart(r, theta, ceny=0, cenx=0):
     x = r*np.cos(np.deg2rad(theta)) + cenx
     y = r*np.sin(np.deg2rad(theta)) + ceny 
     
-    return (x,y)    
+    return x,y
 
 
 def ds9index_to_polar(y, x, ceny=0, cenx=0):
@@ -186,9 +186,10 @@ def ds9index_to_polar(y, x, ceny=0, cenx=0):
     Note that ds9 index (x,y) = Python matrix index (y,x). Furthermore, when an 
     image M is displayed with DS9, the coordinates of the center of the pixel 
     associated with M[0,0] is (1,1). Then, there is a shift of (0.5, 0.5) of the
-    center of the coordinate system. As a conclusion, when you read (x_ds9, y_ds9)
-    on a image displayed with DS9, the corresponding position is (y-0.5, x-0.5)
-    and the associated pixel value is M(np.floor(y)-1,np.floor(x)-1).
+    center of the coordinate system. As a conclusion, when you read
+    (x_ds9, y_ds9) on a image displayed with DS9, the corresponding position is
+    (y-0.5, x-0.5) and the associated pixel value is
+    M(np.floor(y)-1,np.floor(x)-1).
     
     Parameters
     ----------
@@ -206,7 +207,7 @@ def ds9index_to_polar(y, x, ceny=0, cenx=0):
     r = np.sqrt((y-0.5-ceny)**2 + (x-0.5-cenx)**2)
     theta = np.degrees(np.arctan2(y-0.5-ceny, x-0.5-cenx))
     
-    return (r,np.mod(theta,360)) 
+    return r, np.mod(theta,360) 
     
     
 def polar_to_ds9index(r, theta, ceny=0, cenx=0):
@@ -217,9 +218,10 @@ def polar_to_ds9index(r, theta, ceny=0, cenx=0):
     Note that ds9 index (x,y) = Python matrix index (y,x). Furthermore, when an 
     image M is displayed with DS9, the coordinates of the center of the pixel 
     associated with M[0,0] is (1,1). Then, there is a shift of (0.5, 0.5) of the
-    center of the coordinate system. As a conclusion, when you read (x_ds9, y_ds9)
-    on a image displayed with DS9, the corresponding position is (y-0.5, x-0.5)
-    and the associated pixel value is M(np.floor(y)-1,np.floor(x)-1).
+    center of the coordinate system. As a conclusion, when you read
+    (x_ds9, y_ds9) on a image displayed with DS9, the corresponding position is
+    (y-0.5, x-0.5) and the associated pixel value is
+    M(np.floor(y)-1,np.floor(x)-1).
     
     Parameters
     ----------
@@ -237,4 +239,4 @@ def polar_to_ds9index(r, theta, ceny=0, cenx=0):
     x_ds9 = r*np.cos(np.deg2rad(theta)) + 0.5 + cenx
     y_ds9 = r*np.sin(np.deg2rad(theta)) + 0.5 + ceny 
     
-    return (x_ds9,y_ds9)    
+    return x_ds9, y_ds9

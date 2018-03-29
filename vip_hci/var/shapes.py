@@ -143,7 +143,7 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
 def dist(yc,xc,y1,x1):
     """ Returns the Euclidean distance between two points.
     """
-    return np.sqrt((yc-y1)**2+(xc-x1)**2)
+    return np.sqrt((yc-y1)**2 + (xc-x1)**2)
 
 
 def frame_center(array, verbose=False):
@@ -153,7 +153,7 @@ def frame_center(array, verbose=False):
     cx = array.shape[1]/2 - 0.5
 
     if verbose:
-        print('Center px coordinates at x,y = ({:},{:})'.format(cy, cx))
+        print('Center px coordinates at x,y = ({},{})'.format(cy, cx))
     return cy, cx
 
     
@@ -374,7 +374,7 @@ def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
     xx, yy = np.mgrid[:array.shape[0], :array.shape[1]]
     rad = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
     phi = np.arctan2(yy - cy, xx - cx)
-    phirot = phi % (twopi)
+    phirot = phi % twopi
     outer_radius = inner_radius + (width*optim_scale_fact)
     indices = []
 
@@ -649,9 +649,8 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
     """
     if mode == 'annular':
         if annulus_radius is None or annulus_width is None:
-            msgerr = 'Annulus_radius and/or annulus_width can be None in annular '
-            msgerr += 'mode'
-            raise ValueError(msgerr)
+            raise ValueError('Annulus_radius and/or annulus_width can be None '
+                             'in annular mode')
 
         ind = get_annulus(array[0], annulus_radius - annulus_width / 2,
                           annulus_width, output_indices=True)
@@ -661,7 +660,7 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
         matrix = matrix_scaling(matrix, scaling)
 
         if verbose:
-            msg = 'Done vectorizing the cube annulus. Matrix shape [{:},{:}]'
+            msg = 'Done vectorizing the cube annulus. Matrix shape [{},{}]'
             print(msg.format(matrix.shape[0], matrix.shape[1]))
         return matrix, ind
 
@@ -675,7 +674,7 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
         matrix = matrix_scaling(matrix, scaling)
 
         if verbose:
-            msg = 'Done vectorizing the frames. Matrix shape [{:},{:}]'
+            msg = 'Done vectorizing the frames. Matrix shape [{},{}]'
             print(msg.format(matrix.shape[0], matrix.shape[1]))
         return matrix
 

@@ -181,7 +181,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
             n_segments.append(int(np.ceil(360/ang)))
 
     if verbose:
-        print('Annuli = {:}'.format(n_annuli))
+        print('Annuli = {}'.format(n_annuli))
 
     # Azimuthal averaging of residuals
     if azimuth_overlap is None:
@@ -216,8 +216,9 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
                     patch = _decompose_patch(indices, j, n_segments_ann,
                                              rank, low_rank_ref, low_rank_mode,
                                              thresh, thresh_mode, max_iter,
-                                             auto_rank_mode, cevr, residuals_tol,
-                                             random_seed, debug, full_output)
+                                             auto_rank_mode, cevr,
+                                             residuals_tol, random_seed, debug,
+                                             full_output)
 
                     if full_output:
                         matrix_l[i, :, yy, xx] = patch[0]

@@ -59,14 +59,14 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
         gp = 1 - bp                         # temporary good pixel map
         for n in range(nb):
             #0/ Determine the box around each pixel
-            hbox_b = min(half_box,wb[0][n])        # half size of the box at the
             half_box = np.floor(neighbor_box/2)
+            hbox_b = min(half_box, wb[0][n])       # half size of the box at the
                                                    # bottom of the pixel
-            hbox_t = min(half_box,sz_y-1-wb[0][n]) # half size of the box at the
+            hbox_t = min(half_box, sz_y-1-wb[0][n])# half size of the box at the
                                                    # top of the pixel
-            hbox_l = min(half_box,wb[1][n])        # half size of the box to the
+            hbox_l = min(half_box, wb[1][n])       # half size of the box to the
                                                    # left of the pixel
-            hbox_r = min(half_box,sz_x-1-wb[1][n]) # half size of the box to the
+            hbox_r = min(half_box, sz_x-1-wb[1][n])# half size of the box to the
                                                    # right of the pixel
             # but in case we are at an edge, we want to extend the box by one 
             # row/column of pixels in the direction opposite to the edge to 
@@ -97,9 +97,9 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
 # TODO: If possible, replace this function using astropy.stats.sigma_clip
 def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
                num_neighbor=None, mad=False):
-    """Sigma clipping for detecting outlying values in 2d array. If the parameter
-    'neighbor' is True the clipping can be performed in a local patch around 
-    each pixel, whose size depends on 'neighbor' parameter.
+    """Sigma clipping for detecting outlying values in 2d array. If the
+    parameter 'neighbor' is True the clipping can be performed in a local patch
+    around each pixel, whose size depends on 'neighbor' parameter.
     
     Parameters
     ----------
@@ -153,10 +153,12 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
     bad2 = values > (median + upper_sigma * sigma)
     
     if out_good:
-        good = np.where(good1 & good2)                                          # normal px indices in both good1 and good2
+        # normal px indices in both good1 and good2
+        good = np.where(good1 & good2)
         return good
     else:
-        bad = np.where(bad1 | bad2)                                             # deviating px indices in either bad1 or bad2
+        # deviating px indices in either bad1 or bad2
+        bad = np.where(bad1 | bad2)
         return bad
     
   

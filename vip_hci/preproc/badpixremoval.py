@@ -35,7 +35,8 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
      array : array_like
          Input 2d array.
      bpm_mask : array_like, optional
-         Input bad pixel map. Zeros frame where the bad pixels have a value of 1.
+         Input bad pixel map. Zeros frame where the bad pixels have a value of
+         1.
          If None is provided a bad pixel map will be created per frame using
          sigma clip statistics. In the case of a cube the bad pixels will be
          computed on the mean frame of the stack.
@@ -47,10 +48,12 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
          statistics are calculated (STDDEV and MEDIAN). If the value is equal to
          0 then the statistics are computed in the whole frame.
      size : odd int, optional
-         The size the box (size x size) of adjacent pixels for the median filter.
+         The size the box (size x size) of adjacent pixels for the median
+         filter.
      protect_mask : bool, optional
          If True a circular aperture at the center of the frames will be
-         protected from any operation. With this we protect the star and vicinity.
+         protected from any operation. With this we protect the star and
+         vicinity.
      radius : int, optional
          Radius of the circular aperture (at the center of the frames) for the
          protection mask.
@@ -58,8 +61,8 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
          If True additional information will be printed.
      debug : bool, optional
          If debug is True, the bpm_mask and the input array are plotted. If the
-         input array is a cube, a long output is to be expected. Better check the
-         results with single images.
+         input array is a cube, a long output is to be expected. Better check
+         the results with single images.
 
      Return
      ------
@@ -106,8 +109,8 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
 
 
 def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5, 
-                             size=5, protect_mask=False, radius=30, verbose=True,
-                             debug=False):
+                             size=5, protect_mask=False, radius=30,
+                             verbose=True, debug=False):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is 
     replaced by the median of the adjacent pixels. This function is very fast
     but works only with isolated (sparse) pixels. 
@@ -286,17 +289,18 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         _, _, stddev = sigma_clipped_stats(obj_tmp, sigma=2.5)
 
         #2/ Define each annulus, its median and stddev
-        ymax = max(cy,n_y-cy)
-        xmax = max(cx,n_x-cx)
+        
+        ymax = max(cy, n_y-cy)
+        xmax = max(cx, n_x-cx)
         if half_res_y:
             ymax *= 2
         rmax = np.sqrt(ymax**2+xmax**2)
         # the annuli definition is optimized for Airy rings
-        ann_width = max(1.5,0.61*fwhm) 
+        ann_width = max(1.5, 0.61*fwhm) 
         nrad = int(rmax/ann_width)+1
-        d_bord_max = max(n_y-cy,cy,n_x-cx,cx)
+        d_bord_max = max(n_y-cy, cy, n_x-cx, cx)
         if half_res_y:
-            d_bord_max = max(2*(n_y-cy),2*cy,n_x-cx,cx)
+            d_bord_max = max(2*(n_y-cy), 2*cy, n_x-cx, cx)
 
         big_ell_frame = np.zeros_like(obj_tmp)
         sma_ell_frame = np.zeros_like(obj_tmp)
@@ -370,7 +374,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         if protect_psf:
             if half_res_y: 
                 circl_new = ellipse(cy, cx, yradius=0.9*fwhm, 
-                                    xradius=1.8*fwhm,shape=(n_y,n_x))
+                                    xradius=1.8*fwhm, shape=(n_y,n_x))
             else: 
                 circl_new = circle(cy, cx, radius=1.8*fwhm, 
                                    shape=(n_y, n_x))
@@ -385,7 +389,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                 if half_res_y:
                     rad = np.sqrt((2*(cy-yy))**2+(cx-xx)**2)
                 else:
-                    rad = dist(cy,cx,yy,xx)
+                    rad = dist(cy, cx, yy, xx)
                 rr = int(rad/ann_width)
                 neigh = neighbours[rr,:n_neig[rr]]
                 dev = max(stddev,min(std_neig[rr],med_neig[rr]))
@@ -423,7 +427,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                             # Poisson noise
                             rand_fac = 2*(np.random.rand()-0.5)
                             obj_tmp_corr[yy,xx] = med_neig[rr] + \
-                                                  np.sqrt(np.abs(med_neig[rr]))*rand_fac
+                                          np.sqrt(np.abs(med_neig[rr]))*rand_fac
 
         #5/ Count bpix and uncorrect if within the circle
         nbpix_tot = np.sum(bpix_map)
@@ -562,10 +566,10 @@ def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True,
         fwhm_round = int(round(fwhm))
         # This should reduce the chance to accidently correct a bright planet:
         if fwhm_round % 2 == 0:
-            neighbor_box = max(3,fwhm_round+1) 
+            neighbor_box = max(3, fwhm_round+1) 
         else:
-            neighbor_box = max(3,fwhm_round)
-        nneig = sum(np.arange(3,neighbor_box+2,2))
+            neighbor_box = max(3, fwhm_round)
+        nneig = sum(np.arange(3, neighbor_box+2, 2))
 
         
         #1/ Create a tuple-array with coordinates of a circle of radius 1.8*fwhm
@@ -597,9 +601,8 @@ def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True,
         while nbpix_tbc > 0 and nit < max_nit:
             nit = nit+1
             if verbose:
-                msg = 'Iteration '+str(nit)+': '+str(nbpix_tot)+\
-                      ' bpix in total, '+str(nbpix_tbc)+' to be corrected.'
-                print(msg)
+                print("Iteration {}: {} bpix in total, {} to be "
+                      "corrected".format(nit, nbpix_tot, nbpix_tbc))
             obj_tmp = sigma_filter(obj_tmp, bpix_map, neighbor_box=neighbor_box,
                                    min_neighbors=nneig, verbose=verbose)
             bpix_map = find_outliers(obj_tmp, sig_dist=sig, in_bpix=bpix_map,
@@ -643,8 +646,8 @@ def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True,
         return obj_tmp
     
     
-def find_outliers(frame, sig_dist, in_bpix=None, stddev=None,neighbor_box=3,
-                  min_thr=None,mid_thr=None):
+def find_outliers(frame, sig_dist, in_bpix=None, stddev=None, neighbor_box=3,
+                  min_thr=None, mid_thr=None):
     """ Provides a bad pixel (or outlier) map for a given frame.
 
     Parameters
@@ -690,13 +693,13 @@ def find_outliers(frame, sig_dist, in_bpix=None, stddev=None,neighbor_box=3,
             for yy in range(ny):
                 #0/ Determine the box of neighbouring pixels
                 # half size of the box at the bottom of the pixel
-                hbox_b = min(half_box,yy)        
+                hbox_b = min(half_box, yy)        
                 # half size of the box at the top of the pixel
-                hbox_t = min(half_box,ny-1-yy)   
+                hbox_t = min(half_box, ny-1-yy)   
                 # half size of the box to the left of the pixel
-                hbox_l = min(half_box,xx)
+                hbox_l = min(half_box, xx)
                 # half size of the box to the right of the pixel  
-                hbox_r = min(half_box,nx-1-xx)    
+                hbox_r = min(half_box, nx-1-xx)    
                 # but in case we are at an edge, we want to extend the box by 
                 # one row/column of px in the direction opposite to the edge:
                 if yy > ny-1-half_box:

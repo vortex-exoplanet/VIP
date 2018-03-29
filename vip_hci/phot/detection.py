@@ -32,8 +32,8 @@ from .frame_analysis import frame_quick_report
 def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
               mask=True, snr_thresh=5, plot=True, debug=False,
               full_output=False, verbose=True, save_plot=None,
-              object_name = None, frame_size=None, inner_rad=None,
-              pca_type = None, ncomp = None, NIRC2angscale = False):
+              object_name=None, frame_size=None, inner_rad=None, pca_type=None,
+              ncomp=None, NIRC2angscale=False):
     """ Finds blobs in a 2d array. The algorithm is designed for automatically
     finding planets in post-processed high contrast final frames. Blob can be
     defined as a region of an image in which some properties are constant or
@@ -67,7 +67,8 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     verbose : {True,False}, bool optional
         Whether to print to stdout information about found blobs.
     save_plot: string
-        If provided, the frames processed by blob detection are saved to that path.
+        If provided, the frames processed by blob detection are saved to that
+        path.
     object_name: string
         Target name, used in the plot title
     frame_size: int
@@ -77,7 +78,8 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     pca_type: string
         adi or rdi, used in the title
     ncomp: int
-        Number of principal components used to compute the reduced frame, used in the title
+        Number of principal components used to compute the reduced frame, used
+        in the title
     NIRC2angscale: {False, True}
         If True the plot axes are converted to angular scale (arcseconds,
         assuming NIRC2's ~ 0.01 pixel scale)
@@ -335,17 +337,18 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             ticks = []
             for i in range(half_num_ticks, -half_num_ticks-1, -1):
                 # Avoid ticks not showing on the last pixel
-                if center_val - (i) * 50 != frame_size:
-                    ticks.append(center_val - (i) * 50)
+                if center_val - i * 50 != frame_size:
+                    ticks.append(center_val - i * 50)
                 else:
-                    ticks.append((center_val - (i) * 50) - 1)
+                    ticks.append((center_val - i * 50) - 1)
             ax.set_xticks(ticks)
             ax.set_yticks(ticks)
 
-            # Calculate the corresponding distance in arcseconds, measured from the center
+            # Calculate the corresponding distance in arcseconds, measured from
+            # the center
             labels = []
             for i in range(half_num_ticks, -half_num_ticks-1, -1):
-                labels.append(0.0 - (i) * 0.5)
+                labels.append(0.0 - i * 0.5)
             ax.set_xticklabels(labels)
             ax.set_yticklabels(labels)
 
@@ -355,7 +358,9 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
 
             # Set the title of the plot
             if object_name is not None and inner_rad is not None:
-                ax.set_title(pca_type + ' ' + object_name+' '+ str(ncomp) + 'pc ' + str(frame_size)+'+'+str(inner_rad),
+                ax.set_title("{} {} {}pc {} + {}".format(pca_type, object_name,
+                                                         ncomp, frame_size,
+                                                         inner_rad),
                              fontsize=14)
             array_smoothed = gaussian_filter(array, sigma=(2.3, 2.3), order=0)
             plt.imshow(array_smoothed, origin='lower')
@@ -472,7 +477,7 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
 
         for zz in range(n_z):
             gauss_filt_tmp[zz] = frame_filter_gaussian2d(obj_tmp[zz],
-                                                    fwhm[zz]/gaussian_sigma_to_fwhm)
+                                                fwhm[zz]/gaussian_sigma_to_fwhm)
             if approx_peak is None:
                 ind_ch_max[zz] = np.unravel_index(gauss_filt_tmp[zz].argmax(),
                                                   gauss_filt_tmp[zz].shape)
@@ -528,7 +533,8 @@ def mask_source_centers(array, fwhm, y, x):
         frame = mask_circle(frame, radius=2*fwhm)
         yy, xx = detection(frame, fwhm, plot=False, mode='log')
     else:
-        yy = np.array(y); xx = np.array(x)
+        yy = np.array(y)
+        xx = np.array(x)
     mask = np.ones_like(array)
     # center sources become zeros
     mask[yy.astype('int'), xx.astype('int')] = 0

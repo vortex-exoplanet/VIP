@@ -17,8 +17,7 @@ try:
     import cv2
     no_opencv = False
 except ImportError:
-    msg = "Opencv python bindings are missing."
-    warnings.warn(msg, ImportWarning)
+    warnings.warn("Opencv python bindings are missing.", ImportWarning)
     no_opencv = True
 
 from scipy.ndimage.interpolation import geometric_transform, zoom

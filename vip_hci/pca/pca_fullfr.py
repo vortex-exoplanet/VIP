@@ -712,7 +712,8 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
                 print('Interval for next grid: ', pclist[argm-1], 'to',
                       pclist[argm+1])
             except:
-                print('The optimal SNR seems to be outside of the given PC range')
+                print('The optimal SNR seems to be outside of the given '
+                      'PC range')
             print()
         
         if argm==0:  argm = 1 

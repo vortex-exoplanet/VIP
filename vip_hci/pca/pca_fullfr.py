@@ -335,8 +335,7 @@ def pca(cube, angle_list=None, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1
             bar = pyprind.ProgBar(n, stream=1, 
                                   title='Looping through ADI frames')
             for i in range(n):
-                cube_res, _, y, x, _, _ = scpca(cube[:,i,:,:], 
-                                                             scale_list)
+                cube_res, _, y, x, _, _ = scpca(cube[:,i,:,:], scale_list)
                 residuals_result = subtract_projection(cube_res, None, ncomp,
                                                        scaling, mask_center_px, 
                                                        debug, svd_mode, False, 

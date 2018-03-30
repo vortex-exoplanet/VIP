@@ -331,7 +331,8 @@ def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
                                                       fwhmy=fwhm)
                 cy, cx = frame_center(psfs, verbose=False)
                 shiftx, shifty = centroidx - cx, centroidy - cy
-                psfs = frame_shift(psfs, -shifty, -shiftx)
+                psfs = frame_shift(psfs, -shifty, -shiftx, imlib=imlib,
+                                   interpolation=interpolation)
 
         # we check whether the flux is normalized and fix it if needed
         fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2)

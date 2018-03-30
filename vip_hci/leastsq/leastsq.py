@@ -48,7 +48,7 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         function ``sklearn.metrics.pairwise.pairwise_distances`` (check its
         documentation).
     dist_threshold : int
-        Indices with a distance larger thatn ``dist_threshold`` percentile will
+        Indices with a distance larger than ``dist_threshold`` percentile will
         initially discarded.
     delta_rot : int
         Minimum parallactic angle distance between the pairs.

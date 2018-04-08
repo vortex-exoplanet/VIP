@@ -24,7 +24,8 @@ from scipy.ndimage.interpolation import geometric_transform, zoom
 from ..var import frame_center
 
 
-def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic'):
+def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
+                       verbose=True):
     """ Wrapper of ``frame_px_resampling`` for resampling the frames of a cube
     with a single scale factor. Useful when we need to upsample (upscaling) or
     downsample (pixel binning) a set of frames, e.g. an ADI cube.
@@ -42,6 +43,8 @@ def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic'):
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_px_resampling``
         function.
+    verbose : bool, optional
+        Whether to print out additional info such as the new cube shape.
 
     Returns
     -------
@@ -58,7 +61,14 @@ def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic'):
                                      interpolation=interpolation)
         array_resc.append(imresc)
 
-    return np.array(array_resc)
+    array_resc = np.array(array_resc)
+
+    if verbose:
+        print("Cube successfully rescaled")
+        print("New shape: ({}, {}, {})".format(array_resc.shape[0],
+                                               array_resc.shape[1],
+                                               array_resc.shape[2]))
+    return array_resc
 
 
 def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic'):

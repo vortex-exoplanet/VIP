@@ -67,18 +67,20 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
         msgve = 'Inner radius and annulus size are too big (out of boundaries)'
         raise ValueError(msgve)
     
-    if verbose:  start_time = time_ini()
+    if verbose:
+        start_time = time_ini()
     
     n = array.shape[0]
     
-    if mode=='annulus':
-        mean_values,_,_,_ = cube_stats_annulus(array, inner_radius=in_radius, 
-                                               size=width, full_out=True)
-    elif mode=='circle':
-        _,mean_values,_,_ = cube_stats_aperture(array, radius=in_radius, 
-                                                full_output=True)
+    if mode == 'annulus':
+        mean_values = cube_stats_annulus(array, inner_radius=in_radius,
+                                         size=width, full_out=True)
+    elif mode == 'circle':
+        mean_values = cube_stats_aperture(array, radius=in_radius,
+                                          full_output=True)
     else: 
         raise TypeError('Mode not recognized')
+    mean_values = mean_values[0]
     
     if window is None:
         window = n//3
@@ -93,34 +95,40 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     top_boundary = np.empty([n])
     bot_boundary = np.empty([n])
     for i in range(n):
-        if mode=='annulus':
+        if mode == 'annulus':
             i_mean_value = get_annulus(array[i], inner_radius=in_radius, 
-                                        width=width, output_values=True).mean()
-        elif mode=='circle':
+                                       width=width, output_values=True).mean()
+        elif mode == 'circle':
             i_mean_value = mean_values[i]
         top_boundary[i] = mean_smooth[i] + top_sigma*sigma
         bot_boundary[i] = mean_smooth[i] - low_sigma*sigma
-        if (i_mean_value > top_boundary[i] or i_mean_value < bot_boundary[i]):
+        if i_mean_value > top_boundary[i] or i_mean_value < bot_boundary[i]:
             bad_index_list.append(i)
         else:
             good_index_list.append(i)                       
 
     if verbose:
         bad = len(bad_index_list)
-        percent_bad_frames = (bad*100)/n
+        percent_bad_frames = (bad * 100) / n
         msg1 = "Done detecting bad frames from cube: {} out of {} ({:.3}%)"
         print(msg1.format(bad, n, percent_bad_frames)) 
 
     if plot:
-        plt.figure(figsize=(10, 6), dpi=100)
-        plt.plot(mean_values, 'o', label='mean fluctuation', lw = 1.4)
-        plt.plot(mean_smooth, label='smoothed median', lw = 2, ls='-',
+        plt.figure(figsize=(10, 5))
+        plt.plot(mean_values, 'o', alpha=0.6)
+        plt.plot(mean_smooth, label='smoothed mean fluctuation', lw=2, ls='-',
                  alpha=0.5)
-        plt.plot(top_boundary, label='top limit', lw = 1.4, ls='-')
-        plt.plot(bot_boundary, label='lower limit', lw = 1.4, ls='-')
-        plt.legend(fancybox=True, framealpha=0.5)
+        plt.plot(top_boundary, label='upper threshold', lw=1.4, ls='-',
+                 color='#9467bd', alpha=0.8)
+        plt.plot(bot_boundary, label='lower threshold', lw=1.4, ls='-',
+                 color='#9467bd', alpha=0.8)
+        plt.legend(fancybox=True, framealpha=0.5, loc='best')
+        plt.grid('on', alpha=0.2)
+        plt.ylabel('Mean value in '+mode)
+        plt.xlabel('Frame number')
 
-    if verbose:  timing(start_time)
+    if verbose:
+        timing(start_time)
 
     good_index_list = np.array(good_index_list)
     bad_index_list = np.array(bad_index_list)
@@ -238,10 +246,10 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
         vip_hci.stats.distances.cube_distance(). 
     percentile : int
         The percentage of frames that will be discarded. 
-    plot : {True, False}, bool optional
+    plot : bool, optional
         If true it plots the mean fluctuation as a function of the frames and 
         the boundaries.
-    verbose : {True, False}, bool optional
+    verbose : bool, optional
         Whether to print to stdout or not.
             
     Returns
@@ -257,7 +265,8 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
     
-    if verbose:  start_time = time_ini()
+    if verbose:
+        start_time = time_ini()
     
     n = array.shape[0]
     # the cube is cropped to the central area
@@ -265,11 +274,11 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
                                 verbose=False)
     distances = cube_distance(subarray, frame_ref, 'full', dist, plot=False)
         
-    if dist=='pearson' or dist=='spearman':
+    if dist == 'pearson' or dist == 'spearman':
         # measures of correlation or similarity
         minval = np.min(distances[~np.isnan(distances)])
         distances = np.nan_to_num(distances)
-        distances[np.where(distances==0)] = minval
+        distances[np.where(distances == 0)] = minval
         threshold = np.percentile(distances, percentile)
         indbad = np.where(distances <= threshold)
         indgood = np.where(distances > threshold)
@@ -289,40 +298,39 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     
     if plot:
         lista = distances
-        _, ax = plt.subplots(figsize=(10, 6), dpi=100)
+        _, ax = plt.subplots(figsize=(10, 5))
         x = range(len(lista))
-        ax.plot(x, lista, '-', color='blue', alpha=0.3)
-        if n>5000:
-            ax.plot(x, lista, ',', color='blue', alpha=0.5)
+        ax.plot(x, lista, '-', alpha=0.3, color='#1f77b4')
+        if n > 5000:
+            marker = ','
         else:
-            ax.plot(x, lista, '.', color='blue', alpha=0.5)
+            marker = 'o'
+        ax.plot(x, lista, marker=marker, alpha=0.6, color='#1f77b4')
         ax.vlines(frame_ref, ymin=np.nanmin(lista), ymax=np.nanmax(lista), 
-                   colors='green', linestyles='dashed', lw=2, alpha=0.8,
+                   colors='green', linestyles='dashed', lw=2, alpha=0.6,
                    label='Reference frame '+str(frame_ref))
-        ax.hlines(np.median(lista), xmin=-1, xmax=n+1, colors='purple', 
-                   linestyles='solid', label='Median value')
-        ax.hlines(threshold, xmin=-1, xmax=n+1, lw=2, colors='red', 
-                   linestyles='dashed', label='Threshold')
+        ax.hlines(threshold, xmin=-1, xmax=n+1, lw=2, colors='#ff7f0e',
+                   linestyles='dashed', label='Threshold', alpha=0.6)
         plt.xlabel('Frame number')
-        if dist=='sad':
+        if dist == 'sad':
             plt.ylabel('SAD - Manhattan distance')
-        elif dist=='euclidean':
+        elif dist == 'euclidean':
             plt.ylabel('Euclidean distance')
-        elif dist=='pearson':
+        elif dist == 'pearson':
             plt.ylabel('Pearson correlation coefficient')
-        elif dist=='spearman':
+        elif dist == 'spearman':
             plt.ylabel('Spearman correlation coefficient')
-        elif dist=='mse':
+        elif dist == 'mse':
             plt.ylabel('Mean squared error')
-        elif dist=='ssim':
+        elif dist == 'ssim':
             plt.ylabel('Structural Similarity Index')
         
         plt.xlim(xmin=-1, xmax=n+1)
-        plt.minorticks_on()
-        plt.legend(fancybox=True, framealpha=0.5, fontsize=12, loc='best')
-        plt.grid(which='mayor')
+        plt.legend(fancybox=True, framealpha=0.5, loc='best')
+        plt.grid('on', alpha=0.2)
     
-    if verbose:  timing(start_time)
+    if verbose:
+        timing(start_time)
     
     return good_index_list, bad_index_list
 

@@ -40,8 +40,8 @@ from . import frame_crop
 from ..conf import time_ini, timing
 from ..conf.utils_conf import eval_func_tuple as EFT
 from ..var import (get_square, frame_center, get_annulus, pp_subplots,
-                   fit_2dmoffat, fit_2dgaussian, frame_filter_gaussian2d,
-                   frame_filter_lowpass)
+                   fit_2dmoffat, fit_2dgaussian, frame_filter_lowpass,
+                   cube_filter_lowpass)
 from ..preproc import cube_crop_frames
 
 
@@ -385,10 +385,8 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
                        mask_center=None, nproc=None, satspots=False,
                        full_output=False, verbose=True, plot=True, debug=False):
     """ Finding the center of a broadband (co-added) frame with speckles and 
-    satellite spots elongated towards the star (center). 
-    
-    The radon transform comes from scikit-image package. Takes a few seconds to
-    compute one radon transform with good resolution. 
+    satellite spots elongated towards the star (center). We use the radon
+    transform implementation from scikit-image.
     
     Parameters
     ----------
@@ -408,7 +406,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     nproc : int, optional
         Number of processes for parallel computing. If None the number of 
         processes will be set to cpu_count()/2. 
-    verbose : {True, False}, bool optional
+    verbose : bool optional
         Whether to print to stdout some messages and info.
     plot : bool, optional
         Whether to plot the radon cost function. 
@@ -425,8 +423,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
         
     Notes
     -----
-    The whole idea of this algorithm is based on Pueyo et al. 2014 paper: 
-    http://arxiv.org/abs/1409.6388
+    Based on Pueyo et al. 2014: http://arxiv.org/abs/1409.6388
     
     """
     from .cosmetics import frame_crop
@@ -479,7 +476,6 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     else:
         costfkt = _radon_costf
 
-
     if nproc == 1:
         costf = []
         for coord in coords:
@@ -512,12 +508,12 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     #optimy, optimx = coords[argm]
     
     # maxima in the 2d cost function surface
-    num_max = np.where(cost_bound==cost_bound.max())[0].shape[0]
-    ind_maximay, ind_maximax = np.where(cost_bound==cost_bound.max())
-    argmy = ind_maximay[int(np.ceil(num_max/2))-1]
-    argmx = ind_maximax[int(np.ceil(num_max/2))-1]
-    y_grid = np.array(coords)[:,0].reshape(listyx.shape[0], listyx.shape[0])
-    x_grid = np.array(coords)[:,1].reshape(listyx.shape[0], listyx.shape[0])
+    num_max = np.where(cost_bound == cost_bound.max())[0].shape[0]
+    ind_maximay, ind_maximax = np.where(cost_bound == cost_bound.max())
+    argmy = ind_maximay[int(np.ceil(num_max/2)) - 1]
+    argmx = ind_maximax[int(np.ceil(num_max/2)) - 1]
+    y_grid = np.array(coords)[:, 0].reshape(listyx.shape[0], listyx.shape[0])
+    x_grid = np.array(coords)[:, 1].reshape(listyx.shape[0], listyx.shape[0])
     optimy = y_grid[argmy, 0] 
     optimx = x_grid[0, argmx]  
     
@@ -624,14 +620,14 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
         return array_rec
 
 
-def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
-                                 subi_size=None, upsample_factor=100,
+def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
+                                 fwhm=4, subi_size=None, upsample_factor=100,
                                  imlib='opencv', interpolation='lanczos4',
                                  full_output=False, verbose=True,
-                                 save_shifts=False, debug=False):
+                                 save_shifts=False, debug=False, plot=True):
     """ Recenters a cube of frames using the DFT upsampling method as 
     proposed in Guizar et al. 2008 and implemented in the
-    ``register_translation`` fundtion from scikit-learn.
+    ``register_translation`` function from scikit-image.
     
     The algorithm (DFT upsampling) obtains an initial estimate of the 
     cross-correlation peak by an FFT and then refines the shift estimation by 
@@ -642,7 +638,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     ----------
     array : array_like
         Input cube.
-    cy_1, cx_1 : int
+    cy_1, cx_1 : int, optional
         Coordinates of the center of the subimage for fitting a 2d Gaussian and
         centroiding the 1st frame. 
     negative : bool, optional
@@ -669,7 +665,9 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     save_shifts : bool, optional
         Whether to save the shifts to a file in disk.
     debug : bool, optional
-        Whether to print to stdout the shifts or not. 
+        Whether to print to stdout the shifts or not.
+    plot : bool, optional
+        If True, the shifts are plotted.
     
     Returns
     -------
@@ -681,24 +679,30 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     
     Notes
     -----
-    Using the implementation from skimage.feature.register_translation.
-    
-    Guizar-Sicairos et al. "Efficient subpixel image registration algorithms," 
-    Opt. Lett. 33, 156-158 (2008). 
-    The algorithm registers two images (2-D rigid translation) within a fraction 
-    of a pixel specified by the user. Instead of computing a zero-padded FFT
-    (fast Fourier transform), this code uses selective upsampling by a
-    matrix-multiply DFT (discrete FT) to dramatically reduce computation time
-    and memory without sacrificing accuracy. With this procedure all the image
-    points are used to compute the upsampled cross-correlation in a very small
-    neighborhood around its peak.
+    Using the implementation from scikit-image of the algorithm described in
+    Guizar-Sicairos et al. "Efficient subpixel image registration algorithms,"
+    Opt. Lett. 33, 156-158 (2008). This algorithm registers two images (2-D
+    rigid translation) within a fraction of a pixel specified by the user.
+    Instead of computing a zero-padded FFT (fast Fourier transform), this code
+    uses selective upsampling by a matrix-multiply DFT (discrete FT) to
+    dramatically reduce computation time and memory without sacrificing
+    accuracy. With this procedure all the image points are used to compute the
+    upsampled cross-correlation in a very small neighborhood around its peak.
     
     """
+    if verbose:
+        start_time = time_ini()
+
     if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
 
     n_frames, sizey, sizex = array.shape
     if subi_size is not None:
+        if cx_1 is None or cy_1 is None:
+            print('`cx_1` or `cy_1` not be provided')
+            print('Using the coordinated of the 1st frame center for '
+                  'the Gaussian 2d fit')
+            cy_1, cx_1 = frame_center(array[0])
         if not isinstance(subi_size, int):
             raise ValueError('subi_size must be an integer or None')
         if subi_size < fwhm:
@@ -706,16 +710,13 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
         if sizey % 2 == 0:
             if subi_size % 2 != 0:
                 subi_size += 1
-                print('subi_size is odd (while frame size is even)')
-                print('Setting subi_size to {} pixels'.format(subi_size))
+                print('`subi_size` is odd (while frame size is even)')
+                print('Setting `subi_size` to {} pixels'.format(subi_size))
         else:
             if subi_size % 2 == 0:
                 subi_size += 1
-                print('subi_size is even (while frame size is odd)')
-                print('Setting subi_size to {} pixels'.format(subi_size))
-
-    if verbose:
-        start_time = time_ini()
+                print('`subi_size` is even (while frame size is odd)')
+                print('Setting `subi_size` to {} pixels'.format(subi_size))
     
     n_frames = array.shape[0]
     x = np.zeros((n_frames))
@@ -725,7 +726,7 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
     cy, cx = frame_center(array[0])
     # Centroiding first frame with 2d gaussian and shifting
     msg0 = "The rest of the frames will be shifted by cross-correlation "
-    msg0 += "wrt the first one"
+    msg0 += "wrt the 1st"
     if subi_size is not None:
         y1, x1 = _centroid_2dg_frame(array_rec, 0, subi_size, cy_1, cx_1,
                                      negative, debug, fwhm)
@@ -769,7 +770,16 @@ def cube_recenter_dft_upsampling(array, cy_1, cx_1, negative=False, fwhm=4,
         
     if verbose:
         timing(start_time)
-        
+
+    if plot:
+        plt.figure(figsize=(10, 5))
+        plt.plot(y, 'o-', label='shifts in y', alpha=0.5)
+        plt.plot(x, 'o-', label='shifts in x', alpha=0.5)
+        plt.legend(loc='best')
+        plt.grid('on', alpha=0.2)
+        plt.ylabel('Pixels')
+        plt.xlabel('Frame number')
+
     if save_shifts: 
         np.savetxt('recent_dft_shifts.txt', np.transpose([y, x]), fmt='%f')
     if full_output:
@@ -782,7 +792,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                         nproc=1, imlib='opencv', interpolation='lanczos4',
                         offset=None, negative=False, threshold=False,
                         save_shifts=False, full_output=False, verbose=True,
-                        debug=False):
+                        debug=False, plot=True):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d 
     Gaussian or Moffat to a subimage centered at ``xy``. This assumes the frames
     don't have too large shifts (>5px). The frames are shifted using the 
@@ -830,6 +840,8 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     debug : bool, optional
         If True the details of the fitting are shown. Won't work when the cube
         contains >20 frames (as it might produce an extremely long output).
+    plot : bool, optional
+        If True, the shifts are plotted.
         
     Returns
     -------
@@ -855,13 +867,13 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     if sizey % 2 == 0:
         if subi_size % 2 != 0:
             subi_size += 1
-            print('subi_size is odd (while frame size is even)')
-            print('Setting subi_size to {} pixels'.format(subi_size))
+            print('`subi_size` is odd (while frame size is even)')
+            print('Setting `subi_size` to {} pixels'.format(subi_size))
     else:
         if subi_size % 2 == 0:
             subi_size += 1
-            print('subi_size is even (while frame size is odd)')
-            print('Setting subi_size to {} pixels'.format(subi_size))
+            print('`subi_size` is even (while frame size is odd)')
+            print('Setting `subi_size` to {} pixels'.format(subi_size))
 
     if isinstance(fwhm, (float, int)):
         fwhm = np.ones(n_frames) * fwhm
@@ -933,6 +945,15 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     if verbose:
         timing(start_time)
 
+    if plot:
+        plt.figure(figsize=(10, 5))
+        plt.plot(y, 'o-', label='shifts in y', alpha=0.5)
+        plt.plot(x, 'o-', label='shifts in x', alpha=0.5)
+        plt.legend(loc='best')
+        plt.grid('on', alpha=0.2)
+        plt.ylabel('Pixels')
+        plt.xlabel('Frame number')
+
     if save_shifts: 
         np.savetxt('recent_gauss_shifts.txt', np.transpose([y, x]), fmt='%f')
     if full_output:
@@ -1002,11 +1023,11 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         Spatial frequency for low pass filter. 
     fwhm : float, optional 
         Full width at half maximum. 
-    debug : {False, True}, optional 
+    debug : bool, optional
         Outputs extra info.
-    negative : {True, False}, optional
+    negative : bool, optional
         Use a negative gaussian fit to determine the center of the median frame.
-    recenter_median : {True, False}, optional 
+    recenter_median : bool, optional
         Recenter the frames at each iteration based on the gaussian fit.
     subframesize : int, optional
         Sub-frame window size used. Should cover the region where speckles are 
@@ -1058,22 +1079,20 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
 
     # Remove spatial frequencies <0.5 lam/D and >3lam/D to isolate speckles
     for i in range(cube_sci.shape[0]):
-        cube_sci_lpf[i, :, :] = cube_sci_lpf[i, :, :] - frame_filter_lowpass(
-            cube_sci_lpf[i, :, :], 'median', median_size=fwhm * max_spat_freq)
+        frlp = frame_filter_lowpass(cube_sci_lpf[i], 'median',
+                                    median_size=fwhm * max_spat_freq)
+        cube_sci_lpf[i, :, :] = cube_sci_lpf[i] - frlp
     if refStar:
         for i in range(cube_ref.shape[0]):
-            cube_ref_lpf[i, :, :] = cube_ref_lpf[i, :,
-                                    :] - frame_filter_lowpass(
-                cube_ref_lpf[i, :, :], 'median',
-                median_size=fwhm * max_spat_freq)
+            frlpref = frame_filter_lowpass(cube_ref_lpf[i], 'median',
+                                           median_size=fwhm * max_spat_freq)
+            cube_ref_lpf[i] = cube_ref_lpf[i] - frlpref
 
-    for i in range(cube_sci.shape[0]):
-        cube_sci_lpf[i, :, :] = frame_filter_gaussian2d(cube_sci_lpf[i, :, :],
-                                                        min_spat_freq * fwhm)
+    cube_sci_lpf = cube_filter_lowpass(cube_sci_lpf[i], 'gauss',
+                                       fwhm_size=min_spat_freq * fwhm)
     if refStar:
-        for i in range(cube_ref.shape[0]):
-            cube_ref_lpf[i, :, :] = frame_filter_gaussian2d(
-                cube_ref_lpf[i, :, :], min_spat_freq * fwhm)
+        cube_ref_lpf = cube_filter_lowpass(cube_ref_lpf[i], 'gauss',
+                                           fwhm_size=min_spat_freq * fwhm)
 
     if refStar:
         alignment_cube = np.zeros((1 + cube_sci.shape[0] + cube_ref.shape[0],
@@ -1157,5 +1176,3 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
 
 
 
-
-        

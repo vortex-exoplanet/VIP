@@ -54,7 +54,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
         The inner radius when mode is 'annulus'.
     width : None or int, optional
         The width when mode is 'annulus'.
-    plot : {True, False}, bool optional
+    plot : bool, optional
         Whether to plot the distances or not.
 
     Returns

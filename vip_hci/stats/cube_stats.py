@@ -73,18 +73,18 @@ def cube_stats_aperture(arr, radius, xy=None, plot=False, full_output=False):
             median[i] = np.median(circle)
         values_circle = np.array(values_circle).flatten()
         
-        if plot==1 or plot==2:
-            plt.figure('Image crop (first slice)', figsize=(12,3))
+        if plot == 1 or plot == 2:
+            plt.figure('Image crop (first slice)', figsize=(12, 3))
             if xy is not None:
                 x, y = xy
                 temp = get_circle(arr[0], radius, cy=y, cx=x)
             else:
                 temp = get_circle(arr[0], radius)
             ax1 = plt.subplot(1, 2, 1)
-            ax1.imshow(arr[0], origin = 'lower', interpolation="nearest", 
-                       cmap = plt.get_cmap('gray'), alpha=0.8)
-            ax1.imshow(temp, origin = 'lower', interpolation="nearest", 
-                       cmap = plt.get_cmap('CMRmap'), alpha=0.6)                     
+            ax1.imshow(arr[0], origin='lower', interpolation="nearest",
+                       cmap='gray', alpha=0.8)
+            ax1.imshow(temp, origin='lower', interpolation="nearest",
+                       cmap='CMRmap', alpha=0.6)
             plt.axis('on')
             ax2 = plt.subplot(1, 2, 2)
             ax2.hist(values_circle, bins=int(np.sqrt(values_circle.shape[0])),
@@ -100,7 +100,7 @@ def cube_stats_aperture(arr, radius, xy=None, plot=False, full_output=False):
             lab = 'mean (median={:.1f}, stddev={:.1f})'.format(median_of_means,
                                                                std_of_means)
             ax1.axhline(median_of_means, alpha=0.5, color='gray', lw=2, ls='--')
-            ax1.plot(mean, '.-', label=lab, lw = 0.8, alpha=0.6, marker='o', 
+            ax1.plot(mean, '.-', label=lab, lw=0.8, alpha=0.6, marker='o',
                      color='b')
             ax1.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)
             ax1.grid(True)
@@ -119,7 +119,7 @@ def cube_stats_aperture(arr, radius, xy=None, plot=False, full_output=False):
             ax3.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)  
             ax3.grid(True)  
 
-            if plot==2:
+            if plot == 2:
                 plt.figure('Std_dev - mean in annulus', figsize=(4, 4))                
                 plt.scatter(std_dev, mean, alpha=0.6)
                 m, b = np.polyfit(std_dev, mean, 1)
@@ -184,14 +184,14 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False):
             median[i] = np.median(annulus)
             maxi[i] = annulus.max()
             
-        if plot==1 or plot==2:
+        if plot == 1 or plot == 2:
             plt.figure('Image crop (first slice)', figsize=(12,3))
             temp = get_annulus_cube(array, inner_radius, size)
             ax1 = plt.subplot(1, 2, 1)
-            ax1.imshow(array[0], origin = 'lower', interpolation="nearest", 
-                       cmap = plt.get_cmap('gray'), alpha=0.8) 
-            ax1.imshow(temp[0], origin = 'lower', interpolation="nearest", 
-                       cmap = plt.get_cmap('CMRmap'), alpha=0.6)                           
+            ax1.imshow(array[0], origin='lower', interpolation="nearest",
+                       cmap='gray', alpha=0.8)
+            ax1.imshow(temp[0], origin='lower', interpolation="nearest",
+                       cmap='CMRmap', alpha=0.6)
             plt.axis('on')
             ax2 = plt.subplot(1, 2, 2)
             values = temp[np.where(temp>0)]
@@ -208,7 +208,7 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False):
             lab = 'mean (median={:.1f}, stddev={:.1f})'.format(median_of_means,
                                                                std_of_means)
             ax1.axhline(median_of_means, alpha=0.5, color='gray', lw=2, ls='--')
-            ax1.plot(mean, '.-', label=lab, lw = 0.8, alpha=0.6, marker='o', 
+            ax1.plot(mean, '.-', label=lab, lw=0.8, alpha=0.6, marker='o',
                      color='b')
             ax1.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)
             ax1.grid(True)
@@ -227,7 +227,7 @@ def cube_stats_annulus(array, inner_radius, size, plot=None, full_out=False):
             ax3.legend(loc='best', fancybox=True).get_frame().set_alpha(0.5)  
             ax3.grid(True)          
             
-            if plot==2:
+            if plot == 2:
                 plt.figure('Std_dev - mean in annulus', figsize=(4, 4))                
                 plt.scatter(std_dev, mean, alpha=0.6)
                 m, b = np.polyfit(std_dev, mean, 1)

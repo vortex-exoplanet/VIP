@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Module with frame/cube filtering functionalities
+Module with frame/cube filtering functionalities.
 """
 
 from __future__ import division, print_function
@@ -10,9 +10,8 @@ __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['frame_filter_highpass',
            'frame_filter_lowpass',
            'cube_filter_highpass',
-           'cube_filter_iuwt',
-           'frame_filter_gaussian2d',
-           'gaussian_kernel']
+           'cube_filter_lowpass',
+           'cube_filter_iuwt']
 
 import warnings
 try:
@@ -23,12 +22,10 @@ except ImportError:
     warnings.warn(msg, ImportWarning)
     no_opencv = True
 import numpy as np
-import photutils
 import pyprind
 from scipy.ndimage import gaussian_filter, median_filter      
 from astropy.convolution import convolve_fft, Gaussian2DKernel
 from astropy.stats import gaussian_fwhm_to_sigma
-from .shapes import frame_center
 from ..exlib import iuwt
 
 
@@ -287,19 +284,23 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     return filtered
 
 
-def frame_filter_lowpass(array, mode, median_size=5, fwhm_size=5):
+def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
+                         gauss_mode='conv'):
     """ Low-pass filtering of input frame depending on parameter *mode*. 
     
     Parameters
     ----------
     array : array_like
         Input array, 2d frame.
-    mode : {'median', 'gauss'}
+    mode : {'median', 'gauss'}, str optional
         Type of low-pass filtering.
-    median_size : int
+    median_size : int, optional
         Size of the median box for filtering the low-pass median filter.
-    fwhm_size : int
+    fwhm_size : int, optional
         Size of the Gaussian kernel for the low-pass Gaussian filter.
+    gauss_mode : {'conv', 'convfft'}, str optional
+        'conv' uses the multidimensional gaussian filter from scipy.ndimage and
+        'convfft' uses the fft convolution with a 2d Gaussian kernel.
     
     Returns
     -------
@@ -310,73 +311,66 @@ def frame_filter_lowpass(array, mode, median_size=5, fwhm_size=5):
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
        
-    if mode=='median':
+    if mode == 'median':
         # creating the low_pass filtered (median) image
         filtered = median_filter(array, int(median_size), mode='nearest')
-    
-    elif mode=='gauss':
-        # creating the low_pass filtered (median) image 
-        filtered = frame_filter_gaussian2d(array, fwhm_size, mode='conv')    
-        
+    elif mode == 'gauss':
+        # 2d Gaussian filter
+        sigma = fwhm_size * gaussian_fwhm_to_sigma
+        if gauss_mode == 'conv':
+            filtered = gaussian_filter(array, sigma=sigma, order=0,
+                                       mode='nearest')
+        elif gauss_mode == 'convfft':
+            # FFT Convolution with a 2d gaussian kernel created with Astropy.
+            filtered = convolve_fft(array, Gaussian2DKernel(stddev=sigma))
+        else:
+            raise TypeError('2d Gaussian filter mode not recognized')
     else:
-        raise TypeError('Mode not recognized.')
+        raise TypeError('Low-pass filter mode not recognized')
         
     return filtered
 
 
-def frame_filter_gaussian2d(array, size_fwhm, mode='conv'):
-    """ 2d Gaussian filter. 
-    
+def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
+                        gauss_mode='conv', verbose=True):
+    """ Wrapper of ``frame_filter_lowpass`` for cubes or 3d arrays.
+
     Parameters
     ----------
     array : array_like
-        Input array, 2d frame.
-    size_fwhm : float
-        Size in pixels of the FWHM of the gaussian kernel.
-    mode : {'conv', 'convfft'}
-        'conv' uses the multidimensional gaussian filter from scipy.ndimage and
-        'convfft' uses the fft convolution with a 2d Gaussian kernel.
-        
+        Input 3d array.
+    mode : str, optional
+        See the documentation of the ``frame_filter_lowpass`` function.
+    median_size : int, optional
+        See the documentation of the ``frame_filter_lowpass`` function.
+    fwhm_size : int, optional
+        See the documentation of the ``frame_filter_lowpass`` function.
+    gauss_mode : str, optional
+        See the documentation of the ``frame_filter_lowpass`` function.
+    verbose : boolean, optional
+        If True timing and progress bar are shown.
+
     Returns
     -------
     filtered : array_like
-        Convolved image.
-        
+        Low-pass filtered cube.
     """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array.')
-    
-    if mode=='conv':
-        filtered = gaussian_filter(array,
-                                   sigma=size_fwhm*gaussian_fwhm_to_sigma, 
-                                   order=0, mode='nearest')
-    elif mode=='convfft':
-        # FFT Convolution with a 2d gaussian kernel created with Astropy.
-        gaus = Gaussian2DKernel(stddev=size_fwhm*gaussian_fwhm_to_sigma)
-        filtered = convolve_fft(array, gaus)
-    else:
-        raise TypeError('Mode not recognized.')
-    
-    return filtered
-   
-    
-def gaussian_kernel(size, size_y=None):
-    """ Gaussian kernel.
-    """
-    size = int(size)
-    if not size_y:
-        size_y = size
-    else:
-        size_y = int(size_y)
-    x, y = np.mgrid[-size:size+1, -size_y:size_y+1]
-    g = np.exp(-(x**2/float(size)+y**2/float(size_y)))
+    if array.ndim != 3:
+        raise TypeError('Input array is not a cube or 3d array')
 
-    fwhm = size
-    fwhm_aper = photutils.CircularAperture(frame_center(g), fwhm/2)
-    fwhm_aper_phot = photutils.aperture_photometry(g, fwhm_aper)
-    g_norm = g/np.array(fwhm_aper_phot['aperture_sum'])
-     
-    return g_norm/g_norm.max()
+    n_frames = array.shape[0]
+    array_out = np.zeros_like(array)
+    if verbose:
+        msg = 'Applying the low-pass filter on cube frames:'
+        bar = pyprind.ProgBar(n_frames, stream=1, title=msg, bar_char='.')
+    for i in range(n_frames):
+        array_out[i] = frame_filter_lowpass(array[i], mode, median_size,
+                                            fwhm_size, gauss_mode)
+        if verbose:
+            bar.update()
+
+    return array_out
+
 
 
 

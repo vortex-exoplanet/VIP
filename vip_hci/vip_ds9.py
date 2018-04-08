@@ -1,24 +1,26 @@
 #! /usr/bin/env python
 
 """
-Module with a function for displaying numpy arrays on DS9 (wrapper of pyds9).
+Module with a class for creating a DS9 window through pyds9.
 """
 from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 
 import warnings
+from .hci_cube import HCICube
 try:
     import pyds9
     no_pyds9 = False
-    __all__ = ['ds9']
+    __all__ = ['Ds9Window']
 except ImportError:
     msg = "Pyds9 not available."
     warnings.warn(msg, ImportWarning)
     no_pyds9 = True
     __all__ = []
 
-class ds9(object):
+
+class Ds9Window(object):
     """ Creates a DS9 window (named 'VIP_ds9') using pyDS9 functionality.
 
     The methods of this class allow interacting with the DS9 window. It uses
@@ -136,10 +138,16 @@ class ds9(object):
         for i, array in enumerate(arrays):
             if i == 0:
                 self.create_frame()
-                self.window.set_np2arr(array)
+                if isinstance(array, HCICube):
+                    self.window.set_np2arr(array.array)
+                else:
+                    self.window.set_np2arr(array)
             else:
                 self.window.set('frame new')
-                self.window.set_np2arr(array)
+                if isinstance(array, HCICube):
+                    self.window.set_np2arr(array.array)
+                else:
+                    self.window.set_np2arr(array)
 
     def get(self, paramlist):
         """ XPA get command. Gets data from ds9. See:

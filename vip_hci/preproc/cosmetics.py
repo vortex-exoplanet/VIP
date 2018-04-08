@@ -40,7 +40,7 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
     verbose : bool optional
         If True message of completion is showed.
     full_output: bool optional
-        If true, returns cenx and ceny in addition to array_view
+        If true, returns cenx and ceny in addition to array_view.
 
     Returns
     -------
@@ -57,13 +57,13 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
         if array.shape[2] % 2 == 0:    # assuming square frames
             if size % 2 != 0:
                 size += 1
-                print('`Size` is odd (while frame size is even)')
-                print('Setting `size` to {} pixels'.format(size))
+                print('`Size` is odd (while frame size is even). Setting `size`'
+                      ' to {} pixels'.format(size))
         else:
             if size % 2 == 0:
                 size += 1
-                print('`Size` is even (while frame size is odd)')
-                print('Setting `size` to {} pixels'.format(size))
+                print('`Size` is even (while frame size is odd). Setting `size`'
+                      ' to {} pixels'.format(size))
     else:
         if array.shape[2] % 2 == 0: # assuming square frames, both 3d or 4d case
             if size % 2 != 0:
@@ -99,7 +99,7 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
         array_view = array[:, int(ceny-wing):int(ceny+wing+1),
                            int(cenx-wing):int(cenx+wing+1)]
         if verbose:
-            msg = "\nCube cropped; new size [{},{},{}] centered at ({},{})"
+            msg = "New shape: ({}, {}, {}), centered at ({}, {})"
             print(msg.format(array_view.shape[0], array_view.shape[1],
                              array_view.shape[2], cenx, ceny))
 
@@ -113,8 +113,7 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
         array_view = array[:, :, int(ceny - wing):int(ceny + wing + 1),
                            int(cenx - wing):int(cenx + wing + 1)]
         if verbose:
-            msg = "\nCube cropped; new size [{},{},{},{}] "
-            msg += "centered at ({},{})"
+            msg = "New shape: ({}, {}, {}, {}), centered at ({}, {})"
             print(msg.format(array_view.shape[0], array_view.shape[1],
                              array_view.shape[2], array_view.shape[3],
                              cenx, ceny))
@@ -166,7 +165,7 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
     return array_view
 
 
-def cube_drop_frames(array, n, m):
+def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
     """Discards frames at the beginning or the end of a cube (axis 0).
 
     Parameters
@@ -187,9 +186,24 @@ def cube_drop_frames(array, n, m):
     if m > array.shape[0]:
         raise TypeError('End index must be smaller than the # of frames')
 
-    array_view = array[n:m+1, :, :].copy()
-    print("Done discarding frames from cube")
-    return array_view
+    array_view = array[n+1:m+1, :, :].copy()
+    if parallactic is not None:
+        if not parallactic.ndim == 1:
+            raise ValueError('Parallactic angles vector has wrong shape')
+        parallactic = parallactic[n+1:m+1]
+
+    if verbose:
+        print("Cube successfully sliced")
+        print("New cube shape: {}".format(array_view.shape))
+        if parallactic is not None:
+            msg = "New parallactic angles vector shape: {}"
+            print(msg.format(parallactic.shape))
+
+    if parallactic is not None:
+        return array_view, parallactic
+    else:
+        return array_view
+
 
 
 def frame_remove_stripes(array):

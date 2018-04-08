@@ -92,26 +92,29 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
     if parallactic is not None:
         angles = np.zeros(m)
         
-    if mode == 'median':  func = np.median
-    elif mode=='mean':  func = np.mean
+    if mode == 'median':
+        func = np.median
+    elif mode == 'mean':
+        func = np.mean
     else:  
         raise ValueError('Mode should be either Mean or Median.') 
         
     for i in range(m):
         arr[i, :, :] = func(array[:n, :, :], axis=0) 
-        if parallactic is not None:  angles[i] = func(parallactic[:n])
+        if parallactic is not None:
+            angles[i] = func(parallactic[:n])
         if i >= 1:
             arr[i, :, :] = func(array[n*i:n*i+n, :, :], axis=0)
             if parallactic is not None:
                 angles[i] = func(parallactic[n*i:n*i+n])
 
     if verbose:
-        print("Datacube subsampled by taking the {} of {} frames".format(mode,
-                                                                         n))
+        msg = "Cube temporally subsampled by taking the {} of every {} frames"
+        print(msg.format(mode, n))
         if resid > 0:
             print("Initial # of frames and window are not multiples ({} "
                   "frames were dropped)".format(resid))     
-        print("New cube contains {} frames".format(m))
+        print("New shape: {}".format(arr.shape))
                                    
     if parallactic is not None:
         return arr, angles

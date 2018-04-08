@@ -12,7 +12,8 @@ __all__ = []
 import sys
 
 
-sep = '----------------------------------------------------------------------'
+sep = '-' * 80
+
 
 def eval_func_tuple(f_args):
     """ Takes a tuple of a function and args, evaluates and returns result"""
@@ -40,5 +41,4 @@ class redirect_output(object):
     def __exit__(self, exc_type, exc_value, traceback):
         sys.stdout = self.sys_stdout
         sys.stderr = self.sys_stderr
-        
-    
+

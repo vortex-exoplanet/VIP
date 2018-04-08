@@ -30,7 +30,8 @@ from sklearn.preprocessing import scale
 
 def mask_circle(array, radius, fillwith=0, mode='in'):
     """ Masks the pixels inside/outside (depending on ``mode``) of a centered
-    circle from a frame or cube, replacing the values by ``fillwith``.
+    circle from a frame or cube, replacing the values with the value of
+    ``fillwith``.
 
     Parameters
     ----------
@@ -223,21 +224,21 @@ def get_square(array, size, y, x, position=False, force=False):
         return array_view
 
 
-def get_circle(array, radius, output_values=False, cy=None, cx=None):           
-    """Returns a centered circular region from a 2d ndarray. All the rest 
-    pixels are set to zeros. 
-    
+def get_circle(array, radius, output_values=False, cy=None, cx=None):
+    """Returns a centered circular region from a 2d ndarray. All the rest
+    pixels are set to zeros.
+
     Parameters
     ----------
     array : array_like
-        Input 2d array or image. 
+        Input 2d array or image.
     radius : int
         The radius of the circular region.
-    output_values : {False, True}
+    output_values : bool, optional
         Sets the type of output.
-    cy, cx : int
+    cy, cx : int, optional
         Coordinates of the circle center.
-        
+
     Returns
     -------
     values : array_like
@@ -250,15 +251,16 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
     sy, sx = array.shape
     if cy is None or cx is None:
         cy, cx = frame_center(array, verbose=False)
-         
-    yy, xx = np.ogrid[:sy, :sx]             # ogrid is a multidim mesh creator (faster than mgrid)
-    circle = (yy - cy)**2 + (xx - cx)**2    # eq of circle. squared distance to the center
-    circle_mask = circle < radius**2        # mask of 1's and 0's
+
+    # ogrid is a multidim mesh creator (faster than mgrid)
+    yy, xx = np.ogrid[:sy,:sx]
+    circle = (yy - cy) ** 2 + (xx - cx) ** 2  # eq of circle. sq dist to center
+    circle_mask = circle < radius ** 2  # mask of 1's and 0's
     if output_values:
         values = array[circle_mask]
         return values
     else:
-        array_masked = array*circle_mask
+        array_masked = array * circle_mask
         return array_masked
 
 
@@ -277,12 +279,12 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
         Semi-minor axis.
     PA : deg, float
         The PA of the semi-major axis.
-    output_values : {False, True}, optional
+    output_values : bool, optional
         If True returns the values of the pixels in the annulus.
-    cy, cx : int or None
+    cy, cx : int or None, optional
         Coordinates of the circle center. If ``None``, the center is determined
         by the ``frame_center`` function.
-    output_indices : {False, True}, optional
+    output_indices : bool, optional
         If True returns the indices inside the annulus.
     
     Returns
@@ -351,7 +353,7 @@ def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
     optim_scale_fact : float
         Enlargen the width of the segments, which can then be used as
         optimization segments (like LOCI).
-    output_values : {False, True}, optional
+    output_values : bool, optional
         If True returns the values of the pixels in the each quadrant instead
         of the indices.
 
@@ -419,9 +421,9 @@ def get_annulus(array, inner_radius, width, output_values=False,
         The inner radius of the donut region.
     width : int
         The size of the annulus.
-    output_values : {False, True}, optional
+    output_values : bool, optional
         If True returns the values of the pixels in the annulus.
-    output_indices : {False, True}, optional
+    output_indices : bool, optional
         If True returns the indices inside the annulus.
     
     Returns
@@ -586,13 +588,22 @@ def get_ell_annulus(array, a, b, PA, width, output_values=False,
 def matrix_scaling(matrix, scaling):
     """ Scales a matrix using sklearn.preprocessing.scale function.
 
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
-    With None, no scaling is performed on the input data before SVD. With
-    "temp-mean" then temporal px-wise mean subtraction is done, with
-    "spat-mean" then the spatial mean is subtracted, with "temp-standard"
-    temporal mean centering plus scaling to unit variance is done and with
-    "spat-standard" spatial mean centering plus scaling to unit variance is
-    performed.
+    Parameters
+    ----------
+    matrix : array_like
+        Input 2d array.
+    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}, str optional
+        With None, no scaling is performed on the input data before SVD. With
+        "temp-mean" then temporal px-wise mean subtraction is done, with
+        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
+        temporal mean centering plus scaling to unit variance is done and with
+        "spat-standard" spatial mean centering plus scaling to unit variance is
+        performed.
+
+    Returns
+    -------
+    matrix : array_like
+        2d array with scaled values.
     """
     if scaling is None:
         pass

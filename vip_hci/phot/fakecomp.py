@@ -36,7 +36,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         Factor for controlling the brightness of the fake companions.
     plsc : float
         Value of the plsc in arcsec/px.
-    rad_dists : list or array 1d
+    rad_dists : float, list or array 1d
         Vector of radial distances of fake companions in pixels.
     n_branches : int, optional
         Number of azimutal branches.
@@ -48,7 +48,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
-    verbose : {True, False}, bool optional
+    verbose : bool, optional
         If True prints out additional information.
 
     Returns
@@ -70,12 +70,16 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         ceny, cenx = frame_center(array[0])
         ceny = int(float(ceny))
         cenx = int(float(cenx))
-        rad_dists = np.array(rad_dists)
-        if not rad_dists[-1] < array[0].shape[0]/2.:
+        if isinstance(rad_dists, (int, float)):
+            check_coor = rad_dists
+            rad_dists = np.array([rad_dists])
+        elif isinstance(rad_dists, (list, np.ndarray)):
+            check_coor = rad_dists[-1]
+            rad_dists = np.array(rad_dists)
+        if not check_coor < array[0].shape[0]/2.:
             msg = 'rad_dists last location is at the border (or outside) '
             msg += 'of the field'
             raise ValueError(msg)
-
         size_fc = psf_template.shape[0]
         nframes = array.shape[0]
         fc_fr = np.zeros_like(array[0])
@@ -119,8 +123,13 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         ceny, cenx = frame_center(array[0,0])
         ceny = int(float(ceny))
         cenx = int(float(cenx))
-        rad_dists = np.array(rad_dists)
-        if not rad_dists[-1]<array[0].shape[1]/2.:
+        if isinstance(rad_dists, (int, float)):
+            check_coor = rad_dists
+            rad_dists = np.array([rad_dists])
+        elif isinstance(rad_dists, (list, np.ndarray)):
+            check_coor = rad_dists[-1]
+            rad_dists = np.array(rad_dists)
+        if not check_coor < array[0].shape[1]/2.:
             raise ValueError('rad_dists last location is at the border (or '
                              'outside) of the field')
 

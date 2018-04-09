@@ -16,14 +16,19 @@ from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
                       cube_subsample, cube_recenter_2dfit,
                       cube_recenter_dft_upsampling)
 from .var import cube_filter_highpass, cube_filter_lowpass, mask_circle
+from .stats import cube_basic_stats, cube_distance
+from .phot import cube_inject_companions
 
 
 class HCICube:
     """ High-contrast imaging sequence/cube class.
     """
     def __init__(self, cube, hdu=0, angles=None, scaling=None, fwhm=None,
-                 psf=None):
+                 px_scale=None, psf=None):
         """ Initialization of the HCICube object.
+
+        # TODO: check if PSF has been normalized/cropped
+        # TODO: create new attribute psf_norm
         """
         if isinstance(cube, str):
             self.array = open_fits(cube, hdu, verbose=False)
@@ -69,6 +74,11 @@ class HCICube:
                 raise ValueError(msg.format(self.array.ndim - 1, self.psf.ndim))
 
         self.fwhm = fwhm
+        if self.fwhm is not None:
+            print('FWHM: {}'.format(self.fwhm))
+        self.px_scale = px_scale
+        if self.px_scale is not None:
+            print('Pixel/plate scale: {}'.format(self.px_scale))
 
     def collapse(self, mode='median', n=50):
         """ Collapsing the sequence into a 2d array.
@@ -120,11 +130,37 @@ class HCICube:
         else:
             raise ValueError('Filtering mode not recognized')
 
-    def inject_companions(self):
+    def frame_distances(self, frame, region='full', dist='sad',
+                        inner_radius=None, width=None, plot=True):
         """
-        # TODO: inject companions
         """
-        pass
+        _ = cube_distance(self.array, frame, region, dist, inner_radius, width,
+                          plot)
+
+    def frame_stats(self, region='circle', radius=5, xy=None, inner_radius=0,
+                    size=5, plot=False):
+        """ Getting statistics in ``region`` of the cube.
+        """
+        _ = cube_basic_stats(self.array, region, radius, xy, inner_radius, size,
+                             plot, False)
+
+    def inject_companions(self, flux, rad_dists, n_branches=1,
+                          theta=0, imlib='opencv', interpolation='lanczos4',
+                          verbose=True):
+        """ Injection of fake companions.
+
+        # TODO: support the injection of a Gaussian/Moffat kernel.
+        # TODO: return array/HCICube object instead?
+        """
+        if self.psf is None:
+            raise ValueError('PSf array has not been set')
+        if self.px_scale is None:
+            raise ValueError('Pixel/plate scale has not been set')
+
+        self.array = cube_inject_companions(self.array, self.psf, self.angles,
+                                            flux, self.px_scale, rad_dists,
+                                            n_branches, theta, imlib,
+                                            interpolation, verbose)
 
     def load_angles(self, angles, hdu):
         """ Loads the PA vector from a FITS file. It is possible to specify the
@@ -168,7 +204,7 @@ class HCICube:
 
     def remove_badframes(self, method='corr', frame_ref=None, crop_size=30,
                        dist='pearson', percentile=20, stat_region='annulus',
-                       in_radius=10, width=10, top_sigma=1.0, low_sigma=1.0,
+                       inner_radius=10, width=10, top_sigma=1.0, low_sigma=1.0,
                        window=None, plot=True, verbose=True):
         """ Finding outlying/bad frames and slicing the cube accordingly.
 
@@ -188,7 +224,7 @@ class HCICube:
                                             percentile, plot, verbose)
         elif method == 'pxstats':
             self.good_indices, _ = cube_detect_badfr_pxstats(self.array,
-                                            stat_region, in_radius, width,
+                                            stat_region, inner_radius, width,
                                             top_sigma, low_sigma, window, plot,
                                             verbose)
         else:
@@ -215,13 +251,6 @@ class HCICube:
         write_fits(path, self.array)
         if self.angles is not None:
             append_extension(path, self.angles)
-
-    def stats(self, region='circle'):
-        """
-        # TODO: stats in region
-        """
-        pass
-
 
     def subsample(self, window, mode='mean'):
         """ Temporally sub-sampling the sequence.

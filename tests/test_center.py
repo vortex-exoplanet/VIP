@@ -15,8 +15,6 @@ except:
     def html(s):
         print(s)
 
-plots = vip.var.pp_subplots
-
 # import os
 # print("VIP version: {} (from {})".format(vip.__version__,
 #                                          os.path.dirname(vip.__file__)))
@@ -92,7 +90,7 @@ def create_cube_with_satspots(n_frames=6, wh=31, star_fwhm=3, debug=False):
     cube = star + sat1 + sat2 + sat3 + sat4
 
     if debug:
-        plots(cube[0])
+        vip.var.pp_subplots(cube[0])
 
     return cube, [sat1_coords, sat2_coords, sat3_coords, sat4_coords]
 
@@ -112,13 +110,13 @@ def do_recenter(method, cube, shiftx, shifty, errormsg, mse=1e-2,
                                                  **kwargs)
 
     if debug:
-        plots(cube, title="input cube")
-        plots(shifted_cube, title="shifted cube")
-        plots(recentered_cube, title="recentered cube")
+        vip.var.pp_subplots(cube, title="input cube")
+        vip.var.pp_subplots(shifted_cube, title="shifted cube")
+        vip.var.pp_subplots(recentered_cube, title="recentered cube")
 
     if debug:
-        plots(cube[1], recentered_cube[1], shifted_cube[1],
-              label=["cube[1]", "recentered[1]", "shifted[1]"])
+        vip.var.pp_subplots(cube[1], recentered_cube[1], shifted_cube[1],
+                            label=["cube[1]", "recentered[1]", "shifted[1]"])
 
     if mse_skip_first:
         if debug:

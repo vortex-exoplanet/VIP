@@ -18,7 +18,7 @@ from photutils import detection
 from astropy.stats import sigma_clip
 from ..var import get_annulus
 from ..conf import time_ini, timing
-from ..stats import cube_stats_aperture, cube_stats_annulus, cube_distance
+from ..stats import cube_basic_stats, cube_distance
 
 
 def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10, 
@@ -72,16 +72,9 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     
     n = array.shape[0]
     
-    if mode == 'annulus':
-        mean_values = cube_stats_annulus(array, inner_radius=in_radius,
-                                         size=width, full_out=True)
-    elif mode == 'circle':
-        mean_values = cube_stats_aperture(array, radius=in_radius,
-                                          full_output=True)
-    else: 
-        raise TypeError('Mode not recognized')
-    mean_values = mean_values[0]
-    
+    mean_values = cube_basic_stats(array, mode, radius=in_radius,
+                                   inner_radius=in_radius, size=width)
+
     if window is None:
         window = n//3
     mean_smooth = pn.rolling_median(mean_values, window , center=True)
@@ -238,9 +231,9 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     ----------
     array : array_like 
         Input 3d array, cube.
-    frame_ref : int
-        Index of the frame that will be used as a reference. Must be of course
-        a frame taken with a good wavefront quality.
+    frame_ref : int or 2d array
+        Index of the frame that will be used as a reference or 2d reference
+        array.
     dist : {'sad','euclidean','mse','pearson','spearman'}, str optional
         One of the similarity or disimilarity measures from function 
         vip_hci.stats.distances.cube_distance(). 
@@ -300,12 +293,12 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
         lista = distances
         _, ax = plt.subplots(figsize=(10, 5))
         x = range(len(lista))
-        ax.plot(x, lista, '-', alpha=0.3, color='#1f77b4')
+        ax.plot(x, lista, '-', alpha=0.6, color='#1f77b4')
         if n > 5000:
             marker = ','
         else:
             marker = 'o'
-        ax.plot(x, lista, marker=marker, alpha=0.6, color='#1f77b4')
+        ax.plot(x, lista, marker=marker, alpha=0.4, color='#1f77b4')
         ax.vlines(frame_ref, ymin=np.nanmin(lista), ymax=np.nanmax(lista), 
                    colors='green', linestyles='dashed', lw=2, alpha=0.6,
                    label='Reference frame '+str(frame_ref))

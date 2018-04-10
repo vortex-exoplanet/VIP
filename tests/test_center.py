@@ -1,6 +1,8 @@
 from __future__ import print_function, division
 
 import numpy as np
+import matplotlib as mpl
+mpl.use('Agg')
 from astropy.modeling import models
 import vip_hci as vip
 from vip_hci.preproc import (cube_recenter_2dfit, cube_recenter_dft_upsampling,

@@ -28,39 +28,73 @@ def pp_subplots(*args, **kwargs):
     
     Parameters in **kwargs
     ----------------------
-    angscale : axes in angular scale (arcsecs)
-    angticksep : separation for the ticks when using axis in angular scale
-    arrow : to show an arrow pointing to input px coordinates
-    arrowalpha : alpha transparency for the arrow
-    arrowlength : length of the arrow, 20 px by default
-    arrowshiftx : shift in x of the arrow pointing position, 5 px by default
-    axis : show the axis, on by default
-    circle : to show a circle at given px coordinates, list of tuples
-    circlerad : radius of the circle, 6 px by default
-    cmap : colormap to be used, 'viridis' by default
-    colorb : to attach a colorbar, on by default
-    cross : to show a crosshair at given px coordinates
-    crossalpha : alpha transparency of thr crosshair
-    dpi : dots per inch, for plot quality
-    getfig : returns the figure
-    grid : for showing a grid over the image, off by default
-    gridalpha : alpha transparency of the grid
-    gridcolor : color of the grid lines
-    gridspacing : separation of the grid lines in pixels
-    horsp : horizontal gap between subplots
-    label : text for annotating on subplots
-    labelpad : padding of the label from the left bottom corner
-    labelsize : size of the labels
-    log : log colorscale
-    maxplot : sets the maximum number of subplots when the input is a 3d array
-    pxscale : pixel scale in arcseconds/px. Default 0.01 for Keck/NIRC2
-    rows : how many rows (subplots in a grid)
-    save : if a string is provided the plot is saved using this as the path
-    showcent : to show a big crosshair at the center of the frame 
-    title : title of the plot(s), None by default
-    vmax : for stretching the displayed pixels values
-    vmin : for stretching the displayed pixels values
-    versp : vertical gap between subplots
+    angscale : bool
+        If True, the axes are displayed in angular scale (arcsecs).
+    angticksep : int
+        Separation for the ticks when using axis in angular scale.
+    arrow : bool
+        To show an arrow pointing to input px coordinates.
+    arrowalpha : float
+        Alpha transparency for the arrow.
+    arrowlength : int
+        Length of the arrow, 20 px by default.
+    arrowshiftx : int
+        Shift in x of the arrow pointing position, 5 px by default.
+    axis : bool
+        Show the axis, on by default.
+    circle : list of tuples
+        To show a circle at given px coordinates, list of tuples.
+    circlerad : int
+        Radius of the circle, 6 px by default.
+    cmap : str
+        Colormap to be used, 'viridis' by default.
+    colorb : bool
+        To attach a colorbar, on by default.
+    cross : tuple of float
+        If provided, a crosshair is displayed at given px coordinates.
+    crossalpha : float
+        Alpha transparency of thr crosshair.
+    dpi : int
+        Dots per inch, for plot quality.
+    getfig : bool
+        Returns the matplotlib figure.
+    grid : bool
+        If True, a grid is displayed over the image, off by default.
+    gridalpha : float
+        Alpha transparency of the grid.
+    gridcolor : str
+        Color of the grid lines.
+    gridspacing : int
+        Separation of the grid lines in pixels.
+    horsp : float
+        Horizontal gap between subplots.
+    label : str or list of str
+        Text for annotating on subplots.
+    labelpad : int
+        Padding of the label from the left bottom corner.
+    labelsize : int
+        Size of the labels.
+    log : bool
+        Log colorscale.
+    maxplots : int
+        When the input (*args) is a 3d array, maxplots sets the number of
+        cube slices to be displayed.
+    pxscale : float
+        Pixel scale in arcseconds/px. Default 0.01 for Keck/NIRC2.
+    rows : int
+        How many rows (subplots in a grid).
+    save : str
+        If a string is provided the plot is saved using this as the path.
+    showcent : bool
+        To show a big crosshair at the center of the frame.
+    title : str
+        Title of the plot(s), None by default.
+    vmax : int
+        For stretching the displayed pixels values.
+    vmin : int
+        For stretching the displayed pixels values.
+    versp : float
+        Vertical gap between subplots.
 
     """
     parlist = ['angscale', 'angticksep', 'arrow', 'arrowalpha', 'arrowlength',
@@ -310,7 +344,7 @@ def pp_subplots(*args, **kwargs):
     if 'horsp' in kwargs:
         hor_spacing = kwargs['horsp']
     else:
-        hor_spacing = 0.3
+        hor_spacing = 0.4
     
     if 'versp' in kwargs:
         ver_spacing = kwargs['versp']

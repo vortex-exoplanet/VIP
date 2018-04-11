@@ -189,7 +189,7 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     # median of n ``n_similar`` most similar patches
     cube_res = []
     if n_similar is not None:
-        if not n_similar >= 3:
+        if n_similar < 3:
             raise ValueError("n_similar must be >= 3 or None")
         for i in range(n_frames):
             vector = pn.DataFrame(mat_dists_ann[i])

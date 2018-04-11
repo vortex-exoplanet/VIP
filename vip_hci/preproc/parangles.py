@@ -140,7 +140,7 @@ def compute_derot_angles_pa(objname_tmp_A, digit_format=3, objname_tmp_B='',
                        objname_tmp_A = 'out_cube_obj_HK_025_'
                        digit_format = 3
                        objname_tmp_B = '_sorted'
-                       inpath = /home/foo/'
+                       inpath = '/home/foo/'
 
     Returns
     ------_
@@ -155,25 +155,21 @@ def compute_derot_angles_pa(objname_tmp_A, digit_format=3, objname_tmp_B='',
     posang_st = []
     posang_nd = []
 
+    def _fitsfile(ii):
+        return "{}{}{:0{}d}{}.fits".format(inpath, objname_tmp_A, ii,
+                                           digit_format, objname_tmp_B)
+
     if list_obj is None:
         list_obj = []
         for ii in range(10**digit_format):
-            digits_ii = numberToString(ii,digit_format)
-            if os.path.exists(inpath+objname_tmp_A+digits_ii+objname_tmp_B+ \
-'.fits'):   
+            if os.path.exists(_fitsfile(ii)):   
                 list_obj.append(ii)
-                _, header = open_fits(inpath+objname_tmp_A+ \
-                                      digits_ii+objname_tmp_B+ \
-                                      '.fits', verbose=False, 
-                                      header=True)
+                _, header = open_fits(_fitsfile(ii), verbose=False, header=True)
                 posang_st.append(header[PosAng_st_key])
                 posang_nd.append(header[PosAng_nd_key])
     else:
         for ii in list_obj:
-            digits_ii = numberToString(ii,digit_format)
-            _, header = open_fits(inpath+objname_tmp_A+digits_ii+ \
-                                  objname_tmp_B+'.fits', 
-                                  verbose=False, header=True)
+            _, header = open_fits(_fitsfile(ii), verbose=False, header=True)
             posang_st.append(header[PosAng_st_key])
             posang_nd.append(header[PosAng_nd_key])
 
@@ -240,7 +236,7 @@ def compute_derot_angles_cd(objname_tmp_A, digit_format=3, objname_tmp_B='',
     outpath: string, opt
         Contains the full path of the directory where you want the txt file to 
         be saved.
-    list_obj: integer list or 1-D array, optional
+    list_obj: integer list or 1-D array or None, optional
         List of the digits corresponding to the cubes to be considered.
         If not provided, the function will consider automatically all the cubes 
         with objname_tmp_A+digit+objname_tmp_B+'.fits' name structure in the 
@@ -282,23 +278,23 @@ def compute_derot_angles_cd(objname_tmp_A, digit_format=3, objname_tmp_B='',
     cd2_1 = []
     cd2_2 = []
 
+    def _fitsfile(ii):
+        return "{}{}{:0{}d}{}.fits".format(inpath, objname_tmp_A, ii,
+                                           digit_format, objname_tmp_B)
+
     if list_obj is None:
         list_obj = []
         for ii in range(10**digit_format):
-            digits_ii = numberToString(ii,digit_format)
-            obj_str = inpath+objname_tmp_A+digits_ii+objname_tmp_B+'.fits'
-            if os.path.exists(obj_str):   
+            if os.path.exists(_fitsfile(ii)):   
                 list_obj.append(ii)
-                _, header = open_fits(obj_str, verbose=False, header=True)
+                _, header = open_fits(_fitsfile(ii), verbose=False, header=True)
                 cd1_1.append(header[cd11_key])
                 cd1_2.append(header[cd12_key])
                 cd2_1.append(header[cd21_key])
                 cd2_2.append(header[cd22_key])
     else:
         for ii in list_obj:
-            digits_ii = numberToString(ii,digit_format)
-            obj_str = inpath+objname_tmp_A+digits_ii+objname_tmp_B+'.fits'
-            _, header = open_fits(obj_str, verbose=False, header=True)
+            _, header = open_fits(_fitsfile(ii), verbose=False, header=True)
             cd1_1.append(header[cd11_key])
             cd1_2.append(header[cd12_key])
             cd2_1.append(header[cd21_key])
@@ -406,30 +402,3 @@ def check_pa_vector(angle_list, unit='deg'):
     return angle_list
 
 
-def numberToString(n, digits):
-    """ 
-    Converts an int in a string according to the number of desired digits
-    
-    Parameters
-    ----------
-    n: int
-        Number to be converted into string
-    digits: int
-        Number of characters in the string. If less than the number of 
-        digits of n, it is filled with zeros.
-    Examples:
-    ---------
-    >>> numberToString(23, 3)
-    '023'
-    >>> numberToString(8, 5)
-    '00008'
-    
-    Returns
-    -------
-    number: string
-    The string representing "n", with "digits" characters.
-    """
-    number = str(n)
-    for i in range(digits - len(number)):
-        number = "0" + number
-    return number

@@ -100,9 +100,9 @@ def frame_histo_stats(image_array, plot=True):
     maxim = vector.max()
     minim = vector.min()
     std = vector.std()
-    
-    if plot is True:
-        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 3))
+   
+    if plot:
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(14,5))
         ax0, ax1 = axes.flat
         bins = int(np.sqrt(vector.shape[0]))
         txt = 'Mean = {:.3f}\n'.format(mean) + \

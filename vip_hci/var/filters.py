@@ -42,7 +42,7 @@ def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
         Number of relevant coefficients. In other words how many wavelet scales
         will represent in a better way our data. One or two scales are enough
         for filtering our images.
-    full_output : {False, True}, bool optional
+    full_output : bool, optional
         If True, an additional cube with the multiscale decomposition of each
         frame will be returned.
     
@@ -95,7 +95,7 @@ def cube_filter_highpass(array, mode='laplacian', median_size=5, kernel_size=5,
         See the documentation of the ``frame_filter_highpass`` function.
     btw_order : int
         See the documentation of the ``frame_filter_highpass`` function.
-    verbose : boolean, optional
+    verbose : bool, optional
         If True timing and progress bar are shown.
     
     Returns
@@ -169,10 +169,10 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         positive odd integer value.
     fwhm_size : int, optional
         Size of the Gaussian kernel used in ``gaus-subt`` mode.
-    btw_cutoff : float
+    btw_cutoff : float, optional
         Frequency cutoff for low-pass 2d Butterworth filter used in
         ``fourier-butter`` mode.
-    btw_order : int
+    btw_order : int, optional
         Order of low-pass 2d Butterworth filter used in ``fourier-butter`` mode.
     
     Returns
@@ -267,7 +267,8 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     
     elif mode == 'gauss-subt':
         # Subtracting the low_pass filtered (median) image from the image itself  
-        gaussed = frame_filter_gaussian2d(array, fwhm_size, mode='conv')
+        gaussed = frame_filter_lowpass(array, 'gauss', fwhm_size=fwhm_size,
+                                       gauss_mode='conv')
         filtered = array - gaussed
         
     elif mode == 'fourier-butter':
@@ -347,7 +348,7 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
         See the documentation of the ``frame_filter_lowpass`` function.
     gauss_mode : str, optional
         See the documentation of the ``frame_filter_lowpass`` function.
-    verbose : boolean, optional
+    verbose : bool, optional
         If True timing and progress bar are shown.
 
     Returns

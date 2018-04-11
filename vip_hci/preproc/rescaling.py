@@ -65,13 +65,12 @@ def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
     if verbose:
         print("Cube successfully rescaled")
-        print("New shape: ({}, {}, {})".format(array_resc.shape[0],
-                                               array_resc.shape[1],
-                                               array_resc.shape[2]))
+        print("New shape: {}".format(array_resc.shape))
     return array_resc
 
 
-def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic'):
+def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
+                        verbose=False):
     """ Resamples the pixels of a frame wrt to the center, changing the size
     of the frame. If ``scale`` < 1 then the frame is downsampled and if
     ``scale`` > 1 then its pixels are upsampled.
@@ -93,6 +92,8 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic'):
         For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
         The 'nearneig' interpolation is the fastest and the 'lanczos4' the
         slowest and accurate.
+    verbose : bool, optional
+        Whether to print out additional info such as the new image shape.
 
     Returns
     -------
@@ -152,6 +153,11 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic'):
         raise ValueError('Image transformation library not recognized')
 
     array_resc /= scale_y * scale_x
+
+    if verbose:
+        print("Image successfully rescaled")
+        print("New shape: {}".format(array_resc.shape))
+
     return array_resc
 
 

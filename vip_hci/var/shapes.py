@@ -154,7 +154,7 @@ def frame_center(array, verbose=False):
     cx = array.shape[1]/2 - 0.5
 
     if verbose:
-        print('Center px coordinates at x,y = ({},{})'.format(cy, cx))
+        print('Center px coordinates at x,y = ({}, {})'.format(cy, cx))
     return cy, cx
 
     

@@ -48,7 +48,7 @@ def descriptive_stats(array, verbose=True, label='', mean=False, plot=False):
 
 
 def frame_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
-                      size=5, full_output=False):
+                      size=5, plot=True, full_output=False):
     """ Calculates statistics in a ``region`` of a 2D array.
 
     Parameters
@@ -66,6 +66,8 @@ def frame_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
         Annulus inner radius of the annulus.
     size : int
         Width of the annulus.
+    plot : bool, optional
+        If True it plots the histogram and the region.
     full_output : bool, optional
         If true it returns mean, std_dev, median, if false just the mean.
 
@@ -89,6 +91,28 @@ def frame_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
     mean = region_pxs.mean()
     std_dev = region_pxs.std()
     median = np.median(region_pxs)
+
+    if plot:
+        plt.figure('Image crop (first slice)', figsize=(10, 3))
+        if region == 'circle':
+            temp = get_circle(arr, radius, cy=y, cx=x)
+        elif region == 'annulus':
+            temp = get_annulus(arr, inner_radius, size)
+        else:
+            raise ValueError('Region not recognized')
+        temp[temp == 0] = np.nan
+        ax1 = plt.subplot(1, 2, 1)
+        ax1.imshow(arr, origin='lower', interpolation="nearest", cmap='gray')
+        ax1.imshow(temp, origin='lower', interpolation="nearest",
+                   cmap='viridis')
+        ax1.set_title('Frame region')
+        plt.axis('on')
+        ax2 = plt.subplot(1, 2, 2)
+        ax2.hist(region_pxs, bins=int(np.sqrt(region_pxs.shape[0])),
+                 alpha=0.5, histtype='stepfilled')
+        ax2.set_title('Histogram')
+        ax2.tick_params(axis='x', labelsize=8)
+        plt.show()
 
     if full_output:
         return mean, std_dev, median, maxi
@@ -163,16 +187,17 @@ def cube_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
             temp = get_annulus(arr[0], inner_radius, size)
         else:
             raise ValueError('Region not recognized')
+        temp[temp == 0] = np.nan
         ax1 = plt.subplot(1, 2, 1)
-        ax1.imshow(arr[0], origin='lower', interpolation="nearest",
-                   cmap='gray', alpha=0.8)
+        ax1.imshow(arr[0], origin='lower', interpolation="nearest", cmap='gray')
         ax1.imshow(temp, origin='lower', interpolation="nearest",
-                   cmap='viridis', alpha=0.8)
+                   cmap='viridis')
+        ax1.set_title('Frame region')
         plt.axis('on')
         ax2 = plt.subplot(1, 2, 2)
         ax2.hist(values_region, bins=int(np.sqrt(values_region.shape[0])),
-                 alpha=0.5, histtype='stepfilled', label='Histogram')
-        ax2.legend()
+                 alpha=0.5, histtype='stepfilled')
+        ax2.set_title('Histogram')
         ax2.tick_params(axis='x', labelsize=8)
 
         fig = plt.figure('Stats in annulus', figsize=(10, 6))
@@ -197,6 +222,7 @@ def cube_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
         ax3.legend(loc=1, fancybox=True).get_frame().set_alpha(0.5)
         ax3.grid(True, alpha=0.2)
         ax3.set_xlabel('Frame number')
+        plt.show()
 
     if full_output:
         return mean, std_dev, median, maxi

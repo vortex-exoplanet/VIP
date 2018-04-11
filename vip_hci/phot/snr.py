@@ -27,7 +27,7 @@ from ..var import get_annulus, frame_center, dist, pp_subplots
 
 def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
            save_plot=None, plot_title=None):
-    """Parallel implementation of the SNR map generation function. Applies the 
+    """Parallel implementation of the S/N map generation function. Applies the
     S/N function (small samples penalty) at each pixel.
     
     Parameters
@@ -36,8 +36,8 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         Input frame.
     fwhm : float
         Size in pixels of the FWHM.
-    plot : {False, True}, bool optional
-        If True plots the SNR map. 
+    plot : bool, optional
+        If True plots the S/N map. False by default.
     mode : {'sss', 'peakstddev'}, string optional
         'sss' uses the approach with the small sample statistics penalty and
         'peakstddev' uses the peak(aperture)/std(annulus) version.
@@ -47,16 +47,15 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         known sources have a zero value.
     nproc : int or None
         Number of processes for parallel computing.
-    save_plot: string
-        If provided, the snr map is saved to this path
-    plot_title: string
-        If provided, the snr map is titled
+    save_plot : string
+        If provided, the S/N map is saved to this path.
+    plot_title : string
+        If provided, the S/N map plot is titled.
     
     Returns
     -------
     snrmap : array_like
         Frame with the same size as the input frame with each pixel.
-        
     """
     start_time = time_ini()
     if array.ndim != 2:
@@ -168,7 +167,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
    
 def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     """ Serial implementation of the S/N map generation function. To be used as
-    a quick proxy of the snrmap generated using the small samples statistics
+    a quick proxy of the S/N map generated using the small samples statistics
     definition. 
     
     Parameters
@@ -179,16 +178,15 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
         Size in pixels of the FWHM.
     nproc : int or None
         Number of processes for parallel computing.
-    plot : {False, True}, bool optional
-        If True plots the SNR map. 
-    verbose: {True, False}
+    plot : bool, optional
+        If True plots the S/N map.
+    verbose: bool, optional
         Chooses whether to print results or not. 
     
     Returns
     -------
     snrmap : array_like
         Frame with the same size as the input frame with each pixel.
-        
     """       
     if verbose:
         start_time = time_ini()
@@ -254,41 +252,41 @@ def _snr_approx(array, source_xy, fwhm, centery, centerx):
     return sourcey, sourcex, snr
     
 
+# Leave the order of parameters as it is, the same for both snr functions
+# to be compatible with the snrmap parallel implementation
 def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
            full_output=False):
-    # Leave the order of parameters as it is, the same for both snr functions
-    # to be compatible with the snrmap parallel implementation
-    """Calculates the SNR (signal to noise ratio) of a single planet in a 
-    post-processed (e.g. by LOCI or PCA) frame. Uses the approach described in 
-    Mawet et al. 2014 on small sample statistics, where a student t-test (eq. 9)
-    can be used to determine S/N (and contrast) in high contrast imaging.
+    """Calculates the S/N (signal to noise ratio) of a test resolution element
+    in a residual frame (e.g. post-processed with LOCI, PCA, etc). Uses the
+    approach described in Mawet et al. 2014 on small sample statistics, where a
+    student t-test (eq. 9) can be used to determine S/N (and contrast) in high
+    contrast imaging.
     
     Parameters
     ----------
     array : array_like, 2d
-        Post-processed frame where we want to measure SNR.
+        Post-processed frame where we want to measure S/N.
     source_xy : tuple of floats
         X and Y coordinates of the planet or test speckle.
     fwhm : float
         Size in pixels of the FWHM.
-    out_coor: {False, True}, bool optional
-        If True returns back the snr value and the y, x input coordinates. In 
+    out_coor : bool, optional
+        If True returns back the S/N value and the y, x input coordinates. In
         this case it overrides the full_output parameter.
-    plot : {False, True}, bool optional
+    plot : bool, optional
         Plots the frame and the apertures considered for clarity. 
-    verbose: {True, False}, bool optional
+    verbose : bool, optional
         Chooses whether to print some output or not. 
-    full_output: {False, True}, bool optional
-        If True returns back the snr value, the y, x input coordinates, noise 
+    full_output : bool, optional
+        If True returns back the S/N value, the y, x input coordinates, noise
         and flux.   
     
     Returns
     -------
     snr : float
-        Value of the SNR for the given planet or test speckle.
-        
+        Value of the S/N for the given planet or test speckle.
+    If ``full_output`` is True then the function returns:
     sourcey, sourcex, f_source, fluxes.std(), snr
-    
     """
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
@@ -298,7 +296,10 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
     sourcex, sourcey = source_xy 
     
     centery, centerx = frame_center(array)
-    sep = dist(centery,centerx,sourcey,sourcex)
+    sep = dist(centery, centerx, sourcey, sourcex)
+
+    if not sep > fwhm:
+        raise RuntimeError('`source_xy` is too close to the frame center')
     
     sens = 'clock' #counterclock
         
@@ -378,23 +379,22 @@ def snr_peakstddev(array, source_xy, fwhm, out_coor=False, plot=False,
     Parameters
     ----------
     array : array_like, 2d
-        Post-processed frame where we want to measure SNR.
+        Post-processed frame where we want to measure S/N.
     source_xy : tuple of floats
         X and Y coordinates of the planet or test speckle.
     fwhm : float
         Size in pixels of the FWHM.
-    out_coor: {False, True}, bool optional
-        If True returns back the snr value and the y, x input coordinates.
-    plot : {False, True}, optional
+    out_coor: bool, optional
+        If True returns back the S/N value and the y, x input coordinates.
+    plot : bool, optional
         Plots the frame and the apertures considered for clarity. 
-    verbose: {True, False}
+    verbose: bool, optional
         Chooses whether to print some intermediate results or not.    
         
     Returns
     -------
     snr : float
-        Value of the SNR for the given planet or test speckle.
-    
+        Value of the S/N for the given planet or test speckle.
     """     
     sourcex, sourcey = source_xy
     centery, centerx = frame_center(array)

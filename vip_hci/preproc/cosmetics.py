@@ -161,7 +161,8 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
     array_view = get_square(array, size, ceny, cenx, force=force)
     
     if verbose:
-        print("\nDone frame cropping")
+        msg = "New shape: {}, centered at ({}, {})"
+        print(msg.format(array_view.shape, cenx, ceny))
     return array_view
 
 

@@ -7,22 +7,230 @@ Module with HCICube class.
 from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['HCICube']
+__all__ = ['HCICube',
+           'HCIFrame']
 
 import numpy as np
 from .fits import open_fits, write_fits, append_extension
+from .preproc import frame_crop, frame_px_resampling, frame_rotate, frame_shift
 from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
                       cube_drop_frames, cube_detect_badfr_correlation,
                       cube_detect_badfr_pxstats, cube_px_resampling,
                       cube_subsample, cube_recenter_2dfit,
                       cube_recenter_dft_upsampling)
+from .var import frame_filter_lowpass, frame_filter_highpass, frame_center
 from .var import (cube_filter_highpass, cube_filter_lowpass, mask_circle,
                   pp_subplots)
+from .stats import frame_basic_stats, frame_histo_stats
 from .stats import cube_basic_stats, cube_distance
-from .phot import cube_inject_companions
+from .phot import (frame_quick_report, cube_inject_companions, snr_ss,
+                   snr_peakstddev, snrmap, snrmap_fast)
 
 
-# TODO: add a HCIFrame class
+class HCIFrame:
+    """ High-contrast imaging frame (2d array).
+    """
+    def __init__(self, image, fwhm=None, hdu=0):
+        """ """
+        if isinstance(image, str):
+            self.array = open_fits(image, hdu, verbose=False)
+        elif isinstance(image, np.ndarray):
+            if not image.ndim == 2:
+                raise ValueError('`Image` array has wrong dimensions')
+            self.array = image
+        else:
+            raise ValueError('`Image` has a wrong type')
+        print('Frame shape: {}'.format(self.array.shape))
+
+        self.fwhm = fwhm
+        if self.fwhm is not None:
+            print('FWHM: {}'.format(self.fwhm))
+
+    def crop(self, size, xy=None, force=False):
+        """ Cropping the frame.
+        """
+        self.array = frame_crop(self.array, size, xy, force, verbose=True)
+
+    def filter(self, method, mode, median_size=5, kernel_size=5, fwhm_size=5,
+               btw_cutoff=0.2, btw_order=2, gauss_mode='conv', verbose=True):
+        """ High/low pass filtering the frames of the image.
+
+        Parameters
+        ----------
+        method : {'lp', 'hp'}
+
+        mode : {'median', 'gauss'}
+        {'laplacian', 'laplacian-conv', 'median-subt', 'gauss-subt', 'fourier-butter'}
+        """
+        if method == 'hp':
+            self.array = frame_filter_highpass(self.array, mode, median_size,
+                                               kernel_size, fwhm_size,
+                                               btw_cutoff, btw_order)
+        elif method == 'lp':
+            self.array = frame_filter_lowpass(self.array, mode, median_size,
+                                              fwhm_size, gauss_mode)
+        else:
+            raise ValueError('Filtering mode not recognized')
+        print('Image successfully filtered')
+
+    def get_center(self, verbose=True):
+        """ Getting the coordinates of the center of the image.
+        """
+        cent = frame_center(self.array, verbose)
+        return cent
+
+    def plot(self, **kwargs):
+        """ Plotting the 2d array.
+
+        Parameters in **kwargs
+        ----------------------
+        angscale : bool
+            If True, the axes are displayed in angular scale (arcsecs).
+        angticksep : int
+            Separation for the ticks when using axis in angular scale.
+        arrow : bool
+            To show an arrow pointing to input px coordinates.
+        arrowalpha : float
+            Alpha transparency for the arrow.
+        arrowlength : int
+            Length of the arrow, 20 px by default.
+        arrowshiftx : int
+            Shift in x of the arrow pointing position, 5 px by default.
+        axis : bool
+            Show the axis, on by default.
+        circle : list of tuples
+            To show a circle at given px coordinates, list of tuples.
+        circlerad : int
+            Radius of the circle, 6 px by default.
+        cmap : str
+            Colormap to be used, 'viridis' by default.
+        colorb : bool
+            To attach a colorbar, on by default.
+        cross : tuple of float
+            If provided, a crosshair is displayed at given px coordinates.
+        crossalpha : float
+            Alpha transparency of thr crosshair.
+        dpi : int
+            Dots per inch, for plot quality.
+        getfig : bool
+            Returns the matplotlib figure.
+        grid : bool
+            If True, a grid is displayed over the image, off by default.
+        gridalpha : float
+            Alpha transparency of the grid.
+        gridcolor : str
+            Color of the grid lines.
+        gridspacing : int
+            Separation of the grid lines in pixels.
+        horsp : float
+            Horizontal gap between subplots.
+        label : str or list of str
+            Text for annotating on subplots.
+        labelpad : int
+            Padding of the label from the left bottom corner.
+        labelsize : int
+            Size of the labels.
+        log : bool
+            Log colorscale.
+        maxplots : int
+            When the input (*args) is a 3d array, maxplots sets the number of
+            cube slices to be displayed.
+        pxscale : float
+            Pixel scale in arcseconds/px. Default 0.01 for Keck/NIRC2.
+        rows : int
+            How many rows (subplots in a grid).
+        save : str
+            If a string is provided the plot is saved using this as the path.
+        showcent : bool
+            To show a big crosshair at the center of the frame.
+        title : str
+            Title of the plot(s), None by default.
+        vmax : int
+            For stretching the displayed pixels values.
+        vmin : int
+            For stretching the displayed pixels values.
+        versp : float
+            Vertical gap between subplots.
+        """
+        pp_subplots(self.array, **kwargs)
+
+    def rescale(self, scale, imlib='ndimage', interpolation='bicubic',
+                verbose=True):
+        """ Resampling the image (upscaling or downscaling).
+        """
+        self.array = frame_px_resampling(self.array, scale, imlib, interpolation,
+                                         verbose)
+        print('Image successfully rescaled')
+
+    def rotate(self, angle, imlib='opencv', interpolation='lanczos4', cxy=None):
+        """ Rotating the image.
+        """
+        self.array = frame_rotate(self.array, angle, imlib, interpolation, cxy)
+        print('Image successfully rotated')
+
+    def save(self, path):
+        """ Writing to FITS file.
+        """
+        write_fits(path, self.array)
+
+    def shift(self, shift_y, shift_x, imlib='opencv', interpolation='lanczos4'):
+        """ Shifting the image.
+        """
+        self.array = frame_shift(self.array, shift_y, shift_x, imlib,
+                                 interpolation)
+        print('Image successfully shifted')
+
+    def snr(self, source_xy, method='student', out_coor=False, plot=False,
+            verbose=True, full_output=True):
+        """ Calculating the S/N for a test resolution element ``source_xy``.
+
+        Parameters
+        ----------
+        source_xy : tuple of floats
+            Location of the test resolution element.
+        """
+        if self.fwhm is None:
+            raise ValueError('FWHM has not been set')
+
+        if method == 'student':
+            snr_val = snr_ss(self.array, source_xy, self.fwhm, out_coor, plot,
+                             verbose, full_output)
+        elif method == 'classic':
+            snr_val = snr_peakstddev(self.array, source_xy, self.fwhm, out_coor,
+                                     plot, verbose)
+        else:
+            raise ValueError('S/N estimation method not recognized')
+        return snr_val
+
+    def stats(self, region='circle', radius=5, xy=None, annulus_inner_radius=0,
+              annulus_width=5, source_xy=None, full_output=True, verbose=True,
+              plot=True):
+        """
+        """
+        res_region = frame_basic_stats(self.array, region, radius, xy,
+                                       annulus_inner_radius, annulus_width,
+                                       plot, full_output)
+        if verbose:
+            if region == 'circle':
+                msg = 'Stats in circular aperture of radius: {}pxs'
+                print(msg.format(radius))
+            elif region == 'annulus':
+                msg = 'Stats in annulus. Inner_rad: {}pxs, width: {}pxs'
+                print(msg.format(annulus_inner_radius, annulus_width))
+            mean, std_dev, median, maxi = res_region
+            msg = 'Mean: {:.3f}, Stddev: {:.3f}, Median: {:.3f}, Max: {:.3f}'
+            print(msg.format(mean, std_dev, median, maxi))
+
+        res_ff = frame_histo_stats(self.array, plot)
+        if verbose:
+            mean, median, std, maxim, minim = res_ff
+            print('Stats in the whole frame:')
+            msg = 'Mean: {:.3f}, Stddev: {:.3f}, Median: {:.3f}, Max: {:.3f}, '
+            msg += 'Min: {:.3f}'
+            print(msg.format(mean, std, median, maxim, minim))
+
+        print('\nS/N info:')
+        _ = frame_quick_report(self.array, self.fwhm, source_xy, verbose)
 
 
 class HCICube:
@@ -55,8 +263,12 @@ class HCICube:
         """
         if isinstance(cube, str):
             self.array = open_fits(cube, hdu, verbose=False)
-        else:
+        elif isinstance(cube, np.ndarray):
+            if not (cube.ndim == 3 or cube.ndim == 4):
+                raise ValueError('`Cube` array has wrong dimensions')
             self.array = cube
+        else:
+            raise ValueError('`Cube` has a wrong type')
         print('Cube array shape: {}'.format(self.array.shape))
 
         # Loading the angles (ADI)
@@ -117,7 +329,7 @@ class HCICube:
 
         # TODO: support 4d case.
         """
-        self.array = cube_crop_frames(self.array, size, xy, force)
+        self.array = cube_crop_frames(self.array, size, xy, force, verbose=True)
 
     def derotate(self, imlib='opencv', interpolation='lanczos4', cxy=None,
                  nproc=1):
@@ -172,14 +384,14 @@ class HCICube:
         _ = cube_distance(self.array, frame, region, dist, inner_radius, width,
                           plot)
 
-    def frame_stats(self, region='circle', radius=5, xy=None, inner_radius=0,
-                    size=5, plot=False):
+    def frame_stats(self, region='circle', radius=5, xy=None,
+                    annulus_inner_radius=0, annulus_width=5, plot=False):
         """ Getting statistics in ``region`` of the cube.
 
         # TODO: support 4d case.
         """
-        _ = cube_basic_stats(self.array, region, radius, xy, inner_radius, size,
-                             plot, False)
+        _ = cube_basic_stats(self.array, region, radius, xy,
+                             annulus_inner_radius, annulus_width, plot, False)
 
     def inject_companions(self, flux, rad_dists, n_branches=1,
                           theta=0, imlib='opencv', interpolation='lanczos4',
@@ -377,8 +589,8 @@ class HCICube:
                                         verbose)
 
     def save(self, path):
-        """ Writing to FITS file. If present, the angles are appended to the
-        FITS file.
+        """ Writing to FITS file. If self.angles is present, then the angles
+        are appended to the FITS file.
         """
         write_fits(path, self.array)
         if self.angles is not None:

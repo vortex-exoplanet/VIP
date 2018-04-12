@@ -42,8 +42,12 @@ def pp_subplots(*args, **kwargs):
         Shift in x of the arrow pointing position, 5 px by default.
     axis : bool
         Show the axis, on by default.
-    circle : list of tuples
+    circle : tuple or list of tuples
         To show a circle at given px coordinates, list of tuples.
+    circlealpha : float or list of floats
+        Alpha transparencey for each circle.
+    circlelabel : bool
+        Whether to show the coordinates of each circle.
     circlerad : int
         Radius of the circle, 6 px by default.
     cmap : str
@@ -99,10 +103,11 @@ def pp_subplots(*args, **kwargs):
     """
     parlist = ['angscale', 'angticksep', 'arrow', 'arrowalpha', 'arrowlength',
                'arrowshiftx', 'axis', 'circle', 'circlealpha', 'circlerad',
-               'cmap', 'colorb', 'cross', 'crossalpha', 'dpi', 'getfig', 'grid',
-               'gridalpha', 'gridcolor', 'gridspacing', 'horsp', 'label',
-               'labelpad', 'labelsize', 'log', 'maxplots', 'pxscale', 'rows',
-               'save', 'showcent', 'title', 'vmax', 'vmin', 'versp']
+               'circlelabel', 'cmap', 'colorb', 'cross', 'crossalpha', 'dpi',
+               'getfig', 'grid', 'gridalpha', 'gridcolor', 'gridspacing',
+               'horsp', 'label', 'labelpad', 'labelsize', 'log', 'maxplots',
+               'pxscale', 'rows', 'save', 'showcent', 'title', 'vmax', 'vmin',
+               'versp']
     
     for key in kwargs.keys():
         if key not in parlist:
@@ -165,8 +170,15 @@ def pp_subplots(*args, **kwargs):
 
     if 'circlealpha' in kwargs:
         circle_alpha = kwargs['circlealpha']
+        if isinstance(kwargs['circlealpha'], (float, int)):
+            circle_alpha = kwargs['circlealpha'] * len(coor_circle)
     else:
-        circle_alpha = 0.8
+        circle_alpha = [0.8] * len(coor_circle)
+
+    if 'circlelabel' in kwargs:
+        circle_label = kwargs['circlelabel']
+    else:
+        circle_label = False
 
     # ARROW --------------------------------------------------------------------
     if 'arrow' in kwargs:
@@ -388,10 +400,16 @@ def pp_subplots(*args, **kwargs):
 
         if show_circle:
             for j in range(len(coor_circle)):
-                circle = Circle((coor_circle[j][0], coor_circle[j][1]),
-                                radius=circle_rad, color='white', fill=False,
-                                alpha=circle_alpha)
+                x = coor_circle[j][0]
+                y = coor_circle[j][1]
+                circle = Circle((x, y), radius=circle_rad, color='white',
+                                fill=False, alpha=circle_alpha[j])
                 ax.add_artist(circle)
+                if circle_label:
+                    cirlabel = str(int(x))+','+str(int(y))
+                    ax.text(x, y+1.8*circle_rad, cirlabel, fontsize=8,
+                            color='white', family='monospace', ha='center',
+                            va='top', weight='bold', alpha=circle_alpha[j])
 
         if show_cross:
             ax.scatter([coor_cross[0]], [coor_cross[1]], marker='+',

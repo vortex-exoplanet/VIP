@@ -28,12 +28,10 @@ from .frame_analysis import frame_quick_report
 
 
 # TODO: Add the option of computing and thresholding an S/N map
-
 def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
               mask=True, snr_thresh=5, plot=True, debug=False,
-              full_output=False, verbose=True, save_plot=None,
-              object_name=None, frame_size=None, inner_rad=None, pca_type=None,
-              ncomp=None, NIRC2angscale=False):
+              full_output=False, verbose=True, save_plot=None, plot_title=None,
+              angscale=False, pxscale=0.01):
     """ Finds blobs in a 2d array. The algorithm is designed for automatically
     finding planets in post-processed high contrast final frames. Blob can be
     defined as a region of an image in which some properties are constant or
@@ -51,38 +49,29 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         background level.
     mode : {'lpeaks','log','dog'}, optional
         Sets with algorithm to use. Each algorithm yields different results.
-    matched_filter : {True, False}, bool optional
+    matched_filter : bool, optional
         Whether to correlate with the psf of not.
-    mask : {True, False}, optional
+    mask : bool, optional
         Whether to mask the central region (circular aperture of 2*fwhm radius).
     snr_thresh : float, optional
         SNR threshold for deciding whether the blob is a detection or not.
-    plot {True, False}, bool optional
+    plot : bool, optional
         If True plots the frame showing the detected blobs on top.
-    debug : {False, True}, bool optional
+    debug : bool, optional
         Whether to print and plot additional/intermediate results.
-    full_output : {False, True}, bool optional
+    full_output : bool, optional
         Whether to output just the coordinates of blobs that fulfill the SNR
         constraint or a table with all the blobs and the peak pixels and SNR.
-    verbose : {True,False}, bool optional
+    verbose : bool, optional
         Whether to print to stdout information about found blobs.
     save_plot: string
-        If provided, the frames processed by blob detection are saved to that
-        path.
-    object_name: string
-        Target name, used in the plot title
-    frame_size: int
-        Frame size of the pca, used in the plot title
-    inner_rad: int
-        Size of the mask in pca, as a unit of the FWHM, used in the plot title
-    pca_type: string
-        adi or rdi, used in the title
-    ncomp: int
-        Number of principal components used to compute the reduced frame, used
-        in the title
-    NIRC2angscale: {False, True}
-        If True the plot axes are converted to angular scale (arcseconds,
-        assuming NIRC2's ~ 0.01 pixel scale)
+        If provided, the plot is saved to the path.
+    plot_title : str, optional
+        Title of the plot.
+    angscale: bool, optional
+        If True the plot axes are converted to angular scale.
+    pxscale : float, optional
+        Pixel scale in arcseconds/px. Default 0.01 for Keck/NIRC2.
 
     Returns
     -------
@@ -90,16 +79,14 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         Two vectors with the y and x coordinates of the centers of the sources
         (potential planets).
     If full_output is True then a table with all the candidates that passed the
-    2d Gaussian fit constrains and their SNR is returned. Also the count of
-    companions with SNR>5 (those with highest probability of being true
-    detections).
+    2d Gaussian fit constrains and their S/N is returned.
 
     Notes
     -----
     The FWHM of the PSF is measured directly on the provided array. If the
-    parameter matched_filter==True then the PSF is used to run a matched filter
-    (correlation) which is equivalent to a convolution filter. Filtering the
-    image will smooth the noise and maximize detectability of objects with a
+    parameter matched_filter is True then the PSF is used to run a matched
+    filter (correlation) which is equivalent to a convolution filter. Filtering
+    the image will smooth the noise and maximize detectability of objects with a
     shape similar to the kernel.
     The background level or threshold is found with sigma clipped statistics
     (5 sigma over the median) on the image/correlated image. Then 5 different
@@ -140,7 +127,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
             if subsi %2 == 0:
                 subsi += 1
             subim, suby, subx = get_square(array_padded, subsi, y+pad, x+pad,
-                                           position=True)
+                                           position=True, force=True)
             cy, cx = frame_center(subim)
 
             gauss = models.Gaussian2D(amplitude=subim.max(), x_mean=cx,
@@ -283,18 +270,22 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
 
     yy = coords[:, 0]
     xx = coords[:, 1]
-    yy_final = [] ; xx_final = []; yy_out = []; xx_out = []; snr_list = []
+    yy_final = []
+    xx_final = []
+    yy_out = []
+    xx_out = []
+    snr_list = []
     xx -= pad
     yy -= pad
 
-    # Checking SNR for potential sources
+    # Checking S/N for potential sources
     for i in range(yy.shape[0]):
         y = yy[i]
         x = xx[i]
         if verbose:
             print(sep)
             print('X,Y = ({:.1f},{:.1f})'.format(x,y))
-        subim = get_square(array, size=15, y=y, x=x)
+        subim = get_square(array, size=15, y=y, x=x, force=True)
         snr = snr_ss(array, (x,y), fwhm, False, verbose=False)
         snr_list.append(snr)
         if snr >= snr_thresh:
@@ -320,84 +311,19 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     xx_out = np.array(xx_out)
 
     if plot:
-        fig, ax = plt.subplots(figsize=(6,6))
-        im = ax.imshow(array, origin='lower', interpolation='nearest',
-                       cmap='gray', alpha=0.8)
+        coords = list(zip(xx_out.tolist() + xx_final.tolist(),
+                          yy_out.tolist() + yy_final.tolist()))
+        circlealpha = [0.3] * len(xx_out)
+        circlealpha += [1] * len(xx_final)
+        pp_subplots(array, circle=coords, circlealpha=circlealpha,
+                    circlelabel=True, save=save_plot, angscale=angscale,
+                    pxscale=pxscale, title=plot_title, dpi=120)
 
-        # Option to plot axes in angular scale
-        if NIRC2angscale and frame_size is not None:
-            from scipy.ndimage import gaussian_filter
-            # Converting axes from pixels to arcseconds
-            # Find the middle value in the odd frame sizes
-            center_val = int((frame_size / 2.0) + 0.5)
-            # Place a tick every 0.5 arcseconds
-            half_num_ticks = center_val // 50
-
-            # Calculate the pixel locations at which to put ticks
-            ticks = []
-            for i in range(half_num_ticks, -half_num_ticks-1, -1):
-                # Avoid ticks not showing on the last pixel
-                if center_val - i * 50 != frame_size:
-                    ticks.append(center_val - i * 50)
-                else:
-                    ticks.append((center_val - i * 50) - 1)
-            ax.set_xticks(ticks)
-            ax.set_yticks(ticks)
-
-            # Calculate the corresponding distance in arcseconds, measured from
-            # the center
-            labels = []
-            for i in range(half_num_ticks, -half_num_ticks-1, -1):
-                labels.append(0.0 - i * 0.5)
-            ax.set_xticklabels(labels)
-            ax.set_yticklabels(labels)
-
-            ax.set_xlabel("arcseconds", fontsize=12)
-            ax.set_ylabel("arcseconds", fontsize=12)
-            plt.tick_params(axis='both', which='major', labelsize=10)
-
-            # Set the title of the plot
-            if object_name is not None and inner_rad is not None:
-                ax.set_title("{} {} {}pc {} + {}".format(pca_type, object_name,
-                                                         ncomp, frame_size,
-                                                         inner_rad),
-                             fontsize=14)
-            array_smoothed = gaussian_filter(array, sigma=(2.3, 2.3), order=0)
-            plt.imshow(array_smoothed, origin='lower')
-
-        else:
-            colorbar_ax = fig.add_axes([0.92, 0.12, 0.03, 0.78])
-            fig.colorbar(im, cax=colorbar_ax)
-            ax.grid('off')
-
-        for i in range(yy_out.shape[0]):
-            y = yy_out[i]
-            x = xx_out[i]
-            circ = plt.Circle((x, y), radius=fwhm, color='red', fill=False,
-                              linewidth=1.5, alpha=0.6)
-            ax.text(x, y+1.5*fwhm, (int(x), int(y)), fontsize=10, color='red',
-                    family='monospace', ha='center', va='top', weight='bold',
-                    alpha=0.6)
-            ax.add_patch(circ)
-        for i in range(yy_final.shape[0]):
-            y = yy_final[i]
-            x = xx_final[i]
-            circ = plt.Circle((x, y), radius=fwhm, color='cyan', fill=False,
-                              linewidth=2)
-            ax.text(x, y+1.5*fwhm, (int(x), int(y)), fontsize=10, color='cyan',
-                    weight='heavy', family='monospace', ha='center', va='top')
-            ax.add_patch(circ)
-        # Save the plot if output path is provided
-        # Don't show the plot when running pipeline (i.e. when saving figures)
-        if save_plot is not None:
-            plt.savefig(save_plot, dpi= 100, bbox_inches='tight')
-        else:
-            plt.show()
-
-    if debug:  print(table)
+    if debug:
+        print(table)
 
     if full_output:
-        return table, yy_final.shape[0]
+        return table
     else:
         return yy_final, xx_final
 

@@ -26,7 +26,7 @@ from ..var import get_annulus, frame_center, dist, pp_subplots
 
 
 def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
-           save_plot=None, plot_title=None):
+           save_plot=None, plot_title=None, verbose=True):
     """Parallel implementation of the S/N map generation function. Applies the
     S/N function (small samples penalty) at each pixel.
     
@@ -51,13 +51,16 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         If provided, the S/N map is saved to this path.
     plot_title : string
         If provided, the S/N map plot is titled.
+    verbose: bool, optional
+        Whether to print timing or not.
     
     Returns
     -------
     snrmap : array_like
         Frame with the same size as the input frame with each pixel.
     """
-    start_time = time_ini()
+    if verbose:
+        start_time = time_ini()
     if array.ndim != 2:
         raise TypeError('Input array is not a 2d array or image.')
     if plot:  plt.close('snr')
@@ -74,15 +77,15 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
     
     if mode == 'sss':
-        F = snr_ss
+        func = snr_ss
     elif mode == 'peakstddev':
-        F = snr_peakstddev
+        func = snr_peakstddev
     else:
         raise TypeError('\nMode not recognized.')
     
     if source_mask is None:
         pool = Pool(processes=nproc)                                        
-        res = pool.map(EFT, zip(itt.repeat(F),itt.repeat(array), coords,
+        res = pool.map(EFT, zip(itt.repeat(func),itt.repeat(array), coords,
                                 itt.repeat(fwhm), itt.repeat(True)))
         res = np.array(res)
         pool.close()
@@ -115,7 +118,8 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
             y, x = source        
             radd = dist(centery, centerx, y, x)
             tempay, tempax = get_annulus(array, int(radd-fwhm), 
-                                    int(np.ceil(2*fwhm)), output_indices=True)
+                                         int(np.ceil(2*fwhm)),
+                                         output_indices=True)
             tempcy, tempcx = draw.circle(y, x, int(np.ceil(1*fwhm)))
             # masking the source position (using the MAD of pixels in annulus)
             array_sources[tempcy, tempcx] = mad(array[tempay, tempax])
@@ -132,7 +136,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         coor_rest = [(y,x) for (y,x) in zip(yy, xx) if (y,x) not in coor_ann]
         
         pool1 = Pool(processes=nproc)
-        res = pool1.map(EFT, zip(itt.repeat(F),itt.repeat(array), coor_rest,
+        res = pool1.map(EFT, zip(itt.repeat(func),itt.repeat(array), coor_rest,
                                  itt.repeat(fwhm), itt.repeat(True)))
         res = np.array(res)
         pool1.close()
@@ -142,7 +146,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         snrmap[yy.astype('int'), xx.astype('int')] = snr
         
         pool2 = Pool(processes=nproc)
-        res = pool2.map(EFT, zip(itt.repeat(F), itt.repeat(array_sources),
+        res = pool2.map(EFT, zip(itt.repeat(func), itt.repeat(array_sources),
                                  coor_ann, itt.repeat(fwhm), itt.repeat(True)))
         res = np.array(res)
         pool2.close()
@@ -159,16 +163,16 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     elif save_plot is not None:
         pp_subplots(snrmap, colorb=True, title=plot_title, save=save_plot,
                     vmin=-1, vmax=5, angscale=True, getfig = True)
-        
-    print("S/N map created using {} processes.".format(nproc))
-    timing(start_time)
+
+    if verbose:
+        print("S/N map created using {} processes.".format(nproc))
+        timing(start_time)
     return snrmap
    
    
 def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
-    """ Serial implementation of the S/N map generation function. To be used as
-    a quick proxy of the S/N map generated using the small samples statistics
-    definition. 
+    """ Approximated S/N map generation. To be used as a quick proxy of the
+    S/N map generated using the small samples statistics definition.
     
     Parameters
     ----------
@@ -181,7 +185,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     plot : bool, optional
         If True plots the S/N map.
     verbose: bool, optional
-        Chooses whether to print results or not. 
+        Whether to print timing or not.
     
     Returns
     -------
@@ -298,7 +302,7 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
     centery, centerx = frame_center(array)
     sep = dist(centery, centerx, sourcey, sourcex)
 
-    if not sep > fwhm:
+    if not sep > (fwhm/2)+1:
         raise RuntimeError('`source_xy` is too close to the frame center')
     
     sens = 'clock' #counterclock

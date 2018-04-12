@@ -24,14 +24,25 @@ from .var import (cube_filter_highpass, cube_filter_lowpass, mask_circle,
 from .stats import frame_basic_stats, frame_histo_stats
 from .stats import cube_basic_stats, cube_distance
 from .phot import (frame_quick_report, cube_inject_companions, snr_ss,
-                   snr_peakstddev, snrmap, snrmap_fast)
+                   snr_peakstddev, snrmap, snrmap_fast, detection)
 
 
 class HCIFrame:
     """ High-contrast imaging frame (2d array).
+
+    Parameters
+    ----------
+    image : array_like
+        2d array.
+    hdu : int, optional
+        If ``cube`` is a String, ``hdu`` indicates the HDU from the FITS file.
+        By default the first HDU is used.
+    fwhm : float, optional
+        The FWHM associated with this dataset (instrument dependent). Required
+        for several methods (operations on the cube).
     """
-    def __init__(self, image, fwhm=None, hdu=0):
-        """ """
+    def __init__(self, image, hdu=0, fwhm=None):
+        """ HCIFrame object initialization. """
         if isinstance(image, str):
             self.array = open_fits(image, hdu, verbose=False)
         elif isinstance(image, np.ndarray):
@@ -51,8 +62,19 @@ class HCIFrame:
         """
         self.array = frame_crop(self.array, size, xy, force, verbose=True)
 
+    def detect_blobs(self, psf, bkg_sigma=1, method='lpeaks',
+                     matched_filter=False, mask=True, snr_thresh=5, plot=True,
+                     debug=False, verbose=False, save_plot=None,
+                     plot_title=None, angscale=False):
+        """ Detecting blobs on the 2d array.
+        """
+        self.detection_results = detection(self.array, psf, bkg_sigma, method,
+                                           matched_filter, mask, snr_thresh,
+                                           plot, debug, True, verbose,
+                                           save_plot, plot_title, angscale)
+
     def filter(self, method, mode, median_size=5, kernel_size=5, fwhm_size=5,
-               btw_cutoff=0.2, btw_order=2, gauss_mode='conv', verbose=True):
+               btw_cutoff=0.2, btw_order=2, gauss_mode='conv'):
         """ High/low pass filtering the frames of the image.
 
         Parameters
@@ -160,7 +182,6 @@ class HCIFrame:
         """
         self.array = frame_px_resampling(self.array, scale, imlib, interpolation,
                                          verbose)
-        print('Image successfully rescaled')
 
     def rotate(self, angle, imlib='opencv', interpolation='lanczos4', cxy=None):
         """ Rotating the image.
@@ -180,36 +201,111 @@ class HCIFrame:
                                  interpolation)
         print('Image successfully shifted')
 
-    def snr(self, source_xy, method='student', out_coor=False, plot=False,
-            verbose=True, full_output=True):
+    def snr(self, source_xy, method='student', plot=False, verbose=True):
         """ Calculating the S/N for a test resolution element ``source_xy``.
 
         Parameters
         ----------
         source_xy : tuple of floats
-            Location of the test resolution element.
+            X and Y coordinates of the planet or test speckle.
+        method : {'student', 'classic'}, str optional
+            With 'student' the small sample statistics (Mawet et al. 2014) is
+            used. With 'classic', the S/N is estimated with the old approach
+            using the standard deviation of independent pixels.
+        plot : bool, optional
+            Plots the frame and the apertures considered for clarity.
+        verbose : bool, optional
+            Chooses whether to print some output or not.
+
+        Returns
+        -------
+        snr_val : float
+            Value of the S/N for ``source_xy``.
         """
         if self.fwhm is None:
             raise ValueError('FWHM has not been set')
 
         if method == 'student':
-            snr_val = snr_ss(self.array, source_xy, self.fwhm, out_coor, plot,
-                             verbose, full_output)
+            snr_val = snr_ss(self.array, source_xy, self.fwhm, False, plot,
+                             verbose)
         elif method == 'classic':
-            snr_val = snr_peakstddev(self.array, source_xy, self.fwhm, out_coor,
+            snr_val = snr_peakstddev(self.array, source_xy, self.fwhm, False,
                                      plot, verbose)
         else:
             raise ValueError('S/N estimation method not recognized')
         return snr_val
 
-    def stats(self, region='circle', radius=5, xy=None, annulus_inner_radius=0,
-              annulus_width=5, source_xy=None, full_output=True, verbose=True,
-              plot=True):
+    def snrmap(self, method='student', approx=False, plot=True,
+               source_mask=None, nproc=None, verbose=True):
+        """ Generating the S/N map for the image.
+
+        Parameters
+        ----------
+        method : {'student', 'classic'}, str optional
+            With 'student' the small sample statistics (Mawet et al. 2014) is
+            used. With 'classic', the S/N is estimated with the old approach
+            using the standard deviation of independent pixels.
+        approx : bool, optional
+            If True, the function ``vip_hci.phot.snrmap_fast`` is used instead
+            of ``vip_hci.phot.snrmap``.
+        plot : bool, optional
+            If True plots the S/N map. True by default.
+        source_mask : array_like, optional
+            If exists, it takes into account existing sources. The mask is a
+            ones 2d array, with the same size as the input frame. The centers
+            of the known sources have a zero value.
+        nproc : int or None
+            Number of processes for parallel computing.
+
+        Returns
+        -------
+        map : HCIFrame object
+            S/N map.
         """
+        if self.fwhm is None:
+            raise ValueError('FWHM has not been set')
+
+        if approx:
+            map = snrmap_fast(self.array, self.fwhm, nproc, plot, verbose)
+        else:
+            if method == 'student':
+                mode = 'sss'
+            elif method == 'classic':
+                mode = 'peakstddev'
+            map = snrmap(self.array, self.fwhm, plot, mode, source_mask, nproc,
+                         verbose=verbose)
+        return HCIFrame(map)
+
+    def stats(self, region='circle', radius=5, xy=None, annulus_inner_radius=0,
+              annulus_width=5, source_xy=None, verbose=True, plot=True):
+        """ Calculating statistics on the image, both in the full-frame and in
+        a region (circular aperture or annulus). Also, the S/N of the either
+        ``source_xy`` or the max pixel is calculated.
+
+        Parameters
+        ----------
+        region : {'circle', 'annulus'}, str optional
+            Region in which basic statistics (mean, stddev, median and max) are
+            calculated.
+        radius : int, optional
+            Radius of the circular aperture.
+        xy : tuple of floats, optional
+            Center of the circular aperture.
+        annulus_inner_radius : int, optional
+            Inner radius of the annular region.
+        annulus_width : int, optional
+            Width of the annular region.
+        source_xy : tuple of floats, optional
+            Coordinates for which the S/N information will be obtained. If None,
+            the S/N is estimated for the pixel with the maximum value.
+        verbose : bool, optional
+            Whether to print out the values of the calculated statistics.
+        plot : bool, optional
+            Whether to plot the frame, histograms and region.
         """
         res_region = frame_basic_stats(self.array, region, radius, xy,
                                        annulus_inner_radius, annulus_width,
-                                       plot, full_output)
+                                       plot, True)
         if verbose:
             if region == 'circle':
                 msg = 'Stats in circular aperture of radius: {}pxs'
@@ -241,26 +337,24 @@ class HCICube:
     cube : str or numpy array
         3d or 4d high-contrast image sequence. If a string is provided, cube is
         interpreted as the path of the FITS file containing the sequence.
-    hdu : int
+    hdu : int, optional
         If ``cube`` is a String, ``hdu`` indicates the HDU from the FITS file.
-    angles : list or numpy array
+        By default the first HDU is used.
+    angles : list or numpy array, optional
         The vector of parallactic angles.
-    scaling : list or numpy array
+    scaling : list or numpy array, optional
         The vector of scaling factors.
-    fwhm : float
-        The FWHM associated with this dataset (instrument dependent).
-    px_scale : float
+    fwhm : float, optional
+        The FWHM associated with this dataset (instrument dependent). Required
+        for several methods (operations on the cube).
+    px_scale : float, optional
         The pixel scale associated with this dataset (instrument dependent).
-    psf : numpy array
+    psf : numpy array, optional
         The PSF template associated with this datset.
     """
     def __init__(self, cube, hdu=0, angles=None, scaling=None, fwhm=None,
                  px_scale=None, psf=None):
-        """ Initialization of the HCICube object.
-
-        # TODO: check if PSF has been normalized/cropped
-        # TODO: create new attribute psf_norm
-        """
+        """ Initialization of the HCICube object. """
         if isinstance(cube, str):
             self.array = open_fits(cube, hdu, verbose=False)
         elif isinstance(cube, np.ndarray):
@@ -295,6 +389,8 @@ class HCICube:
                not self.scaling.shape == 1:
                 raise ValueError('Scaling factors vector has a wrong shape')
 
+        # TODO: check if PSF has been normalized/cropped
+        # TODO: create new attribute psf_norm
         # Loading the PSF
         if isinstance(psf, str):
             self.psf = open_fits(psf, verbose=False)
@@ -322,7 +418,7 @@ class HCICube:
         """
         frame = cube_collapse(self.array, mode, n)
         print('Cube successfully collapsed')
-        return frame
+        return HCIFrame(frame)
 
     def crop_frames(self, size, xy=None, force=False):
         """ Cropping the frames of the sequence.
@@ -384,11 +480,27 @@ class HCICube:
         _ = cube_distance(self.array, frame, region, dist, inner_radius, width,
                           plot)
 
+    # TODO: support 4d case.
     def frame_stats(self, region='circle', radius=5, xy=None,
                     annulus_inner_radius=0, annulus_width=5, plot=False):
-        """ Getting statistics in ``region`` of the cube.
+        """ Calculating statistics on a ``region`` (circular aperture or
+        annulus) of each image of the sequence.
 
-        # TODO: support 4d case.
+        Parameters
+        ----------
+        region : {'circle', 'annulus'}, str optional
+            Region in which basic statistics (mean, stddev, median and max) are
+            calculated.
+        radius : int, optional
+            Radius of the circular aperture.
+        xy : tuple of floats, optional
+            Center of the circular aperture.
+        annulus_inner_radius : int, optional
+            Inner radius of the annular region.
+        annulus_width : int, optional
+            Width of the annular region.
+        plot : bool, optional
+            Whether to plot the frame, histograms and region.
         """
         _ = cube_basic_stats(self.array, region, radius, xy,
                              annulus_inner_radius, annulus_width, plot, False)

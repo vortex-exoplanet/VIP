@@ -102,7 +102,7 @@ def frame_histo_stats(image_array, plot=True):
     std = vector.std()
    
     if plot:
-        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(14,5))
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 3))
         ax0, ax1 = axes.flat
         bins = int(np.sqrt(vector.shape[0]))
         txt = 'Mean = {:.3f}\n'.format(mean) + \
@@ -112,7 +112,7 @@ def frame_histo_stats(image_array, plot=True):
               'Min = {:.3f}\n\n'.format(minim)
 
         ax0.imshow(image_array, interpolation="nearest", origin ="lower",
-                         cmap='viridis')
+                   cmap='viridis')
         ax0.set_title('Frame')
         ax0.grid('off')
 

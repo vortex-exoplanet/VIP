@@ -267,7 +267,7 @@ def create_psf_template(array, size, fwhm=4, verbose=True, collapse='mean'):
     return psf_normd
 
 
-def psf_norm(array, fwhm=4, size=None, threshold=None, mask_core=None,
+def psf_norm(array, fwhm='fit', size=None, threshold=None, mask_core=None,
              imlib='opencv', interpolation='lanczos4', force_odd=True,
              full_output=False, verbose=False):
     """ Scales a PSF (2d or 3d array), so the 1*FWHM aperture flux equals 1.

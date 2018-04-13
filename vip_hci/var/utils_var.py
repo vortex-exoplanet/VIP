@@ -152,7 +152,7 @@ def pp_subplots(*args, **kwargs):
         if not isinstance(kwargs['circle'], list) and \
            isinstance(kwargs['circle'], tuple):
             show_circle = True
-            coor_circle = [kwargs['circle']]*num_plots
+            coor_circle = [kwargs['circle']] * num_plots
         else:
             if not isinstance(kwargs['circle'][0], tuple):
                 print("Circle must be a tuple (X,Y) or list of tuples (X,Y)")
@@ -173,7 +173,11 @@ def pp_subplots(*args, **kwargs):
         if isinstance(kwargs['circlealpha'], (float, int)):
             circle_alpha = kwargs['circlealpha'] * len(coor_circle)
     else:
-        circle_alpha = [0.8] * len(coor_circle)
+        if 'circle' in kwargs:
+            if isinstance(kwargs['circle'], tuple):
+                circle_alpha = 0.8
+            elif isinstance(kwargs['circle'], list):
+                circle_alpha = [0.8] * len(coor_circle)
 
     if 'circlelabel' in kwargs:
         circle_label = kwargs['circlelabel']

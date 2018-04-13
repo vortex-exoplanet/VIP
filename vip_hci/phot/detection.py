@@ -12,7 +12,6 @@ __all__ = ['detection',
            'peak_coordinates']
 
 import numpy as np
-from matplotlib import pyplot as plt
 from scipy.ndimage.filters import correlate
 from skimage import feature
 from astropy.stats import sigma_clipped_stats
@@ -154,13 +153,13 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
                 coords.append((suby + fit.y_mean.value,
                                subx + fit.x_mean.value))
 
-            if debug:
-                print('Coordinates (Y,X): {:.3f},{:.3f}'.format(y, x))
-                print('fit peak = {:.3f}'.format(fit.amplitude.value))
-                msg = 'fwhm_y in px = {:.3f}, fwhm_x in px = {:.3f}'
-                print(msg.format(fwhm_y, fwhm_x))
-                print('mean fit fwhm = {:.3f}'.format(mean_fwhm_fit))
-                pp_subplots(subim, colorb=True)
+                if debug:
+                    print('Coordinates (Y,X): {:.3f},{:.3f}'.format(y, x))
+                    print('fit peak = {:.3f}'.format(fit.amplitude.value))
+                    msg = 'fwhm_y in px = {:.3f}, fwhm_x in px = {:.3f}'
+                    print(msg.format(fwhm_y, fwhm_x))
+                    print('mean fit fwhm = {:.3f}'.format(mean_fwhm_fit))
+                    pp_subplots(subim, colorb=True, axis=False, dpi=60)
         return coords
 
     def print_coords(coords):
@@ -285,7 +284,6 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         if verbose:
             print(sep)
             print('X,Y = ({:.1f},{:.1f})'.format(x,y))
-        subim = get_square(array, size=15, y=y, x=x, force=True)
         snr = snr_ss(array, (x,y), fwhm, False, verbose=False)
         snr_list.append(snr)
         if snr >= snr_thresh:
@@ -316,8 +314,8 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         circlealpha = [0.3] * len(xx_out)
         circlealpha += [1] * len(xx_final)
         pp_subplots(array, circle=coords, circlealpha=circlealpha,
-                    circlelabel=True, save=save_plot, angscale=angscale,
-                    pxscale=pxscale, title=plot_title, dpi=120)
+                    circlelabel=True, circlerad=fwhm, save=save_plot, dpi=120,
+                    angscale=angscale, pxscale=pxscale, title=plot_title)
 
     if debug:
         print(table)

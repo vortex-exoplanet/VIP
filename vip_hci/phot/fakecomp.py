@@ -31,7 +31,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     psf_template : array_like
         2d array with the normalized psf template. It should have an odd shape.
         It's recommended to run the function psf_norm to get a proper PSF
-        template. In the ADI+IFS case it must be a 3d array.
+        template. In the ADI+mSDI case it must be a 3d array.
     flevel : float or list
         Factor for controlling the brightness of the fake companions.
     plsc : float

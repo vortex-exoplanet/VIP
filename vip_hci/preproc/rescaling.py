@@ -326,11 +326,10 @@ def cube_rescaling_wavelengths(array, scaling_list, ref_xy=None, imlib='opencv',
 
 
 def check_scal_vector(scal_vec):
-    """
-    Function to check if the scaling list has the right format to avoid any bug
-    in the pca algorithm, in the case of ifs data.
-    Indeed, all scaling factors should be >= 1 (i.e. the scaling should be done
-    to match the longest wavelength of the cube)
+    """ Function to check if the scaling list has the right format to avoid any
+    bug in the pca algorithm, in the case of IFS data. All scaling factors
+    should be >= 1 (i.e. the scaling should be done to match the longest
+    wavelength of the cube).
 
     Parameter:
     ----------
@@ -341,30 +340,17 @@ def check_scal_vector(scal_vec):
     --------
     scal_vec: array_like, 1d 
         Vector containing the scaling factors (after correction to comply with
-        the condition >= 1)
-
+        the condition >= 1).
     """
-    correct = False
-    if isinstance(scal_vec, list):
-        scal_list = scal_vec[:]
-        nz = len(scal_list)
-        scal_vec = np.zeros(nz)
-        for ii in range(nz):
-            scal_vec[ii] = scal_list[ii]
-        correct = True
-    elif isinstance(scal_vec, np.ndarray):
-        nz = scal_vec.shape[0]
-    else:
-        raise TypeError('scal_vec is neither a list or an np.ndarray')
+    if not isinstance(scal_vec, (list, np.ndarray)):
+        raise TypeError('`Scal_vec` is neither a list or an np.ndarray')
 
-    scal_min = np.amin(scal_vec)
+    scal_vec = np.array(scal_vec)
 
-    if scal_min < 1:
-        correct = True
-
-    if correct:
-        for ii in range(nz):
-            scal_vec[ii] = scal_vec[ii] / scal_min
+    # checking if min factor is 1
+    if scal_vec.min() != 1:
+        scal_vec = 1/scal_vec
+        scal_vec /= scal_vec.min()
 
     return scal_vec
 

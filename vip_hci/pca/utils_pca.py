@@ -32,15 +32,15 @@ def scale_cube_for_pca(cube, scal_list, full_output=True, inverse=False, y_in=1,
     scal_list: 1D-array
        Vector of same dimension as the first dimension of datacube, containing 
        the scaling factor for each frame.
-    full_output: bool, {True,False}, optional
+    full_output: bool, optional
        Whether to output just the rescaled cube (False) or also its median, 
        the new y and x shapes of the cube, and the new centers cy and cx of the 
        frames (True).
-    inverse: bool, {True,False}, optional
+    inverse: bool, optional
        Whether to inverse the scaling factors in scal_list before applying them 
        or not; i.e. True is to descale the cube (typically after a first scaling
        has already been done)
-    y_in, x-in:
+    y_in, x-in: int, optional
        Initial y and x sizes. In case the cube is descaled, these values will
        be used to crop back the cubes/frames to their original size.
     imlib : str optional
@@ -85,7 +85,7 @@ def scale_cube_for_pca(cube, scal_list, full_output=True, inverse=False, y_in=1,
     var_list = scal_list
 
     if inverse:
-        var_list = 1./scal_list[:]
+        var_list = 1./scal_list
         cy, cx = frame_center(cube[0])
 
     # (de)scale the cube, so that a planet would now move radially
@@ -96,7 +96,7 @@ def scale_cube_for_pca(cube, scal_list, full_output=True, inverse=False, y_in=1,
     if inverse:
         if max_sc > 1:
             siz = max(y_in, x_in)
-            frame = get_square(frame, siz , cy, cx)
+            frame = get_square(frame, siz, cy, cx)
             if full_output:
                 n_z = cube.shape[0]
                 array_old = cube.copy()

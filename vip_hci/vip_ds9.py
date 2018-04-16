@@ -8,7 +8,7 @@ from __future__ import division, print_function
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 
 import warnings
-from .hci_cube import HCICube
+from .hci_cube import HCICube, HCIFrame
 try:
     import pyds9
     no_pyds9 = False
@@ -139,13 +139,17 @@ class Ds9Window(object):
             if i == 0:
                 self.create_frame()
                 if isinstance(array, HCICube):
-                    self.window.set_np2arr(array.array)
+                    self.window.set_np2arr(array.cube)
+                if isinstance(array, HCIFrame):
+                    self.window.set_np2arr(array.image)
                 else:
                     self.window.set_np2arr(array)
             else:
                 self.window.set('frame new')
                 if isinstance(array, HCICube):
-                    self.window.set_np2arr(array.array)
+                    self.window.set_np2arr(array.cube)
+                if isinstance(array, HCIFrame):
+                    self.window.set_np2arr(array.image)
                 else:
                     self.window.set_np2arr(array)
 

@@ -271,7 +271,9 @@ def collapse_psf_cube(array, size, fwhm=4, verbose=True, collapse='mean'):
 def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                   model='gauss', imlib='opencv', interpolation='lanczos4',
                   force_odd=True, full_output=False, verbose=False):
-    """ Scales a PSF (2d or 3d array), so the 1*FWHM aperture flux equals 1.
+    """ Normalizes a PSF (2d or 3d array), to have the flux in a 1xFWHM
+    aperture equal to one. It also allows to crop the array and center the PSF
+    at the center of the frame(s).
 
     Parameters
     ----------
@@ -392,9 +394,14 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
 
         if fwhm == 'fit':
             fit = fit_2d(array, full_output=True)
-            fwhm = np.mean((fit['fwhm_x'], fit['fwhm_y']))
-            if verbose:
-                print("Mean FWHM :\n{}".format(fwhm))
+            if model == 'gauss':
+                fwhm = np.mean((fit['fwhm_x'], fit['fwhm_y']))
+                if verbose:
+                    print("Mean FWHM :\n{}".format(fwhm))
+            elif model == 'moff' or model == 'airy':
+                fwhm = fit['fwhm']
+                if verbose:
+                    print("FWHM :\n{}".format(fwhm))
 
         res = psf_norm_2d(array, fwhm, size, threshold, mask_core, full_output,
                           verbose)
@@ -423,30 +430,28 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                 fwhmy = [fits_vect[i]['fwhm_y'] for i in range(n)]
                 fwhm_vect = [np.mean((fwhmx[i], fwhmy[i])) for i in range(n)]
                 fwhm = np.array(fwhm_vect)
+                if verbose:
+                    print("Mean FWHM :\n{}".format(fwhm))
             elif model == 'moff' or model == 'airy':
                 fwhm_vect = [fits_vect[i]['fwhm'] for i in range(n)]
                 fwhm = np.array(fwhm_vect)
                 fwhm = fwhm.flatten()
-            if verbose:
-                print("Mean FWHM :\n{}".format(fwhm))
+                if verbose:
+                    print("FWHM per channel :\n{}".format(fwhm))
 
         array_out = []
-        if full_output:
-            fwhm_flux = np.zeros(n)
+        fwhm_flux = np.zeros(n)
 
         for fr in range(array.shape[0]):
             restemp = psf_norm_2d(array[fr], fwhm[fr], size, threshold,
-                                  mask_core, full_output, False)
-            if full_output:
-                array_out.append(restemp[0])
-                fwhm_flux[fr] = restemp[1]
-            else:
-                array_out.append(restemp)
+                                  mask_core, True, False)
+            array_out.append(restemp[0])
+            fwhm_flux[fr] = restemp[1]
 
         array_out = np.array(array_out)
+        if verbose:
+            print("Flux in 1xFWHM aperture :\n{}".format(fwhm_flux))
         if full_output:
-            if verbose:
-                print("Flux in 1xFWHM aperture :\n{}".format(fwhm_flux))
             return array_out, fwhm_flux
         else:
             return array_out

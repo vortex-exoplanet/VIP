@@ -987,12 +987,14 @@ def _centroid_2dm_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
     """
     sub_image, y1, x1 = get_square(cube[frnum], size=size, y=pos_y, x=pos_x,
                                    position=True)
-    sub_image = sub_image.byteswap().newbyteorder()
     # negative fit
     if negative:
         sub_image = -sub_image + np.abs(np.min(-sub_image))
 
-    y_i, x_i = fit_2dmoffat(sub_image, y1, x1, full_output=False)
+    y_i, x_i = fit_2dmoffat(sub_image, crop=False, fwhm=fwhm, debug=debug,
+                            threshold=threshold, full_output=False)
+    y_i = y1 + y_i
+    x_i = x1 + x_i
     return y_i, x_i
 
 

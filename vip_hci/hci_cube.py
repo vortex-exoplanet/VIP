@@ -24,7 +24,9 @@ from .var import (cube_filter_highpass, cube_filter_lowpass, mask_circle,
 from .stats import frame_basic_stats, frame_histo_stats
 from .stats import cube_basic_stats, cube_distance
 from .phot import (frame_quick_report, cube_inject_companions, snr_ss,
-                   snr_peakstddev, snrmap, snrmap_fast, detection)
+                   snr_peakstddev, snrmap, snrmap_fast, detection,
+                   normalize_psf)
+from .conf.utils_conf import check_array
 
 
 class HCIFrame:
@@ -44,14 +46,14 @@ class HCIFrame:
     def __init__(self, image, hdu=0, fwhm=None):
         """ HCIFrame object initialization. """
         if isinstance(image, str):
-            self.array = open_fits(image, hdu, verbose=False)
+            self.image = open_fits(image, hdu, verbose=False)
         elif isinstance(image, np.ndarray):
             if not image.ndim == 2:
                 raise ValueError('`Image` array has wrong dimensions')
-            self.array = image
+            self.image = image
         else:
             raise ValueError('`Image` has a wrong type')
-        print('Frame shape: {}'.format(self.array.shape))
+        print('Frame shape: {}'.format(self.image.shape))
 
         self.fwhm = fwhm
         if self.fwhm is not None:
@@ -60,7 +62,7 @@ class HCIFrame:
     def crop(self, size, xy=None, force=False):
         """ Cropping the frame.
         """
-        self.array = frame_crop(self.array, size, xy, force, verbose=True)
+        self.image = frame_crop(self.image, size, xy, force, verbose=True)
 
     def detect_blobs(self, psf, bkg_sigma=1, method='lpeaks',
                      matched_filter=False, mask=True, snr_thresh=5, plot=True,
@@ -68,7 +70,7 @@ class HCIFrame:
                      plot_title=None, angscale=False):
         """ Detecting blobs on the 2d array.
         """
-        self.detection_results = detection(self.array, psf, bkg_sigma, method,
+        self.detection_results = detection(self.image, psf, bkg_sigma, method,
                                            matched_filter, mask, snr_thresh,
                                            plot, debug, True, verbose,
                                            save_plot, plot_title, angscale)
@@ -85,11 +87,11 @@ class HCIFrame:
         {'laplacian', 'laplacian-conv', 'median-subt', 'gauss-subt', 'fourier-butter'}
         """
         if method == 'hp':
-            self.array = frame_filter_highpass(self.array, mode, median_size,
+            self.image = frame_filter_highpass(self.image, mode, median_size,
                                                kernel_size, fwhm_size,
                                                btw_cutoff, btw_order)
         elif method == 'lp':
-            self.array = frame_filter_lowpass(self.array, mode, median_size,
+            self.image = frame_filter_lowpass(self.image, mode, median_size,
                                               fwhm_size, gauss_mode)
         else:
             raise ValueError('Filtering mode not recognized')
@@ -98,7 +100,7 @@ class HCIFrame:
     def get_center(self, verbose=True):
         """ Getting the coordinates of the center of the image.
         """
-        cent = frame_center(self.array, verbose)
+        cent = frame_center(self.image, verbose)
         return cent
 
     def plot(self, **kwargs):
@@ -174,30 +176,30 @@ class HCIFrame:
         versp : float
             Vertical gap between subplots.
         """
-        pp_subplots(self.array, **kwargs)
+        pp_subplots(self.image, **kwargs)
 
     def rescale(self, scale, imlib='ndimage', interpolation='bicubic',
                 verbose=True):
         """ Resampling the image (upscaling or downscaling).
         """
-        self.array = frame_px_resampling(self.array, scale, imlib, interpolation,
+        self.image = frame_px_resampling(self.image, scale, imlib, interpolation,
                                          verbose)
 
     def rotate(self, angle, imlib='opencv', interpolation='lanczos4', cxy=None):
         """ Rotating the image.
         """
-        self.array = frame_rotate(self.array, angle, imlib, interpolation, cxy)
+        self.image = frame_rotate(self.image, angle, imlib, interpolation, cxy)
         print('Image successfully rotated')
 
     def save(self, path):
         """ Writing to FITS file.
         """
-        write_fits(path, self.array)
+        write_fits(path, self.image)
 
     def shift(self, shift_y, shift_x, imlib='opencv', interpolation='lanczos4'):
         """ Shifting the image.
         """
-        self.array = frame_shift(self.array, shift_y, shift_x, imlib,
+        self.image = frame_shift(self.image, shift_y, shift_x, imlib,
                                  interpolation)
         print('Image successfully shifted')
 
@@ -226,10 +228,10 @@ class HCIFrame:
             raise ValueError('FWHM has not been set')
 
         if method == 'student':
-            snr_val = snr_ss(self.array, source_xy, self.fwhm, False, plot,
+            snr_val = snr_ss(self.image, source_xy, self.fwhm, False, plot,
                              verbose)
         elif method == 'classic':
-            snr_val = snr_peakstddev(self.array, source_xy, self.fwhm, False,
+            snr_val = snr_peakstddev(self.image, source_xy, self.fwhm, False,
                                      plot, verbose)
         else:
             raise ValueError('S/N estimation method not recognized')
@@ -266,13 +268,13 @@ class HCIFrame:
             raise ValueError('FWHM has not been set')
 
         if approx:
-            map = snrmap_fast(self.array, self.fwhm, nproc, plot, verbose)
+            map = snrmap_fast(self.image, self.fwhm, nproc, plot, verbose)
         else:
             if method == 'student':
                 mode = 'sss'
             elif method == 'classic':
                 mode = 'peakstddev'
-            map = snrmap(self.array, self.fwhm, plot, mode, source_mask, nproc,
+            map = snrmap(self.image, self.fwhm, plot, mode, source_mask, nproc,
                          verbose=verbose)
         return HCIFrame(map)
 
@@ -303,7 +305,7 @@ class HCIFrame:
         plot : bool, optional
             Whether to plot the frame, histograms and region.
         """
-        res_region = frame_basic_stats(self.array, region, radius, xy,
+        res_region = frame_basic_stats(self.image, region, radius, xy,
                                        annulus_inner_radius, annulus_width,
                                        plot, True)
         if verbose:
@@ -317,7 +319,7 @@ class HCIFrame:
             msg = 'Mean: {:.3f}, Stddev: {:.3f}, Median: {:.3f}, Max: {:.3f}'
             print(msg.format(mean, std_dev, median, maxi))
 
-        res_ff = frame_histo_stats(self.array, plot)
+        res_ff = frame_histo_stats(self.image, plot)
         if verbose:
             mean, median, std, maxim, minim = res_ff
             print('Stats in the whole frame:')
@@ -326,7 +328,7 @@ class HCIFrame:
             print(msg.format(mean, std, median, maxim, minim))
 
         print('\nS/N info:')
-        _ = frame_quick_report(self.array, self.fwhm, source_xy, verbose)
+        _ = frame_quick_report(self.image, self.fwhm, source_xy, verbose)
 
 
 class HCICube:
@@ -342,28 +344,61 @@ class HCICube:
         By default the first HDU is used.
     angles : list or numpy array, optional
         The vector of parallactic angles.
-    scaling : list or numpy array, optional
-        The vector of scaling factors.
+    wavelengths : list or numpy array, optional
+        The vector of wavelengths (to be used as scaling factors).
     fwhm : float, optional
         The FWHM associated with this dataset (instrument dependent). Required
         for several methods (operations on the cube).
     px_scale : float, optional
         The pixel scale associated with this dataset (instrument dependent).
     psf : numpy array, optional
-        The PSF template associated with this datset.
+        The PSF template associated with this dataset.
+    psfn : numpy array, optional
+        Normalized/cropped/centered version of the PSF template associated with
+        this dataset.
+    cuberef : str or numpy array
+        3d or 4d high-contrast image sequence. To be used as a reference cube.
     """
-    def __init__(self, cube, hdu=0, angles=None, scaling=None, fwhm=None,
-                 px_scale=None, psf=None):
-        """ Initialization of the HCICube object. """
+    def __init__(self, cube, hdu=0, angles=None, wavelengths=None, fwhm=None,
+                 px_scale=None, psf=None, psfn=None, cuberef=None):
+        """ Initialization of the HCICube object.
+        """
+        # Loading the 3d/4d cube or image sequence
         if isinstance(cube, str):
-            self.array = open_fits(cube, hdu, verbose=False)
+            self.cube = open_fits(cube, hdu, verbose=False)
         elif isinstance(cube, np.ndarray):
             if not (cube.ndim == 3 or cube.ndim == 4):
                 raise ValueError('`Cube` array has wrong dimensions')
-            self.array = cube
+            self.cube = cube
         else:
-            raise ValueError('`Cube` has a wrong type')
-        print('Cube array shape: {}'.format(self.array.shape))
+            raise TypeError('`Cube` has a wrong type')
+        print('Cube array shape: {}'.format(self.cube.shape))
+        if self.cube.ndim == 3:
+            self.n, self.y, self.x = self.cube.shape
+        elif self.cube.ndim == 4:
+            self.w, self.n, self.y, self.x = self.cube.shape
+
+        # Loading the reference cube
+        if cuberef is not None:
+            if isinstance(cuberef, str):
+                self.cuberef = open_fits(cuberef, hdu, verbose=False)
+            elif isinstance(cuberef, np.ndarray):
+                msg = '`Cuberef` array has wrong dimensions'
+                if not cuberef.ndim == 3:
+                    raise ValueError(msg)
+                if not cuberef.shape[1] == self.y:
+                    raise ValueError(msg)
+                self.cuberef = cuberef
+            elif isinstance(cuberef, HCICube):
+                msg = '`Cuberef` array has wrong dimensions'
+                if not cuberef.cube.ndim == 3:
+                    raise ValueError(msg)
+                if not cuberef.cube.shape[1] == self.y:
+                    raise ValueError(msg)
+                self.cuberef = cuberef.cube
+            else:
+                raise TypeError('`Cuberef` has a wrong type')
+            print('Cuberef array shape: {}'.format(self.cuberef.shape))
 
         # Loading the angles (ADI)
         if isinstance(angles, str):
@@ -373,24 +408,24 @@ class HCICube:
         if self.angles is not None:
             print('Angles array shape: {}'.format(self.angles.shape))
             # Checking the shape of the angles vector
-            if not self.angles.shape[0] == self.array.shape[0] or \
-               not self.angles.ndim == 1:
+            self.angles = check_array(self.angles, dim=1,
+                                      name='Parallactic angles vector')
+            if not self.angles.shape[0] == self.n:
                 raise ValueError('Parallactic angles vector has a wrong shape')
 
         # Loading the scaling factors (mSDI)
-        if isinstance(scaling, str):
-            self.scaling = open_fits(scaling, verbose=False)
+        if isinstance(wavelengths, str):
+            self.wavelengths = open_fits(wavelengths, verbose=False)
         else:
-            self.scaling = scaling
-        if self.scaling is not None:
-            print('Scaling array shape: {}'.format(self.scaling.shape))
+            self.wavelengths = wavelengths
+        if self.wavelengths is not None:
+            print('Wavelengths array shape: {}'.format(self.wavelengths.shape))
             # Checking the shape of the scaling vector
-            if not self.scaling.shape[0] == self.array.shape[0] or \
-               not self.scaling.shape == 1:
-                raise ValueError('Scaling factors vector has a wrong shape')
+            self.wavelengths = check_array(self.wavelengths, dim=1,
+                                           name='Wavelengths vector')
+            if not self.wavelengths.shape[0] == self.w:
+                raise ValueError('Wavelengths vector has a wrong shape')
 
-        # TODO: check if PSF has been normalized/cropped
-        # TODO: create new attribute psf_norm
         # Loading the PSF
         if isinstance(psf, str):
             self.psf = open_fits(psf, verbose=False)
@@ -399,14 +434,30 @@ class HCICube:
         if self.psf is not None:
             print('PSF array shape: {}'.format(self.psf.shape))
             # Checking the shape of the PSF array
-            if not self.psf.ndim == self.array.ndim - 1:
+            if not self.psf.ndim == self.cube.ndim - 1:
                 msg = 'PSF array has a wrong shape. Must have {} dimensions, '
                 msg += 'got {} instead'
-                raise ValueError(msg.format(self.array.ndim - 1, self.psf.ndim))
+                raise ValueError(msg.format(self.cube.ndim - 1, self.psf.ndim))
+
+        # Loading the normalized PSF
+        if isinstance(psfn, str):
+            self.psfn = open_fits(psfn, verbose=False)
+        else:
+            self.psfn = psfn
+        if self.psfn is not None:
+            print('Normalized PSF array shape: {}'.format(self.psfn.shape))
+            # Checking the shape of the PSF array
+            if not self.psfn.ndim == self.cube.ndim - 1:
+                msg = 'Normalized PSF array has a wrong shape. Must have {} '
+                msg += 'dimensions, got {} instead'
+                raise ValueError(msg.format(self.cube.ndim - 1, self.psfn.ndim))
 
         self.fwhm = fwhm
         if self.fwhm is not None:
-            print('FWHM: {}'.format(self.fwhm))
+            if self.cube.ndim == 4:
+                self.fwhm = check_array(self.fwhm, 1, 'FHWM')
+            elif self.cube.ndim == 3:
+                print('FWHM: {}'.format(self.fwhm))
         self.px_scale = px_scale
         if self.px_scale is not None:
             print('Pixel/plate scale: {}'.format(self.px_scale))
@@ -416,7 +467,7 @@ class HCICube:
 
         # TODO: support 4d case.
         """
-        frame = cube_collapse(self.array, mode, n)
+        frame = cube_collapse(self.cube, mode, n)
         print('Cube successfully collapsed')
         return HCIFrame(frame)
 
@@ -434,7 +485,7 @@ class HCICube:
             ``Size`` and the original size of the frames must be both even or odd.
             With ``force`` set to True this condition can be avoided.
         """
-        self.array = cube_crop_frames(self.array, size, xy, force, verbose=True)
+        self.cube = cube_crop_frames(self.cube, size, xy, force, verbose=True)
 
     def derotate(self, imlib='opencv', interpolation='lanczos4', cxy=None,
                  nproc=1):
@@ -444,8 +495,8 @@ class HCICube:
         if self.angles is None:
             raise ValueError('Parallactic angles vector has not been set')
 
-        self.array = cube_derotate(self.array, self.angles, imlib,
-                                   interpolation, cxy, nproc)
+        self.cube = cube_derotate(self.cube, self.angles, imlib,
+                                  interpolation, cxy, nproc)
         print('Cube successfully derotated')
 
     def drop_frames(self, n, m):
@@ -454,7 +505,7 @@ class HCICube:
 
         # TODO: support 4d case.
         """
-        self.array = cube_drop_frames(self.array, n, m, self.angles)
+        self.cube = cube_drop_frames(self.cube, n, m, self.angles)
 
     def filter(self, method, mode, median_size=5, kernel_size=5, fwhm_size=5,
                btw_cutoff=0.2, btw_order=2, gauss_mode='conv', verbose=True):
@@ -470,11 +521,11 @@ class HCICube:
         {'laplacian', 'laplacian-conv', 'median-subt', 'gauss-subt', 'fourier-butter'}
         """
         if method == 'hp':
-            self.array = cube_filter_highpass(self.array, mode, median_size,
+            self.cube = cube_filter_highpass(self.cube, mode, median_size,
                                               kernel_size, fwhm_size,
                                               btw_cutoff, btw_order, verbose)
         elif method == 'lp':
-            self.array = cube_filter_lowpass(self.array, mode, median_size,
+            self.cube = cube_filter_lowpass(self.cube, mode, median_size,
                                              fwhm_size, gauss_mode, verbose)
         else:
             raise ValueError('Filtering mode not recognized')
@@ -486,7 +537,7 @@ class HCICube:
 
         # TODO: support 4d case.
         """
-        _ = cube_distance(self.array, frame, region, dist, inner_radius, width,
+        _ = cube_distance(self.cube, frame, region, dist, inner_radius, width,
                           plot)
 
     # TODO: support 4d case.
@@ -511,7 +562,7 @@ class HCICube:
         plot : bool, optional
             Whether to plot the frame, histograms and region.
         """
-        _ = cube_basic_stats(self.array, region, radius, xy,
+        _ = cube_basic_stats(self.cube, region, radius, xy,
                              annulus_inner_radius, annulus_width, plot, False)
 
     def inject_companions(self, flux, rad_dists, n_branches=1,
@@ -527,7 +578,7 @@ class HCICube:
         if self.px_scale is None:
             raise ValueError('Pixel/plate scale has not been set')
 
-        self.array = cube_inject_companions(self.array, self.psf, self.angles,
+        self.cube = cube_inject_companions(self.cube, self.psf, self.angles,
                                             flux, self.px_scale, rad_dists,
                                             n_branches, theta, imlib,
                                             interpolation, verbose)
@@ -541,19 +592,23 @@ class HCICube:
         elif isinstance(angles, (list, np.ndarray)):
             self.angles = angles
         else:
-            msg = '`Angles` has a wrong type. Must be a list or 2d np.ndarray'
+            msg = '`Angles` has a wrong type. Must be a list or 1d np.ndarray'
             raise ValueError(msg)
 
-    def load_scaling_factors(self, scaling, hdu):
+    def load_wavelengths(self, wavelengths, hdu):
         """ Loads the scaling factors vector from a FITS file. It is possible to
         specify the HDU.
+
+        Parameters
+        ----------
+        wavelengths :
         """
-        if isinstance(scaling, str):
-            self.scaling = open_fits(scaling, hdu)
-        elif isinstance(scaling, (list, np.ndarray)):
-            self.scaling = scaling
+        if isinstance(wavelengths, str):
+            self.wavelengths = open_fits(wavelengths, hdu)
+        elif isinstance(wavelengths, (list, np.ndarray)):
+            self.wavelengths = wavelengths
         else:
-            msg = '`Scaling` has a wrong type. Must be a list or 2d np.ndarray'
+            msg = '`wavelengths` has a wrong type. Must be a list or np.ndarray'
             raise ValueError(msg)
 
     def mask_center(self, radius, fillwith=0, mode='in'):
@@ -561,13 +616,24 @@ class HCICube:
 
         # TODO: support 4d case.
         """
-        self.array = mask_circle(self.array, radius, fillwith, mode)
+        self.cube = mask_circle(self.cube, radius, fillwith, mode)
+
+    def normalize_psf(self, fwhm='fit', size=None, threshold=None,
+                      mask_core=None, model='gauss', imlib='opencv',
+                      interpolation='lanczos4', force_odd=True, verbose=True):
+        """ Normalizes a PSF (2d or 3d array), to have the flux in a 1xFWHM
+        aperture equal to one. It also allows to crop the array and center the
+        PSF at the center of the frame(s).
+        """
+        if self.psf is None:
+            raise ValueError('PSF array has not been loaded')
+        self.psfn = normalize_psf(self.psf, fwhm, size, threshold, mask_core,
+                                  model, imlib, interpolation, force_odd,
+                                  False, verbose)
+        print('Normalized PSF array shape: {}'.format(self.psfn.shape))
 
     def plot(self, **kwargs):
         """ Plotting ``maxplots`` frames of the cube (3D case).
-
-        # TODO: add arguments to slice the cube?
-        # TODO: support 4d case.
 
         Parameters in **kwargs
         ----------------------
@@ -639,7 +705,15 @@ class HCICube:
         versp : float
             Vertical gap between subplots.
         """
-        pp_subplots(self.array, **kwargs)
+        # TODO: argument to slice the array?
+
+        if self.cube.ndim == 3:
+            pp_subplots(self.cube, **kwargs)
+        elif self.cube.ndim == 4:
+            for i in range(0, self.cube.shape[0], 10):
+                tits = 'Wavelength '+str(i + 1)+', first 5 frames'
+                pp_subplots(self.cube[i], title=tits,
+                            maxplots=5, **kwargs)
 
     def recenter(self, method='2dfit', xy=None, subi_size=5, model='gauss',
                  nproc=1, imlib='opencv', interpolation='lanczos4',
@@ -647,19 +721,17 @@ class HCICube:
                  save_shifts=False, cy_1=None, cx_1=None, upsample_factor=100,
                  verbose=True, debug=False, plot=True):
         """ Frame to frame recentering.
-
-        # TODO: cover the full_output=False case
         """
         if self.fwhm is None:
             raise ValueError('FWHM has not been set')
 
         if method == '2d_fitting':
-            self.array = cube_recenter_2dfit(self.array, xy, self.fwhm,
+            self.cube = cube_recenter_2dfit(self.cube, xy, self.fwhm,
                                 subi_size, model, nproc, imlib, interpolation,
                                 offset, negative, threshold, save_shifts, False,
                                 verbose, debug, plot)
         elif method == 'dft_upsampling':
-            self.array = cube_recenter_dft_upsampling(self.array, cy_1, cx_1,
+            self.cube = cube_recenter_dft_upsampling(self.cube, cy_1, cx_1,
                                 negative, self.fwhm, subi_size, upsample_factor,
                                 imlib, interpolation, False, verbose,
                                 save_shifts, debug)
@@ -668,9 +740,9 @@ class HCICube:
             raise ValueError('Method not recognized')
 
     def remove_badframes(self, method='corr', frame_ref=None, crop_size=30,
-                       dist='pearson', percentile=20, stat_region='annulus',
-                       inner_radius=10, width=10, top_sigma=1.0, low_sigma=1.0,
-                       window=None, plot=True, verbose=True):
+                         dist='pearson', percentile=20, stat_region='annulus',
+                         inner_radius=10, width=10, top_sigma=1.0,
+                         low_sigma=1.0, window=None, plot=True, verbose=True):
         """ Finding outlying/bad frames and slicing the cube accordingly.
 
         Parameters
@@ -684,19 +756,19 @@ class HCICube:
                 print("Setting the 1st frame as the reference")
                 frame_ref = 0
 
-            self.good_indices, _ = cube_detect_badfr_correlation(self.array,
+            self.good_indices, _ = cube_detect_badfr_correlation(self.cube,
                                             frame_ref, crop_size, dist,
                                             percentile, plot, verbose)
         elif method == 'pxstats':
-            self.good_indices, _ = cube_detect_badfr_pxstats(self.array,
+            self.good_indices, _ = cube_detect_badfr_pxstats(self.cube,
                                             stat_region, inner_radius, width,
                                             top_sigma, low_sigma, window, plot,
                                             verbose)
         else:
             raise ValueError('Bad frames detection method not recognized')
 
-        self.array = self.array[self.good_indices]
-        print("New cube shape: {}".format(self.array.shape))
+        self.cube = self.cube[self.good_indices]
+        print("New cube shape: {}".format(self.cube.shape))
         if self.angles is not None:
             self.angles = self.angles[self.good_indices]
             msg = "New parallactic angles vector shape: {}"
@@ -706,7 +778,7 @@ class HCICube:
                 verbose=True):
         """ Resampling the pixels (upscaling or downscaling the frames).
         """
-        self.array = cube_px_resampling(self.array, scale, imlib, interpolation,
+        self.cube = cube_px_resampling(self.cube, scale, imlib, interpolation,
                                         verbose)
 
     def save(self, path, dtype32=True):
@@ -721,7 +793,7 @@ class HCICube:
             If True the array is casted as a float32. When False, the array is
             usually saved in float64 precision.
         """
-        write_fits(path, self.array, dtype32)
+        write_fits(path, self.cube, dtype32)
         if self.angles is not None:
             append_extension(path, self.angles)
 
@@ -736,9 +808,9 @@ class HCICube:
             Switch for choosing mean or median.
         """
         if self.angles is not None:
-            self.array, self.angles = cube_subsample(self.array, window,
+            self.cube, self.angles = cube_subsample(self.cube, window,
                                                      mode, self.angles)
         else:
-            self.array = cube_subsample(self.array, window, mode)
+            self.cube = cube_subsample(self.cube, window, mode)
 
 

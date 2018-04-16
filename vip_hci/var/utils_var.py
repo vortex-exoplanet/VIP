@@ -15,7 +15,7 @@ __all__ = ['pp_subplots',
 import os
 import numpy as np
 from matplotlib.pyplot import (figure, subplot, show, colorbar, rc, axes,
-                               Circle, savefig)
+                               Circle, savefig, close)
 import matplotlib.colors as colors
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -485,6 +485,7 @@ def pp_subplots(*args, **kwargs):
     fig.subplots_adjust(wspace=hor_spacing, hspace=ver_spacing)
     if save:
         savefig(savepath, dpi=dpi, bbox_inches='tight')
+        close();
         if getfig:
             return fig
     else:

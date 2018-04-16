@@ -42,7 +42,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
     array : array_like, 2d
         Input frame.
     psf : array_like
-        Input psf, normalized with ``vip_hci.phot.psf_norm``.
+        Input psf, normalized with ``vip_hci.phot.normalize_psf``.
     bkg_sigma : float, optional
         The number standard deviations above the clipped median for setting the
         background level.

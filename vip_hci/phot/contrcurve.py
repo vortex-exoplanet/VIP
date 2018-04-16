@@ -21,7 +21,8 @@ from scipy import stats
 from scipy.signal import savgol_filter
 from skimage.draw import circle
 from matplotlib import pyplot as plt
-from .fakecomp import cube_inject_companions, frame_inject_companion, psf_norm
+from .fakecomp import (cube_inject_companions, frame_inject_companion,
+                       normalize_psf)
 from ..conf import time_ini, timing
 from ..conf.utils_conf import sep
 from ..var import frame_center, dist
@@ -317,7 +318,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                 pca_type = 'RDI'
             title = "{} {} {}pc {} + {}".format(pca_type, object_name, ncomp,
                                                 frame_size, inner_rad)
-            plt.title(title, fontsize = 14)
+            plt.title(title, fontsize=14)
 
         # Option to fix the y-limit
         if len(fix_y_lim) == 2:
@@ -538,9 +539,9 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
         new_psf_size += 1
 
     if cube.ndim == 3:
-        psf_template = psf_norm(psf_template, size=min(new_psf_size,
-                                                       psf_template.shape[1]),
-                                fwhm=fwhm)
+        psf_template = normalize_psf(psf_template, fwhm=fwhm,
+                                     size=min(new_psf_size,
+                                              psf_template.shape[1]))
 
         #***********************************************************************
         # Initialize the fake companions
@@ -633,8 +634,9 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
         if isinstance(fwhm, (int, float)):
             fwhm = [fwhm]*array.shape[0]
 
-        psf_template = psf_norm(psf_template, fwhm=fwhm,
-                                size=min(new_psf_size, psf_template.shape[1]))
+        psf_template = normalize_psf(psf_template, fwhm=fwhm,
+                                     size=min(new_psf_size,
+                                              psf_template.shape[1]))
 
         # **********************************************************************
         # Initialize the fake companions

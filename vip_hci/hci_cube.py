@@ -421,9 +421,18 @@ class HCICube:
         return HCIFrame(frame)
 
     def crop_frames(self, size, xy=None, force=False):
-        """ Cropping the frames of the sequence.
+        """ Cropping the frames of the sequence (3d or 4d cube).
 
-        # TODO: support 4d case.
+        Parameters
+        ----------
+        size : int
+            New size of the (square) frames.
+        xy : tuple of ints
+            X, Y coordinates of new frame center. If you are getting the
+            coordinates from ds9 subtract 1, python has 0-based indexing.
+        force : bool, optional
+            ``Size`` and the original size of the frames must be both even or odd.
+            With ``force`` set to True this condition can be avoided.
         """
         self.array = cube_crop_frames(self.array, size, xy, force, verbose=True)
 
@@ -700,23 +709,36 @@ class HCICube:
         self.array = cube_px_resampling(self.array, scale, imlib, interpolation,
                                         verbose)
 
-    def save(self, path):
+    def save(self, path, dtype32=True):
         """ Writing to FITS file. If self.angles is present, then the angles
         are appended to the FITS file.
+
+        Parameters
+        ----------
+        filename : string
+            Full path of the fits file to be written.
+        dtype32 : bool, optional
+            If True the array is casted as a float32. When False, the array is
+            usually saved in float64 precision.
         """
-        write_fits(path, self.array)
+        write_fits(path, self.array, dtype32)
         if self.angles is not None:
             append_extension(path, self.angles)
 
     def subsample(self, window, mode='mean'):
-        """ Temporally sub-sampling the sequence.
+        """ Temporally sub-sampling the sequence (3d or 4d cube).
+
+        Parameters
+        ----------
+        window : int
+            Window for mean/median.
+        mode : {'mean','median'}, optional
+            Switch for choosing mean or median.
         """
-        if self.array.ndim == 3:
-            if self.angles is not None:
-                self.array, self.angles = cube_subsample(self.array, window,
-                                                         mode, self.angles)
-            else:
-                self.array = cube_subsample(self.array, window, mode)
+        if self.angles is not None:
+            self.array, self.angles = cube_subsample(self.array, window,
+                                                     mode, self.angles)
         else:
-            # TODO: ADI+mSDI
-            pass
+            self.array = cube_subsample(self.array, window, mode)
+
+

@@ -17,12 +17,4 @@ vip\_hci\.fits\.fits module
     :undoc-members:
     :show-inheritance:
 
-vip\_hci\.fits\.vipds9 module
------------------------------
-
-.. automodule:: vip_hci.fits.vipds9
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 

@@ -26,3 +26,23 @@ Subpackages
     vip_hci.stats
     vip_hci.var
 
+Submodules
+----------
+
+vip\_hci\.hci\_cube module
+--------------------------
+
+.. automodule:: vip_hci.hci_cube
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+vip\_hci\.vip\_ds9 module
+-------------------------
+
+.. automodule:: vip_hci.vip_ds9
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+

@@ -15,7 +15,6 @@ import numpy as np
 import pandas as pd
 import photutils
 from astropy.modeling import models, fitting
-from astropy.modeling.models import Gaussian2D, Moffat2D, AiryDisk2D
 from astropy.stats import (gaussian_sigma_to_fwhm, gaussian_fwhm_to_sigma,
                            sigma_clipped_stats)
 from .shapes import get_square, frame_center
@@ -95,23 +94,24 @@ def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
             else:
                 fwhm_y = fwhm
                 fwhm_x = fwhm
-            gauss = Gaussian2D(amplitude=amplitude, x_mean=x_mean, y_mean=y_mean,
-                               x_stddev=fwhm_x * gaussian_fwhm_to_sigma,
-                               y_stddev=fwhm_y * gaussian_fwhm_to_sigma,
-                               theta=np.deg2rad(theta))
+            gauss = models.Gaussian2D(amplitude=amplitude, x_mean=x_mean,
+                                      y_mean=y_mean,
+                                      x_stddev=fwhm_x * gaussian_fwhm_to_sigma,
+                                      y_stddev=fwhm_y * gaussian_fwhm_to_sigma,
+                                      theta=np.deg2rad(theta))
             im = gauss(x, y)
         elif model == 'moff':
             if gamma is None and fwhm is not None:
                 gamma = fwhm / (2. * np.sqrt(2 ** (1 / alpha) - 1))
-            moffat = Moffat2D(amplitude=amplitude, x_0=x_mean, y_0=y_mean,
-                              gamma=gamma, alpha=alpha)
+            moffat = models.Moffat2D(amplitude=amplitude, x_0=x_mean,
+                                     y_0=y_mean, gamma=gamma, alpha=alpha)
             im = moffat(x, y)
         elif model == 'airy':
             if radius is None and fwhm is not None:
                 diam_1st_zero = (fwhm * 2.44) / 1.028
                 radius = diam_1st_zero / 2.
-            airy = AiryDisk2D(amplitude=amplitude, x_0=x_mean, y_0=y_mean,
-                              radius=radius)
+            airy = models.AiryDisk2D(amplitude=amplitude, x_0=x_mean,
+                                     y_0=y_mean, radius=radius)
             im = airy(x, y)
         return im
     # 3d case

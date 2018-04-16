@@ -17,14 +17,6 @@ vip\_hci\.stats\.clip\_sigma module
     :undoc-members:
     :show-inheritance:
 
-vip\_hci\.stats\.cube\_stats module
------------------------------------
-
-.. automodule:: vip_hci.stats.cube_stats
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 vip\_hci\.stats\.distances module
 ---------------------------------
 

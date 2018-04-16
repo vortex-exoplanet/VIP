@@ -7,15 +7,16 @@ Module with fake companion injection functions.
 from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['create_psf_template',
-           'psf_norm',
+__all__ = ['collapse_psf_cube',
+           'normalize_psf',
            'cube_inject_companions',
            'frame_inject_companion']
 
 import numpy as np
 import photutils
 from ..preproc import cube_crop_frames, frame_shift, frame_crop
-from ..var import frame_center, fit_2dgaussian, get_circle
+from ..var import (frame_center, fit_2dgaussian, fit_2dairydisk, fit_2dmoffat,
+                   get_circle)
 
 
 # TODO: Check handling even sized frames
@@ -30,8 +31,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         Input frame or cube.
     psf_template : array_like
         2d array with the normalized psf template. It should have an odd shape.
-        It's recommended to run the function psf_norm to get a proper PSF
-        template. In the ADI+mSDI case it must be a 3d array.
+        It's recommended to run the function ``normalize_psf`` to get a proper
+        PSF template. In the ADI+mSDI case it must be a 3d array.
     flevel : float or list
         Factor for controlling the brightness of the fake companions.
     plsc : float
@@ -109,7 +110,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
                     posy = rad_dists[i] * np.sin(ang) + ceny
                     posx = rad_dists[i] * np.cos(ang) + cenx
-                    rad_arcs = rad_dists[i]*plsc
+                    rad_arcs = rad_dists[i] * plsc
                     print('\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec '
                           '({:.2f} pxs)'.format(posx, posy, rad_arcs,
                                                rad_dists[i]))
@@ -144,7 +145,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         for i in range(nframes_wav):
             w = int(np.floor(size_fc/2.))
             # fcomp in the center of a zeros frame
-            if (psf_template[0].shape[1]%2) == 0:
+            if (psf_template[0].shape[1] % 2) == 0:
                 fc_fr[i, ceny-w:ceny+w, cenx-w:cenx+w] = psf_template[i]
             else:
                 fc_fr[i, ceny-w:ceny+w+1, cenx-w:cenx+w+1] = psf_template[i]
@@ -225,9 +226,9 @@ def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
     return array_out
 
 
-def create_psf_template(array, size, fwhm=4, verbose=True, collapse='mean'):
-    """ Creates a psf template from a cube of non-saturated off-axis frames of
-    the star by taking the mean and normalizing the psf flux.
+def collapse_psf_cube(array, size, fwhm=4, verbose=True, collapse='mean'):
+    """ Creates a 2d PSF template from a cube of non-saturated off-axis frames
+    of the star by taking the mean and normalizing the PSF flux.
 
     Parameters
     ----------
@@ -260,16 +261,16 @@ def create_psf_template(array, size, fwhm=4, verbose=True, collapse='mean'):
     else:
         raise TypeError('Collapse mode not recognized.')
 
-    psf_normd = psf_norm(psf, size=size, fwhm=fwhm)
+    psf_normd = normalize_psf(psf, size=size, fwhm=fwhm)
 
     if verbose:
         print("Done scaled PSF template from the average of", n,"frames.")
     return psf_normd
 
 
-def psf_norm(array, fwhm='fit', size=None, threshold=None, mask_core=None,
-             imlib='opencv', interpolation='lanczos4', force_odd=True,
-             full_output=False, verbose=False):
+def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
+                  model='gauss', imlib='opencv', interpolation='lanczos4',
+                  force_odd=True, full_output=False, verbose=False):
     """ Scales a PSF (2d or 3d array), so the 1*FWHM aperture flux equals 1.
 
     Parameters
@@ -328,18 +329,17 @@ def psf_norm(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         if not (np.allclose(cy, ycom, atol=1e-2) or
                 np.allclose(cx, xcom, atol=1e-2)):
             # first we find the centroid and put it in the center of the array
-            centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm, fwhmy=fwhm)
-            shiftx, shifty = centroidx - cx, centroidy - cy
+            centry, centrx = fit_2d(psfs)
+            shiftx, shifty = centrx - cx, centry - cy
             psfs = frame_shift(array, -shifty, -shiftx, imlib=imlib,
                                interpolation=interpolation)
             if size is not None:
                 psfs = frame_crop(psfs, size, force=force_odd, verbose=False)
 
             for _ in range(2):
-                centroidy, centroidx = fit_2dgaussian(psfs, fwhmx=fwhm,
-                                                      fwhmy=fwhm)
+                centry, centrx = fit_2d(psfs)
                 cy, cx = frame_center(psfs, verbose=False)
-                shiftx, shifty = centroidx - cx, centroidy - cy
+                shiftx, shifty = centrx - cx, centry - cy
                 psfs = frame_shift(psfs, -shifty, -shiftx, imlib=imlib,
                                    interpolation=interpolation)
 
@@ -367,6 +367,14 @@ def psf_norm(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         else:
             return psf_norm_array
     ############################################################################
+    if model == 'gauss':
+        fit_2d = fit_2dgaussian
+    elif model == 'moff':
+        fit_2d = fit_2dmoffat
+    elif model == 'airy':
+        fit_2d = fit_2dairydisk
+    else:
+        raise ValueError('`Model` not recognized')
 
     if array.ndim == 2:
         y, x = array.shape
@@ -383,7 +391,7 @@ def psf_norm(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                 print(msg.format(size))
 
         if fwhm == 'fit':
-            fit = fit_2dgaussian(array, full_output=True)
+            fit = fit_2d(array, full_output=True)
             fwhm = np.mean((fit['fwhm_x'], fit['fwhm_y']))
             if verbose:
                 print("Mean FWHM :\n{}".format(fwhm))
@@ -409,12 +417,16 @@ def psf_norm(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         if isinstance(fwhm, (int, float)):
             fwhm = [fwhm]*array.shape[0]
         elif fwhm == 'fit':
-            fits_vect = [fit_2dgaussian(array[i], full_output=True) for i
-                         in range(n)]
-            fwhmx = [fits_vect[i]['fwhm_x'] for i in range(n)]
-            fwhmy = [fits_vect[i]['fwhm_y'] for i in range(n)]
-            fwhm_vect = [np.mean((fwhmx[i], fwhmy[i])) for i in range(n)]
-            fwhm = np.array(fwhm_vect)
+            fits_vect = [fit_2d(array[i], full_output=True) for i in range(n)]
+            if model == 'gauss':
+                fwhmx = [fits_vect[i]['fwhm_x'] for i in range(n)]
+                fwhmy = [fits_vect[i]['fwhm_y'] for i in range(n)]
+                fwhm_vect = [np.mean((fwhmx[i], fwhmy[i])) for i in range(n)]
+                fwhm = np.array(fwhm_vect)
+            elif model == 'moff' or model == 'airy':
+                fwhm_vect = [fits_vect[i]['fwhm'] for i in range(n)]
+                fwhm = np.array(fwhm_vect)
+                fwhm = fwhm.flatten()
             if verbose:
                 print("Mean FWHM :\n{}".format(fwhm))
 

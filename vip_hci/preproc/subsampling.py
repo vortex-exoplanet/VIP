@@ -62,51 +62,65 @@ def cube_collapse(cube, mode='median', n=50):
 
 
 def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
-    """Mean/Median combines frames in cube with window n.
+    """Mean/Median combines frames in 3d or 4d cube with window ``n``.
     
     Parameters
     ----------
+    array : array_like
+        Input 3d array, cube.
     n : int
         Window for mean/median.
-    array : array_like 
-        Input 3d array, cube.
-    mode : {'mean','median'}
+    mode : {'mean','median'}, optional
         Switch for choosing mean or median.
-    parallactic: array_like
+    parallactic : array_like, optional
         List of corresponding parallactic angles.
+    verbose : bool optional
         
     Returns
     -------
     arr_view : array_like
         Resulting array.
-    angles : array_like
-        Parallactic angles.
+    If ``parallactic`` is provided the the new cube and angles are returned.
     """
-    if array.ndim != 3:
-        raise TypeError('The input array is not a cube or 3d array.')
-    m = int(array.shape[0]/n) 
-    resid = array.shape[0]%n                                                       
-    y = array.shape[1]
-    x = array.shape[2]
-    arr = np.empty([m, y, x]) 
-    if parallactic is not None:
-        angles = np.zeros(m)
+    if array.ndim not in [3, 4]:
+        raise TypeError('The input array is not a cube or 3d or 4d array')
         
     if mode == 'median':
         func = np.median
     elif mode == 'mean':
         func = np.mean
     else:  
-        raise ValueError('Mode should be either Mean or Median.') 
-        
-    for i in range(m):
-        arr[i, :, :] = func(array[:n, :, :], axis=0) 
+        raise ValueError('`Mode` should be either Mean or Median')
+
+    if array.ndim == 3:
+        m = int(array.shape[0] / n)
+        resid = array.shape[0] % n
+        y = array.shape[1]
+        x = array.shape[2]
+        arr = np.empty([m, y, x])
         if parallactic is not None:
-            angles[i] = func(parallactic[:n])
-        if i >= 1:
-            arr[i, :, :] = func(array[n*i:n*i+n, :, :], axis=0)
+            angles = np.zeros(m)
+
+        for i in range(m):
+            arr[i, :, :] = func(array[n * i:n * i + n, :, :], axis=0)
             if parallactic is not None:
-                angles[i] = func(parallactic[n*i:n*i+n])
+                angles[i] = func(parallactic[n * i:n * i + n])
+
+    elif array.ndim == 4:
+        m = int(array.shape[1] / n)
+        resid = array.shape[1] % n
+        w = array.shape[0]
+        y = array.shape[2]
+        x = array.shape[3]
+        arr = np.empty([w, m, y, x])
+        if parallactic is not None:
+            angles = np.zeros(m)
+
+        for j in range(w):
+            for i in range(m):
+                arr[j, i, :, :] = func(array[j, n * i:n * i + n, :, :], axis=0)
+                if parallactic is not None:
+                    angles[i] = func(parallactic[n * i:n * i + n])
 
     if verbose:
         msg = "Cube temporally subsampled by taking the {} of every {} frames"
@@ -142,7 +156,7 @@ def cube_subsample_trimmean(arr, n, m):
         Output array, cube combined. 
     """    
     if arr.ndim != 3:
-        raise TypeError('The input array is not a cube or 3d array.')
+        raise TypeError('The input array is not a cube or 3d array')
     num = int(arr.shape[0]/m)
     res = int(arr.shape[0]%m)                                                       
     y = arr.shape[1]
@@ -154,7 +168,9 @@ def cube_subsample_trimmean(arr, n, m):
             arr2[i] = cube_collapse(arr[m*i:m*i+m, :, :], 'trimmean', n)
     arr2[num] = cube_collapse(arr[-res:, :, :], 'trimmean', n)     
     arr_view = arr2[:num+1]        # slicing until m+1 - last index not included
-    print("\nDone trimmed mean over FITS-Cube with window m=" + str(m))
+    msg = "Cube temporally subsampled by taking the trimmed mean of every {} "
+    msg += "frames"
+    print(msg.format(m))
     return arr_view
 
 

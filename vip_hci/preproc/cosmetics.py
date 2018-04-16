@@ -35,8 +35,8 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
         X, Y coordinates of new frame center. If you are getting the
         coordinates from ds9 subtract 1, python has 0-based indexing.
     force : bool, optional
-        ``Size`` and the size of the frames must be both even or odd. With
-        ``force`` set to True this condition can be avoided.
+        ``Size`` and the original size of the frames must be both even or odd.
+        With ``force`` set to True this condition can be avoided.
     verbose : bool optional
         If True message of completion is showed.
     full_output: bool optional

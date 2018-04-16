@@ -166,7 +166,6 @@ def verify_fits(fitspath):
     ----------
     fitspath : string
         Path to the fits file or list with fits filename paths.
-
     """
     if isinstance(fitspath, list):
         for ffile in fitspath:
@@ -184,14 +183,15 @@ def write_fits(filename, array, header=None, dtype32=True, verbose=True):
     Parameters
     ----------
     filename : string
-        Filename of the fits file to be written.
+        Full path of the fits file to be written.
     array : array_like
         Array to be written into a fits file.
     header : array_like, optional
         Array with header. 
-    dtype32 : {True, False}, bool optional
-        If True the array is casted as a float32
-    verbose : {True, False}, bool optional
+    dtype32 : bool, optional
+        If True the array is casted as a float32. When False, the array is
+        usually saved in float64 precision.
+    verbose : bool, optional
         If True prints message.
 
     """

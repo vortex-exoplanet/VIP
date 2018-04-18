@@ -1,13 +1,13 @@
 #! /usr/bin/env python
 
 """
-Module with HCICube class.
+Module with HCIDataset and HCIFrame classes.
 """
 
 from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['HCICube',
+__all__ = ['HCIDataset',
            'HCIFrame']
 
 import numpy as np
@@ -17,7 +17,7 @@ from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
                       cube_drop_frames, cube_detect_badfr_correlation,
                       cube_detect_badfr_pxstats, cube_px_resampling,
                       cube_subsample, cube_recenter_2dfit,
-                      cube_recenter_dft_upsampling)
+                      cube_recenter_dft_upsampling, cube_recenter_via_speckles)
 from .var import frame_filter_lowpass, frame_filter_highpass, frame_center
 from .var import (cube_filter_highpass, cube_filter_lowpass, mask_circle,
                   pp_subplots)
@@ -331,8 +331,8 @@ class HCIFrame:
         _ = frame_quick_report(self.image, self.fwhm, source_xy, verbose)
 
 
-class HCICube:
-    """ High-contrast imaging sequence/cube class.
+class HCIDataset:
+    """ High-contrast imaging dataset class.
 
     Parameters
     ----------
@@ -361,7 +361,7 @@ class HCICube:
     """
     def __init__(self, cube, hdu=0, angles=None, wavelengths=None, fwhm=None,
                  px_scale=None, psf=None, psfn=None, cuberef=None):
-        """ Initialization of the HCICube object.
+        """ Initialization of the HCIDataset object.
         """
         # Loading the 3d/4d cube or image sequence
         if isinstance(cube, str):
@@ -379,25 +379,25 @@ class HCICube:
             self.w, self.n, self.y, self.x = self.cube.shape
 
         # Loading the reference cube
-        if cuberef is not None:
-            if isinstance(cuberef, str):
-                self.cuberef = open_fits(cuberef, hdu, verbose=False)
-            elif isinstance(cuberef, np.ndarray):
-                msg = '`Cuberef` array has wrong dimensions'
-                if not cuberef.ndim == 3:
-                    raise ValueError(msg)
-                if not cuberef.shape[1] == self.y:
-                    raise ValueError(msg)
-                self.cuberef = cuberef
-            elif isinstance(cuberef, HCICube):
-                msg = '`Cuberef` array has wrong dimensions'
-                if not cuberef.cube.ndim == 3:
-                    raise ValueError(msg)
-                if not cuberef.cube.shape[1] == self.y:
-                    raise ValueError(msg)
-                self.cuberef = cuberef.cube
-            else:
-                raise TypeError('`Cuberef` has a wrong type')
+        if isinstance(cuberef, str):
+            self.cuberef = open_fits(cuberef, hdu, verbose=False)
+        elif isinstance(cuberef, np.ndarray):
+            msg = '`Cuberef` array has wrong dimensions'
+            if not cuberef.ndim == 3:
+                raise ValueError(msg)
+            if not cuberef.shape[1] == self.y:
+                raise ValueError(msg)
+            self.cuberef = cuberef
+        elif isinstance(cuberef, HCIDataset):
+            msg = '`Cuberef` array has wrong dimensions'
+            if not cuberef.cube.ndim == 3:
+                raise ValueError(msg)
+            if not cuberef.cube.shape[1] == self.y:
+                raise ValueError(msg)
+            self.cuberef = cuberef.cube
+        else:
+            self.cuberef = None
+        if self.cuberef is not None:
             print('Cuberef array shape: {}'.format(self.cuberef.shape))
 
         # Loading the angles (ADI)
@@ -571,7 +571,7 @@ class HCICube:
         """ Injection of fake companions in 3d or 4d cubes.
 
         # TODO: support the injection of a Gaussian/Moffat kernel.
-        # TODO: return array/HCICube object instead?
+        # TODO: return array/HCIDataset object instead?
         """
         if self.psf is None:
             raise ValueError('PSf array has not been set')
@@ -719,8 +719,13 @@ class HCICube:
                  nproc=1, imlib='opencv', interpolation='lanczos4',
                  offset=None, negative=False, threshold=False,
                  save_shifts=False, cy_1=None, cx_1=None, upsample_factor=100,
-                 verbose=True, debug=False, plot=True):
+                 alignment_iter=5, gamma=1, min_spat_freq=0.5, max_spat_freq=3,
+                 recenter_median=False, verbose=True, debug=False, plot=True):
         """ Frame to frame recentering.
+
+        Parameters
+        ----------
+        method : {'2dfit', 'dftups', 'dftups_speckles'}
         """
         if self.fwhm is None:
             raise ValueError('FWHM has not been set')
@@ -730,11 +735,22 @@ class HCICube:
                                 subi_size, model, nproc, imlib, interpolation,
                                 offset, negative, threshold, save_shifts, False,
                                 verbose, debug, plot)
-        elif method == 'dft_upsampling':
+        elif method == 'dftups':
             self.cube = cube_recenter_dft_upsampling(self.cube, cy_1, cx_1,
                                 negative, self.fwhm, subi_size, upsample_factor,
                                 imlib, interpolation, False, verbose,
                                 save_shifts, debug)
+        elif method == 'dftups_speckles':
+            res = cube_recenter_via_speckles(self.cube, self.cuberef,
+                                alignment_iter, gamma, min_spat_freq,
+                                max_spat_freq, self.fwhm, debug, negative,
+                                recenter_median, subi_size, imlib,
+                                interpolation, plot)
+            if self.cuberef is None:
+                self.cube = res[0]
+            else:
+                self.cube = res[0]
+                self.cuberef = res[1]
         else:
             # TODO support other recentering methods from vip_hci.preproc
             raise ValueError('Method not recognized')

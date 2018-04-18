@@ -41,7 +41,7 @@ from ..conf import time_ini, timing
 from ..conf.utils_conf import eval_func_tuple as EFT
 from ..var import (get_square, frame_center, get_annulus, pp_subplots,
                    fit_2dmoffat, fit_2dgaussian, frame_filter_lowpass,
-                   cube_filter_lowpass)
+                   cube_filter_lowpass, cube_filter_highpass)
 from ..preproc import cube_crop_frames
 
 
@@ -780,6 +780,15 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
         plt.ylabel('Pixels')
         plt.xlabel('Frame number')
 
+        plt.figure(figsize=(10, 5))
+        b = int(np.sqrt(n_frames))
+        la = 'Histogram'
+        _ = plt.hist(x, bins=b, alpha=0.5, label=la + ' shifts X')
+        _ = plt.hist(y, bins=b, alpha=0.5, label=la + ' shifts Y')
+        plt.legend(loc='best')
+        plt.ylabel('Bin counts')
+        plt.xlabel('Pixels')
+
     if save_shifts: 
         np.savetxt('recent_dft_shifts.txt', np.transpose([y, x]), fmt='%f')
     if full_output:
@@ -954,6 +963,15 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         plt.ylabel('Pixels')
         plt.xlabel('Frame number')
 
+        plt.figure(figsize=(10, 5))
+        b = int(np.sqrt(n_frames))
+        la = 'Histogram'
+        _ = plt.hist(x, bins=b, alpha=0.5, label=la + ' shifts X')
+        _ = plt.hist(y, bins=b, alpha=0.5, label=la + ' shifts Y')
+        plt.legend(loc='best')
+        plt.ylabel('Bin counts')
+        plt.xlabel('Pixels')
+
     if save_shifts: 
         np.savetxt('recent_gauss_shifts.txt', np.transpose([y, x]), fmt='%f')
     if full_output:
@@ -998,12 +1016,13 @@ def _centroid_2dm_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
     return y_i, x_i
 
 
-# TODO: verify correct handling of even/odd cases
+# TODO: make parameter names match the API
 def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                gammaval=1, min_spat_freq=0.5, max_spat_freq=3,
                                fwhm=4, debug=False, negative=True,
-                               recenter_median=True, subframesize=151,
-                               imlib='opencv', interpolation='bilinear'):
+                               recenter_median=False, subframesize=20,
+                               imlib='opencv', interpolation='bilinear',
+                               plot=True):
     """ Registers frames based on the median speckle pattern. Optionally centers 
     based on the position of the vortex null in the median frame. Images are 
     filtered to isolate speckle spatial frequencies.
@@ -1038,7 +1057,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         Image processing library to use. 
     interpolation : str, optional 
         Interpolation method to use.
-
+    plot : bool, optional
+        If True, the shifts are plotted.
 
     Returns
     -------
@@ -1055,69 +1075,64 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
 
     Otherwise, returns: cube_reg_sci, cum_x_shifts_sci, cum_y_shifts_sci
     """
+    n, y, x = cube_sci.shape
+
+    if not subframesize < y/2.:
+        raise ValueError('`Subframesize` is too large')
+
     if cube_ref is not None:
-        refStar = True
+        ref_star = True
+        nref = cube_ref.shape[0]
     else:
-        refStar = False
+        ref_star = False
 
     cube_sci_subframe = cube_crop_frames(cube_sci, subframesize, verbose=False)
-    if (refStar): cube_ref_subframe = cube_crop_frames(cube_ref, subframesize,
-                                                       verbose=False)
+    if ref_star:
+        cube_ref_subframe = cube_crop_frames(cube_ref, subframesize,
+                                             verbose=False)
 
-    ceny, cenx = frame_center(cube_sci_subframe[0, :, :])
-    print('sub frame is {}x{}'.format(cube_sci_subframe.shape[1],
-                                      cube_sci_subframe.shape[2]))
-    print('center pixel is ({}, {})'.format(ceny, cenx))
+    ceny, cenx = frame_center(cube_sci_subframe[0])
+    print('Sub frame shape: {}'.format(cube_sci_subframe.shape))
+    print('Center pixel: ({}, {})'.format(ceny, cenx))
 
-    # Make a copy of the sci and ref frames, filter them.
-    # will be used for alignment purposes
+    # Filtering cubes. Will be used for alignment purposes
     cube_sci_lpf = cube_sci_subframe.copy()
-    if refStar:
+    if ref_star:
         cube_ref_lpf = cube_ref_subframe.copy()
 
-    cube_sci_lpf = cube_sci_lpf - np.min(cube_sci_lpf)
-    if refStar:
-        cube_ref_lpf = cube_ref_lpf - np.min(cube_ref_lpf)
+    cube_sci_lpf = cube_sci_lpf + np.abs(np.min(cube_sci_lpf))
+    if ref_star:
+        cube_ref_lpf = cube_ref_lpf + np.abs(np.min(cube_ref_lpf))
 
+    median_size = int(fwhm * max_spat_freq)
     # Remove spatial frequencies <0.5 lam/D and >3lam/D to isolate speckles
-    for i in range(cube_sci.shape[0]):
-        frlp = frame_filter_lowpass(cube_sci_lpf[i], 'median',
-                                    median_size=fwhm * max_spat_freq)
-        cube_sci_lpf[i, :, :] = cube_sci_lpf[i] - frlp
-    if refStar:
-        for i in range(cube_ref.shape[0]):
-            frlpref = frame_filter_lowpass(cube_ref_lpf[i], 'median',
-                                           median_size=fwhm * max_spat_freq)
-            cube_ref_lpf[i] = cube_ref_lpf[i] - frlpref
+    cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
+                                        median_size=median_size, verbose=False)
+    cube_sci_lpf = cube_filter_lowpass(cube_sci_hpf, 'gauss',
+                                       fwhm_size=median_size, verbose=False)
 
-    cube_sci_lpf = cube_filter_lowpass(cube_sci_lpf[i], 'gauss',
-                                       fwhm_size=min_spat_freq * fwhm)
-    if refStar:
-        cube_ref_lpf = cube_filter_lowpass(cube_ref_lpf[i], 'gauss',
-                                           fwhm_size=min_spat_freq * fwhm)
+    if ref_star:
+        cube_ref_hpf = cube_filter_highpass(cube_ref_lpf, 'median-subt',
+                                            median_size=median_size,
+                                            verbose=False)
+        cube_ref_lpf = cube_filter_lowpass(cube_ref_hpf, 'gauss',
+                                           fwhm_size=min_spat_freq * fwhm,
+                                           verbose=False)
 
-    if refStar:
-        alignment_cube = np.zeros((1 + cube_sci.shape[0] + cube_ref.shape[0],
-                                   cube_sci_subframe.shape[1],
-                                   cube_sci_subframe.shape[2]))
-        alignment_cube[1:(cube_sci.shape[0] + 1), :, :] = cube_sci_lpf
-        alignment_cube[
-        (cube_sci.shape[0] + 1):(cube_sci.shape[0] + 2 + cube_ref.shape[0]), :,
-        :] = cube_ref_lpf
+    if ref_star:
+        alignment_cube = np.zeros((1 + n + nref, subframesize, subframesize))
+        alignment_cube[1:(n + 1), :, :] = cube_sci_lpf
+        alignment_cube[(n + 1):(n + 2 + nref), :, :] = cube_ref_lpf
     else:
-        alignment_cube = np.zeros((1 + cube_sci.shape[0],
-                                   cube_sci_subframe.shape[1],
-                                   cube_sci_subframe.shape[2]))
-        alignment_cube[1:(cube_sci.shape[0] + 1), :, :] = cube_sci_lpf
+        alignment_cube = np.zeros((1 + n, subframesize, subframesize))
+        alignment_cube[1:(n + 1), :, :] = cube_sci_lpf
 
-    n_frames = alignment_cube.shape[0]   # num sci+ref frames + 1 for the median
-
+    n_frames = alignment_cube.shape[0]  # 1+n or 1+n+nref
     cum_y_shifts = 0
     cum_x_shifts = 0
 
     for i in range(alignment_iter):
-        alignment_cube[0] = np.median(alignment_cube[1:(cube_sci.shape[0] + 1),
-                                                     :, :], axis=0)
+        alignment_cube[0] = np.median(alignment_cube[1:(n + 1)], axis=0)
         if recenter_median:
             # Recenter the median frame using a neg. gaussian fit
             sub_image, y1, x1 = get_square(alignment_cube[0], size=int(fwhm),
@@ -1129,48 +1144,64 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             yshift = ceny - (y1 + y_i)
             xshift = cenx - (x1 + x_i)
 
-            alignment_cube[0, :, :] = frame_shift(alignment_cube[0, :, :],
-                                                  yshift, xshift, imlib=imlib,
-                                                  interpolation=interpolation)
-
-        # center the cube with stretched values
-        cube_stret = np.log10((abs(alignment_cube) + 1) ** (gammaval))
-        _, y_shift, x_shift = cube_recenter_dft_upsampling(cube_stret, ceny,
-                                                           cenx, fwhm=fwhm,
-                                                           subi_size=None,
-                                                           full_output=True,
-                                                           verbose=False)
-
-        print('\nSquare sum of shift vecs: ' + str(
-            np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))))
-
-        for i in range(1, n_frames):
-            alignment_cube[i] = frame_shift(alignment_cube[i], y_shift[i],
-                                            x_shift[i], imlib=imlib,
+            alignment_cube[0] = frame_shift(alignment_cube[0, :, :], yshift,
+                                            xshift, imlib=imlib,
                                             interpolation=interpolation)
 
-        cum_y_shifts = cum_y_shifts + y_shift
-        cum_x_shifts = cum_x_shifts + x_shift
+        # center the cube with stretched values
+        cube_stret = np.log10((np.abs(alignment_cube) + 1) ** gammaval)
+        _, y_shift, x_shift = cube_recenter_dft_upsampling(cube_stret, ceny,
+                                            cenx, fwhm=fwhm, subi_size=None,
+                                            full_output=True, verbose=False,
+                                            plot=False)
+        sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
+        print('Square sum of shift vecs: ' + str(sqsum_shifts))
 
-    cum_y_shifts_sci = cum_y_shifts[1:(cube_sci.shape[0] + 1)]
-    cum_x_shifts_sci = cum_x_shifts[1:(cube_sci.shape[0] + 1)]
+        for j in range(1, n_frames):
+            alignment_cube[j] = frame_shift(alignment_cube[j], y_shift[j],
+                                            x_shift[j], imlib=imlib,
+                                            interpolation=interpolation)
+
+        cum_y_shifts += y_shift
+        cum_x_shifts += x_shift
 
     cube_reg_sci = cube_sci.copy()
-    for i in range(cube_sci.shape[0]):
+    cum_y_shifts_sci = cum_y_shifts[1:(n + 1)]
+    cum_x_shifts_sci = cum_x_shifts[1:(n + 1)]
+    for i in range(n):
         cube_reg_sci[i] = frame_shift(cube_sci[i], cum_y_shifts_sci[i],
                                       cum_x_shifts_sci[i], imlib=imlib,
                                       interpolation=interpolation)
 
-    if refStar:
+    if plot:
+        plt.figure(figsize=(10, 5))
+        plt.plot(cum_x_shifts_sci, 'o-', label='Shifts in x', alpha=0.5)
+        plt.plot(cum_y_shifts_sci, 'o-', label='Shifts in y', alpha=0.5)
+        #_ = plt.xticks(range(0, n_frames, 5))
+        plt.legend(loc='best')
+        plt.grid('on', alpha=0.2)
+        plt.ylabel('Pixels')
+        plt.xlabel('Frame number')
+
+        plt.figure(figsize=(10, 5))
+        b = int(np.sqrt(n))
+        la = 'Histogram'
+        _ = plt.hist(cum_x_shifts_sci, bins=b, alpha=0.5, label=la+' shifts X')
+        _ = plt.hist(cum_y_shifts_sci, bins=b, alpha=0.5, label=la+' shifts Y')
+        plt.legend(loc='best')
+        plt.ylabel('Bin counts')
+        plt.xlabel('Pixels')
+
+    if ref_star:
         cube_reg_ref = cube_ref.copy()
-        cum_y_shifts_ref = cum_y_shifts[(cube_sci.shape[0] + 1):]
-        cum_x_shifts_ref = cum_x_shifts[(cube_sci.shape[0] + 1):]
-        for i in range(cube_ref.shape[0]):
+        cum_y_shifts_ref = cum_y_shifts[(n + 1):]
+        cum_x_shifts_ref = cum_x_shifts[(n + 1):]
+        for i in range(nref):
             cube_reg_ref[i] = frame_shift(cube_ref[i], cum_y_shifts_ref[i],
                                           cum_x_shifts_ref[i], imlib=imlib,
                                           interpolation=interpolation)
 
-    if cube_ref is not None:
+    if ref_star:
         return (cube_reg_sci, cube_reg_ref, cum_x_shifts_sci, cum_y_shifts_sci,
                 cum_x_shifts_ref, cum_y_shifts_ref)
     else:

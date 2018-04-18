@@ -262,7 +262,8 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     
     elif mode == 'median-subt':
         # Subtracting the low_pass filtered (median) image from the image itself  
-        medianed = median_filter(array, median_size, mode='nearest')
+        medianed = frame_filter_lowpass(array, 'median',
+                                        median_size=median_size)
         filtered = array - medianed
     
     elif mode == 'gauss-subt':
@@ -311,10 +312,12 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     """
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
-       
+    if not isinstance(median_size, int):
+        raise ValueError('`Median_size` must be integer')
+
     if mode == 'median':
         # creating the low_pass filtered (median) image
-        filtered = median_filter(array, int(median_size), mode='nearest')
+        filtered = median_filter(array, median_size, mode='nearest')
     elif mode == 'gauss':
         # 2d Gaussian filter
         sigma = fwhm_size * gaussian_fwhm_to_sigma

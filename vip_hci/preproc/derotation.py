@@ -155,13 +155,13 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         Resulting cube with de-rotated frames.
         
     """
-    if not (array.ndim==3 or array.ndim==4):
+    if not (array.ndim == 3 or array.ndim == 4):
         raise TypeError('Input array is not a cube, 3d or 4d array.')
 
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
         
-    if array.ndim==3:
+    if array.ndim == 3:
         
         n_frames = array.shape[0]
         
@@ -185,7 +185,7 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
             pool.close()
             array_der = np.array(res)
             
-    if array.ndim==4:
+    if array.ndim == 4:
 
         n_frames = array.shape[1]
 
@@ -195,10 +195,10 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
 
         for i in range(n_frames):
             vec_ang = np.ones((array.shape[0]))*-angle_list[i]
-            if nproc==1:
+            if nproc == 1:
                 array_der[:,i] = cube_derotate(array[:,i,:,:], vec_ang, imlib=imlib,
                                                interpolation=interpolation, cxy=cxy)
-            elif nproc>1:
+            elif nproc > 1:
                 global data_array
                 data_array = array
 

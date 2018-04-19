@@ -40,7 +40,7 @@ def cube_collapse(cube, mode='median', n=50, wl_cube=False):
     if not (arr.ndim == 3 or arr.ndim==4):
         raise TypeError('The input array is not a cube, 3d or 4d array.')
 
-    if arr.ndim==3:
+    if arr.ndim == 3:
         if mode == 'mean':
             frame = np.mean(arr, axis=0)
         elif mode == 'median':
@@ -61,24 +61,24 @@ def cube_collapse(cube, mode='median', n=50, wl_cube=False):
                 sort = np.sort(arr[:, index[0], index[1]])
                 frame[index] = np.mean(sort[k:N-k])
             
-    elif arr.ndim==4:
-        if mode=='mean':
+    elif arr.ndim == 4:
+        if mode == 'mean':
             cube_wl = np.mean(arr, axis=1)
-        elif mode=='median':
+        elif mode == 'median':
             cube_wl = np.median(arr, axis=1)
-        elif mode=='sum':
+        elif mode == 'sum':
             cube_wl = np.sum(arr, axis=1)
-        elif mode=='trimmean':
+        elif mode == 'trimmean':
             print('Sorry: no trimmed mean for 4d cubes')
             return 0
         if wl_cube:
             return cube_wl
         else:
-            if mode=='mean':
+            if mode == 'mean':
                 frame = np.mean(cube_wl, axis=0)
-            elif mode=='median':
+            elif mode == 'median':
                 frame = np.median(cube_wl, axis=0)
-            elif mode=='sum':
+            elif mode == 'sum':
                 frame = np.sum(cube_wl, axis=0)
     return frame
 

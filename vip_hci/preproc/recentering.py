@@ -135,9 +135,9 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
     return array_shifted
 
 
-def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
+def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
                           imlib='opencv', interpolation='lanczos4',
-                          debug=False):
+                          debug=False, verbose=True):
     """ Finds the center of a frame with waffle/satellite spots (e.g. for 
     VLT/SPHERE). The method used to determine the center is by centroiding the
     4 spots via a 2d Gaussian fit and finding the intersection of the 
@@ -152,9 +152,11 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
     array : array_like, 2d
         Image or frame.
     xy : tuple
-        Tuple with coordinates X,Y of the satellite spots in this order:
-        upper left, upper right, lower left, lower right. 
-    subim_size : int, optional
+        Tuple with coordinates X,Y of the 4 satellite spots. When the spots are
+        in an X configuration, the order is the following: top-left, top-right,
+        bottom-left and bottom-right. When the spots are in an + (cross-like)
+        configuration, the order is the following: top, right, left, bottom.
+    subi_size : int, optional
         Size of subimage where the fitting is done.
     sigfactor : int, optional
         The background pixels will be thresholded before fitting a 2d Gaussian
@@ -169,12 +171,14 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     debug : bool, optional
         If True debug information is printed and plotted.
+    verbose : bool, optional
+        If True the intersection and shifts information is printed out.
     
     Returns
     -------
     shifty, shiftx 
         Shift Y,X to get to the true center.
-    If shift is True then the shifted image is returned along with the shift. 
+    If shift is True then the shifted image is returned along with the shifts.
     
     Notes
     -----
@@ -208,7 +212,7 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
     def intersection(L1, L2):
         """ finds intersection point (if any) of 2 lines provided by coefs
         """
-        D  = L1[0] * L2[1] - L1[1] * L2[0]
+        D = L1[0] * L2[1] - L1[1] * L2[0]
         Dx = L1[2] * L2[1] - L1[1] * L2[2]
         Dy = L1[0] * L2[2] - L1[2] * L2[0]
         if D != 0:
@@ -216,9 +220,8 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
             y = Dy / D
             return x, y
         else:
-            return False
+            return None
         
-    #---------------------------------------------------------------------------
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
     if len(xy) != 4:
@@ -226,32 +229,32 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
     
     cy, cx = frame_center(array)
     
-    # Upper left
-    si1, y1, x1 = get_square(array, subim_size, xy[0][1], xy[0][0],
+    # Top left
+    si1, y1, x1 = get_square(array, subi_size, xy[0][1], xy[0][0],
                              position=True)
     cent2dgy_1, cent2dgx_1 = fit_2dgaussian(si1, theta=135, crop=False, 
                                             threshold=True, sigfactor=sigfactor, 
                                             debug=debug)
     cent2dgx_1 += x1
     cent2dgy_1 += y1
-    # Upper right
-    si2, y2, x2 = get_square(array, subim_size, xy[1][1], xy[1][0],
+    # Top right
+    si2, y2, x2 = get_square(array, subi_size, xy[1][1], xy[1][0],
                              position=True)
     cent2dgy_2, cent2dgx_2 = fit_2dgaussian(si2, theta=45, crop=False, 
                                             threshold=True, sigfactor=sigfactor, 
                                             debug=debug)
     cent2dgx_2 += x2
     cent2dgy_2 += y2 
-    #  Lower left
-    si3, y3, x3 = get_square(array, subim_size, xy[2][1], xy[2][0],
+    #  Bottom left
+    si3, y3, x3 = get_square(array, subi_size, xy[2][1], xy[2][0],
                              position=True)
     cent2dgy_3, cent2dgx_3 = fit_2dgaussian(si3, theta=45, crop=False, 
                                             threshold=True, sigfactor=sigfactor, 
                                             debug=debug)
     cent2dgx_3 += x3
     cent2dgy_3 += y3
-    #  Lower right
-    si4, y4, x4 = get_square(array, subim_size, xy[3][1], xy[3][0],
+    #  Bottom right
+    si4, y4, x4 = get_square(array, subi_size, xy[3][1], xy[3][0],
                              position=True)
     cent2dgy_4, cent2dgx_4 = fit_2dgaussian(si4, theta=135, crop=False, 
                                             threshold=True, sigfactor=sigfactor, 
@@ -270,26 +273,32 @@ def frame_center_satspots(array, xy, subim_size=19, sigfactor=6, shift=False,
     L1 = line([cent2dgx_1, cent2dgy_1], [cent2dgx_4, cent2dgy_4])
     L2 = line([cent2dgx_2, cent2dgy_2], [cent2dgx_3, cent2dgy_3])
     R = intersection(L1, L2)
-    
-    if R:
-        shiftx = cx-R[0]
-        shifty = cy-R[1]
-        if debug: 
-            print('\nIntersection coordinates (X,Y):', R[0], R[1], '\n')
-            print('Shifts (X,Y):', shiftx, shifty)
-        
-        if shift:
-            array_rec = frame_shift(array, shifty, shiftx, imlib=imlib,
-                                    interpolation=interpolation)
-            return array_rec, shifty, shiftx
+
+    msgerr = "Check that the order of the tuples in `xy` is correct and"
+    msgerr += " the satellite spots have good S/N"
+    if R is not None:
+        shiftx = cx - R[0]
+        shifty = cy - R[1]
+
+        if np.abs(shiftx) < cx * 2 and np.abs(shifty) < cy * 2:
+            if debug or verbose:
+                print('Intersection coordinates (X,Y):', R[0], R[1], '\n')
+                print('Shifts (X,Y): {:.3f}, {:.3f}'.format(shiftx, shifty))
+
+            if shift:
+                array_rec = frame_shift(array, shifty, shiftx, imlib=imlib,
+                                        interpolation=interpolation)
+                return array_rec, shifty, shiftx
+            else:
+                return shifty, shiftx
         else:
-            return shifty, shiftx
+            raise RuntimeError("Too large shifts. " + msgerr)
     else:
-        print('Something went wrong, no intersection found.')
-        return 0
+        raise RuntimeError("Something went wrong, no intersection found. " +
+                           msgerr)
 
 
-def cube_recenter_satspots(array, xy, subim_size=19, sigfactor=6, plot=True,
+def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
                            debug=False, verbose=True):
     """ Function analog to frame_center_satspots but for image sequences. It 
     actually will call frame_center_satspots for each image in the cube. The
@@ -305,9 +314,11 @@ def cube_recenter_satspots(array, xy, subim_size=19, sigfactor=6, plot=True,
     array : array_like, 3d
         Input cube.
     xy : tuple
-        Tuple with coordinates X,Y of the satellite spots in this order:
-        upper left, upper right, lower left, lower right. 
-    subim_size : int, optional
+        Tuple with coordinates X,Y of the 4 satellite spots. When the spots are
+        in an X configuration, the order is the following: top-left, top-right,
+        bottom-left and bottom-right. When the spots are in an + (cross-like)
+        configuration, the order is the following: top, right, left, bottom.
+    subi_size : int, optional
         Size of subimage where the fitting is done.
     sigfactor : int, optional
         The background pixels will be thresholded before fitting a 2d Gaussian
@@ -343,11 +354,12 @@ def cube_recenter_satspots(array, xy, subim_size=19, sigfactor=6, plot=True,
     array_rec = []
     
     if verbose:
-        msg = 'Looping through the frames'
+        msg = 'Looping through the frames, fitting the intersections:'
         bar = pyprind.ProgBar(n_frames, stream=1, title=msg)
     for i in range(n_frames):
         res = frame_center_satspots(array[i], xy, debug=debug, shift=True,
-                                    subim_size=subim_size, sigfactor=sigfactor)
+                                    subi_size=subi_size, sigfactor=sigfactor,
+                                    verbose=False)
         array_rec.append(res[0])
         shift_y[i] = res[1] 
         shift_x[i] = res[2]          
@@ -358,24 +370,30 @@ def cube_recenter_satspots(array, xy, subim_size=19, sigfactor=6, plot=True,
         timing(start_time)
 
     if plot:
-        plt.figure(figsize=(13,4))
-        plt.plot(shift_x, '.-', lw=0.5, color='green', label='Shifts X')
-        plt.plot(shift_y, '.-', lw=0.5, color='blue', label='Shifts Y')
-        plt.xlim(0, shift_y.shape[0] + 5)
-        _ = plt.xticks(range(0, n_frames, 5))
-        plt.legend()
+        plt.figure(figsize=(10, 5))
+        plt.plot(shift_x, 'o-', label='Shifts in x', alpha=0.5)
+        plt.plot(shift_y, 'o-', label='Shifts in y', alpha=0.5)
+        plt.legend(loc='best')
+        plt.grid('on', alpha=0.2)
+        plt.ylabel('Pixels')
+        plt.xlabel('Frame number')
 
-        plt.figure()
-        a = 0.5
+        plt.figure(figsize=(10, 5))
         b = int(np.sqrt(n_frames))
-        _ = plt.hist(shift_x, bins=b, alpha=a, color='green', label='Shifts X')
-        _ = plt.hist(shift_y, bins=b, alpha=a, color='blue', label='Shifts Y')
-        plt.legend()
+        la = 'Histogram'
+        _ = plt.hist(shift_x, bins=b, alpha=0.5, label=la + ' shifts X')
+        _ = plt.hist(shift_y, bins=b, alpha=0.5, label=la + ' shifts Y')
+        plt.legend(loc='best')
+        plt.ylabel('Bin counts')
+        plt.xlabel('Pixels')
 
     if verbose:
-        print('AVE X,Y', np.mean(shift_x), np.mean(shift_y))
-        print('MED X,Y', np.median(shift_x), np.median(shift_y))
-        print('STD X,Y', np.std(shift_x), np.std(shift_y))
+        msg1 = 'MEAN X,Y: {:.3f}, {:.3f}'
+        print(msg1.format(np.mean(shift_x), np.mean(shift_y)))
+        msg2 = 'MEDIAN X,Y: {:.3f}, {:.3f}'
+        print(msg2.format(np.median(shift_x), np.median(shift_y)))
+        msg3 = 'STDDEV X,Y: {:.3f}, {:.3f}'
+        print(msg3.format(np.std(shift_x), np.std(shift_y)))
 
     array_rec = np.array(array_rec) 
     return array_rec, shift_y, shift_x
@@ -895,7 +913,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     if xy is not None:
         pos_x, pos_y = xy
         if not isinstance(pos_x, int) or not isinstance(pos_y, int):
-            raise TypeError('pos_x and pos_y must be integers')
+            raise TypeError('`xy` must be a tuple of integers')
     else:
         pos_y, pos_x = frame_center(array[0])
 
@@ -1177,7 +1195,6 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         plt.figure(figsize=(10, 5))
         plt.plot(cum_x_shifts_sci, 'o-', label='Shifts in x', alpha=0.5)
         plt.plot(cum_y_shifts_sci, 'o-', label='Shifts in y', alpha=0.5)
-        #_ = plt.xticks(range(0, n_frames, 5))
         plt.legend(loc='best')
         plt.grid('on', alpha=0.2)
         plt.ylabel('Pixels')

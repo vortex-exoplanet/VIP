@@ -194,13 +194,13 @@ def get_square(array, size, y, x, position=False, force=False):
         if ary % 2 == 0:    # assuming square frames
             if size % 2 != 0:
                 size += 1
-                print('`Size` is odd (while frame size is even)')
-                print('Setting `size` to {} pixels'.format(size))
+                print('Subframe size is odd (while frame size is even)')
+                print('Setting subframe size to {} pixels'.format(size))
         else:
             if size % 2 == 0:
                 size += 1
-                print('`Size` is even (while frame size is odd)')
-                print('Setting `size` to {} pixels'.format(size))
+                print('Subframe size is even (while frame size is odd)')
+                print('Setting subframe size to {} pixels'.format(size))
 
     # wing is added to the sides of the subframe center
     if size % 2 != 0:

@@ -12,12 +12,14 @@ __all__ = ['HCIDataset',
 
 import numpy as np
 from .fits import open_fits, write_fits, append_extension
-from .preproc import frame_crop, frame_px_resampling, frame_rotate, frame_shift
+from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
+                      frame_shift, frame_center_satspots, frame_center_radon)
 from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
                       cube_drop_frames, cube_detect_badfr_correlation,
                       cube_detect_badfr_pxstats, cube_px_resampling,
                       cube_subsample, cube_recenter_2dfit,
-                      cube_recenter_dft_upsampling, cube_recenter_via_speckles)
+                      cube_recenter_satspots, cube_recenter_dft_upsampling,
+                      cube_recenter_via_speckles)
 from .var import frame_filter_lowpass, frame_filter_highpass, frame_center
 from .var import (cube_filter_highpass, cube_filter_lowpass, mask_circle,
                   pp_subplots)
@@ -177,6 +179,35 @@ class HCIFrame:
             Vertical gap between subplots.
         """
         pp_subplots(self.image, **kwargs)
+
+    def recenter(self, method='satspots', xy=None, subi_size=19, sigfactor=6,
+                 imlib='opencv', interpolation='lanczos4', debug=False,
+                 verbose=True):
+        """ Recentering the frame using the satellite spots or a radon
+        transform.
+
+        Parameters
+        ----------
+        method : {'satspots', 'radon'}, str optional
+            Method for recentering the frame.
+        xy : tuple, optional
+            Tuple with coordinates X,Y of the satellite spots. When the spots
+            are in an X configuration, the order is the following: top-left,
+            top-right, bottom-left and bottom-right. When the spots are in an
+            + (cross-like) configuration, the order is the following: top,
+            right, left, bottom.
+        """
+        if method == 'satspots':
+            if xy is None:
+                raise ValueError('`xy` must be a tuple of 4 tuples')
+            self.image, _, _ = frame_center_satspots(self.image, xy, subi_size,
+                                                sigfactor, True, imlib,
+                                                interpolation, debug, verbose)
+        elif method == 'radon':
+            # TODO: finish the radon integration
+            self.image = None
+        else:
+            raise ValueError('Recentering method not recognized')
 
     def rescale(self, scale, imlib='ndimage', interpolation='bicubic',
                 verbose=True):
@@ -720,39 +751,54 @@ class HCIDataset:
                  offset=None, negative=False, threshold=False,
                  save_shifts=False, cy_1=None, cx_1=None, upsample_factor=100,
                  alignment_iter=5, gamma=1, min_spat_freq=0.5, max_spat_freq=3,
-                 recenter_median=False, verbose=True, debug=False, plot=True):
+                 recenter_median=False, sigfactor=6, verbose=True, debug=False,
+                 plot=True):
         """ Frame to frame recentering.
 
         Parameters
         ----------
-        method : {'2dfit', 'dftups', 'dftups_speckles'}
+        method : {'2dfit', 'dftups', 'dftups_speckles', 'satspots'}, str optional
+            Recentering method.
+        xy : tuple or ints or tuple of 4 tuples of ints, optional
+            For the 2dfitting, ``xy`` are the coordinates of the center of the
+            subimage (wrt the original frame). For the satellite spots method,
+            it is a tuple with coordinates X,Y of the 4 satellite spots. When
+            the spots are in an X configuration, the order is the following:
+            top-left, top-right, bottom-left and bottom-right. When the spots
+            are in an + (cross-like) configuration, the order is the following:
+            top, right, left, bottom.
         """
         if self.fwhm is None:
             raise ValueError('FWHM has not been set')
 
         if method == '2d_fitting':
-            self.cube = cube_recenter_2dfit(self.cube, xy, self.fwhm,
-                                subi_size, model, nproc, imlib, interpolation,
-                                offset, negative, threshold, save_shifts, False,
-                                verbose, debug, plot)
+            self.cube = cube_recenter_2dfit(self.cube, xy, self.fwhm, subi_size,
+                                    model, nproc, imlib, interpolation, offset,
+                                    negative, threshold, save_shifts, False,
+                                    verbose, debug, plot)
         elif method == 'dftups':
             self.cube = cube_recenter_dft_upsampling(self.cube, cy_1, cx_1,
-                                negative, self.fwhm, subi_size, upsample_factor,
-                                imlib, interpolation, False, verbose,
-                                save_shifts, debug)
+                                    negative, self.fwhm, subi_size,
+                                    upsample_factor, imlib, interpolation,
+                                    False, verbose, save_shifts, debug)
         elif method == 'dftups_speckles':
             res = cube_recenter_via_speckles(self.cube, self.cuberef,
-                                alignment_iter, gamma, min_spat_freq,
-                                max_spat_freq, self.fwhm, debug, negative,
-                                recenter_median, subi_size, imlib,
-                                interpolation, plot)
+                                    alignment_iter, gamma, min_spat_freq,
+                                    max_spat_freq, self.fwhm, debug, negative,
+                                    recenter_median, subi_size, imlib,
+                                    interpolation, plot)
             if self.cuberef is None:
                 self.cube = res[0]
             else:
                 self.cube = res[0]
                 self.cuberef = res[1]
+        elif method == 'satspots':
+            if xy is None:
+                raise ValueError('`xy` must be a tuple of 4 tuples')
+            self.cube, _, _ = cube_recenter_satspots(self.cube, xy, subi_size,
+                                    sigfactor, plot, debug, verbose)
         else:
-            # TODO support other recentering methods from vip_hci.preproc
+            # TODO support radon method
             raise ValueError('Method not recognized')
 
     def remove_badframes(self, method='corr', frame_ref=None, crop_size=30,

@@ -336,7 +336,7 @@ def test_satspots_image(debug=False):
 
     #===== recenter
     spotcoords = [(41, 109), (109, 109), (41, 41), (109, 41)]  # NW NE SW SE
-    method_args = dict(xy=spotcoords, subim_size=25, plot=False, verbose=False)
+    method_args = dict(xy=spotcoords, subi_size=25, plot=False, verbose=False)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 **method_args)
 
@@ -359,7 +359,7 @@ def test_satspots(debug=False):
     randay = np.random.uniform(0, shift_magnitude, size=n_frames)
 
     #===== recenter
-    method_args = dict(xy=spotcoords, subim_size=9, plot=False, verbose=False)
+    method_args = dict(xy=spotcoords, subi_size=9, plot=False, verbose=False)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 **method_args)
 

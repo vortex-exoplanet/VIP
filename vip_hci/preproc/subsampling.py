@@ -69,7 +69,7 @@ def cube_collapse(cube, mode='median', n=50, wl_cube=False):
         elif mode=='sum':
             cube_wl = np.sum(arr, axis=1)
         elif mode=='trimmean':
-            print 'Sorry: no trimmed mean for 4d cubes'
+            print('Sorry: no trimmed mean for 4d cubes')
             return 0
         if wl_cube:
             return cube_wl

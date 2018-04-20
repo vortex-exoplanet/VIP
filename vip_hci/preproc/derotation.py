@@ -124,7 +124,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
     return array_out
     
     
-def cube_derotate(array, angle_list, imlib='opencv', interpolation='bicubic',
+def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
                   cxy=None, nproc=1):
     """ Rotates an cube (3d array or image sequence) providing a vector or
     corrsponding angles. Serves for rotating an ADI sequence to a common north
@@ -137,20 +137,15 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='bicubic',
         Input 3d array, cube.
     angle_list : list
         Vector containing the parallactic angles.
-    imlib : {'opencv', 'skimage'}, str optional
-        Library used for image transformations. Opencv is usually faster than
-        ndimage or skimage.
-    interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
-        'nneighbor' stands for nearest-neighbor interpolation,
-        'bilinear' stands for bilinear interpolation,
-        'bicubic' for interpolation over 4x4 pixel neighborhood.
-        The 'bicubic' is the default. The 'nearneig' is the fastest method and
-        the 'bicubic' the slowest of the three. The 'nearneig' is the poorer
-        option for interpolation of noisy astronomical images.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     cxy : tuple of int, optional
         Coordinates X,Y  of the point with respect to which the rotation will be 
         performed. By default the rotation is done with respect to the center 
-        of the frames, as it is returned by the function vip_hci.var.frame_center. 
+        of the frames, as it is returned by the function
+        vip_hci.var.frame_center. 
     collapse : {'median','mean'}
         Way of collapsing the derotated cube.
         
@@ -160,31 +155,26 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='bicubic',
         Resulting cube with de-rotated frames.
         
     """
-    if not array.ndim == 3:
+    if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array.')
-    array_der = np.empty_like(array)
     n_frames = array.shape[0]
-    
-    if not cxy:
-        cy, cx = frame_center(array[0])
-        cxy = (cx, cy)
 
-    if not nproc: nproc = int((cpu_count() / 2))
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
-    if nproc==1:
+    if nproc == 1:
+        array_der = np.zeros_like(array)
         for i in range(n_frames):
             array_der[i] = frame_rotate(array[i], -angle_list[i], imlib=imlib,
                                         interpolation=interpolation, cxy=cxy)
-    elif nproc>1:
+    elif nproc > 1:
         global data_array
         data_array = array
 
-        pool = Pool(processes=int(nproc))
-        res = pool.map(futup, itt.izip(itt.repeat(_cube_rotate_mp),
-                                       range(n_frames), itt.repeat(angle_list),
-                                       itt.repeat(imlib),
-                                       itt.repeat(interpolation),
-                                       itt.repeat(cxy)))
+        pool = Pool(processes=nproc)
+        res = pool.map(EFT, zip(itt.repeat(_cube_rotate_mp), range(n_frames),
+                                itt.repeat(angle_list), itt.repeat(imlib),
+                                itt.repeat(interpolation), itt.repeat(cxy)))
         pool.close()
         array_der = np.array(res)
 

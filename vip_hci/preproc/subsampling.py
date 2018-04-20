@@ -14,8 +14,8 @@ __all__ = ['cube_collapse',
 import numpy as np
 
 
-def cube_collapse(cube, mode='median', n=50):
-    """ Collapses a cube into a frame (3D array -> 2D array) depending on the
+def cube_collapse(cube, mode='median', n=50, wl_cube=False):
+    """ Collapses a cube into a frame (4d or 3d array to 2d array) depending on the
     parameter ``mode``. It's possible to perform a trimmed mean combination of
     the frames based on description in Brandt+ 2012.
     
@@ -28,6 +28,8 @@ def cube_collapse(cube, mode='median', n=50):
     n : int, optional
         Sets the discarded values at high and low ends. When n = N is the same
         as taking the mean, when n = 1 is like taking the median.
+    wl_cube : True or False
+        Enable if you only want to collapse the rotations. Set to False to collapse wavelengths
         
     Returns
     -------
@@ -35,29 +37,49 @@ def cube_collapse(cube, mode='median', n=50):
         Output array, cube combined. 
     """
     arr = cube
-    if arr.ndim != 3:
-        raise TypeError('The input array is not a cube or 3d array.')
-    
-    if mode == 'mean':
-        frame = np.mean(arr, axis=0)
-    elif mode == 'median':
-        frame = np.median(arr, axis=0)
-    elif mode == 'sum':
-        frame = np.sum(arr, axis=0)
-    elif mode == 'max':
-        frame = np.max(arr, axis=0)
-    elif mode == 'trimmean':
-        N = arr.shape[0]
-        if N % 2 == 0:
-            k = (N - n)//2
-        else:
-            k = (N - n)/2                                                               
-        
-        frame = np.empty_like(arr[0])                                    
-        for index, _ in np.ndenumerate(arr[0]):
-            sort = np.sort(arr[:, index[0], index[1]])
-            frame[index] = np.mean(sort[k:N-k])
+    if not (arr.ndim == 3 or arr.ndim==4):
+        raise TypeError('The input array is not a cube, 3d or 4d array.')
+
+    if arr.ndim == 3:
+        if mode == 'mean':
+            frame = np.mean(arr, axis=0)
+        elif mode == 'median':
+            frame = np.median(arr, axis=0)
+        elif mode == 'sum':
+            frame = np.sum(arr, axis=0)
+        elif mode == 'max':
+            frame = np.max(arr, axis=0)
+        elif mode == 'trimmean':
+            N = arr.shape[0]
+            if N % 2 == 0:
+                k = (N - n)//2
+            else:
+                k = (N - n)/2                                                               
+
+            frame = np.empty_like(arr[0])                                    
+            for index, _ in np.ndenumerate(arr[0]):
+                sort = np.sort(arr[:, index[0], index[1]])
+                frame[index] = np.mean(sort[k:N-k])
             
+    elif arr.ndim == 4:
+        if mode == 'mean':
+            cube_wl = np.mean(arr, axis=1)
+        elif mode == 'median':
+            cube_wl = np.median(arr, axis=1)
+        elif mode == 'sum':
+            cube_wl = np.sum(arr, axis=1)
+        elif mode == 'trimmean':
+            print('Sorry: no trimmed mean for 4d cubes')
+            return 0
+        if wl_cube:
+            return cube_wl
+        else:
+            if mode == 'mean':
+                frame = np.mean(cube_wl, axis=0)
+            elif mode == 'median':
+                frame = np.median(cube_wl, axis=0)
+            elif mode == 'sum':
+                frame = np.sum(cube_wl, axis=0)
     return frame
 
 

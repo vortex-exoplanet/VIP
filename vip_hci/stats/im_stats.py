@@ -36,6 +36,12 @@ def average_radial_profile(array, sep=1, collapse='median', plot=True):
     df : dataframe
         Pandas dataframe with the radial profile and distances.
 
+    Notes
+    -----
+    https://stackoverflow.com/questions/21242011/most-efficient-way-to-calculate-radial-profile
+    https://stackoverflow.com/questions/48842320/what-is-the-best-way-to-calculate-radial-average-of-the-image-with-python
+    https://github.com/keflavich/image_tools/blob/master/image_tools/radialprofile.py
+
     """
     from ..preproc import cube_collapse
     if array.ndim == 3:

@@ -18,7 +18,7 @@ from ..var import get_annulus_segments, pp_subplots
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import time_ini, timing
 from ..pca.utils_pca import pca_annulus
-from ..madi.adi_utils import _compute_pa_thresh, _find_indices, _define_annuli
+from ..madi.adi_utils import _find_indices, _define_annuli
 from ..conf.utils_conf import eval_func_tuple as EFT
 
 
@@ -249,66 +249,3 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     return frame_der_median
 
 
-def _pw_rot_res(cube, angle_list, fwhm=4, delta_rot=0.5, inner_radius=2,
-                asize=4, verbose=True, debug=False):
-    """
-
-    Parameters
-    ----------
-    cube : array_like, 3d
-        Input cube.
-    angle_list : array_like, 1d
-        Corresponding parallactic angle for each frame.
-    fwhm : float, optional
-        Known size of the FHWM in pixels to be used. Default is 4.
-    delta_rot : int
-        Minimum parallactic angle distance between the pairs.
-    inner_radius : int, optional
-        The radius of the innermost annulus. By default is 0, if >0 then the
-        central circular area is discarded.
-    asize : int, optional
-        The size of the annuli, in pixels.
-    verbose: bool, optional
-        If True prints info to stdout.
-    debug : bool, optional
-        If True the distance matrices will be plotted and additional information
-        will be given.
-
-    Returns
-    -------
-    final_frame : array_like, 2d
-
-    """
-    array = cube
-
-    if verbose:
-        start_time = time_ini()
-
-    n_frames = array.shape[0]
-    y = array.shape[1]
-    if not asize < y // 2:
-        raise ValueError("asize is too large")
-
-    angle_list = check_pa_vector(angle_list)
-
-    ann_center = inner_radius + (asize / 2)
-    pa_threshold = _compute_pa_thresh(ann_center, fwhm, delta_rot)
-    if verbose:
-        print('PA thresh {:.3f}'.format(pa_threshold))
-
-    # annulus-wise pair-wise subtraction
-    res = []
-    for i in range(n_frames):
-        indp, indn = _find_indices(angle_list, i, pa_threshold,
-                                   out_closest=True)
-        if debug:
-            print(indp, indn)
-
-        res.append(array[i] - array[indn])
-        if indn == n_frames-1: break
-
-    if verbose:
-        print('Done processing annulus')
-        timing(start_time)
-
-    return np.array(res)

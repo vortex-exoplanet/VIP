@@ -445,7 +445,8 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     init_amplitude = np.ptp(psf_subimage)
     xcom, ycom = photutils.centroid_com(psf_subimage)
     diam_1st_zero = (fwhm * 2.44) / 1.028
-    airy = AiryDisk2D(amplitude=init_amplitude, x_0=xcom, y_0=ycom, radius=diam_1st_zero/2.)
+    airy = models.AiryDisk2D(amplitude=init_amplitude, x_0=xcom, y_0=ycom,
+                             radius=diam_1st_zero/2.)
     # Levenberg-Marquardt algorithm
     fitter = fitting.LevMarLSQFitter()
     y, x = np.indices(psf_subimage.shape)

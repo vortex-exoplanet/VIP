@@ -38,10 +38,11 @@ from multiprocessing import Pool, cpu_count
 from matplotlib import pyplot as plt
 from . import frame_crop
 from ..conf import time_ini, timing
+from ..conf.utils_conf import vip_figsize
 from ..conf.utils_conf import eval_func_tuple as EFT
 from ..var import (get_square, frame_center, get_annulus, pp_subplots,
-                   fit_2dmoffat, fit_2dgaussian, frame_filter_lowpass,
-                   cube_filter_lowpass, cube_filter_highpass)
+                   fit_2dmoffat, fit_2dgaussian, cube_filter_lowpass,
+                   cube_filter_highpass)
 from ..preproc import cube_crop_frames
 
 
@@ -370,7 +371,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         timing(start_time)
 
     if plot:
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=vip_figsize)
         plt.plot(shift_x, 'o-', label='Shifts in x', alpha=0.5)
         plt.plot(shift_y, 'o-', label='Shifts in y', alpha=0.5)
         plt.legend(loc='best')
@@ -378,7 +379,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         plt.ylabel('Pixels')
         plt.xlabel('Frame number')
 
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=vip_figsize)
         b = int(np.sqrt(n_frames))
         la = 'Histogram'
         _ = plt.hist(shift_x, bins=b, alpha=0.5, label=la + ' shifts X')
@@ -790,7 +791,7 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
         timing(start_time)
 
     if plot:
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=vip_figsize)
         plt.plot(y, 'o-', label='shifts in y', alpha=0.5)
         plt.plot(x, 'o-', label='shifts in x', alpha=0.5)
         plt.legend(loc='best')
@@ -798,7 +799,7 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
         plt.ylabel('Pixels')
         plt.xlabel('Frame number')
 
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=vip_figsize)
         b = int(np.sqrt(n_frames))
         la = 'Histogram'
         _ = plt.hist(x, bins=b, alpha=0.5, label=la + ' shifts X')
@@ -973,7 +974,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         timing(start_time)
 
     if plot:
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=vip_figsize)
         plt.plot(y, 'o-', label='shifts in y', alpha=0.5)
         plt.plot(x, 'o-', label='shifts in x', alpha=0.5)
         plt.legend(loc='best')
@@ -981,7 +982,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         plt.ylabel('Pixels')
         plt.xlabel('Frame number')
 
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=vip_figsize)
         b = int(np.sqrt(n_frames))
         la = 'Histogram'
         _ = plt.hist(x, bins=b, alpha=0.5, label=la + ' shifts X')
@@ -1192,7 +1193,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                       interpolation=interpolation)
 
     if plot:
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=vip_figsize)
         plt.plot(cum_x_shifts_sci, 'o-', label='Shifts in x', alpha=0.5)
         plt.plot(cum_y_shifts_sci, 'o-', label='Shifts in y', alpha=0.5)
         plt.legend(loc='best')
@@ -1200,7 +1201,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         plt.ylabel('Pixels')
         plt.xlabel('Frame number')
 
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=vip_figsize)
         b = int(np.sqrt(n))
         la = 'Histogram'
         _ = plt.hist(cum_x_shifts_sci, bins=b, alpha=0.5, label=la+' shifts X')

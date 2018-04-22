@@ -884,7 +884,7 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
 
         # Plot of SNR as function of PCs  
         if plot:    
-            plt.figure(figsize=(8, 4))
+            plt.figure(figsize=vip_figsize)
             ax1 = plt.subplot(211)     
             ax1.plot(pclist, snrlist, '-', alpha=0.5)
             ax1.plot(pclist, snrlist, 'o', alpha=0.5, color='blue')
@@ -953,7 +953,7 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
         if plot:   
             alpha = 0.4
             lw = 2
-            plt.figure(figsize=(6,4))   
+            plt.figure(figsize=vip_figsize)
             ax1 = plt.subplot(211)  
             ax1.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,1]), '-', 
                      alpha=alpha, color='blue', lw=lw)

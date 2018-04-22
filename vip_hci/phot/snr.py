@@ -346,7 +346,7 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
         print(msg4.format(fluxes.std()))
     
     if plot:
-        _, ax = plt.subplots(figsize=(6,6))
+        _, ax = plt.subplots(figsize=(6, 6))
         ax.imshow(array, origin='lower', interpolation='nearest', alpha=0.5,
                   cmap='gray')
         for i in range(xx.shape[0]):
@@ -418,7 +418,7 @@ def snr_peakstddev(array, source_xy, fwhm, out_coor=False, plot=False,
         print(msg.format(snr, peak, stddev))
     
     if plot:
-        _, ax = plt.subplots(figsize=(6,6))
+        _, ax = plt.subplots(figsize=(6, 6))
         ax.imshow(array, origin='lower', interpolation='nearest')
         circ = plt.Circle((centerx, centery), radius=inner_rad, color='r', 
                           fill=False) 

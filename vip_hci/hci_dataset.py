@@ -23,8 +23,8 @@ from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
 from .var import frame_filter_lowpass, frame_filter_highpass, frame_center
 from .var import (cube_filter_highpass, cube_filter_lowpass, mask_circle,
                   pp_subplots)
-from .stats import frame_basic_stats, frame_histo_stats
-from .stats import cube_basic_stats, cube_distance
+from .stats import (frame_basic_stats, frame_histo_stats,
+                    frame_average_radprofile, cube_basic_stats, cube_distance)
 from .phot import (frame_quick_report, cube_inject_companions, snr_ss,
                    snr_peakstddev, snrmap, snrmap_fast, detection,
                    normalize_psf)
@@ -180,6 +180,17 @@ class HCIFrame:
         """
         pp_subplots(self.image, **kwargs)
 
+    def radial_profile(self, sep=1):
+        """ Calculates the average radial profile of an image.
+
+        Parameters
+        ----------
+        sep : int, optional
+            The average radial profile is recorded every ``sep`` pixels.
+        """
+        radpro = frame_average_radprofile(self.image, sep=sep, plot=True)
+        return radpro
+
     def recenter(self, method='satspots', xy=None, subi_size=19, sigfactor=6,
                  imlib='opencv', interpolation='lanczos4', debug=False,
                  verbose=True):
@@ -204,8 +215,9 @@ class HCIFrame:
                                                 sigfactor, True, imlib,
                                                 interpolation, debug, verbose)
         elif method == 'radon':
-            # TODO: finish the radon integration
-            self.image = None
+            pass
+            # TODO: radon centering
+            #self.image = frame_center_radon()
         else:
             raise ValueError('Recentering method not recognized')
 

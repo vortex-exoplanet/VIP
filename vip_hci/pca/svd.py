@@ -161,7 +161,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             print(msg)
 
         lw = 2; alpha = 0.4
-        fig = plt.figure(figsize=(6, 3))
+        fig = plt.figure(figsize=vip_figsize)
         fig.subplots_adjust(wspace=0.4)
         ax1 = plt.subplot2grid((1, 3), (0, 0), colspan=2)
         ax1.step(range(explained_variance_ratio.shape[0]),

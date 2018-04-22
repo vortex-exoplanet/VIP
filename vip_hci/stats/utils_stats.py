@@ -15,6 +15,7 @@ import numpy as np
 from matplotlib.pyplot import boxplot
 from matplotlib import pyplot as plt
 from ..var import get_annulus, get_circle
+from ..conf.utils_conf import vip_figsize
 
 
 def descriptive_stats(array, verbose=True, label='', mean=False, plot=False):
@@ -93,7 +94,7 @@ def frame_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
     median = np.median(region_pxs)
 
     if plot:
-        plt.figure('Image crop (first slice)', figsize=(10, 3))
+        plt.figure('Image crop (first slice)', figsize=(10, 4))
         if region == 'circle':
             temp = get_circle(arr, radius, cy=y, cx=x)
         elif region == 'annulus':
@@ -180,7 +181,7 @@ def cube_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
     values_region = np.array(values_region).flatten()
 
     if plot:
-        plt.figure('Image crop (first slice)', figsize=(10, 3))
+        plt.figure('Image crop (first slice)', figsize=vip_figsize)
         if region == 'circle':
             temp = get_circle(arr[0], radius, cy=y, cx=x)
         elif region == 'annulus':
@@ -200,7 +201,7 @@ def cube_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
         ax2.set_title('Histogram')
         ax2.tick_params(axis='x', labelsize=8)
 
-        fig = plt.figure('Stats in annulus', figsize=(10, 6))
+        fig = plt.figure('Stats in annulus', figsize=vip_figsize)
         fig.subplots_adjust(hspace=0.15)
         ax1 = plt.subplot(3, 1, 1)
         lab1 = 'Mean value in {}'.format(region)

@@ -18,6 +18,7 @@ from photutils import detection
 from astropy.stats import sigma_clip
 from ..var import get_annulus
 from ..conf import time_ini, timing
+from ..conf.utils_conf import vip_figsize
 from ..stats import cube_basic_stats, cube_distance
 
 
@@ -107,7 +108,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
         print(msg1.format(bad, n, percent_bad_frames)) 
 
     if plot:
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=vip_figsize)
         plt.plot(mean_values, 'o', alpha=0.6)
         plt.plot(mean_smooth, label='smoothed mean fluctuation', lw=2, ls='-',
                  alpha=0.5)
@@ -291,7 +292,7 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     
     if plot:
         lista = distances
-        _, ax = plt.subplots(figsize=(10, 5))
+        _, ax = plt.subplots(figsize=vip_figsize)
         x = range(len(lista))
         ax.plot(x, lista, '-', alpha=0.6, color='#1f77b4')
         if n > 5000:

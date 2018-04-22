@@ -116,7 +116,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
     median_cor = np.median(lista)
     mean_cor = np.mean(lista)
     if plot:
-        _, ax = plt.subplots(figsize=(10, 6))
+        _, ax = plt.subplots(figsize=vip_figsize)
 
         if isinstance(frame, int):
             ax.vlines(frame, ymin=np.nanmin(lista), ymax=np.nanmax(lista),

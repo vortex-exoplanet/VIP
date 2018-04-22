@@ -34,7 +34,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                    smooth=True, interp_order=2, plot=True, dpi=100,
                    imlib='opencv', debug=False, verbose=True, full_output=False,
                    save_plot=None, object_name=None, frame_size=None,
-                   fix_y_lim=(), figsize=(8,4), **algo_dict):
+                   fix_y_lim=(), figsize=(8, 4), **algo_dict):
     """ Computes the contrast curve at a given SIGMA (``sigma``) level for an
     ADI cube or ADI+IFS cube. The contrast is calculated as
     sigma*noise/throughput. This implementation takes into account the small
@@ -765,7 +765,7 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
             x.append(newx)
             y.append(newy)
         return np.array(y), np.array(x)
-    #___________________________________________________________________
+    ###
 
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
@@ -775,25 +775,23 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
 
     init_angle, fin_angle = wedge
     centery, centerx = frame_center(array)
-    n_annuli = int(np.floor((centery)/separation))
-
-    x = centerx
-    y = centery
+    n_annuli = int(np.floor((centery)/separation)) - 1
     noise = []
     vector_radd = []
     if verbose:
-        print('{} annuli'.format(n_annuli-1))
+        print('{} annuli'.format(n_annuli))
 
-    if init_rad is None:  init_rad = fwhm
+    if init_rad is None:
+        init_rad = fwhm
 
     if debug:
-        _, ax = plt.subplots(figsize=(6,6))
+        _, ax = plt.subplots(figsize=(6, 6))
         ax.imshow(array, origin='lower', interpolation='nearest',
                   alpha=0.5, cmap='gray')
 
-    for i in range(n_annuli-1):
-        y = centery + init_rad + separation*(i)
-        rad = dist(centery, centerx, y, x)
+    for i in range(n_annuli):
+        y = centery + init_rad + separation * i
+        rad = dist(centery, centerx, y, centerx)
         yy, xx = find_coords(rad, fwhm, init_angle, fin_angle)
         yy += centery
         xx += centerx
@@ -807,13 +805,13 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
         vector_radd.append(rad)
 
         if debug:
-            for i in range(xx.shape[0]):
+            for j in range(xx.shape[0]):
                 # Circle takes coordinates as (X,Y)
-                aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2, color='r',
-                              fill=False, alpha=0.8)
+                aper = plt.Circle((xx[j], yy[j]), radius=fwhm/2, color='r',
+                                  fill=False, alpha=0.8)
                 ax.add_patch(aper)
-                cent = plt.Circle((xx[i], yy[i]), radius=0.8, color='r',
-                              fill=True, alpha=0.5)
+                cent = plt.Circle((xx[j], yy[j]), radius=0.8, color='r',
+                                  fill=True, alpha=0.5)
                 ax.add_patch(cent)
 
         if verbose:

@@ -8,17 +8,17 @@ from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['frame_histo_stats',
-           'average_radial_profile']
+           'frame_average_radprofile']
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from ..var import frame_center
+from ..conf.utils_conf import check_array, vip_figsize
 
 
-def average_radial_profile(array, sep=1, collapse='median', plot=True):
-    """ Calculates the average radial profile of an image. If a cube is
-    passed it's first collapsed.
+def frame_average_radprofile(array, sep=1, plot=True):
+    """ Calculates the average radial profile of an image.
 
     Parameters
     ----------
@@ -26,8 +26,6 @@ def average_radial_profile(array, sep=1, collapse='median', plot=True):
         Input image or cube.
     sep : int, optional
         The average radial profile is recorded every ``sep`` pixels.
-    collapse : str, optional
-        The method for combining the images, when array is cube.
     plot : bool, optional
         If True the profile is plotted.
 
@@ -43,12 +41,8 @@ def average_radial_profile(array, sep=1, collapse='median', plot=True):
     https://github.com/keflavich/image_tools/blob/master/image_tools/radialprofile.py
 
     """
-    from ..preproc import cube_collapse
-    if array.ndim == 3:
-        frame = cube_collapse(array, mode=collapse)
-    elif array.ndim == 2:
-        frame = array
-
+    check_array(array, dim=2, name='Input array')
+    frame = array
     cy, cx = frame_center(frame)
     x, y = np.indices((frame.shape))
     r = np.sqrt((x - cx) ** 2 + (y - cy) ** 2)
@@ -60,13 +54,13 @@ def average_radial_profile(array, sep=1, collapse='median', plot=True):
     radists = np.arange(1, int(cy), sep)
     radprofile_radists = radprofile[radists - 1]
     nr_radists = nr[radists - 1]
-    df = pd.DataFrame(
-        {'rad': radists - 1, 'radprof': radprofile_radists, 'npx': nr_radists})
+    df = pd.DataFrame({'rad': radists - 1, 'radprof': radprofile_radists,
+                       'npx': nr_radists})
 
     if plot:
-        plt.figure(figsize=(10, 4), dpi=100)
+        plt.figure(figsize=vip_figsize)
         plt.plot(radists - 1, radprofile_radists, '.-', alpha=0.6)
-        plt.grid(which='both', alpha=0.6)
+        plt.grid(which='both', alpha=0.4)
         plt.xlabel('Pixels')
         plt.ylabel('Counts')
         plt.minorticks_on()
@@ -108,7 +102,7 @@ def frame_histo_stats(image_array, plot=True):
     std = vector.std()
    
     if plot:
-        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 3))
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 4))
         ax0, ax1 = axes.flat
         bins = int(np.sqrt(vector.shape[0]))
         txt = 'Mean = {:.3f}\n'.format(mean) + \

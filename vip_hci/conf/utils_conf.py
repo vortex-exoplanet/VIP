@@ -13,6 +13,7 @@ import sys
 import numpy as np
 
 sep = '-' * 80
+vip_figsize = (10, 5)
 
 
 def check_array(input, dim=1, name=None):
@@ -32,16 +33,22 @@ def check_array(input, dim=1, name=None):
     elif dim == 2:
         msg = name + ' must be an image or 2d np.ndarray'
         if not isinstance(input, np.ndarray):
+            raise TypeError(msg)
+        else:
             if not input.ndim == 2:
                 raise TypeError(msg)
     elif dim == 3:
         msg = name + ' must be a cube or 3d np.ndarray'
         if not isinstance(input, np.ndarray):
+            raise TypeError(msg)
+        else:
             if not input.ndim == 3:
                 raise TypeError(msg)
     elif dim == 4:
         msg = name + ' must be a cube or 4d np.ndarray'
         if not isinstance(input, np.ndarray):
+            raise TypeError(msg)
+        else:
             if not input.ndim == 4:
                 raise TypeError(msg)
     return np.array(input)

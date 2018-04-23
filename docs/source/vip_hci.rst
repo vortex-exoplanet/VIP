@@ -11,6 +11,7 @@ Subpackages
 
 .. toctree::
 
+    vip_hci.andromeda
     vip_hci.conf
     vip_hci.exlib
     vip_hci.fits

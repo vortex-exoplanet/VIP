@@ -147,31 +147,31 @@ def info_fits(fitsfilename):
         hdulist.info()
 
          
-def verify_fits(fitspath):
+def verify_fits(fitsfilename):
     """Verifies "the FITS standard" of a fits file or list of fits.
 
     Parameters
     ----------
-    fitspath : string or list
+    fitsfilename : string or list
         Path to the fits file or list with fits filename paths.
     """
-    if isinstance(fitspath, list):
-        for ffile in fitspath:
+    if isinstance(fitsfilename, list):
+        for ffile in fitsfilename:
             with ap_fits.open(ffile) as f:
                 f.verify()
     else:
-        with ap_fits.open(fitspath) as f:
+        with ap_fits.open(fitsfilename) as f:
             f.verify()
     
     
-def write_fits(filename, array, header=None, precision=np.float32,
+def write_fits(fitsfilename, array, header=None, precision=np.float32,
                verbose=True):
     """Writes array and header into FTIS file, if there is a previous file with
     the same filename then it's replaced.
     
     Parameters
     ----------
-    filename : string
+    fitsfilename : string
         Full path of the fits file to be written.
     array : array_like
         Array to be written into a fits file.
@@ -184,21 +184,21 @@ def write_fits(filename, array, header=None, precision=np.float32,
 
     """
     array = array.astype(precision, copy=False)
-    if os.path.exists(filename):
-        os.remove(filename)                                     
-        ap_fits.writeto(filename, array, header)
+    if os.path.exists(fitsfilename):
+        os.remove(fitsfilename)                                     
+        ap_fits.writeto(fitsfilename, array, header)
         if verbose:
             print("Fits file successfully overwritten")
     else:
-        ap_fits.writeto(filename, array, header)
+        ap_fits.writeto(fitsfilename, array, header)
         if verbose:
             print("Fits file successfully saved")
 
 
-def append_extension(filename, array, verbose=True):
+def append_extension(fitsfilename, array, verbose=True):
     """Appends an extension to fits file. 
     """
-    ap_fits.append(filename, array)
+    ap_fits.append(fitsfilename, array)
     if verbose:
         print("Fits extension appended")
         

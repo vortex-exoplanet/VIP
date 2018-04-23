@@ -209,11 +209,12 @@ def write_fits(filename, array, header=None, precision=np.float32,
             print("Fits file successfully saved")
 
 
-def append_extension(filename, array):
+def append_extension(filename, array, verbose=True):
     """Appends an extension to fits file. 
     """
     ap_fits.append(filename, array)
-    print("Fits extension appended")
+    if verbose:
+        print("Fits extension appended")
         
         
     

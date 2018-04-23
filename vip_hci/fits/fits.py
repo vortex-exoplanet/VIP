@@ -178,7 +178,8 @@ def verify_fits(fitspath):
         f.verify()
     
     
-def write_fits(filename, array, header=None, dtype32=True, verbose=True):
+def write_fits(filename, array, header=None, precision=np.float32,
+               verbose=True):
     """Writes array and header into FTIS file, if there is a previous file with
     the same filename then it's replaced.
     
@@ -190,20 +191,18 @@ def write_fits(filename, array, header=None, dtype32=True, verbose=True):
         Array to be written into a fits file.
     header : array_like, optional
         Array with header. 
-    dtype32 : bool, optional
-        If True the array is casted as a float32. When False, the array is
-        usually saved in float64 precision.
+    precision : numpy dtype, optional
+        Float precision, by default np.float32 or single precision float.
     verbose : bool, optional
         If True prints message.
 
     """
-    if dtype32:
-        array = array.astype('float32', copy=False)
+    array = array.astype(precision, copy=False)
     if os.path.exists(filename):
         os.remove(filename)                                     
+        ap_fits.writeto(filename, array, header)
         if verbose:
             print("Fits file successfully overwritten")
-        ap_fits.writeto(filename, array, header)
     else:
         ap_fits.writeto(filename, array, header)
         if verbose:

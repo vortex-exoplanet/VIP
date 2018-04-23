@@ -26,7 +26,7 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     
     Parameters
     ----------
-    fitsfilename : string
+    fitsfilename : string or Path
         Name of the fits file.
     n : int
         It chooses which HDU to open. Default is the first one.
@@ -47,6 +47,7 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     header : dictionary
         Dictionary containing the fits header.
     """
+    fitsfilename = str(fitsfilename)
     if not fitsfilename.endswith('.fits'):
         fitsfilename = fitsfilename+'.fits'
     hdulist = ap_fits.open(fitsfilename, memmap=True,
@@ -90,7 +91,7 @@ def open_adicube(fitsfilename, verbose=True):
     
     Parameters
     ----------
-    fitsfilename : string
+    fitsfilename : string or Path
         Name of the fits file.
     verbose : {True, False}, bool optional
         If True prints message.
@@ -103,8 +104,9 @@ def open_adicube(fitsfilename, verbose=True):
         1d array containing the corresponding parallactic angles.
           
     """
+    fitsfilename = str(fitsfilename)
     if not fitsfilename.endswith('.fits'):
-        fitsfilename = str(fitsfilename+'.fits')
+        fitsfilename = fitsfilename+'.fits'
     hdulist = ap_fits.open(fitsfilename, memmap=True)
     data = hdulist[0].data
     if data.ndim != 3:

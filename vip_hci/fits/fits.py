@@ -91,11 +91,13 @@ def open_adicube(fitsfilename, verbose=True):
     fitsfilename = str(fitsfilename)
     if not fitsfilename.endswith('.fits'):
         fitsfilename = fitsfilename+'.fits'
-    hdulist = ap_fits.open(fitsfilename, memmap=True)
-    data = hdulist[0].data
+    with ap_fits.open(fitsfilename, memmap=True) as hdulist:
+        data = hdulist[0].data
+        parangles = hdulist[1].data
+    
     if data.ndim != 3:
         raise TypeError('Input fits file does not contain a cube or 3d array.')
-    parangles = hdulist[1].data 
+
     if verbose:
         print("Fits HDU-0 data successfully loaded. "
               "Data shape: {}".format(data.shape))
@@ -141,8 +143,8 @@ def byteswap_array(array):
 def info_fits(fitsfilename):
     """Prints the information about a fits file. 
     """
-    hdulist = ap_fits.open(fitsfilename, memmap=True)
-    hdulist.info()
+    with open ap_fits.open(fitsfilename, memmap=True) as hdulist:
+        hdulist.info()
 
          
 def verify_fits(fitspath):
@@ -155,11 +157,11 @@ def verify_fits(fitspath):
     """
     if isinstance(fitspath, list):
         for ffile in fitspath:
-            f = ap_fits.open(ffile)
-            f.verify()
+            with ap_fits.open(ffile) as f:
+                f.verify()
     else:
-        f = ap_fits.open(fitspath)
-        f.verify()
+        with ap_fits.open(fitspath) as f:
+            f.verify()
     
     
 def write_fits(filename, array, header=None, precision=np.float32,

@@ -74,9 +74,7 @@ def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
         return cubeout
 
 
-def cube_filter_highpass(array, mode='laplacian', median_size=5, kernel_size=5,
-                         fwhm_size=5, btw_cutoff=0.2, btw_order=2,
-                         verbose=True):
+def cube_filter_highpass(array, mode='laplacian', verbose=True, **kwargs):
     """ Wrapper of ``frame_filter_highpass`` for cubes or 3d arrays.
 
     Parameters
@@ -85,18 +83,10 @@ def cube_filter_highpass(array, mode='laplacian', median_size=5, kernel_size=5,
         Input 3d array.
     mode : str, optional
         See the documentation of the ``frame_filter_highpass`` function.
-    median_size : int, optional
-        See the documentation of the ``frame_filter_highpass`` function.
-    kernel_size : int, optional
-        See the documentation of the ``frame_filter_highpass`` function.
-    fwhm_size : int, optional
-        See the documentation of the ``frame_filter_highpass`` function.
-    btw_cutoff : float
-        See the documentation of the ``frame_filter_highpass`` function.
-    btw_order : int
-        See the documentation of the ``frame_filter_highpass`` function.
     verbose : bool, optional
         If True timing and progress bar are shown.
+    **kwargs : dict
+        Passed through to the ``frame_filter_highpass`` function.
     
     Returns
     -------
@@ -112,9 +102,7 @@ def cube_filter_highpass(array, mode='laplacian', median_size=5, kernel_size=5,
         msg = 'Applying the high-pass filter on cube frames:'
         bar = pyprind.ProgBar(n_frames, stream=1, title=msg, bar_char='.')
     for i in range(n_frames):
-        array_out[i] = frame_filter_highpass(array[i], mode, median_size, 
-                                            kernel_size, fwhm_size, btw_cutoff, 
-                                            btw_order)
+        array_out[i] = frame_filter_highpass(array[i], mode=mode, **kwargs)
         if verbose:
             bar.update()
         

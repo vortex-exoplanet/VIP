@@ -166,7 +166,7 @@ def verify_fits(fitspath):
 
     Parameters
     ----------
-    fitspath : string
+    fitspath : string or list
         Path to the fits file or list with fits filename paths.
     """
     if isinstance(fitspath, list):

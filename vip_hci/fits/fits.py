@@ -30,13 +30,13 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         Name of the fits file.
     n : int
         It chooses which HDU to open. Default is the first one.
-    header : {False, True}, bool optional
+    header : bool, optional
         Whether to return the header along with the data or not.
     precision : numpy dtype
         Float precision, by default np.float32 or single precision float.
     ignore_missing_end : {False, True}, bool optional
         Allows to open fits files with a header missing END card.
-    verbose : {True, False}, bool optional
+    verbose : bool, optional
         If True prints message of completion.
     
     Returns
@@ -44,7 +44,7 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     data : array_like
         Array containing the frames of the fits-cube.
     If header is True:
-    header : dictionary
+    header : dict
         Dictionary containing the fits header.
     """
     fitsfilename = str(fitsfilename)
@@ -142,6 +142,11 @@ def byteswap_array(array):
 
 def info_fits(fitsfilename):
     """Prints the information about a fits file. 
+
+    Parameters
+    ----------
+    fitsfilename : str
+        Path to the fits file.
     """
     with open ap_fits.open(fitsfilename, memmap=True) as hdulist:
         hdulist.info()
@@ -197,6 +202,15 @@ def write_fits(fitsfilename, array, header=None, precision=np.float32,
 
 def append_extension(fitsfilename, array, verbose=True):
     """Appends an extension to fits file. 
+
+    Parameters
+    ----------
+    fitsfilename : str
+        Path to the fits file.
+    array : array_like
+        Data to append.
+    verbose : bool, optional
+        Print success message.
     """
     ap_fits.append(fitsfilename, array)
     if verbose:

@@ -50,39 +50,23 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     fitsfilename = str(fitsfilename)
     if not fitsfilename.endswith('.fits'):
         fitsfilename = fitsfilename+'.fits'
-    hdulist = ap_fits.open(fitsfilename, memmap=True,
-                           ignore_missing_end=ignore_missing_end)
-    data = hdulist[n].data
-    data = np.array(data, dtype=precision)
-    
-    if verbose:
+
+    with ap_fits.open(fitsfilename, memmap=True,
+                      ignore_missing_end=ignore_missing_end) as hdulist:
+        data = hdulist[n].data
+        data = np.array(data, dtype=precision)
+
         if header:
-            msg0 = "Fits HDU-{} data and header successfully loaded. Data"
+            header = hdulist[0].header
+            if verbose:
+                print("Fits HDU-{} data and header successfully loaded. "
+                      "Data shape: {}".format(n, data.shape))
+            return data, header
         else:
-            msg0 = "Fits HDU-{} data successfully loaded. Data"
-
-        if len(data.shape) == 1:
-            msg = msg0 + " shape: ({})"
-            print(msg.format(n, data.shape[0]))
-        if len(data.shape) == 2:
-            msg = msg0 + " shape: ({}, {})"
-            print(msg.format(n, data.shape[0], data.shape[1]))
-        if len(data.shape) == 3:
-            msg = msg0 + " shape: ({}, {}, {})"
-            print(msg.format(n, data.shape[0], data.shape[1],
-                             data.shape[2]))
-        if len(data.shape) == 4:
-            msg = msg0 + " shape: ({}, {}, {}, {})"
-            print(msg.format(n, data.shape[0], data.shape[1], data.shape[2],
-                             data.shape[3]))
-
-    if header:
-        header = hdulist[0].header
-        hdulist.close()
-        return data, header
-    else:
-        hdulist.close()
-        return data
+            if verbose:
+                print("Fits HDU-{} data successfully loaded. "
+                      "Data shape: {}".format(n, data.shape))
+            return data
 
 
 def open_adicube(fitsfilename, verbose=True):
@@ -113,10 +97,10 @@ def open_adicube(fitsfilename, verbose=True):
         raise TypeError('Input fits file does not contain a cube or 3d array.')
     parangles = hdulist[1].data 
     if verbose:
-        msg1 = "Fits HDU-{} data successfully loaded. Data shape: ({}, {}, {})"
-        msg2 = "Fits HDU-{} data successfully loaded. Data shape: ({})"
-        print(msg1.format(0, data.shape[0],data.shape[1],data.shape[2]))
-        print(msg2.format(1, parangles.shape[0]))
+        print("Fits HDU-0 data successfully loaded. "
+              "Data shape: {}".format(data.shape))
+        print("Fits HDU-1 data successfully loaded. "
+              "Data shape: {}".format(parangles.shape))
     
     return data, parangles
 

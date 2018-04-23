@@ -74,9 +74,7 @@ def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
         return cubeout
 
 
-def cube_filter_highpass(array, mode='laplacian', median_size=5, kernel_size=5,
-                         fwhm_size=5, btw_cutoff=0.2, btw_order=2,
-                         verbose=True):
+def cube_filter_highpass(array, mode='laplacian', verbose=True, **kwargs):
     """ Wrapper of ``frame_filter_highpass`` for cubes or 3d arrays.
 
     Parameters
@@ -85,18 +83,10 @@ def cube_filter_highpass(array, mode='laplacian', median_size=5, kernel_size=5,
         Input 3d array.
     mode : str, optional
         See the documentation of the ``frame_filter_highpass`` function.
-    median_size : int, optional
-        See the documentation of the ``frame_filter_highpass`` function.
-    kernel_size : int, optional
-        See the documentation of the ``frame_filter_highpass`` function.
-    fwhm_size : int, optional
-        See the documentation of the ``frame_filter_highpass`` function.
-    btw_cutoff : float
-        See the documentation of the ``frame_filter_highpass`` function.
-    btw_order : int
-        See the documentation of the ``frame_filter_highpass`` function.
     verbose : bool, optional
         If True timing and progress bar are shown.
+    **kwargs : dict
+        Passed through to the ``frame_filter_highpass`` function.
     
     Returns
     -------
@@ -112,9 +102,7 @@ def cube_filter_highpass(array, mode='laplacian', median_size=5, kernel_size=5,
         msg = 'Applying the high-pass filter on cube frames:'
         bar = pyprind.ProgBar(n_frames, stream=1, title=msg, bar_char='.')
     for i in range(n_frames):
-        array_out[i] = frame_filter_highpass(array[i], mode, median_size, 
-                                            kernel_size, fwhm_size, btw_cutoff, 
-                                            btw_order)
+        array_out[i] = frame_filter_highpass(array[i], mode=mode, **kwargs)
         if verbose:
             bar.update()
         
@@ -134,17 +122,28 @@ def fft(array):
     return fft_array
 
 
-def ifft(array):
+def ifft(array, real=False):
     """ Gets the inverse Fourier transform on the image. This produces an array 
     of complex numbers whose absolute values correspond to the image in the 
     original space (decentering).
+
+    Notes
+    -----
+    In vip.andromeda, the real part of the result of the inverse FT is returned
+    instead of the absolute values. The ``real`` parameter takes that difference
+    into account. Inside VIP, only the ``frame_filter_highpass`` function with
+    ``mode="hanning"`` uses ``real=True``.
     """
-    new_array = np.abs(np.fft.ifft2(np.fft.ifftshift(array)))
+    if real:
+        new_array = np.fft.ifft2(np.fft.ifftshift(array)).real
+    else:
+        new_array = np.abs(np.fft.ifft2(np.fft.ifftshift(array)))
     return new_array
 
 
 def frame_filter_highpass(array, mode, median_size=5, kernel_size=5, 
-                          fwhm_size=5, btw_cutoff=0.2, btw_order=2):
+                          fwhm_size=5, btw_cutoff=0.2, btw_order=2,
+                          hanning_cutoff=5):
     """ High-pass filtering of input frame depending on parameter ``mode``. The
     filtered image properties will depend on the ``mode`` and the relevant
     parameters.
@@ -174,6 +173,8 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         ``fourier-butter`` mode.
     btw_order : int, optional
         Order of low-pass 2d Butterworth filter used in ``fourier-butter`` mode.
+    hanning_cutoff : float
+        Frequency cutoff for the ``hanning``mode.
     
     Returns
     -------
@@ -215,6 +216,27 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         # The filter
         f = 1 / (1 + (radius / cutoff)**(2*n))   
         return f
+
+    def round_away(x):
+        """
+        round to the *nearest* integer, half-away-from-zero
+        
+        Parameters
+        ----------
+        x : array-like
+
+        Returns
+        -------
+        r_rounded : array-like
+        
+        Notes
+        -----
+        IDL ``ROUND`` rounds to the *nearest* integer (commercial rounding),
+        unlike numpy's round/rint, which round to the nearest *even*
+        value (half-to-even, financial rounding) as defined in IEEE-754
+        standard.
+        """
+        return np.trunc(x+np.copysign(0.5, x))
     
     #---------------------------------------------------------------------------
     
@@ -279,6 +301,28 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         array_fft = fft(array)
         fft_new = array_fft * filt
         filtered = ifft(fft_new)        
+    elif mode == 'hanning':
+        # TODO: this code could be shortened using np.convolve
+        # see http://scipy-cookbook.readthedocs.io/items/SignalSmooth.html
+
+        # create a Hanning profile window cut at the chosen frequency:
+        npix = array.shape[0]
+        if npix%2 != 0:
+            raise ValueError("only even-sized frames are supported by 'hanning'"
+                             " high-pass filter!")
+
+        cutoff = npix/2 * hanning_cutoff
+        cutoff_inside = round_away(np.minimum(cutoff, (npix/2 -1))).astype(int)
+        winsize = 2*cutoff_inside + 1
+        win1d = np.hanning(winsize)
+        win = 1 - np.outer(win1d, win1d)
+
+        array_fft = fft(array)
+        # remove high spatial frequency along the Hanning profile:
+        array_fft[npix//2 - cutoff_inside : npix//2 + cutoff_inside + 1,
+                  npix//2 - cutoff_inside : npix//2 + cutoff_inside + 1] *= win
+
+        filtered = ifft(array_fft, real=True)
         
     else:
         raise TypeError('Mode not recognized.')

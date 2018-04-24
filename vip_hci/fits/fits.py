@@ -148,7 +148,7 @@ def info_fits(fitsfilename):
     fitsfilename : str
         Path to the fits file.
     """
-    with open ap_fits.open(fitsfilename, memmap=True) as hdulist:
+    with ap_fits.open(fitsfilename, memmap=True) as hdulist:
         hdulist.info()
 
          

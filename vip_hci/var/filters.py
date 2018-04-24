@@ -122,22 +122,19 @@ def fft(array):
     return fft_array
 
 
-def ifft(array, real=False):
+def ifft(array):
     """ Gets the inverse Fourier transform on the image. This produces an array 
-    of complex numbers whose absolute values correspond to the image in the 
+    of complex numbers whose real values correspond to the image in the 
     original space (decentering).
 
     Notes
     -----
-    In vip.andromeda, the real part of the result of the inverse FT is returned
-    instead of the absolute values. The ``real`` parameter takes that difference
-    into account. Inside VIP, only the ``frame_filter_highpass`` function with
-    ``mode="hanning"`` uses ``real=True``.
+    A real function corresponds to a symmetric function in fourier space. As
+    long as the operations we apply in the fourier space do not break this
+    symmetry, the data returned by ``ifft`` should not containy any imaginary
+    part.
     """
-    if real:
-        new_array = np.fft.ifft2(np.fft.ifftshift(array)).real
-    else:
-        new_array = np.abs(np.fft.ifft2(np.fft.ifftshift(array)))
+    new_array = np.fft.ifft2(np.fft.ifftshift(array)).real
     return new_array
 
 
@@ -322,7 +319,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         array_fft[npix//2 - cutoff_inside : npix//2 + cutoff_inside + 1,
                   npix//2 - cutoff_inside : npix//2 + cutoff_inside + 1] *= win
 
-        filtered = ifft(array_fft, real=True)
+        filtered = ifft(array_fft)
         
     else:
         raise TypeError('Mode not recognized.')

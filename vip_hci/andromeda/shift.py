@@ -4,7 +4,8 @@ subpixel shifting.
 from __future__ import division, print_function
 
 __author__ = 'Ralf Farkas'
-__all__ = ['calc_psf_shift_subpix']
+__all__ = ['calc_psf_shift_subpix',
+           'subpixel_shift']
 
 
 import numpy as np
@@ -13,7 +14,6 @@ import numpy as np
 def calc_psf_shift_subpix(psf, precision):
     """
     Computes a stack of subpixel-shifted versions of the PSF.
-
     
 
     Parameters
@@ -21,8 +21,8 @@ def calc_psf_shift_subpix(psf, precision):
     psf : 2d array_like
         The PSF that is to be shifted. Assumed square.
     precision : int
-        number of pixel subdivisions for the planet's signal pattern
-        computation, i.e., inverse of the shifting pitch
+        Number of pixel subdivisions for the planet's signal pattern
+        computation, i.e., inverse of the shifting pitch.
 
 
     Returns
@@ -42,8 +42,8 @@ def calc_psf_shift_subpix(psf, precision):
     (n, n, precision+1, precision+1), and indexing works like
     ``psf_cube[*, *, i, j]``, where ``i`` is the column and ``j`` the row.
 
-    based on `LibAndromeda/oneralib/calc_psf_shift_subpix.pro`, v1.2 2010/05/27
-
+    based on ``LibAndromeda/oneralib/calc_psf_shift_subpix.pro``,
+    v1.2 2010/05/27
 
     """
 
@@ -66,16 +66,21 @@ def subpixel_shift(image, xshift, yshift):
 
     Parameters
     ----------
-    image : 2d array
+    image : 2d array_like
         The image to be shifted.
     xshift : float
-        Amount of desired shift in X direction
+        Amount of desired shift in X direction.
     yshift : float
-        Amount of desired shift in Y direction
+        Amount of desired shift in Y direction.
+
+    Returns
+    -------
+    shifted_image : 2d ndarray
+        Input ``image`` shifted by ``xshift`` and ``yshift``.
 
     Notes
     -----
-    based on `LibAndromeda/oneralib/subpixel_shift.pro`, v 1.3 2009/05/28
+    based on ``LibAndromeda/oneralib/subpixel_shift.pro``, v1.3 2009/05/28
 
     """
 
@@ -84,16 +89,15 @@ def subpixel_shift(image, xshift, yshift):
     if image.shape[0] != image.shape[1]:
         raise ValueError("`image` must be square")
 
-    if image.shape[0]%2 != 0:
+    if npix%2 != 0:
         raise ValueError("`image` must be of even width")
 
-    image_ft = np.fft.fft2(image) # no np.fft.fftshift applied!
     ramp = np.outer(np.ones(npix), np.arange(npix) - npix/2)
     tilt = (-2*np.pi / npix) * (xshift*ramp + yshift*ramp.T)
-    shift_fact_fft = np.fft.fftshift(np.cos(tilt) + 1j*np.sin(tilt))
+    fact = np.fft.fftshift(np.cos(tilt) + 1j*np.sin(tilt))
 
-    shifted_image = np.fft.ifft2(image_ft * shift_fact_fft).real
-    # TODO: real or abs?
+    image_ft = np.fft.fft2(image) # no np.fft.fftshift applied!
+    shifted_image = np.fft.ifft2(image_ft * fact).real
 
     return shifted_image
 

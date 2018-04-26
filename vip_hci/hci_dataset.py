@@ -855,7 +855,7 @@ class HCIDataset:
         self.cube = cube_px_resampling(self.cube, scale, imlib, interpolation,
                                         verbose)
 
-    def save(self, path, dtype32=True):
+    def save(self, path, precision=np.float32):
         """ Writing to FITS file. If self.angles is present, then the angles
         are appended to the FITS file.
 
@@ -863,11 +863,10 @@ class HCIDataset:
         ----------
         filename : string
             Full path of the fits file to be written.
-        dtype32 : bool, optional
-            If True the array is casted as a float32. When False, the array is
-            usually saved in float64 precision.
+        precision : numpy dtype, optional
+            Float precision, by default np.float32 or single precision float.
         """
-        write_fits(path, self.cube, dtype32)
+        write_fits(path, self.cube, precision=precision)
         if self.angles is not None:
             append_extension(path, self.angles)
 

@@ -26,17 +26,17 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     
     Parameters
     ----------
-    fitsfilename : string
-        Name of the fits file.
+    fitsfilename : string or pathlib.Path
+        Name of the fits file or ``pathlib.Path`` object
     n : int
         It chooses which HDU to open. Default is the first one.
-    header : {False, True}, bool optional
+    header : bool, optional
         Whether to return the header along with the data or not.
     precision : numpy dtype
         Float precision, by default np.float32 or single precision float.
     ignore_missing_end : {False, True}, bool optional
         Allows to open fits files with a header missing END card.
-    verbose : {True, False}, bool optional
+    verbose : bool, optional
         If True prints message of completion.
     
     Returns
@@ -44,44 +44,29 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     data : array_like
         Array containing the frames of the fits-cube.
     If header is True:
-    header : dictionary
+    header : dict
         Dictionary containing the fits header.
     """
+    fitsfilename = str(fitsfilename)
     if not fitsfilename.endswith('.fits'):
         fitsfilename = fitsfilename+'.fits'
-    hdulist = ap_fits.open(fitsfilename, memmap=True,
-                           ignore_missing_end=ignore_missing_end)
-    data = hdulist[n].data
-    data = np.array(data, dtype=precision)
-    
-    if verbose:
+
+    with ap_fits.open(fitsfilename, memmap=True,
+                      ignore_missing_end=ignore_missing_end) as hdulist:
+        data = hdulist[n].data
+        data = np.array(data, dtype=precision)
+
         if header:
-            msg0 = "Fits HDU-{} data and header successfully loaded. Data"
+            header = hdulist[0].header
+            if verbose:
+                print("Fits HDU-{} data and header successfully loaded. "
+                      "Data shape: {}".format(n, data.shape))
+            return data, header
         else:
-            msg0 = "Fits HDU-{} data successfully loaded. Data"
-
-        if len(data.shape) == 1:
-            msg = msg0 + " shape: ({})"
-            print(msg.format(n, data.shape[0]))
-        if len(data.shape) == 2:
-            msg = msg0 + " shape: ({}, {})"
-            print(msg.format(n, data.shape[0], data.shape[1]))
-        if len(data.shape) == 3:
-            msg = msg0 + " shape: ({}, {}, {})"
-            print(msg.format(n, data.shape[0], data.shape[1],
-                             data.shape[2]))
-        if len(data.shape) == 4:
-            msg = msg0 + " shape: ({}, {}, {}, {})"
-            print(msg.format(n, data.shape[0], data.shape[1], data.shape[2],
-                             data.shape[3]))
-
-    if header:
-        header = hdulist[0].header
-        hdulist.close()
-        return data, header
-    else:
-        hdulist.close()
-        return data
+            if verbose:
+                print("Fits HDU-{} data successfully loaded. "
+                      "Data shape: {}".format(n, data.shape))
+            return data
 
 
 def open_adicube(fitsfilename, verbose=True):
@@ -90,8 +75,8 @@ def open_adicube(fitsfilename, verbose=True):
     
     Parameters
     ----------
-    fitsfilename : string
-        Name of the fits file.
+    fitsfilename : string or pathlib.Path
+        Name of the fits file or ``pathlib.Path`` object
     verbose : {True, False}, bool optional
         If True prints message.
         
@@ -103,18 +88,21 @@ def open_adicube(fitsfilename, verbose=True):
         1d array containing the corresponding parallactic angles.
           
     """
+    fitsfilename = str(fitsfilename)
     if not fitsfilename.endswith('.fits'):
-        fitsfilename = str(fitsfilename+'.fits')
-    hdulist = ap_fits.open(fitsfilename, memmap=True)
-    data = hdulist[0].data
+        fitsfilename = fitsfilename+'.fits'
+    with ap_fits.open(fitsfilename, memmap=True) as hdulist:
+        data = hdulist[0].data
+        parangles = hdulist[1].data
+    
     if data.ndim != 3:
         raise TypeError('Input fits file does not contain a cube or 3d array.')
-    parangles = hdulist[1].data 
+
     if verbose:
-        msg1 = "Fits HDU-{} data successfully loaded. Data shape: ({}, {}, {})"
-        msg2 = "Fits HDU-{} data successfully loaded. Data shape: ({})"
-        print(msg1.format(0, data.shape[0],data.shape[1],data.shape[2]))
-        print(msg2.format(1, parangles.shape[0]))
+        print("Fits HDU-0 data successfully loaded. "
+              "Data shape: {}".format(data.shape))
+        print("Fits HDU-1 data successfully loaded. "
+              "Data shape: {}".format(parangles.shape))
     
     return data, parangles
 
@@ -154,65 +142,79 @@ def byteswap_array(array):
 
 def info_fits(fitsfilename):
     """Prints the information about a fits file. 
+
+    Parameters
+    ----------
+    fitsfilename : str
+        Path to the fits file.
     """
-    hdulist = ap_fits.open(fitsfilename, memmap=True)
-    hdulist.info()
+    with ap_fits.open(fitsfilename, memmap=True) as hdulist:
+        hdulist.info()
 
          
-def verify_fits(fitspath):
+def verify_fits(fitsfilename):
     """Verifies "the FITS standard" of a fits file or list of fits.
 
     Parameters
     ----------
-    fitspath : string
+    fitsfilename : string or list
         Path to the fits file or list with fits filename paths.
     """
-    if isinstance(fitspath, list):
-        for ffile in fitspath:
-            f = ap_fits.open(ffile)
-            f.verify()
+    if isinstance(fitsfilename, list):
+        for ffile in fitsfilename:
+            with ap_fits.open(ffile) as f:
+                f.verify()
     else:
-        f = ap_fits.open(fitspath)
-        f.verify()
+        with ap_fits.open(fitsfilename) as f:
+            f.verify()
     
     
-def write_fits(filename, array, header=None, dtype32=True, verbose=True):
+def write_fits(fitsfilename, array, header=None, precision=np.float32,
+               verbose=True):
     """Writes array and header into FTIS file, if there is a previous file with
     the same filename then it's replaced.
     
     Parameters
     ----------
-    filename : string
+    fitsfilename : string
         Full path of the fits file to be written.
     array : array_like
         Array to be written into a fits file.
     header : array_like, optional
         Array with header. 
-    dtype32 : bool, optional
-        If True the array is casted as a float32. When False, the array is
-        usually saved in float64 precision.
+    precision : numpy dtype, optional
+        Float precision, by default np.float32 or single precision float.
     verbose : bool, optional
         If True prints message.
 
     """
-    if dtype32:
-        array = array.astype('float32', copy=False)
-    if os.path.exists(filename):
-        os.remove(filename)                                     
+    array = array.astype(precision, copy=False)
+    if os.path.exists(fitsfilename):
+        os.remove(fitsfilename)                                     
+        ap_fits.writeto(fitsfilename, array, header)
         if verbose:
             print("Fits file successfully overwritten")
-        ap_fits.writeto(filename, array, header)
     else:
-        ap_fits.writeto(filename, array, header)
+        ap_fits.writeto(fitsfilename, array, header)
         if verbose:
             print("Fits file successfully saved")
 
 
-def append_extension(filename, array):
+def append_extension(fitsfilename, array, verbose=True):
     """Appends an extension to fits file. 
+
+    Parameters
+    ----------
+    fitsfilename : str
+        Path to the fits file.
+    array : array_like
+        Data to append.
+    verbose : bool, optional
+        Print success message.
     """
-    ap_fits.append(filename, array)
-    print("Fits extension appended")
+    ap_fits.append(fitsfilename, array)
+    if verbose:
+        print("Fits extension appended")
         
         
     

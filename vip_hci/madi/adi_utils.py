@@ -41,7 +41,7 @@ def _find_indices(angle_list, frame, thr, nframes=None, out_closest=False,
 
     Returns
     -------
-    indices : arrya_like, 1d
+    indices : array_like, 1d
         Vector with the indices left.
 
     If ``out_closest`` is True then the function returns instead:

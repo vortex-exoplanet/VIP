@@ -17,7 +17,7 @@ from ..var import frame_center
 from ..conf.utils_conf import check_array, vip_figsize
 
 
-def frame_average_radprofile(array, sep=1, plot=True):
+def frame_average_radprofile(array, sep=1, init_rad=None, plot=True):
     """ Calculates the average radial profile of an image.
 
     Parameters
@@ -44,6 +44,9 @@ def frame_average_radprofile(array, sep=1, plot=True):
     check_array(array, dim=2, name='Input array')
     frame = array
     cy, cx = frame_center(frame)
+
+    if init_rad is None:
+        init_rad = 1
     x, y = np.indices((frame.shape))
     r = np.sqrt((x - cx) ** 2 + (y - cy) ** 2)
     r = r.astype(int)
@@ -51,15 +54,15 @@ def frame_average_radprofile(array, sep=1, plot=True):
     nr = np.bincount(r.ravel())
     radprofile = tbin / nr
 
-    radists = np.arange(1, int(cy), sep)
-    radprofile_radists = radprofile[radists - 1]
-    nr_radists = nr[radists - 1]
-    df = pd.DataFrame({'rad': radists - 1, 'radprof': radprofile_radists,
+    radists = np.arange(init_rad + 1, int(cy), sep) - 1
+    radprofile_radists = radprofile[radists]
+    nr_radists = nr[radists]
+    df = pd.DataFrame({'rad': radists, 'radprof': radprofile_radists,
                        'npx': nr_radists})
 
     if plot:
         plt.figure(figsize=vip_figsize)
-        plt.plot(radists - 1, radprofile_radists, '.-', alpha=0.6)
+        plt.plot(radists, radprofile_radists, '.-', alpha=0.6)
         plt.grid(which='both', alpha=0.4)
         plt.xlabel('Pixels')
         plt.ylabel('Counts')

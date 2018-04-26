@@ -332,7 +332,7 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
         return array_masked
 
 
-def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
+def get_annulus_segments(array, inner_radius, width, nsegm=1, theta_init=0,
                          optim_scale_fact=1, output_values=False):
     """ Returns indices or values in segments of a centerered annulus from a
     2d ndarray.
@@ -348,11 +348,11 @@ def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
     nsegm : int
         Number of segments of annulus to be extracted.
     theta_init : int
-        Initial azimuth [degrees] of the first segment, counting from the postivie
-        y-axis clockwise.
+        Initial azimuth [degrees] of the first segment, counting from the
+        postivie y-axis clockwise.
     optim_scale_fact : float
-        Enlargen the width of the segments, which can then be used as
-        optimization segments (like LOCI).
+        To enlarge the width of the segments, which can then be used as
+        optimization segments (e.g. in LOCI).
     output_values : bool, optional
         If True returns the values of the pixels in the each quadrant instead
         of the indices.
@@ -407,7 +407,7 @@ def get_annulus_segments(array, inner_radius, width, nsegm=8, theta_init=0,
         return indices
 
 
-### TODO: remove this in VIP v1.0.0. Replaced with get_annulus_segments
+# TODO: remove this in VIP v1.0.0. Replaced with get_annulus_segments
 def get_annulus(array, inner_radius, width, output_values=False, 
                 output_indices=False):                                          
     """Returns a centerered annulus from a 2d ndarray. All the rest pixels are 
@@ -458,7 +458,7 @@ def get_annulus(array, inner_radius, width, output_values=False,
         return array_masked
 
 
-### TODO: VIP v1.0.0: make use of get_annulus_segments instead
+# TODO: VIP v1.0.0: make use of get_annulus_segments instead
 def get_annulus_cube(array, inner_radius, width, output_values=False):     
     """ Returns a centerered annulus from a 3d ndarray. All the rest pixels are 
     set to zeros. 

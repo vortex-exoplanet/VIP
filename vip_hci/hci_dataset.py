@@ -674,6 +674,7 @@ class HCIDataset:
                                   model, imlib, interpolation, force_odd,
                                   False, verbose)
         print('Normalized PSF array shape: {}'.format(self.psfn.shape))
+        print('A new attribute `psfn` has been created')
 
     def plot(self, **kwargs):
         """ Plotting ``maxplots`` frames of the cube (3D case).

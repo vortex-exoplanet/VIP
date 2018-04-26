@@ -26,8 +26,8 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     
     Parameters
     ----------
-    fitsfilename : string or pathlib.Path object
-        Name of the fits file.
+    fitsfilename : string or pathlib.Path
+        Name of the fits file or ``pathlib.Path`` object
     n : int
         It chooses which HDU to open. Default is the first one.
     header : bool, optional
@@ -75,8 +75,8 @@ def open_adicube(fitsfilename, verbose=True):
     
     Parameters
     ----------
-    fitsfilename : string or pathlib.Path object
-        Name of the fits file.
+    fitsfilename : string or pathlib.Path
+        Name of the fits file or ``pathlib.Path`` object
     verbose : {True, False}, bool optional
         If True prints message.
         

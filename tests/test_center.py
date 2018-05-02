@@ -34,6 +34,7 @@ except:
 #                                        888
 #                                        888
 
+seed = np.random.RandomState(42)
 
 def resource(*args):
     try:
@@ -71,12 +72,13 @@ def create_cube_with_gauss2d_ring(stddev_inner, stddev_outer, **kwargs):
 
 
 def create_cube_with_satspots(n_frames=6, wh=31, star_fwhm=3, debug=False):
+    global seed
     shape = (n_frames, wh, wh)
     star = create_cube_with_gauss2d(shape=shape, mean=wh // 2, stddev=star_fwhm)
 
     # make sure satspot is neither too close to star nor at the edge of the
     # image
-    diagonal = np.random.uniform(4 * star_fwhm, wh // 2)
+    diagonal = seed.uniform(4 * star_fwhm, wh // 2)
     d = diagonal / np.sqrt(2)
 
     sat1_coords = (wh // 2 - d, wh // 2 + d)
@@ -172,6 +174,7 @@ def test_2d(debug=False):
     (positive case) or a 2D "ring" (difference of two 2D gaussians, negative 
     case).
     """
+    global seed
 
     if debug:
         html("<h2>===== test_2d =====</h2>")
@@ -180,8 +183,8 @@ def test_2d(debug=False):
     errormsg = 'Error when recentering with 2d {} fitting method'
     n_frames = 6
 
-    randax = np.random.uniform(-1, 1, size=n_frames)
-    randay = np.random.uniform(-1, 1, size=n_frames)
+    randax = seed.uniform(-1, 1, size=n_frames)
+    randay = seed.uniform(-1, 1, size=n_frames)
 
     for model, name in {"moff": "Moffat", "gauss": "Gaussian"}.items():
 
@@ -223,7 +226,7 @@ def test_2d(debug=False):
 
 
 def test_dft(debug=False):
-    
+    global seed
     if debug:
         html("<h2>===== test_dft =====</h2>")
 
@@ -233,8 +236,8 @@ def test_dft(debug=False):
     n_frames = 6
 
     shift_magnitude = 2
-    randax = np.random.uniform(-shift_magnitude, shift_magnitude, size=n_frames)
-    randay = np.random.uniform(-shift_magnitude, shift_magnitude, size=n_frames)
+    randax = seed.uniform(-shift_magnitude, shift_magnitude, size=n_frames)
+    randay = seed.uniform(-shift_magnitude, shift_magnitude, size=n_frames)
     randax[0] = 0  # do not shift first frame
     randay[0] = 0
 
@@ -292,7 +295,7 @@ def test_dft_image(debug=False):
     don't forget to specify `mse_skip_first`, as the shift of the first frame 
     does not make sense (provided by the user / determined by *gaussian* fit)
     """
-    
+    global seed
     if debug:
         html("<h2>===== test_dft_image =====</h2>")
 
@@ -305,8 +308,8 @@ def test_dft_image(debug=False):
     cube = np.array([img, ] * n_frames)
 
     #===== shift
-    randax = np.random.uniform(-1, 1, size=n_frames)
-    randay = np.random.uniform(-1, 1, size=n_frames)
+    randax = seed.uniform(-1, 1, size=n_frames)
+    randay = seed.uniform(-1, 1, size=n_frames)
     randax[0] = 0  # do not shift first frame
     randay[0] = 0
 
@@ -318,7 +321,7 @@ def test_dft_image(debug=False):
 
 
 def test_satspots_image(debug=False):
-    
+    global seed
     if debug:
         html("<h2>===== test_satspots_image =====</h2>")
 
@@ -331,8 +334,8 @@ def test_satspots_image(debug=False):
     cube = np.array([img, ] * n_frames)
 
     #===== shift
-    randax = np.random.uniform(-1, 1, size=n_frames)
-    randay = np.random.uniform(-1, 1, size=n_frames)
+    randax = seed.uniform(-1, 1, size=n_frames)
+    randay = seed.uniform(-1, 1, size=n_frames)
 
     #===== recenter
     spotcoords = [(41, 109), (109, 109), (41, 41), (109, 41)]  # NW NE SW SE
@@ -342,7 +345,7 @@ def test_satspots_image(debug=False):
 
 
 def test_satspots(debug=False):
-
+    global seed
     if debug:
         html("<h2>===== test_satspots =====</h2>")
 
@@ -355,8 +358,8 @@ def test_satspots(debug=False):
 
     #===== shift
     shift_magnitude = 1
-    randax = np.random.uniform(-shift_magnitude, 0, size=n_frames)
-    randay = np.random.uniform(0, shift_magnitude, size=n_frames)
+    randax = seed.uniform(-shift_magnitude, 0, size=n_frames)
+    randay = seed.uniform(0, shift_magnitude, size=n_frames)
 
     #===== recenter
     method_args = dict(xy=spotcoords, subi_size=9, plot=False, verbose=False)

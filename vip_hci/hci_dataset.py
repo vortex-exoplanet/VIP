@@ -534,6 +534,29 @@ class HCIDataset:
                  nproc=1):
         """ Derotating the frames of the sequence according to the parallactic
         angles.
+
+        Parameters
+        ----------
+        imlib : {'opencv', 'skimage'}, str optional
+            Library used for image transformations. Opencv is faster than
+            ndimage or skimage.
+        interpolation : str, optional
+            For 'skimage' library: 'nearneig', bilinear', 'bicuadratic',
+            'bicubic', 'biquartic', 'biquintic'. The 'nearneig' interpolation
+            is the fastest and the 'biquintic' the slowest. The 'nearneig' is
+            the poorer option for interpolation of noisy astronomical images.
+            For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
+            The 'nearneig' interpolation is the fastest and the 'lanczos4' the
+            slowest and accurate. 'lanczos4' is the default.
+        cxy : tuple of int, optional
+            Coordinates X,Y  of the point with respect to which the rotation
+            will be performed. By default the rotation is done with respect to
+            the center of the frames, as it is returned by the function
+            vip_hci.var.frame_center.
+        nproc : int, optional
+            Whether to rotate the frames in the sequence in a multi-processing
+            fashion. Only useful if the cube is significantly large (frame size
+            and number of frames).
         """
         if self.angles is None:
             raise ValueError('Parallactic angles vector has not been set')
@@ -583,9 +606,9 @@ class HCIDataset:
         _ = cube_distance(self.cube, frame, region, dist, inner_radius, width,
                           plot)
 
-    # TODO: support 4d case.
     def frame_stats(self, region='circle', radius=5, xy=None,
-                    annulus_inner_radius=0, annulus_width=5, plot=False):
+                    annulus_inner_radius=0, annulus_width=5, wavelength=0,
+                    plot=True):
         """ Calculating statistics on a ``region`` (circular aperture or
         annulus) of each image of the sequence.
 
@@ -602,11 +625,20 @@ class HCIDataset:
             Inner radius of the annular region.
         annulus_width : int, optional
             Width of the annular region.
+        wavelength : int, optional
+            Index of the wavelength to be analyzed in the case of a 4d cube.
         plot : bool, optional
             Whether to plot the frame, histograms and region.
         """
-        _ = cube_basic_stats(self.cube, region, radius, xy,
-                             annulus_inner_radius, annulus_width, plot, False)
+        if self.cube.ndim == 3:
+            _ = cube_basic_stats(self.cube, region, radius, xy,
+                                 annulus_inner_radius, annulus_width, plot,
+                                 False)
+        elif self.cube.ndim == 4:
+            print('Stats for wavelength {}'.format(wavelength + 1))
+            _ = cube_basic_stats(self.cube[wavelength], region, radius, xy,
+                                 annulus_inner_radius, annulus_width, plot,
+                                 False)
 
     def inject_companions(self, flux, rad_dists, n_branches=1,
                           theta=0, imlib='opencv', interpolation='lanczos4',
@@ -657,27 +689,88 @@ class HCIDataset:
     def mask_center(self, radius, fillwith=0, mode='in'):
         """ Masking the values inside/outside a centered circular aperture.
 
-        # TODO: support 4d case.
+        Parameters
+        ----------
+        radius : int
+            Radius of the circular aperture.
+        fillwith : int, float or np.nan, optional
+            Value to put instead of the masked out pixels.
+        mode : {'in', 'out'}, optional
+            When set to 'in' then the pixels inside the radius are set to
+            ``fillwith``. When set to 'out' the pixels outside the circular
+            mask are set to ``fillwith``.
         """
         self.cube = mask_circle(self.cube, radius, fillwith, mode)
 
-    def normalize_psf(self, fwhm='fit', size=None, threshold=None,
+    def normalize_psf(self, fit_fwhm=True, size=None, threshold=None,
                       mask_core=None, model='gauss', imlib='opencv',
                       interpolation='lanczos4', force_odd=True, verbose=True):
         """ Normalizes a PSF (2d or 3d array), to have the flux in a 1xFWHM
         aperture equal to one. It also allows to crop the array and center the
         PSF at the center of the frame(s).
+
+        Parameters
+        ----------
+        fit_fwhm: bool, optional
+            Whether to fit a ``model`` to estimate the FWHM instead of using the
+            self.fwhm attribute.
+        size : int or None, optional
+            If int it will correspond to the size of the squared subimage to be
+            cropped form the psf array.
+        threshold : None of float, optional
+            Sets to zero small values, trying to leave only the core of the PSF.
+        mask_core : None of float, optional
+            Sets the radius of a circular aperture for the core of the PSF,
+            everything else will be set to zero.
+        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+            Library or method used for performing the image shift.
+            'ndimage-fourier', does a fourier shift operation and preserves
+            better the pixel values (therefore the flux and photometry).
+            Interpolation based shift ('opencv' and 'ndimage-interp') is faster
+            than the fourier shift. 'opencv' is recommended when speed is
+            critical.
+        interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
+            Only used in case of imlib is set to 'opencv' or 'ndimage-interp',
+            where the images are shifted via interpolation. For 'ndimage-interp'
+            library: 'nearneig', bilinear', 'bicuadratic', 'bicubic',
+            'biquartic', 'biquintic'. The 'nearneig' interpolation is the
+            fastest and the 'biquintic' the slowest. The 'nearneig' is the
+            poorer option for interpolation of noisy astronomical images.
+            For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
+            The 'nearneig' interpolation is the fastest and the 'lanczos4' the
+            slowest and accurate. 'lanczos4' is the default.
+        force_odd : str, optional
+            If True the resulting array will have odd size (and the PSF will be
+            placed at its center). If False, and the frame size is even, then
+            the PSF will be put at the center of an even-sized frame.
+        full_output : bool, optional
+            If True the flux in a FWHM aperture is returned along with the
+            normalized PSF.
+        verbose : bool, optional
+            If True intermediate results are printed out.
         """
+        if not fit_fwhm and self.fwhm is None:
+            raise ValueError('FWHM has not been set')
         if self.psf is None:
             raise ValueError('PSF array has not been loaded')
+
+        if not fit_fwhm:
+            fwhm = self.fwhm
+        else:
+            fwhm = 'fit'
         self.psfn = normalize_psf(self.psf, fwhm, size, threshold, mask_core,
                                   model, imlib, interpolation, force_odd,
                                   False, verbose)
         print('Normalized PSF array shape: {}'.format(self.psfn.shape))
         print('A new attribute `psfn` has been created')
 
-    def plot(self, **kwargs):
-        """ Plotting ``maxplots`` frames of the cube (3D case).
+    def plot(self, wavelength=0, **kwargs):
+        """ Plotting the frames of a 3D or 4d cube (``wavelength``).
+
+        Parameters
+        ----------
+        wavelength : int, optional
+            Index of the wavelength to be analyzed in the case of a 4d cube.
 
         Parameters in **kwargs
         ----------------------
@@ -749,15 +842,11 @@ class HCIDataset:
         versp : float
             Vertical gap between subplots.
         """
-        # TODO: argument to slice the array?
-
         if self.cube.ndim == 3:
             pp_subplots(self.cube, **kwargs)
         elif self.cube.ndim == 4:
-            for i in range(0, self.cube.shape[0], 10):
-                tits = 'Wavelength '+str(i + 1)+', first 5 frames'
-                pp_subplots(self.cube[i], title=tits,
-                            maxplots=5, **kwargs)
+            tits = 'Wavelength '+str(wavelength + 1)
+            pp_subplots(self.cube[wavelength], title=tits, **kwargs)
 
     def recenter(self, method='2dfit', xy=None, subi_size=5, model='gauss',
                  nproc=1, imlib='opencv', interpolation='lanczos4',
@@ -770,7 +859,7 @@ class HCIDataset:
 
         Parameters
         ----------
-        method : {'2dfit', 'dftups', 'dftups_speckles', 'satspots'}, str optional
+        method : {'2d_fitting', 'dftups', 'dftups_speckles', 'satspots'}, str optional
             Recentering method.
         xy : tuple or ints or tuple of 4 tuples of ints, optional
             For the 2dfitting, ``xy`` are the coordinates of the center of the

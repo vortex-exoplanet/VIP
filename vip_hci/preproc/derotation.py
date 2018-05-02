@@ -127,7 +127,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
 def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
                   cxy=None, nproc=1):
     """ Rotates an cube (3d array or image sequence) providing a vector or
-    corrsponding angles. Serves for rotating an ADI sequence to a common north
+    corresponding angles. Serves for rotating an ADI sequence to a common north
     given a vector with the corresponding parallactic angles for each frame. By
     default bicubic interpolation is used (opencv).
     
@@ -145,9 +145,11 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         Coordinates X,Y  of the point with respect to which the rotation will be 
         performed. By default the rotation is done with respect to the center 
         of the frames, as it is returned by the function
-        vip_hci.var.frame_center. 
-    collapse : {'median','mean'}
-        Way of collapsing the derotated cube.
+        vip_hci.var.frame_center.
+    nproc : int, optional
+        Whether to rotate the frames in the sequence in a multi-processing
+        fashion. Only useful if the cube is significantly large (frame size and
+        number of frames).
         
     Returns
     -------

@@ -30,8 +30,8 @@ from sklearn.preprocessing import scale
 
 def mask_circle(array, radius, fillwith=0, mode='in'):
     """ Masks the pixels inside/outside (depending on ``mode``) of a centered
-    circle from a frame or cube, replacing the values with the value of
-    ``fillwith``.
+    circle from a frame or (3d or 4d) cube, replacing the values with the value
+    of ``fillwith``.
 
     Parameters
     ----------
@@ -58,6 +58,11 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
         cy, cx = frame_center(array)
     elif array.ndim == 3:
         cy, cx = frame_center(array[0])
+    elif array.ndim == 4:
+        cy, cx = frame_center(array[0][0])
+    else:
+        raise ValueError('`Array` must be a 2d, 3d or 4d np.ndarray')
+
     ind = circle(cy, cx, radius)
 
     if mode == 'in':
@@ -69,15 +74,17 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
         if array.ndim == 2:
             array_masked[ind] = fillwith
         elif array.ndim == 3:
-            for i in range(array.shape[0]):
-                array_masked[i][ind] = fillwith
+            array_masked[:, ind[1], ind[0]] = fillwith
+        elif array.ndim == 4:
+            array_masked[:, :, ind[1], ind[0]] = fillwith
 
     elif mode == 'out':
         if array.ndim == 2:
             array_masked[ind] = array[ind]
         elif array.ndim == 3:
-            for i in range(array.shape[0]):
-                array_masked[i][ind] = array[i][ind]
+            array_masked[:, ind[1], ind[0]] = array[:, ind[1], ind[0]]
+        elif array.ndim == 4:
+            array_masked[:, :, ind[1], ind[0]] = array[:, :, ind[1], ind[0]]
 
     return array_masked
 

@@ -282,7 +282,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
     fwhm: int, float, 1d array or str, optional
         The the Full Width Half Maximum in pixels. It can handle a different
         FWHM value for different wavelengths (IFS data). If set to 'fit' then
-        a 2D Gaussian fit (assuming the PSF is centered in the array) to
+        a ``model`` (assuming the PSF is centered in the array) is fitted to
         estimate the FWHM in 2D or 3D PSF arrays.
     size : int or None, optional
         If int it will correspond to the size of the squared subimage to be

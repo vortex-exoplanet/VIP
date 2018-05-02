@@ -55,7 +55,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
     array : array_like
         Input 2d array.
     shift_y, shift_x: float
-        Shifts in x and y directions.
+        Shifts in y and x directions.
     imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
         Library or method used for performing the image shift.
         'ndimage-fourier', does a fourier shift operation and preserves better
@@ -839,7 +839,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         of an ifs cube, where the fwhm varies with wavelength)
     subi_size : int, optional
         Size of the square subimage sides in pixels.
-    mode : str, optional
+    model : str, optional
         Sets the type of fit to be used. 'gauss' for a 2d Gaussian fit and
         'moff' for a 2d Moffat fit.
     nproc : int or None, optional
@@ -850,9 +850,9 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     offset : tuple of floats, optional
-        If None the region of the frames used for the 2d Gaussian fit is shifted
-        to the center of the images (2d arrays). If a tuple is given it serves
-        as the offset of the fitted area wrt the center of the 2d arrays.
+        If None the region of the frames used for the 2d Gaussian/Moffat fit is
+        shifted to the center of the images (2d arrays). If a tuple is given it
+        serves as the offset of the fitted area wrt the center of the 2d arrays.
     negative : bool, optional
         If True a negative 2d Gaussian/Moffat fit is performed.
     threshold : bool, optional
@@ -1041,7 +1041,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                fwhm=4, debug=False, negative=True,
                                recenter_median=False, subframesize=20,
                                imlib='opencv', interpolation='bilinear',
-                               plot=True):
+                               save_shifts=False, plot=True):
     """ Registers frames based on the median speckle pattern. Optionally centers 
     based on the position of the vortex null in the median frame. Images are 
     filtered to isolate speckle spatial frequencies.
@@ -1076,6 +1076,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         Image processing library to use. 
     interpolation : str, optional 
         Interpolation method to use.
+    save_shifts : bool, optional
+        Whether to save the shifts to a file in disk.
     plot : bool, optional
         If True, the shifts are plotted.
 
@@ -1219,6 +1221,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                           cum_x_shifts_ref[i], imlib=imlib,
                                           interpolation=interpolation)
 
+    if save_shifts:
+        np.savetxt('recent_gauss_shifts.txt',
+                   np.transpose([cum_y_shifts_sci, cum_x_shifts_sci]), fmt='%f')
     if ref_star:
         return (cube_reg_sci, cube_reg_ref, cum_x_shifts_sci, cum_y_shifts_sci,
                 cum_x_shifts_ref, cum_y_shifts_ref)

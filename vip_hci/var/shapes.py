@@ -148,17 +148,33 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
     return mask
 
 
-def dist(yc,xc,y1,x1):
+def dist(yc, xc, y1, x1):
     """ Returns the Euclidean distance between two points.
     """
     return np.sqrt((yc-y1)**2 + (xc-x1)**2)
 
 
 def frame_center(array, verbose=False):
-    """ Returns the coordinates y,x of an image center.
-    """   
-    cy = array.shape[0]/2 - 0.5
-    cx = array.shape[1]/2 - 0.5
+    """ Returns the coordinates y,x of the frame(s) center.
+
+    Parameters
+    ----------
+    array : array_like
+        2d or 3d array.
+    verbose : bool optional
+        If True the center coordinates are printed out.
+    """
+    if array.ndim == 2:
+        cy = array.shape[0]/2 - 0.5
+        cx = array.shape[1]/2 - 0.5
+    elif array.ndim == 3:
+        cy = array[0].shape[0] / 2 - 0.5
+        cx = array[0].shape[1] / 2 - 0.5
+    elif array.ndim == 4:
+        cy = array[0, 0].shape[0] / 2 - 0.5
+        cx = array[0, 0].shape[1] / 2 - 0.5
+    else:
+        raise ValueError('Input array is not a 2d, 3d or 4d array')
 
     if verbose:
         print('Center px coordinates at x,y = ({}, {})'.format(cy, cx))

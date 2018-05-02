@@ -63,6 +63,17 @@ class HCIFrame:
 
     def crop(self, size, xy=None, force=False):
         """ Cropping the frame.
+
+        Parameters
+        ----------
+        size : int, odd
+            Size of the subframe.
+        cenxy : tuple, optional
+            Coordinates of the center of the subframe.
+        force : bool, optional
+            Size and the size of the 2d array must be both even or odd. With
+            ``force`` set to True this condition can be avoided.
+
         """
         self.image = frame_crop(self.image, size, xy, force, verbose=True)
 
@@ -101,9 +112,13 @@ class HCIFrame:
 
     def get_center(self, verbose=True):
         """ Getting the coordinates of the center of the image.
+
+        Parameters
+        ----------
+        verbose : bool optional
+            If True the center coordinates are printed out.
         """
-        cent = frame_center(self.image, verbose)
-        return cent
+        return frame_center(self.image, verbose)
 
     def plot(self, **kwargs):
         """ Plotting the 2d array.
@@ -224,23 +239,88 @@ class HCIFrame:
     def rescale(self, scale, imlib='ndimage', interpolation='bicubic',
                 verbose=True):
         """ Resampling the image (upscaling or downscaling).
+
+        Parameters
+        ----------
+        scale : int, float or tuple
+            Scale factor for upsampling or downsampling the frames in the cube.
+            If a tuple it corresponds to the scale along x and y.
+        imlib : {'ndimage', 'opencv'}, str optional
+            Library used for image transformations. ndimage is the default.
+        interpolation : str, optional
+            For 'ndimage' library: 'nearneig', bilinear', 'bicuadratic',
+            'bicubic', 'biquartic', 'biquintic'. The 'nearneig' interpolation
+            is the fastest and the 'biquintic' the slowest. The 'nearneig' is
+            the worst option for interpolation of noisy astronomical images.
+            For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
+            The 'nearneig' interpolation is the fastest and the 'lanczos4' the
+            slowest and accurate.
+        verbose : bool, optional
+            Whether to print out additional info such as the new image shape.
         """
         self.image = frame_px_resampling(self.image, scale, imlib, interpolation,
                                          verbose)
 
     def rotate(self, angle, imlib='opencv', interpolation='lanczos4', cxy=None):
-        """ Rotating the image.
+        """ Rotating the image by a given ``angle``.
+
+        Parameters
+        ----------
+        imlib : {'opencv', 'skimage'}, str optional
+            Library used for image transformations. Opencv is faster than
+            ndimage or skimage.
+        interpolation : str, optional
+            For 'skimage' library: 'nearneig', bilinear', 'bicuadratic',
+            'bicubic', 'biquartic', 'biquintic'. The 'nearneig' interpolation
+            is the fastest and the 'biquintic' the slowest. The 'nearneig' is
+            the poorer option for interpolation of noisy astronomical images.
+            For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
+            The 'nearneig' interpolation is the fastest and the 'lanczos4' the
+            slowest and accurate. 'lanczos4' is the default.
+        cxy : tuple of int, optional
+            Coordinates X,Y  of the point with respect to which the rotation
+            will be performed. By default the rotation is done with respect to
+            the center of the frames, as it is returned by the function
+            vip_hci.var.frame_center.
+
         """
         self.image = frame_rotate(self.image, angle, imlib, interpolation, cxy)
         print('Image successfully rotated')
 
     def save(self, path):
         """ Writing to FITS file.
+
+        Parameters
+        ----------
+        path : string
+            Full path of the fits file to be written.
         """
         write_fits(path, self.image)
 
     def shift(self, shift_y, shift_x, imlib='opencv', interpolation='lanczos4'):
         """ Shifting the image.
+
+        Parameters
+        ----------
+        shift_y, shift_x: float
+            Shifts in x and y directions.
+        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+            Library or method used for performing the image shift.
+            'ndimage-fourier', does a fourier shift operation and preserves
+            better the pixel values (therefore the flux and photometry).
+            Interpolation based shift ('opencv' and 'ndimage-interp') is faster
+            than the fourier shift. 'opencv' is recommended when speed is
+            critical.
+        interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
+            Only used in case of imlib is set to 'opencv' or 'ndimage-interp',
+            where the images are shifted via interpolation.
+            For 'ndimage-interp' library: 'nearneig', bilinear', 'bicuadratic',
+            'bicubic', 'biquartic', 'biquintic'. The 'nearneig' interpolation is
+            the fastest and the 'biquintic' the slowest. The 'nearneig' is the
+            poorer option for interpolation of noisy astronomical images.
+            For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
+            The 'nearneig' interpolation is the fastest and the 'lanczos4' the
+            slowest and accurate. 'lanczos4' is the default.
         """
         self.image = frame_shift(self.image, shift_y, shift_x, imlib,
                                  interpolation)
@@ -601,8 +681,23 @@ class HCIDataset:
         """ Calculating the frame distance/correlation with respect to a
         reference image.
 
-        # TODO: support 4d case.
+        Parameters
+        ----------
+        frame : int or 2d array
+            Reference frame in the cube or 2d array.
+        region : {'full', 'annulus'}, string optional
+            Whether to use the full frames or a centered annulus.
+        dist : {'sad','euclidean','mse','pearson','spearman', 'ssim'}, str optional
+            Which criterion to use.
+        inner_radius : None or int, optional
+            The inner radius when mode is 'annulus'.
+        width : None or int, optional
+            The width when mode is 'annulus'.
+        plot : bool, optional
+            Whether to plot the distances or not.
+
         """
+        # TODO: support 4d case.
         _ = cube_distance(self.cube, frame, region, dist, inner_radius, width,
                           plot)
 
@@ -629,6 +724,7 @@ class HCIDataset:
             Index of the wavelength to be analyzed in the case of a 4d cube.
         plot : bool, optional
             Whether to plot the frame, histograms and region.
+
         """
         if self.cube.ndim == 3:
             _ = cube_basic_stats(self.cube, region, radius, xy,
@@ -645,9 +741,42 @@ class HCIDataset:
                           verbose=True):
         """ Injection of fake companions in 3d or 4d cubes.
 
+        Parameters
+        ----------
+        flux : float or list
+            Factor for controlling the brightness of the fake companions.
+        rad_dists : float, list or array 1d
+            Vector of radial distances of fake companions in pixels.
+        n_branches : int, optional
+            Number of azimutal branches.
+        theta : float, optional
+            Angle in degrees for rotating the position of the first branch that
+            by default is located at zero degrees. Theta counts
+            counterclockwise from the positive x axis.
+        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+            Library or method used for performing the image shift.
+            'ndimage-fourier', does a fourier shift operation and preserves
+            better the pixel values (therefore the flux and photometry).
+            Interpolation based shift ('opencv' and 'ndimage-interp') is faster
+            than the fourier shift. 'opencv' is recommended when speed is
+            critical.
+        interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
+            Only used in case of imlib is set to 'opencv' or 'ndimage-interp',
+            where the images are shifted via interpolation. For 'ndimage-interp'
+            library: 'nearneig', bilinear', 'bicuadratic', 'bicubic',
+            'biquartic', 'biquintic'. The 'nearneig' interpolation is the
+            fastest and the 'biquintic' the slowest. The 'nearneig' is the
+            poorer option for interpolation of noisy astronomical images.
+            For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
+            The 'nearneig' interpolation is the fastest and the 'lanczos4' the
+            slowest and accurate. 'lanczos4' is the default.
+        verbose : bool, optional
+            If True prints out additional information.
+
+        """
         # TODO: support the injection of a Gaussian/Moffat kernel.
         # TODO: return array/HCIDataset object instead?
-        """
+
         if self.psf is None:
             raise ValueError('PSf array has not been set')
         if self.px_scale is None:
@@ -658,9 +787,17 @@ class HCIDataset:
                                             n_branches, theta, imlib,
                                             interpolation, verbose)
 
-    def load_angles(self, angles, hdu):
+    def load_angles(self, angles, hdu=0):
         """ Loads the PA vector from a FITS file. It is possible to specify the
         HDU.
+
+        Parameters
+        ----------
+        angles : str or 1d numpy.ndarray
+            List or vector with the parallactic angles.
+        hdu : int, optional
+            If ``angles`` is a String, ``hdu`` indicates the HDU from the FITS
+            file. By default the first HDU is used.
         """
         if isinstance(angles, str):
             self.angles = open_fits(angles, hdu)
@@ -670,13 +807,18 @@ class HCIDataset:
             msg = '`Angles` has a wrong type. Must be a list or 1d np.ndarray'
             raise ValueError(msg)
 
-    def load_wavelengths(self, wavelengths, hdu):
+    def load_wavelengths(self, wavelengths, hdu=0):
         """ Loads the scaling factors vector from a FITS file. It is possible to
         specify the HDU.
 
         Parameters
         ----------
-        wavelengths :
+        wavelengths : str or 1d numpy.ndarray
+            List or vector with the wavelengths.
+        hdu : int, optional
+            If ``wavelengths`` is a String, ``hdu`` indicates the HDU from the
+            FITS file. By default the first HDU is used.
+
         """
         if isinstance(wavelengths, str):
             self.wavelengths = open_fits(wavelengths, hdu)
@@ -699,6 +841,7 @@ class HCIDataset:
             When set to 'in' then the pixels inside the radius are set to
             ``fillwith``. When set to 'out' the pixels outside the circular
             mask are set to ``fillwith``.
+
         """
         self.cube = mask_circle(self.cube, radius, fillwith, mode)
 
@@ -859,7 +1002,7 @@ class HCIDataset:
 
         Parameters
         ----------
-        method : {'2d_fitting', 'dftups', 'dftups_speckles', 'satspots'}, str optional
+        method : {'2dfit', 'dftups', 'dftupspeckles', 'satspots'}, str optional
             Recentering method.
         xy : tuple or ints or tuple of 4 tuples of ints, optional
             For the 2dfitting, ``xy`` are the coordinates of the center of the
@@ -869,11 +1012,84 @@ class HCIDataset:
             top-left, top-right, bottom-left and bottom-right. When the spots
             are in an + (cross-like) configuration, the order is the following:
             top, right, left, bottom.
+        subi_size : int, optional
+            Size of the square subimage sides in pixels.
+        model : str, optional
+            Used for the ``2dfit`` method. Sets the type of fit to be used.
+            'gauss' for a 2d Gaussian fit and 'moff' for a 2d Moffat fit.
+        nproc : int or None, optional
+            Number of processes (>1) for parallel computing. If 1 then it runs
+            in serial. If None the number of processes will be set to
+            (cpu_count()/2).
+        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+            Library or method used for performing the image shift.
+            'ndimage-fourier', does a fourier shift operation and preserves
+            better the pixel values (therefore the flux and photometry).
+            Interpolation based shift ('opencv' and 'ndimage-interp') is faster
+            than the fourier shift. 'opencv' is recommended when speed is
+            critical.
+        interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
+            Only used in case of imlib is set to 'opencv' or 'ndimage-interp',
+            where the images are shifted via interpolation.
+            For 'ndimage-interp' library: 'nearneig', bilinear', 'bicuadratic',
+            'bicubic', 'biquartic', 'biquintic'. The 'nearneig' interpolation is
+            the fastest and the 'biquintic' the slowest. The 'nearneig' is the
+            poorer option for interpolation of noisy astronomical images.
+            For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
+            The 'nearneig' interpolation is the fastest and the 'lanczos4' the
+            slowest and accurate. 'lanczos4' is the default.
+        offset : tuple of floats, optional
+            Used for the ``2dfit`` method. If None the region of the frames
+            used for the 2d Gaussian/Moffat fit is shifted to the center of the
+            images (2d arrays). If a tuple is given it serves as the offset of
+            the fitted area wrt the center of the 2d arrays.
+        negative : bool, optional
+            Used for the ``2dfit`` method. If True a negative 2d Gaussian/Moffat
+            fit is performed.
+        threshold : bool, optional
+            Used for the ``2dfit`` method. If True the background pixels
+            (estimated using sigma clipped statistics) will be replaced by
+            small random Gaussian noise.
+        save_shifts : bool, optional
+            Whether to save the shifts to a file in disk.
+        cy_1, cx_1 : int, optional
+            Used for the ``dftups`` method. Coordinates of the center of the
+            subimage for fitting a 2d Gaussian and centroiding the 1st frame.
+        upsample_factor : int, optional
+            Used for the ``dftups`` method. Upsampling factor (default 100).
+            Images will be registered to within 1/upsample_factor of a pixel.
+        alignment_iter : int, optional
+            Used for the ``dftupspeckles`` method. Number of alignment
+            iterations (recomputes median after each iteration).
+        gamma : int, optional
+            Used for the ``dftupspeckles`` method. Applies a gamma correction
+            to emphasize speckles (useful for faint stars).
+        min_spat_freq : float, optional
+            Used for the ``dftupspeckles`` method. Spatial frequency for high
+            pass filter.
+        max_spat_freq : float, optional
+            Used for the ``dftupspeckles`` method. Spatial frequency for low
+            pass filter.
+        recenter_median : bool, optional
+            Used for the ``dftupspeckles`` method. Recenter the frames at each
+            iteration based on the gaussian fit.
+        sigfactor : int, optional
+            Used for the ``dftupspeckles`` method. The background pixels will
+            be thresholded before fitting a 2d Gaussian to the data using sigma
+            clipped statistics. All values smaller than (MEDIAN +
+            sigfactor*STDDEV) will be replaced by small random Gaussian noise.
+        verbose : bool, optional
+            Whether to print to stdout the timing and aditional info.
+        debug : bool, optional
+            If True debug information is printed and plotted.
+        plot : bool, optional
+            Whether to plot the shifts.
+
         """
         if self.fwhm is None:
             raise ValueError('FWHM has not been set')
 
-        if method == '2d_fitting':
+        if method == '2dfit':
             self.cube = cube_recenter_2dfit(self.cube, xy, self.fwhm, subi_size,
                                     model, nproc, imlib, interpolation, offset,
                                     negative, threshold, save_shifts, False,
@@ -883,7 +1099,7 @@ class HCIDataset:
                                     negative, self.fwhm, subi_size,
                                     upsample_factor, imlib, interpolation,
                                     False, verbose, save_shifts, debug)
-        elif method == 'dftups_speckles':
+        elif method == 'dftupspeckles':
             res = cube_recenter_via_speckles(self.cube, self.cuberef,
                                     alignment_iter, gamma, min_spat_freq,
                                     max_spat_freq, self.fwhm, debug, negative,
@@ -941,9 +1157,28 @@ class HCIDataset:
     def rescale(self, scale, imlib='ndimage', interpolation='bicubic',
                 verbose=True):
         """ Resampling the pixels (upscaling or downscaling the frames).
+
+        Parameters
+        ----------
+        scale : int, float or tuple
+            Scale factor for upsampling or downsampling the frames in the cube.
+            If a tuple it corresponds to the scale along x and y.
+        imlib : {'ndimage', 'opencv'}, str optional
+            Library used for image transformations. ndimage is the default.
+        interpolation : str, optional
+            For 'ndimage' library: 'nearneig', bilinear', 'bicuadratic',
+            'bicubic', 'biquartic', 'biquintic'. The 'nearneig' interpolation
+            is the fastest and the 'biquintic' the slowest. The 'nearneig' is
+            the worst option for interpolation of noisy astronomical images.
+            For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
+            The 'nearneig' interpolation is the fastest and the 'lanczos4' the
+            slowest and accurate.
+        verbose : bool, optional
+            Whether to print out additional info such as the new cube shape.
+
         """
         self.cube = cube_px_resampling(self.cube, scale, imlib, interpolation,
-                                        verbose)
+                                       verbose)
 
     def save(self, path, precision=np.float32):
         """ Writing to FITS file. If self.angles is present, then the angles

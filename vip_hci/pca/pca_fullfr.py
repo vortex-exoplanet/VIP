@@ -109,7 +109,15 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         "spat-mean" then the spatial mean is subtracted, with "temp-standard" 
         temporal mean centering plus scaling to unit variance is done and with
         "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.  
+        performed.
+    adimsdi : {'double', 'single'}, str optional
+        In the case ``cube`` is a 4d array, ``adimsdi`` determines whether a
+        single or double pass PCA is going to be computed. In the ``single``
+        case, the multi-spectral frames are rescaled wrt the largest wavelength
+        to align the speckles and all the frames are processed with a single
+        PCA low-rank approximation. In the ``double`` case, a firt stage is run
+        on the rescaled spectral frames, and a second PCA frame is run on the
+        residuals in an ADI fashion.
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
         radius of the circular mask. 

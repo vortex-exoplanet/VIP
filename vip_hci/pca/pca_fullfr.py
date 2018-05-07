@@ -20,10 +20,12 @@ from matplotlib import pyplot as plt
 from sklearn.decomposition import IncrementalPCA
 from .svd import svd_wrapper
 from ..madi.adi_utils import _find_indices, _compute_pa_thresh
-from .utils_pca import pca_annulus, scale_cube_for_pca as scpca
+from .utils_pca import pca_annulus
+from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector, cube_crop_frames)
 from ..conf import timing, time_ini, check_enough_memory, get_available_memory
+from ..conf.utils_conf import vip_figsize
 from ..var import frame_center, dist, prepare_matrix, reshape_matrix
 from ..stats import descriptive_stats
 from .. import phot
@@ -52,12 +54,6 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     the cube is a 4d array [# channels, # adi-frames, Y, X], its assumed it 
     contains several multi-spectral ADI frames. A single or two stages PCA can
     be performed, depending on ``adimsdi``.
-    
-    Notes
-    -----
-    The full-frame ADI-PCA implementation is based on Soummer et al. 2012
-    (http://arxiv.org/abs/1207.4197) and Amara & Quanz 2012
-    (http://arxiv.org/abs/1207.6637).
     
     Parameters
     ----------
@@ -154,7 +150,13 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     
     If full_output is True, and depending on the type of cube (ADI or ADI+mSDI),
     then several arrays will be returned, such as the residuals, de-rotated
-    residuals, principal components,
+    residuals, principal components
+
+    References
+    ----------
+    The full-frame ADI-PCA implementation is based on Soummer et al. 2012
+    (http://arxiv.org/abs/1207.4197) and Amara & Quanz 2012
+    (http://arxiv.org/abs/1207.6637).
     """
     if not cube.ndim > 2:
         raise TypeError('Input array is not a 3d or 4d array')
@@ -404,7 +406,7 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
         tit = 'Rescaling the spectral channels to align the speckles'
         bar = pyprind.ProgBar(n, stream=1, title=tit)
     for i in range(n):
-        cube_resc, _, _, _, _, _ = scpca(cube[:, i, :, :], scale_list)
+        cube_resc, _, _, _, _, _ = scwave(cube[:, i, :, :], scale_list)
         cube_resc = cube_crop_frames(cube_resc, size=y_in, verbose=False)
         big_cube.append(cube_resc)
         if verbose:
@@ -428,9 +430,9 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
         tit = 'Descaling the spectral channels'
         bar = pyprind.ProgBar(n, stream=1, title=tit)
     for i in range(n):
-        frame_i = scpca(res_cube[i * z:(i+1) * z, :, :], scale_list,
-                        full_output=full_output, inverse=True, y_in=y_in,
-                        x_in=x_in)
+        frame_i = scwave(res_cube[i * z:(i+1) * z, :, :], scale_list,
+                         full_output=full_output, inverse=True, y_in=y_in,
+                         x_in=x_in)
         resadi_cube[i] = frame_i
         if verbose:
             bar.update()
@@ -492,7 +494,7 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
             tit = 'First PCA stage exploiting spectral variability'
             bar = pyprind.ProgBar(n, stream=1, title=tit)
         for i in range(n):
-            cube_resc, _, _, _, _, _ = scpca(cube[:, i, :, :], scale_list)
+            cube_resc, _, _, _, _, _ = scwave(cube[:, i, :, :], scale_list)
             residuals_result = _subtr_proj_fullfr(cube_resc, None, ncomp,
                                                   scaling, mask_center_px,
                                                   debug, svd_mode, False,
@@ -501,8 +503,9 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
                 residuals_cube = residuals_result[0]
             else:
                 residuals_cube = residuals_result
-            frame_i = scpca(residuals_cube, scale_list, full_output=full_output,
-                            inverse=True, y_in=y_in, x_in=x_in)
+            frame_i = scwave(residuals_cube, scale_list,
+                             full_output=full_output, inverse=True, y_in=y_in,
+                             x_in=x_in)
             residuals_cube_channels[i] = frame_i
             if verbose:
                 bar.update()

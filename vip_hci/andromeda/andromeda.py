@@ -2,13 +2,13 @@
 Implementation of the ANDROMEDA algorithm from [MUG09]_ / [CANT15]_
 
 .. [MUG09]
-   | Mugnier *et al*, 2009
+   | Mugnier et al, 2009
    | **Optimal method for exoplanet detection by angular differential imaging**
    | *J. Opt. Soc. Am. A, 26(6), 1326–1334*
    | `doi:10.1364/JOSAA.26.001326 <http://doi.org/10.1364/JOSAA.26.001326>`_
 
 .. [CANT15]
-   | Cantalloube *et al*, 2015
+   | Cantalloube et al, 2015
    | **Direct exoplanet detection and characterization using the ANDROMEDA
      method: Performance on VLT/NaCo data**
    | *A&A, 582*
@@ -37,8 +37,7 @@ def andromeda(cube, oversampling_fact, angles, psf,
               filtering_fraction=.25, min_sep=.5, annuli_width=1., roa=2.,
               opt_method='lsq', nsmooth_snr=18, iwa=1., precision=50,
               homogeneous_variance=True, multiply_gamma=True, verbose=False):
-    """
-    exoplanet detection by maximum-likelihood approach.
+    """ Exoplanet detection in ADI sequences by maximum-likelihood approach.
 
     Parameters
     ----------
@@ -126,6 +125,23 @@ def andromeda(cube, oversampling_fact, angles, psf,
         too close to the edge to be analyzed.
         IDL parameter: ``EXT_RADIUS_OUTPUT``
 
+    References
+    ----------
+    .. [MUG09]
+       | Mugnier et al, 2009
+       | **Optimal method for exoplanet detection by angular differential
+         imaging**
+       | *J. Opt. Soc. Am. A, 26(6), 1326–1334*
+       | `doi:10.1364/JOSAA.26.001326 <http://doi.org/10.1364/JOSAA.26.001326>`_
+
+    .. [CANT15]
+       | Cantalloube et al, 2015
+       | **Direct exoplanet detection and characterization using the ANDROMEDA
+         method: Performance on VLT/NaCo data**
+       | *A&A, 582*
+       | `doi:10.1051/0004-6361/201425571
+         <http://doi.org/10.1051/0004-6361/201425571>`_,
+         `arXiv:1508.06406 <http://arxiv.org/abs/1508.06406>`_
 
     Notes
     -----
@@ -206,14 +222,12 @@ def andromeda(cube, oversampling_fact, angles, psf,
         # also note the comment in andromeda.pro:691:
         #   ;If post-normalisation, set to 0, else 1
 
-
     #===== initialize output
 
     flux = np.zeros_like(cube[0])
     snr = np.zeros_like(cube[0])
     likelihood = np.zeros_like(cube[0])
     stdflux = np.zeros_like(cube[0])
-
 
     #===== pre-processing
 
@@ -235,7 +249,6 @@ def andromeda(cube, oversampling_fact, angles, psf,
                                     hanning_cutoff=filtering_fraction)
         print("Pre-processing filtering of the images and the PSF: "
               "done! F={}".format(filtering_fraction))
-
 
     # definition of the width of each annuli 
     dmin = iwa
@@ -262,7 +275,6 @@ def andromeda(cube, oversampling_fact, angles, psf,
         angmin = 2*np.arcsin(min_sep_pix/(2*rhomin))*180/np.pi
         index_neg, index_pos, indices_not_used = create_indices(angles, angmin)
 
-
         if verbose:
             if len(indices_not_used) != 0:
                 print("  WARNING: {} frame(s) cannot be used because it wasn't "
@@ -278,7 +290,6 @@ def andromeda(cube, oversampling_fact, angles, psf,
                       "(corresponding to {} pixels).".format(max_sep_ld,
                                                              max_sep_pix))
 
-
         #===== angular differences
         print("  Performing angular difference...")
 
@@ -287,12 +298,10 @@ def andromeda(cube, oversampling_fact, angles, psf,
                            opt_method=opt_method)
         cube_diff, gamma, gamma_prime = res
 
-
         if not multiply_gamma:
             # reset gamma & gamma_prime to 1 (they were returned by diff_images)
             gamma = np.ones_like(gamma)
             gamma_prime = np.ones_like(gamma_prime)
-
 
         # TODO: gamma
         # ;Gamma_affine:
@@ -313,13 +322,12 @@ def andromeda(cube, oversampling_fact, angles, psf,
 
         # launch andromeda core (:859)
         print("  Matching...")
-        res = andromeda_core(cube=cube_diff,
-                              index_neg=index_neg, index_pos=index_pos,
-                              angles=angles, psf_cube=psf_cube,
-                              homogeneous_variance=homogeneous_variance,
-                              rhomin=rhomin, rhomax=rhomax,
-                              gamma=gamma, gamma_prime=gamma_prime,
-                              verbose=verbose)
+        res = andromeda_core(cube=cube_diff, index_neg=index_neg,
+                             index_pos=index_pos, angles=angles,
+                             psf_cube=psf_cube,
+                             homogeneous_variance=homogeneous_variance,
+                             rhomin=rhomin, rhomax=rhomax, gamma=gamma,
+                             gamma_prime=gamma_prime, verbose=verbose)
 
         flux += res[0]
         snr += res[1]
@@ -351,11 +359,9 @@ def andromeda(cube, oversampling_fact, angles, psf,
         return flux, snr, likelihood, stdflux, ext_radius
 
 
-
-
 def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
-                    gamma=None, gamma_prime=None, homogeneous_variance=True,
-                    positivity=False, verbose=False):
+                   gamma=None, gamma_prime=None, homogeneous_variance=True,
+                   positivity=False, verbose=False):
     """
     Parameters
     ----------
@@ -421,7 +427,6 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
         print("    ANDROMEDA_CORE: The scaling factor is not taken into account"
               "to build the model!")
 
-
     # calculate variance
     variance_diff_2d = (cube**2).sum(0)/npairs - (cube.sum(0)/npairs)**2
 
@@ -439,7 +444,6 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
 
     weighted_diff_images = cube * weights_diff_2d
 
-
     # create annuli
     d = create_distance_matrix(npix)
     select_pixels = ((d > rhomin) & (d < rhomax))
@@ -456,7 +460,6 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
         # shape (2,npairs) -> array([[1, 2, 3],
         #                             [4, 5, 6]])   (for npairs=3)
         # IDL: dimension = SIZE =  _, npairs,2, _, _
-
 
     for j in range(npix//2 - np.ceil(rhomax).astype(int),
                    npix//2 + np.ceil(rhomax).astype(int)):
@@ -494,10 +497,8 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
                 num_part = 0
                 den_part = 0
 
-              
                 for k in range(npairs):
                 # this is the innermost loop, performed MANY times
-
 
                     patt_pos = np.zeros((px_ymax[k]-px_ymin[k]+1,
                                          px_xmax[k]-px_xmin[k]+1))
@@ -539,8 +540,6 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
                 numerator[j,i] = num_part
                 denominator[j,i] = den_part
 
-
-
     if positivity:  # TODO
         numerator = np.minimum(numerator, 0)
 
@@ -559,10 +558,6 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
                                        # the right approach?
 
     return flux, snr, likelihood, stdflux
-
-
-
-
 
 
 def create_indices(angles, angmin):
@@ -631,8 +626,6 @@ def create_indices(angles, angmin):
                     indices_not_used.append(i)
 
     return np.array(indices_neg), np.array(indices_pos), indices_not_used
-
-
 
 
 def diff_images(cube_pos, cube_neg, rint, rext, opt_method="lsq",
@@ -734,21 +727,15 @@ def diff_images(cube_pos, cube_neg, rint, rext, opt_method="lsq",
             else:
                 raise ValueError("opt_method '{}' unknown".format(opt_method))
 
-
     if verbose:
         print("    DIFF_IMAGES: median gamma={:.3f}, median gamma_prime={:.3f}"
               "".format(np.median(gamma), np.median(gamma_prime)))
-        
 
     # compute image differences
     for i in range(nimg):
         cube_diff[i] = cube_pos[i] - cube_neg[i]*gamma[i] - gamma_prime[i]
 
     return cube_diff, gamma, gamma_prime
-
-
-
-
 
 
 def normalize_snr(snr, dmin, dmax, nsmooth_snr=0):

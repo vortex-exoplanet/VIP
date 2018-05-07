@@ -27,6 +27,8 @@ class HCIPostProcAlgo(BaseEstimator):
             print("{}: {}".format(key, dicpar[key]))
 
 
+# TODO: output cube and frames as HCIDataset and HCIFrame objects?
+
 class HCIMedianSub(HCIPostProcAlgo):
     """ HCI median subtraction algorithm.
 
@@ -95,17 +97,18 @@ class HCIMedianSub(HCIPostProcAlgo):
             intermediate arrays.
         verbose : bool, optional
             If True prints to stdout intermediate info.
-            
+
         """
         if not isinstance(dataset, HCIDataset):
             raise ValueError('`Dataset` must be a HCIDataset object')
 
-        # TODO: 4d support ADI medsub function
+        if self.mode == 'annular' and dataset.fwhm is None:
+            raise ValueError('`FWHM` has not been set')
 
-        res = adi(dataset.cube, dataset.angles, dataset.fwhm, self.radius_int,
-                  self.asize, self.delta_rot, self.mode, self.nframes,
-                  self.imlib, self.interpolation, self.collapse, self.nproc,
-                  full_output, verbose)
+        res = adi(dataset.cube, dataset.angles, dataset.wavelengths,
+                  dataset.fwhm, self.radius_int, self.asize, self.delta_rot,
+                  self.mode, self.nframes, self.imlib, self.interpolation,
+                  self.collapse, self.nproc, full_output, verbose)
 
         if full_output:
             cube_residuals, cube_residuals_der, frame_final = res

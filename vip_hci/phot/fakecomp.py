@@ -311,8 +311,8 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
     psf_norm: array_like
         The normalized psf.
 
-    If ``full_output`` is True the flux in a FWHM aperture is returned along
-    with the normalized PSF.
+    If ``full_output`` is True the flux in a FWHM aperture and the FWHM size are
+    returned along with the normalized PSF.
     """
     def psf_norm_2d(array, fwhm, size, threshold, mask_core, full_output,
                     verbose):
@@ -365,7 +365,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         if full_output:
             if verbose:
                 print("Flux in 1xFWHM aperture: {}".format(fwhm_flux))
-            return psf_norm_array, fwhm_flux
+            return psf_norm_array, fwhm_flux, fwhm
         else:
             return psf_norm_array
     ############################################################################

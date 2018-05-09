@@ -580,10 +580,8 @@ class HCIDataset:
             if self.cube.ndim == 4:
                 self.fwhm = check_array(self.fwhm, 1, 'FHWM')
             elif self.cube.ndim == 3:
-                print('FWHM: {}'.format(self.fwhm))
+                pass
         self.px_scale = px_scale
-        if self.px_scale is not None:
-            print('Pixel/plate scale: {}'.format(self.px_scale))
 
     def collapse(self, mode='median', n=50):
         """ Collapsing the sequence into a 2d array.

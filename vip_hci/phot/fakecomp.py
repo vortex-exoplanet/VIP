@@ -397,11 +397,11 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
             if model == 'gauss':
                 fwhm = np.mean((fit['fwhm_x'], fit['fwhm_y']))
                 if verbose:
-                    print("Mean FWHM :\n{}".format(fwhm))
+                    print("Mean FWHM: {:.3f}".format(fwhm))
             elif model == 'moff' or model == 'airy':
                 fwhm = fit['fwhm']
                 if verbose:
-                    print("FWHM :\n{}".format(fwhm))
+                    print("FWHM: {:.3f}".format(fwhm))
 
         res = psf_norm_2d(array, fwhm, size, threshold, mask_core, full_output,
                           verbose)
@@ -431,13 +431,13 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                 fwhm_vect = [np.mean((fwhmx[i], fwhmy[i])) for i in range(n)]
                 fwhm = np.array(fwhm_vect)
                 if verbose:
-                    print("Mean FWHM :\n{}".format(fwhm))
+                    print("Mean FWHM: {:.3f}".format(fwhm))
             elif model == 'moff' or model == 'airy':
                 fwhm_vect = [fits_vect[i]['fwhm'] for i in range(n)]
                 fwhm = np.array(fwhm_vect)
                 fwhm = fwhm.flatten()
                 if verbose:
-                    print("FWHM per channel :\n{}".format(fwhm))
+                    print("FWHM per channel: {}".format(fwhm))
 
         array_out = []
         fwhm_flux = np.zeros(n)
@@ -450,7 +450,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
 
         array_out = np.array(array_out)
         if verbose:
-            print("Flux in 1xFWHM aperture :\n{}".format(fwhm_flux))
+            print("Flux in 1xFWHM aperture: {:.3f}".format(fwhm_flux))
         if full_output:
             return array_out, fwhm_flux
         else:

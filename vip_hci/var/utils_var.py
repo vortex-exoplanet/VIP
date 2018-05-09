@@ -398,6 +398,10 @@ def pp_subplots(*args, **kwargs):
             norm = colors.LogNorm(vmin=max(image.min(), 0.1), vmax=image.max())
         else:
             norm = None
+        
+        if image.dtype == bool:
+            image = image.astype(int)
+
         im = ax.imshow(image, cmap=custom_cmap[i], interpolation='nearest',
                        origin='lower', vmin=vmin[i], vmax=vmax[i],
                        norm=norm)

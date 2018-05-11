@@ -23,10 +23,10 @@ from .utils_pca import pca_annulus
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector, cube_crop_frames)
-from ..conf import timing, time_ini, check_enough_memory, get_available_memory
+from ..conf import (timing, time_ini, check_enough_memory, get_available_memory,
+                    Progressbar)
 from ..conf.utils_conf import vip_figsize
-from ..var import (frame_center, dist, prepare_matrix, reshape_matrix,
-                   Progressbar)
+from ..var import frame_center, dist, prepare_matrix, reshape_matrix
 from ..stats import descriptive_stats
 from .. import phot
 

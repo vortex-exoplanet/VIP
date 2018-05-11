@@ -24,10 +24,11 @@ import numpy as np
 import itertools as itt
 from multiprocessing import Pool, cpu_count
 from ..conf import time_ini, timing
-from ..var import get_annulus, mask_circle, Progressbar
+from ..var import get_annulus, mask_circle
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector)
 from ..preproc import cube_rescaling_wavelengths as scwave
+from ..conf import Progressbar
 from ..conf.utils_conf import eval_func_tuple as EFT
 from .adi_utils import _find_indices, _define_annuli
 

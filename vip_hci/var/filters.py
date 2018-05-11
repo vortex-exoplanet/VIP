@@ -26,7 +26,7 @@ from scipy.ndimage import gaussian_filter, median_filter
 from astropy.convolution import convolve_fft, Gaussian2DKernel
 from astropy.stats import gaussian_fwhm_to_sigma
 from ..exlib import iuwt
-from .utils_var import Progressbar
+from ..conf import Progressbar
 
 
 def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):

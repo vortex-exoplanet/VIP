@@ -17,9 +17,9 @@ from skimage.draw import circle, ellipse
 from scipy.ndimage import median_filter
 from astropy.stats import sigma_clipped_stats
 from ..stats import sigma_filter
-from ..var import dist, frame_center, pp_subplots, Progressbar
+from ..var import dist, frame_center, pp_subplots
 from ..stats import clip_array
-from ..conf import timing, time_ini
+from ..conf import timing, time_ini, Progressbar
 
 
 def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,

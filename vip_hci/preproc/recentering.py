@@ -36,12 +36,12 @@ from skimage.feature import register_translation
 from multiprocessing import Pool, cpu_count
 from matplotlib import pyplot as plt
 from . import frame_crop
-from ..conf import time_ini, timing
+from ..conf import time_ini, timing, Progressbar
 from ..conf.utils_conf import vip_figsize
 from ..conf.utils_conf import eval_func_tuple as EFT
 from ..var import (get_square, frame_center, get_annulus, pp_subplots,
                    fit_2dmoffat, fit_2dgaussian, cube_filter_lowpass,
-                   cube_filter_highpass, Progressbar)
+                   cube_filter_highpass)
 from ..preproc import cube_crop_frames
 
 

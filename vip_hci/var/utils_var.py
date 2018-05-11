@@ -10,7 +10,8 @@ __author__ = 'Carlos Alberto Gomez Gonzalez, O. Wertz'
 __all__ = ['pp_subplots',
            'plot_surface',
            'get_fwhm',
-           'lines_of_code']
+           'lines_of_code',
+           'Progressbar']
 
 import os
 import numpy as np
@@ -20,6 +21,100 @@ import matplotlib.colors as colors
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from .shapes import frame_center
+
+
+class Progressbar(object):
+    """
+    Show progress bars. Supports multiple backends.
+
+
+    Examples
+    --------
+
+    from vip_hci.var import Progressbar
+    Progressbar.backend = "tqdm"
+
+    from time import sleep
+
+    for i in Progressbar(range(50)):
+        sleep(0.02)
+
+    # or:
+
+    bar = Progressbar(total=50):
+    for i in range(50):
+        sleep(0.02)
+        bar.update()
+
+    # Progressbar can be disabled globally using
+    Progressbar.backend = "hide"
+
+    # or locally using the ``verbose`` keyword:
+    Progressbar(iterable, verbose=False)
+
+    Notes
+    -----
+    - `leave` keyword is natively supported by tqdm, support could be added to
+      other backends too?
+
+    """
+    backend = "pyprind"
+
+    def __new__(cls, iterable=None, desc=None, total=None, leave=True,
+                backend=None, verbose=True):
+        import sys
+
+        if backend is None:
+            backend = Progressbar.backend
+
+        if not verbose:
+            backend = "hide"
+
+        if backend == "tqdm":
+            from tqdm import tqdm
+            return tqdm(iterable=iterable, desc=desc, total=total, leave=leave,
+                        ascii=True, ncols=80, file=sys.stdout,
+                        bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed"
+                                   "}<{remaining}{postfix}]") # remove rate_fmt
+        elif backend == "tqdm_notebook":
+            from tqdm import tqdm_notebook
+            return tqdm_notebook(iterable=iterable, desc=desc, total=total,
+                                 leave=leave)
+        elif backend == "pyprind":
+            from pyprind import ProgBar, prog_bar
+            ProgBar._adjust_width = lambda self: None  # keep constant width
+            if iterable is None:
+                return ProgBar(total, title=desc, stream=1)
+            else:
+                return prog_bar(iterable, title=desc, stream=1,
+                                iterations=total)
+        elif backend == "hide":
+            return NoProgressbar(iterable=iterable)
+        else:
+            raise NotImplementedError("unknown backend")
+
+    def set(b):
+        Progressbar.backend = b
+
+
+
+
+
+class NoProgressbar():
+    """
+    wraps an ``iterable`` to behave like ``Progressbar``, but without producing
+    output.
+    """
+    def __init__(self, iterable=None):
+        self.iterable = iterable
+    def __iter__(self):
+        return self.iterable.__iter__()
+    def __next__(self):
+        return self.iterable.__next__()
+    def __getattr__(self, key):
+        return self.iterable.key
+    def update(self):
+        pass
 
 
 def pp_subplots(*args, **kwargs):

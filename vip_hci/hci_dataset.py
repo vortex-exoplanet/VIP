@@ -580,10 +580,8 @@ class HCIDataset:
             if self.cube.ndim == 4:
                 self.fwhm = check_array(self.fwhm, 1, 'FHWM')
             elif self.cube.ndim == 3:
-                print('FWHM: {}'.format(self.fwhm))
+                pass
         self.px_scale = px_scale
-        if self.px_scale is not None:
-            print('Pixel/plate scale: {}'.format(self.px_scale))
 
     def collapse(self, mode='median', n=50):
         """ Collapsing the sequence into a 2d array.
@@ -901,11 +899,16 @@ class HCIDataset:
             fwhm = self.fwhm
         else:
             fwhm = 'fit'
-        self.psfn = normalize_psf(self.psf, fwhm, size, threshold, mask_core,
+        self.psfn, flx, meas_fwhm = normalize_psf(self.psf, fwhm, size, threshold, mask_core,
                                   model, imlib, interpolation, force_odd,
-                                  False, verbose)
+                                  full_output=True, verbose=verbose)
         print('Normalized PSF array shape: {}'.format(self.psfn.shape))
         print('A new attribute `psfn` has been created')
+        if self.fwhm is None:
+            self.fwhm = meas_fwhm
+            print("`fwhm` attribute set to {:.3f}".format(meas_fwhm))
+
+        return meas_fwhm
 
     def plot(self, wavelength=0, **kwargs):
         """ Plotting the frames of a 3D or 4d cube (``wavelength``).

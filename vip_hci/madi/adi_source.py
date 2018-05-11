@@ -22,10 +22,9 @@ __all__ = ['adi']
 
 import numpy as np
 import itertools as itt
-import pyprind
 from multiprocessing import Pool, cpu_count
 from ..conf import time_ini, timing
-from ..var import get_annulus, mask_circle
+from ..var import get_annulus, mask_circle, Progressbar
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector)
 from ..preproc import cube_rescaling_wavelengths as scwave
@@ -211,9 +210,9 @@ def adi(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
 
         if mode == 'fullfr':
             if verbose:
-                tit = 'First median subtraction exploiting spectral variability'
-                bar = pyprind.ProgBar(n, stream=1, title=tit)
-            for i in range(n):
+                print('First median subtraction exploiting spectral '
+                      'variability')
+            for i in ProgressBar(range(n), verbose=verbose):
                 cube_resc, _, _, _, _, _ = scwave(array[:, i, :, :], scale_list)
                 median_frame = np.median(cube_resc, axis=0)
                 residuals_cube = cube_resc - median_frame
@@ -221,8 +220,6 @@ def adi(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
                                  full_output=full_output, inverse=True,
                                  y_in=y_in, x_in=x_in)
                 residuals_cube_channels[i] = frame_i
-                if verbose:
-                    bar.update()
 
             if verbose:
                 timing(start_time)
@@ -240,9 +237,9 @@ def adi(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
         elif mode == 'annular':
             # TODO : implement the radial movement exclusion
             if verbose:
-                tit = 'First median subtraction exploiting spectral variability'
-                bar = pyprind.ProgBar(n, stream=1, title=tit)
-            for i in range(n):
+                print('First median subtraction exploiting spectral '
+                      'variability')
+            for i in Progressbar(range(n), verbose=verbose):
                 cube_resc, _, _, _, _, _ = scwave(array[:, i, :, :], scale_list)
                 median_frame = np.median(cube_resc, axis=0)
                 residuals_cube = cube_resc - median_frame
@@ -250,8 +247,6 @@ def adi(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
                                  full_output=full_output, inverse=True,
                                  y_in=y_in, x_in=x_in)
                 residuals_cube_channels[i] = frame_i
-                if verbose:
-                    bar.update()
 
             if nframes % 2 != 0:
                 raise TypeError('nframes argument must be even value')

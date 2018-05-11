@@ -38,7 +38,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         svd_mode='lapack', scaling=None, adimsdi='double', mask_center_px=None,
         source_xy=None, delta_rot=1, fwhm=4, imlib='opencv',
         interpolation='lanczos4', collapse='median', check_mem=True,
-        full_output=False, verbose=True, debug=False):
+        crop_IFS=True, full_output=False, verbose=True, debug=False):
     """ Algorithm where the reference PSF and the quasi-static speckle pattern 
     are modeled using Principal Component Analysis. Depending on the input
     parameters this PCA function can work in ADI, RDI or SDI (IFS data) mode.
@@ -135,6 +135,12 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     check_mem : bool, optional
         If True, it check that the input cube(s) are smaller than the available
         system memory.
+    crop_IFS: bool, optional
+        If True and the data are to be reduced with ADI+SDI(IFS) in a single step,
+        this will crop the cube at the moment of frame rescaling in wavelength. 
+        This is recommended for large FOVs such as the one of SPHERE, but can 
+        remove significant amount of information close to the edge of small FOVs 
+        (e.g. SINFONI).
     full_output: bool, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
@@ -190,7 +196,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
                                          scaling, mask_center_px, debug,
                                          svd_mode, imlib, interpolation,
                                          collapse, verbose, start_time,
-                                         full_output)
+                                         crop_IFS, full_output)
             cube_allfr_residuals, cube_adi_residuals, frame = res_pca
         else:
             raise ValueError('`Adimsdi` mode not recognized')
@@ -378,7 +384,7 @@ def _adi_pca(cube, angle_list, ncomp, source_xy, delta_rot, fwhm, scaling,
 
 def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
                        mask_center_px, debug, svd_mode, imlib, interpolation,
-                       collapse, verbose, start_time, full_output):
+                       collapse, verbose, start_time, crop_IFS, full_output):
     """ Handles the full-frame ADI+mSDI single PCA post-processing.
     """
     z, n, y_in, x_in = cube.shape
@@ -407,12 +413,15 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
         bar = pyprind.ProgBar(n, stream=1, title=tit)
     for i in range(n):
         cube_resc, _, _, _, _, _ = scwave(cube[:, i, :, :], scale_list)
-        cube_resc = cube_crop_frames(cube_resc, size=y_in, verbose=False)
+        if crop_IFS:
+            cube_resc = cube_crop_frames(cube_resc, size=y_in, verbose=False)
         big_cube.append(cube_resc)
         if verbose:
             bar.update()
 
     big_cube = np.array(big_cube)
+    if not crop_IFS:
+        _, y_in, x_in = cube_resc.shape
     big_cube = big_cube.reshape(z * n, y_in, x_in)
 
     if verbose:

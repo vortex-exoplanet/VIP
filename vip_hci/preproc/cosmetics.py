@@ -30,12 +30,12 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
     array : array_like 
         Input 3d or 4d array.
     size : int
-        Size of the desired central sub-array in each frame.
+        Size of the desired central sub-array in each frame, in pixels.
     xy : tuple of ints
         X, Y coordinates of new frame center. If you are getting the
         coordinates from ds9 subtract 1, python has 0-based indexing.
     force : bool, optional
-        ``Size`` and the original size of the frames must be both even or odd.
+        ``size`` and the original size of the frames must be both even or odd.
         With ``force`` set to True this condition can be avoided.
     verbose : bool optional
         If True message of completion is showed.
@@ -51,7 +51,7 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
     if array.ndim != 3 and array.ndim != 4:
         raise TypeError('Array is not a cube, 3d or 4d array')
     if not isinstance(size, int):
-        raise TypeError('Size must be integer')
+        raise TypeError('`size` must be integer')
 
     if not force:
         if array.shape[2] % 2 == 0:    # assuming square frames

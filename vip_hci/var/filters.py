@@ -22,11 +22,11 @@ except ImportError:
     warnings.warn(msg, ImportWarning)
     no_opencv = True
 import numpy as np
-import pyprind
 from scipy.ndimage import gaussian_filter, median_filter      
 from astropy.convolution import convolve_fft, Gaussian2DKernel
 from astropy.stats import gaussian_fwhm_to_sigma
 from ..exlib import iuwt
+from .utils_var import Progressbar
 
 
 def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
@@ -59,14 +59,12 @@ def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
     cube_coeff = np.zeros((cube.shape[0], coeff, cube.shape[1], cube.shape[2]))
     n_frames = cube.shape[0]
     
-    msg = 'Decomposing frames with the Isotropic Undecimated Wavelet Transform.'
-    bar = pyprind.ProgBar(n_frames, stream=1, title=msg)
-    for i in range(n_frames):
+    print('Decomposing frames with the Isotropic Undecimated Wavelet Transform')
+    for i in Progressbar(range(n_frames)):
         res = iuwt.iuwt_decomposition(cube[i], coeff, store_smoothed=False)
         cube_coeff[i] = res
         for j in range(rel_coeff):
             cubeout[i] += cube_coeff[i][j] 
-        bar.update()
         
     if full_output:
         return cubeout, cube_coeff
@@ -99,12 +97,9 @@ def cube_filter_highpass(array, mode='laplacian', verbose=True, **kwargs):
     n_frames = array.shape[0]
     array_out = np.zeros_like(array)
     if verbose:
-        msg = 'Applying the high-pass filter on cube frames:'
-        bar = pyprind.ProgBar(n_frames, stream=1, title=msg, bar_char='.')
-    for i in range(n_frames):
+        print('Applying the high-pass filter on cube frames:')
+    for i in Progressbar(range(n_frames), verbose=verbose):
         array_out[i] = frame_filter_highpass(array[i], mode=mode, **kwargs)
-        if verbose:
-            bar.update()
         
     return array_out
     
@@ -406,13 +401,10 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     n_frames = array.shape[0]
     array_out = np.zeros_like(array)
     if verbose:
-        msg = 'Applying the low-pass filter on cube frames:'
-        bar = pyprind.ProgBar(n_frames, stream=1, title=msg, bar_char='.')
-    for i in range(n_frames):
+        print('Applying the low-pass filter on cube frames:')
+    for i in Progressbar(range(n_frames), verbose=verbose):
         array_out[i] = frame_filter_lowpass(array[i], mode, median_size,
                                             fwhm_size, gauss_mode)
-        if verbose:
-            bar.update()
 
     return array_out
 

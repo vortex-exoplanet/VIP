@@ -13,7 +13,6 @@ __all__ = ['pca',
 
 import numpy as np
 import pandas as pd
-import pyprind
 from skimage import draw
 from astropy.io import fits
 from matplotlib import pyplot as plt
@@ -26,7 +25,8 @@ from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector, cube_crop_frames)
 from ..conf import timing, time_ini, check_enough_memory, get_available_memory
 from ..conf.utils_conf import vip_figsize
-from ..var import frame_center, dist, prepare_matrix, reshape_matrix
+from ..var import (frame_center, dist, prepare_matrix, reshape_matrix,
+                   Progressbar)
 from ..stats import descriptive_stats
 from .. import phot
 
@@ -403,14 +403,11 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
     big_cube = []
 
     if verbose:
-        tit = 'Rescaling the spectral channels to align the speckles'
-        bar = pyprind.ProgBar(n, stream=1, title=tit)
-    for i in range(n):
+        print('Rescaling the spectral channels to align the speckles')
+    for i in Progressbar(range(n), verbose=verbose):
         cube_resc, _, _, _, _, _ = scwave(cube[:, i, :, :], scale_list)
         cube_resc = cube_crop_frames(cube_resc, size=y_in, verbose=False)
         big_cube.append(cube_resc)
-        if verbose:
-            bar.update()
 
     big_cube = np.array(big_cube)
     big_cube = big_cube.reshape(z * n, y_in, x_in)
@@ -427,15 +424,12 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
 
     resadi_cube = np.zeros((n, y_in, x_in))
     if verbose:
-        tit = 'Descaling the spectral channels'
-        bar = pyprind.ProgBar(n, stream=1, title=tit)
-    for i in range(n):
+        print('Descaling the spectral channels')
+    for i in Progressbar(range(n), verbose=verbose):
         frame_i = scwave(res_cube[i * z:(i+1) * z, :, :], scale_list,
                          full_output=full_output, inverse=True, y_in=y_in,
                          x_in=x_in)
         resadi_cube[i] = frame_i
-        if verbose:
-            bar.update()
 
     if verbose:
         print('De-rotating and combining residuals')
@@ -477,13 +471,10 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
 
     if ncomp is None:
         if verbose:
-            tit = 'Combining multi-spectral frames (skipping PCA)'
-            bar = pyprind.ProgBar(n, stream=1, title=tit)
-        for i in range(n):
+            print('Combining multi-spectral frames (skipping PCA)')
+        for i in Progressbar(range(n), verbose=verbose):
             frame_i = cube_collapse(cube[:, i, :, :], mode=collapse)
             residuals_cube_channels[i] = frame_i
-            if verbose:
-                bar.update()
     else:
         if ncomp > z:
             ncomp = min(ncomp, z)
@@ -491,9 +482,8 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
             print(msg.format(z, ncomp))
 
         if verbose:
-            tit = 'First PCA stage exploiting spectral variability'
-            bar = pyprind.ProgBar(n, stream=1, title=tit)
-        for i in range(n):
+            print('First PCA stage exploiting spectral variability')
+        for i in Progressbar(range(n), verbose=verbose):
             cube_resc, _, _, _, _, _ = scwave(cube[:, i, :, :], scale_list)
             residuals_result = _subtr_proj_fullfr(cube_resc, None, ncomp,
                                                   scaling, mask_center_px,
@@ -507,8 +497,6 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
                              full_output=full_output, inverse=True, y_in=y_in,
                              x_in=x_in)
             residuals_cube_channels[i] = frame_i
-            if verbose:
-                bar.update()
 
     if verbose:
         timing(start_time)

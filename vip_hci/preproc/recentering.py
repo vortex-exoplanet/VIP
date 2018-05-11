@@ -20,7 +20,6 @@ __all__ = ['frame_shift',
 import numpy as np
 import warnings
 import itertools as itt
-import pyprind
 
 try:
     import cv2
@@ -42,7 +41,7 @@ from ..conf.utils_conf import vip_figsize
 from ..conf.utils_conf import eval_func_tuple as EFT
 from ..var import (get_square, frame_center, get_annulus, pp_subplots,
                    fit_2dmoffat, fit_2dgaussian, cube_filter_lowpass,
-                   cube_filter_highpass)
+                   cube_filter_highpass, Progressbar)
 from ..preproc import cube_crop_frames
 
 
@@ -355,17 +354,14 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     array_rec = []
     
     if verbose:
-        msg = 'Looping through the frames, fitting the intersections:'
-        bar = pyprind.ProgBar(n_frames, stream=1, title=msg)
-    for i in range(n_frames):
+        print('Looping through the frames, fitting the intersections:')
+    for i in Progressbar(range(n_frames), verbose=verbose):
         res = frame_center_satspots(array[i], xy, debug=debug, shift=True,
                                     subi_size=subi_size, sigfactor=sigfactor,
                                     verbose=False)
         array_rec.append(res[0])
         shift_y[i] = res[1] 
         shift_x[i] = res[2]          
-        if verbose:
-            bar.update()
        
     if verbose:
         timing(start_time)
@@ -622,13 +618,11 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
     y = np.zeros((n_frames))
     array_rec = array.copy()
     
-    bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
-    for i in range(n_frames):
+    for i in Progressbar(range(n_frames), desc="frames", verbose=verbose):
         y[i], x[i] = frame_center_radon(array[i], verbose=False, plot=False, 
                                         **kwargs)
         array_rec[i] = frame_shift(array[i], y[i], x[i], imlib=imlib,
                                    interpolation=interpolation)
-        bar.update()
         
     if verbose:
         timing(start_time)
@@ -770,17 +764,12 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
         y[0] = cy
     
     # Finding the shifts with DTF upsampling of each frame wrt the first
-    if verbose:
-        tit = "Looping through frames"
-        bar = pyprind.ProgBar(n_frames-1, stream=1, title=tit)
-    for i in range(1, n_frames):
+    for i in Progressbar(range(1, n_frames), desc="frames", verbose=verbose):
         shift_yx, _, _ = register_translation(array_rec[0], array[i],
                                               upsample_factor=upsample_factor)
         y[i], x[i] = shift_yx
         array_rec[i] = frame_shift(array[i], shift_y=y[i], shift_x=x[i],
                                    imlib=imlib, interpolation=interpolation)
-        if verbose:
-            bar.update()
 
     if debug:
         print("\nShifts in X and Y")
@@ -933,14 +922,10 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
 
     if nproc == 1:
         res = []
-        if verbose:
-            tit = '2d Gauss-fitting, looping through frames'
-            bar = pyprind.ProgBar(n_frames, stream=1, title=tit)
-        for i in range(n_frames):
+        print('2d Gauss-fitting')
+        for i in Progressbar(range(n_frames), desc="frames", verbose=verbose):
             res.append(func(array, i, subi_size, pos_y, pos_x, negative, debug,
                             fwhm[i], threshold))
-            if verbose:
-                bar.update()
         res = np.array(res)
     elif nproc > 1:
         pool = Pool(processes=nproc)  
@@ -959,16 +944,12 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         y -= offy
         x -= offx
     
-    if verbose:
-        bar2 = pyprind.ProgBar(n_frames, stream=1, title='Shifting the frames')
-    for i in range(n_frames):
+    for i in Progressbar(range(n_frames), desc="shifting", verbose=verbose):
         if debug:
             print("\nShifts in X and Y")
             print(x[i], y[i])
         array_recentered[i] = frame_shift(array[i], y[i], x[i], imlib=imlib,
                                           interpolation=interpolation)
-        if verbose:
-            bar2.update()
         
     if verbose:
         timing(start_time)

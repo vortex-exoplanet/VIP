@@ -15,6 +15,10 @@ from vip_hci import HCIDataset
 from vip_hci.madi import adi
 from vip_hci.pca import pca
 
+import pickle
+
+from vip_hci.phot import snrmap_fast
+
 
 class HCIPostProcAlgo(BaseEstimator):
     """ Base HCI post-processing algorithm class.
@@ -27,7 +31,39 @@ class HCIPostProcAlgo(BaseEstimator):
             print("{}: {}".format(key, dicpar[key]))
 
 
-# TODO: output cube and frames as HCIDataset and HCIFrame objects?
+    def make_snr_map(self, method="fast", nproc=1, verbose=True):
+        """
+        Parameters
+        ----------
+        method : {'fast'}
+            Method for the SNR map creation
+        nproc : int, optional
+            Number of processes
+        verbose : bool, optional
+            Show more output
+
+        """
+        if not hasattr(self, "frame_final"):
+            raise RuntimeError("`.frame_final` attribute not found. Call"
+                               "`.run()` first.")
+
+        if method == "fast":
+            self.snr_map = snrmap_fast(self.frame_final, self.dataset.fwhm,
+                                       nproc=nproc, verbose=verbose)
+        else:
+            raise NotImplementedError("make_snr_map method '{}' unknown!"
+                                      "".format(method))
+
+        return self.snr_map
+
+    def save(self, filename):
+        pickle.dump(self, open(filename, "wb"))
+
+        # def load_res(filename):
+        #     out = pickle.load(open(filename, "rb"), encoding='latin1')
+        #     return out
+
+
 
 class HCIMedianSub(HCIPostProcAlgo):
     """ HCI median subtraction algorithm.
@@ -68,11 +104,17 @@ class HCIMedianSub(HCIPostProcAlgo):
         processes will be set to cpu_count()/2. By default the algorithm works
         in single-process mode.
 
+    Notes
+    -----
+    TODO:
+    - output cube and frames as HCIDataset and HCIFrame objects?
+
     """
-    def __init__(self, mode='fullfr', radius_int=0, asize=1, delta_rot=1,
+    def __init__(self, dataset=None, mode='fullfr', radius_int=0, asize=1, delta_rot=1,
                  nframes=4, imlib='opencv', interpolation='lanczos4',
-                 collapse='median', nproc=1):
+                 collapse='median', nproc=1, verbose=True):
         """ """
+        self.dataset = dataset
         self.mode = mode
         self.radius_int = radius_int
         self.asize = asize
@@ -82,9 +124,11 @@ class HCIMedianSub(HCIPostProcAlgo):
         self.interpolation = interpolation
         self.collapse = collapse
         self.nproc = nproc
-        self.print_parameters()
 
-    def run(self, dataset, full_output=False, verbose=True):
+        if verbose:
+            self.print_parameters()
+
+    def run(self, dataset=None, full_output=False, verbose=True):
         """ Running the HCI median subtraction algorithm for model PSF
         subtraction.
 
@@ -99,8 +143,14 @@ class HCIMedianSub(HCIPostProcAlgo):
             If True prints to stdout intermediate info.
 
         """
-        if not isinstance(dataset, HCIDataset):
-            raise ValueError('`Dataset` must be a HCIDataset object')
+
+        if dataset is None:
+            dataset = self.dataset
+            if self.dataset is None:
+                raise ValueError("no dataset specified!")
+        else:
+            self.dataset = dataset
+            print("self.dataset overwritten with the one you provided.")
 
         if self.mode == 'annular' and dataset.fwhm is None:
             raise ValueError('`FWHM` has not been set')
@@ -122,11 +172,17 @@ class HCIMedianSub(HCIPostProcAlgo):
             return frame_final
 
 
+
+
+
+
 class HCIPca(HCIPostProcAlgo):
     """ HCI PCA algorithm.
 
     Parameters
     ----------
+    dataset : HCIDataset object, optional
+        An HCIDataset object to be processed. Can also be passed to ``.run()``.
     ncomp : int, optional
         How many PCs are used as a lower-dimensional subspace to project the
         target frames. For an ADI cube, ``ncomp`` is the number of PCs extracted
@@ -199,11 +255,16 @@ class HCIPca(HCIPostProcAlgo):
         If True, it check that the input cube(s) are smaller than the available
         system memory.
     """
-    def __init__(self, ncomp=1, ncomp2=1, svd_mode='lapack', scaling=None,
+    def __init__(self, dataset=None, ncomp=1, ncomp2=1, svd_mode='lapack', scaling=None,
                  adimsdi='double', mask_central_px=None, source_xy=None,
                  delta_rot=1, imlib='opencv', interpolation='lanczos4',
-                 collapse='median', check_mem=True):
+                 collapse='median', check_mem=True, verbose=True):
         """ """
+
+        #if not isinstance(dataset, (HCIDataset, type(None))):
+        #    raise ValueError('`dataset` must be a HCIDataset object or None')
+
+        self.dataset = dataset
         self.svd_mode = svd_mode
         self.ncomp = ncomp
         self.ncomp2 = ncomp2
@@ -216,15 +277,36 @@ class HCIPca(HCIPostProcAlgo):
         self.interpolation = interpolation
         self.collapse = collapse
         self.check_mem = check_mem
-        self.print_parameters()
 
-    def run(self, dataset, full_output=False, verbose=True, debug=False):
+        if verbose:
+            self.print_parameters()
+
+
+    def run(self, dataset=None, full_output=False, verbose=True, debug=False):
         """ Running the HCI PCA algorithm for model PSF subtraction.
+
+        Notes
+        -----
+        creates/sets the ``self.frame_final`` attribute, and depending on the
+        parameters:
+
+            3D case:
+                cube_reconstructed
+                cube_residuals
+                cube_residuals_der
+            3D case, source_xy is not None:
+                pcs
+            4D case, adimsdi="double":
+                cube_residuals_per_channel
+                cube_residuals_per_channel_der
+            4D case, adimsdi="single":
+                cube_residuals
+                cube_residuals_resc
+
+
 
         Parameters
         ----------
-        dataset : HCIDataset object
-            An HCIDataset object to be processed.
         full_output: bool, optional
             Whether to return the final median combined image only or with other
             intermediate arrays.
@@ -234,8 +316,16 @@ class HCIPca(HCIPostProcAlgo):
             Whether to print debug information or not.
 
         """
-        if not isinstance(dataset, HCIDataset):
-            raise ValueError('`Dataset` must be a HCIDataset object')
+
+        if dataset is None:
+            dataset = self.dataset
+            if self.dataset is None:
+                raise ValueError("no dataset specified!")
+        else:
+            self.dataset = dataset
+            print("self.dataset overwritten with the one you provided.")
+
+        
         if self.source_xy is not None and self.fwhm is None:
             raise ValueError('`FWHM` has not been set')
 
@@ -266,7 +356,7 @@ class HCIPca(HCIPostProcAlgo):
             else:
                 frame = res
                 self.frame_final = frame
-                return frame
+                return self.frame_final
         elif dataset.cube.ndim == 4:
             if full_output:
                 if self.adimsdi == 'double':
@@ -279,9 +369,14 @@ class HCIPca(HCIPostProcAlgo):
                     cuberes, cuberesresc, frame = res
                     self.cube_residuals = cuberes
                     self.cube_residuals_resc = cuberesresc
-                    self.frame = frame
+                    self.frame_final = frame
                     return cuberes, cuberesresc, frame
             else:
                 frame = res
-                self.frame = frame
+                self.frame_final = frame
                 return frame
+
+
+
+
+

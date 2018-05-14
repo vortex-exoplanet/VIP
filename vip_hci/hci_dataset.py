@@ -580,7 +580,7 @@ class HCIDataset:
             if self.cube.ndim == 4:
                 self.fwhm = check_array(self.fwhm, 1, 'FHWM')
             elif self.cube.ndim == 3:
-                pass
+                print("FWHM: {}".format(self.fwhm))  # TODO: print *always*
         self.px_scale = px_scale
 
     def collapse(self, mode='median', n=50):

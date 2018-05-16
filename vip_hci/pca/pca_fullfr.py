@@ -681,8 +681,8 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
     -------
     opt_npc : int
         Optimal number of PCs for given source.
-    If full_output is True, the final processed frame, and a cube with all the
-    PCA frames are returned along with the optimal number of PCs.
+    If full_output is True, the optimal number of PCs, the final processed
+    frame, and a cube with all the PCA frames are returned.
     """    
     def truncate_svd_get_finframe(matrix, angle_list, ncomp, V):
         """ Projection, subtraction, derotation plus combination in one frame.

@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Module with various functions.
+Module with 2d/3d plotting functions.
 """
 
 from __future__ import division, print_function
@@ -9,21 +9,119 @@ from __future__ import division, print_function
 __author__ = 'Carlos Alberto Gomez Gonzalez, O. Wertz'
 __all__ = ['pp_subplots',
            'plot_surface',
-           'get_fwhm']
+           'save_animation']
 
+import os
+import shutil
 import numpy as np
-from matplotlib.pyplot import (figure, subplot, show, colorbar, rc, axes,
-                               Circle, savefig, close)
+from subprocess import Popen
+from matplotlib.pyplot import (figure, subplot, show, colorbar, axes, Circle,
+                               savefig, close)
 import matplotlib.colors as colors
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from .shapes import frame_center
 
 
-def pp_subplots(*args, **kwargs):
+def save_animation(data, anim_path=None, data_step_range=None,
+                   label=None, labelpad=10, label_step_range=None, delay=50,
+                   format='gif', **kwargs):
+    """ Generates a matplotlib animation from a ``data`` 3d array and saves it
+    to disk using ImageMagick's convert command (it must be installed otherwise
+    a ``FileNotFoundError`` will be raised).
+
+    Parameters
+    ----------
+    data : array_like
+        3d array.
+    anim_path : str, optional
+        The animation filename/path. If None then the animation will be called
+        animation.``format`` and will be saved in the current directory.
+    data_step_range : tuple, optional
+        Tuple of 1, 2 or 3 values that creates a range for slicing the ``data``
+        cube.
+    label : str, optional
+        Label to be overlaid on top of each frame of the animation. If None,
+        then 'frame #' will be used.
+    labelpad : int, optional
+        Padding of the label from the left bottom corner. 10 by default.
+    label_step_range : tuple, optional
+        Tuple of 1, 2 or 3 values that creates a range for customizing the label
+        overlaid on top of the image.
+    delay : int, optional
+        Delay for displaying the frames in the animation sequence.
+    format : str, optional
+        Format of the saved animation. By default 'gif' is used. Other formats
+        supported by ImageMagick are valid, such as 'mp4'.
+    **kwargs : dictionary, optional
+        Arguments to be passed to ``pp_subplots`` to customize the plot.
+
+    """
+    if not (isinstance(data, np.ndarray) and data.ndim == 3):
+        raise ValueError('`data` must be a 3d numpy array')
+
+    dir_path = './animation_temp/'
+    if anim_path is None:
+        anim_path = './animation'
+
+    if data_step_range is None:
+        data_step_range = range(0, data.shape[0], 1)
+    else:
+        if not isinstance(data_step_range, tuple):
+            msg = '`data_step_range` must be a tuple with 1, 2 or 3 values'
+            raise ValueError(msg)
+        if len(data_step_range) == 1:
+            data_step_range = range(data_step_range)
+        elif len(data_step_range) == 2:
+            data_step_range = range(data_step_range[0], data_step_range[1])
+        elif len(data_step_range) == 3:
+            data_step_range = range(data_step_range[0],
+                                    data_step_range[1],
+                                    data_step_range[2])
+
+    if label_step_range is None:
+        label_step_range = data_step_range
+    else:
+        if not isinstance(label_step_range, tuple):
+            msg = '`label_step_range` must be a tuple with 1, 2 or 3 values'
+            raise ValueError(msg)
+        if len(label_step_range) == 1:
+            label_step_range = range(label_step_range)
+        elif len(label_step_range) == 2:
+            label_step_range = range(label_step_range[0], label_step_range[1])
+        elif len(label_step_range) == 3:
+            label_step_range = range(label_step_range[0],
+                                     label_step_range[1],
+                                     label_step_range[2])
+
+    if os.path.exists(dir_path):
+        shutil.rmtree(dir_path)
+        print('Overwriting content in ' + dir_path)
+    os.mkdir(dir_path)
+
+    for i, labstep in zip(data_step_range, list(label_step_range)):
+        if label is None:
+            label = 'frame '
+        savelabel = dir_path + label + str(i + 100)
+        pp_subplots(data[i], save=savelabel, label=[label+str(labstep + 1)],
+                    labelpad=labelpad, **kwargs)
+    try:
+        filename = anim_path + '.' + format
+        Popen(['convert', '-delay', str(delay), dir_path + '*.png', filename])
+        print('Animation successfully saved to disk as ' + filename)
+    except FileNotFoundError:
+        print('ImageMagick convert command could not be found')
+
+
+def pp_subplots(*data, **kwargs):
     """ Wrapper for easy creation of pyplot subplots. It is convenient for 
     displaying VIP images in jupyter notebooks. 
-    
+
+    Parameters
+    ----------
+    data : list
+        List of 2d arrays or a single 3d array to be plotted.
+
     Parameters in **kwargs
     ----------------------
     angscale : bool
@@ -73,7 +171,7 @@ def pp_subplots(*args, **kwargs):
     label : str or list of str
         Text for annotating on subplots.
     labelpad : int
-        Padding of the label from the left bottom corner.
+        Padding of the label from the left bottom corner. 5 by default.
     labelsize : int
         Size of the labels.
     log : bool
@@ -113,21 +211,18 @@ def pp_subplots(*args, **kwargs):
             print("Available parameters are: {}".format(parlist))
 
     # GEOM ---------------------------------------------------------------------
-    num_plots = len(args)
+    num_plots = len(data)
     if num_plots == 1:
-        if args[0].ndim == 3:
-            data = args[0]
+        if data[0].ndim == 3:
+            data = data[0]
             if 'maxplots' in kwargs:
                 maxplots = kwargs['maxplots']
             else:
                 maxplots = 10
             num_plots = min(data.shape[0], maxplots)
-        else:
-            data = args
     elif num_plots > 1:
-        data = args
         for i in range(num_plots):
-            if args[i].ndim != 2:
+            if data[i].ndim != 2:
                 msg = "Wrong input. Must be either several 2d arrays (images) "
                 msg += "or a single 3d array"
                 raise TypeError(msg)
@@ -486,7 +581,8 @@ def pp_subplots(*args, **kwargs):
     
     fig.subplots_adjust(wspace=hor_spacing, hspace=ver_spacing)
     if save:
-        savefig(savepath, dpi=dpi, bbox_inches='tight')
+        savefig(savepath, dpi=dpi, bbox_inches='tight', pad_inches=0,
+                transparent=True)
         close();
         if getfig:
             return fig
@@ -574,13 +670,6 @@ def plot_surface(image, center_xy=None, size=15, output=False, title=None,
         return x, y, z
 
 
-def get_fwhm(lambd, diameter, pxscale):
-    """ Returns the instrument FWHM [px] given the wavelenght [m], diameter [m]
-    and plate/pixel scale [arcs/px]. In vip_hci/conf/param.py can be found
-    dictionaries with the parameters for different instruments.
-    """
-    fwhm = lambd/diameter*206265/pxscale
-    return fwhm
 
  
 

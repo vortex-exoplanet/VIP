@@ -1,12 +1,13 @@
 #! /usr/bin/env python
 
-"""Module with a dictionary and variables for storing constant parameters.
+""" Module with a dictionary and variables for storing constant parameters.
 
 Usage
 -----
 from param import VLT_NACO
 VLT_NACO['diam']
 
+fwhm = lambda/diameter*206265/pxscale
 """
 
 VLT_SPHERE = {

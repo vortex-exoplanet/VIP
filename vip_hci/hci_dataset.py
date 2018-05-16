@@ -906,11 +906,16 @@ class HCIDataset:
             fwhm = self.fwhm
         else:
             fwhm = 'fit'
-        self.psfn = normalize_psf(self.psf, fwhm, size, threshold, mask_core,
+        self.psfn, flx, meas_fwhm = normalize_psf(self.psf, fwhm, size, threshold, mask_core,
                                   model, imlib, interpolation, force_odd,
-                                  False, verbose)
+                                  full_output=True, verbose=verbose)
         print('Normalized PSF array shape: {}'.format(self.psfn.shape))
         print('A new attribute `psfn` has been created')
+        if self.fwhm is None:
+            self.fwhm = meas_fwhm
+            print("`fwhm` attribute set to {:.3f}".format(meas_fwhm))
+
+        return meas_fwhm
 
     def plot(self, wavelength=0, **kwargs):
         """ Plotting the frames of a 3D or 4d cube (``wavelength``).

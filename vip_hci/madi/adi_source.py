@@ -213,7 +213,7 @@ def adi(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
             if verbose:
                 print('First median subtraction exploiting spectral '
                       'variability')
-            for i in ProgressBar(range(n), verbose=verbose):
+            for i in Progressbar(range(n), verbose=verbose):
                 cube_resc, _, _, _, _, _ = scwave(array[:, i, :, :], scale_list)
                 median_frame = np.median(cube_resc, axis=0)
                 residuals_cube = cube_resc - median_frame

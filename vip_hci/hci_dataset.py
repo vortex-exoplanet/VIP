@@ -777,15 +777,20 @@ class HCIDataset:
         # TODO: support the injection of a Gaussian/Moffat kernel.
         # TODO: return array/HCIDataset object instead?
 
-        if self.psf is None:
-            raise ValueError('PSf array has not been set')
+        if self.angles is None:
+            raise ValueError('The PA angles have not been set')
+        if self.psfn is None:
+            raise ValueError('The normalized PSF array cannot be found')
         if self.px_scale is None:
             raise ValueError('Pixel/plate scale has not been set')
+        if self.cube.ndim == 4:
+            if self.wavelengths is None:
+                raise ValueError('The wavelengths vector has not been set')
 
-        self.cube = cube_inject_companions(self.cube, self.psf, self.angles,
-                                            flux, self.px_scale, rad_dists,
-                                            n_branches, theta, imlib,
-                                            interpolation, verbose)
+        self.cube = cube_inject_companions(self.cube, self.psfn, self.angles,
+                                           flux, self.px_scale, rad_dists,
+                                           n_branches, theta, imlib,
+                                           interpolation, verbose)
 
     def load_angles(self, angles, hdu=0):
         """ Loads the PA vector from a FITS file. It is possible to specify the

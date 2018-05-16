@@ -10,4 +10,4 @@ from __future__ import absolute_import
 from .filters import *
 from .fit_2d import *
 from .shapes import *
-from .utils_var import *
+from .plotting import *

@@ -23,7 +23,7 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib.mlab import normpdf
 from scipy.stats import norm
 from ..fits import open_adicube, open_fits
-from ..phot import cube_inject_companions
+from ..metrics import cube_inject_companions
 from ..conf import time_ini, timing
 from ..conf.utils_conf import sep
 from .simplex_fmerit import get_values_optimize

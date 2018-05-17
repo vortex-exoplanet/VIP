@@ -23,9 +23,9 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from .shapes import frame_center
 
 
-def save_animation(data, anim_path=None, data_step_range=None,
-                   label=None, labelpad=10, label_step_range=None, delay=50,
-                   format='gif', **kwargs):
+def save_animation(data, anim_path=None, data_step_range=None, label=None,
+                   labelpad=10, label_step_range=None, delay=50, format='gif',
+                   **kwargs):
     """ Generates a matplotlib animation from a ``data`` 3d array and saves it
     to disk using ImageMagick's convert command (it must be installed otherwise
     a ``FileNotFoundError`` will be raised).

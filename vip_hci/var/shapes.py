@@ -20,7 +20,8 @@ __all__ = ['dist',
            'create_ringed_spider_mask',
            'matrix_scaling',
            'prepare_matrix',
-           'reshape_matrix']
+           'reshape_matrix',
+           'get_indices_annulus']
 
 import numpy as np
 from skimage.draw import polygon
@@ -719,5 +720,41 @@ def reshape_matrix(array, y, x):
     """
     return array.reshape(array.shape[0], y, x)
 
-        
+
+def get_indices_annulus(shape, inrad, outrad, mask=None, maskrad=None,
+                        verbose=False):
+    """ mask is a list of tuples X,Y
+    # TODO: documentation
+    """
+    framemp = np.zeros(shape)
+    if mask is not None:
+        if not isinstance(mask, list):
+            raise TypeError('Mask should be a list of tuples')
+        if maskrad is None:
+            raise ValueError('Fwhm not given')
+        for xy in mask:
+            # patch_size/2 diameter aperture
+            cir = circle(xy[1], xy[0], maskrad, shape)
+            framemp[cir] = 1
+
+    annulus_width = outrad - inrad
+    cy, cx = frame_center(framemp)
+    yy, xx = np.mgrid[:framemp.shape[0], :framemp.shape[1]]
+    circ = np.sqrt((xx - cx)**2 + (yy - cy)**2)
+    donut_mask = (circ <= (inrad + annulus_width)) & (circ >= inrad)
+    y, x = np.where(donut_mask)
+    if mask is not None:
+        npix = y.shape[0]
+        ymask, xmask = np.where(framemp)    # masked pixels where == 1
+        inds = []
+        for i, tup in enumerate(zip(y, x)):
+            if tup in zip(ymask, xmask):
+                inds.append(i)
+        y = np.delete(y, inds)
+        x = np.delete(x, inds)
+
+    if verbose:
+        print(y.shape[0], 'pixels in annulus')
+    return y, x
+
 

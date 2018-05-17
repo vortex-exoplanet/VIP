@@ -11,13 +11,11 @@ __all__ = ['HCIMedianSub',
            'HCIPca']
 
 from sklearn.base import BaseEstimator
-from vip_hci import HCIDataset
-from vip_hci.madi import adi
-from vip_hci.pca import pca
-
+from .hci_dataset import HCIDataset
+from .medsub import median_sub
+from .metrics import snrmap_fast, snrmap
+from .pca import pca
 import pickle
-
-from vip_hci.phot import snrmap_fast
 
 
 class HCIPostProcAlgo(BaseEstimator):
@@ -30,39 +28,45 @@ class HCIPostProcAlgo(BaseEstimator):
         for key in dicpar.keys():
             print("{}: {}".format(key, dicpar[key]))
 
-
-    def make_snr_map(self, method="fast", nproc=1, verbose=True):
+    def make_snr_map(self, method='fast', mode='sss', nproc=1, verbose=True):
         """
         Parameters
         ----------
-        method : {'fast'}
-            Method for the SNR map creation
+        method : {'xpx', 'fast'}, str optional
+            Method for the S/N map creation. The `xpx` method uses the per-pixel
+            procedure of `vip_hci.metrics.snrmap`, while the `fast` method uses
+            the approximation in `vip_hci.metrics.snrmap_fast`.
         nproc : int, optional
-            Number of processes
+            Number of processes.
         verbose : bool, optional
-            Show more output
+            Show more output.
 
         """
         if not hasattr(self, "frame_final"):
             raise RuntimeError("`.frame_final` attribute not found. Call"
                                "`.run()` first.")
 
-        if method == "fast":
+        if method == 'fast':
             self.snr_map = snrmap_fast(self.frame_final, self.dataset.fwhm,
                                        nproc=nproc, verbose=verbose)
+        elif method == 'xpx':
+            self.snr_map = snrmap(self.frame_final, self.dataset.fwhm,
+                                  plot=False, mode=mode, source_mask=None,
+                                  nproc=nproc, save_plot=None, plot_title=None,
+                                  verbose=verbose)
         else:
-            raise NotImplementedError("make_snr_map method '{}' unknown!"
-                                      "".format(method))
+            raise ValueError('`method` not recognized')
 
         return self.snr_map
 
     def save(self, filename):
+        """ Pickling and saving it to disk.
+        """
         pickle.dump(self, open(filename, "wb"))
 
         # def load_res(filename):
         #     out = pickle.load(open(filename, "rb"), encoding='latin1')
         #     return out
-
 
 
 class HCIMedianSub(HCIPostProcAlgo):
@@ -110,15 +114,19 @@ class HCIMedianSub(HCIPostProcAlgo):
     - output cube and frames as HCIDataset and HCIFrame objects?
 
     """
-    def __init__(self, dataset=None, mode='fullfr', radius_int=0, asize=1, delta_rot=1,
-                 nframes=4, imlib='opencv', interpolation='lanczos4',
-                 collapse='median', nproc=1, verbose=True):
+    def __init__(self, dataset=None, mode='fullfr', radius_int=0, asize=1,
+                 delta_rot=1, delta_sep=(0.2, 1), nframes=4, imlib='opencv',
+                 interpolation='lanczos4', collapse='median', nproc=1,
+                 verbose=True):
         """ """
+        if not isinstance(dataset, (HCIDataset, type(None))):
+            raise ValueError('`dataset` must be a HCIDataset object or None')
         self.dataset = dataset
         self.mode = mode
         self.radius_int = radius_int
         self.asize = asize
         self.delta_rot = delta_rot
+        self.deta_sep = delta_sep
         self.nframes = nframes
         self.imlib = imlib
         self.interpolation = interpolation
@@ -147,18 +155,19 @@ class HCIMedianSub(HCIPostProcAlgo):
         if dataset is None:
             dataset = self.dataset
             if self.dataset is None:
-                raise ValueError("no dataset specified!")
+                raise ValueError("No dataset specified")
         else:
             self.dataset = dataset
             print("self.dataset overwritten with the one you provided.")
 
         if self.mode == 'annular' and dataset.fwhm is None:
-            raise ValueError('`FWHM` has not been set')
+            raise ValueError('`fwhm` has not been set')
 
-        res = adi(dataset.cube, dataset.angles, dataset.wavelengths,
-                  dataset.fwhm, self.radius_int, self.asize, self.delta_rot,
-                  self.mode, self.nframes, self.imlib, self.interpolation,
-                  self.collapse, self.nproc, full_output, verbose)
+        res = median_sub(dataset.cube, dataset.angles, dataset.wavelengths,
+                         dataset.fwhm, self.radius_int, self.asize,
+                         self.delta_rot, self.delta_sep, self.mode,
+                         self.nframes, self.imlib, self.interpolation,
+                         self.collapse, self.nproc, full_output, verbose)
 
         if full_output:
             cube_residuals, cube_residuals_der, frame_final = res
@@ -170,10 +179,6 @@ class HCIMedianSub(HCIPostProcAlgo):
             frame_final = res
             self.frame_final = frame_final
             return frame_final
-
-
-
-
 
 
 class HCIPca(HCIPostProcAlgo):
@@ -260,9 +265,8 @@ class HCIPca(HCIPostProcAlgo):
                  delta_rot=1, imlib='opencv', interpolation='lanczos4',
                  collapse='median', check_mem=True, verbose=True):
         """ """
-
-        #if not isinstance(dataset, (HCIDataset, type(None))):
-        #    raise ValueError('`dataset` must be a HCIDataset object or None')
+        if not isinstance(dataset, (HCIDataset, type(None))):
+            raise ValueError('`dataset` must be a HCIDataset object or None')
 
         self.dataset = dataset
         self.svd_mode = svd_mode
@@ -280,7 +284,6 @@ class HCIPca(HCIPostProcAlgo):
 
         if verbose:
             self.print_parameters()
-
 
     def run(self, dataset=None, full_output=False, verbose=True, debug=False):
         """ Running the HCI PCA algorithm for model PSF subtraction.
@@ -303,8 +306,6 @@ class HCIPca(HCIPostProcAlgo):
                 cube_residuals
                 cube_residuals_resc
 
-
-
         Parameters
         ----------
         full_output: bool, optional
@@ -325,9 +326,8 @@ class HCIPca(HCIPostProcAlgo):
             self.dataset = dataset
             print("self.dataset overwritten with the one you provided.")
 
-        
         if self.source_xy is not None and self.fwhm is None:
-            raise ValueError('`FWHM` has not been set')
+            raise ValueError('`fwhm` has not been set')
 
         res = pca(dataset.cube, dataset.angles, dataset.cuberef,
                   dataset.wavelengths, self.ncomp, self.ncomp2, self.svd_mode,

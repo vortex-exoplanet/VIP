@@ -18,7 +18,7 @@ from ..var import get_annulus_segments, pp_subplots
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import time_ini, timing
 from ..pca.utils_pca import pca_annulus
-from ..madi.adi_utils import _find_indices, _define_annuli
+from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..conf.utils_conf import eval_func_tuple as EFT
 
 
@@ -163,7 +163,7 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     if pa_threshold > 0:
         mat_dists_ann = np.zeros_like(mat_dists_ann_full)
         for i in range(n_frames):
-            ind_fr_i = _find_indices(angles, i, pa_threshold, None, False)
+            ind_fr_i = _find_indices_adi(angles, i, pa_threshold, None, False)
             mat_dists_ann[i][ind_fr_i] = mat_dists_ann_full[i][ind_fr_i]
     else:
         mat_dists_ann = mat_dists_ann_full

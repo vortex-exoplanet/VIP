@@ -445,6 +445,56 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
     return V
 
 
+def _get_cumexpvar(cube, expvar_mode, inrad, outrad, size_patch, k_list=None,
+                   verbose=True):
+    """ Calculated the cumulative explained variance ratio for the SVD of a
+    cube (either full frames or a single annulus could be used).
+
+    # TODO : Documentation
+    """
+    n_frames = cube.shape[0]
+    ann_width = outrad - inrad
+    cent_ann = inrad + int(np.round(ann_width / 2.))
+    ann_width += size_patch + 2
+
+    if expvar_mode == 'annular':
+        matrix_svd = prepare_matrix(cube, 'temp-mean', None, mode=expvar_mode,
+                                    annulus_radius=cent_ann,
+                                    annulus_width=ann_width, verbose=False)[0]
+        U, S, V = svd_wrapper(matrix_svd, 'lapack', min(matrix_svd.shape[0],
+                                                        matrix_svd.shape[1]),
+                              False, False, True)
+    elif expvar_mode == 'fullfr':
+        matrix_svd = prepare_matrix(cube, 'temp-mean', None, mode=expvar_mode,
+                                    verbose=False)
+        U, S, V = svd_wrapper(matrix_svd, 'lapack', n_frames, False, False,
+                              True)
+
+    exp_var = (S ** 2) / (S.shape[0] - 1)
+    full_var = np.sum(exp_var)
+    # % of variance explained by each PC
+    explained_variance_ratio = exp_var / full_var
+    ratio_cumsum = np.cumsum(explained_variance_ratio)
+
+    if k_list is not None:
+        ratio_cumsum_klist = []
+        for k in k_list:
+            ratio_cumsum_klist.append(ratio_cumsum[k - 1])
+
+        if verbose:
+            print("SVD on input matrix (annulus from cube)")
+            print("  Number of PCs :")
+            print("  ", k_list)
+            print("  Cum. explained variance ratios :")
+            print("  ", ", ".join("{:.2f}".format(i) for i in
+                                  ratio_cumsum_klist))
+            print("")
+    else:
+        ratio_cumsum_klist = ratio_cumsum
+
+    return ratio_cumsum, ratio_cumsum_klist
+
+
 def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
                        transpose='auto', random_state=0, lib='cupy'):
     """Computes a truncated randomized SVD on GPU. Adapted from Sklearn.
@@ -579,4 +629,5 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
                     torch.transpose(U[:, :n_components], 0, 1))
         else:
             return U[:, :n_components], s[:n_components], V[:n_components, :]
+
 

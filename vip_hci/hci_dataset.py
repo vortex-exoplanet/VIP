@@ -25,9 +25,9 @@ from .var import (cube_filter_highpass, cube_filter_lowpass, mask_circle,
                   pp_subplots)
 from .stats import (frame_basic_stats, frame_histo_stats,
                     frame_average_radprofile, cube_basic_stats, cube_distance)
-from .phot import (frame_quick_report, cube_inject_companions, snr_ss,
-                   snr_peakstddev, snrmap, snrmap_fast, detection,
-                   normalize_psf)
+from .metrics import (frame_quick_report, cube_inject_companions, snr_ss,
+                      snr_peakstddev, snrmap, snrmap_fast, detection,
+                      normalize_psf)
 from .conf.utils_conf import check_array
 
 

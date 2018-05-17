@@ -419,15 +419,15 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
 
 
 def check_scal_vector(scal_vec):
-    """ Function to check if the scaling list has the right format to avoid any
-    bug in the pca algorithm, in the case of IFS data. All scaling factors
-    should be >= 1 (i.e. the scaling should be done to match the longest
+    """ Function to turn the wavelengths (in the case of IFS data) into a
+    scaling factor list. It checksthat it has the right format: all scaling
+    factors should be >= 1 (i.e. the scaling should be done wrt the longest
     wavelength of the cube).
 
     Parameter:
     ----------
     scal_vec: 1d array or list
-        Vector with the scaling factors.
+        Vector with the wavelengths.
 
     Returns:
     --------
@@ -446,4 +446,90 @@ def check_scal_vector(scal_vec):
         scal_vec /= scal_vec.min()
 
     return scal_vec
+
+
+def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
+                      debug=False):
+    """ Finds a radial threshold for avoiding as much as possible self-
+    subtraction while doing model PSF subtraction.
+
+    # TODO: check this output. Also, find a more pythonic way to to this!
+
+    Parameters
+    ----------
+    wl : 1d array or list
+        Vector with the scaling factors.
+    dist : int
+        Separation or distance from the center of the array (star).
+    index_ref : int
+        The `wl` index for which we are finding the pairs.
+    fwhm : float
+        Mean FWHM of all the wavelengths.
+    delta_sep : float, optional
+        The threshold separation in terms of the mean FWHM.
+    debug : bool, optional
+        It True it prints out debug information.
+
+    Returns
+    -------
+    index_w2 : int
+        Index of the frame located (outwards) at a `delta_sep` separation from
+        `index_ref`.
+    index_w3 :
+        Index of the frame located (inwards) at a `delta_sep` separation from
+        `index_ref`.
+    """
+    nwvs = wl.shape[0]
+    index_w2 = 0
+    index_ref = int(index_ref)
+    for i in range(0, index_ref):
+        index_w2 = i
+        sep = ((wl[index_ref] - wl[index_w2]) / wl[index_ref]) * (
+                (dist + fwhm * delta_sep) / fwhm)
+        if debug:
+            sep_pxs = ((wl[index_ref] - wl[index_w2]) / wl[index_ref]) * (
+                        dist + fwhm * delta_sep)
+            print(sep, sep_pxs)
+        if sep <= delta_sep:
+            if index_w2 == 0:
+                index_w2 += 1
+            break
+    if debug:
+        print('Index 1 = ', index_w2)
+
+    index_w3 = nwvs
+    for i in range(index_ref, nwvs)[::-1]:
+        index_w3 = i
+        sep = ((wl[index_w3] - wl[index_ref]) / wl[index_ref]) * (
+                (dist - fwhm * delta_sep) / fwhm)
+        if debug:
+            sep_pxs = ((wl[index_w3] - wl[index_ref]) / wl[index_ref]) * (
+                        dist - fwhm * delta_sep)
+            print(sep, sep_pxs)
+        if sep <= delta_sep:
+            if index_w3 == nwvs - 1:
+                index_w3 += 1
+            break
+
+    if debug:
+        print('Index 2 = ', index_w3)
+
+    if nframes is not None:
+        window = nframes // 2
+        ind1 = max(index_w2 - window, 0)
+        ind2 = index_w2
+        ind3 = index_w3
+        ind4 = min(index_w3 + window, nwvs)
+        indices = np.array(list(range(ind1, ind2)) + list(range(ind3, ind4)))
+    else:
+        half1 = range(0, index_w2)
+        half2 = range(index_w3, nwvs)
+        indices = np.array(list(half1) + list(half2))
+
+    indices = indices.astype(int)
+    if indices.shape[0] == 1:
+        msg = 'No frames left after the radial motion threshold. Try decreasing'
+        msg += ' the value of `delta_sep` (for dist: {} pxs)'
+        raise RuntimeError(msg.format(dist))
+    return indices
 

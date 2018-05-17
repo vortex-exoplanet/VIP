@@ -36,11 +36,13 @@ class EvalRoc:
     SYMBOL_3 = "P" # LLSG
     SYMBOL_4 = "s" # SODIRF
     SYMBOL_5 = "p" # SODINN
-    THRESHOLDS_05_5 = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]  # PCA, ...
-    THRESHOLDS_01_099 = np.linspace(0.1, 0.99, 10).tolist()  # SODINN, ...
+    # For model PSF subtraction algos that rely on a S/N map
+    THRESHOLDS_05_5 = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
+    # For algos that output a likelihood or probability map
+    THRESHOLDS_01_099 = np.linspace(0.1, 0.99, 10).tolist()
 
-    def __init__(self, dataset, plsc=0.0272, n_injections=100, inrad=8, outrad=12,
-                 dist_flux=("uniform", 2, 500), mask=None):
+    def __init__(self, dataset, plsc=0.0272, n_injections=100, inrad=8,
+                 outrad=12, dist_flux=("uniform", 2, 500), mask=None):
         """
         [...]
         dist_flux : tuple ('method', *args)
@@ -78,14 +80,10 @@ class EvalRoc:
 
         Notes
         -----
-        Todo:
-        - When passing a HCIDataset, should `psf` or `psfn` be used? -> discussion
-          about storing even+odd PSF in HCIDataset
-        - SODIRF and SODINN+SODIRF are yet to be integrated.
-        - `llsg` function was called with `nproc=1`. Why not `nproc=nproc`?
-        - `methods` are not returned inside `results` and are *not* saved!
-        - order of parameters for `skewnormal` `dist_flux` changed! (was [3], [1], [2])
-        - `save` not implemented
+        # TODO : SODIRF and SODINN+SODIRF are yet to be integrated.
+        # TODO : `methods` are not returned inside `results` and are *not* saved!
+        # TODO : order of parameters for `skewnormal` `dist_flux` changed! (was [3], [1], [2])
+        # TODO : `save` not implemented
         """
         from .. import hci_postproc
 
@@ -183,10 +181,9 @@ class EvalRoc:
         """
         Notes
         -----
-        - `save` not implemeted (`methods` should be saved, not this functions
-          return value!)
+        # TODO : `save` not implemeted (`methods` should be saved, not this
+        functions return value!)
         """
-
         starttime = time_ini()
 
         for m in self.methods:
@@ -204,7 +201,6 @@ class EvalRoc:
                 m.detections.append(res[0])
                 m.fps.append(res[1])
                 m.bmaps.append(res[2])
-
         timing(starttime)
 
     def plot_detmaps(self, i=None, thr=9, dpi=100,
@@ -324,7 +320,7 @@ class EvalRoc:
         #              "SODINN-pw": dict(color="#1f77b4", symbol="p")
         #             }  # maps m.name to plot style
 
-        for i,m in enumerate(self.methods):
+        for i, m in enumerate(self.methods):
 
             if not hasattr(m, "detections") or not hasattr(m, "fps"):
                 raise AttributeError("method #{} has no detections/fps. Run"

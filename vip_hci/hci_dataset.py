@@ -649,7 +649,7 @@ class HCIDataset:
         """ Slicing the cube using the `n` (initial) and `m` (final) indices in
         a 1-indexed fashion.
 
-        # TODO: support 4d case.
+        # TODO: support 4d case, documentation
         """
         self.cube = cube_drop_frames(self.cube, n, m, self.angles)
 
@@ -657,7 +657,7 @@ class HCIDataset:
                btw_cutoff=0.2, btw_order=2, gauss_mode='conv', verbose=True):
         """ High/low pass filtering the frames of the cube.
 
-        # TODO: support 4d case.
+        # TODO: support 4d case, documentation
 
         Parameters
         ----------
@@ -736,8 +736,8 @@ class HCIDataset:
                                  annulus_inner_radius, annulus_width, plot,
                                  False)
 
-    def inject_companions(self, flux, rad_dists, n_branches=1,
-                          theta=0, imlib='opencv', interpolation='lanczos4',
+    def inject_companions(self, flux, rad_dists, n_branches=1, theta=0,
+                          imlib='opencv', interpolation='lanczos4',
                           verbose=True):
         """ Injection of fake companions in 3d or 4d cubes.
 
@@ -891,9 +891,6 @@ class HCIDataset:
             If True the resulting array will have odd size (and the PSF will be
             placed at its center). If False, and the frame size is even, then
             the PSF will be put at the center of an even-sized frame.
-        full_output : bool, optional
-            If True the flux in a FWHM aperture is returned along with the
-            normalized PSF.
         verbose : bool, optional
             If True intermediate results are printed out.
         """
@@ -906,11 +903,12 @@ class HCIDataset:
             fwhm = self.fwhm
         else:
             fwhm = 'fit'
-        self.psfn = normalize_psf(self.psf, fwhm, size, threshold, mask_core,
-                                  model, imlib, interpolation, force_odd,
-                                  False, verbose)
+        res = normalize_psf(self.psf, fwhm, size, threshold, mask_core, model,
+                            imlib, interpolation, force_odd, True, verbose)
+        self.psfn, self.aperture_flux, self.fwhm = res
         print('Normalized PSF array shape: {}'.format(self.psfn.shape))
-        print('A new attribute `psfn` has been created')
+        print('The attribute `psfn` contains the normalized PSF')
+        print("`fwhm` attribute set to {:.3f}".format(self.fwhm))
 
     def plot(self, wavelength=0, **kwargs):
         """ Plotting the frames of a 3D or 4d cube (``wavelength``).

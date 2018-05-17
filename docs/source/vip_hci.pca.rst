@@ -17,6 +17,22 @@ vip\_hci\.pca\.pca\_fullfr module
     :undoc-members:
     :show-inheritance:
 
+vip\_hci\.pca\.pca\_fullfr\_grid module
+---------------------------------------
+
+.. automodule:: vip_hci.pca.pca_fullfr_grid
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+vip\_hci\.pca\.pca\_fullfr\_increm module
+-----------------------------------------
+
+.. automodule:: vip_hci.pca.pca_fullfr_increm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 vip\_hci\.pca\.pca\_local module
 --------------------------------
 

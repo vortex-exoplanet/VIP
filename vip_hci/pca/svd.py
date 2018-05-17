@@ -89,40 +89,34 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
 
     Returns
     -------
-    The right singular vectors of the input matrix. If ``usv`` is True it 
-    returns the left and right singular vectors and the singular values of the
-    input matrix.
+    V : array_like
+        The right singular vectors of the input matrix. If ``usv`` is True it
+        returns the left and right singular vectors and the singular values of
+        the input matrix.
     
     References
     ----------
     * For ``lapack`` SVD mode see:
-    https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.linalg.svd.html
-    http://www.netlib.org/lapack/
-    
+        https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.linalg.svd.html
+        http://www.netlib.org/lapack/
     * For ``eigen`` mode see:
-    https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.linalg.eigh.html
-    
+        https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.linalg.eigh.html
     * For ``arpack`` SVD mode see:
-    https://docs.scipy.org/doc/scipy-0.19.1/reference/generated/scipy.sparse.linalg.svds.html
-    http://www.caam.rice.edu/software/ARPACK/
-    
+        https://docs.scipy.org/doc/scipy-0.19.1/reference/generated/scipy.sparse.linalg.svds.html
+        http://www.caam.rice.edu/software/ARPACK/
     * For ``randsvd`` SVD mode see:
-    https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/utils/extmath.py
-    Finding structure with randomness: Stochastic algorithms for constructing
-    approximate matrix decompositions
-    Halko, et al., 2009 http://arxiv.org/abs/arXiv:0909.4061
-    
+        https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/utils/extmath.py
+        Finding structure with randomness: Stochastic algorithms for constructing
+        approximate matrix decompositions
+        Halko, et al., 2009 http://arxiv.org/abs/arXiv:0909.4061
     * For ``cupy`` SVD mode see:
-    https://docs-cupy.chainer.org/en/stable/reference/generated/cupy.linalg.svd.html
-    
+        https://docs-cupy.chainer.org/en/stable/reference/generated/cupy.linalg.svd.html
     * For ``eigencupy`` mode see:
-    https://docs-cupy.chainer.org/en/master/reference/generated/cupy.linalg.eigh.html
-
+        https://docs-cupy.chainer.org/en/master/reference/generated/cupy.linalg.eigh.html
     * For ``pytorch`` SVD mode see:
-    http://pytorch.org/docs/master/torch.html#torch.svd
-
+        http://pytorch.org/docs/master/torch.html#torch.svd
     * For ``eigenpytorch`` mode see:
-    http://pytorch.org/docs/master/torch.html#torch.eig
+        http://pytorch.org/docs/master/torch.html#torch.eig
 
     """
 

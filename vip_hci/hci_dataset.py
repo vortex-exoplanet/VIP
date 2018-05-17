@@ -1205,7 +1205,7 @@ class HCIDataset:
         ----------
         window : int
             Window for mean/median.
-        mode : {'mean','median'}, optional
+        mode : {'mean', 'median'}, optional
             Switch for choosing mean or median.
         """
         if self.angles is not None:

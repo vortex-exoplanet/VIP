@@ -9,7 +9,7 @@ __all__ = ['EvalRoc',
 
 import numpy as np
 from skimage.draw import circle
-from scipy.stats import skewnorm
+from scipy import stats
 import matplotlib.pyplot as plt
 from photutils import detect_sources
 from skimage.feature import peak_local_max
@@ -116,9 +116,10 @@ class EvalRoc:
         num_patches = yy.shape[0]
 
         # Defining Fluxes according to chosen distribution
-        dist_fkt = dict(skewnormal=skewnorm.rvs,
+        dist_fkt = dict(skewnormal=stats.skewnorm.rvs,
                         normal=np.random.normal,
-                        uniform=np.random.uniform).get(self.dist_flux[0], self.dist_flux[0])
+                        uniform=np.random.uniform).get(self.dist_flux[0],
+                                                       self.dist_flux[0])
         
         self.fluxes = dist_fkt(*self.dist_flux[1:], size=self.n_injections)
         self.fluxes.sort()

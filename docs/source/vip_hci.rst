@@ -18,11 +18,11 @@ Subpackages
     vip_hci.frdiff
     vip_hci.leastsq
     vip_hci.llsg
-    vip_hci.madi
+    vip_hci.medsub
+    vip_hci.metrics
     vip_hci.negfc
     vip_hci.nmf
     vip_hci.pca
-    vip_hci.phot
     vip_hci.preproc
     vip_hci.stats
     vip_hci.var

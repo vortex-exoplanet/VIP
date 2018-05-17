@@ -341,7 +341,7 @@ def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
     Array of y and x approx coordinates of the star in each channel of the cube
     if return_test: it also returns the test result vector
     """
-    from ..phot import peak_coordinates
+    from ..metrics import peak_coordinates
 
     obj_tmp = cube.copy()
     n_z = obj_tmp.shape[0]

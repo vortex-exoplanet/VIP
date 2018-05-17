@@ -25,18 +25,18 @@ vip\_hci\.var\.fit\_2d module
     :undoc-members:
     :show-inheritance:
 
-vip\_hci\.var\.shapes module
-----------------------------
+vip\_hci\.var\.plotting module
+------------------------------
 
-.. automodule:: vip_hci.var.shapes
+.. automodule:: vip_hci.var.plotting
     :members:
     :undoc-members:
     :show-inheritance:
 
-vip\_hci\.var\.utils\_var module
---------------------------------
+vip\_hci\.var\.shapes module
+----------------------------
 
-.. automodule:: vip_hci.var.utils_var
+.. automodule:: vip_hci.var.shapes
     :members:
     :undoc-members:
     :show-inheritance:

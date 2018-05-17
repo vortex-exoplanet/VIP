@@ -10,7 +10,7 @@ from __future__ import division, print_function
 __all__ = ['cube_planet_free']
 
 import numpy as np
-from ..phot import cube_inject_companions
+from ..metrics import cube_inject_companions
 import math
 from matplotlib.pyplot import plot, xlim, ylim, hold, axes, gca, show
 

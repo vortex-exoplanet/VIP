@@ -28,7 +28,7 @@ class Mock(MagicMock):
 
 MOCK_MODULES = ['photutils', 'astropy', 'astropy.stats', 'astropy.convolution',
                 'astropy.io', 'astropy.modeling', 'astropy.table',
-                'astropy.coordinates', 'astropy.time', 'astropy.units']
+                'astropy.coordinates', 'astropy.time', 'astropy.units', 'pyds9']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 

@@ -18,7 +18,7 @@ from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import time_ini, timing
 from ..conf.utils_conf import eval_func_tuple as EFT
 from ..var import get_annulus_segments, matrix_scaling, get_annulus
-from ..madi.adi_utils import _find_indices, _define_annuli
+from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..stats import descriptive_stats
 from .svd import get_eigenvectors
 
@@ -468,12 +468,12 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
     """
     if pa_threshold != 0:
         if ann_center > fwhm*10:    # TODO: 10*FWHM optimal? new parameter?
-            indices_left = _find_indices(angle_list, frame, pa_threshold,
-                                         truncate=True,
-                                         max_frames=max_frames_lib)
+            indices_left = _find_indices_adi(angle_list, frame, pa_threshold,
+                                             truncate=True,
+                                             max_frames=max_frames_lib)
         else:
-            indices_left = _find_indices(angle_list, frame, pa_threshold,
-                                         truncate=False)
+            indices_left = _find_indices_adi(angle_list, frame, pa_threshold,
+                                             truncate=False)
 
         data_ref = matrix[indices_left]
 

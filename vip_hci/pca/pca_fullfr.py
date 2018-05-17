@@ -18,7 +18,7 @@ from astropy.io import fits
 from matplotlib import pyplot as plt
 from sklearn.decomposition import IncrementalPCA
 from .svd import svd_wrapper
-from ..madi.adi_utils import _find_indices, _compute_pa_thresh
+from ..preproc.derotation import _find_indices_adi, _compute_pa_thresh
 from .utils_pca import pca_annulus
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
@@ -28,7 +28,6 @@ from ..conf import (timing, time_ini, check_enough_memory, get_available_memory,
 from ..conf.utils_conf import vip_figsize
 from ..var import frame_center, dist, prepare_matrix, reshape_matrix
 from ..stats import descriptive_stats
-from .. import phot
 
 import warnings
 warnings.filterwarnings("ignore", category=Warning)
@@ -346,10 +345,10 @@ def _adi_pca(cube, angle_list, ncomp, source_xy, delta_rot, fwhm, scaling,
 
         for frame in range(n):
             if ann_center > fwhm * 3:  # TODO: 3 optimal value? new par?
-                ind = _find_indices(angle_list, frame, pa_thr,
-                                    truncate=True)
+                ind = _find_indices_adi(angle_list, frame, pa_thr,
+                                        truncate=True)
             else:
-                ind = _find_indices(angle_list, frame, pa_thr)
+                ind = _find_indices_adi(angle_list, frame, pa_thr)
 
             res_result = _subtr_proj_fullfr(cube, None, ncomp, scaling,
                                             mask_center_px, debug, svd_mode,
@@ -683,7 +682,9 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
         Optimal number of PCs for given source.
     If full_output is True, the optimal number of PCs, the final processed
     frame, and a cube with all the PCA frames are returned.
-    """    
+    """
+    from .. import metrics
+
     def truncate_svd_get_finframe(matrix, angle_list, ncomp, V):
         """ Projection, subtraction, derotation plus combination in one frame.
         Only for full-frame"""
@@ -724,8 +725,8 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
         
         if fmerit == 'max':
             yy, xx = draw.circle(y, x, fwhm/2.)
-            res = [phot.snr_ss(frame, (x_,y_), fwhm, plot=False, verbose=False, 
-                               full_output=True) for y_, x_ in zip(yy, xx)]
+            res = [metrics.snr_ss(frame, (x_, y_), fwhm, plot=False, verbose=False,
+                                  full_output=True) for y_, x_ in zip(yy, xx)]
             snr_pixels = np.array(res)[:,-1]
             fluxes = np.array(res)[:,2]
             argm = np.argmax(snr_pixels)
@@ -735,8 +736,8 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
             else:
                 return np.max(snr_pixels), fluxes[argm]
         elif fmerit == 'px':
-            res = phot.snr_ss(frame, (x,y), fwhm, plot=False, verbose=False,
-                              full_output=True)
+            res = metrics.snr_ss(frame, (x, y), fwhm, plot=False, verbose=False,
+                                 full_output=True)
             snrpx = res[-1]
             fluxpx = np.array(res)[2]
             if full_output:
@@ -746,8 +747,8 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
                 return snrpx, fluxpx
         elif fmerit == 'mean':
             yy, xx = draw.circle(y, x, fwhm/2.)
-            res = [phot.snr_ss(frame, (x_,y_), fwhm, plot=False, verbose=False, 
-                               full_output=True) for y_, x_ in zip(yy, xx)]  
+            res = [metrics.snr_ss(frame, (x_, y_), fwhm, plot=False, verbose=False,
+                                  full_output=True) for y_, x_ in zip(yy, xx)]
             snr_pixels = np.array(res)[:,-1]
             fluxes = np.array(res)[:,2]
             if full_output:
@@ -1007,7 +1008,7 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
                               scaling=scaling, collapse=collapse, imlib=imlib,
                               interpolation=interpolation)
 
-    _ = phot.frame_quick_report(finalfr, fwhm, (x,y), verbose=verbose)
+    _ = metrics.frame_quick_report(finalfr, fwhm, (x, y), verbose=verbose)
     
     if full_output:
         return opt_npc, finalfr, cubeout

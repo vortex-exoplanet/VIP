@@ -11,6 +11,7 @@ pandas >= 0.18
 matplotlib >= 1.4.3
 psutil
 pyprind
+munch
 opencv-python
 sphinx <= 1.5.6
 

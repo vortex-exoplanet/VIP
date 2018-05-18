@@ -7,9 +7,7 @@ Module with utilities.
 from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, Ralf Farkas'
-__all__ = ['Progressbar',
-           'pool_map', 'pool_imap', 'fixed',
-           'make_chunks']
+__all__ = ['Progressbar']
 
 import os
 import sys

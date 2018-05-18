@@ -163,12 +163,17 @@ def fixed(v):
     return FixedObj(v)
 
 
-def pool_map(nproc, fkt, *args, msg=None, verbose=True,
-                   progressbar_single=True, generator=False):
+def pool_map(nproc, fkt, *args, **kwargs):
     """
     pool.map which uses `fixed()` for ...
 
     """
+
+    msg = kwargs.get("msg", None)
+    verbose = kwargs.get("verbose", True)
+    progressbar_single = kwargs.get("progressbar_single", True)
+    _generator = kwargs.get("_generator", False)  # not exposed in docstring
+
     
     args_r = [a.v if isinstance(a, FixedObj) else itt.repeat(a) for a in args]
     z = zip(itt.repeat(fkt), *args_r)
@@ -179,7 +184,7 @@ def pool_map(nproc, fkt, *args, msg=None, verbose=True,
             z = Progressbar(z, desc=msg, verbose=verbose, total=total)
 
         res = map(eval_func_tuple, z)
-        if not generator:
+        if not _generator:
             res = list(res)
 
 
@@ -187,7 +192,7 @@ def pool_map(nproc, fkt, *args, msg=None, verbose=True,
         if verbose and msg is not None:
             print(msg+" with {} processes".format(nproc))
         pool = Pool(processes=nproc)
-        if generator:
+        if _generator:
             res = pool.imap(eval_func_tuple, z)
         else:
             res = pool.map(eval_func_tuple, z)
@@ -197,10 +202,9 @@ def pool_map(nproc, fkt, *args, msg=None, verbose=True,
     return res
 
 
-def pool_imap(nproc, fkt, *args, msg=None, verbose=True,
-                   progressbar_single=True):
-    return pool_map(nproc, fkt, *args, msg=msg, verbose=verbose,
-                    progressbar_single=progressbar_single, generator=True)
+def pool_imap(nproc, fkt, *args, **kwargs):
+    kwargs["_generator"] = True
+    return pool_map(nproc, fkt, *args, **kwargs)
 
 
 

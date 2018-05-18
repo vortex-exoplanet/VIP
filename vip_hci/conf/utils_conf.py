@@ -258,7 +258,7 @@ def pool_map(nproc, fkt, *args, **kwargs):
 
     else:
         if verbose and msg is not None:
-            print(msg+" with {} processes".format(nproc))
+            print("{} with {} processes".format(msg, nproc))
         pool = Pool(processes=nproc)
         if _generator:
             res = pool.imap(eval_func_tuple, z)
@@ -375,6 +375,7 @@ class redirect_output(object):
                 sys.stderr = open(self.stderr, 'w')
 
     def __exit__(self, exc_type, exc_value, traceback):
+        # TODO: close self.stdout and self.stderr
         sys.stdout = self.sys_stdout
         sys.stderr = self.sys_stderr
 

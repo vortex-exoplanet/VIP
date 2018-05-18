@@ -7,7 +7,7 @@ Module with 2d/3d plotting functions.
 from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, O. Wertz'
-__all__ = ['pp_subplots',
+__all__ = ['pp_subplots', 'pp_subplots_grid',
            'plot_surface',
            'save_animation']
 
@@ -111,6 +111,19 @@ def save_animation(data, anim_path=None, data_step_range=None, label=None,
         print('Animation successfully saved to disk as ' + filename)
     except FileNotFoundError:
         print('ImageMagick convert command could not be found')
+
+
+
+
+
+def pp_subplots_grid(cube, x_y, **kwargs):
+    cols, rows = x_y
+    if cube.ndim == 4 and cube.shape[-1] == 1:
+        # 4D data, e.g. Conv NN output
+        cube = cube.reshape(cube.shape[:-1])
+    idx = np.linspace(0, len(cube), num=cols*rows, endpoint=False, dtype=int)
+    pp_subplots(*cube[idx], rows=rows, label=["{}/{}".format(i, len(cube)) for i in idx], **kwargs)
+
 
 
 def pp_subplots(*data, **kwargs):

@@ -394,21 +394,44 @@ class EvalRoc:
 
 def compute_binary_map(frame, thresholds, injx, injy, npix=1, min_distance=1,
                        debug=False):
-    """
+    """ Takes a list of ``thresholds``, creates binary maps from the
+    detection map (``frame``) and counts detections and false positives.
+
     Parameters
     ----------
+    frame : array_like
+        Detection map.
+    thresholds : list or numpy.ndarray
+        List of thresholds (detection criteria).
+    injx, injy : int
+        Coordinates of the injected companion.
+    npix : int, optional
+        The number of connected pixels, each greater than the given threshold,
+        that an object must have to be detected. ``npix`` must be a positive
+        integer. Passed to ``detect_sources`` function from ``photutils``.
+    min_distance : int, optional
+        Minimum number of pixels separating peaks in a region of `2 *
+        min_distance + 1` (i.e. peaks are separated by at least `min_distance`).
+        By default, `min_distance=1` (maximum number of peaks). Passed to
+        ``peak_local_max`` function from ``photutils``.
+    debug : bool, optional
+        For showing optional information.
 
     Returns
     -------
-    list_detections
-    list_fps
-    list_binmaps
-    
+    list_detections : list
+        List of detection state (0 or 1) for each threshold.
+    list_fps : list
+        List of false positives count for each threshold.
+    list_binmaps : list
+        List of binary maps: detection maps thresholded for each threshold
+        value.
 
     Notes
     -----
-    - min_distance=fwhm is problematic, when two blobs are less than fwhm apart
-    the true blob could be discarded, depending on the ordering.
+    ``min_distance = fwhm`` is problematic, when two blobs are less than fwhm
+    apart the true blob could be discarded, depending on the ordering. Not sure
+    what should be the best value here.
     """
     list_detections = []
     list_fps = []
@@ -423,10 +446,10 @@ def compute_binary_map(frame, thresholds, injx, injy, npix=1, min_distance=1,
         if debug:
             plots(first_segm.data, binary_map, final_segm.data)
 
-        ### Checking if the injection pxs match with detected blobs
+        # Checking if the injection pxs match with detected blobs
         detection = 0  # should be int for pretty output in plot_detmaps
         for i in range(n_sources):
-            yy, xx = np.where(final_segm.data==i+1)
+            yy, xx = np.where(final_segm.data == i + 1)
             xxyy = list(zip(xx, yy))
             injyy, injxx = circle(injy, injx, 2)
             coords_ind = list(zip(injxx, injyy))

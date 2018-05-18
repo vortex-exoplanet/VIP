@@ -21,7 +21,6 @@ __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['median_sub']
 
 import numpy as np
-import itertools as itt
 from multiprocessing import cpu_count
 from ..conf import time_ini, timing
 from ..var import get_annulus, mask_circle
@@ -32,8 +31,6 @@ from ..conf import Progressbar
 from ..conf.utils_conf import pool_map, fixed
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
-
-array = None
 
 
 def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
@@ -118,10 +115,10 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
          <https://arxiv.org/abs/astro-ph/0512335>`_
 
     """
-    global array
-    array = cube
+    global ARRAY
+    ARRAY = cube
     
-    if not (array.ndim == 3 or array.ndim == 4):
+    if not (ARRAY.ndim == 3 or ARRAY.ndim == 4):
         raise TypeError('Input array is not a 3d or 4d array')
 
     if verbose:
@@ -132,23 +129,23 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
 
     angle_list = check_pa_vector(angle_list)
 
-    if array.ndim == 3:
-        n, y, _ = array.shape
+    if ARRAY.ndim == 3:
+        n, y, _ = ARRAY.shape
 
-        if array.shape[0] != angle_list.shape[0]:
+        if ARRAY.shape[0] != angle_list.shape[0]:
             msg = 'Input vector or parallactic angles has wrong length'
             raise TypeError(msg)
 
         # The median frame is first subtracted from each frame
-        model_psf = np.median(array, axis=0)
-        array = array - model_psf
+        model_psf = np.median(ARRAY, axis=0)
+        ARRAY = ARRAY - model_psf
 
         # Depending on the ``mode``
         if mode == 'fullfr':
             if radius_int > 0:
-                cube_out = mask_circle(array, radius_int)
+                cube_out = mask_circle(ARRAY, radius_int)
             else:
-                cube_out = array
+                cube_out = ARRAY
             if verbose:
                 print('Median psf reference subtracted')
 
@@ -170,7 +167,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
             mres = res[:, 0]
             yy = res[:, 1]
             xx = res[:, 2]
-            cube_out = np.zeros_like(array)
+            cube_out = np.zeros_like(ARRAY)
             for ann in range(n_annuli):
                 cube_out[:, yy[ann], xx[ann]] = mres[ann]
 
@@ -184,8 +181,8 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
                                  interpolation=interpolation)
         frame = cube_collapse(cube_der, mode=collapse)
 
-    elif array.ndim == 4:
-        z, n, y_in, x_in = array.shape
+    elif ARRAY.ndim == 4:
+        z, n, y_in, x_in = ARRAY.shape
 
         if scale_list is None:
             raise ValueError('Scaling factors vector must be provided')
@@ -205,7 +202,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
                 print('First median subtraction exploiting spectral '
                       'variability')
             for i in Progressbar(range(n), verbose=verbose):
-                cube_resc, _, _, _, _, _ = scwave(array[:, i, :, :], scale_list)
+                cube_resc, _, _, _, _, _ = scwave(ARRAY[:, i, :, :], scale_list)
                 median_frame = np.median(cube_resc, axis=0)
                 residuals_cube = cube_resc - median_frame
                 frame_i = scwave(residuals_cube, scale_list,
@@ -237,7 +234,6 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
                       'variability')
                 print('N annuli = {}, FWHM = {}'.format(n_annuli, fwhm))
 
-
             res = pool_map(nproc, _median_subt_fr_sdi, fixed(range(n)),
                            scale_list, n_annuli, fwhm, radius_int,
                            annulus_width, delta_sep, nframes)
@@ -255,6 +251,8 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
                 print('N annuli = {}, FWHM = {}'.format(n_annuli, fwhm))
                 print('PA thresholds: (not in order when `nrpoc`>1)')
 
+            ARRAY = residuals_cube_channels
+
             res = pool_map(nproc, _median_subt_ann_adi, fixed(range(n_annuli)),
                            angle_list, n_annuli, fwhm, radius_int,
                            annulus_width, delta_rot, nframes, verbose)
@@ -263,7 +261,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
             mres = res[:, 0]
             yy = res[:, 1]
             xx = res[:, 2]
-            cube_out = np.zeros_like(array[0])
+            cube_out = np.zeros_like(ARRAY)
             for ann in range(n_annuli):
                 cube_out[:, yy[ann], xx[ann]] = mres[ann]
 
@@ -287,11 +285,11 @@ def _median_subt_fr_sdi(fr, wl, n_annuli, fwhm, radius_int, annulus_width,
                         delta_sep, nframes):
     """ Optimized median subtraction on a multi-spectral frame (IFS data).
     """
-    z = array.shape[0]
-    y_in = array.shape[1]
-    x_in = array.shape[2]
+    z = ARRAY.shape[0]
+    y_in = ARRAY.shape[1]
+    x_in = ARRAY.shape[2]
     scale_list = check_scal_vector(wl)
-    multispec_fr = scwave(array[:, fr, :, :], scale_list)[0]    # rescaled cube
+    multispec_fr = scwave(ARRAY[:, fr, :, :], scale_list)[0]    # rescaled cube
 
     cube_res = np.zeros_like((multispec_fr))    # shape (z, resc_y, resc_x)
 
@@ -331,10 +329,10 @@ def _median_subt_ann_adi(ann, angle_list, n_annuli, fwhm, radius_int,
                          annulus_width, delta_rot, nframes, verbose):
     """ Optimized median subtraction for a given annulus.
     """
-    if array.ndim == 3:
-        n = array.shape[0]
-    elif array.ndim == 4:
-        n = array.shape[1]
+    if ARRAY.ndim == 3:
+        n = ARRAY.shape[0]
+    elif ARRAY.ndim == 4:
+        n = ARRAY.shape[1]
 
     # The annulus is built, and the corresponding PA thresholds for frame
     # rejection are calculated. The PA rejection is calculated at center of
@@ -345,15 +343,15 @@ def _median_subt_ann_adi(ann, angle_list, n_annuli, fwhm, radius_int,
     if verbose:
         print('{:.2f}'.format(pa_thr), end=' ')
 
-    if array.ndim == 3:
-        indices = get_annulus(array[0], inner_radius, annulus_width,
+    if ARRAY.ndim == 3:
+        indices = get_annulus(ARRAY[0], inner_radius, annulus_width,
                               output_indices=True)
-    elif array.ndim == 4:
-        indices = get_annulus(array[0, 0], inner_radius, annulus_width,
+    elif ARRAY.ndim == 4:
+        indices = get_annulus(ARRAY[0, 0], inner_radius, annulus_width,
                               output_indices=True)
     yy = indices[0]
     xx = indices[1]
-    matrix = array[:, yy, xx]  # shape [n x npx_annulus]
+    matrix = ARRAY[:, yy, xx]  # shape [n x npx_annulus]
     matrix_res = np.zeros_like(matrix)
 
     # A second optimized psf reference is subtracted from each frame.

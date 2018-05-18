@@ -160,12 +160,80 @@ class FixedObj():
         self.v = v
 
 def fixed(v):
+    """
+    Helper function for ``pool_map``: prevents the argument from being wrapped
+    in ``itertools.repeat()``.
+    
+
+    Examples
+    --------
+
+    .. code-block:: python
+
+        # we have a worker function whic processes a word:
+
+        def worker(word, method):
+            # ...
+
+        # we want to process these words in parallel fasion:
+        words = ["lorem", "ipsum", "esse", "ea", "eiusmod"]
+
+        # but all with
+        method = 1
+
+        # we then would use
+        pool_map(3, worker, fixed(words), method)
+
+        # this results in calling
+        # 
+        # worker(words[0], 1)
+        # worker(words[1], 1)
+        # worker(words[2], 1)
+        # ...
+
+
+    """
     return FixedObj(v)
 
 
 def pool_map(nproc, fkt, *args, **kwargs):
     """
-    pool.map which uses `fixed()` for ...
+    Abstraction layer for multiprocessing. When ``nproc=1``, the builtin
+    ``map()`` is used. For ``nproc>1`` a ``multiprocessing.Pool`` is created.
+
+    Parameters
+    ----------
+    nproc : int
+        Number of processes to use.
+    fkt : callable
+        The function to be called with each ``*args``
+    *args : function arguments
+        Arguments passed to ``fkt`` By default, ``itertools.repeat`` is applied
+        on all the arguments, except when you wrap the argument in ``fixed()``.
+    msg : str or None, optional
+        Description to be displayed.
+    progressbar_single : bool, optional
+        Display a progress bar when single-processing is used. Defaults to
+        ``True``.
+    verbose : bool, optional
+        Show more output. Also disables the progress bar when set to ``False``.
+
+    Returns
+    -------
+    res : list
+        A list with the results.
+
+
+
+
+
+
+    Notes
+    -----
+    python2 does not support named keyword arguments after ``*args``. This is
+    why the rather un-elegant ``kwargs.get()`` are used.
+
+    # TODO: how do ``zip`` and ``map`` behave on python 2?
 
     """
 
@@ -203,6 +271,40 @@ def pool_map(nproc, fkt, *args, **kwargs):
 
 
 def pool_imap(nproc, fkt, *args, **kwargs):
+    """
+    Generator version of ``pool_map``. Useful when showing a progress bar for
+    multiprocessing (see examples).
+
+    Parameters
+    ----------
+    nproc : int
+        Number of processes to use.
+    fkt : callable
+        The function to be called with each ``*args``
+    *args : function arguments
+        Arguments passed to ``fkt``
+    msg : str or None, optional
+        Description to be displayed.
+    progressbar_single : bool, optional
+        Display a progress bar when single-processing is used. Defaults to
+        ``True``.
+    verbose : bool, optional
+        Show more output. Also disables the progress bar when set to ``False``.
+
+    Examples
+    --------
+
+    .. code-block:: python
+
+        # using pool_map
+    
+        res = pool_map(2, my_worker_function, *args)
+    
+        # using pool_imap with a progessbar:
+    
+        res = list(Progressbar(pool_imap(2, my_worker_function, *args)))
+
+    """
     kwargs["_generator"] = True
     return pool_map(nproc, fkt, *args, **kwargs)
 
@@ -211,6 +313,8 @@ def pool_imap(nproc, fkt, *args, **kwargs):
 
 def repeat(*args):
     """
+    Applies ``itertools.repeat`` to every ``args``.
+
 
     Examples
     --------
@@ -231,8 +335,23 @@ def repeat(*args):
 
 def make_chunks(l, n):
     """
-    make_chunks(range(13), 3)
-        -> [[0, 3, 6, 9, 12], [1, 4, 7, 10], [2, 5, 8, 11]]
+    Chunks a list into ``n`` parts. The order of ``l`` is not kept. Useful for
+    parallel processing when a single call is too fast, so the overhead from
+    managing the processes is heavier than the calculation itself.
+
+    Parameters
+    ----------
+    l : list
+        Input list.
+    n : int
+        Number of parts.
+
+    Examples
+    --------
+    .. code-block:: python
+
+        make_chunks(range(13), 3)
+            # -> [[0, 3, 6, 9, 12], [1, 4, 7, 10], [2, 5, 8, 11]]
     """
     return [l[i::n] for i in range(n)]
 

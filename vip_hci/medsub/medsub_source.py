@@ -22,14 +22,14 @@ __all__ = ['median_sub']
 
 import numpy as np
 import itertools as itt
-from multiprocessing import Pool, cpu_count
+from multiprocessing import cpu_count
 from ..conf import time_ini, timing
 from ..var import get_annulus, mask_circle
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector)
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..conf import Progressbar
-from ..conf.utils_conf import eval_func_tuple as EFT
+from ..conf.utils_conf import pool_map, fixed
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
 
@@ -162,32 +162,17 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
             if verbose:
                 print('N annuli = {}, FWHM = {}'.format(n_annuli, fwhm))
 
-            cube_out = np.zeros_like(array)
+            res = pool_map(nproc, _median_subt_ann_adi, fixed(range(n_annuli)),
+                           angle_list, n_annuli, fwhm, radius_int,
+                           annulus_width, delta_rot, nframes, verbose)
 
-            if nproc == 1:
-                for ann in range(n_annuli):
-                    mres, yy, xx = _median_subt_ann_adi(ann, angle_list,
-                                                n_annuli, fwhm, radius_int,
-                                                annulus_width, delta_rot,
-                                                nframes, verbose)
-                    cube_out[:, yy, xx] = mres
-            elif nproc > 1:
-                pool = Pool(processes=nproc)
-                res = pool.map(EFT, zip(itt.repeat(_median_subt_ann_adi),
-                                        range(n_annuli), itt.repeat(angle_list),
-                                        itt.repeat(n_annuli), itt.repeat(fwhm),
-                                        itt.repeat(radius_int),
-                                        itt.repeat(annulus_width),
-                                        itt.repeat(delta_rot),
-                                        itt.repeat(nframes),
-                                        itt.repeat(verbose)))
-                res = np.array(res)
-                pool.close()
-                mres = res[:, 0]
-                yy = res[:, 1]
-                xx = res[:, 2]
-                for ann in range(n_annuli):
-                    cube_out[:, yy[ann], xx[ann]] = mres[ann]
+            res = np.array(res)
+            mres = res[:, 0]
+            yy = res[:, 1]
+            xx = res[:, 2]
+            cube_out = np.zeros_like(array)
+            for ann in range(n_annuli):
+                cube_out[:, yy[ann], xx[ann]] = mres[ann]
 
             if verbose:
                 print('\nOptimized median psf reference subtracted')
@@ -252,28 +237,11 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
                       'variability')
                 print('N annuli = {}, FWHM = {}'.format(n_annuli, fwhm))
 
-            residuals_cube_channels = []
 
-            if nproc == 1:
-                for fr in Progressbar(range(n), verbose=verbose):
-                    fr_res = _median_subt_fr_sdi(fr, scale_list, n_annuli, fwhm,
-                                                 radius_int, annulus_width,
-                                                 delta_sep, nframes)
-                    residuals_cube_channels.append(fr_res)
-                residuals_cube_channels = np.array(residuals_cube_channels)
-
-            elif nproc > 1:
-                pool = Pool(processes=nproc)
-                res = pool.map(EFT, zip(itt.repeat(_median_subt_fr_sdi),
-                                        range(n), itt.repeat(scale_list),
-                                        itt.repeat(n_annuli), itt.repeat(fwhm),
-                                        itt.repeat(radius_int),
-                                        itt.repeat(annulus_width),
-                                        itt.repeat(delta_sep),
-                                        itt.repeat(nframes)))
-                residuals_cube_channels = np.array(res)
-                pool.close()
-                print(residuals_cube_channels.shape)
+            res = pool_map(nproc, _median_subt_fr_sdi, fixed(range(n)),
+                           scale_list, n_annuli, fwhm, radius_int,
+                           annulus_width, delta_sep, nframes)
+            residuals_cube_channels = np.array(res)
 
             if nframes is not None:
                 if nframes % 2 != 0:
@@ -286,34 +254,18 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
                 print('Median subtraction in the ADI fashion')
                 print('N annuli = {}, FWHM = {}'.format(n_annuli, fwhm))
                 print('PA thresholds: (not in order when `nrpoc`>1)')
+
+            res = pool_map(nproc, _median_subt_ann_adi, fixed(range(n_annuli)),
+                           angle_list, n_annuli, fwhm, radius_int,
+                           annulus_width, delta_rot, nframes, verbose)
+
+            res = np.array(res)
+            mres = res[:, 0]
+            yy = res[:, 1]
+            xx = res[:, 2]
             cube_out = np.zeros_like(array[0])
-            array = residuals_cube_channels
-
-            if nproc == 1:
-                for ann in range(n_annuli):
-                    mres, yy, xx = _median_subt_ann_adi(ann, angle_list,
-                                            n_annuli, fwhm, radius_int,
-                                            annulus_width, delta_rot, nframes,
-                                            verbose)
-                    cube_out[:, yy, xx] = mres
-
-            elif nproc > 1:
-                pool = Pool(processes=nproc)
-                res = pool.map(EFT, zip(itt.repeat(_median_subt_ann_adi),
-                                        range(n_annuli), itt.repeat(angle_list),
-                                        itt.repeat(n_annuli), itt.repeat(fwhm),
-                                        itt.repeat(radius_int),
-                                        itt.repeat(annulus_width),
-                                        itt.repeat(delta_rot),
-                                        itt.repeat(nframes),
-                                        itt.repeat(verbose)))
-                res = np.array(res)
-                pool.close()
-                mres = res[:, 0]
-                yy = res[:, 1]
-                xx = res[:, 2]
-                for ann in range(n_annuli):
-                    cube_out[:, yy[ann], xx[ann]] = mres[ann]
+            for ann in range(n_annuli):
+                cube_out[:, yy[ann], xx[ann]] = mres[ann]
 
             cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
                                      interpolation=interpolation)

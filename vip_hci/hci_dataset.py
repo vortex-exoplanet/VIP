@@ -1183,13 +1183,13 @@ class HCIDataset:
         self.cube = cube_px_resampling(self.cube, scale, imlib, interpolation,
                                        verbose)
 
-    def save(self, path, precision=np.float32):
-        """ Writing to FITS file. If self.angles is present, then the angles
-        are appended to the FITS file.
+    def export(self, path, precision=np.float32):
+        """ Write ``self.cube`` to FITS file. If ``self.angles`` is present,
+        then the angles are appended to the FITS file.
 
         Parameters
         ----------
-        filename : string
+        path : string
             Full path of the fits file to be written.
         precision : numpy dtype, optional
             Float precision, by default np.float32 or single precision float.

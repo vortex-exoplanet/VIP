@@ -10,6 +10,8 @@ __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['HCIDataset',
            'HCIFrame']
 
+import os.path
+import pickle
 import numpy as np
 from .fits import open_fits, write_fits, append_extension
 from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
@@ -29,8 +31,6 @@ from .metrics import (frame_quick_report, cube_inject_companions, snr_ss,
                       snr_peakstddev, snrmap, snrmap_fast, detection,
                       normalize_psf)
 from .conf.utils_conf import check_array
-import pathlib
-import pickle
 
 
 class HCIFrame:
@@ -1276,32 +1276,34 @@ class HCIDataset:
 
         """
         
-        p = pathlib.Path(path_prefix)
-
         # save large arrays with numpy
-        np.savez(self._mk_fn(p, "np"),
+        np.savez(self._mk_fn(path_prefix, "np"),
                  **{x:getattr(self, x) for x in self.SAVE_WITH_NP})
 
         # save rest of object with pickle. calls __getstate__()
-        with open(self._mk_fn(p, "pcl"), "wb") as f:
+        with open(self._mk_fn(path_prefix, "pcl"), "wb") as f:
             pickle.dump(self, f)
 
 
     @staticmethod
-    def _mk_fn(p, plus):
+    def _mk_fn(p, suffix):
         """
-        Make pretty filename for saving objects. Adds ``plus`` and changes file
+        Make pretty filename for saving objects. Adds ``suffix`` and changes file
         extension to ``.vipdata``. Note that when using this filename in
         ``numpy.savez()``, ``.npz`` is automatically appended after
         ``.vipdata``.
 
         Parameters
         ----------
-        p : pathlib.Path
-        plus : str
+        p : str
+            Filename.
+        suffix : str
             Suffix which is appended to the filename, before the extension.
         """
-        return p.with_name("{}-{}".format(p.name, plus)).with_suffix(".vipdata")
+        if not p.endswith(".vipdata"):
+            p += ".vipdata"
+        new_p = "{}-{suffix}{}".format(*os.path.splitext(p), suffix=suffix)
+        return new_p
 
     def __getstate__(self):
         """
@@ -1328,11 +1330,10 @@ class HCIDataset:
         obj : HCIDataset object
 
         """
-        p = pathlib.Path(path)
-        with open(cls._mk_fn(p, "pcl"), "rb") as f:
+        with open(cls._mk_fn(path, "pcl"), "rb") as f:
             obj = pickle.load(f)
 
-        np_stuff_dict = np.load(str(cls._mk_fn(p, "np"))+".npz")
+        np_stuff_dict = np.load(str(cls._mk_fn(path, "np"))+".npz")
         # np always adds `.npz` to the filename...
 
         for k in np_stuff_dict:

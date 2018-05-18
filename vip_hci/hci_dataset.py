@@ -29,6 +29,8 @@ from .metrics import (frame_quick_report, cube_inject_companions, snr_ss,
                       snr_peakstddev, snrmap, snrmap_fast, detection,
                       normalize_psf)
 from .conf.utils_conf import check_array
+import pathlib
+import pickle
 
 
 class HCIFrame:
@@ -482,6 +484,10 @@ class HCIDataset:
     cuberef : str or numpy array
         3d or 4d high-contrast image sequence. To be used as a reference cube.
     """
+
+    SAVE_WITH_NP = ["cube", "angles", "psf", "psfn"]
+
+
     def __init__(self, cube, hdu=0, angles=None, wavelengths=None, fwhm=None,
                  px_scale=None, psf=None, psfn=None, cuberef=None):
         """ Initialization of the HCIDataset object.
@@ -1213,5 +1219,126 @@ class HCIDataset:
                                                      mode, self.angles)
         else:
             self.cube = cube_subsample(self.cube, window, mode)
+
+
+    def save(self, path_prefix):
+        """
+        Save entire HCIDataset to disk, including cube, angles etc.
+        
+        The following files will be created:
+        - `<path_prefix>-np.vipdata.npz`: contains data saved with numpy,
+           e.g. ``self.cube`` (see ``HCIDataset.SAVE_WITH_NP``)
+        - `<path_prefix>-pcl.vipdata`: contains the object itself, as saved
+          by ``pickle`.
+        
+
+
+        Parameters
+        ----------
+        path_prefix : str
+            Path to save the data to. This should contain *no* file extension!
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            # assume we have an object
+            dataset = HCIDataset(cube=my_cube, angles=my_angles)
+
+            # save the dataset
+            dataset.save("dataset-1")
+
+            # the following files are created:
+            #   - `./dataset-1-np.vipdata.npz`
+            #   - `./dataset-1-pcl.vipdata`
+
+            # you can restore the object using
+
+            d2 = HCIDataset.from_file("dataset-1")
+
+            # `d2` contains now the same information as `dataset`, e.g. the
+            # actions you performed, the data, ...
+
+        Notes
+        -----
+        If you want to save just the non-array data (no ``cube``, ...), use the
+        ``pickle`` methods directly, e.g.:
+
+        .. code-block:: python
+
+            import pickle
+            with open("my-data-pcl.vipdata", "wb") as f:
+                pickle.dump(dataset, f)
+
+        The objects listed in ``HCIDataset.SAVE_WITH_NUMPY`` are skipped when
+        saving with ``pickle``.
+
+        """
+        
+        p = pathlib.Path(path_prefix)
+
+        # save large arrays with numpy
+        np.savez(self._mk_fn(p, "np"),
+                 **{x:getattr(self, x) for x in self.SAVE_WITH_NP})
+
+        # save rest of object with pickle. calls __getstate__()
+        with open(self._mk_fn(p, "pcl"), "wb") as f:
+            pickle.dump(self, f)
+
+
+    @staticmethod
+    def _mk_fn(p, plus):
+        """
+        Make pretty filename for saving objects. Adds ``plus`` and changes file
+        extension to ``.vipdata``. Note that when using this filename in
+        ``numpy.savez()``, ``.npz`` is automatically appended after
+        ``.vipdata``.
+
+        Parameters
+        ----------
+        p : pathlib.Path
+        plus : str
+            Suffix which is appended to the filename, before the extension.
+        """
+        return p.with_name("{}-{}".format(p.name, plus)).with_suffix(".vipdata")
+
+    def __getstate__(self):
+        """
+        Used by ``pickle``. Filters out the attributes listed in
+        ``self.SAVE_WITH_NP``.
+        """
+        state = {k:v for k in self.__dict__ if k not in self.SAVE_WITH_NP}
+        return state
+
+    @classmethod
+    def from_file(cls, path):
+        """
+        Loads an HCIDataset from a given file. See ``save()`` for an example.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            The path to load the HCIDataset from. Should be of the same form as
+            the ``path`` which was used when ``save()``ing. The suffix
+            ``.vipdata`` is automatically appended.
+
+        Returns
+        -------
+        obj : HCIDataset object
+
+        """
+        p = pathlib.Path(path)
+        with open(cls._mk_fn(p, "pcl"), "rb") as f:
+            obj = pickle.load(f)
+
+        np_stuff_dict = np.load(str(cls._mk_fn(p, "np"))+".npz")
+        # np always adds `.npz` to the filename...
+
+        for k in np_stuff_dict:
+            data = np_stuff_dict[k]
+            setattr(obj, k, data)
+
+        return obj
 
 

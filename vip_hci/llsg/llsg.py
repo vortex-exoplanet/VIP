@@ -22,9 +22,6 @@ from .thresholding import thresholding
 from ..conf.utils_conf import eval_func_tuple as EFT
 
 
-cube_init = None
-
-
 def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
          low_rank_ref=False, low_rank_mode='svd', auto_rank_mode='noise',
          residuals_tol=1e-1, cevr=0.9, thresh_mode='soft', nproc=1,

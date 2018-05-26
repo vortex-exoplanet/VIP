@@ -28,7 +28,7 @@ from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector)
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..conf import Progressbar
-from ..conf.utils_conf import pool_map, fixed
+from ..conf.utils_conf import pool_map, fixed, print_precision
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
 
@@ -252,18 +252,21 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
                 print('Median subtraction in the ADI fashion')
                 print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli,
                                                                  fwhm))
-                print('PA thresholds: (not in order when `nrpoc`>1)')
-
             ARRAY = residuals_cube_channels
 
             res = pool_map(nproc, _median_subt_ann_adi, fixed(range(n_annuli)),
                            angle_list, n_annuli, fwhm, radius_int,
-                           annulus_width, delta_rot, nframes, verbose)
+                           annulus_width, delta_rot, nframes)
 
             res = np.array(res)
             mres = res[:, 0]
             yy = res[:, 1]
             xx = res[:, 2]
+            pa_thrs = np.array(res[:, 3])
+            if verbose:
+                print('PA thresholds: ')
+                print_precision(pa_thrs)
+
             cube_out = np.zeros_like(ARRAY)
             for ann in range(n_annuli):
                 cube_out[:, yy[ann], xx[ann]] = mres[ann]
@@ -331,7 +334,7 @@ def _median_subt_fr_sdi(fr, wl, n_annuli, fwhm, radius_int, annulus_width,
 
 
 def _median_subt_ann_adi(ann, angle_list, n_annuli, fwhm, radius_int,
-                         annulus_width, delta_rot, nframes, verbose):
+                         annulus_width, delta_rot, nframes):
     """ Optimized median subtraction for a given annulus.
     """
     if ARRAY.ndim == 3:
@@ -345,9 +348,6 @@ def _median_subt_ann_adi(ann, angle_list, n_annuli, fwhm, radius_int,
     pa_thr, inner_radius, _ = _define_annuli(angle_list, ann, n_annuli, fwhm,
                                              radius_int, annulus_width,
                                              delta_rot, 1, False)
-    if verbose:
-        print('{:.2f}'.format(pa_thr), end=' ')
-
     if ARRAY.ndim == 3:
         indices = get_annulus(ARRAY[0], inner_radius, annulus_width,
                               output_indices=True)
@@ -374,6 +374,6 @@ def _median_subt_ann_adi(ann, angle_list, n_annuli, fwhm, radius_int,
         subtracted = curr_frame - ref_psf_opt
         matrix_res[frame] = subtracted
 
-    return matrix_res, yy, xx
+    return matrix_res, yy, xx, pa_thr
 
 

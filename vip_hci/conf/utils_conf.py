@@ -18,7 +18,12 @@ from multiprocessing import Pool
 
 sep = '-' * 80
 vip_figsize = (10, 5)
-vip_print_np = {'float_kind': '{0:.3f}'.format}
+
+
+def print_precision(array, precision=3):
+    """ Prints an array with a given floating point precision. 3 by default.
+    """
+    return print(np.array2string(array.astype(float), precision=precision))
 
 
 class Progressbar(object):
@@ -57,8 +62,6 @@ class Progressbar(object):
 
     def __new__(cls, iterable=None, desc=None, total=None, leave=True,
                 backend=None, verbose=True):
-        import sys
-
         if backend is None:
             backend = Progressbar.backend
 
@@ -159,15 +162,13 @@ class FixedObj():
     def __init__(self, v):
         self.v = v
 
+
 def fixed(v):
-    """
-    Helper function for ``pool_map``: prevents the argument from being wrapped
-    in ``itertools.repeat()``.
-    
+    """ Helper function for ``pool_map``: prevents the argument from being
+    wrapped in ``itertools.repeat()``.
 
     Examples
     --------
-
     .. code-block:: python
 
         # we have a worker function whic processes a word:
@@ -190,8 +191,6 @@ def fixed(v):
         # worker(words[1], 1)
         # worker(words[2], 1)
         # ...
-
-
     """
     return FixedObj(v)
 
@@ -223,11 +222,6 @@ def pool_map(nproc, fkt, *args, **kwargs):
     res : list
         A list with the results.
 
-
-
-
-
-
     Notes
     -----
     python2 does not support named keyword arguments after ``*args``. This is
@@ -242,7 +236,6 @@ def pool_map(nproc, fkt, *args, **kwargs):
     progressbar_single = kwargs.get("progressbar_single", True)
     _generator = kwargs.get("_generator", False)  # not exposed in docstring
 
-    
     args_r = [a.v if isinstance(a, FixedObj) else itt.repeat(a) for a in args]
     z = zip(itt.repeat(fkt), *args_r)
 
@@ -250,12 +243,9 @@ def pool_map(nproc, fkt, *args, **kwargs):
         if progressbar_single:
             total = len([a.v for a in args if isinstance(a, FixedObj)][0])
             z = Progressbar(z, desc=msg, verbose=verbose, total=total)
-
         res = map(eval_func_tuple, z)
         if not _generator:
             res = list(res)
-
-
     else:
         if verbose and msg is not None:
             print("{} with {} processes".format(msg, nproc))
@@ -307,8 +297,6 @@ def pool_imap(nproc, fkt, *args, **kwargs):
     """
     kwargs["_generator"] = True
     return pool_map(nproc, fkt, *args, **kwargs)
-
-
 
 
 def repeat(*args):

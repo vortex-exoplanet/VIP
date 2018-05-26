@@ -138,7 +138,7 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
         if interpolation == 'bilinear':
             intp = cv2.INTER_LINEAR
         elif interpolation == 'bicubic':
-            intp= cv2.INTER_CUBIC
+            intp = cv2.INTER_CUBIC
         elif interpolation == 'nearneig':
             intp = cv2.INTER_NEAREST
         elif interpolation == 'lanczos4':
@@ -230,12 +230,12 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
     var_list = scal_list
 
     if inverse:
-        var_list = 1./scal_list
+        var_list = 1. / scal_list
         cy, cx = frame_center(cube[0])
 
     # (de)scale the cube, so that a planet would now move radially
     cube = _cube_resc_wave(big_cube, var_list, ref_xy=(cx, cy),
-                                      imlib=imlib, interpolation=interpolation)
+                           imlib=imlib, interpolation=interpolation)
     frame = np.median(cube, axis=0)
 
     if inverse:

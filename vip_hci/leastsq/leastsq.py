@@ -22,9 +22,6 @@ from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..conf.utils_conf import eval_func_tuple as EFT
 
 
-array = None
-
-
 def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
           delta_rot=0.5, radius_int=0, asize=4, n_segments=4, nproc=1,
           solver='lstsq', tol=1e-3, optim_scale_fact=1, verbose=True,
@@ -119,7 +116,7 @@ def xloci(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     if isinstance(n_segments, int):
         n_segments = [n_segments]*n_annuli
     elif n_segments == 'auto':
-        n_segments = []
+        n_segments = list()
         n_segments.append(2)    # for first annulus
         n_segments.append(3)    # for second annulus
         ld = 2 * np.tan(360/4/2) * annulus_width

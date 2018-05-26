@@ -19,9 +19,6 @@ from ..conf import timing, time_ini, check_enough_memory, Progressbar
 from ..var import frame_center, dist, prepare_matrix, reshape_matrix
 from ..stats import descriptive_stats
 
-import warnings
-warnings.filterwarnings("ignore", category=Warning)
-
 
 def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         svd_mode='lapack', scaling=None, adimsdi='double', mask_center_px=None,
@@ -169,9 +166,8 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     start_time = time_ini(verbose)
 
     angle_list = check_pa_vector(angle_list)
-    #***************************************************************************
+
     # ADI + mSDI. Shape of cube: (n_channels, n_adi_frames, y, x)
-    #***************************************************************************
     if cube.ndim == 4:
         if adimsdi == 'double':
             res_pca = _adimsdi_doublepca(cube, angle_list, scale_list, ncomp,
@@ -189,18 +185,16 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
             cube_allfr_residuals, cube_adi_residuals, frame = res_pca
         else:
             raise ValueError('`Adimsdi` mode not recognized')
-    # **************************************************************************
+
     # ADI+RDI
-    # **************************************************************************
     elif cube.ndim == 3 and cube_ref is not None:
         res_pca = _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling,
                                mask_center_px, debug, svd_mode, imlib,
                                interpolation, collapse, verbose, full_output,
                                start_time)
         pcs, recon, residuals_cube, residuals_cube_, frame = res_pca
-    # **************************************************************************
+
     # ADI. Shape of cube: (n_adi_frames, y, x)
-    # **************************************************************************
     elif cube.ndim == 3 and cube_ref is None:
         res_pca = _adi_pca(cube, angle_list, ncomp, source_xy, delta_rot, fwhm,
                            scaling, mask_center_px, debug, svd_mode, imlib,
@@ -400,7 +394,7 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
     if verbose:
         print('Rescaling the spectral channels to align the speckles')
     for i in Progressbar(range(n), verbose=verbose):
-        cube_resc, _, _, _, _, _ = scwave(cube[:, i, :, :], scale_list)
+        cube_resc = scwave(cube[:, i, :, :], scale_list)[0]
         if crop_ifs:
             cube_resc = cube_crop_frames(cube_resc, size=y_in, verbose=False)
         big_cube.append(cube_resc)
@@ -482,7 +476,7 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
         if verbose:
             print('First PCA stage exploiting spectral variability')
         for i in Progressbar(range(n), verbose=verbose):
-            cube_resc, _, _, _, _, _ = scwave(cube[:, i, :, :], scale_list)
+            cube_resc = scwave(cube[:, i, :, :], scale_list)[0]
             residuals_result = _subtr_proj_fullfr(cube_resc, None, ncomp,
                                                   scaling, mask_center_px,
                                                   debug, svd_mode, False,

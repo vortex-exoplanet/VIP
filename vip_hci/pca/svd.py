@@ -379,7 +379,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
     if max_evs is None:
         max_evs = min(data_ref.shape[0], data_ref.shape[1])
 
-    if ncomp is None:
+    if ncomp == 'auto':
         ncomp = 0
         V_big = svd_wrapper(data_ref, svd_mode, max_evs, False, False)
 
@@ -423,7 +423,8 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
                                   False, False, usv=True)
             exp_var = (S ** 2) / (S.shape[0] - 1)
             full_var = np.sum(exp_var)
-            explained_variance_ratio = exp_var / full_var  # % of variance explained by each PC
+            # % of variance explained by each PC
+            explained_variance_ratio = exp_var / full_var
             ratio_cumsum = np.cumsum(explained_variance_ratio)
             ncomp = np.searchsorted(ratio_cumsum, cevr) + 1
             V = V_big[:ncomp]

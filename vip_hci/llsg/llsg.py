@@ -36,8 +36,8 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     planet should stay) allow us to increase the SNR of potential planets.
 
     The three tunable parameters are the *rank* or expected rank of the L
-    component, the *thresh* or threshold for encouraging sparsity in the S
-    component and *max_iter* which sets the number of iterations. The rest of
+    component, the ``thresh`` or threshold for encouraging sparsity in the S
+    component and ``max_iter`` which sets the number of iterations. The rest of
     parameters can be tuned at the users own risk (do it if you know what you're
     doing).
 

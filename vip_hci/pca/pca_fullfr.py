@@ -72,19 +72,25 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         fashion, using the residuals of the first stage). If None then the
         second PCA stage is skipped and the residuals are de-rotated and
         combined.
-    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy', 'randcupy'}, str
-        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK 
-        linear algebra library through Numpy and it is the most conventional way 
-        of computing the SVD (deterministic result computed on CPU). ``arpack`` 
+    mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
+            'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK
+        linear algebra library through Numpy and it is the most conventional way
+        of computing the SVD (deterministic result computed on CPU). ``arpack``
         uses the ARPACK Fortran libraries accessible through Scipy (computation
-        on CPU). ``eigen`` computes the singular vectors through the 
+        on CPU). ``eigen`` computes the singular vectors through the
         eigendecomposition of the covariance M.M' (computation on CPU).
-        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn 
+        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn
         (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
-        of the SVD as in the LAPACK version. ``eigencupy`` offers the same 
-        method as with the ``eigen`` option but on GPU (through Cupy). 
+        of the SVD as in the LAPACK version. ``eigencupy`` offers the same
+        method as with the ``eigen`` option but on GPU (through Cupy).
         ``randcupy`` is an adaptation of the randomized_svd algorithm, where all
-        the computations are done on a GPU. 
+        the computations are done on a GPU (through Cupy). ``pytorch`` uses the
+        Pytorch library for GPU computation of the SVD. ``eigenpytorch`` offers
+        the same method as with the ``eigen`` option but on GPU (through
+        Pytorch). ``randpytorch`` is an adaptation of the randomized_svd
+        algorithm, where all the linear algebra computations are done on a GPU
+        (through Pytorch).
     scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
         With None, no scaling is performed on the input data before SVD. With 
         "temp-mean" then temporal px-wise mean subtraction is done, with 
@@ -420,7 +426,7 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
     for i in Progressbar(range(n), verbose=verbose):
         frame_i = scwave(res_cube[i * z:(i+1) * z, :, :], scale_list,
                          full_output=full_output, inverse=True, y_in=y_in,
-                         x_in=x_in)
+                         x_in=x_in, collapse=collapse)
         resadi_cube[i] = frame_i
 
     if verbose:
@@ -487,7 +493,7 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
                 residuals_cube = residuals_result
             frame_i = scwave(residuals_cube, scale_list,
                              full_output=full_output, inverse=True, y_in=y_in,
-                             x_in=x_in)
+                             x_in=x_in, collapse=collapse)
             residuals_cube_channels[i] = frame_i
 
     if verbose:

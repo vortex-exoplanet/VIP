@@ -65,7 +65,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
         Factor for increasing the parallactic angle threshold, expressed in
         FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
         frame).
-    delta_step : float or tuple of floats, optional
+    delta_sep : float or tuple of floats, optional
         The threshold separation in terms of the mean FWHM (for ADI+mSDI data).
         If a tuple of two values is provided, they are used as the lower and
         upper intervals for the threshold (grows as a function of the
@@ -238,7 +238,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
             res = pool_map(nproc, _median_subt_fr_sdi, fixed(range(n)),
                            scale_list, n_annuli, fwhm, radius_int,
                            annulus_width, delta_sep, nframes, imlib,
-                           interpolation)
+                           interpolation, collapse)
             residuals_cube_channels = np.array(res)
 
             if nframes is not None:
@@ -288,7 +288,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
 
 
 def _median_subt_fr_sdi(fr, wl, n_annuli, fwhm, radius_int, annulus_width,
-                        delta_sep, nframes, imlib, interpolation):
+                        delta_sep, nframes, imlib, interpolation, collapse):
     """ Optimized median subtraction on a multi-spectral frame (IFS data).
     """
     z = ARRAY.shape[0]
@@ -329,7 +329,7 @@ def _median_subt_fr_sdi(fr, wl, n_annuli, fwhm, radius_int, annulus_width,
 
     frame_desc = scwave(cube_res, scale_list, full_output=False, inverse=True,
                         y_in=y_in, x_in=x_in, imlib=imlib,
-                        interpolation=interpolation)
+                        interpolation=interpolation, collapse=collapse)
     return frame_desc
 
 

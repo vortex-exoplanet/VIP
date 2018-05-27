@@ -41,10 +41,16 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
 
     Parameters
     ----------
-    cube : array_like, 3d
+    cube : array_like, 3d or 4d
         Input cube.
     angle_list : array_like, 1d
         Corresponding parallactic angle for each frame.
+    scale_list :
+        Scaling factors in case of IFS data (ADI+mSDI cube). Usually, the
+        scaling factors are the central channel wavelength divided by the
+        shortest wavelength in the cube (more thorough approaches can be used
+        to get the scaling factors). This scaling factors are used to re-scale
+        the spectral channels and align the speckles.
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the
         central circular area is discarded.
@@ -63,12 +69,26 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
         for the innermost annuli if we consider a ``delta_rot`` condition as
         small as 0.1 lambda/D. This is because at very small separation, the
         effect of speckle correlation is more significant than self-subtraction.
+    delta_sep : float or tuple of floats, optional
+        The threshold separation in terms of the mean FWHM (for ADI+mSDI data).
+        If a tuple of two values is provided, they are used as the lower and
+        upper intervals for the threshold (grows as a function of the
+        separation).
     ncomp : int or list or 1d numpy array, optional
-        How many PCs are kept. If none it will be automatically determined. If a
-        list is provided and it matches the number of annuli then a different
-        number of PCs will be used for each annulus (starting with the innermost
-        one).
-    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy', 'randcupy'}, str
+        How many PCs are used as a lower-dimensional subspace to project the
+        target (sectors of) frames. If ``auto`` it will be automatically
+        determined. If ``cube`` is a 3d array (ADI), ``ncomp`` can be a list,
+        in which case a different number of PCs will be used for each annulus
+        (starting with the innermost one). If ``cube`` is a 4d array, then
+        ``ncomp`` is the number of PCs obtained from each multi-spectral frame
+        (for each sector).
+    ncomp2 : int, optional
+        Only used for ADI+mSDI (4d) cubes. ``ncomp2`` sets the number of PCs
+        used in the second PCA stage (ADI fashion, using the residuals of the
+        first stage). If None then the second PCA stage is skipped and the
+        residuals are de-rotated and combined.
+    mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
+            'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
         Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK
         linear algebra library through Numpy and it is the most conventional way
         of computing the SVD (deterministic result computed on CPU). ``arpack``
@@ -79,8 +99,13 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
         (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
         of the SVD as in the LAPACK version. ``eigencupy`` offers the same
         method as with the ``eigen`` option but on GPU (through Cupy).
-        ``randcupy`` is an adaptation of the randomized_svd algorith, where all
-        the computations are done on a GPU.
+        ``randcupy`` is an adaptation of the randomized_svd algorithm, where all
+        the computations are done on a GPU (through Cupy). ``pytorch`` uses the
+        Pytorch library for GPU computation of the SVD. ``eigenpytorch`` offers
+        the same method as with the ``eigen`` option but on GPU (through
+        Pytorch). ``randpytorch`` is an adaptation of the randomized_svd
+        algorithm, where all the linear algebra computations are done on a GPU
+        (through Pytorch).
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to (cpu_count()/2). It's been tested on a Linux
@@ -173,7 +198,7 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
 
         res = pool_map(nproc, _pca_sdi_fr, fixed(range(n)), scale_list,
                        radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
-                       svd_mode, tol, scaling, imlib, interpolation)
+                       svd_mode, tol, scaling, imlib, interpolation, collapse)
         residuals_cube_channels = np.array(res)
 
         # Exploiting rotational variability
@@ -296,7 +321,6 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
         Cube residuals after de-rotation.
 
     """
-
     def define_annuli(angle_list, ann, n_annuli, fwhm, radius_int,
                       annulus_width,
                       verbose):
@@ -407,7 +431,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
 ################################################################################
 
 def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
-                ncomp2, svd_mode, tol, scaling, imlib, interpolation):
+                ncomp, svd_mode, tol, scaling, imlib, interpolation, collapse):
     """ Optimized PCA subtraction on a multi-spectral frame (IFS data).
     """
     z, n, y_in, x_in = ARRAY.shape
@@ -462,7 +486,7 @@ def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
                                                  fwhm, delta_sep_vec[ann])
                 matrix_ref = matrix[indices_left]
                 curr_frame = matrix[j]  # current frame
-                V = get_eigenvectors(ncomp2, matrix_ref, svd_mode,
+                V = get_eigenvectors(ncomp, matrix_ref, svd_mode,
                                      noise_error=tol, debug=False)
                 transformed = np.dot(curr_frame, V.T)
                 reconstructed = np.dot(transformed.T, V)
@@ -472,7 +496,7 @@ def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
 
     frame_desc = scwave(cube_res, scale_list, full_output=False, inverse=True,
                         y_in=y_in, x_in=x_in, imlib=imlib,
-                        interpolation=interpolation)
+                        interpolation=interpolation, collapse=collapse)
     return frame_desc
 
 

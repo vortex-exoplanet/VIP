@@ -22,6 +22,7 @@ except ImportError:
 
 from scipy.ndimage.interpolation import geometric_transform, zoom
 from ..var import frame_center, get_square
+from .subsampling import cube_collapse
 
 
 def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
@@ -163,7 +164,7 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
 def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
                                y_in=1, x_in=1, imlib='opencv',
-                               interpolation='lanczos4'):
+                               interpolation='lanczos4', collapse='median'):
     """ Wrapper to scale or descale a cube by factors given in scal_list,
     without any loss of information (zero-padding if scaling > 1).
     Important: in case of ifs data, the scaling factors in var_list should be
@@ -188,10 +189,19 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
     y_in, x-in: int, optional
        Initial y and x sizes. In case the cube is descaled, these values will
        be used to crop back the cubes/frames to their original size.
-    imlib : str optional
-        See the documentation of ``vip_hci.preproc.cube_rescaling_wavelengths``.
+    imlib : {'opencv', 'ndimage'}, str optional
+        Library used for image transformations. Opencv is faster than ndimage or
+        skimage.
     interpolation : str, optional
-        See the documentation of ``vip_hci.preproc.cube_rescaling_wavelengths``.
+        For 'ndimage' library: 'nearneig', bilinear', 'bicuadratic', 'bicubic',
+        'biquartic', 'biquintic'. The 'nearneig' interpolation is the fastest
+        and the 'biquintic' the slowest. The 'nearneig' is the poorer
+        option for interpolation of noisy astronomical images.
+        For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
+        The 'nearneig' interpolation is the fastest and the 'lanczos4' the
+        slowest and accurate. 'lanczos4' is the default.
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.
 
     Returns:
     --------
@@ -236,7 +246,7 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
     # (de)scale the cube, so that a planet would now move radially
     cube = _cube_resc_wave(big_cube, var_list, ref_xy=(cx, cy),
                            imlib=imlib, interpolation=interpolation)
-    frame = np.median(cube, axis=0)
+    frame = cube_collapse(cube, collapse)
 
     if inverse:
         if max_sc > 1:
@@ -271,17 +281,10 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
         Coordinates X,Y  of the point with respect to which the rescaling will be
         performed. By default the rescaling is done with respect to the center 
         of the frames; central pixel if the frames have odd size.
-    imlib : {'opencv', 'ndimage'}, str optional
-        Library used for image transformations. Opencv is faster than ndimage or
-        skimage.
+    imlib : str optional
+        See the documentation of ``vip_hci.preproc.cube_rescaling_wavelengths``.
     interpolation : str, optional
-        For 'ndimage' library: 'nearneig', bilinear', 'bicuadratic', 'bicubic',
-        'biquartic', 'biquintic'. The 'nearneig' interpolation is the fastest
-        and the 'biquintic' the slowest. The 'nearneig' is the poorer
-        option for interpolation of noisy astronomical images.
-        For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
-        The 'nearneig' interpolation is the fastest and the 'lanczos4' the
-        slowest and accurate. 'lanczos4' is the default.
+        See the documentation of ``vip_hci.preproc.cube_rescaling_wavelengths``.
     scaling_y : 1D-array or list
         Scaling factor only for y axis. If provided, it takes priority on 
         scaling_list.

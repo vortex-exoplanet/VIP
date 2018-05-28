@@ -33,7 +33,7 @@ from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
 
 
-def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
+def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
                delta_rot=1, delta_sep=(0.2, 1), mode='fullfr', nframes=None,
                imlib='opencv', interpolation='lanczos4', collapse='median',
                nproc=1, full_output=False, verbose=True):
@@ -60,7 +60,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
         The radius of the innermost annulus. By default is 0, if >0 then the 
         central circular area is discarded.
     asize : int, optional
-        The size of the annuli, in FWHM. Default is 2.
+        The size of the annuli, in pixels.
     delta_rot : int, optional
         Factor for increasing the parallactic angle threshold, expressed in
         FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
@@ -154,14 +154,13 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
                 if nframes % 2 != 0:
                     raise TypeError('`nframes` argument must be even value')
 
-            annulus_width = int(asize * fwhm)  # equal size for all annuli
-            n_annuli = int((y / 2 - radius_int) / annulus_width)
+            n_annuli = int((y / 2 - radius_int) / asize)
             if verbose:
                 print('N annuli = {}, FWHM = {}'.format(n_annuli, fwhm))
 
             res = pool_map(nproc, _median_subt_ann_adi, fixed(range(n_annuli)),
-                           angle_list, n_annuli, fwhm, radius_int,
-                           annulus_width, delta_rot, nframes, verbose)
+                           angle_list, n_annuli, fwhm, radius_int, asize,
+                           delta_rot, nframes, verbose)
 
             res = np.array(res)
             mres = res[:, 0]
@@ -202,7 +201,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
                 print('First median subtraction exploiting spectral '
                       'variability')
             for i in Progressbar(range(n), verbose=verbose):
-                cube_resc, _, _, _, _, _ = scwave(ARRAY[:, i, :, :], scale_list)
+                cube_resc = scwave(ARRAY[:, i, :, :], scale_list)[0]
                 median_frame = np.median(cube_resc, axis=0)
                 residuals_cube = cube_resc - median_frame
                 frame_i = scwave(residuals_cube, scale_list,
@@ -226,8 +225,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
         elif mode == 'annular':
             # Exploiting spectral variability (radial movement)
             fwhm = int(np.round(np.mean(fwhm)))
-            annulus_width = int(np.ceil(asize * fwhm))  # same size for annuli
-            n_annuli = int(np.floor((y_in / 2 - radius_int) / annulus_width))
+            n_annuli = int((y_in / 2 - radius_int) / asize)
 
             if verbose:
                 print('First median subtraction exploiting spectral '
@@ -236,9 +234,8 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
                                                                  fwhm))
 
             res = pool_map(nproc, _median_subt_fr_sdi, fixed(range(n)),
-                           scale_list, n_annuli, fwhm, radius_int,
-                           annulus_width, delta_sep, nframes, imlib,
-                           interpolation, collapse)
+                           scale_list, n_annuli, fwhm, radius_int, asize,
+                           delta_sep, nframes, imlib, interpolation, collapse)
             residuals_cube_channels = np.array(res)
 
             if nframes is not None:
@@ -255,8 +252,8 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=2,
             ARRAY = residuals_cube_channels
 
             res = pool_map(nproc, _median_subt_ann_adi, fixed(range(n_annuli)),
-                           angle_list, n_annuli, fwhm, radius_int,
-                           annulus_width, delta_rot, nframes)
+                           angle_list, n_annuli, fwhm, radius_int, asize,
+                           delta_rot, nframes)
 
             res = np.array(res)
             mres = res[:, 0]

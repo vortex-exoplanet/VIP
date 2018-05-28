@@ -28,7 +28,7 @@ from .svd import get_eigenvectors
 
 
 def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
-                asize=2, n_segments=1, delta_rot=1, delta_sep=(0.2, 1), ncomp=1,
+                asize=4, n_segments=1, delta_rot=1, delta_sep=(0.2, 1), ncomp=1,
                 ncomp2=1, svd_mode='lapack', nproc=1, min_frames_lib=2,
                 max_frames_lib=200, tol=1e-1, scaling=None, imlib='opencv',
                 interpolation='lanczos4', collapse='median', full_output=False,
@@ -57,7 +57,7 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Default is 4.
     asize : float, optional
-        The size of the annuli, in FWHM. Default is 3.
+        The size of the annuli, in pixels.
     n_segments : int or list of ints or 'auto', optional
         The number of segments for each annulus. When a single integer is given
         it is used for all annuli. When set to 'auto', the number of segments is
@@ -180,8 +180,7 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
 
         z, n, y_in, x_in = cube.shape
         fwhm = int(np.round(np.mean(fwhm)))
-        annulus_width = int(np.ceil(asize * fwhm))  # equal size for all annuli
-        n_annuli = int(np.floor((y_in / 2 - radius_int) / annulus_width))
+        n_annuli = int((y_in / 2 - radius_int) / asize)
 
         if scale_list is None:
             raise ValueError('Scaling factors vector must be provided')
@@ -392,7 +391,6 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
 
         corr = fr_ref_correlation(np.median(matrix, axis=0), matrix_ref)
         indcorr = np.where(np.abs(corr) >= min_corr)
-        # print indcorr
         data_ref = matrix_ref[indcorr]
         nfrslib = data_ref.shape[0]
 
@@ -408,7 +406,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
                                            data_ref)
         cube_out[:, yy, xx] = residuals
 
-        if verbose:
+        if verbose in [1, 2]:
             print('# frames in LIB = {}'.format(nfrslib))
             print('# PCs = {}'.format(ncomps))
             print('Done PCA with {} for current annulus'.format(svd_mode))
@@ -443,8 +441,7 @@ def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
 
     # Exploiting spectral variability (radial movement)
     fwhm = int(np.round(np.mean(fwhm)))
-    annulus_width = int(np.ceil(asize * fwhm))  # equal size for all annuli
-    n_annuli = int(np.floor((y_in / 2 - radius_int) / annulus_width))
+    n_annuli = int((y_in / 2 - radius_int) / asize)
 
     if isinstance(n_segments, int):
         n_segments = [n_segments for _ in range(n_annuli)]
@@ -452,9 +449,9 @@ def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
         n_segments = list()
         n_segments.append(2)  # for first annulus
         n_segments.append(3)  # for second annulus
-        ld = 2 * np.tan(360 / 4 / 2) * annulus_width
+        ld = 2 * np.tan(360 / 4 / 2) * asize
         for i in range(2, n_annuli):  # rest of annuli
-            radius = i * annulus_width
+            radius = i * asize
             ang = np.rad2deg(2 * np.arctan(ld / (2 * radius)))
             n_segments.append(int(np.ceil(360 / ang)))
 
@@ -467,13 +464,13 @@ def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
 
     for ann in range(n_annuli):
         if ann == n_annuli - 1:
-            inner_radius = radius_int + (ann * annulus_width - 1)
+            inner_radius = radius_int + (ann * asize - 1)
         else:
-            inner_radius = radius_int + ann * annulus_width
-        ann_center = inner_radius + (annulus_width / 2)
+            inner_radius = radius_int + ann * asize
+        ann_center = inner_radius + (asize / 2)
 
-        indices = get_annulus_segments(multispec_fr[0], inner_radius,
-                                       annulus_width, n_segments[ann])
+        indices = get_annulus_segments(multispec_fr[0], inner_radius, asize,
+                                       n_segments[ann])
         # Library matrix is created for each segment and scaled if needed
         for seg in range(n_segments[ann]):
             yy = indices[seg][0]
@@ -516,9 +513,7 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
     n, y, _ = array.shape
 
     angle_list = check_pa_vector(angle_list)
-
-    annulus_width = int(np.ceil(asize * fwhm))      # equal size for all annuli
-    n_annuli = int(np.floor((y/2 - radius_int) / annulus_width))
+    n_annuli = int((y / 2 - radius_int) / asize)
 
     if isinstance(n_segments, int):
         n_segments = [n_segments for _ in range(n_annuli)]
@@ -526,15 +521,15 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
         n_segments = list()
         n_segments.append(2)  # for first annulus
         n_segments.append(3)  # for second annulus
-        ld = 2 * np.tan(360 / 4 / 2) * annulus_width
+        ld = 2 * np.tan(360 / 4 / 2) * asize
         for i in range(2, n_annuli):  # rest of annuli
-            radius = i * annulus_width
+            radius = i * asize
             ang = np.rad2deg(2 * np.arctan(ld / (2 * radius)))
             n_segments.append(int(np.ceil(360 / ang)))
 
     if verbose:
         msg = '# annuli = {}, Ann width = {}, FWHM = {:.3f}'
-        print(msg.format(n_annuli, annulus_width, fwhm))
+        print(msg.format(n_annuli, asize, fwhm))
         print('PCA per annulus (or annular sectors)\n')
 
     if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
@@ -555,10 +550,10 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
 
         n_segments_ann = n_segments[ann]
         res_ann_par = _define_annuli(angle_list, ann, n_annuli, fwhm,
-                                     radius_int, annulus_width, delta_rot,
+                                     radius_int, asize, delta_rot,
                                      n_segments_ann, verbose)
         pa_thr, inner_radius, ann_center = res_ann_par
-        indices = get_annulus_segments(array[0], inner_radius, annulus_width,
+        indices = get_annulus_segments(array[0], inner_radius, asize,
                                        n_segments_ann)
         # Library matrix is created for each segment and scaled if needed
         for j in range(n_segments_ann):
@@ -569,7 +564,7 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
 
             res = pool_map(nproc, do_pca_patch, matrix_segm, fixed(range(n)),
                            angle_list, fwhm, pa_thr, ann_center, svd_mode,
-                           ncomp, min_frames_lib, max_frames_lib, tol)
+                           ncompann, min_frames_lib, max_frames_lib, tol)
 
             res = np.array(res)
             residuals = np.array(res[:, 0])
@@ -584,8 +579,9 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
                 descriptive_stats(nfrslib, verbose=verbose, label='LIBsize: ')
                 descriptive_stats(ncomps, verbose=verbose, label='Num PCs: ')
 
-        if verbose:
+        if verbose == 2:
             print('Done PCA with {} for current annulus'.format(svd_mode))
+        if verbose:
             timing(start_time)
 
     # Cube is derotated according to the parallactic angle and collapsed

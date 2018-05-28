@@ -162,6 +162,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     elif isinstance(asize, int):
         annulus_width = asize
     n_annuli = int((y / 2 - radius_int) / annulus_width)
+    # TODO: asize in pxs to be consistent with other functions
 
     if n_segments is None:
         n_segments = [4 for _ in range(n_annuli)]   # as in the paper

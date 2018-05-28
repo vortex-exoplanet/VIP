@@ -212,26 +212,21 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
         The rescaled cube, its median, the new y and x shapes of the cube, and
         the new centers cy and cx of the frames
     """
-    # Cube zeros-padding to avoid loosing info when scaling the cube
-    # TODO: pad with random gaussian noise instead of zeros. Padding with
-    # only zeros can make the svd not converge in a pca per zone.
-
     n, y, x = cube.shape
 
     max_sc = np.amax(scal_list)
 
     if not inverse and max_sc > 1:
-        new_y = int(np.ceil(max_sc*y))
-        new_x = int(np.ceil(max_sc*x))
+        new_y = int(np.ceil(max_sc * y))
+        new_x = int(np.ceil(max_sc * x))
         if (new_y - y) % 2 != 0:
             new_y = new_y+1
         if (new_x - x) % 2 != 0:
-            new_x = new_x+1
-        pad_len_y = (new_y - y)//2
-        pad_len_x = (new_x - x)//2
-        big_cube = np.pad(cube, ((0,0), (pad_len_y, pad_len_y),
-                                 (pad_len_x, pad_len_x)), 'constant',
-                          constant_values=(0,))
+            new_x = new_x + 1
+        pad_len_y = (new_y - y) // 2
+        pad_len_x = (new_x - x) // 2
+        pad_width = ((0, 0), (pad_len_y, pad_len_y), (pad_len_x, pad_len_x))
+        big_cube = np.pad(cube, pad_width, 'reflect', reflect_type='even')
     else:
         big_cube = cube.copy()
 

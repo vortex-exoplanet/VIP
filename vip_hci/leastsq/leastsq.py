@@ -21,13 +21,13 @@ from ..preproc.rescaling import _find_indices_sdi
 from ..conf import time_ini, timing
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc.derotation import _find_indices_adi, _define_annuli
-from ..conf.utils_conf import pool_map, fixed
+from ..conf.utils_conf import pool_map, fixed, Progressbar
 
 
 def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
           dist_threshold=90, delta_rot=0.5, delta_sep=(0.2, 1), radius_int=0,
           asize=4, n_segments=4, nproc=1, solver='lstsq', tol=1e-3,
-          optim_scale_fact=1, skip_adi=True, imlib='opencv',
+          optim_scale_fact=1, adimsdi='skipadi', imlib='opencv',
           interpolation='lanczos4', collapse='median', verbose=True,
           full_output=False):
     """ LOCI style algorithm that models a PSF (for ADI data) with a
@@ -125,62 +125,89 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
         fwhm = int(np.round(np.mean(fwhm)))
         n_annuli = int((y_in / 2 - radius_int) / asize)
 
-        if scale_list is None:
-            raise ValueError('Scaling factors vector must be provided')
-        else:
-            if np.array(scale_list).ndim > 1:
-                raise ValueError('Scaling factors vector is not 1d')
-            if not scale_list.shape[0] == z:
-                raise ValueError('Scaling factors vector has wrong length')
-
-        if verbose:
-            print('IFS lst-sq subtraction exploiting the spectral variability')
-            print('{} spectral channels per IFS frame'.format(z))
-            print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli, fwhm))
-
-        res = pool_map(nproc, _leastsq_sdi_fr, fixed(range(n)), scale_list,
-                       radius_int, fwhm, asize, n_segments, delta_sep, tol,
-                       optim_scale_fact, metric, dist_threshold, solver, imlib,
-                       interpolation, collapse)
-        cube_out = np.array(res)
-
-        # Exploiting rotational variability
-        if verbose:
-            timing(start_time)
-            print('{} ADI frames'.format(n))
-
-        if skip_adi:
+        # Processing separately each wavelength in ADI fashion
+        if adimsdi == 'skipsdi':
             if verbose:
-                msg = 'Skipping the ADI least-squares subtraction'
-                print(msg)
+                print('ADI lst-sq modeling for each wavelength individually')
+                print('{} spectral channels per IFS frame'.format(z))
 
-            cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
-                                     interpolation=interpolation)
-            frame = cube_collapse(cube_der, mode=collapse)
-        else:
+            cube_res = np.zeros((z, y_in, x_in))
+            for z in Progressbar(range(z)):
+                ARRAY = cube[z]
+                res = _leastsq_adi(cube[z], angle_list, fwhm, metric,
+                                   dist_threshold, delta_rot, radius_int, asize,
+                                   n_segments, nproc, solver, tol,
+                                   optim_scale_fact, imlib, interpolation,
+                                   collapse, verbose=False, full_output=False)
+                cube_res[z] = res
+
+            frame = cube_collapse(cube_res, collapse)
             if verbose:
-                msg = 'ADI lst-sq subtraction exploiting the angular '
-                msg += 'variability'
-                print(msg)
+                print('Done combining the residuals'.format(n))
+                timing(start_time)
 
-            ARRAY = cube_out
-            res = _leastsq_adi(cube_out, angle_list, fwhm, metric,
-                               dist_threshold, delta_rot, radius_int, asize,
-                               n_segments, nproc, solver, tol, optim_scale_fact,
-                               imlib, interpolation, collapse, verbose,
-                               full_output)
             if full_output:
-                cube_out, cube_der, frame = res
+                return cube_res, frame
             else:
-                frame = res
+                return frame
 
-        if verbose:
-            timing(start_time)
-
-        if full_output:
-            return cube_out, cube_der, frame
         else:
-            return frame
+            if scale_list is None:
+                raise ValueError('Scaling factors vector must be provided')
+            else:
+                if np.array(scale_list).ndim > 1:
+                    raise ValueError('Scaling factors vector is not 1d')
+                if not scale_list.shape[0] == z:
+                    raise ValueError('Scaling factors vector has wrong length')
+
+            if verbose:
+                print('SDI lst-sq modeling exploiting the spectral variability')
+                print('{} spectral channels per IFS frame'.format(z))
+                print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli,
+                                                                 fwhm))
+            res = pool_map(nproc, _leastsq_sdi_fr, fixed(range(n)), scale_list,
+                           radius_int, fwhm, asize, n_segments, delta_sep, tol,
+                           optim_scale_fact, metric, dist_threshold, solver,
+                           imlib, interpolation, collapse)
+            cube_out = np.array(res)
+
+            # Exploiting rotational variability
+            if adimsdi == 'skipadi':
+                if verbose:
+                    msg = 'Skipping the ADI least-squares subtraction'
+                    print(msg)
+                    print('{} ADI frames'.format(n))
+                    timing(start_time)
+
+                cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
+                                         interpolation=interpolation)
+                frame = cube_collapse(cube_der, mode=collapse)
+            elif adimsdi == 'double':
+                if verbose:
+                    msg = 'ADI lst-sq modeling exploiting the angular '
+                    msg += 'variability'
+                    print(msg)
+                    print('{} ADI frames'.format(n))
+                    timing(start_time)
+
+                ARRAY = cube_out
+                res = _leastsq_adi(cube_out, angle_list, fwhm, metric,
+                                   dist_threshold, delta_rot, radius_int, asize,
+                                   n_segments, nproc, solver, tol,
+                                   optim_scale_fact, imlib, interpolation,
+                                   collapse, verbose, full_output)
+                if full_output:
+                    cube_out, cube_der, frame = res
+                else:
+                    frame = res
+
+            if verbose:
+                timing(start_time)
+
+            if full_output:
+                return cube_out, cube_der, frame
+            else:
+                return frame
 
 
 def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',

@@ -1,5 +1,6 @@
 from __future__ import (absolute_import)
 
+from . import andromeda
 from . import preproc
 from . import conf
 from . import fits

@@ -20,7 +20,6 @@ from ..var import (frame_center, fit_2dgaussian, fit_2dairydisk, fit_2dmoffat,
 from ..conf.utils_conf import print_precision
 
 
-# TODO: Check handling even sized frames
 def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                            rad_dists, n_branches=1, theta=0, imlib='opencv',
                            interpolation='lanczos4', verbose=True):
@@ -67,8 +66,6 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
     # ADI case
     if array.ndim == 3:
-        if psf_template.shape[1] % 2 == 0:
-            raise ValueError("Only odd-sized PSF is accepted")
         ceny, cenx = frame_center(array[0])
         ceny = int(ceny)
         cenx = int(cenx)
@@ -89,11 +86,11 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         # fcomp in the center of a zeros frame
         fc_fr[starty:starty+size_fc, startx:startx+size_fc] = psf_template
 
-        if size_fc%2 == 0 and array.shape[1]%2 == 1:
+        if size_fc % 2 == 0 and array.shape[1] % 2 == 1:
             # odd cube, even PSF
             fc_fr = frame_shift(fc_fr, -0.5, -0.5, imlib=imlib,
                                 interpolation=interpolation)
-        elif size_fc%2 == 1 and array.shape[1]%2 == 0:
+        elif size_fc % 2 == 1 and array.shape[1] % 2 == 0:
             fc_fr = frame_shift(fc_fr, 0.5, 0.5, imlib=imlib,
                                 interpolation=interpolation)
 
@@ -102,8 +99,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
             tmp = np.zeros_like(array[0])
             for branch in range(n_branches):
                 ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
-                for i in range(n_fc_rad):
-                    rad = rad_dists[i]
+                for rad in rad_dists:
                     y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
                     tmp += frame_shift(fc_fr, y, x, imlib=imlib,
@@ -113,7 +109,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         if verbose:
             for branch in range(n_branches):
                 print('Branch '+str(branch+1)+':')
-                for i in range(n_fc_rad):
+                for i in range(len(rad_dists)):
                     ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
                     posy = rad_dists[i] * np.sin(ang) + ceny
                     posx = rad_dists[i] * np.cos(ang) + cenx
@@ -126,8 +122,6 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
     # ADI+IFS case
     if array.ndim == 4 and psf_template.ndim == 3:
-        if psf_template.shape[2] % 2 == 0:
-            raise ValueError("Only odd-sized PSF is accepted")
         ceny, cenx = frame_center(array[0,0])
         ceny = int(float(ceny))
         cenx = int(float(cenx))

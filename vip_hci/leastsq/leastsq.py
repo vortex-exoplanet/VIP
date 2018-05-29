@@ -135,7 +135,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
         if adimsdi == 'skipsdi':
             if verbose:
                 print('ADI lst-sq modeling for each wavelength individually')
-                print('{} spectral channels per IFS frame'.format(z))
+                print('{} frames per wavelength'.format(n))
 
             cube_res = np.zeros((z, y_in, x_in))
             for z in Progressbar(range(z)):

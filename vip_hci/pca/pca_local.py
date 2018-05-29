@@ -28,7 +28,7 @@ from .svd import get_eigenvectors
 
 
 def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
-                asize=4, n_segments=1, delta_rot=1, delta_sep=(0.2, 1), ncomp=1,
+                asize=4, n_segments=1, delta_rot=1, delta_sep=(0.1, 1), ncomp=1,
                 ncomp2=1, svd_mode='lapack', nproc=1, min_frames_lib=2,
                 max_frames_lib=200, tol=1e-1, scaling=None, imlib='opencv',
                 interpolation='lanczos4', collapse='median', full_output=False,
@@ -108,12 +108,7 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
         (through Pytorch).
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
-        processes will be set to (cpu_count()/2). It's been tested on a Linux
-        and Macosx. The ACCELERATE library for linear algebra calculations,
-        which comes by default in every Macosx system, is broken for
-        multiprocessing. Avoid using this function unless you have compiled
-        Python against other linear algebra library. An easy fix is to install
-        (ana)conda and the openblas or MKL libraries (replacing ACCELERATE).
+        processes will be set to (cpu_count()/2).
     min_frames_lib : int, optional
         Minimum number of frames in the PCA reference library.
     max_frames_lib : int, optional

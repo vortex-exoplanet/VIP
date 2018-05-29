@@ -25,7 +25,7 @@ from ..conf.utils_conf import pool_map, fixed, Progressbar
 
 
 def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
-          dist_threshold=90, delta_rot=0.5, delta_sep=(0.2, 1), radius_int=0,
+          dist_threshold=90, delta_rot=0.5, delta_sep=(0.1, 1), radius_int=0,
           asize=4, n_segments=4, nproc=1, solver='lstsq', tol=1e-3,
           optim_scale_fact=1, adimsdi='skipadi', imlib='opencv',
           interpolation='lanczos4', collapse='median', verbose=True,
@@ -52,7 +52,13 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
         Indices with a distance larger than ``dist_threshold`` percentile will
         initially discarded. 90 by default.
     delta_rot : int, optional
-        Minimum parallactic angle distance between the pairs.
+        Minimum parallactic angle distance between the pairs, in terms of the
+        FWHM.
+    delta_sep : float or tuple of floats, optional
+        The threshold separation in terms of the mean FWHM (for ADI+mSDI data).
+        If a tuple of two values is provided, they are used as the lower and
+        upper intervals for the threshold (grows as a function of the
+        separation).
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the
         central circular area is discarded.
@@ -417,7 +423,10 @@ def _leastsq_patch_ifs(nseg, indices, indices_opt, wl, ann_center, fwhm,
 
     n_wls = ARRAY.shape[0]
 
-    mat_dists_ann_full = pairwise_distances(values, metric=metric)
+    if dist_threshold < 100:
+        mat_dists_ann_full = pairwise_distances(values, metric=metric)
+    else:
+        mat_dists_ann_full = np.ones((values.shape[0], values.shape[0]))
 
     if delta_sep > 0:
         mat_dists_ann = np.zeros_like(mat_dists_ann_full)
@@ -449,6 +458,11 @@ def _leastsq_patch_ifs(nseg, indices, indices_opt, wl, ann_center, fwhm,
                                               lsq_solver='lsmr')['x']
             else:
                 raise ValueError("solver not recognized")
+
+        else:
+            msg = "No frames left in the reference set. Try increasing "
+            msg += "`dist_threshold` or decreasing `delta_sep`."
+            raise RuntimeError(msg)
 
         recon = np.dot(coef, values[ind_ref])
         matrix_res[z] = values[z] - recon

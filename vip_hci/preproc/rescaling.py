@@ -243,16 +243,15 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
                            imlib=imlib, interpolation=interpolation)
     frame = cube_collapse(cube, collapse)
 
-    if inverse:
-        if max_sc > 1:
-            siz = max(y_in, x_in)
-            frame = get_square(frame, siz, cy, cx)
-            if full_output:
-                n_z = cube.shape[0]
-                array_old = cube.copy()
-                cube = np.zeros([n_z, siz, siz])
-                for zz in range(n_z):
-                    cube[zz] = get_square(array_old[zz], siz, cy, cx)
+    if inverse and max_sc > 1:
+        siz = max(y_in, x_in)
+        frame = get_square(frame, siz, cy, cx)
+        if full_output:
+            n_z = cube.shape[0]
+            array_old = cube.copy()
+            cube = np.zeros([n_z, siz, siz])
+            for zz in range(n_z):
+                cube[zz] = get_square(array_old[zz], siz, cy, cx)
 
     if full_output:
         return cube, frame, y, x, cy, cx

@@ -70,26 +70,32 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         if psf_template.shape[1] % 2 == 0:
             raise ValueError("Only odd-sized PSF is accepted")
         ceny, cenx = frame_center(array[0])
-        ceny = int(float(ceny))
-        cenx = int(float(cenx))
-        if isinstance(rad_dists, (int, float)):
-            check_coor = rad_dists
-            rad_dists = np.array([rad_dists])
-        elif isinstance(rad_dists, (list, np.ndarray)):
-            check_coor = rad_dists[-1]
-            rad_dists = np.array(rad_dists)
-        if not check_coor < array[0].shape[0]/2.:
-            msg = 'rad_dists last location is at the border (or outside) '
-            msg += 'of the field'
-            raise ValueError(msg)
-        size_fc = psf_template.shape[0]
-        nframes = array.shape[0]
-        fc_fr = np.zeros_like(array[0])
-        n_fc_rad = rad_dists.shape[0]
+        ceny = int(ceny)
+        cenx = int(cenx)
 
-        w = int(size_fc/2)
+        rad_dists = np.asarray(rad_dists).reshape(-1)
+
+        if not rad_dists[-1] < array[0].shape[0]/2:
+            raise ValueError('rad_dists last location is at the border (or '
+                             'outside) of the field')
+        size_fc = psf_template.shape[0]  # =38
+        nframes = array.shape[0]
+        fc_fr = np.zeros_like(array[0])  # =100x100
+
+        w = int(np.ceil(size_fc/2)) - 1
+        starty = ceny - w
+        startx = cenx - w
+
         # fcomp in the center of a zeros frame
-        fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = psf_template
+        fc_fr[starty:starty+size_fc, startx:startx+size_fc] = psf_template
+
+        if size_fc%2 == 0 and array.shape[1]%2 == 1:
+            # odd cube, even PSF
+            fc_fr = frame_shift(fc_fr, -0.5, -0.5, imlib=imlib,
+                                interpolation=interpolation)
+        elif size_fc%2 == 1 and array.shape[1]%2 == 0:
+            fc_fr = frame_shift(fc_fr, 0.5, 0.5, imlib=imlib,
+                                interpolation=interpolation)
 
         array_out = np.zeros_like(array)
         for fr in range(nframes):

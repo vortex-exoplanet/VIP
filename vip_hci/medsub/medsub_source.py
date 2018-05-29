@@ -27,14 +27,13 @@ from ..var import get_annulus, mask_circle
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector)
 from ..preproc import cube_rescaling_wavelengths as scwave
-from ..conf import Progressbar
 from ..conf.utils_conf import pool_map, fixed, print_precision
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
 
 
 def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
-               delta_rot=1, delta_sep=(0.2, 1), mode='fullfr', nframes=None,
+               delta_rot=1, delta_sep=(0.1, 1), mode='fullfr', nframes=None,
                imlib='opencv', interpolation='lanczos4', collapse='median',
                nproc=1, full_output=False, verbose=True):
     """ Implementation of a median subtraction algorithm for model PSF
@@ -191,28 +190,33 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
             if not scale_list.shape[0] == z:
                 raise ValueError('Scaling factors vector has wrong length')
 
+        # Exploiting spectral variability (radial movement)
+        fwhm = int(np.round(np.mean(fwhm)))
+        n_annuli = int((y_in / 2 - radius_int) / asize)
+
+        if nframes is not None:
+            if nframes % 2 != 0:
+                raise TypeError('`nframes` argument must be even value')
+
         if verbose:
             print('{} spectral channels per IFS frame'.format(z))
+            print('First median subtraction exploiting spectral variability')
+            if mode == 'annular':
+                print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli,
+                                                                 fwhm))
+
+        res = pool_map(nproc, _median_subt_fr_sdi, fixed(range(n)),
+                       scale_list, n_annuli, fwhm, radius_int, asize,
+                       delta_sep, nframes, imlib, interpolation, collapse,
+                       mode)
+        residuals_cube_channels = np.array(res)
+
+        if verbose:
+            timing(start_time)
+            print('{} ADI frames'.format(n))
+            print('Median subtraction in the ADI fashion')
 
         if mode == 'fullfr':
-            scale_list = check_scal_vector(scale_list)
-            residuals_cube_channels = np.zeros((n, y_in, x_in))
-            if verbose:
-                print('First median subtraction exploiting spectral '
-                      'variability')
-            for i in Progressbar(range(n), verbose=verbose):
-                cube_resc = scwave(ARRAY[:, i, :, :], scale_list)[0]
-                median_frame = np.median(cube_resc, axis=0)
-                residuals_cube = cube_resc - median_frame
-                frame_i = scwave(residuals_cube, scale_list,
-                                 full_output=full_output, inverse=True,
-                                 y_in=y_in, x_in=x_in)
-                residuals_cube_channels[i] = frame_i
-
-            if verbose:
-                timing(start_time)
-                print('{} ADI frames'.format(n))
-                print('Median subtraction in the ADI fashion')
             median_frame = np.median(residuals_cube_channels, axis=0)
             residuals_final = residuals_cube_channels - median_frame
             residuals_final_der = cube_derotate(residuals_final, angle_list,
@@ -223,30 +227,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
                 timing(start_time)
 
         elif mode == 'annular':
-            # Exploiting spectral variability (radial movement)
-            fwhm = int(np.round(np.mean(fwhm)))
-            n_annuli = int((y_in / 2 - radius_int) / asize)
-
             if verbose:
-                print('First median subtraction exploiting spectral '
-                      'variability')
-                print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli,
-                                                                 fwhm))
-
-            res = pool_map(nproc, _median_subt_fr_sdi, fixed(range(n)),
-                           scale_list, n_annuli, fwhm, radius_int, asize,
-                           delta_sep, nframes, imlib, interpolation, collapse)
-            residuals_cube_channels = np.array(res)
-
-            if nframes is not None:
-                if nframes % 2 != 0:
-                    raise TypeError('`nframes` argument must be even value')
-
-            # Exploiting rotational variability
-            if verbose:
-                timing(start_time)
-                print('{} ADI frames'.format(n))
-                print('Median subtraction in the ADI fashion')
                 print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli,
                                                                  fwhm))
             ARRAY = residuals_cube_channels
@@ -285,44 +266,48 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
 
 
 def _median_subt_fr_sdi(fr, wl, n_annuli, fwhm, radius_int, annulus_width,
-                        delta_sep, nframes, imlib, interpolation, collapse):
+                        delta_sep, nframes, imlib, interpolation, collapse,
+                        mode):
     """ Optimized median subtraction on a multi-spectral frame (IFS data).
     """
-    z = ARRAY.shape[0]
-    y_in = ARRAY.shape[1]
-    x_in = ARRAY.shape[2]
+    z, n, y_in, x_in = ARRAY.shape
     scale_list = check_scal_vector(wl)
     multispec_fr = scwave(ARRAY[:, fr, :, :], scale_list, imlib=imlib,
                           interpolation=interpolation)[0]    # rescaled cube
 
-    cube_res = np.zeros_like((multispec_fr))    # shape (z, resc_y, resc_x)
+    if mode == 'annular':
+        cube_res = np.zeros_like(multispec_fr)  # shape (z, resc_y, resc_x)
 
-    if isinstance(delta_sep, tuple):
-        delta_sep_vec = np.linspace(delta_sep[0], delta_sep[1], n_annuli)
-    else:
-        delta_sep_vec = [delta_sep] * n_annuli
-
-    for ann in range(n_annuli):
-        if ann == n_annuli - 1:
-            inner_radius = radius_int + (ann * annulus_width - 1)
+        if isinstance(delta_sep, tuple):
+            delta_sep_vec = np.linspace(delta_sep[0], delta_sep[1], n_annuli)
         else:
-            inner_radius = radius_int + ann * annulus_width
-        ann_center = inner_radius + (annulus_width / 2)
+            delta_sep_vec = [delta_sep] * n_annuli
 
-        indices = get_annulus(multispec_fr[0], inner_radius, annulus_width,
-                              output_indices=True)
-        yy = indices[0]
-        xx = indices[1]
-        matrix = multispec_fr[:, yy, xx]  # shape (z, npx_annulus)
+        for ann in range(n_annuli):
+            if ann == n_annuli - 1:
+                inner_radius = radius_int + (ann * annulus_width - 1)
+            else:
+                inner_radius = radius_int + ann * annulus_width
+            ann_center = inner_radius + (annulus_width / 2)
 
-        for j in range(z):
-            indices_left = _find_indices_sdi(wl, ann_center, j, fwhm,
-                                             delta_sep_vec[ann], nframes)
-            matrix_masked = matrix[indices_left]
-            ref_psf_opt = np.median(matrix_masked, axis=0)
-            curr_wv = matrix[j]
-            subtracted = curr_wv - ref_psf_opt
-            cube_res[j, yy, xx] = subtracted
+            indices = get_annulus(multispec_fr[0], inner_radius, annulus_width,
+                                  output_indices=True)
+            yy = indices[0]
+            xx = indices[1]
+            matrix = multispec_fr[:, yy, xx]  # shape (z, npx_annulus)
+
+            for j in range(z):
+                indices_left = _find_indices_sdi(wl, ann_center, j, fwhm,
+                                                 delta_sep_vec[ann], nframes)
+                matrix_masked = matrix[indices_left]
+                ref_psf_opt = np.median(matrix_masked, axis=0)
+                curr_wv = matrix[j]
+                subtracted = curr_wv - ref_psf_opt
+                cube_res[j, yy, xx] = subtracted
+
+    elif mode == 'fullfr':
+        median_frame = np.median(multispec_fr, axis=0)
+        cube_res = multispec_fr - median_frame
 
     frame_desc = scwave(cube_res, scale_list, full_output=False, inverse=True,
                         y_in=y_in, x_in=x_in, imlib=imlib,

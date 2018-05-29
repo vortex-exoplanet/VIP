@@ -1305,6 +1305,21 @@ class HCIDataset:
         new_p = "{}-{suffix}{}".format(*os.path.splitext(p), suffix=suffix)
         return new_p
 
+    def copy(self):
+        """
+        Creates a new instance of the dataset.
+
+        behaves like `copy.copy()`, but does not ignore self.SAVE_WITH_NP
+        """
+        
+        import copy
+        new_obj = copy.copy(self)
+        for k in self.SAVE_WITH_NP:
+            if k in self.__dict__:
+                new_obj.__dict__[k] = self.__dict__[k]
+
+        return new_obj
+
     def __getstate__(self):
         """
         Used by ``pickle``. Filters out the attributes listed in

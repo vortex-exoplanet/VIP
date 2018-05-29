@@ -12,6 +12,7 @@ __all__ = ['HCIDataset',
 
 import os.path
 import pickle
+import copy
 import numpy as np
 from .fits import open_fits, write_fits, append_extension
 from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
@@ -1271,39 +1272,19 @@ class HCIDataset:
             with open("my-data-pcl.vipdata", "wb") as f:
                 pickle.dump(dataset, f)
 
-        The objects listed in ``HCIDataset.SAVE_WITH_NUMPY`` are skipped when
+        The objects listed in ``HCIDataset.SAVE_WITH_NP`` are skipped when
         saving with ``pickle``.
 
         """
         
         # save large arrays with numpy
-        np.savez(self._mk_fn(path_prefix, "np"),
+        np.savez(_mk_fn(path_prefix, "np"),
                  **{x:getattr(self, x) for x in self.SAVE_WITH_NP})
 
         # save rest of object with pickle. calls __getstate__()
-        with open(self._mk_fn(path_prefix, "pcl"), "wb") as f:
+        with open(_mk_fn(path_prefix, "pcl"), "wb") as f:
             pickle.dump(self, f)
 
-
-    @staticmethod
-    def _mk_fn(p, suffix):
-        """
-        Make pretty filename for saving objects. Adds ``suffix`` and changes file
-        extension to ``.vipdata``. Note that when using this filename in
-        ``numpy.savez()``, ``.npz`` is automatically appended after
-        ``.vipdata``.
-
-        Parameters
-        ----------
-        p : str
-            Filename.
-        suffix : str
-            Suffix which is appended to the filename, before the extension.
-        """
-        if not p.endswith(".vipdata"):
-            p += ".vipdata"
-        new_p = "{}-{suffix}{}".format(*os.path.splitext(p), suffix=suffix)
-        return new_p
 
     def copy(self):
         """
@@ -1312,7 +1293,6 @@ class HCIDataset:
         behaves like `copy.copy()`, but does not ignore self.SAVE_WITH_NP
         """
         
-        import copy
         new_obj = copy.copy(self)
         for k in self.SAVE_WITH_NP:
             if k in self.__dict__:
@@ -1340,7 +1320,7 @@ class HCIDataset:
 
         Parameters
         ----------
-        path : str or pathlib.Path
+        path : str
             The path to load the HCIDataset from. Should be of the same form as
             the ``path`` which was used when ``save()``ing. The suffix
             ``.vipdata`` is automatically appended.
@@ -1350,10 +1330,10 @@ class HCIDataset:
         obj : HCIDataset object
 
         """
-        with open(cls._mk_fn(path, "pcl"), "rb") as f:
+        with open(_mk_fn(path, "pcl"), "rb") as f:
             obj = pickle.load(f)
 
-        np_stuff_dict = np.load(str(cls._mk_fn(path, "np"))+".npz")
+        np_stuff_dict = np.load(str(_mk_fn(path, "np"))+".npz")
         # np always adds `.npz` to the filename...
 
         for k in np_stuff_dict:
@@ -1363,3 +1343,28 @@ class HCIDataset:
         return obj
 
 
+
+
+
+
+
+
+
+def _mk_fn(p, suffix):
+    """
+    Make pretty filename for saving objects. Adds ``suffix`` and changes file
+    extension to ``.vipdata``. Note that when using this filename in
+    ``numpy.savez()``, ``.npz`` is automatically appended after
+    ``.vipdata``.
+
+    Parameters
+    ----------
+    p : str
+        Filename.
+    suffix : str
+        Suffix which is appended to the filename, before the extension.
+    """
+    if not p.endswith(".vipdata"):
+        p += ".vipdata"
+    new_p = "{}-{suffix}{}".format(*os.path.splitext(p), suffix=suffix)
+    return new_p

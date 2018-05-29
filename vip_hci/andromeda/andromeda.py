@@ -236,8 +236,7 @@ def andromeda(cube, oversampling_fact, angles, psf,
 
     # ...and spatial filterin on the PSF:
     if filtering_fraction != 1:
-        psf = frame_filter_highpass(psf, "hanning",
-                                    hanning_cutoff=filtering_fraction)
+        psf = frame_filter_highpass(psf, "hann", hann_cutoff=filtering_fraction)
 
     # library of all different PSF positions
     psf_cube = calc_psf_shift_subpix(psf, precision=precision)
@@ -245,10 +244,10 @@ def andromeda(cube, oversampling_fact, angles, psf,
 
     # spatial filtering of the preprocessed image-cubes:
     if filtering_fraction != 1:
-        cube = cube_filter_highpass(cube, mode="hanning",
-                                    hanning_cutoff=filtering_fraction)
         print("Pre-processing filtering of the images and the PSF: "
               "done! F={}".format(filtering_fraction))
+        cube = cube_filter_highpass(cube, mode="hann",
+                                    hann_cutoff=filtering_fraction, verbose=False)
 
     # definition of the width of each annuli 
     dmin = iwa

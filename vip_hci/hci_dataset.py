@@ -465,7 +465,7 @@ class HCIDataset:
         3d or 4d high-contrast image sequence. If a string is provided, cube is
         interpreted as the path of the FITS file containing the sequence.
     hdu : int, optional
-        If ``cube`` is a String, ``hdu`` indicates the HDU from the FITS file.
+        If ``cube`` is a string, ``hdu`` indicates the HDU from the FITS file.
         By default the first HDU is used.
     angles : list or numpy array, optional
         The vector of parallactic angles.
@@ -481,7 +481,7 @@ class HCIDataset:
     psfn : numpy array, optional
         Normalized/cropped/centered version of the PSF template associated with
         this dataset.
-    cuberef : str or numpy array
+    cuberef : str, numpy array or HCIDataset, optional
         3d or 4d high-contrast image sequence. To be used as a reference cube.
     """
 

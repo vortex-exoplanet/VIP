@@ -290,7 +290,7 @@ class HCIFrame(object):
         self.image = frame_rotate(self.image, angle, imlib, interpolation, cxy)
         print('Image successfully rotated')
 
-    def save(self, path):
+    def write_fits(self, path, precision=np.float32):
         """ Writing to FITS file.
 
         Parameters
@@ -298,7 +298,7 @@ class HCIFrame(object):
         path : string
             Full path of the fits file to be written.
         """
-        write_fits(path, self.image)
+        write_fits(path, self.image, precision=precision)
 
     def shift(self, shift_y, shift_x, imlib='opencv', interpolation='lanczos4'):
         """ Shifting the image.
@@ -1190,7 +1190,7 @@ class HCIDataset(object):
         self.cube = cube_px_resampling(self.cube, scale, imlib, interpolation,
                                        verbose)
 
-    def export(self, path, precision=np.float32):
+    def write_fits(self, path, precision=np.float32):
         """ Write ``self.cube`` to FITS file. If ``self.angles`` is present,
         then the angles are appended to the FITS file.
 

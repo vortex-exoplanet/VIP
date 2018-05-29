@@ -1324,8 +1324,13 @@ class HCIDataset:
         """
         Used by ``pickle``. Filters out the attributes listed in
         ``self.SAVE_WITH_NP``.
+
+        Warning: `copy.copy()` also uses this function, so the ``SAVE_WITH_NP``
+        attributes get missing. Use `self.copy()` instead!
         """
-        state = {k:v for k in self.__dict__ if k not in self.SAVE_WITH_NP}
+        # TODO: use `from six import iteritems; for k,v in iteritems(...)` 
+        state = {k:self.__dict__[k] for k in self.__dict__
+                                                  if k not in self.SAVE_WITH_NP}
         return state
 
     @classmethod

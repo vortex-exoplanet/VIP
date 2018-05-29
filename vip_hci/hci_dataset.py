@@ -48,6 +48,12 @@ class HCIFrame(object):
         The FWHM associated with this dataset (instrument dependent). Required
         for several methods (operations on the cube).
     """
+
+
+    SAVE_WITH_NP = ["image"]
+        # TODO: `detection_results` is a tuple of two numpy arrays. Can it also
+        # be saved with numpy?
+
     def __init__(self, image, hdu=0, fwhm=None):
         """ HCIFrame object initialization. """
         if isinstance(image, str):
@@ -299,6 +305,92 @@ class HCIFrame(object):
             Full path of the fits file to be written.
         """
         write_fits(path, self.image, precision=precision)
+
+    def save(self, path_prefix):
+        """
+        Save entire HCIFrame to disk, including cube, angles etc.
+        
+        The following files will be created:
+        - `<path_prefix>-np.vipdata.npz`: contains data saved with numpy,
+           e.g. ``self.cube`` (see ``HCIFrame.SAVE_WITH_NP``)
+        - `<path_prefix>-pcl.vipdata`: contains the object itself, as saved
+          by ``pickle`.
+        
+        Parameters
+        ----------
+        path_prefix : str
+            Path to save the data to. This should contain *no* file extension!
+
+
+        """
+        
+        # save large arrays with numpy
+        np.savez(_mk_fn(path_prefix, "np"),
+                 **{x:getattr(self, x) for x in self.SAVE_WITH_NP})
+
+        # save rest of object with pickle. calls __getstate__()
+        with open(_mk_fn(path_prefix, "pcl"), "wb") as f:
+            pickle.dump(self, f)
+
+
+
+    def copy(self):
+        """
+        Creates a new instance of the frame.
+
+        behaves like `copy.copy()`, but does not ignore self.SAVE_WITH_NP
+        """
+        
+        new_obj = copy.copy(self)
+        for k in self.SAVE_WITH_NP:
+            if k in self.__dict__:
+                new_obj.__dict__[k] = self.__dict__[k]
+
+        return new_obj
+
+    def __getstate__(self):
+        """
+        Used by ``pickle``. Filters out the attributes listed in
+        ``self.SAVE_WITH_NP``.
+
+        Warning: `copy.copy()` also uses this function, so the ``SAVE_WITH_NP``
+        attributes get missing. Use `self.copy()` instead!
+        """
+        # TODO: use `from six import iteritems; for k,v in iteritems(...)` 
+        state = {k:self.__dict__[k] for k in self.__dict__
+                                                  if k not in self.SAVE_WITH_NP}
+        return state
+
+    @classmethod
+    def from_file(cls, path):
+        """
+        Loads an HCIFrame from a given file. See ``save()`` for an example.
+
+        Parameters
+        ----------
+        path : str
+            The path to load the HCIDataset from. Should be of the same form as
+            the ``path`` which was used when ``save()``ing. The suffix
+            ``.vipdata`` is automatically appended.
+
+        Returns
+        -------
+        obj : HCIFrame object
+
+        """
+        with open(_mk_fn(path, "pcl"), "rb") as f:
+            obj = pickle.load(f)
+
+        np_stuff_dict = np.load(str(_mk_fn(path, "np"))+".npz")
+        # np always adds `.npz` to the filename...
+
+        for k in np_stuff_dict:
+            data = np_stuff_dict[k]
+            setattr(obj, k, data)
+
+        return obj
+
+
 
     def shift(self, shift_y, shift_x, imlib='opencv', interpolation='lanczos4'):
         """ Shifting the image.

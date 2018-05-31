@@ -252,29 +252,45 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
 
     # annulus-wise least-squares combination and subtraction
     cube_res = np.zeros_like(cube)
+
+
+    ayxyx = [] # contains per-segment data
+    pa_thresholds = []
+
     for ann in range(n_annuli):
         n_segments_ann = n_segments[ann]
         inner_radius_ann = radius_int + ann*annulus_width
 
+        # angles
         pa_threshold = _define_annuli(angle_list, ann, n_annuli, fwhm,
                                       radius_int, asize, delta_rot,
                                       n_segments_ann, verbose)[0]
 
+        # indices
         indices = get_annulus_segments(cube[0], inner_radius=inner_radius_ann,
                                        width=asize, nsegm=n_segments_ann)
-
         ind_opt = get_annulus_segments(cube[0], inner_radius=inner_radius_ann,
                                        width=asize, nsegm=n_segments_ann,
                                        optim_scale_fact=optim_scale_fact)
 
-        res_ann = pool_map(nproc, _leastsq_patch, fixed(range(n_segments_ann)),
-                           indices, ind_opt, angle_list, pa_threshold, metric,
-                           dist_threshold, solver, tol, verbose=False)
+        # store segment data for multiprocessing
+        ayxyx += [(ann,
+                 indices[nseg][0], indices[nseg][1],
+                 ind_opt[nseg][0], ind_opt[nseg][0])
+                                          for nseg in range(n_segments_ann)]
 
-        for j in range(n_segments_ann):
-            yy = indices[j][0]
-            xx = indices[j][1]
-            cube_res[:, yy, xx] = res_ann[j]
+        pa_thresholds.append(pa_threshold)
+
+    res_patch = pool_map(nproc, _leastsq_patch, fixed(ayxyx[::-1]), pa_thresholds,
+                         angle_list, metric, dist_threshold, solver,
+                         tol, msg="segment", verbose=True)
+                # reverse order of processing, as outer segments should take
+                # longer.
+
+    for patch in res_patch:
+        matrix_res, yy, xx = patch
+        cube_res[:, yy, xx] = matrix_res
+
 
     cube_der = cube_derotate(cube_res, angle_list, imlib, interpolation)
     frame_der_median = cube_collapse(cube_der, collapse)
@@ -288,16 +304,28 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
         return frame_der_median
 
 
-def _leastsq_patch(nseg, indices, indices_opt, angles, pa_threshold, metric,
-                   dist_threshold, solver, tol):
+
+
+def _leastsq_patch(ayxyx,  pa_thresholds, angles, metric, dist_threshold,
+                      solver, tol):
     """ Helper function for _leastsq_ann.
+
+    Parameters
+    ----------
+    axyxy : tuple
+        This tuple contains all per-segment data.
+    pa_thresholds : list of list
+        This is a per-annulus list of thresholds. 
+    angles, metric, dist_threshold, solver, tol
+        These parameters are the same for each annulus or segment.
     """
-    yy = indices[nseg][0]
-    xx = indices[nseg][1]
+
+    iann, yy, xx, yy_opt, xx_opt = ayxyx
+    pa_threshold = pa_thresholds[iann]
+    
     values = ARRAY[:, yy, xx]  # n_frames x n_pxs_segment
 
-    yy_opt = indices_opt[nseg][0]
-    xx_opt = indices_opt[nseg][0]
+   
     values_opt = ARRAY[:, yy_opt, xx_opt]
 
     n_frames = ARRAY.shape[0]
@@ -340,7 +368,7 @@ def _leastsq_patch(nseg, indices, indices_opt, angles, pa_threshold, metric,
         recon = np.dot(coef, values[ind_ref])
         matrix_res[i] = values[i] - recon
 
-    return matrix_res
+    return matrix_res, yy, xx
 
 
 def _leastsq_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,

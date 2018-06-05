@@ -33,7 +33,7 @@ from ..preproc.rescaling import _find_indices_sdi
 
 
 def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
-               delta_rot=1, delta_sep=(0.1, 1), mode='fullfr', nframes=None,
+               delta_rot=1, delta_sep=(0.1, 1), mode='fullfr', nframes=4,
                imlib='opencv', interpolation='lanczos4', collapse='median',
                nproc=1, full_output=False, verbose=True):
     """ Implementation of a median subtraction algorithm for model PSF
@@ -137,7 +137,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
 
         # The median frame is first subtracted from each frame
         model_psf = np.median(ARRAY, axis=0)
-        ARRAY = ARRAY - model_psf
+        ARRAY -= model_psf
 
         # Depending on the ``mode``
         if mode == 'fullfr':
@@ -159,7 +159,8 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
 
             res = pool_map(nproc, _median_subt_ann_adi, fixed(range(n_annuli)),
                            angle_list, n_annuli, fwhm, radius_int, asize,
-                           delta_rot, nframes, verbose)
+                           delta_rot, nframes, verbose=verbose,
+                           msg='Processing annuli:')
 
             res = np.array(res)
             mres = res[:, 0]
@@ -170,7 +171,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
                 cube_out[:, yy[ann], xx[ann]] = mres[ann]
 
             if verbose:
-                print('\nOptimized median psf reference subtracted')
+                print('Optimized median psf reference subtracted')
 
         else:
             raise RuntimeError('Mode not recognized')
@@ -257,7 +258,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
             raise RuntimeError('Mode not recognized')
 
     if verbose:
-        print('\nDone derotating and combining')
+        print('Done derotating and combining')
         timing(start_time)
     if full_output:
         return cube_out, cube_der, frame 

@@ -192,7 +192,8 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
 
         res = pool_map(nproc, _pca_sdi_fr, fixed(range(n)), scale_list,
                        radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
-                       svd_mode, tol, scaling, imlib, interpolation, collapse)
+                       svd_mode, tol, scaling, imlib, interpolation, collapse,
+                       verbose=verbose)
         residuals_cube_channels = np.array(res)
 
         # Exploiting rotational variability
@@ -525,7 +526,7 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
     if verbose:
         msg = '# annuli = {}, Ann width = {}, FWHM = {:.3f}'
         print(msg.format(n_annuli, asize, fwhm))
-        print('PCA per annulus (or annular sectors)\n')
+        print('PCA per annulus (or annular sectors):')
 
     if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
         nproc = cpu_count() // 2
@@ -559,7 +560,8 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
 
             res = pool_map(nproc, do_pca_patch, matrix_segm, fixed(range(n)),
                            angle_list, fwhm, pa_thr, ann_center, svd_mode,
-                           ncompann, min_frames_lib, max_frames_lib, tol)
+                           ncompann, min_frames_lib, max_frames_lib, tol,
+                           verbose=False)
 
             res = np.array(res)
             residuals = np.array(res[:, 0])
@@ -571,8 +573,8 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
             # number of frames in library printed for each annular quadrant
             # number of PCs printed for each annular quadrant
             if verbose == 2:
-                descriptive_stats(nfrslib, verbose=verbose, label='LIBsize: ')
-                descriptive_stats(ncomps, verbose=verbose, label='Num PCs: ')
+                descriptive_stats(nfrslib, verbose=verbose, label='\tLIBsize: ')
+                descriptive_stats(ncomps, verbose=verbose, label='\tNum PCs: ')
 
         if verbose == 2:
             print('Done PCA with {} for current annulus'.format(svd_mode))

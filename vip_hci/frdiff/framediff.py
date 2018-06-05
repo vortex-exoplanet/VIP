@@ -93,10 +93,10 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     if verbose:
         if ncomp is not None:
             msg = "{} annuli. Performing annular PCA subtraction with {} PCs "
-            msg += "and pair-wise subtraction:\n"
+            msg += "and pair-wise subtraction:"
             print(msg.format(n_annuli, ncomp))
         else:
-            msg = "{} annuli. Performing pair-wise subtraction:\n"
+            msg = "{} annuli. Performing pair-wise subtraction:"
             print(msg.format(n_annuli))
 
     if nproc is None:
@@ -118,8 +118,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
                                 itt.repeat(metric), itt.repeat(dist_threshold),
                                 itt.repeat(n_similar), itt.repeat(radius_int),
                                 itt.repeat(asize), itt.repeat(ncomp),
-                                itt.repeat(verbose), itt.repeat(debug),
-                                itt.repeat(nproc)))
+                                itt.repeat(verbose), itt.repeat(debug)))
         final_frame = np.array(res)
         pool.close()
     final_frame = np.sum(final_frame, axis=0)
@@ -133,7 +132,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
 
 def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
                   dist_threshold, n_similar, radius_int, asize, ncomp, verbose,
-                  debug=False, nproc=1):
+                  debug=False):
     """
     Helper functions for pair-wise subtraction for a single annulus.
     """
@@ -242,9 +241,6 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     cube_out[:, yy, xx] = cube_res
     cube_der = cube_derotate(cube_out, angles_list)
     frame_der_median = cube_collapse(cube_der, 'median')
-
-    if verbose and nproc == 1:
-        timing(start_time)
 
     return frame_der_median
 

@@ -230,9 +230,7 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
     angle_list = check_pa_vector(angle_list)
     n_annuli = int((y / 2 - radius_int) / asize)
     if verbose:
-        msg = "N annuli = {}. Performing least-square combination and "
-        msg += "subtraction:\n"
-        print(msg.format(n_annuli))
+        print("Building {} annuli:".format(n_annuli))
 
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
@@ -253,8 +251,7 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
     # annulus-wise least-squares combination and subtraction
     cube_res = np.zeros_like(cube)
 
-
-    ayxyx = [] # contains per-segment data
+    ayxyx = []  # contains per-segment data
     pa_thresholds = []
 
     for ann in range(n_annuli):
@@ -274,23 +271,21 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
                                        optim_scale_fact=optim_scale_fact)
 
         # store segment data for multiprocessing
-        ayxyx += [(ann,
-                 indices[nseg][0], indices[nseg][1],
-                 ind_opt[nseg][0], ind_opt[nseg][0])
-                                          for nseg in range(n_segments_ann)]
+        ayxyx += [(ann, indices[nseg][0], indices[nseg][1],
+                   ind_opt[nseg][0], ind_opt[nseg][0]) for nseg in
+                  range(n_segments_ann)]
 
         pa_thresholds.append(pa_threshold)
 
-    res_patch = pool_map(nproc, _leastsq_patch, fixed(ayxyx[::-1]), pa_thresholds,
-                         angle_list, metric, dist_threshold, solver,
-                         tol, msg="segment", verbose=True)
-                # reverse order of processing, as outer segments should take
-                # longer.
+    msg = 'Patch-wise least-square combination and subtraction:'
+    # reverse order of processing, as outer segments take longer
+    res_patch = pool_map(nproc, _leastsq_patch, fixed(ayxyx[::-1]),
+                         pa_thresholds, angle_list, metric, dist_threshold,
+                         solver, tol, verbose=verbose, msg=msg)
 
     for patch in res_patch:
         matrix_res, yy, xx = patch
         cube_res[:, yy, xx] = matrix_res
-
 
     cube_der = cube_derotate(cube_res, angle_list, imlib, interpolation)
     frame_der_median = cube_collapse(cube_der, collapse)
@@ -304,10 +299,8 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
         return frame_der_median
 
 
-
-
 def _leastsq_patch(ayxyx,  pa_thresholds, angles, metric, dist_threshold,
-                      solver, tol):
+                   solver, tol):
     """ Helper function for _leastsq_ann.
 
     Parameters
@@ -319,12 +312,10 @@ def _leastsq_patch(ayxyx,  pa_thresholds, angles, metric, dist_threshold,
     angles, metric, dist_threshold, solver, tol
         These parameters are the same for each annulus or segment.
     """
-
     iann, yy, xx, yy_opt, xx_opt = ayxyx
     pa_threshold = pa_thresholds[iann]
     
     values = ARRAY[:, yy, xx]  # n_frames x n_pxs_segment
-
    
     values_opt = ARRAY[:, yy_opt, xx_opt]
 
@@ -359,7 +350,7 @@ def _leastsq_patch(ayxyx,  pa_thresholds, angles, metric, dist_threshold,
                                               method='trf',
                                               lsq_solver='lsmr')['x']
             else:
-                raise ValueError("solver not recognized")
+                raise ValueError("`solver` not recognized")
         else:
             msg = "No frames left in the reference set. Try increasing "
             msg += "`dist_threshold` or decreasing `delta_rot`."

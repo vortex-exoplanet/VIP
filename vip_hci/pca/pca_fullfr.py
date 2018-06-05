@@ -488,7 +488,7 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
 
     res = pool_map(nproc, _adimsdi_doublepca_ifs, fixed(range(n)), ncomp,
                    scale_list, scaling, mask_center_px, debug, svd_mode,
-                   full_output, collapse)
+                   full_output, collapse, verbose=verbose)
     residuals_cube_channels = np.array(res)
 
     if verbose:

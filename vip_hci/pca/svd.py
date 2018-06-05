@@ -61,7 +61,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
         of the SVD as in the LAPACK version. ``eigencupy`` offers the same 
         method as with the ``eigen`` option but on GPU (through Cupy). 
-        ``randcupy`` is an adaptation of the randomized_svd algorithm, where all
+        ``randcupy`` is an adaptation f the randomized_svd algorithm, where all
         the computations are done on a GPU (through Cupy). ``pytorch`` uses the
         Pytorch library for GPU computation of the SVD. ``eigenpytorch`` offers
         the same method as with the ``eigen`` option but on GPU (through

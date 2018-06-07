@@ -69,7 +69,6 @@ class Ds9Window(object):
         self.window = pyds9.DS9(self.window_name)
         self.window.set('cmap ' + str(value))
 
-
     def crosshair_get(self):
         """ Gets the physical coordinates (x,y) of the crosshair.
 
@@ -134,7 +133,7 @@ class Ds9Window(object):
         if kwargs.get("keep_frames", True):
             self.delete_frame(all_frames=True)
 
-        self.tile()
+        self.tile('grid')
         for i, array in enumerate(arrays):
             if i == 0:
                 self.create_frame()

@@ -160,7 +160,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
             res = pool_map(nproc, _median_subt_ann_adi, fixed(range(n_annuli)),
                            angle_list, n_annuli, fwhm, radius_int, asize,
                            delta_rot, nframes, verbose=verbose,
-                           msg='Processing annuli:')
+                           msg='Processing annuli:', progressbar_single=True)
 
             res = np.array(res)
             mres = res[:, 0]

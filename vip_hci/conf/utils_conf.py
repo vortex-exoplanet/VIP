@@ -213,7 +213,7 @@ def pool_map(nproc, fkt, *args, **kwargs):
         Description to be displayed.
     progressbar_single : bool, optional
         Display a progress bar when single-processing is used. Defaults to
-        ``True``.
+        ``False``.
     verbose : bool, optional
         Show more output. Also disables the progress bar when set to ``False``.
 
@@ -230,10 +230,9 @@ def pool_map(nproc, fkt, *args, **kwargs):
     # TODO: how do ``zip`` and ``map`` behave on python 2?
 
     """
-
     msg = kwargs.get("msg", None)
     verbose = kwargs.get("verbose", True)
-    progressbar_single = kwargs.get("progressbar_single", True)
+    progressbar_single = kwargs.get("progressbar_single", False)
     _generator = kwargs.get("_generator", False)  # not exposed in docstring
 
     args_r = [a.v if isinstance(a, FixedObj) else itt.repeat(a) for a in args]

@@ -11,18 +11,14 @@ __all__ = ['frame_diff']
 
 import numpy as np
 import pandas as pn
-import itertools as itt
-from multiprocessing import Pool, cpu_count
+from multiprocessing import cpu_count
 from sklearn.metrics import pairwise_distances
 from ..var import get_annulus_segments, pp_subplots
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import time_ini, timing
+from ..conf.utils_conf import pool_map, fixed
 from ..pca.utils_pca import pca_annulus
 from ..preproc.derotation import _find_indices_adi, _define_annuli
-from ..conf.utils_conf import eval_func_tuple as EFT
-
-
-array = None
 
 
 def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
@@ -102,26 +98,12 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
-    # annulus-wise pair-wise subtraction
-    if nproc == 1:
-        final_frame = []
-        for ann in range(n_annuli):
-            res_ann = _pairwise_ann(ann, n_annuli, fwhm, angle_list, delta_rot,
-                                    metric, dist_threshold, n_similar,
-                                    radius_int, asize, ncomp, verbose, debug)
-            final_frame.append(res_ann)
-    elif nproc > 1:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(_pairwise_ann), range(n_annuli),
-                                itt.repeat(n_annuli), itt.repeat(fwhm),
-                                itt.repeat(angle_list), itt.repeat(delta_rot),
-                                itt.repeat(metric), itt.repeat(dist_threshold),
-                                itt.repeat(n_similar), itt.repeat(radius_int),
-                                itt.repeat(asize), itt.repeat(ncomp),
-                                itt.repeat(verbose), itt.repeat(debug)))
-        final_frame = np.array(res)
-        pool.close()
-    final_frame = np.sum(final_frame, axis=0)
+    res = pool_map(nproc, _pairwise_ann, fixed(range(n_annuli)),
+                   n_annuli, fwhm, angle_list, delta_rot, metric,
+                   dist_threshold, n_similar, radius_int, asize, ncomp,
+                   verbose, debug)
+
+    final_frame = np.sum(res, axis=0)
 
     if verbose:
         print('Done processing annuli')

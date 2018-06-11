@@ -281,7 +281,8 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
     # reverse order of processing, as outer segments take longer
     res_patch = pool_map(nproc, _leastsq_patch, fixed(ayxyx[::-1]),
                          pa_thresholds, angle_list, metric, dist_threshold,
-                         solver, tol, verbose=verbose, msg=msg)
+                         solver, tol, verbose=verbose, msg=msg,
+                         progressbar_single=True)
 
     for patch in res_patch:
         matrix_res, yy, xx = patch

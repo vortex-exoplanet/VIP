@@ -233,6 +233,8 @@ def andromeda(cube, oversampling_fact, angles, psf,
         positivity = False
         # also note the comment in andromeda.pro:691:
         #   ;If post-normalisation, set to 0, else 1
+    elif nsmooth_snr < 2:
+        raise ValueError("`nsmooth_snr` must be >= 2")
 
     #===== initialize output
 

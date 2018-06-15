@@ -10,7 +10,11 @@ __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['HCIDataset',
            'HCIFrame']
 
+import os
+import datetime
+
 import numpy as np
+from astropy.io import fits as ap_fits
 from .fits import open_fits, write_fits, append_extension
 from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
                       frame_shift, frame_center_satspots, frame_center_radon)
@@ -1223,20 +1227,104 @@ class HCIDataset:
         self.cube = cube_px_resampling(self.cube, scale, imlib, interpolation,
                                        verbose)
 
-    def save(self, path, precision=np.float32):
-        """ Writing to FITS file. If self.angles is present, then the angles
-        are appended to the FITS file.
+    def save(self, path, verbose=True):
+        """ Writes entire Dataset to a multi-extension FITS file.
 
         Parameters
         ----------
-        filename : string
-            Full path of the fits file to be written.
-        precision : numpy dtype, optional
-            Float precision, by default np.float32 or single precision float.
+        path : string
+            File path of the FITS file. If `path` contains no file extension,
+            ``.vip.fits`` is appended.
+        verbose : bool, optional
+
+        Notes
+        -----
+        - Contrarily to ``vip.fits.write_fits``, no explicit conversion to a
+          specific data type (e.g. single-precision float) is done.
+        - The resulting FITS file's PrimaryHDU contains no ``data``. The
+          original VIP class name is stored inside the ``VIP-TYPE`` field. Every
+          additionnal ImageHDU contains a ``VIP-ATTR`` header field.
+
         """
-        write_fits(path, self.cube, precision=precision)
-        if self.angles is not None:
-            append_extension(path, self.angles)
+
+        primary = ap_fits.PrimaryHDU()
+        primary.header["COMMENT"] = ("created with VIP https://github.com/"
+                                     "vortex-exoplanet/VIP")
+        primary.header["DATE"] = (
+            datetime.datetime.now().replace(microsecond=0).isoformat(" "),
+            "file creation date (ISO 8601)"
+        )
+        primary.header["VIP-TYPE"] = ("HCIDataset", "VIP object type")
+
+        hdul = ap_fits.HDUList()
+        hdul.append(primary)
+
+
+        for attr in ["cube", "cuberef", "psf", "psfn", "fwhm", "angles",
+                     "wavelengths", "px_scale"]:
+            if getattr(self, attr) is None:
+                continue
+            
+            header = None
+            if hasattr(self, "{}_fits_header".format(attr)):
+                header = getattr(self, "{}_fits_header".format(attr))
+            data = getattr(self, attr)
+            data = np.asarray(data)
+            if data.ndim == 0:
+                # FITS cannot store 0D data:
+                data = data.reshape(-1)  # shape () -> (1,)
+
+            hdu = ap_fits.ImageHDU(data, name=attr,
+                                   header=header)
+            hdu.header["VIP-ATTR"] = (attr, "VIP object attribute")
+            hdul.append(hdu)
+
+            if verbose:
+                if header is None:
+                    print("saving '{}'...".format(attr))
+                else:
+                    print("saving '{}' with header information...".format(attr))
+
+        if not "." in path:
+            path = "{}.vip.fits".format(path)
+
+        hdul.writeto(path, overwrite=True, checksum=True)
+
+    @classmethod
+    def load(cls, filename):
+
+        if not filename.endswith(".vip.fits"):
+            filename = filename+".vip.fits"
+
+        hdulist = ap_fits.open(filename) # TODO: memmap
+        objtype = hdulist[0].header.get("VIP-TYPE", None)
+
+        if objtype == "HCIDataset":
+            hci = HCIDataset(cube=open_fits(filename, n="CUBE",
+                                            header=True, verbose=False))
+
+            for hdu in hdulist:
+                if hdu.name in ["CUBE", "PRIMARY"]:
+                    continue
+
+                vip_attr = hdu.header["VIP-ATTR"]
+
+                data, header = open_fits(filename, n=hdu.name, header=True,
+                                         verbose=False)
+
+                if vip_attr == "px_scale":
+                    # stored as (1,) array in FITS file, transform to py float:
+                    data = data.item()  # works for shape () and shape (1,).
+                    # TODO: should the same be done with `fwhm` for 3D cubes?
+
+                setattr(hci, vip_attr, data)
+                setattr(hci, vip_attr+"_fits_header", header)
+
+            return hci
+
+
+        else:
+            raise RuntimeError("VIP-TYPE '{}' unknown".format(objtype))
 
     def subsample(self, window, mode='mean'):
         """ Temporally sub-sampling the sequence (3d or 4d cube).

@@ -33,6 +33,7 @@ from .metrics import (frame_quick_report, cube_inject_companions, snr_ss,
                       snr_peakstddev, snrmap, snrmap_fast, detection,
                       normalize_psf)
 from .conf.utils_conf import check_array, print_precision
+from . import __version__ as vip_version
 
 
 class HCIFrame:
@@ -1254,6 +1255,7 @@ class HCIDataset:
             datetime.datetime.now().replace(microsecond=0).isoformat(" "),
             "file creation date (ISO 8601)"
         )
+        primary.header["VIP-VERS"] = (vip_version, "VIP version number")
         primary.header["VIP-TYPE"] = ("HCIDataset", "VIP object type")
 
         hdul = ap_fits.HDUList()

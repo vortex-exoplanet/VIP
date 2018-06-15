@@ -27,16 +27,19 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
     Parameters
     ----------
-    array : array_like
-        Input frame or cube.
+    array : 3d/4d array_like
+        Input cube.
     psf_template : array_like
         2d array with the normalized psf template. It should have an odd shape.
         It's recommended to run the function ``normalize_psf`` to get a proper
         PSF template. In the ADI+mSDI case it must be a 3d array.
+    angle_list : 1d array_like
+        List of parallactic angles, in degrees.
     flevel : float or list
         Factor for controlling the brightness of the fake companions.
     plsc : float
-        Value of the plsc in arcsec/px.
+        Value of the plsc in arcsec/px. Only used for printing debug output when
+        ``verbose=True``.
     rad_dists : float, list or array 1d
         Vector of radial distances of fake companions in pixels.
     n_branches : int, optional

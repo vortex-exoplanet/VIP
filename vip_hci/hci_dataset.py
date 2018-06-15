@@ -506,7 +506,8 @@ class HCIDataset:
         """
         # Loading the 3d/4d cube or image sequence
         if isinstance(cube, str):
-            self.cube = open_fits(cube, hdu, verbose=False)
+            self.cube, self.cube_fits_header = open_fits(cube, hdu, header=True,
+                                                         verbose=False)
         elif isinstance(cube, np.ndarray):
             if not (cube.ndim == 3 or cube.ndim == 4):
                 raise ValueError('`Cube` array has wrong dimensions')
@@ -522,7 +523,9 @@ class HCIDataset:
 
         # Loading the reference cube
         if isinstance(cuberef, str):
-            self.cuberef = open_fits(cuberef, hdu, verbose=False)
+            self.cuberef, self.cuberef_fits_header = open_fits(cuberef, hdu,
+                                                               header=True,
+                                                               verbose=False)
         elif isinstance(cuberef, np.ndarray):
             msg = '`Cuberef` array has wrong dimensions'
             if not cuberef.ndim == 3:
@@ -544,7 +547,9 @@ class HCIDataset:
 
         # Loading the angles (ADI)
         if isinstance(angles, str):
-            self.angles = open_fits(angles, verbose=False)
+            self.angles, self.angles_fits_header = open_fits(angles,
+                                                             header=True,
+                                                             verbose=False)
         else:
             self.angles = angles
         if self.angles is not None:
@@ -557,7 +562,8 @@ class HCIDataset:
 
         # Loading the scaling factors (mSDI)
         if isinstance(wavelengths, str):
-            self.wavelengths = open_fits(wavelengths, verbose=False)
+            self.wavelengths, self.wavelengths_fits_header = open_fits(
+                                        wavelengths, header=True, verbose=False)
         else:
             self.wavelengths = wavelengths
         if self.wavelengths is not None:
@@ -570,7 +576,8 @@ class HCIDataset:
 
         # Loading the PSF
         if isinstance(psf, str):
-            self.psf = open_fits(psf, verbose=False)
+            self.psf, self.psf_fits_header = open_fits(psf, header=True,
+                                                       verbose=False)
         else:
             self.psf = psf
         if self.psf is not None:
@@ -583,7 +590,8 @@ class HCIDataset:
 
         # Loading the normalized PSF
         if isinstance(psfn, str):
-            self.psfn = open_fits(psfn, verbose=False)
+            self.psfn, self.psfn_fits_header = open_fits(psfn, header=True,
+                                                         verbose=False)
         else:
             self.psfn = psfn
         if self.psfn is not None:

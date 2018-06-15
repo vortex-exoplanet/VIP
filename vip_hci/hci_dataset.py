@@ -464,7 +464,8 @@ class HCIDataset:
         interpreted as the path of the FITS file containing the sequence.
     hdu : int, optional
         If ``cube`` is a String, ``hdu`` indicates the HDU from the FITS file.
-        By default the first HDU is used.
+        By default the first HDU is used. ``hdu`` is used for both ``cube``
+        and ``cuberef``.
     angles : list or numpy array, optional
         The vector of parallactic angles.
     wavelengths : list or numpy array, optional
@@ -481,6 +482,23 @@ class HCIDataset:
         this dataset.
     cuberef : str or numpy array
         3d or 4d high-contrast image sequence. To be used as a reference cube.
+
+    Attributes
+    ----------
+    cube : 3d or 4d ndarray
+    cuberef : 3d or 4d ndarray, or None
+    psf : 2d or 3d ndarray, or None
+    psfn : 2d or 3d ndarray, or None
+    fwhm : float or 1d ndarray, or None
+    n: int
+        Number of frames in cube.
+    x, y : int
+    w : int
+        Size of the zeroth dimension of a 4D cube. ``0`` for 3D cubes.
+    angles : 1d ndarray
+    wavelengths : 1d ndarray or None
+    px_scale: float or None
+
     """
     def __init__(self, cube, hdu=0, angles=None, wavelengths=None, fwhm=None,
                  px_scale=None, psf=None, psfn=None, cuberef=None):
@@ -800,7 +818,7 @@ class HCIDataset:
         ----------
         angles : str or 1d numpy.ndarray
             List or vector with the parallactic angles.
-        hdu : int, optional
+        hdu : int or str, optional
             If ``angles`` is a String, ``hdu`` indicates the HDU from the FITS
             file. By default the first HDU is used.
         """
@@ -820,7 +838,7 @@ class HCIDataset:
         ----------
         wavelengths : str or 1d numpy.ndarray
             List or vector with the wavelengths.
-        hdu : int, optional
+        hdu : int or str, optional
             If ``wavelengths`` is a String, ``hdu`` indicates the HDU from the
             FITS file. By default the first HDU is used.
 

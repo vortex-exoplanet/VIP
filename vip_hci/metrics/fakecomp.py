@@ -22,7 +22,8 @@ from ..conf.utils_conf import print_precision
 
 def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                            rad_dists, n_branches=1, theta=0, imlib='opencv',
-                           interpolation='lanczos4', verbose=True):
+                           interpolation='lanczos4', full_output=False,
+                           verbose=True):
     """ Injects fake companions in branches, at given radial distances.
 
     Parameters
@@ -52,6 +53,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    full_output : bool, optional
+        Returns the ``x`` and ``y`` coordinates of the injection, additionally
+        to the new array.
     verbose : bool, optional
         If True prints out additional information.
 
@@ -120,7 +124,6 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                           '({:.2f} pxs)'.format(posx, posy, rad_arcs,
                                                rad_dists[i]))
 
-        return array_out
 
     # ADI+IFS case
     if array.ndim == 4 and psf_template.ndim == 3:
@@ -184,7 +187,10 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                           '({:.2f} pxs)'.format(posx, posy, rad_arcs,
                                                 rad_dists[i]))
 
-    return array_out
+    if full_output:
+        return array_out, posx, posy
+    else:
+        return array_out
 
 
 def _cube_shift(cube, y, x, imlib, interpolation):

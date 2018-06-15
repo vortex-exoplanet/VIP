@@ -513,6 +513,12 @@ class HCIDataset:
         if isinstance(cube, str):
             self.cube, self.cube_fits_header = open_fits(cube, hdu, header=True,
                                                          verbose=False)
+
+            if ("VIP-VERS" in self.cube_fits_header
+                or "VIP-ATTR" in self.cube_fits_header):
+                print("This is a multi-HDU FITS file created by VIP. You "
+                      "probably want to use `HCIDataset.load()` instead.")
+
         elif isinstance(cube, tuple):
             self.cube, self.cube_fits_header = cube
         elif isinstance(cube, np.ndarray):

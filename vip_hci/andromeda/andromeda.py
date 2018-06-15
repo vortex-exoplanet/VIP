@@ -151,6 +151,8 @@ def andromeda(cube, oversampling_fact, angles, psf,
 
     Notes
     -----
+    Based on ANDROMEDA v2.2.
+
     The following IDL parameters were not implemented:
         - ROTOFF_INPUT
         - recentering (should be done in VIP before):
@@ -262,8 +264,8 @@ def andromeda(cube, oversampling_fact, angles, psf,
     CUBE = cube
 
     # definition of the width of each annuli 
-    dmin = iwa
-    dmax =  (npix/2 - npixpsf/2) / (2*oversampling_fact)
+    dmin = iwa  # in lambda/D
+    dmax =  (npix/2 - npixpsf/2) / (2*oversampling_fact)  # in lambda/D
     distarray_lambdaonD = dmin + np.arange(int((dmax-dmin/annuli_width + 1)
                                                 * annuli_width))
     annuli_limits = oversampling_fact * 2 * distarray_lambdaonD  # in pixels

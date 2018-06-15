@@ -177,11 +177,17 @@ def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
         Index of the first frame to be kept. Frames before this one are dropped.
     m : int
         Index of the last frame to be kept. Frames after this one are dropped.
+    parallactic : 1d ndarray, optional
+        parallactic angles vector. If provided, a modified copy of
+        ``parallactic`` is returned additionally.
 
     Returns
     -------
     array_view : array_like
         Cube with new size (axis 0).
+    parallactic : 1d array_like
+        New parallactic angles. Only returned when the ``parallactic`` input
+        parameter was provided.
 
     """
     if m > array.shape[0]:

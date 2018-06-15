@@ -137,7 +137,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         (e.g. SINFONI).
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
-        processes will be set to (cpu_count()/2).
+        processes will be set to (cpu_count()/2). Defaults to ``nproc=1``.
     full_output: bool, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
@@ -293,6 +293,11 @@ def _adi_pca(cube, angle_list, ncomp, source_xy, delta_rot, fwhm, scaling,
              mask_center_px, debug, svd_mode, imlib, interpolation, collapse,
              verbose, start_time, full_output):
     """ Handles the ADI PCA post-processing.
+
+
+    Returns
+    -------
+    recon_cube, residuals_cube, residuals_cube_, frame
     """
     n, y, x = cube.shape
 

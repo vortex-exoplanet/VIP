@@ -219,7 +219,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
 
         Returns
         -------
-        r_rounded : array-like
+        r_rounded : array-like (float)
         
         Notes
         -----

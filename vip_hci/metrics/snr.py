@@ -176,7 +176,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     
     Parameters
     ----------
-    array : array_like
+    array : 2d array_like
         Input frame.
     fwhm : float
         Size in pixels of the FWHM.

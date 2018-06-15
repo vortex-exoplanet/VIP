@@ -196,6 +196,9 @@ def andromeda(cube, oversampling_fact, angles, psf,
     """
 
 
+    angles = -angles  # VIP convention
+
+
     #===== verify input
 
     frames, npix, _ = cube.shape

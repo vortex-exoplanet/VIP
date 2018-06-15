@@ -27,16 +27,20 @@ __all__ = ["andromeda"]
 import numpy as np
 
 from ..var.filters import frame_filter_highpass, cube_filter_highpass
+from ..conf.utils_conf import pool_map, fixed
 
 from .utils import robust_std, create_distance_matrix, idl_round, idl_where
 from .shift import calc_psf_shift_subpix
 from .fit import fitaffine
 
 
+global CUBE
+
 def andromeda(cube, oversampling_fact, angles, psf,
               filtering_fraction=.25, min_sep=.5, annuli_width=1., roa=2.,
               opt_method='lsq', nsmooth_snr=18, iwa=1., precision=50,
-              homogeneous_variance=True, multiply_gamma=True, verbose=False):
+              homogeneous_variance=True, multiply_gamma=True, nproc=1,
+              verbose=False):
     """ Exoplanet detection in ADI sequences by maximum-likelihood approach.
 
     Parameters
@@ -99,6 +103,8 @@ def andromeda(cube, oversampling_fact, angles, psf,
     multiply_gamma : bool, optional
         Use gamma for signature computation too.
         IDL parameter: ``MULTIPLY_GAMMA_INPUT``
+    nproc : int, optional
+        Number of processes to use.
     verbose : bool, optional
         Print some parameter values for control.
         IDL parameter: ``VERBOSE``
@@ -195,6 +201,7 @@ def andromeda(cube, oversampling_fact, angles, psf,
 
     """
 
+    global CUBE  # assigned after high-pass filter
 
     angles = -angles  # VIP convention
 
@@ -252,6 +259,8 @@ def andromeda(cube, oversampling_fact, angles, psf,
         cube = cube_filter_highpass(cube, mode="hann",
                                     hann_cutoff=filtering_fraction, verbose=False)
 
+    CUBE = cube
+
     # definition of the width of each annuli 
     dmin = iwa
     dmax =  (npix/2 - npixpsf/2) / (2*oversampling_fact)
@@ -262,75 +271,15 @@ def andromeda(cube, oversampling_fact, angles, psf,
 
     #===== main loop
 
-    for i in range(annuli_number):
+    res_all = pool_map(nproc, _process_annulus,
+                       # start with outer annuli, they take longer:
+                       fixed(range(annuli_number)[::-1]),
+                       annuli_limits, roa, min_sep, oversampling_fact,
+                       angles, opt_method, multiply_gamma, psf_cube,
+                       homogeneous_variance, verbose_work,
+                       msg="annulus", leave=False, verbose=False)
 
-        print("processing annulus {}/{}".format(i+1, annuli_number))
-        rhomin = annuli_limits[i]
-        rhomax = annuli_limits[i+1]  # -> 
-        rhomax_opt = np.sqrt(roa*rhomax**2 - (roa-1)*rhomin**2)
-
-
-        # compute indices from min_sep
-        if verbose:
-            print("  Pairing frames...")
-        min_sep_pix = min_sep * oversampling_fact*2
-        angmin = 2*np.arcsin(min_sep_pix/(2*rhomin))*180/np.pi
-        index_neg, index_pos, indices_not_used = create_indices(angles, angmin)
-
-        if verbose:
-            if len(indices_not_used) != 0:
-                print("  WARNING: {} frame(s) cannot be used because it wasn't "
-                      "possible to find any other frame to couple with them. "
-                      "Their indices are: {}".format(len(indices_not_used),
-                                                     indices_not_used))
-                max_sep_pix = 2*rhomin*np.sin(np.deg2rad((max(angles) - 
-                                                          min(angles))/4))
-                max_sep_ld = max_sep_pix/(2*oversampling_fact)
-
-                print("  For all frames to be used in this annulus, the minimum"
-                      " separation must be set at most to {} *lambda/D "
-                      "(corresponding to {} pixels).".format(max_sep_ld,
-                                                             max_sep_pix))
-
-        #===== angular differences
-        print("  Performing angular difference...")
-
-        res = diff_images(cube_pos=cube[index_pos], cube_neg=cube[index_neg],
-                           rint=rhomin, rext=rhomax_opt,
-                           opt_method=opt_method)
-        cube_diff, gamma, gamma_prime = res
-
-        if not multiply_gamma:
-            # reset gamma & gamma_prime to 1 (they were returned by diff_images)
-            gamma = np.ones_like(gamma)
-            gamma_prime = np.ones_like(gamma_prime)
-
-        # TODO: gamma
-        # ;Gamma_affine:
-        # gamma_info_output[0,0,i] = min(gamma_output_ang[*,0])
-        # gamma_info_output[1,0,i] = max(gamma_output_ang[*,0])
-        # gamma_info_output[2,0,i] = mean(gamma_output_ang[*,0])
-        # gamma_info_output[3,0,i] = median(gamma_output_ang[*,0])
-        # gamma_info_output[4,0,i] = variance(gamma_output_ang[*,0])
-        # ;Gamma_prime:
-        # gamma_info_output[0,1,i] = min(gamma_output_ang[*,1])
-        # gamma_info_output[1,1,i] = max(gamma_output_ang[*,1])
-        # gamma_info_output[2,1,i] = mean(gamma_output_ang[*,1])
-        # gamma_info_output[3,1,i] = median(gamma_output_ang[*,1])
-        # gamma_info_output[4,1,i] = variance(gamma_output_ang[*,1])
-        #
-        #
-        # -> they are returned, no further modification from here on.
-
-        # launch andromeda core (:859)
-        print("  Matching...")
-        res = andromeda_core(cube=cube_diff, index_neg=index_neg,
-                             index_pos=index_pos, angles=angles,
-                             psf_cube=psf_cube,
-                             homogeneous_variance=homogeneous_variance,
-                             rhomin=rhomin, rhomax=rhomax, gamma=gamma,
-                             gamma_prime=gamma_prime, verbose=verbose)
-
+    for res in res_all:
         flux += res[0]
         snr += res[1]
         likelihood += res[2]
@@ -360,6 +309,81 @@ def andromeda(cube, oversampling_fact, angles, psf,
                       (2*oversampling_fact))
         return flux, snr, likelihood, stdflux, ext_radius
 
+
+def _process_annulus(i, annuli_limits, roa, min_sep, oversampling_fact, angles,
+          opt_method, multiply_gamma, psf_cube,
+          homogeneous_variance, verbose=False):
+    global CUBE
+
+    rhomin = annuli_limits[i]
+    rhomax = annuli_limits[i+1]  # -> 
+    rhomax_opt = np.sqrt(roa*rhomax**2 - (roa-1)*rhomin**2)
+
+    # compute indices from min_sep
+    if verbose:
+        print("  Pairing frames...")
+    min_sep_pix = min_sep * oversampling_fact*2
+    angmin = 2*np.arcsin(min_sep_pix/(2*rhomin))*180/np.pi
+    index_neg, index_pos, indices_not_used = create_indices(angles, angmin)
+
+
+    if len(indices_not_used) != 0:
+        if verbose:
+            print("  WARNING: {} frame(s) cannot be used because it wasn't "
+              "possible to find any other frame to couple with them. "
+              "Their indices are: {}".format(len(indices_not_used),
+                                             indices_not_used))
+        max_sep_pix = 2*rhomin*np.sin(np.deg2rad((max(angles) - 
+                                                  min(angles))/4))
+        max_sep_ld = max_sep_pix/(2*oversampling_fact)
+
+        if verbose:
+            print("  For all frames to be used in this annulus, the minimum"
+              " separation must be set at most to {} *lambda/D "
+              "(corresponding to {} pixels).".format(max_sep_ld,
+                                                     max_sep_pix))
+
+    #===== angular differences
+    if verbose:
+        print("  Performing angular difference...")
+
+    res = diff_images(cube_pos=CUBE[index_pos], cube_neg=CUBE[index_neg],
+                       rint=rhomin, rext=rhomax_opt,
+                       opt_method=opt_method)
+    cube_diff, gamma, gamma_prime = res
+
+    if not multiply_gamma:
+        # reset gamma & gamma_prime to 1 (they were returned by diff_images)
+        gamma = np.ones_like(gamma)
+        gamma_prime = np.ones_like(gamma_prime)
+    # TODO: gamma
+
+    # ;Gamma_affine:
+    # gamma_info_output[0,0,i] = min(gamma_output_ang[*,0])
+    # gamma_info_output[1,0,i] = max(gamma_output_ang[*,0])
+    # gamma_info_output[2,0,i] = mean(gamma_output_ang[*,0])
+    # gamma_info_output[3,0,i] = median(gamma_output_ang[*,0])
+    # gamma_info_output[4,0,i] = variance(gamma_output_ang[*,0])
+    # ;Gamma_prime:
+    # gamma_info_output[0,1,i] = min(gamma_output_ang[*,1])
+    # gamma_info_output[1,1,i] = max(gamma_output_ang[*,1])
+    # gamma_info_output[2,1,i] = mean(gamma_output_ang[*,1])
+    # gamma_info_output[3,1,i] = median(gamma_output_ang[*,1])
+    # gamma_info_output[4,1,i] = variance(gamma_output_ang[*,1])
+    #
+    #
+    # -> they are returned, no further modification from here on.
+
+    # launch andromeda core (:859)
+    if verbose:
+        print("  Matching...")
+    res = andromeda_core(cube=cube_diff, index_neg=index_neg,
+                         index_pos=index_pos, angles=angles,
+                         psf_cube=psf_cube,
+                         homogeneous_variance=homogeneous_variance,
+                         rhomin=rhomin, rhomax=rhomax, gamma=gamma,
+                         gamma_prime=gamma_prime, verbose=verbose)
+    return res
 
 def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
                    gamma=None, gamma_prime=None, homogeneous_variance=True,

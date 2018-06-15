@@ -61,11 +61,10 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         Output array with the injected fake companions.
 
     """
-    if array.ndim != 3 and array.ndim != 4:
+    if array.ndim not in [3, 4]:
         raise ValueError('Array is not a cube, 3d or 4d array')
-    if array.ndim == 4:
-        if not psf_template.ndim == 3:
-            raise ValueError('Psf must be a 3d array')
+    if array.ndim == 4 and psf_template.ndim != 3:
+        raise ValueError('PSF must be a 3d array')
 
     # ADI case
     if array.ndim == 3:
@@ -73,7 +72,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         ceny = int(ceny)
         cenx = int(cenx)
 
-        rad_dists = np.asarray(rad_dists).reshape(-1)
+        rad_dists = np.asarray(rad_dists).reshape(-1)  # forces ndim=1
 
         if not rad_dists[-1] < array[0].shape[0]/2:
             raise ValueError('rad_dists last location is at the border (or '
@@ -111,7 +110,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
         if verbose:
             for branch in range(n_branches):
-                print('Branch '+str(branch+1)+':')
+                print('Branch {}:'.format(branch+1))
                 for i in range(len(rad_dists)):
                     ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
                     posy = rad_dists[i] * np.sin(ang) + ceny
@@ -175,7 +174,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
         if verbose:
             for branch in range(n_branches):
-                print('Branch '+str(branch+1)+':')
+                print('Branch {}:'.format(branch+1))
                 for i in range(n_fc_rad):
                     ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
                     rad_arcs = rad_dists[i]*plsc

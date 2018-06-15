@@ -6,7 +6,7 @@ Module with the HCI<post-processing algorithms> classes.
 
 from __future__ import division, print_function
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
+__author__ = 'Carlos Alberto Gomez Gonzalez, Ralf Farkas'
 __all__ = ['HCIMedianSub',
            'HCIPca']
 
@@ -16,17 +16,49 @@ from .medsub import median_sub
 from .metrics import snrmap_fast, snrmap
 from .pca import pca
 import pickle
+import numpy as np
 
 
 class HCIPostProcAlgo(BaseEstimator):
     """ Base HCI post-processing algorithm class.
     """
+    THRESHOLDS_5 = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
+    THRESHOLDS_1 = np.linspace(0.1, 0.99, 10).tolist()
     def print_parameters(self):
         """ Printing out the parameters of the algorithm.
         """
         dicpar = self.get_params()
         for key in dicpar.keys():
             print("{}: {}".format(key, dicpar[key]))
+
+    def store_args(self, kwargs, *skip):
+        # TODO: this could be integrated with sklearn's BaseEstimator methods
+        for k in kwargs:
+            if k == "self" or k in skip:
+                continue
+            setattr(self, k, kwargs[k])
+
+
+    def _get_dataset(self, dataset=None, verbose=True):
+        if dataset is None:
+            dataset = self.dataset
+            if self.dataset is None:
+                raise ValueError("no dataset specified!")
+        else:
+            self.dataset = dataset # needed for snr map generation
+            if verbose:
+                #print("self.dataset overwritten with the one you provided.")
+                # -> debug
+                pass
+
+        return dataset
+
+    def get_probmap(self):
+        """
+        used in ``EvalRoc.postprocess()``. Overwritten by methods which directly
+        output a probability map, like Andromeda.
+        """
+        return self.snr_map
 
     def make_snr_map(self, method='fast', mode='sss', nproc=1, verbose=True):
         """

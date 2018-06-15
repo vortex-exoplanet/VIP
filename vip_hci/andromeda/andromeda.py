@@ -296,10 +296,9 @@ def andromeda(cube, oversampling_fact, angles, psf,
                                           dmin=dmin, dmax=dmax)
 
         # normalization of the standard deviation of the flux
-        stdflux_norm = stdflux * np.maximum(snr_std, 1e-9) # old version???
-        #stdflux_norm = np.zeros((npix, npix))
-        #zone = snr_std != 0
-        #stdflux_norm[zone] = stdflux[zone] * snr_std[zone]
+        stdflux_norm = np.zeros((npix, npix))
+        zone = snr_std != 0
+        stdflux_norm[zone] = stdflux[zone] * snr_std[zone]
 
         ext_radius = (np.floor(annuli_limits[annuli_number-2]) /
                       (2*oversampling_fact)) # TODO same

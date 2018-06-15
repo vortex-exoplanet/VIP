@@ -63,6 +63,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     -------
     array_out : array_like
         Output array with the injected fake companions.
+    posx, posy : int
+        Coordinates of the injection. Only returned when ``full_output=True``.
 
     """
     if array.ndim not in [3, 4]:

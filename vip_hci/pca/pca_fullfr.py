@@ -115,15 +115,15 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         For ADI PCA, this triggers a frame rejection in the PCA library. 
         source_xy are the coordinates X,Y of the center of the annulus where the
         PA criterion will be used to reject frames from the library. 
+    delta_rot : int, optional
+        Factor for tunning the parallactic angle threshold, expressed in FWHM.
+        Default is 1 (excludes 1xFHWM on each side of the considered frame).
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Default value is 4.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    delta_rot : int, optional
-        Factor for tunning the parallactic angle threshold, expressed in FWHM.
-        Default is 1 (excludes 1xFHWM on each side of the considered frame).
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     check_mem : bool, optional

@@ -38,7 +38,7 @@ from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import mean_absolute_error as MAE
 from sklearn.utils import check_random_state
-from ..var import matrix_scaling
+from ..var import matrix_scaling, prepare_matrix
 
 
 def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,

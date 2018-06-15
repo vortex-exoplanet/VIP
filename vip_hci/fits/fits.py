@@ -83,7 +83,7 @@ def open_fits(fitsfilename, n=0, header=False, slice=None,
             shape_info = "{} -> {}".format(shape_before_slice, data.shape)
 
         if header:
-            header = hdulist[0].header
+            header = hdulist[n].header
             if verbose:
                 print("Fits HDU-{} data and header successfully loaded. "
                       "Data shape: {}".format(n, shape_info))

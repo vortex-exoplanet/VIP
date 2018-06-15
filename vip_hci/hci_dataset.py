@@ -508,6 +508,8 @@ class HCIDataset:
         if isinstance(cube, str):
             self.cube, self.cube_fits_header = open_fits(cube, hdu, header=True,
                                                          verbose=False)
+        elif isinstance(cube, tuple):
+            self.cube, self.cube_fits_header = cube
         elif isinstance(cube, np.ndarray):
             if not (cube.ndim == 3 or cube.ndim == 4):
                 raise ValueError('`Cube` array has wrong dimensions')
@@ -526,6 +528,8 @@ class HCIDataset:
             self.cuberef, self.cuberef_fits_header = open_fits(cuberef, hdu,
                                                                header=True,
                                                                verbose=False)
+        elif isinstance(cuberef, tuple):
+            self.cuberef, self.cuberef_fits_header = cuberef
         elif isinstance(cuberef, np.ndarray):
             msg = '`Cuberef` array has wrong dimensions'
             if not cuberef.ndim == 3:
@@ -550,6 +554,8 @@ class HCIDataset:
             self.angles, self.angles_fits_header = open_fits(angles,
                                                              header=True,
                                                              verbose=False)
+        elif isinstance(angles, tuple):
+            self.angles, self.angles_fits_header = angles
         else:
             self.angles = angles
         if self.angles is not None:
@@ -564,6 +570,8 @@ class HCIDataset:
         if isinstance(wavelengths, str):
             self.wavelengths, self.wavelengths_fits_header = open_fits(
                                         wavelengths, header=True, verbose=False)
+        elif isinstance(wavelengths, tuple):
+            self.wavelengths, self.wavelengths_fits_header = wavelengths
         else:
             self.wavelengths = wavelengths
         if self.wavelengths is not None:
@@ -578,6 +586,8 @@ class HCIDataset:
         if isinstance(psf, str):
             self.psf, self.psf_fits_header = open_fits(psf, header=True,
                                                        verbose=False)
+        elif isinstance(psf, tuple):
+            self.psf, self.psf_fits_header = psf
         else:
             self.psf = psf
         if self.psf is not None:
@@ -592,6 +602,8 @@ class HCIDataset:
         if isinstance(psfn, str):
             self.psfn, self.psfn_fits_header = open_fits(psfn, header=True,
                                                          verbose=False)
+        elif isinstance(psfn, tuple):
+            self.psfn, self.psfn_fits_header = psfn
         else:
             self.psfn = psfn
         if self.psfn is not None:

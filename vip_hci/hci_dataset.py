@@ -28,7 +28,7 @@ from .stats import (frame_basic_stats, frame_histo_stats,
 from .metrics import (frame_quick_report, cube_inject_companions, snr_ss,
                       snr_peakstddev, snrmap, snrmap_fast, detection,
                       normalize_psf)
-from .conf.utils_conf import check_array
+from .conf.utils_conf import check_array, print_precision
 
 
 class HCIFrame:
@@ -908,7 +908,8 @@ class HCIDataset:
         self.psfn, self.aperture_flux, self.fwhm = res
         print('Normalized PSF array shape: {}'.format(self.psfn.shape))
         print('The attribute `psfn` contains the normalized PSF')
-        print("`fwhm` attribute set to {:.3f}".format(self.fwhm))
+        print("`fwhm` attribute set to")
+        print_precision(self.fwhm)
 
     def plot(self, wavelength=0, **kwargs):
         """ Plotting the frames of a 3D or 4d cube (``wavelength``).

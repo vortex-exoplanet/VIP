@@ -42,6 +42,8 @@ def calc_psf_shift_subpix(psf, precision):
     (n, n, precision+1, precision+1), and indexing works like
     ``psf_cube[*, *, i, j]``, where ``i`` is the column and ``j`` the row.
 
+    based on `LibAndromeda/oneralib/calc_psf_shift_subpix.pro`, v1.2 2010/05/27
+
     based on ``LibAndromeda/oneralib/calc_psf_shift_subpix.pro``,
     v1.2 2010/05/27
 

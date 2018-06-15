@@ -6,7 +6,7 @@ Module with HCIDataset and HCIFrame classes.
 
 from __future__ import division, print_function
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
+__author__ = 'Carlos Alberto Gomez Gonzalez, Ralf Farkas'
 __all__ = ['HCIDataset',
            'HCIFrame']
 

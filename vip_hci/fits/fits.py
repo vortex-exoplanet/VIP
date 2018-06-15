@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 """
 Module with various fits handling functions.
 """
@@ -40,7 +38,7 @@ def open_fits(fitsfilename, n=0, header=False, slice=None,
     ignore_missing_end : {False, True}, bool optional
         Allows to open fits files with a header missing END card.
     verbose : bool, optional
-        If True prints message of completion.
+        If True prints message of completion and information on the data shape.
     
     Returns
     -------
@@ -134,7 +132,9 @@ def open_adicube(fitsfilename, verbose=True):
 
 
 def byteswap_array(array):
-    """ FITS files are stored in big-endian byte order. All modern CPUs are 
+    """ Byte-swaps a numpy array, so it is stored in native byte order.
+
+    FITS files are stored in big-endian byte order. All modern CPUs are 
     little-endian byte order, so at some point you have to byteswap the data. 
     Some FITS readers (cfitsio, the fitsio python module) do the byteswap when 
     reading the data from disk to memory, so we get numpy arrays in native 

@@ -138,7 +138,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
                 print('{} frames per wavelength'.format(n))
 
             cube_res = np.zeros((z, y_in, x_in))
-            for z in Progressbar(range(z), desc="channel", verbose=verbose):
+            for z in Progressbar(range(z)):
                 ARRAY = cube[z]
                 res = _leastsq_adi(cube[z], angle_list, fwhm, metric,
                                    dist_threshold, delta_rot, radius_int, asize,

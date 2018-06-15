@@ -33,7 +33,7 @@ from .metrics import (frame_quick_report, cube_inject_companions, snr_ss,
                       snr_peakstddev, snrmap, snrmap_fast, detection,
                       normalize_psf)
 from .conf.utils_conf import check_array, print_precision
-from . import __version__ as vip_version
+from vip_hci import __version__ as vip_version
 
 
 class HCIFrame:

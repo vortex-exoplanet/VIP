@@ -85,7 +85,7 @@ def subpixel_shift(image, xshift, yshift):
         raise ValueError("`image` must be square")
 
     if image.shape[0]%2 != 0:
-        raise ValueError("`image` must be of even width")
+        pass
 
     image_ft = np.fft.fft2(image) # no np.fft.fftshift applied!
     ramp = np.outer(np.ones(npix), np.arange(npix) - npix/2)

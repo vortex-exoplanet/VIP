@@ -10,7 +10,7 @@ __all__ = ['fitaffine']
 import numpy as np
 
 
-def fitaffine(x, y, verbose=False):
+def fitaffine(x, y, debug=False):
     """
     This procedure calculates the best parameters ``a`` and ``b`` that optimize
     the affine equation ``y=bx+a`` in a robust way from a set of point
@@ -21,6 +21,8 @@ def fitaffine(x, y, verbose=False):
     ----------
     x,y : 1d array_like
         The data to be fitted in a robust affine optimisation.
+    debug : bool, optional
+        Show debug output.
     
     Returns
     -------
@@ -41,7 +43,7 @@ def fitaffine(x, y, verbose=False):
 
     ndata = len(x)
 
-    if verbose:
+    if debug:
         print("FITAFFINE: ***next dataset***")
 
     # first guess for a and b (LS):
@@ -54,7 +56,7 @@ def fitaffine(x, y, verbose=False):
     a_ls = (sxx*sy - sx*sxy)/delta
     b_ls = (ndata*sxy - sx*sy)/delta
 
-    if verbose:
+    if debug:
         print("FITAFFINE: first guess LS: {} + {} x".format(a_ls, b_ls))
 
     # chi-square to choose the first iteration step:
@@ -67,7 +69,7 @@ def fitaffine(x, y, verbose=False):
     b1 = b_ls
     f1, a = rofunc(x=x, y=y, b=b1)
 
-    if verbose:
+    if debug:
         print("FITAFFINE: entering iteration loop")
 
     if sigb > 0 and f1 != 0:
@@ -79,7 +81,7 @@ def fitaffine(x, y, verbose=False):
         f2, a = rofunc(x, y, b=b2)
 
         # bracketing
-        if verbose:
+        if debug:
             print("FITAFFINE: performing bracketing")
 
         while f1*f2 > 0:
@@ -90,7 +92,7 @@ def fitaffine(x, y, verbose=False):
             f2, a = rofunc(x, y, b=b2)
 
         # bisection:
-        if verbose:
+        if debug:
             print("FITAFFINE: performing bisection")
 
         sigb = 0.01*sigb
@@ -104,7 +106,7 @@ def fitaffine(x, y, verbose=False):
                 f2 = f
                 b2 = b   
 
-    if verbose:
+    if debug:
         print("FITAFFINE: *end of iterative loop*")
         print("FITAFFINE: equation of the robust fit: {} + {} x".format(a, b))
 

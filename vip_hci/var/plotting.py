@@ -256,10 +256,7 @@ def pp_subplots(*data, **kwargs):
     else:
         show_circle = False
 
-    if 'circlerad' in kwargs:
-        circle_rad = kwargs['circlerad']
-    else:
-        circle_rad = 6
+    circle_rad = kwargs.get('circlerad', 6)
 
     if 'circlealpha' in kwargs:
         circle_alpha = kwargs['circlealpha']
@@ -272,10 +269,7 @@ def pp_subplots(*data, **kwargs):
             elif isinstance(kwargs['circle'], list):
                 circle_alpha = [0.8] * len(coor_circle)
 
-    if 'circlelabel' in kwargs:
-        circle_label = kwargs['circlelabel']
-    else:
-        circle_label = False
+    circle_label = kwargs.get('circlelabel', False)
 
     # ARROW --------------------------------------------------------------------
     if 'arrow' in kwargs:
@@ -288,20 +282,9 @@ def pp_subplots(*data, **kwargs):
     else:
         show_arrow = False
 
-    if 'arrowshiftx' in kwargs:
-        arrow_shiftx = kwargs['arrowshiftx']
-    else:
-        arrow_shiftx = 5
-
-    if 'arrowlength' in kwargs:
-        arrow_length = kwargs['arrowlength']
-    else:
-        arrow_length = 20
-
-    if 'arrowalpha' in kwargs:
-        arrow_alpha = kwargs['arrowalpha']
-    else:
-        arrow_alpha = 0.8
+    arrow_shiftx = kwargs.get('arrowshiftx', 5)
+    arrow_length = kwargs.get('arrowlength', 20)
+    arrow_alpha = kwargs.get('arrowalpha', 0.8)
 
     # LABEL --------------------------------------------------------------------
     if 'label' in kwargs:
@@ -312,36 +295,14 @@ def pp_subplots(*data, **kwargs):
     else:
         label = None
 
-    if 'labelsize' in kwargs:
-        labelsize = kwargs['labelsize']
-    else:
-        labelsize = 12
-
-    if 'labelpad' in kwargs:
-        labelpad = kwargs['labelpad']
-    else:
-        labelpad = 5
+    labelsize = kwargs.get('labelsize', 12)
+    labelpad = kwargs.get('labelpad', 5)
 
     # GRID ---------------------------------------------------------------------
-    if 'grid' in kwargs:
-        grid = kwargs['grid']
-    else:
-        grid = False
-
-    if 'gridcolor' in kwargs:
-        grid_color = kwargs['gridcolor']
-    else:
-        grid_color = '#f7f7f7'
-
-    if 'gridspacing' in kwargs:
-        grid_spacing = kwargs['gridspacing']
-    else:
-        grid_spacing = None
-
-    if 'gridalpha' in kwargs:
-        grid_alpha = kwargs['gridalpha']
-    else:
-        grid_alpha = 0.4
+    grid = kwargs.get('grid', False)
+    grid_color = kwargs.get('gridcolor', '#f7f7f7')
+    grid_spacing = kwargs.get('gridspacing', None)
+    grid_alpha = kwargs.get('gridalpha', 0.4)
 
     # VMAX-VMIN ----------------------------------------------------------------
     if 'vmax' in kwargs:
@@ -378,47 +339,27 @@ def pp_subplots(*data, **kwargs):
             show_cross = True
     else:
         show_cross = False
-    if 'crossalpha' in kwargs:
-        cross_alpha = kwargs['crossalpha']
-    else:
-        cross_alpha = 0.4
+    
+    cross_alpha = kwargs.get('crossalpha', 0.4)
 
     # AXIS - ANGSCALE ----------------------------------------------------------
-    if 'angticksep' in kwargs:
-        angticksep = kwargs['angticksep']
-    else:
-        angticksep = 50
-    if 'pxscale' in kwargs:
-        pxscale = kwargs['pxscale']
-    else:
-        pxscale = 0.01  # default for Keck/NIRC2
-    if 'angscale' in kwargs:
-        angscale = kwargs['angscale']
-        if angscale:
-            print("`Pixel scale set to {}`".format(pxscale))
-    else:
-        angscale = False
-    if 'axis' in kwargs:
-        show_axis = kwargs['axis']
-    else:
-        show_axis = True
+    angticksep = kwargs.get('angticksep', 50)
+    pxscale = kwargs.get('pxscale', 0.01)  # default for Keck/NIRC2
+    angscale = kwargs.get('angscale', False)
+
+    if angscale != False:
+        print("`Pixel scale set to {}`".format(pxscale))
+    
+    show_axis = kwargs.get('axis', True)
+
     # --------------------------------------------------------------------------
 
-    show_center = False
-    if 'showcent' in kwargs and kwargs['showcent']:
-        show_center = True
+    show_center = kwargs.get("showcent", False)    
+    getfig = kwargs.get('getfig', False)
 
-    if 'getfig' in kwargs:
-        getfig = kwargs['getfig']
-    else:
-        getfig = False
-
-    if 'save' in kwargs and isinstance(kwargs['save'], str):
-        save = True
-        savepath = kwargs['save']
-    else:
-        save = False
-
+    savepath = kwargs.get("save", False)
+    save = bool(savepath)
+    
     # Defaults previously used: 'magma','CMRmap','RdBu_r'
     if 'cmap' in kwargs:
         custom_cmap = kwargs['cmap']
@@ -430,35 +371,12 @@ def pp_subplots(*data, **kwargs):
     else:
         custom_cmap = ['viridis']*num_plots
 
-    if 'log' in kwargs and kwargs['log'] is True:
-        logscale = kwargs['log']
-    else:
-        logscale = False
-
-    if 'colorb' in kwargs:
-        colorb = kwargs['colorb']
-    else:
-        colorb = True
-    
-    if 'dpi' in kwargs:
-        dpi = kwargs['dpi']
-    else:
-        dpi = 90
-
-    if 'title' in kwargs:
-        tit = kwargs['title']
-    else:
-        tit = None
-    
-    if 'horsp' in kwargs:
-        hor_spacing = kwargs['horsp']
-    else:
-        hor_spacing = 0.4
-    
-    if 'versp' in kwargs:
-        ver_spacing = kwargs['versp']
-    else:
-        ver_spacing = 0.2
+    logscale = kwargs.get('log', False)
+    colorb = kwargs.get('colorb', True)
+    dpi = kwargs.get('dpi', 90)
+    tit = kwargs.get('title', None)
+    hor_spacing = kwargs.get('horsp', 0.4)
+    ver_spacing = kwargs.get('versp', 0.2)
 
     # --------------------------------------------------------------------------
 

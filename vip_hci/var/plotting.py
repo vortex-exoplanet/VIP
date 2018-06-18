@@ -464,10 +464,10 @@ def pp_subplots(*data, **kwargs):
             minor_ticks = np.arange(0, data[i].shape[0], grid_spacing)
             ax.set_xticks(minor_ticks, minor=True)
             ax.set_yticks(minor_ticks, minor=True)
-            ax.grid('on', which='minor', color=grid_color, linewidth=0.5,
+            ax.grid(True, which='minor', color=grid_color, linewidth=0.5,
                     alpha=grid_alpha, linestyle='dashed')
         else:
-            ax.grid('off')
+            ax.grid(False)
 
         if angscale:
             # Converting axes from pixels to arcseconds

@@ -215,10 +215,7 @@ def pp_subplots(*data, **kwargs):
     if num_plots == 1:
         if data[0].ndim == 3:
             data = data[0]
-            if 'maxplots' in kwargs:
-                maxplots = kwargs['maxplots']
-            else:
-                maxplots = 10
+            maxplots = kwargs.get("maxplots", 10)
             num_plots = min(data.shape[0], maxplots)
     elif num_plots > 1:
         for i in range(num_plots):
@@ -227,13 +224,7 @@ def pp_subplots(*data, **kwargs):
                 msg += "or a single 3d array"
                 raise TypeError(msg)
 
-    if 'rows' in kwargs:
-        if not isinstance(kwargs['rows'], int):
-            raise TypeError
-        else:
-            rows = kwargs['rows']
-    else:
-        rows = 1
+    rows = kwargs.get("rows", 1)
 
     if num_plots % rows == 0:
         cols = num_plots / rows

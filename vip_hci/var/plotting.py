@@ -232,21 +232,41 @@ def pp_subplots(*data, **kwargs):
         cols = (num_plots / rows) + 1
 
     # CIRCLE -------------------------------------------------------------------
+    if 'circle' in kwargs:
+        coor_circle = kwargs['circle']
+        if isinstance(coor_circle, (list, tuple)):
+            show_circle = True
+            if isinstance(coor_circle[0], tuple):
+                n_circ = len(coor_circle)
+            else:
+                n_circ = 1
+        else:
+            print("Circle must be a tuple (X,Y) or tuple/list of tuples (X,Y)")
+            show_circle = False
+    else:
+        show_circle = False
 
-    circle = kwargs.get("circle", None)
-    if isinstance(circle, tuple):
-        circle = [circle]
+    if 'circlerad' in kwargs:
+        # single value is provided, used for all circles
+        if isinstance(kwargs['circlerad'], (float, int)):
+            circle_rad = kwargs['circlerad'] * n_circ
+        # a different value for each circle
+        elif isinstance(kwargs['circlerad'], tuple):
+            circle_rad = kwargs['circlerad']
+        else:
+            print("Circlerad must be a float or tuple of floats")
+    else:
+        circle_rad = [6] * n_circ
 
-    if isinstance(circle, list):
-        if not isinstance(circle[0], tuple):
-            print("Circle must be a tuple (X,Y) or list of tuples (X,Y)")
-            circle = None
-
-    circle_rad = kwargs.get('circlerad', 6)
-    circle_alpha = kwargs.get("circlealpha", 0.8)
-
-    if isinstance(circle_alpha, (float, int)) and circle:
-        circle_alpha = [circle_alpha] * len(circle)
+    if 'circlealpha' in kwargs:
+        circle_alpha = kwargs['circlealpha']
+        # single value is provided, used for all the circles
+        if isinstance(circle_alpha, (float, int)):
+            circle_alpha = [circle_alpha] * n_circ
+    else:
+        if show_circle:
+            # no alpha is provided, 0.8 is used for all of them
+            circle_alpha = [0.8] * n_circ
 
     circle_label = kwargs.get('circlelabel', False)
 
@@ -395,17 +415,17 @@ def pp_subplots(*data, **kwargs):
                        origin='lower', vmin=vmin[i], vmax=vmax[i],
                        norm=norm)
 
-        if circle:
-            for j in range(len(circle)):
-                x = circle[j][0]
-                y = circle[j][1]
-                circle = Circle((x, y), radius=circle_rad, color='white',
+        if show_circle:
+            for j in range(n_circ):
+                circle = Circle(coor_circle[j], radius=circle_rad[j],
+                                color='white',
                                 fill=False, alpha=circle_alpha[j])
                 ax.add_artist(circle)
                 if circle_label:
+                    x = coor_circle[j][0]
+                    y = coor_circle[j][1]
                     cirlabel = str(int(x))+','+str(int(y))
-                    ax.text(x, y+1.8*circle_rad, cirlabel, fontsize=8,
-                            color='white', family='monospace', ha='center',
+                    ax.text(x, y+1.8*circle_rad[j], cirlabel, fontsize=8,                                                  color='white', family='monospace', ha='center',
                             va='top', weight='bold', alpha=circle_alpha[j])
 
         if show_cross:

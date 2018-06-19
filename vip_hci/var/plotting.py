@@ -337,8 +337,7 @@ def pp_subplots(*data, **kwargs):
     show_center = kwargs.get("showcent", False)    
     getfig = kwargs.get('getfig', False)
 
-    savepath = kwargs.get("save", False)
-    save = bool(savepath)
+    save = kwargs.get("save", False)
     
     # Defaults previously used: 'magma','CMRmap','RdBu_r'
     if 'cmap' in kwargs:
@@ -354,7 +353,7 @@ def pp_subplots(*data, **kwargs):
     logscale = kwargs.get('log', False)
     colorb = kwargs.get('colorb', True)
     dpi = kwargs.get('dpi', 90)
-    tit = kwargs.get('title', None)
+    title = kwargs.get('title', None)
     hor_spacing = kwargs.get('horsp', 0.4)
     ver_spacing = kwargs.get('versp', 0.2)
 
@@ -365,8 +364,8 @@ def pp_subplots(*data, **kwargs):
         raise ValueError('Rows must be a positive integer')
     fig = figure(figsize=(cols * subplot_size, rows * subplot_size), dpi=dpi)
     
-    if tit is not None:
-        fig.suptitle(tit, fontsize=14)
+    if title is not None:
+        fig.suptitle(title, fontsize=14)
     
     for i, v in enumerate(range(num_plots)):
         image = data[i].copy()
@@ -479,7 +478,7 @@ def pp_subplots(*data, **kwargs):
     
     fig.subplots_adjust(wspace=hor_spacing, hspace=ver_spacing)
     if save:
-        savefig(savepath, dpi=dpi, bbox_inches='tight', pad_inches=0,
+        savefig(save, dpi=dpi, bbox_inches='tight', pad_inches=0,
                 transparent=True)
         close();
         if getfig:

@@ -18,7 +18,6 @@ from subprocess import Popen
 from matplotlib.pyplot import (figure, subplot, show, colorbar, axes, Circle,
                                savefig, close)
 import matplotlib.colors as colors
-from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from .shapes import frame_center
 
@@ -114,8 +113,8 @@ def save_animation(data, anim_path=None, data_step_range=None, label=None,
 
 
 def pp_subplots(*data, **kwargs):
-    """ Wrapper for easy creation of pyplot subplots. It is convenient for 
-    displaying VIP images in jupyter notebooks. 
+    """ Wrapper for easy creation of pyplot subplots. It is convenient for
+    displaying VIP images in jupyter notebooks.
 
     Parameters
     ----------
@@ -139,7 +138,8 @@ def pp_subplots(*data, **kwargs):
     axis : bool
         Show the axis, on by default.
     circle : tuple or list of tuples
-        To show a circle at given px coordinates, list of tuples.
+        To show a circle at given px coordinates. The circles are shown on all
+        subplots.
     circlealpha : float or list of floats
         Alpha transparencey for each circle.
     circlelabel : bool
@@ -204,7 +204,7 @@ def pp_subplots(*data, **kwargs):
                'horsp', 'label', 'labelpad', 'labelsize', 'log', 'maxplots',
                'pxscale', 'rows', 'save', 'showcent', 'title', 'vmax', 'vmin',
                'versp']
-    
+
     for key in kwargs.keys():
         if key not in parlist:
             print("Parameter '{}' not recognized".format(key))
@@ -215,10 +215,7 @@ def pp_subplots(*data, **kwargs):
     if num_plots == 1:
         if data[0].ndim == 3:
             data = data[0]
-            if 'maxplots' in kwargs:
-                maxplots = kwargs['maxplots']
-            else:
-                maxplots = 10
+            maxplots = kwargs.get("maxplots", 10)
             num_plots = min(data.shape[0], maxplots)
     elif num_plots > 1:
         for i in range(num_plots):
@@ -227,13 +224,7 @@ def pp_subplots(*data, **kwargs):
                 msg += "or a single 3d array"
                 raise TypeError(msg)
 
-    if 'rows' in kwargs:
-        if not isinstance(kwargs['rows'], int):
-            raise TypeError
-        else:
-            rows = kwargs['rows']
-    else:
-        rows = 1
+    rows = kwargs.get("rows", 1)
 
     if num_plots % rows == 0:
         cols = num_plots / rows
@@ -241,41 +232,23 @@ def pp_subplots(*data, **kwargs):
         cols = (num_plots / rows) + 1
 
     # CIRCLE -------------------------------------------------------------------
-    if 'circle' in kwargs:
-        if not isinstance(kwargs['circle'], list) and \
-           isinstance(kwargs['circle'], tuple):
-            show_circle = True
-            coor_circle = [kwargs['circle']] * num_plots
-        else:
-            if not isinstance(kwargs['circle'][0], tuple):
-                print("Circle must be a tuple (X,Y) or list of tuples (X,Y)")
-                show_circle = False
-            else:
-                show_circle = True
-                coor_circle = kwargs['circle']
-    else:
-        show_circle = False
 
-    if 'circlerad' in kwargs:
-        circle_rad = kwargs['circlerad']
-    else:
-        circle_rad = 6
+    circle = kwargs.get("circle", None)
+    if isinstance(circle, tuple):
+        circle = [circle]
 
-    if 'circlealpha' in kwargs:
-        circle_alpha = kwargs['circlealpha']
-        if isinstance(kwargs['circlealpha'], (float, int)):
-            circle_alpha = kwargs['circlealpha'] * len(coor_circle)
-    else:
-        if 'circle' in kwargs:
-            if isinstance(kwargs['circle'], tuple):
-                circle_alpha = 0.8
-            elif isinstance(kwargs['circle'], list):
-                circle_alpha = [0.8] * len(coor_circle)
+    if isinstance(circle, list):
+        if not isinstance(circle[0], tuple):
+            print("Circle must be a tuple (X,Y) or list of tuples (X,Y)")
+            circle = None
 
-    if 'circlelabel' in kwargs:
-        circle_label = kwargs['circlelabel']
-    else:
-        circle_label = False
+    circle_rad = kwargs.get('circlerad', 6)
+    circle_alpha = kwargs.get("circlealpha", 0.8)
+
+    if isinstance(circle_alpha, (float, int)) and circle:
+        circle_alpha = [circle_alpha] * len(circle)
+
+    circle_label = kwargs.get('circlelabel', False)
 
     # ARROW --------------------------------------------------------------------
     if 'arrow' in kwargs:
@@ -288,20 +261,9 @@ def pp_subplots(*data, **kwargs):
     else:
         show_arrow = False
 
-    if 'arrowshiftx' in kwargs:
-        arrow_shiftx = kwargs['arrowshiftx']
-    else:
-        arrow_shiftx = 5
-
-    if 'arrowlength' in kwargs:
-        arrow_length = kwargs['arrowlength']
-    else:
-        arrow_length = 20
-
-    if 'arrowalpha' in kwargs:
-        arrow_alpha = kwargs['arrowalpha']
-    else:
-        arrow_alpha = 0.8
+    arrow_shiftx = kwargs.get('arrowshiftx', 5)
+    arrow_length = kwargs.get('arrowlength', 20)
+    arrow_alpha = kwargs.get('arrowalpha', 0.8)
 
     # LABEL --------------------------------------------------------------------
     if 'label' in kwargs:
@@ -312,49 +274,27 @@ def pp_subplots(*data, **kwargs):
     else:
         label = None
 
-    if 'labelsize' in kwargs:
-        labelsize = kwargs['labelsize']
-    else:
-        labelsize = 12
-
-    if 'labelpad' in kwargs:
-        labelpad = kwargs['labelpad']
-    else:
-        labelpad = 5
+    labelsize = kwargs.get('labelsize', 12)
+    labelpad = kwargs.get('labelpad', 5)
 
     # GRID ---------------------------------------------------------------------
-    if 'grid' in kwargs:
-        grid = kwargs['grid']
-    else:
-        grid = False
-
-    if 'gridcolor' in kwargs:
-        grid_color = kwargs['gridcolor']
-    else:
-        grid_color = '#f7f7f7'
-
-    if 'gridspacing' in kwargs:
-        grid_spacing = kwargs['gridspacing']
-    else:
-        grid_spacing = None
-
-    if 'gridalpha' in kwargs:
-        grid_alpha = kwargs['gridalpha']
-    else:
-        grid_alpha = 0.4
+    grid = kwargs.get('grid', False)
+    grid_color = kwargs.get('gridcolor', '#f7f7f7')
+    grid_spacing = kwargs.get('gridspacing', None)
+    grid_alpha = kwargs.get('gridalpha', 0.4)
 
     # VMAX-VMIN ----------------------------------------------------------------
     if 'vmax' in kwargs:
         if isinstance(kwargs['vmax'], (tuple, list)):
             if len(kwargs['vmax']) != num_plots:
                 print("Vmax does not list enough items, setting all to None")
-                vmax = [None]*num_plots
+                vmax = [None] * num_plots
             else:
                 vmax = kwargs['vmax']
         else:
             vmax = [kwargs['vmax']]*num_plots
     else:
-        vmax = [None]*num_plots
+        vmax = [None] * num_plots
 
     if 'vmin' in kwargs:
         if isinstance(kwargs['vmin'], (tuple, list)):
@@ -364,7 +304,7 @@ def pp_subplots(*data, **kwargs):
             else:
                 vmin = kwargs['vmin']
         else:
-            vmin = [kwargs['vmin']]*num_plots
+            vmin = [kwargs['vmin']] * num_plots
     else:
         vmin = [None]*num_plots
 
@@ -378,87 +318,43 @@ def pp_subplots(*data, **kwargs):
             show_cross = True
     else:
         show_cross = False
-    if 'crossalpha' in kwargs:
-        cross_alpha = kwargs['crossalpha']
-    else:
-        cross_alpha = 0.4
+
+    cross_alpha = kwargs.get('crossalpha', 0.4)
 
     # AXIS - ANGSCALE ----------------------------------------------------------
-    if 'angticksep' in kwargs:
-        angticksep = kwargs['angticksep']
-    else:
-        angticksep = 50
-    if 'pxscale' in kwargs:
-        pxscale = kwargs['pxscale']
-    else:
-        pxscale = 0.01  # default for Keck/NIRC2
-    if 'angscale' in kwargs:
-        angscale = kwargs['angscale']
-        if angscale:
-            print("`Pixel scale set to {}`".format(pxscale))
-    else:
-        angscale = False
-    if 'axis' in kwargs:
-        show_axis = kwargs['axis']
-    else:
-        show_axis = True
+    angticksep = kwargs.get('angticksep', 50)
+    pxscale = kwargs.get('pxscale', 0.01)  # default for Keck/NIRC2
+    angscale = kwargs.get('angscale', False)
+
+    if angscale:
+        print("`Pixel scale set to {}`".format(pxscale))
+
+    show_axis = kwargs.get('axis', True)
+
     # --------------------------------------------------------------------------
 
-    show_center = False
-    if 'showcent' in kwargs and kwargs['showcent']:
-        show_center = True
+    show_center = kwargs.get("showcent", False)
+    getfig = kwargs.get('getfig', False)
 
-    if 'getfig' in kwargs:
-        getfig = kwargs['getfig']
-    else:
-        getfig = False
-
-    if 'save' in kwargs and isinstance(kwargs['save'], str):
-        save = True
-        savepath = kwargs['save']
-    else:
-        save = False
+    save = kwargs.get("save", False)
 
     # Defaults previously used: 'magma','CMRmap','RdBu_r'
     if 'cmap' in kwargs:
         custom_cmap = kwargs['cmap']
         if not isinstance(custom_cmap, list):
-            custom_cmap = [kwargs['cmap']]*num_plots
+            custom_cmap = [kwargs['cmap']] * num_plots
         else:
             if not len(custom_cmap) == num_plots:
                 raise RuntimeError('Cmap list does not have enough items')
     else:
-        custom_cmap = ['viridis']*num_plots
+        custom_cmap = ['viridis'] * num_plots
 
-    if 'log' in kwargs and kwargs['log'] is True:
-        logscale = kwargs['log']
-    else:
-        logscale = False
-
-    if 'colorb' in kwargs:
-        colorb = kwargs['colorb']
-    else:
-        colorb = True
-    
-    if 'dpi' in kwargs:
-        dpi = kwargs['dpi']
-    else:
-        dpi = 90
-
-    if 'title' in kwargs:
-        tit = kwargs['title']
-    else:
-        tit = None
-    
-    if 'horsp' in kwargs:
-        hor_spacing = kwargs['horsp']
-    else:
-        hor_spacing = 0.4
-    
-    if 'versp' in kwargs:
-        ver_spacing = kwargs['versp']
-    else:
-        ver_spacing = 0.2
+    logscale = kwargs.get('log', False)
+    colorb = kwargs.get('colorb', True)
+    dpi = kwargs.get('dpi', 90)
+    title = kwargs.get('title', None)
+    hor_spacing = kwargs.get('horsp', 0.4)
+    ver_spacing = kwargs.get('versp', 0.2)
 
     # --------------------------------------------------------------------------
 
@@ -466,10 +362,10 @@ def pp_subplots(*data, **kwargs):
     if rows == 0:
         raise ValueError('Rows must be a positive integer')
     fig = figure(figsize=(cols * subplot_size, rows * subplot_size), dpi=dpi)
-    
-    if tit is not None:
-        fig.suptitle(tit, fontsize=14)
-    
+
+    if title is not None:
+        fig.suptitle(title, fontsize=14)
+
     for i, v in enumerate(range(num_plots)):
         image = data[i].copy()
         frame_size = image.shape[0]  # assuming square frames
@@ -491,7 +387,7 @@ def pp_subplots(*data, **kwargs):
             norm = colors.LogNorm(vmin=max(image.min(), 0.1), vmax=image.max())
         else:
             norm = None
-        
+
         if image.dtype == bool:
             image = image.astype(int)
 
@@ -499,10 +395,10 @@ def pp_subplots(*data, **kwargs):
                        origin='lower', vmin=vmin[i], vmax=vmax[i],
                        norm=norm)
 
-        if show_circle:
-            for j in range(len(coor_circle)):
-                x = coor_circle[j][0]
-                y = coor_circle[j][1]
+        if circle:
+            for j in range(len(circle)):
+                x = circle[j][0]
+                y = circle[j][1]
                 circle = Circle((x, y), radius=circle_rad, color='white',
                                 fill=False, alpha=circle_alpha[j])
                 ax.add_artist(circle)
@@ -527,10 +423,10 @@ def pp_subplots(*data, **kwargs):
                      -arrow_length, 0, color='white', head_width=10,
                      head_length=8, width=3, length_includes_head=True,
                      alpha=arrow_alpha)
-            
+
         if label is not None:
-            ax.annotate(label[i], xy=(labelpad,labelpad), color='white',
-                        xycoords='axes pixels', weight='bold', size=labelsize)    
+            ax.annotate(label[i], xy=(labelpad, labelpad), color='white',
+                        xycoords='axes pixels', weight='bold', size=labelsize)
 
         if colorb:
             # create an axes on the right side of ax. The width of cax is 5%
@@ -539,17 +435,17 @@ def pp_subplots(*data, **kwargs):
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cb = colorbar(im, ax=ax, cax=cax, drawedges=False)
             cb.outline.set_linewidth(0.1)
-            cb.ax.tick_params(labelsize=8) 
+            cb.ax.tick_params(labelsize=8)
 
         if grid:
             ax.tick_params(axis='both', which='minor')
             minor_ticks = np.arange(0, data[i].shape[0], grid_spacing)
             ax.set_xticks(minor_ticks, minor=True)
             ax.set_yticks(minor_ticks, minor=True)
-            ax.grid('on', which='minor', color=grid_color, linewidth=0.5,
+            ax.grid(True, which='minor', color=grid_color, linewidth=0.5,
                     alpha=grid_alpha, linestyle='dashed')
         else:
-            ax.grid('off')
+            ax.grid(False)
 
         if angscale:
             # Converting axes from pixels to arcseconds
@@ -578,12 +474,12 @@ def pp_subplots(*data, **kwargs):
 
         if not show_axis:
             ax.set_axis_off()
-    
+
     fig.subplots_adjust(wspace=hor_spacing, hspace=ver_spacing)
     if save:
-        savefig(savepath, dpi=dpi, bbox_inches='tight', pad_inches=0,
+        savefig(save, dpi=dpi, bbox_inches='tight', pad_inches=0,
                 transparent=True)
-        close();
+        close()
         if getfig:
             return fig
     else:
@@ -596,10 +492,10 @@ def plot_surface(image, center_xy=None, size=15, output=False, title=None,
                  zlim=None, **kwargs):
     """
     Create a surface plot from image.
-    
-    By default, the whole image is plotted. The 'center' and 'size' attributes 
+
+    By default, the whole image is plotted. The 'center' and 'size' attributes
     allow to crop the image.
-        
+
     Parameters
     ----------
     image : numpy.array
@@ -616,14 +512,14 @@ def plot_surface(image, center_xy=None, size=15, output=False, title=None,
     zlim : tuple, optional
         Tuple with the range of values (min,max) for the Z axis.
     kwargs:
-        Additional attributes are passed to the matplotlib figure() and 
-        plot_surface() method.        
-    
+        Additional attributes are passed to the matplotlib figure() and
+        plot_surface() method.
+
     Returns
     -------
     out : tuple of 3 numpy.array
         x and y for the grid, and the intensity
-        
+
     """
     if not isinstance(center_xy, tuple):
         raise ValueError('`center_xy` must be a tuple')
@@ -635,27 +531,28 @@ def plot_surface(image, center_xy=None, size=15, output=False, title=None,
             x = np.outer(np.arange(0, size, 1), np.ones(size))
         else:                   # otherwise, size is even
             x = np.outer(np.arange(0, size+1, 1), np.ones(size+1))
-        y = x.copy().T            
-        z = image[cy-size//2: cy+size//2+1, cx-size//2: cx+size//2+1]
+        y = x.copy().T
+        z = image[cy - size//2: cy + size//2 + 1,
+                  cx - size//2: cx + size//2 + 1]
     else:
         cy, cx = frame_center(image)
         if size is not None:
             if size % 2:
-                x = np.outer(np.arange(0,size,1), np.ones(size))
-            else: 
-                x = np.outer(np.arange(0,size+1,1), np.ones(size+1))
+                x = np.outer(np.arange(0, size, 1), np.ones(size))
+            else:
+                x = np.outer(np.arange(0, size+1, 1), np.ones(size+1))
             y = x.copy().T
-            z = image[cy-size//2:cy+size//2+1,cx-size//2:cx+size//2+1]
+            z = image[cy-size//2:cy+size//2+1, cx-size//2:cx+size//2+1]
         else:
             size = image.shape[0]
             x = np.outer(np.arange(0, size, 1), np.ones(size))
-            y = x.copy().T 
-            z = image        
-    
+            y = x.copy().T
+            z = image
+
     figure(figsize=kwargs.pop('figsize', (6, 6)))
     ax = axes(projection='3d')
     ax.dist = 10
-    ax.plot_surface(x, y, z, rstride=1, cstride=1, linewidth=0, **kwargs) 
+    ax.plot_surface(x, y, z, rstride=1, cstride=1, linewidth=0, **kwargs)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('I(x,y)')
@@ -665,14 +562,6 @@ def plot_surface(image, center_xy=None, size=15, output=False, title=None,
     if title is not None:
         ax.set_title(title)
     show()
-    
+
     if output:
         return x, y, z
-
-
-
- 
-
-
-
-    

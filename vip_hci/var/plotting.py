@@ -256,7 +256,8 @@ def pp_subplots(*data, **kwargs):
         else:
             print("Circlerad must be a float or tuple of floats")
     else:
-        circle_rad = [6] * n_circ
+        if show_circle:
+            circle_rad = [6] * n_circ
 
     if 'circlealpha' in kwargs:
         circle_alpha = kwargs['circlealpha']

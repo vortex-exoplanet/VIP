@@ -36,10 +36,11 @@ from .fit import fitaffine
 
 global CUBE
 
-def andromeda(cube, oversampling_fact, angles, psf,
-              filtering_fraction=.25, min_sep=.5, annuli_width=1., roa=2.,
-              opt_method='lsq', nsmooth_snr=18, iwa=1., precision=50,
-              homogeneous_variance=True, multiply_gamma=True, nproc=1,
+
+def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
+              min_sep=.5, annuli_width=1., roa=2., opt_method='lsq',
+              nsmooth_snr=18, iwa=1., precision=50, homogeneous_variance=True,
+              multiply_gamma=True, nproc=1,
               verbose=False):
     """ Exoplanet detection in ADI sequences by maximum-likelihood approach.
 
@@ -202,11 +203,9 @@ def andromeda(cube, oversampling_fact, angles, psf,
       ANDROMEDA behaviour would mean to repliate that bug too.
 
     """
-
     global CUBE  # assigned after high-pass filter
 
     angles = -angles  # VIP convention
-
 
     #===== verify input
 
@@ -255,33 +254,33 @@ def andromeda(cube, oversampling_fact, angles, psf,
     # library of all different PSF positions
     psf_cube = calc_psf_shift_subpix(psf, precision=precision)
 
-
     # spatial filtering of the preprocessed image-cubes:
     if filtering_fraction != 1:
-        print("Pre-processing filtering of the images and the PSF: "
-              "done! F={}".format(filtering_fraction))
+        if verbose:
+            print("Pre-processing filtering of the images and the PSF: "
+                  "done! F={}".format(filtering_fraction))
         cube = cube_filter_highpass(cube, mode="hann",
-                                    hann_cutoff=filtering_fraction, verbose=False)
+                                    hann_cutoff=filtering_fraction,
+                                    verbose=False)
 
     CUBE = cube
 
     # definition of the width of each annuli 
     dmin = iwa  # in lambda/D
-    dmax =  (npix/2 - npixpsf/2) / (2*oversampling_fact)  # in lambda/D
+    dmax = (npix/2 - npixpsf/2) / (2*oversampling_fact)  # in lambda/D
     distarray_lambdaonD = dmin + np.arange(int((dmax-dmin/annuli_width + 1)
                                                 * annuli_width))
     annuli_limits = oversampling_fact * 2 * distarray_lambdaonD  # in pixels
     annuli_number = len(annuli_limits) - 1
 
     #===== main loop
-
     res_all = pool_map(nproc, _process_annulus,
                        # start with outer annuli, they take longer:
                        fixed(range(annuli_number)[::-1]),
                        annuli_limits, roa, min_sep, oversampling_fact,
                        angles, opt_method, multiply_gamma, psf_cube,
-                       homogeneous_variance, verbose_work,
-                       msg="annulus", leave=False, verbose=False)
+                       homogeneous_variance, verbose, msg="annulus",
+                       leave=False, verbose=False)
 
     for res in res_all:
         flux += res[0]
@@ -291,7 +290,8 @@ def andromeda(cube, oversampling_fact, angles, psf,
 
     # post-processing of the output
     if nsmooth_snr != 0:
-        print("Normalizing SNR...")
+        if verbose:
+            print("Normalizing SNR...")
         
         # normalize
         dmin = np.ceil(annuli_limits[0]).astype(int)
@@ -328,7 +328,6 @@ def _process_annulus(i, annuli_limits, roa, min_sep, oversampling_fact, angles,
     min_sep_pix = min_sep * oversampling_fact*2
     angmin = 2*np.arcsin(min_sep_pix/(2*rhomin))*180/np.pi
     index_neg, index_pos, indices_not_used = create_indices(angles, angmin)
-
 
     if len(indices_not_used) != 0:
         if verbose:
@@ -388,6 +387,7 @@ def _process_annulus(i, annuli_limits, roa, min_sep, oversampling_fact, angles,
                          gamma_prime=gamma_prime, verbose=verbose)
     return res
 
+
 def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
                    gamma=None, gamma_prime=None, homogeneous_variance=True,
                    positivity=False, verbose=False):
@@ -439,22 +439,20 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
 
 
     """
-
-
     npairs, npix, _ = cube.shape
     npixpsf = psf_cube.shape[2]  # shape: (p+1, p+1, x, y)
     precision = psf_cube.shape[0]-1
 
     #===== verify + sanitize input
-
     if npix%2 == 1:
         raise ValueError("size of the cube is odd!")
     if npixpsf%2 == 1:
         raise ValueError("PSF has odd pixel size!")
 
     if gamma is None:
-        print("    ANDROMEDA_CORE: The scaling factor is not taken into account"
-              "to build the model!")
+        if verbose:
+            print("\tANDROMEDA_CORE: The scaling factor is not taken into "
+                  "account to build the model!")
 
     # calculate variance
     variance_diff_2d = (cube**2).sum(0)/npairs - (cube.sum(0)/npairs)**2
@@ -463,13 +461,15 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
     if homogeneous_variance:
         varmean = np.mean(variance_diff_2d) # idlwrap.mean
         weights_diff_2d = np.zeros((npix, npix)) + 1/varmean
-        print("    ANDROMEDA_CORE: Variance is considered homogeneous, mean "
-              "{:.3f}".format(varmean))
+        if verbose:
+            print("\tANDROMEDA_CORE: Variance is considered homogeneous, mean"
+                  " {:.3f}".format(varmean))
     else:
         weights_diff_2d = ((variance_diff_2d > 0) /
                            (variance_diff_2d + (variance_diff_2d == 0)))
-        print("    ANDROMEDA_CORE: Variance is taken equal to the empirical "
-              "variance in each pixel (inhomogeneous, but constant in time")
+        if verbose:
+            print("\tANDROMEDA_CORE: Variance is taken equal to the empirical"
+                  " variance in each pixel (inhomogeneous, but constant in time")
 
     weighted_diff_images = cube * weights_diff_2d
 
@@ -478,7 +478,7 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
     select_pixels = ((d > rhomin) & (d < rhomax))
 
     if verbose:
-        print("    ANDROMEDA_CORE: working with {} differential images, radius "
+        print("\tANDROMEDA_CORE: working with {} differential images, radius "
               "{} to {}".format(npairs, rhomin, rhomax))
 
     # definition of the expected pattern (if a planet is present)

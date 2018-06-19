@@ -16,9 +16,6 @@ from ..preproc import cube_derotate, cube_collapse
 from ..conf import timing, time_ini, get_available_memory
 from ..var import prepare_matrix, reshape_matrix
 
-import warnings
-warnings.filterwarnings("ignore", category=Warning)
-
 
 def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None, 
                     batch_ratio=0.1, ncomp=10, imlib='opencv',

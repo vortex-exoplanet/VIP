@@ -46,7 +46,7 @@ from ..preproc import cube_crop_frames
 
 
 def frame_shift(array, shift_y, shift_x, imlib='opencv',
-                interpolation='lanczos4'):
+                interpolation='lanczos4', border_mode='reflect'):
     """ Shifts a 2D array by shift_y, shift_x. Boundaries are filled with zeros.
 
     Parameters
@@ -61,16 +61,25 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
         the pixel values (therefore the flux and photometry). Interpolation
         based shift ('opencv' and 'ndimage-interp') is faster than the fourier
         shift. 'opencv' is recommended when speed is critical.
-    interpolation : {'bicubic', 'bilinear', 'nearneig'}, optional
-        Only used in case of imlib is set to 'opencv' or 'ndimage-interp', where
-        the images are shifted via interpolation.
-        For 'ndimage-interp' library: 'nearneig', bilinear', 'bicuadratic',
-        'bicubic', 'biquartic', 'biquintic'. The 'nearneig' interpolation is
+    interpolation : str, optional
+        Only used in case of imlib is set to 'opencv' or 'ndimage-interp'
+        (Scipy.ndimage), where the images are shifted via interpolation.
+        For Scipy.ndimage the options are: 'nearneig', bilinear', 'bicuadratic',
+        'bicubic', 'biquartic' or 'biquintic'. The 'nearneig' interpolation is
         the fastest and the 'biquintic' the slowest. The 'nearneig' is the
         poorer option for interpolation of noisy astronomical images.
-        For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
-        The 'nearneig' interpolation is the fastest and the 'lanczos4' the
-        slowest and accurate. 'lanczos4' is the default.
+        For Opencv the options are: 'nearneig', 'bilinear', 'bicubic' or
+        'lanczos4'. The 'nearneig' interpolation is the fastest and the
+        'lanczos4' the slowest and accurate. 'lanczos4' is the default for
+        Opencv and 'biquartic' for Scipy.ndimage.
+    border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
+        Points outside the boundaries of the input are filled accordingly.
+        With 'reflect', the input is extended by reflecting about the edge of
+        the last pixel. With 'nearest', the input is extended by replicating the
+        last pixel. With 'constant', the input is extended by filling all values
+        beyond the edge with zeros. With 'mirror', the input is extended by
+        reflecting about the center of the last pixel. With 'wrap', the input is
+        extended by wrapping around to the opposite edge. Default is 'reflect'.
     
     Returns
     -------
@@ -98,14 +107,19 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
             order = 2
         elif interpolation == 'bicubic':
             order = 3
-        elif interpolation == 'biquartic':
+        elif interpolation == 'biquartic' or interpolation == 'lanczos4':
             order = 4
         elif interpolation == 'biquintic':
             order = 5
         else:
-            raise TypeError('Scipy.ndimage interpolation method not recognized')
-        
-        array_shifted = shift(image, (shift_y, shift_x), order=order)
+            raise ValueError('Scipy.ndimage interpolation method not recognized')
+
+        if border_mode not in ['reflect', 'nearest', 'constant', 'mirror',
+                               'wrap']:
+            raise ValueError('`border_mode` not recognized')
+
+        array_shifted = shift(image, (shift_y, shift_x), order=order,
+                              mode=border_mode)
     
     elif imlib == 'opencv':
         if no_opencv:
@@ -122,12 +136,26 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
         elif interpolation == 'lanczos4':
             intp = cv2.INTER_LANCZOS4
         else:
-            raise TypeError('Opencv interpolation method not recognized')
-        
+            raise ValueError('Opencv interpolation method not recognized')
+
+        if border_mode == 'mirror':
+            bormo = cv2.BORDER_REFLECT_101  # gfedcb|abcdefgh|gfedcba
+        elif border_mode == 'reflect':
+            bormo = cv2.BORDER_REFLECT  # fedcba|abcdefgh|hgfedcb
+        elif border_mode == 'wrap':
+            bormo = cv2.BORDER_WRAP  # cdefgh|abcdefgh|abcdefg
+        elif border_mode == 'constant':
+            bormo = cv2.BORDER_CONSTANT  # iiiiii|abcdefgh|iiiiiii
+        elif border_mode == 'nearest':
+            bormo = cv2.BORDER_REPLICATE  # aaaaaa|abcdefgh|hhhhhhh
+        else:
+            raise ValueError('`border_mode` not recognized')
+
         image = np.float32(image)
         y, x = image.shape
         M = np.float32([[1,0,shift_x],[0,1,shift_y]])
-        array_shifted = cv2.warpAffine(image, M, (x,y), flags=intp)
+        array_shifted = cv2.warpAffine(image, M, (x,y), flags=intp,
+                                       borderMode=bormo)
 
     else:
         raise ValueError('Image transformation library not recognized')

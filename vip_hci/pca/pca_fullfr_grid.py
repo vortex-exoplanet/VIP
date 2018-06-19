@@ -22,9 +22,6 @@ from ..conf.utils_conf import vip_figsize
 from ..var import frame_center, dist, prepare_matrix, reshape_matrix
 from .pca_fullfr import pca
 
-import warnings
-warnings.filterwarnings("ignore", category=Warning)
-
 
 def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
                      mode='fullfr', annulus_width=20, range_pcs=None,

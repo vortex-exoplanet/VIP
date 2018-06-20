@@ -4,7 +4,7 @@ robust linear fitting.
 from __future__ import division, print_function
 
 __author__ = 'Ralf Farkas'
-__all__ = ['fitaffine']
+__all__ = []
 
 
 import numpy as np

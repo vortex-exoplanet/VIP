@@ -4,8 +4,7 @@ subpixel shifting.
 from __future__ import division, print_function
 
 __author__ = 'Ralf Farkas'
-__all__ = ['calc_psf_shift_subpix',
-           'subpixel_shift']
+__all__ = []
 
 
 import numpy as np
@@ -27,7 +26,7 @@ def calc_psf_shift_subpix(psf, precision):
     Returns
     -------
     psf_cube : 4d ndarray
-        4d array that contains all the shifted versions of the PSF. The first 
+        4d array that contains all the shifted versions of the PSF. The first
         two indices contain the fraction of the shift in the x and y directions,
         the last two refer to the spatial position on the grid. The shape
         of the array is (precision+1, precision+1, n, n), where n is the
@@ -57,7 +56,6 @@ def calc_psf_shift_subpix(psf, precision):
             psf_cube[j_row, i_column] = subpixel_shift(psf, decalx, decaly)
 
     return psf_cube
-
 
 
 def subpixel_shift(image, xshift, yshift):
@@ -95,7 +93,5 @@ def subpixel_shift(image, xshift, yshift):
 
     image_ft = np.fft.fft2(image)  # no np.fft.fftshift applied!
     shifted_image = np.fft.ifft2(image_ft * fact).real
-    
 
     return shifted_image
-

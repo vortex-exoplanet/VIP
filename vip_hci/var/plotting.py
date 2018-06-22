@@ -240,6 +240,7 @@ def pp_subplots(*data, **kwargs):
                 n_circ = len(coor_circle)
             else:
                 n_circ = 1
+                coor_circle = [coor_circle] * n_circ
         else:
             print("Circle must be a tuple (X,Y) or tuple/list of tuples (X,Y)")
             show_circle = False
@@ -249,7 +250,7 @@ def pp_subplots(*data, **kwargs):
     if 'circlerad' in kwargs:
         # single value is provided, used for all circles
         if isinstance(kwargs['circlerad'], (float, int)):
-            circle_rad = kwargs['circlerad'] * n_circ
+            circle_rad = [kwargs['circlerad']] * n_circ
         # a different value for each circle
         elif isinstance(kwargs['circlerad'], tuple):
             circle_rad = kwargs['circlerad']
@@ -419,14 +420,15 @@ def pp_subplots(*data, **kwargs):
         if show_circle:
             for j in range(n_circ):
                 circle = Circle(coor_circle[j], radius=circle_rad[j],
-                                color='white',
-                                fill=False, alpha=circle_alpha[j])
+                                color='white', fill=False,
+                                alpha=circle_alpha[j])
                 ax.add_artist(circle)
                 if circle_label:
                     x = coor_circle[j][0]
                     y = coor_circle[j][1]
                     cirlabel = str(int(x))+','+str(int(y))
-                    ax.text(x, y+1.8*circle_rad[j], cirlabel, fontsize=8,                                                  color='white', family='monospace', ha='center',
+                    ax.text(x, y+1.8*circle_rad[j], cirlabel, fontsize=8,
+                            color='white', family='monospace', ha='center',
                             va='top', weight='bold', alpha=circle_alpha[j])
 
         if show_cross:

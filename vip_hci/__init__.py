@@ -18,7 +18,7 @@ from .hci_dataset import *
 from .hci_postproc import *
 from .vip_ds9 import *
 
-__version__ = "0.9.6"
+__version__ = "0.9.7"
 
 
 

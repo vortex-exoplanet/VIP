@@ -1,5 +1,5 @@
 """
-Implementation of the ANDROMEDA algorithm from [MUG09]_ / [CANT15]_
+Implementation of the ANDROMEDA algorithm from [MUG09]_ / [CAN15]_
 
 .. [MUG09]
    | Mugnier et al, 2009
@@ -7,7 +7,7 @@ Implementation of the ANDROMEDA algorithm from [MUG09]_ / [CANT15]_
    | *J. Opt. Soc. Am. A, 26(6), 1326-1334*
    | `doi:10.1364/JOSAA.26.001326 <http://doi.org/10.1364/JOSAA.26.001326>`_
 
-.. [CANT15]
+.. [CAN15]
    | Cantalloube et al, 2015
    | **Direct exoplanet detection and characterization using the ANDROMEDA
      method: Performance on VLT/NaCo data**
@@ -132,24 +132,6 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         too close to the edge to be analyzed.
         IDL parameter: ``EXT_RADIUS_OUTPUT``
 
-    References
-    ----------
-    .. [MUG09]
-       | Mugnier et al, 2009
-       | **Optimal method for exoplanet detection by angular differential
-         imaging**
-       | *J. Opt. Soc. Am. A, 26(6), 1326-1334*
-       | `doi:10.1364/JOSAA.26.001326 <http://doi.org/10.1364/JOSAA.26.001326>`_
-
-    .. [CANT15]
-       | Cantalloube et al, 2015
-       | **Direct exoplanet detection and characterization using the ANDROMEDA
-         method: Performance on VLT/NaCo data**
-       | *A&A, 582*
-       | `doi:10.1051/0004-6361/201425571
-         <http://doi.org/10.1051/0004-6361/201425571>`_,
-         `arXiv:1508.06406 <http://arxiv.org/abs/1508.06406>`_
-
     Notes
     -----
     Based on ANDROMEDA v2.2.
@@ -207,12 +189,12 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
 
     angles = -angles  # VIP convention
 
-    #===== verify input
+    # ===== verify input
 
     frames, npix, _ = cube.shape
     npixpsf, _ = psf.shape
 
-    if npix%2 == 1:
+    if npix % 2 == 1:
         raise ValueError("The side of the images must be an even number, with "
                          "the star centered on the intersection between the "
                          "four central pixels.")
@@ -224,9 +206,9 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         raise ValueError("The optimization to subtraction area ``roa`` "
                          "must be >= 1")
 
-    #==== setup
+    # ==== setup
 
-    positivity = False # TODO
+    positivity = False  # TODO
     if nsmooth_snr == 0:
         # positivity = 1 # TODO should be the case based on the docs. but
         positivity = False
@@ -235,14 +217,14 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     elif nsmooth_snr < 2:
         raise ValueError("`nsmooth_snr` must be >= 2")
 
-    #===== initialize output
+    # ===== initialize output
 
     flux = np.zeros_like(cube[0])
     snr = np.zeros_like(cube[0])
     likelihood = np.zeros_like(cube[0])
     stdflux = np.zeros_like(cube[0])
 
-    #===== pre-processing
+    # ===== pre-processing
 
     # normalization...
     psf = psf / np.sum(psf)  # creates new array in memory
@@ -265,15 +247,15 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
 
     CUBE = cube
 
-    # definition of the width of each annuli 
+    # definition of the width of each annuli
     dmin = iwa  # in lambda/D
     dmax = (npix/2 - npixpsf/2) / (2*oversampling_fact)  # in lambda/D
     distarray_lambdaonD = dmin + np.arange(int((dmax-dmin/annuli_width + 1)
-                                                * annuli_width))
+                                               * annuli_width))
     annuli_limits = oversampling_fact * 2 * distarray_lambdaonD  # in pixels
     annuli_number = len(annuli_limits) - 1
 
-    #===== main loop
+    # ===== main loop
     res_all = pool_map(nproc, _process_annulus,
                        # start with outer annuli, they take longer:
                        fixed(range(annuli_number)[::-1]),
@@ -292,7 +274,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     if nsmooth_snr != 0:
         if verbose:
             print("Normalizing SNR...")
-        
+
         # normalize
         dmin = np.ceil(annuli_limits[0]).astype(int)
         dmax = np.ceil(annuli_limits[-2]).astype(int)  # TODO: skip last annuli?
@@ -305,7 +287,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         stdflux_norm[zone] = stdflux[zone] * snr_std[zone]
 
         ext_radius = (np.floor(annuli_limits[annuli_number-2]) /
-                      (2*oversampling_fact)) # TODO same
+                      (2*oversampling_fact))  # TODO same
         return flux, snr_norm, likelihood, stdflux_norm, ext_radius
     else:
         ext_radius = (np.floor(annuli_limits[annuli_number-1]) /
@@ -314,12 +296,12 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
 
 
 def _process_annulus(i, annuli_limits, roa, min_sep, oversampling_fact, angles,
-          opt_method, multiply_gamma, psf_cube,
-          homogeneous_variance, verbose=False):
+                     opt_method, multiply_gamma, psf_cube,
+                     homogeneous_variance, verbose=False):
     global CUBE
 
     rhomin = annuli_limits[i]
-    rhomax = annuli_limits[i+1]  # -> 
+    rhomax = annuli_limits[i+1]
     rhomax_opt = np.sqrt(roa*rhomax**2 - (roa-1)*rhomin**2)
 
     # compute indices from min_sep
@@ -332,26 +314,26 @@ def _process_annulus(i, annuli_limits, roa, min_sep, oversampling_fact, angles,
     if len(indices_not_used) != 0:
         if verbose:
             print("  WARNING: {} frame(s) cannot be used because it wasn't "
-              "possible to find any other frame to couple with them. "
-              "Their indices are: {}".format(len(indices_not_used),
-                                             indices_not_used))
-        max_sep_pix = 2*rhomin*np.sin(np.deg2rad((max(angles) - 
+                  "possible to find any other frame to couple with them. "
+                  "Their indices are: {}".format(len(indices_not_used),
+                                                 indices_not_used))
+        max_sep_pix = 2*rhomin*np.sin(np.deg2rad((max(angles) -
                                                   min(angles))/4))
         max_sep_ld = max_sep_pix/(2*oversampling_fact)
 
         if verbose:
             print("  For all frames to be used in this annulus, the minimum"
-              " separation must be set at most to {} *lambda/D "
-              "(corresponding to {} pixels).".format(max_sep_ld,
-                                                     max_sep_pix))
+                  " separation must be set at most to {} *lambda/D "
+                  "(corresponding to {} pixels).".format(max_sep_ld,
+                                                         max_sep_pix))
 
-    #===== angular differences
+    # ===== angular differences
     if verbose:
         print("  Performing angular difference...")
 
     res = diff_images(cube_pos=CUBE[index_pos], cube_neg=CUBE[index_neg],
-                       rint=rhomin, rext=rhomax_opt,
-                       opt_method=opt_method)
+                      rint=rhomin, rext=rhomax_opt,
+                      opt_method=opt_method)
     cube_diff, gamma, gamma_prime = res
 
     if not multiply_gamma:
@@ -443,10 +425,10 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
     npixpsf = psf_cube.shape[2]  # shape: (p+1, p+1, x, y)
     precision = psf_cube.shape[0]-1
 
-    #===== verify + sanitize input
-    if npix%2 == 1:
+    # ===== verify + sanitize input
+    if npix % 2 == 1:
         raise ValueError("size of the cube is odd!")
-    if npixpsf%2 == 1:
+    if npixpsf % 2 == 1:
         raise ValueError("PSF has odd pixel size!")
 
     if gamma is None:
@@ -459,7 +441,7 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
 
     # calculate weights from variance
     if homogeneous_variance:
-        varmean = np.mean(variance_diff_2d) # idlwrap.mean
+        varmean = np.mean(variance_diff_2d)  # idlwrap.mean
         weights_diff_2d = np.zeros((npix, npix)) + 1/varmean
         if verbose:
             print("\tANDROMEDA_CORE: Variance is considered homogeneous, mean"
@@ -468,8 +450,8 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
         weights_diff_2d = ((variance_diff_2d > 0) /
                            (variance_diff_2d + (variance_diff_2d == 0)))
         if verbose:
-            print("\tANDROMEDA_CORE: Variance is taken equal to the empirical"
-                  " variance in each pixel (inhomogeneous, but constant in time")
+            print("\tANDROMEDA_CORE: Variance is taken equal to the empirical "
+                  "variance in each pixel (inhomogeneous, but constant in time")
 
     weighted_diff_images = cube * weights_diff_2d
 
@@ -486,18 +468,18 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
     denominator = np.ones((npix, npix))
 
     parang = np.array([angles[index_neg], angles[index_pos]])*np.pi/180
-        # shape (2,npairs) -> array([[1, 2, 3],
-        #                             [4, 5, 6]])   (for npairs=3)
-        # IDL: dimension = SIZE =  _, npairs,2, _, _
+    # shape (2,npairs) -> array([[1, 2, 3],
+    #                             [4, 5, 6]])   (for npairs=3)
+    # IDL: dimension = SIZE =  _, npairs,2, _, _
 
     for j in range(npix//2 - np.ceil(rhomax).astype(int),
                    npix//2 + np.ceil(rhomax).astype(int)):
         for i in range(npix//2 - np.ceil(rhomax).astype(int),
-                       npix//2 + np.ceil(rhomax).astype(int)): # same ranges!
+                       npix//2 + np.ceil(rhomax).astype(int)):  # same ranges!
             # IDL: scans in different direction!
-            if select_pixels[j,i]:
-                x0 = i - (npix/2 - 0.5) # distance to center of rotation, in x
-                y0 = j - (npix/2 - 0.5) # distance to center of rotation, in y
+            if select_pixels[j, i]:
+                x0 = i - (npix/2 - 0.5)  # distance to center of rotation, in x
+                y0 = j - (npix/2 - 0.5)  # distance to center of rotation, in y
 
                 decalx = x0 * np.cos(parang) - y0 * np.sin(parang)  # (2,npairs)
                 decaly = y0 * np.cos(parang) + x0 * np.sin(parang)  # (2,npairs)
@@ -510,7 +492,7 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
                 # compute, for each k and for both positive and negative indices
                 # the coordinates of the squares in which the psf will be placed
                 # lef, bot, ... have shape (2,npairs)
-                lef = npix//2 + np.floor(decalx).astype(int) - npixpsf//2 
+                lef = npix//2 + np.floor(decalx).astype(int) - npixpsf//2
                 bot = npix//2 + np.floor(decaly).astype(int) - npixpsf//2
                 rig = npix//2 + np.floor(decalx).astype(int) + npixpsf//2 - 1
                 top = npix//2 + np.floor(decaly).astype(int) + npixpsf//2 - 1
@@ -527,7 +509,7 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
                 den_part = 0
 
                 for k in range(npairs):
-                # this is the innermost loop, performed MANY times
+                    # this is the innermost loop, performed MANY times
 
                     patt_pos = np.zeros((px_ymax[k]-px_ymin[k]+1,
                                          px_xmax[k]-px_xmin[k]+1))
@@ -535,16 +517,16 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
                                          px_xmax[k]-px_xmin[k]+1))
 
                     # put the positive psf in the right place
-                    patt_pos[bot[1,k]-px_ymin[k] : bot[1,k]-px_ymin[k]+npixpsf,
-                             lef[1,k]-px_xmin[k] : lef[1,k]-px_xmin[k]+npixpsf
-                             ] = psf_cube[subp_y[1,k], subp_x[1,k]]
-                             #TODO: should add a +1 somewhere??
+                    patt_pos[bot[1, k]-px_ymin[k]: bot[1, k]-px_ymin[k]+npixpsf,
+                             lef[1, k]-px_xmin[k]: lef[1, k]-px_xmin[k]+npixpsf
+                             ] = psf_cube[subp_y[1, k], subp_x[1, k]]
+                    # TODO: should add a +1 somewhere??
 
                     # same for the negative psf, with a multiplication by gamma!
-                    patt_neg[bot[0,k]-px_ymin[k] : bot[0,k]-px_ymin[k]+npixpsf,
-                             lef[0,k]-px_xmin[k] : lef[0,k]-px_xmin[k]+npixpsf
-                             ] = psf_cube[subp_y[0,k], subp_x[0,k]]
-                             #TODO: should add a +1 somewhere??
+                    patt_neg[bot[0, k]-px_ymin[k]: bot[0, k]-px_ymin[k]+npixpsf,
+                             lef[0, k]-px_xmin[k]: lef[0, k]-px_xmin[k]+npixpsf
+                             ] = psf_cube[subp_y[0, k], subp_x[0, k]]
+                    # TODO: should add a +1 somewhere??
 
                     # subtraction between the two
                     if gamma is None:
@@ -555,19 +537,18 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
                     # compare current (2D) map of small rectangle of weights:
                     weight_cut = weights_diff_2d[px_ymin[k]:px_ymax[k]+1,
                                                  px_xmin[k]:px_xmax[k]+1]
-                                                 # TODO (y,x) is ugly!
+                    # TODO (y,x) is ugly!
 
                     num_part += np.sum(pattern_cut * weighted_diff_images[k,
-                                                 px_ymin[k]:px_ymax[k]+1,
-                                                 px_xmin[k]:px_xmax[k]+1])
+                                       px_ymin[k]:px_ymax[k]+1,
+                                       px_xmin[k]:px_xmax[k]+1])
                     # TODO this only work when indexing like wdi[k,y,x]
                     #   (shape 30,31), and NOT with [k,x,y]!!! -> fix
 
-                    den_part += np.sum(pattern_cut**2  * weight_cut)
+                    den_part += np.sum(pattern_cut**2 * weight_cut)
 
-
-                numerator[j,i] = num_part
-                denominator[j,i] = den_part
+                numerator[j, i] = num_part
+                denominator[j, i] = den_part
 
     if positivity:  # TODO
         numerator = np.minimum(numerator, 0)
@@ -582,9 +563,10 @@ def andromeda_core(cube, index_neg, index_pos, angles, psf_cube, rhomin, rhomax,
     likelihood = 0.5 * snr**2
 
     # computation of the standard deviation on the estimated flux
-    stdflux = flux / (snr + (snr==0))  # TODO: 0 values are replaced by 1, but
-                                       # small values like 0.1 are kept. Is this
-                                       # the right approach?
+    stdflux = flux / (snr + (snr == 0))
+    # TODO: 0 values are replaced by 1, but
+    # small values like 0.1 are kept. Is this
+    # the right approach?
 
     return flux, snr, likelihood, stdflux
 
@@ -624,10 +606,9 @@ def create_indices(angles, angmin):
     # make array monotonic -> increasing
     if angles[-1] < angles[0]:
         angles = -angles
-    
 
     good_angles = idl_where(angles-angles[0] >= angmin)
-    
+
     if len(good_angles) == 0:
         raise RuntimeError("Impossible to find any couple of angles! Try to "
                            "reduce the IWA first, else you need to reduce the "
@@ -643,7 +624,7 @@ def create_indices(angles, angmin):
         if len(good_angles) > 0:
             indices_neg.append(i)
             indices_pos.append(good_angles[0])
-        else: # search in other direction
+        else:  # search in other direction
             if i not in indices_pos:
                 good_angles_back = idl_where((angles[i]-angles >= angmin))
 
@@ -658,8 +639,8 @@ def create_indices(angles, angmin):
 
 
 def diff_images(cube_pos, cube_neg, rint, rext, opt_method="lsq",
-                 variance_pos=None, variance_neg=None,
-                 verbose=False):
+                variance_pos=None, variance_neg=None,
+                verbose=False):
     """
 
     Parameters
@@ -724,7 +705,7 @@ def diff_images(cube_pos, cube_neg, rint, rext, opt_method="lsq",
 
     # compute normalization factors
     if opt_method in ["no", 1]:
-        # no renormalization 
+        # no renormalization
         print("    DIFF_IMAGES: no optimisation is being performed. Note that "
               "keywords rint and rext will be ignored.")
         gamma += 1
@@ -743,8 +724,8 @@ def diff_images(cube_pos, cube_neg, rint, rext, opt_method="lsq",
                             np.sum(cube_neg[i][annulus]**2))
                 if verbose:
                     print("    DIFF_IMAGES: Factor gamma_ls for difference #{}:"
-                          " {}".format(i+1,gamma[i]))
-            elif opt_method in ["l1", 4]: # L1-affine optimization
+                          " {}".format(i+1, gamma[i]))
+            elif opt_method in ["l1", 4]:  # L1-affine optimization
                 ann_pos = cube_pos[i][annulus]
                 ann_neg = cube_neg[i][annulus]
                 gamma[i], gamma_prime[i] = fitaffine(y=ann_pos, x=ann_neg)
@@ -773,7 +754,7 @@ def normalize_snr(snr, dmin, dmax, nsmooth_snr=0):
     annulus to which the pixel belongs.  The aim is to get rid of the decreasing
     trend from the center of the image to its edge in order to obtain a SNR map
     of mean 0 and of variance 1 as expected by the algorithm if the noise model
-    (white) was right. Thanks to this operation, a constant threshold can be 
+    (white) was right. Thanks to this operation, a constant threshold can be
     applied on the SNR map to perform automatic detection.
 
     Parameters
@@ -790,8 +771,8 @@ def normalize_snr(snr, dmin, dmax, nsmooth_snr=0):
     nsmooth_snr : int, optional
         Number of pixels on which the robust sttdev
         radial profile is smoothed (e.g. if nsmooth_snr=8; the regarded
-        annulus is smoothed w.r.t its four inner annulus and 
-        its four outer adjacent annulus. 
+        annulus is smoothed w.r.t its four inner annulus and
+        its four outer adjacent annulus.
         Must be >= 2!
 
     Returns
@@ -799,7 +780,7 @@ def normalize_snr(snr, dmin, dmax, nsmooth_snr=0):
     snr_norm
         Normalized SNR map of mean 0 and variance 1.
     snr_std
-        In order to calculate once for all the 
+        In order to calculate once for all the
         2D map of the SNR radial robust standard deviation,
         this variable records it.
 
@@ -810,15 +791,13 @@ def normalize_snr(snr, dmin, dmax, nsmooth_snr=0):
 
     """
 
-
     if nsmooth_snr < 2:
         raise ValueError("``nsmooth_snr`` must be >= 2")
 
     nsnr = snr.shape[0]
+    it_nosmoo = []  # DBLARR(Nsnr/2.)
 
-
-    it_nosmoo = [] # DBLARR(Nsnr/2.)
-    it_robust = [] # DBLARR(Nsnr/2.)
+    it_robust = []  # DBLARR(Nsnr/2.)
     snr_norm = np.zeros_like(snr)  # output
     imaz_robust = np.zeros_like(snr)
 
@@ -832,7 +811,7 @@ def normalize_snr(snr, dmin, dmax, nsmooth_snr=0):
         it_nosmoo.append(robust_std(snr[id2]))
         it_robust.append(robust_std(snr[id1]))
         imaz_robust[id2] = it_robust[-1]
-    
+
     # far zone:
     for i in range(dmax-nsmooth_snr+1, dmax-4+1):
         id1 = (tempo >= i) & (tempo <= dmax)
@@ -844,6 +823,5 @@ def normalize_snr(snr, dmin, dmax, nsmooth_snr=0):
     # normalizing the SNR by its radial std:
     zone = imaz_robust != 0
     snr_norm[zone] = snr[zone] / imaz_robust[zone]
-    
-    return snr_norm, imaz_robust
 
+    return snr_norm, imaz_robust

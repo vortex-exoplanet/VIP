@@ -360,7 +360,7 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
             aper_source = plt.Circle((sourcex, sourcey), radius=0.7, 
                                      color='b', fill=True, alpha=0.5)                                       
             ax.add_patch(aper_source)
-        ax.grid('off')
+        ax.grid(False)
         plt.show()
     
     if out_coor:

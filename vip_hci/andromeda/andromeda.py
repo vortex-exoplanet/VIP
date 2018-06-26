@@ -4,7 +4,7 @@ Implementation of the ANDROMEDA algorithm from [MUG09]_ / [CANT15]_
 .. [MUG09]
    | Mugnier et al, 2009
    | **Optimal method for exoplanet detection by angular differential imaging**
-   | *J. Opt. Soc. Am. A, 26(6), 1326–1334*
+   | *J. Opt. Soc. Am. A, 26(6), 1326-1334*
    | `doi:10.1364/JOSAA.26.001326 <http://doi.org/10.1364/JOSAA.26.001326>`_
 
 .. [CANT15]
@@ -138,7 +138,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
        | Mugnier et al, 2009
        | **Optimal method for exoplanet detection by angular differential
          imaging**
-       | *J. Opt. Soc. Am. A, 26(6), 1326–1334*
+       | *J. Opt. Soc. Am. A, 26(6), 1326-1334*
        | `doi:10.1364/JOSAA.26.001326 <http://doi.org/10.1364/JOSAA.26.001326>`_
 
     .. [CANT15]

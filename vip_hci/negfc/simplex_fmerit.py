@@ -9,7 +9,7 @@ __all__ = []
 
 import numpy as np
 from skimage.draw import circle
-from ..phot import cube_inject_companions
+from ..metrics import cube_inject_companions
 from ..var import frame_center, pp_subplots
 from ..pca.utils_pca import pca_annulus
 

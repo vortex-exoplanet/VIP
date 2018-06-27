@@ -44,5 +44,3 @@ def check_enough_memory(input_bytes, factor=1, verbose=True):
         return False        # available memory is not enough
     else:
         return True         # enough available memory
-    
-    

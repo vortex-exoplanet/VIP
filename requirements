@@ -1,5 +1,5 @@
 numpy >= 1.8
-scipy >= 0.17
+scipy >= 1.0.0
 astropy >= 2.0
 photutils >= 0.2.2
 scikit-learn >= 0.17
@@ -11,6 +11,7 @@ pandas >= 0.18
 matplotlib >= 1.4.3
 psutil
 pyprind
+munch
 opencv-python
 sphinx <= 1.5.6
 

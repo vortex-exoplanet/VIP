@@ -38,7 +38,7 @@ from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import mean_absolute_error as MAE
 from sklearn.utils import check_random_state
-from ..var import matrix_scaling
+from ..var import matrix_scaling, prepare_matrix
 
 
 def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
@@ -61,7 +61,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
         of the SVD as in the LAPACK version. ``eigencupy`` offers the same 
         method as with the ``eigen`` option but on GPU (through Cupy). 
-        ``randcupy`` is an adaptation of the randomized_svd algorithm, where all
+        ``randcupy`` is an adaptation f the randomized_svd algorithm, where all
         the computations are done on a GPU (through Cupy). ``pytorch`` uses the
         Pytorch library for GPU computation of the SVD. ``eigenpytorch`` offers
         the same method as with the ``eigen`` option but on GPU (through
@@ -89,40 +89,34 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
 
     Returns
     -------
-    The right singular vectors of the input matrix. If ``usv`` is True it 
-    returns the left and right singular vectors and the singular values of the
-    input matrix.
+    V : array_like
+        The right singular vectors of the input matrix. If ``usv`` is True it
+        returns the left and right singular vectors and the singular values of
+        the input matrix.
     
     References
     ----------
     * For ``lapack`` SVD mode see:
-    https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.linalg.svd.html
-    http://www.netlib.org/lapack/
-    
+        https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.linalg.svd.html
+        http://www.netlib.org/lapack/
     * For ``eigen`` mode see:
-    https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.linalg.eigh.html
-    
+        https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.linalg.eigh.html
     * For ``arpack`` SVD mode see:
-    https://docs.scipy.org/doc/scipy-0.19.1/reference/generated/scipy.sparse.linalg.svds.html
-    http://www.caam.rice.edu/software/ARPACK/
-    
+        https://docs.scipy.org/doc/scipy-0.19.1/reference/generated/scipy.sparse.linalg.svds.html
+        http://www.caam.rice.edu/software/ARPACK/
     * For ``randsvd`` SVD mode see:
-    https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/utils/extmath.py
-    Finding structure with randomness: Stochastic algorithms for constructing
-    approximate matrix decompositions
-    Halko, et al., 2009 http://arxiv.org/abs/arXiv:0909.4061
-    
+        https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/utils/extmath.py
+        Finding structure with randomness: Stochastic algorithms for constructing
+        approximate matrix decompositions
+        Halko, et al., 2009 http://arxiv.org/abs/arXiv:0909.4061
     * For ``cupy`` SVD mode see:
-    https://docs-cupy.chainer.org/en/stable/reference/generated/cupy.linalg.svd.html
-    
+        https://docs-cupy.chainer.org/en/stable/reference/generated/cupy.linalg.svd.html
     * For ``eigencupy`` mode see:
-    https://docs-cupy.chainer.org/en/master/reference/generated/cupy.linalg.eigh.html
-
+        https://docs-cupy.chainer.org/en/master/reference/generated/cupy.linalg.eigh.html
     * For ``pytorch`` SVD mode see:
-    http://pytorch.org/docs/master/torch.html#torch.svd
-
+        http://pytorch.org/docs/master/torch.html#torch.svd
     * For ``eigenpytorch`` mode see:
-    http://pytorch.org/docs/master/torch.html#torch.eig
+        http://pytorch.org/docs/master/torch.html#torch.eig
 
     """
 
@@ -385,7 +379,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
     if max_evs is None:
         max_evs = min(data_ref.shape[0], data_ref.shape[1])
 
-    if ncomp is None:
+    if ncomp == 'auto':
         ncomp = 0
         V_big = svd_wrapper(data_ref, svd_mode, max_evs, False, False)
 
@@ -429,7 +423,8 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
                                   False, False, usv=True)
             exp_var = (S ** 2) / (S.shape[0] - 1)
             full_var = np.sum(exp_var)
-            explained_variance_ratio = exp_var / full_var  # % of variance explained by each PC
+            # % of variance explained by each PC
+            explained_variance_ratio = exp_var / full_var
             ratio_cumsum = np.cumsum(explained_variance_ratio)
             ncomp = np.searchsorted(ratio_cumsum, cevr) + 1
             V = V_big[:ncomp]
@@ -443,6 +438,56 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
         V = svd_wrapper(data_ref, svd_mode, ncomp, debug=False, verbose=False)
 
     return V
+
+
+def _get_cumexpvar(cube, expvar_mode, inrad, outrad, size_patch, k_list=None,
+                   verbose=True):
+    """ Calculated the cumulative explained variance ratio for the SVD of a
+    cube (either full frames or a single annulus could be used).
+
+    # TODO : Documentation
+    """
+    n_frames = cube.shape[0]
+    ann_width = outrad - inrad
+    cent_ann = inrad + int(np.round(ann_width / 2.))
+    ann_width += size_patch + 2
+
+    if expvar_mode == 'annular':
+        matrix_svd = prepare_matrix(cube, 'temp-mean', None, mode=expvar_mode,
+                                    annulus_radius=cent_ann,
+                                    annulus_width=ann_width, verbose=False)[0]
+        U, S, V = svd_wrapper(matrix_svd, 'lapack', min(matrix_svd.shape[0],
+                                                        matrix_svd.shape[1]),
+                              False, False, True)
+    elif expvar_mode == 'fullfr':
+        matrix_svd = prepare_matrix(cube, 'temp-mean', None, mode=expvar_mode,
+                                    verbose=False)
+        U, S, V = svd_wrapper(matrix_svd, 'lapack', n_frames, False, False,
+                              True)
+
+    exp_var = (S ** 2) / (S.shape[0] - 1)
+    full_var = np.sum(exp_var)
+    # % of variance explained by each PC
+    explained_variance_ratio = exp_var / full_var
+    ratio_cumsum = np.cumsum(explained_variance_ratio)
+
+    if k_list is not None:
+        ratio_cumsum_klist = []
+        for k in k_list:
+            ratio_cumsum_klist.append(ratio_cumsum[k - 1])
+
+        if verbose:
+            print("SVD on input matrix (annulus from cube)")
+            print("  Number of PCs :")
+            print("  ", k_list)
+            print("  Cum. explained variance ratios :")
+            print("  ", ", ".join("{:.2f}".format(i) for i in
+                                  ratio_cumsum_klist))
+            print("")
+    else:
+        ratio_cumsum_klist = ratio_cumsum
+
+    return ratio_cumsum, ratio_cumsum_klist
 
 
 def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
@@ -579,4 +624,5 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
                     torch.transpose(U[:, :n_components], 0, 1))
         else:
             return U[:, :n_components], s[:n_components], V[:n_components, :]
+
 

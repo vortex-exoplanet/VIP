@@ -13,14 +13,13 @@ __all__ = ['frame_fix_badpix_isolated',
            'cube_fix_badpix_clump']
 
 import numpy as np
-import pyprind
 from skimage.draw import circle, ellipse
 from scipy.ndimage import median_filter
 from astropy.stats import sigma_clipped_stats
 from ..stats import sigma_filter
 from ..var import dist, frame_center, pp_subplots
 from ..stats import clip_array
-from ..conf import timing, time_ini
+from ..conf import timing, time_ini, Progressbar
 
 
 def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
@@ -184,12 +183,10 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     if debug:
         pp_subplots(bpm_mask, title='Bad pixel mask')
 
-    bar = pyprind.ProgBar(n_frames, stream=1, title='Looping through frames')
-    for i in range(n_frames):
+    for i in Progressbar(range(n_frames), desc="frames"):
         frame = cube_out[i]
         smoothed = median_filter(frame, size, mode='mirror')
         frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
-        bar.update()
     array_out = cube_out
     
     if verbose: 

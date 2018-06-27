@@ -19,10 +19,8 @@ from ..preproc import cube_derotate, cube_collapse
 from ..var import get_annulus_segments, cube_filter_highpass
 from ..pca.svd import svd_wrapper, get_eigenvectors
 from .thresholding import thresholding
+from ..conf.utils_conf import pool_map, fixed
 from ..conf.utils_conf import eval_func_tuple as EFT
-
-
-cube_init = None
 
 
 def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
@@ -39,8 +37,8 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     planet should stay) allow us to increase the SNR of potential planets.
 
     The three tunable parameters are the *rank* or expected rank of the L
-    component, the *thresh* or threshold for encouraging sparsity in the S
-    component and *max_iter* which sets the number of iterations. The rest of
+    component, the ``thresh`` or threshold for encouraging sparsity in the S
+    component and ``max_iter`` which sets the number of iterations. The rest of
     parameters can be tuned at the users own risk (do it if you know what you're
     doing).
 
@@ -165,6 +163,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     elif isinstance(asize, int):
         annulus_width = asize
     n_annuli = int((y / 2 - radius_int) / annulus_width)
+    # TODO: asize in pxs to be consistent with other functions
 
     if n_segments is None:
         n_segments = [4 for _ in range(n_annuli)]   # as in the paper
@@ -202,65 +201,30 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         if verbose:
             print('{} : in_rad={}, n_segm={}'.format(ann+1, inner_radius,
                                                      n_segments_ann))
+
+        # TODO: pool_map as in xloci function: build first a list
         for i in range(n_rots):
             theta_init = i * azimuth_overlap
             indices = get_annulus_segments(cube[0], inner_radius,
                                            annulus_width, n_segments_ann,
                                            theta_init)
 
-            if nproc == 1:
-                for j in range(n_segments_ann):
-                    yy = indices[j][0]
-                    xx = indices[j][1]
+            patches = pool_map(nproc, _decompose_patch, indices,
+                               fixed(range(n_segments_ann)), n_segments_ann,
+                               rank, low_rank_ref, low_rank_mode, thresh,
+                               thresh_mode, max_iter, auto_rank_mode, cevr,
+                               residuals_tol, random_seed, debug, full_output)
 
-                    patch = _decompose_patch(indices, j, n_segments_ann,
-                                             rank, low_rank_ref, low_rank_mode,
-                                             thresh, thresh_mode, max_iter,
-                                             auto_rank_mode, cevr,
-                                             residuals_tol, random_seed, debug,
-                                             full_output)
+            for j in range(n_segments_ann):
+                yy = indices[j][0]
+                xx = indices[j][1]
 
-                    if full_output:
-                        matrix_l[i, :, yy, xx] = patch[0]
-                        matrix_s[i, :, yy, xx] = patch[1]
-                        matrix_g[i, :, yy, xx] = patch[2]
-                    else:
-                        matrix_s[i, :, yy, xx] = patch
-
-            elif nproc > 1:
-                pool = Pool(processes=nproc)
-                res = pool.map(EFT, zip(itt.repeat(_decompose_patch),
-                                        itt.repeat(indices),
-                                        range(n_segments_ann),
-                                        itt.repeat(n_segments_ann),
-                                        itt.repeat(rank),
-                                        itt.repeat(low_rank_ref),
-                                        itt.repeat(low_rank_mode),
-                                        itt.repeat(thresh),
-                                        itt.repeat(thresh_mode),
-                                        itt.repeat(max_iter),
-                                        itt.repeat(auto_rank_mode),
-                                        itt.repeat(cevr),
-                                        itt.repeat(residuals_tol),
-                                        itt.repeat(random_seed),
-                                        itt.repeat(debug),
-                                        itt.repeat(full_output)))
-                patches = np.array(res)
-                pool.close()
-
-                for j in range(n_segments_ann):
-                    yy = indices[j][0]
-                    xx = indices[j][1]
-
-                    if full_output:
-                        matrix_l[i, :, yy, xx] = patches[j][0]
-                        matrix_s[i, :, yy, xx] = patches[j][1]
-                        matrix_g[i, :, yy, xx] = patches[j][2]
-                    else:
-                        matrix_s[i, :, yy, xx] = patches[j]
-
-            else:
-                raise ValueError("nproc must be a positive integer")
+                if full_output:
+                    matrix_l[i, :, yy, xx] = patches[j][0]
+                    matrix_s[i, :, yy, xx] = patches[j][1]
+                    matrix_g[i, :, yy, xx] = patches[j][2]
+                else:
+                    matrix_s[i, :, yy, xx] = patches[j]
 
     if full_output:
         list_s_array_der = [cube_derotate(matrix_s[k], angle_list, imlib=imlib,

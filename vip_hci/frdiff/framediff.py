@@ -11,18 +11,14 @@ __all__ = ['frame_diff']
 
 import numpy as np
 import pandas as pn
-import itertools as itt
-from multiprocessing import Pool, cpu_count
+from multiprocessing import cpu_count
 from sklearn.metrics import pairwise_distances
 from ..var import get_annulus_segments, pp_subplots
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import time_ini, timing
+from ..conf.utils_conf import pool_map, fixed
 from ..pca.utils_pca import pca_annulus
-from ..madi.adi_utils import _find_indices, _define_annuli
-from ..conf.utils_conf import eval_func_tuple as EFT
-
-
-array = None
+from ..preproc.derotation import _find_indices_adi, _define_annuli
 
 
 def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
@@ -93,36 +89,21 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     if verbose:
         if ncomp is not None:
             msg = "{} annuli. Performing annular PCA subtraction with {} PCs "
-            msg += "and pair-wise subtraction:\n"
+            msg += "and pair-wise subtraction:"
             print(msg.format(n_annuli, ncomp))
         else:
-            msg = "{} annuli. Performing pair-wise subtraction:\n"
+            msg = "{} annuli. Performing pair-wise subtraction:"
             print(msg.format(n_annuli))
 
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
-    # annulus-wise pair-wise subtraction
-    if nproc == 1:
-        final_frame = []
-        for ann in range(n_annuli):
-            res_ann = _pairwise_ann(ann, n_annuli, fwhm, angle_list, delta_rot,
-                                    metric, dist_threshold, n_similar,
-                                    radius_int, asize, ncomp, verbose, debug)
-            final_frame.append(res_ann)
-    elif nproc > 1:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(_pairwise_ann), range(n_annuli),
-                                itt.repeat(n_annuli), itt.repeat(fwhm),
-                                itt.repeat(angle_list), itt.repeat(delta_rot),
-                                itt.repeat(metric), itt.repeat(dist_threshold),
-                                itt.repeat(n_similar), itt.repeat(radius_int),
-                                itt.repeat(asize), itt.repeat(ncomp),
-                                itt.repeat(verbose), itt.repeat(debug),
-                                itt.repeat(nproc)))
-        final_frame = np.array(res)
-        pool.close()
-    final_frame = np.sum(final_frame, axis=0)
+    res = pool_map(nproc, _pairwise_ann, fixed(range(n_annuli)),
+                   n_annuli, fwhm, angle_list, delta_rot, metric,
+                   dist_threshold, n_similar, radius_int, asize, ncomp,
+                   verbose, debug)
+
+    final_frame = np.sum(res, axis=0)
 
     if verbose:
         print('Done processing annuli')
@@ -133,7 +114,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
 
 def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
                   dist_threshold, n_similar, radius_int, asize, ncomp, verbose,
-                  debug=False, nproc=1):
+                  debug=False):
     """
     Helper functions for pair-wise subtraction for a single annulus.
     """
@@ -163,7 +144,7 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     if pa_threshold > 0:
         mat_dists_ann = np.zeros_like(mat_dists_ann_full)
         for i in range(n_frames):
-            ind_fr_i = _find_indices(angles, i, pa_threshold, None, False)
+            ind_fr_i = _find_indices_adi(angles, i, pa_threshold, None, False)
             mat_dists_ann[i][ind_fr_i] = mat_dists_ann_full[i][ind_fr_i]
     else:
         mat_dists_ann = mat_dists_ann_full
@@ -242,9 +223,6 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     cube_out[:, yy, xx] = cube_res
     cube_der = cube_derotate(cube_out, angles_list)
     frame_der_median = cube_collapse(cube_der, 'median')
-
-    if verbose and nproc == 1:
-        timing(start_time)
 
     return frame_der_median
 

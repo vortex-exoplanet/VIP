@@ -7,37 +7,27 @@ Full-frame PCA algorithm for ADI, ADI+RDI and ADI+mSDI (IFS data) cubes.
 from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['pca',
-           'pca_incremental',
-           'pca_optimize_snr']
+__all__ = ['pca']
 
 import numpy as np
-import pandas as pd
-import pyprind
-from skimage import draw
-from astropy.io import fits
-from matplotlib import pyplot as plt
-from sklearn.decomposition import IncrementalPCA
+from multiprocessing import cpu_count
 from .svd import svd_wrapper
-from ..madi.adi_utils import _find_indices, _compute_pa_thresh
-from .utils_pca import pca_annulus, scale_cube_for_pca as scpca
+from ..preproc.derotation import _find_indices_adi, _compute_pa_thresh
+from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector, cube_crop_frames)
-from ..conf import timing, time_ini, check_enough_memory, get_available_memory
+from ..conf import timing, time_ini, check_enough_memory, Progressbar
+from ..conf.utils_conf import pool_map, fixed
 from ..var import frame_center, dist, prepare_matrix, reshape_matrix
 from ..stats import descriptive_stats
-from .. import phot
-
-import warnings
-warnings.filterwarnings("ignore", category=Warning)
 
 
 def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         svd_mode='lapack', scaling=None, adimsdi='double', mask_center_px=None,
         source_xy=None, delta_rot=1, fwhm=4, imlib='opencv',
         interpolation='lanczos4', collapse='median', check_mem=True,
-        full_output=False, verbose=True, debug=False):
-    """ Algorithm where the reference PSF and the quasi-static speckle pattern 
+        crop_ifs=True, nproc=1, full_output=False, verbose=True, debug=False):
+    """ Algorithm where the reference PSF and the quasi-static speckle pattern
     are modeled using Principal Component Analysis. Depending on the input
     parameters this PCA function can work in ADI, RDI or SDI (IFS data) mode.
     
@@ -52,12 +42,6 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     the cube is a 4d array [# channels, # adi-frames, Y, X], its assumed it 
     contains several multi-spectral ADI frames. A single or two stages PCA can
     be performed, depending on ``adimsdi``.
-    
-    Notes
-    -----
-    The full-frame ADI-PCA implementation is based on Soummer et al. 2012
-    (http://arxiv.org/abs/1207.4197) and Amara & Quanz 2012
-    (http://arxiv.org/abs/1207.6637).
     
     Parameters
     ----------
@@ -90,26 +74,40 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         fashion, using the residuals of the first stage). If None then the
         second PCA stage is skipped and the residuals are de-rotated and
         combined.
-    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy', 'randcupy'}, str
-        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK 
-        linear algebra library through Numpy and it is the most conventional way 
-        of computing the SVD (deterministic result computed on CPU). ``arpack`` 
+    mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
+            'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK
+        linear algebra library through Numpy and it is the most conventional way
+        of computing the SVD (deterministic result computed on CPU). ``arpack``
         uses the ARPACK Fortran libraries accessible through Scipy (computation
-        on CPU). ``eigen`` computes the singular vectors through the 
+        on CPU). ``eigen`` computes the singular vectors through the
         eigendecomposition of the covariance M.M' (computation on CPU).
-        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn 
+        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn
         (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
-        of the SVD as in the LAPACK version. ``eigencupy`` offers the same 
-        method as with the ``eigen`` option but on GPU (through Cupy). 
+        of the SVD as in the LAPACK version. ``eigencupy`` offers the same
+        method as with the ``eigen`` option but on GPU (through Cupy).
         ``randcupy`` is an adaptation of the randomized_svd algorithm, where all
-        the computations are done on a GPU. 
+        the computations are done on a GPU (through Cupy). ``pytorch`` uses the
+        Pytorch library for GPU computation of the SVD. ``eigenpytorch`` offers
+        the same method as with the ``eigen`` option but on GPU (through
+        Pytorch). ``randpytorch`` is an adaptation of the randomized_svd
+        algorithm, where all the linear algebra computations are done on a GPU
+        (through Pytorch).
     scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
         With None, no scaling is performed on the input data before SVD. With 
         "temp-mean" then temporal px-wise mean subtraction is done, with 
         "spat-mean" then the spatial mean is subtracted, with "temp-standard" 
         temporal mean centering plus scaling to unit variance is done and with
         "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.  
+        performed.
+    adimsdi : {'double', 'single'}, str optional
+        In the case ``cube`` is a 4d array, ``adimsdi`` determines whether a
+        single or double pass PCA is going to be computed. In the ``single``
+        case, the multi-spectral frames are rescaled wrt the largest wavelength
+        to align the speckles and all the frames are processed with a single
+        PCA low-rank approximation. In the ``double`` case, a firt stage is run
+        on the rescaled spectral frames, and a second PCA frame is run on the
+        residuals in an ADI fashion.
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
         radius of the circular mask. 
@@ -131,6 +129,15 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     check_mem : bool, optional
         If True, it check that the input cube(s) are smaller than the available
         system memory.
+    crop_ifs: bool, optional
+        If True and the data are to be reduced with ADI+SDI(IFS) in a single step,
+        this will crop the cube at the moment of frame rescaling in wavelength. 
+        This is recommended for large FOVs such as the one of SPHERE, but can 
+        remove significant amount of information close to the edge of small FOVs 
+        (e.g. SINFONI).
+    nproc : None or int, optional
+        Number of processes for parallel computing. If None the number of
+        processes will be set to (cpu_count()/2).
     full_output: bool, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
@@ -146,7 +153,13 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     
     If full_output is True, and depending on the type of cube (ADI or ADI+mSDI),
     then several arrays will be returned, such as the residuals, de-rotated
-    residuals, principal components,
+    residuals, principal components
+
+    References
+    ----------
+    The full-frame ADI-PCA implementation is based on Soummer et al. 2012
+    (http://arxiv.org/abs/1207.4197) and Amara & Quanz 2012
+    (http://arxiv.org/abs/1207.6637).
     """
     if not cube.ndim > 2:
         raise TypeError('Input array is not a 3d or 4d array')
@@ -164,38 +177,38 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     start_time = time_ini(verbose)
 
     angle_list = check_pa_vector(angle_list)
-    #***************************************************************************
+
+    if nproc is None:
+        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
+
     # ADI + mSDI. Shape of cube: (n_channels, n_adi_frames, y, x)
-    #***************************************************************************
     if cube.ndim == 4:
         if adimsdi == 'double':
             res_pca = _adimsdi_doublepca(cube, angle_list, scale_list, ncomp,
                                          ncomp2, scaling, mask_center_px, debug,
                                          svd_mode, imlib, interpolation,
                                          collapse, verbose, start_time,
-                                         full_output)
+                                         full_output, nproc)
             residuals_cube_channels, residuals_cube_channels_, frame = res_pca
         elif adimsdi == 'single':
             res_pca = _adimsdi_singlepca(cube, angle_list, scale_list, ncomp,
                                          scaling, mask_center_px, debug,
                                          svd_mode, imlib, interpolation,
                                          collapse, verbose, start_time,
-                                         full_output)
+                                         crop_ifs, full_output)
             cube_allfr_residuals, cube_adi_residuals, frame = res_pca
         else:
             raise ValueError('`Adimsdi` mode not recognized')
-    # **************************************************************************
-    # ADI+RDI
-    # **************************************************************************
+
+    # ADI + RDI
     elif cube.ndim == 3 and cube_ref is not None:
         res_pca = _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling,
                                mask_center_px, debug, svd_mode, imlib,
                                interpolation, collapse, verbose, full_output,
                                start_time)
         pcs, recon, residuals_cube, residuals_cube_, frame = res_pca
-    # **************************************************************************
+
     # ADI. Shape of cube: (n_adi_frames, y, x)
-    # **************************************************************************
     elif cube.ndim == 3 and cube_ref is None:
         res_pca = _adi_pca(cube, angle_list, ncomp, source_xy, delta_rot, fwhm,
                            scaling, mask_center_px, debug, svd_mode, imlib,
@@ -330,10 +343,10 @@ def _adi_pca(cube, angle_list, ncomp, source_xy, delta_rot, fwhm, scaling,
 
         for frame in range(n):
             if ann_center > fwhm * 3:  # TODO: 3 optimal value? new par?
-                ind = _find_indices(angle_list, frame, pa_thr,
-                                    truncate=True)
+                ind = _find_indices_adi(angle_list, frame, pa_thr,
+                                        truncate=True)
             else:
-                ind = _find_indices(angle_list, frame, pa_thr)
+                ind = _find_indices_adi(angle_list, frame, pa_thr)
 
             res_result = _subtr_proj_fullfr(cube, None, ncomp, scaling,
                                             mask_center_px, debug, svd_mode,
@@ -368,7 +381,7 @@ def _adi_pca(cube, angle_list, ncomp, source_xy, delta_rot, fwhm, scaling,
 
 def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
                        mask_center_px, debug, svd_mode, imlib, interpolation,
-                       collapse, verbose, start_time, full_output):
+                       collapse, verbose, start_time, crop_ifs, full_output):
     """ Handles the full-frame ADI+mSDI single PCA post-processing.
     """
     z, n, y_in, x_in = cube.shape
@@ -393,16 +406,16 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
     big_cube = []
 
     if verbose:
-        tit = 'Rescaling the spectral channels to align the speckles'
-        bar = pyprind.ProgBar(n, stream=1, title=tit)
-    for i in range(n):
-        cube_resc, _, _, _, _, _ = scpca(cube[:, i, :, :], scale_list)
-        cube_resc = cube_crop_frames(cube_resc, size=y_in, verbose=False)
+        print('Rescaling the spectral channels to align the speckles')
+    for i in Progressbar(range(n), verbose=verbose):
+        cube_resc = scwave(cube[:, i, :, :], scale_list)[0]
+        if crop_ifs:
+            cube_resc = cube_crop_frames(cube_resc, size=y_in, verbose=False)
         big_cube.append(cube_resc)
-        if verbose:
-            bar.update()
 
     big_cube = np.array(big_cube)
+    if not crop_ifs:
+        _, y_in, x_in = cube_resc.shape
     big_cube = big_cube.reshape(z * n, y_in, x_in)
 
     if verbose:
@@ -417,15 +430,12 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
 
     resadi_cube = np.zeros((n, y_in, x_in))
     if verbose:
-        tit = 'Descaling the spectral channels'
-        bar = pyprind.ProgBar(n, stream=1, title=tit)
-    for i in range(n):
-        frame_i = scpca(res_cube[i * z:(i+1) * z, :, :], scale_list,
-                        full_output=full_output, inverse=True, y_in=y_in,
-                        x_in=x_in)
+        print('Descaling the spectral channels')
+    for i in Progressbar(range(n), verbose=verbose):
+        frame_i = scwave(res_cube[i * z:(i+1) * z, :, :], scale_list,
+                         full_output=full_output, inverse=True, y_in=y_in,
+                         x_in=x_in, collapse=collapse)
         resadi_cube[i] = frame_i
-        if verbose:
-            bar.update()
 
     if verbose:
         print('De-rotating and combining residuals')
@@ -441,10 +451,13 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
 
 def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
                        mask_center_px, debug, svd_mode, imlib, interpolation,
-                       collapse, verbose, start_time, full_output):
+                       collapse, verbose, start_time, full_output, nproc):
     """  Handles the full-frame ADI+mSDI double PCA post-processing.
     """
     z, n, y_in, x_in = cube.shape
+
+    global ARRAY
+    ARRAY = cube
 
     if not angle_list.shape[0] == n:
         msg = "Angle list vector has wrong length. It must equal the number"
@@ -463,41 +476,20 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
 
     if verbose:
         print('{} spectral channels in IFS cube'.format(z))
-    residuals_cube_channels = np.zeros((n, y_in, x_in))
+        if ncomp is None:
+            print('Combining multi-spectral frames (skipping PCA)')
+        else:
+            print('First PCA stage exploiting spectral variability')
 
-    if ncomp is None:
-        if verbose:
-            tit = 'Combining multi-spectral frames (skipping PCA)'
-            bar = pyprind.ProgBar(n, stream=1, title=tit)
-        for i in range(n):
-            frame_i = cube_collapse(cube[:, i, :, :], mode=collapse)
-            residuals_cube_channels[i] = frame_i
-            if verbose:
-                bar.update()
-    else:
-        if ncomp > z:
-            ncomp = min(ncomp, z)
-            msg = 'Number of PCs too high (max PCs={}), using {} PCs instead'
-            print(msg.format(z, ncomp))
+    if ncomp is not None and ncomp > z:
+        ncomp = min(ncomp, z)
+        msg = 'Number of PCs too high (max PCs={}), using {} PCs instead'
+        print(msg.format(z, ncomp))
 
-        if verbose:
-            tit = 'First PCA stage exploiting spectral variability'
-            bar = pyprind.ProgBar(n, stream=1, title=tit)
-        for i in range(n):
-            cube_resc, _, _, _, _, _ = scpca(cube[:, i, :, :], scale_list)
-            residuals_result = _subtr_proj_fullfr(cube_resc, None, ncomp,
-                                                  scaling, mask_center_px,
-                                                  debug, svd_mode, False,
-                                                  full_output)
-            if full_output:
-                residuals_cube = residuals_result[0]
-            else:
-                residuals_cube = residuals_result
-            frame_i = scpca(residuals_cube, scale_list, full_output=full_output,
-                            inverse=True, y_in=y_in, x_in=x_in)
-            residuals_cube_channels[i] = frame_i
-            if verbose:
-                bar.update()
+    res = pool_map(nproc, _adimsdi_doublepca_ifs, fixed(range(n)), ncomp,
+                   scale_list, scaling, mask_center_px, debug, svd_mode,
+                   full_output, collapse, verbose=verbose)
+    residuals_cube_channels = np.array(res)
 
     if verbose:
         timing(start_time)
@@ -538,6 +530,27 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
     return residuals_cube_channels, residuals_cube_channels_, frame
 
 
+def _adimsdi_doublepca_ifs(fr, ncomp, scale_list, scaling, mask_center_px,
+                           debug, svd_mode, full_output, collapse):
+    """
+    """
+    z, n, y_in, x_in = ARRAY.shape
+    multispec_fr = ARRAY[:, fr, :, :]
+
+    if ncomp is None:
+        frame_i = cube_collapse(multispec_fr, mode=collapse)
+    else:
+        cube_resc = scwave(multispec_fr, scale_list)[0]
+        res = _subtr_proj_fullfr(cube_resc, None, ncomp, scaling,
+                                 mask_center_px, debug, svd_mode, False,
+                                 full_output)
+        if full_output:
+            res = res[0]
+        frame_i = scwave(res, scale_list, full_output=full_output,
+                         inverse=True, y_in=y_in, x_in=x_in, collapse=collapse)
+    return frame_i
+
+
 def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
                  debug, svd_mode, imlib, interpolation, collapse, verbose,
                  full_output, start_time):
@@ -576,586 +589,3 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
     return pcs, recon, residuals_cube, residuals_cube_, frame
 
 
-def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
-                     mode='fullfr', annulus_width=20, range_pcs=None,
-                     svd_mode='lapack', scaling=None, mask_center_px=None, 
-                     fmerit='px', min_snr=0, imlib='opencv',
-                     interpolation='lanczos4', collapse='median', verbose=True,
-                     full_output=False, debug=False, plot=True, save_plot=None,
-                     plot_title=None):
-    """ Optimizes the number of principal components by doing a simple grid 
-    search measuring the SNR for a given position in the frame (ADI, RDI). 
-    The metric used could be the given pixel's SNR, the maximum SNR in a FWHM 
-    circular aperture centered on the given coordinates or the mean SNR in the 
-    same circular aperture. They yield slightly different results.
-    
-    Parameters
-    ----------
-    cube : array_like, 3d
-        Input cube.
-    angle_list : array_like, 1d
-        Corresponding parallactic angle for each frame.
-    source_xy : tuple of floats
-        X and Y coordinates of the pixel where the source is located and whose
-        SNR is going to be maximized.
-    fwhm : float 
-        Size of the PSF's FWHM in pixels.
-    cube_ref : array_like, 3d, optional
-        Reference library cube. For Reference Star Differential Imaging. 
-    mode : {'fullfr', 'annular'}, optional
-        Mode for PCA processing (full-frame or just in an annulus). There is a
-        catch: the optimal number of PCs in full-frame may not coincide with the
-        one in annular mode. This is due to the fact that the annulus matrix is
-        smaller (less noisy, probably not containing the central star) and also
-        its intrinsic rank (smaller that in the full frame case).
-    annulus_width : float, optional
-        Width in pixels of the annulus in the case of the "annular" mode. 
-    range_pcs : tuple, optional
-        The interval of PCs to be tried. If None then the algorithm will find
-        a clever way to sample from 1 to 200 PCs. If a range is entered (as 
-        (PC_INI, PC_MAX)) a sequential grid will be evaluated between PC_INI
-        and PC_MAX with step of 1. If a range is entered (as 
-        (PC_INI, PC_MAX, STEP)) a grid will be evaluated between PC_INI and 
-        PC_MAX with the given STEP.          
-    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy', 'randcupy'}, str
-        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK 
-        linear algebra library through Numpy and it is the most conventional way 
-        of computing the SVD (deterministic result computed on CPU). ``arpack`` 
-        uses the ARPACK Fortran libraries accessible through Scipy (computation
-        on CPU). ``eigen`` computes the singular vectors through the 
-        eigendecomposition of the covariance M.M' (computation on CPU).
-        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn 
-        (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
-        of the SVD as in the LAPACK version. ``eigencupy`` offers the same 
-        method as with the ``eigen`` option but on GPU (through Cupy). 
-        ``randcupy`` is an adaptation of the randomized_svd algorith, where all 
-        the computations are done on a GPU. 
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
-        With None, no scaling is performed on the input data before SVD. With 
-        "temp-mean" then temporal px-wise mean subtraction is done, with 
-        "spat-mean" then the spatial mean is subtracted, with "temp-standard" 
-        temporal mean centering plus scaling to unit variance is done and with
-        "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.  
-    mask_center_px : None or int, optional
-        If None, no masking is done. If an integer > 1 then this value is the
-        radius of the circular mask.  
-    fmerit : {'px', 'max', 'mean'}
-        The function of merit to be maximized. 'px' is *source_xy* pixel's SNR, 
-        'max' the maximum SNR in a FWHM circular aperture centered on 
-        *source_xy* and 'mean' is the mean SNR in the same circular aperture.  
-    min_snr : float
-        Value for the minimum acceptable SNR. Setting this value higher will 
-        reduce the steps.
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
-        Sets the way of collapsing the frames for producing a final image.
-    verbose : {True, False}, bool optional
-        If True prints intermediate info and timing.
-    full_output : {False, True} bool optional
-        If True it returns the optimal number of PCs, the final PCA frame for 
-        the optimal PCs and a cube with all the final frames for each number 
-        of PC that was tried.
-    debug : {False, True}, bool optional
-        Whether to print debug information or not.
-    plot : {True, False}, optional
-        Whether to plot the SNR and flux as functions of PCs and final PCA 
-        frame or not.
-    save_plot: string
-        If provided, the pc optimization plot will be saved to that path.
-    plot_title: string
-        If provided, the plot is titled
-
-    Returns
-    -------
-    opt_npc : int
-        Optimal number of PCs for given source.
-    If full_output is True, the final processed frame, and a cube with all the
-    PCA frames are returned along with the optimal number of PCs.
-    """    
-    def truncate_svd_get_finframe(matrix, angle_list, ncomp, V):
-        """ Projection, subtraction, derotation plus combination in one frame.
-        Only for full-frame"""
-        transformed = np.dot(V[:ncomp], matrix.T)
-        reconstructed = np.dot(transformed.T, V[:ncomp])
-        residuals = matrix - reconstructed
-        frsize = int(np.sqrt(matrix.shape[1]))          # only for square frames
-        residuals_res = reshape_matrix(residuals, frsize, frsize)
-        residuals_res_der = cube_derotate(residuals_res, angle_list,
-                                          imlib=imlib,
-                                          interpolation=interpolation)
-        frame = cube_collapse(residuals_res_der, mode=collapse)
-        return frame
-
-    def truncate_svd_get_finframe_ann(matrix, indices, angle_list, ncomp, V):
-        """ Projection, subtraction, derotation plus combination in one frame.
-        Only for annular mode"""
-        transformed = np.dot(V[:ncomp], matrix.T)
-        reconstructed = np.dot(transformed.T, V[:ncomp])
-        residuals_ann = matrix - reconstructed
-        residuals_res = np.zeros_like(cube)
-        residuals_res[:,indices[0],indices[1]] = residuals_ann
-        residuals_res_der = cube_derotate(residuals_res, angle_list,
-                                          imlib=imlib,
-                                          interpolation=interpolation)
-        frame = cube_collapse(residuals_res_der, mode=collapse)
-        return frame
-
-    def get_snr(matrix, angle_list, y, x, mode, V, fwhm, ncomp, fmerit,
-                full_output):
-        if mode == 'fullfr':
-            frame = truncate_svd_get_finframe(matrix, angle_list, ncomp, V)
-        elif mode == 'annular':
-            frame = truncate_svd_get_finframe_ann(matrix, annind, angle_list,
-                                                  ncomp, V)
-        else:
-            raise RuntimeError('Wrong mode. Choose either full or annular')
-        
-        if fmerit == 'max':
-            yy, xx = draw.circle(y, x, fwhm/2.)
-            res = [phot.snr_ss(frame, (x_,y_), fwhm, plot=False, verbose=False, 
-                               full_output=True) for y_, x_ in zip(yy, xx)]
-            snr_pixels = np.array(res)[:,-1]
-            fluxes = np.array(res)[:,2]
-            argm = np.argmax(snr_pixels)
-            if full_output:
-                # integrated fluxes for the max snr
-                return np.max(snr_pixels), fluxes[argm], frame
-            else:
-                return np.max(snr_pixels), fluxes[argm]
-        elif fmerit == 'px':
-            res = phot.snr_ss(frame, (x,y), fwhm, plot=False, verbose=False,
-                              full_output=True)
-            snrpx = res[-1]
-            fluxpx = np.array(res)[2]
-            if full_output:
-                # integrated fluxes for the given px
-                return snrpx, fluxpx, frame
-            else:
-                return snrpx, fluxpx
-        elif fmerit == 'mean':
-            yy, xx = draw.circle(y, x, fwhm/2.)
-            res = [phot.snr_ss(frame, (x_,y_), fwhm, plot=False, verbose=False, 
-                               full_output=True) for y_, x_ in zip(yy, xx)]  
-            snr_pixels = np.array(res)[:,-1]
-            fluxes = np.array(res)[:,2]
-            if full_output:
-                # mean of the integrated fluxes (shifting the aperture)
-                return np.mean(snr_pixels), np.mean(fluxes), frame
-            else:                         
-                return np.mean(snr_pixels), np.mean(fluxes)
-    
-    def grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, step, inti, intf, 
-             debug, full_output, truncate=True):
-        nsteps = 0
-        snrlist = []
-        pclist = []
-        fluxlist = []
-        if full_output:
-            frlist = []
-        counter = 0
-        if debug:  
-            print('Step current grid:', step)
-            print('PCs | SNR')
-        for pc in range(inti, intf+1, step):
-            if full_output:
-                snr, flux, frame = get_snr(matrix, angle_list, y, x, mode, V,
-                                           fwhm, pc, fmerit, full_output)
-            else:
-                snr, flux = get_snr(matrix, angle_list, y, x, mode, V, fwhm, pc,
-                                    fmerit, full_output)
-            if np.isnan(snr):
-                snr = 0
-            if nsteps > 1 and snr < snrlist[-1]:
-                counter += 1
-            snrlist.append(snr)
-            pclist.append(pc)
-            fluxlist.append(flux)
-            if full_output:
-                frlist.append(frame)
-            nsteps += 1
-            if truncate and nsteps > 2 and snr < min_snr:
-                if debug:
-                    print('SNR too small')
-                break
-            if debug:
-                print('{} {:.3f}'.format(pc, snr))
-            if truncate and counter == 5:
-                break
-        argm = np.argmax(snrlist)
-        
-        if len(pclist) == 2:
-            pclist.append(pclist[-1]+1)
-    
-        if debug:
-            print('Finished current stage')
-            try:
-                pclist[argm+1]
-                print('Interval for next grid: ', pclist[argm-1], 'to',
-                      pclist[argm+1])
-            except:
-                print('The optimal SNR seems to be outside of the given '
-                      'PC range')
-            print()
-        
-        if argm == 0:
-            argm = 1
-        if full_output:
-            return argm, pclist, snrlist, fluxlist, frlist
-        else: 
-            return argm, pclist, snrlist, fluxlist
-    
-    #---------------------------------------------------------------------------
-    if cube.ndim != 3:
-        raise TypeError('Input array is not a cube or 3d array')
-    
-    if verbose:
-        start_time = time_ini()
-    n = cube.shape[0]
-    x, y = source_xy 
-    
-    if range_pcs is not None:
-        if len(range_pcs) == 2:
-            pcmin, pcmax = range_pcs
-            pcmax = min(pcmax, n)
-            step = 1
-        elif len(range_pcs) == 3:
-            pcmin, pcmax, step = range_pcs
-            pcmax = min(pcmax, n)
-        else:
-            msg = 'Range_pcs tuple must be entered as (PC_INI, PC_MAX, STEP) '
-            msg += 'or (PC_INI, PC_MAX)'
-            raise TypeError(msg)
-    else:
-        pcmin = 1
-        pcmax = 200
-        pcmax = min(pcmax, n)
-    
-    # Getting `pcmax` principal components a single time
-    if mode == 'fullfr':
-        matrix = prepare_matrix(cube, scaling, mask_center_px, verbose=False)
-        if cube_ref is not None:
-            ref_lib = prepare_matrix(cube_ref, scaling, mask_center_px,
-                                     verbose=False)
-        else:
-            ref_lib = matrix
-
-    elif mode == 'annular':
-        y_cent, x_cent = frame_center(cube[0])
-        ann_radius = dist(y_cent, x_cent, y, x)
-        matrix, annind = prepare_matrix(cube, scaling, None, mode='annular',
-                                        annulus_radius=ann_radius,
-                                        annulus_width=annulus_width,
-                                        verbose=False)
-        if cube_ref is not None:
-            ref_lib, _ = prepare_matrix(cube_ref, scaling, mask_center_px,
-                                     mode='annular', annulus_radius=ann_radius,
-                                     annulus_width=annulus_width, verbose=False)
-        else:
-            ref_lib = matrix
-
-    else:
-        raise RuntimeError('Wrong mode. Choose either fullfr or annular')
-
-    V = svd_wrapper(ref_lib, svd_mode, pcmax, False, verbose)
-
-    # sequential grid
-    if range_pcs is not None:
-        grid1 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, step, 
-                     pcmin, pcmax, debug, full_output, False)
-        if full_output:
-            argm, pclist, snrlist, fluxlist, frlist = grid1
-        else:
-            argm, pclist, snrlist, fluxlist = grid1
-        
-        opt_npc = pclist[argm]    
-        if verbose:
-            print('Number of steps', len(pclist))
-            msg = 'Optimal number of PCs = {}, for SNR={:.3f}'
-            print(msg.format(opt_npc, snrlist[argm]))
-            print()
-            timing(start_time)
-        
-        if full_output: 
-            cubeout = np.array((frlist))
-
-        # Plot of SNR as function of PCs  
-        if plot:    
-            plt.figure(figsize=vip_figsize)
-            ax1 = plt.subplot(211)     
-            ax1.plot(pclist, snrlist, '-', alpha=0.5)
-            ax1.plot(pclist, snrlist, 'o', alpha=0.5, color='blue')
-            ax1.set_xlim(np.array(pclist).min(), np.array(pclist).max())
-            ax1.set_ylim(0, np.array(snrlist).max()+1)
-            ax1.set_ylabel('SNR')
-            ax1.minorticks_on()
-            ax1.grid('on', 'major', linestyle='solid', alpha=0.4)
-            
-            ax2 = plt.subplot(212)
-            ax2.plot(pclist, fluxlist, '-', alpha=0.5, color='green')
-            ax2.plot(pclist, fluxlist, 'o', alpha=0.5, color='green')
-            ax2.set_xlim(np.array(pclist).min(), np.array(pclist).max())
-            ax2.set_ylim(0, np.array(fluxlist).max()+1)
-            ax2.set_xlabel('Principal components')
-            ax2.set_ylabel('Flux in FWHM ap. [ADUs]')
-            ax2.minorticks_on()
-            ax2.grid('on', 'major', linestyle='solid', alpha=0.4)
-            print()
-            
-    # automatic "clever" grid
-    else:
-        grid1 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 
-                     max(int(pcmax*0.1),1), pcmin, pcmax, debug, full_output)
-        if full_output:
-            argm, pclist, snrlist, fluxlist, frlist1 = grid1
-        else:
-            argm, pclist, snrlist, fluxlist = grid1
-        
-        grid2 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 
-                     max(int(pcmax*0.05),1), pclist[argm-1], pclist[argm+1],
-                     debug, full_output)
-        if full_output:
-            argm2, pclist2, snrlist2, fluxlist2, frlist2 = grid2
-        else:
-            argm2, pclist2, snrlist2, fluxlist2 = grid2
-        
-        grid3 = grid(matrix, angle_list, y, x, mode, V, fwhm, fmerit, 1, 
-                     pclist2[argm2-1], pclist2[argm2+1], debug, full_output, 
-                     False)
-        if full_output:
-            _, pclist3, snrlist3, fluxlist3, frlist3 = grid3
-        else:
-            _, pclist3, snrlist3, fluxlist3 = grid3
-        
-        argm = np.argmax(snrlist3)
-        opt_npc = pclist3[argm]    
-        dfr = pd.DataFrame(np.array((pclist+pclist2+pclist3, 
-                                     snrlist+snrlist2+snrlist3,
-                                     fluxlist+fluxlist2+fluxlist3)).T)  
-        dfrs = dfr.sort_values(0)
-        dfrsrd = dfrs.drop_duplicates()
-        ind = np.array(dfrsrd.index)    
-        
-        if verbose:
-            print('Number of evaluated steps', ind.shape[0])
-            msg = 'Optimal number of PCs = {}, for SNR={:.3f}'
-            print(msg.format(opt_npc, snrlist3[argm]), '\n')
-            timing(start_time)
-        
-        if full_output: 
-            cubefrs = np.array((frlist1+frlist2+frlist3))
-            cubeout = cubefrs[ind]
-    
-        # Plot of SNR as function of PCs  
-        if plot:   
-            alpha = 0.4
-            lw = 2
-            plt.figure(figsize=vip_figsize)
-            ax1 = plt.subplot(211)  
-            ax1.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,1]), '-', 
-                     alpha=alpha, color='blue', lw=lw)
-            ax1.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,1]), 'o',  
-                     alpha=alpha/2, color='blue')
-            ax1.set_xlim(np.array(dfrsrd.loc[:,0]).min(),
-                         np.array(dfrsrd.loc[:,0]).max())
-            ax1.set_ylim(0, np.array(dfrsrd.loc[:,1]).max()+1)
-            ax1.set_ylabel('S/N')
-            ax1.minorticks_on()
-            ax1.grid('on', 'major', linestyle='solid', alpha=0.2)
-            if plot_title is not None:
-                ax1.set_title('Optimal pc: {} for {}'.format(opt_npc,
-                                                             plot_title))
-            
-            ax2 = plt.subplot(212)
-            ax2.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), '-', 
-                     alpha=alpha, color='green', lw=lw)
-            ax2.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), 'o', 
-                     alpha=alpha/2, color='green')
-            ax2.set_xlim(np.array(pclist).min(), np.array(pclist).max())
-            #ax2.set_ylim(0, np.array(fluxlist).max()+1)
-            ax2.set_xlabel('Principal components')
-            ax2.set_ylabel('Flux in FWHM aperture')
-            ax2.minorticks_on()
-            ax2.set_yscale('log')
-            ax2.grid('on', 'major', linestyle='solid', alpha=0.2)
-            print()
-    
-    # Optionally, save the contrast curve
-    if save_plot is not None:
-        plt.savefig(save_plot, dpi=100, bbox_inches='tight')
-
-    if mode == 'fullfr':
-        finalfr = pca(cube, angle_list, cube_ref=cube_ref, ncomp=opt_npc,
-                      svd_mode=svd_mode, mask_center_px=mask_center_px,
-                      scaling=scaling, imlib=imlib, interpolation=interpolation,
-                      collapse=collapse, verbose=False)
-    elif mode == 'annular':
-        finalfr = pca_annulus(cube, angle_list, ncomp=opt_npc,
-                              annulus_width=annulus_width, r_guess=ann_radius,
-                              cube_ref=cube_ref, svd_mode=svd_mode,
-                              scaling=scaling, collapse=collapse, imlib=imlib,
-                              interpolation=interpolation)
-
-    _ = phot.frame_quick_report(finalfr, fwhm, (x,y), verbose=verbose)
-    
-    if full_output:
-        return opt_npc, finalfr, cubeout
-    else:
-        return opt_npc
-
-
-def pca_incremental(cubepath, angle_list=None, n=0, batch_size=None, 
-                    batch_ratio=0.1, ncomp=10, imlib='opencv',
-                    interpolation='lanczos4', collapse='median',
-                    verbose=True, full_output=False):
-    """ Computes the full-frame PCA-ADI algorithm in batches, for processing 
-    fits files larger than the available system memory. It uses the incremental 
-    PCA algorithm from scikit-learn. 
-    
-    Parameters
-    ----------
-    cubepath : str
-        String with the path to the fits file to be opened in memmap mode.
-    angle_list : array_like, 1d
-        Corresponding parallactic angle for each frame. If None the parallactic
-        angles are obtained from the same fits file (extension). 
-    n : int optional
-        The index of the HDULIST contaning the data/cube.
-    batch_size : int optional
-        The number of frames in each batch. If None the size of the batch is 
-        computed wrt the available memory in the system.
-    batch_ratio : float
-        If batch_size is None, batch_ratio indicates the % of the available 
-        memory that should be used by every batch.
-    ncomp : int, optional
-        How many PCs are used as a lower-dimensional subspace to project the
-        target frames.
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
-        Sets the way of collapsing the frames for producing a final image.
-    verbose : {True, False}, bool optional
-        If True prints intermediate info and timing. 
-    full_output: boolean, optional
-        Whether to return the final median combined image only or with other 
-        intermediate arrays.  
-        
-    Returns
-    -------
-    If full_output is True the algorithm returns the incremental PCA model of
-    scikit-learn, the PCs reshaped into images, the median of the derotated 
-    residuals for each batch, and the final frame. If full_output is False then
-    the final frame is returned.
-    
-    """
-    if verbose:  start = time_ini()
-    if not isinstance(cubepath, str):
-        raise TypeError('Cubepath must be a string with the full path of your '
-                        'fits file')
-      
-    fitsfilename = cubepath
-    hdulist = fits.open(fitsfilename, memmap=True)
-    if not hdulist[n].data.ndim>2:
-        raise TypeError('Input array is not a 3d or 4d array')
-    
-    n_frames = hdulist[n].data.shape[0]
-    y = hdulist[n].data.shape[1]
-    x = hdulist[n].data.shape[2]
-    if angle_list is None:
-        try:  
-            angle_list = hdulist[n+1].data
-        except:  
-            raise RuntimeError('Parallactic angles were not provided')
-    if not n_frames==angle_list.shape[0]:
-        raise TypeError('Angle list vector has wrong length. It must equal the '
-                        'number of frames in the cube.')
-    
-    ipca = IncrementalPCA(n_components=ncomp)
-    
-    if batch_size is None:
-        aval_mem = get_available_memory(verbose)
-        total_size = hdulist[n].data.nbytes
-        batch_size = int(n_frames/(total_size/(batch_ratio*aval_mem)))
-    
-    if verbose:
-        msg1 = "Cube with {} frames ({:.3f} GB)"
-        print(msg1.format(n_frames, hdulist[n].data.nbytes/1e9))
-        msg2 = "Batch size set to {} frames ({:.3f} GB)\n"
-        print(msg2.format(batch_size, hdulist[n].data[:batch_size].nbytes/1e9))
-                
-    res = n_frames % batch_size
-    for i in range(0, n_frames//batch_size):
-        intini = i*batch_size
-        intfin = (i+1)*batch_size
-        batch = hdulist[n].data[intini:intfin]
-        msg = 'Processing batch [{},{}] with shape {}'
-        if verbose:
-            print(msg.format(intini, intfin, batch.shape))
-            print('Batch size in memory = {:.3f} MB'.format(batch.nbytes/1e6))
-        matrix = prepare_matrix(batch, verbose=False)
-        ipca.partial_fit(matrix)
-    if res > 0:
-        batch = hdulist[n].data[intfin:]
-        msg = 'Processing batch [{},{}] with shape {}'
-        if verbose:
-            print(msg.format(intfin, n_frames, batch.shape))
-            print('Batch size in memory = {:.3f} MB'.format(batch.nbytes/1e6))
-        matrix = prepare_matrix(batch, verbose=False)
-        ipca.partial_fit(matrix)
-    
-    if verbose:
-        timing(start)
-    
-    V = ipca.components_
-    mean = ipca.mean_.reshape(batch.shape[1], batch.shape[2])
-    
-    if verbose:
-        print('\nReconstructing and obtaining residuals')
-    medians = []
-    for i in range(0, n_frames//batch_size):
-        intini = i*batch_size
-        intfin = (i+1)*batch_size
-        batch = hdulist[n].data[intini:intfin]
-        batch = batch - mean 
-        matrix = prepare_matrix(batch, verbose=False)
-        reconst = np.dot(np.dot(matrix, V.T), V)
-        resid = matrix - reconst
-        resid_der = cube_derotate(resid.reshape(batch.shape[0], 
-                                                batch.shape[1],
-                                                batch.shape[2]), 
-                                  angle_list[intini:intfin], imlib=imlib,
-                                  interpolation=interpolation)
-        medians.append(cube_collapse(resid_der, mode=collapse))
-    if res > 0:
-        batch = hdulist[n].data[intfin:]
-        batch = batch - mean
-        matrix = prepare_matrix(batch, verbose=False)
-        reconst = np.dot(np.dot(matrix, V.T), V)
-        resid = matrix - reconst
-        resid_der = cube_derotate(resid.reshape(batch.shape[0], 
-                                                batch.shape[1],
-                                                batch.shape[2]), 
-                                  angle_list[intfin:], imlib=imlib,
-                                  interpolation=interpolation)
-        medians.append(cube_collapse(resid_der, mode=collapse))
-    del matrix
-    del batch
-
-    medians = np.array(medians)
-    frame = np.median(medians, axis=0)
-    
-    if verbose:
-        timing(start)
-
-    if full_output:
-        pcs = reshape_matrix(V, y, x)
-        return ipca, pcs, medians, frame
-    else:
-        return frame
-    
-    

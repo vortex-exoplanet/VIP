@@ -220,12 +220,12 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
         res = pool.map(EFT, zip(itt.repeat(_snr_approx), itt.repeat(array),
                                 coords,itt.repeat(fwhm), itt.repeat(cy),
                                 itt.repeat(cx)))
-        res = np.array(res)
         pool.close()
+        res = np.array(res)
         yy = res[:, 0]
         xx = res[:, 1]
         snr = res[:, 2]
-        snrmap[yy.astype('int'), xx.astype('int')] = snr
+        snrmap[yy.astype(int), xx.astype(int)] = snr
         
     if plot:
         pp_subplots(snrmap, colorb=True, title='SNRmap')
@@ -360,7 +360,7 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, plot=False, verbose=False,
             aper_source = plt.Circle((sourcex, sourcey), radius=0.7, 
                                      color='b', fill=True, alpha=0.5)                                       
             ax.add_patch(aper_source)
-        ax.grid('off')
+        ax.grid(False)
         plt.show()
     
     if out_coor:

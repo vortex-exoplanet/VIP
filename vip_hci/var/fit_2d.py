@@ -18,7 +18,7 @@ from astropy.modeling import models, fitting
 from astropy.stats import (gaussian_sigma_to_fwhm, gaussian_fwhm_to_sigma,
                            sigma_clipped_stats)
 from .shapes import get_square, frame_center
-from .utils_var import pp_subplots
+from .plotting import pp_subplots
 
 
 def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,

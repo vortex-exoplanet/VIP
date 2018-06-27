@@ -22,11 +22,11 @@ except ImportError:
     warnings.warn(msg, ImportWarning)
     no_opencv = True
 import numpy as np
-import pyprind
 from scipy.ndimage import gaussian_filter, median_filter      
 from astropy.convolution import convolve_fft, Gaussian2DKernel
 from astropy.stats import gaussian_fwhm_to_sigma
 from ..exlib import iuwt
+from ..conf import Progressbar
 
 
 def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
@@ -59,14 +59,12 @@ def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
     cube_coeff = np.zeros((cube.shape[0], coeff, cube.shape[1], cube.shape[2]))
     n_frames = cube.shape[0]
     
-    msg = 'Decomposing frames with the Isotropic Undecimated Wavelet Transform.'
-    bar = pyprind.ProgBar(n_frames, stream=1, title=msg)
-    for i in range(n_frames):
+    print('Decomposing frames with the Isotropic Undecimated Wavelet Transform')
+    for i in Progressbar(range(n_frames)):
         res = iuwt.iuwt_decomposition(cube[i], coeff, store_smoothed=False)
         cube_coeff[i] = res
         for j in range(rel_coeff):
             cubeout[i] += cube_coeff[i][j] 
-        bar.update()
         
     if full_output:
         return cubeout, cube_coeff
@@ -99,12 +97,9 @@ def cube_filter_highpass(array, mode='laplacian', verbose=True, **kwargs):
     n_frames = array.shape[0]
     array_out = np.zeros_like(array)
     if verbose:
-        msg = 'Applying the high-pass filter on cube frames:'
-        bar = pyprind.ProgBar(n_frames, stream=1, title=msg, bar_char='.')
-    for i in range(n_frames):
+        print('Applying the high-pass filter on cube frames:')
+    for i in Progressbar(range(n_frames), verbose=verbose):
         array_out[i] = frame_filter_highpass(array[i], mode=mode, **kwargs)
-        if verbose:
-            bar.update()
         
     return array_out
     
@@ -140,7 +135,7 @@ def ifft(array):
 
 def frame_filter_highpass(array, mode, median_size=5, kernel_size=5, 
                           fwhm_size=5, btw_cutoff=0.2, btw_order=2,
-                          hanning_cutoff=5):
+                          hann_cutoff=5):
     """ High-pass filtering of input frame depending on parameter ``mode``. The
     filtered image properties will depend on the ``mode`` and the relevant
     parameters.
@@ -149,7 +144,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     ----------
     array : array_like
         Input array, 2d frame.
-    mode : {'laplacian', 'laplacian-conv', 'median-subt', 'gauss-subt', 'fourier-butter'}
+    mode : {'laplacian', 'laplacian-conv', 'median-subt', 'gauss-subt', 'fourier-butter', 'hann'}
         Type of High-pass filtering. ``laplacian`` applies a Laplacian fiter
         with kernel size defined by ``kernel_size`` using the Opencv library.
         ``laplacian-conv`` applies a Laplacian high-pass filter by defining a
@@ -157,7 +152,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         function. ``median-subt`` subtracts a median low-pass filtered version
         of the image. ``gauss-subt`` subtracts a Gaussian low-pass filtered
         version of the image. ``fourier-butter`` applies a high-pass 2D
-        Butterworth filter in Fourier domain.
+        Butterworth filter in Fourier domain. ``hann`` uses a Hann window.
     median_size : int, optional
         Size of the median box for filtering the low-pass median filter.
     kernel_size : int, optional
@@ -170,8 +165,8 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         ``fourier-butter`` mode.
     btw_order : int, optional
         Order of low-pass 2d Butterworth filter used in ``fourier-butter`` mode.
-    hanning_cutoff : float
-        Frequency cutoff for the ``hanning``mode.
+    hann_cutoff : float
+        Frequency cutoff for the ``hann``mode.
     
     Returns
     -------
@@ -298,24 +293,24 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         array_fft = fft(array)
         fft_new = array_fft * filt
         filtered = ifft(fft_new)        
-    elif mode == 'hanning':
+    elif mode == 'hann':
         # TODO: this code could be shortened using np.convolve
         # see http://scipy-cookbook.readthedocs.io/items/SignalSmooth.html
 
         # create a Hanning profile window cut at the chosen frequency:
         npix = array.shape[0]
-        if npix%2 != 0:
-            raise ValueError("only even-sized frames are supported by 'hanning'"
-                             " high-pass filter!")
+        #if npix%2 != 0:
+        #    raise ValueError("only even-sized frames are supported by 'hann'"
+        #                     " high-pass filter! Frame shape: {}".format(array.shape))
 
-        cutoff = npix/2 * hanning_cutoff
+        cutoff = npix/2 * hann_cutoff
         cutoff_inside = round_away(np.minimum(cutoff, (npix/2 -1))).astype(int)
         winsize = 2*cutoff_inside + 1
         win1d = np.hanning(winsize)
         win = 1 - np.outer(win1d, win1d)
 
         array_fft = fft(array)
-        # remove high spatial frequency along the Hanning profile:
+        # remove high spatial frequency along the Hann profile:
         array_fft[npix//2 - cutoff_inside : npix//2 + cutoff_inside + 1,
                   npix//2 - cutoff_inside : npix//2 + cutoff_inside + 1] *= win
 
@@ -406,13 +401,10 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     n_frames = array.shape[0]
     array_out = np.zeros_like(array)
     if verbose:
-        msg = 'Applying the low-pass filter on cube frames:'
-        bar = pyprind.ProgBar(n_frames, stream=1, title=msg, bar_char='.')
-    for i in range(n_frames):
+        print('Applying the low-pass filter on cube frames:')
+    for i in Progressbar(range(n_frames), verbose=verbose):
         array_out[i] = frame_filter_lowpass(array[i], mode, median_size,
                                             fwhm_size, gauss_mode)
-        if verbose:
-            bar.update()
 
     return array_out
 

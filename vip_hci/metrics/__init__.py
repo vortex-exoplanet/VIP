@@ -16,3 +16,4 @@ from .fakecomp import *
 from .frame_analysis import *
 from .roc import *
 from .snr import *
+from .fakedisk import *

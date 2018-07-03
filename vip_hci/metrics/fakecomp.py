@@ -321,7 +321,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         """ 2d case """
         if size is not None:
             if size < array.shape[0]:
-                psfs = frame_crop(array, size, force=force_odd, verbose=False)
+                psfs = frame_crop(array, size, force=True, verbose=False)
             else:
                 psfs = array.copy()
         else:
@@ -338,7 +338,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
             psfs = frame_shift(array, -shifty, -shiftx, imlib=imlib,
                                interpolation=interpolation)
             if size is not None:
-                psfs = frame_crop(psfs, size, force=force_odd, verbose=False)
+                psfs = frame_crop(psfs, size, force=True, verbose=False)
 
             for _ in range(2):
                 centry, centrx = fit_2d(psfs)

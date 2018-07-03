@@ -29,7 +29,7 @@ data_array = None # holds the (implicitly mem-shared) data array
 
 
 def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
-                 cxy=None):
+                 cxy=None, border_mode='constant'):
     """ Rotates a frame or 2D array.
     
     Parameters
@@ -39,20 +39,30 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
     angle : float
         Rotation angle.
     imlib : {'opencv', 'skimage'}, str optional
-        Library used for image transformations. Opencv is faster than ndimage or
-        skimage.
+        Library used for image transformations. Opencv is faster than
+        Skimage or scipy.ndimage.
     interpolation : str, optional
-        For 'skimage' library: 'nearneig', bilinear', 'bicuadratic', 'bicubic',
-        'biquartic', 'biquintic'. The 'nearneig' interpolation is the fastest
-        and the 'biquintic' the slowest. The 'nearneig' is the poorer
-        option for interpolation of noisy astronomical images.
-        For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
-        The 'nearneig' interpolation is the fastest and the 'lanczos4' the
-        slowest and accurate. 'lanczos4' is the default.
+        For Skimage the options are: 'nearneig', bilinear', 'bicuadratic',
+        'bicubic', 'biquartic' or 'biquintic'. The 'nearneig' interpolation is
+        the fastest and the 'biquintic' the slowest. The 'nearneig' is the
+        poorer option for interpolation of noisy astronomical images.
+        For Opencv the options are: 'nearneig', 'bilinear', 'bicubic' or
+        'lanczos4'. The 'nearneig' interpolation is the fastest and the
+        'lanczos4' the slowest and more accurate. 'lanczos4' is the default for
+        Opencv and 'biquartic' for Skimage.
     cxy : float, optional
         Coordinates X,Y  of the point with respect to which the rotation will be 
         performed. By default the rotation is done with respect to the center 
         of the frame; central pixel if frame has odd size.
+    border_mode : {'constant', 'edge', 'symmetric', 'reflect', 'wrap'}, str optional
+        Pixel extrapolation method for handling the borders. 'constant' for
+        padding with zeros. 'edge' for padding with the edge values of the
+        image. 'symmetric' for padding with the reflection of the vector
+        mirrored along the edge of the array. 'reflect' for padding with the
+        reflection of the vector mirrored on the first and last values of the
+        vector along each axis. 'wrap' for padding with the wrap of the vector
+        along the axis (the first values are used to pad the end and the end
+        values are used to pad the beginning). Default is 'constant'.
         
     Returns
     -------
@@ -61,7 +71,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
         
     """
     if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array.')
+        raise TypeError('Input array is not a frame or 2d array')
 
     y, x = array.shape
     
@@ -79,19 +89,24 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
             order = 2
         elif interpolation == 'bicubic':
             order = 3
-        elif interpolation == 'biquartic':
+        elif interpolation == 'biquartic' or interpolation == 'lanczos4':
             order = 4
         elif interpolation == 'biquintic':
             order = 5
         else:
-            raise TypeError('Skimage interpolation method not recognized.')
+            raise ValueError('Skimage interpolation method not recognized')
+
+        if border_mode not in ['constant', 'edge', 'symmetric', 'reflect',
+                               'wrap']:
+            raise ValueError('Skimage `border_mode` not recognized.')
 
         min_val = np.min(array)
         im_temp = array - min_val
         max_val = np.max(im_temp)
         im_temp /= max_val
 
-        array_out = rotate(im_temp, angle, order=order, center=cxy, cval=np.nan)
+        array_out = rotate(im_temp, angle, order=order, center=cxy, cval=np.nan,
+                           mode=border_mode)
 
         array_out *= max_val
         array_out += min_val
@@ -100,7 +115,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
     elif imlib == 'opencv':
         if no_opencv:
             msg = 'Opencv python bindings cannot be imported. Install opencv or'
-            msg += ' set imlib to skimage.'
+            msg += ' set imlib to skimage'
             raise RuntimeError(msg)
 
         if interpolation == 'bilinear':
@@ -112,20 +127,33 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
         elif interpolation == 'lanczos4':
             intp = cv2.INTER_LANCZOS4
         else:
-            raise TypeError('Opencv interpolation method not recognized.')
+            raise ValueError('Opencv interpolation method not recognized')
+
+        if border_mode == 'constant':
+            bormo = cv2.BORDER_CONSTANT  # iiiiii|abcdefgh|iiiiiii
+        elif border_mode == 'edge':
+            bormo = cv2.BORDER_REPLICATE  # aaaaaa|abcdefgh|hhhhhhh
+        elif border_mode == 'symmetric':
+            bormo = cv2.BORDER_REFLECT  # fedcba|abcdefgh|hgfedcb
+        elif border_mode == 'reflect':
+            bormo = cv2.BORDER_REFLECT_101  # gfedcb|abcdefgh|gfedcba
+        elif border_mode == 'wrap':
+            bormo = cv2.BORDER_WRAP  # cdefgh|abcdefgh|abcdefg
+        else:
+            raise ValueError('Opencv `border_mode` not recognized.')
 
         M = cv2.getRotationMatrix2D((cx,cy), angle, 1)
         array_out = cv2.warpAffine(array.astype(np.float32), M, (x, y),
-                                   flags=intp)
+                                   flags=intp, borderMode=bormo)
 
     else:
-        raise ValueError('Image transformation library not recognized.')
+        raise ValueError('Image transformation library not recognized')
              
     return array_out
     
     
 def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
-                  cxy=None, nproc=1):
+                  cxy=None, nproc=1, border_mode='constant'):
     """ Rotates an cube (3d array or image sequence) providing a vector or
     corresponding angles. Serves for rotating an ADI sequence to a common north
     given a vector with the corresponding parallactic angles for each frame. By
@@ -150,6 +178,8 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         Whether to rotate the frames in the sequence in a multi-processing
         fashion. Only useful if the cube is significantly large (frame size and
         number of frames).
+    border_mode : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
         
     Returns
     -------
@@ -168,7 +198,8 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         array_der = np.zeros_like(array)
         for i in range(n_frames):
             array_der[i] = frame_rotate(array[i], -angle_list[i], imlib=imlib,
-                                        interpolation=interpolation, cxy=cxy)
+                                        interpolation=interpolation, cxy=cxy,
+                                        border_mode=border_mode)
     elif nproc > 1:
         global data_array
         data_array = array
@@ -176,16 +207,17 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         pool = Pool(processes=nproc)
         res = pool.map(EFT, zip(itt.repeat(_cube_rotate_mp), range(n_frames),
                                 itt.repeat(angle_list), itt.repeat(imlib),
-                                itt.repeat(interpolation), itt.repeat(cxy)))
+                                itt.repeat(interpolation), itt.repeat(cxy),
+                                itt.repeat(border_mode)))
         pool.close()
         array_der = np.array(res)
 
     return array_der
 
 
-def _cube_rotate_mp(num_fr, angle_list, imlib, interpolation, cxy):
+def _cube_rotate_mp(num_fr, angle_list, imlib, interpolation, cxy, border_mode):
     framerot = frame_rotate(data_array[num_fr], -angle_list[num_fr],
-                            imlib, interpolation, cxy)
+                            imlib, interpolation, cxy, border_mode)
     return framerot
 
 

@@ -164,7 +164,8 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
 def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
                                y_in=1, x_in=1, imlib='opencv',
-                               interpolation='lanczos4', collapse='median'):
+                               interpolation='lanczos4', collapse='median',
+                               pad_mode='reflect'):
     """ Wrapper to scale or descale a cube by factors given in scal_list,
     without any loss of information (zero-padding if scaling > 1).
     Important: in case of ifs data, the scaling factors in var_list should be
@@ -202,6 +203,21 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
         slowest and accurate. 'lanczos4' is the default.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
+    pad_mode : {'constant', 'edge', 'linear_ramp', 'maximum', 'mean', 'minimum',
+                'reflect', 'symmetric', 'wrap'}, str optional
+        One of the following string values: ‘constant’, pads with a constant
+        value. ‘edge’, pads with the edge values of array. ‘linear_ramp’, pads
+        with the linear ramp between end_value and the array edge value.
+        ‘maximum’, pads with the maximum value of all or part of the vector
+        along each axis. ‘mean’, pads with the mean value of all or part of the
+        vector along each axis. ‘median’, pads with the median value of all or
+        part of the vector along each axis. ‘minimum’, pads with the minimum
+        value of all or part of the vector along each axis. ‘reflect’, pads with
+        the reflection of the vector mirrored on the first and last values of
+        the vector along each axis. ‘symmetric’, pads with the reflection of the
+        vector mirrored along the edge of the array. ‘wrap’, pads with the wrap
+        of the vector along the axis. The first values are used to pad the end
+        and the end values are used to pad the beginning.
 
     Returns:
     --------
@@ -226,7 +242,7 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
         pad_len_y = (new_y - y) // 2
         pad_len_x = (new_x - x) // 2
         pad_width = ((0, 0), (pad_len_y, pad_len_y), (pad_len_x, pad_len_x))
-        big_cube = np.pad(cube, pad_width, 'reflect', reflect_type='even')
+        big_cube = np.pad(cube, pad_width, pad_mode, constant_values=0)
     else:
         big_cube = cube.copy()
 

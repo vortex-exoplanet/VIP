@@ -1,6 +1,6 @@
 from __future__ import (absolute_import)
 
-__version__ = "0.9.6"
+__version__ = "0.9.7"
 
 from . import andromeda
 from . import preproc

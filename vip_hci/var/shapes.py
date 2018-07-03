@@ -178,7 +178,7 @@ def frame_center(array, verbose=False):
         raise ValueError('Input array is not a 2d, 3d or 4d array')
 
     if verbose:
-        print('Center px coordinates at x,y = ({}, {})'.format(cy, cx))
+        print('Center px coordinates at x,y = ({}, {})'.format(cx, cy))
     return cy, cx
 
     

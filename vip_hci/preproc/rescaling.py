@@ -242,7 +242,7 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
         pad_len_y = (new_y - y) // 2
         pad_len_x = (new_x - x) // 2
         pad_width = ((0, 0), (pad_len_y, pad_len_y), (pad_len_x, pad_len_x))
-        big_cube = np.pad(cube, pad_width, pad_mode, constant_values=0)
+        big_cube = np.pad(cube, pad_width, pad_mode)
     else:
         big_cube = cube.copy()
 

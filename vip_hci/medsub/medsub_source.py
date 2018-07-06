@@ -70,13 +70,13 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
         upper intervals for the threshold (grows as a function of the
         separation).
     mode : {'fullfr', 'annular'}, str optional
-        In "simple" mode only the median frame is subtracted, in "annular" mode
-        also the 4 closest frames given a PA threshold (annulus-wise) are 
+        In ``fullfr`` mode only the median frame is subtracted, in ``annular``
+        mode also the 4 closest frames given a PA threshold (annulus-wise) are 
         subtracted.
     nframes : int or None, optional
         Number of frames (even value) to be used for building the optimized
-        reference PSF when working in annular mode. None by default, which means
-        that all frames, excluding the thresholded ones, are used.
+        reference PSF when working in ``annular`` mode. None by default, which
+        means that all frames, excluding the thresholded ones, are used.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional

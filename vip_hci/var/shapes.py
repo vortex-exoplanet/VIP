@@ -164,6 +164,11 @@ def frame_center(array, verbose=False):
         2d or 3d array.
     verbose : bool optional
         If True the center coordinates are printed out.
+
+    Returns
+    -------
+    y, x : float
+        coordinates of the frame center.
     """
     if array.ndim == 2:
         cy = array.shape[0]/2 - 0.5
@@ -249,7 +254,7 @@ def get_square(array, size, y, x, position=False, force=False):
 
 
 def get_circle(array, radius, output_values=False, cy=None, cx=None):
-    """Returns a centered circular region from a 2d ndarray. All the rest
+    """Returns a centered circular region from a 2d ndarray. All the outer
     pixels are set to zeros.
 
     Parameters

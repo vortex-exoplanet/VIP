@@ -228,9 +228,9 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         value (half-to-even, financial rounding) as defined in IEEE-754
         standard.
         """
-        return np.trunc(x+np.copysign(0.5, x))
+        return np.trunc(x + np.copysign(0.5, x))
     
-    #---------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     
     if array.ndim != 2:
         raise TypeError("Input array is not a frame or 2d array.")

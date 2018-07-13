@@ -60,7 +60,7 @@ def fitaffine(x, y, debug=False):
         print("FITAFFINE: first guess LS: {} + {} x".format(a_ls, b_ls))
 
     # chi-square to choose the first iteration step:
-    chisq = np.sum((y - (a_ls - b_ls*x))**2)
+    chisq = np.sum((y - (a_ls + b_ls*x))**2)
     sigb = np.sqrt(chisq/delta)
 
     # guessed bracket at 3 sigma for b:

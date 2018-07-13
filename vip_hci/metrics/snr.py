@@ -86,7 +86,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     
     if source_mask is None:
         pool = Pool(processes=nproc)                                        
-        res = pool.map(EFT, zip(itt.repeat(func),itt.repeat(array), coords,
+        res = pool.map(EFT, zip(itt.repeat(func), itt.repeat(array), coords,
                                 itt.repeat(fwhm), itt.repeat(True)))
         res = np.array(res)
         pool.close()

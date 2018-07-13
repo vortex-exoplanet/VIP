@@ -1,5 +1,5 @@
 """
-robust linear fitting.
+Robust linear fitting.
 """
 from __future__ import division, print_function
 
@@ -12,36 +12,46 @@ import numpy as np
 
 def fitaffine(x, y, debug=False):
     """
+    Optimize affine equation ``y=bx+a`` in a robust way.
+
     This procedure calculates the best parameters ``a`` and ``b`` that optimize
     the affine equation ``y=bx+a`` in a robust way from a set of point
     ``(xi, yi)``.
-    
+
 
     Parameters
     ----------
     x,y : 1d array_like
-        The data to be fitted in a robust affine optimisation.
+        The data to be fitted in a robust affine optimisation. Note the
+        "reversed" order of the parameters, compared to the IDL implementation
+        (see notes).
     debug : bool, optional
         Show debug output.
-    
+
     Returns
     -------
     b,a : floats
         parameters which satisfy ``y = bx + a``.
         ``b`` corresponds to ``gamma`` in ANDROMEDA, ``a`` is ``gamma_prime``.
-    
+
     Notes
     -----
     - ported and adapted from ``LibAndromeda/fitaffine.pro`` v1.1 2016/02/16
     - IDL version adapted from "Numerical Recipies (3rd, 2007)", p.818
-    - pay attention to the order of the parameters. The IDL version is not clear
-      about it's ``DATA`` parameter (difference in docs/code/example)
     - the ``abdev`` return value was removed, as not used in ANDROMEDA.
-    
-    
-    """
 
-    ndata = len(x)
+    Pay attention to the order of the parameters!
+
+    .. code:: IDL
+
+        FITAFFINE, DATA_INPUT=[[y],[x]], GAMMA_OUTPUT=g1
+
+    .. code:: python
+
+        g1 = fitaffine(x, y)
+
+    """
+    ndata, *_ = x.shape
 
     if debug:
         print("FITAFFINE: ***next dataset***")
@@ -68,7 +78,6 @@ def fitaffine(x, y, debug=False):
     b = b_ls
     b1 = b_ls
     f1, a = rofunc(x=x, y=y, b=b1)
-
     if debug:
         print("FITAFFINE: entering iteration loop")
 
@@ -81,9 +90,6 @@ def fitaffine(x, y, debug=False):
         f2, a = rofunc(x, y, b=b2)
 
         # bracketing
-        if debug:
-            print("FITAFFINE: performing bracketing")
-
         while f1*f2 > 0:
             b = b2 + 1.6*(b2-b1)
             b1 = b2
@@ -92,9 +98,6 @@ def fitaffine(x, y, debug=False):
             f2, a = rofunc(x, y, b=b2)
 
         # bisection:
-        if debug:
-            print("FITAFFINE: performing bisection")
-
         sigb = 0.01*sigb
         while np.abs(b2-b1) > sigb:
             b = b1 + 0.5*(b2-b1)
@@ -104,7 +107,7 @@ def fitaffine(x, y, debug=False):
                 b1 = b
             else:
                 f2 = f
-                b2 = b   
+                b2 = b
 
     if debug:
         print("FITAFFINE: *end of iterative loop*")
@@ -113,21 +116,16 @@ def fitaffine(x, y, debug=False):
     return b, a
 
 
-
-
-
-
 def rofunc(x, y, b):
     """
-    Computes the affine parameter for robust affine fit.
+    Compute the affine parameter for robust affine fit.
 
-    This function calculates the parameter ``a`` for a given value of ``b`` 
+    This function calculates the parameter ``a`` for a given value of ``b``
     that solves the equation ``0 = Sum_i (Xi * SIGN(Yi-a-b*Xi))`` where
     ``Xi`` is the points-set to be fitted by the point set ``Yi`` following
     ``Y=A+BX``. This function takes place in the framework of a robust affine
     fit.
 
-    
     Parameters
     ----------
     x : array_like
@@ -138,23 +136,22 @@ def rofunc(x, y, b):
         in IDL: DATA_INPUT[1]
     b : float
         The known value ``b`` to calculate ``a``.
-    
+
     Returns
     -------
     sum_result : float
     a : float
         The computed value of ``a``
-    
+
     Notes
     -----
     - ported from LibAndromeda/rofunc.pro v1.1 2016/02/18
     - removed ``abdev`` variable, which is not useful here.
     - IDL version adapted from Numerical Recipies 3rd edition (2007) - p.818
- 
-    """
 
+    """
     epsilon = 1e-5  # convergence criteria
-    
+
     arr = y - b*x
     a = np.median(arr)
 
@@ -170,5 +167,3 @@ def rofunc(x, y, b):
                 sum_result -= x[j]
 
     return sum_result, a
-
-

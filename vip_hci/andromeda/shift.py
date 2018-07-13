@@ -12,7 +12,7 @@ import numpy as np
 
 def calc_psf_shift_subpix(psf, precision):
     """
-    Computes a stack of subpixel-shifted versions of the PSF.
+    Compute a stack of subpixel-shifted versions of the PSF.
 
     Parameters
     ----------
@@ -43,9 +43,10 @@ def calc_psf_shift_subpix(psf, precision):
     based on ``LibAndromeda/oneralib/calc_psf_shift_subpix.pro``,
     v1.2 2010/05/27
 
+    The IDL version has an optional keyword ``INTERP_INPUT``, which is not used
+    in andromeda. It was not implemented.
 
     """
-
     n = psf.shape[0]
     psf_cube = np.zeros((precision+1, precision+1, n, n))
 
@@ -81,7 +82,6 @@ def subpixel_shift(image, xshift, yshift):
     based on ``LibAndromeda/oneralib/subpixel_shift.pro``, v1.3 2009/05/28
 
     """
-
     npix = image.shape[0]
 
     if npix != image.shape[1]:

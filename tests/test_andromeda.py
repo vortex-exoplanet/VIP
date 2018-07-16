@@ -35,9 +35,6 @@ def aarc(actual, desired, rtol=1e-5, atol=1e-6):
     np.testing.assert_allclose(actual, desired, rtol=rtol, atol=atol)
 
 
-# ===== load data from IDL
-
-
 def load_dataset():
     url_prefix = ("https://github.com/carlgogo/vip-tutorial/raw/"
                   "ced844dc807d3a21620fe017db116d62fbeaaa4a")
@@ -72,8 +69,45 @@ def load_dataset():
     return data
 
 
-IDL_DATA = np.load(os.path.join(os.path.dirname(__file__), "andromeda_idl.npz"))
-DATACUBE = load_dataset()
+def generate_test_data():
+    """
+    Run IDL ANDROMEDA and create ``andromeda_idl.npz``.
+    """
+    global DATACUBE
+
+    from idlpy import IDL as idl
+
+    idl.cube = DATACUBE.cube
+    idl.angles = DATACUBE.angles
+    idl.psf = DATACUBE.psf
+
+    idl.run("andromeda_contrast_1 = ANDROMEDA("
+            "IMAGES_1_INPUT=cube,"
+            "ANGLES_INPUT=angles,"
+            "PSF_PLANET_INPUT=psf,"
+            "OVERSAMPLING_1_INPUT=1,"
+            "FILTERING_FRACTION_INPUT=1,"  # turn off high pass
+            "MINIMUM_SEPARATION_INPUT=0.3,"
+            "OPT_METHOD_ANG_INPUT=1,"  # no optimization
+            "NSMOOTH_SNR_INPUT=0,"  # turn off smoothing
+            "/HOMOGENEOUS_VARIANCE_INPUT,"
+            ""  # output:
+            "SNR_OUTPUT=andromeda_snr_1,"
+            "SNR_NORM_OUTPUT=andromeda_snr_norm_1,"
+            "LIKELIHOOD_OUTPUT=andromeda_likelihood_1,"
+            "STDDEVCONTRAST_OUTPUT=andromeda_stddevcontrast_1,"
+            "STDDEVCONTRAST_NORM_OUTPUT=andromeda_stddevcontrast_norm_1,"
+            "EXT_RADIUS_OUTPUT=andromeda_ext_radius_1)")
+
+    OUT = {}
+    OUT["andromeda_contrast_1"] = idl.andromeda_contrast_1
+    OUT["andromeda_snr_1"] = idl.andromeda_snr_1
+    OUT["andromeda_snr_norm_1"] = idl.andromeda_snr_norm_1
+    OUT["andromeda_likelihood_1"] = idl.andromeda_likelihood_1
+    OUT["andromeda_stdcontrast_1"] = idl.andromeda_stddevcontrast_1
+    OUT["andromeda_stdcontrast_norm_1"] = idl.andromeda_stddevcontrast_norm_1
+
+    np.savez_compressed(os.path.join(CURRDIR, "andromeda_idl.npz"), **OUT)
 
 
 # ===== tests
@@ -107,3 +141,14 @@ def test_andromeda():
     aarc(stdcontrast, IDL_DATA["andromeda_stdcontrast_1"])
     aarc(stdcontrast_norm, IDL_DATA["andromeda_stdcontrast_norm_1"])
     aarc(likelihood, IDL_DATA["andromeda_likelihood_1"], atol=1e-4)
+
+
+CURRDIR = os.path.dirname(__file__)
+
+try:
+    IDL_DATA = np.load(os.path.join(CURRDIR, "andromeda_idl.npz"))
+except FileNotFoundError:
+    print("Could not load andromeda_idl.npz. Try running generate_test_data() "
+          "to create it.")
+
+DATACUBE = load_dataset()

@@ -22,8 +22,6 @@ import numpy as np
 class HCIPostProcAlgo(BaseEstimator):
     """ Base HCI post-processing algorithm class.
     """
-    THRESHOLDS_5 = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
-    THRESHOLDS_1 = np.linspace(0.1, 0.99, 10).tolist()
     def print_parameters(self):
         """ Printing out the parameters of the algorithm.
         """
@@ -166,8 +164,6 @@ class HCIMedianSub(HCIPostProcAlgo):
         self.store_args(locals())
         if verbose:
             self.print_parameters()
-
-        self.thresholds = self.THRESHOLDS_5  # [0.5 - 5], for SNR maps
 
     def run(self, dataset=None, full_output=False, nproc=1, verbose=True):
         """ Running the HCI median subtraction algorithm for model PSF

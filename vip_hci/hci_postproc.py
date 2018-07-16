@@ -51,7 +51,7 @@ class HCIPostProcAlgo(BaseEstimator):
 
         return dataset
 
-    def get_probmap(self):
+    def get_detection_map(self):
         """
         used in ``EvalRoc.postprocess()``. Overwritten by methods which directly
         output a probability map, like Andromeda.

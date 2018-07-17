@@ -315,18 +315,18 @@ class HCIPca(HCIPostProcAlgo):
         creates/sets the ``self.frame_final`` attribute, and depending on the
         parameters:
 
-            3D case:
-                cube_reconstructed
-                cube_residuals
-                cube_residuals_der
-            3D case, source_xy is not None:
-                pcs
-            4D case, adimsdi="double":
-                cube_residuals_per_channel
-                cube_residuals_per_channel_der
-            4D case, adimsdi="single":
-                cube_residuals
-                cube_residuals_resc
+        3D case:
+            - cube_reconstructed
+            - cube_residuals
+            - cube_residuals_der
+        3D case, source_xy is not None:
+            - pcs
+        4D case, adimsdi="double":
+            - cube_residuals_per_channel
+            - cube_residuals_per_channel_der
+        4D case, adimsdi="single":
+            - cube_residuals
+            - cube_residuals_resc
 
         Parameters
         ----------

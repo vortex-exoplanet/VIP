@@ -13,6 +13,7 @@ multi-spectral cubes.
    | *The Astrophysical Journal, Volume 641, Issue 1, pp. 556-564*
    | `https://arxiv.org/abs/astro-ph/0512335
      <https://arxiv.org/abs/astro-ph/0512335>`_
+
 """
 
 from __future__ import division, print_function
@@ -102,16 +103,6 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
         The cube of residuals.
     cube_der : array_like, 3d
         The derotated cube of residuals.
-
-    References
-    ----------
-    .. [MAR06]
-       | Marois et al. 2006
-       | **Angular Differential Imaging: A Powerful High-Contrast Imaging
-         Technique**
-       | *The Astrophysical Journal, Volume 641, Issue 1, pp. 556-564*
-       | `https://arxiv.org/abs/astro-ph/0512335
-         <https://arxiv.org/abs/astro-ph/0512335>`_
 
     """
     global ARRAY

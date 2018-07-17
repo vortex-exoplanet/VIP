@@ -53,7 +53,14 @@ class Ds9Window(object):
         Parameters
         ----------
         value : str, optional
-            Value to be passed to the cmap command. Syntax:
+            Value to be passed to the cmap command.
+
+        Notes
+        -----
+        syntax:
+
+        .. code-block:: none
+
             cmap [<colormap>]
                  [file]
                  [load <filename>]
@@ -208,7 +215,14 @@ class Ds9Window(object):
         Parameters
         ----------
         value : str, optional
-            Controls the scaling. Syntax:
+            Controls the scaling.
+
+        Notes
+        -----
+        Syntax:
+
+        .. code-block:: none
+
             scale [linear|log|pow|sqrt|squared|asinh|sinh|histequ]
                   [log exp <value>]
                   [datasec yes|no]
@@ -240,7 +254,14 @@ class Ds9Window(object):
         Parameters
         ----------
         mode : str, optional
-            The mode used for tiling the frames. Syntax:
+            The mode used for tiling the frames.
+
+        Notes
+        -----
+        Syntax:
+
+        .. code-block:: none
+
             tile []
                  [yes|no]
                  [mode grid|column|row]
@@ -277,8 +298,15 @@ class Ds9Window(object):
 
         Parameters
         ----------
-        value : str or
-            Parameters of the zoom command. Syntax:
+        value : str or int
+            Parameters of the zoom command.
+
+        Notes
+        -----
+        syntax:
+
+        .. code-block:: none
+
             zoom [<value>]
                  [<value> <value>]
                  [to <value>]

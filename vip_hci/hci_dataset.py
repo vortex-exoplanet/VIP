@@ -123,8 +123,8 @@ class HCIFrame:
     def plot(self, **kwargs):
         """ Plotting the 2d array.
 
-        Parameters in **kwargs
-        ----------------------
+        Parameters
+        ----------
         angscale : bool
             If True, the axes are displayed in angular scale (arcsecs).
         angticksep : int
@@ -174,8 +174,8 @@ class HCIFrame:
         log : bool
             Log colorscale.
         maxplots : int
-            When the input (*args) is a 3d array, maxplots sets the number of
-            cube slices to be displayed.
+            When the input (``*args``) is a 3d array, maxplots sets the number
+            of cube slices to be displayed.
         pxscale : float
             Pixel scale in arcseconds/px. Default 0.01 for Keck/NIRC2.
         rows : int
@@ -917,9 +917,6 @@ class HCIDataset:
         ----------
         wavelength : int, optional
             Index of the wavelength to be analyzed in the case of a 4d cube.
-
-        Parameters in **kwargs
-        ----------------------
         angscale : bool
             If True, the axes are displayed in angular scale (arcsecs).
         angticksep : int
@@ -969,8 +966,8 @@ class HCIDataset:
         log : bool
             Log colorscale.
         maxplots : int
-            When the input (*args) is a 3d array, maxplots sets the number of
-            cube slices to be displayed.
+            When the input (``*args``) is a 3d array, maxplots sets the number
+            of cube slices to be displayed.
         pxscale : float
             Pixel scale in arcseconds/px. Default 0.01 for Keck/NIRC2.
         rows : int

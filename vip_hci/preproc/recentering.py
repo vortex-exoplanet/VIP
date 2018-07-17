@@ -201,33 +201,60 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
         If True debug information is printed and plotted.
     verbose : bool, optional
         If True the intersection and shifts information is printed out.
-    
+
     Returns
     -------
-    shifty, shiftx 
+    array_rec
+        Shifted images. *Only returned if ``shift=True``.*
+    shifty, shiftx
         Shift Y,X to get to the true center.
-    If shift is True then the shifted image is returned along with the shifts.
-    
+
     Notes
     -----
     linear system:
-    A1 * x + B1 * y = C1
-    A2 * x + B2 * y = C2
-    
+
+    .. code-block: none
+
+        A1 * x + B1 * y = C1
+        A2 * x + B2 * y = C2
+
     Cramer's rule - solution can be found in determinants:
-    x = Dx/D
-    y = Dy/D
-    where D is main determinant of the system:  A1 B1
-                                                A2 B2
-    and Dx and Dy can be found from matrices:  C1 B1
-                                               C2 B2
-    and  A1 C1
-         A2 C2
+
+    .. code-block: none
+
+        x = Dx/D
+        y = Dy/D
+
+    where D is main determinant of the system:
+    
+    .. code-block: none
+
+        A1 B1
+        A2 B2
+
+    and Dx and Dy can be found from matrices:
+
+    .. code-block: none
+
+        C1 B1
+        C2 B2
+                                               
+    and
+
+    .. code-block: none
+
+        A1 C1
+        A2 C2
+         
     C column consequently substitutes the coef. columns of x and y
 
     L stores our coefs A, B, C of the line equations.
-    For D: L1[0] L1[1]   for Dx: L1[2] L1[1]   for Dy: L1[0] L1[2]
-           L2[0] L2[1]           L2[2] L2[1]           L2[0] L2[2]
+
+    .. code-block: none
+
+        For D: L1[0] L1[1]   for Dx: L1[2] L1[1]   for Dy: L1[0] L1[2]
+               L2[0] L2[1]           L2[2] L2[1]           L2[0] L2[2]
+
     """
     def line(p1, p2):
         """ produces coefs A, B, C of line equation by 2 points

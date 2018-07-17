@@ -166,7 +166,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     btw_order : int, optional
         Order of low-pass 2d Butterworth filter used in ``fourier-butter`` mode.
     hann_cutoff : float
-        Frequency cutoff for the ``hann``mode.
+        Frequency cutoff for the ``hann`` mode.
     
     Returns
     -------

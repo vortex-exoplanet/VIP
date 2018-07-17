@@ -89,8 +89,7 @@ The benefits of using a Python package manager (distribution), such as
 (ana)conda or Canopy, are many. Mainly, it brings easy and robust package
 management and avoids messing up with your system's default python. An
 alternative is to use package managers like apt-get for Ubuntu or
-Homebrew/MacPorts/Fink for macOS. I personally recommend using Miniconda which
-you can find here: https://conda.io/miniconda.html.
+Homebrew/MacPorts/Fink for macOS. I personally recommend using `Miniconda <https://conda.io/miniconda>`_.
 
 ``VIP`` depends on existing packages from the Python ecosystem, such as
 ``numpy``, ``scipy``, ``matplotlib``, ``pandas``, ``astropy``, ``scikit-learn``,

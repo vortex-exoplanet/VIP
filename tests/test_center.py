@@ -193,7 +193,7 @@ def test_2d(debug=False):
                                         stddev=1)
 
         method_args = dict(fwhm=1, subi_size=5, model=model, verbose=False,
-                           negative=False, full_output=True)
+                           negative=False, full_output=True, plot=False)
         do_recenter(method, cube, randax, randay,
                     errormsg=errormsg.format(name), debug=debug, **method_args)
 
@@ -202,7 +202,7 @@ def test_2d(debug=False):
                                         stddev=1)
 
         method_args = dict(fwhm=1, subi_size=6, model=model, verbose=False,
-                           negative=False, full_output=True)
+                           negative=False, full_output=True, plot=False)
         do_recenter(method, cube, randax, randay,
                     errormsg=errormsg.format(name), debug=debug, **method_args)
 
@@ -211,7 +211,7 @@ def test_2d(debug=False):
                                              stddev_outer=3, stddev_inner=2)
 
         method_args = dict(fwhm=1, subi_size=5, model=model, verbose=False,
-                           negative=True, full_output=True)
+                           negative=True, full_output=True, plot=False)
         do_recenter(method, cube, randax, randay,
                     errormsg=errormsg.format(name), debug=debug, **method_args)
 
@@ -220,7 +220,7 @@ def test_2d(debug=False):
                                              stddev_outer=3, stddev_inner=2)
 
         method_args = dict(fwhm=1, subi_size=6, model=model, verbose=False,
-                           negative=True, full_output=True)
+                           negative=True, full_output=True, plot=False)
         do_recenter(method, cube, randax, randay,
                     errormsg=errormsg.format(name), debug=debug, **method_args)
 
@@ -231,7 +231,7 @@ def test_dft(debug=False):
         html("<h2>===== test_dft =====</h2>")
 
     method = cube_recenter_dft_upsampling
-    method_args_additional = dict(verbose=True, full_output=True)
+    method_args_additional = dict(verbose=True, full_output=True, plot=False)
     errormsg = 'Error when recentering with DFT upsampling method'
     n_frames = 6
 
@@ -315,7 +315,7 @@ def test_dft_image(debug=False):
 
     #===== recenter
     method_args = dict(cy_1=51, cx_1=51, subi_size=None, verbose=True,
-                       negative=True, full_output=True)
+                       negative=True, full_output=True, plot=False)
     do_recenter(method, cube, randax, randay, errormsg=errormsg,
                 mse_skip_first=True, debug=debug, **method_args)
 

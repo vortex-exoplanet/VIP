@@ -6,7 +6,7 @@ Module with the HCI<post-processing algorithms> classes.
 
 from __future__ import division, print_function
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
+__author__ = 'Carlos Alberto Gomez Gonzalez, Ralf Farkas'
 __all__ = ['HCIMedianSub',
            'HCIPca']
 
@@ -16,6 +16,7 @@ from .medsub import median_sub
 from .metrics import snrmap_fast, snrmap
 from .pca import pca
 import pickle
+import numpy as np
 
 
 class HCIPostProcAlgo(BaseEstimator):
@@ -27,6 +28,35 @@ class HCIPostProcAlgo(BaseEstimator):
         dicpar = self.get_params()
         for key in dicpar.keys():
             print("{}: {}".format(key, dicpar[key]))
+
+    def store_args(self, kwargs, *skip):
+        # TODO: this could be integrated with sklearn's BaseEstimator methods
+        for k in kwargs:
+            if k == "self" or k in skip:
+                continue
+            setattr(self, k, kwargs[k])
+
+
+    def _get_dataset(self, dataset=None, verbose=True):
+        if dataset is None:
+            dataset = self.dataset
+            if self.dataset is None:
+                raise ValueError("no dataset specified!")
+        else:
+            self.dataset = dataset # needed for snr map generation
+            if verbose:
+                #print("self.dataset overwritten with the one you provided.")
+                # -> debug
+                pass
+
+        return dataset
+
+    def get_detection_map(self):
+        """
+        used in ``EvalRoc.postprocess()``. Overwritten by methods which directly
+        output a probability map, like Andromeda.
+        """
+        return self.snr_map
 
     def make_snr_map(self, method='fast', mode='sss', nproc=1, verbose=True):
         """
@@ -68,6 +98,17 @@ class HCIPostProcAlgo(BaseEstimator):
         #     out = pickle.load(open(filename, "rb"), encoding='latin1')
         #     return out
 
+    def run(self, dataset=None, full_output=False, nproc=1, verbose=True):
+        """
+        Runs the algorithm. Should set and return `` self.frame_final``.
+
+        Notes
+        -----
+        This is the required signature of the ``run`` call. Child classes can add their
+        own keyword arguments after ``verbose`` (e.g. ``debug``) if needed.
+
+        """
+        raise NotImplementedError
 
 class HCIMedianSub(HCIPostProcAlgo):
     """ HCI median subtraction algorithm.
@@ -103,10 +144,8 @@ class HCIMedianSub(HCIPostProcAlgo):
         slowest and accurate. 'lanczos4' is the default.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
-    nproc : None or int, optional
-        Number of processes for parallel computing. If None the number of
-        processes will be set to cpu_count()/2. By default the algorithm works
-        in single-process mode.
+    verbose : bool, optional
+        Show more output.
 
     Notes
     -----
@@ -116,27 +155,17 @@ class HCIMedianSub(HCIPostProcAlgo):
     """
     def __init__(self, dataset=None, mode='fullfr', radius_int=0, asize=1,
                  delta_rot=1, delta_sep=(0.2, 1), nframes=4, imlib='opencv',
-                 interpolation='lanczos4', collapse='median', nproc=1,
+                 interpolation='lanczos4', collapse='median',
                  verbose=True):
         """ """
         if not isinstance(dataset, (HCIDataset, type(None))):
             raise ValueError('`dataset` must be a HCIDataset object or None')
-        self.dataset = dataset
-        self.mode = mode
-        self.radius_int = radius_int
-        self.asize = asize
-        self.delta_rot = delta_rot
-        self.deta_sep = delta_sep
-        self.nframes = nframes
-        self.imlib = imlib
-        self.interpolation = interpolation
-        self.collapse = collapse
-        self.nproc = nproc
 
+        self.store_args(locals())
         if verbose:
             self.print_parameters()
 
-    def run(self, dataset=None, full_output=False, verbose=True):
+    def run(self, dataset=None, full_output=False, nproc=1, verbose=True):
         """ Running the HCI median subtraction algorithm for model PSF
         subtraction.
 
@@ -147,18 +176,15 @@ class HCIMedianSub(HCIPostProcAlgo):
         full_output: bool, optional
             Whether to return the final median combined image only or with other
             intermediate arrays.
+        nproc : int, optional
+            Number of processes for parallel computing. Defaults to single-core
+            processing.
         verbose : bool, optional
             If True prints to stdout intermediate info.
 
         """
 
-        if dataset is None:
-            dataset = self.dataset
-            if self.dataset is None:
-                raise ValueError("No dataset specified")
-        else:
-            self.dataset = dataset
-            print("self.dataset overwritten with the one you provided.")
+        dataset = self._get_dataset(dataset, verbose)
 
         if self.mode == 'annular' and dataset.fwhm is None:
             raise ValueError('`fwhm` has not been set')
@@ -167,18 +193,14 @@ class HCIMedianSub(HCIPostProcAlgo):
                          dataset.fwhm, self.radius_int, self.asize,
                          self.delta_rot, self.delta_sep, self.mode,
                          self.nframes, self.imlib, self.interpolation,
-                         self.collapse, self.nproc, full_output, verbose)
+                         self.collapse, nproc, full_output, verbose)
 
         if full_output:
-            cube_residuals, cube_residuals_der, frame_final = res
-            self.cube_residuals = cube_residuals
-            self.cube_residuals_der = cube_residuals_der
-            self.frame_final = frame_final
-            return cube_residuals, cube_residuals_der, frame_final
+            self.cube_residuals, self.cube_residuals_der, self.frame_final = res
+            return self.cube_residuals, self.cube_residuals_der, self.frame_final
         else:
-            frame_final = res
-            self.frame_final = frame_final
-            return frame_final
+            self.frame_final = res
+            return self.frame_final
 
 
 class HCIPca(HCIPostProcAlgo):
@@ -293,18 +315,18 @@ class HCIPca(HCIPostProcAlgo):
         creates/sets the ``self.frame_final`` attribute, and depending on the
         parameters:
 
-            3D case:
-                cube_reconstructed
-                cube_residuals
-                cube_residuals_der
-            3D case, source_xy is not None:
-                pcs
-            4D case, adimsdi="double":
-                cube_residuals_per_channel
-                cube_residuals_per_channel_der
-            4D case, adimsdi="single":
-                cube_residuals
-                cube_residuals_resc
+        3D case:
+            - cube_reconstructed
+            - cube_residuals
+            - cube_residuals_der
+        3D case, source_xy is not None:
+            - pcs
+        4D case, adimsdi="double":
+            - cube_residuals_per_channel
+            - cube_residuals_per_channel_der
+        4D case, adimsdi="single":
+            - cube_residuals
+            - cube_residuals_resc
 
         Parameters
         ----------

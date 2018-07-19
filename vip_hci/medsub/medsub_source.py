@@ -13,6 +13,7 @@ multi-spectral cubes.
    | *The Astrophysical Journal, Volume 641, Issue 1, pp. 556-564*
    | `https://arxiv.org/abs/astro-ph/0512335
      <https://arxiv.org/abs/astro-ph/0512335>`_
+
 """
 
 from __future__ import division, print_function
@@ -70,13 +71,13 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
         upper intervals for the threshold (grows as a function of the
         separation).
     mode : {'fullfr', 'annular'}, str optional
-        In "simple" mode only the median frame is subtracted, in "annular" mode
-        also the 4 closest frames given a PA threshold (annulus-wise) are 
+        In ``fullfr`` mode only the median frame is subtracted, in ``annular``
+        mode also the 4 closest frames given a PA threshold (annulus-wise) are 
         subtracted.
     nframes : int or None, optional
         Number of frames (even value) to be used for building the optimized
-        reference PSF when working in annular mode. None by default, which means
-        that all frames, excluding the thresholded ones, are used.
+        reference PSF when working in ``annular`` mode. None by default, which
+        means that all frames, excluding the thresholded ones, are used.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
@@ -102,16 +103,6 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
         The cube of residuals.
     cube_der : array_like, 3d
         The derotated cube of residuals.
-
-    References
-    ----------
-    .. [MAR06]
-       | Marois et al. 2006
-       | **Angular Differential Imaging: A Powerful High-Contrast Imaging
-         Technique**
-       | *The Astrophysical Journal, Volume 641, Issue 1, pp. 556-564*
-       | `https://arxiv.org/abs/astro-ph/0512335
-         <https://arxiv.org/abs/astro-ph/0512335>`_
 
     """
     global ARRAY

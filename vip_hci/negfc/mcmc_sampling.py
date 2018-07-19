@@ -328,7 +328,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         niteration_supp=0, check_maxgap=1e4, nproc=1,
                         output_file=None, display=False, verbosity=0,
                         save=False):
-    """ Runs an affine invariant mcmc sampling algorithm in order to determine
+    r""" Runs an affine invariant mcmc sampling algorithm in order to determine
     the position and the flux of the planet using the 'Negative Fake Companion'
     technique. The result of this procedure is a chain with the samples from the
     posterior distributions of each of the 3 parameters.
@@ -341,7 +341,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     3) We extract the intensity values of all the pixels contained in a
     circular aperture centered on the initial guess.
     4) We calculate the function of merit. The associated chi^2 is given by
-    chi^2 = sum(|I_j|) where j \in {1,...,N} with N the total number of pixels
+    chi^2 = sum(\|I_j\|) where j \in {1,...,N} with N the total number of pixels
     contained in the circular aperture.
     The steps 1) to 4) are looped. At each iteration, the candidate model
     parameters are defined by the emcee Affine Invariant algorithm.
@@ -432,7 +432,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         
     Notes
     -----
-    The parameter 'a' must be > 1. For more theoretical information concerning
+    The parameter ``a`` must be > 1. For more theoretical information concerning
     this parameter, see Goodman & Weare, 2010, Comm. App. Math. Comp. Sci.,
     5, 65, Eq. [9] p70.
     

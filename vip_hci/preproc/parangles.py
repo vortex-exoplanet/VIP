@@ -82,70 +82,75 @@ def compute_paral_angles(header, latitude, ra_key, dec_key, lst_key,
 
 
 def compute_derot_angles_pa(objname_tmp_A, digit_format=3, objname_tmp_B='',
-                            inpath='./', writing=False, outpath='./', 
+                            inpath='./', writing=False, outpath='./',
                             list_obj=None, 
                             PosAng_st_key='HIERARCH ESO ADA POSANG',
-                            PosAng_nd_key='HIERARCH ESO ADA POSANG END', 
+                            PosAng_nd_key='HIERARCH ESO ADA POSANG END',
                             verbose=False):
     """
-    Function that returns a numpy vector of angles to derotate datacubes so as 
-    to match North up, East left, based on the mean of the Position Angle at 
+    Function that returns a numpy vector of angles to derotate datacubes so as
+    to match North up, East left, based on the mean of the Position Angle at
     the beginning and the end of the exposure.
-    => It is twice more precise than function derot_angles_CD (there can be 
-    >1deg difference in the resulting angle vector returned for fast rotators 
+    => It is twice more precise than function derot_angles_CD (there can be
+    >1deg difference in the resulting angle vector returned for fast rotators
     with long exposures!), but it requires:
-    1) a header keyword for both the position angle at start and end of exposure
-    2) no skewness of the frames
+
+    1. a header keyword for both the position angle at start and end of exposure
+    2. no skewness of the frames
 
     The output is in appropriate format for the pca algorithm in the sense that:
-    1) all angles of the output are in degrees
-    2) all angles of the ouput  are positive
-    3) there is no jump of more than 180 deg between consecutive values (e.g. no
-    jump like [350deg,355deg,0deg,5deg] 
-    => replaced by [350deg,355deg,360deg,365deg])
+
+    1. all angles of the output are in degrees
+    2. all angles of the ouput  are positive
+    3. there is no jump of more than 180 deg between consecutive values (e.g. no
+       jump like [350deg,355deg,0deg,5deg] => replaced by
+       [350deg,355deg,360deg,365deg])
 
     Parameters
     ----------
     objname_tmp_A: string
         Contains the common name of the cubes BEFORE the digits
     digit_format: int, optional
-        Number of digits in the name of the cube. The digits are supposed to be 
+        Number of digits in the name of the cube. The digits are supposed to be
         the only changing part in the name of one cube to another.
     objname_tmp_B: string, optional
         Contains the name of the cubes AFTER the digits
     inpath: string, optional
         Contains the full path of the directory with the data
-    writing: bool, optional {False,True}, optional
+    writing: bool, optional
         True if you want to write the derotation angles in a txt file.
     outpath: string, optional
-        Contains the full path of the directory where you want the txt file to 
+        Contains the full path of the directory where you want the txt file to
         be saved.
     list_obj: integer list or 1-D array, optional
         List of the digits corresponding to the cubes to be considered.
-        If not provided, the function will consider automatically all the cubes 
-        with objname_tmp_A+digit+objname_tmp_B+'.fits' name structure in the 
+        If not provided, the function will consider automatically all the cubes
+        with objname_tmp_A+digit+objname_tmp_B+'.fits' name structure in the
         provided "inpath".
     PosAng_st_key, PosAng_nd_key: strings, optional
-        Name of the keywords to be looked up in the header, to provide the PA 
+        Name of the keywords to be looked up in the header, to provide the PA
         from North at start and end of integration.
-    verbose: bool, {False,True}, optional
+    verbose: bool, optional
         True if you want more info to be printed.
 
-    Example:
-    -------
-    If your cubes are: '/home/foo/out_cube_obj_HK_025_000_sorted.fits',
-                       '/home/foo/out_cube_obj_HK_025_001_sorted.fits',
-                       '/home/foo/out_cube_obj_HK_025_002_sorted.fits', etc,
+    Examples
+    --------
+    If your cubes are: ``/home/foo/out_cube_obj_HK_025_000_sorted.fits``,
+    ``/home/foo/out_cube_obj_HK_025_001_sorted.fits``,
+    ``/home/foo/out_cube_obj_HK_025_002_sorted.fits``, etc,
     the first arguments should be:
-                       objname_tmp_A = 'out_cube_obj_HK_025_'
-                       digit_format = 3
-                       objname_tmp_B = '_sorted'
-                       inpath = '/home/foo/'
+
+    .. code-block:: python
+
+        objname_tmp_A = 'out_cube_obj_HK_025_'
+        digit_format = 3
+        objname_tmp_B = '_sorted'
+        inpath = '/home/foo/'
 
     Returns
-    ------_
+    -------
     angle_list: 1-D array_like
-        vector of angles corresponding to the angular difference between the 
+        vector of angles corresponding to the angular difference between the
         positive y axis and the North in the image.
         sign convention: positive angles in anti-clockwise direction.
         Opposite values are applied when rotating the image to match North up.
@@ -207,16 +212,18 @@ def compute_derot_angles_cd(objname_tmp_A, digit_format=3, objname_tmp_B='',
     to match North up, East left, based on the CD matrix information contained
     in the header.
     In case the PosAng keyword is present in the header and there is no skewness
-    between x and y axes, favor the use of function compute_derot_angles_PA 
+    between x and y axes, favor the use of function compute_derot_angles_PA
     (more precise as it averages for the middle of the exposure).
     The output is in appropriate format for the pca algorithm in the sense that:
-    1) all angles of the output are in degrees
-    2) all angles of the ouput  are positive
-    3) there is no jump of more than 180 deg between consecutive values (e.g. no
-    jump like [350deg,355deg,0deg,5deg] 
-    => replaced by [350deg,355deg,360deg,365deg])
-    Parameters:
-    -----------
+
+    1. all angles of the output are in degrees
+    2. all angles of the ouput  are positive
+    3. there is no jump of more than 180 deg between consecutive values (e.g. no
+       jump like [350deg,355deg,0deg,5deg] => replaced by
+       [350deg,355deg,360deg,365deg])
+
+    Parameters
+    ----------
     objname_tmp_A: string
         Contains the common name of the cubes BEFORE the digits
     digit_format: int, optional
@@ -226,12 +233,12 @@ def compute_derot_angles_cd(objname_tmp_A, digit_format=3, objname_tmp_B='',
         Contains the name of the cubes AFTER the digits
     inpath: string, optional
         Contains the full path of the directory with the data
-    skew: bool, {False,True}, optional
+    skew: bool, optional
         True if you know there is a different rotation between y- and x- axes. 
         The code also detects automatically if there is >1deg skew between y and
         x axes. In case of skewing, 2 vectors of derotation angles are returned:
         one for x and one for y, instead of only one vector.
-    writing: bool, {False,True}, optional
+    writing: bool, optional
         True if you want to write the derotation angles in a txt file.
     outpath: string, opt
         Contains the full path of the directory where you want the txt file to 
@@ -243,34 +250,43 @@ def compute_derot_angles_cd(objname_tmp_A, digit_format=3, objname_tmp_B='',
         provided "inpath".
     cd11_key,cd12_key,cd21_key,cd22_key: strings, optional
         Name of the keywords to be looked up in the header, to provide the:
+
         - partial of first axis coordinate w.r.t. x   (cd11_key)
         - partial of first axis coordinate w.r.t. y   (cd12_key)
         - partial of second axis coordinate w.r.t. x  (cd21_key)
         - partial of second axis coordinate w.r.t. y  (cd22_key)
+
         Default values are the ones in the headers of ESO or HST fits files.
         For more information, go to:
         http://www.stsci.edu/hst/HST_overview/documents/multidrizzle/ch44.html
-    verbose: boolean, {False,True}, optional
+    verbose: bool, optional
         True if you want more info to be printed.
-    Example:
-    -------
-    If your cubes are: '/home/foo/out_cube_obj_HK_025_000_sorted.fits',
-                       '/home/foo/out_cube_obj_HK_025_001_sorted.fits',
-                       '/home/foo/out_cube_obj_HK_025_002_sorted.fits', etc,
+
+
+    Examples
+    --------
+    If your cubes are: ``/home/foo/out_cube_obj_HK_025_000_sorted.fits``,
+    ``/home/foo/out_cube_obj_HK_025_001_sorted.fits``,
+    ``/home/foo/out_cube_obj_HK_025_002_sorted.fits``, etc,
     the first arguments should be:
-                       objname_tmp_A = 'out_cube_obj_HK_025_'
-                       digit_format = 3
-                       objname_tmp_B = '_sorted'
-                       inpath = '/home/foo/'
-    Return:
+
+    .. code:: python
+
+        objname_tmp_A = 'out_cube_obj_HK_025_'
+        digit_format = 3
+        objname_tmp_B = '_sorted'
+        inpath = '/home/foo/'
+
+    Returns
     -------
     angle_list: 1-D array_like
-        vector of angles corresponding to the angular difference between the 
+        vector of angles corresponding to the angular difference between the
         positive y axis and the North in the image.
         sign convention: positive angles in anti-clockwise direction.
         Opposite values are applied when rotating the image to match North up.
-    Note: if skew is set to True, there are 2 angle_list vectors returned; the
-        first to rotate the x-axis and the second for the y-axis.
+        **Note:** if skew is set to True, there are 2 angle_list vectors
+        returned; the first to rotate the x-axis and the second for the y-axis.
+
     """
 
     cd1_1 = []
@@ -353,11 +369,12 @@ def compute_derot_angles_cd(objname_tmp_A, digit_format=3, objname_tmp_B='',
 def check_pa_vector(angle_list, unit='deg'):
     """ Checks if the angle list has the right format to avoid any bug in the 
     pca-adi algorithm. The right format complies to 3 criteria:
-       1) angles are expressed in degree
-       2) the angles are positive
-       3) there is no jump of more than 180 deg between consecutive values (e.g.
-       no jump like [350deg,355deg,0deg,5deg] => replaced by 
-       [350deg,355deg,360deg,365deg])
+
+    1. angles are expressed in degree
+    2. the angles are positive
+    3. there is no jump of more than 180 deg between consecutive values (e.g.
+        no jump like [350deg,355deg,0deg,5deg] => replaced by
+        [350deg,355deg,360deg,365deg])
        
     Parameters
     ----------

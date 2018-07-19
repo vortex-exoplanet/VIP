@@ -20,8 +20,7 @@ __all__ = ['dist',
            'create_ringed_spider_mask',
            'matrix_scaling',
            'prepare_matrix',
-           'reshape_matrix',
-           'get_indices_annulus']
+           'reshape_matrix']
 
 import numpy as np
 from skimage.draw import polygon
@@ -164,6 +163,11 @@ def frame_center(array, verbose=False):
         2d or 3d array.
     verbose : bool optional
         If True the center coordinates are printed out.
+
+    Returns
+    -------
+    y, x : float
+        coordinates of the frame center.
     """
     if array.ndim == 2:
         cy = array.shape[0]/2 - 0.5
@@ -249,7 +253,7 @@ def get_square(array, size, y, x, position=False, force=False):
 
 
 def get_circle(array, radius, output_values=False, cy=None, cx=None):
-    """Returns a centered circular region from a 2d ndarray. All the rest
+    """Returns a centered circular region from a 2d ndarray. All the outer
     pixels are set to zeros.
 
     Parameters
@@ -356,15 +360,15 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
         return array_masked
 
 
-def get_annulus_segments(array, inner_radius, width, nsegm=1, theta_init=0,
+def get_annulus_segments(input, inner_radius, width, nsegm=1, theta_init=0,
                          optim_scale_fact=1, output_values=False):
     """ Returns indices or values in segments of a centerered annulus from a
     2d ndarray.
 
     Parameters
     ----------
-    array : array_like
-        Input 2d array or image.
+    input : array_like or tuple
+        Input 2d array (image) ot tuple with its shape.
     inner_radius : float
         The inner radius of the donut region.
     width : float
@@ -388,8 +392,13 @@ def get_annulus_segments(array, inner_radius, width, nsegm=1, theta_init=0,
     If output_values is True the pixel values are returned instead.
 
     """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array')
+    if isinstance(input, np.ndarray):
+        array = input
+        if array.ndim != 2:
+            raise TypeError('Input array is not a frame or 2d array')
+    elif isinstance(input, tuple):
+        array = np.zeros(input)
+
     if not isinstance(nsegm, int):
         raise TypeError('`nsegm` must be an integer')
 
@@ -721,40 +730,5 @@ def reshape_matrix(array, y, x):
     return array.reshape(array.shape[0], y, x)
 
 
-def get_indices_annulus(shape, inrad, outrad, mask=None, maskrad=None,
-                        verbose=False):
-    """ mask is a list of tuples X,Y
-    # TODO: documentation
-    """
-    framemp = np.zeros(shape)
-    if mask is not None:
-        if not isinstance(mask, list):
-            raise TypeError('Mask should be a list of tuples')
-        if maskrad is None:
-            raise ValueError('Fwhm not given')
-        for xy in mask:
-            # patch_size/2 diameter aperture
-            cir = circle(xy[1], xy[0], maskrad, shape)
-            framemp[cir] = 1
-
-    annulus_width = outrad - inrad
-    cy, cx = frame_center(framemp)
-    yy, xx = np.mgrid[:framemp.shape[0], :framemp.shape[1]]
-    circ = np.sqrt((xx - cx)**2 + (yy - cy)**2)
-    donut_mask = (circ <= (inrad + annulus_width)) & (circ >= inrad)
-    y, x = np.where(donut_mask)
-    if mask is not None:
-        npix = y.shape[0]
-        ymask, xmask = np.where(framemp)    # masked pixels where == 1
-        inds = []
-        for i, tup in enumerate(zip(y, x)):
-            if tup in zip(ymask, xmask):
-                inds.append(i)
-        y = np.delete(y, inds)
-        x = np.delete(x, inds)
-
-    if verbose:
-        print(y.shape[0], 'pixels in annulus')
-    return y, x
 
 

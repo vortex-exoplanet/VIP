@@ -78,11 +78,9 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
 
     if window is None:
         window = n//3
-    mean_smooth = pn.rolling_median(mean_values, window , center=True)
-    temp = pn.Series(mean_smooth)
-    temp = temp.fillna(method='backfill')
-    temp = temp.fillna(method='ffill')
-    mean_smooth = temp.values
+    mean_smooth = pn.Series(mean_values).rolling(window, center=True).mean()
+    mean_smooth = mean_smooth.fillna(method='backfill')
+    mean_smooth = mean_smooth.fillna(method='ffill')
     sigma = np.std(mean_values)
     bad_index_list = []
     good_index_list = []

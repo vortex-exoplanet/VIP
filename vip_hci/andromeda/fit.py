@@ -26,7 +26,7 @@ def fitaffine(x, y, debug=False):
     
     Returns
     -------
-    b,a : float
+    b,a : floats
         parameters which satisfy ``y = bx + a``.
         ``b`` corresponds to ``gamma`` in ANDROMEDA, ``a`` is ``gamma_prime``.
     

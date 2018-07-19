@@ -48,8 +48,8 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         Dictionary containing the fits header.
     """
     fitsfilename = str(fitsfilename)
-    if not fitsfilename.endswith('.fits'):
-        fitsfilename = fitsfilename+'.fits'
+    if not os.path.isfile(fitsfilename):
+        fitsfilename += '.fits'
 
     with ap_fits.open(fitsfilename, memmap=True,
                       ignore_missing_end=ignore_missing_end) as hdulist:

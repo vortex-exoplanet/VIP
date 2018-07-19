@@ -115,15 +115,15 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         For ADI PCA, this triggers a frame rejection in the PCA library. 
         source_xy are the coordinates X,Y of the center of the annulus where the
         PA criterion will be used to reject frames from the library. 
+    delta_rot : int, optional
+        Factor for tunning the parallactic angle threshold, expressed in FWHM.
+        Default is 1 (excludes 1xFHWM on each side of the considered frame).
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Default value is 4.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    delta_rot : int, optional
-        Factor for tunning the parallactic angle threshold, expressed in FWHM.
-        Default is 1 (excludes 1xFHWM on each side of the considered frame).
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     check_mem : bool, optional
@@ -137,7 +137,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         (e.g. SINFONI).
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
-        processes will be set to (cpu_count()/2).
+        processes will be set to (cpu_count()/2). Defaults to ``nproc=1``.
     full_output: bool, optional
         Whether to return the final median combined image only or with other 
         intermediate arrays.  
@@ -293,6 +293,11 @@ def _adi_pca(cube, angle_list, ncomp, source_xy, delta_rot, fwhm, scaling,
              mask_center_px, debug, svd_mode, imlib, interpolation, collapse,
              verbose, start_time, full_output):
     """ Handles the ADI PCA post-processing.
+
+
+    Returns
+    -------
+    recon_cube, residuals_cube, residuals_cube_, frame
     """
     n, y, x = cube.shape
 

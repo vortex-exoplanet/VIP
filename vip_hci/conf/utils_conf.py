@@ -31,26 +31,28 @@ class Progressbar(object):
 
     Examples
     --------
-    from vip_hci.var import Progressbar
-    Progressbar.backend = "tqdm"
+    .. code:: python
 
-    from time import sleep
+        from vip_hci.var import Progressbar
+        Progressbar.backend = "tqdm"
 
-    for i in Progressbar(range(50)):
-        sleep(0.02)
+        from time import sleep
 
-    # or:
+        for i in Progressbar(range(50)):
+            sleep(0.02)
 
-    bar = Progressbar(total=50):
-    for i in range(50):
-        sleep(0.02)
-        bar.update()
+        # or:
 
-    # Progressbar can be disabled globally using
-    Progressbar.backend = "hide"
+        bar = Progressbar(total=50):
+        for i in range(50):
+            sleep(0.02)
+            bar.update()
 
-    # or locally using the ``verbose`` keyword:
-    Progressbar(iterable, verbose=False)
+        # Progressbar can be disabled globally using
+        Progressbar.backend = "hide"
+
+        # or locally using the ``verbose`` keyword:
+        Progressbar(iterable, verbose=False)
 
     Notes
     -----

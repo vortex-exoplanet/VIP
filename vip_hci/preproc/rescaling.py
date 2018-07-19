@@ -172,8 +172,8 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
     >= 1 (ie. provide the scaling factors as for scaling to the longest
     wavelength channel).
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     cube: 3D-array
        Datacube that whose frames have to be rescaled.
     scal_list: 1D-array
@@ -219,8 +219,8 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
         of the vector along the axis. The first values are used to pad the end
         and the end values are used to pad the beginning.
 
-    Returns:
-    --------
+    Returns
+    -------
     frame: 2D-array
         The median of the rescaled cube.
     If full_output is set to True, the function returns:
@@ -242,7 +242,7 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
         pad_len_y = (new_y - y) // 2
         pad_len_x = (new_x - x) // 2
         pad_width = ((0, 0), (pad_len_y, pad_len_y), (pad_len_x, pad_len_x))
-        big_cube = np.pad(cube, pad_width, pad_mode, constant_values=0)
+        big_cube = np.pad(cube, pad_width, pad_mode)
     else:
         big_cube = cube.copy()
 
@@ -437,13 +437,13 @@ def check_scal_vector(scal_vec):
     factors should be >= 1 (i.e. the scaling should be done wrt the longest
     wavelength of the cube).
 
-    Parameter:
+    Parameters
     ----------
     scal_vec: 1d array or list
         Vector with the wavelengths.
 
-    Returns:
-    --------
+    Returns
+    -------
     scal_vec: array_like, 1d 
         Vector containing the scaling factors (after correction to comply with
         the condition >= 1).

@@ -1,4 +1,4 @@
-"""
+r"""
 Subpackge ``negfc`` contains an ensemble of algorithms for planet position and
 flux estimation. It works with as an optimization procedure using a Simplex
 approach or coupled with Monte Carlo methods for posterior sampling. Thanks to
@@ -12,7 +12,7 @@ The main idea of the NegFC is to inject negative fake companions (candidates)
 with varying position and flux in order to minimize (in the case of the Simplex)
 a function of merit. This function of merit is defined as:
 
-$chi^2 = sum(|I_j|)$,
+$chi^2 = sum(\|I_j\|)$,
 
 where $j \in {1,...,N}$ and $N$ the total number of pixels contained in a
 circular aperture (4xfwhm) centered on the injection position. This $chi^2$ is

@@ -63,12 +63,13 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         start_time = time_ini()
     if array.ndim != 2:
         raise TypeError('Input array is not a 2d array or image.')
-    if plot:  plt.close('snr')
-        
+    if plot:
+        plt.close('snr')
+
     sizey, sizex = array.shape
     snrmap = np.zeros_like(array)
     width = min(sizey, sizex) / 2 - 1.5 * fwhm
-    mask = get_annulus(array, (fwhm / 2) + 1, width)
+    mask = get_annulus(array, (fwhm / 2) + 2, width)
     mask = np.ma.make_mask(mask)
     yy, xx = np.where(mask)
     coords = zip(xx, yy)
@@ -85,7 +86,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     
     if source_mask is None:
         pool = Pool(processes=nproc)                                        
-        res = pool.map(EFT, zip(itt.repeat(func),itt.repeat(array), coords,
+        res = pool.map(EFT, zip(itt.repeat(func), itt.repeat(array), coords,
                                 itt.repeat(fwhm), itt.repeat(True)))
         res = np.array(res)
         pool.close()
@@ -150,9 +151,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
                                  coor_ann, itt.repeat(fwhm), itt.repeat(True)))
         res = np.array(res)
         pool2.close()
-        yy = res[:,0]
-        xx = res[:,1]
-        snr = res[:,2]
+        yy = res[:, 0]
+        xx = res[:, 1]
+        snr = res[:, 2]
         snrmap[yy.astype('int'), xx.astype('int')] = snr
     
     if plot:  
@@ -176,7 +177,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     
     Parameters
     ----------
-    array : array_like
+    array : 2d array_like
         Input frame.
     fwhm : float
         Size in pixels of the FWHM.

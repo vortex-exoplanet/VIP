@@ -19,7 +19,21 @@ from matplotlib.pyplot import (figure, subplot, show, colorbar, axes, Circle,
                                savefig, close)
 import matplotlib.colors as colors
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.cm import register_cmap
 from .shapes import frame_center
+
+
+# Registering heat and cool colormaps from DS9
+# taken from: https://gist.github.com/adonath/c9a97d2f2d964ae7b9eb
+ds9cool = {'red': lambda v: 2 * v - 1,
+           'green': lambda v: 2 * v - 0.5,
+           'blue': lambda v: 2 * v}
+ds9heat = {'red': lambda v: np.interp(v, [0, 0.34, 1], [0, 1, 1]),
+           'green': lambda v: np.interp(v, [0, 1], [0, 1]),
+           'blue': lambda v: np.interp(v, [0, 0.65, 0.98, 1], [0, 0, 1, 1])}
+register_cmap('ds9cool', data=ds9cool)
+register_cmap('ds9heat', data=ds9heat)
+vip_default_cmap = 'viridis'
 
 
 def save_animation(data, anim_path=None, data_step_range=None, label=None,
@@ -120,9 +134,6 @@ def pp_subplots(*data, **kwargs):
     ----------
     data : list
         List of 2d arrays or a single 3d array to be plotted.
-
-    Parameters in **kwargs
-    ----------------------
     angscale : bool
         If True, the axes are displayed in angular scale (arcsecs).
     angticksep : int
@@ -177,7 +188,7 @@ def pp_subplots(*data, **kwargs):
     log : bool
         Log colorscale.
     maxplots : int
-        When the input (*args) is a 3d array, maxplots sets the number of
+        When the input (``*args``) is a 3d array, maxplots sets the number of
         cube slices to be displayed.
     pxscale : float
         Pixel scale in arcseconds/px. Default 0.01 for Keck/NIRC2.
@@ -360,7 +371,6 @@ def pp_subplots(*data, **kwargs):
 
     save = kwargs.get("save", False)
 
-    # Defaults previously used: 'magma','CMRmap','RdBu_r'
     if 'cmap' in kwargs:
         custom_cmap = kwargs['cmap']
         if not isinstance(custom_cmap, list):
@@ -369,7 +379,7 @@ def pp_subplots(*data, **kwargs):
             if not len(custom_cmap) == num_plots:
                 raise RuntimeError('Cmap list does not have enough items')
     else:
-        custom_cmap = ['viridis'] * num_plots
+        custom_cmap = [vip_default_cmap] * num_plots
 
     logscale = kwargs.get('log', False)
     colorb = kwargs.get('colorb', True)

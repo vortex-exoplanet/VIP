@@ -15,8 +15,10 @@ from scipy import signal
 from ..preproc import cube_derotate
 from ..var import frame_center
 
-def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv', \
-                interpolation='lanczos4',cxy=None, nproc=1, border_mode='constant'):
+
+def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
+                         interpolation='lanczos4', cxy=None, nproc=1,
+                         border_mode='constant'):
     """ Rotates an ADI cube to a common north given a vector with the 
     corresponding parallactic angles for each frame of the sequence. By default
     bicubic interpolation is used (opencv). 
@@ -53,6 +55,17 @@ def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv', \
     fakedisk_cube : array_like
         Resulting cube with the fake disc inserted at the correct angles and 
         convolved with the psf if a psf was provided.
+
+    Notes
+    -----
+    import numpy as np
+
+    fakedisk = np.zeros((200,200))
+    fakedisk[:,99:101] = 1
+    angle_list = np.arange(10)
+    c = create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
+                             interpolation='lanczos4',cxy=None, nproc=1,
+                             border_mode='constant')
     """
     if not fakedisk.ndim == 2:
         raise TypeError('Fakedisk is not a frame or a 2d array.')
@@ -60,10 +73,10 @@ def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv', \
         raise TypeError('Input parallactic angle is not a 1d array')
     nframes=len(angle_list)
     ny, nx = fakedisk.shape
-    fakedisk_cube = np.repeat(fakedisk[ np.newaxis,:,:], nframes, axis=0)
-    fakedisk_cube = cube_derotate(fakedisk_cube, angle_list, imlib=imlib, \
-                        interpolation=interpolation,\
-                        cxy=cxy, nproc=nproc, border_mode=border_mode)
+    fakedisk_cube = np.repeat(fakedisk[np.newaxis,:,:], nframes, axis=0)
+    fakedisk_cube = cube_derotate(fakedisk_cube, angle_list, imlib=imlib,
+                                  interpolation=interpolation, cxy=cxy,
+                                  nproc=nproc, border_mode=border_mode)
 
     if psf is not None:
         if isinstance(psf,np.ndarray):
@@ -89,13 +102,3 @@ def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv', \
     return fakedisk_cube
 
 
-#import numpy as np
-#import vip_hci as vip
-#import pyds9
-#ds9=pyds9.DS9()
-#fakedisk = np.zeros((200,200))
-#fakedisk[:,99:101]=1
-#ds9.set_np2arr(fakedisk)
-#angle_list = np.arange(10)
-#c= vip.metrics.fakedisk.create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv', \
-#                interpolation='lanczos4',cxy=None, nproc=1, border_mode='constant')

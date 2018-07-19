@@ -29,7 +29,11 @@ def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
         Input image of a fake disc
     angle_list : list
         Vector containing the parallactic angles.
-    psf :
+    psf : (optionnal) the PSF to convolve the disk image with. It can be a
+        small numpy.ndarray (we advise to use odd sizes to make sure the center
+        s not shifted through the convolution). It forces normalization of the 
+        PSF to preserve the flux. It can also be a float representing
+        the FWHM of the gaussian to be used for convolution.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
@@ -75,12 +79,24 @@ def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
                                   nproc=nproc, border_mode=border_mode)
 
     if psf is not None:
-        if not psf.ndim == 2:
-            raise TypeError('Input PSF is not a frame or 2d array.')
-        if np.abs(np.sum(psf)-1) > 1e-4:
-            print('Warning the PSF is not normalized to a total of 1.')
-            print('Normalization was forced.')
+        if isinstance(psf,np.ndarray):
+            if not psf.ndim == 2:
+                raise TypeError('Input PSF is not a frame or 2d array.')
+            if np.abs(np.sum(psf)-1) > 1e-4:
+                print('Warning the PSF is not normalized to a total of 1. Normalization was forced.')
+                psf = psf/np.sum(psf)
+        elif isinstance(psf,(int, float)):
+            # assumes psf is equal to the FWHM of the PSF. We create a synthetic PSF in that case 
+            # with a size of 2 times the FWHM.
+            psf_size = 2*int(np.round(psf))+1 # to make sure this is odd.            
+            xarrray, yarray = np.meshgrid(np.arange(-(psf_size//2),psf_size//2+1),\
+                                          np.arange(-(psf_size//2),psf_size//2+1))
+            d = np.sqrt(xarrray**2+yarray**2)
+            sigma = psf/(2*np.sqrt(2*np.log(2)))
+            psf = np.exp(-(d**2 / (2.0*sigma**2)))
             psf = psf/np.sum(psf)
+        else:
+            raise TypeError('The type of the psf is unknown. create_fakedisk_cube accepts ndarray, int or float.')
         for i in range(nframes):
             fakedisk_cube[i,:,:] = signal.convolve2d(fakedisk_cube[i,:,:],psf,mode='same')             
     return fakedisk_cube

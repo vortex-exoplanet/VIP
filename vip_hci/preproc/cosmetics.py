@@ -57,21 +57,23 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
         if array.shape[2] % 2 == 0:    # assuming square frames
             if size % 2 != 0:
                 size += 1
-                print('`Size` is odd (while frame size is even). Setting `size`'
-                      ' to {} pixels'.format(size))
+                if verbose:
+                    print('`Size` is odd (while frame size is even). Setting '
+                          '`size` to {} pixels'.format(size))
         else:
             if size % 2 == 0:
                 size += 1
-                print('`Size` is even (while frame size is odd). Setting `size`'
-                      ' to {} pixels'.format(size))
+                if verbose:
+                    print('`Size` is even (while frame size is odd). Setting '
+                          '`size` to {} pixels'.format(size))
     else:
-        if array.shape[2] % 2 == 0: # assuming square frames, both 3d or 4d case
-            if size % 2 != 0:
+        if array.shape[2] % 2 == 0:  # assuming square frs, both 3d or 4d case
+            if size % 2 != 0 and verbose:
                 msg = "Warning: the new size is odd and the original frame "
                 msg += " size is even. Make sure you are setting properly `xy`"
                 print(msg)
         else:
-            if size % 2 == 0:
+            if size % 2 == 0 and verbose:
                 msg = "Warning: the new size is even and the original frame "
                 msg += " size is odd. Make sure you are setting properly `xy`"
                 print(msg)

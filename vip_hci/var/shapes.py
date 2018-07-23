@@ -360,14 +360,14 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
         return array_masked
 
 
-def get_annulus_segments(input, inner_radius, width, nsegm=1, theta_init=0,
+def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
                          optim_scale_fact=1, output_values=False):
     """ Returns indices or values in segments of a centerered annulus from a
     2d ndarray.
 
     Parameters
     ----------
-    input : array_like or tuple
+    data : array_like or tuple
         Input 2d array (image) ot tuple with its shape.
     inner_radius : float
         The inner radius of the donut region.
@@ -392,12 +392,14 @@ def get_annulus_segments(input, inner_radius, width, nsegm=1, theta_init=0,
     If output_values is True the pixel values are returned instead.
 
     """
-    if isinstance(input, np.ndarray):
-        array = input
+    if isinstance(data, np.ndarray):
+        array = data
         if array.ndim != 2:
-            raise TypeError('Input array is not a frame or 2d array')
-    elif isinstance(input, tuple):
-        array = np.zeros(input)
+            raise TypeError('`data` is not a frame or 2d array')
+    elif isinstance(data, tuple):
+        array = np.zeros(data)
+    else:
+        raise TypeError('`data` must be a tuple (shape) or a 2d array')
 
     if not isinstance(nsegm, int):
         raise TypeError('`nsegm` must be an integer')

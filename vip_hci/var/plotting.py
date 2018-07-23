@@ -153,6 +153,8 @@ def pp_subplots(*data, **kwargs):
         subplots.
     circlealpha : float or list of floats
         Alpha transparencey for each circle.
+    circlecolor : str
+        Color or circle(s). White by default.
     circlelabel : bool
         Whether to show the coordinates of each circle.
     circlerad : int
@@ -208,12 +210,41 @@ def pp_subplots(*data, **kwargs):
         Vertical gap between subplots.
 
     """
-    parlist = ['angscale', 'angticksep', 'arrow', 'arrowalpha', 'arrowlength',
-               'arrowshiftx', 'axis', 'circle', 'circlealpha', 'circlerad',
-               'circlelabel', 'cmap', 'colorb', 'cross', 'crossalpha', 'dpi',
-               'getfig', 'grid', 'gridalpha', 'gridcolor', 'gridspacing',
-               'horsp', 'label', 'labelpad', 'labelsize', 'log', 'maxplots',
-               'pxscale', 'rows', 'save', 'showcent', 'title', 'vmax', 'vmin',
+    parlist = ['angscale',
+               'angticksep',
+               'arrow',
+               'arrowalpha',
+               'arrowlength',
+               'arrowshiftx',
+               'axis',
+               'circle',
+               'circlealpha',
+               'circlecolor',
+               'circlerad',
+               'circlelabel',
+               'cmap',
+               'colorb',
+               'cross',
+               'crossalpha',
+               'dpi',
+               'getfig',
+               'grid',
+               'gridalpha',
+               'gridcolor',
+               'gridspacing',
+               'horsp',
+               'label',
+               'labelpad',
+               'labelsize',
+               'log',
+               'maxplots',
+               'pxscale',
+               'rows',
+               'save',
+               'showcent',
+               'title',
+               'vmax',
+               'vmin',
                'versp']
 
     for key in kwargs.keys():
@@ -270,6 +301,11 @@ def pp_subplots(*data, **kwargs):
     else:
         if show_circle:
             circle_rad = [6] * n_circ
+
+    if 'circlecolor' in kwargs:
+        circle_col = kwargs['circlecolor']
+    else:
+        circle_col = 'white'
 
     if 'circlealpha' in kwargs:
         circle_alpha = kwargs['circlealpha']
@@ -430,7 +466,7 @@ def pp_subplots(*data, **kwargs):
         if show_circle:
             for j in range(n_circ):
                 circle = Circle(coor_circle[j], radius=circle_rad[j],
-                                color='white', fill=False,
+                                color=circle_col, fill=False, lw=2,
                                 alpha=circle_alpha[j])
                 ax.add_artist(circle)
                 if circle_label:

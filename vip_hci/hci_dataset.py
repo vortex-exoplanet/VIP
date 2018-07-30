@@ -454,7 +454,7 @@ class HCIFrame(object):
         _ = frame_quick_report(self.image, self.fwhm, source_xy, verbose)
 
 
-class HCIDataset(object):
+class HCIDataset(Saveable):
     """ High-contrast imaging dataset class.
 
     Parameters
@@ -482,6 +482,10 @@ class HCIDataset(object):
     cuberef : str or numpy array
         3d or 4d high-contrast image sequence. To be used as a reference cube.
     """
+
+    _saved_attributes = ["cube", "psf", "psfn", "angles", "fwhm", "wavelengths",
+                         "px_scale"]
+
     def __init__(self, cube, hdu=0, angles=None, wavelengths=None, fwhm=None,
                  px_scale=None, psf=None, psfn=None, cuberef=None):
         """ Initialization of the HCIDataset object.

@@ -59,8 +59,8 @@ class Saveable(object):
                     if not isinstance(getattr(self, a), np.ndarray):
                         data["_item_{}".format(a)] = True
 
-                np.savez_compressed(filename, **data, _vip_version=__version__,
-                                    _vip_object=vip_object)
+                np.savez_compressed(filename, _vip_version=__version__,
+                                    _vip_object=vip_object, **data)
 
         else:
             raise RuntimeError("_saved_attributes not found for class {}"

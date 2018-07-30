@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 """
 Module with various fits handling functions.
 """
@@ -20,24 +18,27 @@ import numpy as np
 from astropy.io import fits as ap_fits
 
 
-def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
-              precision=np.float32, verbose=True):
+def open_fits(fitsfilename, n=0, header=False, slice=None,
+              ignore_missing_end=False, precision=np.float32, verbose=True):
     """Loads a fits file into a memory as numpy array.
     
     Parameters
     ----------
     fitsfilename : string or pathlib.Path
         Name of the fits file or ``pathlib.Path`` object
-    n : int
+    n : int or str
         It chooses which HDU to open. Default is the first one.
     header : bool, optional
         Whether to return the header along with the data or not.
+    slice : lambda function or None, optional
+        Lambda function which returns the desired slice of the data (see
+        examples).
     precision : numpy dtype
         Float precision, by default np.float32 or single precision float.
     ignore_missing_end : {False, True}, bool optional
         Allows to open fits files with a header missing END card.
     verbose : bool, optional
-        If True prints message of completion.
+        If True prints message of completion and information on the data shape.
     
     Returns
     -------
@@ -46,6 +47,22 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     If header is True:
     header : dict
         Dictionary containing the fits header.
+
+
+    Examples
+    --------
+
+    .. code::python
+
+        fits_filename = "my.fits"
+
+        # HDU 0 contains a 4D image of shape (2, 2, 64, 64), e.g. two channels,
+        # each with two frames of 64x64 pixels. We want the first frame of the
+        # first channel:
+
+        data, header = open_fits(fits_filename, slice=lambda a: a[0,0])
+
+        
     """
     fitsfilename = str(fitsfilename)
     if not os.path.isfile(fitsfilename):
@@ -56,16 +73,23 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         data = hdulist[n].data
         data = np.array(data, dtype=precision)
 
+        if slice is None:
+            shape_info = data.shape
+        else:
+            shape_before_slice = data.shape
+            data = slice(data)
+            shape_info = "{} -> {}".format(shape_before_slice, data.shape)
+
         if header:
-            header = hdulist[0].header
+            header = hdulist[n].header
             if verbose:
                 print("Fits HDU-{} data and header successfully loaded. "
-                      "Data shape: {}".format(n, data.shape))
+                      "Data shape: {}".format(n, shape_info))
             return data, header
         else:
             if verbose:
                 print("Fits HDU-{} data successfully loaded. "
-                      "Data shape: {}".format(n, data.shape))
+                      "Data shape: {}".format(n, shape_info))
             return data
 
 
@@ -108,7 +132,9 @@ def open_adicube(fitsfilename, verbose=True):
 
 
 def byteswap_array(array):
-    """ FITS files are stored in big-endian byte order. All modern CPUs are 
+    """ Byte-swaps a numpy array, so it is stored in native byte order.
+
+    FITS files are stored in big-endian byte order. All modern CPUs are 
     little-endian byte order, so at some point you have to byteswap the data. 
     Some FITS readers (cfitsio, the fitsio python module) do the byteswap when 
     reading the data from disk to memory, so we get numpy arrays in native 

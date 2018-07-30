@@ -6,11 +6,15 @@ Module with HCIDataset and HCIFrame classes.
 
 from __future__ import division, print_function
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
+__author__ = 'Carlos Alberto Gomez Gonzalez, Ralf Farkas'
 __all__ = ['HCIDataset',
            'HCIFrame']
 
+import os
+import datetime
+
 import numpy as np
+from astropy.io import fits as ap_fits
 from .fits import open_fits, write_fits, append_extension
 from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
                       frame_shift, frame_center_satspots, frame_center_radon)
@@ -28,7 +32,8 @@ from .stats import (frame_basic_stats, frame_histo_stats,
 from .metrics import (frame_quick_report, cube_inject_companions, snr_ss,
                       snr_peakstddev, snrmap, snrmap_fast, detection,
                       normalize_psf)
-from .conf.utils_conf import check_array
+from .conf.utils_conf import check_array, print_precision
+from vip_hci import __version__ as vip_version
 
 
 class HCIFrame(object):
@@ -464,7 +469,8 @@ class HCIDataset(object):
         interpreted as the path of the FITS file containing the sequence.
     hdu : int, optional
         If ``cube`` is a String, ``hdu`` indicates the HDU from the FITS file.
-        By default the first HDU is used.
+        By default the first HDU is used. ``hdu`` is used for both ``cube``
+        and ``cuberef``.
     angles : list or numpy array, optional
         The vector of parallactic angles.
     wavelengths : list or numpy array, optional
@@ -481,6 +487,23 @@ class HCIDataset(object):
         this dataset.
     cuberef : str or numpy array
         3d or 4d high-contrast image sequence. To be used as a reference cube.
+
+    Attributes
+    ----------
+    cube : 3d or 4d ndarray
+    cuberef : 3d or 4d ndarray, or None
+    psf : 2d or 3d ndarray, or None
+    psfn : 2d or 3d ndarray, or None
+    fwhm : float or 1d ndarray, or None
+    n: int
+        Number of frames in cube.
+    x, y : int
+    w : int
+        Size of the zeroth dimension of a 4D cube. ``0`` for 3D cubes.
+    angles : 1d ndarray
+    wavelengths : 1d ndarray or None
+    px_scale: float or None
+
     """
     def __init__(self, cube, hdu=0, angles=None, wavelengths=None, fwhm=None,
                  px_scale=None, psf=None, psfn=None, cuberef=None):
@@ -488,7 +511,16 @@ class HCIDataset(object):
         """
         # Loading the 3d/4d cube or image sequence
         if isinstance(cube, str):
-            self.cube = open_fits(cube, hdu, verbose=False)
+            self.cube, self.cube_fits_header = open_fits(cube, hdu, header=True,
+                                                         verbose=False)
+
+            if ("VIP-VERS" in self.cube_fits_header
+                or "VIP-ATTR" in self.cube_fits_header):
+                print("This is a multi-HDU FITS file created by VIP. You "
+                      "probably want to use `HCIDataset.load()` instead.")
+
+        elif isinstance(cube, tuple):
+            self.cube, self.cube_fits_header = cube
         elif isinstance(cube, np.ndarray):
             if not (cube.ndim == 3 or cube.ndim == 4):
                 raise ValueError('`Cube` array has wrong dimensions')
@@ -498,12 +530,17 @@ class HCIDataset(object):
         print('Cube array shape: {}'.format(self.cube.shape))
         if self.cube.ndim == 3:
             self.n, self.y, self.x = self.cube.shape
+            self.w = 0
         elif self.cube.ndim == 4:
             self.w, self.n, self.y, self.x = self.cube.shape
 
         # Loading the reference cube
         if isinstance(cuberef, str):
-            self.cuberef = open_fits(cuberef, hdu, verbose=False)
+            self.cuberef, self.cuberef_fits_header = open_fits(cuberef, hdu,
+                                                               header=True,
+                                                               verbose=False)
+        elif isinstance(cuberef, tuple):
+            self.cuberef, self.cuberef_fits_header = cuberef
         elif isinstance(cuberef, np.ndarray):
             msg = '`Cuberef` array has wrong dimensions'
             if not cuberef.ndim == 3:
@@ -525,7 +562,11 @@ class HCIDataset(object):
 
         # Loading the angles (ADI)
         if isinstance(angles, str):
-            self.angles = open_fits(angles, verbose=False)
+            self.angles, self.angles_fits_header = open_fits(angles,
+                                                             header=True,
+                                                             verbose=False)
+        elif isinstance(angles, tuple):
+            self.angles, self.angles_fits_header = angles
         else:
             self.angles = angles
         if self.angles is not None:
@@ -538,7 +579,10 @@ class HCIDataset(object):
 
         # Loading the scaling factors (mSDI)
         if isinstance(wavelengths, str):
-            self.wavelengths = open_fits(wavelengths, verbose=False)
+            self.wavelengths, self.wavelengths_fits_header = open_fits(
+                                        wavelengths, header=True, verbose=False)
+        elif isinstance(wavelengths, tuple):
+            self.wavelengths, self.wavelengths_fits_header = wavelengths
         else:
             self.wavelengths = wavelengths
         if self.wavelengths is not None:
@@ -551,7 +595,10 @@ class HCIDataset(object):
 
         # Loading the PSF
         if isinstance(psf, str):
-            self.psf = open_fits(psf, verbose=False)
+            self.psf, self.psf_fits_header = open_fits(psf, header=True,
+                                                       verbose=False)
+        elif isinstance(psf, tuple):
+            self.psf, self.psf_fits_header = psf
         else:
             self.psf = psf
         if self.psf is not None:
@@ -564,7 +611,10 @@ class HCIDataset(object):
 
         # Loading the normalized PSF
         if isinstance(psfn, str):
-            self.psfn = open_fits(psfn, verbose=False)
+            self.psfn, self.psfn_fits_header = open_fits(psfn, header=True,
+                                                         verbose=False)
+        elif isinstance(psfn, tuple):
+            self.psfn, self.psfn_fits_header = psfn
         else:
             self.psfn = psfn
         if self.psfn is not None:
@@ -800,7 +850,7 @@ class HCIDataset(object):
         ----------
         angles : str or 1d numpy.ndarray
             List or vector with the parallactic angles.
-        hdu : int, optional
+        hdu : int or str, optional
             If ``angles`` is a String, ``hdu`` indicates the HDU from the FITS
             file. By default the first HDU is used.
         """
@@ -820,7 +870,7 @@ class HCIDataset(object):
         ----------
         wavelengths : str or 1d numpy.ndarray
             List or vector with the wavelengths.
-        hdu : int, optional
+        hdu : int or str, optional
             If ``wavelengths`` is a String, ``hdu`` indicates the HDU from the
             FITS file. By default the first HDU is used.
 
@@ -908,7 +958,8 @@ class HCIDataset(object):
         self.psfn, self.aperture_flux, self.fwhm = res
         print('Normalized PSF array shape: {}'.format(self.psfn.shape))
         print('The attribute `psfn` contains the normalized PSF')
-        print("`fwhm` attribute set to {:.3f}".format(self.fwhm))
+        print("`fwhm` attribute set to")
+        print_precision(self.fwhm)
 
     def plot(self, wavelength=0, **kwargs):
         """ Plotting the frames of a 3D or 4d cube (``wavelength``).
@@ -1180,20 +1231,105 @@ class HCIDataset(object):
         self.cube = cube_px_resampling(self.cube, scale, imlib, interpolation,
                                        verbose)
 
-    def save(self, path, precision=np.float32):
-        """ Writing to FITS file. If self.angles is present, then the angles
-        are appended to the FITS file.
+    def save(self, path, verbose=True):
+        """ Writes entire Dataset to a multi-extension FITS file.
 
         Parameters
         ----------
-        filename : string
-            Full path of the fits file to be written.
-        precision : numpy dtype, optional
-            Float precision, by default np.float32 or single precision float.
+        path : string
+            File path of the FITS file. If `path` contains no file extension,
+            ``.vip.fits`` is appended.
+        verbose : bool, optional
+
+        Notes
+        -----
+        - Contrarily to ``vip.fits.write_fits``, no explicit conversion to a
+          specific data type (e.g. single-precision float) is done.
+        - The resulting FITS file's PrimaryHDU contains no ``data``. The
+          original VIP class name is stored inside the ``VIP-TYPE`` field. Every
+          additionnal ImageHDU contains a ``VIP-ATTR`` header field.
+
         """
-        write_fits(path, self.cube, precision=precision)
-        if self.angles is not None:
-            append_extension(path, self.angles)
+
+        primary = ap_fits.PrimaryHDU()
+        primary.header["COMMENT"] = ("created with VIP https://github.com/"
+                                     "vortex-exoplanet/VIP")
+        primary.header["DATE"] = (
+            datetime.datetime.now().replace(microsecond=0).isoformat(" "),
+            "file creation date (ISO 8601)"
+        )
+        primary.header["VIP-VERS"] = (vip_version, "VIP version number")
+        primary.header["VIP-TYPE"] = ("HCIDataset", "VIP object type")
+
+        hdul = ap_fits.HDUList()
+        hdul.append(primary)
+
+
+        for attr in ["cube", "cuberef", "psf", "psfn", "fwhm", "angles",
+                     "wavelengths", "px_scale"]:
+            if getattr(self, attr) is None:
+                continue
+            
+            header = None
+            if hasattr(self, "{}_fits_header".format(attr)):
+                header = getattr(self, "{}_fits_header".format(attr))
+            data = getattr(self, attr)
+            data = np.asarray(data)
+            if data.ndim == 0:
+                # FITS cannot store 0D data:
+                data = data.reshape(-1)  # shape () -> (1,)
+
+            hdu = ap_fits.ImageHDU(data, name=attr,
+                                   header=header)
+            hdu.header["VIP-ATTR"] = (attr, "VIP object attribute")
+            hdul.append(hdu)
+
+            if verbose:
+                if header is None:
+                    print("saving '{}'...".format(attr))
+                else:
+                    print("saving '{}' with header information...".format(attr))
+
+        if not "." in path:
+            path = "{}.vip.fits".format(path)
+
+        hdul.writeto(path, overwrite=True, checksum=True)
+
+    @classmethod
+    def load(cls, filename):
+
+        if not filename.endswith(".vip.fits"):
+            filename = filename+".vip.fits"
+
+        hdulist = ap_fits.open(filename) # TODO: memmap
+        objtype = hdulist[0].header.get("VIP-TYPE", None)
+
+        if objtype == "HCIDataset":
+            hci = HCIDataset(cube=open_fits(filename, n="CUBE",
+                                            header=True, verbose=False))
+
+            for hdu in hdulist:
+                if hdu.name in ["CUBE", "PRIMARY"]:
+                    continue
+
+                vip_attr = hdu.header["VIP-ATTR"]
+
+                data, header = open_fits(filename, n=hdu.name, header=True,
+                                         verbose=False)
+
+                if vip_attr == "px_scale":
+                    # stored as (1,) array in FITS file, transform to py float:
+                    data = data.item()  # works for shape () and shape (1,).
+                    # TODO: should the same be done with `fwhm` for 3D cubes?
+
+                setattr(hci, vip_attr, data)
+                setattr(hci, vip_attr+"_fits_header", header)
+
+            return hci
+
+
+        else:
+            raise RuntimeError("VIP-TYPE '{}' unknown".format(objtype))
 
     def subsample(self, window, mode='mean'):
         """ Temporally sub-sampling the sequence (3d or 4d cube).

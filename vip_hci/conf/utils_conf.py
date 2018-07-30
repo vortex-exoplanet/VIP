@@ -97,7 +97,7 @@ class Progressbar(object):
         Progressbar.backend = b
 
 
-class NoProgressbar():
+class NoProgressbar(object):
     """ Wraps an ``iterable`` to behave like ``Progressbar``, but without
     producing output.
     """
@@ -160,7 +160,7 @@ def eval_func_tuple(f_args):
     return f_args[0](*f_args[1:])                       
 
 
-class FixedObj():
+class FixedObj(object):
     def __init__(self, v):
         self.v = v
 

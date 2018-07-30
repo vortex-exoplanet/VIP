@@ -22,7 +22,7 @@ from ..var import pp_subplots as plots
 from .fakecomp import cube_inject_companions
 
 
-class EvalRoc:
+class EvalRoc(object):
     """ Class for the generation of receiver operating characteristic (ROC)
     curves.
     """

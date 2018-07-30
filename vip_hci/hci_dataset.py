@@ -31,7 +31,7 @@ from .metrics import (frame_quick_report, cube_inject_companions, snr_ss,
 from .conf.utils_conf import check_array
 
 
-class HCIFrame:
+class HCIFrame(object):
     """ High-contrast imaging frame (2d array).
 
     Parameters
@@ -454,7 +454,7 @@ class HCIFrame:
         _ = frame_quick_report(self.image, self.fwhm, source_xy, verbose)
 
 
-class HCIDataset:
+class HCIDataset(object):
     """ High-contrast imaging dataset class.
 
     Parameters

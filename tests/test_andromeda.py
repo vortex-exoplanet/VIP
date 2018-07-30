@@ -39,8 +39,8 @@ def load_dataset():
     url_prefix = ("https://github.com/carlgogo/vip-tutorial/raw/"
                   "ced844dc807d3a21620fe017db116d62fbeaaa4a")
 
-    f1 = download_file(f"{url_prefix}/naco_betapic.fits", cache=True)
-    f2 = download_file(f"{url_prefix}/naco_psf.fits", cache=True)
+    f1 = download_file("{}/naco_betapic.fits".format(url_prefix), cache=True)
+    f2 = download_file("{}/naco_psf.fits".format(url_prefix), cache=True)
 
     # vip.fits.info_fits(f1)
     # vip.fits.info_fits(f2)
@@ -61,8 +61,8 @@ def load_dataset():
     data.psf = data.psfn
 
     # ===== export
-    # data.save(f"{f1}_crop")
-    # vip.fits.write_fits(f"{f2}_crop", data.psf)
+    # data.save("{}_crop".format(f1))
+    # vip.fits.write_fits("{}_crop".format(f2), data.psf)
     # idl.f1 = f1+"_crop"
     # idl.f2 = f2+"_crop"
 

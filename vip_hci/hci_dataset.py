@@ -498,6 +498,7 @@ class HCIDataset:
         print('Cube array shape: {}'.format(self.cube.shape))
         if self.cube.ndim == 3:
             self.n, self.y, self.x = self.cube.shape
+            self.w = 1
         elif self.cube.ndim == 4:
             self.w, self.n, self.y, self.x = self.cube.shape
 

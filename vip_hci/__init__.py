@@ -1,5 +1,7 @@
 from __future__ import (absolute_import)
 
+__version__ = "0.9.7"
+
 from . import andromeda
 from . import preproc
 from . import conf
@@ -17,9 +19,3 @@ from . import var
 from .hci_dataset import *
 from .hci_postproc import *
 from .vip_ds9 import *
-
-__version__ = "0.9.7"
-
-
-
-

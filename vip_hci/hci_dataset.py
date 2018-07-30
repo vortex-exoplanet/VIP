@@ -28,7 +28,7 @@ from .stats import (frame_basic_stats, frame_histo_stats,
 from .metrics import (frame_quick_report, cube_inject_companions, snr_ss,
                       snr_peakstddev, snrmap, snrmap_fast, detection,
                       normalize_psf)
-from .conf.utils_conf import check_array
+from .conf.utils_conf import check_array, Saveable
 
 
 class HCIFrame(object):

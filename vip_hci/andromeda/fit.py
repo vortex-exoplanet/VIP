@@ -51,7 +51,7 @@ def fitaffine(x, y, debug=False):
         g1 = fitaffine(x, y)
 
     """
-    ndata, *_ = x.shape
+    ndata = x.shape[0]
 
     if debug:
         print("FITAFFINE: ***next dataset***")

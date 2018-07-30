@@ -1184,7 +1184,7 @@ class HCIDataset(Saveable):
         self.cube = cube_px_resampling(self.cube, scale, imlib, interpolation,
                                        verbose)
 
-    def save(self, path, precision=np.float32):
+    def export_fits(self, path, precision=np.float32):
         """ Writing to FITS file. If self.angles is present, then the angles
         are appended to the FITS file.
 

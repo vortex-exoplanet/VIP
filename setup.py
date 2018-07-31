@@ -8,6 +8,7 @@ try:  # pip >= 10
 except ImportError:  # pip <= 9.0.3
     from pip.req import parse_requirements
 from setuptools.command.install import install
+from setuptools.command.develop import develop
 
 
 # Hackishly override of the install method
@@ -18,6 +19,15 @@ class InstallReqs(install):
         print(" ********************** ")
         os.system('pip install -r requirements.txt')
         install.run(self)
+
+
+class InstallDevReqs(develop):
+    def run(self):
+        print(" **************************** ")
+        print(" *** Installing VIP (dev) *** ")
+        print(" **************************** ")
+        os.system('pip install -r requirements-dev.txt')
+        develop.run(self)
 
 
 def resource(*args):
@@ -68,7 +78,8 @@ setup(
     author='Carlos Alberto Gomez Gonzalez',
     author_email='carlosgg33@gmail.com',
     url='https://github.com/vortex-exoplanet/VIP',
-    cmdclass={'install': InstallReqs},
+    cmdclass={'install': InstallReqs,
+              'develop': InstallDevReqs},
     packages=PACKAGES,
     install_requires=reqs,
     extras_require={

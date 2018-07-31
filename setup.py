@@ -1,11 +1,11 @@
 #!/usr/bin/env python
- 
+
 import os
 import re
 from setuptools import setup
-try: # pip >= 10
+try:  # pip >= 10
     from pip._internal.req import parse_requirements
-except ImportError: # pip <= 9.0.3
+except ImportError:  # pip <= 9.0.3
     from pip.req import parse_requirements
 from setuptools.command.install import install
 
@@ -75,5 +75,5 @@ setup(
                  'Programming Language :: Python :: 2.7',
                  'Programming Language :: Python :: 3.6',
                  'Topic :: Scientific/Engineering :: Astronomy'
-                 ] 
+                 ]
 )

@@ -20,17 +20,19 @@ class InstallReqs(install):
         install.run(self)
 
 
-PACKAGE_PATH = os.path.abspath(os.path.join(__file__, os.pardir))
+def resource(*args):
+    return os.path.join(os.path.abspath(os.path.join(__file__, os.pardir)),
+                        *args)
+
 
 # parse_requirements() returns generator of pip.req.InstallRequirement objects
-install_reqs = parse_requirements(os.path.join(PACKAGE_PATH, 'requirements'),
-                                  session=False)
+install_reqs = parse_requirements(resource('requirements'), session=False)
 requirements = [str(ir.req) for ir in install_reqs]
 
-with open(os.path.join(PACKAGE_PATH, 'readme.rst')) as readme_file:
+with open(resource('readme.rst')) as readme_file:
     README = readme_file.read()
 
-with open(os.path.join(PACKAGE_PATH, 'vip_hci/__init__.py')) as version_file:
+with open(resource('vip_hci', '__init__.py')) as version_file:
     version_file = version_file.read()
     VERSION = re.search(r"""^__version__ = ['"]([^'"]*)['"]""",
                         version_file, re.M)

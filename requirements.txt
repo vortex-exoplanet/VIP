@@ -13,5 +13,3 @@ psutil
 pyprind
 munch
 opencv-python
-sphinx <= 1.5.6
-

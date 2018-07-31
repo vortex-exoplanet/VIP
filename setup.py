@@ -16,7 +16,7 @@ class InstallReqs(install):
         print(" ********************** ")
         print(" *** Installing VIP *** ")
         print(" ********************** ")
-        os.system('pip install -r requirements')
+        os.system('pip install -r requirements.txt')
         install.run(self)
 
 
@@ -26,8 +26,11 @@ def resource(*args):
 
 
 # parse_requirements() returns generator of pip.req.InstallRequirement objects
-install_reqs = parse_requirements(resource('requirements'), session=False)
-requirements = [str(ir.req) for ir in install_reqs]
+reqs = parse_requirements(resource('requirements.txt'), session=False)
+reqs = [str(ir.req) for ir in reqs]
+reqs_dev = parse_requirements(resource('requirements-dev.txt'), session=False)
+reqs_dev = [str(ir.req) for ir in reqs_dev]
+
 
 with open(resource('readme.rst')) as readme_file:
     README = readme_file.read()
@@ -67,7 +70,10 @@ setup(
     url='https://github.com/vortex-exoplanet/VIP',
     cmdclass={'install': InstallReqs},
     packages=PACKAGES,
-    install_requires=requirements,
+    install_requires=reqs,
+    extras_require={
+        "dev": reqs_dev,
+    },
     zip_safe=False,
     classifiers=['Intended Audience :: Science/Research',
                  'License :: OSI Approved :: MIT License',

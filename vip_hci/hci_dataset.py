@@ -773,6 +773,12 @@ class HCIDataset:
         verbose : bool, optional
             If True prints out additional information.
 
+        Returns
+        -------
+        yx : list of tuple(y,x)
+            Pixel coordinates of the injections in the first frame (and first
+            wavelength for 4D cubes).
+
         """
         # TODO: support the injection of a Gaussian/Moffat kernel.
         # TODO: return array/HCIDataset object instead?
@@ -787,10 +793,13 @@ class HCIDataset:
             if self.wavelengths is None:
                 raise ValueError('The wavelengths vector has not been set')
 
-        self.cube = cube_inject_companions(self.cube, self.psfn, self.angles,
-                                           flux, self.px_scale, rad_dists,
-                                           n_branches, theta, imlib,
-                                           interpolation, verbose)
+        self.cube, yx = cube_inject_companions(self.cube, self.psfn,
+                                               self.angles, flux, self.px_scale,
+                                               rad_dists, n_branches, theta,
+                                               imlib, interpolation, verbose,
+                                               full_output=True)
+
+        return yx
 
     def load_angles(self, angles, hdu=0):
         """ Loads the PA vector from a FITS file. It is possible to specify the

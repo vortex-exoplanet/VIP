@@ -205,17 +205,17 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
         Sets the way of collapsing the frames for producing a final image.
     pad_mode : {'constant', 'edge', 'linear_ramp', 'maximum', 'mean', 'minimum',
                 'reflect', 'symmetric', 'wrap'}, str optional
-        One of the following string values: ‘constant’, pads with a constant
-        value. ‘edge’, pads with the edge values of array. ‘linear_ramp’, pads
+        One of the following string values: 'constant', pads with a constant
+        value. 'edge', pads with the edge values of array. 'linear_ramp', pads
         with the linear ramp between end_value and the array edge value.
-        ‘maximum’, pads with the maximum value of all or part of the vector
-        along each axis. ‘mean’, pads with the mean value of all or part of the
-        vector along each axis. ‘median’, pads with the median value of all or
-        part of the vector along each axis. ‘minimum’, pads with the minimum
-        value of all or part of the vector along each axis. ‘reflect’, pads with
+        'maximum', pads with the maximum value of all or part of the vector
+        along each axis. 'mean', pads with the mean value of all or part of the
+        vector along each axis. 'median', pads with the median value of all or
+        part of the vector along each axis. 'minimum', pads with the minimum
+        value of all or part of the vector along each axis. 'reflect', pads with
         the reflection of the vector mirrored on the first and last values of
-        the vector along each axis. ‘symmetric’, pads with the reflection of the
-        vector mirrored along the edge of the array. ‘wrap’, pads with the wrap
+        the vector along each axis. 'symmetric', pads with the reflection of the
+        vector mirrored along the edge of the array. 'wrap', pads with the wrap
         of the vector along the axis. The first values are used to pad the end
         and the end values are used to pad the beginning.
 

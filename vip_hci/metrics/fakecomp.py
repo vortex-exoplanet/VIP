@@ -178,7 +178,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     rad = rad_dists[i]
                     y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
-                    if isinstance(flevel, int) or isinstance(flevel, float):
+                    if isinstance(flevel, (int, float)):
                         tmp += _cube_shift(fc_fr, y, x, imlib=imlib,
                                            interpolation=interpolation) * flevel
                     else:

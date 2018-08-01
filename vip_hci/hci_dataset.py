@@ -796,8 +796,9 @@ class HCIDataset:
         self.cube, yx = cube_inject_companions(self.cube, self.psfn,
                                                self.angles, flux, self.px_scale,
                                                rad_dists, n_branches, theta,
-                                               imlib, interpolation, verbose,
-                                               full_output=True)
+                                               imlib, interpolation,
+                                               full_output=True,
+                                               verbose=verbose)
 
         return yx
 

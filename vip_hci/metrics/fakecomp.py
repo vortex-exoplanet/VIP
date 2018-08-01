@@ -135,7 +135,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
     # ADI+IFS case
     if array.ndim == 4 and psf_template.ndim == 3:
-        ceny, cenx = frame_center(array[0,0])
+        ceny, cenx = frame_center(array[0, 0])
         ceny = int(float(ceny))
         cenx = int(float(cenx))
         if isinstance(rad_dists, (int, float)):
@@ -150,10 +150,10 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
         sizey = array.shape[2]
         sizex = array.shape[3]
-        size_fc = psf_template.shape[2] # considering square frames
+        size_fc = psf_template.shape[2]  # considering square frames
         nframes_wav = array.shape[0]
         nframes_adi = array.shape[1]
-        fc_fr = np.zeros((nframes_wav, sizey, sizex), dtype=np.float64) #-> 3d
+        fc_fr = np.zeros((nframes_wav, sizey, sizex), dtype=np.float64)  # -> 3d
         n_fc_rad = rad_dists.shape[0]
 
         for i in range(nframes_wav):
@@ -284,7 +284,7 @@ def collapse_psf_cube(array, size, fwhm=4, verbose=True, collapse='mean'):
     psf_normd = normalize_psf(psf, size=size, fwhm=fwhm)
 
     if verbose:
-        print("Done scaled PSF template from the average of", n,"frames.")
+        print("Done scaled PSF template from the average of", n, "frames.")
     return psf_normd
 
 
@@ -480,6 +480,3 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
             return array_out, fwhm_flux, fwhm
         else:
             return array_out
-
-
-

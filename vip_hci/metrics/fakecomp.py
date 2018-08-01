@@ -54,7 +54,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     full_output : bool, optional
-        Returns the ``x`` and ``y`` coordinates of the injection, additionally
+        Returns the ``x`` and ``y`` coordinates of the injections, additionally
         to the new array.
     verbose : bool, optional
         If True prints out additional information.
@@ -63,14 +63,17 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     -------
     array_out : array_like
         Output array with the injected fake companions.
-    posx, posy : int
-        Coordinates of the injection. Only returned when ``full_output=True``.
+    positions : list of tuple(y, x)
+        Coordinates of the injections in the first frame (and first wavelength
+        for 4D cubes). Only returned when ``full_output=True``.
 
     """
     if array.ndim not in [3, 4]:
         raise ValueError('Array is not a cube, 3d or 4d array')
     if array.ndim == 4 and psf_template.ndim != 3:
         raise ValueError('PSF must be a 3d array')
+
+    positions = []
 
     # ADI case
     if array.ndim == 3:
@@ -107,6 +110,10 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
             tmp = np.zeros_like(array[0])
             for branch in range(n_branches):
                 ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
+
+                if verbose:
+                    print('Branch {}:'.format(branch+1))
+
                 for rad in rad_dists:
                     y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
@@ -114,18 +121,17 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                                        interpolation=interpolation) * flevel
                     array_out[fr] = array[fr] + tmp
 
-        if verbose:
-            for branch in range(n_branches):
-                print('Branch {}:'.format(branch+1))
-                for i in range(len(rad_dists)):
-                    ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
-                    posy = rad_dists[i] * np.sin(ang) + ceny
-                    posx = rad_dists[i] * np.cos(ang) + cenx
-                    rad_arcs = rad_dists[i] * plsc
-                    print('\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec '
-                          '({:.2f} pxs)'.format(posx, posy, rad_arcs,
-                                               rad_dists[i]))
+                    if fr == 0:
+                        posy = rad * np.sin(ang) + ceny
+                        posx = rad * np.cos(ang) + cenx
+                        rad_arcs = rad * plsc
 
+                        if verbose:
+                            print('\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec '
+                                  '({:.2f} pxs)'.format(posx, posy, rad_arcs,
+                                                        rad))
+
+                        positions.append((posy, posx))
 
     # ADI+IFS case
     if array.ndim == 4 and psf_template.ndim == 3:
@@ -164,6 +170,10 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
             tmp = np.zeros_like(fc_fr)
             for branch in range(n_branches):
                 ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
+
+                if verbose and fr == 0:
+                    print('Branch {}:'.format(branch+1))
+
                 for i in range(n_fc_rad):
                     rad = rad_dists[i]
                     y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
@@ -175,22 +185,21 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                         shift = _cube_shift(fc_fr, y, x, imlib=imlib,
                                             interpolation=interpolation)
                         tmp += [shift[i]*flevel[i] for i in range(len(flevel))]
-            array_out[:, fr] = array[:, fr] + tmp
 
-        if verbose:
-            for branch in range(n_branches):
-                print('Branch {}:'.format(branch+1))
-                for i in range(n_fc_rad):
-                    ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
-                    rad_arcs = rad_dists[i]*plsc
                     posy = rad_dists[i] * np.sin(ang) + ceny
                     posx = rad_dists[i] * np.cos(ang) + cenx
-                    print('\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec '
-                          '({:.2f} pxs)'.format(posx, posy, rad_arcs,
-                                                rad_dists[i]))
+                    rad_arcs = rad_dists[i]*plsc
+                    if verbose and fr == 0:
+                        print('\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec '
+                              '({:.2f} pxs)'.format(posx, posy, rad_arcs,
+                                                    rad_dists[i]))
+                    if fr == 0:
+                        positions.append((posy, posx))
+
+            array_out[:, fr] = array[:, fr] + tmp
 
     if full_output:
-        return array_out, posx, posy
+        return array_out, positions
     else:
         return array_out
 

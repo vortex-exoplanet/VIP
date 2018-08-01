@@ -111,7 +111,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
             for branch in range(n_branches):
                 ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
 
-                if verbose:
+                if verbose and fr == 0:
                     print('Branch {}:'.format(branch+1))
 
                 for rad in rad_dists:

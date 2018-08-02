@@ -30,7 +30,9 @@ class Mock(MagicMock):
 MOCK_MODULES = ['photutils', 'astropy', 'astropy.stats', 'astropy.convolution',
                 'astropy.io', 'astropy.modeling', 'astropy.table',
                 'astropy.coordinates', 'astropy.time', 'astropy.units', 'pyds9',
-                'matplotlib', 'matplotlib.externals', 'pandas', 'pandas.core']
+                'matplotlib', 'matplotlib.externals', 'matplotlib.pyplot',
+                'matplotlib.ticker', 'matplotlib.mlab', 'matplotlib.colors',
+                'matplotlib.cm', 'pandas', 'pandas.core']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 

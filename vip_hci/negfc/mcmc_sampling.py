@@ -22,14 +22,12 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from matplotlib.mlab import normpdf
 from scipy.stats import norm
-from ..fits import open_adicube, open_fits
 from ..metrics import cube_inject_companions
 from ..conf import time_ini, timing
 from ..conf.utils_conf import sep
 from .simplex_fmerit import get_values_optimize
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-
 
 
 def lnprior(param, bounds):

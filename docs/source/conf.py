@@ -20,6 +20,7 @@ import os
 import sys
 from mock import Mock as MagicMock
 
+
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
@@ -29,7 +30,7 @@ class Mock(MagicMock):
 MOCK_MODULES = ['photutils', 'astropy', 'astropy.stats', 'astropy.convolution',
                 'astropy.io', 'astropy.modeling', 'astropy.table',
                 'astropy.coordinates', 'astropy.time', 'astropy.units', 'pyds9',
-                'matplotlib', 'matplotlib.externals']
+                'matplotlib', 'matplotlib.externals', 'pandas', 'pandas.core']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
@@ -42,11 +43,6 @@ with open(os.path.join(os.path.abspath('../../vip_hci/'), '__init__.py')) as ini
 
 
 # -- General configuration ------------------------------------------------
-
-# If your documentation needs a minimal Sphinx version, state it here.
-#
-# needs_sphinx = '1.0'
-
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.

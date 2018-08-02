@@ -33,6 +33,14 @@ vip\_hci\.metrics\.fakecomp module
     :undoc-members:
     :show-inheritance:
 
+vip\_hci\.metrics\.fakedisk module
+----------------------------------
+
+.. automodule:: vip_hci.metrics.fakedisk
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 vip\_hci\.metrics\.frame\_analysis module
 -----------------------------------------
 

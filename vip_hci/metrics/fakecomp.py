@@ -86,15 +86,15 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         if not rad_dists[-1] < array[0].shape[0]/2:
             raise ValueError('rad_dists last location is at the border (or '
                              'outside) of the field')
-        size_fc = psf_template.shape[0]  # =38
+        size_fc = psf_template.shape[0]
         nframes = array.shape[0]
-        fc_fr = np.zeros_like(array[0])  # =100x100
+        fc_fr = np.zeros_like(array[0])
 
         w = int(np.ceil(size_fc/2)) - 1
         starty = ceny - w
         startx = cenx - w
 
-        # fcomp in the center of a zeros frame
+        # fake companion in the center of a zeros frame
         fc_fr[starty:starty+size_fc, startx:startx+size_fc] = psf_template
 
         if size_fc % 2 == 0 and array.shape[1] % 2 == 1:
@@ -105,33 +105,32 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
             fc_fr = frame_shift(fc_fr, 0.5, 0.5, imlib=imlib,
                                 interpolation=interpolation)
 
-        array_out = np.zeros_like(array)
-        for fr in range(nframes):
-            tmp = np.zeros_like(array[0])
-            for branch in range(n_branches):
-                ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
+        array_out = array.copy()
 
-                if verbose and fr == 0:
-                    print('Branch {}:'.format(branch+1))
+        for branch in range(n_branches):
+            ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
 
-                for rad in rad_dists:
-                    y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
-                    x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
-                    tmp += frame_shift(fc_fr, y, x, imlib=imlib,
-                                       interpolation=interpolation) * flevel
-                    array_out[fr] = array[fr] + tmp
+            if verbose:
+                print('Branch {}:'.format(branch+1))
 
-                    if fr == 0:
-                        posy = rad * np.sin(ang) + ceny
-                        posx = rad * np.cos(ang) + cenx
-                        rad_arcs = rad * plsc
+            for rad in rad_dists:
 
-                        if verbose:
-                            print('\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec '
-                                  '({:.2f} pxs)'.format(posx, posy, rad_arcs,
-                                                        rad))
+                for fr in range(nframes):
+                    shift_y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
+                    shift_x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
+                    array_out[fr] += (frame_shift(fc_fr, shift_y, shift_x,
+                                                  imlib, interpolation)
+                                      * flevel)
 
-                        positions.append((posy, posx))
+                pos_y = rad * np.sin(ang) + ceny
+                pos_x = rad * np.cos(ang) + cenx
+                rad_arcs = rad * plsc
+
+                positions.append((pos_y, pos_x))
+
+                if verbose:
+                    print('\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec '
+                          '({:.2f} pxs)'.format(pos_x, pos_y, rad_arcs, rad))
 
     # ADI+IFS case
     if array.ndim == 4 and psf_template.ndim == 3:
@@ -154,49 +153,46 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         nframes_wav = array.shape[0]
         nframes_adi = array.shape[1]
         fc_fr = np.zeros((nframes_wav, sizey, sizex), dtype=np.float64)  # -> 3d
-        n_fc_rad = rad_dists.shape[0]
 
         for i in range(nframes_wav):
             w = int(np.floor(size_fc/2.))
-            # fcomp in the center of a zeros frame
+            # fake companion in the center of a zeros frame
             if (psf_template[0].shape[1] % 2) == 0:
                 fc_fr[i, ceny-w:ceny+w, cenx-w:cenx+w] = psf_template[i]
             else:
                 fc_fr[i, ceny-w:ceny+w+1, cenx-w:cenx+w+1] = psf_template[i]
 
-        array_out = np.zeros_like(array)
+        array_out = array.copy()
 
-        for fr in range(nframes_adi):
-            tmp = np.zeros_like(fc_fr)
-            for branch in range(n_branches):
-                ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
+        for branch in range(n_branches):
+            ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
 
-                if verbose and fr == 0:
-                    print('Branch {}:'.format(branch+1))
+            if verbose:
+                print('Branch {}:'.format(branch+1))
 
-                for i in range(n_fc_rad):
-                    rad = rad_dists[i]
-                    y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
-                    x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
+            for rad in rad_dists:
+
+                for fr in range(nframes_adi):
+                    shift_y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
+                    shift_x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
+                    shift = _cube_shift(fc_fr, shift_y, shift_x, imlib,
+                                        interpolation)
+
                     if isinstance(flevel, (int, float)):
-                        tmp += _cube_shift(fc_fr, y, x, imlib=imlib,
-                                           interpolation=interpolation) * flevel
+                        array_out[:, fr] += shift * flevel
                     else:
-                        shift = _cube_shift(fc_fr, y, x, imlib=imlib,
-                                            interpolation=interpolation)
-                        tmp += [shift[i]*flevel[i] for i in range(len(flevel))]
+                        array_out[:, fr] += [shift[i] * flevel[i]
+                                             for i in range(len(flevel))]
 
-                    posy = rad_dists[i] * np.sin(ang) + ceny
-                    posx = rad_dists[i] * np.cos(ang) + cenx
-                    rad_arcs = rad_dists[i]*plsc
-                    if verbose and fr == 0:
-                        print('\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec '
-                              '({:.2f} pxs)'.format(posx, posy, rad_arcs,
-                                                    rad_dists[i]))
-                    if fr == 0:
-                        positions.append((posy, posx))
+                pos_y = rad * np.sin(ang) + ceny
+                pos_x = rad * np.cos(ang) + cenx
+                rad_arcs = rad * plsc
 
-            array_out[:, fr] = array[:, fr] + tmp
+                positions.append((pos_y, pos_x))
+
+                if verbose:
+                    print('\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec '
+                          '({:.2f} pxs)'.format(pos_x, pos_y, rad_arcs, rad))
 
     if full_output:
         return array_out, positions
@@ -226,7 +222,7 @@ def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
         cenx = int(cenx)
         fc_fr = np.zeros_like(array)
         w = int(np.floor(size_fc/2.))
-        # fcomp in the center of a zeros frame
+        # fake companion in the center of a zeros frame
         fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc
         array_out = array + frame_shift(fc_fr, pos_y-ceny, pos_x-cenx, imlib,
                                         interpolation) * flux
@@ -238,7 +234,7 @@ def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
         cenx = int(cenx)
         fc_fr = np.zeros_like(array)
         w = int(np.floor(size_fc/2.))
-        # fcomp in the center of a zeros frame
+        # fake companion in the center of a zeros frame
         fc_fr[:, ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc
         array_out = array + _cube_shift(fc_fr, pos_y - ceny, pos_x - cenx,
                                         imlib, interpolation) * flux

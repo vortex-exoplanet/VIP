@@ -1,13 +1,14 @@
 #!/usr/bin/env python
- 
+
 import os
 import re
 from setuptools import setup
-try: # pip >= 10
+try:  # pip >= 10
     from pip._internal.req import parse_requirements
-except ImportError: # pip <= 9.0.3
+except ImportError:  # pip <= 9.0.3
     from pip.req import parse_requirements
 from setuptools.command.install import install
+from setuptools.command.develop import develop
 
 
 # Hackishly override of the install method
@@ -16,21 +17,35 @@ class InstallReqs(install):
         print(" ********************** ")
         print(" *** Installing VIP *** ")
         print(" ********************** ")
-        os.system('pip install -r requirements')
+        os.system('pip install -r requirements.txt')
         install.run(self)
 
 
-PACKAGE_PATH = os.path.abspath(os.path.join(__file__, os.pardir))
+class InstallDevReqs(develop):
+    def run(self):
+        print(" **************************** ")
+        print(" *** Installing VIP (dev) *** ")
+        print(" **************************** ")
+        os.system('pip install -r requirements-dev.txt')
+        develop.run(self)
+
+
+def resource(*args):
+    return os.path.join(os.path.abspath(os.path.join(__file__, os.pardir)),
+                        *args)
+
 
 # parse_requirements() returns generator of pip.req.InstallRequirement objects
-install_reqs = parse_requirements(os.path.join(PACKAGE_PATH, 'requirements'),
-                                  session=False)
-requirements = [str(ir.req) for ir in install_reqs]
+reqs = parse_requirements(resource('requirements.txt'), session=False)
+reqs = [str(ir.req) for ir in reqs]
+reqs_dev = parse_requirements(resource('requirements-dev.txt'), session=False)
+reqs_dev = [str(ir.req) for ir in reqs_dev]
 
-with open(os.path.join(PACKAGE_PATH, 'readme.rst')) as readme_file:
+
+with open(resource('readme.rst')) as readme_file:
     README = readme_file.read()
 
-with open(os.path.join(PACKAGE_PATH, 'vip_hci/__init__.py')) as version_file:
+with open(resource('vip_hci', '__init__.py')) as version_file:
     version_file = version_file.read()
     VERSION = re.search(r"""^__version__ = ['"]([^'"]*)['"]""",
                         version_file, re.M)
@@ -63,9 +78,13 @@ setup(
     author='Carlos Alberto Gomez Gonzalez',
     author_email='carlosgg33@gmail.com',
     url='https://github.com/vortex-exoplanet/VIP',
-    cmdclass={'install': InstallReqs},
+    cmdclass={'install': InstallReqs,
+              'develop': InstallDevReqs},
     packages=PACKAGES,
-    install_requires=requirements,
+    install_requires=reqs,
+    extras_require={
+        "dev": reqs_dev,
+    },
     zip_safe=False,
     classifiers=['Intended Audience :: Science/Research',
                  'License :: OSI Approved :: MIT License',
@@ -75,5 +94,5 @@ setup(
                  'Programming Language :: Python :: 2.7',
                  'Programming Language :: Python :: 3.6',
                  'Topic :: Scientific/Engineering :: Astronomy'
-                 ] 
+                 ]
 )

@@ -1,80 +1,64 @@
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
-import numpy as np
+from helpers import np, pytest
+from helpers import aarc
 
-import vip_hci as vip
+
 from vip_hci.metrics.fakecomp import cube_inject_companions
 
 
 # ===== utility functions
 
-def aarc(actual, desired, rtol=1e-5, atol=1e-6):
+
+@pytest.fixture(scope="module", params=["3D", "4D"])
+def dataset(request):
     """
-    Assert array-compare. Like ``np.allclose``, but with different defaults.
-
-    Notes
-    -----
-    Default values for
-    - ``np.allclose``: ``atol=1e-8, rtol=1e-5``
-    - ``np.testing.assert_allclose``: ``atol=0, rtol=1e-7``
-
-    IDL's `FLOAT` is 32bit (precision of ~1e-6 to ~1e-7), while python uses
-    64-bit floats internally. To pass the comparison, `atol` has to be chosen
-    accordingly. The contribution of `rtol` is dominant for large numbers, where
-    an absolute comparison to `1e-6` would not make sense.
+    Create 3D and 4D datasets for use with ``test_cube_inject_companions``.
 
     """
-    __tracebackhide__ = True  # Hide traceback for pytest
-    np.testing.assert_allclose(actual, desired, rtol=rtol, atol=atol)
+    if request.param == "3D":
+        cube = np.zeros((3, 5, 5))
+        psf = np.ones((1, 1))
+    elif request.param == "4D":
+        cube = np.zeros((2, 3, 5, 5))  # lambda, frames, width, height
+        psf = np.ones((2, 1, 1))
 
-
-def test_cube_inject_companions():
-    cube = np.zeros((3, 5, 5))
-    psf = np.ones((1, 1))
     angles = np.array([0, 90, 180])
 
-    cube4 = np.zeros((2, 3, 5, 5))
-    psf4 = np.ones((2, 1, 1))
+    return cube, psf, angles
 
-    # single injection:
+
+@pytest.mark.parametrize("branches, dists",
+                         [
+                            pytest.param(1, 2, id="1br-2"),
+                            pytest.param(2, 2, id="2br-2"),
+                            pytest.param(2, [1, 2], id="2br-[1,2]")
+                         ])
+def test_cube_inject_companions(dataset, branches, dists):
+    """
+    Verify position of injected companions, for 3D and 4D cases.
+    """
+    def _expected(branches, dists):
+        """
+        Expected positions.
+        """
+        if branches == 1 and dists == 2:
+            return [(2, 4)]
+        elif branches == 2 and dists == 2:
+            return [(2, 4), (2, 0)]
+        elif branches == 2 and dists == [1, 2]:
+            return [(2, 3), (2, 4), (2, 1), (2, 0)]
+
+        else:
+            raise ValueError("no expected result defined")
+
+    cube, psf, angles = dataset
+
     c, yx = cube_inject_companions(cube, psf_template=psf, angle_list=angles,
-                                   flevel=3, rad_dists=2, n_branches=1,
+                                   rad_dists=dists, n_branches=branches,
+                                   flevel=3,
                                    full_output=True,
                                    plsc=1, verbose=True)
+    yx_expected = _expected(branches, dists)
 
-    c_ref = np.array([[[0., 0., 0., 0., 0.],
-                       [0., 0., 0., 0., 0.],
-                       [0., 0., 0., 0., 3.],
-                       [0., 0., 0., 0., 0.],
-                       [0., 0., 0., 0., 0.]],
-
-                      [[0., 0., 3., 0., 0.],
-                       [0., 0., 0., 0., 0.],
-                       [0., 0., 0., 0., 0.],
-                       [0., 0., 0., 0., 0.],
-                       [0., 0., 0., 0., 0.]],
-
-                      [[0., 0., 0., 0., 0.],
-                       [0., 0., 0., 0., 0.],
-                       [3., 0., 0., 0., 0.],
-                       [0., 0., 0., 0., 0.],
-                       [0., 0., 0., 0., 0.]]])
-
-    aarc(c, c_ref)
-    aarc(yx, [(2, 4)])
-
-    # multiple injections:
-    c, yx = cube_inject_companions(cube, psf_template=psf, angle_list=angles,
-                                   flevel=3, rad_dists=[1, 2], n_branches=2,
-                                   full_output=True,
-                                   plsc=1, verbose=True)
-
-    aarc(yx, [(2, 3), (2, 4), (2, 1), (2, 0)])
-
-    # 4D case:
-    c, yx = cube_inject_companions(cube4, psf_template=psf4, angle_list=angles,
-                                   flevel=3, rad_dists=[1, 2], n_branches=2,
-                                   full_output=True,
-                                   plsc=1, verbose=True)
-
-    aarc(yx, [(2, 3), (2, 4), (2, 1), (2, 0)])
+    aarc(yx, yx_expected)

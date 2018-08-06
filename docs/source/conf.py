@@ -19,6 +19,9 @@
 import os
 import sys
 
+# fix for `ImportError: No module named _tkinter`:
+import matplotlib
+matplotlib.use("agg")
 
 
 sys.path.insert(0, os.path.abspath('../../vip_hci/'))

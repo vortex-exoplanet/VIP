@@ -19,19 +19,20 @@ from ..var import frame_center
 def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
                          interpolation='lanczos4', cxy=None, nproc=1,
                          border_mode='constant'):
-    """ Rotates an ADI cube to a common north given a vector with the 
-    corresponding parallactic angles for each frame of the sequence. By default
-    bicubic interpolation is used (opencv). 
-    
+    """
+    Rotates an ADI cube to a common north given a vector with the corresponding
+    parallactic angles for each frame of the sequence. By default bicubic
+    interpolation is used (opencv).
+
     Parameters
     ----------
-    fakedisk : array_like 
+    fakedisk : array_like
         Input image of a fake disc
     angle_list : list
         Vector containing the parallactic angles.
     psf : (optionnal) the PSF to convolve the disk image with. It can be a
         small numpy.ndarray (we advise to use odd sizes to make sure the center
-        s not shifted through the convolution). It forces normalization of the 
+        s not shifted through the convolution). It forces normalization of the
         PSF to preserve the flux. It can also be a float representing
         the FWHM of the gaussian to be used for convolution.
     imlib : str, optional
@@ -39,8 +40,8 @@ def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     cxy : tuple of int, optional
-        Coordinates X,Y  of the point with respect to which the rotation will be 
-        performed. By default the rotation is done with respect to the center 
+        Coordinates X,Y  of the point with respect to which the rotation will be
+        performed. By default the rotation is done with respect to the center
         of the frames, as it is returned by the function
         vip_hci.var.frame_center.
     nproc : int, optional
@@ -49,23 +50,26 @@ def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
         number of frames).
     border_mode : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-        
+
     Returns
     -------
     fakedisk_cube : array_like
-        Resulting cube with the fake disc inserted at the correct angles and 
+        Resulting cube with the fake disc inserted at the correct angles and
         convolved with the psf if a psf was provided.
 
     Notes
     -----
-    import numpy as np
+    .. code-block:: python
 
-    fakedisk = np.zeros((200,200))
-    fakedisk[:,99:101] = 1
-    angle_list = np.arange(10)
-    c = create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
-                             interpolation='lanczos4',cxy=None, nproc=1,
-                             border_mode='constant')
+        import numpy as np
+
+        fakedisk = np.zeros((200,200))
+        fakedisk[:,99:101] = 1
+        angle_list = np.arange(10)
+        c = create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
+                                 interpolation='lanczos4',cxy=None, nproc=1,
+                                 border_mode='constant')
+
     """
     if not fakedisk.ndim == 2:
         raise TypeError('Fakedisk is not a frame or a 2d array.')

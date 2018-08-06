@@ -10,10 +10,8 @@ __author__ = 'Julien Milli'
 __all__ = ['create_fakedisk_cube']
 
 import numpy as np
-import photutils
 from scipy import signal
 from ..preproc import cube_derotate
-from ..var import frame_center
 
 
 def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
@@ -75,34 +73,39 @@ def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
         raise TypeError('Fakedisk is not a frame or a 2d array.')
     if not angle_list.ndim == 1:
         raise TypeError('Input parallactic angle is not a 1d array')
-    nframes=len(angle_list)
+    nframes = len(angle_list)
     ny, nx = fakedisk.shape
-    fakedisk_cube = np.repeat(fakedisk[np.newaxis,:,:], nframes, axis=0)
+    fakedisk_cube = np.repeat(fakedisk[np.newaxis, :, :], nframes, axis=0)
     fakedisk_cube = cube_derotate(fakedisk_cube, angle_list, imlib=imlib,
                                   interpolation=interpolation, cxy=cxy,
                                   nproc=nproc, border_mode=border_mode)
 
     if psf is not None:
-        if isinstance(psf,np.ndarray):
-            if not psf.ndim == 2:
+        if isinstance(psf, np.ndarray):
+            if psf.ndim != 2:
                 raise TypeError('Input PSF is not a frame or 2d array.')
             if np.abs(np.sum(psf)-1) > 1e-4:
-                print('Warning the PSF is not normalized to a total of 1. Normalization was forced.')
+                print('Warning the PSF is not normalized to a total of 1. '
+                      'Normalization was forced.')
                 psf = psf/np.sum(psf)
-        elif isinstance(psf,(int, float)):
-            # assumes psf is equal to the FWHM of the PSF. We create a synthetic PSF in that case 
+        elif isinstance(psf, (int, float)):
+            # assumes psf is equal to the FWHM of the PSF. We create a synthetic
+            # PSF in that case
             # with a size of 2 times the FWHM.
-            psf_size = 2*int(np.round(psf))+1 # to make sure this is odd.            
-            xarrray, yarray = np.meshgrid(np.arange(-(psf_size//2),psf_size//2+1),\
-                                          np.arange(-(psf_size//2),psf_size//2+1))
+            psf_size = 2*int(np.round(psf))+1  # to make sure this is odd.
+            xarrray, yarray = np.meshgrid(np.arange(-(psf_size//2),
+                                                    psf_size//2+1),
+                                          np.arange(-(psf_size//2),
+                                                    psf_size//2+1))
             d = np.sqrt(xarrray**2+yarray**2)
             sigma = psf/(2*np.sqrt(2*np.log(2)))
             psf = np.exp(-(d**2 / (2.0*sigma**2)))
             psf = psf/np.sum(psf)
         else:
-            raise TypeError('The type of the psf is unknown. create_fakedisk_cube accepts ndarray, int or float.')
+            raise TypeError('The type of the psf is unknown. '
+                            'create_fakedisk_cube accepts ndarray, int or '
+                            'float.')
         for i in range(nframes):
-            fakedisk_cube[i,:,:] = signal.convolve2d(fakedisk_cube[i,:,:],psf,mode='same')             
+            fakedisk_cube[i, :, :] = signal.convolve2d(fakedisk_cube[i, :, :],
+                                                       psf, mode='same')
     return fakedisk_cube
-
-

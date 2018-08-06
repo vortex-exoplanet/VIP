@@ -31,6 +31,7 @@ from ..conf import Progressbar
 
 def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
     """
+    Isotropic Undecimated Wavelet Transform filtering.
 
     Parameters
     ----------
@@ -73,7 +74,8 @@ def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
 
 
 def cube_filter_highpass(array, mode='laplacian', verbose=True, **kwargs):
-    """ Wrapper of ``frame_filter_highpass`` for cubes or 3d arrays.
+    """
+    Wrapper of ``frame_filter_highpass`` for cubes or 3d arrays.
 
     Parameters
     ----------
@@ -90,6 +92,7 @@ def cube_filter_highpass(array, mode='laplacian', verbose=True, **kwargs):
     -------
     filtered : array_like
         High-pass filtered cube.
+
     """
     if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
@@ -105,22 +108,27 @@ def cube_filter_highpass(array, mode='laplacian', verbose=True, **kwargs):
 
 
 def fft(array):
-    """ Performs the 2d discrete Fourier transform (using numpy's fft2 function)
-    on the data from the original image. This produces a new representation of
+    """
+    Perform the 2d discrete Fourier transform, using numpy's fft2 function.
+
+    This produces a new representation of
     the image in which each pixel represents a spatial frequency and
     orientation, rather than an xy coordinate. When Fourier-transformed images
     are plotted graphically, the low frequencies are found at the centre; this
     is not what fft2 actually produces, so we need to also apply numpy's
     fftshift (centering low frequencies).
+
     """
     fft_array = np.fft.fftshift(np.fft.fft2(array))
     return fft_array
 
 
 def ifft(array):
-    """ Gets the inverse Fourier transform on the image. This produces an array
-    of complex numbers whose real values correspond to the image in the
-    original space (decentering).
+    """
+    Get the inverse Fourier transform on the image.
+
+    This produces an array of complex numbers whose real values correspond to
+    the image in the original space (decentering).
 
     Notes
     -----
@@ -128,6 +136,7 @@ def ifft(array):
     long as the operations we apply in the fourier space do not break this
     symmetry, the data returned by ``ifft`` should not containy any imaginary
     part.
+
     """
     new_array = np.fft.ifft2(np.fft.ifftshift(array)).real
     return new_array
@@ -136,25 +145,36 @@ def ifft(array):
 def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
                           fwhm_size=5, btw_cutoff=0.2, btw_order=2,
                           hann_cutoff=5):
-    """ High-pass filtering of input frame depending on parameter ``mode``. The
-    filtered image properties will depend on the ``mode`` and the relevant
+    """
+    High-pass filtering of input frame depending on parameter ``mode``.
+
+    The filtered image properties will depend on the ``mode`` and the relevant
     parameters.
 
     Parameters
     ----------
     array : array_like
         Input array, 2d frame.
-    mode : {'laplacian', 'laplacian-conv', 'median-subt', 'gauss-subt', 'fourier-butter', 'hann'}
-        Type of High-pass filtering. ``laplacian`` applies a Laplacian fiter
-        with kernel size defined by ``kernel_size`` using the Opencv library.
-        ``laplacian-conv`` applies a Laplacian high-pass filter by defining a
-        kernel (with ``kernel_size``) and using the ``convolve_fft`` Astropy
-        function. ``median-subt`` subtracts a median low-pass filtered version
-        of the image. ``gauss-subt`` subtracts a Gaussian low-pass filtered
-        version of the image. ``fourier-butter`` applies a high-pass 2D
-        Butterworth filter in Fourier domain. ``hann`` uses a Hann window.
+    mode : str
+        Type of High-pass filtering.
+
+        ``laplacian``
+            applies a Laplacian fiter with kernel size defined by
+            ``kernel_size`` using the Opencv library.
+        ``laplacian-conv``
+            applies a Laplacian high-pass filter by defining a kernel (with
+            ``kernel_size``) and using the ``convolve_fft`` Astropy function.
+        ``median-subt``
+            subtracts a median low-pass filtered version of the image.
+        ``gauss-subt``
+            subtracts a Gaussian low-pass filtered version of the image.
+        ``fourier-butter``
+            applies a high-pass 2D Butterworth filter in Fourier domain.
+        ``hann``
+            uses a Hann window.
+
     median_size : int, optional
-        Size of the median box for filtering the low-pass median filter.
+        Size of the median box for the ``median-subt`` filter.
     kernel_size : int, optional
         Size of the Laplacian kernel used in ``laplacian`` mode. It must be an
         positive odd integer value.
@@ -175,7 +195,9 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
 
     """
     def butter2d_lp(size, cutoff, n=3):
-        """ Create low-pass 2D Butterworth filter.
+        """
+        Create low-pass 2D Butterworth filter.
+
         Function from PsychoPy library, credits to Jonathan Peirce, 2010
 
         Parameters
@@ -192,6 +214,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         -------
         numpy.ndarray
           filter kernel in 2D centered
+
         """
         if not 0 < cutoff <= 1:
             raise ValueError('Cutoff frequency must be between 0 and 1.')
@@ -211,7 +234,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
 
     def round_away(x):
         """
-        round to the *nearest* integer, half-away-from-zero
+        Round to the *nearest* integer, half-away-from-zero.
 
         Parameters
         ----------
@@ -227,6 +250,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         unlike numpy's round/rint, which round to the nearest *even*
         value (half-to-even, financial rounding) as defined in IEEE-754
         standard.
+
         """
         return np.trunc(x + np.copysign(0.5, x))
 
@@ -299,20 +323,17 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
 
         # create a Hanning profile window cut at the chosen frequency:
         npix = array.shape[0]
-        #if npix%2 != 0:
-        #    raise ValueError("only even-sized frames are supported by 'hann'"
-        #                     " high-pass filter! Frame shape: {}".format(array.shape))
 
         cutoff = npix/2 * hann_cutoff
-        cutoff_inside = round_away(np.minimum(cutoff, (npix/2 -1))).astype(int)
+        cutoff_inside = round_away(np.minimum(cutoff, (npix/2 - 1))).astype(int)
         winsize = 2*cutoff_inside + 1
         win1d = np.hanning(winsize)
         win = 1 - np.outer(win1d, win1d)
 
         array_fft = fft(array)
         # remove high spatial frequency along the Hann profile:
-        array_fft[npix//2 - cutoff_inside : npix//2 + cutoff_inside + 1,
-                  npix//2 - cutoff_inside : npix//2 + cutoff_inside + 1] *= win
+        array_fft[npix//2 - cutoff_inside: npix//2 + cutoff_inside + 1,
+                  npix//2 - cutoff_inside: npix//2 + cutoff_inside + 1] *= win
 
         filtered = ifft(array_fft)
 
@@ -324,7 +345,8 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
 
 def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
                          gauss_mode='conv'):
-    """ Low-pass filtering of input frame depending on parameter *mode*.
+    """
+    Low-pass filtering of input frame depending on parameter ``mode``.
 
     Parameters
     ----------
@@ -373,7 +395,8 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
 
 def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
                         gauss_mode='conv', verbose=True):
-    """ Wrapper of ``frame_filter_lowpass`` for cubes or 3d arrays.
+    """
+    Wrapper of ``frame_filter_lowpass`` for cubes or 3d arrays.
 
     Parameters
     ----------
@@ -394,6 +417,7 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     -------
     filtered : array_like
         Low-pass filtered cube.
+
     """
     if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')

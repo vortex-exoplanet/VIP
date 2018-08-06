@@ -47,17 +47,17 @@ differential imaging for exoplanet/disk detection through high-contrast imaging.
 The goal of ``VIP`` is to incorporate open-source, efficient, easy-to-use and
 well-documented implementations of high-contrast image processing algorithms to
 the interested scientific community. The main repository of ``VIP`` resides on
-`Github <https://github.com/vortex-exoplanet/VIP>`_, the standard for scientific
+`GitHub <https://github.com/vortex-exoplanet/VIP>`_, the standard for scientific
 open source code distribution, using Git as a version control system.
 
 ``VIP`` started as the effort of `Carlos Alberto Gomez Gonzalez <https://carlgogo.github.io/>`_,
 a former PhD student of the `VORTEX team <http://www.vortex.ulg.ac.be/>`_
 (ULiege, Belgium). ``VIP``'s development is led by C. Gomez with contributions
-made by collaborators from several teams (take a look at the tab contributors on
-``VIP``'s Github repository). Most of ``VIP``'s functionalities are mature but
+made by collaborators from several teams (take a look at the `contributors tab <https://github.com/vortex-exoplanet/VIP/graphs/contributors>`_ on
+``VIP``'s GitHub repository). Most of ``VIP``'s functionalities are mature but
 it doesn't mean it's free from bugs. The code is continuously evolving and
 therefore feedback/contributions are greatly appreciated. If you want to report
-a bug or suggest a functionality please create an issue on Github. Pull
+a bug or suggest a functionality please create an issue on GitHub. Pull
 requests are very welcomed!
 
 
@@ -89,8 +89,7 @@ The benefits of using a Python package manager (distribution), such as
 (ana)conda or Canopy, are many. Mainly, it brings easy and robust package
 management and avoids messing up with your system's default python. An
 alternative is to use package managers like apt-get for Ubuntu or
-Homebrew/MacPorts/Fink for Macos. I personally recommend using Miniconda which
-you can find here: https://conda.io/miniconda.html.
+Homebrew/MacPorts/Fink for macOS. I personally recommend using `Miniconda <https://conda.io/miniconda>`_.
 
 ``VIP`` depends on existing packages from the Python ecosystem, such as
 ``numpy``, ``scipy``, ``matplotlib``, ``pandas``, ``astropy``, ``scikit-learn``,
@@ -98,10 +97,10 @@ you can find here: https://conda.io/miniconda.html.
 installing ``VIP`` suitable for different scenarios.
 
 
-Using PIP
+Using pip
 ^^^^^^^^^
 The easiest way to install ``VIP`` is through the Python Package Index, aka
-`Pypi <https://pypi.org/>`_, with the ``pip`` package manager. Simply run:
+`PyPI <https://pypi.org/>`_, with the ``pip`` package manager. Simply run:
 
 .. code-block:: bash
 
@@ -114,7 +113,7 @@ With ``pip`` you can easily uninstall, upgrade or install a specific version of
 
   $ pip install --upgrade vip_hci
 
-Alternatively, you can use ``pip install`` and point to the Github repo:
+Alternatively, you can use ``pip install`` and point to the GitHub repo:
 
 .. code-block:: bash
 
@@ -122,15 +121,15 @@ Alternatively, you can use ``pip install`` and point to the Github repo:
 
 Using the setup.py file
 ^^^^^^^^^^^^^^^^^^^^^^^
-You can download ``VIP`` from its Github repository as a zip file. A setup.py
-file (Setuptools) is included in the root folder of ``VIP``. Enter the package's
+You can download ``VIP`` from its GitHub repository as a zip file. A ``setup.py``
+file (setuptools) is included in the root folder of ``VIP``. Enter the package's
 root folder and run:
 
 .. code-block:: bash
 
   $ python setup.py install
 
-Using GIT
+Using Git
 ^^^^^^^^^
 If you want to benefit from the ``git`` functionalities, you need to clone the
 repository (make sure your system has ``git`` installed):
@@ -140,16 +139,16 @@ repository (make sure your system has ``git`` installed):
   $ git clone https://github.com/vortex-exoplanet/VIP.git
 
 Then you can install the package by following the previous steps, using the
-setup.py file. Creating a fork with Github is recommended to developers or to
+setup.py file. Creating a fork with GitHub is recommended to developers or to
 users who want to experiment with the code.
 
 Other dependencies
 ^^^^^^^^^^^^^^^^^^
-``Opencv`` (Open source Computer Vision) provides fast c++ image processing
+``OpenCV`` (Open source Computer Vision) provides fast C++ image processing
 operations and is used by ``VIP`` for basic image transformations. If you don't
-have/want the ``opencv`` python bindings (``opencv`` is optional since ``VIP``
-v0.5.2), ``VIP`` will use the much slower ``ndimage/scikit-image`` libraries
-transparently. Fortunately, installing ``opencv`` library is nowadays and easy
+have/want the ``OpenCV`` python bindings (``OpenCV`` is optional since ``VIP``
+v0.5.2), ``VIP`` will use the much slower ``ndimage``/``scikit-image`` libraries
+transparently. Fortunately, installing ``OpenCV`` library is nowadays and easy
 process that is done automatically with the ``VIP`` installation. Alternatively,
 you could use ``conda``:
 
@@ -169,10 +168,10 @@ installed from the latest development version:
 Also, you can install the Intel Math Kernel Library (MKL) optimizations
 (provided that you have a recent version of ``conda``) or ``openblas``
 libraries. Either of them can be installed with ``conda install``. This is
-recommended along with ``Opencv`` for maximum speed on ``VIP`` computations.
+recommended along with ``OpenCV`` for maximum speed on ``VIP`` computations.
 
-``VIP`` offers the possibility of computing SVDs on GPU by using ``cupy``
-(starting from version 0.8.0) or ''pytorch`` (from version 0.9.2). These remain
+``VIP`` offers the possibility of computing SVDs on GPU by using ``CuPy``
+(starting from version 0.8.0) or ``PyTorch`` (from version 0.9.2). These remain
 as optional requirements, to be installed by the user, as well as a proper CUDA
 environment (and a decent GPU card).
 
@@ -191,8 +190,8 @@ Now you can start finding exoplanets!
 
 Mailing list
 ------------
-Please subscribe to our `mailing <http://lists.astro.caltech.edu:88/mailman/listinfo/vip>`_
-list if you want to be informed of ``VIP``'s latest developments (new versions
+Please subscribe to our `mailing list <http://lists.astro.caltech.edu:88/mailman/listinfo/vip>`_
+if you want to be informed of ``VIP``'s latest developments (new versions
 and/or updates).
 
 

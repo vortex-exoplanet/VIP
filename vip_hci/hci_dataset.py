@@ -30,7 +30,6 @@ from .metrics import (frame_quick_report, cube_inject_companions, snr_ss,
                       normalize_psf)
 
 from .conf.utils_conf import check_array, Saveable, print_precision
-from .conf.utils_conf import check_array, print_precision
 
 
 class HCIFrame(object):

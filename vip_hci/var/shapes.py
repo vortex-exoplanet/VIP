@@ -185,10 +185,10 @@ def frame_center(array, verbose=False):
         print('Center px coordinates at x,y = ({}, {})'.format(cx, cy))
     return cy, cx
 
-    
+
 def get_square(array, size, y, x, position=False, force=False):
     """ Returns an square subframe from a 2d array or image.
-    
+
     Parameters
     ----------
     array : array_like
@@ -206,12 +206,12 @@ def get_square(array, size, y, x, position=False, force=False):
     force : bool, optional
         Size and the size of the 2d array must be both even or odd. With
         ``force`` set to True this condition can be avoided.
-        
+
     Returns
     -------
     array_view : array_like
         Sub array.
-        
+
     """
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
@@ -245,7 +245,7 @@ def get_square(array, size, y, x, position=False, force=False):
         raise RuntimeError(msg)
 
     array_view = array[y0: y1, x0: x1].copy()
-    
+
     if position:
         return array_view, y0, x0
     else:
@@ -294,13 +294,13 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
 
 def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
                 output_indices=False):
-    """ Returns a centered elliptical region from a 2d ndarray. All the rest 
+    """ Returns a centered elliptical region from a 2d ndarray. All the rest
     pixels are set to zeros.
-    
+
     Parameters
     ----------
     array : array_like
-        Input 2d array or image. 
+        Input 2d array or image.
     a : float or int
         Semi-major axis.
     b : float or int
@@ -314,7 +314,7 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
         by the ``frame_center`` function.
     output_indices : bool, optional
         If True returns the indices inside the annulus.
-    
+
     Returns
     -------
     Depending on output_values, output_indices:
@@ -443,15 +443,15 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
 
 
 # TODO: remove this in VIP v1.0.0. Replaced with get_annulus_segments
-def get_annulus(array, inner_radius, width, output_values=False, 
-                output_indices=False):                                          
-    """Returns a centerered annulus from a 2d ndarray. All the rest pixels are 
-    set to zeros. 
-    
+def get_annulus(array, inner_radius, width, output_values=False,
+                output_indices=False):
+    """Returns a centerered annulus from a 2d ndarray. All the rest pixels are
+    set to zeros.
+
     Parameters
     ----------
     array : array_like
-        Input 2d array or image. 
+        Input 2d array or image.
     inner_radius : float
         The inner radius of the donut region.
     width : int
@@ -460,7 +460,7 @@ def get_annulus(array, inner_radius, width, output_values=False,
         If True returns the values of the pixels in the annulus.
     output_indices : bool, optional
         If True returns the indices inside the annulus.
-    
+
     Returns
     -------
     Depending on output_values, output_indices:
@@ -476,12 +476,12 @@ def get_annulus(array, inner_radius, width, output_values=False,
     array = array.copy()
     cy, cx = frame_center(array)
     yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
-    circle = np.sqrt((xx - cx)**2 + (yy - cy)**2)                                                                               
+    circle = np.sqrt((xx - cx)**2 + (yy - cy)**2)
     donut_mask = (circle <= (inner_radius + width)) & (circle >= inner_radius)
     if output_values and not output_indices:
         values = array[donut_mask]
         return values
-    elif output_indices and not output_values:      
+    elif output_indices and not output_values:
         indices = np.array(np.where(donut_mask))
         y = indices[0]
         x = indices[1]
@@ -494,21 +494,21 @@ def get_annulus(array, inner_radius, width, output_values=False,
 
 
 # TODO: VIP v1.0.0: make use of get_annulus_segments instead
-def get_annulus_cube(array, inner_radius, width, output_values=False):     
-    """ Returns a centerered annulus from a 3d ndarray. All the rest pixels are 
-    set to zeros. 
-    
+def get_annulus_cube(array, inner_radius, width, output_values=False):
+    """ Returns a centerered annulus from a 3d ndarray. All the rest pixels are
+    set to zeros.
+
     Parameters
     ----------
     array : array_like
-        Input 2d array or image. 
+        Input 2d array or image.
     inner_radius : int
         The inner radius of the donut region.
     width : int
         The size of the annulus.
     output_values : {False, True}, optional
         If True returns the values of the pixels in the annulus.
-    
+
     Returns
     -------
     Depending on output_values:
@@ -531,17 +531,17 @@ def get_annulus_cube(array, inner_radius, width, output_values=False):
         for i in range(array.shape[0]):
             arr_annulus[i] = get_annulus(array[i], inner_radius, width)
         return arr_annulus
-    
+
 
 def get_ell_annulus(array, a, b, PA, width, output_values=False,
                     output_indices=False, cy=None, cx=None):
-    """Returns a centered elliptical annulus from a 2d ndarray. All the rest 
-    pixels are set to zeros. 
+    """Returns a centered elliptical annulus from a 2d ndarray. All the rest
+    pixels are set to zeros.
 
     Parameters
     ----------
     array : array_like
-        Input 2d array or image. 
+        Input 2d array or image.
     a : flt
         Semi-major axis.
     b : flt
@@ -549,14 +549,14 @@ def get_ell_annulus(array, a, b, PA, width, output_values=False,
     PA : deg
         The PA of the semi-major axis.
     width : flt
-        The size of the annulus along the semi-major axis; it is proportionnally 
+        The size of the annulus along the semi-major axis; it is proportionnally
         thinner along the semi-minor axis).
     output_values : {False, True}, optional
         If True returns the values of the pixels in the annulus.
     output_indices : {False, True}, optional
         If True returns the indices inside the annulus.
     cy,cx: float, optional
-        Location of the center of the annulus to be defined. If not provided, 
+        Location of the center of the annulus to be defined. If not provided,
     it assumes the annuli are centered on the frame.
 
     Returns
@@ -730,7 +730,3 @@ def reshape_matrix(array, y, x):
     reshaped frames.
     """
     return array.reshape(array.shape[0], y, x)
-
-
-
-

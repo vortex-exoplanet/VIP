@@ -128,11 +128,11 @@ def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
         return cube
 
 
-def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4, 
-                   theta=0, threshold=False, sigfactor=6, full_output=False, 
+def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
+                   theta=0, threshold=False, sigfactor=6, full_output=False,
                    debug=False):
     """ Fitting a 2D Gaussian to the 2D distribution of the data.
-    
+
     Parameters
     ----------
     array : array_like
@@ -140,9 +140,9 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     crop : bool, optional
         If True an square sub image will be cropped.
     cent : tuple of int, optional
-        X,Y integer position of source in the array for extracting the subimage. 
-        If None the center of the frame is used for cropping the subframe (the 
-        PSF is assumed to be ~ at the center of the frame). 
+        X,Y integer position of source in the array for extracting the subimage.
+        If None the center of the frame is used for cropping the subframe (the
+        PSF is assumed to be ~ at the center of the frame).
     cropsize : int, optional
         Size of the subimage.
     fwhmx, fwhmy : float, optional
@@ -156,22 +156,22 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     sigfactor : int, optional
         The background pixels will be thresholded before fitting a 2d Gaussian
         to the data using sigma clipped statistics. All values smaller than
-        (MEDIAN + sigfactor*STDDEV) will be replaced by small random Gaussian 
-        noise. 
+        (MEDIAN + sigfactor*STDDEV) will be replaced by small random Gaussian
+        noise.
     full_output : bool, optional
-        If False it returns just the centroid, if True also returns the 
+        If False it returns just the centroid, if True also returns the
         FWHM in X and Y (in pixels), the amplitude and the rotation angle.
     debug : bool, optional
         If True, the function prints out parameters of the fit and plots the
         data, model and residuals.
-        
+
     Returns
     -------
     mean_y : float
-        Source centroid y position on input array from fitting. 
+        Source centroid y position on input array from fitting.
     mean_x : float
         Source centroid x position on input array from fitting.
-        
+
     If ``full_output`` is True it returns a Pandas dataframe containing the
     following columns:
     'amplitude' : Float value. Amplitude of the Gaussian.
@@ -180,23 +180,23 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     'fwhm_x' : Float value. FHWM in X [px].
     'fwhm_y' : Float value. FHWM in Y [px].
     'theta' : Float value. Rotation angle.
-    
+
     """
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
-    
+
     if crop:
         if cent is None:
             ceny, cenx = frame_center(array)
         else:
             cenx, ceny = cent
-        
+
         imside = array.shape[0]
-        psf_subimage, suby, subx = get_square(array, min(cropsize, imside), 
-                                              ceny, cenx, position=True)  
+        psf_subimage, suby, subx = get_square(array, min(cropsize, imside),
+                                              ceny, cenx, position=True)
     else:
-        psf_subimage = array.copy()  
-    
+        psf_subimage = array.copy()
+
     if threshold:
         _, clipmed, clipstd = sigma_clipped_stats(psf_subimage, sigma=2)
         indi = np.where(psf_subimage <= clipmed + sigfactor * clipstd)
@@ -221,12 +221,12 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
         mean_x = fit.x_mean.value + subx
     else:
         mean_y = fit.y_mean.value
-        mean_x = fit.x_mean.value 
+        mean_x = fit.x_mean.value
     fwhm_y = fit.y_stddev.value*gaussian_sigma_to_fwhm
-    fwhm_x = fit.x_stddev.value*gaussian_sigma_to_fwhm 
+    fwhm_x = fit.x_stddev.value*gaussian_sigma_to_fwhm
     amplitude = fit.amplitude.value
     theta = np.rad2deg(fit.theta.value)
-    
+
     if debug:
         if threshold:
             msg = ['Subimage thresholded', 'Model', 'Residuals']
@@ -242,7 +242,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
         print('centroid x subim =', fit.x_mean.value, '\n')
         print('amplitude =', amplitude)
         print('theta =', theta)
-    
+
     if full_output:
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm_y': fwhm_y, 'fwhm_x': fwhm_x,

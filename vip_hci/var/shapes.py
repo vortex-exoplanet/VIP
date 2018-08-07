@@ -168,18 +168,23 @@ def frame_center(array, verbose=False):
     verbose : bool optional
         If True the center coordinates are printed out.
 
+    Returns
+    -------
+    cy, cx : float
+        Coordinates of the center.
+
     """
     if array.ndim == 2:
-        cy = array.shape[0] / 2 - 0.5
-        cx = array.shape[1] / 2 - 0.5
+        shape = array.shape
     elif array.ndim == 3:
-        cy = array[0].shape[0] / 2 - 0.5
-        cx = array[0].shape[1] / 2 - 0.5
+        shape = array[0].shape
     elif array.ndim == 4:
-        cy = array[0, 0].shape[0] / 2 - 0.5
-        cx = array[0, 0].shape[1] / 2 - 0.5
+        shape = array[0, 0].shape
     else:
         raise ValueError('`array` is not a 2d, 3d or 4d array')
+
+    cy = shape[0] / 2 - 0.5
+    cx = shape[1] / 2 - 0.5
 
     if verbose:
         print('Center px coordinates at x,y = ({}, {})'.format(cx, cy))

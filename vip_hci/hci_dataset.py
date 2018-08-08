@@ -739,7 +739,7 @@ class HCIDataset(object):
 
     def inject_companions(self, flux, rad_dists, n_branches=1, theta=0,
                           imlib='opencv', interpolation='lanczos4',
-                          verbose=True):
+                          full_output=False, verbose=True):
         """ Injection of fake companions in 3d or 4d cubes.
 
         Parameters
@@ -771,8 +771,16 @@ class HCIDataset(object):
             For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
             The 'nearneig' interpolation is the fastest and the 'lanczos4' the
             slowest and accurate. 'lanczos4' is the default.
+        full_output : bool, optional
+            Return the coordinates of the injected companions.
         verbose : bool, optional
             If True prints out additional information.
+
+        Returns
+        -------
+        yx : list of tuple(y,x)
+            [if full_output] Pixel coordinates of the injections in the first
+            frame (and first wavelength for 4D cubes).
 
         """
         # TODO: support the injection of a Gaussian/Moffat kernel.
@@ -788,10 +796,15 @@ class HCIDataset(object):
             if self.wavelengths is None:
                 raise ValueError('The wavelengths vector has not been set')
 
-        self.cube = cube_inject_companions(self.cube, self.psfn, self.angles,
-                                           flux, self.px_scale, rad_dists,
-                                           n_branches, theta, imlib,
-                                           interpolation, verbose)
+        self.cube, yx = cube_inject_companions(self.cube, self.psfn,
+                                               self.angles, flux, self.px_scale,
+                                               rad_dists, n_branches, theta,
+                                               imlib, interpolation,
+                                               full_output=True,
+                                               verbose=verbose)
+
+        if full_output:
+            return yx
 
     def load_angles(self, angles, hdu=0):
         """ Loads the PA vector from a FITS file. It is possible to specify the

@@ -56,23 +56,12 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
     if not isinstance(fillwith, (int, float)):
         raise ValueError('`fillwith` must be integer, float or np.nan')
 
-    if array.ndim == 2:
-        cy, cx = frame_center(array)
-    elif array.ndim == 3:
-        cy, cx = frame_center(array[0])
-    elif array.ndim == 4:
-        cy, cx = frame_center(array[0][0])
-    else:
-        raise ValueError('`Array` must be a 2d, 3d or 4d np.ndarray')
+    cy, cx = frame_center(array)
 
     ind = circle(cy, cx, radius)
 
     if mode == 'in':
         array_masked = array.copy()
-    elif mode == 'out':
-        array_masked = np.ones_like(array) * np.nan
-
-    if mode == 'in':
         if array.ndim == 2:
             array_masked[ind] = fillwith
         elif array.ndim == 3:
@@ -81,6 +70,7 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
             array_masked[:, :, ind[1], ind[0]] = fillwith
 
     elif mode == 'out':
+        array_masked = np.full_like(array, fillwith)
         if array.ndim == 2:
             array_masked[ind] = array[ind]
         elif array.ndim == 3:

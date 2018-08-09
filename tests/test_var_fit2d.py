@@ -27,16 +27,15 @@ def put(big_frame, small_frame, y, x):
 
 
 def put_center(big_frame, small_frame, y, x):
-    # small_frame needs to be odd
     offs_y = small_frame.shape[0]//2
     offs_x = small_frame.shape[1]//2
 
     return put(big_frame, small_frame, y-offs_y, x-offs_x)
 
 
-@pytest.mark.parametrize("psfsize", [3, 4], ids=lambda x: "psf{}".format(x))
-@pytest.mark.parametrize("framesize", [13, 14, 23], ids=lambda x: "fr{}".format(x))
-@pytest.mark.parametrize("y,x", [(5, 5), (5, 7), (5, 8), (10, 3), (10, 7)])
+@pytest.mark.parametrize("psfsize", [6, 7], ids=lambda x: "psf{}".format(x))
+@pytest.mark.parametrize("framesize", [10, 11], ids=lambda x: "fr{}".format(x))
+@pytest.mark.parametrize("y,x", [(4, 4), (4, 6), (6, 5)])
 @pytest.mark.parametrize("psf_model, fit_fkt",
                          [
                             pytest.param("gauss", fit_2dgaussian, id="gauss"),
@@ -69,4 +68,4 @@ def test_fit2d(psf_model, fit_fkt, y, x, framesize, psfsize):
     print("fit should return:    {}".format((y_exp, x_exp)))
     print("fitted injection:     {}".format((y_out, x_out)))
 
-    aarc((y_out, x_out), (y_exp, x_exp), atol=0.1)
+    aarc((y_out, x_out), (y_exp, x_exp), atol=0.05)

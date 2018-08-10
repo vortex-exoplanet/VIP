@@ -18,6 +18,7 @@ from subprocess import Popen
 from matplotlib.pyplot import (figure, subplot, show, colorbar, axes, Circle,
                                savefig, close)
 import matplotlib.colors as colors
+import matplotlib.cm as mplcm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.cm import register_cmap
 from .shapes import frame_center
@@ -409,15 +410,25 @@ def pp_subplots(*data, **kwargs):
 
     if 'cmap' in kwargs:
         custom_cmap = kwargs['cmap']
-        if not isinstance(custom_cmap, list):
+        if not isinstance(custom_cmap, (list, tuple)):
             custom_cmap = [kwargs['cmap']] * num_plots
         else:
             if not len(custom_cmap) == num_plots:
-                raise RuntimeError('Cmap list does not have enough items')
+                raise RuntimeError('Cmap does not contain enough items')
     else:
         custom_cmap = [vip_default_cmap] * num_plots
 
-    logscale = kwargs.get('log', False)
+    if 'log' in kwargs:
+        # Showing bad/nan pixels with the darkest color in current colormap
+        current_cmap = mplcm.get_cmap()
+        current_cmap.set_bad(current_cmap.colors[0])
+        logscale = kwargs['log']
+        if not isinstance(logscale, (list, tuple)):
+            logscale = [kwargs['log']] * num_plots
+        else:
+            if not len(logscale) == num_plots:
+                raise RuntimeError('Logscale does not contain enough items')
+
     colorb = kwargs.get('colorb', True)
     dpi = kwargs.get('dpi', 90)
     title = kwargs.get('title', None)
@@ -450,9 +461,14 @@ def pp_subplots(*data, **kwargs):
         v += 1
         ax = subplot(rows, cols, v)
         ax.set_aspect('equal')
-        if logscale:
+
+        if logscale[i]:
             image += np.abs(image.min())
-            norm = colors.LogNorm(vmin=max(image.min(), 0.1), vmax=image.max())
+            if vmin[i] is None:
+                linthresh = 1e-2
+            else:
+                linthresh = vmin[i]
+            norm = colors.SymLogNorm(linthresh)
         else:
             norm = None
 
@@ -460,8 +476,7 @@ def pp_subplots(*data, **kwargs):
             image = image.astype(int)
 
         im = ax.imshow(image, cmap=custom_cmap[i], interpolation='nearest',
-                       origin='lower', vmin=vmin[i], vmax=vmax[i],
-                       norm=norm)
+                       origin='lower', vmin=vmin[i], vmax=vmax[i], norm=norm)
 
         if show_circle:
             for j in range(n_circ):

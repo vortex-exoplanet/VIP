@@ -25,9 +25,9 @@ from ..conf.utils_conf import pool_map, fixed, Progressbar
 
 
 def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
-          dist_threshold=90, delta_rot=0.5, delta_sep=(0.1, 1), radius_int=0,
+          dist_threshold=100, delta_rot=0.5, delta_sep=(0.1, 1), radius_int=0,
           asize=4, n_segments=4, nproc=1, solver='lstsq', tol=1e-3,
-          optim_scale_fact=1, adimsdi='skipadi', imlib='opencv',
+          optim_scale_fact=2, adimsdi='skipadi', imlib='opencv',
           interpolation='lanczos4', collapse='median', verbose=True,
           full_output=False):
     """ LOCI style algorithm that models a PSF (for ADI data) with a

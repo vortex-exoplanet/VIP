@@ -428,6 +428,8 @@ def pp_subplots(*data, **kwargs):
         else:
             if not len(logscale) == num_plots:
                 raise RuntimeError('Logscale does not contain enough items')
+    else:
+        logscale = [False] * num_plots
 
     colorb = kwargs.get('colorb', True)
     dpi = kwargs.get('dpi', 90)

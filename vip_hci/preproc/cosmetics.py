@@ -7,7 +7,7 @@ Also functions for cropping cubes.
 
 from __future__ import division, print_function
 
-__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens @ UChile/ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens'
 __all__ = ['cube_crop_frames',
            'cube_drop_frames',
            'frame_crop',
@@ -153,7 +153,7 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
     if array.ndim != 2:
         raise TypeError('Array is not a frame or 2d array')
     if size >= array.shape[0]:
-        msg = 'Cropping size is equal or larger than the original size'
+        msg = 'The new size is equal to or bigger than the initial frame size'
         raise RuntimeError(msg)
     
     if not cenxy:

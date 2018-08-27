@@ -532,8 +532,7 @@ class HCIDataset(object):
         if self.angles is not None:
             print('Angles array shape: {}'.format(self.angles.shape))
             # Checking the shape of the angles vector
-            self.angles = check_array(self.angles, dim=1,
-                                      name='Parallactic angles vector')
+            check_array(self.angles, dim=1, name='Parallactic angles vector')
             if not self.angles.shape[0] == self.n:
                 raise ValueError('Parallactic angles vector has a wrong shape')
 
@@ -545,8 +544,7 @@ class HCIDataset(object):
         if self.wavelengths is not None:
             print('Wavelengths array shape: {}'.format(self.wavelengths.shape))
             # Checking the shape of the scaling vector
-            self.wavelengths = check_array(self.wavelengths, dim=1,
-                                           name='Wavelengths vector')
+            check_array(self.wavelengths, dim=1, name='Wavelengths vector')
             if not self.wavelengths.shape[0] == self.w:
                 raise ValueError('Wavelengths vector has a wrong shape')
 
@@ -579,7 +577,7 @@ class HCIDataset(object):
         self.fwhm = fwhm
         if self.fwhm is not None:
             if self.cube.ndim == 4:
-                self.fwhm = check_array(self.fwhm, 1, 'FHWM')
+                check_array(self.fwhm, 1, 'FHWM')
             elif self.cube.ndim == 3:
                 print('FWHM: {}'.format(self.fwhm))
         self.px_scale = px_scale

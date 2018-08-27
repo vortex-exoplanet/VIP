@@ -290,7 +290,7 @@ def pp_subplots(*data, **kwargs):
     else:
         show_circle = False
 
-    if 'circlerad' in kwargs:
+    if 'circlerad' in kwargs and show_circle:
         # single value is provided, used for all circles
         if isinstance(kwargs['circlerad'], (float, int)):
             circle_rad = [kwargs['circlerad']] * n_circ
@@ -311,7 +311,7 @@ def pp_subplots(*data, **kwargs):
     if 'circlealpha' in kwargs:
         circle_alpha = kwargs['circlealpha']
         # single value is provided, used for all the circles
-        if isinstance(circle_alpha, (float, int)):
+        if isinstance(circle_alpha, (float, int)) and show_circle:
             circle_alpha = [circle_alpha] * n_circ
     else:
         if show_circle:

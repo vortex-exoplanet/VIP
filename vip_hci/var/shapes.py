@@ -186,7 +186,7 @@ def frame_center(array, verbose=False):
     return cy, cx
 
     
-def get_square(array, size, y, x, position=False, force=False):
+def get_square(array, size, y, x, position=False, force=False, verbose=True):
     """ Returns an square subframe from a 2d array or image.
     
     Parameters
@@ -206,6 +206,8 @@ def get_square(array, size, y, x, position=False, force=False):
     force : bool, optional
         Size and the size of the 2d array must be both even or odd. With
         ``force`` set to True this condition can be avoided.
+    verbose : bool optional
+        If True, warning messages might be shown.
         
     Returns
     -------
@@ -229,26 +231,28 @@ def get_square(array, size, y, x, position=False, force=False):
             # Odd size
             if size % 2 != 0:
                 size += 1
-                print("`Size` is odd (while input frame size is even). Setting "
-                      "`size` to {} pixels".format(size))
+                if verbose:
+                    print("`Size` is odd (while input frame size is even). "
+                          "Setting `size` to {} pixels".format(size))
         # Odd input size
         else:
             # Even size
             if size % 2 == 0:
                 size += 1
-                print("`Size` is even (while input frame size is odd). Setting "
-                      "`size` to {} pixels".format(size))
+                if verbose:
+                    print("`Size` is even (while input frame size is odd). "
+                          "Setting `size` to {} pixels".format(size))
     else:
         # Even input size
         if size_init % 2 == 0:
             # Odd size
-            if size % 2 != 0:
+            if size % 2 != 0 and verbose:
                 print("WARNING: `size` is odd while input frame size is even. "
                       "Make sure the center coordinates are set properly")
         # Odd input size
         else:
             # Even size
-            if size % 2 == 0:
+            if size % 2 == 0 and verbose:
                 print("WARNING: `size` is even while input frame size is odd. "
                       "Make sure the center coordinates are set properly")
 
@@ -719,9 +723,10 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
         if annulus_radius is None or annulus_width is None:
             raise ValueError('Annulus_radius and/or annulus_width can be None '
                              'in annular mode')
-
-        ind = get_annulus(array[0], annulus_radius - annulus_width / 2,
-                          annulus_width, output_indices=True)
+        fr_size = array.shape[1]
+        inrad = annulus_radius - int(np.round(annulus_width / 2.))
+        ind = get_annulus_segments((fr_size, fr_size), inrad, annulus_width,
+                                   nsegm=1)[0]
         yy, xx = ind
         matrix = array[:, yy, xx]
 

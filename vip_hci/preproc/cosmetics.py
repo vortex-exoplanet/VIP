@@ -58,9 +58,9 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
     if xy is not None:
         cenx, ceny = xy
     else:
-        ceny, cenx = frame_center(temp_fr, verbose=False)
+        ceny, cenx = frame_center(temp_fr)
     _, y0, x0 = get_square(temp_fr, size, y=ceny, x=cenx, position=True,
-                           force=force)
+                           force=force, verbose=verbose)
 
     if not force:
         if temp_fr.shape[0] % 2 == 0:
@@ -102,7 +102,7 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
         Size and the size of the 2d array must be both even or odd. With
         ``force`` set to True this condition can be avoided.
     verbose : bool optional
-        If True message of completion is showed.
+        If True, a message of completion is shown.
         
     Returns
     -------
@@ -114,10 +114,11 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
         raise TypeError('`Array` is not a frame or 2d array')
 
     if not cenxy:
-        ceny, cenx = frame_center(array, verbose=False)
+        ceny, cenx = frame_center(array)
     else:
         cenx, ceny = cenxy
-    array_view = get_square(array, size, ceny, cenx, force=force)
+    array_view = get_square(array, size, ceny, cenx, force=force,
+                            verbose=verbose)
 
     if verbose:
         msg = "New shape: {}"

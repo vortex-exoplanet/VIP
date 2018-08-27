@@ -139,6 +139,7 @@ def check_array(input_array, dim, name=None):
             input_array = np.array(input_array)
         if not isinstance(input_array, np.ndarray):
             raise TypeError(msg)
+        input_array = np.squeeze(input_array)
         if not input_array.ndim == 1:
             raise TypeError(msg)
     elif dim == 2:

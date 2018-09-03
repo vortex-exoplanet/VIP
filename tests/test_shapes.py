@@ -97,3 +97,27 @@ def test_get_square():
     aarc(vip.var.get_square(pretty_even, size=2, x=4, y=2, force=True),
          np.array([[2, 2],
                    [3, 2]]))
+
+
+def test_get_circle():
+
+    ar = np.ones((10, 10), dtype=int)
+    aarc(vip.var.get_circle(ar, radius=4, output_values=False),
+         np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                   [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+                   [0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+                   [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                   [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                   [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                   [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                   [0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+                   [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]))
+
+    aarc(vip.var.get_circle(pretty_odd, radius=4, output_values=True),
+         np.array([1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 2, 3, 2, 1, 1, 2, 2,
+                   2, 1, 1, 1, 1, 1, 1]))
+
+    aarc(vip.var.get_circle(pretty_even, radius=4, output_values=True),
+         np.array([1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 2, 3, 3, 2, 1,
+                   1, 2, 3, 3, 2, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1]))

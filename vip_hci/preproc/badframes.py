@@ -233,10 +233,12 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     frame_ref : int or 2d array
         Index of the frame that will be used as a reference or 2d reference
         array.
+    crop_size : int, optional
+        Size in pixels of the square subframe to be analyzed.
     dist : {'sad','euclidean','mse','pearson','spearman'}, str optional
-        One of the similarity or disimilarity measures from function 
+        One of the similarity or dissimilarity measures from function
         vip_hci.stats.distances.cube_distance(). 
-    percentile : int
+    percentile : int, optional
         The percentage of frames that will be discarded. 
     plot : bool, optional
         If true it plots the mean fluctuation as a function of the frames and 

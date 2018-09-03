@@ -332,7 +332,8 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
             print("Pre-processing filtering of the images and the PSF: "
                   "done! F={}".format(filtering_fraction))
         cube = cube_filter_highpass(cube, mode="hann",
-                                    hann_cutoff=filtering_fraction)
+                                    hann_cutoff=filtering_fraction,
+                                    verbose=verbose)
 
     CUBE = cube
 
@@ -394,11 +395,12 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     # flux_factor: float or 2d array, depending on tnd
     factor = 1/psf_scale_factor
     flux_factor = factor * tnd * (ditpsf/ditimg)
-    print("[34m", "psf_scale_factor:", psf_scale_factor, "[0m")
-    print("[34m", "tnd:", tnd, "[0m")
-    print("[34m", "ditpsf:", ditpsf, "[0m")
-    print("[34m", "ditimg:", ditimg, "[0m")
-    print("[34m", "flux_factor:", flux_factor, "[0m")
+    if verbose:
+        print("[34m", "psf_scale_factor:", psf_scale_factor, "[0m")
+        print("[34m", "tnd:", tnd, "[0m")
+        print("[34m", "ditpsf:", ditpsf, "[0m")
+        print("[34m", "ditimg:", ditimg, "[0m")
+        print("[34m", "flux_factor:", flux_factor, "[0m")
 
     # post-processing of the output:
     if nsmooth_snr != 0:

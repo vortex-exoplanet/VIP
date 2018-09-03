@@ -17,3 +17,4 @@ from .frame_analysis import *
 from .roc import *
 from .snr import *
 from .fakedisk import *
+from .scattered_light_disk import *

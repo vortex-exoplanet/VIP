@@ -532,8 +532,7 @@ class HCIDataset(object):
         if self.angles is not None:
             print('Angles array shape: {}'.format(self.angles.shape))
             # Checking the shape of the angles vector
-            self.angles = check_array(self.angles, dim=1,
-                                      name='Parallactic angles vector')
+            check_array(self.angles, dim=1, name='Parallactic angles vector')
             if not self.angles.shape[0] == self.n:
                 raise ValueError('Parallactic angles vector has a wrong shape')
 
@@ -545,8 +544,7 @@ class HCIDataset(object):
         if self.wavelengths is not None:
             print('Wavelengths array shape: {}'.format(self.wavelengths.shape))
             # Checking the shape of the scaling vector
-            self.wavelengths = check_array(self.wavelengths, dim=1,
-                                           name='Wavelengths vector')
+            check_array(self.wavelengths, dim=1, name='Wavelengths vector')
             if not self.wavelengths.shape[0] == self.w:
                 raise ValueError('Wavelengths vector has a wrong shape')
 
@@ -579,7 +577,7 @@ class HCIDataset(object):
         self.fwhm = fwhm
         if self.fwhm is not None:
             if self.cube.ndim == 4:
-                self.fwhm = check_array(self.fwhm, 1, 'FHWM')
+                check_array(self.fwhm, 1, 'FHWM')
             elif self.cube.ndim == 3:
                 print('FWHM: {}'.format(self.fwhm))
         self.px_scale = px_scale
@@ -739,7 +737,7 @@ class HCIDataset(object):
 
     def inject_companions(self, flux, rad_dists, n_branches=1, theta=0,
                           imlib='opencv', interpolation='lanczos4',
-                          verbose=True):
+                          full_output=False, verbose=True):
         """ Injection of fake companions in 3d or 4d cubes.
 
         Parameters
@@ -771,8 +769,16 @@ class HCIDataset(object):
             For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
             The 'nearneig' interpolation is the fastest and the 'lanczos4' the
             slowest and accurate. 'lanczos4' is the default.
+        full_output : bool, optional
+            Return the coordinates of the injected companions.
         verbose : bool, optional
             If True prints out additional information.
+
+        Returns
+        -------
+        yx : list of tuple(y,x)
+            [if full_output] Pixel coordinates of the injections in the first
+            frame (and first wavelength for 4D cubes).
 
         """
         # TODO: support the injection of a Gaussian/Moffat kernel.
@@ -788,10 +794,15 @@ class HCIDataset(object):
             if self.wavelengths is None:
                 raise ValueError('The wavelengths vector has not been set')
 
-        self.cube = cube_inject_companions(self.cube, self.psfn, self.angles,
-                                           flux, self.px_scale, rad_dists,
-                                           n_branches, theta, imlib,
-                                           interpolation, verbose)
+        self.cube, yx = cube_inject_companions(self.cube, self.psfn,
+                                               self.angles, flux, self.px_scale,
+                                               rad_dists, n_branches, theta,
+                                               imlib, interpolation,
+                                               full_output=True,
+                                               verbose=verbose)
+
+        if full_output:
+            return yx
 
     def load_angles(self, angles, hdu=0):
         """ Loads the PA vector from a FITS file. It is possible to specify the

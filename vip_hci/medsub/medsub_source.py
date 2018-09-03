@@ -106,7 +106,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
 
     """
     global ARRAY
-    ARRAY = cube
+    ARRAY = cube.copy()
     
     if not (ARRAY.ndim == 3 or ARRAY.ndim == 4):
         raise TypeError('Input array is not a 3d or 4d array')

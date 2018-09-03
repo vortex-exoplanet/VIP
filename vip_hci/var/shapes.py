@@ -185,8 +185,8 @@ def frame_center(array, verbose=False):
         print('Center px coordinates at x,y = ({}, {})'.format(cx, cy))
     return cy, cx
 
-
-def get_square(array, size, y, x, position=False, force=False):
+    
+def get_square(array, size, y, x, position=False, force=False, verbose=True):
     """ Returns an square subframe from a 2d array or image.
 
     Parameters
@@ -206,50 +206,76 @@ def get_square(array, size, y, x, position=False, force=False):
     force : bool, optional
         Size and the size of the 2d array must be both even or odd. With
         ``force`` set to True this condition can be avoided.
+    verbose : bool optional
+        If True, warning messages might be shown.
 
     Returns
     -------
-    array_view : array_like
+    array_out : array_like
         Sub array.
-
+        
     """
+    size_init = array.shape[0]  # assuming square frames
+
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array.')
-
-    ary, arx = array.shape
+    if not isinstance(size, int):
+        raise TypeError('`Size` must be integer')
+    if size >= size_init:  # assuming square frames
+        msg = "`Size` is equal to or bigger than the initial frame size"
+        raise ValueError(msg)
 
     if not force:
-        if ary % 2 == 0:    # assuming square frames
+        # Even input size
+        if size_init % 2 == 0:
+            # Odd size
             if size % 2 != 0:
                 size += 1
-                print('Subframe size is odd (while frame size is even)')
-                print('Setting subframe size to {} pixels'.format(size))
+                if verbose:
+                    print("`Size` is odd (while input frame size is even). "
+                          "Setting `size` to {} pixels".format(size))
+        # Odd input size
         else:
+            # Even size
             if size % 2 == 0:
                 size += 1
-                print('Subframe size is even (while frame size is odd)')
-                print('Setting subframe size to {} pixels'.format(size))
+                if verbose:
+                    print("`Size` is even (while input frame size is odd). "
+                          "Setting `size` to {} pixels".format(size))
+    else:
+        # Even input size
+        if size_init % 2 == 0:
+            # Odd size
+            if size % 2 != 0 and verbose:
+                print("WARNING: `size` is odd while input frame size is even. "
+                      "Make sure the center coordinates are set properly")
+        # Odd input size
+        else:
+            # Even size
+            if size % 2 == 0 and verbose:
+                print("WARNING: `size` is even while input frame size is odd. "
+                      "Make sure the center coordinates are set properly")
 
     # wing is added to the sides of the subframe center
     if size % 2 != 0:
-        wing = size//2
+        wing = size // 2
     else:
-        wing = size/2 - 0.5
+        wing = size / 2 - 0.5
 
-    y0 = int(y-wing)
-    y1 = int(y+wing+1)  # +1 cause endpoint is excluded when slicing
-    x0 = int(x-wing)
-    x1 = int(x+wing+1)
-    if (y0 or x0) < 0 or (y1 or x1) > ary:   # assuming square frames
-        msg = 'square cannot be obtained given the size and y,x combination'
-        raise RuntimeError(msg)
+    y0 = int(y - wing)
+    y1 = int(y + wing + 1)  # +1 cause endpoint is excluded when slicing
+    x0 = int(x - wing)
+    x1 = int(x + wing + 1)
+    if (y0 or x0) < 0 or (y1 or x1) > size_init:   # assuming square frames
+        raise RuntimeError("A square subframe cannot be obtained given the "
+                           "size and y,x combination")
 
-    array_view = array[y0: y1, x0: x1].copy()
-
+    array_out = array[y0: y1, x0: x1].copy()
+    
     if position:
-        return array_view, y0, x0
+        return array_out, y0, x0
     else:
-        return array_view
+        return array_out
 
 
 def get_circle(array, radius, output_values=False, cy=None, cx=None):
@@ -697,9 +723,10 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
         if annulus_radius is None or annulus_width is None:
             raise ValueError('Annulus_radius and/or annulus_width can be None '
                              'in annular mode')
-
-        ind = get_annulus(array[0], annulus_radius - annulus_width / 2,
-                          annulus_width, output_indices=True)
+        fr_size = array.shape[1]
+        inrad = annulus_radius - int(np.round(annulus_width / 2.))
+        ind = get_annulus_segments((fr_size, fr_size), inrad, annulus_width,
+                                   nsegm=1)[0]
         yy, xx = ind
         matrix = array[:, yy, xx]
 

@@ -203,16 +203,17 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         raise RuntimeError(msg.format(ncomp, matrix.shape[0], matrix.shape[1]))
 
     if mode == 'eigen':
-        # building the covariance as np.dot(matrix.T,matrix) is slower and takes more memory
+        # building C as np.dot(matrix.T,matrix) is slower and takes more memory
         C = np.dot(matrix, matrix.T)        # covariance matrix
-        e, EV = linalg.eigh(C)              # eigenvalues and eigenvectors
+        e, EV = linalg.eigh(C)              # EVals and EVs
         pc = np.dot(EV.T, matrix)           # PCs using a compact trick when cov is MM'
-        V = pc[::-1]                        # reverse since last eigenvectors are the ones we want
-        S = np.sqrt(e)[::-1]                # reverse since eigenvalues are in increasing order
+        V = pc[::-1]                        # reverse since we need the last EVs
+        S = np.sqrt(np.abs(e))              # SVals = sqrt(EVals)
+        S = S[::-1]                         # reverse since EVals go in increasing order
         if debug:
             reconstruction(ncomp, None, S, None)
         for i in range(V.shape[1]):
-            V[:, i] /= S                    # scaling by the square root of eigenvalues
+            V[:, i] /= S                    # scaling EVs by the square root of EVals
         V = V[:ncomp]
         if verbose:
             print('Done PCA with numpy linalg eigh functions')

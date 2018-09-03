@@ -14,7 +14,7 @@ __all__ = ['collapse_psf_cube',
 
 import numpy as np
 import photutils
-from ..preproc import cube_crop_frames, frame_shift, frame_crop
+from ..preproc import cube_crop_frames, frame_shift, frame_crop, cube_shift
 from ..var import (frame_center, fit_2dgaussian, fit_2dairydisk, fit_2dmoffat,
                    get_circle)
 from ..conf.utils_conf import print_precision
@@ -175,8 +175,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                 for fr in range(nframes_adi):
                     shift_y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     shift_x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
-                    shift = _cube_shift(fc_fr, shift_y, shift_x, imlib,
-                                        interpolation)
+                    shift = cube_shift(fc_fr, shift_y, shift_x, imlib,
+                                       interpolation)
 
                     if isinstance(flevel, (int, float)):
                         array_out[:, fr] += shift * flevel
@@ -198,14 +198,6 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         return array_out, positions
     else:
         return array_out
-
-
-def _cube_shift(cube, y, x, imlib, interpolation):
-    """ Shifts the X-Y coordinates of a cube or 3D array by x and y values. """
-    cube_out = np.zeros_like(cube)
-    for i in range(cube.shape[0]):
-        cube_out[i] = frame_shift(cube[i], y, x, imlib, interpolation)
-    return cube_out
 
 
 def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
@@ -236,8 +228,8 @@ def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
         w = int(np.floor(size_fc/2.))
         # fake companion in the center of a zeros frame
         fc_fr[:, ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc
-        array_out = array + _cube_shift(fc_fr, pos_y - ceny, pos_x - cenx,
-                                        imlib, interpolation) * flux
+        array_out = array + cube_shift(fc_fr, pos_y - ceny, pos_x - cenx,
+                                       imlib, interpolation) * flux
 
     return array_out
 

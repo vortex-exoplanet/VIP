@@ -42,7 +42,7 @@ reqs_dev = parse_requirements(resource('requirements-dev.txt'), session=False)
 reqs_dev = [str(ir.req) for ir in reqs_dev]
 
 
-with open(resource('readme.rst')) as readme_file:
+with open(resource('README.rst')) as readme_file:
     README = readme_file.read()
 
 with open(resource('vip_hci', '__init__.py')) as version_file:

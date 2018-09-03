@@ -17,13 +17,13 @@ from ..var import frame_center
 from ..conf.utils_conf import check_array, vip_figsize
 
 
-def frame_average_radprofile(array, sep=1, init_rad=None, plot=True):
+def frame_average_radprofile(frame, sep=1, init_rad=None, plot=True):
     """ Calculates the average radial profile of an image.
 
     Parameters
     ----------
-    array : array_like, 2d or 3d
-        Input image or cube.
+    frame : array_like
+        Input image or 2d array.
     sep : int, optional
         The average radial profile is recorded every ``sep`` pixels.
     plot : bool, optional
@@ -41,8 +41,7 @@ def frame_average_radprofile(array, sep=1, init_rad=None, plot=True):
     https://github.com/keflavich/image_tools/blob/master/image_tools/radialprofile.py
 
     """
-    check_array(array, dim=2, name='Input array')
-    frame = array
+    check_array(frame, dim=2)
     cy, cx = frame_center(frame)
 
     if init_rad is None:

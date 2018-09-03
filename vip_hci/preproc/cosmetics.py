@@ -7,7 +7,7 @@ Also functions for cropping cubes.
 
 from __future__ import division, print_function
 
-__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens @ UChile/ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens'
 __all__ = ['cube_crop_frames',
            'cube_drop_frames',
            'frame_crop',
@@ -44,87 +44,47 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
 
     Returns
     -------
-    array_view : array_like
+    array_out : array_like
         Cube with cropped frames.
         
     """
-    if array.ndim != 3 and array.ndim != 4:
-        raise TypeError('Array is not a cube, 3d or 4d array')
-    if not isinstance(size, int):
-        raise TypeError('`size` must be integer')
+    if array.ndim == 3:
+        temp_fr = array[0]
+    elif array.ndim == 4:
+        temp_fr = array[0, 0]
+    else:
+        raise TypeError('`Array` is not a cube (3d or 4d numpy.ndarray)')
+
+    if xy is not None:
+        cenx, ceny = xy
+    else:
+        ceny, cenx = frame_center(temp_fr)
+    _, y0, x0 = get_square(temp_fr, size, y=ceny, x=cenx, position=True,
+                           force=force, verbose=verbose)
 
     if not force:
-        if array.shape[2] % 2 == 0:    # assuming square frames
+        if temp_fr.shape[0] % 2 == 0:
             if size % 2 != 0:
                 size += 1
-                if verbose:
-                    print('`Size` is odd (while frame size is even). Setting '
-                          '`size` to {} pixels'.format(size))
         else:
             if size % 2 == 0:
                 size += 1
-                if verbose:
-                    print('`Size` is even (while frame size is odd). Setting '
-                          '`size` to {} pixels'.format(size))
-    else:
-        if array.shape[2] % 2 == 0:  # assuming square frs, both 3d or 4d case
-            if size % 2 != 0 and verbose:
-                msg = "Warning: the new size is odd and the original frame "
-                msg += " size is even. Make sure you are setting properly `xy`"
-                print(msg)
-        else:
-            if size % 2 == 0 and verbose:
-                msg = "Warning: the new size is even and the original frame "
-                msg += " size is odd. Make sure you are setting properly `xy`"
-                print(msg)
-
-    if xy is not None:
-        if not (isinstance(xy[0], int) or isinstance(xy[1], int)):
-            raise TypeError('XY must be a tuple of integers')
-    if size >= array.shape[2]:  # assuming square frames, both 3d or 4d case
-        msg = "The new size is equal to or bigger than the initial frame size"
-        raise ValueError(msg)
-    
-    # wing is added to the sides of the subframe center
-    if size % 2 != 0:
-        wing = int(size/2)
-    else:
-        wing = (size / 2) - 0.5
+    y1 = int(y0 + size)
+    x1 = int(x0 + size)
 
     if array.ndim == 3:
-        if xy is not None:
-            cenx, ceny = xy
-        else:
-            ceny, cenx = frame_center(array[0], verbose=False)
-
-        # +1 because python doesn't include the endpoint when slicing
-        array_view = array[:, int(ceny-wing):int(ceny+wing+1),
-                           int(cenx-wing):int(cenx+wing+1)]
-        if verbose:
-            msg = "New shape: ({}, {}, {}), centered at ({}, {})"
-            print(msg.format(array_view.shape[0], array_view.shape[1],
-                             array_view.shape[2], cenx, ceny))
-
+        array_out = array[:, y0:y1, x0:x1]
     elif array.ndim == 4:
-        if xy is not None:
-            cenx, ceny = xy
-        else:
-            ceny, cenx = frame_center(array[0, 0], verbose=False)
+        array_out = array[:, :, y0:y1, x0:x1]
 
-        # +1 because python doesn't include the endpoint when slicing
-        array_view = array[:, :, int(ceny - wing):int(ceny + wing + 1),
-                           int(cenx - wing):int(cenx + wing + 1)]
-        if verbose:
-            msg = "New shape: ({}, {}, {}, {}), centered at ({}, {})"
-            print(msg.format(array_view.shape[0], array_view.shape[1],
-                             array_view.shape[2], array_view.shape[3],
-                             cenx, ceny))
+    if verbose:
+        msg = "New shape: {}"
+        print(msg.format(array_out.shape))
 
-    # Option to return the cenx and ceny
     if full_output:
-        return array_view, cenx, ceny
+        return array_out, cenx, ceny
     else:
-        return array_view
+        return array_out
 
 
 def frame_crop(array, size, cenxy=None, force=False, verbose=True):
@@ -142,7 +102,7 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
         Size and the size of the 2d array must be both even or odd. With
         ``force`` set to True this condition can be avoided.
     verbose : bool optional
-        If True message of completion is showed.
+        If True, a message of completion is shown.
         
     Returns
     -------
@@ -151,20 +111,18 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
         
     """
     if array.ndim != 2:
-        raise TypeError('Array is not a frame or 2d array')
-    if size >= array.shape[0]:
-        msg = 'Cropping size is equal or larger than the original size'
-        raise RuntimeError(msg)
-    
+        raise TypeError('`Array` is not a frame or 2d array')
+
     if not cenxy:
-        ceny, cenx = frame_center(array, verbose=False)
+        ceny, cenx = frame_center(array)
     else:
         cenx, ceny = cenxy
-    array_view = get_square(array, size, ceny, cenx, force=force)
-    
+    array_view = get_square(array, size, ceny, cenx, force=force,
+                            verbose=verbose)
+
     if verbose:
-        msg = "New shape: {}, centered at ({}, {})"
-        print(msg.format(array_view.shape, cenx, ceny))
+        msg = "New shape: {}"
+        print(msg.format(array_view.shape))
     return array_view
 
 

@@ -6,9 +6,9 @@ Module containing functions for cubes frame registration.
 
 from __future__ import division, print_function
 
-__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens @ ULg/UChile, '\
-             'G. Ruane'
+__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens, G. Ruane'
 __all__ = ['frame_shift',
+           'cube_shift',
            'frame_center_radon',
            'frame_center_satspots',
            'cube_recenter_satspots',
@@ -37,8 +37,7 @@ from multiprocessing import Pool, cpu_count
 from matplotlib import pyplot as plt
 from . import frame_crop
 from ..conf import time_ini, timing, Progressbar
-from ..conf.utils_conf import vip_figsize
-from ..conf.utils_conf import eval_func_tuple as EFT
+from ..conf.utils_conf import vip_figsize, check_array, eval_func_tuple as EFT
 from ..var import (get_square, frame_center, get_annulus, pp_subplots,
                    fit_2dmoffat, fit_2dgaussian, cube_filter_lowpass,
                    cube_filter_highpass)
@@ -87,9 +86,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
         Shifted 2d array.
 
     """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array')
-    
+    check_array(array, dim=2)
     image = array.copy()
 
     if imlib == 'ndimage-fourier':
@@ -161,6 +158,43 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
         raise ValueError('Image transformation library not recognized')
     
     return array_shifted
+
+
+def cube_shift(cube, shift_y, shift_x, imlib='opencv',
+               interpolation='lanczos4'):
+    """ Shifts the X-Y coordinates of a cube or 3D array by x and y values.
+
+    Parameters
+    ----------
+    cube : array_like, 3d
+        Input cube.
+    shift_y, shift_x: float, list of floats or np.ndarray of floats
+        Shifts in y and x directions for each frame. If the a single value is
+        given then all the frames will be shifted by the same amount.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+
+    Returns
+    -------
+    cube_out : array_like, 3d
+         Cube with shifted frames.
+
+    """
+    check_array(cube, dim=3)
+
+    nfr = cube.shape[0]
+    cube_out = np.zeros_like(cube)
+    if isinstance(shift_x, (int, float)):
+        shift_x = np.ones((nfr)) * shift_x
+    if isinstance(shift_y, (int, float)):
+        shift_y = np.ones((nfr)) * shift_y
+
+    for i in range(cube.shape[0]):
+        cube_out[i] = frame_shift(cube[i], shift_y[i], shift_x[i], imlib,
+                                  interpolation)
+    return cube_out
 
 
 def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
@@ -396,9 +430,8 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     shift_y, shift_x
         Shifts Y,X to get to the true center for each image.
     
-    """    
-    if array.ndim != 3:
-        raise TypeError('Input array is not a cube or 3d array')
+    """
+    check_array(array, dim=3)
 
     if verbose:
         start_time = time_ini()
@@ -662,8 +695,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
         Shifts in y and x.
      
     """
-    if array.ndim != 3:
-        raise TypeError('Input array is not a cube or 3d array')
+    check_array(array, dim=3)
 
     if verbose:
         start_time = time_ini()
@@ -761,8 +793,7 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
     if verbose:
         start_time = time_ini()
 
-    if array.ndim != 3:
-        raise TypeError('Input array is not a cube or 3d array')
+    check_array(array, dim=3)
 
     n_frames, sizey, sizex = array.shape
     if subi_size is not None:
@@ -927,8 +958,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     if verbose:
         start_time = time_ini()
 
-    if array.ndim != 3:
-        raise TypeError('Input array is not a cube or 3d array')
+    check_array(array, dim=3)
 
     n_frames, sizey, sizex = array.shape
 
@@ -1133,6 +1163,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     Otherwise, returns: cube_reg_sci, cum_x_shifts_sci, cum_y_shifts_sci
     """
     n, y, x = cube_sci.shape
+    check_array(cube_sci, dim=3)
 
     if not subframesize < y/2.:
         raise ValueError('`Subframesize` is too large')

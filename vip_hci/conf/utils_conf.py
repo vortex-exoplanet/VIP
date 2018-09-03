@@ -117,42 +117,52 @@ class NoProgressbar(object):
         pass
 
 
-def check_array(input, dim=1, name=None):
+def check_array(input_array, dim, name=None):
     """ Checks the dimensionality of input. Returns it as a np.ndarray.
+
+    Parameters
+    ----------
+    input_array : list, tuple or np.ndarray
+        Input data.
+    dim : int
+        Number of dimensions that ``input_array`` is expected to have.
+    name : str, optional
+        String to be used in the error message.
+
     """
     if name is None:
-        name = 'Input'
+        name = 'Input array'
 
     if dim == 1:
         msg = name + ' must be either a list or a 1d np.ndarray'
-        if isinstance(input, (list, tuple)):
-            input = np.array(input)
-        if not isinstance(input, np.ndarray):
+        if isinstance(input_array, (list, tuple)):
+            input_array = np.array(input_array)
+        if not isinstance(input_array, np.ndarray):
             raise TypeError(msg)
-        if not input.ndim == 1:
+        input_array = np.squeeze(input_array)
+        if not input_array.ndim == 1:
             raise TypeError(msg)
     elif dim == 2:
         msg = name + ' must be an image or 2d np.ndarray'
-        if not isinstance(input, np.ndarray):
+        if not isinstance(input_array, np.ndarray):
             raise TypeError(msg)
         else:
-            if not input.ndim == 2:
+            if not input_array.ndim == 2:
                 raise TypeError(msg)
     elif dim == 3:
         msg = name + ' must be a cube or 3d np.ndarray'
-        if not isinstance(input, np.ndarray):
+        if not isinstance(input_array, np.ndarray):
             raise TypeError(msg)
         else:
-            if not input.ndim == 3:
+            if not input_array.ndim == 3:
                 raise TypeError(msg)
     elif dim == 4:
         msg = name + ' must be a cube or 4d np.ndarray'
-        if not isinstance(input, np.ndarray):
+        if not isinstance(input_array, np.ndarray):
             raise TypeError(msg)
         else:
-            if not input.ndim == 4:
+            if not input_array.ndim == 4:
                 raise TypeError(msg)
-    return np.array(input)
 
 
 def eval_func_tuple(f_args):

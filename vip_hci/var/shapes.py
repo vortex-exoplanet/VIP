@@ -14,7 +14,6 @@ __all__ = ['dist',
            'get_ellipse',
            'get_annulus_segments',
            'get_annulus',
-           'get_annulus_cube',
            'get_ell_annulus',
            'mask_circle',
            'create_ringed_spider_mask',
@@ -522,46 +521,6 @@ def get_annulus(array, inner_radius, width, output_values=False,
         array_masked = array*donut_mask
         return array_masked
 
-
-# TODO: VIP v1.0.0: make use of get_annulus_segments instead
-def get_annulus_cube(array, inner_radius, width, output_values=False):     
-    """ Returns a centerered annulus from a 3d ndarray. All the rest pixels are 
-    set to zeros. 
-    
-    Parameters
-    ----------
-    array : array_like
-        Input 2d array or image. 
-    inner_radius : int
-        The inner radius of the donut region.
-    width : int
-        The size of the annulus.
-    output_values : {False, True}, optional
-        If True returns the values of the pixels in the annulus.
-    
-    Returns
-    -------
-    Depending on output_values:
-    values : array_like
-        1d array with the values of the pixels in the circular region.
-    array_masked : array_like
-        Input array with the annular mask applied.
-
-    """
-    if array.ndim != 3:
-        raise TypeError('Input array is not a cube or 3d array.')
-    arr_annulus = np.empty_like(array)
-    if output_values:
-        values = []
-        for i in range(array.shape[0]):
-            values.append(get_annulus(array[i], inner_radius, width,
-                                      output_values=True))
-        return np.array(values)
-    else:
-        for i in range(array.shape[0]):
-            arr_annulus[i] = get_annulus(array[i], inner_radius, width)
-        return arr_annulus
-    
 
 def get_ell_annulus(array, a, b, PA, width, output_values=False,
                     output_indices=False, cy=None, cx=None):

@@ -13,6 +13,24 @@ import vip_hci as vip
 from helpers import aarc
 
 
+pretty_odd = np.array([
+    [1, 1, 1, 1, 1],
+    [1, 2, 2, 2, 1],
+    [1, 2, 3, 2, 1],
+    [1, 2, 2, 2, 1],
+    [1, 1, 1, 1, 1]
+])
+
+pretty_even = np.array([
+    [1, 1, 1, 1, 1, 1],
+    [1, 2, 2, 2, 2, 1],
+    [1, 2, 3, 3, 2, 1],
+    [1, 2, 3, 3, 2, 1],
+    [1, 2, 2, 2, 2, 1],
+    [1, 1, 1, 1, 1, 1]
+])
+
+
 def test_frame_center():
     frames = 39
     nlambda = 2
@@ -47,3 +65,35 @@ def test_mask_circle():
 
     # radius=2 -> central region should be 3x3 pixels = 9 pixels
     aarc(res_out.sum(), 9)
+
+
+def test_get_square():
+    aarc(vip.var.get_square(pretty_odd, size=3, x=2, y=2),
+         np.array([[2, 2, 2],
+                   [2, 3, 2],
+                   [2, 2, 2]]))
+
+    aarc(vip.var.get_square(pretty_odd, size=2, x=2, y=2),
+         np.array([[2, 2, 2],
+                   [2, 3, 2],
+                   [2, 2, 2]]))
+    # -> prints warning
+
+    aarc(vip.var.get_square(pretty_odd, size=2, x=2, y=2, force=True),
+         np.array([[2, 2],
+                   [2, 3]]))
+
+    aarc(vip.var.get_square(pretty_even, size=2, x=3, y=3),
+         np.array([[3, 3],
+                  [3, 3]]))
+
+    aarc(vip.var.get_square(pretty_even, size=3, x=3, y=3),
+         np.array([[2, 2, 2, 2],
+                   [2, 3, 3, 2],
+                   [2, 3, 3, 2],
+                   [2, 2, 2, 2]]))
+    # -> prints warning
+
+    aarc(vip.var.get_square(pretty_even, size=2, x=4, y=2, force=True),
+         np.array([[2, 2],
+                   [3, 2]]))

@@ -123,12 +123,13 @@ def test_get_circle():
                    1, 2, 3, 3, 2, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1]))
 
 
-def test_get_annulus__old():
-
+def test_get_annulus_segments():
     arr = np.ones((10, 10))
 
-    # indices
-    res = vip.var.get_annulus(arr, 2, 3, output_values=False, output_indices=True)
+    # single segment, like the old get_annulus. Note the ``[0]``.
+
+    res = vip.var.get_annulus_segments(arr, 2, 3)[0]
+
     truth = (np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3,
                        3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6,
                        6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9,
@@ -140,52 +141,7 @@ def test_get_annulus__old():
 
     aarc(res, truth)
 
-    # values
-    res = vip.var.get_annulus(arr, 2, 3, output_values=True, output_indices=False)
-    truth = np.array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
-                      1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
-                      1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
-                      1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
-
-    aarc(res, truth)
-
-    # masked arr
-    res = vip.var.get_annulus(arr, 2, 3)  # output_values=False, output_indices=False
-    truth = np.array([[0., 0., 0., 1., 1., 1., 1., 0., 0., 0.],
-                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                      [1., 1., 1., 1., 0., 0., 1., 1., 1., 1.],
-                      [1., 1., 1., 0., 0., 0., 0., 1., 1., 1.],
-                      [1., 1., 1., 0., 0., 0., 0., 1., 1., 1.],
-                      [1., 1., 1., 1., 0., 0., 1., 1., 1., 1.],
-                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                      [0., 0., 0., 1., 1., 1., 1., 0., 0., 0.]])
-    aarc(res, truth)
-    # this mode is not supported by `get_annulus_segments`!
-
-
-def test_get_annulus_segments():
-    arr = np.ones((10, 10))
-    
-    # single segment (like get_annulus), same tests as for get_annulus():
-
-    res = vip.var.get_annulus_segments(arr, 2, 3, output_values=False)[0]
-    # equivalent to:
-    # res = vip.var.get_annulus(arr, 2, 3, output_values=False, output_indices=True)
-
-    truth = (np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3,
-                       3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6,
-                       6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9,
-                       9, 9]),
-             np.array([3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1,
-                       2, 3, 6, 7, 8, 9, 0, 1, 2, 7, 8, 9, 0, 1, 2, 7, 8, 9, 0, 1, 2, 3,
-                       6, 7, 8, 9, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 3, 4,
-                       5, 6]))  # same `truth` as for test_get_annulus
-
-    aarc(res, truth)
-
-    res = vip.var.get_annulus_segments(arr, 2, 3, output_values=True)[0]
+    res = vip.var.get_annulus_segments(arr, 2, 3, mode="val")[0]
     truth = np.array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
                       1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
                       1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
@@ -214,3 +170,17 @@ def test_get_annulus_segments():
     assert repr(res) == repr(truth)
     # TODO: cannot compare using `allclose`, as elements have variable length!
 
+    # masked arr
+
+    res = vip.var.get_annulus_segments(arr, 2, 3, mode="mask")[0]
+    truth = np.array([[0., 0., 0., 1., 1., 1., 1., 0., 0., 0.],
+                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                      [1., 1., 1., 1., 0., 0., 1., 1., 1., 1.],
+                      [1., 1., 1., 0., 0., 0., 0., 1., 1., 1.],
+                      [1., 1., 1., 0., 0., 0., 0., 1., 1., 1.],
+                      [1., 1., 1., 1., 0., 0., 1., 1., 1., 1.],
+                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                      [0., 0., 0., 1., 1., 1., 1., 0., 0., 0.]])
+    aarc(res, truth)

@@ -14,7 +14,7 @@ __all__ = ['descriptive_stats',
 import numpy as np
 from matplotlib.pyplot import boxplot
 from matplotlib import pyplot as plt
-from ..var import get_annulus, get_annulus_segments, get_circle
+from ..var import get_annulus_segments, get_circle
 from ..conf.utils_conf import vip_figsize
 
 
@@ -85,7 +85,7 @@ def frame_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
         region_pxs = get_circle(arr, radius, output_values=True, cy=y, cx=x)
     elif region == 'annulus':
         region_pxs = get_annulus_segments(arr, inner_radius, size,
-                                          output_values=True)[0]
+                                          mode="val")[0]
     else:
         raise ValueError('Region not recognized')
 
@@ -99,8 +99,7 @@ def frame_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
         if region == 'circle':
             temp = get_circle(arr, radius, cy=y, cx=x)
         elif region == 'annulus':
-            temp = get_annulus(arr, inner_radius, size)
-            # TODO: cannot be replaced by get_annulus_segments yet!
+            temp = get_annulus_segments(arr, inner_radius, size, mode="mask")[0]
         else:
             raise ValueError('Region not recognized')
         temp[temp == 0] = np.nan
@@ -170,7 +169,7 @@ def cube_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
                                     cy=y, cx=x)
         elif region == 'annulus':
             region_pxs = get_annulus_segments(arr[i], inner_radius, size,
-                                              output_values=True)[0]
+                                              mode="val")[0]
         else:
             raise ValueError('Region not recognized')
 
@@ -187,8 +186,7 @@ def cube_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
         if region == 'circle':
             temp = get_circle(arr[0], radius, cy=y, cx=x)
         elif region == 'annulus':
-            temp = get_annulus(arr[0], inner_radius, size)
-            # TODO: cannot be replaced by get_annulus_segments yet!
+            temp = get_annulus_segments(arr[0], inner_radius, size, mode="mask")[0]
         else:
             raise ValueError('Region not recognized')
         temp[temp == 0] = np.nan

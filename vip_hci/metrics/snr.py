@@ -22,7 +22,7 @@ from astropy.stats import median_absolute_deviation as mad
 from multiprocessing import Pool, cpu_count
 from ..conf.utils_conf import eval_func_tuple as EFT
 from ..conf import time_ini, timing
-from ..var import get_annulus, get_annulus_segments, frame_center, dist, pp_subplots
+from ..var import get_annulus_segments, frame_center, dist, pp_subplots
 
 
 def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
@@ -69,8 +69,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     sizey, sizex = array.shape
     snrmap = np.zeros_like(array)
     width = min(sizey, sizex) / 2 - 1.5 * fwhm
-    mask = get_annulus(array, (fwhm / 2) + 2, width)
-    # TODO: get_annulus_segments cannot yet return a masked array!
+    mask = get_annulus_segments(array, (fwhm / 2) + 2, width, mode="mask")[0]
     mask = np.ma.make_mask(mask)
     yy, xx = np.where(mask)
     coords = zip(xx, yy)
@@ -205,8 +204,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     sizey, sizex = array.shape
     snrmap = np.zeros_like(array)
     width = min(sizey,sizex)/2 - 1.5*fwhm    
-    mask = get_annulus(array, (fwhm/2)+1, width-1)
-    # TODO: get_annulus_segments cannot yet return a masked array!
+    mask = get_annulus_segments(array, (fwhm/2)+1, width-1, mode="mask")[0]
     mask = np.ma.make_mask(mask)
     yy, xx = np.where(mask)
     coords = [(x, y) for (x, y) in zip(xx, yy)]

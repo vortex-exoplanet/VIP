@@ -91,7 +91,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
             i_mean_value = get_annulus_segments(array[i],
                                                 inner_radius=in_radius,
                                                 width=width,
-                                                output_values=True)[0].mean()
+                                                mode="val")[0].mean()
         elif mode == 'circle':
             i_mean_value = mean_values[i]
         top_boundary[i] = mean_smooth[i] + top_sigma*sigma

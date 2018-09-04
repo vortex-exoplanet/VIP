@@ -82,7 +82,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
         elif isinstance(frame, np.ndarray):
             frame_ref = frame
         frame_ref = get_annulus_segments(frame_ref, inradius, width,
-                                         output_values=True)[0]
+                                         mode="val")[0]
     else:
         raise TypeError('Mode not recognized or missing parameters')
 
@@ -91,7 +91,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
             framei = array[i]
         elif mode == 'annulus':
             framei = get_annulus_segments(array[i], inradius, width,
-                                          output_values=True)[0]
+                                          mode="val")[0]
 
         if dist == 'sad':
             lista.append(np.sum(abs(frame_ref - framei)))

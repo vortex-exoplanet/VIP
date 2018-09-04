@@ -22,7 +22,7 @@ from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
 from ..conf import time_ini, timing
 from ..conf.utils_conf import pool_map, fixed
-from ..var import get_annulus_segments, matrix_scaling, get_annulus
+from ..var import get_annulus_segments, matrix_scaling
 from ..stats import descriptive_stats
 from .svd import get_eigenvectors
 

@@ -13,7 +13,6 @@ __all__ = ['dist',
            'get_circle',
            'get_ellipse',
            'get_annulus_segments',
-           'get_annulus',
            'get_ell_annulus',
            'mask_circle',
            'create_ringed_spider_mask',
@@ -387,7 +386,7 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
 
 
 def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
-                         optim_scale_fact=1, output_values=False):
+                         optim_scale_fact=1, mode="ind"):
     """
     Return indices or values in segments of a centerered annulus.
 
@@ -409,16 +408,43 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
     optim_scale_fact : float
         To enlarge the width of the segments, which can then be used as
         optimization segments (e.g. in LOCI).
-    output_values : bool, optional
-        If True returns the values of the pixels in the each quadrant instead
-        of the indices.
+    mode : {'ind', 'val', 'mask'}, optional
+        Controls what is returned: indices of selected pixels, values of
+        selected pixels, or a boolean mask.
 
     Returns
     -------
     indices : list of lenght nsegm
-        [output_values=False] Coordinates of pixels for each annulus segment.
+        [mode='ind'] Coordinates of pixels for each annulus segment.
     values : ndarray of shape (nsegm, nindices)
-        [output_values=True] Pixel values.
+        [mode='val'] Pixel values.
+    mask : list of ndarrays
+        [mode='mask'] Copy of ``data`` with masked out regions.
+
+    Notes
+    -----
+    Moving from ``get_annulus`` to ``get_annulus_segments``:
+
+    .. code::python
+        # get_annulus handles one single segment only, so note the ``[0]`` after
+        the call to get_annulus_segments if you want to work with one single
+        segment only.
+
+        get_annulus(arr, 2, 3, output_indices=True)
+        # is the same as
+        get_annulus_segments(arr, 2, 3)[0]
+
+        get_annulus(arr, inr, w, output_values=True)
+        # is the same as
+        get_annulus_segments(arr, inr, w, mode="val")[0]
+
+        get_annulus(arr, inr, w)
+        # is the same as
+        get_annulus_segments(arr, inr, w, mode="mask")[0]
+
+        # the only difference is the handling of the border values:
+        # get_annulus_segments is `in <= ann < out`, while get_annulus is
+        # `in <= ann <= out`. But that should make no difference in practice.
 
     """
     if isinstance(data, np.ndarray):
@@ -433,6 +459,9 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
     if not isinstance(nsegm, int):
         raise TypeError('`nsegm` must be an integer')
 
+    if mode not in ["ind", "val", "mask"]:
+        raise ValueError("mode '{}' unknown!".format(mode))
+
     cy, cx = frame_center(array)
     azimuth_coverage = np.deg2rad(int(np.ceil(360 / nsegm)))
     twopi = 2 * np.pi
@@ -442,84 +471,32 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
     phi = np.arctan2(yy - cy, xx - cx)
     phirot = phi % twopi
     outer_radius = inner_radius + (width*optim_scale_fact)
-    indices = []
+    masks = []
 
     for i in range(nsegm):
         phi_start = np.deg2rad(theta_init) + (i * azimuth_coverage)
         phi_end = phi_start + azimuth_coverage
 
         if phi_start < twopi and phi_end > twopi:
-            indices.append(
-                np.where((rad >= inner_radius) & (rad < outer_radius) &
+            masks.append((rad >= inner_radius) & (rad < outer_radius) &
                          (phirot >= phi_start) & (phirot <= twopi) |
                          (rad >= inner_radius) & (rad < outer_radius) &
-                         (phirot >= 0) & (phirot < phi_end - twopi)))
+                         (phirot >= 0) & (phirot < phi_end - twopi))
         elif phi_start >= twopi and phi_end > twopi:
-            indices.append(
-                np.where((rad >= inner_radius) & (rad < outer_radius) &
+            masks.append((rad >= inner_radius) & (rad < outer_radius) &
                          (phirot >= phi_start - twopi) &
-                         (phirot < phi_end - twopi)))
+                         (phirot < phi_end - twopi))
         else:
-            indices.append(
-                    np.where((rad >= inner_radius) & (rad < outer_radius) &
-                             (phirot >= phi_start) & (phirot < phi_end)))
+            masks.append((rad >= inner_radius) & (rad < outer_radius) &
+                         (phirot >= phi_start) & (phirot < phi_end))
 
-    if output_values:
-        values = [array[segment] for segment in indices]
+    if mode == "val":
+        values = [array[mask] for mask in masks]
         return np.array(values)
-    else:
-        return indices
-
-
-# TODO: remove this in VIP v1.0.0. Replaced with get_annulus_segments
-def get_annulus(array, inner_radius, width, output_values=False,
-                output_indices=False):
-    """
-    Return a centerered annulus from a 2d ndarray, other pixels set to 0.
-
-    Parameters
-    ----------
-    array : 2d array_like
-        Input 2d array or image.
-    inner_radius : float
-        The inner radius of the donut region.
-    width : int
-        The size of the annulus.
-    output_values : bool, optional
-        If True returns the values of the pixels in the annulus.
-    output_indices : bool, optional
-        If True returns the indices inside the annulus.
-
-    Returns
-    -------
-    Depending on output_values, output_indices:
-    values : array_like
-        1d array with the values of the pixels in the annulus.
-    array_masked : array_like
-        Input array with the annular mask applied.
-    y, x : array_like
-        Coordinates of pixels in annulus.
-    """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array')
-    array = array.copy()
-    cy, cx = frame_center(array)
-    yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
-    circle = np.sqrt((xx - cx)**2 + (yy - cy)**2)
-    donut_mask = (circle <= (inner_radius + width)) & (circle >= inner_radius)
-    if output_values and not output_indices:
-        values = array[donut_mask]
-        return values
-    elif output_indices and not output_values:
-        indices = np.array(np.where(donut_mask))
-        y = indices[0]
-        x = indices[1]
-        return y, x
-    elif output_indices and output_values:
-        raise ValueError('output_values and output_indices cannot be both True')
-    else:
-        array_masked = array*donut_mask
-        return array_masked
+    elif mode == "ind":
+        return [np.where(mask) for mask in masks]
+    elif mode == "mask":
+        return [data*mask for mask in masks]
 
 
 def get_ell_annulus(array, a, b, PA, width, output_values=False,

@@ -13,7 +13,8 @@ fwhm = lambda/diameter*206265/pxscale
 VLT_SPHERE = {
     'latitude': -24.627,
     'longitude': -70.404,
-    'plsc': 0.01225,                       # plate scale [arcsec]/px
+    'plsc_irdis': 0.01225,                       # plate scale [arcsec]/px for IRDIS
+    'plsc_ifs':  0.0074,                       # plate scale [arcsec]/px for IFS
     'diam': 8.0,                            # telescope diameter [m]
     }
 

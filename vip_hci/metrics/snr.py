@@ -22,7 +22,7 @@ from astropy.stats import median_absolute_deviation as mad
 from multiprocessing import Pool, cpu_count
 from ..conf.utils_conf import eval_func_tuple as EFT
 from ..conf import time_ini, timing
-from ..var import get_annulus, frame_center, dist, pp_subplots
+from ..var import get_annulus, get_annulus_segments, frame_center, dist, pp_subplots
 
 
 def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
@@ -70,6 +70,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     snrmap = np.zeros_like(array)
     width = min(sizey, sizex) / 2 - 1.5 * fwhm
     mask = get_annulus(array, (fwhm / 2) + 2, width)
+    # TODO: get_annulus_segments cannot yet return a masked array!
     mask = np.ma.make_mask(mask)
     yy, xx = np.where(mask)
     coords = zip(xx, yy)
@@ -118,9 +119,8 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         for source in sources:
             y, x = source        
             radd = dist(centery, centerx, y, x)
-            tempay, tempax = get_annulus(array, int(radd-fwhm), 
-                                         int(np.ceil(2*fwhm)),
-                                         output_indices=True)
+            tempay, tempax = get_annulus_segments(array, int(radd-fwhm),
+                                                  int(np.ceil(2*fwhm)))[0]
             tempcy, tempcx = draw.circle(y, x, int(np.ceil(1*fwhm)))
             # masking the source position (using the MAD of pixels in annulus)
             array_sources[tempcy, tempcx] = mad(array[tempay, tempax])
@@ -206,6 +206,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
     snrmap = np.zeros_like(array)
     width = min(sizey,sizex)/2 - 1.5*fwhm    
     mask = get_annulus(array, (fwhm/2)+1, width-1)
+    # TODO: get_annulus_segments cannot yet return a masked array!
     mask = np.ma.make_mask(mask)
     yy, xx = np.where(mask)
     coords = [(x, y) for (x, y) in zip(xx, yy)]
@@ -407,7 +408,7 @@ def snr_peakstddev(array, source_xy, fwhm, out_coor=False, plot=False,
     
     array = array + np.abs(array.min()) 
     inner_rad = np.round(rad) - fwhm/2
-    an_coor = get_annulus(array, inner_rad, fwhm, output_indices=True)
+    an_coor = get_annulus_segments(array, inner_rad, fwhm)[0]
     ap_coor = draw.circle(sourcey, sourcex, int(np.ceil(fwhm/2)))
     array2 = array.copy()
     array2[ap_coor] = array[an_coor].mean()   # we 'mask' the flux aperture

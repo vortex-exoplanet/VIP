@@ -38,9 +38,9 @@ from matplotlib import pyplot as plt
 from . import frame_crop
 from ..conf import time_ini, timing, Progressbar
 from ..conf.utils_conf import vip_figsize, check_array, eval_func_tuple as EFT
-from ..var import (get_square, frame_center, get_annulus, pp_subplots,
-                   fit_2dmoffat, fit_2dgaussian, cube_filter_lowpass,
-                   cube_filter_highpass)
+from ..var import (get_square, frame_center, get_annulus, get_annulus_segments,
+                   pp_subplots, fit_2dmoffat, fit_2dgaussian,
+                   cube_filter_lowpass, cube_filter_highpass)
 from ..preproc import cube_crop_frames
 
 
@@ -550,6 +550,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     cent, _ = frame_center(frame)
            
     frame = get_annulus(frame, radint, cent-radint)
+    # TODO: get_annulus_segments cannot yet return a masked array!
                 
     if debug:
         if satspots:
@@ -638,6 +639,7 @@ def _radon_costf(frame, cent, radint, coords):
     """
     frame_shifted = frame_shift(frame, coords[0], coords[1])
     frame_shifted_ann = get_annulus(frame_shifted, radint, cent-radint)
+    # TODO: cannot be replaced by get_annulus_segments yet!
     theta = np.linspace(start=0, stop=360, num=frame_shifted_ann.shape[0],    
                     endpoint=False)
     sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
@@ -650,6 +652,7 @@ def _radon_costf2(frame, cent, radint, coords):
     """
     frame_shifted = frame_shift(frame, coords[0], coords[1])
     frame_shifted_ann = get_annulus(frame_shifted, radint, cent-radint)
+    # TODO: cannot be replaced by get_annulus_segments yet!
     samples = 10
     theta = np.hstack((np.linspace(start=40, stop=50, num=samples,
                                    endpoint=False),

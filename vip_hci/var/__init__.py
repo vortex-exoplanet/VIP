@@ -1,9 +1,10 @@
 """
 Subpackage ``var`` has helping functions such as:
-    - image filtering,
-    - shapes extraction (annulus, squares subimages, circular apertures),
-    - plotting,
-    - 2d fitting (Gaussian, Moffat).
+
+- image filtering,
+- shapes extraction (annulus, squares subimages, circular apertures),
+- plotting,
+- 2d fitting (Gaussian, Moffat).
 """
 from __future__ import absolute_import
 

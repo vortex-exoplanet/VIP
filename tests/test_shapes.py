@@ -216,3 +216,11 @@ def test_get_ellipse():
     # indices:
     fei = vip.var.get_ellipse(f, 4, 2, 90, mode="ind")
     assert fei[0].shape == fei[1].shape == (28,)
+
+
+def test_get_ell_annulus():
+
+    f = np.ones((15, 30))
+
+    fa = vip.var.get_ell_annulus(f, 8, 3, 90, 6, mode="mask")
+    assert fa.sum() == 124

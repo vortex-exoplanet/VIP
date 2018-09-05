@@ -679,5 +679,35 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
 def reshape_matrix(array, y, x):
     """
     Convert a matrix whose rows are vect. frames to a cube with reshaped frames.
+
+    Parameters
+    ----------
+    array : 2d ndarray
+        Input data of shape ``(nframes, npixels)``. Every row (``array[n]``)
+        corresponds to one vectorized ("flattened") 2d frame.
+    y, x : int
+        desired height and width of the frames. ``y*x = npixels``
+
+    Returns
+    -------
+    cube : 3d ndarray
+        Cube of shape ``(nframes, y, x)``.
+
+    Examples
+    --------
+    .. code:: python
+
+        In [1]: vect_frames = np.array([[1, 1, 1, 2, 2, 2], [1, 2, 3, 4, 5, 6]])
+        In [2]: cube = vip.var.reshape_matrix(vect_frames, 2, 3)
+        In [3]: cube
+        Out[3]:
+        array([[[1, 1, 1],
+                [2, 2, 2]],
+
+               [[1, 2, 3],
+                [4, 5, 6]]])
+        In [4]: cube.shape
+        Out[4]: (2, 2, 3)
+
     """
     return array.reshape(array.shape[0], y, x)

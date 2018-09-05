@@ -224,3 +224,18 @@ def test_get_ell_annulus():
 
     fa = vip.var.get_ell_annulus(f, 8, 3, 90, 6, mode="mask")
     assert fa.sum() == 124
+
+
+def test_reshape_matrix():
+    vectorized_frames = np.array([[1, 1, 1, 2, 2, 2], [1, 2, 3, 4, 5, 6]])
+    cube = vip.var.reshape_matrix(vectorized_frames, 2, 3)
+
+    assert cube.shape == (2, 2, 3)  # 2 frames of 2x3
+
+    cube_truth = np.array([[[1, 1, 1],
+                            [2, 2, 2]],
+
+                           [[1, 2, 3],
+                            [4, 5, 6]]])
+
+    aarc(cube, cube_truth)

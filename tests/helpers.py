@@ -1,8 +1,14 @@
+"""
+Helper functions for tests
+"""
+
 from __future__ import division, print_function, absolute_import
 
+__author__ = "Ralf Farkas"
+
 import numpy as np
-import vip_hci as vip
 import pytest
+import vip_hci as vip
 
 
 def aarc(actual, desired, rtol=1e-5, atol=1e-6):

@@ -16,7 +16,7 @@ import pandas as pn
 from matplotlib import pyplot as plt
 from photutils import detection
 from astropy.stats import sigma_clip
-from ..var import get_annulus
+from ..var import get_annulus_segments
 from ..conf import time_ini, timing
 from ..conf.utils_conf import vip_figsize
 from ..stats import cube_basic_stats, cube_distance
@@ -88,8 +88,10 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     bot_boundary = np.empty([n])
     for i in range(n):
         if mode == 'annulus':
-            i_mean_value = get_annulus(array[i], inner_radius=in_radius, 
-                                       width=width, output_values=True).mean()
+            i_mean_value = get_annulus_segments(array[i],
+                                                inner_radius=in_radius,
+                                                width=width,
+                                                mode="val")[0].mean()
         elif mode == 'circle':
             i_mean_value = mean_values[i]
         top_boundary[i] = mean_smooth[i] + top_sigma*sigma

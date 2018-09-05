@@ -16,7 +16,7 @@ from skimage.feature import peak_local_max
 from munch import Munch
 import copy
 from ..pca.svd import _get_cumexpvar
-from ..var import frame_center, get_annulus
+from ..var import frame_center, get_annulus_segments
 from ..conf import time_ini, timing, time_fin, Progressbar
 from ..var import pp_subplots as plots
 from .fakecomp import cube_inject_companions
@@ -112,8 +112,8 @@ class EvalRoc(object):
             #
         # Getting indices in annulus
         width = self.outrad - self.inrad
-        yy, xx = get_annulus(self.dataset.cube[0], self.inrad, width,
-                             output_indices=True)
+        yy, xx = get_annulus_segments(self.dataset.cube[0], self.inrad,
+                                      width)[0]
         num_patches = yy.shape[0]
 
         # Defining Fluxes according to chosen distribution

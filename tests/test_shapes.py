@@ -170,7 +170,12 @@ def test_get_annulus_segments():
     assert repr(res) == repr(truth)
     # TODO: cannot compare using `allclose`, as elements have variable length!
 
-    # masked arr
+    # tuple as input:
+
+    res = vip.var.get_annulus_segments((6, 6), 2, 3, nsegm=3)
+    assert repr(res) == repr(truth)
+
+    # masked arr:
 
     res = vip.var.get_annulus_segments(arr, 2, 3, mode="mask")[0]
     truth = np.array([[0., 0., 0., 1., 1., 1., 1., 0., 0., 0.],
@@ -184,6 +189,12 @@ def test_get_annulus_segments():
                       [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
                       [0., 0., 0., 1., 1., 1., 1., 0., 0., 0.]])
     aarc(res, truth)
+
+    # tuple as input:
+
+    res = vip.var.get_annulus_segments((10, 10), 2, 3, mode="mask")[0]
+    # masking a zeros array -> only zeros left!
+    assert res.sum() == 0
 
 
 def test_dist():

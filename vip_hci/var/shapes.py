@@ -492,7 +492,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
     elif mode == "ind":
         return [np.where(mask) for mask in masks]
     elif mode == "mask":
-        return [data*mask for mask in masks]
+        return [array*mask for mask in masks]
 
 
 def get_ell_annulus(array, a, b, PA, width, output_values=False,

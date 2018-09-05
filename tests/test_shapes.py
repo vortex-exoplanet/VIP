@@ -239,3 +239,34 @@ def test_reshape_matrix():
                             [4, 5, 6]]])
 
     aarc(cube, cube_truth)
+
+
+def test_matrix_scaling():
+    """
+    The "truth" values were verified by hand.
+    """
+    m = np.array([[6, 12, 18], [0, 0, 12]], dtype=float)
+
+    res = vip.var.matrix_scaling(m, None)
+    truth = m
+    aarc(res, truth)
+
+    res = vip.var.matrix_scaling(m, "temp-mean")
+    truth = np.array([[ 3,  6,  3],
+                      [-3, -6, -3]])
+    aarc(res, truth)
+
+    res = vip.var.matrix_scaling(m, "spat-mean")
+    truth = np.array([[-6,  0,  6],
+                      [-4, -4,  8]])
+    aarc(res, truth)
+
+    res = vip.var.matrix_scaling(m, "temp-standard")
+    truth = np.array([[ 1,  1,  1],
+                      [-1, -1, -1]])
+    aarc(res, truth)
+
+    res = vip.var.matrix_scaling(m, "spat-standard")
+    truth = np.array([[-np.sqrt(3/2), 0, np.sqrt(3/2)],
+                      [-np.sqrt(1/2), -np.sqrt(1/2), np.sqrt(2)]])
+    aarc(res, truth)

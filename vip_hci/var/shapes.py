@@ -573,15 +573,21 @@ def matrix_scaling(matrix, scaling):
 
     Parameters
     ----------
-    matrix : array_like
+    matrix : 2d array_like
         Input 2d array.
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}, optional
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done, with
-        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
-        temporal mean centering plus scaling to unit variance is done and with
-        "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.
+    scaling : None or string, optional
+        Scaling method.
+
+        ``None``
+            no scaling is performed on the input data before SVD
+        ``"temp-mean"``
+            temporal px-wise mean subtraction
+        ``"spat-mean"``
+            the spatial mean is subtracted
+        ``temp-standard"``
+            temporal mean centering plus scaling to unit variance
+        ``"spat-standard"``
+            spatial mean centering plus scaling to unit variance
 
     Returns
     -------

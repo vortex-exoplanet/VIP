@@ -184,3 +184,8 @@ def test_get_annulus_segments():
                       [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
                       [0., 0., 0., 1., 1., 1., 1., 0., 0., 0.]])
     aarc(res, truth)
+
+
+def test_dist():
+    assert vip.var.dist(0, 0, 1, 1) == np.sqrt(2)
+    assert vip.var.dist(1, 2, 3, 4) == 2 * np.sqrt(2)

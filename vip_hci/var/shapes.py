@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Module with various functions.
+Module with various functions to create shapes, annuli and segments.
 """
 
 from __future__ import division, print_function
@@ -207,7 +207,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
     -------
     array_out : array_like
         Sub array.
-        
+
     """
     size_init = array.shape[0]  # assuming square frames
 
@@ -265,7 +265,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
                            ''.format(size, y, x))
 
     array_out = array[y0: y1, x0: x1].copy()
-    
+
     if position:
         return array_out, y0, x0
     else:
@@ -596,7 +596,7 @@ def matrix_scaling(matrix, scaling):
     ----------
     matrix : array_like
         Input 2d array.
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}, str optional
+    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}, optional
         With None, no scaling is performed on the input data before SVD. With
         "temp-mean" then temporal px-wise mean subtraction is done, with
         "spat-mean" then the spatial mean is subtracted, with "temp-standard"

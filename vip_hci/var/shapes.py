@@ -333,7 +333,7 @@ def get_ellipse(data, a, b, PA, cy=None, cx=None, mode="ind"):
     cy, cx : int or None, optional
         Coordinates of the circle center. If ``None``, the center is determined
         by the ``frame_center`` function.
-    mode : {'ind', 'val', 'mask'}, optional
+    mode : {'ind', 'val', 'mask', 'bool'}, optional
         Controls what is returned: indices of selected pixels, values of
         selected pixels, or a boolean mask.
 
@@ -343,8 +343,10 @@ def get_ellipse(data, a, b, PA, cy=None, cx=None, mode="ind"):
         [mode='ind'] Coordinates of the inner elliptical region.
     values : 1d ndarray
         [mode='val'] Values of the pixels in the inner elliptical region.
-    mask : 2d ndarray
+    masked : 2d ndarray
         [mode='mask'] Input image where the outer region is masked with ``0``.
+    bool_mask : 2d boolean ndarray
+        [mode='bool'] A boolean mask where ``True`` is the inner region.
 
     """
     if isinstance(data, np.ndarray):
@@ -377,6 +379,8 @@ def get_ellipse(data, a, b, PA, cy=None, cx=None, mode="ind"):
         return array[ellipse_mask]
     elif mode == "mask":
         return array * ellipse_mask
+    elif mode == "bool":
+        return ellipse_mask
     else:
         raise ValueError("mode '{}' unknown!".format(mode))
 

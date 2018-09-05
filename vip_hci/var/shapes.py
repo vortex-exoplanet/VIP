@@ -412,7 +412,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
     -------
     indices : list of lenght nsegm
         [mode='ind'] Coordinates of pixels for each annulus segment.
-    values : ndarray of shape (nsegm, nindices)
+    values : list of ndarrays
         [mode='val'] Pixel values.
     mask : list of ndarrays
         [mode='mask'] Copy of ``data`` with masked out regions.
@@ -487,8 +487,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
                          (phirot >= phi_start) & (phirot < phi_end))
 
     if mode == "val":
-        values = [array[mask] for mask in masks]
-        return np.array(values)
+        return [array[mask] for mask in masks]
     elif mode == "ind":
         return [np.where(mask) for mask in masks]
     elif mode == "mask":

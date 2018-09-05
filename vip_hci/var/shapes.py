@@ -316,44 +316,46 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
         return array_masked
 
 
-def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
-                output_indices=False):
+def get_ellipse(data, a, b, PA, cy=None, cx=None, mode="ind"):
     """
     Return a centered elliptical region from a 2d ndarray.
 
     Parameters
     ----------
-    array : array_like
-        Input 2d array or image.
-    a : float or int
+    data : array_like or tuple
+        Input 2d array (image) or tuple with a shape.
+    a : float
         Semi-major axis.
-    b : float or int
+    b : float
         Semi-minor axis.
     PA : deg, float
-        The PA of the semi-major axis.
-    output_values : bool, optional
-        If True returns the values of the pixels in the annulus.
+        The PA of the semi-major axis in degrees.
     cy, cx : int or None, optional
         Coordinates of the circle center. If ``None``, the center is determined
         by the ``frame_center`` function.
-    output_indices : bool, optional
-        If True returns the indices inside the annulus.
+    mode : {'ind', 'val', 'mask'}, optional
+        Controls what is returned: indices of selected pixels, values of
+        selected pixels, or a boolean mask.
 
     Returns
     -------
-    Depending on output_values, output_indices:
-    values : array_like
-        1d array with the values of the pixels in the circular region.
-    array_masked : array_like
-        Input array with the circular mask applied. Returned when
-        ``output_values=False`` and ``output_indices=False``.
-    y, x : array_like
-        Coordinates of pixels in circle.
+    indices : tuple(y, x)
+        [mode='ind'] Coordinates of the inner elliptical region.
+    values : 1d ndarray
+        [mode='val'] Values of the pixels in the inner elliptical region.
+    mask : 2d ndarray
+        [mode='mask'] Input image where the outer region is masked with ``0``.
 
     """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array.')
-    sy, sx = array.shape
+    if isinstance(data, np.ndarray):
+        array = data
+        if array.ndim != 2:
+            raise TypeError('`data` is not a frame or 2d array')
+    elif isinstance(data, tuple):
+        array = np.zeros(data)
+    else:
+        raise TypeError('`data` must be a tuple (shape) or a 2d array')
+
     if cy is None or cx is None:
         cy, cx = frame_center(array, verbose=False)
 
@@ -364,25 +366,19 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
     pos_f2 = (cy - f * np.cos(PA_rad), cx - f * np.sin(PA_rad))  # second focus
 
     # ogrid is a multidim mesh creator (faster than mgrid):
-    yy, xx = np.ogrid[:sy, :sx]
-    ellipse = dist(yy, xx, pos_f1[0], pos_f1[1]) + dist(yy, xx, pos_f2[0],
-                                                        pos_f2[1])
+    yy, xx = np.ogrid[:array.shape[0], :array.shape[1]]
+    ellipse = (dist(yy, xx, pos_f1[0], pos_f1[1])
+               + dist(yy, xx, pos_f2[0], pos_f2[1]))
     ellipse_mask = ellipse < 2 * a  # boolean mask
 
-    if output_values and not output_indices:
-        values = array[ellipse_mask]
-        return values
-    elif output_indices and not output_values:
-        indices = np.array(np.where(ellipse_mask))
-        y = indices[0]
-        x = indices[1]
-        return y, x
-    elif output_indices and output_values:
-        raise ValueError('output_values and output_indices cannot be both '
-                         'True.')
+    if mode == "ind":
+        return np.where(ellipse_mask)
+    elif mode == "val":
+        return array[ellipse_mask]
+    elif mode == "mask":
+        return array * ellipse_mask
     else:
-        array_masked = array * ellipse_mask
-        return array_masked
+        raise ValueError("mode '{}' unknown!".format(mode))
 
 
 def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,

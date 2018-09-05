@@ -189,3 +189,19 @@ def test_get_annulus_segments():
 def test_dist():
     assert vip.var.dist(0, 0, 1, 1) == np.sqrt(2)
     assert vip.var.dist(1, 2, 3, 4) == 2 * np.sqrt(2)
+
+
+def test_get_ellipse():
+    f = np.ones((6, 10))
+
+    # masked array:
+    fem = vip.var.get_ellipse(f, 4, 2, 90, mode="mask")
+    assert fem.sum() == 28  # outer region masked, 28 pixels kept
+
+    # values:
+    fev = vip.var.get_ellipse(f, 4, 2, 90, mode="val")
+    assert fev.sum() == 28
+
+    # indices:
+    fei = vip.var.get_ellipse(f, 4, 2, 90, mode="ind")
+    assert fei[0].shape == fei[1].shape == (28,)

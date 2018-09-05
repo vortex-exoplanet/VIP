@@ -5,7 +5,7 @@ VIP - Vortex Image Processing package
 .. image:: https://badge.fury.io/py/vip-hci.svg
     :target: https://pypi.python.org/pypi/vip-hci
 
-.. image:: https://img.shields.io/badge/Python-2.7%2C%203.6-brightgreen.svg
+.. image:: https://img.shields.io/badge/Python-2.7%2C%203.6%2C%203.7-brightgreen.svg
     :target: https://pypi.python.org/pypi/vip-hci
 
 .. image:: https://travis-ci.org/vortex-exoplanet/VIP.svg?branch=master
@@ -42,7 +42,7 @@ Introduction
 
 ``VIP`` is a python package for angular, reference star and spectral
 differential imaging for exoplanet/disk detection through high-contrast imaging.
-``VIP`` is compatible with Python 2.7 and 3.6.
+``VIP`` is compatible with Python 2.7, 3.6 and 3.7.
 
 The goal of ``VIP`` is to incorporate open-source, efficient, easy-to-use and
 well-documented implementations of high-contrast image processing algorithms to

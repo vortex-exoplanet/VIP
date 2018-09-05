@@ -498,8 +498,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
         return [array*mask for mask in masks]
 
 
-def get_ell_annulus(array, a, b, PA, width, output_values=False,
-                    output_indices=False, cy=None, cx=None):
+def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):
     """
     Return a centered elliptical annulus from a 2d ndarray
 
@@ -507,84 +506,65 @@ def get_ell_annulus(array, a, b, PA, width, output_values=False,
 
     Parameters
     ----------
-    array : array_like
-        Input 2d array or image.
-    a : flt
+    data : array_like or tuple
+        Input 2d array (image) or tuple with a shape.
+    a : float
         Semi-major axis.
-    b : flt
+    b : float
         Semi-minor axis.
-    PA : deg
-        The PA of the semi-major axis.
-    width : flt
+    PA : deg, float
+        The PA of the semi-major axis in degrees.
+    width : float
         The size of the annulus along the semi-major axis; it is proportionnally
-        thinner along the semi-minor axis).
+        thinner along the semi-minor axis.
     output_values : {False, True}, optional
         If True returns the values of the pixels in the annulus.
-    output_indices : {False, True}, optional
-        If True returns the indices inside the annulus.
-    cy,cx: float, optional
-        Location of the center of the annulus to be defined. If not provided,
-    it assumes the annuli are centered on the frame.
+    cy, cx : int or None, optional
+        Coordinates of the circle center. If ``None``, the center is determined
+        by the ``frame_center`` function.
+    mode : {'ind', 'val', 'mask'}, optional
+        Controls what is returned: indices of selected pixels, values of
+        selected pixels, or a boolean mask.
 
     Returns
     -------
-    Depending on output_values, output_indices:
-    values : array_like
-        1d array with the values of the pixels in the annulus.
-    array_masked : array_like
-        Input array with the annular mask applied.
-    y, x : array_like
-        Coordinates of pixels in annulus.
+    indices : tuple(y, x)
+        [mode='ind'] Coordinates of the inner elliptical region.
+    values : 1d ndarray
+        [mode='val'] Values of the pixels in the inner elliptical region.
+    masked : 2d ndarray
+        [mode='mask'] Input image where the outer region is masked with ``0``.
 
     """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array.')
-    if cy is None or cx is None:
-        cy, cx = frame_center(array)
-    sy, sx = array.shape
-
-    width_a = width
-    width_b = width * b / a
-
-    # Definition of big ellipse
-    f_big = np.sqrt((a + width_a / 2) ** 2 - (b + width_b / 2) ** 2)
-    # distance between center and foci of the ellipse
-    PA_rad = np.deg2rad(PA)
-    pos_f1_big = (cy + f_big * np.cos(PA_rad),
-                  cx + f_big * np.sin(PA_rad))  # coords of first focus
-    pos_f2_big = (cy - f_big * np.cos(PA_rad),
-                  cx - f_big * np.sin(PA_rad))  # coords of second focus
-
-    # Definition of small ellipse
-    f_sma = np.sqrt((a - width_a / 2) ** 2 - (b - width_b / 2) ** 2)
-    # distance between center and foci of the ellipse
-    pos_f1_sma = (cy + f_sma * np.cos(PA_rad),
-                  cx + f_sma * np.sin(PA_rad))  # coords of first focus
-    pos_f2_sma = (cy - f_sma * np.cos(PA_rad),
-                  cx - f_sma * np.sin(PA_rad))  # coords of second focus
-
-    yy, xx = np.ogrid[:sy, :sx]
-    big_ellipse = (dist(yy, xx, pos_f1_big[0], pos_f1_big[1])
-                   + dist(yy, xx, pos_f2_big[0], pos_f2_big[1]))
-    small_ellipse = (dist(yy, xx, pos_f1_sma[0], pos_f1_sma[1])
-                     + dist(yy, xx, pos_f2_sma[0], pos_f2_sma[1]))
-    ell_ann_mask = ((big_ellipse < 2 * (a + width / 2)) &
-                    (small_ellipse >= 2 * (a - width / 2)))  # boolean mask
-
-    if output_values and not output_indices:
-        values = array[ell_ann_mask]
-        return values
-    elif output_indices and not output_values:
-        indices = np.array(np.where(ell_ann_mask))
-        y = indices[0]
-        x = indices[1]
-        return y, x
-    elif output_indices and output_values:
-        msg = 'output_values and output_indices cannot be both True.'
-        raise ValueError(msg)
+    if isinstance(data, np.ndarray):
+        array = data
+        if array.ndim != 2:
+            raise TypeError('`data` is not a frame or 2d array')
+    elif isinstance(data, tuple):
+        array = np.zeros(data)
     else:
-        array_masked = array * ell_ann_mask
-        return array_masked
+        raise TypeError('`data` must be a tuple (shape) or a 2d array')
+
+    hwa = width / 2  # half width for a
+    hwb = (width * b / a) / 2  # half width for b
+
+    big_ellipse = get_ellipse(array, a + hwa, b + hwb, PA, cy=cy, cx=cx,
+                              mode="bool")
+    small_ellipse = get_ellipse(array, a - hwa, b - hwb, PA, cy=cy, cx=cx,
+                                mode="bool")
+
+    ell_ann_mask = big_ellipse ^ small_ellipse
+
+    if mode == "ind":
+        return np.where(ell_ann_mask)
+    elif mode == "val":
+        return array[ell_ann_mask]
+    elif mode == "mask":
+        return array * ell_ann_mask
+    elif mode == "bool":
+        return ell_ann_mask
+    else:
+        raise ValueError("mode '{}' unknown!".format(mode))
 
 
 def matrix_scaling(matrix, scaling):

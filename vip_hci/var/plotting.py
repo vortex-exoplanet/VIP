@@ -110,7 +110,7 @@ def save_animation(data, anim_path=None, data_step_range=None, label=None,
 
     if os.path.exists(dir_path):
         shutil.rmtree(dir_path)
-        print('Overwriting content in ' + dir_path)
+        print('Replacing ' + dir_path)
     os.mkdir(dir_path)
 
     for i, labstep in zip(data_step_range, list(label_step_range)):
@@ -124,7 +124,7 @@ def save_animation(data, anim_path=None, data_step_range=None, label=None,
         Popen(['convert', '-delay', str(delay), dir_path + '*.png', filename])
         print('Animation successfully saved to disk as ' + filename)
     except FileNotFoundError:
-        print('ImageMagick convert command could not be found')
+        print('ImageMagick `convert` command could not be found')
 
 
 def pp_subplots(*data, **kwargs):

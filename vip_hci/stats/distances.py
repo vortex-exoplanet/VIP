@@ -12,7 +12,7 @@ __all__ = ['cube_distance']
 import numpy as np
 import scipy.stats
 from matplotlib import pyplot as plt
-from ..var import get_annulus
+from ..var import get_annulus_segments
 from skimage.measure import compare_ssim as ssim
 
 
@@ -81,7 +81,8 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
             frame_ref = array[frame]
         elif isinstance(frame, np.ndarray):
             frame_ref = frame
-        frame_ref = get_annulus(frame_ref, inradius, width, output_values=True)
+        frame_ref = get_annulus_segments(frame_ref, inradius, width,
+                                         mode="val")[0]
     else:
         raise TypeError('Mode not recognized or missing parameters')
 
@@ -89,7 +90,8 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
         if mode == 'full':
             framei = array[i]
         elif mode == 'annulus':
-            framei = get_annulus(array[i], inradius, width, True)
+            framei = get_annulus_segments(array[i], inradius, width,
+                                          mode="val")[0]
 
         if dist == 'sad':
             lista.append(np.sum(abs(frame_ref - framei)))

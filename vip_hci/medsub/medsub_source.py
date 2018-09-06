@@ -24,7 +24,7 @@ __all__ = ['median_sub']
 import numpy as np
 from multiprocessing import cpu_count
 from ..conf import time_ini, timing
-from ..var import get_annulus, mask_circle
+from ..var import get_annulus_segments, mask_circle
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector)
 from ..preproc import cube_rescaling_wavelengths as scwave
@@ -282,8 +282,8 @@ def _median_subt_fr_sdi(fr, wl, n_annuli, fwhm, radius_int, annulus_width,
                 inner_radius = radius_int + ann * annulus_width
             ann_center = inner_radius + (annulus_width / 2)
 
-            indices = get_annulus(multispec_fr[0], inner_radius, annulus_width,
-                                  output_indices=True)
+            indices = get_annulus_segments(multispec_fr[0], inner_radius,
+                                           annulus_width)[0]
             yy = indices[0]
             xx = indices[1]
             matrix = multispec_fr[:, yy, xx]  # shape (z, npx_annulus)
@@ -323,11 +323,10 @@ def _median_subt_ann_adi(ann, angle_list, n_annuli, fwhm, radius_int,
                                              radius_int, annulus_width,
                                              delta_rot, 1, False)
     if ARRAY.ndim == 3:
-        indices = get_annulus(ARRAY[0], inner_radius, annulus_width,
-                              output_indices=True)
+        indices = get_annulus_segments(ARRAY[0], inner_radius, annulus_width)[0]
     elif ARRAY.ndim == 4:
-        indices = get_annulus(ARRAY[0, 0], inner_radius, annulus_width,
-                              output_indices=True)
+        indices = get_annulus_segments(ARRAY[0, 0], inner_radius,
+                                       annulus_width)[0]
     yy = indices[0]
     xx = indices[1]
     matrix = ARRAY[:, yy, xx]  # shape [n x npx_annulus]

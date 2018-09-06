@@ -36,7 +36,6 @@ class HCIPostProcAlgo(BaseEstimator):
                 continue
             setattr(self, k, kwargs[k])
 
-
     def _get_dataset(self, dataset=None, verbose=True):
         if dataset is None:
             dataset = self.dataset
@@ -109,6 +108,7 @@ class HCIPostProcAlgo(BaseEstimator):
 
         """
         raise NotImplementedError
+
 
 class HCIMedianSub(HCIPostProcAlgo):
     """ HCI median subtraction algorithm.

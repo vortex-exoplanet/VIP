@@ -278,7 +278,7 @@ def collapse_psf_cube(array, size, fwhm=4, verbose=True, collapse='mean'):
 
 def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                   model='gauss', imlib='opencv', interpolation='lanczos4',
-                  force_odd=True, full_output=False, verbose=False):
+                  force_odd=True, full_output=False, verbose=True):
     """ Normalizes a PSF (2d or 3d array), to have the flux in a 1xFWHM
     aperture equal to one. It also allows to crop the array and center the PSF
     at the center of the frame(s).

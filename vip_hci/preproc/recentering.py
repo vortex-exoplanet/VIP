@@ -310,48 +310,30 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
             return x, y
         else:
             return None
-        
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array')
-    if len(xy) != 4:
+    # --------------------------------------------------------------------------
+    check_array(array, dim=2)
+    if not len(xy) == 4:
         raise TypeError('Input waffle spot coordinates in wrong format')
     
     cy, cx = frame_center(array)
-    
-    # Top left
-    si1, y1, x1 = get_square(array, subi_size, xy[0][1], xy[0][0],
-                             position=True)
-    cent2dgy_1, cent2dgx_1 = fit_2dgaussian(si1, theta=135, crop=False, 
-                                            threshold=True, sigfactor=sigfactor, 
-                                            debug=debug)
-    cent2dgx_1 += x1
-    cent2dgy_1 += y1
-    # Top right
-    si2, y2, x2 = get_square(array, subi_size, xy[1][1], xy[1][0],
-                             position=True)
-    cent2dgy_2, cent2dgx_2 = fit_2dgaussian(si2, theta=45, crop=False, 
-                                            threshold=True, sigfactor=sigfactor, 
-                                            debug=debug)
-    cent2dgx_2 += x2
-    cent2dgy_2 += y2 
-    #  Bottom left
-    si3, y3, x3 = get_square(array, subi_size, xy[2][1], xy[2][0],
-                             position=True)
-    cent2dgy_3, cent2dgx_3 = fit_2dgaussian(si3, theta=45, crop=False, 
-                                            threshold=True, sigfactor=sigfactor, 
-                                            debug=debug)
-    cent2dgx_3 += x3
-    cent2dgy_3 += y3
-    #  Bottom right
-    si4, y4, x4 = get_square(array, subi_size, xy[3][1], xy[3][0],
-                             position=True)
-    cent2dgy_4, cent2dgx_4 = fit_2dgaussian(si4, theta=135, crop=False, 
-                                            threshold=True, sigfactor=sigfactor, 
-                                            debug=debug)
-    cent2dgx_4 += x4
-    cent2dgy_4 += y4
-    
-    if debug: 
+    centx = []
+    centy = []
+    subims = []
+
+    for i in range(len(xy)):
+        sim, y, x = get_square(array, subi_size, xy[i][1], xy[i][0],
+                               position=True, verbose=False)
+        cent2dgy, cent2dgx = fit_2dgaussian(sim, crop=False, threshold=True,
+                                            sigfactor=sigfactor, debug=debug)
+        centx.append(cent2dgx + x)
+        centy.append(cent2dgy + y)
+        subims.append(sim)
+
+    cent2dgx_1, cent2dgx_2, cent2dgx_3, cent2dgx_4 = centx
+    cent2dgy_1, cent2dgy_2, cent2dgy_3, cent2dgy_4 = centy
+    si1, si2, si3, si4 = subims
+
+    if debug:
         pp_subplots(si1, si2, si3, si4, colorb=True)
         print('Centroids X,Y:')
         print(cent2dgx_1, cent2dgy_1)
@@ -388,7 +370,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
 
 def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
-                           debug=False, verbose=True):
+                           debug=False, verbose=True, full_output=False):
     """ Function analog to frame_center_satspots but for image sequences. It 
     actually will call frame_center_satspots for each image in the cube. The
     function also returns the shifted images (not recommended to use when the 
@@ -421,7 +403,10 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         intersections and shifts). This has to be used carefully as it can 
         produce too much output and plots.
     verbose : bool, optional
-        Whether to print to stdout the timing and aditional info.
+        Whether to print to stdout the timing and additional info.
+    full_output : bool, optional
+        Whether to return 2 1d arrays of shifts along with the recentered cube
+        or not.
     
     Returns
     ------- 
@@ -480,8 +465,12 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         msg3 = 'STDDEV X,Y: {:.3f}, {:.3f}'
         print(msg3.format(np.std(shift_x), np.std(shift_y)))
 
-    array_rec = np.array(array_rec) 
-    return array_rec, shift_y, shift_x
+    array_rec = np.array(array_rec)
+
+    if full_output:
+        return array_rec, shift_y, shift_x
+    else:
+        return array_rec
 
 
 def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,

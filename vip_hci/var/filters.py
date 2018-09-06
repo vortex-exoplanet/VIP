@@ -288,31 +288,27 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         
     elif mode == 'fourier-butter':
         # Designs an n-th order high-pass 2D Butterworth filter
-        filt = butter2d_lp(array.shape, cutoff=btw_cutoff, n=btw_order)
-        filt = 1 - filt                        
+        filt = 1 - butter2d_lp(array.shape, cutoff=btw_cutoff, n=btw_order)
         array_fft = fft(array)
         fft_new = array_fft * filt
-        filtered = ifft(fft_new)        
+        filtered = ifft(fft_new)
+
     elif mode == 'hann':
         # TODO: this code could be shortened using np.convolve
         # see http://scipy-cookbook.readthedocs.io/items/SignalSmooth.html
 
         # create a Hanning profile window cut at the chosen frequency:
         npix = array.shape[0]
-        #if npix%2 != 0:
-        #    raise ValueError("only even-sized frames are supported by 'hann'"
-        #                     " high-pass filter! Frame shape: {}".format(array.shape))
-
         cutoff = npix/2 * hann_cutoff
-        cutoff_inside = round_away(np.minimum(cutoff, (npix/2 -1))).astype(int)
+        cutoff_inside = round_away(np.minimum(cutoff, (npix/2 - 1))).astype(int)
         winsize = 2*cutoff_inside + 1
         win1d = np.hanning(winsize)
         win = 1 - np.outer(win1d, win1d)
 
         array_fft = fft(array)
         # remove high spatial frequency along the Hann profile:
-        array_fft[npix//2 - cutoff_inside : npix//2 + cutoff_inside + 1,
-                  npix//2 - cutoff_inside : npix//2 + cutoff_inside + 1] *= win
+        array_fft[npix//2 - cutoff_inside: npix//2 + cutoff_inside + 1,
+                  npix//2 - cutoff_inside: npix//2 + cutoff_inside + 1] *= win
 
         filtered = ifft(array_fft)
         

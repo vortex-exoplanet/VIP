@@ -536,7 +536,7 @@ def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
         indices = np.array(list(range(ind1, ind2)) + list(range(ind3, ind4)))
     else:
         half1 = range(0, index_w2)
-        half2 = range(index_w3, nwvs)
+        half2 = range(index_w3 + 1, nwvs)
         indices = np.array(list(half1) + list(half2))
 
     indices = indices.astype(int)

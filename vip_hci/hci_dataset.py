@@ -18,8 +18,8 @@ from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
                       cube_drop_frames, cube_detect_badfr_correlation,
                       cube_detect_badfr_pxstats, cube_px_resampling,
                       cube_subsample, cube_recenter_2dfit,
-                      cube_recenter_satspots, cube_recenter_dft_upsampling,
-                      cube_recenter_via_speckles)
+                      cube_recenter_satspots, cube_recenter_radon,
+                      cube_recenter_dft_upsampling, cube_recenter_via_speckles)
 from .var import frame_filter_lowpass, frame_filter_highpass, frame_center
 from .var import (cube_filter_highpass, cube_filter_lowpass, mask_circle,
                   pp_subplots)
@@ -1009,13 +1009,14 @@ class HCIDataset(object):
                  offset=None, negative=False, threshold=False,
                  save_shifts=False, cy_1=None, cx_1=None, upsample_factor=100,
                  alignment_iter=5, gamma=1, min_spat_freq=0.5, max_spat_freq=3,
-                 recenter_median=False, sigfactor=6, verbose=True, debug=False,
+                 recenter_median=False, sigfactor=6, cropsize=101, hsize=0.4,
+                 step=0.01, mask_center=None, verbose=True, debug=False,
                  plot=True):
         """ Frame to frame recentering.
 
         Parameters
         ----------
-        method : {'2dfit', 'dftups', 'dftupspeckles', 'satspots'}, str optional
+        method : {'2dfit', 'dftups', 'dftupspeckles', 'satspots', 'radon'}, optional
             Recentering method.
         xy : tuple or ints or tuple of 4 tuples of ints, optional
             For the 2dfitting, ``xy`` are the coordinates of the center of the
@@ -1091,6 +1092,20 @@ class HCIDataset(object):
             be thresholded before fitting a 2d Gaussian to the data using sigma
             clipped statistics. All values smaller than (MEDIAN +
             sigfactor*STDDEV) will be replaced by small random Gaussian noise.
+        cropsize : odd int, optional
+            [method=radon] Size in pixels of the cropped central area of the
+            input array that will be used. It should be large enough to contain
+            the satellite spots.
+        hsize : float, optional
+            [method=radon] Size of the box for the grid search. The frame is
+            shifted to each direction from the center in a hsize length with a
+            given step.
+        step : float, optional
+            [method=radon] The step of the coordinates change.
+        mask_center : None or int, optional
+            [method=radon] If None the central area of the frame is kept. If int
+            a centered zero mask will be applied to the frame. By default the
+            center isn't masked.
         verbose : bool, optional
             Whether to print to stdout the timing and aditional info.
         debug : bool, optional
@@ -1129,8 +1144,13 @@ class HCIDataset(object):
             self.cube, _, _ = cube_recenter_satspots(
                 self.cube, xy, subi_size, sigfactor, plot, debug, verbose
             )
+        elif method == 'radon':
+            self.cube = cube_recenter_radon(
+                self.cube, full_output=False, verbose=verbose, imlib=imlib,
+                interpolation=interpolation, cropsize=cropsize, hsize=hsize,
+                step=step, mask_center=mask_center, nproc=nproc, debug=debug
+            )
         else:
-            # TODO support radon method
             raise ValueError('Method not recognized')
 
     def remove_badframes(self, method='corr', frame_ref=None, crop_size=30,

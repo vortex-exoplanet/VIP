@@ -1028,7 +1028,7 @@ class HCIDataset(object):
         subi_size : int, optional
             Size of the square subimage sides in pixels.
         model : str, optional
-            Used for the ``2dfit`` method. Sets the type of fit to be used.
+            [method=2dfit] Sets the type of fit to be used.
             'gauss' for a 2d Gaussian fit and 'moff' for a 2d Moffat fit.
         nproc : int or None, optional
             Number of processes (>1) for parallel computing. If 1 then it runs
@@ -1052,42 +1052,42 @@ class HCIDataset(object):
             The 'nearneig' interpolation is the fastest and the 'lanczos4' the
             slowest and accurate. 'lanczos4' is the default.
         offset : tuple of floats, optional
-            Used for the ``2dfit`` method. If None the region of the frames
+            [method=2dfit] If None the region of the frames
             used for the 2d Gaussian/Moffat fit is shifted to the center of the
             images (2d arrays). If a tuple is given it serves as the offset of
             the fitted area wrt the center of the 2d arrays.
         negative : bool, optional
-            Used for the ``2dfit`` method. If True a negative 2d Gaussian/Moffat
-            fit is performed.
+            [method=2dfit/dftups/dftupspeckles] If True a negative 2d
+            Gaussian/Moffat fit is performed.
         threshold : bool, optional
-            Used for the ``2dfit`` method. If True the background pixels
+            [method=2dfit] If True the background pixels
             (estimated using sigma clipped statistics) will be replaced by
             small random Gaussian noise.
         save_shifts : bool, optional
-            Whether to save the shifts to a file in disk.
+            [method=2dfit/dftups] Whether to save the shifts to a file in disk.
         cy_1, cx_1 : int, optional
-            Used for the ``dftups`` method. Coordinates of the center of the
+            [method=dftups] Coordinates of the center of the
             subimage for fitting a 2d Gaussian and centroiding the 1st frame.
         upsample_factor : int, optional
-            Used for the ``dftups`` method. Upsampling factor (default 100).
+            [method=dftups] Upsampling factor (default 100).
             Images will be registered to within 1/upsample_factor of a pixel.
         alignment_iter : int, optional
-            Used for the ``dftupspeckles`` method. Number of alignment
+            [method=dftupspeckles] Number of alignment
             iterations (recomputes median after each iteration).
         gamma : int, optional
-            Used for the ``dftupspeckles`` method. Applies a gamma correction
+            [method=dftupspeckles] Applies a gamma correction
             to emphasize speckles (useful for faint stars).
         min_spat_freq : float, optional
-            Used for the ``dftupspeckles`` method. Spatial frequency for high
+            [method=dftupspeckles] Spatial frequency for high
             pass filter.
         max_spat_freq : float, optional
-            Used for the ``dftupspeckles`` method. Spatial frequency for low
+            [method=dftupspeckles] Spatial frequency for low
             pass filter.
         recenter_median : bool, optional
-            Used for the ``dftupspeckles`` method. Recenter the frames at each
+            [method=dftupspeckles] Recenter the frames at each
             iteration based on the gaussian fit.
         sigfactor : int, optional
-            Used for the ``dftupspeckles`` method. The background pixels will
+            [method=satspots] The background pixels will
             be thresholded before fitting a 2d Gaussian to the data using sigma
             clipped statistics. All values smaller than (MEDIAN +
             sigfactor*STDDEV) will be replaced by small random Gaussian noise.
@@ -1103,21 +1103,23 @@ class HCIDataset(object):
             raise ValueError('FWHM has not been set')
 
         if method == '2dfit':
-            self.cube = cube_recenter_2dfit(self.cube, xy, self.fwhm, subi_size,
-                                    model, nproc, imlib, interpolation, offset,
-                                    negative, threshold, save_shifts, False,
-                                    verbose, debug, plot)
+            self.cube = cube_recenter_2dfit(
+                self.cube, xy, self.fwhm, subi_size, model, nproc, imlib,
+                interpolation, offset, negative, threshold, save_shifts, False,
+                verbose, debug, plot
+            )
         elif method == 'dftups':
-            self.cube = cube_recenter_dft_upsampling(self.cube, cy_1, cx_1,
-                                    negative, self.fwhm, subi_size,
-                                    upsample_factor, imlib, interpolation,
-                                    False, verbose, save_shifts, debug)
+            self.cube = cube_recenter_dft_upsampling(
+                self.cube, cy_1, cx_1, negative, self.fwhm, subi_size,
+                upsample_factor, imlib, interpolation, False, verbose,
+                save_shifts, debug, plot
+            )
         elif method == 'dftupspeckles':
-            res = cube_recenter_via_speckles(self.cube, self.cuberef,
-                                    alignment_iter, gamma, min_spat_freq,
-                                    max_spat_freq, self.fwhm, debug, negative,
-                                    recenter_median, subi_size, imlib,
-                                    interpolation, plot)
+            res = cube_recenter_via_speckles(
+                self.cube, self.cuberef, alignment_iter, gamma, min_spat_freq,
+                max_spat_freq, self.fwhm, debug, negative, recenter_median,
+                subi_size, imlib, interpolation, plot
+            )
             if self.cuberef is None:
                 self.cube = res[0]
             else:
@@ -1126,8 +1128,9 @@ class HCIDataset(object):
         elif method == 'satspots':
             if xy is None:
                 raise ValueError('`xy` must be a tuple of 4 tuples')
-            self.cube, _, _ = cube_recenter_satspots(self.cube, xy, subi_size,
-                                    sigfactor, plot, debug, verbose)
+            self.cube, _, _ = cube_recenter_satspots(
+                self.cube, xy, subi_size, sigfactor, plot, debug, verbose
+            )
         else:
             # TODO support radon method
             raise ValueError('Method not recognized')

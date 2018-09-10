@@ -1126,8 +1126,6 @@ class HCIDataset(object):
                 self.cube = res[0]
                 self.cuberef = res[1]
         elif method == 'satspots':
-            if xy is None:
-                raise ValueError('`xy` must be a tuple of 4 tuples')
             self.cube, _, _ = cube_recenter_satspots(
                 self.cube, xy, subi_size, sigfactor, plot, debug, verbose
             )

@@ -1114,22 +1114,27 @@ class HCIDataset(object):
             Whether to plot the shifts.
 
         """
-        if self.fwhm is None:
-            raise ValueError('FWHM has not been set')
+        
 
         if method == '2dfit':
+            if self.fwhm is None:
+                raise ValueError('FWHM has not been set')
             self.cube = cube_recenter_2dfit(
                 self.cube, xy, self.fwhm, subi_size, model, nproc, imlib,
                 interpolation, offset, negative, threshold, save_shifts, False,
                 verbose, debug, plot
             )
         elif method == 'dftups':
+            if self.fwhm is None:
+                raise ValueError('FWHM has not been set')
             self.cube = cube_recenter_dft_upsampling(
                 self.cube, cy_1, cx_1, negative, self.fwhm, subi_size,
                 upsample_factor, imlib, interpolation, False, verbose,
                 save_shifts, debug, plot
             )
         elif method == 'dftupspeckles':
+            if self.fwhm is None:
+                raise ValueError('FWHM has not been set')
             res = cube_recenter_via_speckles(
                 self.cube, self.cuberef, alignment_iter, gamma, min_spat_freq,
                 max_spat_freq, self.fwhm, debug, negative, recenter_median,

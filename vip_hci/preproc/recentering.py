@@ -313,7 +313,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
             return None
     # --------------------------------------------------------------------------
     check_array(array, dim=2)
-    if not isinstance(xy, [tuple, list]) or len(xy) != 4:
+    if not isinstance(xy, (tuple, list)) or len(xy) != 4:
         raise TypeError('Input waffle spot coordinates in wrong format (must '
                         'be a tuple of 4 tuples')
 

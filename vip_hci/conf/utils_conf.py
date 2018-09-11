@@ -16,6 +16,8 @@ import numpy as np
 import itertools as itt
 from multiprocessing import Pool
 
+from vip_hci import __version__
+
 sep = '-' * 80
 vip_figsize = (10, 5)
 
@@ -24,6 +26,81 @@ def print_precision(array, precision=3):
     """ Prints an array with a given floating point precision. 3 by default.
     """
     return print(np.array2string(array.astype(float), precision=precision))
+
+
+class SaveableEmpty(object):
+    """
+    Empty object. Used by ``Saveable`` to restore the state of an object wihtout
+    calling __init__. Similar to what pickle/copy do.
+    """
+    pass
+
+
+class Saveable(object):
+    def save(self, filename):
+        """
+        Save a VIP object to a npz file.
+
+
+        """
+
+        vip_object = self.__class__.__name__
+
+        if hasattr(self, "_saved_attributes"):
+
+            data = {}
+
+            for a in self._saved_attributes:
+                if hasattr(self, a):
+                    data[a] = getattr(self, a)
+
+                    # set marker to re-build the original datatype
+                    # (for non-np types like float, string, ...)
+                    if not isinstance(getattr(self, a), np.ndarray):
+                        data["_item_{}".format(a)] = True
+
+                np.savez_compressed(filename, _vip_version=__version__,
+                                    _vip_object=vip_object, **data)
+
+        else:
+            raise RuntimeError("_saved_attributes not found for class {}"
+                               "".format(vip_object))
+
+    @classmethod
+    def load(cls, filename):
+        if not filename.endswith(".npz"):
+            filename += ".npz"
+
+        data = np.load(filename)
+
+        if "_vip_object" not in data:
+            raise RuntimeError("The file you specified is not a VIP object.")
+
+        file_vip_object = data["_vip_object"].item()
+        if file_vip_object != cls.__name__:
+            raise RuntimeError("The object in the file is of type '{}', please "
+                               "use that classes 'load()' method instead."
+                               "".format(file_vip_object))
+
+        file_vip_version = data["_vip_version"].item()
+        if file_vip_version != __version__:
+            print("The file was saved with VIP {}. There may be some"
+                  "compatibility issues. Use with care."
+                  "".format(file_vip_version))
+
+        self = SaveableEmpty()
+        self.__class__ = cls
+
+        for k in data:
+            if k.startswith("_"):
+                continue
+
+            if "_item_{}".format(k) in data:
+                setattr(self, k, data[k].item())  # un-pack np array
+            else:
+                setattr(self, k, data[k])
+
+        return self
 
 
 class Progressbar(object):
@@ -167,7 +244,7 @@ def check_array(input_array, dim, name=None):
 
 def eval_func_tuple(f_args):
     """ Takes a tuple of a function and args, evaluates and returns result"""
-    return f_args[0](*f_args[1:])                       
+    return f_args[0](*f_args[1:])
 
 
 class FixedObj(object):
@@ -198,7 +275,7 @@ def fixed(v):
         pool_map(3, worker, fixed(words), method)
 
         # this results in calling
-        # 
+        #
         # worker(words[0], 1)
         # worker(words[1], 1)
         # worker(words[2], 1)
@@ -298,11 +375,11 @@ def pool_imap(nproc, fkt, *args, **kwargs):
     .. code-block:: python
 
         # using pool_map
-    
+
         res = pool_map(2, my_worker_function, *args)
-    
+
         # using pool_imap with a progessbar:
-    
+
         res = list(Progressbar(pool_imap(2, my_worker_function, *args)))
 
     """
@@ -321,7 +398,7 @@ def repeat(*args):
     # instead of using
 
     import itertools as itt
-    
+
     my_fkt(itt.repeat(a), itt.repeat(b), itt.repeat(c), d, itt.repeat(e))
 
     # you could use `repeat`:

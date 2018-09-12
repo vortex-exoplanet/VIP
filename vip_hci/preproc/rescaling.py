@@ -463,20 +463,18 @@ def check_scal_vector(scal_vec):
 
 def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
                       debug=False):
-    """ Finds a radial threshold for avoiding as much as possible self-
-    subtraction while doing model PSF subtraction.
-
-    # TODO: check this output. Also, find a more pythonic way to to this!
+    """
+    Find optimal wavelengths which minimize self-subtraction in model PSF subtr.
 
     Parameters
     ----------
     wl : 1d array or list
         Vector with the scaling factors.
-    dist : int
+    dist : float [pixels]
         Separation or distance from the center of the array (star).
     index_ref : int
         The `wl` index for which we are finding the pairs.
-    fwhm : float
+    fwhm : float [pixels]
         Mean FWHM of all the wavelengths.
     delta_sep : float, optional
         The threshold separation in terms of the mean FWHM.
@@ -485,64 +483,34 @@ def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
 
     Returns
     -------
-    index_w2 : int
-        Index of the frame located (outwards) at a `delta_sep` separation from
-        `index_ref`.
-    index_w3 :
-        Index of the frame located (inwards) at a `delta_sep` separation from
-        `index_ref`.
+    indices : ndarray
+        List of good indices.
+
     """
-    nwvs = wl.shape[0]
-    index_w2 = 0
-    index_ref = int(index_ref)
-    for i in range(0, index_ref):
-        index_w2 = i
-        sep = ((wl[index_ref] - wl[index_w2]) / wl[index_ref]) * (
-                (dist + fwhm * delta_sep) / fwhm)
-        if debug:
-            sep_pxs = ((wl[index_ref] - wl[index_w2]) / wl[index_ref]) * (
-                        dist + fwhm * delta_sep)
-            print(sep, sep_pxs)
-        if sep <= delta_sep:
-            if index_w2 == 0:
-                index_w2 += 1
-            break
-    if debug:
-        print('Index 1 = ', index_w2)
+    wl = np.asarray(wl)
+    wl_ref = wl[index_ref]
 
-    index_w3 = nwvs
-    for i in range(index_ref, nwvs)[::-1]:
-        index_w3 = i
-        sep = ((wl[index_w3] - wl[index_ref]) / wl[index_ref]) * (
-                (dist - fwhm * delta_sep) / fwhm)
-        if debug:
-            sep_pxs = ((wl[index_w3] - wl[index_ref]) / wl[index_ref]) * (
-                        dist - fwhm * delta_sep)
-            print(sep, sep_pxs)
-        if sep <= delta_sep:
-            if index_w3 == nwvs - 1:
-                index_w3 += 1
-            break
+    sep_lft = (wl_ref - wl) / wl_ref * ((dist + fwhm * delta_sep) / fwhm)
+    sep_rgt = (wl - wl_ref) / wl_ref * ((dist - fwhm * delta_sep) / fwhm)
+    map_lft = sep_lft >= delta_sep
+    map_rgt = sep_rgt >= delta_sep
+    indices = np.nonzero(map_lft | map_rgt)[0]
 
     if debug:
-        print('Index 2 = ', index_w3)
+        print("sep_lft:", "  ".join(["{:+.3f}".format(x) for x in sep_lft]))
+        print("sep_rgt:", "  ".join(["{:+.3f}".format(x) for x in sep_rgt]))
+        print("indices:", indices)
+
+    if indices.size == 0:
+        raise RuntimeError("No frames left after radial motion threshold. "
+                           "Try decreasing the value of `delta_sep`")
 
     if nframes is not None:
-        window = nframes // 2
-        ind1 = max(index_w2 - window, 0)
-        ind2 = index_w2
-        ind3 = index_w3
-        ind4 = min(index_w3 + window, nwvs)
-        indices = np.array(list(range(ind1, ind2)) + list(range(ind3, ind4)))
-    else:
-        half1 = range(0, index_w2)
-        half2 = range(index_w3, nwvs)
-        indices = np.array(list(half1) + list(half2))
+        i = map_lft.sum()  # index of first good element of 'right'
+        indices = indices[i - nframes//2:i + nframes//2]
 
-    indices = indices.astype(int)
-    if indices.shape[0] == 1:
-        msg = 'No frames left after the radial motion threshold. Try decreasing'
-        msg += ' the value of `delta_sep` (for dist: {} pxs)'
-        raise RuntimeError(msg.format(dist))
+        if indices.size != nframes:
+            raise RuntimeError("Not enough frames left after radial motion "
+                               "threshold. Try decreasing the value of "
+                               "`delta_sep`")
     return indices
-

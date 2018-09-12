@@ -27,18 +27,20 @@ from .subsampling import cube_collapse
 
 def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
                        verbose=True):
-    """ Wrapper of ``frame_px_resampling`` for resampling the frames of a cube
-    with a single scale factor. Useful when we need to upsample (upscaling) or
-    downsample (pixel binning) a set of frames, e.g. an ADI cube.
+    """
+    Resample the frames of a cube with a single scale factor.
+
+    Wrapper of ``frame_px_resampling``. Useful when we need to upsample
+    (upscaling) or downsample (pixel binning) a set of frames, e.g. an ADI cube.
 
     Parameters
     ----------
-    array : array_like
-        Input frame, 2d array.
+    array : 3d array_like
+        Input cube, 3d array.
     scale : int, float or tuple
         Scale factor for upsampling or downsampling the frames in the cube. If
         a tuple it corresponds to the scale along x and y.
-    imlib : str optional
+    imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_px_resampling``
         function.
     interpolation : str, optional
@@ -72,19 +74,21 @@ def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
 def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
                         verbose=False):
-    """ Resamples the pixels of a frame wrt to the center, changing the size
-    of the frame. If ``scale`` < 1 then the frame is downsampled and if
-    ``scale`` > 1 then its pixels are upsampled.
+    """
+    Resample the pixels of a frame wrt to the center, changing the frame size.
+
+    If ``scale`` < 1 then the frame is downsampled and if ``scale`` > 1 then its
+    pixels are upsampled.
 
     Parameters
     ----------
-    array : array_like 
+    array : array_like
         Input frame, 2d array.
     scale : int, float or tuple
         Scale factor for upsampling or downsampling the frame. If a tuple it
         corresponds to the scale along x and y.
-    imlib : {'ndimage', 'opencv'}, str optional
-        Library used for image transformations. ndimage is the default.
+    imlib : {'ndimage', 'opencv'}, optional
+        Library used for image transformations.
     interpolation : str, optional
         For 'ndimage' library: 'nearneig', bilinear', 'bicuadratic', 'bicubic',
         'biquartic', 'biquintic'. The 'nearneig' interpolation is the fastest
@@ -98,8 +102,9 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
     Returns
     -------
-    array_resc : array_like 
+    array_resc : array_like
         Output resampled frame.
+
     """
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
@@ -166,16 +171,19 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
                                y_in=1, x_in=1, imlib='opencv',
                                interpolation='lanczos4', collapse='median',
                                pad_mode='reflect'):
-    """ Wrapper to scale or descale a cube by factors given in scal_list,
+    """
+    Scale/Descale a cube by scal_list, without information loss.
+
+    Wrapper to scale or descale a cube by factors given in scal_list,
     without any loss of information (zero-padding if scaling > 1).
-    Important: in case of ifs data, the scaling factors in var_list should be
+    Important: in case of IFS data, the scaling factors in var_list should be
     >= 1 (ie. provide the scaling factors as for scaling to the longest
     wavelength channel).
 
     Parameters
     ----------
     cube: 3D-array
-       Datacube that whose frames have to be rescaled.
+       Data cube with frames to be rescaled.
     scal_list: 1D-array
        Vector of same dimension as the first dimension of datacube, containing
        the scaling factor for each frame.
@@ -203,30 +211,51 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
         slowest and accurate. 'lanczos4' is the default.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
-    pad_mode : {'constant', 'edge', 'linear_ramp', 'maximum', 'mean', 'minimum',
-                'reflect', 'symmetric', 'wrap'}, str optional
-        One of the following string values: 'constant', pads with a constant
-        value. 'edge', pads with the edge values of array. 'linear_ramp', pads
-        with the linear ramp between end_value and the array edge value.
-        'maximum', pads with the maximum value of all or part of the vector
-        along each axis. 'mean', pads with the mean value of all or part of the
-        vector along each axis. 'median', pads with the median value of all or
-        part of the vector along each axis. 'minimum', pads with the minimum
-        value of all or part of the vector along each axis. 'reflect', pads with
-        the reflection of the vector mirrored on the first and last values of
-        the vector along each axis. 'symmetric', pads with the reflection of the
-        vector mirrored along the edge of the array. 'wrap', pads with the wrap
-        of the vector along the axis. The first values are used to pad the end
-        and the end values are used to pad the beginning.
+    pad_mode : str, optional
+        One of the following string values:
+
+            ``'constant'``
+                pads with a constant value
+            ``'edge'``
+                pads with the edge values of array
+            ``'linear_ramp'``
+                pads with the linear ramp between end_value and the array edge
+                value.
+            ``'maximum'``
+                pads with the maximum value of all or part of the vector along
+                each axis
+            ``'mean'``
+                pads with the mean value of all or part of the vector along each
+                axis
+            ``'median'``
+                pads with the median value of all or part of the vector along
+                each axis
+            ``'minimum'``
+                pads with the minimum value of all or part of the vector along
+                each axis
+            ``'reflect'``
+                pads with the reflection of the vector mirrored on the first and
+                last values of the vector along each axis
+            ``'symmetric'``
+                pads with the reflection of the vector mirrored along the edge
+                of the array
+            ``'wrap'``
+                pads with the wrap of the vector along the axis. The first
+                values are used to pad the end and the end values are used to
+                pad the beginning
 
     Returns
     -------
-    frame: 2D-array
+    frame: 2d array
         The median of the rescaled cube.
-    If full_output is set to True, the function returns:
-    cube,frame,y,x,cy,cx: 3D-array,2D-array,int,int,int,int
-        The rescaled cube, its median, the new y and x shapes of the cube, and
-        the new centers cy and cx of the frames
+    cube : 3d array
+        [full_output] rescaled cube
+    frame : 2d array
+        [full_output] median of the rescaled cube
+    y,x,cy,cx : float
+        [full_output] New y and x shapes of the cube, and the new centers cy and
+        cx of the frames
+
     """
     n, y, x = cube.shape
 
@@ -277,31 +306,30 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
 
 def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
                     interpolation='lanczos4', scaling_y=None, scaling_x=None):
-    """ Function to rescale a cube, frame by frame by a factor stored in
-    ``scaling_list``, with respect to position (``ref_xy`` which by default
-    is the center of the frames).
-    
+    """
+    Rescale a cube by factors from ``scaling_list`` wrt a position.
+
     Parameters
     ----------
-    array : array_like 
+    array : array_like
         Input 3d array, cube.
     scaling_list : 1D-array
         Scale corresponding to each frame in the cube.
     ref_xy : float, optional
-        Coordinates X,Y  of the point with respect to which the rescaling will be
-        performed. By default the rescaling is done with respect to the center 
+        Coordinates X,Y of the point with respect to which the rescaling will be
+        performed. By default the rescaling is done with respect to the center
         of the frames; central pixel if the frames have odd size.
     imlib : str optional
         See the documentation of ``vip_hci.preproc.cube_rescaling_wavelengths``.
     interpolation : str, optional
         See the documentation of ``vip_hci.preproc.cube_rescaling_wavelengths``.
     scaling_y : 1D-array or list
-        Scaling factor only for y axis. If provided, it takes priority on 
+        Scaling factor only for y axis. If provided, it takes priority on
         scaling_list.
     scaling_x : 1D-array or list
-        Scaling factor only for x axis. If provided, it takes priority on 
+        Scaling factor only for x axis. If provided, it takes priority on
         scaling_list.
-        
+
     Returns
     -------
     array_sc : array_like
@@ -327,9 +355,11 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
 
     def _frame_rescaling(array, ref_xy=None, scale=1.0, imlib='opencv',
                          interpolation='lanczos4', scale_y=None, scale_x=None):
-        """ Function to rescale a frame by a factor ``scale``, wrt a reference
-        point which by default is the center of the frame (typically the exact
-        location of the star). However, it keeps the same dimensions.
+        """
+        Rescale a frame by a factor wrt a reference point.
+
+        The reference point is by default the center of the frame (typically the
+        exact location of the star). However, it keeps the same dimensions.
 
         Parameters
         ----------
@@ -353,6 +383,7 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
         -------
         array_out : array_like
             Resulting frame.
+
         """
         if array.ndim != 2:
             raise TypeError('Input array is not a frame or 2d array.')
@@ -432,10 +463,11 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
 
 
 def check_scal_vector(scal_vec):
-    """ Function to turn the wavelengths (in the case of IFS data) into a
-    scaling factor list. It checksthat it has the right format: all scaling
-    factors should be >= 1 (i.e. the scaling should be done wrt the longest
-    wavelength of the cube).
+    """
+    Turn wavelengths (IFS data) into a scaling factor list.
+
+    It checks that it has the right format: all scaling factors should be >= 1
+    (i.e. the scaling should be done wrt the longest wavelength of the cube).
 
     Parameters
     ----------
@@ -444,18 +476,19 @@ def check_scal_vector(scal_vec):
 
     Returns
     -------
-    scal_vec: array_like, 1d 
+    scal_vec: array_like, 1d
         Vector containing the scaling factors (after correction to comply with
         the condition >= 1).
+
     """
     if not isinstance(scal_vec, (list, np.ndarray)):
         raise TypeError('`Scal_vec` is neither a list or an np.ndarray')
 
     scal_vec = np.array(scal_vec)
 
-    # checking if min factor is 1
+    # checking if min factor is 1:
     if scal_vec.min() != 1:
-        scal_vec = 1/scal_vec
+        scal_vec = 1 / scal_vec
         scal_vec /= scal_vec.min()
 
     return scal_vec

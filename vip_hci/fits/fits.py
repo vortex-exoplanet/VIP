@@ -7,10 +7,8 @@ from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['open_fits',
-           'open_adicube',
            'info_fits',
            'write_fits',
-           'append_extension',
            'verify_fits',
            'byteswap_array']
 
@@ -67,44 +65,6 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
                 print("Fits HDU-{} data successfully loaded. "
                       "Data shape: {}".format(n, data.shape))
             return data
-
-
-def open_adicube(fitsfilename, verbose=True):
-    """ Opens an ADI cube with the parallactic angles appended (see function
-    append_par_angles).
-    
-    Parameters
-    ----------
-    fitsfilename : string or pathlib.Path
-        Name of the fits file or ``pathlib.Path`` object
-    verbose : {True, False}, bool optional
-        If True prints message.
-        
-    Returns
-    -------
-    data : array_like
-        Array containing the frames of the fits-cube.
-    parangles : array_like
-        1d array containing the corresponding parallactic angles.
-          
-    """
-    fitsfilename = str(fitsfilename)
-    if not fitsfilename.endswith('.fits'):
-        fitsfilename = fitsfilename+'.fits'
-    with ap_fits.open(fitsfilename, memmap=True) as hdulist:
-        data = hdulist[0].data
-        parangles = hdulist[1].data
-    
-    if data.ndim != 3:
-        raise TypeError('Input fits file does not contain a cube or 3d array.')
-
-    if verbose:
-        print("Fits HDU-0 data successfully loaded. "
-              "Data shape: {}".format(data.shape))
-        print("Fits HDU-1 data successfully loaded. "
-              "Data shape: {}".format(parangles.shape))
-    
-    return data, parangles
 
 
 def byteswap_array(array):
@@ -198,23 +158,3 @@ def write_fits(fitsfilename, array, header=None, precision=np.float32,
         ap_fits.writeto(fitsfilename, array, header)
         if verbose:
             print("Fits file successfully saved")
-
-
-def append_extension(fitsfilename, array, verbose=True):
-    """Appends an extension to fits file. 
-
-    Parameters
-    ----------
-    fitsfilename : str
-        Path to the fits file.
-    array : array_like
-        Data to append.
-    verbose : bool, optional
-        Print success message.
-    """
-    ap_fits.append(fitsfilename, array)
-    if verbose:
-        print("Fits extension appended")
-        
-        
-    

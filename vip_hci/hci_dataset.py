@@ -11,7 +11,7 @@ __all__ = ['HCIDataset',
            'HCIFrame']
 
 import numpy as np
-from .fits import open_fits, write_fits, append_extension
+from .fits import open_fits
 from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
                       frame_shift, frame_center_satspots, frame_center_radon)
 from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
@@ -287,16 +287,6 @@ class HCIFrame(object):
         """
         self.image = frame_rotate(self.image, angle, imlib, interpolation, cxy)
         print('Image successfully rotated')
-
-    def save(self, path):
-        """ Writing to FITS file.
-
-        Parameters
-        ----------
-        path : string
-            Full path of the fits file to be written.
-        """
-        write_fits(path, self.image)
 
     def shift(self, shift_y, shift_x, imlib='opencv', interpolation='lanczos4'):
         """ Shifting the image.
@@ -1223,21 +1213,6 @@ class HCIDataset(Saveable):
         """
         self.cube = cube_px_resampling(self.cube, scale, imlib, interpolation,
                                        verbose)
-
-    def export_fits(self, path, precision=np.float32):
-        """ Writing to FITS file. If self.angles is present, then the angles
-        are appended to the FITS file.
-
-        Parameters
-        ----------
-        filename : string
-            Full path of the fits file to be written.
-        precision : numpy dtype, optional
-            Float precision, by default np.float32 or single precision float.
-        """
-        write_fits(path, self.cube, precision=precision)
-        if self.angles is not None:
-            append_extension(path, self.angles)
 
     def subsample(self, window, mode='mean'):
         """ Temporally sub-sampling the sequence (3d or 4d cube).

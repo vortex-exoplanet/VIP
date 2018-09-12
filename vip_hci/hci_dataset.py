@@ -1109,7 +1109,6 @@ class HCIDataset(Saveable):
             Whether to plot the shifts.
 
         """
-        
 
         if method == '2dfit':
             if self.fwhm is None:
@@ -1226,8 +1225,6 @@ class HCIDataset(Saveable):
         """
         if self.angles is not None:
             self.cube, self.angles = cube_subsample(self.cube, window,
-                                                     mode, self.angles)
+                                                    mode, self.angles)
         else:
             self.cube = cube_subsample(self.cube, window, mode)
-
-

@@ -459,9 +459,6 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
     if not isinstance(nsegm, int):
         raise TypeError('`nsegm` must be an integer')
 
-    if mode not in ["ind", "val", "mask"]:
-        raise ValueError("mode '{}' unknown!".format(mode))
-
     cy, cx = frame_center(array)
     azimuth_coverage = np.deg2rad(int(np.ceil(360 / nsegm)))
     twopi = 2 * np.pi
@@ -490,12 +487,14 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
             masks.append((rad >= inner_radius) & (rad < outer_radius) &
                          (phirot >= phi_start) & (phirot < phi_end))
 
-    if mode == "val":
-        return [array[mask] for mask in masks]
-    elif mode == "ind":
+    if mode == "ind":
         return [np.where(mask) for mask in masks]
+    elif mode == "val":
+        return [array[mask] for mask in masks]
     elif mode == "mask":
         return [array*mask for mask in masks]
+    else:
+        raise ValueError("mode '{}' unknown!".format(mode))
 
 
 def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):

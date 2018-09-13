@@ -14,6 +14,7 @@ import numpy as np
 from scipy import signal
 from ..preproc import cube_derotate, frame_shift
 from ..var import frame_center
+import pdb
 
 
 def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
@@ -159,6 +160,8 @@ def cube_inject_trace(array, psf_template, angle_list, flevel, rad_dists, theta,
         raise TypeError('Array is not a cube or 3d array')
     
     ceny, cenx = frame_center(array[0])
+    ceny = int(ceny)
+    cenx = int(cenx)
     rad_dists = np.array(rad_dists)
     if not rad_dists[-1]<array[0].shape[0]/2.:
         msg = 'rad_dists last location is at the border (or outside) of the field'

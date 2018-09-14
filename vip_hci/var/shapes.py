@@ -185,7 +185,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
 
     Parameters
     ----------
-    array : array_like
+    array : 2d array_like
         Input frame.
     size : int
         Size of the subframe.
@@ -207,6 +207,8 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
     -------
     array_out : array_like
         Sub array.
+    y0, x0 : int
+        [position=True] Coordinates of the bottom-left vertex.
 
     """
     size_init = array.shape[0]  # assuming square frames
@@ -387,7 +389,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
 
     Parameters
     ----------
-    data : array_like or tuple
+    data : 2d array_like or tuple
         Input 2d array (image) ot tuple with its shape.
     inner_radius : float
         The inner radius of the donut region.
@@ -407,11 +409,11 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
 
     Returns
     -------
-    indices : list of lenght nsegm
+    indices : list of ndarrays
         [mode='ind'] Coordinates of pixels for each annulus segment.
     values : list of ndarrays
         [mode='val'] Pixel values.
-    mask : list of ndarrays
+    masked : list of ndarrays
         [mode='mask'] Copy of ``data`` with masked out regions.
 
     Notes
@@ -553,7 +555,7 @@ def matrix_scaling(matrix, scaling):
     ----------
     matrix : 2d array_like
         Input 2d array.
-    scaling : None or string, optional
+    scaling : None or string
         Scaling method.
 
         ``None``
@@ -569,7 +571,7 @@ def matrix_scaling(matrix, scaling):
 
     Returns
     -------
-    matrix : array_like
+    matrix : 2d array_like
         2d array with scaled values.
 
     """
@@ -594,34 +596,41 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
     """
     Build the matrix for the SVD/PCA and other matrix decompositions.
 
-    Center the data and masks the frames central area if needed.
+    Center the data and mask the frame's central area if needed.
 
     Parameters
     ----------
-    array : array_like
-        Input cube, 3d array.
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done, with
-        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
-        temporal mean centering plus scaling to unit variance is done and with
-        "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.
-    mask_center_px : None or Int, optional
-        Whether to mask the center of the frames or not.
+    array : 3d array_like
+        Input cube.
+    scaling : None or string, optional
+        Scaling method.
+
+        ``None`` (default)
+            no scaling is performed on the input data before SVD
+        ``"temp-mean"``
+            temporal px-wise mean subtraction
+        ``"spat-mean"``
+            the spatial mean is subtracted
+        ``temp-standard"``
+            temporal mean centering plus scaling to unit variance
+        ``"spat-standard"``
+            spatial mean centering plus scaling to unit variance
+
+    mask_center_px : None or int, optional
+        [mode=fullfr] Whether to mask the center of the frames or not.
     mode : {'fullfr', 'annular'}, optional
         Whether to use the whole frames or a single annulus.
     annulus_radius : float, optional
-        Distance in pixels from the center of the frame to the center of the
-        annulus.
+        [mode=annular] Distance in pixels from the center of the frame to the
+        center of the annulus.
     annulus_width : float, optional
-        Width of the annulus in pixels.
-    verbose : {True, False}, bool optional
-        If True prints intermediate info and timing.
+        [mode=annular] Width of the annulus in pixels.
+    verbose : bool, optional
+        If True prints intermediate info.
 
     Returns
     -------
-    matrix : array_like
+    matrix : 2d array_like
         Out matrix whose rows are vectorized frames from the input cube.
     ind : tuple
         [mode=annular] Indices of the annulus as ``(yy, xx)``.

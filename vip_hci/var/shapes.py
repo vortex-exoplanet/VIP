@@ -262,7 +262,9 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
     y1 = int(y + wing + 1)  # +1 cause endpoint is excluded when slicing
     x0 = int(x - wing)
     x1 = int(x + wing + 1)
-    if (y0 or x0) < 0 or (y1 or x1) > size_init:   # assuming square frames
+
+    if y0 < 0 or x0 < 0 or y1 > size_init or x1 > size_init:
+        # assuming square frames
         raise RuntimeError('square cannot be obtained with size={}, y={}, x={}'
                            ''.format(size, y, x))
 

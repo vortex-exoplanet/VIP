@@ -25,6 +25,8 @@ from skimage.draw import polygon
 from skimage.draw import circle
 from sklearn.preprocessing import scale
 
+from ..conf.utils_conf import frame_or_shape
+
 
 def mask_circle(array, radius, fillwith=0, mode='in'):
     """
@@ -359,7 +361,7 @@ def get_ellipse(data, a, b, PA, cy=None, cx=None, mode="ind"):
         [mode='bool'] A boolean mask where ``True`` is the inner region.
 
     """
-    array = _image_or_shape(data)
+    array = frame_or_shape(data)
 
     if cy is None or cx is None:
         cy, cx = frame_center(array, verbose=False)
@@ -450,7 +452,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
         # `in <= ann <= out`. But that should make no difference in practice.
 
     """
-    array = _image_or_shape(data)
+    array = frame_or_shape(data)
 
     if not isinstance(nsegm, int):
         raise TypeError('`nsegm` must be an integer')
@@ -531,7 +533,7 @@ def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):
         [mode='mask'] Input image where the outer region is masked with ``0``.
 
     """
-    array = _image_or_shape(data)
+    array = frame_or_shape(data)
 
     hwa = width / 2  # half width for a
     hwb = (width * b / a) / 2  # half width for b
@@ -714,29 +716,3 @@ def reshape_matrix(array, y, x):
     return array.reshape(array.shape[0], y, x)
 
 
-def _image_or_shape(data):
-    """
-    Sanitize ``data``, always return a 2d frame.
-
-    If ``data`` is a 2d frame, it is returned unchanged. If it is a shaped,
-    return an empty array of that shape.
-
-    Parameters
-    ----------
-    data : 2d ndarray or shape tuple
-
-    Returns
-    -------
-    array : 2d ndarray
-
-    """
-    if isinstance(data, np.ndarray):
-        array = data
-        if array.ndim != 2:
-            raise TypeError('`data` is not a frame or 2d array')
-    elif isinstance(data, tuple):
-        array = np.zeros(data)
-    else:
-        raise TypeError('`data` must be a tuple (shape) or a 2d array')
-
-    return array

@@ -82,7 +82,7 @@ def frame_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
             x, y = xy
         else:
             x, y = None, None
-        region_pxs = get_circle(arr, radius, output_values=True, cy=y, cx=x)
+        region_pxs = get_circle(arr, radius, cy=y, cx=x, mode="val")
     elif region == 'annulus':
         region_pxs = get_annulus_segments(arr, inner_radius, size,
                                           mode="val")[0]
@@ -165,8 +165,7 @@ def cube_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
                 x, y = xy
             else:
                 x, y = None, None
-            region_pxs = get_circle(arr[i], radius, output_values=True,
-                                    cy=y, cx=x)
+            region_pxs = get_circle(arr[i], radius, cy=y, cx=x, mode="val")
         elif region == 'annulus':
             region_pxs = get_annulus_segments(arr[i], inner_radius, size,
                                               mode="val")[0]

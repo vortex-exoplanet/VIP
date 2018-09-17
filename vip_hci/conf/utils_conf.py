@@ -242,6 +242,34 @@ def check_array(input_array, dim, name=None):
                 raise TypeError(msg)
 
 
+def frame_or_shape(data):
+    """
+    Sanitize ``data``, always return a 2d frame.
+
+    If ``data`` is a 2d frame, it is returned unchanged. If it is a shaped,
+    return an empty array of that shape.
+
+    Parameters
+    ----------
+    data : 2d ndarray or shape tuple
+
+    Returns
+    -------
+    array : 2d ndarray
+
+    """
+    if isinstance(data, np.ndarray):
+        array = data
+        if array.ndim != 2:
+            raise TypeError('`data` is not a frame or 2d array')
+    elif isinstance(data, tuple):
+        array = np.zeros(data)
+    else:
+        raise TypeError('`data` must be a tuple (shape) or a 2d array')
+
+    return array
+
+
 def eval_func_tuple(f_args):
     """ Takes a tuple of a function and args, evaluates and returns result"""
     return f_args[0](*f_args[1:])

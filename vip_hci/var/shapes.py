@@ -25,6 +25,8 @@ from skimage.draw import polygon
 from skimage.draw import circle
 from sklearn.preprocessing import scale
 
+from ..conf.utils_conf import frame_or_shape
+
 
 def mask_circle(array, radius, fillwith=0, mode='in'):
     """
@@ -185,7 +187,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
 
     Parameters
     ----------
-    array : array_like
+    array : 2d array_like
         Input frame.
     size : int
         Size of the subframe.
@@ -207,6 +209,8 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
     -------
     array_out : array_like
         Sub array.
+    y0, x0 : int
+        [position=True] Coordinates of the bottom-left vertex.
 
     """
     size_init = array.shape[0]  # assuming square frames
@@ -251,16 +255,15 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
                       "Make sure the center coordinates are set properly")
 
     # wing is added to the sides of the subframe center
-    if size % 2 != 0:
-        wing = size // 2
-    else:
-        wing = size / 2 - 0.5
+    wing = (size - 1) / 2
 
     y0 = int(y - wing)
     y1 = int(y + wing + 1)  # +1 cause endpoint is excluded when slicing
     x0 = int(x - wing)
     x1 = int(x + wing + 1)
-    if (y0 or x0) < 0 or (y1 or x1) > size_init:   # assuming square frames
+
+    if y0 < 0 or x0 < 0 or y1 > size_init or x1 > size_init:
+        # assuming square frames
         raise RuntimeError('square cannot be obtained with size={}, y={}, x={}'
                            ''.format(size, y, x))
 
@@ -272,7 +275,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
         return array_out
 
 
-def get_circle(array, radius, output_values=False, cy=None, cx=None):
+def get_circle(array, radius, cy=None, cx=None, mode="mask"):
     """
     Return a centered circular region from a 2d ndarray.
 
@@ -287,15 +290,24 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
     cy, cx : int, optional
         Coordinates of the circle center. If one of them is ``None``, the center
         of ``array`` is used.
+    mode : {'mask', 'val'}, optional
+        Controls what is returned: array with circular mask applied, or values
+        of the pixels in the circular region.
 
     Returns
     -------
+    masked : array_like
+        [mode="mask"] Input array with the circular mask applied.
     values : array_like
-        1d array with the values of the pixels in the circular region. Only
-        returned when ``output_values=True``.
-    array_masked : array_like
-        Input array with the circular mask applied. Only returned when
-        ``output_values=False``.
+        [mode="val"] 1d array with the values of the pixels in the circular
+        region.
+
+    Notes
+    -----
+    An alternative implementation would use ``skimage.draw.circle``. ``circle``
+    performs better on large ``array``s (e.g. 1000px, 10.000px), while the
+    current implementation is faster for small ``array``s (e.g. 100px). See
+    `test_shapes.py` for benchmark details.
 
     """
     if array.ndim != 2:
@@ -308,52 +320,49 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
     yy, xx = np.ogrid[:sy, :sx]
     circle = (yy - cy) ** 2 + (xx - cx) ** 2  # eq of circle. sq dist to center
     circle_mask = circle < radius ** 2  # boolean mask
-    if output_values:
-        values = array[circle_mask]
-        return values
+    if mode == "mask":
+        return array * circle_mask
+    elif mode == "val":
+        return array[circle_mask]
     else:
-        array_masked = array * circle_mask
-        return array_masked
+        raise ValueError("mode '{}' unknown!".format(mode))
 
 
-def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
-                output_indices=False):
+def get_ellipse(data, a, b, PA, cy=None, cx=None, mode="ind"):
     """
     Return a centered elliptical region from a 2d ndarray.
 
     Parameters
     ----------
-    array : array_like
-        Input 2d array or image.
-    a : float or int
+    data : array_like or tuple
+        Input 2d array (image) or tuple with a shape.
+    a : float
         Semi-major axis.
-    b : float or int
+    b : float
         Semi-minor axis.
     PA : deg, float
-        The PA of the semi-major axis.
-    output_values : bool, optional
-        If True returns the values of the pixels in the annulus.
+        The PA of the semi-major axis in degrees.
     cy, cx : int or None, optional
         Coordinates of the circle center. If ``None``, the center is determined
         by the ``frame_center`` function.
-    output_indices : bool, optional
-        If True returns the indices inside the annulus.
+    mode : {'ind', 'val', 'mask', 'bool'}, optional
+        Controls what is returned: indices of selected pixels, values of
+        selected pixels, or a boolean mask.
 
     Returns
     -------
-    Depending on output_values, output_indices:
-    values : array_like
-        1d array with the values of the pixels in the circular region.
-    array_masked : array_like
-        Input array with the circular mask applied. Returned when
-        ``output_values=False`` and ``output_indices=False``.
-    y, x : array_like
-        Coordinates of pixels in circle.
+    indices : tuple(y, x)
+        [mode='ind'] Coordinates of the inner elliptical region.
+    values : 1d ndarray
+        [mode='val'] Values of the pixels in the inner elliptical region.
+    masked : 2d ndarray
+        [mode='mask'] Input image where the outer region is masked with ``0``.
+    bool_mask : 2d boolean ndarray
+        [mode='bool'] A boolean mask where ``True`` is the inner region.
 
     """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array.')
-    sy, sx = array.shape
+    array = frame_or_shape(data)
+
     if cy is None or cx is None:
         cy, cx = frame_center(array, verbose=False)
 
@@ -364,25 +373,21 @@ def get_ellipse(array, a, b, PA, output_values=False, cy=None, cx=None,
     pos_f2 = (cy - f * np.cos(PA_rad), cx - f * np.sin(PA_rad))  # second focus
 
     # ogrid is a multidim mesh creator (faster than mgrid):
-    yy, xx = np.ogrid[:sy, :sx]
-    ellipse = dist(yy, xx, pos_f1[0], pos_f1[1]) + dist(yy, xx, pos_f2[0],
-                                                        pos_f2[1])
+    yy, xx = np.ogrid[:array.shape[0], :array.shape[1]]
+    ellipse = (dist(yy, xx, pos_f1[0], pos_f1[1])
+               + dist(yy, xx, pos_f2[0], pos_f2[1]))
     ellipse_mask = ellipse < 2 * a  # boolean mask
 
-    if output_values and not output_indices:
-        values = array[ellipse_mask]
-        return values
-    elif output_indices and not output_values:
-        indices = np.array(np.where(ellipse_mask))
-        y = indices[0]
-        x = indices[1]
-        return y, x
-    elif output_indices and output_values:
-        raise ValueError('output_values and output_indices cannot be both '
-                         'True.')
+    if mode == "ind":
+        return np.where(ellipse_mask)
+    elif mode == "val":
+        return array[ellipse_mask]
+    elif mode == "mask":
+        return array * ellipse_mask
+    elif mode == "bool":
+        return ellipse_mask
     else:
-        array_masked = array * ellipse_mask
-        return array_masked
+        raise ValueError("mode '{}' unknown!".format(mode))
 
 
 def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
@@ -394,7 +399,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
 
     Parameters
     ----------
-    data : array_like or tuple
+    data : 2d array_like or tuple
         Input 2d array (image) ot tuple with its shape.
     inner_radius : float
         The inner radius of the donut region.
@@ -414,11 +419,11 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
 
     Returns
     -------
-    indices : list of lenght nsegm
+    indices : list of ndarrays
         [mode='ind'] Coordinates of pixels for each annulus segment.
-    values : ndarray of shape (nsegm, nindices)
+    values : list of ndarrays
         [mode='val'] Pixel values.
-    mask : list of ndarrays
+    masked : list of ndarrays
         [mode='mask'] Copy of ``data`` with masked out regions.
 
     Notes
@@ -447,20 +452,10 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
         # `in <= ann <= out`. But that should make no difference in practice.
 
     """
-    if isinstance(data, np.ndarray):
-        array = data
-        if array.ndim != 2:
-            raise TypeError('`data` is not a frame or 2d array')
-    elif isinstance(data, tuple):
-        array = np.zeros(data)
-    else:
-        raise TypeError('`data` must be a tuple (shape) or a 2d array')
+    array = frame_or_shape(data)
 
     if not isinstance(nsegm, int):
         raise TypeError('`nsegm` must be an integer')
-
-    if mode not in ["ind", "val", "mask"]:
-        raise ValueError("mode '{}' unknown!".format(mode))
 
     cy, cx = frame_center(array)
     azimuth_coverage = np.deg2rad(int(np.ceil(360 / nsegm)))
@@ -490,17 +485,17 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
             masks.append((rad >= inner_radius) & (rad < outer_radius) &
                          (phirot >= phi_start) & (phirot < phi_end))
 
-    if mode == "val":
-        values = [array[mask] for mask in masks]
-        return np.array(values)
-    elif mode == "ind":
+    if mode == "ind":
         return [np.where(mask) for mask in masks]
+    elif mode == "val":
+        return [array[mask] for mask in masks]
     elif mode == "mask":
-        return [data*mask for mask in masks]
+        return [array*mask for mask in masks]
+    else:
+        raise ValueError("mode '{}' unknown!".format(mode))
 
 
-def get_ell_annulus(array, a, b, PA, width, output_values=False,
-                    output_indices=False, cy=None, cx=None):
+def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):
     """
     Return a centered elliptical annulus from a 2d ndarray
 
@@ -508,84 +503,58 @@ def get_ell_annulus(array, a, b, PA, width, output_values=False,
 
     Parameters
     ----------
-    array : array_like
-        Input 2d array or image.
-    a : flt
+    data : array_like or tuple
+        Input 2d array (image) or tuple with a shape.
+    a : float
         Semi-major axis.
-    b : flt
+    b : float
         Semi-minor axis.
-    PA : deg
-        The PA of the semi-major axis.
-    width : flt
+    PA : deg, float
+        The PA of the semi-major axis in degrees.
+    width : float
         The size of the annulus along the semi-major axis; it is proportionnally
-        thinner along the semi-minor axis).
+        thinner along the semi-minor axis.
     output_values : {False, True}, optional
         If True returns the values of the pixels in the annulus.
-    output_indices : {False, True}, optional
-        If True returns the indices inside the annulus.
-    cy,cx: float, optional
-        Location of the center of the annulus to be defined. If not provided,
-    it assumes the annuli are centered on the frame.
+    cy, cx : int or None, optional
+        Coordinates of the circle center. If ``None``, the center is determined
+        by the ``frame_center`` function.
+    mode : {'ind', 'val', 'mask'}, optional
+        Controls what is returned: indices of selected pixels, values of
+        selected pixels, or a boolean mask.
 
     Returns
     -------
-    Depending on output_values, output_indices:
-    values : array_like
-        1d array with the values of the pixels in the annulus.
-    array_masked : array_like
-        Input array with the annular mask applied.
-    y, x : array_like
-        Coordinates of pixels in annulus.
+    indices : tuple(y, x)
+        [mode='ind'] Coordinates of the inner elliptical region.
+    values : 1d ndarray
+        [mode='val'] Values of the pixels in the inner elliptical region.
+    masked : 2d ndarray
+        [mode='mask'] Input image where the outer region is masked with ``0``.
 
     """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array.')
-    if cy is None or cx is None:
-        cy, cx = frame_center(array)
-    sy, sx = array.shape
+    array = frame_or_shape(data)
 
-    width_a = width
-    width_b = width * b / a
+    hwa = width / 2  # half width for a
+    hwb = (width * b / a) / 2  # half width for b
 
-    # Definition of big ellipse
-    f_big = np.sqrt((a + width_a / 2) ** 2 - (b + width_b / 2) ** 2)
-    # distance between center and foci of the ellipse
-    PA_rad = np.deg2rad(PA)
-    pos_f1_big = (cy + f_big * np.cos(PA_rad),
-                  cx + f_big * np.sin(PA_rad))  # coords of first focus
-    pos_f2_big = (cy - f_big * np.cos(PA_rad),
-                  cx - f_big * np.sin(PA_rad))  # coords of second focus
+    big_ellipse = get_ellipse(array, a + hwa, b + hwb, PA, cy=cy, cx=cx,
+                              mode="bool")
+    small_ellipse = get_ellipse(array, a - hwa, b - hwb, PA, cy=cy, cx=cx,
+                                mode="bool")
 
-    # Definition of small ellipse
-    f_sma = np.sqrt((a - width_a / 2) ** 2 - (b - width_b / 2) ** 2)
-    # distance between center and foci of the ellipse
-    pos_f1_sma = (cy + f_sma * np.cos(PA_rad),
-                  cx + f_sma * np.sin(PA_rad))  # coords of first focus
-    pos_f2_sma = (cy - f_sma * np.cos(PA_rad),
-                  cx - f_sma * np.sin(PA_rad))  # coords of second focus
+    ell_ann_mask = big_ellipse ^ small_ellipse
 
-    yy, xx = np.ogrid[:sy, :sx]
-    big_ellipse = (dist(yy, xx, pos_f1_big[0], pos_f1_big[1])
-                   + dist(yy, xx, pos_f2_big[0], pos_f2_big[1]))
-    small_ellipse = (dist(yy, xx, pos_f1_sma[0], pos_f1_sma[1])
-                     + dist(yy, xx, pos_f2_sma[0], pos_f2_sma[1]))
-    ell_ann_mask = ((big_ellipse < 2 * (a + width / 2)) &
-                    (small_ellipse >= 2 * (a - width / 2)))  # boolean mask
-
-    if output_values and not output_indices:
-        values = array[ell_ann_mask]
-        return values
-    elif output_indices and not output_values:
-        indices = np.array(np.where(ell_ann_mask))
-        y = indices[0]
-        x = indices[1]
-        return y, x
-    elif output_indices and output_values:
-        msg = 'output_values and output_indices cannot be both True.'
-        raise ValueError(msg)
+    if mode == "ind":
+        return np.where(ell_ann_mask)
+    elif mode == "val":
+        return array[ell_ann_mask]
+    elif mode == "mask":
+        return array * ell_ann_mask
+    elif mode == "bool":
+        return ell_ann_mask
     else:
-        array_masked = array * ell_ann_mask
-        return array_masked
+        raise ValueError("mode '{}' unknown!".format(mode))
 
 
 def matrix_scaling(matrix, scaling):
@@ -594,19 +563,25 @@ def matrix_scaling(matrix, scaling):
 
     Parameters
     ----------
-    matrix : array_like
+    matrix : 2d array_like
         Input 2d array.
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}, optional
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done, with
-        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
-        temporal mean centering plus scaling to unit variance is done and with
-        "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.
+    scaling : None or string
+        Scaling method.
+
+        ``None``
+            no scaling is performed on the input data before SVD
+        ``"temp-mean"``
+            temporal px-wise mean subtraction
+        ``"spat-mean"``
+            the spatial mean is subtracted
+        ``temp-standard"``
+            temporal mean centering plus scaling to unit variance
+        ``"spat-standard"``
+            spatial mean centering plus scaling to unit variance
 
     Returns
     -------
-    matrix : array_like
+    matrix : 2d array_like
         2d array with scaled values.
 
     """
@@ -631,34 +606,41 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
     """
     Build the matrix for the SVD/PCA and other matrix decompositions.
 
-    Center the data and masks the frames central area if needed.
+    Center the data and mask the frame's central area if needed.
 
     Parameters
     ----------
-    array : array_like
-        Input cube, 3d array.
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done, with
-        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
-        temporal mean centering plus scaling to unit variance is done and with
-        "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.
-    mask_center_px : None or Int, optional
-        Whether to mask the center of the frames or not.
+    array : 3d array_like
+        Input cube.
+    scaling : None or string, optional
+        Scaling method.
+
+        ``None`` (default)
+            no scaling is performed on the input data before SVD
+        ``"temp-mean"``
+            temporal px-wise mean subtraction
+        ``"spat-mean"``
+            the spatial mean is subtracted
+        ``temp-standard"``
+            temporal mean centering plus scaling to unit variance
+        ``"spat-standard"``
+            spatial mean centering plus scaling to unit variance
+
+    mask_center_px : None or int, optional
+        [mode=fullfr] Whether to mask the center of the frames or not.
     mode : {'fullfr', 'annular'}, optional
         Whether to use the whole frames or a single annulus.
     annulus_radius : float, optional
-        Distance in pixels from the center of the frame to the center of the
-        annulus.
+        [mode=annular] Distance in pixels from the center of the frame to the
+        center of the annulus.
     annulus_width : float, optional
-        Width of the annulus in pixels.
-    verbose : {True, False}, bool optional
-        If True prints intermediate info and timing.
+        [mode=annular] Width of the annulus in pixels.
+    verbose : bool, optional
+        If True prints intermediate info.
 
     Returns
     -------
-    matrix : array_like
+    matrix : 2d array_like
         Out matrix whose rows are vectorized frames from the input cube.
     ind : tuple
         [mode=annular] Indices of the annulus as ``(yy, xx)``.
@@ -700,5 +682,37 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
 def reshape_matrix(array, y, x):
     """
     Convert a matrix whose rows are vect. frames to a cube with reshaped frames.
+
+    Parameters
+    ----------
+    array : 2d ndarray
+        Input data of shape ``(nframes, npixels)``. Every row (``array[n]``)
+        corresponds to one vectorized ("flattened") 2d frame.
+    y, x : int
+        desired height and width of the frames. ``y*x = npixels``
+
+    Returns
+    -------
+    cube : 3d ndarray
+        Cube of shape ``(nframes, y, x)``.
+
+    Examples
+    --------
+    .. code:: python
+
+        In [1]: vect_frames = np.array([[1, 1, 1, 2, 2, 2], [1, 2, 3, 4, 5, 6]])
+        In [2]: cube = vip.var.reshape_matrix(vect_frames, 2, 3)
+        In [3]: cube
+        Out[3]:
+        array([[[1, 1, 1],
+                [2, 2, 2]],
+
+               [[1, 2, 3],
+                [4, 5, 6]]])
+        In [4]: cube.shape
+        Out[4]: (2, 2, 3)
+
     """
     return array.reshape(array.shape[0], y, x)
+
+

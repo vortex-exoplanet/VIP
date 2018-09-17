@@ -102,7 +102,7 @@ def test_get_square():
 def test_get_circle():
 
     ar = np.ones((10, 10), dtype=int)
-    aarc(vip.var.get_circle(ar, radius=4, output_values=False),
+    aarc(vip.var.get_circle(ar, radius=4),
          np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                    [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
                    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
@@ -114,11 +114,11 @@ def test_get_circle():
                    [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]))
 
-    aarc(vip.var.get_circle(pretty_odd, radius=4, output_values=True),
+    aarc(vip.var.get_circle(pretty_odd, radius=4, mode="val"),
          np.array([1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 2, 3, 2, 1, 1, 2, 2,
                    2, 1, 1, 1, 1, 1, 1]))
 
-    aarc(vip.var.get_circle(pretty_even, radius=4, output_values=True),
+    aarc(vip.var.get_circle(pretty_even, radius=4, mode="val"),
          np.array([1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 2, 3, 3, 2, 1,
                    1, 2, 3, 3, 2, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1]))
 
@@ -170,7 +170,12 @@ def test_get_annulus_segments():
     assert repr(res) == repr(truth)
     # TODO: cannot compare using `allclose`, as elements have variable length!
 
-    # masked arr
+    # tuple as input:
+
+    res = vip.var.get_annulus_segments((6, 6), 2, 3, nsegm=3)
+    assert repr(res) == repr(truth)
+
+    # masked arr:
 
     res = vip.var.get_annulus_segments(arr, 2, 3, mode="mask")[0]
     truth = np.array([[0., 0., 0., 1., 1., 1., 1., 0., 0., 0.],
@@ -183,4 +188,85 @@ def test_get_annulus_segments():
                       [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
                       [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
                       [0., 0., 0., 1., 1., 1., 1., 0., 0., 0.]])
+    aarc(res, truth)
+
+    # tuple as input:
+
+    res = vip.var.get_annulus_segments((10, 10), 2, 3, mode="mask")[0]
+    # masking a zeros array -> only zeros left!
+    assert res.sum() == 0
+
+
+def test_dist():
+    assert vip.var.dist(0, 0, 1, 1) == np.sqrt(2)
+    assert vip.var.dist(1, 2, 3, 4) == 2 * np.sqrt(2)
+
+
+def test_get_ellipse():
+    f = np.ones((6, 10))
+
+    # masked array:
+    fem = vip.var.get_ellipse(f, 4, 2, 90, mode="mask")
+    assert fem.sum() == 28  # outer region masked, 28 pixels kept
+
+    # values:
+    fev = vip.var.get_ellipse(f, 4, 2, 90, mode="val")
+    assert fev.sum() == 28
+
+    # indices:
+    fei = vip.var.get_ellipse(f, 4, 2, 90, mode="ind")
+    assert fei[0].shape == fei[1].shape == (28,)
+
+
+def test_get_ell_annulus():
+
+    f = np.ones((15, 30))
+
+    fa = vip.var.get_ell_annulus(f, 8, 3, 90, 6, mode="mask")
+    assert fa.sum() == 124
+
+
+def test_reshape_matrix():
+    vectorized_frames = np.array([[1, 1, 1, 2, 2, 2], [1, 2, 3, 4, 5, 6]])
+    cube = vip.var.reshape_matrix(vectorized_frames, 2, 3)
+
+    assert cube.shape == (2, 2, 3)  # 2 frames of 2x3
+
+    cube_truth = np.array([[[1, 1, 1],
+                            [2, 2, 2]],
+
+                           [[1, 2, 3],
+                            [4, 5, 6]]])
+
+    aarc(cube, cube_truth)
+
+
+def test_matrix_scaling():
+    """
+    The "truth" values were verified by hand.
+    """
+    m = np.array([[6, 12, 18], [0, 0, 12]], dtype=float)
+
+    res = vip.var.matrix_scaling(m, None)
+    truth = m
+    aarc(res, truth)
+
+    res = vip.var.matrix_scaling(m, "temp-mean")
+    truth = np.array([[ 3,  6,  3],
+                      [-3, -6, -3]])
+    aarc(res, truth)
+
+    res = vip.var.matrix_scaling(m, "spat-mean")
+    truth = np.array([[-6,  0,  6],
+                      [-4, -4,  8]])
+    aarc(res, truth)
+
+    res = vip.var.matrix_scaling(m, "temp-standard")
+    truth = np.array([[ 1,  1,  1],
+                      [-1, -1, -1]])
+    aarc(res, truth)
+
+    res = vip.var.matrix_scaling(m, "spat-standard")
+    truth = np.array([[-np.sqrt(3/2), 0, np.sqrt(3/2)],
+                      [-np.sqrt(1/2), -np.sqrt(1/2), np.sqrt(2)]])
     aarc(res, truth)

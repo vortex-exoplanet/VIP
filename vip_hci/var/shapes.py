@@ -253,10 +253,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
                       "Make sure the center coordinates are set properly")
 
     # wing is added to the sides of the subframe center
-    if size % 2 != 0:
-        wing = size // 2
-    else:
-        wing = size / 2 - 0.5
+    wing = (size - 1) / 2
 
     y0 = int(y - wing)
     y1 = int(y + wing + 1)  # +1 cause endpoint is excluded when slicing

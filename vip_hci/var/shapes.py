@@ -273,7 +273,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
         return array_out
 
 
-def get_circle(array, radius, output_values=False, cy=None, cx=None):
+def get_circle(array, radius, cy=None, cx=None, mode="mask"):
     """
     Return a centered circular region from a 2d ndarray.
 
@@ -288,15 +288,24 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
     cy, cx : int, optional
         Coordinates of the circle center. If one of them is ``None``, the center
         of ``array`` is used.
+    mode : {'mask', 'val'}, optional
+        Controls what is returned: array with circular mask applied, or values
+        of the pixels in the circular region.
 
     Returns
     -------
+    masked : array_like
+        [mode="mask"] Input array with the circular mask applied.
     values : array_like
-        1d array with the values of the pixels in the circular region. Only
-        returned when ``output_values=True``.
-    array_masked : array_like
-        Input array with the circular mask applied. Only returned when
-        ``output_values=False``.
+        [mode="val"] 1d array with the values of the pixels in the circular
+        region.
+
+    Notes
+    -----
+    An alternative implementation would use ``skimage.draw.circle``. ``circle``
+    performs better on large ``array``s (e.g. 1000px, 10.000px), while the
+    current implementation is faster for small ``array``s (e.g. 100px). See
+    `test_shapes.py` for benchmark details.
 
     """
     if array.ndim != 2:
@@ -309,12 +318,12 @@ def get_circle(array, radius, output_values=False, cy=None, cx=None):
     yy, xx = np.ogrid[:sy, :sx]
     circle = (yy - cy) ** 2 + (xx - cx) ** 2  # eq of circle. sq dist to center
     circle_mask = circle < radius ** 2  # boolean mask
-    if output_values:
-        values = array[circle_mask]
-        return values
+    if mode == "mask":
+        return array * circle_mask
+    elif mode == "val":
+        return array[circle_mask]
     else:
-        array_masked = array * circle_mask
-        return array_masked
+        raise ValueError("mode '{}' unknown!".format(mode))
 
 
 def get_ellipse(data, a, b, PA, cy=None, cx=None, mode="ind"):

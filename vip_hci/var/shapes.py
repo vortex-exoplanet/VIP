@@ -715,6 +715,21 @@ def reshape_matrix(array, y, x):
 
 
 def _image_or_shape(data):
+    """
+    Sanitize ``data``, always return a 2d frame.
+
+    If ``data`` is a 2d frame, it is returned unchanged. If it is a shaped,
+    return an empty array of that shape.
+
+    Parameters
+    ----------
+    data : 2d ndarray or shape tuple
+
+    Returns
+    -------
+    array : 2d ndarray
+
+    """
     if isinstance(data, np.ndarray):
         array = data
         if array.ndim != 2:

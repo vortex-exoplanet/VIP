@@ -8,17 +8,15 @@ __all__ = ['EvalRoc',
            'compute_binary_map']
 
 import numpy as np
-from skimage.draw import circle
 from scipy import stats
 import matplotlib.pyplot as plt
 from photutils import detect_sources
-from skimage.feature import peak_local_max
 from munch import Munch
 import copy
 from ..pca.svd import _get_cumexpvar
 from ..var import frame_center, get_annulus_segments
 from ..conf import time_ini, timing, time_fin, Progressbar
-from ..var import pp_subplots as plots
+from ..var import pp_subplots as plots, get_circle
 from .fakecomp import cube_inject_companions
 
 
@@ -393,10 +391,10 @@ class EvalRoc(object):
                 plt.savefig('roc_curve.pdf', dpi=dpi, bbox_inches='tight')
 
 
-def compute_binary_map(frame, thresholds, injx, injy, npix=1, min_distance=1,
-                       debug=False):
-    """ Takes a list of ``thresholds``, creates binary maps from the
-    detection map (``frame``) and counts detections and false positives.
+def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
+                       overlap_threshold=0.8, max_blob_fact=2, debug=False):
+    """
+    Take a list of ``thresholds``, create binmaps and counts detections/fps.
 
     Parameters
     ----------
@@ -404,67 +402,154 @@ def compute_binary_map(frame, thresholds, injx, injy, npix=1, min_distance=1,
         Detection map.
     thresholds : list or numpy.ndarray
         List of thresholds (detection criteria).
-    injx, injy : int
-        Coordinates of the injected companion.
+    injections : tuple, list of tuples
+        Coordinates of the injected companions. Also accepts 1d/2d ndarrays.
+    fwhm : float
+        FWHM, used for obtaining the resolution area around an injection and the
+        size of a blob.
     npix : int, optional
         The number of connected pixels, each greater than the given threshold,
         that an object must have to be detected. ``npix`` must be a positive
         integer. Passed to ``detect_sources`` function from ``photutils``.
-    min_distance : int, optional
-        Minimum number of pixels separating peaks in a region of `2 *
-        min_distance + 1` (i.e. peaks are separated by at least `min_distance`).
-        By default, `min_distance=1` (maximum number of peaks). Passed to
-        ``peak_local_max`` function from ``photutils``.
+    overlap_threshold : float
+        Percentage of overlap a blob has to have with the aperture around an
+        injection.
+    max_blob_fact : float
+        Maximum size of a blob (in multiples of the resolution element) before
+        it is considered as "too big" (= non-detection)
     debug : bool, optional
         For showing optional information.
 
     Returns
     -------
-    list_detections : list
-        List of detection state (0 or 1) for each threshold.
-    list_fps : list
+    list_detections : list of int
+        List of detection count for each threshold.
+    list_fps : list of int
         List of false positives count for each threshold.
-    list_binmaps : list
+    list_binmaps : list of 2d ndarray
         List of binary maps: detection maps thresholded for each threshold
         value.
 
     Notes
     -----
-    ``min_distance = fwhm`` is problematic, when two blobs are less than fwhm
-    apart the true blob could be discarded, depending on the ordering. Not sure
-    what should be the best value here.
+    In photutils v0.5, SegmentationImage (which is returned by detect_sources)
+    has a new ``.segments`` attribute, which would simplify the handling of the
+    blobs. Once we fix the dependency to a newer version we should update this
+    function. (https://photutils.readthedocs.io/en/v0.5/api/photutils.segmentati
+    on.SegmentationImage.html#photutils.segmentation.SegmentationImage.segments)
+
+    A blob which is "too big" is split into apertures, and every aperture adds
+    one 'false positive'.
+
     """
+    def _overlap_injection_blob(injection, fwhm, blob_mask):
+        """
+        Parameters
+        ----------
+        injection: tuple (y,x)
+        fwhm : float
+        blob_mask : 2d bool ndarray
+
+        Returns
+        -------
+        overlap_fact : float between 0 and 1
+            Percentage of the area overlap. If the blob is smaller than the
+            resolution element, this is ``intersection_area / blob_area``,
+            otherwise ``intersection_area / resolution_element``.
+
+        """
+        injection_mask = get_circle(np.ones_like(blob_mask), radius=fwhm/2,
+                                    cy=injection[0], cx=injection[1],
+                                    mode="mask")
+        intersection = injection_mask & blob_mask
+        smallest_area = min(blob_mask.sum(), injection_mask.sum())
+        return intersection.sum() / smallest_area
+
     list_detections = []
     list_fps = []
     list_binmaps = []
 
-    for threshold in thresholds:
-        first_segm = detect_sources(frame, threshold, npix)
-        binary_map = peak_local_max(first_segm.data, min_distance=min_distance,
-                                    indices=False)
-        final_segm = detect_sources(binary_map, 0.5, npix)
-        n_sources = final_segm.nlabels
-        if debug:
-            plots(first_segm.data, binary_map, final_segm.data)
+    resolution_element = np.pi * (fwhm/2)**2
 
-        # Checking if the injection pxs match with detected blobs
-        detection = 0  # should be int for pretty output in plot_detmaps
-        for i in range(n_sources):
-            yy, xx = np.where(final_segm.data == i + 1)
-            xxyy = list(zip(xx, yy))
-            injyy, injxx = circle(injy, injx, 2)
-            coords_ind = list(zip(injxx, injyy))
-            for j in range(len(coords_ind)):
-                if coords_ind[j] in xxyy:
-                    detection = 1
-                    fps = n_sources - 1
+    # normalize injections: accepts combinations of 1d/2d and tuple/list/array.
+    injections = np.asarray(injections)
+    if injections.ndim == 1:
+        injections = np.array([injections])
+
+    for ithr, threshold in enumerate(thresholds):
+        if debug:
+            print("processing threshold #{}: {}".format(ithr, threshold))
+
+        segments = detect_sources(frame, threshold, npix, connectivity=4)
+        binmap = (segments.data != 0)
+
+        if debug:
+            plots(segments.data, binmap,
+                  label=["segments", "binmap"],
+                  circle=[tuple(yx[::-1]) for yx in injections],
+                  circlerad=fwhm/2, circlealpha=0.3)
+
+        detections = 0
+        fps = 0
+
+        for iblob in segments.labels:
+
+            blob_mask = (segments.data == iblob)
+            blob_area = segments.areas[iblob]
+
+            if debug:
+                plots(blob_mask,
+                      label=["blob #{}, area={}px".format(iblob, blob_area)],
+                      circle=[tuple(yx[::-1]) for yx in injections],
+                      circlerad=fwhm/2,
+                      circlealpha=0.3,
+                      )
+
+            for iinj, injection in enumerate(injections):
+                if debug:
+                    print("   testing injection #{}".format(iinj))
+
+                if blob_area > max_blob_fact * resolution_element:
+                    number_of_apertures_in_blob = blob_area / resolution_element
+                    fps += number_of_apertures_in_blob  # float, rounded at end
+                    if debug:
+                        print("      blob is too big (+{:.0f} fps)"
+                              "".format(number_of_apertures_in_blob))
+                        print("      skipping all other injections")
+
+                    # continue with next blob, do not check other injections:
                     break
 
-        if detection == 0:
-            fps = n_sources
+                overlap = _overlap_injection_blob(injection, fwhm, blob_mask)
+                if overlap > overlap_threshold:
+                    if debug:
+                        print("      overlap of {}! (+1 detection)"
+                              "".format(overlap))
 
-        list_detections.append(detection)
-        list_binmaps.append(binary_map)
+                    detections += 1
+
+                    # continue with next blob, do not check other injections:
+                    break
+
+                if debug:
+                    print("      overlap of {} -> do nothing.".format(overlap))
+
+            else:
+                if debug:
+                    print("   did not find a matching injection for this "
+                          "blob (+1 fps)")
+                fps += 1
+
+        if debug:
+            print("done with threshold #{}".format(ithr))
+            print("result: {} detections, {} fps".format(
+                detections, fps
+            ))
+
+        fps = np.round(fps).astype(int).item()  # -> python `int`
+
+        list_detections.append(detections)
+        list_binmaps.append(binmap)
         list_fps.append(fps)
 
     return list_detections, list_fps, list_binmaps

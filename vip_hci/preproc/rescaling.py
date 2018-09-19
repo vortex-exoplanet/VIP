@@ -5,7 +5,7 @@ Module with frame px resampling/rescaling functions.
 """
 from __future__ import division, print_function
 
-__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens'
+__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens, R. Farkas'
 __all__ = ['frame_px_resampling',
            'cube_px_resampling',
            'cube_rescaling_wavelengths',
@@ -27,18 +27,20 @@ from .subsampling import cube_collapse
 
 def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
                        verbose=True):
-    """ Wrapper of ``frame_px_resampling`` for resampling the frames of a cube
-    with a single scale factor. Useful when we need to upsample (upscaling) or
-    downsample (pixel binning) a set of frames, e.g. an ADI cube.
+    """
+    Resample the frames of a cube with a single scale factor.
+
+    Wrapper of ``frame_px_resampling``. Useful when we need to upsample
+    (upscaling) or downsample (pixel binning) a set of frames, e.g. an ADI cube.
 
     Parameters
     ----------
-    array : array_like
-        Input frame, 2d array.
+    array : 3d array_like
+        Input cube, 3d array.
     scale : int, float or tuple
         Scale factor for upsampling or downsampling the frames in the cube. If
         a tuple it corresponds to the scale along x and y.
-    imlib : str optional
+    imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_px_resampling``
         function.
     interpolation : str, optional
@@ -72,19 +74,21 @@ def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
 def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
                         verbose=False):
-    """ Resamples the pixels of a frame wrt to the center, changing the size
-    of the frame. If ``scale`` < 1 then the frame is downsampled and if
-    ``scale`` > 1 then its pixels are upsampled.
+    """
+    Resample the pixels of a frame wrt to the center, changing the frame size.
+
+    If ``scale`` < 1 then the frame is downsampled and if ``scale`` > 1 then its
+    pixels are upsampled.
 
     Parameters
     ----------
-    array : array_like 
+    array : array_like
         Input frame, 2d array.
     scale : int, float or tuple
         Scale factor for upsampling or downsampling the frame. If a tuple it
         corresponds to the scale along x and y.
-    imlib : {'ndimage', 'opencv'}, str optional
-        Library used for image transformations. ndimage is the default.
+    imlib : {'ndimage', 'opencv'}, optional
+        Library used for image transformations.
     interpolation : str, optional
         For 'ndimage' library: 'nearneig', bilinear', 'bicuadratic', 'bicubic',
         'biquartic', 'biquintic'. The 'nearneig' interpolation is the fastest
@@ -98,8 +102,9 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
     Returns
     -------
-    array_resc : array_like 
+    array_resc : array_like
         Output resampled frame.
+
     """
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
@@ -163,19 +168,22 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
 
 def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
-                               y_in=1, x_in=1, imlib='opencv',
+                               y_in=None, x_in=None, imlib='opencv',
                                interpolation='lanczos4', collapse='median',
                                pad_mode='reflect'):
-    """ Wrapper to scale or descale a cube by factors given in scal_list,
+    """
+    Scale/Descale a cube by scal_list, with padding.
+
+    Wrapper to scale or descale a cube by factors given in scal_list,
     without any loss of information (zero-padding if scaling > 1).
-    Important: in case of ifs data, the scaling factors in var_list should be
+    Important: in case of IFS data, the scaling factors in scal_list should be
     >= 1 (ie. provide the scaling factors as for scaling to the longest
     wavelength channel).
 
     Parameters
     ----------
     cube: 3D-array
-       Datacube that whose frames have to be rescaled.
+       Data cube with frames to be rescaled.
     scal_list: 1D-array
        Vector of same dimension as the first dimension of datacube, containing
        the scaling factor for each frame.
@@ -187,9 +195,10 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
        Whether to inverse the scaling factors in scal_list before applying them
        or not; i.e. True is to descale the cube (typically after a first scaling
        has already been done)
-    y_in, x-in: int, optional
-       Initial y and x sizes. In case the cube is descaled, these values will
-       be used to crop back the cubes/frames to their original size.
+    y_in, x_in: int
+       Initial y and x sizes, required for ``inverse=True``. In case the cube is
+       descaled, these values will be used to crop back the cubes/frames to
+       their original size.
     imlib : {'opencv', 'ndimage'}, str optional
         Library used for image transformations. Opencv is faster than ndimage or
         skimage.
@@ -203,30 +212,51 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
         slowest and accurate. 'lanczos4' is the default.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
-    pad_mode : {'constant', 'edge', 'linear_ramp', 'maximum', 'mean', 'minimum',
-                'reflect', 'symmetric', 'wrap'}, str optional
-        One of the following string values: 'constant', pads with a constant
-        value. 'edge', pads with the edge values of array. 'linear_ramp', pads
-        with the linear ramp between end_value and the array edge value.
-        'maximum', pads with the maximum value of all or part of the vector
-        along each axis. 'mean', pads with the mean value of all or part of the
-        vector along each axis. 'median', pads with the median value of all or
-        part of the vector along each axis. 'minimum', pads with the minimum
-        value of all or part of the vector along each axis. 'reflect', pads with
-        the reflection of the vector mirrored on the first and last values of
-        the vector along each axis. 'symmetric', pads with the reflection of the
-        vector mirrored along the edge of the array. 'wrap', pads with the wrap
-        of the vector along the axis. The first values are used to pad the end
-        and the end values are used to pad the beginning.
+    pad_mode : str, optional
+        One of the following string values:
+
+            ``'constant'``
+                pads with a constant value
+            ``'edge'``
+                pads with the edge values of array
+            ``'linear_ramp'``
+                pads with the linear ramp between end_value and the array edge
+                value.
+            ``'maximum'``
+                pads with the maximum value of all or part of the vector along
+                each axis
+            ``'mean'``
+                pads with the mean value of all or part of the vector along each
+                axis
+            ``'median'``
+                pads with the median value of all or part of the vector along
+                each axis
+            ``'minimum'``
+                pads with the minimum value of all or part of the vector along
+                each axis
+            ``'reflect'``
+                pads with the reflection of the vector mirrored on the first and
+                last values of the vector along each axis
+            ``'symmetric'``
+                pads with the reflection of the vector mirrored along the edge
+                of the array
+            ``'wrap'``
+                pads with the wrap of the vector along the axis. The first
+                values are used to pad the end and the end values are used to
+                pad the beginning
 
     Returns
     -------
-    frame: 2D-array
+    frame: 2d array
         The median of the rescaled cube.
-    If full_output is set to True, the function returns:
-    cube,frame,y,x,cy,cx: 3D-array,2D-array,int,int,int,int
-        The rescaled cube, its median, the new y and x shapes of the cube, and
-        the new centers cy and cx of the frames
+    cube : 3d array
+        [full_output] rescaled cube
+    frame : 2d array
+        [full_output] median of the rescaled cube
+    y,x,cy,cx : float
+        [full_output] New y and x shapes of the cube, and the new centers cy and
+        cx of the frames
+
     """
     n, y, x = cube.shape
 
@@ -236,9 +266,9 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
         new_y = int(np.ceil(max_sc * y))
         new_x = int(np.ceil(max_sc * x))
         if (new_y - y) % 2 != 0:
-            new_y = new_y+1
+            new_y += 1
         if (new_x - x) % 2 != 0:
-            new_x = new_x + 1
+            new_x += 1
         pad_len_y = (new_y - y) // 2
         pad_len_x = (new_x - x) // 2
         pad_width = ((0, 0), (pad_len_y, pad_len_y), (pad_len_x, pad_len_x))
@@ -248,18 +278,20 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
 
     n, y, x = big_cube.shape
     cy, cx = frame_center(big_cube[0])
-    var_list = scal_list
 
     if inverse:
-        var_list = 1. / scal_list
+        scal_list = 1. / scal_list
         cy, cx = frame_center(cube[0])
 
     # (de)scale the cube, so that a planet would now move radially
-    cube = _cube_resc_wave(big_cube, var_list, ref_xy=(cx, cy),
+    cube = _cube_resc_wave(big_cube, scal_list, ref_xy=(cx, cy),
                            imlib=imlib, interpolation=interpolation)
     frame = cube_collapse(cube, collapse)
 
     if inverse and max_sc > 1:
+        if y_in is None or x_in is None:
+            raise ValueError("You need to provide y_in and x_in when "
+                             "inverse=True!")
         siz = max(y_in, x_in)
         frame = get_square(frame, siz, cy, cx)
         if full_output:
@@ -277,31 +309,30 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
 
 def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
                     interpolation='lanczos4', scaling_y=None, scaling_x=None):
-    """ Function to rescale a cube, frame by frame by a factor stored in
-    ``scaling_list``, with respect to position (``ref_xy`` which by default
-    is the center of the frames).
-    
+    """
+    Rescale a cube by factors from ``scaling_list`` wrt a position.
+
     Parameters
     ----------
-    array : array_like 
+    array : array_like
         Input 3d array, cube.
     scaling_list : 1D-array
         Scale corresponding to each frame in the cube.
     ref_xy : float, optional
-        Coordinates X,Y  of the point with respect to which the rescaling will be
-        performed. By default the rescaling is done with respect to the center 
+        Coordinates X,Y of the point with respect to which the rescaling will be
+        performed. By default the rescaling is done with respect to the center
         of the frames; central pixel if the frames have odd size.
     imlib : str optional
         See the documentation of ``vip_hci.preproc.cube_rescaling_wavelengths``.
     interpolation : str, optional
         See the documentation of ``vip_hci.preproc.cube_rescaling_wavelengths``.
     scaling_y : 1D-array or list
-        Scaling factor only for y axis. If provided, it takes priority on 
+        Scaling factor only for y axis. If provided, it takes priority on
         scaling_list.
     scaling_x : 1D-array or list
-        Scaling factor only for x axis. If provided, it takes priority on 
+        Scaling factor only for x axis. If provided, it takes priority on
         scaling_list.
-        
+
     Returns
     -------
     array_sc : array_like
@@ -327,9 +358,11 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
 
     def _frame_rescaling(array, ref_xy=None, scale=1.0, imlib='opencv',
                          interpolation='lanczos4', scale_y=None, scale_x=None):
-        """ Function to rescale a frame by a factor ``scale``, wrt a reference
-        point which by default is the center of the frame (typically the exact
-        location of the star). However, it keeps the same dimensions.
+        """
+        Rescale a frame by a factor wrt a reference point.
+
+        The reference point is by default the center of the frame (typically the
+        exact location of the star). However, it keeps the same dimensions.
 
         Parameters
         ----------
@@ -353,6 +386,7 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
         -------
         array_out : array_like
             Resulting frame.
+
         """
         if array.ndim != 2:
             raise TypeError('Input array is not a frame or 2d array.')
@@ -432,10 +466,11 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
 
 
 def check_scal_vector(scal_vec):
-    """ Function to turn the wavelengths (in the case of IFS data) into a
-    scaling factor list. It checksthat it has the right format: all scaling
-    factors should be >= 1 (i.e. the scaling should be done wrt the longest
-    wavelength of the cube).
+    """
+    Turn wavelengths (IFS data) into a scaling factor list.
+
+    It checks that it has the right format: all scaling factors should be >= 1
+    (i.e. the scaling should be done wrt the longest wavelength of the cube).
 
     Parameters
     ----------
@@ -444,18 +479,19 @@ def check_scal_vector(scal_vec):
 
     Returns
     -------
-    scal_vec: array_like, 1d 
+    scal_vec: array_like, 1d
         Vector containing the scaling factors (after correction to comply with
         the condition >= 1).
+
     """
     if not isinstance(scal_vec, (list, np.ndarray)):
         raise TypeError('`Scal_vec` is neither a list or an np.ndarray')
 
     scal_vec = np.array(scal_vec)
 
-    # checking if min factor is 1
+    # checking if min factor is 1:
     if scal_vec.min() != 1:
-        scal_vec = 1/scal_vec
+        scal_vec = 1 / scal_vec
         scal_vec /= scal_vec.min()
 
     return scal_vec
@@ -463,20 +499,18 @@ def check_scal_vector(scal_vec):
 
 def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
                       debug=False):
-    """ Finds a radial threshold for avoiding as much as possible self-
-    subtraction while doing model PSF subtraction.
-
-    # TODO: check this output. Also, find a more pythonic way to to this!
+    """
+    Find optimal wavelengths which minimize self-subtraction in model PSF subtr.
 
     Parameters
     ----------
     wl : 1d array or list
         Vector with the scaling factors.
-    dist : int
+    dist : float [pixels]
         Separation or distance from the center of the array (star).
     index_ref : int
         The `wl` index for which we are finding the pairs.
-    fwhm : float
+    fwhm : float [pixels]
         Mean FWHM of all the wavelengths.
     delta_sep : float, optional
         The threshold separation in terms of the mean FWHM.
@@ -485,64 +519,34 @@ def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
 
     Returns
     -------
-    index_w2 : int
-        Index of the frame located (outwards) at a `delta_sep` separation from
-        `index_ref`.
-    index_w3 :
-        Index of the frame located (inwards) at a `delta_sep` separation from
-        `index_ref`.
+    indices : ndarray
+        List of good indices.
+
     """
-    nwvs = wl.shape[0]
-    index_w2 = 0
-    index_ref = int(index_ref)
-    for i in range(0, index_ref):
-        index_w2 = i
-        sep = ((wl[index_ref] - wl[index_w2]) / wl[index_ref]) * (
-                (dist + fwhm * delta_sep) / fwhm)
-        if debug:
-            sep_pxs = ((wl[index_ref] - wl[index_w2]) / wl[index_ref]) * (
-                        dist + fwhm * delta_sep)
-            print(sep, sep_pxs)
-        if sep <= delta_sep:
-            if index_w2 == 0:
-                index_w2 += 1
-            break
-    if debug:
-        print('Index 1 = ', index_w2)
+    wl = np.asarray(wl)
+    wl_ref = wl[index_ref]
 
-    index_w3 = nwvs
-    for i in range(index_ref, nwvs)[::-1]:
-        index_w3 = i
-        sep = ((wl[index_w3] - wl[index_ref]) / wl[index_ref]) * (
-                (dist - fwhm * delta_sep) / fwhm)
-        if debug:
-            sep_pxs = ((wl[index_w3] - wl[index_ref]) / wl[index_ref]) * (
-                        dist - fwhm * delta_sep)
-            print(sep, sep_pxs)
-        if sep <= delta_sep:
-            if index_w3 == nwvs - 1:
-                index_w3 += 1
-            break
+    sep_lft = (wl_ref - wl) / wl_ref * ((dist + fwhm * delta_sep) / fwhm)
+    sep_rgt = (wl - wl_ref) / wl_ref * ((dist - fwhm * delta_sep) / fwhm)
+    map_lft = sep_lft >= delta_sep
+    map_rgt = sep_rgt >= delta_sep
+    indices = np.nonzero(map_lft | map_rgt)[0]
 
     if debug:
-        print('Index 2 = ', index_w3)
+        print("sep_lft:", "  ".join(["{:+.3f}".format(x) for x in sep_lft]))
+        print("sep_rgt:", "  ".join(["{:+.3f}".format(x) for x in sep_rgt]))
+        print("indices:", indices)
+
+    if indices.size == 0:
+        raise RuntimeError("No frames left after radial motion threshold. "
+                           "Try decreasing the value of `delta_sep`")
 
     if nframes is not None:
-        window = nframes // 2
-        ind1 = max(index_w2 - window, 0)
-        ind2 = index_w2
-        ind3 = index_w3
-        ind4 = min(index_w3 + window, nwvs)
-        indices = np.array(list(range(ind1, ind2)) + list(range(ind3, ind4)))
-    else:
-        half1 = range(0, index_w2)
-        half2 = range(index_w3, nwvs)
-        indices = np.array(list(half1) + list(half2))
+        i = map_lft.sum()  # index of first good element of 'right'
+        indices = indices[i - nframes//2:i + nframes//2]
 
-    indices = indices.astype(int)
-    if indices.shape[0] == 1:
-        msg = 'No frames left after the radial motion threshold. Try decreasing'
-        msg += ' the value of `delta_sep` (for dist: {} pxs)'
-        raise RuntimeError(msg.format(dist))
+        if indices.size != nframes:
+            raise RuntimeError("Not enough frames left after radial motion "
+                               "threshold. Try decreasing the value of "
+                               "`delta_sep`")
     return indices
-

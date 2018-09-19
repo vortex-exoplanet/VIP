@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed May  6 17:07:00 2015
-
-@author: jmilli
 """
 import numpy as np
 
-class Dust_distribution:
+_author__ = 'Julien Milli'
+
+
+class Dust_distribution(object):
     """This class represents the dust distribution
     """
-    
-    def __init__(self,density_dico={'name':'2PowerLaws','ain':5,'aout':-5,\
-                               'a':60,'e':0,'ksi0':1.,'gamma':2.,'beta':1.}):
+    def __init__(self,density_dico={'name':'2PowerLaws', 'ain':5, 'aout':-5,
+                                    'a':60, 'e':0, 'ksi0':1., 'gamma':2.,
+                                    'beta':1.}):
         """ 
         Constructor for the Dust_distribution class.
         
@@ -20,55 +21,63 @@ class Dust_distribution:
         the midplane, and vertically whenever it drops below 0.5% of the 
         peak density in the midplane
         """
-        self.accuracy=5.e-3 
-        if not isinstance(density_dico,dict):
-            raise TypeError('The parameters describing the dust density distribution must be a Python dictionnary')
+        self.accuracy = 5.e-3
+        if not isinstance(density_dico, dict):
+            errmsg = 'The parameters describing the dust density distribution' \
+                     ' must be a Python dictionnary'
+            raise TypeError(errmsg)
         if 'name' not in density_dico.keys():
-            raise TypeError('The dictionnary describing the dust density distribution must contain the key "name"')
+            errmsg = 'The dictionnary describing the dust density ' \
+                     'distribution must contain the key "name"'
+            raise TypeError(errmsg)
         self.type = density_dico['name']
         if self.type == '2PowerLaws':
-            self.dust_distribution_calc = DustEllipticalDistribution2PowerLaws(\
-                                        self.accuracy,density_dico)
+            self.dust_distribution_calc = DustEllipticalDistribution2PowerLaws(
+                                                    self.accuracy, density_dico)
         else:
-            raise TypeError('The only dust distribution implemented so far is the "2PowerLaws"')
+            errmsg = 'The only dust distribution implemented so far is the' \
+                     ' "2PowerLaws"'
+            raise TypeError(errmsg)
 
     def set_density_distribution(self,density_dico):
         """
-        Updates the parameters of the density distribution.
+        Update the parameters of the density distribution.
         """
         self.dust_distribution_calc.set_density_distribution(density_dico)
 
-    def density_cylindrical(self,r,costheta,z):
+    def density_cylindrical(self, r, costheta, z):
         """ 
-        Returns the particule volume density at r, theta, z
+        Return the particule volume density at r, theta, z.
         """
-        return self.dust_distribution_calc.density_cylindrical(r,costheta,z)   
+        return self.dust_distribution_calc.density_cylindrical(r, costheta, z)
 
-    def density_cartesian(self,x,y,z):
+    def density_cartesian(self, x, y, z):
         """ 
-        Returns the particule volume density at x,y,z, taking into account the offset 
-        of the disk
+        Return the particule volume density at x,y,z, taking into account the
+        offset of the disk.
         """           
-        return self.dust_distribution_calc.density_cartesian(x,y,z)
+        return self.dust_distribution_calc.density_cartesian(x, y, z)
 
-        
-    def print_info(self,pxInAu=None):
+    def print_info(self, pxInAu=None):
         """
-        Utility function that displays the parameters of the radial distribution of the dust
+        Utility function that displays the parameters of the radial distribution
+        of the dust
+
         Input:
             - pxInAu (optional): the pixel size in au
         """
         print('----------------------------')
         print('Dust distribution parameters')
         print('----------------------------')
-        self.dust_distribution_calc.print_info(pxInAu=None)
-        
+        self.dust_distribution_calc.print_info(pxInAu)
+
+
 class DustEllipticalDistribution2PowerLaws:
     """
     """
-
-    def __init__(self,accuracy=5.e-3,density_dico={'ain':5,'aout':-5,\
-                           'a':60,'e':0,'ksi0':1.,'gamma':2.,'beta':1.}):
+    def __init__(self, accuracy=5.e-3, density_dico={'ain':5,'aout':-5,
+                                                     'a':60,'e':0,'ksi0':1.,
+                                                     'gamma':2.,'beta':1.}):
         """ 
         Constructor for the Dust_distribution class.
         
@@ -84,37 +93,37 @@ class DustEllipticalDistribution2PowerLaws:
         """
         """
         if 'ksi0' not in density_dico.keys():
-            ksi0=1.
+            ksi0 = 1.
         else:
-            ksi0=density_dico['ksi0']
+            ksi0 = density_dico['ksi0']
         if 'beta' not in density_dico.keys():
-            beta=1.
+            beta = 1.
         else:
-            beta=density_dico['beta']
+            beta = density_dico['beta']
         if 'gamma' not in density_dico.keys():
-            gamma=1.
+            gamma = 1.
         else:
-            gamma=density_dico['gamma']
+            gamma = density_dico['gamma']
         if 'aout' not in density_dico.keys():
-            aout=-5.
+            aout = -5.
         else:
-            aout=density_dico['aout']
+            aout = density_dico['aout']
         if 'ain' not in density_dico.keys():
-            ain=5.
+            ain = 5.
         else:
-            ain=density_dico['ain']
+            ain = density_dico['ain']
         if 'e' not in density_dico.keys():
-            e=0.
+            e = 0.
         else:
-            e=density_dico['e']
+            e = density_dico['e']
         if 'a' not in density_dico.keys():
-            a=60.
+            a = 60.
         else:
-            a=density_dico['a']
-        self.set_vertical_density(ksi0=ksi0,gamma=gamma,beta=beta)
-        self.set_radial_density(ain=ain,aout=aout,a=a,e=e)
+            a = density_dico['a']
+        self.set_vertical_density(ksi0=ksi0, gamma=gamma, beta=beta)
+        self.set_radial_density(ain=ain, aout=aout, a=a, e=e)
 
-    def set_vertical_density(self,ksi0=1.,gamma=2.,beta=1.):      
+    def set_vertical_density(self, ksi0=1., gamma=2., beta=1.):
         """ 
         Sets the parameters of the vertical density function    
 
@@ -139,12 +148,12 @@ class DustEllipticalDistribution2PowerLaws:
             print('Warning the flaring coefficient beta is negative')
             print('beta was changed from {0:6.2f} to 0 (flat disk)'.format(beta))
             beta = 0.
-        self.ksi0=float(ksi0)
-        self.gamma=float(gamma)
-        self.beta=float(beta)      
-        self.zmax=ksi0*(-np.log(self.accuracy))**(1./gamma)
+        self.ksi0 = float(ksi0)
+        self.gamma = float(gamma)
+        self.beta = float(beta)
+        self.zmax = ksi0*(-np.log(self.accuracy))**(1./gamma)
 
-    def set_radial_density(self,ain=5.,aout=-5.,a=60.,e=0.):   
+    def set_radial_density(self, ain=5., aout=-5., a=60., e=0.):
         """ 
         Sets the parameters of the radial density function
 
@@ -179,15 +188,17 @@ class DustEllipticalDistribution2PowerLaws:
             e = 0.99  
         if a < 0:
             raise ValueError('Warning the semi-major axis a is negative')
-        self.ain=float(ain)
-        self.aout=float(aout)
-        self.a=float(a)
-        self.e=float(e)
-        self.p=self.a*(1-self.e**2)
+        self.ain = float(ain)
+        self.aout = float(aout)
+        self.a = float(a)
+        self.e = float(e)
+        self.p = self.a*(1-self.e**2)
         try:
-            self.rmax=self.a*self.accuracy**(1/self.aout) #maximum distance of integration, AU
-            if self.ain!=self.aout:
-                self.apeak = self.a * np.power(-self.ain/self.aout,1./(2.*(self.ain-self.aout)))
+            # maximum distance of integration, AU
+            self.rmax = self.a*self.accuracy**(1/self.aout)
+            if self.ain != self.aout:
+                self.apeak = self.a * np.power(-self.ain/self.aout,
+                                               1./(2.*(self.ain-self.aout)))
             else:
                 self.apeak = self.a
         except OverflowError:
@@ -204,29 +215,41 @@ class DustEllipticalDistribution2PowerLaws:
             raise ZeroDivisionError
         self.itiltthreshold = np.rad2deg(np.arctan(self.rmax/self.zmax))
                 
-    def print_info(self,pxInAu=None):
+    def print_info(self, pxInAu=None):
         """
-        Utility function that displays the parameters of the radial distribution of the dust
+        Utility function that displays the parameters of the radial distribution
+        of the dust
+
         Input:
             - pxInAu (optional): the pixel size in au
         """
         if pxInAu is not None:
-            print('Reference semi-major axis: {0:.1f}au or {1:.1f}px'.format(self.a,self.a/pxInAu))
-            print('Semi-major axis at maximum dust density: {0:.1f}au or {1:.1f}px (same as ref sma if ain=-aout)'.format(self.apeak,self.apeak/pxInAu))
-            print('Ellipse p parameter: {0:.1f}au or {1:.1f}px'.format(self.p,self.p/pxInAu))
+            msg = 'Reference semi-major axis: {0:.1f}au or {1:.1f}px'
+            print(msg.format(self.a,self.a/pxInAu))
+            msg2 = 'Semi-major axis at maximum dust density: {0:.1f}au or ' \
+                   '{1:.1f}px (same as ref sma if ain=-aout)'
+            print(msg2.format(self.apeak,self.apeak/pxInAu))
+            msg3 = 'Ellipse p parameter: {0:.1f}au or {1:.1f}px'
+            print(msg3.format(self.p,self.p/pxInAu))
         else:
             print('Reference semi-major axis: {0:.1f}au'.format(self.a))
-            print('Semi-major axis at maximum dust density: {0:.1f}au (same as ref sma if ain=-aout)'.format(self.apeak))
+            msg = 'Semi-major axis at maximum dust density: {0:.1f}au (same ' \
+                  'as ref sma if ain=-aout)'
+            print(msg.format(self.apeak))
             print('Ellipse p parameter: {0:.1f}au'.format(self.p))
         print('Ellipticity: {0:.3f}'.format(self.e))
         print('Inner slope: {0:.2f}'.format(self.ain))
         print('Outer slope: {0:.2f}'.format(self.aout))
         if pxInAu is not None:
-            print('Scale height: {0:.1f}au or {1:.1f}px at {2:.1f}'.format(self.ksi0,self.ksi0/pxInAu,self.a))
+            msg = 'Scale height: {0:.1f}au or {1:.1f}px at {2:.1f}'
+            print(msg.format(self.ksi0,self.ksi0/pxInAu,self.a))
         else:
-            print('Scale height: {0:.2f} au at {1:.2f}'.format(self.ksi0,self.a))            
+            print('Scale height: {0:.2f} au at {1:.2f}'.format(self.ksi0,
+                                                               self.a))
         print('Vertical profile index: {0:.2f}'.format(self.gamma))
-        print('Disc vertical FWHM: {0:.2f} at {1:.2f}'.format(2.*self.ksi0*np.power(np.log10(2.),1./self.gamma),self.a))
+        msg = 'Disc vertical FWHM: {0:.2f} at {1:.2f}'
+        print(msg.format(2.*self.ksi0*np.power(np.log10(2.), 1./self.gamma),
+                         self.a))
         print('Flaring coefficient: {0:.2f}'.format(self.beta))
         print('------------------------------------')
         print('Properties for numerical integration')
@@ -234,39 +257,43 @@ class DustEllipticalDistribution2PowerLaws:
         print('Requested accuracy {0:.2e}'.format(self.accuracy))
 #        print('Minimum radius for integration: {0:.2f} au'.format(self.rmin))
         print('Maximum radius for integration: {0:.2f} au'.format(self.rmax))
-        print('Maximum height for integration: {0:.2f} au'.format(self.zmax))      
-        print('Inclination threshold: {0:.2f} degrees'.format(self.itiltthreshold))
+        print('Maximum height for integration: {0:.2f} au'.format(self.zmax))
+        msg = 'Inclination threshold: {0:.2f} degrees'
+        print(msg.format(self.itiltthreshold))
         return
         
-    def density_cylindrical(self,r,costheta,z):
+    def density_cylindrical(self, r, costheta, z):
         """ Returns the particule volume density at r, theta, z
         """
-        radial_ratio=r/(self.p/(1-self.e*costheta))
-        radial_density_term=np.sqrt(2./(np.power(radial_ratio,-2*self.ain)+np.power(radial_ratio,-2*self.aout)))
-        vertical_density_term=np.exp(-np.power(np.abs(z)/(self.ksi0*np.power(radial_ratio,self.beta)),self.gamma))
+        radial_ratio = r/(self.p/(1-self.e*costheta))
+        den = (np.power(radial_ratio, -2*self.ain) +
+               np.power(radial_ratio,-2*self.aout))
+        radial_density_term = np.sqrt(2./den)
+        den2 = (self.ksi0*np.power(radial_ratio,self.beta))
+        vertical_density_term = np.exp(-np.power(np.abs(z)/den2, self.gamma))
         return radial_density_term*vertical_density_term    
 
-    def density_cartesian(self,x,y,z):
-        """ Returns the particule volume density at x,y,z, taking into account the offset 
-        of the disk
+    def density_cartesian(self, x, y, z):
+        """ Returns the particule volume density at x,y,z, taking into account
+        the offset of the disk
         """
-        r=np.sqrt(x**2+y**2)
-        if r==0:
+        r = np.sqrt(x**2+y**2)
+        if r == 0:
             costheta=0
         else:
-            costheta=x/r            
+            costheta = x/r
         return self.density_cylindrical(r,costheta,z)
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     """
     Main of the class for debugging
     """
     test = DustEllipticalDistribution2PowerLaws()
-    test.set_radial_density(ain=5.,aout=-5.,a=60.,e=0.)
+    test.set_radial_density(ain=5., aout=-5., a=60., e=0.)
     test.print_info()
-    costheta=0.
-    z=0.
+    costheta = 0.
+    z = 0.
     for a in np.linspace(60-5,60+5,11):
-        t = test.density_cylindrical(a,costheta,z)
-        print('r={0:.1f} density={1:.4f}'.format(a,t))
-    
+        t = test.density_cylindrical(a, costheta, z)
+        print('r={0:.1f} density={1:.4f}'.format(a, t))

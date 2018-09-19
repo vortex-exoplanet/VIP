@@ -12,6 +12,6 @@ python:
 install:
   - pip install -e .
 
-# command to run tests
+# command to run tests + coverage
 script:
-  pytest -v
+  pytest --cov=vip_hci -v

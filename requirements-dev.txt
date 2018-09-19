@@ -1,3 +1,4 @@
 -r requirements.txt
 sphinx <= 1.5.6
 pytest
+pytest-cov ~=2.6.0

@@ -144,6 +144,11 @@ users who want to experiment with the code.
 
 Other dependencies
 ^^^^^^^^^^^^^^^^^^
+
+
+OpenCV
+~~~~~~
+
 ``OpenCV`` (Open source Computer Vision) provides fast C++ image processing
 operations and is used by ``VIP`` for basic image transformations. If you don't
 have/want the ``OpenCV`` python bindings (``OpenCV`` is optional since ``VIP``
@@ -156,20 +161,37 @@ you could use ``conda``:
 
   $ conda install opencv
 
+
+pyds9
+~~~~~
+
 ``VIP`` contains a class ``vip_hci.fits.ds9`` that enables, through ``pyds9``,
 the interaction with a DS9 window (displaying numpy arrays, controlling the
-display options, etc). ``pyds9`` is an optional requirement and must be
-installed from the latest development version:
+display options, etc). ``pyds9`` is an optional requirement.
+
+pyds9 must be installed from the latest development version. Because of a regression between `sphinx > 1.5.6` and `astrophy_helpers` (which are both required by pyds9), it may be necessary to *downgrade* sphinx before installing pyds9. It can afterwards updated again:
+
 
 .. code-block:: bash
 
+    # downgrade sphinx to 1.5.6, as newer versions cause a RecursionError:
+    $ pip install sphinx==1.5.6
+    # install pyds9 from github:
     $ pip install git+git://github.com/ericmandel/pyds9.git#egg=pyds9
+    # upgrade sphinx to the latest version:
+    $ pip install -U sphinx
+
+
+MKL / blas
+~~~~~~~~~~
 
 Also, you can install the Intel Math Kernel Library (MKL) optimizations
 (provided that you have a recent version of ``conda``) or ``openblas``
 libraries. Either of them can be installed with ``conda install``. This is
 recommended along with ``OpenCV`` for maximum speed on ``VIP`` computations.
 
+GPU / CUDA
+~~~~~~~~~~
 ``VIP`` offers the possibility of computing SVDs on GPU by using ``CuPy``
 (starting from version 0.8.0) or ``PyTorch`` (from version 0.9.2). These remain
 as optional requirements, to be installed by the user, as well as a proper CUDA

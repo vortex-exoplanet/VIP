@@ -177,10 +177,18 @@ class EvalRoc(object):
 
     def compute_tpr_fps(self, **kwargs):
         """
-        Notes
-        -----
-        # TODO : `save` not implemeted (`methods` should be saved, not this
-        functions return value!)
+        Calculate number of dets/fps for every injection/method/threshold.
+
+        Take the probability maps and the desired thresholds for every method,
+        and calculates the binary map, number of detections and FPS using
+        ``compute_binary_map``. Sets each methods ``detections``, ``fps`` and
+        ``bmaps`` attributes.
+
+        Parameters
+        ----------
+        **kwargs : keyword arguments
+            Passed to ``compute_binary_map``
+
         """
         starttime = time_ini()
 

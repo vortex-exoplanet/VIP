@@ -168,7 +168,7 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
 
 def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
-                               y_in=1, x_in=1, imlib='opencv',
+                               y_in=None, x_in=None, imlib='opencv',
                                interpolation='lanczos4', collapse='median',
                                pad_mode='reflect'):
     """
@@ -195,9 +195,10 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
        Whether to inverse the scaling factors in scal_list before applying them
        or not; i.e. True is to descale the cube (typically after a first scaling
        has already been done)
-    y_in, x-in: int, optional
-       Initial y and x sizes. In case the cube is descaled, these values will
-       be used to crop back the cubes/frames to their original size.
+    y_in, x_in: int
+       Initial y and x sizes, required for ``inverse=True``. In case the cube is
+       descaled, these values will be used to crop back the cubes/frames to
+       their original size.
     imlib : {'opencv', 'ndimage'}, str optional
         Library used for image transformations. Opencv is faster than ndimage or
         skimage.
@@ -289,6 +290,9 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
     frame = cube_collapse(cube, collapse)
 
     if inverse and max_sc > 1:
+        if y_in is None or x_in is None:
+            raise ValueError("You need to provide y_in and x_in when "
+                             "inverse=True!")
         siz = max(y_in, x_in)
         frame = get_square(frame, siz, cy, cx)
         if full_output:

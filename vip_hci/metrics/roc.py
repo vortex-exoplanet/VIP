@@ -175,7 +175,7 @@ class EvalRoc(object):
 
         timing(starttime)
 
-    def compute_tpr_fps(self, npix=1, min_distance=1):
+    def compute_tpr_fps(self, **kwargs):
         """
         Notes
         -----
@@ -194,11 +194,14 @@ class EvalRoc(object):
             x, y = self.list_xy[i]
 
             for m in self.methods:
-                res = compute_binary_map(m.probmaps[i], m.thresholds, x, y,
-                                         npix=npix, min_distance=min_distance)
-                m.detections.append(res[0])
-                m.fps.append(res[1])
-                m.bmaps.append(res[2])
+                dets, fps, bmaps = compute_binary_map(
+                    m.probmaps[i], m.thresholds, fwhm=self.dataset.fwhm,
+                    injections=(y, x), **kwargs
+                )
+                m.detections.append(dets)
+                m.fps.append(fps)
+                m.bmaps.append(bmaps)
+
         timing(starttime)
 
     def plot_detmaps(self, i=None, thr=9, dpi=100,

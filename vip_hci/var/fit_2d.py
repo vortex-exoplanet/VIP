@@ -145,7 +145,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
         PSF is assumed to be ~ at the center of the frame).
     cropsize : int, optional
         Size of the subimage.
-    fwhmx, fwhmy : float, optional
+    fwhmx,fwhmy : float, optional
         Initial values for the standard deviation of the fitted Gaussian, in px.
     theta : float, optional
         Angle of inclination of the 2d Gaussian counting from the positive X

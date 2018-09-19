@@ -141,7 +141,7 @@ def cube_detect_badfr_ellipticipy(array, fwhm, roundlo=-0.2, roundhi=0.2,
         Input 3d array, cube.
     fwhm : float
         FWHM size in pixels.
-    roundlo, roundhi : float, optional
+    roundlo,roundhi : float, optional
         Lower and higher bounds for the ellipticipy.
     verbose : {True, False}, bool optional
         Whether to print to stdout or not.

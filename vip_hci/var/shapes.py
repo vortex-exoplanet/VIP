@@ -160,7 +160,7 @@ def frame_center(array, verbose=False):
 
     Returns
     -------
-    cy, cx : float
+    cy,cx : float
         Coordinates of the center.
 
     """
@@ -209,7 +209,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
     -------
     array_out : array_like
         Sub array.
-    y0, x0 : int
+    y0,x0 : int
         [position=True] Coordinates of the bottom-left vertex.
 
     """
@@ -287,7 +287,7 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
         The radius of the circular region.
     output_values : bool, optional
         Sets the type of output.
-    cy, cx : int, optional
+    cy,cx : int, optional
         Coordinates of the circle center. If one of them is ``None``, the center
         of ``array`` is used.
     mode : {'mask', 'val'}, optional
@@ -305,9 +305,9 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
     Notes
     -----
     An alternative implementation would use ``skimage.draw.circle``. ``circle``
-    performs better on large ``array``s (e.g. 1000px, 10.000px), while the
-    current implementation is faster for small ``array``s (e.g. 100px). See
-    `test_shapes.py` for benchmark details.
+    performs better on large ``array`` (e.g. 1000px, 10.000px), while the
+    current implementation is faster for small ``array`` (e.g. 100px). See
+    ``test_shapes.py`` for benchmark details.
 
     """
     if array.ndim != 2:
@@ -342,7 +342,7 @@ def get_ellipse(data, a, b, pa, cy=None, cx=None, mode="ind"):
         Semi-minor axis.
     pa : deg, float
         The PA of the semi-major axis in degrees.
-    cy, cx : int or None, optional
+    cy,cx : int or None, optional
         Coordinates of the circle center. If ``None``, the center is determined
         by the ``frame_center`` function.
     mode : {'ind', 'val', 'mask', 'bool'}, optional
@@ -516,7 +516,7 @@ def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):
         thinner along the semi-minor axis.
     output_values : {False, True}, optional
         If True returns the values of the pixels in the annulus.
-    cy, cx : int or None, optional
+    cy,cx : int or None, optional
         Coordinates of the circle center. If ``None``, the center is determined
         by the ``frame_center`` function.
     mode : {'ind', 'val', 'mask'}, optional
@@ -574,7 +574,7 @@ def matrix_scaling(matrix, scaling):
             temporal px-wise mean subtraction
         ``"spat-mean"``
             the spatial mean is subtracted
-        ``temp-standard"``
+        ``"temp-standard"``
             temporal mean centering plus scaling to unit variance
         ``"spat-standard"``
             spatial mean centering plus scaling to unit variance
@@ -688,7 +688,7 @@ def reshape_matrix(array, y, x):
     array : 2d ndarray
         Input data of shape ``(nframes, npixels)``. Every row (``array[n]``)
         corresponds to one vectorized ("flattened") 2d frame.
-    y, x : int
+    y,x : int
         desired height and width of the frames. ``y*x = npixels``
 
     Returns

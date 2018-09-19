@@ -212,7 +212,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
     ----------
     array : 3D or 2D array 
         Input 3d cube or 2d image.
-    cy, cx : float or 1D array
+    cy,cx : float or 1D array
         Vector with approximate y and x coordinates of the star for each channel
         (cube_like), or single 2-elements vector (frame_like)
     fwhm: float or 1D array

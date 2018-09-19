@@ -74,7 +74,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
 
     Returns
     -------
-    yy, xx : array_like
+    yy,xx : array_like
         Two vectors with the y and x coordinates of the centers of the sources
         (potential planets).
     If full_output is True then a table with all the candidates that passed the
@@ -439,7 +439,7 @@ def mask_source_centers(array, fwhm, y, x):
         Input frame.
     fwhm : float
         Size in pixels of the FWHM.
-    y, x : tuples of int
+    y,x : tuples of int
         Coordinates of the center of the sources.
 
     Returns

@@ -829,7 +829,7 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
     ----------
     array : array_like
         Input frame.
-    yc, xc : list or 1d arrays
+    yc,xc : list or 1d arrays
         List of y and x coordinates of sources.
     fwhm : float
         FWHM in pixels.
@@ -841,8 +841,8 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
     flux : list of floats
         List of fluxes.
 
-    Note
-    ----
+    Notes
+    -----
     From Photutils documentation, the aperture photometry defines the aperture
     using one of 3 methods:
 

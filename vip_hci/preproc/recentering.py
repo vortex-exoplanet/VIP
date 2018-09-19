@@ -509,7 +509,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
 
     Returns
     -------
-    optimy, optimx : float
+    optimy,optimx : float
         Values of the Y, X coordinates of the center of the frame based on the
         radon optimization.
     If full_output is True then the radon cost function surface is returned
@@ -698,7 +698,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
     -------
     array_rec : 3d ndarray
         Recentered cube.
-    y, x : 1d arrays of floats
+    y,x : 1d arrays of floats
         [full_output] Shifts in y and x.
 
     """
@@ -781,7 +781,7 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
     array_recentered : array_like
         The recentered cube. Frames have now odd size.
     If full_output is True:
-    y, x : array_like
+    y,x : array_like
         1d arrays with the shifts in y and x.
 
     Notes
@@ -958,7 +958,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     array_recentered : array_like
         The recentered cube. Frames have now odd size.
     If full_output is True:
-    y, x : array_like
+    y,x : array_like
         1d arrays with the shifts in y and x.
 
     """

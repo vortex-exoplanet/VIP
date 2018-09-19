@@ -176,7 +176,7 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
 
     Wrapper to scale or descale a cube by factors given in scal_list,
     without any loss of information (zero-padding if scaling > 1).
-    Important: in case of IFS data, the scaling factors in var_list should be
+    Important: in case of IFS data, the scaling factors in scal_list should be
     >= 1 (ie. provide the scaling factors as for scaling to the longest
     wavelength channel).
 
@@ -266,9 +266,9 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
         new_y = int(np.ceil(max_sc * y))
         new_x = int(np.ceil(max_sc * x))
         if (new_y - y) % 2 != 0:
-            new_y = new_y+1
+            new_y += 1
         if (new_x - x) % 2 != 0:
-            new_x = new_x + 1
+            new_x += 1
         pad_len_y = (new_y - y) // 2
         pad_len_x = (new_x - x) // 2
         pad_width = ((0, 0), (pad_len_y, pad_len_y), (pad_len_x, pad_len_x))
@@ -278,14 +278,13 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
 
     n, y, x = big_cube.shape
     cy, cx = frame_center(big_cube[0])
-    var_list = scal_list
 
     if inverse:
-        var_list = 1. / scal_list
+        scal_list = 1. / scal_list
         cy, cx = frame_center(cube[0])
 
     # (de)scale the cube, so that a planet would now move radially
-    cube = _cube_resc_wave(big_cube, var_list, ref_xy=(cx, cy),
+    cube = _cube_resc_wave(big_cube, scal_list, ref_xy=(cx, cy),
                            imlib=imlib, interpolation=interpolation)
     frame = cube_collapse(cube, collapse)
 

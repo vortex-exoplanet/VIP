@@ -204,7 +204,7 @@ class EvalRoc(object):
             for m in self.methods:
                 dets, fps, bmaps = compute_binary_map(
                     m.probmaps[i], m.thresholds, fwhm=self.dataset.fwhm,
-                    injections=(y, x), **kwargs
+                    injections=(x, y), **kwargs
                 )
                 m.detections.append(dets)
                 m.fps.append(fps)

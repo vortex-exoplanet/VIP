@@ -7,17 +7,16 @@ Module with fake disk injection functions.
 from __future__ import division, print_function
 
 __author__ = 'Julien Milli @ ESO, Valentin Christiaens @ ULg/UChile'
-__all__ = ['create_fakedisk_cube',
+__all__ = ['cube_inject_fakedisk',
            'cube_inject_trace']
 
 import numpy as np
 from scipy import signal
 from ..preproc import cube_derotate, frame_shift
 from ..var import frame_center
-import pdb
 
 
-def create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
+def cube_inject_fakedisk(fakedisk, angle_list, psf=None, imlib='opencv',
                          interpolation='lanczos4', cxy=None, nproc=1,
                          border_mode='constant'):
     """

@@ -5,7 +5,7 @@ Module with frame px resampling/rescaling functions.
 """
 from __future__ import division, print_function
 
-__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens'
+__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens, R. Farkas'
 __all__ = ['frame_px_resampling',
            'cube_px_resampling',
            'cube_rescaling_wavelengths',
@@ -172,7 +172,7 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
                                interpolation='lanczos4', collapse='median',
                                pad_mode='reflect'):
     """
-    Scale/Descale a cube by scal_list, without information loss.
+    Scale/Descale a cube by scal_list, with padding.
 
     Wrapper to scale or descale a cube by factors given in scal_list,
     without any loss of information (zero-padding if scaling > 1).

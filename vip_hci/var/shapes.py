@@ -328,7 +328,7 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
         raise ValueError("mode '{}' unknown!".format(mode))
 
 
-def get_ellipse(data, a, b, PA, cy=None, cx=None, mode="ind"):
+def get_ellipse(data, a, b, pa, cy=None, cx=None, mode="ind"):
     """
     Return a centered elliptical region from a 2d ndarray.
 
@@ -340,7 +340,7 @@ def get_ellipse(data, a, b, PA, cy=None, cx=None, mode="ind"):
         Semi-major axis.
     b : float
         Semi-minor axis.
-    PA : deg, float
+    pa : deg, float
         The PA of the semi-major axis in degrees.
     cy, cx : int or None, optional
         Coordinates of the circle center. If ``None``, the center is determined
@@ -368,9 +368,9 @@ def get_ellipse(data, a, b, PA, cy=None, cx=None, mode="ind"):
 
     # Definition of other parameters of the ellipse
     f = np.sqrt(a ** 2 - b ** 2)  # dist between center and foci of the ellipse
-    PA_rad = np.deg2rad(PA)
-    pos_f1 = (cy + f * np.cos(PA_rad), cx + f * np.sin(PA_rad))  # first focus
-    pos_f2 = (cy - f * np.cos(PA_rad), cx - f * np.sin(PA_rad))  # second focus
+    pa_rad = np.deg2rad(pa)
+    pos_f1 = (cy + f * np.cos(pa_rad), cx + f * np.sin(pa_rad))  # first focus
+    pos_f2 = (cy - f * np.cos(pa_rad), cx - f * np.sin(pa_rad))  # second focus
 
     # ogrid is a multidim mesh creator (faster than mgrid):
     yy, xx = np.ogrid[:array.shape[0], :array.shape[1]]

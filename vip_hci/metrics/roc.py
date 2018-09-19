@@ -392,9 +392,10 @@ class EvalRoc(object):
 
 
 def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
-                       overlap_threshold=0.8, max_blob_fact=2, debug=False):
+                       overlap_threshold=0.7, max_blob_fact=2, plot=False,
+                       debug=False):
     """
-    Take a list of ``thresholds``, create binmaps and counts detections/fps.
+    Take a list of ``thresholds``, create binary maps and counts detections/fps.
 
     Parameters
     ----------
@@ -403,10 +404,12 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
     thresholds : list or numpy.ndarray
         List of thresholds (detection criteria).
     injections : tuple, list of tuples
-        Coordinates of the injected companions. Also accepts 1d/2d ndarrays.
+        Coordinates (x,y) of the injected companions. Also accepts 1d/2d
+        ndarrays.
     fwhm : float
-        FWHM, used for obtaining the resolution area around an injection and the
-        size of a blob.
+        FWHM, used for obtaining the size of the circular aperture centered at
+        the injection position (and measuring the overlapping with found blobs).
+        The circular aperture has 2 * FWHM in diameter.
     npix : int, optional
         The number of connected pixels, each greater than the given threshold,
         that an object must have to be detected. ``npix`` must be a positive
@@ -417,6 +420,8 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
     max_blob_fact : float
         Maximum size of a blob (in multiples of the resolution element) before
         it is considered as "too big" (= non-detection)
+    plot : bool, optional
+        If True, a final resulting plot summarizing the results will be shown.
     debug : bool, optional
         For showing optional information.
 
@@ -458,8 +463,8 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
             otherwise ``intersection_area / resolution_element``.
 
         """
-        injection_mask = get_circle(np.ones_like(blob_mask), radius=fwhm/2,
-                                    cy=injection[0], cx=injection[1],
+        injection_mask = get_circle(np.ones_like(blob_mask), radius=fwhm,
+                                    cy=injection[1], cx=injection[0],
                                     mode="mask")
         intersection = injection_mask & blob_mask
         smallest_area = min(blob_mask.sum(), injection_mask.sum())
@@ -468,8 +473,10 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
     list_detections = []
     list_fps = []
     list_binmaps = []
-
-    resolution_element = np.pi * (fwhm/2)**2
+    sizey, sizex = frame.shape
+    cy, cx = frame_center(frame)
+    reselem_mask = get_circle(frame, radius=fwhm, cy=cy, cx=cx, mode="val")
+    npix_circ_aperture = reselem_mask.shape[0]
 
     # normalize injections: accepts combinations of 1d/2d and tuple/list/array.
     injections = np.asarray(injections)
@@ -478,16 +485,15 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
 
     for ithr, threshold in enumerate(thresholds):
         if debug:
-            print("processing threshold #{}: {}".format(ithr, threshold))
+            print("\nprocessing threshold #{}: {}".format(ithr + 1, threshold))
 
         segments = detect_sources(frame, threshold, npix, connectivity=4)
         binmap = (segments.data != 0)
 
         if debug:
-            plots(segments.data, binmap,
-                  label=["segments", "binmap"],
-                  circle=[tuple(yx[::-1]) for yx in injections],
-                  circlerad=fwhm/2, circlealpha=0.3)
+            plots(segments.data, binmap, cmap=('tab10', 'bone'),
+                  circle=[tuple(xy) for xy in injections], circlerad=fwhm,
+                  circlealpha=0.6, label=["segmentation map", "binary map"])
 
         detections = 0
         fps = 0
@@ -498,53 +504,50 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
             blob_area = segments.areas[iblob]
 
             if debug:
-                plots(blob_mask,
-                      label=["blob #{}, area={}px".format(iblob, blob_area)],
-                      circle=[tuple(yx[::-1]) for yx in injections],
-                      circlerad=fwhm/2,
-                      circlealpha=0.3,
-                      )
+                plots(blob_mask, circle=[tuple(xy) for xy in injections],
+                      circlerad=fwhm, circlealpha=0.6, cmap='bone', labelsize=8,
+                      label=["blob #{}, area={}px**2".format(iblob, blob_area)])
 
             for iinj, injection in enumerate(injections):
-                if debug:
-                    print("   testing injection #{}".format(iinj))
+                if injection[0] > sizex or injection[1] > sizey:
+                    raise ValueError("Wrong coordinates in `injections`")
 
-                if blob_area > max_blob_fact * resolution_element:
-                    number_of_apertures_in_blob = blob_area / resolution_element
+                if debug:
+                    print("\ttesting injection #{} at {}".format(iinj + 1,
+                                                                 injection))
+
+                if blob_area > max_blob_fact * npix_circ_aperture:
+                    number_of_apertures_in_blob = blob_area / npix_circ_aperture
                     fps += number_of_apertures_in_blob  # float, rounded at end
                     if debug:
-                        print("      blob is too big (+{:.0f} fps)"
+                        print("\tblob is too big (+{:.0f} fps)"
                               "".format(number_of_apertures_in_blob))
-                        print("      skipping all other injections")
-
-                    # continue with next blob, do not check other injections:
+                        print("\tskipping all other injections")
+                    # continue with next blob, do not check other injections
                     break
 
                 overlap = _overlap_injection_blob(injection, fwhm, blob_mask)
                 if overlap > overlap_threshold:
                     if debug:
-                        print("      overlap of {}! (+1 detection)"
+                        print("\toverlap of {}! (+1 detection)"
                               "".format(overlap))
 
                     detections += 1
-
-                    # continue with next blob, do not check other injections:
+                    # continue with next blob, do not check other injections
                     break
 
                 if debug:
-                    print("      overlap of {} -> do nothing.".format(overlap))
+                    print("\toverlap of {} -> do nothing".format(overlap))
 
             else:
                 if debug:
-                    print("   did not find a matching injection for this "
+                    print("\tdid not find a matching injection for this "
                           "blob (+1 fps)")
                 fps += 1
 
         if debug:
             print("done with threshold #{}".format(ithr))
-            print("result: {} detections, {} fps".format(
-                detections, fps
-            ))
+            print("result: {} detections, {} fps".format(detections, fps))
 
         fps = np.round(fps).astype(int).item()  # -> python `int`
 
@@ -552,11 +555,19 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         list_binmaps.append(binmap)
         list_fps.append(fps)
 
+    if plot:
+        labs = [str(det) + ' detections' + '\n' + str(fps) + ' false positives'
+                for det, fps in zip(list_detections, list_fps)]
+        plots(np.array(list_binmaps), title='Final binary maps', label=labs,
+              labelsize=8, cmap=['bone']*len(list_binmaps), circlealpha=0.8,
+              circle=[tuple(xy) for xy in injections], circlerad=fwhm,
+              circlecolor='deepskyblue', axis=False)
+
     return list_detections, list_fps, list_binmaps
 
 
 def _create_synt_cube(cube, psf, ang, plsc, dist, flux, theta=None,
-                     verbose=False):
+                      verbose=False):
     """
     """
     centy_fr, centx_fr = frame_center(cube[0])

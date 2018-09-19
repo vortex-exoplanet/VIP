@@ -15,25 +15,26 @@ from munch import Munch
 import copy
 from ..pca.svd import _get_cumexpvar
 from ..var import frame_center, get_annulus_segments
-from ..conf import time_ini, timing, time_fin, Progressbar
+from ..conf import time_ini, timing, Progressbar
 from ..var import pp_subplots as plots, get_circle
 from .fakecomp import cube_inject_companions
 
 
 class EvalRoc(object):
-    """ Class for the generation of receiver operating characteristic (ROC)
-    curves.
     """
-    COLOR_1 = "#d62728" # CADI
-    COLOR_2 = "#ff7f0e" # PCA
-    COLOR_3 = "#2ca02c" # LLSG
-    COLOR_4 = "#9467bd" # SODIRF
-    COLOR_5 = "#1f77b4" # SODINN
-    SYMBOL_1 = "^" # CADI
-    SYMBOL_2 = "X" # PCA
-    SYMBOL_3 = "P" # LLSG
-    SYMBOL_4 = "s" # SODIRF
-    SYMBOL_5 = "p" # SODINN
+    Class for the generation of receiver operating characteristic (ROC) curves.
+    """
+
+    COLOR_1 = "#d62728"  # CADI
+    COLOR_2 = "#ff7f0e"  # PCA
+    COLOR_3 = "#2ca02c"  # LLSG
+    COLOR_4 = "#9467bd"  # SODIRF
+    COLOR_5 = "#1f77b4"  # SODINN
+    SYMBOL_1 = "^"  # CADI
+    SYMBOL_2 = "X"  # PCA
+    SYMBOL_3 = "P"  # LLSG
+    SYMBOL_4 = "s"  # SODIRF
+    SYMBOL_5 = "p"  # SODINN
     # For model PSF subtraction algos that rely on a S/N map
     THRESHOLDS_05_5 = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
     # For algos that output a likelihood or probability map
@@ -51,7 +52,6 @@ class EvalRoc(object):
             or a function.
         [...]
         """
-        
         self.dataset = dataset
         self.plsc = plsc
         self.n_injections = n_injections
@@ -78,26 +78,25 @@ class EvalRoc(object):
 
         Notes
         -----
-        # TODO : SODIRF and SODINN+SODIRF are yet to be integrated.
-        # TODO : `methods` are not returned inside `results` and are *not* saved!
-        # TODO : order of parameters for `skewnormal` `dist_flux` changed! (was [3], [1], [2])
-        # TODO : `save` not implemented
+        # TODO `methods` are not returned inside `results` and are *not* saved!
+        # TODO order of parameters for `skewnormal` `dist_flux` changed! (was [3], [1], [2])
+        # TODO `save` not implemented
+
         """
         from .. import hci_postproc
 
         starttime = time_ini()
 
         frsize = self.dataset.cube.shape[1]
-        half_frsize = frsize // 2
 
-        #===== number of PCs for PCA / rank for LLSG
+        # ===== number of PCs for PCA / rank for LLSG
         if cevr is not None:
             ratio_cumsum, _ = _get_cumexpvar(self.dataset.cube, expvar_mode,
                                              self.inrad, self.outrad,
                                              patch_size, None, verbose=False)
             self.optpcs = np.searchsorted(ratio_cumsum, cevr) + 1
             print("{}% of CEVR with {} PCs".format(cevr, self.optpcs))
-        
+
             # for m in methods:
             #     if hasattr(m, "ncomp") and m.ncomp is None:  # PCA
             #         m.ncomp = self.optpcs
@@ -106,7 +105,7 @@ class EvalRoc(object):
             #         m.rank = self.optpcs
 
             #
-            #   -------> this should be moved inside the HCIPostProcAlgo classes!
+            #   ------> this should be moved inside the HCIPostProcAlgo classes!
             #
         # Getting indices in annulus
         width = self.outrad - self.inrad
@@ -119,7 +118,7 @@ class EvalRoc(object):
                         normal=np.random.normal,
                         uniform=np.random.uniform).get(self.dist_flux[0],
                                                        self.dist_flux[0])
-        
+
         self.fluxes = dist_fkt(*self.dist_flux[1:], size=self.n_injections)
         self.fluxes.sort()
         inds_inj = np.random.randint(0, num_patches, size=self.n_injections)
@@ -135,7 +134,7 @@ class EvalRoc(object):
             theta = np.mod(np.arctan2(injy, injx) / np.pi * 180, 360)
             self.dists.append(dist)
             self.thetas.append(theta)
-        
+
         for m in self.methods:
             m.frames = []
             m.probmaps = []
@@ -157,9 +156,9 @@ class EvalRoc(object):
 
             for m in self.methods:
                 # TODO: this is not elegant at all.
+                # shallow copy. Should not copy e.g. the cube in memory,
+                # just reference it.
                 algo = copy.copy(m.algo)
-                    # shallow copy. Should not copy e.g. the cube in memory,
-                    # just reference it.
                 _dataset = copy.copy(self.dataset)
                 _dataset.cube = cufc
 
@@ -174,15 +173,22 @@ class EvalRoc(object):
                 m.frames.append(algo.frame_final)
                 m.probmaps.append(algo.snr_map)
 
-        #fintime = time_fin(starttime)
         timing(starttime)
 
-    def compute_tpr_fps(self, npix=1, min_distance=1):
+    def compute_tpr_fps(self, **kwargs):
         """
-        Notes
-        -----
-        # TODO : `save` not implemeted (`methods` should be saved, not this
-        functions return value!)
+        Calculate number of dets/fps for every injection/method/threshold.
+
+        Take the probability maps and the desired thresholds for every method,
+        and calculates the binary map, number of detections and FPS using
+        ``compute_binary_map``. Sets each methods ``detections``, ``fps`` and
+        ``bmaps`` attributes.
+
+        Parameters
+        ----------
+        **kwargs : keyword arguments
+            Passed to ``compute_binary_map``
+
         """
         starttime = time_ini()
 
@@ -196,23 +202,40 @@ class EvalRoc(object):
             x, y = self.list_xy[i]
 
             for m in self.methods:
-                res = compute_binary_map(m.probmaps[i], m.thresholds, x, y,
-                                         npix=npix, min_distance=min_distance)
-                m.detections.append(res[0])
-                m.fps.append(res[1])
-                m.bmaps.append(res[2])
+                dets, fps, bmaps = compute_binary_map(
+                    m.probmaps[i], m.thresholds, fwhm=self.dataset.fwhm,
+                    injections=(x, y), **kwargs
+                )
+                m.detections.append(dets)
+                m.fps.append(fps)
+                m.bmaps.append(bmaps)
+
         timing(starttime)
 
     def plot_detmaps(self, i=None, thr=9, dpi=100,
                      axis=True, grid=False, vmin=-10, vmax='max',
                      plot_type="horiz"):
         """
-        i - sample or iteration : 0-self.n_injections
-        thr - threshold : 0-9
+        Plot the detection maps for one injection.
 
-        plot_type :
-            1 - One row per algorithm (frame, probmap, binmap)
-            2 - 1 row for final frames, 1 row for probmaps and 1 row for binmaps
+        Parameters
+        ----------
+        i : int or None, optional
+            Index of the injection, between 0 and self.n_injections. If None,
+            takes the 30st injection, or if there are less injections, the
+            middle one.
+        thr : int, optional
+            Index of the threshold.
+        dpi, axis, grid, vmin, vmax
+            Passed to ``pp_subplots``
+        plot_type : {"horiz" or "vert"}, optional
+            Plot type.
+
+            ``horiz``
+                One row per algorithm (frame, probmap, binmap)
+            ``vert``
+                1 row for final frames, 1 row for probmaps and 1 row for binmaps
+
         """
         # input parameters
         if i is None:
@@ -222,6 +245,7 @@ class EvalRoc(object):
                 i = len(self.list_xy) // 2
 
         if vmax == 'max':
+            # TODO: document this feature.
             vmax = np.concatenate([m.frames[i] for m in self.methods if
                                    hasattr(m, "frames") and
                                    len(m.frames) >= i]).max()/2
@@ -236,21 +260,21 @@ class EvalRoc(object):
             for m in self.methods:
                 print('detection state: {} | false postives: {}'.format(
                     m.detections[i][thr], m.fps[i][thr]))
-                plots(m.frames[i] if len(m.frames) >= i else np.zeros((2,2)),
+                plots(m.frames[i] if len(m.frames) >= i else np.zeros((2, 2)),
                       m.probmaps[i], m.bmaps[i][thr],
                       label=['{} frame'.format(m.name),
                              '{} S/Nmap'.format(m.name),
                              'Thresholded at {:.1f}'.format(m.thresholds[thr])],
                       dpi=dpi, horsp=0.2, axis=axis, grid=grid,
                       cmap=['viridis', 'viridis', 'gray'])
-        
+
         elif plot_type in [2, "vert"]:
             plots(*[m.frames[i] for m in self.methods if
                     hasattr(m, "frames") and len(m.frames) >= i], dpi=dpi,
                   label=['{} frame'.format(m.name) for m in self.methods if
-                         hasattr(m, "frames") and len(m.frames) >= i], vmax=vmax,
-                  vmin=vmin, axis=axis, grid=grid, cmap='viridis')
-            
+                         hasattr(m, "frames") and len(m.frames) >= i],
+                  vmax=vmax, vmin=vmin, axis=axis, grid=grid, cmap='viridis')
+
             plots(*[m.probmaps[i] for m in self.methods], dpi=dpi,
                   label=['{} S/Nmap'.format(m.name) for m in self.methods],
                   axis=axis, grid=grid, cmap='viridis')
@@ -299,7 +323,7 @@ class EvalRoc(object):
         n_thresholds = len(self.methods[0].thresholds)
 
         if verbose:
-            print('{} injections'.format(self.n_injections)) # really?
+            print('{} injections'.format(self.n_injections))
             # print('Flux distro : {} [{}:{}]'.format(roc_injections.flux_distribution,
             #                                         roc_injections.fluxp1, roc_injections.fluxp2))
             print('Annulus from {} to {} pixels'.format(self.inrad,
@@ -573,7 +597,7 @@ def _create_synt_cube(cube, psf, ang, plsc, dist, flux, theta=None,
     centy_fr, centx_fr = frame_center(cube[0])
     if theta is None:
         np.random.seed()
-        theta = np.random.randint(0,360)
+        theta = np.random.randint(0, 360)
 
     posy = dist * np.sin(np.deg2rad(theta)) + centy_fr
     posx = dist * np.cos(np.deg2rad(theta)) + centx_fr

@@ -25,6 +25,14 @@ vip\_hci\.metrics\.detection module
     :undoc-members:
     :show-inheritance:
 
+vip\_hci\.metrics\.dust\_distribution module
+--------------------------------------------
+
+.. automodule:: vip_hci.metrics.dust_distribution
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 vip\_hci\.metrics\.fakecomp module
 ----------------------------------
 
@@ -49,10 +57,26 @@ vip\_hci\.metrics\.frame\_analysis module
     :undoc-members:
     :show-inheritance:
 
+vip\_hci\.metrics\.phase\_function module
+-----------------------------------------
+
+.. automodule:: vip_hci.metrics.phase_function
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 vip\_hci\.metrics\.roc module
 -----------------------------
 
 .. automodule:: vip_hci.metrics.roc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+vip\_hci\.metrics\.scattered\_light\_disk module
+------------------------------------------------
+
+.. automodule:: vip_hci.metrics.scattered_light_disk
     :members:
     :undoc-members:
     :show-inheritance:

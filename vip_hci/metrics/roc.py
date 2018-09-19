@@ -208,12 +208,26 @@ class EvalRoc(object):
                      axis=True, grid=False, vmin=-10, vmax='max',
                      plot_type="horiz"):
         """
-        i - sample or iteration : 0-self.n_injections
-        thr - threshold : 0-9
+        Plot the detection maps for one injection.
 
-        plot_type :
-            1 - One row per algorithm (frame, probmap, binmap)
-            2 - 1 row for final frames, 1 row for probmaps and 1 row for binmaps
+        Parameters
+        ----------
+        i : int or None, optional
+            Index of the injection, between 0 and self.n_injections. If None,
+            takes the 30st injection, or if there are less injections, the
+            middle one.
+        thr : int, optional
+            Index of the threshold.
+        dpi, axis, grid, vmin, vmax
+            Passed to ``pp_subplots``
+        plot_type : {"horiz" or "vert"}, optional
+            Plot type.
+
+            ``horiz``
+                One row per algorithm (frame, probmap, binmap)
+            ``vert``
+                1 row for final frames, 1 row for probmaps and 1 row for binmaps
+
         """
         # input parameters
         if i is None:
@@ -223,6 +237,7 @@ class EvalRoc(object):
                 i = len(self.list_xy) // 2
 
         if vmax == 'max':
+            # TODO: document this feature.
             vmax = np.concatenate([m.frames[i] for m in self.methods if
                                    hasattr(m, "frames") and
                                    len(m.frames) >= i]).max()/2

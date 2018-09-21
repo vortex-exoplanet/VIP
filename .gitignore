@@ -1,3 +1,6 @@
+# macOS stuff
+.DS_Store
+
 # optimized python files
 *.py[cod]
 _pycache__/
@@ -24,6 +27,7 @@ docs/time
 .pydevproject
 .settings
 .project
+.vscode/
 
 # scripts
 submit_pypi.sh

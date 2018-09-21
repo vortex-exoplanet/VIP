@@ -20,6 +20,9 @@ VIP - Vortex Image Processing package
 .. image:: https://readthedocs.org/projects/vip/badge/?version=latest
     :target: http://vip.readthedocs.io/en/latest/?badge=latest
 
+.. image:: https://codecov.io/gh/vortex-exoplanet/VIP/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/vortex-exoplanet/VIP
+
 
 
 ::

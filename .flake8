@@ -1,0 +1,36 @@
+[flake8]
+max-line-length = 80
+ignore =
+    ;====== flake8 defaults ======
+    ; continuation line under-indented for hanging indent:
+    E121,
+    ; closing bracket does not match indentation of opening bracket's line:
+    E123,
+    ; continuation line over-indented for hanging indent:
+    E126,
+    ; missing whitespace around arithmetic operator:
+    E226,
+    ; multiple spaces after ',' / tab after ',':
+    ; E24,
+    ; multiple statements on one line (def):
+    ; E704,
+    ; line break before binary operator:
+    W503,
+    ; line break after binary operator:
+    W504,
+
+    ;====== VIP ======
+    ; One-line docstring should fit on one line with quotes:
+    D200,
+    ; Missing docstring in public function:
+    D103,
+    ; 1 blank line required between summary line and description
+    D205,
+    ; First line should end with a period
+    D400,
+
+    ;====== flake8 plugins ======
+    ; Use of assert detected. (bandit plugin)
+    S101,
+    ; no configuration found (.isort.cfg or [isort] in configs) (isort plugin)
+    I002,

@@ -147,6 +147,35 @@ def dist(yc, xc, y1, x1):
     return np.sqrt((yc-y1)**2 + (xc-x1)**2)
 
 
+def dist_matrix(n, cx=None, cy=None):
+    """
+    Create matrix with euclidian distances from a reference point (cx, cy).
+
+    Parameters
+    ----------
+    n : int
+        output image shape is (n, n)
+    cx,cy : float
+        reference point. Defaults to the center.
+
+    Returns
+    -------
+    im : ndarray with shape (n, n)
+
+    Notes
+    -----
+    This is a replacement for ANDROMEDA's DISTC.
+
+    """
+    if cx is None:
+        cx = (n - 1) / 2
+    if cy is None:
+        cy = (n - 1) / 2
+
+    yy, xx = np.ogrid[:n, :n]
+    return np.sqrt((yy-cy)**2 + (xx-cx)**2)
+
+
 def frame_center(array, verbose=False):
     """
     Return the coordinates y,x of the frame(s) center.

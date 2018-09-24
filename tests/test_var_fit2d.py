@@ -1,20 +1,15 @@
 """
-Tests for var/fit_2d.py.
+Tests for var/fit_2d.py
 
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
-import numpy as np
-import pytest
+__author__ = "Ralf Farkas"
 
+from helpers import aarc, np, parametrize, param, filterwarnings
 from vip_hci.var.fit_2d import (create_synth_psf,
                                 fit_2dgaussian, fit_2dmoffat, fit_2dairydisk)
-
-
-def aarc(actual, desired, rtol=1e-5, atol=1e-6):
-    __tracebackhide__ = True  # Hide traceback for pytest
-    np.testing.assert_allclose(actual, desired, rtol=rtol, atol=atol)
 
 
 def put(big_frame, small_frame, y, x):
@@ -33,15 +28,16 @@ def put_center(big_frame, small_frame, y, x):
     return put(big_frame, small_frame, y-offs_y, x-offs_x)
 
 
-@pytest.mark.parametrize("psfsize", [6, 7], ids=lambda x: "psf{}".format(x))
-@pytest.mark.parametrize("framesize", [10, 11], ids=lambda x: "fr{}".format(x))
-@pytest.mark.parametrize("y,x", [(4, 4), (4, 6), (6, 5)])
-@pytest.mark.parametrize("psf_model, fit_fkt",
-                         [
-                            pytest.param("gauss", fit_2dgaussian, id="gauss"),
-                            pytest.param("moff", fit_2dmoffat, id="moff"),
-                            pytest.param("airy", fit_2dairydisk, id="airy")
-                         ])
+@filterwarnings("ignore:The fit may be unsuccessful")
+@parametrize("psfsize", [6, 7], ids=lambda x: "psf{}".format(x))
+@parametrize("framesize", [10, 11], ids=lambda x: "fr{}".format(x))
+@parametrize("y,x", [(4, 4), (4, 6), (6, 5)])
+@parametrize("psf_model, fit_fkt",
+             [
+                 param("gauss", fit_2dgaussian, id="gauss"),
+                 param("moff", fit_2dmoffat, id="moff"),
+                 param("airy", fit_2dairydisk, id="airy")
+             ])
 def test_fit2d(psf_model, fit_fkt, y, x, framesize, psfsize):
     frame = np.zeros((framesize, framesize))
     psf = create_synth_psf(psf_model, shape=(psfsize, psfsize))
@@ -55,7 +51,7 @@ def test_fit2d(psf_model, fit_fkt, y, x, framesize, psfsize):
     if (
         (framesize % 2 == 0 and psfsize % 2 == 0) or
         (framesize % 2 == 1 and psfsize % 2 == 0)
-       ):
+    ):
         y_exp = y - 0.5
         x_exp = x - 0.5
     else:

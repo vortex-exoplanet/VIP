@@ -1,16 +1,19 @@
+"""
+Tests for metrics/fakecomp.py
+
+"""
+
 from __future__ import division, print_function, absolute_import
 
-from helpers import np, pytest
-from helpers import aarc
+__author__ = "Ralf Farkas"
 
-
-from vip_hci.metrics.fakecomp import cube_inject_companions
+from helpers import aarc, np, param, parametrize, fixture, filterwarnings
+from vip_hci.metrics.fakecomp import cube_inject_companions, normalize_psf
 
 
 # ===== utility functions
 
-
-@pytest.fixture(scope="module", params=["3D", "4D"])
+@fixture(scope="module", params=["3D", "4D"])
 def dataset(request):
     """
     Create 3D and 4D datasets for use with ``test_cube_inject_companions``.
@@ -28,12 +31,12 @@ def dataset(request):
     return cube, psf, angles
 
 
-@pytest.mark.parametrize("branches, dists",
-                         [
-                            pytest.param(1, 2, id="1br-2"),
-                            pytest.param(2, 2, id="2br-2"),
-                            pytest.param(2, [1, 2], id="2br-[1,2]")
-                         ])
+@parametrize("branches, dists",
+             [
+                param(1, 2, id="1br-2"),
+                param(2, 2, id="2br-2"),
+                param(2, [1, 2], id="2br-[1,2]")
+             ])
 def test_cube_inject_companions(dataset, branches, dists):
     """
     Verify position of injected companions, for 3D and 4D cases.

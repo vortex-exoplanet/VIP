@@ -8,7 +8,12 @@ __author__ = "Ralf Farkas"
 
 import numpy as np
 import pytest
+from pytest import mark, param, raises, fixture
 import vip_hci as vip
+import numpy as np
+
+filterwarnings = mark.filterwarnings
+parametrize = mark.parametrize
 
 
 def aarc(actual, desired, rtol=1e-5, atol=1e-6):

@@ -10,6 +10,7 @@ __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['collapse_psf_cube',
            'normalize_psf',
            'cube_inject_companions',
+           'cube_copies_with_injections',
            'frame_inject_companion']
 
 import numpy as np

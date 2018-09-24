@@ -165,7 +165,7 @@ class HCIMedianSub(HCIPostProcAlgo):
         if verbose:
             self.print_parameters()
 
-    def run(self, dataset=None, full_output=False, nproc=1, verbose=True):
+    def run(self, dataset=None, nproc=1, verbose=True):
         """ Running the HCI median subtraction algorithm for model PSF
         subtraction.
 
@@ -193,14 +193,12 @@ class HCIMedianSub(HCIPostProcAlgo):
                          dataset.fwhm, self.radius_int, self.asize,
                          self.delta_rot, self.delta_sep, self.mode,
                          self.nframes, self.imlib, self.interpolation,
-                         self.collapse, nproc, full_output, verbose)
+                         self.collapse, nproc, full_output=True,
+                         verbose=verbose)
 
-        if full_output:
-            self.cube_residuals, self.cube_residuals_der, self.frame_final = res
-            return self.cube_residuals, self.cube_residuals_der, self.frame_final
-        else:
-            self.frame_final = res
-            return self.frame_final
+
+        self.cube_residuals, self.cube_residuals_der, self.frame_final = res
+
 
 
 class HCIPca(HCIPostProcAlgo):

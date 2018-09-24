@@ -772,12 +772,13 @@ class HCIDataset(Saveable):
         Returns
         -------
         yx : list of tuple(y,x)
-            [if full_output] Pixel coordinates of the injections in the first
-            frame (and first wavelength for 4D cubes).
+            [full_output] Pixel coordinates of the injections in the first frame
+            (and first wavelength for 4D cubes). These are only the new
+            injections - all injections (from multiple calls to this function)
+            are stored in ``self.injections_yx``.
 
         """
         # TODO: support the injection of a Gaussian/Moffat kernel.
-        # TODO: return array/HCIDataset object instead?
 
         if self.angles is None:
             raise ValueError('The PA angles have not been set')
@@ -789,12 +790,19 @@ class HCIDataset(Saveable):
             if self.wavelengths is None:
                 raise ValueError('The wavelengths vector has not been set')
 
-        self.cube, yx = cube_inject_companions(self.cube, self.psfn,
-                                               self.angles, flux, self.px_scale,
-                                               rad_dists, n_branches, theta,
-                                               imlib, interpolation,
-                                               full_output=True,
-                                               verbose=verbose)
+        self.cube, yx = cube_inject_companions(
+            self.cube, self.psfn, self.angles, flux, self.px_scale,
+            rad_dists, n_branches, theta, imlib, interpolation,
+            full_output=True, verbose=verbose
+        )
+
+        if not hasattr(self, "injections_yx"):
+            self.injections_yx = []
+
+        self.injections_yx += yx
+
+        if verbose:
+            print("Coordinates of the injections stored in self.injections_yx")
 
         if full_output:
             return yx

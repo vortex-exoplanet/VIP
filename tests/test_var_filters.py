@@ -8,22 +8,17 @@ algorithms actually run.
 
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 __author__ = "Ralf Farkas"
 
-import numpy as np
-
+from helpers import aarc, np, param, parametrize
 from vip_hci.var.filters import (fft, ifft,
                                  cube_filter_iuwt,
                                  cube_filter_highpass,
                                  cube_filter_lowpass,
                                  frame_filter_highpass,
                                  frame_filter_lowpass)
-
-from helpers import aarc
-from pytest import mark, param
-parametrize = mark.parametrize
 
 
 CUBE = np.ones((5, 10, 10), dtype=float)

@@ -3,21 +3,21 @@ Tests for the post-processing pipeline, using the functional API.
 
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
+__author__ = "Ralf Farkas"
+
+from helpers import np, parametrize, fixture
 import copy
-import numpy as np
 
 import vip_hci as vip
-
-import pytest
 
 
 def print_debug(s, *args, **kwargs):
     print(("\033[34m" + s + "\033[0m").format(*args, **kwargs))
 
 
-@pytest.fixture(scope="module")
+@fixture(scope="module")
 def injected_cube_position(example_dataset):
     """
     Inject a fake companion into an example cube.
@@ -76,7 +76,7 @@ def algo_xloci(ds):
 
     return vip.leastsq.xloci(ds.cube, ds.angles, fwhm=ds.fwhm,
                              radius_int=20)  # <- speed up
-                             
+
 
 def algo_pca(ds):
     return vip.pca.pca(ds.cube, ds.angles)
@@ -151,7 +151,7 @@ def detect_max(frame, yx_exp, tolerance_percent=4):
     assert dist < tolerance, "Detected maximum does not match injection"
 
 
-@pytest.mark.parametrize("algo, make_detmap",
+@parametrize("algo, make_detmap",
                          [
                             (algo_medsub, snrmap_fast),
                             (algo_medsub, snrmap),

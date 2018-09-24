@@ -1,13 +1,18 @@
 #! /usr/bin/env python
 
-""" Module with a dictionary and variables for storing constant parameters.
+"""
+Dictionaries with telescope/instrument parameters.
 
 Usage
 -----
-from param import VLT_NACO
-VLT_NACO['diam']
 
-fwhm = lambda/diameter*206265/pxscale
+.. code:: python
+
+    from param import VLT_NACO
+    VLT_NACO['diam']
+
+    fwhm = lambda/diameter*206265/pxscale
+
 """
 
 VLT_SPHERE_IFS = {
@@ -65,14 +70,14 @@ LBT = {
     'altitude': 'LBT_ALT',                 # altitude header keyword
     'azimuth': 'LBT_AZ',                   # azimuth header keyword
     'exptime': 'EXPTIME',                  # nominal total integration time per pixel header keyword
-    'acqtime': 'ACQTIME',                  # total controller acquisition time header keyword    
+    'acqtime': 'ACQTIME',                  # total controller acquisition time header keyword
     'filter': 'LMIR_FW2'                   # filter
     }
 
 KECK_NIRC2 = {
     'plsc_narrow': 0.009942,               # plate scale [arcsec]/px, narrow camera
     'plsc_medium': 0.019829,               # plate scale [arcsec]/px, medium camera
-    'plsc_wide': 0.039686,                 # plate scale [arcsec]/px, wide camera   
+    'plsc_wide': 0.039686,                 # plate scale [arcsec]/px, wide camera
     'latitude': 19.82636,                  # Keck's latitude in degrees
     # header keywords
     'camera_name': 'CAMNAME'               # camera name bwt narrow, medium and wide

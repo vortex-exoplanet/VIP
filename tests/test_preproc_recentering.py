@@ -36,12 +36,14 @@ except:
 
 seed = np.random.RandomState(42)
 
+
 def resource(*args):
     try:
         import os
         return os.path.join(os.path.dirname(os.path.realpath(__file__)), *args)
-    except: # __file__ is not available
+    except Exception:  # __file__ is not available
         return os.path.join(*args)
+
 
 def shift_cube(cube, randax, randay):
     return np.array([frame_shift(cube[i], randay[i], randax[i])
@@ -53,7 +55,7 @@ def create_cube_with_gauss2d(shape=(4, 9, 9), mean=4, stddev=1):
 
     try:
         x_mean, y_mean = mean
-    except:
+    except Exception:
         x_mean = y_mean = mean
 
     gauss = models.Gaussian2D(amplitude=1, x_mean=x_mean, y_mean=y_mean,
@@ -150,7 +152,7 @@ def do_recenter(method, cube, shiftx, shifty, errormsg, mse=1e-2,
         print("\033[33merrors:\033[0m", mean_squared_error(
             shiftx, -unshiftx), mean_squared_error(shifty, -unshifty))
 
-     #===== verify error
+    #===== verify error
     assert mean_squared_error(shiftx, -unshiftx) < mse, errormsg
     assert mean_squared_error(shifty, -unshifty) < mse, errormsg
 
@@ -368,26 +370,3 @@ def test_satspots(debug=False):
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 **method_args)
 
-
-
-#                       888          888
-#       o               888          888
-#      d8b              888          888
-#     d888b         .d88888  .d88b.  88888b.  888  888  .d88b.
-# "Y888888888P"    d88" 888 d8P  Y8b 888 "88b 888  888 d88P"88b
-#   "Y88888P"      888  888 88888888 888  888 888  888 888  888
-#   d88P"Y88b      Y88b 888 Y8b.     888 d88P Y88b 888 Y88b 888
-#  dP"     "Yb      "Y88888  "Y8888  88888P"   "Y88888  "Y88888
-#                                                           888
-#                                                      Y8b d88P
-#                                                       "Y88P"
-
-# if you want to debug these tests with jupyter, comment out the following 
-# lines and use ``%run test_center.py``:
-
-
-# test_2d(debug=True)
-# test_dft(debug=True)
-# test_dft_image(debug=True)
-# test_satspots_image(debug=True)
-# test_satspots(debug=True)

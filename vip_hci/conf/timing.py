@@ -11,13 +11,16 @@ __all__ = ['time_ini', 'timing', 'time_fin']
 from datetime import datetime
 from .utils_conf import sep
 
+
 def time_ini(verbose=True):
-    """Sets and prints the time in which the script started.
-    
+    """
+    Set and print the time at which the script started.
+
     Returns
     -------
     start_time : string
         Starting time.
+
     """
     start_time = datetime.now()
     if verbose:
@@ -28,17 +31,19 @@ def time_ini(verbose=True):
 
 
 def timing(start_time):
-    """Prints the execution time of a script. It requires the initialization 
-    with the function time_ini().
+    """
+    Print the execution time of a script.
+
+    It requires the initialization  with the function time_ini().
     """
     print("Running time:  " + str(datetime.now()-start_time))
     print(sep)
 
 
 def time_fin(start_time):
-    """Returns the execution time of a script. It requires the initialization 
-    with the function time_ini().
+    """
+    Return the execution time of a script.
+
+    It requires the initialization  with the function time_ini().
     """
     return str(datetime.now()-start_time)
-
-   

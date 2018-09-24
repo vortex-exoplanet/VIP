@@ -11,6 +11,8 @@ __all__ = ['HCIDataset',
            'HCIFrame']
 
 import numpy as np
+import copy
+
 from .fits import open_fits
 from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
                       frame_shift, frame_center_satspots, frame_center_radon)
@@ -806,6 +808,34 @@ class HCIDataset(Saveable):
 
         if full_output:
             return yx
+
+    def copy(self, deep=True):
+        """
+        Create an in-memory copy of this HCIDataset.
+
+        This is especially useful when creating a 
+
+        Parameters
+        ----------
+        deep : bool, optional
+            By default, a deep copy is created. That means every (sub)attribute
+            is copied in memory. While this requires more memory, one can safely
+            modify the attributes without touching the original HCIDataset. When
+            ``deep=False``, a shallow copy of the HCIDataset is returned
+            instead. That means all attributes (e.g. ``self.cube``) point back
+            to the original object's attributes. Pay attention when modifying
+            such a shallow copy!
+
+        Returns
+        -------
+        new_dataset : HCIDataset
+            (deep) copy of this HCIDataset.
+
+        """
+        if deep:
+            return copy.deepcopy(self)
+        else:
+            return copy.copy(self)
 
     def load_angles(self, angles, hdu=0):
         """ Loads the PA vector from a FITS file. It is possible to specify the

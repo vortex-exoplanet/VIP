@@ -6,21 +6,22 @@ Phase_function class definition
 from __future__ import division, print_function
 
 __author__ = 'Julien Milli'
-__all__ = [] #['create_fakedisk_cube']
+__all__ = []
 
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
-class Phase_function:
-    """This class represents the scattering phase function (spf). 
+
+class Phase_function(object):
+    """ This class represents the scattering phase function (spf).
     It contains the attribute phase_function_calc that implements either a 
     single Henyey Greenstein phase function, a double Heyney Greenstein, 
     or any custom function (data interpolated from 
     an input list of phi, spf(phi)).
     """
     
-    def __init__(self,spf_dico={'name':'HG','g':0.,'polar':False}):
+    def __init__(self, spf_dico={'name': 'HG', 'g': 0., 'polar': False}):
         """
         Constructor of the Phase_function class. It checks whether the spf_dico
         contains a correct name and sets the attribute phase_function_calc
@@ -28,24 +29,30 @@ class Phase_function:
         Parameters
         ----------
         spf_dico :  dictionnary
-            Parameters describing the scattering phase function to be implemented.
-            By default, an isotropic phase function is implemented. 
-            It should at least contain the key "name" chosen between 'HG' (single Henyey 
-            Greenstein), 'DoubleHG' (double Heyney Greenstein) or
+            Parameters describing the scattering phase function to be
+            implemented. By default, an isotropic phase function is implemented.
+            It should at least contain the key "name" chosen between 'HG'
+            (single Henyey Greenstein), 'DoubleHG' (double Heyney Greenstein) or
             'interpolated' (custom function). 
             The parameter "polar" enables to switch on the polarisation (if set 
             to True, the default is False). In this case it assumes a Rayleigh
-            polarised fraction (1-(cos phi)^2) / (1+(cos phi)^2)            
+            polarised fraction (1-(cos phi)^2) / (1+(cos phi)^2).
         """
         if not isinstance(spf_dico,dict):
-            raise TypeError('The parameters describing the phase function must be a Python dictionnary')
+            msg = 'The parameters describing the phase function must be a ' \
+                  'Python dictionnary'
+            raise TypeError(msg)
         if 'name' not in spf_dico.keys():
-            raise TypeError('The dictionnary describing the phase function must contain the key "name"')
+            msg = 'The dictionnary describing the phase function must contain' \
+                  ' the key "name"'
+            raise TypeError(msg)
         self.type = spf_dico['name']
         if 'polar' not in spf_dico.keys():
-            self.polar=False
-        elif not isinstance(spf_dico['polar'],bool):
-            raise TypeError('The dictionnary describing the polarisation must be a boolean')
+            self.polar = False
+        elif not isinstance(spf_dico['polar'], bool):
+            msg = 'The dictionnary describing the polarisation must be a ' \
+                  'boolean'
+            raise TypeError(msg)
         else: 
             self.polar = spf_dico['polar']
         if self.type == 'HG':
@@ -55,24 +62,26 @@ class Phase_function:
         elif self.type == 'interpolated':
             self.phase_function_calc = Interpolated_SPF(spf_dico)
         else:
-            raise TypeError('Type of phase function not understood: {0:s}'.format(self.type))
+            msg = 'Type of phase function not understood: {0:s}'
+            raise TypeError(msg.format(self.type))
                 
-    def compute_phase_function_from_cosphi(self,cos_phi):
+    def compute_phase_function_from_cosphi(self, cos_phi):
         """
-        Compute the phase function at (a) specific scattering scattering angle(s) 
-        phi. The argument is not phi but cos(phi) for optimization reasons.
+        Compute the phase function at (a) specific scattering scattering
+        angle(s) phi. The argument is not phi but cos(phi) for optimization
+        reasons.
 
         Parameters
         ----------
         cos_phi : float or array
-            cosine of the scattering angle(s) at which the scattering function must
-            be calculated.
+            cosine of the scattering angle(s) at which the scattering function
+            must be calculated.
         """
+        phf = self.phase_function_calc.compute_phase_function_from_cosphi(cos_phi)
         if self.polar:
-            return (1-cos_phi**2)/(1+cos_phi**2) * \
-                self.phase_function_calc.compute_phase_function_from_cosphi(cos_phi)
+            return (1-cos_phi**2)/(1+cos_phi**2) * phf
         else:
-            return self.phase_function_calc.compute_phase_function_from_cosphi(cos_phi)
+            return phf
 
     def print_info(self):
         """
@@ -90,28 +99,29 @@ class Phase_function:
         """
         Plots the scattering phase function
         """
-        phi = np.arange(0,180,1)
+        phi = np.arange(0, 180, 1)
+        phase_func = self.compute_phase_function_from_cosphi(np.cos(np.deg2rad(phi)))
         if self.polar:
-            phase_func = (1-np.cos(np.deg2rad(phi))**2)/(1+np.cos(np.deg2rad(phi))**2) * \
-                self.compute_phase_function_from_cosphi(np.cos(np.deg2rad(phi)))
-        else:
-            phase_func = self.compute_phase_function_from_cosphi(np.cos(np.deg2rad(phi)))
+            phase_func = (1-np.cos(np.deg2rad(phi))**2) / \
+                         (1+np.cos(np.deg2rad(phi))**2) * phase_func
+
         plt.close(0)
         plt.figure(0)
-        plt.plot(phi,phase_func)
+        plt.plot(phi, phase_func)
         plt.xlabel('Scattering phase angle in degrees')
         plt.ylabel('Scattering phase function')
         plt.grid()
-        plt.xlim(0,180)
+        plt.xlim(0, 180)
         plt.show()
 
-class HenyeyGreenstein_SPF:
+
+class HenyeyGreenstein_SPF(object):
     """
-    Implementation of a scattering phase function with a single Henyey Greenstein 
-    function. 
+    Implementation of a scattering phase function with a single Henyey
+    Greenstein function.
     """
 
-    def __init__(self,spf_dico={'g':0.}):
+    def __init__(self, spf_dico={'g':0.}):
         """
         Constructor of a Heyney Greenstein phase function.
     
@@ -123,36 +133,41 @@ class HenyeyGreenstein_SPF:
         """
         # it must contain the key "g"
         if 'g' not in spf_dico.keys():
-            raise TypeError('The dictionnary describing a Heyney Greenstein phase function must contain the key "g"')
+            raise TypeError('The dictionnary describing a Heyney Greenstein '
+                            'phase function must contain the key "g"')
         # the value of "g" must be a float or a list of floats
-        elif not isinstance(spf_dico['g'],(float,int)):
-            raise TypeError('The key "g" of a Heyney Greenstein phase function dictionnary must be a float or an integer')
+        elif not isinstance(spf_dico['g'], (float, int)):
+            raise TypeError('The key "g" of a Heyney Greenstein phase function'
+                            ' dictionnary must be a float or an integer')
         self.set_phase_function(spf_dico['g'])
 
-    def set_phase_function(self,g):
+    def set_phase_function(self, g):
         """ 
         Set the value of g
         """
         if g >= 1:
-            print('Warning the Henyey Greenstein parameter is greater than or equal to 1')
+            print('Warning the Henyey Greenstein parameter is greater than or '
+                  'equal to 1')
             print('The value was changed from {0:6.2f} to 0.99'.format(g))
-            g=0.99
+            g = 0.99
         elif g <= -1:
-            print('Warning the Henyey Greenstein parameter is smaller than or equal to -1')
+            print('Warning the Henyey Greenstein parameter is smaller than or '
+                  'equal to -1')
             print('The value was changed from {0:6.2f} to -0.99'.format(g))
-            g=-0.99            
-        self.g=float(g)
+            g = -0.99
+        self.g = float(g)
         
-    def compute_phase_function_from_cosphi(self,cos_phi):
+    def compute_phase_function_from_cosphi(self, cos_phi):
         """
-        Compute the phase function at (a) specific scattering scattering angle(s) 
-        phi. The argument is not phi but cos(phi) for optimization reasons.
+        Compute the phase function at (a) specific scattering scattering
+        angle(s) phi. The argument is not phi but cos(phi) for optimization
+        reasons.
 
         Parameters
         ----------
         cos_phi : float or array
-            cosine of the scattering angle(s) at which the scattering function must
-            be calculated.
+            cosine of the scattering angle(s) at which the scattering function
+            must be calculated.
         """
         return 1./(4*np.pi)*(1-self.g**2)/(1+self.g**2-2*self.g*cos_phi)**(3./2.)         
 
@@ -162,31 +177,42 @@ class HenyeyGreenstein_SPF:
         """
         print('Heynyey Greenstein coefficient: {0:.2f}'.format(self.g))
 
-class DoubleHenyeyGreenstein_SPF:
+
+class DoubleHenyeyGreenstein_SPF(object):
     """
-    Implementation of a scattering phase function with a double Henyey Greenstein 
-    function. 
+    Implementation of a scattering phase function with a double Henyey
+    Greenstein function.
     """
     
-    def __init__(self,spf_dico={'g':[0.5,-0.3],'weight':0.7}):
+    def __init__(self, spf_dico={'g': [0.5,-0.3], 'weight': 0.7}):
         """
         """        
         # it must contain the key "g"
         if 'g' not in spf_dico.keys():
-            raise TypeError('The dictionnary describing a Heyney Greenstein phase function must contain the key "g"')
+            raise TypeError('The dictionnary describing a Heyney Greenstein'
+                            ' phase function must contain the key "g"')
         # the value of "g" must be a list of floats
         elif not isinstance(spf_dico['g'],(list,tuple,np.ndarray)):
-            raise TypeError('The key "g" of a Heyney Greenstein phase function dictionnary must be  a list of floats')
+            raise TypeError('The key "g" of a Heyney Greenstein phase '
+                            'function dictionnary must be  a list of floats')
         # it must contain the key "weight"
         if 'weight' not in spf_dico.keys():
-                raise TypeError('The dictionnary describing a multiple Henyey Greenstein phase function must contain the key "weight"')
+                raise TypeError('The dictionnary describing a multiple Henyey '
+                                'Greenstein phase function must contain the '
+                                'key "weight"')
         # the value of "weight" must be a list of floats
-        elif not isinstance(spf_dico['weight'],(float,int)):
-            raise TypeError('The key "weight" of a Heyney Greenstein phase function dictionnary must be a float (weight of the first HG coefficient between 0 and 1)')
+        elif not isinstance(spf_dico['weight'], (float, int)):
+            raise TypeError('The key "weight" of a Heyney Greenstein phase '
+                            'function dictionnary must be a float (weight of '
+                            'the first HG coefficient between 0 and 1)')
         elif spf_dico['weight']<0 or spf_dico['weight']>1:
-            raise ValueError('The key "weight" of a Heyney Greenstein phase function dictionnary must be between 0 and 1. It corresponds to the weight of the first HG coefficient')            
+            raise ValueError('The key "weight" of a Heyney Greenstein phase'
+                             ' function dictionnary must be between 0 and 1. It'
+                             ' corresponds to the weight of the first HG '
+                             'coefficient')
         if len(spf_dico['g']) != 2:
-            raise TypeError('The keys "weight" and "g" must contain the same number of elements')
+            raise TypeError('The keys "weight" and "g" must contain the same'
+                            ' number of elements')
         self.g = spf_dico['g']
         self.weight = spf_dico['weight']   
 
@@ -194,48 +220,56 @@ class DoubleHenyeyGreenstein_SPF:
         """
         Prints the value of the HG coefficients and weights
         """
-        print('Heynyey Greenstein first component : coeff {0:.2f} , weight {1:.1f}%'.format(self.g[0],self.weight*100))
-        print('Heynyey Greenstein second component: coeff {0:.2f} , weight {1:.1f}%'.format(self.g[1],(1-self.weight)*100.))
+        print('Heynyey Greenstein first component : coeff {0:.2f} , '
+              'weight {1:.1f}%'.format(self.g[0], self.weight*100))
+        print('Heynyey Greenstein second component: coeff {0:.2f} , '
+              'weight {1:.1f}%'.format(self.g[1], (1-self.weight)*100.))
 
-    def compute_singleHG_from_cosphi(self,g,cos_phi):
+    def compute_singleHG_from_cosphi(self, g, cos_phi):
         """
-        Compute a single Heyney Greenstein phase function at (a) specific scattering scattering angle(s) 
-        phi. The argument is not phi but cos(phi) for optimization reasons.
+        Compute a single Heyney Greenstein phase function at (a) specific
+        scattering scattering angle(s) phi. The argument is not phi but cos(phi)
+        for optimization reasons.
 
         Parameters
         ----------
         g : float
             Heyney Greenstein coefficient
         cos_phi : float or array
-            cosine of the scattering angle(s) at which the scattering function must
-            be calculated.
+            cosine of the scattering angle(s) at which the scattering function
+            must be calculated.
         """
         return 1./(4*np.pi)*(1-g**2)/(1+g**2-2*g*cos_phi)**(3./2.)         
 
     def compute_phase_function_from_cosphi(self,cos_phi):
         """
-        Compute the phase function at (a) specific scattering scattering angle(s) 
-        phi. The argument is not phi but cos(phi) for optimization reasons.
+        Compute the phase function at (a) specific scattering scattering
+        angle(s) phi. The argument is not phi but cos(phi) for optimization
+        reasons.
 
         Parameters
         ----------
         cos_phi : float or array
-            cosine of the scattering angle(s) at which the scattering function must
-            be calculated.
+            cosine of the scattering angle(s) at which the scattering function
+            must be calculated.
         """
-        return self.weight * self.compute_singleHG_from_cosphi(self.g[0],cos_phi) + \
-                (1-self.weight) * self.compute_singleHG_from_cosphi(self.g[1],cos_phi)
+        return self.weight * self.compute_singleHG_from_cosphi(self.g[0],
+                                                               cos_phi) + \
+                (1-self.weight) * self.compute_singleHG_from_cosphi(self.g[1],
+                                                                    cos_phi)
 
-class Interpolated_SPF:
+
+class Interpolated_SPF(object):
     """
     Custom implementation of a scattering phase function by providing a list of 
     scattering phase angles and corresponding values of the phase function. 
     """
     
-    def __init__(self,spf_dico={'phi':\
-                np.array([  0,  18,  36,  54,  72,  90, 108, 126, 144, 162]),\
-                'spf':np.array([3.580, 0.703, 0.141, 0.0489, 0.0233,\
-                                0.0136, 0.0091, 0.0069, 0.0056,0.005])}):
+    def __init__(self, spf_dico={'phi':np.array([  0,  18,  36,  54,  72,  90,
+                                                   108, 126, 144, 162]),
+                                 'spf':np.array([3.580, 0.703, 0.141, 0.0489,
+                                                 0.0233, 0.0136, 0.0091, 0.0069,
+                                                 0.0056,0.005])}):
         """
         Constructor of the Interpolated_SPF class. It checks whether the spf_dico
         contains the keys 'phi' and 'spf'
@@ -248,26 +282,32 @@ class Interpolated_SPF:
         """
         for key in ['phi','spf']:
             if key not in spf_dico.keys():
-                raise TypeError('The dictionnary describing a "interpolated" phase function must contain the key "{0:s}"'.format(key))
+                raise TypeError('The dictionnary describing a '
+                                '"interpolated" phase function must contain '
+                                'the key "{0:s}"'.format(key))
             elif isinstance(spf_dico[key],(list,tuple,np.ndarray)):
-                raise TypeError('The key "{0:s}" of a "interpolated" phase function dictionnary must be a list, array or tuple'.format(key))
+                raise TypeError('The key "{0:s}" of a "interpolated" phase'
+                                ' function dictionnary must be a list, array'
+                                ' or tuple'.format(key))
         if len(spf_dico['phi']) != len(spf_dico['spf']):
-            raise TypeError('The keys "phi" and "spf" must contain the same number of elements')
+            raise TypeError('The keys "phi" and "spf" must contain the same'
+                            ' number of elements')
         self.interpolate_phase_function(spf_dico)
 
     def print_info(self):
         """
         Prints the information of the spf
         """
-        phi = np.linspace(0,180,19)
+        phi = np.linspace(0, 180, 19)
         spf = self.compute_phase_function_from_cosphi(np.cos(np.deg2rad(phi)))
-        print('Scattering angle: ',phi)
-        print('Interpolated scattering phase function: ',spf)
+        print('Scattering angle: ', phi)
+        print('Interpolated scattering phase function: ', spf)
 
-    def interpolate_phase_function(self,spf_dico):
+    def interpolate_phase_function(self, spf_dico):
         """
         Creates the function that returns the scattering phase function based
-        on the scattering angle by interpolating the values given in the dictionnary.
+        on the scattering angle by interpolating the values given in the
+        dictionnary.
     
         Parameters
         ----------
@@ -275,18 +315,20 @@ class Interpolated_SPF:
             dictionnary containing the keys "phi" (list of scattering angles)
             and "spf" (list of corresponding scattering phase function values)
         """
-        self.interpolation_function = interp1d(spf_dico['phi'],spf_dico['spf'],\
-                        kind='cubic',bounds_error=False,fill_value=np.nan)
+        self.interpolation_function = interp1d(spf_dico['phi'], spf_dico['spf'],
+                                               kind='cubic', bounds_error=False,
+                                               fill_value=np.nan)
 
-    def compute_phase_function_from_cosphi(self,cos_phi):
+    def compute_phase_function_from_cosphi(self, cos_phi):
         """
-        Compute the phase function at (a) specific scattering scattering angle(s) 
-        phi. The argument is not phi but cos(phi) for optimization reasons.
+        Compute the phase function at (a) specific scattering scattering
+        angle(s) phi. The argument is not phi but cos(phi) for optimization
+        reasons.
 
         Parameters
         ----------
         cos_phi : float or array
-            cosine of the scattering angle(s) at which the scattering function must
-            be calculated.
+            cosine of the scattering angle(s) at which the scattering function
+            must be calculated.
         """
         return self.interpolation_function(cos_phi)

@@ -78,8 +78,6 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     # ADI case
     if array.ndim == 3:
         ceny, cenx = frame_center(array[0])
-        ceny = int(ceny)
-        cenx = int(cenx)
 
         rad_dists = np.asarray(rad_dists).reshape(-1)  # forces ndim=1
 
@@ -91,8 +89,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         fc_fr = np.zeros_like(array[0])
 
         w = int(np.ceil(size_fc/2)) - 1
-        starty = ceny - w
-        startx = cenx - w
+        starty = int(ceny) - w
+        startx = int(cenx) - w
 
         # fake companion in the center of a zeros frame
         fc_fr[starty:starty+size_fc, startx:startx+size_fc] = psf_template
@@ -135,8 +133,6 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     # ADI+IFS case
     if array.ndim == 4 and psf_template.ndim == 3:
         ceny, cenx = frame_center(array[0, 0])
-        ceny = int(float(ceny))
-        cenx = int(float(cenx))
         if isinstance(rad_dists, (int, float)):
             check_coor = rad_dists
             rad_dists = np.array([rad_dists])
@@ -158,9 +154,11 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
             w = int(np.floor(size_fc/2.))
             # fake companion in the center of a zeros frame
             if (psf_template[0].shape[1] % 2) == 0:
-                fc_fr[i, ceny-w:ceny+w, cenx-w:cenx+w] = psf_template[i]
+                fc_fr[i, int(ceny)-w:int(ceny)+w,
+                      int(cenx)-w:int(cenx)+w] = psf_template[i]
             else:
-                fc_fr[i, ceny-w:ceny+w+1, cenx-w:cenx+w+1] = psf_template[i]
+                fc_fr[i, int(ceny)-w:int(ceny)+w+1,
+                      int(cenx)-w:int(cenx)+w+1] = psf_template[i]
 
         array_out = array.copy()
 

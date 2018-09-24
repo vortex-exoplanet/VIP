@@ -285,29 +285,18 @@ class HCIPca(HCIPostProcAlgo):
     def __init__(self, dataset=None, ncomp=1, ncomp2=1, svd_mode='lapack', scaling=None,
                  adimsdi='double', mask_central_px=None, source_xy=None,
                  delta_rot=1, imlib='opencv', interpolation='lanczos4',
-                 collapse='median', check_mem=True, verbose=True):
+                 collapse='median', check_mem=True, crop_ifs=True, verbose=True):
         """ """
+
+        # TODO: order/names of parameters are not consistent with ``pca`` core function
         if not isinstance(dataset, (HCIDataset, type(None))):
             raise ValueError('`dataset` must be a HCIDataset object or None')
 
-        self.dataset = dataset
-        self.svd_mode = svd_mode
-        self.ncomp = ncomp
-        self.ncomp2 = ncomp2
-        self.adimsdi = adimsdi
-        self.scaling = scaling
-        self.mask_central_px = mask_central_px
-        self.source_xy = source_xy
-        self.delta_rot = delta_rot
-        self.imlib = imlib
-        self.interpolation = interpolation
-        self.collapse = collapse
-        self.check_mem = check_mem
-
+        self.store_args(locals())
         if verbose:
             self.print_parameters()
 
-    def run(self, dataset=None, full_output=False, verbose=True, debug=False):
+    def run(self, dataset=None, nproc=1, verbose=True, debug=False):
         """ Running the HCI PCA algorithm for model PSF subtraction.
 
         Notes
@@ -315,40 +304,39 @@ class HCIPca(HCIPostProcAlgo):
         creates/sets the ``self.frame_final`` attribute, and depending on the
         parameters:
 
-        3D case:
-            - cube_reconstructed
-            - cube_residuals
-            - cube_residuals_der
-        3D case, source_xy is not None:
-            - pcs
-        4D case, adimsdi="double":
-            - cube_residuals_per_channel
-            - cube_residuals_per_channel_der
-        4D case, adimsdi="single":
-            - cube_residuals
-            - cube_residuals_resc
+            3D case:
+                cube_reconstructed
+                cube_residuals
+                cube_residuals_der
+            3D case, source_xy is not None:
+                pcs
+            4D case, adimsdi="double":
+                cube_residuals_per_channel
+                cube_residuals_per_channel_der
+            4D case, adimsdi="single":
+                cube_residuals
+                cube_residuals_resc
 
         Parameters
         ----------
+        dataset : HCIDataset, optional
+            Dataset to process. If not provided, ``self.dataset`` is used (as
+            set when initializing this object).
         full_output: bool, optional
             Whether to return the final median combined image only or with other
             intermediate arrays.
+        nproc : int, optional
+            (not used) Note that ``HCIPca`` always works in single-processing
+            mode.
         verbose : bool, optional
-            If True prints intermediate info and timing.
+            Show more output.
         debug : bool, optional
             Whether to print debug information or not.
 
         """
+        dataset = self._get_dataset(dataset, verbose)
 
-        if dataset is None:
-            dataset = self.dataset
-            if self.dataset is None:
-                raise ValueError("no dataset specified!")
-        else:
-            self.dataset = dataset
-            print("self.dataset overwritten with the one you provided.")
-
-        if self.source_xy is not None and self.fwhm is None:
+        if self.source_xy is not None and dataset.fwhm is None:
             raise ValueError('`fwhm` has not been set')
 
         res = pca(dataset.cube, dataset.angles, dataset.cuberef,
@@ -356,47 +344,34 @@ class HCIPca(HCIPostProcAlgo):
                   self.scaling, self.adimsdi, self.mask_central_px,
                   self.source_xy, self.delta_rot, dataset.fwhm, self.imlib,
                   self.interpolation, self.collapse, self.check_mem,
-                  full_output, verbose, debug)
+                  self.crop_ifs, nproc, full_output=True, verbose=verbose,
+                  debug=debug)
 
         if dataset.cube.ndim == 3:
-            if full_output:
-                if self.source_xy is not None:
-                    cuberecon, cuberes, cuberesder, frame = res
-                    self.cube_reconstructed = cuberecon
-                    self.cube_residuals = cuberes
-                    self.cube_residuals_der = cuberesder
-                    self.frame_final = frame
-                    return cuberecon, cuberes, cuberesder, frame
-                else:
-                    pcs, cuberecon, cuberes, cuberesder, frame = res
-                    self.pcs = pcs
-                    self.cube_reconstructed = cuberecon
-                    self.cube_residuals = cuberes
-                    self.cube_residuals_der = cuberesder
-                    self.frame_final = frame
-                    return pcs, cuberecon, cuberes, cuberesder, frame
-            else:
-                frame = res
+            if self.source_xy is not None:
+                cuberecon, cuberes, cuberesder, frame = res
+                self.cube_reconstructed = cuberecon
+                self.cube_residuals = cuberes
+                self.cube_residuals_der = cuberesder
                 self.frame_final = frame
-                return self.frame_final
+            else:
+                pcs, cuberecon, cuberes, cuberesder, frame = res
+                self.pcs = pcs
+                self.cube_reconstructed = cuberecon
+                self.cube_residuals = cuberes
+                self.cube_residuals_der = cuberesder
+                self.frame_final = frame
         elif dataset.cube.ndim == 4:
-            if full_output:
-                if self.adimsdi == 'double':
-                    cubereschan, cubereschander, frame = res
-                    self.cube_residuals_per_channel = cubereschan
-                    self.cube_residuals_per_channel_der = cubereschander
-                    self.frame_final = frame
-                    return cubereschan, cubereschander, frame
-                elif self.adimsdi == 'single':
-                    cuberes, cuberesresc, frame = res
-                    self.cube_residuals = cuberes
-                    self.cube_residuals_resc = cuberesresc
-                    self.frame_final = frame
-                    return cuberes, cuberesresc, frame
-            else:
-                frame = res
+            if self.adimsdi == 'double':
+                cubereschan, cubereschander, frame = res
+                self.cube_residuals_per_channel = cubereschan
+                self.cube_residuals_per_channel_der = cubereschander
                 self.frame_final = frame
-                return frame
+            elif self.adimsdi == 'single':
+                cuberes, cuberesresc, frame = res
+                self.cube_residuals = cuberes
+                self.cube_residuals_resc = cuberesresc
+                self.frame_final = frame
 
 
 

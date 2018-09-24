@@ -65,3 +65,27 @@ def test_cube_inject_companions(dataset, branches, dists):
     yx_expected = _expected(branches, dists)
 
     aarc(yx, yx_expected)
+
+
+@filterwarnings("ignore:invalid value encountered in true_divide")
+def test_normalize_psf_shapes():
+    """
+    Test if normalize_psf produces the expected shapes.
+    """
+    # `Force_odd` is True therefore `size` was set to 19
+    res_even = normalize_psf(np.ones((20, 20)), size=18)
+    res_odd = normalize_psf(np.ones((21, 21)), size=18)
+    assert res_even.shape == res_odd.shape == (19, 19)
+
+    res_even = normalize_psf(np.ones((20, 20)), size=18, force_odd=False)
+    res_odd = normalize_psf(np.ones((21, 21)), size=18, force_odd=False)
+    assert res_even.shape == res_odd.shape == (18, 18)
+
+    # set to odd size
+    res_even = normalize_psf(np.ones((20, 20)), size=19)
+    res_odd = normalize_psf(np.ones((21, 21)), size=19)
+    assert res_even.shape == res_odd.shape == (19, 19)
+
+    res_even = normalize_psf(np.ones((20, 20)), size=19, force_odd=False)
+    res_odd = normalize_psf(np.ones((21, 21)), size=19, force_odd=False)
+    assert res_even.shape == res_odd.shape == (19, 19)

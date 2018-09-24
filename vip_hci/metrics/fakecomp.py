@@ -64,8 +64,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     array_out : array_like
         Output array with the injected fake companions.
     positions : list of tuple(y, x)
-        Coordinates of the injections in the first frame (and first wavelength
-        for 4D cubes). Only returned when ``full_output=True``.
+        [full_output] Coordinates of the injections in the first frame (and
+        first wavelength for 4D cubes).
 
     """
     if array.ndim not in [3, 4]:

@@ -22,14 +22,14 @@ import numpy as np
 class HCIPostProcAlgo(BaseEstimator):
     """ Base HCI post-processing algorithm class.
     """
-    def print_parameters(self):
+    def _print_parameters(self):
         """ Printing out the parameters of the algorithm.
         """
         dicpar = self.get_params()
         for key in dicpar.keys():
             print("{}: {}".format(key, dicpar[key]))
 
-    def store_args(self, kwargs, *skip):
+    def _store_args(self, kwargs, *skip):
         # TODO: this could be integrated with sklearn's BaseEstimator methods
         for k in kwargs:
             if k == "self" or k in skip:
@@ -161,9 +161,9 @@ class HCIMedianSub(HCIPostProcAlgo):
         if not isinstance(dataset, (HCIDataset, type(None))):
             raise ValueError('`dataset` must be a HCIDataset object or None')
 
-        self.store_args(locals())
+        self._store_args(locals())
         if verbose:
-            self.print_parameters()
+            self._print_parameters()
 
     def run(self, dataset=None, nproc=1, verbose=True):
         """ Running the HCI median subtraction algorithm for model PSF
@@ -290,9 +290,9 @@ class HCIPca(HCIPostProcAlgo):
         if not isinstance(dataset, (HCIDataset, type(None))):
             raise ValueError('`dataset` must be a HCIDataset object or None')
 
-        self.store_args(locals())
+        self._store_args(locals())
         if verbose:
-            self.print_parameters()
+            self._print_parameters()
 
     def run(self, dataset=None, nproc=1, verbose=True, debug=False):
         """ Running the HCI PCA algorithm for model PSF subtraction.

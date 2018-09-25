@@ -20,8 +20,60 @@ import numpy as np
 
 
 class HCIPostProcAlgo(BaseEstimator):
-    """ Base HCI post-processing algorithm class.
     """
+    Base HCI post-processing algorithm class.
+    """
+
+    def __init__(self, locals_dict, *skip):
+        """
+        Set up the algorithm parameters.
+
+        This does multiple things:
+
+        - verify that ``dataset`` is a HCIDataset object or ``None`` (it could
+          also be provided to ``run``)
+        - store all the keywords (from ``locals_dict``) as object attributes, so
+          they can be accessed e.g. in the ``run()`` method
+        - print out the full algorithm settings (user provided parameters +
+          default ones) if ``verbose=True``
+
+        Parameters
+        ----------
+        locals_dict : dict
+            This should be ``locals()``. ``locals()`` contains *all* the
+            variables defined in the local scope. Passed to
+            ``self._store_args``.
+        *skip : list of strings
+            Passed on to ``self._store_args``. Refer to its documentation.
+
+        Examples
+        --------
+
+        .. code:: python
+
+            # when subclassing HCIPostProcAlgo, make sure you call super()
+            # with locals()! This means:
+
+            class MySuperAlgo(HCIPostProcAlgo):
+                def __init__(self, algo_param_1=42, cool=True):
+                    super(MySuperAlgo, self).__init__(locals())
+                
+                @calculates("frame")
+                def run(self, dataset=None):
+                    self.frame = 2 * self.algo_param_1
+
+        """
+
+        dataset = locals_dict.get("dataset", None)
+        if not isinstance(dataset, (HCIDataset, type(None))):
+            raise ValueError('`dataset` must be a HCIDataset object or None')
+
+        self._store_args(locals_dict, *skip)
+
+        verbose = locals_dict.get("verbose", True)
+        if verbose:
+            self._print_parameters()
+
     def _print_parameters(self):
         """ Printing out the parameters of the algorithm.
         """
@@ -157,13 +209,7 @@ class HCIMedianSub(HCIPostProcAlgo):
                  delta_rot=1, delta_sep=(0.2, 1), nframes=4, imlib='opencv',
                  interpolation='lanczos4', collapse='median',
                  verbose=True):
-        """ """
-        if not isinstance(dataset, (HCIDataset, type(None))):
-            raise ValueError('`dataset` must be a HCIDataset object or None')
-
-        self._store_args(locals())
-        if verbose:
-            self._print_parameters()
+        super(HCIMedianSub, self).__init__(locals())
 
     def run(self, dataset=None, nproc=1, verbose=True):
         """ Running the HCI median subtraction algorithm for model PSF
@@ -284,15 +330,10 @@ class HCIPca(HCIPostProcAlgo):
                  adimsdi='double', mask_central_px=None, source_xy=None,
                  delta_rot=1, imlib='opencv', interpolation='lanczos4',
                  collapse='median', check_mem=True, crop_ifs=True, verbose=True):
-        """ """
+        
+        super(HCIPca, self).__init__(locals())
 
         # TODO: order/names of parameters are not consistent with ``pca`` core function
-        if not isinstance(dataset, (HCIDataset, type(None))):
-            raise ValueError('`dataset` must be a HCIDataset object or None')
-
-        self._store_args(locals())
-        if verbose:
-            self._print_parameters()
 
     def run(self, dataset=None, nproc=1, verbose=True, debug=False):
         """ Running the HCI PCA algorithm for model PSF subtraction.

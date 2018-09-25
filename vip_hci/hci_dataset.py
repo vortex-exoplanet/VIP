@@ -582,6 +582,8 @@ class HCIDataset(Saveable):
         if self.px_scale is not None:
             print('Pixel/plate scale: {}'.format(self.px_scale))
 
+        self.injections_yx = []
+
     def collapse(self, mode='median', n=50):
         """ Collapsing the sequence into a 2d array.
 
@@ -798,9 +800,6 @@ class HCIDataset(Saveable):
             rad_dists, n_branches, theta, imlib, interpolation,
             full_output=True, verbose=verbose
         )
-
-        if not hasattr(self, "injections_yx"):
-            self.injections_yx = []
 
         self.injections_yx += yx
 

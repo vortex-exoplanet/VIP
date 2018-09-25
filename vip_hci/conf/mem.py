@@ -35,7 +35,7 @@ def check_enough_memory(input_bytes, factor=1, verbose=True):
         Scales how much memory is needed in terms of the size of input_bytes.
     """
     mem = virtual_memory()
-    load = factor*input_bytes
+    load = factor * input_bytes
     if load > mem.total:
         return False        # total physical memory is smaller than input
     if verbose:  

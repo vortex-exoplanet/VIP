@@ -33,6 +33,7 @@ from .metrics import (frame_quick_report, cube_inject_companions,
                       normalize_psf)
 
 from .conf.utils_conf import check_array, Saveable, print_precision
+from .conf.mem import check_enough_memory
 
 
 class HCIFrame(object):
@@ -810,7 +811,7 @@ class HCIDataset(Saveable):
             return yx
 
     def copies_with_injections(self, n_copies, inrad=8, outrad=12,
-                               dist_flux=("uniform", 2, 500)):
+                               dist_flux=("uniform", 2, 500), check_mem=True):
         """
         Create copies of this dataset, containing different random injections.
 
@@ -833,6 +834,10 @@ class HCIDataset(Saveable):
                 ``("normal", loc, scale)``
                     uses np.random.normal
 
+        check_mem : bool, optional
+            If True, verifies that the system has enough memory to store the
+            result.
+
         Returns
         -------
         fake_datasets : list of HCIDataset
@@ -840,13 +845,17 @@ class HCIDataset(Saveable):
 
         """
 
-        fake_datasets = []
-
+        if check_mem and not check_enough_memory(n_copies * self.get_nbytes(),
+                                                 1.5, verbose=False):
+            raise RuntimeError("copies_with_injections would require more "
+                               "memory than available.")
+        
         res = cube_copies_with_injections(self.cube, self.psf, self.angles,
                                           self.px_scale, n_copies=n_copies,
                                           inrad=inrad, outrad=outrad,
-                                          dist_flux=dist_flux)
+                                          dist_flux=dist_flux, check_mem=False)
 
+        fake_datasets = []
         for r in res:
             dsi = self.copy()
             dsi.cube = r["cube"]
@@ -856,7 +865,15 @@ class HCIDataset(Saveable):
 
         return fake_datasets
 
-    def copy(self, deep=True):
+    def get_nbytes(self):
+        """
+        Return the total number of bytes the HCIDataset consumes.
+        """
+        return sum(arr.nbytes for arr in [self.cube, self.cuberef, self.angles,
+                                          self.wavelengths, self.psf, self.psfn]
+                   if arr is not None)
+
+    def copy(self, deep=True, check_mem=True):
         """
         Create an in-memory copy of this HCIDataset.
 
@@ -873,6 +890,9 @@ class HCIDataset(Saveable):
             instead. That means all attributes (e.g. ``self.cube``) point back
             to the original object's attributes. Pay attention when modifying
             such a shallow copy!
+        check_mem : bool, optional
+            [deep=True] If True, verifies that the system has enough memory to
+            store the result.
 
         Returns
         -------
@@ -881,6 +901,11 @@ class HCIDataset(Saveable):
 
         """
         if deep:
+            if check_mem and not check_enough_memory(self.get_nbytes(), 1.5,
+                                                     verbose=False):
+                raise RuntimeError("copy would require more memory than "
+                                   "available.")
+
             return copy.deepcopy(self)
         else:
             return copy.copy(self)

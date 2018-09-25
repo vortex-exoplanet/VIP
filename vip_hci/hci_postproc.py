@@ -81,12 +81,12 @@ class HCIPostProcAlgo(BaseEstimator):
         for key in dicpar.keys():
             print("{}: {}".format(key, dicpar[key]))
 
-    def _store_args(self, kwargs, *skip):
+    def _store_args(self, locals_dict, *skip):
         # TODO: this could be integrated with sklearn's BaseEstimator methods
-        for k in kwargs:
+        for k in locals_dict:
             if k == "self" or k in skip:
                 continue
-            setattr(self, k, kwargs[k])
+            setattr(self, k, locals_dict[k])
 
     def _get_dataset(self, dataset=None, verbose=True):
         if dataset is None:

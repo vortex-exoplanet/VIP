@@ -28,7 +28,8 @@ from .var import (cube_filter_highpass, cube_filter_lowpass, mask_circle,
 from .stats import (frame_basic_stats, frame_histo_stats,
                     frame_average_radprofile, cube_basic_stats, cube_distance)
 from .metrics import (frame_quick_report, cube_inject_companions,
-                      cube_copies_with_injections, snr_ss,
+                      cube_copies_with_injections,
+                      generate_cube_copies_with_injections, snr_ss,
                       snr_peakstddev, snrmap, snrmap_fast, detection,
                       normalize_psf)
 
@@ -809,6 +810,53 @@ class HCIDataset(Saveable):
 
         if full_output:
             return yx
+
+    def generate_copies_with_injections(self, n_copies, inrad=8, outrad=12,
+                                        dist_flux=("uniform", 2, 500)):
+        """
+        Create copies of this dataset, containing different random injections.
+
+        Parameters
+        ----------
+        n_copies : int
+            This is the number of 'cube copies' returned.
+        inrad,outrad : float
+            Inner and outer radius of the injections. The actual injection
+            position is chosen randomly.
+        dist_flux : tuple('method', *params)
+            Tuple describing the flux selection. Method can be a function, the
+            ``*params`` are passed to it. Method can also be a string, for a
+            pre-defined random function:
+
+                ``("skewnormal", skew, mean, var)``
+                    uses scipy.stats.skewnorm.rvs
+                ``("uniform", low, high)``
+                    uses np.random.uniform
+                ``("normal", loc, scale)``
+                    uses np.random.normal
+
+        check_mem : bool, optional
+            If True, verifies that the system has enough memory to store the
+            result.
+
+        Yields
+        -------
+        fake_dataset : HCIDataset
+            Copy of the original HCIDataset, with injected companions.
+
+        """
+        
+        for data in generate_cube_copies_with_injections(
+            self.cube, self.psf, self.angles, self.px_scale, n_copies=n_copies,
+            inrad=inrad, outrad=outrad, dist_flux=dist_flux, check_mem=False
+        ):
+
+            dsi = self.copy()
+            dsi.cube = data["cube"]
+            dsi.injections_yx = data["position"]
+            # data["dist"], data["theta"], data["flux"] are not used.
+            
+            yield dsi
 
     def copies_with_injections(self, n_copies, inrad=8, outrad=12,
                                dist_flux=("uniform", 2, 500), check_mem=True):

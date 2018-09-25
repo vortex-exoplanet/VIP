@@ -89,6 +89,25 @@ class HCIPostProcAlgo(BaseEstimator):
             setattr(self, k, locals_dict[k])
 
     def _get_dataset(self, dataset=None, verbose=True):
+        """
+        Handle a dataset passed to ``run()``.
+
+        It is possible to specify a dataset using the constructor, or using the
+        ``run()`` function. This helper function checks that there is a dataset
+        to work with.
+
+        Parameters
+        ----------
+        dataset : HCIDataset or None, optional
+        verbose : bool, optional
+            If ``True``, a message is printed out when a previous dataset was
+            overwritten.
+
+        Returns
+        -------
+        dataset : HCIDataset
+
+        """
         if dataset is None:
             dataset = self.dataset
             if self.dataset is None:
@@ -117,8 +136,12 @@ class HCIPostProcAlgo(BaseEstimator):
             Method for the S/N map creation. The `xpx` method uses the per-pixel
             procedure of `vip_hci.metrics.snrmap`, while the `fast` method uses
             the approximation in `vip_hci.metrics.snrmap_fast`.
+        mode : {'sss', 'peakstddev'}, optional
+            [method=xpx] 'sss' uses the approach with the small sample
+            statistics penalty and 'peakstddev' uses the
+            peak(aperture)/std(annulus) version.
         nproc : int, optional
-            Number of processes.
+            Number of processes. Defaults to single-process (serial) processing.
         verbose : bool, optional
             Show more output.
 
@@ -141,24 +164,24 @@ class HCIPostProcAlgo(BaseEstimator):
         return self.snr_map
 
     def save(self, filename):
-        """ Pickling and saving it to disk.
+        """
+        Pickle the algo object and save it to disk.
+
+        Note that this also saves the associated ``self.dataset``, in a
+        non-optimal way.
         """
         pickle.dump(self, open(filename, "wb"))
 
-        # def load_res(filename):
-        #     out = pickle.load(open(filename, "rb"), encoding='latin1')
-        #     return out
-
     def run(self, dataset=None, full_output=False, nproc=1, verbose=True):
         """
-        Runs the algorithm. Should set and return `` self.frame_final``.
+        Run the algorithm. Should at least set `` self.frame_final``.
 
         Notes
         -----
-        This is the required signature of the ``run`` call. Child classes can add their
-        own keyword arguments after ``verbose`` (e.g. ``debug``) if needed.
-
+        This is the required signature of the ``run`` call. Child classes can
+        add their own keyword arguments if needed.
         """
+
         raise NotImplementedError
 
 
@@ -180,7 +203,12 @@ class HCIMedianSub(HCIPostProcAlgo):
         Factor for increasing the parallactic angle threshold, expressed in
         FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
         frame).
-    nframes : even int optional
+    delta_sep : float or tuple of floats, optional
+        The threshold separation in terms of the mean FWHM (for ADI+mSDI data).
+        If a tuple of two values is provided, they are used as the lower and
+        upper intervals for the threshold (grows as a function of the
+        separation).
+    nframes : even int, optional
         Number of frames to be used for building the optimized reference PSF
         when working in annular mode.
     imlib : {'opencv', 'skimage'}, str optional
@@ -241,7 +269,6 @@ class HCIMedianSub(HCIPostProcAlgo):
                          self.nframes, self.imlib, self.interpolation,
                          self.collapse, nproc, full_output=True,
                          verbose=verbose)
-
 
         self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 
@@ -336,18 +363,20 @@ class HCIPca(HCIPostProcAlgo):
         # TODO: order/names of parameters are not consistent with ``pca`` core function
 
     def run(self, dataset=None, nproc=1, verbose=True, debug=False):
-        """ Running the HCI PCA algorithm for model PSF subtraction.
+        """
+        Run the HCI PCA algorithm for model PSF subtraction.
 
         Notes
         -----
         creates/sets the ``self.frame_final`` attribute, and depending on the
-        parameters:
+        input parameters:
 
             3D case:
                 cube_reconstructed
                 cube_residuals
                 cube_residuals_der
-            3D case, source_xy is not None:
+            3D case, source_xy is None:
+                cube_residuals
                 pcs
             4D case, adimsdi="double":
                 cube_residuals_per_channel
@@ -361,9 +390,6 @@ class HCIPca(HCIPostProcAlgo):
         dataset : HCIDataset, optional
             Dataset to process. If not provided, ``self.dataset`` is used (as
             set when initializing this object).
-        full_output: bool, optional
-            Whether to return the final median combined image only or with other
-            intermediate arrays.
         nproc : int, optional
             (not used) Note that ``HCIPca`` always works in single-processing
             mode.

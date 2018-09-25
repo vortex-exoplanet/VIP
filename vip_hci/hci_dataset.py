@@ -777,8 +777,8 @@ class HCIDataset(Saveable):
         Returns
         -------
         yx : list of tuple(y,x)
-            [full_output] Pixel coordinates of the injections in the first frame
-            (and first wavelength for 4D cubes). These are only the new
+            [full_output=True] Pixel coordinates of the injections in the first
+            frame (and first wavelength for 4D cubes). These are only the new
             injections - all injections (from multiple calls to this function)
             are stored in ``self.injections_yx``.
 

@@ -3,17 +3,18 @@ Tests for var/shapes.py
 
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 __author__ = "Ralf Farkas"
 
-import numpy as np
-import vip_hci as vip
+from helpers import aarc, np
+from vip_hci.var.shapes import (frame_center, mask_circle, get_square,
+                                get_circle, get_annulus_segments, dist,
+                                matrix_scaling, reshape_matrix, get_ell_annulus,
+                                get_ellipse)
 
-from helpers import aarc
 
-
-pretty_odd = np.array([
+PRETTY_ODD = np.array([
     [1, 1, 1, 1, 1],
     [1, 2, 2, 2, 1],
     [1, 2, 3, 2, 1],
@@ -21,7 +22,7 @@ pretty_odd = np.array([
     [1, 1, 1, 1, 1]
 ])
 
-pretty_even = np.array([
+PRETTY_EVEN = np.array([
     [1, 1, 1, 1, 1, 1],
     [1, 2, 2, 2, 2, 1],
     [1, 2, 3, 3, 2, 1],
@@ -39,16 +40,16 @@ def test_frame_center():
     res55 = (2.0, 2.0)
 
     # 2D
-    assert vip.var.frame_center(np.zeros((4, 4))) == res44
-    assert vip.var.frame_center(np.zeros((5, 5))) == res55
+    assert frame_center(np.zeros((4, 4))) == res44
+    assert frame_center(np.zeros((5, 5))) == res55
 
     # 3D
-    assert vip.var.frame_center(np.zeros((frames, 4, 4))) == res44
-    assert vip.var.frame_center(np.zeros((frames, 5, 5))) == res55
+    assert frame_center(np.zeros((frames, 4, 4))) == res44
+    assert frame_center(np.zeros((frames, 5, 5))) == res55
 
     # 4D
-    assert vip.var.frame_center(np.zeros((nlambda, frames, 4, 4))) == res44
-    assert vip.var.frame_center(np.zeros((nlambda, frames, 5, 5))) == res55
+    assert frame_center(np.zeros((nlambda, frames, 4, 4))) == res44
+    assert frame_center(np.zeros((nlambda, frames, 5, 5))) == res55
 
 
 def test_mask_circle():
@@ -59,8 +60,8 @@ def test_mask_circle():
     ones = np.ones((size, size))
 
     # "in" and "out" should be complementary
-    res_in = vip.var.mask_circle(ones, radius=radius, mode="in")
-    res_out = vip.var.mask_circle(ones, radius=radius, mode="out")
+    res_in = mask_circle(ones, radius=radius, mode="in")
+    res_out = mask_circle(ones, radius=radius, mode="out")
     aarc(res_in+res_out, ones)
 
     # radius=2 -> central region should be 3x3 pixels = 9 pixels
@@ -68,33 +69,33 @@ def test_mask_circle():
 
 
 def test_get_square():
-    aarc(vip.var.get_square(pretty_odd, size=3, x=2, y=2),
+    aarc(get_square(PRETTY_ODD, size=3, x=2, y=2),
          np.array([[2, 2, 2],
                    [2, 3, 2],
                    [2, 2, 2]]))
 
-    aarc(vip.var.get_square(pretty_odd, size=2, x=2, y=2),
+    aarc(get_square(PRETTY_ODD, size=2, x=2, y=2),
          np.array([[2, 2, 2],
                    [2, 3, 2],
                    [2, 2, 2]]))
     # -> prints warning
 
-    aarc(vip.var.get_square(pretty_odd, size=2, x=2, y=2, force=True),
+    aarc(get_square(PRETTY_ODD, size=2, x=2, y=2, force=True),
          np.array([[2, 2],
                    [2, 3]]))
 
-    aarc(vip.var.get_square(pretty_even, size=2, x=3, y=3),
+    aarc(get_square(PRETTY_EVEN, size=2, x=3, y=3),
          np.array([[3, 3],
                   [3, 3]]))
 
-    aarc(vip.var.get_square(pretty_even, size=3, x=3, y=3),
+    aarc(get_square(PRETTY_EVEN, size=3, x=3, y=3),
          np.array([[2, 2, 2, 2],
                    [2, 3, 3, 2],
                    [2, 3, 3, 2],
                    [2, 2, 2, 2]]))
     # -> prints warning
 
-    aarc(vip.var.get_square(pretty_even, size=2, x=4, y=2, force=True),
+    aarc(get_square(PRETTY_EVEN, size=2, x=4, y=2, force=True),
          np.array([[2, 2],
                    [3, 2]]))
 
@@ -102,7 +103,7 @@ def test_get_square():
 def test_get_circle():
 
     ar = np.ones((10, 10), dtype=int)
-    aarc(vip.var.get_circle(ar, radius=4),
+    aarc(get_circle(ar, radius=4),
          np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                    [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
                    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
@@ -114,11 +115,11 @@ def test_get_circle():
                    [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]))
 
-    aarc(vip.var.get_circle(pretty_odd, radius=4, mode="val"),
+    aarc(get_circle(PRETTY_ODD, radius=4, mode="val"),
          np.array([1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 2, 3, 2, 1, 1, 2, 2,
                    2, 1, 1, 1, 1, 1, 1]))
 
-    aarc(vip.var.get_circle(pretty_even, radius=4, mode="val"),
+    aarc(get_circle(PRETTY_EVEN, radius=4, mode="val"),
          np.array([1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 2, 3, 3, 2, 1,
                    1, 2, 3, 3, 2, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1]))
 
@@ -128,7 +129,7 @@ def test_get_annulus_segments():
 
     # single segment, like the old get_annulus. Note the ``[0]``.
 
-    res = vip.var.get_annulus_segments(arr, 2, 3)[0]
+    res = get_annulus_segments(arr, 2, 3)[0]
 
     truth = (np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3,
                        3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6,
@@ -141,7 +142,7 @@ def test_get_annulus_segments():
 
     aarc(res, truth)
 
-    res = vip.var.get_annulus_segments(arr, 2, 3, mode="val")[0]
+    res = get_annulus_segments(arr, 2, 3, mode="val")[0]
     truth = np.array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
                       1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
                       1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
@@ -151,7 +152,7 @@ def test_get_annulus_segments():
 
     # multiple segments:
 
-    res = vip.var.get_annulus_segments(pretty_even, 2, 3, nsegm=2)
+    res = get_annulus_segments(PRETTY_EVEN, 2, 3, nsegm=2)
     truth = [(np.array([0, 0, 0, 1, 1, 2, 3, 4, 4, 5, 5, 5]),
               np.array([3, 4, 5, 4, 5, 5, 5, 4, 5, 3, 4, 5])),
              (np.array([0, 0, 0, 1, 1, 2, 3, 4, 4, 5, 5, 5]),
@@ -159,7 +160,7 @@ def test_get_annulus_segments():
 
     aarc(res, truth)
 
-    res = vip.var.get_annulus_segments(pretty_even, 2, 3, nsegm=3)
+    res = get_annulus_segments(PRETTY_EVEN, 2, 3, nsegm=3)
     truth = [(np.array([2, 3, 4, 4, 5, 5, 5]),
               np.array([5, 5, 4, 5, 3, 4, 5])),
              (np.array([0, 0, 0, 0, 0, 0, 1, 1, 1, 1]),
@@ -172,12 +173,12 @@ def test_get_annulus_segments():
 
     # tuple as input:
 
-    res = vip.var.get_annulus_segments((6, 6), 2, 3, nsegm=3)
+    res = get_annulus_segments((6, 6), 2, 3, nsegm=3)
     assert repr(res) == repr(truth)
 
     # masked arr:
 
-    res = vip.var.get_annulus_segments(arr, 2, 3, mode="mask")[0]
+    res = get_annulus_segments(arr, 2, 3, mode="mask")[0]
     truth = np.array([[0., 0., 0., 1., 1., 1., 1., 0., 0., 0.],
                       [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
                       [0., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
@@ -192,29 +193,29 @@ def test_get_annulus_segments():
 
     # tuple as input:
 
-    res = vip.var.get_annulus_segments((10, 10), 2, 3, mode="mask")[0]
+    res = get_annulus_segments((10, 10), 2, 3, mode="mask")[0]
     # masking a zeros array -> only zeros left!
     assert res.sum() == 0
 
 
 def test_dist():
-    assert vip.var.dist(0, 0, 1, 1) == np.sqrt(2)
-    assert vip.var.dist(1, 2, 3, 4) == 2 * np.sqrt(2)
+    assert dist(0, 0, 1, 1) == np.sqrt(2)
+    assert dist(1, 2, 3, 4) == 2 * np.sqrt(2)
 
 
 def test_get_ellipse():
     f = np.ones((6, 10))
 
     # masked array:
-    fem = vip.var.get_ellipse(f, 4, 2, 90, mode="mask")
+    fem = get_ellipse(f, 4, 2, 90, mode="mask")
     assert fem.sum() == 28  # outer region masked, 28 pixels kept
 
     # values:
-    fev = vip.var.get_ellipse(f, 4, 2, 90, mode="val")
+    fev = get_ellipse(f, 4, 2, 90, mode="val")
     assert fev.sum() == 28
 
     # indices:
-    fei = vip.var.get_ellipse(f, 4, 2, 90, mode="ind")
+    fei = get_ellipse(f, 4, 2, 90, mode="ind")
     assert fei[0].shape == fei[1].shape == (28,)
 
 
@@ -222,13 +223,13 @@ def test_get_ell_annulus():
 
     f = np.ones((15, 30))
 
-    fa = vip.var.get_ell_annulus(f, 8, 3, 90, 6, mode="mask")
+    fa = get_ell_annulus(f, 8, 3, 90, 6, mode="mask")
     assert fa.sum() == 124
 
 
 def test_reshape_matrix():
     vectorized_frames = np.array([[1, 1, 1, 2, 2, 2], [1, 2, 3, 4, 5, 6]])
-    cube = vip.var.reshape_matrix(vectorized_frames, 2, 3)
+    cube = reshape_matrix(vectorized_frames, 2, 3)
 
     assert cube.shape == (2, 2, 3)  # 2 frames of 2x3
 
@@ -247,26 +248,26 @@ def test_matrix_scaling():
     """
     m = np.array([[6, 12, 18], [0, 0, 12]], dtype=float)
 
-    res = vip.var.matrix_scaling(m, None)
+    res = matrix_scaling(m, None)
     truth = m
     aarc(res, truth)
 
-    res = vip.var.matrix_scaling(m, "temp-mean")
+    res = matrix_scaling(m, "temp-mean")
     truth = np.array([[ 3,  6,  3],
                       [-3, -6, -3]])
     aarc(res, truth)
 
-    res = vip.var.matrix_scaling(m, "spat-mean")
+    res = matrix_scaling(m, "spat-mean")
     truth = np.array([[-6,  0,  6],
                       [-4, -4,  8]])
     aarc(res, truth)
 
-    res = vip.var.matrix_scaling(m, "temp-standard")
+    res = matrix_scaling(m, "temp-standard")
     truth = np.array([[ 1,  1,  1],
                       [-1, -1, -1]])
     aarc(res, truth)
 
-    res = vip.var.matrix_scaling(m, "spat-standard")
+    res = matrix_scaling(m, "spat-standard")
     truth = np.array([[-np.sqrt(3/2), 0, np.sqrt(3/2)],
                       [-np.sqrt(1/2), -np.sqrt(1/2), np.sqrt(2)]])
     aarc(res, truth)

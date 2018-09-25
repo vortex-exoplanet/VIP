@@ -36,57 +36,6 @@ def robust_std(x):
     return median_absolute_deviation / 0.6745
 
 
-def create_distance_matrix(n, cx=None, cy=None):
-    """
-    Create matrix with euclidian distances from a reference point (cx, cy).
-
-    Parameters
-    ----------
-    n : int
-        output image shape is (n, n)
-    cx,cy : float
-        reference point. Defaults to the center.
-
-    Returns
-    -------
-    im : ndarray with shape (n, n)
-
-
-    Notes
-    -----
-    This is a simplified version of ``DISTC``, as it is used in ANDROMEDA.
-    Called in ``andromeda_core``, ``diff_images`` and ``normalize_snr``
-
-    Examples
-    --------
-    .. code:: python
-
-        # These are equivalent:
-
-        >>> tempo = _dist_circle(img_w, xcen, ycen)
-        >>> tempo = _distc(img_w, cx=xcen, cy=ycen)
-        >>> tempo = create_distance_matrix(img_w, xcen, ycen)
-
-        IDL> DIST_CIRCLE, tepo, img_w, xcen, ycen
-        IDL> ...
-
-    """
-    im = np.zeros((n, n))
-
-    if cx is None:
-        cx = (n - 1) / 2
-    if cy is None:
-        cy = (n - 1) / 2
-
-    x = (np.arange(n) - cx)**2
-    y = (np.arange(n) - cy)**2
-
-    for i in range(n):
-        im[i] = np.sqrt(x + y[i])
-
-    return im
-
-
 def idl_round(x):
     """
     Round to the *nearest* integer, half-away-from-zero.

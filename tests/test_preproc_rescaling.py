@@ -7,16 +7,12 @@ from __future__ import division, print_function
 
 __author__ = "Ralf Farkas"
 
-import numpy as np
+from helpers import np, aarc, raises, parametrize
 from vip_hci.preproc.rescaling import (cube_px_resampling,
                                        frame_px_resampling,
                                        cube_rescaling_wavelengths,
                                        check_scal_vector,
                                        _find_indices_sdi)
-
-from helpers import aarc
-from pytest import mark, raises
-parametrize = mark.parametrize
 
 
 CUBE = np.ones((10, 100, 100))

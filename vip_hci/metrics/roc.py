@@ -523,9 +523,8 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         fps = 0
 
         for iblob in segments.labels:
-
             blob_mask = (segments.data == iblob)
-            blob_area = segments.areas[iblob]
+            blob_area = segments.areas[iblob - 1]
 
             if debug:
                 plots(blob_mask, circle=[tuple(xy) for xy in injections],

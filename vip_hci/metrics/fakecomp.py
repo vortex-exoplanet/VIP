@@ -20,6 +20,7 @@ from ..preproc import cube_crop_frames, frame_shift, frame_crop, cube_shift
 from ..var import (frame_center, fit_2dgaussian, fit_2dairydisk, fit_2dmoffat,
                    get_circle, get_annulus_segments)
 from ..conf.utils_conf import print_precision, Progressbar
+from ..conf.mem import check_enough_memory
 
 
 def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
@@ -203,7 +204,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
 def cube_copies_with_injections(array, psf_template, angle_list, plsc,
                                 n_copies=100, inrad=8, outrad=12, 
-                                dist_flux=("uniform", 2, 500)):
+                                dist_flux=("uniform", 2, 500),
+                                check_mem=True):
     """
     Create multiple copies of ``array`` with different random injections.
 
@@ -241,6 +243,9 @@ def cube_copies_with_injections(array, psf_template, angle_list, plsc,
             ``("normal", loc, scale)``
                 uses np.random.normal
 
+    check_mem : bool, optional
+        If True, verifies that the system has enough memory to store the result.
+
     Returns
     -------
     fake_data : list of dict
@@ -263,6 +268,12 @@ def cube_copies_with_injections(array, psf_template, angle_list, plsc,
 
     """
     # TODO: 'mask' parameter for known companions?
+
+    if check_mem and not check_enough_memory(array.nbytes * n_copies, 1.5,
+                                             verbose=False):
+        raise RuntimeError("cube_copies_with_injections would require more "
+                           "memory than available.")
+
     
     fake_data = []
 

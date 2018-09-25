@@ -851,7 +851,7 @@ class HCIDataset(Saveable):
             dsi = self.copy()
             dsi.cube = r["cube"]
             dsi.injections_yx = r["position"]
-            datasets.append(dsi)
+            fake_datasets.append(dsi)
             # dist, theta, and flux are not stored.
 
         return fake_datasets

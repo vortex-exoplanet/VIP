@@ -37,7 +37,10 @@ def test_andromeda(example_dataset):
     global IDL_DATA
 
     out = andromeda(example_dataset.cube,
-                    angles=example_dataset.angles,
+                    angles=-example_dataset.angles,
+                    # VIP uses other PA convention than IDL version.
+                    # the IDL_DATA was created with the IDL version, so we need
+                    # to match its PA convention.
                     psf=example_dataset.psf,
                     oversampling_fact=1,
                     filtering_fraction=1,  # turn off high pass

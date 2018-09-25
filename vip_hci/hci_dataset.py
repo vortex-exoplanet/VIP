@@ -856,14 +856,12 @@ class HCIDataset(Saveable):
 
         return fake_datasets
 
-
-
-
     def copy(self, deep=True):
         """
         Create an in-memory copy of this HCIDataset.
 
-        This is especially useful when creating a 
+        This is especially useful for keeping a backup copy of the original
+        dataset before modifying if (e.g. with injections).
 
         Parameters
         ----------

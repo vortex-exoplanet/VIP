@@ -28,7 +28,7 @@ __all__ = ["andromeda"]
 import numpy as np
 
 from ..var.filters import frame_filter_highpass, cube_filter_highpass
-from ..conf.utils_conf import pool_map, fixed
+from ..conf.utils_conf import pool_imap, fixed, Progressbar
 from ..var.shapes import dist_matrix
 
 from .utils import robust_std, idl_round, idl_where
@@ -372,13 +372,16 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
          annuli_limits[-1])
 
     # ===== main loop
-    res_all = pool_map(nproc, _process_annulus,
-                       # start with outer annuli, they take longer:
-                       fixed(range(annuli_number)[::-1]),
-                       annuli_limits, roa, min_sep, oversampling_fact,
-                       angles, opt_method, multiply_gamma, psf_cube,
-                       homogeneous_variance, verbose, debug, msg="annulus",
-                       leave=False, verbose=False)
+    res_all = list(Progressbar(
+        pool_imap(
+            nproc, _process_annulus, fixed(range(annuli_number)[::-1]),
+            # (start with outer annuli, they take longer)
+            annuli_limits, roa, min_sep, oversampling_fact, angles, opt_method,
+            multiply_gamma, psf_cube, homogeneous_variance, verbose, debug,
+            msg="annulus", leave=False, verbose=False
+        ),
+        total=annuli_number
+    ))
 
     for res in res_all:
         if res is None:

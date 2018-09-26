@@ -100,6 +100,11 @@ class Saveable(object):
             else:
                 setattr(self, k, data[k])
 
+        # add non-saved, but expected attributes (backwards compatibility)
+        for exp_k in self._saved_attributes:
+            if exp_k not in data:
+                setattr(self, exp_k, None)
+
         return self
 
 

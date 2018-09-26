@@ -480,7 +480,7 @@ class HCIDataset(Saveable):
     """
 
     _saved_attributes = ["cube", "psf", "psfn", "angles", "fwhm", "wavelengths",
-                         "px_scale", "cuberef"]
+                         "px_scale", "cuberef", "injections_yx"]
 
     def __init__(self, cube, hdu=0, angles=None, wavelengths=None, fwhm=None,
                  px_scale=None, psf=None, psfn=None, cuberef=None):
@@ -584,7 +584,7 @@ class HCIDataset(Saveable):
         if self.px_scale is not None:
             print('Pixel/plate scale: {}'.format(self.px_scale))
 
-        self.injections_yx = []
+        self.injections_yx = None
 
     def collapse(self, mode='median', n=50):
         """ Collapsing the sequence into a 2d array.
@@ -802,6 +802,9 @@ class HCIDataset(Saveable):
             rad_dists, n_branches, theta, imlib, interpolation,
             full_output=True, verbose=verbose
         )
+
+        if self.injections_yx is None:
+            self.injections_yx = []
 
         self.injections_yx += yx
 

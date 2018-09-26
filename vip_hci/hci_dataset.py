@@ -475,7 +475,7 @@ class HCIDataset(Saveable):
     """
 
     _saved_attributes = ["cube", "psf", "psfn", "angles", "fwhm", "wavelengths",
-                         "px_scale"]
+                         "px_scale", "cuberef"]
 
     def __init__(self, cube, hdu=0, angles=None, wavelengths=None, fwhm=None,
                  px_scale=None, psf=None, psfn=None, cuberef=None):

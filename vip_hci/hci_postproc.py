@@ -161,7 +161,6 @@ class HCIPostProcAlgo(BaseEstimator):
         else:
             raise ValueError('`method` not recognized')
 
-        return self.snr_map
 
     def save(self, filename):
         """
@@ -172,7 +171,7 @@ class HCIPostProcAlgo(BaseEstimator):
         """
         pickle.dump(self, open(filename, "wb"))
 
-    def run(self, dataset=None, full_output=False, nproc=1, verbose=True):
+    def run(self, dataset=None, nproc=1, verbose=True):
         """
         Run the algorithm. Should at least set `` self.frame_final``.
 

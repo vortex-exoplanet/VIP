@@ -121,15 +121,10 @@ class HCIPostProcAlgo(BaseEstimator):
 
         return dataset
 
-    def get_detection_map(self):
-        """
-        used in ``EvalRoc.postprocess()``. Overwritten by methods which directly
-        output a probability map, like Andromeda.
-        """
-        return self.snr_map
-
     def make_snr_map(self, method='fast', mode='sss', nproc=1, verbose=True):
         """
+        Calculate a SNR map from ``self.frame_final``.
+
         Parameters
         ----------
         method : {'xpx', 'fast'}, str optional
@@ -144,6 +139,14 @@ class HCIPostProcAlgo(BaseEstimator):
             Number of processes. Defaults to single-process (serial) processing.
         verbose : bool, optional
             Show more output.
+
+        Notes
+        -----
+        This is needed for "classic" algorithms that produce a final residual
+        image in their ``.run()`` method. To obtain a "detection map", which can
+        be used for counting true/false positives, a SNR map has to be created.
+        For other algorithms (like ANDROMEDA) which directly create a SNR or a
+        probability map, this method should be overwritten and thus disabled.
 
         """
         if not hasattr(self, "frame_final"):
@@ -161,6 +164,7 @@ class HCIPostProcAlgo(BaseEstimator):
         else:
             raise ValueError('`method` not recognized')
 
+        self.detection_map = self.snr_map
 
     def save(self, filename):
         """

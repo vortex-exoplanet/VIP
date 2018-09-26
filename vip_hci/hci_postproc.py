@@ -9,15 +9,15 @@ from __future__ import division, print_function
 __author__ = 'Carlos Alberto Gomez Gonzalez, Ralf Farkas'
 __all__ = ['HCIMedianSub',
            'HCIPca',
-           'HCILoci']
+           'HCILoci',
+           'HCIAndromeda']
 
 from sklearn.base import BaseEstimator
 from .hci_dataset import HCIDataset
 from .medsub import median_sub
 from .metrics import snrmap_fast, snrmap
+from .andromeda import andromeda
 from .pca import pca
-import pickle
-import numpy as np
 from .leastsq import xloci
 from .conf.utils_conf import algo_calculates as calculates
 
@@ -567,3 +567,124 @@ class HCILoci(HCIPostProcAlgo):
         
         self.cube_res, self.cube_der, self.frame_final = res
 
+
+class HCIAndromeda(HCIPostProcAlgo):
+    """
+    HCI ANDROMEDA algorithm.
+
+
+    Parameters
+    ----------
+    dataset : HCIDataset object, optional
+        An HCIDataset object to be processed. Can also be passed to ``.run()``.
+    oversampling_fact : float, optional
+        Oversampling factor for the wavelength corresponding to the filter used
+        for obtaining ``cube`` (defined as the ratio between the wavelength of
+        the filter and the Shannon wavelength).
+    filtering_fraction : float, optional
+        Strength of the high-pass filter. If set to ``1``, no high-pass filter
+        is used.
+    min_sep : float, optional
+        Angular separation is assured to be above ``min_sep*lambda/D``.
+    annuli_width : float, optional
+        Annuli width on which the subtraction are performed. The same for all
+        annuli.
+    roa : float, optional
+        Ratio of the optimization area. The optimization annulus area is defined
+        by ``roa * annuli_width``.
+    opt_method : {'no', 'total', 'lsq', 'robust'}, optional
+        Method used to balance for the flux difference that exists between the
+        two subtracted annuli in an optimal way during ADI.
+    nsmooth_snr : int, optional
+        Number of pixels over which the radial robust standard deviation profile
+        of the SNR map is smoothed to provide a global trend for the SNR map
+        normalization. For ``nsmooth_snr=0`` the SNR map normalization is
+        disabled, and the positivity constraint is applied when calculating the
+        flux.
+    iwa : float, optional
+        Inner working angle / inner radius of the first annulus taken into
+        account, expressed in $\lambda/D$.
+    precision : int, optional
+        Number of shifts applied to the PSF. Passed to
+        ``calc_psf_shift_subpix`` , which then creates a 4D cube with shape
+        (precision+1, precision+1, N, N).
+    homogeneous_variance : bool, optional
+        If set, variance is treated as homogeneous and is calculated as a mean
+        of variance in each position through time.
+    multiply_gamma : bool, optional
+        Use gamma for signature computation too.
+    verbose : bool, optional
+        Print some parameter values for control.
+    """
+
+    def __init__(self, dataset=None, oversampling_fact=0.5,
+                 filtering_fraction=0.25, min_sep=0.5, annuli_width=1., roa=2.,
+                 opt_method='lsq', nsmooth_snr=18, iwa=None, owa=None, precision=50,
+                 fast=False,
+                 homogeneous_variance=True, ditimg=1.0, ditpsf=None, tnd=1.0,
+                 total=False, multiply_gamma=True,
+                 verbose=True):
+        super(HCIAndromeda, self).__init__(locals())
+
+    @calculates("final_frame", "contrast_map", "likelihood_map", "snr_map",
+                "stdcontrast_map", "snr_map_notnorm", "stdcontrast_map_notnorm",
+                "ext_radius", "detection_map")
+    def run(self, dataset=None, nproc=1, verbose=True):
+        """
+        Run the ANDROMEDA algorithm for model PSF subtraction.
+
+        Parameters
+        ----------
+        dataset : HCIDataset, optional
+            Dataset to process. If not provided, ``self.dataset`` is used (as
+            set when initializing this object).
+        nproc : int, optional
+            Number of processes to use.
+        verbose : bool, optional
+            Print some parameter values for control.
+
+        """
+        dataset = self._get_dataset(dataset, verbose)
+
+        res = andromeda(cube=dataset.cube,
+                        oversampling_fact=self.oversampling_fact,
+                        angles=dataset.angles, psf=dataset.psf,
+                        filtering_fraction=self.filtering_fraction,
+                        min_sep=self.min_sep, annuli_width=self.annuli_width,
+                        roa=self.roa, opt_method=self.opt_method,
+                        nsmooth_snr=self.nsmooth_snr, iwa=self.iwa,
+                        owa=self.owa,
+                        precision=self.precision, fast=self.fast,
+                        homogeneous_variance=self.homogeneous_variance, 
+                        ditimg=self.ditimg, ditpsf=self.ditpsf, tnd=self.tnd,
+                        total=self.total,
+                        multiply_gamma=self.multiply_gamma, nproc=nproc,
+                        verbose=verbose)
+
+        self.contrast_map = res[0]
+        self.likelihood_map = res[5]
+        self.ext_radius = res[6]
+
+        # normalized/not normalized depending on nsmooth:
+        self.snr_map = res[2]
+        self.stdcontrast_map = res[4]
+        if self.nsmooth_snr != 0:
+            self.snr_map_notnorm = res[1]
+            self.stdcontrast_map_notnorm = res[3]
+
+        # general attributes:
+        self.final_frame = self.contrast_map
+        self.detection_map = self.snr_map
+
+    def make_snr_map(self, *args, **kwargs):
+        """
+        Does nothing. For Andromeda, ``snr_map`` is calculated by ``run()``.
+
+        Notes
+        -----
+        The ``@calculates`` decorator is not present in this function
+        definition, so ``self._get_calculations`` does not mark ``snr_map`` as
+        created by this function.
+
+        """
+        pass

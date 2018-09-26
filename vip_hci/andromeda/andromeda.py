@@ -290,8 +290,10 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
 
     if np.asarray(tnd).ndim == 0:  # int or float
         log("Throughput map: Homogeneous transmission: {}%", tnd * 100)
-    else:  # TODO: test if really 2d map?
+    elif np.asarray(tnd).ndim == 2:
         log("Throughput map: Inhomogeneous 2D throughput map given.")
+    else:
+        raise ValueError("Throughput `tnd` should be an float or a 2d map")
 
     if nsmooth_snr != 0 and nsmooth_snr < 2:
         raise ValueError("`nsmooth_snr` must be >= 2")

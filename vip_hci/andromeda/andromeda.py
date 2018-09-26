@@ -244,6 +244,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
             if test_id is not None:  # pairs found
                 break
 
+        # if no pairs found, the last value of test_iwa is used (=0.25)
         iwa = test_iwa
         info("iwa automatically set to {}*lambda/D", iwa)
 
@@ -319,7 +320,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     # creates new array in memory (prevent overwriting of input parameters)
     psf = psf / psf_scale_factor
 
-    # ...and spatial filterin on the PSF:
+    # ...and spatial filtering on the PSF:
     if filtering_fraction != 1:
         psf = frame_filter_highpass(psf, "hann", hann_cutoff=filtering_fraction)
 
@@ -413,8 +414,6 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
 
         ext_radius = annuli_limits[annuli_number-1] / (2*oversampling_fact)
 
-        # TODO: return value handling should be improved.
-
         return (flux * flux_factor,  # IDL RETURN
                 snr,  # snr_output
                 snr_norm,  # snr_norm_output
@@ -422,9 +421,6 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
                 stdflux_norm * flux_factor,  # IDL stddevcontrast_norm_output
                 likelihood,  # IDL likelihood_output
                 ext_radius)  # IDL ext_radius_output, [lambda/D]
-
-        # previous return values:
-        # return flux, snr_norm, likelihood, stdflux_norm, ext_radius
     else:
         ext_radius = (np.floor(annuli_limits[annuli_number]) /
                       (2*oversampling_fact))
@@ -436,6 +432,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
                 stdflux * flux_factor,  # IDL stddevcontrast_norm_output
                 likelihood,  # IDL likelihood_output
                 ext_radius)  # IDL ext_radius_output [lambda/D]
+
 
 def _process_annulus(i, annuli_limits, roa, min_sep, oversampling_fact, angles,
                      opt_method, multiply_gamma, psf_cube,
@@ -498,7 +495,7 @@ def _process_annulus(i, annuli_limits, roa, min_sep, oversampling_fact, angles,
     cube_diff, gamma, gamma_prime = res
 
     if not multiply_gamma:
-        # reset gamma & gamma_prime to 1 (they were returned by diff_images)
+        # reset gamma & gamma_prime to 1
         gamma = np.ones_like(gamma)
         gamma_prime = np.ones_like(gamma_prime)
 
@@ -714,13 +711,11 @@ def andromeda_core(diffcube, index_neg, index_pos, angles, psf_cube, rhomin,
                     patt_pos[bot[1, k]-px_ymin[k]: bot[1, k]-px_ymin[k]+npixpsf,
                              lef[1, k]-px_xmin[k]: lef[1, k]-px_xmin[k]+npixpsf
                              ] = psf_cube[subp_y[1, k], subp_x[1, k]]
-                    # TODO: should add a +1 somewhere??
 
-                    # same for the negative psf, with a multiplication by gamma!
+                    # same for the negative psf, with a multiplication by gamma
                     patt_neg[bot[0, k]-px_ymin[k]: bot[0, k]-px_ymin[k]+npixpsf,
                              lef[0, k]-px_xmin[k]: lef[0, k]-px_xmin[k]+npixpsf
                              ] = psf_cube[subp_y[0, k], subp_x[0, k]]
-                    # TODO: should add a +1 somewhere??
 
                     # subtraction between the two
                     if gamma is None:
@@ -775,8 +770,8 @@ def create_indices(angles, angmin, verbose=True):
     Parameters
     ----------
     angles : 1d array_like
-        ndarray containing the angles associated to each image. The array should
-        be monotonic
+        parallactic angles associated to each image. The array should be
+        monotonic
     angmin : float
         The minimum acceptable difference between two angles of a couple.
     verbose : bool, optional
@@ -784,11 +779,11 @@ def create_indices(angles, angmin, verbose=True):
 
     Returns
     -------
-    indices_neg, indices_pos : ndarrays or None
+    indices_neg,indices_pos : ndarrays or None
         The couples of indices, so that ``index_pos[0]`` should be paired with
         ``index_neg[0]`` and so on. Set to None if no couples can be found.
     indices_not_used : list
-        The list of the frames which were not used. This list should preferably
+        Indices fo the frames which were not used. This list should preferably
         be empty.
 
     Notes
@@ -801,6 +796,7 @@ def create_indices(angles, angmin, verbose=True):
     # make array monotonic -> increasing
     if angles[-1] < angles[0]:
         angles = -angles
+        # TODO: use VIP's angle checking methods
 
     good_angles = idl_where(angles - angles[0] >= angmin)
 
@@ -873,7 +869,7 @@ def diff_images(cube_pos, cube_neg, rint, rext, opt_method="lsq",
     -------
     cube_diff
         cube with differences, shape (nimg x N x N)
-    gamma, gamma_prime
+    gamma,gamma_prime
         arrays containing the optimization coefficient gamma and gamma'. To
         be used to compute the correct planet signatures used by the ANDROMEDA
         algorithm.
@@ -882,8 +878,8 @@ def diff_images(cube_pos, cube_neg, rint, rext, opt_method="lsq",
     -----
     - ``GN_NO`` and ``GAIN`` keywords were never used in the IDL version, so
       they were not implemented.
-    - VARIANCE_POS_INPUT, VARIANCE_NEG_INPUT, VARIANCE_TOT_OUTPUT,
-      WEIGHTS_OUTPUT were removed
+    - ``VARIANCE_POS_INPUT``, ``VARIANCE_NEG_INPUT``, ``VARIANCE_TOT_OUTPUT``,
+      ``WEIGHTS_OUTPUT`` were removed
     - The numeric ``opt_method`` from the IDL version (``1`` for ``"no"``,
       etc.) are also accepted, but discouraged. Use the strings instead.
 
@@ -1168,7 +1164,7 @@ def couronne_img(image, xcen, ycen=None, lieu=None, step=0.5, rmax=None,
     log("Computation of azimuthal values from center to rmax={}", rmax)
 
     intenmoy = np.zeros(rmax+1)
-    intenmoy[0] = image[int(ycen), int(xcen)]  # order?
+    intenmoy[0] = image[int(ycen), int(xcen)]  # TODO: verify order?
 
     tempo = dist_matrix(image.shape[0], xcen, ycen)
 

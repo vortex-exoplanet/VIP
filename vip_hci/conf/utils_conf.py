@@ -14,7 +14,8 @@ import sys
 import numpy as np
 
 import itertools as itt
-import inspect
+from inspect import getargspec
+from functools import wraps
 from multiprocessing import Pool
 
 from vip_hci import __version__
@@ -195,7 +196,7 @@ class NoProgressbar(object):
         pass
 
 
-def algo_calculates(*calculated_attributes):
+def algo_calculates_decorator(*calculated_attributes):
     """
     Decorator for HCIPostProcAlgo methods, describe what they calculate.
     
@@ -219,8 +220,8 @@ def algo_calculates(*calculated_attributes):
     
     .. code:: python
 
-        from .conf import algo_calculates as calculates
-    
+        from .conf import algo_calculates_decorator as calculates
+
         class HCIMyAlgo(HCIPostPRocAlgo):
             def __init__(self, my_algo_param):
                 self.store_args(locals())
@@ -234,13 +235,14 @@ def algo_calculates(*calculated_attributes):
 
     """
     def decorator(fkt):
+        @wraps(fkt)
         def wrapper(self, *args, **kwargs):
             # run the actual method
             res = fkt(self, *args, **kwargs)
 
             # get the kwargs the fkt sees. Note that this is a combination of
             # the *default* kwargs and the kwargs *passed* by the user
-            a = inspect.getargspec(fkt)
+            a = getargspec(fkt)
             all_kwargs = dict(zip(a.args[-len(a.defaults):], a.defaults))
             all_kwargs.update(kwargs)
             
@@ -252,10 +254,9 @@ def algo_calculates(*calculated_attributes):
             if all_kwargs.get("verbose", False):
                 self._show_attribute_help(fkt.__name__)
 
-
             return res
-        
-        # set an attribute on the wrapper so _get_calculations() can find it.
+
+        # set an attribute on the wrapper so _get_calculations() can find it:
         wrapper._calculates = calculated_attributes
         return wrapper
     return decorator

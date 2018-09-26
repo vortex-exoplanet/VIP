@@ -19,7 +19,7 @@ from .metrics import snrmap_fast, snrmap
 from .andromeda import andromeda
 from .pca import pca
 from .leastsq import xloci
-from .conf.utils_conf import algo_calculates as calculates
+from .conf.utils_conf import algo_calculates_decorator as calculates
 
 
 class HCIPostProcAlgo(BaseEstimator):

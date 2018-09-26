@@ -19,8 +19,7 @@ Based on ANDROMEDA v3.1 from 28/06/2018.
 
 """
 
-from __future__ import division, print_function
-from __future__ import absolute_import
+from __future__ import division, print_function, absolute_import
 
 __author__ = "Ralf Farkas"
 __all__ = ["andromeda"]
@@ -239,7 +238,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     if iwa is None:
         for test_iwa in [0.5, 4, 0.25]:
             # keep first IWA which produces frame pairs
-            test_ang = 2*np.arcsin(min_sep / (2*test_iwa)) * 180/np.pi
+            test_ang = np.rad2deg(2 * np.arcsin(min_sep / (2 * test_iwa)))
             test_id, _, _ = create_indices(angles, angmin=test_ang,
                                            verbose=False)
             if test_id is not None:  # pairs found

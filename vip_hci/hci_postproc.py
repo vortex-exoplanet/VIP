@@ -17,6 +17,7 @@ from .metrics import snrmap_fast, snrmap
 from .pca import pca
 import pickle
 import numpy as np
+from .conf.utils_conf import algo_calculates as calculates
 
 
 class HCIPostProcAlgo(BaseEstimator):
@@ -113,14 +114,101 @@ class HCIPostProcAlgo(BaseEstimator):
             if self.dataset is None:
                 raise ValueError("no dataset specified!")
         else:
-            self.dataset = dataset # needed for snr map generation
-            if verbose:
-                #print("self.dataset overwritten with the one you provided.")
-                # -> debug
-                pass
+            if self.dataset is not None and verbose:
+                print("a new dataset was provided to run(), all previous "
+                      "results were cleared.")
+            self.dataset = dataset
+            self._reset_results()
 
         return dataset
 
+    def _get_calculations(self):
+        """
+        Get a list of all attributes which are *calculated*.
+
+        This iterates over all the elements in an object and finds the functions
+        which were decorated with ``@calculates`` (which are identified by the
+        function attribute ``_calculates``). It then stores the calculated
+        attributes, together with the corresponding method, and returns it.
+
+        Returns
+        -------
+        calculations : dict
+            Dictionary mapping a single "calculated attribute" to the method
+            which calculates it.
+
+        """
+        calculations = {}
+        for e in dir(self):
+            try:
+                for k in getattr(getattr(self, e), "_calculates"):
+                    calculations[k] = e
+            except AttributeError:
+                pass
+
+        return calculations
+
+    def _reset_results(self):
+        """
+        Remove all calculated results from the object.
+        
+        By design, the HCIPostPRocAlgo's can be initialized without a dataset,
+        so the dataset can be provided to the ``run`` method. This makes it
+        possible to run the same algorithm on multiple datasets. In order not to
+        keep results from an older ``run`` call when working on a new dataset,
+        the stored results are reset using this function every time the ``run``
+        method is called.
+        """
+        for attr in self._get_calculations():
+            try:
+                delattr(self, attr)
+            except AttributeError:
+                pass  # attribute/result was not calculated yet. Skip.
+
+    def __getattr__(self, a):
+        """
+        ``__getattr__`` is only called when an attribute does *not* exist.
+        
+        Catching this event allows us to output proper error messages when an
+        attribute was not calculated yet.
+        """
+        calculations = self._get_calculations()
+        if a in calculations:
+            raise AttributeError("The '{}' was not calculated yet. Call '{}' "
+                                 "first.".format(a, calculations[a]))
+        else:
+            # this raises a regular AttributeError:
+            return self.__getattribute__(a)
+
+    def _show_attribute_help(self, function_name):
+        """
+        Print information about the attributes a method calculated.
+
+        This is called *automatically* when a method is decorated with
+        ``@calculates``.
+
+        Parameters
+        ----------
+        function_name : string
+            The name of the method.
+
+        """
+        calculations = self._get_calculations()
+
+        print("These attributes were just calculated:")
+        for a, f in calculations.items():
+            if hasattr(self, a) and function_name == f:
+                print("\t{}".format(a))
+        
+        not_calculated_yet = [(a, f) for a, f in calculations.items()
+                              if (f not in self._called_calculators
+                                  and not hasattr(self, a))]
+        if len(not_calculated_yet) > 0:
+            print("The following attributes can be calculated now:")
+            for a, f in not_calculated_yet:
+                print("\t{}\twith .{}()".format(a, f))
+
+    @calculates("snr_map", "detection_map")
     def make_snr_map(self, method='fast', mode='sss', nproc=1, verbose=True):
         """
         Calculate a SNR map from ``self.frame_final``.
@@ -149,9 +237,6 @@ class HCIPostProcAlgo(BaseEstimator):
         probability map, this method should be overwritten and thus disabled.
 
         """
-        if not hasattr(self, "frame_final"):
-            raise RuntimeError("`.frame_final` attribute not found. Call"
-                               "`.run()` first.")
 
         if method == 'fast':
             self.snr_map = snrmap_fast(self.frame_final, self.dataset.fwhm,
@@ -175,6 +260,7 @@ class HCIPostProcAlgo(BaseEstimator):
         """
         pickle.dump(self, open(filename, "wb"))
 
+    @calculates("frame_final")
     def run(self, dataset=None, nproc=1, verbose=True):
         """
         Run the algorithm. Should at least set `` self.frame_final``.
@@ -242,6 +328,7 @@ class HCIMedianSub(HCIPostProcAlgo):
                  verbose=True):
         super(HCIMedianSub, self).__init__(locals())
 
+    @calculates("cube_residuals", "cube_residuals_der", "frame_final")
     def run(self, dataset=None, nproc=1, verbose=True):
         """ Running the HCI median subtraction algorithm for model PSF
         subtraction.
@@ -365,6 +452,11 @@ class HCIPca(HCIPostProcAlgo):
 
         # TODO: order/names of parameters are not consistent with ``pca`` core function
 
+    @calculates("frame_final",
+                "cube_reconstructed", "cube_residuals", "cube_residuals_der",
+                "pcs",
+                "cube_residuals_per_channel", "cube_residuals_per_channel_der",
+                "cube_residuals_resc")
     def run(self, dataset=None, nproc=1, verbose=True, debug=False):
         """
         Run the HCI PCA algorithm for model PSF subtraction.

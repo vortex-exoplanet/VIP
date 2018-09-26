@@ -8,7 +8,8 @@ from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, Ralf Farkas'
 __all__ = ['HCIMedianSub',
-           'HCIPca']
+           'HCIPca',
+           'HCILoci']
 
 from sklearn.base import BaseEstimator
 from .hci_dataset import HCIDataset
@@ -17,6 +18,7 @@ from .metrics import snrmap_fast, snrmap
 from .pca import pca
 import pickle
 import numpy as np
+from .leastsq import xloci
 from .conf.utils_conf import algo_calculates as calculates
 
 
@@ -534,6 +536,34 @@ class HCIPca(HCIPostProcAlgo):
                 self.frame_final = frame
 
 
+class HCILoci(HCIPostProcAlgo):
+    """
+    HCI LOCI algorithm.
+    """
 
+    def __init__(self, dataset=None, scale_list=None, metric="manhattan",
+                 dist_threshold=90, delta_rot=0.5, delta_sep=(0.1, 1),
+                 radius_int=0, asize=4, n_segments=4, solver="lstsq", tol=1e-3,
+                 optim_scale_fact=1, adimsdi="skipadi", imlib="opencv",
+                 interpolation="lanczos4", collapse="median", verbose=True):
+        super(HCILoci, self).__init__(locals())
 
+    @calculates("frame_final", "cube_res", "cube_der")
+    def run(self, dataset=None, nproc=1, verbose=True):
+        """
+        Run the HCI LOCI algorithm for model PSF subtraction.
+
+        """
+
+        dataset = self._get_dataset(dataset, verbose)
+
+        res = xloci(dataset.cube, dataset.angles, self.scale_list, dataset.fwhm,
+                    self.metric, self.dist_threshold, self.delta_rot,
+                    self.delta_sep, self.radius_int, self.asize,
+                    self.n_segments, nproc, self.solver, self.tol,
+                    self.optim_scale_fact, self.adimsdi, self.imlib,
+                    self.interpolation, self.collapse, verbose,
+                    full_output=True)
+        
+        self.cube_res, self.cube_der, self.frame_final = res
 

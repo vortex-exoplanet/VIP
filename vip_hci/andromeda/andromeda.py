@@ -60,8 +60,11 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         the filter and the Shannon wavelength).
         IDL parameter: ``OVERSAMPLING_1_INPUT``
     angles : array_like
-        List of parallactic angles associated with each frame in ``cube``.
-        IDL parameter: ``ANGLES_INPUT``
+        List of parallactic angles associated with each frame in ``cube``. Note
+        that, compared to the IDL version, the PA convention is different: If
+        you would pass ``[1,2,3]`` to the IDL version, you should pass ``[-1,
+        -2, -3]`` to this function to obtain the same results.
+        IDL parameter: ``- ANGLES_INPUT``
     psf : 2d array_like
         The experimental PSF used to model the planet signature in the
         subtracted images. This PSF is usually a non-coronographic or saturated
@@ -214,6 +217,10 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     global CUBE  # assigned after high-pass filter
 
     # ===== verify input
+
+    # the andromeda algorithm handles PAs differently from the other algos in
+    # VIP. This normalizes the API:
+    angles = -angles
 
     frames, npix, _ = cube.shape
     npixpsf, _ = psf.shape

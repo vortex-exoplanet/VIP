@@ -204,8 +204,8 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         - variances (VARIANCE_1_INPUT, VARIANCE_2_INPUT)
 
     """
-    info = printer(verbose)
-    log = printer(debug)
+    info = print_if(verbose)
+    log = print_if(debug)
 
     global CUBE  # assigned after high-pass filter
 
@@ -459,7 +459,7 @@ def _process_annulus(i, annuli_limits, roa, min_sep, oversampling_fact, angles,
     """
     global CUBE
 
-    warn = printer(verbose, prefix="[annulus {}] WARNING: ".format(i))
+    warn = print_if(verbose, prefix="[annulus {}] WARNING: ".format(i))
 
     rhomin = annuli_limits[i]
     rhomax = annuli_limits[i+1]
@@ -612,7 +612,7 @@ def andromeda_core(diffcube, index_neg, index_pos, angles, psf_cube, rhomin,
             - this is just an empty ``DBLARR(npix, npix, kmax)``
 
     """
-    log = printer(debug, prefix="[core] ")
+    log = print_if(debug, prefix="[core] ")
 
     npairs, npix, _ = diffcube.shape
     npixpsf = psf_cube.shape[2]  # shape: (p+1, p+1, x, y)
@@ -791,7 +791,7 @@ def create_indices(angles, angmin, verbose=True):
     - ``WASTE`` flag removed, instead this function returns ``indices_not_used``
 
     """
-    warn = printer(verbose, prefix="[indices] ")
+    warn = print_if(verbose, prefix="[indices] ")
 
     # make array monotonic -> increasing
     if angles[-1] < angles[0]:
@@ -884,7 +884,7 @@ def diff_images(cube_pos, cube_neg, rint, rext, opt_method="lsq",
       etc.) are also accepted, but discouraged. Use the strings instead.
 
     """
-    log = printer(debug, prefix="[diff] ")
+    log = print_if(debug, prefix="[diff] ")
 
     nimg, npix, _ = cube_pos.shape
 
@@ -1144,7 +1144,7 @@ def couronne_img(image, xcen, ycen=None, lieu=None, step=0.5, rmax=None,
     - ``xcen`` was made a required positional argument.
 
     """
-    log = printer(debug, prefix="[couronne_img] ")
+    log = print_if(debug, prefix="[couronne_img] ")
 
     # ===== verify input
     if image.shape[0] != image.shape[1]:
@@ -1180,7 +1180,7 @@ def couronne_img(image, xcen, ycen=None, lieu=None, step=0.5, rmax=None,
     return intenmoy
 
 
-def printer(condition, indent=0, prefix=""):
+def print_if(condition, indent=0, prefix=""):
     def print_function(msg, *fmt, **kwfmt):
         if condition:
             print(" "*3*indent + prefix + msg.format(*fmt, **kwfmt))

@@ -1181,6 +1181,50 @@ def couronne_img(image, xcen, ycen=None, lieu=None, step=0.5, rmax=None,
 
 
 def print_if(condition, indent=0, prefix=""):
+    """
+    Return a function which can be used like 'print', but which is silent if the
+    ``condition`` is not met.
+
+    Parameters
+    ----------
+    condition : bool
+        The returned function only produces output if this condition is met.
+    indent : int, optional
+        Indent the printed output to a level.
+    prefix : string, optional
+        String which is prepended to the output.
+
+
+    Returns
+    -------
+    print_function : callable
+        A function which can be used as alternative to ``print``. Additional
+        arguments are used as format strings. See the examples section for usage
+        details.
+
+    Examples
+    --------
+
+    .. code:: python
+        # old:
+        if debug:
+            print("   running the algorithm with parameter {}".format(my_param))
+
+        # new:
+        log = print_if(debug, level=1)
+        log("running the algorithm with parameter {}", my_param)
+
+        # old:
+        if verbose:
+            print("cannot find a matching frame for position "
+                  "({:.3f}, {:.3f})".format(x, y))
+
+        # new:
+        info = print_if(verbose)
+        info("cannot find a matching frame for position ({:.3f}, {:.3f})", x, y)
+
+
+    """
     def print_function(msg, *fmt, **kwfmt):
         if condition:
             print(" "*3*indent + prefix + msg.format(*fmt, **kwfmt))

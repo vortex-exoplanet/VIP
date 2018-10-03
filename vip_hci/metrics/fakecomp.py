@@ -10,7 +10,6 @@ __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['collapse_psf_cube',
            'normalize_psf',
            'cube_inject_companions',
-           'cube_copies_with_injections',
            'generate_cube_copies_with_injections',
            'frame_inject_companion']
 
@@ -20,8 +19,7 @@ import photutils
 from ..preproc import cube_crop_frames, frame_shift, frame_crop, cube_shift
 from ..var import (frame_center, fit_2dgaussian, fit_2dairydisk, fit_2dmoffat,
                    get_circle, get_annulus_segments)
-from ..conf.utils_conf import print_precision, Progressbar
-from ..conf.mem import check_enough_memory
+from ..conf.utils_conf import print_precision
 
 
 def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
@@ -203,119 +201,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         return array_out
 
 
-def cube_copies_with_injections(array, psf_template, angle_list, plsc,
-                                n_copies=100, inrad=8, outrad=12, 
-                                dist_flux=("uniform", 2, 500),
-                                check_mem=True):
-    """
-    Create multiple copies of ``array`` with different random injections.
-
-    This is a wrapper around ``metrics.cube_inject_companions``, which deals
-    with multiple copies of the original data cube and generates random
-    parameters.
-
-    Parameters
-    ----------
-    array : 3d/4d array_like
-        Original input cube.
-    psf_template : 2d/3d array_like
-        Array with the normalized psf template. It should have an odd shape.
-        It's recommended to run the function ``normalize_psf`` to get a proper
-        PSF template. In the ADI+mSDI case it must be a 3d array.
-    angle_list : 1d array_like
-        List of parallactic angles, in degrees.
-    plsc : float
-        Value of the plsc in arcsec/px. Only used for printing debug output when
-        ``verbose=True``.
-    n_copies : int
-        This is the number of 'cube copies' returned.
-    inrad,outrad : float
-        Inner and outer radius of the injections. The actual injection position
-        is chosen randomly.
-    dist_flux : tuple('method', *params)
-        Tuple describing the flux selection. Method can be a function, the
-        ``*params`` are passed to it. Method can also be a string, for a
-        pre-defined random function:
-
-            ``("skewnormal", skew, mean, var)``
-                uses scipy.stats.skewnorm.rvs
-            ``("uniform", low, high)``
-                uses np.random.uniform
-            ``("normal", loc, scale)``
-                uses np.random.normal
-
-    check_mem : bool, optional
-        If True, verifies that the system has enough memory to store the result.
-
-    Returns
-    -------
-    fake_data : list of dict
-        List of length ``n_copies``. Each element is a dictionary representing a
-        copy of the original ``array``, with fake injections. The dictionary
-        keys are:
-
-            ``cube``
-                Array shaped like the input ``array``, with the fake injections.
-            ``position`` : list of tuples(y,x)
-                List containing the positions of the injected companions, as
-                (y,x) tuples.
-            ``dist`` : float
-                The distance of the injected companions, which was passed to
-                ``cube_inject_companions``.
-            ``theta`` : float, degrees
-                The initial angle, as passed to ``cube_inject_companions``.
-            ``flux`` : float
-                The flux passed to ``cube_inject_companions``.
-
-    """
-    # TODO: 'mask' parameter for known companions?
-
-    if check_mem and not check_enough_memory(array.nbytes * n_copies, 1.5,
-                                             verbose=False):
-        raise RuntimeError("cube_copies_with_injections would require more "
-                           "memory than available.")
-
-    fake_data = []
-
-    width = outrad - inrad
-    yy, xx = get_annulus_segments(array[0], inrad, width)[0]
-    num_patches = yy.shape[0]
-
-    # Defining Fluxes according to chosen distribution
-    dist_fkt = dict(skewnormal=stats.skewnorm.rvs,
-                    normal=np.random.normal,
-                    uniform=np.random.uniform).get(dist_flux[0],
-                                                   dist_flux[0])
-    fluxes = sorted(dist_fkt(*dist_flux[1:], size=n_copies))
-
-    inds_inj = np.random.randint(0, num_patches, size=n_copies)
-
-    # Injections
-    for n in Progressbar(range(n_copies), desc="injecting"):
-
-        injx = xx[inds_inj[n]] - frame_center(array[0])[1]
-        injy = yy[inds_inj[n]] - frame_center(array[0])[0]
-        dist = np.sqrt(injx**2 + injy**2)
-        theta = np.mod(np.arctan2(injy, injx) / np.pi * 180, 360)
-        
-        fake_cube, positions = cube_inject_companions(
-            array, psf_template, angle_list, plsc=plsc,
-            flevel=fluxes[n], theta=theta,
-            rad_dists=dist, n_branches=1,  # TODO: multiple injections?
-            full_output=True, verbose=False
-        )
-
-        fake_data.append(dict(
-            positions=positions,
-            dist=dist, theta=theta, flux=fluxes[n],
-            cube=fake_cube
-        ))
-    
-    return fake_data
-
-
 def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,
-                                         n_copies=100, inrad=8, outrad=12, 
+                                         n_copies=100, inrad=8, outrad=12,
                                          dist_flux=("uniform", 2, 500)):
     """
     Create multiple copies of ``array`` with different random injections.
@@ -390,13 +277,13 @@ def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,
     inds_inj = np.random.randint(0, num_patches, size=n_copies)
 
     # Injections
-    for n in n_copies: # Progressbar(range(n_copies), desc="injecting"):
+    for n in n_copies:
 
         injx = xx[inds_inj[n]] - frame_center(array[0])[1]
         injy = yy[inds_inj[n]] - frame_center(array[0])[0]
         dist = np.sqrt(injx**2 + injy**2)
         theta = np.mod(np.arctan2(injy, injx) / np.pi * 180, 360)
-        
+
         fake_cube, positions = cube_inject_companions(
             array, psf_template, angle_list, plsc=plsc,
             flevel=fluxes[n], theta=theta,

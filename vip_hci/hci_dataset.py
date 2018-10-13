@@ -11,6 +11,8 @@ __all__ = ['HCIDataset',
            'HCIFrame']
 
 import numpy as np
+import copy
+
 from .fits import open_fits
 from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
                       frame_shift, frame_center_satspots, frame_center_radon)
@@ -25,11 +27,13 @@ from .var import (cube_filter_highpass, cube_filter_lowpass, mask_circle,
                   pp_subplots)
 from .stats import (frame_basic_stats, frame_histo_stats,
                     frame_average_radprofile, cube_basic_stats, cube_distance)
-from .metrics import (frame_quick_report, cube_inject_companions, snr_ss,
+from .metrics import (frame_quick_report, cube_inject_companions,
+                      generate_cube_copies_with_injections, snr_ss,
                       snr_peakstddev, snrmap, snrmap_fast, detection,
                       normalize_psf)
 
 from .conf.utils_conf import check_array, Saveable, print_precision
+from .conf.mem import check_enough_memory
 
 
 class HCIFrame(object):
@@ -475,7 +479,7 @@ class HCIDataset(Saveable):
     """
 
     _saved_attributes = ["cube", "psf", "psfn", "angles", "fwhm", "wavelengths",
-                         "px_scale", "cuberef"]
+                         "px_scale", "cuberef", "injections_yx"]
 
     def __init__(self, cube, hdu=0, angles=None, wavelengths=None, fwhm=None,
                  px_scale=None, psf=None, psfn=None, cuberef=None):
@@ -578,6 +582,8 @@ class HCIDataset(Saveable):
         self.px_scale = px_scale
         if self.px_scale is not None:
             print('Pixel/plate scale: {}'.format(self.px_scale))
+
+        self.injections_yx = None
 
     def collapse(self, mode='median', n=50):
         """ Collapsing the sequence into a 2d array.
@@ -772,12 +778,13 @@ class HCIDataset(Saveable):
         Returns
         -------
         yx : list of tuple(y,x)
-            [if full_output] Pixel coordinates of the injections in the first
-            frame (and first wavelength for 4D cubes).
+            [full_output=True] Pixel coordinates of the injections in the first
+            frame (and first wavelength for 4D cubes). These are only the new
+            injections - all injections (from multiple calls to this function)
+            are stored in ``self.injections_yx``.
 
         """
         # TODO: support the injection of a Gaussian/Moffat kernel.
-        # TODO: return array/HCIDataset object instead?
 
         if self.angles is None:
             raise ValueError('The PA angles have not been set')
@@ -789,15 +796,114 @@ class HCIDataset(Saveable):
             if self.wavelengths is None:
                 raise ValueError('The wavelengths vector has not been set')
 
-        self.cube, yx = cube_inject_companions(self.cube, self.psfn,
-                                               self.angles, flux, self.px_scale,
-                                               rad_dists, n_branches, theta,
-                                               imlib, interpolation,
-                                               full_output=True,
-                                               verbose=verbose)
+        self.cube, yx = cube_inject_companions(
+            self.cube, self.psfn, self.angles, flux, self.px_scale,
+            rad_dists, n_branches, theta, imlib, interpolation,
+            full_output=True, verbose=verbose
+        )
+
+        if self.injections_yx is None:
+            self.injections_yx = []
+
+        self.injections_yx += yx
+
+        if verbose:
+            print("Coordinates of the injections stored in self.injections_yx")
 
         if full_output:
             return yx
+
+    def generate_copies_with_injections(self, n_copies, inrad=8, outrad=12,
+                                        dist_flux=("uniform", 2, 500)):
+        """
+        Create copies of this dataset, containing different random injections.
+
+        Parameters
+        ----------
+        n_copies : int
+            This is the number of 'cube copies' returned.
+        inrad,outrad : float
+            Inner and outer radius of the injections. The actual injection
+            position is chosen randomly.
+        dist_flux : tuple('method', *params)
+            Tuple describing the flux selection. Method can be a function, the
+            ``*params`` are passed to it. Method can also be a string, for a
+            pre-defined random function:
+
+                ``("skewnormal", skew, mean, var)``
+                    uses scipy.stats.skewnorm.rvs
+                ``("uniform", low, high)``
+                    uses np.random.uniform
+                ``("normal", loc, scale)``
+                    uses np.random.normal
+
+        check_mem : bool, optional
+            If True, verifies that the system has enough memory to store the
+            result.
+
+        Yields
+        -------
+        fake_dataset : HCIDataset
+            Copy of the original HCIDataset, with injected companions.
+
+        """
+
+        for data in generate_cube_copies_with_injections(
+            self.cube, self.psf, self.angles, self.px_scale, n_copies=n_copies,
+            inrad=inrad, outrad=outrad, dist_flux=dist_flux, check_mem=False
+        ):
+
+            dsi = self.copy()
+            dsi.cube = data["cube"]
+            dsi.injections_yx = data["position"]
+            # data["dist"], data["theta"], data["flux"] are not used.
+
+            yield dsi
+
+    def get_nbytes(self):
+        """
+        Return the total number of bytes the HCIDataset consumes.
+        """
+        return sum(arr.nbytes for arr in [self.cube, self.cuberef, self.angles,
+                                          self.wavelengths, self.psf, self.psfn]
+                   if arr is not None)
+
+    def copy(self, deep=True, check_mem=True):
+        """
+        Create an in-memory copy of this HCIDataset.
+
+        This is especially useful for keeping a backup copy of the original
+        dataset before modifying if (e.g. with injections).
+
+        Parameters
+        ----------
+        deep : bool, optional
+            By default, a deep copy is created. That means every (sub)attribute
+            is copied in memory. While this requires more memory, one can safely
+            modify the attributes without touching the original HCIDataset. When
+            ``deep=False``, a shallow copy of the HCIDataset is returned
+            instead. That means all attributes (e.g. ``self.cube``) point back
+            to the original object's attributes. Pay attention when modifying
+            such a shallow copy!
+        check_mem : bool, optional
+            [deep=True] If True, verifies that the system has enough memory to
+            store the result.
+
+        Returns
+        -------
+        new_dataset : HCIDataset
+            (deep) copy of this HCIDataset.
+
+        """
+        if deep:
+            if check_mem and not check_enough_memory(self.get_nbytes(), 1.5,
+                                                     verbose=False):
+                raise RuntimeError("copy would require more memory than "
+                                   "available.")
+
+            return copy.deepcopy(self)
+        else:
+            return copy.copy(self)
 
     def load_angles(self, angles, hdu=0):
         """ Loads the PA vector from a FITS file. It is possible to specify the

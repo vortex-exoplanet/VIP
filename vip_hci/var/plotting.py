@@ -499,10 +499,10 @@ def pp_subplots(*data, **kwargs):
                        color='white', alpha=cross_alpha)
 
         if show_center:
-            ax.axhline(cx, xmin=0, xmax=frame_size, alpha=0.5,
-                       linestyle='dashed', color='white', lw=0.8)
-            ax.axvline(cy, ymin=0, ymax=frame_size, alpha=0.5,
-                       linestyle='dashed', color='white', lw=0.8)
+            ax.axhline(cx, xmin=0, xmax=frame_size, alpha=0.3,
+                       linestyle='dashed', color='white', lw=0.6)
+            ax.axvline(cy, ymin=0, ymax=frame_size, alpha=0.3,
+                       linestyle='dashed', color='white', lw=0.6)
 
         if show_arrow:
             ax.arrow(coor_arrow[0]+arrow_length+arrow_shiftx, coor_arrow[1],

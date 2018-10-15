@@ -72,7 +72,7 @@ class Saveable(object):
     def load(cls, filename):
         try:
             data = np.load(filename)
-        except FileNotFoundError:
+        except:
             data = np.load(filename + ".npz")
 
         if "_vip_object" not in data:

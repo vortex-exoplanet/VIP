@@ -651,7 +651,7 @@ class HCIDataset(Saveable):
 
         # TODO: support 4d case, documentation
         """
-        self.cube = cube_drop_frames(self.cube, n, m, self.angles)
+        self.cube, self.angles = cube_drop_frames(self.cube, n, m, self.angles)
 
     def filter(self, method, mode, median_size=5, kernel_size=5, fwhm_size=5,
                btw_cutoff=0.2, btw_order=2, gauss_mode='conv', verbose=True):

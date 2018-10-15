@@ -1234,11 +1234,15 @@ class HCIDataset(Saveable):
             self.cube = self.cube[:, self.good_indices]
         else:
             self.cube = self.cube[self.good_indices]
-        print("New cube shape: {}".format(self.cube.shape))
+
+        if verbose:
+            print("New cube shape: {}".format(self.cube.shape))
+
         if self.angles is not None:
             self.angles = self.angles[self.good_indices]
-            msg = "New parallactic angles vector shape: {}"
-            print(msg.format(self.angles.shape))
+            if verbose:
+                msg = "New parallactic angles vector shape: {}"
+                print(msg.format(self.angles.shape))
 
     def rescale(self, scale, imlib='ndimage', interpolation='bicubic',
                 verbose=True):

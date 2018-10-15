@@ -153,7 +153,7 @@ def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
     if m > array.shape[0]:
         raise TypeError('End index must be smaller than the # of frames')
 
-    array_view = array[n+1:m+1, :, :].copy()
+    array_view = array[n:m+1, :, :].copy()
     if parallactic is not None:
         if not parallactic.ndim == 1:
             raise ValueError('Parallactic angles vector has wrong shape')

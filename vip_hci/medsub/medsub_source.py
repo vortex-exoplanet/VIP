@@ -96,13 +96,12 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
 
     Returns
     -------
+    cube_out : array_like, 3d
+        [full_output=True] The cube of residuals.
+    cube_der : array_like, 3d
+        [full_output=True] The derotated cube of residuals.
     frame : array_like, 2d
         Median combination of the de-rotated cube.
-    If full_output is True:
-    cube_out : array_like, 3d
-        The cube of residuals.
-    cube_der : array_like, 3d
-        The derotated cube of residuals.
 
     """
     global ARRAY

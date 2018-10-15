@@ -1155,32 +1155,85 @@ class HCIDataset(Saveable):
     def remove_badframes(self, method='corr', frame_ref=None, crop_size=30,
                          dist='pearson', percentile=20, stat_region='annulus',
                          inner_radius=10, width=10, top_sigma=1.0,
-                         low_sigma=1.0, window=None, plot=True, verbose=True):
-        """ Finding outlying/bad frames and slicing the cube accordingly.
+                         low_sigma=1.0, window=None, lambda_ref=0, plot=True,
+                         verbose=True):
+        """
+        Find outlying/bad frames and slice the cube accordingly.
+
+        Besides modifying ``self.cube`` and ``self.angles``, also sets a
+        ``self.good_indices`` which contain the indices of the angles which were
+        kept.
 
         Parameters
         ----------
         method : {'corr', 'pxstats'}, str optional
+            Method which is used to determine bad frames. Refer to the
+            ``preproc.badframes`` submodule for explanation of the different
+            methods.
+        frame_ref : int, 2d array or None, optional
+            [method=corr] Index of the frame that will be used as a reference or
+            2d reference array.
+        crop_size : int, optional
+            [method=corr] Size in pixels of the square subframe to be analyzed.
+        dist : {'sad','euclidean','mse','pearson','spearman'}, optional
+            [method=corr] One of the similarity or dissimilarity measures from
+            function vip_hci.stats.distances.cube_distance().
+        percentile : float, optional
+            [method=corr] The percentage of frames that will be discarded
+            [0..100].
+        stat_region : {'annulus', 'circle'}, optional
+            [method=pxstats] Whether to take the statistics from a circle or an
+            annulus.
+        inner_radius : int, optional
+            [method=pxstats] If stat_region is 'annulus' then 'in_radius' is the
+            inner radius of the annular region. If stat_region is 'circle' then
+            'in_radius' is the radius of the aperture.
+        width : int, optional
+            [method=pxstats] Size of the annulus. Ignored if mode is 'circle'.
+        top_sigma : int, optional
+            [method=pxstats] Top boundary for rejection.
+        low_sigma : int, optional
+            [method=pxstats] Lower boundary for rejection.
+        window : int, optional
+            [method=pxstats] Window for smoothing the median and getting the
+            rejection statistic.
+        lambda_ref : int, optional
+            [4D cube] Which wavelength to consider when determining bad frames
+            on a 4D cube.
+        plot : bool, optional
+            If true it plots the mean fluctuation as a function of the frames
+            and the boundaries.
+        verbose : bool, optional
+            Show debug output.
 
         """
+        if self.cube.ndim == 4:
+            test_cube = self.cube[lambda_ref]
+        else:
+            test_cube = self.cube
+
         if method == 'corr':
             if frame_ref is None:
                 print("Correlation method selected but `frame_ref` is missing")
                 print("Setting the 1st frame as the reference")
                 frame_ref = 0
 
-            self.good_indices, _ = cube_detect_badfr_correlation(self.cube,
-                                            frame_ref, crop_size, dist,
-                                            percentile, plot, verbose)
+            self.good_indices, _ = cube_detect_badfr_correlation(
+                test_cube, frame_ref, crop_size, dist, percentile, plot,
+                verbose
+            )
         elif method == 'pxstats':
-            self.good_indices, _ = cube_detect_badfr_pxstats(self.cube,
-                                            stat_region, inner_radius, width,
-                                            top_sigma, low_sigma, window, plot,
-                                            verbose)
+            self.good_indices, _ = cube_detect_badfr_pxstats(
+                test_cube, stat_region, inner_radius, width, top_sigma,
+                low_sigma, window, plot, verbose
+            )
         else:
             raise ValueError('Bad frames detection method not recognized')
 
-        self.cube = self.cube[self.good_indices]
+        if self.cube.ndim == 4:
+            self.cube = self.cube[:, self.good_indices]
+        else:
+            self.cube = self.cube[self.good_indices]
         print("New cube shape: {}".format(self.cube.shape))
         if self.angles is not None:
             self.angles = self.angles[self.good_indices]

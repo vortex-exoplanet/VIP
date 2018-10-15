@@ -218,6 +218,9 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
             if verbose:
                 timing(start_time)
 
+            cube_out = None
+            cube_der = None
+
         elif mode == 'annular':
             if verbose:
                 print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli,

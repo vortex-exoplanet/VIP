@@ -16,8 +16,8 @@ from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
                       frame_shift, frame_center_satspots, frame_center_radon)
 from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
                       cube_drop_frames, cube_detect_badfr_correlation,
-                      cube_detect_badfr_pxstats, cube_px_resampling,
-                      cube_subsample, cube_recenter_2dfit,
+                      cube_detect_badfr_pxstats, cube_detect_badfr_ellipticipy,
+                      cube_px_resampling, cube_subsample, cube_recenter_2dfit,
                       cube_recenter_satspots, cube_recenter_radon,
                       cube_recenter_dft_upsampling, cube_recenter_via_speckles)
 from .var import frame_filter_lowpass, frame_filter_highpass, frame_center
@@ -1155,8 +1155,8 @@ class HCIDataset(Saveable):
     def remove_badframes(self, method='corr', frame_ref=None, crop_size=30,
                          dist='pearson', percentile=20, stat_region='annulus',
                          inner_radius=10, width=10, top_sigma=1.0,
-                         low_sigma=1.0, window=None, lambda_ref=0, plot=True,
-                         verbose=True):
+                         low_sigma=1.0, window=None, roundlo=-0.2, roundhi=0.2,
+                         lambda_ref=0, plot=True, verbose=True):
         """
         Find outlying/bad frames and slice the cube accordingly.
 
@@ -1166,7 +1166,7 @@ class HCIDataset(Saveable):
 
         Parameters
         ----------
-        method : {'corr', 'pxstats'}, str optional
+        method : {'corr', 'pxstats', 'ellip'}, optional
             Method which is used to determine bad frames. Refer to the
             ``preproc.badframes`` submodule for explanation of the different
             methods.
@@ -1197,6 +1197,8 @@ class HCIDataset(Saveable):
         window : int, optional
             [method=pxstats] Window for smoothing the median and getting the
             rejection statistic.
+        roundlo,roundhi : float, optional
+            [method=ellip] : Lower and higher bounds for the ellipticipy.
         lambda_ref : int, optional
             [4D cube] Which wavelength to consider when determining bad frames
             on a 4D cube.
@@ -1226,6 +1228,15 @@ class HCIDataset(Saveable):
             self.good_indices, _ = cube_detect_badfr_pxstats(
                 test_cube, stat_region, inner_radius, width, top_sigma,
                 low_sigma, window, plot, verbose
+            )
+        elif method == 'ellip':
+            if self.cube.ndim == 4:
+                fwhm = self.fwhm[lambda_ref]
+            else:
+                fwhm = self.fwhm
+
+            self.good_indices, _ = cube_detect_badfr_ellipticipy(
+                test_cube, fwhm, roundlo, roundhi, verbose=verbose
             )
         else:
             raise ValueError('Bad frames detection method not recognized')

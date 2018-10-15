@@ -70,10 +70,10 @@ class Saveable(object):
 
     @classmethod
     def load(cls, filename):
-        if not filename.endswith(".npz"):
-            filename += ".npz"
-
-        data = np.load(filename)
+        try:
+            data = np.load(filename)
+        except FileNotFoundError:
+            data = np.load(filename + ".npz")
 
         if "_vip_object" not in data:
             raise RuntimeError("The file you specified is not a VIP object.")

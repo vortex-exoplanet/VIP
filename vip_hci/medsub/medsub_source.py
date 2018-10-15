@@ -39,9 +39,9 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
                nproc=1, full_output=False, verbose=True):
     """ Implementation of a median subtraction algorithm for model PSF
     subtraction in high-contrast imaging sequences. In the case of ADI, the
-    algorithm is based on [MAR06]_. The ADI+IFS method, is an extension of this
+    algorithm is based on [MAR06]_. The ADI+IFS method is an extension of this
     basic idea to multi-spectral cubes.
-    
+
     Parameters
     ----------
     cube : array_like, 3d
@@ -57,7 +57,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
     fwhm : float
         Known size of the FHWM in pixels to be used. Default is 4.
     radius_int : int, optional
-        The radius of the innermost annulus. By default is 0, if >0 then the 
+        The radius of the innermost annulus. By default is 0, if >0 then the
         central circular area is discarded.
     asize : int, optional
         The size of the annuli, in pixels.
@@ -72,7 +72,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
         separation).
     mode : {'fullfr', 'annular'}, str optional
         In ``fullfr`` mode only the median frame is subtracted, in ``annular``
-        mode also the 4 closest frames given a PA threshold (annulus-wise) are 
+        mode also the 4 closest frames given a PA threshold (annulus-wise) are
         subtracted.
     nframes : int or None, optional
         Number of frames (even value) to be used for building the optimized
@@ -89,16 +89,16 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
         processes will be set to cpu_count()/2. By default the algorithm works
         in single-process mode.
     full_output: bool, optional
-        Whether to return the final median combined image only or with other 
-        intermediate arrays. 
+        Whether to return the final median combined image only or with other
+        intermediate arrays.
     verbose : bool, optional
         If True prints to stdout intermediate info.
-        
+
     Returns
     -------
     frame : array_like, 2d
         Median combination of the de-rotated cube.
-    If full_output is True:  
+    If full_output is True:
     cube_out : array_like, 3d
         The cube of residuals.
     cube_der : array_like, 3d
@@ -107,7 +107,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
     """
     global ARRAY
     ARRAY = cube.copy()
-    
+
     if not (ARRAY.ndim == 3 or ARRAY.ndim == 4):
         raise TypeError('Input array is not a 3d or 4d array')
 
@@ -255,9 +255,9 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
         print('Done derotating and combining')
         timing(start_time)
     if full_output:
-        return cube_out, cube_der, frame 
+        return cube_out, cube_der, frame
     else:
-        return frame 
+        return frame
 
 
 def _median_subt_fr_sdi(fr, wl, n_annuli, fwhm, radius_int, annulus_width,

@@ -209,16 +209,12 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
 
         if mode == 'fullfr':
             median_frame = np.median(residuals_cube_channels, axis=0)
-            residuals_final = residuals_cube_channels - median_frame
-            residuals_final_der = cube_derotate(residuals_final, angle_list,
-                                                imlib=imlib,
-                                                interpolation=interpolation)
-            frame = cube_collapse(residuals_final_der, mode=collapse)
+            cube_out = residuals_cube_channels - median_frame
+            cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
+                                     interpolation=interpolation)
+            frame = cube_collapse(cube_der, mode=collapse)
             if verbose:
                 timing(start_time)
-
-            cube_out = None
-            cube_der = None
 
         elif mode == 'annular':
             if verbose:

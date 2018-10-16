@@ -30,28 +30,28 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     """ Algorithm where the reference PSF and the quasi-static speckle pattern
     are modeled using Principal Component Analysis. Depending on the input
     parameters this PCA function can work in ADI, RDI or SDI (IFS data) mode.
-    
+
     ADI: If neither a reference cube nor a scaling vector are provided, the
     target cube itself is used to learn the PCs and to obtain a low-rank
     approximation model PSF (star + speckles).
-    
+
     ADI + RDI: if a reference cube is provided (``cube_ref``), its PCs are used
     to reconstruct the target frames to obtain the model PSF (star + speckles).
-    
+
     ADI + SDI (IFS data): if a scaling vector is provided (``scale_list``) and
-    the cube is a 4d array [# channels, # adi-frames, Y, X], its assumed it 
+    the cube is a 4d array [# channels, # adi-frames, Y, X], its assumed it
     contains several multi-spectral ADI frames. A single or two stages PCA can
     be performed, depending on ``adimsdi``.
-    
+
     Parameters
     ----------
     cube : array_like, 3d or 4d
         Input cube (ADI or ADI+mSDI).
     angle_list : array_like, 1d
-        Corresponding parallactic angle for each frame.    
+        Corresponding parallactic angle for each frame.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    scale_list : 
+    scale_list :
         Scaling factors in case of IFS data (ADI+mSDI cube). Usually, the
         scaling factors are the central channel wavelength divided by the
         shortest wavelength in the cube (more thorough approaches can be used
@@ -94,9 +94,9 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         algorithm, where all the linear algebra computations are done on a GPU
         (through Pytorch).
     scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
-        With None, no scaling is performed on the input data before SVD. With 
-        "temp-mean" then temporal px-wise mean subtraction is done, with 
-        "spat-mean" then the spatial mean is subtracted, with "temp-standard" 
+        With None, no scaling is performed on the input data before SVD. With
+        "temp-mean" then temporal px-wise mean subtraction is done, with
+        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
         temporal mean centering plus scaling to unit variance is done and with
         "spat-standard" spatial mean centering plus scaling to unit variance is
         performed.
@@ -110,11 +110,11 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         residuals in an ADI fashion.
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
-        radius of the circular mask. 
-    source_xy : tuple of int, optional 
-        For ADI PCA, this triggers a frame rejection in the PCA library. 
+        radius of the circular mask.
+    source_xy : tuple of int, optional
+        For ADI PCA, this triggers a frame rejection in the PCA library.
         source_xy are the coordinates X,Y of the center of the annulus where the
-        PA criterion will be used to reject frames from the library. 
+        PA criterion will be used to reject frames from the library.
     delta_rot : int, optional
         Factor for tunning the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1xFHWM on each side of the considered frame).
@@ -139,18 +139,18 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         Number of processes for parallel computing. If None the number of
         processes will be set to (cpu_count()/2). Defaults to ``nproc=1``.
     full_output: bool, optional
-        Whether to return the final median combined image only or with other 
-        intermediate arrays.  
+        Whether to return the final median combined image only or with other
+        intermediate arrays.
     verbose : bool, optional
-        If True prints intermediate info and timing. 
+        If True prints intermediate info and timing.
     debug : bool, optional
         Whether to print debug information or not.
-    
+
     Returns
     -------
     frame : array_like, 2d    
         Median combination of the de-rotated/re-scaled residuals cube.
-    
+
     If full_output is True, and depending on the type of cube (ADI or ADI+mSDI),
     then several arrays will be returned, such as the residuals, de-rotated
     residuals, principal components
@@ -592,5 +592,3 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
         print('Done de-rotating and combining')
         timing(start_time)
     return pcs, recon, residuals_cube, residuals_cube_, frame
-
-

@@ -568,14 +568,13 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
             timing(start_time)
     else:
         if ncomp2 > n:
-            ncomp2 = min(ncomp2, n)
-            msg = 'Number of PCs too high (max PCs={}), using {} PCs '
-            msg += 'instead'
-            print(msg.format(n, ncomp2))
+            ncomp2 = n
+            print('Number of PCs too high, using  maximum of {} PCs '
+                  'instead'.format(n))
         if verbose:
             print('{} ADI frames'.format(n))
-            msg = 'Second PCA stage exploiting rotational variability'
-            print(msg)
+            print('Second PCA stage exploiting rotational variability')
+
         res_ifs_adi = _subtr_proj_fullfr(residuals_cube_channels, None,
                                          ncomp2, scaling, mask_center_px,
                                          debug, svd_mode, False,
@@ -597,6 +596,8 @@ def _adimsdi_doublepca_ifs(fr, ncomp, scale_list, scaling, mask_center_px,
 
     Called by _adimsdi_doublepca with pool_map.
     """
+    global ARRAY
+
     z, n, y_in, x_in = ARRAY.shape
     multispec_fr = ARRAY[:, fr, :, :]
 

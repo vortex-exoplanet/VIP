@@ -206,8 +206,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
             res_pca = _adimsdi_doublepca(cube, angle_list, scale_list, ncomp,
                                          ncomp2, scaling, mask_center_px, debug,
                                          svd_mode, imlib, interpolation,
-                                         collapse, verbose, start_time,
-                                         full_output, nproc)
+                                         collapse, verbose, start_time, nproc)
             residuals_cube_channels, residuals_cube_channels_, frame = res_pca
         elif adimsdi == 'single':
             res_pca = _adimsdi_singlepca(cube, angle_list, scale_list, ncomp,
@@ -505,7 +504,7 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
 
 def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
                        mask_center_px, debug, svd_mode, imlib, interpolation,
-                       collapse, verbose, start_time, full_output, nproc):
+                       collapse, verbose, start_time, nproc):
     """
     Handle the full-frame ADI+mSDI double PCA post-processing.
 
@@ -549,7 +548,7 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
 
     res = pool_map(nproc, _adimsdi_doublepca_ifs, fixed(range(n)), ncomp,
                    scale_list, scaling, mask_center_px, debug, svd_mode,
-                   full_output, collapse, verbose=verbose)
+                   collapse, verbose=verbose)
     residuals_cube_channels = np.array(res)
 
     if verbose:
@@ -577,8 +576,8 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
 
         res_ifs_adi = _subtr_proj_fullfr(residuals_cube_channels, None,
                                          ncomp2, scaling, mask_center_px,
-                                         debug, svd_mode, False,
-                                         full_output)
+                                         debug, svd_mode, verbose=False,
+                                         full_output=False)
         if verbose:
             print('De-rotating and combining residuals')
         der_res = cube_derotate(res_ifs_adi, angle_list, imlib=imlib,
@@ -591,7 +590,7 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
 
 
 def _adimsdi_doublepca_ifs(fr, ncomp, scale_list, scaling, mask_center_px,
-                           debug, svd_mode, full_output, collapse):
+                           debug, svd_mode, collapse):
     """
 
     Called by _adimsdi_doublepca with pool_map.
@@ -605,13 +604,13 @@ def _adimsdi_doublepca_ifs(fr, ncomp, scale_list, scaling, mask_center_px,
         frame_i = cube_collapse(multispec_fr, mode=collapse)
     else:
         cube_resc = scwave(multispec_fr, scale_list)[0]
-        res = _subtr_proj_fullfr(cube_resc, None, ncomp, scaling,
-                                 mask_center_px, debug, svd_mode, False,
-                                 full_output)
-        if full_output:
-            res = res[0]
-        frame_i = scwave(res, scale_list, full_output=full_output,
-                         inverse=True, y_in=y_in, x_in=x_in, collapse=collapse)
+        residuals = _subtr_proj_fullfr(cube_resc, None, ncomp, scaling,
+                                       mask_center_px, debug, svd_mode,
+                                       verbose=False, full_output=False)
+        frame_i = scwave(residuals, scale_list, full_output=False,
+                         inverse=True, y_in=y_in, x_in=x_in,
+                         collapse=collapse)
+
     return frame_i
 
 

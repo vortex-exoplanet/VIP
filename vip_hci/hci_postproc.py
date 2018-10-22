@@ -12,6 +12,7 @@ __all__ = ['HCIMedianSub',
            'HCILoci',
            'HCIAndromeda']
 
+import pickle
 from sklearn.base import BaseEstimator
 from .hci_dataset import HCIDataset
 from .medsub import median_sub

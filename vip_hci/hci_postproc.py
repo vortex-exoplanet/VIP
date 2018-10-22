@@ -12,7 +12,10 @@ __all__ = ['HCIMedianSub',
            'HCILoci',
            'HCIAndromeda']
 
+import pickle
+import numpy as np
 from sklearn.base import BaseEstimator
+
 from .hci_dataset import HCIDataset
 from .medsub import median_sub
 from .metrics import snrmap_fast, snrmap
@@ -60,7 +63,7 @@ class HCIPostProcAlgo(BaseEstimator):
             class MySuperAlgo(HCIPostProcAlgo):
                 def __init__(self, algo_param_1=42, cool=True):
                     super(MySuperAlgo, self).__init__(locals())
-                
+
                 @calculates("frame")
                 def run(self, dataset=None):
                     self.frame = 2 * self.algo_param_1
@@ -153,7 +156,7 @@ class HCIPostProcAlgo(BaseEstimator):
     def _reset_results(self):
         """
         Remove all calculated results from the object.
-        
+
         By design, the HCIPostPRocAlgo's can be initialized without a dataset,
         so the dataset can be provided to the ``run`` method. This makes it
         possible to run the same algorithm on multiple datasets. In order not to
@@ -170,7 +173,7 @@ class HCIPostProcAlgo(BaseEstimator):
     def __getattr__(self, a):
         """
         ``__getattr__`` is only called when an attribute does *not* exist.
-        
+
         Catching this event allows us to output proper error messages when an
         attribute was not calculated yet.
         """
@@ -201,7 +204,7 @@ class HCIPostProcAlgo(BaseEstimator):
         for a, f in calculations.items():
             if hasattr(self, a) and function_name == f:
                 print("\t{}".format(a))
-        
+
         not_calculated_yet = [(a, f) for a, f in calculations.items()
                               if (f not in self._called_calculators
                                   and not hasattr(self, a))]
@@ -239,12 +242,16 @@ class HCIPostProcAlgo(BaseEstimator):
         probability map, this method should be overwritten and thus disabled.
 
         """
+        if self.dataset.cube.ndim == 4:
+            fwhm = np.mean(self.dataset.fwhm)
+        else:
+            fwhm = self.dataset.fwhm
 
         if method == 'fast':
-            self.snr_map = snrmap_fast(self.frame_final, self.dataset.fwhm,
+            self.snr_map = snrmap_fast(self.frame_final, fwhm,
                                        nproc=nproc, verbose=verbose)
         elif method == 'xpx':
-            self.snr_map = snrmap(self.frame_final, self.dataset.fwhm,
+            self.snr_map = snrmap(self.frame_final, fwhm,
                                   plot=False, mode=mode, source_mask=None,
                                   nproc=nproc, save_plot=None, plot_title=None,
                                   verbose=verbose)
@@ -365,7 +372,6 @@ class HCIMedianSub(HCIPostProcAlgo):
         self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 
 
-
 class HCIPca(HCIPostProcAlgo):
     """ HCI PCA algorithm.
 
@@ -449,7 +455,7 @@ class HCIPca(HCIPostProcAlgo):
                  adimsdi='double', mask_central_px=None, source_xy=None,
                  delta_rot=1, imlib='opencv', interpolation='lanczos4',
                  collapse='median', check_mem=True, crop_ifs=True, verbose=True):
-        
+
         super(HCIPca, self).__init__(locals())
 
         # TODO: order/names of parameters are not consistent with ``pca`` core function
@@ -564,7 +570,7 @@ class HCILoci(HCIPostProcAlgo):
                     self.optim_scale_fact, self.adimsdi, self.imlib,
                     self.interpolation, self.collapse, verbose,
                     full_output=True)
-        
+
         self.cube_res, self.cube_der, self.frame_final = res
 
 
@@ -655,7 +661,7 @@ class HCIAndromeda(HCIPostProcAlgo):
                         nsmooth_snr=self.nsmooth_snr, iwa=self.iwa,
                         owa=self.owa,
                         precision=self.precision, fast=self.fast,
-                        homogeneous_variance=self.homogeneous_variance, 
+                        homogeneous_variance=self.homogeneous_variance,
                         ditimg=self.ditimg, ditpsf=self.ditpsf, tnd=self.tnd,
                         total=self.total,
                         multiply_gamma=self.multiply_gamma, nproc=nproc,

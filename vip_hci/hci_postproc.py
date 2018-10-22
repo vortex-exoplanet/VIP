@@ -13,6 +13,7 @@ __all__ = ['HCIMedianSub',
            'HCIAndromeda']
 
 import pickle
+import numpy as np
 from sklearn.base import BaseEstimator
 
 from .hci_dataset import HCIDataset
@@ -241,12 +242,16 @@ class HCIPostProcAlgo(BaseEstimator):
         probability map, this method should be overwritten and thus disabled.
 
         """
+        if self.dataset.cube.ndim == 4:
+            fwhm = np.mean(self.dataset.fwhm)
+        else:
+            fwhm = self.dataset.fwhm
 
         if method == 'fast':
-            self.snr_map = snrmap_fast(self.frame_final, self.dataset.fwhm,
+            self.snr_map = snrmap_fast(self.frame_final, fwhm,
                                        nproc=nproc, verbose=verbose)
         elif method == 'xpx':
-            self.snr_map = snrmap(self.frame_final, self.dataset.fwhm,
+            self.snr_map = snrmap(self.frame_final, fwhm,
                                   plot=False, mode=mode, source_mask=None,
                                   nproc=nproc, save_plot=None, plot_title=None,
                                   verbose=verbose)

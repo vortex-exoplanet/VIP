@@ -454,7 +454,7 @@ class HCIPca(HCIPostProcAlgo):
         system memory.
     """
     def __init__(self, dataset=None, ncomp=1, ncomp2=1, svd_mode='lapack', scaling=None,
-                 adimsdi='double', mask_central_px=None, source_xy=None,
+                 adimsdi='double', mask_center_px=None, source_xy=None,
                  delta_rot=1, imlib='opencv', interpolation='lanczos4',
                  collapse='median', check_mem=True, crop_ifs=True, verbose=True):
 
@@ -511,7 +511,7 @@ class HCIPca(HCIPostProcAlgo):
 
         res = pca(dataset.cube, dataset.angles, dataset.cuberef,
                   dataset.wavelengths, self.ncomp, self.ncomp2, self.svd_mode,
-                  self.scaling, self.adimsdi, self.mask_central_px,
+                  self.scaling, self.adimsdi, self.mask_center_px,
                   self.source_xy, self.delta_rot, dataset.fwhm, self.imlib,
                   self.interpolation, self.collapse, self.check_mem,
                   self.crop_ifs, nproc, full_output=True, verbose=verbose,

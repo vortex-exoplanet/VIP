@@ -681,7 +681,7 @@ class HCIAndromeda(HCIPostProcAlgo):
                  verbose=True):
         super(HCIAndromeda, self).__init__(locals())
 
-    @calculates("final_frame", "contrast_map", "likelihood_map", "snr_map",
+    @calculates("frame_final", "contrast_map", "likelihood_map", "snr_map",
                 "stdcontrast_map", "snr_map_notnorm", "stdcontrast_map_notnorm",
                 "ext_radius", "detection_map")
     def run(self, dataset=None, nproc=1, verbose=True):
@@ -728,7 +728,7 @@ class HCIAndromeda(HCIPostProcAlgo):
             self.stdcontrast_map_notnorm = res[3]
 
         # general attributes:
-        self.final_frame = self.contrast_map
+        self.frame_final = self.contrast_map
         self.detection_map = self.snr_map
 
     def make_snr_map(self, *args, **kwargs):

@@ -645,7 +645,7 @@ class HCIDataset(Saveable):
                                   interpolation, cxy, nproc)
         print('Cube successfully derotated')
 
-    def drop_frames(self, n, m):
+    def drop_frames(self, n, m, verbose=True):
         """
         Slice the cube so that all frames between ``n``and ``m`` are kept.
 
@@ -658,7 +658,7 @@ class HCIDataset(Saveable):
         kept, so the first and the last frame would be discarded.
 
         """
-        res = cube_drop_frames(self.cube, n, m, self.angles)
+        res = cube_drop_frames(self.cube, n, m, self.angles, verbose=verbose)
         if self.angles:
             self.cube, self.angles = res
         else:

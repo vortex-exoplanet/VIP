@@ -851,7 +851,7 @@ class HCIDataset(Saveable):
 
             dsi = self.copy()
             dsi.cube = data["cube"]
-            dsi.injections_yx = data["position"]
+            dsi.injections_yx = data["positions"]
             # data["dist"], data["theta"], data["flux"] are not used.
 
             yield dsi

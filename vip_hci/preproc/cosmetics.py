@@ -155,7 +155,7 @@ def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
     if parallactic is not None:
         if not parallactic.ndim == 1:
             raise ValueError('Parallactic angles vector has wrong shape')
-        parallactic = parallactic[n+1:m+1]
+        parallactic = parallactic[n-1:m]
 
     if verbose:
         print("Cube successfully sliced")

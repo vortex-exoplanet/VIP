@@ -96,7 +96,13 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         startx = int(cenx) - w
 
         # fake companion in the center of a zeros frame
-        fc_fr[starty:starty+size_fc, startx:startx+size_fc] = psf_template
+        try:
+            fc_fr[starty:starty+size_fc, startx:startx+size_fc] = psf_template
+        except ValueError as e:
+            print("cannot place PSF on frame. Please verify the shapes! "
+                  "psf shape: {}, array shape: {}".format(psf_template.shape,
+                                                          array.shape))
+            raise e
 
         if size_fc % 2 == 0 and array.shape[1] % 2 == 1:
             # odd cube, even PSF

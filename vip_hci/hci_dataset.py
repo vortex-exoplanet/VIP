@@ -837,10 +837,6 @@ class HCIDataset(Saveable):
                 ``("normal", loc, scale)``
                     uses np.random.normal
 
-        check_mem : bool, optional
-            If True, verifies that the system has enough memory to store the
-            result.
-
         Yields
         -------
         fake_dataset : HCIDataset
@@ -850,7 +846,7 @@ class HCIDataset(Saveable):
 
         for data in generate_cube_copies_with_injections(
             self.cube, self.psf, self.angles, self.px_scale, n_copies=n_copies,
-            inrad=inrad, outrad=outrad, dist_flux=dist_flux, check_mem=False
+            inrad=inrad, outrad=outrad, dist_flux=dist_flux
         ):
 
             dsi = self.copy()

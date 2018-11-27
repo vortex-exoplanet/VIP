@@ -277,7 +277,7 @@ def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,
     inds_inj = np.random.randint(0, num_patches, size=n_copies)
 
     # Injections
-    for n in n_copies:
+    for n in range(n_copies):
 
         injx = xx[inds_inj[n]] - frame_center(array[0])[1]
         injy = yy[inds_inj[n]] - frame_center(array[0])[0]

@@ -646,10 +646,17 @@ class HCIDataset(Saveable):
         print('Cube successfully derotated')
 
     def drop_frames(self, n, m):
-        """ Slicing the cube using the `n` (initial) and `m` (final) indices in
-        a 1-indexed fashion.
+        """
+        Slice the cube so that all frames between ``n``and ``m`` are kept.
 
-        # TODO: support 4d case, documentation
+        The indices ``n`` and ``m`` are included and 1-based.
+
+        Examples
+        --------
+        For a cube which has 5 frames numbered ``1, 2, 3, 4, 5``, calling
+        ``ds.drop_frames(2, 4)`` would result in the frames ``2, 3, 4`` to be
+        kept, so the first and the last frame would be discarded.
+
         """
         res = cube_drop_frames(self.cube, n, m, self.angles)
         if self.angles:

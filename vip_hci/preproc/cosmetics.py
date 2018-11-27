@@ -125,16 +125,24 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
 
 
 def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
-    """Discards frames at the beginning or the end of a cube (axis 0).
+    """
+    Slice the cube so that all frames between ``n``and ``m`` are kept.
+
+    Operates on axis 0 for 3D cubes, and on axis 1 for 4D cubes. This returns a
+    modified *copy* of ``array``. The indices ``n`` and ``m`` are included and
+    1-based.
+
 
     Parameters
     ----------
     array : array_like
-        Input 3d array, cube.
+        Input cube, 3d or 4d.
     n : int
-        Index of the first frame to be kept. Frames before this one are dropped.
+        1-based index of the first frame to be kept. Frames before this one are
+        dropped.
     m : int
-        Index of the last frame to be kept. Frames after this one are dropped.
+        1-based index of the last frame to be kept. Frames after this one are
+        dropped.
     parallactic : 1d ndarray, optional
         parallactic angles vector. If provided, a modified copy of
         ``parallactic`` is returned additionally.
@@ -142,16 +150,21 @@ def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
     Returns
     -------
     array_view : array_like
-        Cube with new size (axis 0).
+        Cube with new size.
     parallactic : 1d array_like
-        New parallactic angles. Only returned when the ``parallactic`` input
-        parameter was provided.
+        [parallactic != None] New parallactic angles.
 
     """
     if m > array.shape[0]:
         raise TypeError('End index must be smaller than the # of frames')
 
-    array_view = array[n-1:m, :, :].copy()
+    if array.ndim == 4:
+        array_view = array[:, n-1:m, :, :].copy()
+    elif array.ndim == 3:
+        array_view = array[n-1:m, :, :].copy()
+    else:
+        raise ValueError("only 3D and 4D cubes are supported!")
+
     if parallactic is not None:
         if not parallactic.ndim == 1:
             raise ValueError('Parallactic angles vector has wrong shape')

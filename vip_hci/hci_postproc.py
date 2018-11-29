@@ -10,6 +10,7 @@ __author__ = 'Carlos Alberto Gomez Gonzalez, Ralf Farkas'
 __all__ = ['HCIMedianSub',
            'HCIPca',
            'HCILoci',
+           'HCILLSG',
            'HCIAndromeda']
 
 import pickle
@@ -21,6 +22,7 @@ from .medsub import median_sub
 from .metrics import snrmap_fast, snrmap
 from .andromeda import andromeda
 from .pca import pca
+from .llsg import llsg
 from .leastsq import xloci
 from .conf.utils_conf import algo_calculates_decorator as calculates
 
@@ -452,7 +454,7 @@ class HCIPca(HCIPostProcAlgo):
         system memory.
     """
     def __init__(self, dataset=None, ncomp=1, ncomp2=1, svd_mode='lapack', scaling=None,
-                 adimsdi='double', mask_central_px=None, source_xy=None,
+                 adimsdi='double', mask_center_px=None, source_xy=None,
                  delta_rot=1, imlib='opencv', interpolation='lanczos4',
                  collapse='median', check_mem=True, crop_ifs=True, verbose=True):
 
@@ -509,7 +511,7 @@ class HCIPca(HCIPostProcAlgo):
 
         res = pca(dataset.cube, dataset.angles, dataset.cuberef,
                   dataset.wavelengths, self.ncomp, self.ncomp2, self.svd_mode,
-                  self.scaling, self.adimsdi, self.mask_central_px,
+                  self.scaling, self.adimsdi, self.mask_center_px,
                   self.source_xy, self.delta_rot, dataset.fwhm, self.imlib,
                   self.interpolation, self.collapse, self.check_mem,
                   self.crop_ifs, nproc, full_output=True, verbose=verbose,
@@ -574,6 +576,53 @@ class HCILoci(HCIPostProcAlgo):
         self.cube_res, self.cube_der, self.frame_final = res
 
 
+class HCILLSG(HCIPostProcAlgo):
+    """
+    HCI LLSG algorithm.
+    """
+
+    def __init__(self, dataset=None, rank=10, thresh=1, max_iter=10,
+                 low_rank_ref=False, low_rank_mode='svd', auto_rank_mode='noise',
+                 residuals_tol=1e-1, cevr=0.9, thresh_mode='soft', nproc=1,
+                 asize=None, n_segments=4, azimuth_overlap=None, radius_int=None,
+                 random_seed=None, imlib='opencv', interpolation='lanczos4',
+                 high_pass=None, collapse='median', verbose=True):
+        super(HCILLSG, self).__init__(locals())
+
+    @calculates("frame_final", "frame_l", "frame_s", "frame_g")
+    def run(self, dataset=None, nproc=1, verbose=True):
+        """
+        Run the HCI LLSG algorithm for model PSF subtraction.
+
+        """
+
+        dataset = self._get_dataset(dataset, verbose)
+
+        res = llsg(
+            dataset.cube, dataset.angles, dataset.fwhm,
+            rank=self.rank, thresh=self.thresh, max_iter=self.max_iter,
+            low_rank_ref=self.low_rank_ref, low_rank_mode=self.low_rank_mode,
+            auto_rank_mode=self.auto_rank_mode,
+            residuals_tol=self.residuals_tol, cevr=self.cevr,
+            thresh_mode=self.thresh_mode, nproc=nproc, asize=self.asize,
+            n_segments=self.n_segments, azimuth_overlap=self.azimuth_overlap,
+            radius_int=self.radius_int, random_seed=self.random_seed,
+            imlib=self.imlib, interpolation=self.interpolation,
+            high_pass=self.high_pass, collapse=self.collapse, full_output=True,
+            verbose=verbose, debug=False
+        )
+
+        self.list_l_array_der = res[0]
+        self.list_s_array_der = res[1]
+        self.list_g_array_der = res[2]
+
+        self.frame_l = res[3]
+        self.frame_s = res[4]
+        self.frame_g = res[5]
+
+        self.frame_final = self.frame_s
+
+
 class HCIAndromeda(HCIPostProcAlgo):
     """
     HCI ANDROMEDA algorithm.
@@ -632,7 +681,7 @@ class HCIAndromeda(HCIPostProcAlgo):
                  verbose=True):
         super(HCIAndromeda, self).__init__(locals())
 
-    @calculates("final_frame", "contrast_map", "likelihood_map", "snr_map",
+    @calculates("frame_final", "contrast_map", "likelihood_map", "snr_map",
                 "stdcontrast_map", "snr_map_notnorm", "stdcontrast_map_notnorm",
                 "ext_radius", "detection_map")
     def run(self, dataset=None, nproc=1, verbose=True):
@@ -679,7 +728,7 @@ class HCIAndromeda(HCIPostProcAlgo):
             self.stdcontrast_map_notnorm = res[3]
 
         # general attributes:
-        self.final_frame = self.contrast_map
+        self.frame_final = self.contrast_map
         self.detection_map = self.snr_map
 
     def make_snr_map(self, *args, **kwargs):

@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 
 """
-Module with cosmetics procedures. Contains the function for bad pixel fixing. 
-Also functions for cropping cubes. 
+Module with cosmetics procedures. Contains the function for bad pixel fixing.
+Also functions for cropping cubes.
 """
 
 from __future__ import division, print_function
@@ -24,10 +24,10 @@ from ..var import frame_center, get_square
 def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
                      full_output=False):
     """Crops frames in a cube (3d or 4d array).
-    
+
     Parameters
     ----------
-    array : array_like 
+    array : array_like
         Input 3d or 4d array.
     size : int
         Size of the desired central sub-array in each frame, in pixels.
@@ -46,7 +46,7 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
     -------
     array_out : array_like
         Cube with cropped frames.
-        
+
     """
     if array.ndim == 3:
         temp_fr = array[0]
@@ -78,8 +78,7 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
         array_out = array[:, :, y0:y1, x0:x1]
 
     if verbose:
-        msg = "New shape: {}"
-        print(msg.format(array_out.shape))
+        print("New shape: {}".format(array_out.shape))
 
     if full_output:
         return array_out, cenx, ceny
@@ -103,12 +102,12 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
         ``force`` set to True this condition can be avoided.
     verbose : bool optional
         If True, a message of completion is shown.
-        
+
     Returns
     -------
     array_view : array_like
         Sub array.
-        
+
     """
     if array.ndim != 2:
         raise TypeError('`Array` is not a frame or 2d array')
@@ -121,22 +120,29 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
                             verbose=verbose)
 
     if verbose:
-        msg = "New shape: {}"
-        print(msg.format(array_view.shape))
+        print("New shape: {}".format(array_view.shape))
     return array_view
 
 
 def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
-    """Discards frames at the beginning or the end of a cube (axis 0).
+    """
+    Slice the cube so that all frames between ``n``and ``m`` are kept.
+
+    Operates on axis 0 for 3D cubes, and on axis 1 for 4D cubes. This returns a
+    modified *copy* of ``array``. The indices ``n`` and ``m`` are included and
+    1-based.
+
 
     Parameters
     ----------
     array : array_like
-        Input 3d array, cube.
+        Input cube, 3d or 4d.
     n : int
-        Index of the first frame to be kept. Frames before this one are dropped.
+        1-based index of the first frame to be kept. Frames before this one are
+        dropped.
     m : int
-        Index of the last frame to be kept. Frames after this one are dropped.
+        1-based index of the last frame to be kept. Frames after this one are
+        dropped.
     parallactic : 1d ndarray, optional
         parallactic angles vector. If provided, a modified copy of
         ``parallactic`` is returned additionally.
@@ -144,20 +150,25 @@ def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
     Returns
     -------
     array_view : array_like
-        Cube with new size (axis 0).
+        Cube with new size.
     parallactic : 1d array_like
-        New parallactic angles. Only returned when the ``parallactic`` input
-        parameter was provided.
+        [parallactic != None] New parallactic angles.
 
     """
     if m > array.shape[0]:
         raise TypeError('End index must be smaller than the # of frames')
 
-    array_view = array[n+1:m+1, :, :].copy()
+    if array.ndim == 4:
+        array_view = array[:, n-1:m, :, :].copy()
+    elif array.ndim == 3:
+        array_view = array[n-1:m, :, :].copy()
+    else:
+        raise ValueError("only 3D and 4D cubes are supported!")
+
     if parallactic is not None:
         if not parallactic.ndim == 1:
             raise ValueError('Parallactic angles vector has wrong shape')
-        parallactic = parallactic[n+1:m+1]
+        parallactic = parallactic[n-1:m]
 
     if verbose:
         print("Cube successfully sliced")
@@ -170,7 +181,6 @@ def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
         return array_view, parallactic
     else:
         return array_view
-
 
 
 def frame_remove_stripes(array):
@@ -219,10 +229,9 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
 
         if half_res_y:
             if n_y % 2 != 0:
-                msg = 'The input frames do not have an even number of rows. '
-                msg2 = 'Hence, you should probably not be using the option '
-                msg3 = 'half_res_y = True.'
-                raise ValueError(msg + msg2 + msg3)
+                raise ValueError("The input frames do not have an even number "
+                                 "of rows. Hence, you should probably not be "
+                                 "using the option half_res_y = True.")
             n_y = int(n_y / 2)
             frame = obj_tmp
             obj_tmp = np.zeros([n_y, n_x])
@@ -258,23 +267,21 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
     max_neigh = sum(range(3, neighbor_box + 2, 2))
     if min_neighbors > max_neigh:
         min_neighbors = max_neigh
-        msg = "Warning! min_neighbors was reduced to " + str(max_neigh) + \
-              " to avoid bugs. \n"
-        print(msg)
+        msg = "Warning! min_neighbors was reduced to {} to avoid bugs."
+        print(msg.format(max_neigh))
 
     if ndims == 2:
         obj_tmp, nnanpix = nan_corr_2d(obj_tmp)
         if verbose:
-            print('\n There were ', nnanpix, ' nan pixels corrected.')
+            print("{} NaN pixels were corrected".format(nnanpix))
 
     elif ndims == 3:
         n_z = obj_tmp.shape[0]
         for zz in range(n_z):
             obj_tmp[zz], nnanpix = nan_corr_2d(obj_tmp[zz])
             if verbose:
-                msg = 'In channel ' + str(zz) + ', there were ' + str(nnanpix)
-                msg2 = ' nan pixels corrected.'
-                print(msg + msg2)
+                msg = "In channel {}, {} NaN pixels were corrected"
+                print(msg.format(zz, nnanpix))
 
     if verbose:
         print('All nan pixels are corrected.')
@@ -339,10 +346,12 @@ def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
         print("median x of star + 3sigma = ", lim_sup_x)
 
     for zz in range(n_z):
-        if ((star_tmp_idx[zz, 0] < lim_inf_y) or (
-                star_tmp_idx[zz, 0] > lim_sup_y) or
-                (star_tmp_idx[zz, 1] < lim_inf_x) or (
-                        star_tmp_idx[zz, 1] > lim_sup_x)):
+        if (
+            (star_tmp_idx[zz, 0] < lim_inf_y) or
+            (star_tmp_idx[zz, 0] > lim_sup_y) or
+            (star_tmp_idx[zz, 1] < lim_inf_x) or
+            (star_tmp_idx[zz, 1] > lim_sup_x)
+        ):
             test_result[zz] = 0
 
     # 3/ Replace by the median of neighbouring good coordinates if need be

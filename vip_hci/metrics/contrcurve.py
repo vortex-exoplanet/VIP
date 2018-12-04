@@ -543,7 +543,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
 
     # We crop the PSF and check if PSF has been normalized (so that flux in
     # 1*FWHM aperture = 1) and fix if needed
-    new_psf_size = 3 * fwhm
+    new_psf_size = int(round(3 * fwhm))
     if new_psf_size % 2 == 0:
         new_psf_size += 1
 

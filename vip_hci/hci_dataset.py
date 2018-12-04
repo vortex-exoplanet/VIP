@@ -18,8 +18,8 @@ from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
                       frame_shift, frame_center_satspots, frame_center_radon)
 from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
                       cube_drop_frames, cube_detect_badfr_correlation,
-                      cube_detect_badfr_pxstats, cube_px_resampling,
-                      cube_subsample, cube_recenter_2dfit,
+                      cube_detect_badfr_pxstats, cube_detect_badfr_ellipticipy,
+                      cube_px_resampling, cube_subsample, cube_recenter_2dfit,
                       cube_recenter_satspots, cube_recenter_radon,
                       cube_recenter_dft_upsampling, cube_recenter_via_speckles)
 from .var import frame_filter_lowpass, frame_filter_highpass, frame_center
@@ -645,13 +645,20 @@ class HCIDataset(Saveable):
                                   interpolation, cxy, nproc)
         print('Cube successfully derotated')
 
-    def drop_frames(self, n, m):
-        """ Slicing the cube using the `n` (initial) and `m` (final) indices in
-        a 1-indexed fashion.
-
-        # TODO: support 4d case, documentation
+    def drop_frames(self, n, m, verbose=True):
         """
-        res = cube_drop_frames(self.cube, n, m, self.angles)
+        Slice the cube so that all frames between ``n``and ``m`` are kept.
+
+        The indices ``n`` and ``m`` are included and 1-based.
+
+        Examples
+        --------
+        For a cube which has 5 frames numbered ``1, 2, 3, 4, 5``, calling
+        ``ds.drop_frames(2, 4)`` would result in the frames ``2, 3, 4`` to be
+        kept, so the first and the last frame would be discarded.
+
+        """
+        res = cube_drop_frames(self.cube, n, m, self.angles, verbose=verbose)
         if self.angles:
             self.cube, self.angles = res
         else:
@@ -841,10 +848,6 @@ class HCIDataset(Saveable):
                 ``("normal", loc, scale)``
                     uses np.random.normal
 
-        check_mem : bool, optional
-            If True, verifies that the system has enough memory to store the
-            result.
-
         Yields
         -------
         fake_dataset : HCIDataset
@@ -854,12 +857,12 @@ class HCIDataset(Saveable):
 
         for data in generate_cube_copies_with_injections(
             self.cube, self.psf, self.angles, self.px_scale, n_copies=n_copies,
-            inrad=inrad, outrad=outrad, dist_flux=dist_flux, check_mem=False
+            inrad=inrad, outrad=outrad, dist_flux=dist_flux
         ):
 
             dsi = self.copy()
             dsi.cube = data["cube"]
-            dsi.injections_yx = data["position"]
+            dsi.injections_yx = data["positions"]
             # data["dist"], data["theta"], data["flux"] are not used.
 
             yield dsi
@@ -1265,37 +1268,105 @@ class HCIDataset(Saveable):
     def remove_badframes(self, method='corr', frame_ref=None, crop_size=30,
                          dist='pearson', percentile=20, stat_region='annulus',
                          inner_radius=10, width=10, top_sigma=1.0,
-                         low_sigma=1.0, window=None, plot=True, verbose=True):
-        """ Finding outlying/bad frames and slicing the cube accordingly.
+                         low_sigma=1.0, window=None, roundlo=-0.2, roundhi=0.2,
+                         lambda_ref=0, plot=True, verbose=True):
+        """
+        Find outlying/bad frames and slice the cube accordingly.
+
+        Besides modifying ``self.cube`` and ``self.angles``, also sets a
+        ``self.good_indices`` which contain the indices of the angles which were
+        kept.
 
         Parameters
         ----------
-        method : {'corr', 'pxstats'}, str optional
+        method : {'corr', 'pxstats', 'ellip'}, optional
+            Method which is used to determine bad frames. Refer to the
+            ``preproc.badframes`` submodule for explanation of the different
+            methods.
+        frame_ref : int, 2d array or None, optional
+            [method=corr] Index of the frame that will be used as a reference or
+            2d reference array.
+        crop_size : int, optional
+            [method=corr] Size in pixels of the square subframe to be analyzed.
+        dist : {'sad','euclidean','mse','pearson','spearman'}, optional
+            [method=corr] One of the similarity or dissimilarity measures from
+            function vip_hci.stats.distances.cube_distance().
+        percentile : float, optional
+            [method=corr] The percentage of frames that will be discarded
+            [0..100].
+        stat_region : {'annulus', 'circle'}, optional
+            [method=pxstats] Whether to take the statistics from a circle or an
+            annulus.
+        inner_radius : int, optional
+            [method=pxstats] If stat_region is 'annulus' then 'in_radius' is the
+            inner radius of the annular region. If stat_region is 'circle' then
+            'in_radius' is the radius of the aperture.
+        width : int, optional
+            [method=pxstats] Size of the annulus. Ignored if mode is 'circle'.
+        top_sigma : int, optional
+            [method=pxstats] Top boundary for rejection.
+        low_sigma : int, optional
+            [method=pxstats] Lower boundary for rejection.
+        window : int, optional
+            [method=pxstats] Window for smoothing the median and getting the
+            rejection statistic.
+        roundlo,roundhi : float, optional
+            [method=ellip] : Lower and higher bounds for the ellipticipy.
+        lambda_ref : int, optional
+            [4D cube] Which wavelength to consider when determining bad frames
+            on a 4D cube.
+        plot : bool, optional
+            If true it plots the mean fluctuation as a function of the frames
+            and the boundaries.
+        verbose : bool, optional
+            Show debug output.
 
         """
+        if self.cube.ndim == 4:
+            test_cube = self.cube[lambda_ref]
+        else:
+            test_cube = self.cube
+
         if method == 'corr':
             if frame_ref is None:
                 print("Correlation method selected but `frame_ref` is missing")
                 print("Setting the 1st frame as the reference")
                 frame_ref = 0
 
-            self.good_indices, _ = cube_detect_badfr_correlation(self.cube,
-                                            frame_ref, crop_size, dist,
-                                            percentile, plot, verbose)
+            self.good_indices, _ = cube_detect_badfr_correlation(
+                test_cube, frame_ref, crop_size, dist, percentile, plot,
+                verbose
+            )
         elif method == 'pxstats':
-            self.good_indices, _ = cube_detect_badfr_pxstats(self.cube,
-                                            stat_region, inner_radius, width,
-                                            top_sigma, low_sigma, window, plot,
-                                            verbose)
+            self.good_indices, _ = cube_detect_badfr_pxstats(
+                test_cube, stat_region, inner_radius, width, top_sigma,
+                low_sigma, window, plot, verbose
+            )
+        elif method == 'ellip':
+            if self.cube.ndim == 4:
+                fwhm = self.fwhm[lambda_ref]
+            else:
+                fwhm = self.fwhm
+
+            self.good_indices, _ = cube_detect_badfr_ellipticipy(
+                test_cube, fwhm, roundlo, roundhi, verbose=verbose
+            )
         else:
             raise ValueError('Bad frames detection method not recognized')
 
-        self.cube = self.cube[self.good_indices]
-        print("New cube shape: {}".format(self.cube.shape))
+        if self.cube.ndim == 4:
+            self.cube = self.cube[:, self.good_indices]
+        else:
+            self.cube = self.cube[self.good_indices]
+
+        if verbose:
+            print("New cube shape: {}".format(self.cube.shape))
+
         if self.angles is not None:
             self.angles = self.angles[self.good_indices]
-            msg = "New parallactic angles vector shape: {}"
-            print(msg.format(self.angles.shape))
+            if verbose:
+                msg = "New parallactic angles vector shape: {}"
+                print(msg.format(self.angles.shape))
 
     def rescale(self, scale, imlib='ndimage', interpolation='bicubic',
                 verbose=True):

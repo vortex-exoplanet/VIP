@@ -75,16 +75,17 @@ def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
 
 def cube_filter_highpass(array, mode='laplacian', verbose=True, **kwargs):
     """
-    Wrapper of ``frame_filter_highpass`` for cubes or 3d arrays.
+    Apply ``frame_filter_highpass`` to the frames of a 3d or 4d cube.
 
     Parameters
     ----------
     array : array_like
-        Input 3d array.
+        Input cube, 3d or 4d.
     mode : str, optional
-        See the documentation of the ``frame_filter_highpass`` function.
+        ``mode`` parameter to the ``frame_filter_highpass`` function. Defaults
+        to a Laplacian high-pass filter.
     verbose : bool, optional
-        If True timing and progress bar are shown.
+        If ``True`` timing and progress bar are shown.
     **kwargs : dict
         Passed through to the ``frame_filter_highpass`` function.
 
@@ -94,15 +95,18 @@ def cube_filter_highpass(array, mode='laplacian', verbose=True, **kwargs):
         High-pass filtered cube.
 
     """
-    if array.ndim != 3:
-        raise TypeError('Input array is not a cube or 3d array')
+    array_out = np.empty_like(array)
 
-    n_frames = array.shape[0]
-    array_out = np.zeros_like(array)
-    if verbose:
-        print('Applying the high-pass filter on cube frames:')
-    for i in Progressbar(range(n_frames), verbose=verbose):
-        array_out[i] = frame_filter_highpass(array[i], mode=mode, **kwargs)
+    if array.ndim == 3:
+        for i in Progressbar(range(array.shape[0]), verbose=verbose):
+            array_out[i] = frame_filter_highpass(array[i], mode=mode, **kwargs)
+    elif array.ndim == 4:
+        for i in Progressbar(range(array.shape[1]), verbose=verbose):
+            for lam in range(array.shape[0]):
+                array_out[lam][i] = frame_filter_highpass(array[lam][i],
+                                                          mode=mode, **kwargs)
+    else:
+        raise TypeError('Input array is not a 3d or 4d cube')
 
     return array_out
 
@@ -395,12 +399,12 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
 def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
                         gauss_mode='conv', verbose=True):
     """
-    Wrapper of ``frame_filter_lowpass`` for cubes or 3d arrays.
+    Apply ``frame_filter_lowpass`` to the frames of a 3d or 4d cube.
 
     Parameters
     ----------
     array : array_like
-        Input 3d array.
+        Input cube, 3d or 4d.
     mode : str, optional
         See the documentation of the ``frame_filter_lowpass`` function.
     median_size : int, optional
@@ -418,15 +422,19 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
         Low-pass filtered cube.
 
     """
-    if array.ndim != 3:
-        raise TypeError('Input array is not a cube or 3d array')
+    array_out = np.empty_like(array)
 
-    n_frames = array.shape[0]
-    array_out = np.zeros_like(array)
-    if verbose:
-        print('Applying the low-pass filter on cube frames:')
-    for i in Progressbar(range(n_frames), verbose=verbose):
-        array_out[i] = frame_filter_lowpass(array[i], mode, median_size,
-                                            fwhm_size, gauss_mode)
+    if array.ndim == 3:
+        for i in Progressbar(range(array.shape[0]), verbose=verbose):
+            array_out[i] = frame_filter_lowpass(array[i], mode, median_size,
+                                                fwhm_size, gauss_mode)
+    elif array.ndim == 4:
+        for i in Progressbar(range(array.shape[1]), verbose=verbose):
+            for lam in range(array.shape[0]):
+                array_out[lam][i] = frame_filter_lowpass(array[lam][i], mode,
+                                                         median_size, fwhm_size,
+                                                         gauss_mode)
+    else:
+        raise TypeError('Input array is not a 3d or 4d cube')
 
     return array_out

@@ -71,10 +71,8 @@ The documentation for ``VIP`` can be found here: http://vip.readthedocs.io.
 
 Jupyter notebook tutorial
 -------------------------
-Tutorials, in the form of Jupyter notebooks, showcasing ``VIP``'s usage are available in `this repository <https://github.com/carlgogo/VIP_extras>`_.
-Alternatively, a notebook for ADI processing can be visualized online with
-`nbviewer <http://nbviewer.jupyter.org/github/carlgogo/VIP_extras/blob/master/tutorials/01_adi_pre-postproc_fluxpos_ccs.ipynb>`_, or executed on `Binder <https://mybinder.org/v2/gh/r4lv/VIP_extras/patch-binder?filepath=tutorials%2F01_adi_pre-postproc_fluxpos_ccs.ipynb>`_
-If you are new to the Jupyter notebook application check out the `beginner's guide
+Tutorials, in the form of Jupyter notebooks, showcasing ``VIP``'s usage and other resources such as test/dummy datasets are available on the ``VIP-extras`` `repository <https://github.com/carlgogo/VIP_extras>`_. Alternatively, you can execute this repository on `Binder <https://mybinder.org/v2/gh/carlgogo/VIP_extras/master>`_. The notebook for ADI processing can be visualized online with
+`nbviewer <http://nbviewer.jupyter.org/github/carlgogo/VIP_extras/blob/master/tutorials/01_adi_pre-postproc_fluxpos_ccs.ipynb>`_. If you are new to the Jupyter notebook application check out the `beginner's guide
 <https://jupyter-notebook-beginner-guide.readthedocs.io/en/latest/what_is_jupyter.html>`_.
 
 

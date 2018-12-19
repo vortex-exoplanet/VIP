@@ -377,8 +377,8 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
     for ann in range(n_annuli):
         inner_radius, _ = define_annuli(angle_list, ann, n_annuli, fwhm,
                                         radius_int, annulus_width, verbose)
-        indices = get_annulus(array[0], inner_radius, annulus_width,
-                              output_indices=True)
+        indices = get_annulus_segments(array[0], inner_radius, annulus_width,
+                                       nsegm=1)[0]
         yy = indices[0]
         xx = indices[1]
 

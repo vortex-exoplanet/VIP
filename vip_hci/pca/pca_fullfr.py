@@ -130,11 +130,10 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         If True, it check that the input cube(s) are smaller than the available
         system memory.
     crop_ifs: bool, optional
-        If True and the data are to be reduced with ADI+SDI(IFS) in a single
-        step, this will crop the cube at the moment of frame rescaling in
-        wavelength. This is recommended for large FOVs such as the one of
-        SPHERE, but can remove significant amount of information close to the
-        edge of small FOVs (e.g. SINFONI).
+        Only valid when ``adimsdi='single'``. If True cube is cropped at the
+        moment of frame rescaling in wavelength. This is recommended for large
+        FOVs such as the one of SPHERE, but can remove significant amount of
+        information close to the edge of small FOVs (e.g. SINFONI).
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to (cpu_count()/2). Defaults to ``nproc=1``.
@@ -467,9 +466,7 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
         big_cube.append(cube_resc)
 
     big_cube = np.array(big_cube)
-    if not crop_ifs:
-        _, y_in, x_in = cube_resc.shape
-    big_cube = big_cube.reshape(z * n, y_in, x_in)
+    big_cube = big_cube.reshape(z * n, big_cube.shape[2], big_cube.shape[3])
 
     if verbose:
         timing(start_time)

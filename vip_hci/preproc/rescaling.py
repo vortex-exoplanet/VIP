@@ -293,7 +293,8 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
             raise ValueError("You need to provide y_in and x_in when "
                              "inverse=True!")
         siz = max(y_in, x_in)
-        frame = get_square(frame, siz, cy, cx)
+        if frame.shape[0] > siz:
+            frame = get_square(frame, siz, cy, cx)
         if full_output:
             n_z = cube.shape[0]
             array_old = cube.copy()

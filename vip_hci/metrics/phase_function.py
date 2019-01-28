@@ -315,8 +315,9 @@ class Interpolated_SPF(object):
             dictionnary containing the keys "phi" (list of scattering angles)
             and "spf" (list of corresponding scattering phase function values)
         """
-        self.interpolation_function = interp1d(spf_dico['phi'], spf_dico['spf'],
-                                               kind='cubic', bounds_error=False,
+        self.interpolation_function = interp1d(np.cos(np.deg2rad(spf_dico['phi'])),\
+                                               spf_dico['spf'],kind='cubic',\
+                                               bounds_error=False,
                                                fill_value=np.nan)
 
     def compute_phase_function_from_cosphi(self, cos_phi):

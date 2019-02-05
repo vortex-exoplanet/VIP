@@ -277,17 +277,20 @@ class Interpolated_SPF(object):
         Parameters
         ----------
         spf_dico :  dict
-            dictionnary containing the keys "phi" (list of scattering angles)
+            dictionnary containing at least the keys "phi" (list of scattering angles)
             and "spf" (list of corresponding scattering phase function values)
+            Optionnaly it can specify the kind of interpolation requested (as 
+            specified by the scipy.interpolate.interp1d function), by default
+            it uses a quadratic interpolation.
         """
         for key in ['phi','spf']:
             if key not in spf_dico.keys():
                 raise TypeError('The dictionnary describing a '
                                 '"interpolated" phase function must contain '
                                 'the key "{0:s}"'.format(key))
-            elif isinstance(spf_dico[key],(list,tuple,np.ndarray)):
+            elif not isinstance(spf_dico[key],(list,tuple,np.ndarray)):
                 raise TypeError('The key "{0:s}" of a "interpolated" phase'
-                                ' function dictionnary must be a list, array'
+                                ' function dictionnary must be a list, np array'
                                 ' or tuple'.format(key))
         if len(spf_dico['phi']) != len(spf_dico['spf']):
             raise TypeError('The keys "phi" and "spf" must contain the same'
@@ -307,16 +310,31 @@ class Interpolated_SPF(object):
         """
         Creates the function that returns the scattering phase function based
         on the scattering angle by interpolating the values given in the
-        dictionnary.
+        dictionnary. By default it uses a quadractic interpolation. 
     
         Parameters
         ----------
         spf_dico :  dict
-            dictionnary containing the keys "phi" (list of scattering angles)
+            dictionnary containing at least the keys "phi" (list of scattering angles)
             and "spf" (list of corresponding scattering phase function values)
+            Optionnaly it can specify the kind of interpolation requested (as 
+            specified by the scipy.interpolate.interp1d function), by default
+            it uses a quadratic interpolation.
         """
+        if 'kind' in spf_dico.keys():
+            if not isinstance(spf_dico['kind'],int) and spf_dico['kind'] not in \
+                ['linear', 'nearest', 'zero', 'slinear', \
+                 'quadratic', 'cubic', 'previous', 'next']:
+                raise TypeError('The key "{0:s}" must be an integer '
+                                'or a string ("linear", "nearest", "zero", "slinear", '
+                                '"quadratic", "cubic", "previous",'
+                                '"next"'.format(spf_dico['kind']))
+            else:
+                kind=spf_dico['kind']
+        else:
+            kind='quadratic'
         self.interpolation_function = interp1d(np.cos(np.deg2rad(spf_dico['phi'])),\
-                                               spf_dico['spf'],kind='cubic',\
+                                               spf_dico['spf'],kind=kind,\
                                                bounds_error=False,
                                                fill_value=np.nan)
 

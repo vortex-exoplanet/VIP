@@ -340,8 +340,8 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
         Resulting cube with rescaled frames.
 
     """
-    def _scale_func(output_coords, ref_xy=0, scaling=1.0,
-                    scale_y=None, scale_x=None):
+    def _scale_func(output_coords, ref_xy=0, scaling=1.0, scale_y=None,
+                    scale_x=None):
         """
         For each coordinate point in a new scaled image (output_coords),
         coordinates in the image before the scaling are returned. This scaling

@@ -201,6 +201,8 @@ def pp_subplots(*data, **kwargs):
         If a string is provided the plot is saved using this as the path.
     showcent : bool
         To show a big crosshair at the center of the frame.
+    spsize : int
+        Determines the size of the plot. Figsize=(spsize*ncols, spsize*nrows).
     title : str
         Title of the plot(s), None by default.
     vmax : int
@@ -243,6 +245,7 @@ def pp_subplots(*data, **kwargs):
                'rows',
                'save',
                'showcent',
+               'spsize',
                'title',
                'vmax',
                'vmin',
@@ -256,13 +259,13 @@ def pp_subplots(*data, **kwargs):
     # GEOM ---------------------------------------------------------------------
     num_plots = len(data)
     if num_plots == 1:
-        if data[0].ndim == 3:
+        if data[0].ndim == 3 and data[0].shape[2] != 3:
             data = data[0]
             maxplots = kwargs.get("maxplots", 10)
             num_plots = min(data.shape[0], maxplots)
     elif num_plots > 1:
         for i in range(num_plots):
-            if data[i].ndim != 2:
+            if data[i].ndim != 2 and data[i].shape[2] != 3:
                 msg = "Wrong input. Must be either several 2d arrays (images) "
                 msg += "or a single 3d array"
                 raise TypeError(msg)
@@ -439,10 +442,14 @@ def pp_subplots(*data, **kwargs):
 
     # --------------------------------------------------------------------------
 
-    subplot_size = 4
+    if 'spsize' in kwargs:
+        spsize = kwargs['spsize']
+    else:
+        spsize = 4
+
     if rows == 0:
         raise ValueError('Rows must be a positive integer')
-    fig = figure(figsize=(cols * subplot_size, rows * subplot_size), dpi=dpi)
+    fig = figure(figsize=(cols * spsize, rows * spsize), dpi=dpi)
 
     if title is not None:
         fig.suptitle(title, fontsize=14)

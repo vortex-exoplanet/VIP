@@ -27,7 +27,7 @@ from .frame_analysis import frame_quick_report
 
 
 # TODO: Add the option of computing and thresholding an S/N map
-def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
+def detection(array, psf, bkg_sigma=5, mode='lpeaks', matched_filter=False,
               mask=True, snr_thresh=5, plot=True, debug=False,
               full_output=False, verbose=True, save_plot=None, plot_title=None,
               angscale=False, pxscale=0.01):
@@ -43,7 +43,7 @@ def detection(array, psf, bkg_sigma=1, mode='lpeaks', matched_filter=False,
         Input frame.
     psf : array_like
         Input psf, normalized with ``vip_hci.phot.normalize_psf``.
-    bkg_sigma : float, optional
+    bkg_sigma : int or float, optional
         The number standard deviations above the clipped median for setting the
         background level.
     mode : {'lpeaks','log','dog'}, optional

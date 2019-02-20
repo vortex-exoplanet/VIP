@@ -74,8 +74,8 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
         fashion, using the residuals of the first stage). If None then the
         second PCA stage is skipped and the residuals are de-rotated and
         combined.
-    mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
-            'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
+                'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, optional
         Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK
         linear algebra library through Numpy and it is the most conventional way
         of computing the SVD (deterministic result computed on CPU). ``arpack``
@@ -638,8 +638,6 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
         pcs = reshape_matrix(V, y, x)
         recon = reshape_matrix(reconstructed, y, x)
     else:
-        # TODO: pcs and recon are not defined when full_output=False, but still
-        #       returned.
         residuals_cube = residuals_result
     residuals_cube_ = cube_derotate(residuals_cube, angle_list, imlib=imlib,
                                     interpolation=interpolation)

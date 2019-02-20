@@ -370,7 +370,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
                      cevr=0.9, max_evs=None, data_ref=None, debug=False,
                      collapse=False):
     """ Getting ``ncomp`` eigenvectors. Choosing the size of the PCA truncation
-    when ``ncomp`` is set to None.
+    when ``ncomp`` is set to ``auto``.
     """
     no_dataref = False
     if data_ref is None:
@@ -379,6 +379,9 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
 
     if max_evs is None:
         max_evs = min(data_ref.shape[0], data_ref.shape[1])
+
+    if ncomp is None:
+        raise ValueError('ncomp must be an integer or `auto`')
 
     if ncomp == 'auto':
         ncomp = 0

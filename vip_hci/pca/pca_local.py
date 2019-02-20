@@ -87,8 +87,8 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
         used in the second PCA stage (ADI fashion, using the residuals of the
         first stage). If None then the second PCA stage is skipped and the
         residuals are de-rotated and combined.
-    mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
-            'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
+                'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, optional
         Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK
         linear algebra library through Numpy and it is the most conventional way
         of computing the SVD (deterministic result computed on CPU). ``arpack``
@@ -160,7 +160,7 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
                            interpolation, collapse, full_output, verbose)
 
         if verbose:
-            print('Done derotating and combining.')
+            print('Done derotating and combining')
             timing(start_time)
         if full_output:
             cube_out, cube_der, frame = res

@@ -273,11 +273,10 @@ def _snr_approx(array, source_xy, fwhm, centery, centerx):
     return sourcey, sourcex, snr
 
 
-def snr_ss(array, (source_xy), fwhm, out_coor=False, array2=None, 
-           use2alone=False, incl_neg_lobes=True, plot=False, verbose=False, 
-           full_output=False):
-    # Leave the order of parameters as it is, the same for both snr functions
-    # to be compatible with the snrmap parallel implementation
+# Leave the order of parameters as it is, the same for both snr functions
+# to be compatible with the snrmap parallel implementation
+def snr_ss(array, source_xy, fwhm, out_coor=False, array2=None, use2alone=False,
+           incl_neg_lobes=True, plot=False, verbose=False, full_output=False):
     """Calculates the S/N (signal to noise ratio) of a test resolution element
     in a residual frame (e.g. post-processed with LOCI, PCA, etc). Uses the
     approach described in Mawet et al. 2014 on small sample statistics, where a

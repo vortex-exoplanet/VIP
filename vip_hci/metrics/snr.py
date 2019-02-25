@@ -299,7 +299,7 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, array2=None,
     fwhm : float
         Size in pixels of the FWHM.
     out_coor: bool, optional
-        If True returns back the S/N value and the y, x input coordinates. In 
+        If True returns back the S/N value and the y, x input coordinates. In
         this case it overrides the full_output parameter.
     array2 : array_like, 2d, opt
         Additional image (e.g. processed image with negative derotation angles) 
@@ -317,13 +317,13 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, array2=None,
         Chooses whether to print some output or not. 
     full_output: bool, optional
         If True returns back the S/N value, the y, x input coordinates, noise 
-        and flux. 
-    
+        and flux.
+
     Returns
     -------
     snr : float
         Value of the S/N for the given planet or test speckle.
-    If ``full_output`` is True then the function returns:    
+    If ``full_output`` is True then the function returns:
     sourcey, sourcex, f_source, fluxes.std(), snr
     
     """
@@ -393,7 +393,7 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, array2=None,
         print(msg4.format(fluxes.std()))
 
     if plot:
-        _, ax = plt.subplots(figsize=(6,6))
+        _, ax = plt.subplots(figsize=(6, 6))
         ax.imshow(array, origin='lower', interpolation='nearest', alpha=0.5, 
                   cmap='gray')
         for i in range(xx.shape[0]):
@@ -404,7 +404,7 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, array2=None,
             cent = plt.Circle((xx[i], yy[i]), radius=0.8, color='r', fill=True,
                               alpha=0.5)
             ax.add_patch(cent)
-            aper_source = plt.Circle((sourcex, sourcey), radius=0.7, 
+            aper_source = plt.Circle((sourcex, sourcey), radius=0.7,
                                      color='b', fill=True, alpha=0.5)
             ax.add_patch(aper_source)
         ax.grid(False)

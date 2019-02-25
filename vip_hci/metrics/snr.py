@@ -278,53 +278,56 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, array2=None,
            full_output=False):
     # Leave the order of parameters as it is, the same for both snr functions
     # to be compatible with the snrmap parallel implementation
-    """Same as snr_ss but with 3 extra possibilities:
+    """Calculates the S/N (signal to noise ratio) of a test resolution element
+    in a residual frame (e.g. post-processed with LOCI, PCA, etc). Uses the
+    approach described in Mawet et al. 2014 on small sample statistics, where a
+    student t-test (eq. 9) can be used to determine S/N (and contrast) in high
+    contrast imaging. 3 extra possibilities compared to Mawet+14:
         - possibility to provide a second array (e.g. obtained with opposite
-        derotation angles) to have more apertures
+        derotation angles) to have more apertures for noise estimation
         - possibility to exclude negative ADI lobes directly adjacent to the 
-        tested xy location to not bias the noise estimate
-        - Possibility to use only the second array for the noise estimation
+        tested xy location, to not bias the noise estimate
+        - possibility to use only the second array for the noise estimation
         (useful for images containing a lot of disk/extended signals)
-    Note: incl_neg_lobes should be set to  snrmap() yet
     
     Parameters
     ----------
     array : array_like, 2d
-        Post-processed frame where we want to measure SNR.
+        Post-processed frame where we want to measure S/N.
     source_xy : tuple of floats
         X and Y coordinates of the planet or test speckle.
     fwhm : float
         Size in pixels of the FWHM.
-    out_coor: {False, True}, bool optional
-        If True returns back the snr value and the y, x input coordinates. In 
+    out_coor: bool, optional
+        If True returns back the S/N value and the y, x input coordinates. In 
         this case it overrides the full_output parameter.
     array2 : array_like, 2d, opt
         Additional image (e.g. processed image with negative derotation angles) 
         enabling to have more apertures for noise estimation at each radial
         separation. Should have the same dimensions as array.
     use2alone: bool, opt
-        Whether to use array2 alone to estimate the noise (might be useful to 
-        estimate the snr of extended disk features)
+        Whether to use array2 alone to estimate the noise (can be useful to 
+        estimate the S/N of extended disk features)
     incl_neg_lobes: bool, opt
         Whether to include the adjacent aperture lobes to the tested location 
         or not. Can be set to False if the image shows significant neg lobes.
-    plot : {False, True}, bool optional
+    plot : bool, optional
         Plots the frame and the apertures considered for clarity. 
-    verbose: {True, False}, bool optional
+    verbose: bool, optional
         Chooses whether to print some output or not. 
-    full_output: {False, True}, bool optional
-        If True returns back the snr value, the y, x input coordinates, noise 
+    full_output: bool, optional
+        If True returns back the S/N value, the y, x input coordinates, noise 
         and flux. 
     
     Returns
     -------
     snr : float
-        Value of the SNR for the given planet or test speckle.
-        
+        Value of the S/N for the given planet or test speckle.
+    If ``full_output`` is True then the function returns:    
     sourcey, sourcex, f_source, fluxes.std(), snr
     
     """
-    if not array.ndim==2:
+    if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
     if out_coor and full_output:
         raise TypeError('One of the 2 must be False')
@@ -335,13 +338,13 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, array2=None,
     sourcex, sourcey = source_xy 
     
     centery, centerx = frame_center(array)
-    sep = dist(centery,centerx,sourcey,sourcex)
+    sep = dist(centery, centerx, sourcey, sourcex)
 
     if not sep > (fwhm/2)+1:
         raise RuntimeError('`source_xy` is too close to the frame center')
-        
+
     sens = 'clock' #counterclock
-        
+
     angle = np.arcsin(fwhm/2./sep)*2
     number_apertures = int(np.floor(2*np.pi/angle))
     yy = np.zeros((number_apertures))
@@ -351,36 +354,36 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, array2=None,
     xx[0] = sourcex - centerx
     yy[0] = sourcey - centery
     for i in range(number_apertures-1):
-        if sens=='clock':
+        if sens == 'clock':
             xx[i+1] = cosangle*xx[i] + sinangle*yy[i] 
             yy[i+1] = cosangle*yy[i] - sinangle*xx[i] 
-        elif sens=='counterclock':
+        elif sens == 'counterclock':
             xx[i+1] = cosangle*xx[i] - sinangle*yy[i] 
-            yy[i+1] = cosangle*yy[i] + sinangle*xx[i]           
-            
+            yy[i+1] = cosangle*yy[i] + sinangle*xx[i]
+
     xx[:] += centerx
-    yy[:] += centery 
+    yy[:] += centery
     rad = fwhm/2.
     apertures = photutils.CircularAperture((xx, yy), r=rad)  # Coordinates (X,Y)
     fluxes = photutils.aperture_photometry(array, apertures, method='exact')
     fluxes = np.array(fluxes['aperture_sum'])
     if not incl_neg_lobes:
-        fluxes = np.concatenate(([fluxes[0]],fluxes[2:-1]))
+        fluxes = np.concatenate(([fluxes[0]], fluxes[2:-1]))
     if array2 is not None:
         fluxes2 = photutils.aperture_photometry(array2, apertures, method='exact')
         fluxes2 = np.array(fluxes2['aperture_sum'])
         if use2alone:
-            fluxes = np.concatenate(([fluxes[0]],fluxes2[:]))
+            fluxes = np.concatenate(([fluxes[0]], fluxes2[:]))
         else:
-            fluxes = np.concatenate((fluxes,fluxes2))
+            fluxes = np.concatenate((fluxes, fluxes2))
 
     f_source = fluxes[0].copy()
     fluxes = fluxes[1:]
     n2 = fluxes.shape[0]
     snr = (f_source - fluxes.mean())/(fluxes.std()*np.sqrt(1+(1/n2)))
-    
+
     if verbose:
-        msg1 = 'S/N for the given pixel = {:}'
+        msg1 = 'S/N for the given pixel = {:.3f}'
         msg2 = 'Integrated flux in FWHM test aperture = {:.3f}'
         msg3 = 'Mean of background apertures integrated fluxes = {:.3f}'
         msg4 = 'Std-dev of background apertures integrated fluxes = {:.3f}'
@@ -388,24 +391,25 @@ def snr_ss(array, (source_xy), fwhm, out_coor=False, array2=None,
         print(msg2.format(f_source))
         print(msg3.format(fluxes.mean()))
         print(msg4.format(fluxes.std()))
-    
+
     if plot:
         _, ax = plt.subplots(figsize=(6,6))
-        ax.imshow(array, origin='lower', interpolation='nearest', alpha=0.5, cmap='gray')
+        ax.imshow(array, origin='lower', interpolation='nearest', alpha=0.5, 
+                  cmap='gray')
         for i in range(xx.shape[0]):
             # Circle takes coordinates as (X,Y)
-            aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2., color='r', 
-                              fill=False, alpha=0.8)                                       
+            aper = plt.Circle((xx[i], yy[i]), radius=fwhm/2., color='r',
+                              fill=False, alpha=0.8)
             ax.add_patch(aper)
             cent = plt.Circle((xx[i], yy[i]), radius=0.8, color='r', fill=True,
                               alpha=0.5)
             ax.add_patch(cent)
             aper_source = plt.Circle((sourcex, sourcey), radius=0.7, 
-                                     color='b', fill=True, alpha=0.5)                                       
+                                     color='b', fill=True, alpha=0.5)
             ax.add_patch(aper_source)
-        ax.grid('off')
+        ax.grid(False)
         plt.show()
-    
+
     if out_coor:
         return sourcey, sourcex, snr
     if full_output:

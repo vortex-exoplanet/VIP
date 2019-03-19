@@ -7,16 +7,11 @@ Module with 2d/3d plotting functions.
 from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, O. Wertz'
-__all__ = ['pp_subplots',
-           'plot_surface',
-           'save_animation']
+__all__ = ['pp_subplots']
 
-import os
-import shutil
 import numpy as np
-from subprocess import Popen
-from matplotlib.pyplot import (figure, subplot, show, colorbar, axes, Circle,
-                               savefig, close)
+from matplotlib.pyplot import (figure, subplot, show, colorbar, Circle, savefig,
+                               close)
 import matplotlib.colors as colors
 import matplotlib.cm as mplcm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -35,96 +30,6 @@ ds9heat = {'red': lambda v: np.interp(v, [0, 0.34, 1], [0, 1, 1]),
 register_cmap('ds9cool', data=ds9cool)
 register_cmap('ds9heat', data=ds9heat)
 vip_default_cmap = 'viridis'
-
-
-def save_animation(data, anim_path=None, data_step_range=None, label=None,
-                   labelpad=10, label_step_range=None, delay=50, format='gif',
-                   **kwargs):
-    """ Generates a matplotlib animation from a ``data`` 3d array and saves it
-    to disk using ImageMagick's convert command (it must be installed otherwise
-    a ``FileNotFoundError`` will be raised).
-
-    Parameters
-    ----------
-    data : array_like
-        3d array.
-    anim_path : str, optional
-        The animation filename/path. If None then the animation will be called
-        animation.``format`` and will be saved in the current directory.
-    data_step_range : tuple, optional
-        Tuple of 1, 2 or 3 values that creates a range for slicing the ``data``
-        cube.
-    label : str, optional
-        Label to be overlaid on top of each frame of the animation. If None,
-        then 'frame #' will be used.
-    labelpad : int, optional
-        Padding of the label from the left bottom corner. 10 by default.
-    label_step_range : tuple, optional
-        Tuple of 1, 2 or 3 values that creates a range for customizing the label
-        overlaid on top of the image.
-    delay : int, optional
-        Delay for displaying the frames in the animation sequence.
-    format : str, optional
-        Format of the saved animation. By default 'gif' is used. Other formats
-        supported by ImageMagick are valid, such as 'mp4'.
-    **kwargs : dictionary, optional
-        Arguments to be passed to ``pp_subplots`` to customize the plot.
-
-    """
-    if not (isinstance(data, np.ndarray) and data.ndim == 3):
-        raise ValueError('`data` must be a 3d numpy array')
-
-    dir_path = './animation_temp/'
-    if anim_path is None:
-        anim_path = './animation'
-
-    if data_step_range is None:
-        data_step_range = range(0, data.shape[0], 1)
-    else:
-        if not isinstance(data_step_range, tuple):
-            msg = '`data_step_range` must be a tuple with 1, 2 or 3 values'
-            raise ValueError(msg)
-        if len(data_step_range) == 1:
-            data_step_range = range(data_step_range)
-        elif len(data_step_range) == 2:
-            data_step_range = range(data_step_range[0], data_step_range[1])
-        elif len(data_step_range) == 3:
-            data_step_range = range(data_step_range[0],
-                                    data_step_range[1],
-                                    data_step_range[2])
-
-    if label_step_range is None:
-        label_step_range = data_step_range
-    else:
-        if not isinstance(label_step_range, tuple):
-            msg = '`label_step_range` must be a tuple with 1, 2 or 3 values'
-            raise ValueError(msg)
-        if len(label_step_range) == 1:
-            label_step_range = range(label_step_range)
-        elif len(label_step_range) == 2:
-            label_step_range = range(label_step_range[0], label_step_range[1])
-        elif len(label_step_range) == 3:
-            label_step_range = range(label_step_range[0],
-                                     label_step_range[1],
-                                     label_step_range[2])
-
-    if os.path.exists(dir_path):
-        shutil.rmtree(dir_path)
-        print('Replacing ' + dir_path)
-    os.mkdir(dir_path)
-
-    for i, labstep in zip(data_step_range, list(label_step_range)):
-        if label is None:
-            label = 'frame '
-        savelabel = dir_path + label + str(i + 100)
-        pp_subplots(data[i], save=savelabel, label=[label+str(labstep + 1)],
-                    labelpad=labelpad, **kwargs)
-    try:
-        filename = anim_path + '.' + format
-        Popen(['convert', '-delay', str(delay), dir_path + '*.png', filename])
-        print('Animation successfully saved to disk as ' + filename)
-    except FileNotFoundError:
-        print('ImageMagick `convert` command could not be found')
 
 
 def pp_subplots(*data, **kwargs):
@@ -580,81 +485,3 @@ def pp_subplots(*data, **kwargs):
         if getfig:
             return fig
 
-
-def plot_surface(image, center_xy=None, size=15, output=False, title=None,
-                 zlim=None, **kwargs):
-    """
-    Create a surface plot from image.
-
-    By default, the whole image is plotted. The 'center' and 'size' attributes
-    allow to crop the image.
-
-    Parameters
-    ----------
-    image : numpy.array
-        The image as a numpy.array.
-    center_xy : tuple of 2 int or None, optional
-        If None, the whole image will be plotted. Otherwise, it grabs a square
-        subimage at the position X,Y from the image.
-    size : int (optional, default=15)
-        It corresponds to the size of a square in the image.
-    output : {False, True}, bool optional
-        Whether to output the grids and intensities or not.
-    title : str, optional
-        Sets the title for the surface plot.
-    zlim : tuple, optional
-        Tuple with the range of values (min,max) for the Z axis.
-    kwargs:
-        Additional attributes are passed to the matplotlib figure() and
-        plot_surface() method.
-
-    Returns
-    -------
-    out : tuple of 3 numpy.array
-        x and y for the grid, and the intensity
-
-    """
-    if not isinstance(center_xy, tuple):
-        raise ValueError('`center_xy` must be a tuple')
-
-    if center_xy is not None:
-        cx = int(center_xy[0])
-        cy = int(center_xy[1])
-        if size % 2:            # if size is odd
-            x = np.outer(np.arange(0, size, 1), np.ones(size))
-        else:                   # otherwise, size is even
-            x = np.outer(np.arange(0, size+1, 1), np.ones(size+1))
-        y = x.copy().T
-        z = image[cy - size//2: cy + size//2 + 1,
-                  cx - size//2: cx + size//2 + 1]
-    else:
-        cy, cx = frame_center(image)
-        if size is not None:
-            if size % 2:
-                x = np.outer(np.arange(0, size, 1), np.ones(size))
-            else:
-                x = np.outer(np.arange(0, size+1, 1), np.ones(size+1))
-            y = x.copy().T
-            z = image[cy-size//2:cy+size//2+1, cx-size//2:cx+size//2+1]
-        else:
-            size = image.shape[0]
-            x = np.outer(np.arange(0, size, 1), np.ones(size))
-            y = x.copy().T
-            z = image
-
-    figure(figsize=kwargs.pop('figsize', (6, 6)))
-    ax = axes(projection='3d')
-    ax.dist = 10
-    ax.plot_surface(x, y, z, rstride=1, cstride=1, linewidth=0, **kwargs)
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('I(x,y)')
-    if zlim is not None:
-        if isinstance(zlim, tuple):
-            ax.set_zlim(zlim[0], zlim[1])
-    if title is not None:
-        ax.set_title(title)
-    show()
-
-    if output:
-        return x, y, z

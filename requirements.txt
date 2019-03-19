@@ -8,7 +8,7 @@ emcee ~= 2.1
 nestle == 0.2.0
 corner ~= 1.0.2
 pandas ~= 0.18
-matplotlib ~= 2.2
+matplotlib ~= 3.0
 psutil
 pyprind ~= 2.11
 munch

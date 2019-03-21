@@ -350,8 +350,8 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
             msg = ['Subimage thresholded', 'Model', 'Residuals']
         else:
             msg = ['Subimage', 'Model', 'Residuals']
-        pp_subplots(psf_subimage, fit(x, y), psf_subimage - fit(x, y),
-                    grid=True, gridspacing=1, label=msg)
+        plot_frames((psf_subimage, fit(x, y), psf_subimage - fit(x, y)),
+                    grid=True, grid_spacing=1, label=msg)
         print('FWHM =', fwhm)
         print('centroid y =', mean_y)
         print('centroid x =', mean_x)

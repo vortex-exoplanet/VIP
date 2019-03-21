@@ -11,9 +11,10 @@ __all__ = ['frame_diff']
 
 import numpy as np
 import pandas as pn
+from hciplot import plot_frames
 from multiprocessing import cpu_count
 from sklearn.metrics import pairwise_distances
-from ..var import get_annulus_segments, pp_subplots
+from ..var import get_annulus_segments
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import time_ini, timing
 from ..conf.utils_conf import pool_map, fixed
@@ -150,7 +151,6 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
         mat_dists_ann = mat_dists_ann_full
 
     if debug:
-        #pp_subplots(mat_dists_ann)
         msg = 'Done calculating the {} distance for annulus {}'
         print(msg.format(metric, ann+1))
         timing(start_time)
@@ -163,7 +163,7 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
         raise RuntimeError('No pairs left. Decrease thresholds')
 
     if debug:
-        pp_subplots(mat_dists_ann)
+        plot_frames(mat_dists_ann)
         print('Done thresholding/checking distances.')
         timing(start_time)
 

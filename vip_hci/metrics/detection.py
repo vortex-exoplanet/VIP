@@ -12,6 +12,7 @@ __all__ = ['detection',
            'peak_coordinates']
 
 import numpy as np
+from hciplot import plot_frames
 from scipy.ndimage.filters import correlate
 from skimage import feature
 from astropy.stats import sigma_clipped_stats
@@ -19,18 +20,16 @@ from astropy.stats import gaussian_fwhm_to_sigma, gaussian_sigma_to_fwhm
 from astropy.table import Table
 from astropy.modeling import models, fitting
 from skimage.feature import peak_local_max
-from ..var import (mask_circle, pp_subplots, get_square, frame_center,
-                   fit_2dgaussian, frame_filter_lowpass)
+from ..var import (mask_circle, get_square, frame_center, fit_2dgaussian,
+                   frame_filter_lowpass)
 from ..conf.utils_conf import sep
 from .snr import snr_ss
 from .frame_analysis import frame_quick_report
 
 
-# TODO: Add the option of computing and thresholding an S/N map
-def detection(array, psf, bkg_sigma=5, mode='lpeaks', matched_filter=False,
-              mask=True, snr_thresh=5, plot=True, debug=False,
-              full_output=False, verbose=True, save_plot=None, plot_title=None,
-              angscale=False, pxscale=0.01):
+def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
+              matched_filter=False, mask=True, snr_thresh=5, plot=True,
+              debug=False, full_output=False, verbose=True, **kwargs):
     """ Finds blobs in a 2d array. The algorithm is designed for automatically
     finding planets in post-processed high contrast final frames. Blob can be
     defined as a region of an image in which some properties are constant or
@@ -146,10 +145,10 @@ def detection(array, psf, bkg_sigma=5, mode='lpeaks', matched_filter=False,
             fwhm_y = fit.y_stddev.value*gaussian_sigma_to_fwhm
             fwhm_x = fit.x_stddev.value*gaussian_sigma_to_fwhm
             mean_fwhm_fit = np.mean([np.abs(fwhm_x), np.abs(fwhm_y)])
-            if fit.amplitude.value > 0 \
-            and np.allclose(fit.y_mean.value, cy, atol=2) \
-            and np.allclose(fit.x_mean.value, cx, atol=2) \
-            and np.allclose(mean_fwhm_fit, fwhm, atol=3):
+            condyf = np.allclose(fit.y_mean.value, cy, atol=2)
+            condxf = np.allclose(fit.x_mean.value, cx, atol=2)
+            condmf = np.allclose(mean_fwhm_fit, fwhm, atol=3)
+            if fit.amplitude.value > 0 and condxf and condyf and condmf:
                 coords.append((suby + fit.y_mean.value,
                                subx + fit.x_mean.value))
 
@@ -159,7 +158,7 @@ def detection(array, psf, bkg_sigma=5, mode='lpeaks', matched_filter=False,
                     msg = 'fwhm_y in px = {:.3f}, fwhm_x in px = {:.3f}'
                     print(msg.format(fwhm_y, fwhm_x))
                     print('mean fit fwhm = {:.3f}'.format(mean_fwhm_fit))
-                    pp_subplots(subim, colorb=True, axis=False, dpi=60)
+                    plot_frames(subim, colorbar=True, axis=False, dpi=60)
         return coords
 
     def print_coords(coords):
@@ -176,22 +175,27 @@ def detection(array, psf, bkg_sigma=5, mode='lpeaks', matched_filter=False,
             print(sep)
 
     # --------------------------------------------------------------------------
-
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
-    if psf.ndim != 2 and psf.shape[0] < array.shape[0]:
-        raise TypeError('Input psf is not a 2d array or has wrong size')
-        
-    # Getting the FWHM from the PSF array
-    cenpsf = frame_center(psf)
-    outdf = fit_2dgaussian(psf, cent=(cenpsf), debug=debug, full_output=True)
-    fwhm_x, fwhm_y = outdf['fwhm_x'], outdf['fwhm_y']
-    fwhm = np.mean([fwhm_x, fwhm_y])
-    if verbose:
-        print('FWHM = {:.2f} pxs\n'.format(fwhm))
-    if debug:
-        print('FWHM_y', fwhm_y)
-        print('FWHM_x', fwhm_x)
+    if psf is not None:
+        if psf.ndim != 2 and psf.shape[0] < array.shape[0]:
+            raise TypeError('Input psf is not a 2d array or has wrong size')
+    else:
+        if matched_filter:
+            raise ValueError('`psf` must be provided when `matched_filter` is '
+                             'True')
+
+    if fwhm is None:
+        # Getting the FWHM from the PSF array
+        cenpsf = frame_center(psf)
+        outdf = fit_2dgaussian(psf, cent=(cenpsf), debug=debug, full_output=True)
+        fwhm_x, fwhm_y = outdf['fwhm_x'], outdf['fwhm_y']
+        fwhm = np.mean([fwhm_x, fwhm_y])
+        if verbose:
+            print('FWHM = {:.2f} pxs\n'.format(fwhm))
+        if debug:
+            print('FWHM_y', fwhm_y)
+            print('FWHM_x', fwhm_x)
 
     # Masking the center, 2*lambda/D is the expected IWA
     if mask:
@@ -209,8 +213,7 @@ def detection(array, psf, bkg_sigma=5, mode='lpeaks', matched_filter=False,
     if debug:
         print('Sigma clipped median = {:.3f}'.format(median))
         print('Sigma clipped stddev = {:.3f}'.format(stddev))
-        print('Background threshold = {:.3f}'.format(bkg_level))
-        print()
+        print('Background threshold = {:.3f}'.format(bkg_level), '\n')
 
     if mode == 'lpeaks' or mode == 'log' or mode == 'dog':
         # Padding the image with zeros to avoid errors at the edges
@@ -219,7 +222,7 @@ def detection(array, psf, bkg_sigma=5, mode='lpeaks', matched_filter=False,
 
     if debug and plot and matched_filter:
         print('Input frame after matched filtering:')
-        pp_subplots(frame_det, rows=2, colorb=True)
+        plot_frames(frame_det, rows=2, colorbar=True)
 
     if mode == 'lpeaks':
         # Finding local peaks (can be done in the correlated frame)
@@ -239,7 +242,7 @@ def detection(array, psf, bkg_sigma=5, mode='lpeaks', matched_filter=False,
         if len(coords) == 0:
             print_abort()
             return 0, 0
-        coords = coords[:,:2]
+        coords = coords[:, :2]
         coords = check_blobs(array_padded, coords, fwhm, debug)
         coords = np.array(coords)
         if coords.shape[0] > 0 and verbose:
@@ -260,8 +263,7 @@ def detection(array, psf, bkg_sigma=5, mode='lpeaks', matched_filter=False,
             print_coords(coords)
 
     else:
-        msg = 'Wrong mode. Available modes: lpeaks, log, dog.'
-        raise TypeError(msg)
+        raise ValueError('`mode` not recognized')
 
     if coords.shape[0] == 0:
         print_abort()
@@ -282,6 +284,7 @@ def detection(array, psf, bkg_sigma=5, mode='lpeaks', matched_filter=False,
         y = yy[i]
         x = xx[i]
         if verbose:
+            print('')
             print(sep)
             print('X,Y = ({:.1f},{:.1f})'.format(x,y))
         snr = snr_ss(array, (x,y), fwhm, False, verbose=False)
@@ -298,6 +301,7 @@ def detection(array, psf, bkg_sigma=5, mode='lpeaks', matched_filter=False,
                 print('S/N constraint NOT fulfilled (S/N = {:.3f})'.format(snr))
             if debug:
                 _ = frame_quick_report(array, fwhm, (x,y), verbose=verbose)
+    print(sep)
 
     if debug or full_output:
         table = Table([yy.tolist(), xx.tolist(), snr_list],
@@ -309,13 +313,12 @@ def detection(array, psf, bkg_sigma=5, mode='lpeaks', matched_filter=False,
     xx_out = np.array(xx_out)
 
     if plot:
-        coords = list(zip(xx_out.tolist() + xx_final.tolist(),
-                          yy_out.tolist() + yy_final.tolist()))
+        coords = tuple(zip(xx_out.tolist() + xx_final.tolist(),
+                           yy_out.tolist() + yy_final.tolist()))
         circlealpha = [0.3] * len(xx_out)
         circlealpha += [1] * len(xx_final)
-        pp_subplots(array, circle=coords, circlealpha=circlealpha,
-                    circlelabel=True, circlerad=fwhm, save=save_plot, dpi=120,
-                    angscale=angscale, pxscale=pxscale, title=plot_title)
+        plot_frames(array, dpi=120, circle=coords, circle_alpha=circlealpha,
+                    circle_label=True, circle_radius=fwhm, **kwargs)
 
     if debug:
         print(table)

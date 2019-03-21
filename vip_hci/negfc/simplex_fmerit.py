@@ -8,9 +8,10 @@ from __future__ import division, print_function
 __all__ = []
 
 import numpy as np
+from hciplot import plot_frames
 from skimage.draw import circle
 from ..metrics import cube_inject_companions
-from ..var import frame_center, pp_subplots
+from ..var import frame_center
 from ..pca.utils_pca import pca_annulus
 
 
@@ -87,13 +88,13 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
                                       
     # Perform PCA and extract the zone of interest
     res = get_values_optimize(cube_negfc, angs, ncomp, annulus_width*fwhm,
-                                 aperture_radius*fwhm, initialState[0],
-                                 initialState[1], cube_ref=cube_ref, 
-                                 svd_mode=svd_mode, scaling=scaling,
-                                 collapse=collapse, debug=debug)
+                              aperture_radius*fwhm, initialState[0],
+                              initialState[1], cube_ref=cube_ref,
+                              svd_mode=svd_mode, scaling=scaling,
+                              collapse=collapse, debug=debug)
     if debug and collapse is not None:
         values, frpca = res
-        pp_subplots(frpca)
+        plot_frames(frpca)
     else:
         values = res
     

@@ -40,13 +40,17 @@ def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
     ----------
     array : array_like, 2d
         Input frame.
+    fwhm : None or int, optional
+        Size of the FWHM in pixels. If None and a ``psf`` is provided, then the
+        FWHM is measured on the PSF image.
     psf : array_like
-        Input psf, normalized with ``vip_hci.phot.normalize_psf``.
+        Input psf, normalized with ``vip_hci.metrics.normalize_psf``.
     bkg_sigma : int or float, optional
         The number standard deviations above the clipped median for setting the
         background level.
     mode : {'lpeaks','log','dog'}, optional
-        Sets with algorithm to use. Each algorithm yields different results.
+        Sets with algorithm to use. Each algorithm yields different results. See
+        notes for the details of each method.
     matched_filter : bool, optional
         Whether to correlate with the psf of not.
     mask : bool, optional
@@ -62,14 +66,9 @@ def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
         constraint or a table with all the blobs and the peak pixels and SNR.
     verbose : bool, optional
         Whether to print to stdout information about found blobs.
-    save_plot: string
-        If provided, the plot is saved to the path.
-    plot_title : str, optional
-        Title of the plot.
-    angscale: bool, optional
-        If True the plot axes are converted to angular scale.
-    pxscale : float, optional
-        Pixel scale in arcseconds/px. Default 0.01 for Keck/NIRC2.
+    **kwargs : dictionary, optional
+        Arguments to be passed to ``plot_frames`` to customize the plot (and to
+        save it to disk).
 
     Returns
     -------
@@ -87,32 +86,34 @@ def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
     the image will smooth the noise and maximize detectability of objects with a
     shape similar to the kernel.
     The background level or threshold is found with sigma clipped statistics
-    (5 sigma over the median) on the image/correlated image. Then 5 different
-    strategies can be used to detect the blobs (potential planets):
+    (``bkg_sigma`` over the median) on the image/correlated image. Then
+    different strategies can be used to detect the blobs or potential planets,
+    according to the parameter ``mode``:
 
-    Local maxima + 2d Gaussian fit. The local peaks above the background on the
-    (correlated) frame are detected. A maximum filter is used for finding local
-    maxima. This operation dilates the original image and merges neighboring
-    local maxima closer than the size of the dilation. Locations where the
-    original image is equal to the dilated image are returned as local maxima.
-    The minimum separation between the peaks is 1*FWHM. A 2d Gaussian fit is
-    done on each of the maxima constraining the position on the subimage and the
-    sigma of the fit. Finally the blobs are filtered based on its SNR.
+    "lpeaks" -- Local maxima + 2d Gaussian fit: The local peaks above the
+    background on the (correlated) frame are detected. A maximum filter is used
+    for finding local maxima. This operation dilates the original image and
+    merges neighboring local maxima closer than the size of the dilation.
+    Locations where the original image is equal to the dilated image are
+    returned as local maxima. The minimum separation between the peaks is
+    1*FWHM. A 2d Gaussian fit is done on each of the maxima constraining the
+    position on the subimage and the sigma of the fit. Finally the blobs are
+    filtered based on its SNR.
 
-    Laplacian of Gaussian + 2d Gaussian fit. It computes the Laplacian of
-    Gaussian images with successively increasing standard deviation and stacks
-    them up in a cube. Blobs are local maximas in this cube. LOG assumes that
-    the blobs are again assumed to be bright on dark. A 2d Gaussian fit is done
-    on each of the candidates constraining the position on the subimage and the
-    sigma of the fit. Finally the blobs are filtered based on its SNR.
+    "log" -- Laplacian of Gaussian + 2d Gaussian fit: It computes the Laplacian
+    of Gaussian images with successively increasing standard deviation and
+    stacks them up in a cube. Blobs are local maximas in this cube. LOG assumes
+    that the blobs are again assumed to be bright on dark. A 2d Gaussian fit is
+    done on each of the candidates constraining the position on the subimage and
+    the sigma of the fit. Finally the blobs are filtered based on its SNR.
 
-    Difference of Gaussians. This is a faster approximation of LoG approach. In
-    this case the image is blurred with increasing standard deviations and the
-    difference between two successively blurred images are stacked up in a cube.
-    DOG assumes that the blobs are again assumed to be bright on dark. A 2d
-    Gaussian fit is done on each of the candidates constraining the position on
-    the subimage and the sigma of the fit. Finally the blobs are filtered based
-    on its SNR.
+    "dog" -- Difference of Gaussians: This is a faster approximation of LoG
+    approach. In this case the image is blurred with increasing standard
+    deviations and the difference between two successively blurred images are
+    stacked up in a cube. DOG assumes that the blobs are again assumed to be
+    bright on dark. A 2d Gaussian fit is done on each of the candidates
+    constraining the position on the subimage and the sigma of the fit. Finally
+    the blobs are filtered based on its SNR.
 
     """
     def check_blobs(array_padded, coords_temp, fwhm, debug):

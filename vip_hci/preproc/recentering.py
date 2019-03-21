@@ -1036,7 +1036,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         y -= offy
         x -= offx
 
-    for i in Progressbar(range(n_frames), desc="shifting", verbose=verbose):
+    for i in Progressbar(range(n_frames), desc="Shifting", verbose=verbose):
         if debug:
             print("\nShifts in X and Y")
             print(x[i], y[i])

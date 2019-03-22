@@ -23,17 +23,17 @@ from skimage.feature import peak_local_max
 from ..var import (mask_circle, get_square, frame_center, fit_2dgaussian,
                    frame_filter_lowpass)
 from ..conf.utils_conf import sep
-from .snr import snr_ss
+from .snr import snr_ss, snrmap, snrmap_fast
 from .frame_analysis import frame_quick_report
 
 
-def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
-              matched_filter=False, mask=True, snr_thresh=5, plot=True,
+def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
+              matched_filter=False, mask=True, snr_thresh=5, nproc=1, plot=True,
               debug=False, full_output=False, verbose=True, **kwargs):
     """ Finds blobs in a 2d array. The algorithm is designed for automatically
     finding planets in post-processed high contrast final frames. Blob can be
     defined as a region of an image in which some properties are constant or
-    vary within a prescribed range of values. See <Notes> below to read about
+    vary within a prescribed range of values. See ``Notes`` below to read about
     the algorithm details.
 
     Parameters
@@ -44,19 +44,25 @@ def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
         Size of the FWHM in pixels. If None and a ``psf`` is provided, then the
         FWHM is measured on the PSF image.
     psf : array_like
-        Input psf, normalized with ``vip_hci.metrics.normalize_psf``.
-    bkg_sigma : int or float, optional
-        The number standard deviations above the clipped median for setting the
-        background level.
-    mode : {'lpeaks','log','dog'}, optional
+        Input PSF template. It must be normalized with the
+        ``vip_hci.metrics.normalize_psf`` function.
+    mode : {'lpeaks', 'log', 'dog', 'snrmap', 'snrmapf'}, optional
         Sets with algorithm to use. Each algorithm yields different results. See
         notes for the details of each method.
+    bkg_sigma : int or float, optional
+        The number standard deviations above the clipped median for setting the
+        background level. Used when ``mode`` is either 'lpeaks', 'dog' or 'log'.
     matched_filter : bool, optional
-        Whether to correlate with the psf of not.
+        Whether to correlate with the psf of not. Used when ``mode`` is either
+        'lpeaks', 'dog' or 'log'.
     mask : bool, optional
-        Whether to mask the central region (circular aperture of 2*fwhm radius).
+        If True the central region (circular aperture of 2*FWHM radius) of the
+        image will be masked out.
     snr_thresh : float, optional
-        SNR threshold for deciding whether the blob is a detection or not.
+        S/N threshold for deciding whether the blob is a detection or not. Used
+        to threshold the S/N map when ``mode`` is set to 'snrmap' or 'snrmapf'.
+    nproc : None or int, optional
+        The number of processes for running the ``snrmap`` function.
     plot : bool, optional
         If True plots the frame showing the detected blobs on top.
     debug : bool, optional
@@ -80,52 +86,62 @@ def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
 
     Notes
     -----
-    The FWHM of the PSF is measured directly on the provided array. If the
-    parameter matched_filter is True then the PSF is used to run a matched
-    filter (correlation) which is equivalent to a convolution filter. Filtering
-    the image will smooth the noise and maximize detectability of objects with a
-    shape similar to the kernel.
-    The background level or threshold is found with sigma clipped statistics
-    (``bkg_sigma`` over the median) on the image/correlated image. Then
-    different strategies can be used to detect the blobs or potential planets,
-    according to the parameter ``mode``:
+    When ``mode`` is either 'lpeaks', 'dog' or 'log', the detection might happen
+    in the input frame or in a match-filtered version of it (by setting
+    ``matched_filter`` to True and providing a PSF template, to run a
+    correlation filter). Filtering the image will smooth the noise and maximize
+    detectability of objects with a shape similar to the kernel. When ``mode``
+    is either 'snrmap' or 'snrmapf', the detection is done on an S/N map
+    directly.
 
-    "lpeaks" -- Local maxima + 2d Gaussian fit: The local peaks above the
-    background on the (correlated) frame are detected. A maximum filter is used
-    for finding local maxima. This operation dilates the original image and
-    merges neighboring local maxima closer than the size of the dilation.
-    Locations where the original image is equal to the dilated image are
-    returned as local maxima. The minimum separation between the peaks is
-    1*FWHM. A 2d Gaussian fit is done on each of the maxima constraining the
-    position on the subimage and the sigma of the fit. Finally the blobs are
-    filtered based on its SNR.
+    When ``mode`` is set to:
+        'lpeaks' (Local maxima): The local peaks above the background (computed
+        using sigma clipped statistics) on the (correlated) frame are detected.
+        A maximum filter is used for finding local maxima. This operation
+        dilates the original image and merges neighboring local maxima closer
+        than the size of the dilation. Locations where the original image is
+        equal to the dilated image are returned as local maxima. The minimum
+        separation between the peaks is 1*FWHM.
 
-    "log" -- Laplacian of Gaussian + 2d Gaussian fit: It computes the Laplacian
-    of Gaussian images with successively increasing standard deviation and
-    stacks them up in a cube. Blobs are local maximas in this cube. LOG assumes
-    that the blobs are again assumed to be bright on dark. A 2d Gaussian fit is
-    done on each of the candidates constraining the position on the subimage and
-    the sigma of the fit. Finally the blobs are filtered based on its SNR.
+        'log' (Laplacian of Gaussian): It computes the Laplacian of Gaussian
+        images with successively increasing standard deviation and stacks them
+        up in a cube. Blobs are local maximas in this cube. LOG assumes that the
+        blobs are again assumed to be bright on dark.
 
-    "dog" -- Difference of Gaussians: This is a faster approximation of LoG
-    approach. In this case the image is blurred with increasing standard
-    deviations and the difference between two successively blurred images are
-    stacked up in a cube. DOG assumes that the blobs are again assumed to be
-    bright on dark. A 2d Gaussian fit is done on each of the candidates
-    constraining the position on the subimage and the sigma of the fit. Finally
-    the blobs are filtered based on its SNR.
+        'dog' (Difference of Gaussians): This is a faster approximation of the
+        Laplacian of Gaussian approach. In this case the image is blurred with
+        increasing standard deviations and the difference between two
+        successively blurred images are stacked up in a cube. DOG assumes that
+        the blobs are again assumed to be bright on dark.
+
+        'snrmap' or 'snrmapf': A threshold is applied to the S/N map (computed
+        with the ``snrmap`` or ``snrmap_fast`` functions). The threshold is
+        given by ``snr_thresh`` and local maxima are found as in the case of
+        'lpeaks'.
+
+    Finally, a 2d Gaussian fit is done on each of the potential blobs
+    constraining the position on a cropped sub-image and the sigma of the fit
+    (to match the input FWHM). Finally the blobs are filtered based on its S/N
+    value, according to ``snr_thresh``.
 
     """
-    def check_blobs(array_padded, coords_temp, fwhm, debug):
-        y_temp = coords_temp[:,0]
-        x_temp = coords_temp[:,1]
+    def check_blobs(array, coords_temp, fwhm, debug):
+        y_temp = coords_temp[:, 0]
+        x_temp = coords_temp[:, 1]
         coords = []
         # Fitting a 2d gaussian to each local maxima position
         for y, x in zip(y_temp, x_temp):
             subsi = 2 * int(np.ceil(fwhm))
-            if subsi %2 == 0:
+            if subsi % 2 == 0:
                 subsi += 1
-            subim, suby, subx = get_square(array_padded, subsi, y+pad, x+pad,
+
+            if mode in ('lpeaks', 'log', 'dog'):
+                scy = y + pad
+                scx = x + pad
+            elif mode in ('snrmap', 'snrmapf'):
+                scy = y
+                scx = x
+            subim, suby, subx = get_square(array, subsi, scy, scx,
                                            position=True, force=True)
             cy, cx = frame_center(subim)
 
@@ -143,8 +159,8 @@ def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
             # coincide with the center of the subimage (within 2px error)
             # checking whether the mean of the fwhm in y and x of the fit
             # are close to the FWHM_PSF with a margin of 3px
-            fwhm_y = fit.y_stddev.value*gaussian_sigma_to_fwhm
-            fwhm_x = fit.x_stddev.value*gaussian_sigma_to_fwhm
+            fwhm_y = fit.y_stddev.value * gaussian_sigma_to_fwhm
+            fwhm_x = fit.x_stddev.value * gaussian_sigma_to_fwhm
             mean_fwhm_fit = np.mean([np.abs(fwhm_x), np.abs(fwhm_y)])
             condyf = np.allclose(fit.y_mean.value, cy, atol=2)
             condxf = np.allclose(fit.x_mean.value, cx, atol=2)
@@ -166,8 +182,8 @@ def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
         print('Blobs found:', len(coords))
         print(' ycen   xcen')
         print('------ ------')
-        for i in range(len(coords[:, 0])):
-            print('{:.3f} \t {:.3f}'.format(coords[i,0], coords[i,1]))
+        for j in range(len(coords[:, 0])):
+            print('{:.3f} \t {:.3f}'.format(coords[j, 0], coords[j, 1]))
 
     def print_abort():
         if verbose:
@@ -187,59 +203,85 @@ def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
                              'True')
 
     if fwhm is None:
-        # Getting the FWHM from the PSF array
-        cenpsf = frame_center(psf)
-        outdf = fit_2dgaussian(psf, cent=(cenpsf), debug=debug, full_output=True)
-        fwhm_x, fwhm_y = outdf['fwhm_x'], outdf['fwhm_y']
-        fwhm = np.mean([fwhm_x, fwhm_y])
-        if verbose:
-            print('FWHM = {:.2f} pxs\n'.format(fwhm))
-        if debug:
-            print('FWHM_y', fwhm_y)
-            print('FWHM_x', fwhm_x)
+        if psf is not None:
+            # Getting the FWHM from the PSF array
+            cenpsf = frame_center(psf)
+            outdf = fit_2dgaussian(psf, cent=(cenpsf), debug=debug,
+                                   full_output=True)
+            fwhm_x, fwhm_y = outdf['fwhm_x'], outdf['fwhm_y']
+            fwhm = np.mean([fwhm_x, fwhm_y])
+            if verbose:
+                print('FWHM = {:.2f} pxs\n'.format(fwhm))
+            if debug:
+                print('FWHM_y', fwhm_y)
+                print('FWHM_x', fwhm_x)
+        else:
+            raise ValueError('`fwhm` or `psf` must be provided')
 
     # Masking the center, 2*lambda/D is the expected IWA
     if mask:
         array = mask_circle(array, radius=fwhm)
 
-    # Matched filter
-    if matched_filter:
-        frame_det = correlate(array, psf)
-    else:
-        frame_det = array
+    # Generating a detection map: Match-filtered frame or SNRmap
+    # For 'lpeaks', 'dog', 'log' it is possible to skip this step
+    if mode in ('lpeaks', 'log', 'dog'):
+        if matched_filter:
+            frame_det = correlate(array, psf)
+        else:
+            frame_det = array
 
-    # Estimation of background level
-    _, median, stddev = sigma_clipped_stats(frame_det, sigma=5, iters=None)
-    bkg_level = median + (stddev * bkg_sigma)
-    if debug:
-        print('Sigma clipped median = {:.3f}'.format(median))
-        print('Sigma clipped stddev = {:.3f}'.format(stddev))
-        print('Background threshold = {:.3f}'.format(bkg_level), '\n')
+        if debug and plot and matched_filter:
+            print('Match-filtered frame:')
+            plot_frames(frame_det, colorbar=True)
 
-    if mode == 'lpeaks' or mode == 'log' or mode == 'dog':
+        # Estimation of background level
+        _, median, stddev = sigma_clipped_stats(frame_det, sigma=5, iters=None)
+        bkg_level = median + (stddev * bkg_sigma)
+        if debug:
+            print('Sigma clipped median = {:.3f}'.format(median))
+            print('Sigma clipped stddev = {:.3f}'.format(stddev))
+            print('Background threshold = {:.3f}'.format(bkg_level), '\n')
+
+    elif mode in ('snrmap', 'snrmapf'):
+        if mode == 'snrmap':
+            frame_det = snrmap(array, fwhm=fwhm, plot=False, mode='sss',
+                               nproc=nproc, verbose=verbose)
+        elif mode == 'snrmapf':
+            frame_det = snrmap_fast(array, fwhm=fwhm, plot=False, nproc=nproc,
+                                    verbose=verbose)
+
+        if debug and plot:
+            print('Signal-to-noise ratio map:')
+            plot_frames(frame_det, colorbar=True)
+
+    if mode in ('lpeaks', 'log', 'dog'):
         # Padding the image with zeros to avoid errors at the edges
         pad = 10
         array_padded = np.lib.pad(array, pad, 'constant', constant_values=0)
 
-    if debug and plot and matched_filter:
-        print('Input frame after matched filtering:')
-        plot_frames(frame_det, rows=2, colorbar=True)
+    if mode in ('lpeaks', 'snrmap', 'snrmapf'):
+        if mode == 'lpeaks':
+            threshold = bkg_level
+        else:
+            threshold = snr_thresh
 
-    if mode == 'lpeaks':
-        # Finding local peaks (can be done in the correlated frame)
-        coords_temp = peak_local_max(frame_det, threshold_abs=bkg_level,
+        coords_temp = peak_local_max(frame_det, threshold_abs=threshold,
                                      min_distance=int(np.ceil(fwhm)),
                                      num_peaks=20)
-        coords = check_blobs(array_padded, coords_temp, fwhm, debug)
+
+        if mode == 'lpeaks':
+            coords = check_blobs(array_padded, coords_temp, fwhm, debug)
+        else:
+            coords = check_blobs(array, coords_temp, fwhm, debug)
         coords = np.array(coords)
         if verbose and coords.shape[0] > 0:
             print_coords(coords)
 
     elif mode == 'log':
-        sigma = fwhm*gaussian_fwhm_to_sigma
+        sigma = fwhm * gaussian_fwhm_to_sigma
         coords = feature.blob_log(frame_det.astype('float'),
-                                  threshold=bkg_level,
-                                  min_sigma=sigma-.5, max_sigma=sigma+.5)
+                                  threshold=bkg_level, min_sigma=sigma-.5,
+                                  max_sigma=sigma+.5)
         if len(coords) == 0:
             print_abort()
             return 0, 0
@@ -250,7 +292,7 @@ def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
             print_coords(coords)
 
     elif mode == 'dog':
-        sigma = fwhm*gaussian_fwhm_to_sigma
+        sigma = fwhm * gaussian_fwhm_to_sigma
         coords = feature.blob_dog(frame_det.astype('float'),
                                   threshold=bkg_level, min_sigma=sigma-.5,
                                   max_sigma=sigma+.5)
@@ -277,8 +319,10 @@ def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
     yy_out = []
     xx_out = []
     snr_list = []
-    xx -= pad
-    yy -= pad
+
+    if mode in ('lpeaks', 'log', 'dog'):
+        xx -= pad
+        yy -= pad
 
     # Checking S/N for potential sources
     for i in range(yy.shape[0]):
@@ -287,8 +331,8 @@ def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
         if verbose:
             print('')
             print(sep)
-            print('X,Y = ({:.1f},{:.1f})'.format(x,y))
-        snr = snr_ss(array, (x,y), fwhm, False, verbose=False)
+            print('X,Y = ({:.1f},{:.1f})'.format(x, y))
+        snr = snr_ss(array, (x, y), fwhm, False, verbose=False)
         snr_list.append(snr)
         if snr >= snr_thresh:
             if verbose:
@@ -299,9 +343,10 @@ def detection(array, fwhm=4, psf=None, bkg_sigma=5, mode='lpeaks',
             yy_out.append(y)
             xx_out.append(x)
             if verbose:
-                print('S/N constraint NOT fulfilled (S/N = {:.3f})'.format(snr))
+                msg = 'S/N constraint NOT fulfilled (S/N = {:.3f})'
+                print(msg.format(snr))
             if debug:
-                _ = frame_quick_report(array, fwhm, (x,y), verbose=verbose)
+                _ = frame_quick_report(array, fwhm, (x, y), verbose=verbose)
     print(sep)
 
     if debug or full_output:

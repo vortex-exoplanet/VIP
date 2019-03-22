@@ -13,11 +13,12 @@ __all__ = ['frame_fix_badpix_isolated',
            'cube_fix_badpix_clump']
 
 import numpy as np
+from hciplot import plot_frames
 from skimage.draw import circle, ellipse
 from scipy.ndimage import median_filter
 from astropy.stats import sigma_clipped_stats
 from ..stats import sigma_filter
-from ..var import dist, frame_center, pp_subplots
+from ..var import dist, frame_center
 from ..stats import clip_array
 from ..conf import timing, time_ini, Progressbar
 
@@ -95,7 +96,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
             bpm_mask[cir] = 0
         bpm_mask = bpm_mask.astype('bool')
         if debug:
-            pp_subplots(frame, bpm_mask, title='Frame / Bad pixel mask')
+            plot_frames((frame, bpm_mask), title='Frame / Bad pixel mask')
 
     smoothed = median_filter(frame, size, mode='mirror')
     frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
@@ -181,7 +182,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         bpm_mask = bpm_mask.astype('bool')
 
     if debug:
-        pp_subplots(bpm_mask, title='Bad pixel mask')
+        plot_frames(bpm_mask, title='Bad pixel mask')
 
     for i in Progressbar(range(n_frames), desc="frames"):
         frame = cube_out[i]

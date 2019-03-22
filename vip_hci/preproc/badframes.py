@@ -303,10 +303,10 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
             marker = 'o'
         ax.plot(x, lista, marker=marker, alpha=0.4, color='#1f77b4')
         ax.vlines(frame_ref, ymin=np.nanmin(lista), ymax=np.nanmax(lista), 
-                   colors='green', linestyles='dashed', lw=2, alpha=0.6,
-                   label='Reference frame '+str(frame_ref))
+                  colors='green', linestyles='dashed', lw=2, alpha=0.6,
+                  label='Reference frame '+str(frame_ref))
         ax.hlines(threshold, xmin=-1, xmax=n+1, lw=2, colors='#ff7f0e',
-                   linestyles='dashed', label='Threshold', alpha=0.6)
+                  linestyles='dashed', label='Threshold', alpha=0.6)
         plt.xlabel('Frame number')
         if dist == 'sad':
             plt.ylabel('SAD - Manhattan distance')

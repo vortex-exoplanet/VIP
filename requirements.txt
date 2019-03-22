@@ -14,4 +14,4 @@ pyprind ~= 2.11
 munch
 opencv-python >= 3.4
 pytest
-hciplot ~= 0.1.2
+hciplot ~= 0.1.3

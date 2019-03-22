@@ -29,6 +29,7 @@ except ImportError:
     warnings.warn(msg, ImportWarning)
     no_opencv = True
 
+from hciplot import plot_frames
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
 from skimage.transform import radon
@@ -39,8 +40,8 @@ from . import frame_crop
 from ..conf import time_ini, timing, Progressbar
 from ..conf.utils_conf import vip_figsize, check_array, eval_func_tuple as EFT
 from ..var import (get_square, frame_center, get_annulus_segments,
-                   pp_subplots, fit_2dmoffat, fit_2dgaussian,
-                   cube_filter_lowpass, cube_filter_highpass)
+                   fit_2dmoffat, fit_2dgaussian, cube_filter_lowpass,
+                   cube_filter_highpass)
 from ..preproc import cube_crop_frames
 
 
@@ -336,7 +337,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     si1, si2, si3, si4 = subims
 
     if debug:
-        pp_subplots(si1, si2, si3, si4, colorb=True)
+        plot_frames((si1, si2, si3, si4), colorbar=True)
         print('Centroids X,Y:')
         print(cent2dgx_1, cent2dgy_1)
         print(cent2dgx_2, cent2dgy_2)
@@ -555,12 +556,12 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
                                np.linspace(start=310, stop=320, num=samples,
                                            endpoint=False)))
             sinogram = radon(frame, theta=theta, circle=True)
-            pp_subplots(frame, sinogram)
+            plot_frames((frame, sinogram))
             print(np.sum(np.abs(sinogram[cent, :])))
         else:
             theta = np.linspace(start=0, stop=360, num=cent*2, endpoint=False)
             sinogram = radon(frame, theta=theta, circle=True)
-            pp_subplots(frame, sinogram)
+            plot_frames((frame, sinogram))
             print(np.sum(np.abs(sinogram[cent, :])))
 
     if nproc is None:
@@ -846,8 +847,8 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
             print(msg0)
         if debug:
             titd = "original / shifted 1st frame subimage"
-            pp_subplots(frame_crop(array[0], subi_size, verbose=False),
-                        frame_crop(array_rec[0], subi_size, verbose=False),
+            plot_frames((frame_crop(array[0], subi_size, verbose=False),
+                        frame_crop(array_rec[0], subi_size, verbose=False)),
                         grid=True, title=titd)
     else:
         if verbose:

@@ -7,16 +7,17 @@ from __future__ import division, print_function, absolute_import
 __all__ = ['EvalRoc',
            'compute_binary_map']
 
+import copy
 import numpy as np
-from scipy import stats
 import matplotlib.pyplot as plt
+from hciplot import plot_frames
+from scipy import stats
 from photutils import detect_sources
 from munch import Munch
-import copy
 from ..pca.svd import _get_cumexpvar
 from ..var import frame_center, get_annulus_segments
 from ..conf import time_ini, timing, Progressbar
-from ..var import pp_subplots as plots, get_circle
+from ..var import get_circle
 from .fakecomp import cube_inject_companions
 
 
@@ -260,33 +261,34 @@ class EvalRoc(object):
             for m in self.methods:
                 print('detection state: {} | false postives: {}'.format(
                     m.detections[i][thr], m.fps[i][thr]))
-                plots(m.frames[i] if len(m.frames) >= i else np.zeros((2, 2)),
-                      m.probmaps[i], m.bmaps[i][thr],
-                      label=['{} frame'.format(m.name),
-                             '{} S/Nmap'.format(m.name),
-                             'Thresholded at {:.1f}'.format(m.thresholds[thr])],
-                      dpi=dpi, horsp=0.2, axis=axis, grid=grid,
-                      cmap=['viridis', 'viridis', 'gray'])
+                labels = ('{} frame'.format(m.name), '{} S/Nmap'.format(m.name),
+                          'Thresholded at {:.1f}'.format(m.thresholds[thr]))
+                plot_frames((m.frames[i] if len(m.frames) >= i else
+                            np.zeros((2, 2)), m.probmaps[i], m.bmaps[i][thr]),
+                            label=labels, dpi=dpi, horsp=0.2, axis=axis,
+                            grid=grid, cmap=['viridis', 'viridis', 'gray'])
 
         elif plot_type in [2, "vert"]:
-            plots(*[m.frames[i] for m in self.methods if
-                    hasattr(m, "frames") and len(m.frames) >= i], dpi=dpi,
-                  label=['{} frame'.format(m.name) for m in self.methods if
-                         hasattr(m, "frames") and len(m.frames) >= i],
-                  vmax=vmax, vmin=vmin, axis=axis, grid=grid, cmap='viridis')
+            labels = tuple('{} frame'.format(m.name) for m in self.methods if
+                           hasattr(m, "frames") and len(m.frames) >= i)
+            plot_frames(tuple(m.frames[i] for m in self.methods if
+                        hasattr(m, "frames") and len(m.frames) >= i),
+                        dpi=dpi, label=labels, vmax=vmax, vmin=vmin, axis=axis,
+                        grid=grid)
 
-            plots(*[m.probmaps[i] for m in self.methods], dpi=dpi,
-                  label=['{} S/Nmap'.format(m.name) for m in self.methods],
-                  axis=axis, grid=grid, cmap='viridis')
+            plot_frames(tuple(m.probmaps[i] for m in self.methods), dpi=dpi,
+                        label=tuple(['{} S/Nmap'.format(m.name) for m in
+                                     self.methods]), axis=axis, grid=grid)
 
             for m in self.methods:
                 msg = '{} detection: {}, FPs: {}'
                 print(msg.format(m.name, m.detections[i][thr], m.fps[i][thr]))
 
-            plots(*[m.bmaps[i][thr] for m in self.methods], dpi=dpi,
-                  label=['Thresholded at {:.1f}'.format(m.thresholds[thr]) for
-                         m in self.methods],
-                  axis=axis, grid=grid, colorb=False, cmap='bone')
+            labels = tuple('Thresholded at {:.1f}'.format(m.thresholds[thr])
+                           for m in self.methods)
+            plot_frames(tuple(m.bmaps[i][thr] for m in self.methods),
+                        dpi=dpi, label=labels, axis=axis, grid=grid,
+                        colorbar=False, cmap='bone')
         else:
             raise ValueError("`plot_type` unknown")
 

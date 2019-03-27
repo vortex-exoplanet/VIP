@@ -517,9 +517,10 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         binmap = (segments.data != 0)
 
         if debug:
-            plots(segments.data, binmap, cmap=('tab10', 'bone'),
-                  circle=[tuple(xy) for xy in injections], circlerad=fwhm,
-                  circlealpha=0.6, label=["segmentation map", "binary map"])
+            plot_frames(segments.data, binmap, cmap=('tab10', 'bone'),
+                        circle=[tuple(xy) for xy in injections],
+                        circle_radius=fwhm, circle_alpha=0.6,
+                        label=("segmentation map", "binary map"))
 
         detections = 0
         fps = 0
@@ -529,9 +530,10 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
             blob_area = segments.areas[iblob - 1]
 
             if debug:
-                plots(blob_mask, circle=[tuple(xy) for xy in injections],
-                      circlerad=fwhm, circlealpha=0.6, cmap='bone', labelsize=8,
-                      label=["blob #{}, area={}px**2".format(iblob, blob_area)])
+                lab = "blob #{}, area={}px**2".format(iblob, blob_area)
+                plot_frames(blob_mask, circle=[tuple(xy) for xy in injections],
+                            circle_radius=fwhm, circle_alpha=0.6, cmap='bone',
+                            label_size=8, label=lab)
 
             for iinj, injection in enumerate(injections):
                 if injection[0] > sizex or injection[1] > sizey:
@@ -583,10 +585,10 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
     if plot:
         labs = [str(det) + ' detections' + '\n' + str(fps) + ' false positives'
                 for det, fps in zip(list_detections, list_fps)]
-        plots(np.array(list_binmaps), title='Final binary maps', label=labs,
-              labelsize=8, cmap=['bone']*len(list_binmaps), circlealpha=0.8,
-              circle=[tuple(xy) for xy in injections], circlerad=fwhm,
-              circlecolor='deepskyblue', axis=False)
+        plot_frames(tuple(list_binmaps), title='Final binary maps', label=labs,
+                    label_size=8, cmap='bone', circle_alpha=0.8,
+                    circle=[tuple(xy) for xy in injections], circle_radius=fwhm,
+                    circle_color='deepskyblue', axis=False)
 
     return list_detections, list_fps, list_binmaps
 

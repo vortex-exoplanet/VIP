@@ -10,6 +10,7 @@ __all__ = ['EvalRoc',
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import colors
 from hciplot import plot_frames
 from scipy import stats
 from photutils import detect_sources
@@ -509,6 +510,9 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
     if injections.ndim == 1:
         injections = np.array([injections])
 
+    # make a color map of fixed colors
+    cmap_bin = colors.ListedColormap(['black', 'white'])
+
     for ithr, threshold in enumerate(thresholds):
         if debug:
             print("\nprocessing threshold #{}: {}".format(ithr + 1, threshold))
@@ -517,8 +521,8 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         binmap = (segments.data != 0)
 
         if debug:
-            plot_frames(segments.data, binmap, cmap=('tab10', 'bone'),
-                        circle=[tuple(xy) for xy in injections],
+            plot_frames((segments.data, binmap), cmap=('tab10', cmap_bin),
+                        circle=tuple(tuple(xy) for xy in injections),
                         circle_radius=fwhm, circle_alpha=0.6,
                         label=("segmentation map", "binary map"))
 
@@ -531,9 +535,10 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
 
             if debug:
                 lab = "blob #{}, area={}px**2".format(iblob, blob_area)
-                plot_frames(blob_mask, circle=[tuple(xy) for xy in injections],
-                            circle_radius=fwhm, circle_alpha=0.6, cmap='bone',
-                            label_size=8, label=lab)
+                plot_frames(blob_mask, circle_radius=fwhm, circle_alpha=0.6,
+                            circle=tuple(tuple(xy) for xy in injections),
+                            cmap=cmap_bin, label_size=8, label=lab,
+                            size_factor=3)
 
             for iinj, injection in enumerate(injections):
                 if injection[0] > sizex or injection[1] > sizey:
@@ -586,9 +591,9 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         labs = [str(det) + ' detections' + '\n' + str(fps) + ' false positives'
                 for det, fps in zip(list_detections, list_fps)]
         plot_frames(tuple(list_binmaps), title='Final binary maps', label=labs,
-                    label_size=8, cmap='bone', circle_alpha=0.8,
-                    circle=[tuple(xy) for xy in injections], circle_radius=fwhm,
-                    circle_color='deepskyblue', axis=False)
+                    label_size=8, cmap=cmap_bin, circle_alpha=0.8,
+                    circle=tuple(tuple(xy) for xy in injections),
+                    circle_radius=fwhm, circle_color='deepskyblue', axis=False)
 
     return list_detections, list_fps, list_binmaps
 

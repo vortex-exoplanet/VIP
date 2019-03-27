@@ -966,86 +966,16 @@ class HCIDataset(Saveable):
         print("`fwhm` attribute set to")
         print_precision(self.fwhm)
 
-    def plot(self, wavelength=0, **kwargs):
-        """ Plotting the frames of a 3D or 4d cube (``wavelength``).
+    def plot(self, **kwargs):
+        """ Plotting the frames of a 3D or 4d cube.
 
         Parameters
         ----------
-        wavelength : int, optional
-            Index of the wavelength to be analyzed in the case of a 4d cube.
-        angscale : bool
-            If True, the axes are displayed in angular scale (arcsecs).
-        angticksep : int
-            Separation for the ticks when using axis in angular scale.
-        arrow : bool
-            To show an arrow pointing to input px coordinates.
-        arrowalpha : float
-            Alpha transparency for the arrow.
-        arrowlength : int
-            Length of the arrow, 20 px by default.
-        arrowshiftx : int
-            Shift in x of the arrow pointing position, 5 px by default.
-        axis : bool
-            Show the axis, on by default.
-        circle : list of tuples
-            To show a circle at given px coordinates, list of tuples.
-        circlerad : int
-            Radius of the circle, 6 px by default.
-        cmap : str
-            Colormap to be used, 'viridis' by default.
-        colorb : bool
-            To attach a colorbar, on by default.
-        cross : tuple of float
-            If provided, a crosshair is displayed at given px coordinates.
-        crossalpha : float
-            Alpha transparency of thr crosshair.
-        dpi : int
-            Dots per inch, for plot quality.
-        getfig : bool
-            Returns the matplotlib figure.
-        grid : bool
-            If True, a grid is displayed over the image, off by default.
-        gridalpha : float
-            Alpha transparency of the grid.
-        gridcolor : str
-            Color of the grid lines.
-        gridspacing : int
-            Separation of the grid lines in pixels.
-        horsp : float
-            Horizontal gap between subplots.
-        label : str or list of str
-            Text for annotating on subplots.
-        labelpad : int
-            Padding of the label from the left bottom corner.
-        labelsize : int
-            Size of the labels.
-        log : bool
-            Log colorscale.
-        maxplots : int
-            When the input (``*args``) is a 3d array, maxplots sets the number
-            of cube slices to be displayed.
-        pxscale : float
-            Pixel scale in arcseconds/px. Default 0.01 for Keck/NIRC2.
-        rows : int
-            How many rows (subplots in a grid).
-        save : str
-            If a string is provided the plot is saved using this as the path.
-        showcent : bool
-            To show a big crosshair at the center of the frame.
-        title : str
-            Title of the plot(s), None by default.
-        vmax : int
-            For stretching the displayed pixels values.
-        vmin : int
-            For stretching the displayed pixels values.
-        versp : float
-            Vertical gap between subplots.
+        **kwargs : dict, optional
+            Parameters passed to the function ``plot_cubes`` of the package
+            ``HCIplot``.
         """
-        if self.cube.ndim == 3:
-            pp_subplots(self.cube, **kwargs)
-        elif self.cube.ndim == 4:
-            tits = 'Wavelength '+str(wavelength + 1)
-            pp_subplots(self.cube[wavelength], title=tits, **kwargs)
+        hp.plot_cubes(self.cube, **kwargs)
 
     def recenter(self, method='2dfit', xy=None, subi_size=5, model='gauss',
                  nproc=1, imlib='opencv', interpolation='lanczos4',

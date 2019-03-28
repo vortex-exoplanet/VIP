@@ -4,8 +4,6 @@
 Module with utilities.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez, Ralf Farkas'
 __all__ = ['Progressbar']
 
@@ -411,13 +409,6 @@ def pool_map(nproc, fkt, *args, **kwargs):
     -------
     res : list
         A list with the results.
-
-    Notes
-    -----
-    python2 does not support named keyword arguments after ``*args``. This is
-    why the rather un-elegant ``kwargs.get()`` are used.
-
-    # TODO: how do ``zip`` and ``map`` behave on python 2?
 
     """
     msg = kwargs.get("msg", None)

@@ -3,7 +3,7 @@
 """
 Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
 """
-from __future__ import division, print_function
+
 
 __author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez'
 __all__ = ['mcmc_negfc_sampling',

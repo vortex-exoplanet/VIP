@@ -3,7 +3,7 @@
 """
 Module with the function of merit definitions for the NEGFC optimization.
 """
-from __future__ import division, print_function
+
 
 __all__ = []
 

@@ -19,7 +19,7 @@ circular aperture (4xfwhm) centered on the injection position. This $chi^2$ is
 measured on the PCA-processed frame or cube of residuals.
 
 """
-from __future__ import absolute_import
+
 
 from .simplex_fmerit import *
 from .mcmc_sampling import *

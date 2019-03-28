@@ -4,7 +4,7 @@
 Module with frame/cube filtering functionalities.
 """
 
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['frame_filter_highpass',

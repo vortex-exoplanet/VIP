@@ -4,8 +4,6 @@
 Full-frame PCA algorithm for ADI, ADI+RDI and ADI+mSDI (IFS data) cubes.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['pca']
 
@@ -221,8 +219,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, ncomp2=1,
     elif cube.ndim == 3 and cube_ref is not None:
         res_pca = _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling,
                                mask_center_px, debug, svd_mode, imlib,
-                               interpolation, collapse, verbose, full_output,
-                               start_time)
+                               interpolation, collapse, verbose, start_time)
         pcs, recon, residuals_cube, residuals_cube_, frame = res_pca
 
     # ADI. Shape of cube: (n_adi_frames, y, x)
@@ -613,7 +610,7 @@ def _adimsdi_doublepca_ifs(fr, ncomp, scale_list, scaling, mask_center_px,
 
 def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
                  debug, svd_mode, imlib, interpolation, collapse, verbose,
-                 full_output, start_time):
+                 start_time):
     """ Handles the ADI+RDI post-processing.
     """
     n, y, x = cube.shape
@@ -630,15 +627,12 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
         print(msg.format(n, ncomp))
     residuals_result = _subtr_proj_fullfr(cube, cube_ref, ncomp, scaling,
                                           mask_center_px, debug, svd_mode,
-                                          verbose, full_output)
-    if full_output:
-        residuals_cube = residuals_result[0]
-        reconstructed = residuals_result[1]
-        V = residuals_result[2]
-        pcs = reshape_matrix(V, y, x)
-        recon = reshape_matrix(reconstructed, y, x)
-    else:
-        residuals_cube = residuals_result
+                                          verbose, True)
+    residuals_cube = residuals_result[0]
+    reconstructed = residuals_result[1]
+    V = residuals_result[2]
+    pcs = reshape_matrix(V, y, x)
+    recon = reshape_matrix(reconstructed, y, x)
     residuals_cube_ = cube_derotate(residuals_cube, angle_list, imlib=imlib,
                                     interpolation=interpolation)
     frame = cube_collapse(residuals_cube_, mode=collapse)
@@ -646,4 +640,6 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
     if verbose:
         print('Done de-rotating and combining')
         timing(start_time)
+
     return pcs, recon, residuals_cube, residuals_cube_, frame
+

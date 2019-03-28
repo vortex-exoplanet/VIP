@@ -4,9 +4,6 @@
 Module with helping functions.
 """
 
-from __future__ import division
-from __future__ import print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = []
 

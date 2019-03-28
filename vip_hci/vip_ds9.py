@@ -3,8 +3,6 @@
 """
 Module with a class for creating a DS9 window through pyds9.
 """
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 
 import warnings

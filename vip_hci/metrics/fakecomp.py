@@ -4,8 +4,6 @@
 Module with fake companion injection functions.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['collapse_psf_cube',
            'normalize_psf',

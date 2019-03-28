@@ -4,7 +4,7 @@
 Incremental full-frame PCA for big (larger than available memory) cubes.
 """
 
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['pca_incremental']

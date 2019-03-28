@@ -4,8 +4,6 @@
 Module with S/N calculation functions.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez, O. Absil @ ULg'
 __all__ = ['snr_ss',
            'snr_peakstddev',

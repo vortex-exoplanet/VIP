@@ -5,7 +5,7 @@ Full-frame PCA S/N optimization. It computes a grid search by truncating the
 projection matrix.
 """
 
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['pca_optimize_snr']

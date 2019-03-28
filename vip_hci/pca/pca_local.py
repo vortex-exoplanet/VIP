@@ -6,8 +6,6 @@ ADI, ADI+SDI (IFS) and ADI+RDI datasets. This implementation make use of
 Python multiprocessing capabilities.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['pca_annular',
            'pca_rdi_annular']

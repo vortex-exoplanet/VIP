@@ -5,7 +5,7 @@ Module with functions for posterior sampling of the NEGFC parameters using
 nested sampling (``nestle``).
 """
 
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez',
 __all__ = ['nested_negfc_sampling',

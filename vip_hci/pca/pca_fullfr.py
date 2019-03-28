@@ -4,8 +4,6 @@
 Full-frame PCA algorithm for ADI, ADI+RDI and ADI+mSDI (IFS data) cubes.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['pca']
 

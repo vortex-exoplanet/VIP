@@ -21,7 +21,7 @@ implemented:
   computation time. This implementation uses the Python multiprocessing
   capabilities.
 """
-from __future__ import absolute_import
+
 
 from .pca_fullfr import *
 from .pca_fullfr_grid import *

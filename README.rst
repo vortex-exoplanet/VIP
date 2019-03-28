@@ -45,7 +45,8 @@ Introduction
 
 ``VIP`` is a python package for angular, reference star and spectral
 differential imaging for exoplanet/disk detection through high-contrast imaging.
-``VIP`` is compatible with Python 2.7, 3.6 and 3.7.
+``VIP`` is compatible with Python 3 (Python 2 compatibility dropped with ``VIP``
+0.9.9).
 
 The goal of ``VIP`` is to incorporate open-source, efficient, easy-to-use and
 well-documented implementations of high-contrast image processing algorithms to
@@ -93,7 +94,7 @@ Homebrew/MacPorts/Fink for macOS. I personally recommend using `Miniconda <https
 
 ``VIP`` depends on existing packages from the Python ecosystem, such as
 ``numpy``, ``scipy``, ``matplotlib``, ``pandas``, ``astropy``, ``scikit-learn``,
-``scikit-image``, ``photutils`` and ``emcee``. There are different ways of
+``scikit-image``, ``photutils`` and others. There are different ways of
 installing ``VIP`` suitable for different scenarios.
 
 

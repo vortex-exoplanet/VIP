@@ -10,7 +10,6 @@ __all__ = ['EvalRoc',
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import colors
 from hciplot import plot_frames
 from scipy import stats
 from photutils import detect_sources
@@ -22,6 +21,7 @@ from ..var import get_circle
 from .fakecomp import cube_inject_companions
 
 
+# TODO: remove the munch dependency
 class EvalRoc(object):
     """
     Class for the generation of receiver operating characteristic (ROC) curves.
@@ -423,6 +423,8 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
                        debug=False):
     """
     Take a list of ``thresholds``, create binary maps and counts detections/fps.
+    A blob which is "too big" is split into apertures, and every aperture adds
+    one 'false positive'.
 
     Parameters
     ----------
@@ -446,7 +448,7 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         injection.
     max_blob_fact : float
         Maximum size of a blob (in multiples of the resolution element) before
-        it is considered as "too big" (= non-detection)
+        it is considered as "too big" (= non-detection).
     plot : bool, optional
         If True, a final resulting plot summarizing the results will be shown.
     debug : bool, optional
@@ -461,17 +463,6 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
     list_binmaps : list of 2d ndarray
         List of binary maps: detection maps thresholded for each threshold
         value.
-
-    Notes
-    -----
-    In photutils v0.5, SegmentationImage (which is returned by detect_sources)
-    has a new ``.segments`` attribute, which would simplify the handling of the
-    blobs. Once we fix the dependency to a newer version we should update this
-    function. (https://photutils.readthedocs.io/en/v0.5/api/photutils.segmentati
-    on.SegmentationImage.html#photutils.segmentation.SegmentationImage.segments)
-
-    A blob which is "too big" is split into apertures, and every aperture adds
-    one 'false positive'.
 
     """
     def _overlap_injection_blob(injection, fwhm, blob_mask):
@@ -496,7 +487,7 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         intersection = injection_mask & blob_mask
         smallest_area = min(blob_mask.sum(), injection_mask.sum())
         return intersection.sum() / smallest_area
-
+    # --------------------------------------------------------------------------
     list_detections = []
     list_fps = []
     list_binmaps = []
@@ -510,9 +501,6 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
     if injections.ndim == 1:
         injections = np.array([injections])
 
-    # make a color map of fixed colors
-    cmap_bin = colors.ListedColormap(['black', 'white'])
-
     for ithr, threshold in enumerate(thresholds):
         if debug:
             print("\nprocessing threshold #{}: {}".format(ithr + 1, threshold))
@@ -521,7 +509,7 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         binmap = (segments.data != 0)
 
         if debug:
-            plot_frames((segments.data, binmap), cmap=('tab10', cmap_bin),
+            plot_frames((segments.data, binmap), cmap=('tab20b', 'binary'),
                         circle=tuple(tuple(xy) for xy in injections),
                         circle_radius=fwhm, circle_alpha=0.6,
                         label=("segmentation map", "binary map"))
@@ -529,15 +517,16 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         detections = 0
         fps = 0
 
-        for iblob in segments.labels:
-            blob_mask = (segments.data == iblob)
-            blob_area = segments.areas[iblob - 1]
+        for segment in segments.segments:
+            label = segment.label
+            blob_mask = (segments.data == label)
+            blob_area = segment.area
 
             if debug:
-                lab = "blob #{}, area={}px**2".format(iblob, blob_area)
+                lab = "blob #{}, area={}px**2".format(label, blob_area)
                 plot_frames(blob_mask, circle_radius=fwhm, circle_alpha=0.6,
                             circle=tuple(tuple(xy) for xy in injections),
-                            cmap=cmap_bin, label_size=8, label=lab,
+                            cmap='binary', label_size=8, label=lab,
                             size_factor=3)
 
             for iinj, injection in enumerate(injections):
@@ -591,7 +580,7 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         labs = [str(det) + ' detections' + '\n' + str(fps) + ' false positives'
                 for det, fps in zip(list_detections, list_fps)]
         plot_frames(tuple(list_binmaps), title='Final binary maps', label=labs,
-                    label_size=8, cmap=cmap_bin, circle_alpha=0.8,
+                    label_size=8, cmap='binary', circle_alpha=0.8,
                     circle=tuple(tuple(xy) for xy in injections),
                     circle_radius=fwhm, circle_color='deepskyblue', axis=False)
 

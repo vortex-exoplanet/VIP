@@ -4,8 +4,6 @@
 Module with contrast curve generation function.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'C. Gomez, O. Absil @ ULg'
 __all__ = ['contrast_curve',
            'noise_per_annulus',

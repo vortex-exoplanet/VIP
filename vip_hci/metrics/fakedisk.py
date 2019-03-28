@@ -4,8 +4,6 @@
 Module with fake disk injection functions.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Julien Milli @ ESO, Valentin Christiaens @ ULg/UChile'
 __all__ = ['cube_inject_fakedisk',
            'cube_inject_trace']

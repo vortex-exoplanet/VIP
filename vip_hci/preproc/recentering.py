@@ -4,7 +4,7 @@
 Module containing functions for cubes frame registration.
 """
 
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens, G. Ruane'
 __all__ = ['frame_shift',

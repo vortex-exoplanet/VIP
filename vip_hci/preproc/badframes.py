@@ -4,7 +4,7 @@
 Module with functions for outlier frame detection.
 """
 
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_detect_badfr_pxstats',

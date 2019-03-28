@@ -4,7 +4,7 @@
 Module with functions for correcting bad pixels in cubes.
 """
 
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens'
 __all__ = ['frame_fix_badpix_isolated',

@@ -82,16 +82,13 @@ setup(
               'develop': InstallDevReqs},
     packages=PACKAGES,
     install_requires=reqs,
-    extras_require={
-        "dev": reqs_dev,
-    },
+    extras_require={"dev": reqs_dev},
     zip_safe=False,
     classifiers=['Intended Audience :: Science/Research',
                  'License :: OSI Approved :: MIT License',
                  'Operating System :: MacOS :: MacOS X',
                  'Operating System :: POSIX :: Linux',
                  'Natural Language :: English',
-                 'Programming Language :: Python :: 2.7',
                  'Programming Language :: Python :: 3.6',
                  'Programming Language :: Python :: 3.7',
                  'Topic :: Scientific/Engineering :: Astronomy'

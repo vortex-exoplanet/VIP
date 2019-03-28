@@ -19,8 +19,8 @@ Based on ANDROMEDA v3.1 from 28/06/2018.
 
 """
 
-from __future__ import division, print_function
-from __future__ import absolute_import
+
+
 
 __author__ = "Ralf Farkas"
 __all__ = ["andromeda"]

@@ -1,5 +1,5 @@
-vip\_hci\.medsub package
-========================
+vip\_hci.medsub package
+=======================
 
 .. automodule:: vip_hci.medsub
     :members:
@@ -9,8 +9,8 @@ vip\_hci\.medsub package
 Submodules
 ----------
 
-vip\_hci\.medsub\.medsub\_source module
----------------------------------------
+vip\_hci.medsub.medsub\_source module
+-------------------------------------
 
 .. automodule:: vip_hci.medsub.medsub_source
     :members:

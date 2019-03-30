@@ -25,7 +25,7 @@ def example_dataset():
     """
     print("downloading data...")
 
-    url_prefix = ("https://github.com/carlgogo/VIP_extras/raw/master/datasets")
+    url_prefix = "https://github.com/carlgogo/VIP_extras/raw/master/datasets"
 
     f1 = download_file("{}/naco_betapic_cube.fits".format(url_prefix),
                        cache=True)
@@ -68,7 +68,7 @@ def example_dataset_ifs():
     """
     print("downloading data...")
 
-    url_prefix = ("https://github.com/carlgogo/VIP_extras/raw/master/datasets")
+    url_prefix = "https://github.com/carlgogo/VIP_extras/raw/master/datasets"
 
     f1 = download_file("{}/sphere_v471tau_cube.fits".format(url_prefix),
                        cache=True)
@@ -81,7 +81,7 @@ def example_dataset_ifs():
 
     # load fits
     cube = vip.fits.open_fits(f1)
-    angles = vip.fits.open_fits(f3).flatten()  # shape (61,1) -> (61,)
+    angles = vip.fits.open_fits(f3).flatten()
     psf = vip.fits.open_fits(f2)
     wl = vip.fits.open_fits(f4)
 

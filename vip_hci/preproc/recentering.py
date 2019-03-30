@@ -1014,14 +1014,9 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                             fwhm[i], threshold))
         res = np.array(res)
     elif nproc > 1:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(func), itt.repeat(array),
-                                range(n_frames), itt.repeat(subi_size),
-                                itt.repeat(pos_y), itt.repeat(pos_x),
-                                itt.repeat(negative), itt.repeat(debug), fwhm,
-                                itt.repeat(threshold)))
+        res = pool_map(nproc, func, array, iterable(range(n_frames)), subi_size,
+                       pos_y, pos_x, negative, debug, iterable(fwhm), threshold)
         res = np.array(res)
-        pool.close()
     y = cy - res[:, 0]
     x = cx - res[:, 1]
 

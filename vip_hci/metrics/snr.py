@@ -221,11 +221,8 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True, **kwargs):
         for (y, x) in zip(yy, xx):
             snrmap[y, x] = _snr_approx(array, (x, y), fwhm, cy, cx)[2]
     elif nproc > 1:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(_snr_approx), itt.repeat(array),
-                                coords, itt.repeat(fwhm), itt.repeat(cy),
-                                itt.repeat(cx)))
-        pool.close()
+        res = pool_map(nproc, _snr_approx, array, iterable(coords), fwhm, cy,
+                       cx)
         res = np.array(res)
         yy = res[:, 0]
         xx = res[:, 1]

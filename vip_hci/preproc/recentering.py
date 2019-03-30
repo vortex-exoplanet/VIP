@@ -845,10 +845,11 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
                         grid=True, title=titd)
     else:
         if verbose:
-            print("The first frame is assumed to be well centered.")
+            print("The first frame is assumed to be well centered wrt the"
+                  "center of the array")
             print(msg0)
-        x[0] = cx
-        y[0] = cy
+        x[0] = 0
+        y[0] = 0
 
     # Finding the shifts with DTF upsampling of each frame wrt the first
     for i in Progressbar(range(1, n_frames), desc="frames", verbose=verbose):

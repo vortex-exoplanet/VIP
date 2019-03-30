@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Module with a frame differencing algorithm for ADI post-processing.
+Module with a frame differencing algorithm for ADI and ADI+mSDI post-processing.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
@@ -28,7 +28,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
           optim_scale_fact=2, adimsdi='skipadi', imlib='opencv',
           interpolation='lanczos4', collapse='median', verbose=True,
           full_output=False):
-    """ LOCI style algorithm that models a PSF (for ADI data) with a
+    """ LOCI style algorithm that models a PSF (for ADI and ADI+mSDI) with a
     least-square combination of neighbouring frames (solving the equation
     a x = b by computing a vector x of coefficients that minimizes the
     Euclidean 2-norm || b - a x ||^2).

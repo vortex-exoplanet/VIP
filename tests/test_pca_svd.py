@@ -3,8 +3,6 @@ Tests for pca/svd.py.
 
 """
 
-from __future__ import division, print_function, absolute_import
-
 __author__ = "Carlos Alberto Gomez Gonzalez"
 
 import numpy as np

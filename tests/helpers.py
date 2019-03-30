@@ -2,8 +2,6 @@
 Helper functions for tests
 """
 
-from __future__ import division, print_function, absolute_import
-
 __author__ = "Ralf Farkas"
 
 import numpy as np

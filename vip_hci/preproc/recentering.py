@@ -825,8 +825,8 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
 
     cy, cx = frame_center(array[0])
     # Centroiding first frame with 2d gaussian and shifting
-    msg0 = "The rest of the frames will be shifted by cross-correlation "
-    msg0 += "wrt the 1st"
+    msg0 = "The rest of the frames will be shifted by cross-correlation wrt the" \
+           " 1st"
     if subi_size is not None:
         y1, x1 = _centroid_2dg_frame(array_rec, 0, subi_size, cy_1, cx_1,
                                      negative, debug, fwhm)
@@ -845,10 +845,11 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
                         grid=True, title=titd)
     else:
         if verbose:
-            print("The first frame is assumed to be well centered.")
+            print("The first frame is assumed to be well centered wrt the"
+                  "center of the array")
             print(msg0)
-        x[0] = cx
-        y[0] = cy
+        x[0] = 0
+        y[0] = 0
 
     # Finding the shifts with DTF upsampling of each frame wrt the first
     for i in Progressbar(range(1, n_frames), desc="frames", verbose=verbose):

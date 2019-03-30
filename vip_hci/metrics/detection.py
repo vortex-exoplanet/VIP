@@ -10,12 +10,12 @@ __all__ = ['detection',
            'peak_coordinates']
 
 import numpy as np
+import pandas as pn
 from hciplot import plot_frames
 from scipy.ndimage.filters import correlate
 from skimage import feature
 from astropy.stats import sigma_clipped_stats
 from astropy.stats import gaussian_fwhm_to_sigma, gaussian_sigma_to_fwhm
-from astropy.table import Table
 from astropy.modeling import models, fitting
 from skimage.feature import peak_local_max
 from ..var import (mask_circle, get_square, frame_center, fit_2dgaussian,
@@ -129,7 +129,7 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
         coords = []
         # Fitting a 2d gaussian to each local maxima position
         for y, x in zip(y_temp, x_temp):
-            subsi = 2 * int(np.ceil(fwhm))
+            subsi = 3 * int(np.ceil(fwhm))
             if subsi % 2 == 0:
                 subsi += 1
 
@@ -140,7 +140,8 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
                 scy = y
                 scx = x
             subim, suby, subx = get_square(array, subsi, scy, scx,
-                                           position=True, force=True)
+                                           position=True, force=True,
+                                           verbose=False)
             cy, cx = frame_center(subim)
 
             gauss = models.Gaussian2D(amplitude=subim.max(), x_mean=cx,
@@ -173,7 +174,8 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
                     msg = 'fwhm_y in px = {:.3f}, fwhm_x in px = {:.3f}'
                     print(msg.format(fwhm_y, fwhm_x))
                     print('mean fit fwhm = {:.3f}'.format(mean_fwhm_fit))
-                    plot_frames(subim, colorbar=True, axis=False, dpi=60)
+                    if plot:
+                        plot_frames(subim, colorbar=True, axis=False, dpi=60)
         return coords
 
     def print_coords(coords):
@@ -233,7 +235,8 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
             plot_frames(frame_det, colorbar=True)
 
         # Estimation of background level
-        _, median, stddev = sigma_clipped_stats(frame_det, sigma=5, iters=None)
+        _, median, stddev = sigma_clipped_stats(frame_det, sigma=5,
+                                                maxiters=None)
         bkg_level = median + (stddev * bkg_sigma)
         if debug:
             print('Sigma clipped median = {:.3f}'.format(median))
@@ -345,16 +348,20 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
                 print(msg.format(snr))
             if debug:
                 _ = frame_quick_report(array, fwhm, (x, y), verbose=verbose)
-    print(sep)
+    if verbose:
+        print(sep)
 
     if debug or full_output:
-        table = Table([yy.tolist(), xx.tolist(), snr_list],
-                      names=('y', 'x', 'px_snr'))
-        table.sort('px_snr')
+        table_full = pn.DataFrame({'y': yy.tolist(),
+                                   'x': xx.tolist(),
+                                   'px_snr': snr_list})
+        table_full.sort_values('px_snr')
+
     yy_final = np.array(yy_final)
     xx_final = np.array(xx_final)
     yy_out = np.array(yy_out)
     xx_out = np.array(xx_out)
+    table = pn.DataFrame({'y': yy_final.tolist(), 'x': xx_final.tolist()})
 
     if plot:
         coords = tuple(zip(xx_out.tolist() + xx_final.tolist(),
@@ -365,12 +372,12 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
                     circle_label=True, circle_radius=fwhm, **kwargs)
 
     if debug:
-        print(table)
+        print(table_full)
 
     if full_output:
-        return table
+        return table_full
     else:
-        return yy_final, xx_final
+        return table
 
 
 def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,

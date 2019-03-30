@@ -2,8 +2,6 @@
 Tests for the conf submodule.
 """
 
-from __future__ import division, print_function, absolute_import
-
 __author__ = "Ralf Farkas"
 
 from vip_hci.conf.mem import check_enough_memory

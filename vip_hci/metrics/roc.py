@@ -574,8 +574,9 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         list_fps.append(fps)
 
     if plot:
-        labs = [str(det) + ' detections' + '\n' + str(fps) + ' false positives'
-                for det, fps in zip(list_detections, list_fps)]
+        labs = tuple(str(det) + ' detections' + '\n' + str(fps) +
+                     ' false positives' for det, fps in zip(list_detections,
+                                                            list_fps))
         plot_frames(tuple(list_binmaps), title='Final binary maps', label=labs,
                     label_size=8, cmap='binary', circle_alpha=0.8,
                     circle=tuple(tuple(xy) for xy in injections),

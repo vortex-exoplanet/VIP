@@ -129,7 +129,7 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
         coords = []
         # Fitting a 2d gaussian to each local maxima position
         for y, x in zip(y_temp, x_temp):
-            subsi = 2 * int(np.ceil(fwhm))
+            subsi = 3 * int(np.ceil(fwhm))
             if subsi % 2 == 0:
                 subsi += 1
 
@@ -140,7 +140,8 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
                 scy = y
                 scx = x
             subim, suby, subx = get_square(array, subsi, scy, scx,
-                                           position=True, force=True)
+                                           position=True, force=True,
+                                           verbose=False)
             cy, cx = frame_center(subim)
 
             gauss = models.Gaussian2D(amplitude=subim.max(), x_mean=cx,
@@ -173,7 +174,8 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
                     msg = 'fwhm_y in px = {:.3f}, fwhm_x in px = {:.3f}'
                     print(msg.format(fwhm_y, fwhm_x))
                     print('mean fit fwhm = {:.3f}'.format(mean_fwhm_fit))
-                    plot_frames(subim, colorbar=True, axis=False, dpi=60)
+                    if plot:
+                        plot_frames(subim, colorbar=True, axis=False, dpi=60)
         return coords
 
     def print_coords(coords):
@@ -233,7 +235,8 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
             plot_frames(frame_det, colorbar=True)
 
         # Estimation of background level
-        _, median, stddev = sigma_clipped_stats(frame_det, sigma=5, iters=None)
+        _, median, stddev = sigma_clipped_stats(frame_det, sigma=5,
+                                                maxiters=None)
         bkg_level = median + (stddev * bkg_sigma)
         if debug:
             print('Sigma clipped median = {:.3f}'.format(median))
@@ -345,7 +348,8 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
                 print(msg.format(snr))
             if debug:
                 _ = frame_quick_report(array, fwhm, (x, y), verbose=verbose)
-    print(sep)
+    if verbose:
+        print(sep)
 
     if debug or full_output:
         table_full = pn.DataFrame({'y': yy.tolist(),

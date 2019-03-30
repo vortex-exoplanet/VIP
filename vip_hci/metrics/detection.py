@@ -10,12 +10,12 @@ __all__ = ['detection',
            'peak_coordinates']
 
 import numpy as np
+import pandas as pn
 from hciplot import plot_frames
 from scipy.ndimage.filters import correlate
 from skimage import feature
 from astropy.stats import sigma_clipped_stats
 from astropy.stats import gaussian_fwhm_to_sigma, gaussian_sigma_to_fwhm
-from astropy.table import Table
 from astropy.modeling import models, fitting
 from skimage.feature import peak_local_max
 from ..var import (mask_circle, get_square, frame_center, fit_2dgaussian,
@@ -348,13 +348,16 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
     print(sep)
 
     if debug or full_output:
-        table = Table([yy.tolist(), xx.tolist(), snr_list],
-                      names=('y', 'x', 'px_snr'))
-        table.sort('px_snr')
+        table_full = pn.DataFrame({'y': yy.tolist(),
+                                   'x': xx.tolist(),
+                                   'px_snr': snr_list})
+        table_full.sort_values('px_snr')
+
     yy_final = np.array(yy_final)
     xx_final = np.array(xx_final)
     yy_out = np.array(yy_out)
     xx_out = np.array(xx_out)
+    table = pn.DataFrame({'y': yy_final.tolist(), 'x': xx_final.tolist()})
 
     if plot:
         coords = tuple(zip(xx_out.tolist() + xx_final.tolist(),
@@ -365,12 +368,12 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
                     circle_label=True, circle_radius=fwhm, **kwargs)
 
     if debug:
-        print(table)
+        print(table_full)
 
     if full_output:
-        return table
+        return table_full
     else:
-        return yy_final, xx_final
+        return table
 
 
 def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,

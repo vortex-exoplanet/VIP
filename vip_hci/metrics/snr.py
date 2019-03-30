@@ -18,8 +18,8 @@ from skimage import draw
 from matplotlib import pyplot as plt
 from astropy.convolution import convolve, Tophat2DKernel
 from astropy.stats import median_absolute_deviation as mad
-from multiprocessing import Pool, cpu_count
-from ..conf.utils_conf import eval_func_tuple as EFT
+from multiprocessing import cpu_count
+from ..conf.utils_conf import pool_map, iterable
 from ..conf import time_ini, timing
 from ..var import get_annulus_segments, frame_center, dist
 
@@ -93,12 +93,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         raise TypeError('\nMode not recognized.')
 
     if source_mask is None:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(func), itt.repeat(array), coords,
-                                itt.repeat(fwhm), itt.repeat(True),
-                                itt.repeat(array2), itt.repeat(use2alone)))
+        res = pool_map(nproc, func, array, iterable(coords), fwhm, True,
+                       array2, use2alone)
         res = np.array(res)
-        pool.close()
         yy = res[:, 0]
         xx = res[:, 1]
         snr = res[:, 2]
@@ -158,12 +155,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         snr = res[:, 2]
         snrmap[yy.astype('int'), xx.astype('int')] = snr
 
-        pool2 = Pool(processes=nproc)
-        res = pool2.map(EFT, zip(itt.repeat(func), itt.repeat(array_sources),
-                                 coor_ann, itt.repeat(fwhm), itt.repeat(True),
-                                 itt.repeat(array2), itt.repeat(use2alone)))
+        res = pool_map(nproc, func, array_sources, iterable(coor_ann), fwhm,
+                       True, array2, use2alone)
         res = np.array(res)
-        pool2.close()
         yy = res[:, 0]
         xx = res[:, 1]
         snr = res[:, 2]

@@ -13,7 +13,7 @@ install:
 
 # command to run tests + coverage
 script:
-  - pytest --cov=vip_hci -v
+  - pytest --cov=vip_hci -v --cache-clear
 
 after_success:
   - codecov

@@ -49,23 +49,12 @@ def injected_cube_position(example_dataset_ifs):
 
 
 # ====== algos
-
-
 def algo_medsub(ds):
     return vip.medsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
                                  scale_list=ds.wavelengths)
 
 
 def algo_xloci(ds):
-    """
-    Notes
-    -----
-    Running time:
-    - Mac R:     0:01:07.431246
-    - IPAG-calc: 0:00:02.574641
-    - Travis CI: 0:00:05.652058
-    """
-
     return vip.leastsq.xloci(ds.cube, ds.angles, fwhm=ds.fwhm,
                              scale_list=ds.wavelengths,
                              radius_int=20)  # <- speed up

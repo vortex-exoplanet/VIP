@@ -18,8 +18,8 @@ from skimage import draw
 from matplotlib import pyplot as plt
 from astropy.convolution import convolve, Tophat2DKernel
 from astropy.stats import median_absolute_deviation as mad
-from multiprocessing import Pool, cpu_count
-from ..conf.utils_conf import eval_func_tuple as EFT
+from multiprocessing import cpu_count
+from ..conf.utils_conf import pool_map, iterable
 from ..conf import time_ini, timing
 from ..var import get_annulus_segments, frame_center, dist
 
@@ -93,12 +93,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         raise TypeError('\nMode not recognized.')
 
     if source_mask is None:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(func), itt.repeat(array), coords,
-                                itt.repeat(fwhm), itt.repeat(True),
-                                itt.repeat(array2), itt.repeat(use2alone)))
+        res = pool_map(nproc, func, array, iterable(coords), fwhm, True,
+                       array2, use2alone)
         res = np.array(res)
-        pool.close()
         yy = res[:, 0]
         xx = res[:, 1]
         snr = res[:, 2]
@@ -147,23 +144,17 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         # coordinates of the rest of the frame without the annulus
         coor_rest = [(y, x) for (y, x) in zip(yy, xx) if (y, x) not in coor_ann]
 
-        pool1 = Pool(processes=nproc)
-        res = pool1.map(EFT, zip(itt.repeat(func), itt.repeat(array), coor_rest,
-                                 itt.repeat(fwhm), itt.repeat(True),
-                                 itt.repeat(array2), itt.repeat(use2alone)))
+        res = pool_map(nproc, func, array, iterable(coor_rest), fwhm, True,
+                       array2, use2alone)
         res = np.array(res)
-        pool1.close()
         yy = res[:, 0]
         xx = res[:, 1]
         snr = res[:, 2]
         snrmap[yy.astype('int'), xx.astype('int')] = snr
 
-        pool2 = Pool(processes=nproc)
-        res = pool2.map(EFT, zip(itt.repeat(func), itt.repeat(array_sources),
-                                 coor_ann, itt.repeat(fwhm), itt.repeat(True),
-                                 itt.repeat(array2), itt.repeat(use2alone)))
+        res = pool_map(nproc, func, array_sources, iterable(coor_ann), fwhm,
+                       True, array2, use2alone)
         res = np.array(res)
-        pool2.close()
         yy = res[:, 0]
         xx = res[:, 1]
         snr = res[:, 2]
@@ -227,11 +218,8 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True, **kwargs):
         for (y, x) in zip(yy, xx):
             snrmap[y, x] = _snr_approx(array, (x, y), fwhm, cy, cx)[2]
     elif nproc > 1:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(_snr_approx), itt.repeat(array),
-                                coords, itt.repeat(fwhm), itt.repeat(cy),
-                                itt.repeat(cx)))
-        pool.close()
+        res = pool_map(nproc, _snr_approx, array, iterable(coords), fwhm, cy,
+                       cx)
         res = np.array(res)
         yy = res[:, 0]
         xx = res[:, 1]

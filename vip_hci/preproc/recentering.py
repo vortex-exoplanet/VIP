@@ -4,8 +4,6 @@
 Module containing functions for cubes frame registration.
 """
 
-
-
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens, G. Ruane'
 __all__ = ['frame_shift',
            'cube_shift',
@@ -19,7 +17,6 @@ __all__ = ['frame_shift',
 
 import numpy as np
 import warnings
-import itertools as itt
 
 try:
     import cv2
@@ -34,11 +31,12 @@ from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
 from skimage.transform import radon
 from skimage.feature import register_translation
-from multiprocessing import Pool, cpu_count
+from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
 from . import frame_crop
 from ..conf import time_ini, timing, Progressbar
-from ..conf.utils_conf import vip_figsize, check_array, eval_func_tuple as EFT
+from ..conf.utils_conf import vip_figsize, check_array
+from ..conf.utils_conf import pool_map, iterable
 from ..var import (get_square, frame_center, get_annulus_segments,
                    fit_2dmoffat, fit_2dgaussian, cube_filter_lowpass,
                    cube_filter_highpass)
@@ -579,13 +577,8 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
             costf.append(res)
         costf = np.array(costf)
     elif nproc > 1:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(costfkt),
-                                itt.repeat(frame), itt.repeat(cent),
-                                itt.repeat(radint), coords))
-
+        res = pool_map(nproc, costfkt, frame, cent, radint, iterable(coords))
         costf = np.array(res)
-        pool.close()
 
     if verbose:
         msg = 'Done {} radon transform calls distributed in {} processes'
@@ -1021,14 +1014,9 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                             fwhm[i], threshold))
         res = np.array(res)
     elif nproc > 1:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(func), itt.repeat(array),
-                                range(n_frames), itt.repeat(subi_size),
-                                itt.repeat(pos_y), itt.repeat(pos_x),
-                                itt.repeat(negative), itt.repeat(debug), fwhm,
-                                itt.repeat(threshold)))
+        res = pool_map(nproc, func, array, iterable(range(n_frames)), subi_size,
+                       pos_y, pos_x, negative, debug, iterable(fwhm), threshold)
         res = np.array(res)
-        pool.close()
     y = cy - res[:, 0]
     x = cx - res[:, 1]
 

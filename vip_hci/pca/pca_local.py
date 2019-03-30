@@ -19,7 +19,7 @@ from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
 from ..conf import time_ini, timing
-from ..conf.utils_conf import pool_map, fixed
+from ..conf.utils_conf import pool_map, iterable
 from ..var import get_annulus_segments, matrix_scaling
 from ..stats import descriptive_stats
 from .svd import get_eigenvectors
@@ -188,7 +188,7 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
             print('{} spectral channels per IFS frame'.format(z))
             print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli, fwhm))
 
-        res = pool_map(nproc, _pca_sdi_fr, fixed(range(n)), scale_list,
+        res = pool_map(nproc, _pca_sdi_fr, iterable(range(n)), scale_list,
                        radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
                        svd_mode, tol, scaling, imlib, interpolation, collapse,
                        verbose=verbose)
@@ -556,7 +556,7 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
             matrix_segm = array[:, yy, xx]  # shape [nframes x npx_segment]
             matrix_segm = matrix_scaling(matrix_segm, scaling)
 
-            res = pool_map(nproc, do_pca_patch, matrix_segm, fixed(range(n)),
+            res = pool_map(nproc, do_pca_patch, matrix_segm, iterable(range(n)),
                            angle_list, fwhm, pa_thr, ann_center, svd_mode,
                            ncompann, min_frames_lib, max_frames_lib, tol,
                            verbose=False)

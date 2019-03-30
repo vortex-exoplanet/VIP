@@ -15,7 +15,7 @@ from sklearn.metrics import pairwise_distances
 from ..var import get_annulus_segments
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import time_ini, timing
-from ..conf.utils_conf import pool_map, fixed
+from ..conf.utils_conf import pool_map, iterable
 from ..pca.utils_pca import pca_annulus
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 
@@ -97,7 +97,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
-    res = pool_map(nproc, _pairwise_ann, fixed(range(n_annuli)),
+    res = pool_map(nproc, _pairwise_ann, iterable(range(n_annuli)),
                    n_annuli, fwhm, angle_list, delta_rot, metric,
                    dist_threshold, n_similar, radius_int, asize, ncomp,
                    verbose, debug)

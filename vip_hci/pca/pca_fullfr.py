@@ -15,7 +15,7 @@ from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector, cube_crop_frames)
 from ..conf import timing, time_ini, check_enough_memory, Progressbar
-from ..conf.utils_conf import pool_map, fixed
+from ..conf.utils_conf import pool_map, iterable
 from ..var import frame_center, dist, prepare_matrix, reshape_matrix
 from ..stats import descriptive_stats
 
@@ -540,7 +540,7 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, ncomp2, scaling,
         msg = 'Number of PCs too high (max PCs={}), using {} PCs instead'
         print(msg.format(z, ncomp))
 
-    res = pool_map(nproc, _adimsdi_doublepca_ifs, fixed(range(n)), ncomp,
+    res = pool_map(nproc, _adimsdi_doublepca_ifs, iterable(range(n)), ncomp,
                    scale_list, scaling, mask_center_px, debug, svd_mode,
                    collapse, verbose=verbose)
     residuals_cube_channels = np.array(res)

@@ -4,8 +4,6 @@
 Module containing functions for cubes frame registration.
 """
 
-
-
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens, G. Ruane'
 __all__ = ['frame_shift',
            'cube_shift',

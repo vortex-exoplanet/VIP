@@ -17,7 +17,7 @@ from ..preproc import cube_derotate, cube_collapse
 from ..var import get_annulus_segments, cube_filter_highpass
 from ..pca.svd import svd_wrapper, get_eigenvectors
 from .thresholding import thresholding
-from ..conf.utils_conf import pool_map, fixed
+from ..conf.utils_conf import pool_map, iterable
 
 
 def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
@@ -208,7 +208,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
                                            theta_init)
 
             patches = pool_map(nproc, _decompose_patch, indices,
-                               fixed(range(n_segments_ann)), n_segments_ann,
+                               iterable(range(n_segments_ann)), n_segments_ann,
                                rank, low_rank_ref, low_rank_mode, thresh,
                                thresh_mode, max_iter, auto_rank_mode, cevr,
                                residuals_tol, random_seed, debug, full_output)

@@ -144,12 +144,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         # coordinates of the rest of the frame without the annulus
         coor_rest = [(y, x) for (y, x) in zip(yy, xx) if (y, x) not in coor_ann]
 
-        pool1 = Pool(processes=nproc)
-        res = pool1.map(EFT, zip(itt.repeat(func), itt.repeat(array), coor_rest,
-                                 itt.repeat(fwhm), itt.repeat(True),
-                                 itt.repeat(array2), itt.repeat(use2alone)))
+        res = pool_map(nproc, func, array, iterable(coor_rest), fwhm, True,
+                       array2, use2alone)
         res = np.array(res)
-        pool1.close()
         yy = res[:, 0]
         xx = res[:, 1]
         snr = res[:, 2]

@@ -2,18 +2,12 @@
 Tests for the andromeda submodule.
 """
 
-from __future__ import division, print_function, absolute_import
-
 __author__ = "Ralf Farkas"
 
-from helpers import np, aarc
+from .helpers import np, aarc
 import os
 from vip_hci.andromeda.andromeda import andromeda
-from vip_hci.andromeda.utils import (
-    robust_std,
-    idl_round,
-    idl_where
-)
+from vip_hci.andromeda.utils import (robust_std, idl_round, idl_where)
 
 
 CURRDIR = os.path.dirname(__file__)

@@ -825,8 +825,8 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
 
     cy, cx = frame_center(array[0])
     # Centroiding first frame with 2d gaussian and shifting
-    msg0 = "The rest of the frames will be shifted by cross-correlation "
-    msg0 += "wrt the 1st"
+    msg0 = "The rest of the frames will be shifted by cross-correlation wrt the" \
+           " 1st"
     if subi_size is not None:
         y1, x1 = _centroid_2dg_frame(array_rec, 0, subi_size, cy_1, cx_1,
                                      negative, debug, fwhm)

@@ -4,7 +4,7 @@
 Module with simplex (Nelder-Mead) optimization for defining the flux and 
 position of a companion using the Negative Fake Companion.
 """
-from __future__ import division, print_function
+
 
 import numpy as np
 import matplotlib.pyplot as plt

@@ -1,5 +1,5 @@
-vip\_hci\.leastsq package
-=========================
+vip\_hci.leastsq package
+========================
 
 .. automodule:: vip_hci.leastsq
     :members:
@@ -9,8 +9,8 @@ vip\_hci\.leastsq package
 Submodules
 ----------
 
-vip\_hci\.leastsq\.leastsq module
----------------------------------
+vip\_hci.leastsq.leastsq module
+-------------------------------
 
 .. automodule:: vip_hci.leastsq.leastsq
     :members:

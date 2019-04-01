@@ -1,5 +1,5 @@
-vip\_hci\.exlib package
-=======================
+vip\_hci.exlib package
+======================
 
 .. automodule:: vip_hci.exlib
     :members:
@@ -9,8 +9,8 @@ vip\_hci\.exlib package
 Submodules
 ----------
 
-vip\_hci\.exlib\.iuwt module
-----------------------------
+vip\_hci.exlib.iuwt module
+--------------------------
 
 .. automodule:: vip_hci.exlib.iuwt
     :members:

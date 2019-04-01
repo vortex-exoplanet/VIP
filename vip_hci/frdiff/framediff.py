@@ -4,19 +4,18 @@
 Module with a frame differencing algorithm for ADI post-processing.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['frame_diff']
 
 import numpy as np
 import pandas as pn
+from hciplot import plot_frames
 from multiprocessing import cpu_count
 from sklearn.metrics import pairwise_distances
-from ..var import get_annulus_segments, pp_subplots
+from ..var import get_annulus_segments
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import time_ini, timing
-from ..conf.utils_conf import pool_map, fixed
+from ..conf.utils_conf import pool_map, iterable
 from ..pca.utils_pca import pca_annulus
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 
@@ -98,7 +97,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
-    res = pool_map(nproc, _pairwise_ann, fixed(range(n_annuli)),
+    res = pool_map(nproc, _pairwise_ann, iterable(range(n_annuli)),
                    n_annuli, fwhm, angle_list, delta_rot, metric,
                    dist_threshold, n_similar, radius_int, asize, ncomp,
                    verbose, debug)
@@ -150,7 +149,6 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
         mat_dists_ann = mat_dists_ann_full
 
     if debug:
-        #pp_subplots(mat_dists_ann)
         msg = 'Done calculating the {} distance for annulus {}'
         print(msg.format(metric, ann+1))
         timing(start_time)
@@ -163,7 +161,7 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
         raise RuntimeError('No pairs left. Decrease thresholds')
 
     if debug:
-        pp_subplots(mat_dists_ann)
+        plot_frames(mat_dists_ann)
         print('Done thresholding/checking distances.')
         timing(start_time)
 

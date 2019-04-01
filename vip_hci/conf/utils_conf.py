@@ -4,8 +4,6 @@
 Module with utilities.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez, Ralf Farkas'
 __all__ = ['Progressbar']
 
@@ -353,7 +351,7 @@ class FixedObj(object):
         self.v = v
 
 
-def fixed(v):
+def iterable(v):
     """ Helper function for ``pool_map``: prevents the argument from being
     wrapped in ``itertools.repeat()``.
 
@@ -373,7 +371,7 @@ def fixed(v):
         method = 1
 
         # we then would use
-        pool_map(3, worker, fixed(words), method)
+        pool_map(3, worker, iterable(words), method)
 
         # this results in calling
         #
@@ -398,7 +396,8 @@ def pool_map(nproc, fkt, *args, **kwargs):
         The function to be called with each ``*args``
     *args : function arguments
         Arguments passed to ``fkt`` By default, ``itertools.repeat`` is applied
-        on all the arguments, except when you wrap the argument in ``fixed()``.
+        on all the arguments, except when you wrap the argument in
+        ``iterable()``.
     msg : str or None, optional
         Description to be displayed.
     progressbar_single : bool, optional
@@ -411,13 +410,6 @@ def pool_map(nproc, fkt, *args, **kwargs):
     -------
     res : list
         A list with the results.
-
-    Notes
-    -----
-    python2 does not support named keyword arguments after ``*args``. This is
-    why the rather un-elegant ``kwargs.get()`` are used.
-
-    # TODO: how do ``zip`` and ``map`` behave on python 2?
 
     """
     msg = kwargs.get("msg", None)

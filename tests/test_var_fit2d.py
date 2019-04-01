@@ -3,11 +3,9 @@ Tests for var/fit_2d.py
 
 """
 
-from __future__ import division, print_function, absolute_import
-
 __author__ = "Ralf Farkas"
 
-from helpers import aarc, np, parametrize, param, filterwarnings
+from .helpers import aarc, np, parametrize, param, filterwarnings
 from vip_hci.var.fit_2d import (create_synth_psf,
                                 fit_2dgaussian, fit_2dmoffat, fit_2dairydisk)
 

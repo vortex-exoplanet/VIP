@@ -8,11 +8,10 @@ algorithms actually run.
 
 """
 
-from __future__ import division, print_function, absolute_import
 
 __author__ = "Ralf Farkas"
 
-from helpers import aarc, np, param, parametrize
+from .helpers import aarc, np, param, parametrize
 from vip_hci.var.filters import (fft, ifft,
                                  cube_filter_iuwt,
                                  cube_filter_highpass,

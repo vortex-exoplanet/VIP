@@ -3,11 +3,9 @@ Tests for var/shapes.py
 
 """
 
-from __future__ import division, print_function, absolute_import
-
 __author__ = "Ralf Farkas"
 
-from helpers import aarc, np
+from .helpers import aarc, np
 from vip_hci.var.shapes import (frame_center, mask_circle, get_square,
                                 get_circle, get_annulus_segments, dist,
                                 matrix_scaling, reshape_matrix, get_ell_annulus,

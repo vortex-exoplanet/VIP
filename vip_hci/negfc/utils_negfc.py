@@ -5,8 +5,6 @@ Module with post-processing related functions called from within the NFC
 algorithm.
 """
 
-from __future__ import division, print_function
-
 __all__ = ['cube_planet_free']
 
 import numpy as np

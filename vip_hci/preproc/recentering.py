@@ -4,8 +4,6 @@
 Module containing functions for cubes frame registration.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens, G. Ruane'
 __all__ = ['frame_shift',
            'cube_shift',
@@ -19,7 +17,6 @@ __all__ = ['frame_shift',
 
 import numpy as np
 import warnings
-import itertools as itt
 
 try:
     import cv2
@@ -29,18 +26,20 @@ except ImportError:
     warnings.warn(msg, ImportWarning)
     no_opencv = True
 
+from hciplot import plot_frames
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
 from skimage.transform import radon
 from skimage.feature import register_translation
-from multiprocessing import Pool, cpu_count
+from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
 from . import frame_crop
 from ..conf import time_ini, timing, Progressbar
-from ..conf.utils_conf import vip_figsize, check_array, eval_func_tuple as EFT
+from ..conf.utils_conf import vip_figsize, check_array
+from ..conf.utils_conf import pool_map, iterable
 from ..var import (get_square, frame_center, get_annulus_segments,
-                   pp_subplots, fit_2dmoffat, fit_2dgaussian,
-                   cube_filter_lowpass, cube_filter_highpass)
+                   fit_2dmoffat, fit_2dgaussian, cube_filter_lowpass,
+                   cube_filter_highpass)
 from ..preproc import cube_crop_frames
 
 
@@ -336,7 +335,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     si1, si2, si3, si4 = subims
 
     if debug:
-        pp_subplots(si1, si2, si3, si4, colorb=True)
+        plot_frames((si1, si2, si3, si4), colorbar=True)
         print('Centroids X,Y:')
         print(cent2dgx_1, cent2dgy_1)
         print(cent2dgx_2, cent2dgy_2)
@@ -555,12 +554,12 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
                                np.linspace(start=310, stop=320, num=samples,
                                            endpoint=False)))
             sinogram = radon(frame, theta=theta, circle=True)
-            pp_subplots(frame, sinogram)
+            plot_frames((frame, sinogram))
             print(np.sum(np.abs(sinogram[cent, :])))
         else:
             theta = np.linspace(start=0, stop=360, num=cent*2, endpoint=False)
             sinogram = radon(frame, theta=theta, circle=True)
-            pp_subplots(frame, sinogram)
+            plot_frames((frame, sinogram))
             print(np.sum(np.abs(sinogram[cent, :])))
 
     if nproc is None:
@@ -578,13 +577,8 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
             costf.append(res)
         costf = np.array(costf)
     elif nproc > 1:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(costfkt),
-                                itt.repeat(frame), itt.repeat(cent),
-                                itt.repeat(radint), coords))
-
+        res = pool_map(nproc, costfkt, frame, cent, radint, iterable(coords))
         costf = np.array(res)
-        pool.close()
 
     if verbose:
         msg = 'Done {} radon transform calls distributed in {} processes'
@@ -831,8 +825,8 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
 
     cy, cx = frame_center(array[0])
     # Centroiding first frame with 2d gaussian and shifting
-    msg0 = "The rest of the frames will be shifted by cross-correlation "
-    msg0 += "wrt the 1st"
+    msg0 = "The rest of the frames will be shifted by cross-correlation wrt the" \
+           " 1st"
     if subi_size is not None:
         y1, x1 = _centroid_2dg_frame(array_rec, 0, subi_size, cy_1, cx_1,
                                      negative, debug, fwhm)
@@ -846,15 +840,16 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
             print(msg0)
         if debug:
             titd = "original / shifted 1st frame subimage"
-            pp_subplots(frame_crop(array[0], subi_size, verbose=False),
-                        frame_crop(array_rec[0], subi_size, verbose=False),
+            plot_frames((frame_crop(array[0], subi_size, verbose=False),
+                        frame_crop(array_rec[0], subi_size, verbose=False)),
                         grid=True, title=titd)
     else:
         if verbose:
-            print("The first frame is assumed to be well centered.")
+            print("The first frame is assumed to be well centered wrt the"
+                  "center of the array")
             print(msg0)
-        x[0] = cx
-        y[0] = cy
+        x[0] = 0
+        y[0] = 0
 
     # Finding the shifts with DTF upsampling of each frame wrt the first
     for i in Progressbar(range(1, n_frames), desc="frames", verbose=verbose):
@@ -1020,14 +1015,9 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                             fwhm[i], threshold))
         res = np.array(res)
     elif nproc > 1:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(func), itt.repeat(array),
-                                range(n_frames), itt.repeat(subi_size),
-                                itt.repeat(pos_y), itt.repeat(pos_x),
-                                itt.repeat(negative), itt.repeat(debug), fwhm,
-                                itt.repeat(threshold)))
+        res = pool_map(nproc, func, array, iterable(range(n_frames)), subi_size,
+                       pos_y, pos_x, negative, debug, iterable(fwhm), threshold)
         res = np.array(res)
-        pool.close()
     y = cy - res[:, 0]
     x = cx - res[:, 1]
 
@@ -1036,7 +1026,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         y -= offy
         x -= offx
 
-    for i in Progressbar(range(n_frames), desc="shifting", verbose=verbose):
+    for i in Progressbar(range(n_frames), desc="Shifting", verbose=verbose):
         if debug:
             print("\nShifts in X and Y")
             print(x[i], y[i])

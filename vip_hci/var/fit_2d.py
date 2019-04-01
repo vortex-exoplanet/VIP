@@ -3,7 +3,7 @@
 """
 2d fitting and creation of synthetic PSFs.
 """
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['create_synth_psf',
@@ -14,11 +14,11 @@ __all__ = ['create_synth_psf',
 import numpy as np
 import pandas as pd
 import photutils
+from hciplot import plot_frames
 from astropy.modeling import models, fitting
 from astropy.stats import (gaussian_sigma_to_fwhm, gaussian_fwhm_to_sigma,
                            sigma_clipped_stats)
 from .shapes import get_square, frame_center
-from .plotting import pp_subplots
 
 
 def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
@@ -232,8 +232,8 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
             msg = ['Subimage thresholded', 'Model', 'Residuals']
         else:
             msg = ['Subimage', 'Model', 'Residuals']
-        pp_subplots(psf_subimage, fit(x, y), psf_subimage-fit(x, y),
-                    grid=True, gridspacing=1, label=msg)
+        plot_frames((psf_subimage, fit(x, y), psf_subimage-fit(x, y)),
+                    grid=True, grid_spacing=1, label=msg)
         print('FWHM_y =', fwhm_y)
         print('FWHM_x =', fwhm_x, '\n')
         print('centroid y =', mean_y)
@@ -350,8 +350,8 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
             msg = ['Subimage thresholded', 'Model', 'Residuals']
         else:
             msg = ['Subimage', 'Model', 'Residuals']
-        pp_subplots(psf_subimage, fit(x, y), psf_subimage - fit(x, y),
-                    grid=True, gridspacing=1, label=msg)
+        plot_frames((psf_subimage, fit(x, y), psf_subimage - fit(x, y)),
+                    grid=True, grid_spacing=1, label=msg)
         print('FWHM =', fwhm)
         print('centroid y =', mean_y)
         print('centroid x =', mean_x)
@@ -468,8 +468,8 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
             msg = ['Subimage thresholded', 'Model', 'Residuals']
         else:
             msg = ['Subimage', 'Model', 'Residuals']
-        pp_subplots(psf_subimage, fit(x, y), psf_subimage - fit(x, y),
-                    grid=True, gridspacing=1, label=msg)
+        plot_frames((psf_subimage, fit(x, y), psf_subimage - fit(x, y)),
+                    grid=True, grid_spacing=1, label=msg)
         print('FWHM =', fwhm)
         print('centroid y =', mean_y)
         print('centroid x =', mean_x)

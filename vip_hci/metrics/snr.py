@@ -4,8 +4,6 @@
 Module with S/N calculation functions.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez, O. Absil @ ULg'
 __all__ = ['snr_ss',
            'snr_peakstddev',
@@ -15,26 +13,26 @@ __all__ = ['snr_ss',
 import numpy as np
 import itertools as itt
 import photutils
+from hciplot import plot_frames
 from skimage import draw
 from matplotlib import pyplot as plt
 from astropy.convolution import convolve, Tophat2DKernel
 from astropy.stats import median_absolute_deviation as mad
-from multiprocessing import Pool, cpu_count
-from ..conf.utils_conf import eval_func_tuple as EFT
+from multiprocessing import cpu_count
+from ..conf.utils_conf import pool_map, iterable
 from ..conf import time_ini, timing
-from ..var import get_annulus_segments, frame_center, dist, pp_subplots
+from ..var import get_annulus_segments, frame_center, dist
 
 
 def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
-           save_plot=None, plot_title=None, verbose=True, array2=None, 
-           use2alone=False):
+           array2=None, use2alone=False, verbose=True, **kwargs):
     """Parallel implementation of the S/N map generation function. Applies the
     S/N function (small samples penalty) at each pixel.
 
     Parameters
     ----------
-    array : 2d array_like
-        Input frame.
+    array : numpy.ndarray
+        Input frame (2d array).
     fwhm : float
         Size in pixels of the FWHM.
     plot : bool, optional
@@ -48,19 +46,18 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         known sources have a zero value.
     nproc : int or None
         Number of processes for parallel computing.
-    save_plot : string
-        If provided, the S/N map is saved to this path.
-    plot_title : string
-        If provided, the S/N map plot is titled.
-    verbose: bool, optional
-        Whether to print timing or not.
-    array2 : array_like, 2d, opt
+    array2 : numpy.ndarray, optional
         Additional image (e.g. processed image with negative derotation angles) 
         enabling to have more noise samples. Should have the 
         same dimensions as array.
-    use2alone: bool, opt
+    use2alone: bool, optional
         Whether to use array2 alone to estimate the noise (might be useful to 
-        estimate the snr of extended disk features)
+        estimate the snr of extended disk features).
+    verbose: bool, optional
+        Whether to print timing or not.
+    **kwargs : dictionary, optional
+        Arguments to be passed to ``plot_frames`` to customize the plot (and to
+        save it to disk).
 
     Returns
     -------
@@ -96,12 +93,9 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         raise TypeError('\nMode not recognized.')
 
     if source_mask is None:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(func), itt.repeat(array), coords,
-                                itt.repeat(fwhm), itt.repeat(True),
-                                itt.repeat(array2), itt.repeat(use2alone)))
+        res = pool_map(nproc, func, array, iterable(coords), fwhm, True,
+                       array2, use2alone)
         res = np.array(res)
-        pool.close()
         yy = res[:, 0]
         xx = res[:, 1]
         snr = res[:, 2]
@@ -150,36 +144,24 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
         # coordinates of the rest of the frame without the annulus
         coor_rest = [(y, x) for (y, x) in zip(yy, xx) if (y, x) not in coor_ann]
 
-        pool1 = Pool(processes=nproc)
-        res = pool1.map(EFT, zip(itt.repeat(func), itt.repeat(array), coor_rest,
-                                 itt.repeat(fwhm), itt.repeat(True),
-                                 itt.repeat(array2), itt.repeat(use2alone)))
+        res = pool_map(nproc, func, array, iterable(coor_rest), fwhm, True,
+                       array2, use2alone)
         res = np.array(res)
-        pool1.close()
         yy = res[:, 0]
         xx = res[:, 1]
         snr = res[:, 2]
         snrmap[yy.astype('int'), xx.astype('int')] = snr
 
-        pool2 = Pool(processes=nproc)
-        res = pool2.map(EFT, zip(itt.repeat(func), itt.repeat(array_sources),
-                                 coor_ann, itt.repeat(fwhm), itt.repeat(True),
-                                 itt.repeat(array2), itt.repeat(use2alone)))
+        res = pool_map(nproc, func, array_sources, iterable(coor_ann), fwhm,
+                       True, array2, use2alone)
         res = np.array(res)
-        pool2.close()
         yy = res[:, 0]
         xx = res[:, 1]
         snr = res[:, 2]
         snrmap[yy.astype('int'), xx.astype('int')] = snr
 
     if plot:
-        pp_subplots(snrmap, colorb=True, title='S/N map')
-
-    # Option to save snrmap in angular scale, using Keck NIRC2's ~0.01 pixel
-    # scale. In this case, set plot = False
-    elif save_plot is not None:
-        pp_subplots(snrmap, colorb=True, title=plot_title, save=save_plot,
-                    vmin=-1, vmax=5, angscale=True, getfig=True)
+        plot_frames(snrmap, colorbar=True, title='S/N map', **kwargs)
 
     if verbose:
         print("S/N map created using {} processes.".format(nproc))
@@ -187,7 +169,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     return snrmap
 
 
-def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
+def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True, **kwargs):
     """ Approximated S/N map generation. To be used as a quick proxy of the
     S/N map generated using the small samples statistics definition.
 
@@ -203,6 +185,9 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
         If True plots the S/N map.
     verbose: bool, optional
         Whether to print timing or not.
+    **kwargs : dictionary, optional
+        Arguments to be passed to ``plot_frames`` to customize the plot (and to
+        save it to disk).
 
     Returns
     -------
@@ -233,11 +218,8 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
         for (y, x) in zip(yy, xx):
             snrmap[y, x] = _snr_approx(array, (x, y), fwhm, cy, cx)[2]
     elif nproc > 1:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(_snr_approx), itt.repeat(array),
-                                coords, itt.repeat(fwhm), itt.repeat(cy),
-                                itt.repeat(cx)))
-        pool.close()
+        res = pool_map(nproc, _snr_approx, array, iterable(coords), fwhm, cy,
+                       cx)
         res = np.array(res)
         yy = res[:, 0]
         xx = res[:, 1]
@@ -245,7 +227,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True):
         snrmap[yy.astype(int), xx.astype(int)] = snr
 
     if plot:
-        pp_subplots(snrmap, colorb=True, title='SNRmap')
+        plot_frames(snrmap, colorbar=True, title='S/N map', **kwargs)
 
     if verbose:
         print("S/N map created using {} processes.".format(nproc))

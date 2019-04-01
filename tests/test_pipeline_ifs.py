@@ -3,15 +3,19 @@ Tests for the post-processing pipeline, using the functional API.
 
 """
 
-__author__ = "Ralf Farkas"
+__author__ = "Carlos Alberto Gomez Gonzalez"
 
 import copy
 import vip_hci as vip
 from .helpers import np, parametrize, fixture
 
 
+def print_debug(s, *args, **kwargs):
+    print(("\033[34m" + s + "\033[0m").format(*args, **kwargs))
+
+
 @fixture(scope="module")
-def injected_cube_position(example_dataset):
+def injected_cube_position(example_dataset_ifs):
     """
     Inject a fake companion into an example cube.
 
@@ -26,15 +30,15 @@ def injected_cube_position(example_dataset):
     injected_position_yx : tuple(y, x)
 
     """
-    print("injecting fake planet...")
-    dsi = copy.copy(example_dataset)
+    print_debug("injecting fake planet...")
+    dsi = copy.copy(example_dataset_ifs)
     # we chose a shallow copy, as we will not use any in-place operations
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
     dsi.cube, yx = vip.metrics.cube_inject_companions(dsi.cube,
                                                       dsi.psfn,
                                                       dsi.angles,
-                                                      flevel=300,
+                                                      flevel=100,
                                                       plsc=dsi.px_scale,
                                                       rad_dists=30,
                                                       full_output=True,
@@ -47,60 +51,26 @@ def injected_cube_position(example_dataset):
 # ====== algos
 def algo_medsub(ds):
     return vip.medsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
-                                 mode="fullfr")
-
-
-def algo_medsub_annular(ds):
-    return vip.medsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
-                                 mode="annular")
+                                 scale_list=ds.wavelengths)
 
 
 def algo_xloci(ds):
     return vip.leastsq.xloci(ds.cube, ds.angles, fwhm=ds.fwhm,
+                             scale_list=ds.wavelengths,
                              radius_int=20)  # <- speed up
 
 
-def algo_frdiff(ds):
-    return vip.frdiff.frame_diff(ds.cube, ds.angles)
-
-
-def algo_llsg(ds):
-    return vip.llsg.llsg(ds.cube, ds.angles, ds.fwhm, rank=2)
-
-
-def algo_nmf(ds):
-    return vip.nmf.nmf(ds.cube, ds.angles)
-
-
 def algo_pca(ds):
-    return vip.pca.pca(ds.cube, ds.angles)
-
-
-def algo_pca_annular(ds):
-    return vip.pca.pca_annular(ds.cube, ds.angles, fwhm=ds.fwhm)
-
-
-def algo_andromeda(ds):
-    res = vip.andromeda.andromeda(ds.cube[:,:-1,:-1], oversampling_fact=1,
-                                  angles=ds.angles, psf=ds.psf)
-    contrast, snr, snr_n, stdcontrast, stdcontrast_n, likelihood, r = res
-    return snr_n
-
-
-def algo_andromeda_fast(ds):
-    res = vip.andromeda.andromeda(ds.cube[:,:-1,:-1], oversampling_fact=0.5,
-                                  fast=10, angles=ds.angles, psf=ds.psf)
-    contrast, snr, snr_n, stdcontrast, stdcontrast_n, likelihood, r = res
-    return snr_n
+    return vip.pca.pca(ds.cube, ds.angles, scale_list=ds.wavelengths)
 
 
 # ====== SNR map
 def snrmap_fast(frame, ds):
-    return vip.metrics.snrmap_fast(frame, fwhm=ds.fwhm)
+    return vip.metrics.snrmap_fast(frame, fwhm=np.mean(ds.fwhm))
 
 
 def snrmap(frame, ds):
-    return vip.metrics.snrmap(frame, fwhm=ds.fwhm, mode="sss")
+    return vip.metrics.snrmap(frame, fwhm=np.mean(ds.fwhm), mode="sss")
 
 
 # ====== Detection with ``vip_hci.metrics.detection``, by default with a
@@ -133,7 +103,7 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
     table = vip.metrics.detection(frame, fwhm=fwhm, mode='lpeaks', bkg_sigma=5,
                                   matched_filter=False, mask=True,
                                   snr_thresh=snr_thresh, plot=False,
-                                  debug=True, full_output=True, verbose=True)
+                                  debug=False, full_output=True, verbose=True)
     msg = "Injected companion not recovered"
     assert verify_expcoord(table.y, table.x, yx_exp), msg
 
@@ -141,16 +111,9 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
 @parametrize("algo, make_detmap",
     [
         (algo_medsub, snrmap_fast),
-        (algo_medsub, snrmap),
-        (algo_medsub_annular, snrmap_fast),
         (algo_xloci, snrmap_fast),
-        (algo_nmf, snrmap_fast),
-        (algo_llsg, snrmap_fast),
-        (algo_frdiff, snrmap_fast),
         (algo_pca, snrmap_fast),
-        (algo_pca_annular, snrmap_fast),
-        (algo_andromeda, None),
-        (algo_andromeda_fast, None),
+
     ],
     ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
 def test_algos(injected_cube_position, algo, make_detmap):
@@ -162,4 +125,4 @@ def test_algos(injected_cube_position, algo, make_detmap):
     else:
         detmap = frame
 
-    check_detection(detmap, position, ds.fwhm, snr_thresh=2)
+    check_detection(detmap, position, np.mean(ds.fwhm), snr_thresh=2)

@@ -5,7 +5,7 @@ Module with cosmetics procedures. Contains the function for bad pixel fixing.
 Also functions for cropping cubes.
 """
 
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens'
 __all__ = ['cube_crop_frames',

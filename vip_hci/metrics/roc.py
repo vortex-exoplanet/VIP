@@ -1,25 +1,24 @@
 """
 ROC curves generation.
 """
-
-from __future__ import division, print_function, absolute_import
-
 __all__ = ['EvalRoc',
            'compute_binary_map']
 
+import copy
 import numpy as np
-from scipy import stats
 import matplotlib.pyplot as plt
+from hciplot import plot_frames
+from scipy import stats
 from photutils import detect_sources
 from munch import Munch
-import copy
 from ..pca.svd import _get_cumexpvar
 from ..var import frame_center, get_annulus_segments
 from ..conf import time_ini, timing, Progressbar
-from ..var import pp_subplots as plots, get_circle
+from ..var import get_circle
 from .fakecomp import cube_inject_companions
 
 
+# TODO: remove the munch dependency
 class EvalRoc(object):
     """
     Class for the generation of receiver operating characteristic (ROC) curves.
@@ -260,33 +259,34 @@ class EvalRoc(object):
             for m in self.methods:
                 print('detection state: {} | false postives: {}'.format(
                     m.detections[i][thr], m.fps[i][thr]))
-                plots(m.frames[i] if len(m.frames) >= i else np.zeros((2, 2)),
-                      m.probmaps[i], m.bmaps[i][thr],
-                      label=['{} frame'.format(m.name),
-                             '{} S/Nmap'.format(m.name),
-                             'Thresholded at {:.1f}'.format(m.thresholds[thr])],
-                      dpi=dpi, horsp=0.2, axis=axis, grid=grid,
-                      cmap=['viridis', 'viridis', 'gray'])
+                labels = ('{} frame'.format(m.name), '{} S/Nmap'.format(m.name),
+                          'Thresholded at {:.1f}'.format(m.thresholds[thr]))
+                plot_frames((m.frames[i] if len(m.frames) >= i else
+                            np.zeros((2, 2)), m.probmaps[i], m.bmaps[i][thr]),
+                            label=labels, dpi=dpi, horsp=0.2, axis=axis,
+                            grid=grid, cmap=['viridis', 'viridis', 'gray'])
 
         elif plot_type in [2, "vert"]:
-            plots(*[m.frames[i] for m in self.methods if
-                    hasattr(m, "frames") and len(m.frames) >= i], dpi=dpi,
-                  label=['{} frame'.format(m.name) for m in self.methods if
-                         hasattr(m, "frames") and len(m.frames) >= i],
-                  vmax=vmax, vmin=vmin, axis=axis, grid=grid, cmap='viridis')
+            labels = tuple('{} frame'.format(m.name) for m in self.methods if
+                           hasattr(m, "frames") and len(m.frames) >= i)
+            plot_frames(tuple(m.frames[i] for m in self.methods if
+                        hasattr(m, "frames") and len(m.frames) >= i),
+                        dpi=dpi, label=labels, vmax=vmax, vmin=vmin, axis=axis,
+                        grid=grid)
 
-            plots(*[m.probmaps[i] for m in self.methods], dpi=dpi,
-                  label=['{} S/Nmap'.format(m.name) for m in self.methods],
-                  axis=axis, grid=grid, cmap='viridis')
+            plot_frames(tuple(m.probmaps[i] for m in self.methods), dpi=dpi,
+                        label=tuple(['{} S/Nmap'.format(m.name) for m in
+                                     self.methods]), axis=axis, grid=grid)
 
             for m in self.methods:
                 msg = '{} detection: {}, FPs: {}'
                 print(msg.format(m.name, m.detections[i][thr], m.fps[i][thr]))
 
-            plots(*[m.bmaps[i][thr] for m in self.methods], dpi=dpi,
-                  label=['Thresholded at {:.1f}'.format(m.thresholds[thr]) for
-                         m in self.methods],
-                  axis=axis, grid=grid, colorb=False, cmap='bone')
+            labels = tuple('Thresholded at {:.1f}'.format(m.thresholds[thr])
+                           for m in self.methods)
+            plot_frames(tuple(m.bmaps[i][thr] for m in self.methods),
+                        dpi=dpi, label=labels, axis=axis, grid=grid,
+                        colorbar=False, cmap='bone')
         else:
             raise ValueError("`plot_type` unknown")
 
@@ -420,6 +420,8 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
                        debug=False):
     """
     Take a list of ``thresholds``, create binary maps and counts detections/fps.
+    A blob which is "too big" is split into apertures, and every aperture adds
+    one 'false positive'.
 
     Parameters
     ----------
@@ -443,7 +445,7 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         injection.
     max_blob_fact : float
         Maximum size of a blob (in multiples of the resolution element) before
-        it is considered as "too big" (= non-detection)
+        it is considered as "too big" (= non-detection).
     plot : bool, optional
         If True, a final resulting plot summarizing the results will be shown.
     debug : bool, optional
@@ -458,17 +460,6 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
     list_binmaps : list of 2d ndarray
         List of binary maps: detection maps thresholded for each threshold
         value.
-
-    Notes
-    -----
-    In photutils v0.5, SegmentationImage (which is returned by detect_sources)
-    has a new ``.segments`` attribute, which would simplify the handling of the
-    blobs. Once we fix the dependency to a newer version we should update this
-    function. (https://photutils.readthedocs.io/en/v0.5/api/photutils.segmentati
-    on.SegmentationImage.html#photutils.segmentation.SegmentationImage.segments)
-
-    A blob which is "too big" is split into apertures, and every aperture adds
-    one 'false positive'.
 
     """
     def _overlap_injection_blob(injection, fwhm, blob_mask):
@@ -493,7 +484,7 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         intersection = injection_mask & blob_mask
         smallest_area = min(blob_mask.sum(), injection_mask.sum())
         return intersection.sum() / smallest_area
-
+    # --------------------------------------------------------------------------
     list_detections = []
     list_fps = []
     list_binmaps = []
@@ -515,21 +506,25 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         binmap = (segments.data != 0)
 
         if debug:
-            plots(segments.data, binmap, cmap=('tab10', 'bone'),
-                  circle=[tuple(xy) for xy in injections], circlerad=fwhm,
-                  circlealpha=0.6, label=["segmentation map", "binary map"])
+            plot_frames((segments.data, binmap), cmap=('tab20b', 'binary'),
+                        circle=tuple(tuple(xy) for xy in injections),
+                        circle_radius=fwhm, circle_alpha=0.6,
+                        label=("segmentation map", "binary map"))
 
         detections = 0
         fps = 0
 
-        for iblob in segments.labels:
-            blob_mask = (segments.data == iblob)
-            blob_area = segments.areas[iblob - 1]
+        for segment in segments.segments:
+            label = segment.label
+            blob_mask = (segments.data == label)
+            blob_area = segment.area
 
             if debug:
-                plots(blob_mask, circle=[tuple(xy) for xy in injections],
-                      circlerad=fwhm, circlealpha=0.6, cmap='bone', labelsize=8,
-                      label=["blob #{}, area={}px**2".format(iblob, blob_area)])
+                lab = "blob #{}, area={}px**2".format(label, blob_area)
+                plot_frames(blob_mask, circle_radius=fwhm, circle_alpha=0.6,
+                            circle=tuple(tuple(xy) for xy in injections),
+                            cmap='binary', label_size=8, label=lab,
+                            size_factor=3)
 
             for iinj, injection in enumerate(injections):
                 if injection[0] > sizex or injection[1] > sizey:
@@ -579,12 +574,13 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         list_fps.append(fps)
 
     if plot:
-        labs = [str(det) + ' detections' + '\n' + str(fps) + ' false positives'
-                for det, fps in zip(list_detections, list_fps)]
-        plots(np.array(list_binmaps), title='Final binary maps', label=labs,
-              labelsize=8, cmap=['bone']*len(list_binmaps), circlealpha=0.8,
-              circle=[tuple(xy) for xy in injections], circlerad=fwhm,
-              circlecolor='deepskyblue', axis=False)
+        labs = tuple(str(det) + ' detections' + '\n' + str(fps) +
+                     ' false positives' for det, fps in zip(list_detections,
+                                                            list_fps))
+        plot_frames(tuple(list_binmaps), title='Final binary maps', label=labs,
+                    label_size=8, cmap='binary', circle_alpha=0.8,
+                    circle=tuple(tuple(xy) for xy in injections),
+                    circle_radius=fwhm, circle_color='deepskyblue', axis=False)
 
     return list_detections, list_fps, list_binmaps
 

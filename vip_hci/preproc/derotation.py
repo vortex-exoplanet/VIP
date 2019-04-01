@@ -3,7 +3,7 @@
 """
 Module with frame de-rotation routine for ADI.
 """
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_derotate',
@@ -20,12 +20,11 @@ except ImportError:
     no_opencv = True
 
 from skimage.transform import rotate
-from multiprocessing import Pool, cpu_count
-import itertools as itt
-from ..conf.utils_conf import eval_func_tuple as EFT
+from multiprocessing import cpu_count
+from ..conf.utils_conf import pool_map, iterable
 from ..var import frame_center
 
-data_array = None # holds the (implicitly mem-shared) data array
+data_array = None  # holds the (implicitly mem-shared) data array
 
 
 def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
@@ -204,20 +203,17 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         global data_array
         data_array = array
 
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(_cube_rotate_mp), range(n_frames),
-                                itt.repeat(angle_list), itt.repeat(imlib),
-                                itt.repeat(interpolation), itt.repeat(cxy),
-                                itt.repeat(border_mode)))
-        pool.close()
+        res = pool_map(nproc, _frame_rotate_mp, iterable(range(n_frames)),
+                       angle_list, imlib, interpolation, cxy, border_mode)
         array_der = np.array(res)
 
     return array_der
 
 
-def _cube_rotate_mp(num_fr, angle_list, imlib, interpolation, cxy, border_mode):
-    framerot = frame_rotate(data_array[num_fr], -angle_list[num_fr],
-                            imlib, interpolation, cxy, border_mode)
+def _frame_rotate_mp(num_fr, angle_list, imlib, interpolation, cxy,
+                     border_mode):
+    framerot = frame_rotate(data_array[num_fr], -angle_list[num_fr], imlib,
+                            interpolation, cxy, border_mode)
     return framerot
 
 

@@ -2,13 +2,11 @@
 Tests for HCIDataset.
 """
 
-from __future__ import division, print_function, absolute_import
-
 __author__ = "Ralf Farkas"
 
 import tempfile
 import os
-from helpers import aarc, np
+from .helpers import aarc, np
 
 from vip_hci.hci_dataset import HCIDataset
 

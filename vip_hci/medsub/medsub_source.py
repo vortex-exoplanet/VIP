@@ -16,8 +16,6 @@ multi-spectral cubes.
 
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['median_sub']
 
@@ -28,7 +26,7 @@ from ..var import get_annulus_segments, mask_circle
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector)
 from ..preproc import cube_rescaling_wavelengths as scwave
-from ..conf.utils_conf import pool_map, fixed, print_precision
+from ..conf.utils_conf import pool_map, iterable, print_precision
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
 
@@ -147,10 +145,11 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
             if verbose:
                 print('N annuli = {}, FWHM = {}'.format(n_annuli, fwhm))
 
-            res = pool_map(nproc, _median_subt_ann_adi, fixed(range(n_annuli)),
-                           angle_list, n_annuli, fwhm, radius_int, asize,
-                           delta_rot, nframes, verbose=verbose,
-                           msg='Processing annuli:', progressbar_single=True)
+            res = pool_map(nproc, _median_subt_ann_adi,
+                           iterable(range(n_annuli)), angle_list, n_annuli,
+                           fwhm, radius_int, asize, delta_rot, nframes,
+                           verbose=verbose, msg='Processing annuli:',
+                           progressbar_single=True)
 
             res = np.array(res)
             mres = res[:, 0]
@@ -196,7 +195,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
                 print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli,
                                                                  fwhm))
 
-        res = pool_map(nproc, _median_subt_fr_sdi, fixed(range(n)),
+        res = pool_map(nproc, _median_subt_fr_sdi, iterable(range(n)),
                        scale_list, n_annuli, fwhm, radius_int, asize,
                        delta_sep, nframes, imlib, interpolation, collapse,
                        mode)
@@ -222,7 +221,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
                                                                  fwhm))
             ARRAY = residuals_cube_channels
 
-            res = pool_map(nproc, _median_subt_ann_adi, fixed(range(n_annuli)),
+            res = pool_map(nproc, _median_subt_ann_adi, iterable(range(n_annuli)),
                            angle_list, n_annuli, fwhm, radius_int, asize,
                            delta_rot, nframes)
 

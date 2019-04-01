@@ -4,8 +4,6 @@
 Module with various functions to create shapes, annuli and segments.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['dist',
            'frame_center',

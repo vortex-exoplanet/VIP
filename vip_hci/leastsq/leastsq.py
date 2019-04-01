@@ -1,10 +1,8 @@
 #! /usr/bin/env python
 
 """
-Module with a frame differencing algorithm for ADI post-processing.
+Module with a frame differencing algorithm for ADI and ADI+mSDI post-processing.
 """
-
-from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['xloci']
@@ -21,7 +19,7 @@ from ..preproc.rescaling import _find_indices_sdi
 from ..conf import time_ini, timing
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc.derotation import _find_indices_adi, _define_annuli
-from ..conf.utils_conf import pool_map, fixed, Progressbar
+from ..conf.utils_conf import pool_map, iterable, Progressbar
 
 
 def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
@@ -30,7 +28,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
           optim_scale_fact=2, adimsdi='skipadi', imlib='opencv',
           interpolation='lanczos4', collapse='median', verbose=True,
           full_output=False):
-    """ LOCI style algorithm that models a PSF (for ADI data) with a
+    """ LOCI style algorithm that models a PSF (for ADI and ADI+mSDI) with a
     least-square combination of neighbouring frames (solving the equation
     a x = b by computing a vector x of coefficients that minimizes the
     Euclidean 2-norm || b - a x ||^2).
@@ -171,7 +169,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
                 print('{} spectral channels per IFS frame'.format(z))
                 print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli,
                                                                  fwhm))
-            res = pool_map(nproc, _leastsq_sdi_fr, fixed(range(n)), scale_list,
+            res = pool_map(nproc, _leastsq_sdi_fr, iterable(range(n)), scale_list,
                            radius_int, fwhm, asize, n_segments, delta_sep, tol,
                            optim_scale_fact, metric, dist_threshold, solver,
                            imlib, interpolation, collapse)
@@ -279,7 +277,7 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
 
     msg = 'Patch-wise least-square combination and subtraction:'
     # reverse order of processing, as outer segments take longer
-    res_patch = pool_map(nproc, _leastsq_patch, fixed(ayxyx[::-1]),
+    res_patch = pool_map(nproc, _leastsq_patch, iterable(ayxyx[::-1]),
                          pa_thresholds, angle_list, metric, dist_threshold,
                          solver, tol, verbose=verbose, msg=msg,
                          progressbar_single=True)

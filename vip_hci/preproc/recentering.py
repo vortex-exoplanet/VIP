@@ -859,9 +859,13 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     
     if nproc == 1:
         for i in Progressbar(range(1, n_frames), desc="frames", verbose=verbose):
-            y[i], x[i], array_rec[i] = _shift_dft(array_rec, array, i, upsample_factor, interpolation, imlib)
-    elif nproc > 1:
-        res = pool_map(nproc, _shift_dft, array_rec, array, iterable(range(1, n_frames)), upsample_factor, interpolation, imlib)
+            y[i], x[i], array_rec[i] = _shift_dft(array_rec, array, i,
+                                                  upsample_factor, interpolation,
+                                                  imlib)
+    elif nproc > 1: 
+        res = pool_map(nproc, _shift_dft, array_rec, array,
+                       iterable(range(1, n_frames)),
+                       upsample_factor, interpolation, imlib)
         res = np.array(res)
         
         y[1:] = res[:,0]

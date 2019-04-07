@@ -22,15 +22,18 @@ class ScatteredLightDisk(object):
     """
     
     def __init__(self, nx=200, ny=200, distance=50., itilt=60., omega=0.,
-                 pxInArcsec=0.01225, pa=0., flux_max=1.,
+                 pxInArcsec=0.01225, pa=0., flux_max=None,
                  density_dico={'name': '2PowerLaws', 'ain':5, 'aout':-5,
                                'a':40, 'e':0, 'ksi0':1., 'gamma':2., 'beta':1.},
                  spf_dico={'name':'HG', 'g':0., 'polar':False}, xdo=0., ydo=0.):
         """
-        Constructor of the Scattered_light_disk object.
+        Constructor of the Scattered_light_disk object, taking in input the 
+        geometric parameters of the disk, the radial density distribution 
+        and the scattering phase function.
         So far, only one radial distribution is implemented: a smoothed
-        2-power-law distribution.
-        The star is assumed to be centered at the frame center by defined in
+        2-power-law distribution, but more complex radial profiles can be implemented
+        on demand.
+        The star is assumed to be centered at the frame center as defined in
         the vip_hci.var.frame_center function (geometric center of the image,
         e.g. either in the middle of the central pixel for odd-size images or 
         in between 4 pixel for even-size images).
@@ -54,7 +57,8 @@ class ScatteredLightDisk(object):
         pa : float
             position angle of the disc in degrees (default 0 degrees, e.g. North)
         flux_max : float
-            the max flux of the disk in ADU
+            the max flux of the disk in ADU. By default None, meaning that
+            the disk flux is not normalized to any value.
         density_dico : dict
             Parameters describing the dust density distribution function 
             to be implemented. By default, it uses a two-power law dust
@@ -235,7 +239,8 @@ class ScatteredLightDisk(object):
         print('Position angle of the disc: {0:.2f} degrees'.format(self.pa))
         print('Inclination {0:.2f} degrees'.format(self.itilt))
         print('Argument of pericenter {0:.2f} degrees'.format(self.omega))
-        print('Maximum flux of the disk {0:.2f}'.format(self.flux_max))
+        if self.flux_max is not None:
+            print('Maximum flux of the disk {0:.2f}'.format(self.flux_max))
         self.dust_density.print_info()
         self.phase_function.print_info()
         
@@ -325,7 +330,8 @@ class ScatteredLightDisk(object):
         for il in range(1,nbSlices):
             self.scattered_light_map += (ll[il]-ll[il-1]) * (limage[il-1,:,:] +
                                                              limage[il,:,:])
-        self.scattered_light_map *= (self.flux_max/np.nanmax(self.scattered_light_map))
+        if self.flux_max is not None:
+            self.scattered_light_map *= (self.flux_max/np.nanmax(self.scattered_light_map))
         return self.scattered_light_map
 
 

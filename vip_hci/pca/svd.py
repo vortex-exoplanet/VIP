@@ -280,7 +280,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
                      cevr=0.9, max_evs=None, data_ref=None, debug=False,
                      collapse=False):
     """ Getting ``ncomp`` eigenvectors. Choosing the size of the PCA truncation
-    when ``ncomp`` is set to ``auto``.
+    when ``ncomp`` is set to ``auto``. Used in ``pca_annular`` and ``llsg``.
     """
     no_dataref = False
     if data_ref is None:
@@ -297,7 +297,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
         ncomp = 0
         V_big = svd_wrapper(data_ref, svd_mode, max_evs, False, False)
 
-        if mode=='noise':
+        if mode == 'noise':
             if not collapse:
                 data_ref_sc = matrix_scaling(data_ref, 'temp-mean')
                 data_sc = matrix_scaling(data, 'temp-mean')
@@ -330,11 +330,11 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
                 # print '{} {:.4f} {:.4f}'.format(ncomp, curr_noise, px_noise_decay)
             V = V_big[:ncomp]
 
-        elif mode=='cevr':
+        elif mode == 'cevr':
             data_sc = matrix_scaling(data, 'temp-mean')
             _, S, _ = svd_wrapper(data_sc, svd_mode, min(data_sc.shape[0],
                                                          data_sc.shape[1]),
-                                  False, False, usv=True)
+                                  False, False, full_output=True)
             exp_var = (S ** 2) / (S.shape[0] - 1)
             full_var = np.sum(exp_var)
             # % of variance explained by each PC
@@ -352,56 +352,6 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
         V = svd_wrapper(data_ref, svd_mode, ncomp, debug=False, verbose=False)
 
     return V
-
-
-def _get_cumexpvar(cube, expvar_mode, inrad, outrad, size_patch, k_list=None,
-                   verbose=True):
-    """ Calculated the cumulative explained variance ratio for the SVD of a
-    cube (either full frames or a single annulus could be used).
-
-    # TODO : Documentation
-    """
-    n_frames = cube.shape[0]
-    ann_width = outrad - inrad
-    cent_ann = inrad + int(np.round(ann_width / 2.))
-    ann_width += size_patch + 2
-
-    if expvar_mode == 'annular':
-        matrix_svd = prepare_matrix(cube, 'temp-mean', None, mode=expvar_mode,
-                                    annulus_radius=cent_ann,
-                                    annulus_width=ann_width, verbose=False)[0]
-        U, S, V = svd_wrapper(matrix_svd, 'lapack', min(matrix_svd.shape[0],
-                                                        matrix_svd.shape[1]),
-                              False, False, True)
-    elif expvar_mode == 'fullfr':
-        matrix_svd = prepare_matrix(cube, 'temp-mean', None, mode=expvar_mode,
-                                    verbose=False)
-        U, S, V = svd_wrapper(matrix_svd, 'lapack', n_frames, False, False,
-                              True)
-
-    exp_var = (S ** 2) / (S.shape[0] - 1)
-    full_var = np.sum(exp_var)
-    # % of variance explained by each PC
-    explained_variance_ratio = exp_var / full_var
-    ratio_cumsum = np.cumsum(explained_variance_ratio)
-
-    if k_list is not None:
-        ratio_cumsum_klist = []
-        for k in k_list:
-            ratio_cumsum_klist.append(ratio_cumsum[k - 1])
-
-        if verbose:
-            print("SVD on input matrix (annulus from cube)")
-            print("  Number of PCs :")
-            print("  ", k_list)
-            print("  Cum. explained variance ratios :")
-            print("  ", ", ".join("{:.2f}".format(i) for i in
-                                  ratio_cumsum_klist))
-            print("")
-    else:
-        ratio_cumsum_klist = ratio_cumsum
-
-    return ratio_cumsum, ratio_cumsum_klist
 
 
 def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',

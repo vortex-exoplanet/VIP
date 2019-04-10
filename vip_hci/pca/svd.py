@@ -4,26 +4,23 @@
 Module with functions for computing SVDs.
 """
 
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['svd_wrapper',
-           'randomized_svd_gpu',
-           'get_eigenvectors']
+__all__ = ['SVDecomposer']
 
 import warnings
 try:
     import cupy
     no_cupy = False
 except ImportError:
-    msg = "Cupy not found. Have a GPU? Consider setting up a CUDA environment "
-    msg += "and installing cupy >= 2.0.0"
+    msg = "Cupy not found. Do you have a GPU? Consider setting up a CUDA "
+    msg += "environment and installing cupy >= 2.0.0"
     warnings.warn(msg, ImportWarning)
     no_cupy = True
 try:
     import torch
     no_torch = False
 except ImportError:
-    msg = "Pytorch not found. Have a GPU? Consider setting up a CUDA "
+    msg = "Pytorch not found. Do you have a GPU? Consider setting up a CUDA "
     msg += "environment and installing pytorch"
     warnings.warn(msg, ImportWarning)
     no_torch = True
@@ -36,10 +33,177 @@ from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import mean_absolute_error as MAE
 from sklearn.utils import check_random_state
-from ..var import matrix_scaling, prepare_matrix
+from pandas import DataFrame
+from ..var import matrix_scaling, prepare_matrix, matrix_scaling
+from ..preproc import check_scal_vector, cube_crop_frames
+from ..preproc import cube_rescaling_wavelengths as scwave
+from ..conf.utils_conf import vip_figsize
 
 
-def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
+class SVDecomposer:
+    """
+
+    Notes
+    -----
+    For info on CEVR search: # Get variance explained by singular values in
+    https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/decomposition/pca.py
+    """
+    def __init__(self, data, mode='fullfr', inrad=None, outrad=None,
+                 svd_mode='lapack', scaling='temp-standard', wavelengths=None,
+                 verbose=True):
+        """
+
+
+        Parameters
+        ----------
+        cube : numpy ndarray
+
+        """
+        self.data = data
+        self.mode = mode
+        self.svd_mode = svd_mode
+        self.inrad = inrad
+        self.outrad = outrad
+        self.scaling = scaling
+        self.wavelengths = wavelengths
+        self.verbose = verbose
+
+        if self.mode == 'annular':
+            if inrad is None:
+                raise ValueError("`inrad` must be a positive integer")
+            if outrad is None:
+                raise ValueError("`outrad` must be a positive integer")
+
+    def generate_matrix(self):
+        """
+        """
+        if self.data.ndim == 2:
+            print("`data` is already a 2d array")
+            self.matrix = matrix_scaling(self.data, self.scaling)
+
+        elif self.data.ndim in [3, 4]:
+            if self.data.ndim == 3:
+                cube_ = self.data
+
+            elif self.data.ndim == 4:
+                if self.wavelengths is None:
+                    raise ValueError("`wavelengths` must be provided when "
+                                     "`data` is a 4D array")
+                z, n_frames, y_in, x_in = self.data.shape = self.data.shape
+                scale_list = check_scal_vector(self.wavelengths)
+                big_cube = []
+                # Rescaling the spectral channels to align the speckles
+                for i in range(n_frames):
+                    cube_resc = scwave(self.data[:, i, :, :],
+                                       self.wavelengths)[0]
+                    cube_resc = cube_crop_frames(cube_resc, size=y_in,
+                                                 verbose=False)
+                    big_cube.append(cube_resc)
+                big_cube = np.array(big_cube)
+                cube_ = big_cube.reshape(z * n_frames, y_in, x_in)
+
+            self.ann_width = int(np.ceil(self.outrad - self.inrad))
+            self.cent_ann = self.inrad + int(np.round(self.ann_width / 2.))
+
+            result = prepare_matrix(cube_, self.scaling, mode=self.mode,
+                                    annulus_radius=self.cent_ann,
+                                    annulus_width=self.ann_width,
+                                    verbose=self.verbose)
+            if self.mode == 'annular':
+                self.matrix = result[0]
+                pxind = result[1]
+                self.yy, self.xx = pxind  # pixel coords in the annulus
+            elif self.mode == 'fullfr':
+                self.matrix = result
+
+    def run(self):
+        """
+        Decompose the input data.
+        """
+        if not hasattr(self, 'matrix'):
+            self.generate_matrix()
+
+        max_pcs = min(self.matrix.shape[0], self.matrix.shape[1])
+
+        results = svd_wrapper(self.matrix, self.svd_mode, max_pcs, debug=False,
+                              verbose=self.verbose, full_output=True)
+        if len(results) == 3:
+            self.u, self.s, self.v = results
+        elif len(results) == 2:
+            self.s, self.v = results
+
+
+    def get_cevr(self, ncomp_list=None, plot=True, plot_save=False, plot_dpi=100,
+                 plot_truncation=None):
+        """
+        Calculate the cumulative explained variance ratio for the SVD of a
+        cube/matrix (either full frames or a single annulus could be used).
+        """
+        if not hasattr(self, 'v'):
+            self.run()
+
+        self.ncomp_list = ncomp_list
+        exp_var = (self.s ** 2) / (self.s.shape[0] - 1)
+        full_var = np.sum(exp_var)
+        # % of variance explained by each PC
+        self.explained_variance_ratio = exp_var / full_var
+        self.cevr = np.cumsum(self.explained_variance_ratio)
+
+        df_allks = DataFrame({'ncomp': range(1, self.s.shape[0] + 1),
+                              'expvar_ratio': self.explained_variance_ratio,
+                              'cevr': self.cevr})
+        self.table_cevr = df_allks
+
+        if plot:
+            lw = 2;
+            alpha = 0.4
+            fig = plt.figure(figsize=vip_figsize, dpi=plot_dpi)
+            fig.subplots_adjust(wspace=0.4)
+            ax1 = plt.subplot2grid((1, 3), (0, 0), colspan=2)
+            ax1.step(range(self.explained_variance_ratio.shape[0]),
+                     self.explained_variance_ratio, alpha=alpha, where='mid',
+                     label='Individual EVR', lw=lw)
+            ax1.plot(self.cevr, '.-', alpha=alpha,
+                     label='Cumulative EVR', lw=lw)
+            ax1.legend(loc='best', frameon=False, fontsize='medium')
+            ax1.set_ylabel('Explained variance ratio (EVR)')
+            ax1.set_xlabel('Principal components')
+            ax1.grid(linestyle='solid', alpha=0.2)
+            ax1.set_xlim(-10, self.explained_variance_ratio.shape[0] + 10)
+            ax1.set_ylim(0, 1)
+
+            if plot_truncation is not None:
+                ax2 = plt.subplot2grid((1, 3), (0, 2), colspan=1)
+                ax2.step(range(plot_truncation),
+                         self.explained_variance_ratio[:plot_truncation],
+                         alpha=alpha, where='mid', lw=lw)
+                ax2.plot(self.cevr[:plot_truncation], '.-', alpha=alpha, lw=lw)
+                ax2.set_xlabel('Principal components')
+                ax2.grid(linestyle='solid', alpha=0.2)
+                ax2.set_xlim(-2, plot_truncation + 2)
+                ax2.set_ylim(0, 1)
+
+            if plot_save:
+                plt.savefig('figure.pdf', dpi=300, bbox_inches='tight')
+
+        if self.ncomp_list is not None:
+            cevr_klist = []
+            expvar_ratio_klist = []
+            for k in self.ncomp_list:
+                cevr_klist.append(self.cevr[k - 1])
+                expvar_ratio_klist.append(self.explained_variance_ratio[k - 1])
+
+            df_klist = DataFrame({'ncomp': self.ncomp_list,
+                                  'exp_var_ratio': expvar_ratio_klist,
+                                  'cevr': cevr_klist})
+            self.cevr_ncomp = cevr_klist
+            self.table_cevr_ncomp = df_klist
+            return df_klist
+        else:
+            return df_allks
+
+
+def svd_wrapper(matrix, mode, ncomp, debug, verbose, full_output=False,
                 random_state=None, to_numpy=True):
     """ Wrapper for different SVD libraries (CPU and GPU). 
       
@@ -69,13 +233,12 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
     ncomp : int
         Number of singular vectors to be obtained. In the cases when the full
         SVD is computed (LAPACK, ARPACK, EIGEN, CUPY), the matrix of singular 
-        vectors is truncated. 
-    debug : bool
-        If True the explained variance ratio is computed and displayed.
+        vectors is truncated.
     verbose: bool
         If True intermediate information is printed out.
-    usv : bool optional
-        If True the 3 terms of the SVD factorization are returned.
+    full_output : bool optional
+        If True the 3 terms of the SVD factorization are returned. If ``mode``
+        is eigen then only S and V are returned.
     random_state : int, RandomState instance or None, optional
         If int, random_state is the seed used by the random number generator.
         If RandomState instance, random_state is the random number generator.
@@ -88,9 +251,10 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
     Returns
     -------
     V : array_like
-        The right singular vectors of the input matrix. If ``usv`` is True it
-        returns the left and right singular vectors and the singular values of
-        the input matrix.
+        The right singular vectors of the input matrix. If ``full_output`` is
+        True it returns the left and right singular vectors and the singular
+        values of the input matrix. If ``mode`` is set to eigen then only S and
+        V are returned.
     
     References
     ----------
@@ -117,83 +281,8 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         http://pytorch.org/docs/master/torch.html#torch.eig
 
     """
-
-    def reconstruction(ncomp, U, S, V, var=1):
-        if mode == 'lapack':
-            rec_matrix = np.dot(U[:, :ncomp],
-                                np.dot(np.diag(S[:ncomp]), V[:ncomp]))
-            rec_matrix = rec_matrix.T
-            print('  Matrix reconstruction with {} PCs:'.format(ncomp))
-            print('  Mean Absolute Error =', MAE(matrix, rec_matrix))
-            print('  Mean Squared Error =', MSE(matrix, rec_matrix))
-
-            # see https://github.com/scikit-learn/scikit-learn/blob/c3980bcbabd9d2527548820581725df2904e4a0d/sklearn/decomposition/pca.py
-            exp_var = (S ** 2) / (S.shape[0] - 1)
-            full_var = np.sum(exp_var)
-            explained_variance_ratio = exp_var / full_var   # % of variance explained by each PC
-            ratio_cumsum = np.cumsum(explained_variance_ratio)
-        elif mode == 'eigen':
-            exp_var = (S ** 2) / (S.shape[0] - 1)
-            full_var = np.sum(exp_var)
-            explained_variance_ratio = exp_var / full_var   # % of variance explained by each PC
-            ratio_cumsum = np.cumsum(explained_variance_ratio)
-        else:
-            rec_matrix = np.dot(U, np.dot(np.diag(S), V))
-            print('  Matrix reconstruction MAE =', MAE(matrix, rec_matrix))
-            exp_var = (S ** 2) / (S.shape[0] - 1)
-            full_var = np.var(matrix, axis=0).sum()
-            explained_variance_ratio = exp_var / full_var   # % of variance explained by each PC
-            if var == 1:
-                pass
-            else:
-                explained_variance_ratio = explained_variance_ratio[::-1]
-            ratio_cumsum = np.cumsum(explained_variance_ratio)
-            msg = '  This info makes sense when the matrix is mean centered '
-            msg += '(temp-mean scaling)'
-            print(msg)
-
-        lw = 2; alpha = 0.4
-        fig = plt.figure(figsize=vip_figsize)
-        fig.subplots_adjust(wspace=0.4)
-        ax1 = plt.subplot2grid((1, 3), (0, 0), colspan=2)
-        ax1.step(range(explained_variance_ratio.shape[0]),
-                 explained_variance_ratio, alpha=alpha, where='mid',
-                 label='Individual EVR', lw=lw)
-        ax1.plot(ratio_cumsum, '.-', alpha=alpha,
-                 label='Cumulative EVR', lw=lw)
-        ax1.legend(loc='best', frameon=False, fontsize='medium')
-        ax1.set_ylabel('Explained variance ratio (EVR)')
-        ax1.set_xlabel('Principal components')
-        ax1.grid(linestyle='solid', alpha=0.2)
-        ax1.set_xlim(-10, explained_variance_ratio.shape[0] + 10)
-        ax1.set_ylim(0, 1)
-
-        trunc = 20
-        ax2 = plt.subplot2grid((1, 3), (0, 2), colspan=1)
-        # plt.setp(ax2.get_yticklabels(), visible=False)
-        ax2.step(range(trunc), explained_variance_ratio[:trunc], alpha=alpha,
-                 where='mid', lw=lw)
-        ax2.plot(ratio_cumsum[:trunc], '.-', alpha=alpha, lw=lw)
-        ax2.set_xlabel('Principal components')
-        ax2.grid(linestyle='solid', alpha=0.2)
-        ax2.set_xlim(-2, trunc + 2)
-        ax2.set_ylim(0, 1)
-
-        msg = '  Cumulative explained variance ratio for {} PCs = {:.5f}'
-        # plt.savefig('figure.pdf', dpi=300, bbox_inches='tight')
-        print(msg.format(ncomp, ratio_cumsum[ncomp - 1]))
-
-    # --------------------------------------------------------------------------
-
     if matrix.ndim != 2:
         raise TypeError('Input matrix is not a 2d array')
-
-    if usv:
-        if mode not in ('lapack', 'arpack', 'randsvd', 'cupy', 'randcupy',
-                        'pytorch', 'randpytorch'):
-            msg = "Returning USV is supported with modes lapack, arpack, "
-            msg += "randsvd, cupy, randcupy, pytorch or randpytorch"
-            raise ValueError(msg)
 
     if ncomp > min(matrix.shape[0], matrix.shape[1]):
         msg = '{} PCs cannot be obtained from a matrix with size [{},{}].'
@@ -202,27 +291,24 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
 
     if mode == 'eigen':
         # building C as np.dot(matrix.T,matrix) is slower and takes more memory
-        C = np.dot(matrix, matrix.T)        # covariance matrix
-        e, EV = linalg.eigh(C)              # EVals and EVs
-        pc = np.dot(EV.T, matrix)           # PCs using a compact trick when cov is MM'
-        V = pc[::-1]                        # reverse since we need the last EVs
-        S = np.sqrt(np.abs(e))              # SVals = sqrt(EVals)
-        S = S[::-1]                         # reverse since EVals go in increasing order
-        if debug:
-            reconstruction(ncomp, None, S, None)
+        C = np.dot(matrix, matrix.T)    # covariance matrix
+        e, EV = linalg.eigh(C)          # EVals and EVs
+        pc = np.dot(EV.T, matrix)       # PCs using a compact trick when cov is MM'
+        V = pc[::-1]                    # reverse since we need the last EVs
+        S = np.sqrt(np.abs(e))          # SVals = sqrt(EVals)
+        S = S[::-1]                     # reverse since EVals go in increasing order
         for i in range(V.shape[1]):
-            V[:, i] /= S                    # scaling EVs by the square root of EVals
+            V[:, i] /= S    # scaling EVs by the square root of EVals
         V = V[:ncomp]
         if verbose:
             print('Done PCA with numpy linalg eigh functions')
 
     elif mode == 'lapack':
-        # n_frames is usually smaller than n_pixels. In this setting taking the SVD of M'
-        # and keeping the left (transposed) SVs is faster than taking the SVD of M (right SVs)
+        # n_frames is usually smaller than n_pixels. In this setting taking
+        # the SVD of M' and keeping the left (transposed) SVs is faster than
+        # taking the SVD of M (right SVs)
         U, S, V = linalg.svd(matrix.T, full_matrices=False)
-        if debug:
-            reconstruction(ncomp, U, S, V)
-        V = V[:ncomp]                       # we cut projection matrix according to the # of PCs
+        V = V[:ncomp]       # we cut projection matrix according to the # of PCs
         U = U[:, :ncomp]
         S = S[:ncomp]
         if verbose:
@@ -230,16 +316,12 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
 
     elif mode == 'arpack':
         U, S, V = svds(matrix, k=ncomp)
-        if debug:
-            reconstruction(ncomp, U, S, V, -1)
         if verbose:
             print('Done SVD/PCA with scipy sparse SVD (ARPACK)')
 
     elif mode == 'randsvd':
         U, S, V = randomized_svd(matrix, n_components=ncomp, n_iter=2,
                                  transpose='auto', random_state=random_state)
-        if debug:
-            reconstruction(ncomp, U, S, V)
         if verbose:
             print('Done SVD/PCA with randomized SVD')
 
@@ -253,7 +335,7 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         V = vh_gpu[:ncomp]
         if to_numpy:
             V = cupy.asnumpy(V)
-        if usv:
+        if full_output:
             S = s_gpu[:ncomp]
             if to_numpy:
                 S = cupy.asnumpy(S)
@@ -271,8 +353,6 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             V = cupy.asnumpy(V)
             S = cupy.asnumpy(S)
             U = cupy.asnumpy(U)
-        if debug:
-            reconstruction(ncomp, U, S, V)
         if verbose:
             print('Done randomized SVD/PCA with cupy (GPU)')
 
@@ -280,16 +360,14 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         if no_cupy:
             raise RuntimeError('Cupy is not installed')
         a_gpu = cupy.array(matrix)
-        a_gpu = cupy.asarray(a_gpu)         # move the data to the current device
-        C = cupy.dot(a_gpu, a_gpu.T)        # covariance matrix
-        e, EV = cupy.linalg.eigh(C)         # eigenvalues and eigenvectors
-        pc = cupy.dot(EV.T, a_gpu)          # PCs using a compact trick when cov is MM'
-        V = pc[::-1]                        # reverse since last eigenvectors are the ones we want
-        S = cupy.sqrt(e)[::-1]              # reverse since eigenvalues are in increasing order
-        if debug:
-            reconstruction(ncomp, None, S, None)
+        a_gpu = cupy.asarray(a_gpu)     # move the data to the current device
+        C = cupy.dot(a_gpu, a_gpu.T)    # covariance matrix
+        e, EV = cupy.linalg.eigh(C)     # eigenvalues and eigenvectors
+        pc = cupy.dot(EV.T, a_gpu)      # using a compact trick when cov is MM'
+        V = pc[::-1]                    # reverse to get last eigenvectors
+        S = cupy.sqrt(e)[::-1]          # reverse since EVals go in increasing order
         for i in range(V.shape[1]):
-            V[:, i] /= S                    # scaling by the square root of eigenvalues
+            V[:, i] /= S                # scaling by the square root of eigvals
         V = V[:ncomp]
         if to_numpy:
             V = cupy.asnumpy(V)
@@ -319,8 +397,6 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
         e, EV = torch.eig(C, eigenvectors=True)
         V = torch.mm(torch.transpose(EV, 0, 1), a_gpu)
         S = torch.sqrt(e[:, 0])
-        if debug:
-            reconstruction(ncomp, None, S, None)
         for i in range(V.shape[1]):
             V[:, i] /= S
         V = V[:ncomp]
@@ -337,15 +413,13 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
             V = np.array(V)
             S = np.array(S)
             U = np.array(U)
-        if debug:
-            reconstruction(ncomp, U, S, V)
         if verbose:
             print('Done randomized SVD/PCA with randomized pytorch (GPU)')
 
     else:
-        raise ValueError('The SVD mode is not available')
+        raise ValueError('The SVD `mode` is not recognized')
 
-    if usv:
+    if full_output:
         if mode == 'lapack':
             return V.T, S, U.T
         elif mode == 'pytorch':
@@ -353,6 +427,8 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, usv=False,
                 return V.T, S, U.T
             else:
                 return torch.transpose(V, 0, 1), S, torch.transpose(U, 0, 1)
+        elif mode in ('eigen', 'eigencupy', 'eigenpytorch'):
+            return S, V
         else:
             return U, S, V
     else:
@@ -368,7 +444,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
                      cevr=0.9, max_evs=None, data_ref=None, debug=False,
                      collapse=False):
     """ Getting ``ncomp`` eigenvectors. Choosing the size of the PCA truncation
-    when ``ncomp`` is set to ``auto``.
+    when ``ncomp`` is set to ``auto``. Used in ``pca_annular`` and ``llsg``.
     """
     no_dataref = False
     if data_ref is None:
@@ -385,7 +461,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
         ncomp = 0
         V_big = svd_wrapper(data_ref, svd_mode, max_evs, False, False)
 
-        if mode=='noise':
+        if mode == 'noise':
             if not collapse:
                 data_ref_sc = matrix_scaling(data_ref, 'temp-mean')
                 data_sc = matrix_scaling(data, 'temp-mean')
@@ -418,11 +494,11 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
                 # print '{} {:.4f} {:.4f}'.format(ncomp, curr_noise, px_noise_decay)
             V = V_big[:ncomp]
 
-        elif mode=='cevr':
+        elif mode == 'cevr':
             data_sc = matrix_scaling(data, 'temp-mean')
             _, S, _ = svd_wrapper(data_sc, svd_mode, min(data_sc.shape[0],
                                                          data_sc.shape[1]),
-                                  False, False, usv=True)
+                                  False, False, full_output=True)
             exp_var = (S ** 2) / (S.shape[0] - 1)
             full_var = np.sum(exp_var)
             # % of variance explained by each PC
@@ -440,56 +516,6 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
         V = svd_wrapper(data_ref, svd_mode, ncomp, debug=False, verbose=False)
 
     return V
-
-
-def _get_cumexpvar(cube, expvar_mode, inrad, outrad, size_patch, k_list=None,
-                   verbose=True):
-    """ Calculated the cumulative explained variance ratio for the SVD of a
-    cube (either full frames or a single annulus could be used).
-
-    # TODO : Documentation
-    """
-    n_frames = cube.shape[0]
-    ann_width = outrad - inrad
-    cent_ann = inrad + int(np.round(ann_width / 2.))
-    ann_width += size_patch + 2
-
-    if expvar_mode == 'annular':
-        matrix_svd = prepare_matrix(cube, 'temp-mean', None, mode=expvar_mode,
-                                    annulus_radius=cent_ann,
-                                    annulus_width=ann_width, verbose=False)[0]
-        U, S, V = svd_wrapper(matrix_svd, 'lapack', min(matrix_svd.shape[0],
-                                                        matrix_svd.shape[1]),
-                              False, False, True)
-    elif expvar_mode == 'fullfr':
-        matrix_svd = prepare_matrix(cube, 'temp-mean', None, mode=expvar_mode,
-                                    verbose=False)
-        U, S, V = svd_wrapper(matrix_svd, 'lapack', n_frames, False, False,
-                              True)
-
-    exp_var = (S ** 2) / (S.shape[0] - 1)
-    full_var = np.sum(exp_var)
-    # % of variance explained by each PC
-    explained_variance_ratio = exp_var / full_var
-    ratio_cumsum = np.cumsum(explained_variance_ratio)
-
-    if k_list is not None:
-        ratio_cumsum_klist = []
-        for k in k_list:
-            ratio_cumsum_klist.append(ratio_cumsum[k - 1])
-
-        if verbose:
-            print("SVD on input matrix (annulus from cube)")
-            print("  Number of PCs :")
-            print("  ", k_list)
-            print("  Cum. explained variance ratios :")
-            print("  ", ", ".join("{:.2f}".format(i) for i in
-                                  ratio_cumsum_klist))
-            print("")
-    else:
-        ratio_cumsum_klist = ratio_cumsum
-
-    return ratio_cumsum, ratio_cumsum_klist
 
 
 def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',

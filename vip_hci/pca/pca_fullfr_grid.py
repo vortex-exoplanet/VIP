@@ -5,8 +5,6 @@ Full-frame PCA S/N optimization. It computes a grid search by truncating the
 projection matrix.
 """
 
-
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['pca_optimize_snr']
 
@@ -167,8 +165,9 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
         
         if fmerit == 'max':
             yy, xx = draw.circle(y, x, fwhm/2.)
-            res = [metrics.snr_ss(frame, (x_, y_), fwhm, plot=False, verbose=False,
-                                  full_output=True) for y_, x_ in zip(yy, xx)]
+            res = [metrics.snr_ss(frame, (x_, y_), fwhm, plot=False,
+                                  verbose=False, full_output=True)
+                   for y_, x_ in zip(yy, xx)]
             snr_pixels = np.array(res)[:,-1]
             fluxes = np.array(res)[:,2]
             argm = np.argmax(snr_pixels)
@@ -259,7 +258,7 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
         else: 
             return argm, pclist, snrlist, fluxlist
     
-    #---------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     if cube.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
     
@@ -282,10 +281,9 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
             raise TypeError(msg)
     else:
         pcmin = 1
-        pcmax = 200
-        pcmax = min(pcmax, n)
+        pcmax = n - 1
     
-    # Getting `pcmax` principal components a single time
+    # Getting `pcmax` principal components once
     if mode == 'fullfr':
         matrix = prepare_matrix(cube, scaling, mask_center_px, verbose=False)
         if cube_ref is not None:
@@ -303,8 +301,9 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
                                         verbose=False)
         if cube_ref is not None:
             ref_lib, _ = prepare_matrix(cube_ref, scaling, mask_center_px,
-                                     mode='annular', annulus_radius=ann_radius,
-                                     annulus_width=annulus_width, verbose=False)
+                                        'annular', annulus_radius=ann_radius,
+                                        annulus_width=annulus_width,
+                                        verbose=False)
         else:
             ref_lib = matrix
 
@@ -426,7 +425,7 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
             ax2.plot(np.array(dfrsrd.loc[:,0]), np.array(dfrsrd.loc[:,2]), 'o', 
                      alpha=alpha/2, color='green')
             ax2.set_xlim(np.array(pclist).min(), np.array(pclist).max())
-            #ax2.set_ylim(0, np.array(fluxlist).max()+1)
+            # ax2.set_ylim(0, np.array(fluxlist).max()+1)
             ax2.set_xlabel('Principal components')
             ax2.set_ylabel('Flux in FWHM aperture')
             ax2.minorticks_on()
@@ -457,4 +456,3 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
     else:
         return opt_npc
 
-    

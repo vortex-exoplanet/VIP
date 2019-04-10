@@ -11,7 +11,7 @@ from hciplot import plot_frames
 from scipy import stats
 from photutils import detect_sources
 from munch import Munch
-from ..pca.svd import _get_cumexpvar
+from ..pca.svd import SVDecomposer
 from ..var import frame_center, get_annulus_segments
 from ..conf import time_ini, timing, Progressbar
 from ..var import get_circle
@@ -90,9 +90,11 @@ class EvalRoc(object):
 
         # ===== number of PCs for PCA / rank for LLSG
         if cevr is not None:
-            ratio_cumsum, _ = _get_cumexpvar(self.dataset.cube, expvar_mode,
-                                             self.inrad, self.outrad,
-                                             patch_size, None, verbose=False)
+            svdecomp = SVDecomposer(self.dataset.cube, mode=expvar_mode,
+                                    inrad=self.inrad, outrad=self.outrad,
+                                    svd_mode='lapack', verbose=False)
+            svdecomp.get_cevr(ncomp_list=None)
+            ratio_cumsum = svdecomp.cevr
             self.optpcs = np.searchsorted(ratio_cumsum, cevr) + 1
             print("{}% of CEVR with {} PCs".format(cevr, self.optpcs))
 

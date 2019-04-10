@@ -4,26 +4,23 @@
 Module with functions for computing SVDs.
 """
 
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['svd_wrapper',
-           'randomized_svd_gpu',
-           'get_eigenvectors']
+__all__ = ['SVDecomposer']
 
 import warnings
 try:
     import cupy
     no_cupy = False
 except ImportError:
-    msg = "Cupy not found. Have a GPU? Consider setting up a CUDA environment "
-    msg += "and installing cupy >= 2.0.0"
+    msg = "Cupy not found. Do you have a GPU? Consider setting up a CUDA "
+    msg += "environment and installing cupy >= 2.0.0"
     warnings.warn(msg, ImportWarning)
     no_cupy = True
 try:
     import torch
     no_torch = False
 except ImportError:
-    msg = "Pytorch not found. Have a GPU? Consider setting up a CUDA "
+    msg = "Pytorch not found. Do you have a GPU? Consider setting up a CUDA "
     msg += "environment and installing pytorch"
     warnings.warn(msg, ImportWarning)
     no_torch = True
@@ -36,7 +33,174 @@ from sklearn.decomposition import randomized_svd
 from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import mean_absolute_error as MAE
 from sklearn.utils import check_random_state
-from ..var import matrix_scaling, prepare_matrix
+from pandas import DataFrame
+from ..var import matrix_scaling, prepare_matrix, matrix_scaling
+from ..preproc import check_scal_vector, cube_crop_frames
+from ..preproc import cube_rescaling_wavelengths as scwave
+from ..conf.utils_conf import vip_figsize
+
+
+class SVDecomposer:
+    """
+
+    Notes
+    -----
+    For info on CEVR search: # Get variance explained by singular values in
+    https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/decomposition/pca.py
+    """
+    def __init__(self, data, mode='fullfr', inrad=None, outrad=None,
+                 svd_mode='lapack', scaling='temp-standard', wavelengths=None,
+                 verbose=True):
+        """
+
+
+        Parameters
+        ----------
+        cube : numpy ndarray
+
+        """
+        self.data = data
+        self.mode = mode
+        self.svd_mode = svd_mode
+        self.inrad = inrad
+        self.outrad = outrad
+        self.scaling = scaling
+        self.wavelengths = wavelengths
+        self.verbose = verbose
+
+        if self.mode == 'annular':
+            if inrad is None:
+                raise ValueError("`inrad` must be a positive integer")
+            if outrad is None:
+                raise ValueError("`outrad` must be a positive integer")
+
+    def generate_matrix(self):
+        """
+        """
+        if self.data.ndim == 2:
+            print("`data` is already a 2d array")
+            self.matrix = matrix_scaling(self.data, self.scaling)
+
+        elif self.data.ndim in [3, 4]:
+            if self.data.ndim == 3:
+                cube_ = self.data
+
+            elif self.data.ndim == 4:
+                if self.wavelengths is None:
+                    raise ValueError("`wavelengths` must be provided when "
+                                     "`data` is a 4D array")
+                z, n_frames, y_in, x_in = self.data.shape = self.data.shape
+                scale_list = check_scal_vector(self.wavelengths)
+                big_cube = []
+                # Rescaling the spectral channels to align the speckles
+                for i in range(n_frames):
+                    cube_resc = scwave(self.data[:, i, :, :],
+                                       self.wavelengths)[0]
+                    cube_resc = cube_crop_frames(cube_resc, size=y_in,
+                                                 verbose=False)
+                    big_cube.append(cube_resc)
+                big_cube = np.array(big_cube)
+                cube_ = big_cube.reshape(z * n_frames, y_in, x_in)
+
+            self.ann_width = int(np.ceil(self.outrad - self.inrad))
+            self.cent_ann = self.inrad + int(np.round(self.ann_width / 2.))
+
+            result = prepare_matrix(cube_, self.scaling, mode=self.mode,
+                                    annulus_radius=self.cent_ann,
+                                    annulus_width=self.ann_width,
+                                    verbose=self.verbose)
+            if self.mode == 'annular':
+                self.matrix = result[0]
+                pxind = result[1]
+                self.yy, self.xx = pxind  # pixel coords in the annulus
+            elif self.mode == 'fullfr':
+                self.matrix = result
+
+    def run(self):
+        """
+        Decompose the input data.
+        """
+        if not hasattr(self, 'matrix'):
+            self.generate_matrix()
+
+        max_pcs = min(self.matrix.shape[0], self.matrix.shape[1])
+
+        results = svd_wrapper(self.matrix, self.svd_mode, max_pcs, debug=False,
+                              verbose=self.verbose, full_output=True)
+        if len(results) == 3:
+            self.u, self.s, self.v = results
+        elif len(results) == 2:
+            self.s, self.v = results
+
+
+    def get_cevr(self, ncomp_list=None, plot=True, plot_save=False, plot_dpi=100,
+                 plot_truncation=None):
+        """
+        Calculate the cumulative explained variance ratio for the SVD of a
+        cube/matrix (either full frames or a single annulus could be used).
+        """
+        if not hasattr(self, 'v'):
+            self.run()
+
+        self.ncomp_list = ncomp_list
+        exp_var = (self.s ** 2) / (self.s.shape[0] - 1)
+        full_var = np.sum(exp_var)
+        # % of variance explained by each PC
+        self.explained_variance_ratio = exp_var / full_var
+        self.cevr = np.cumsum(self.explained_variance_ratio)
+
+        df_allks = DataFrame({'ncomp': range(1, self.s.shape[0] + 1),
+                              'expvar_ratio': self.explained_variance_ratio,
+                              'cevr': self.cevr})
+        self.table_cevr = df_allks
+
+        if plot:
+            lw = 2;
+            alpha = 0.4
+            fig = plt.figure(figsize=vip_figsize, dpi=plot_dpi)
+            fig.subplots_adjust(wspace=0.4)
+            ax1 = plt.subplot2grid((1, 3), (0, 0), colspan=2)
+            ax1.step(range(self.explained_variance_ratio.shape[0]),
+                     self.explained_variance_ratio, alpha=alpha, where='mid',
+                     label='Individual EVR', lw=lw)
+            ax1.plot(self.cevr, '.-', alpha=alpha,
+                     label='Cumulative EVR', lw=lw)
+            ax1.legend(loc='best', frameon=False, fontsize='medium')
+            ax1.set_ylabel('Explained variance ratio (EVR)')
+            ax1.set_xlabel('Principal components')
+            ax1.grid(linestyle='solid', alpha=0.2)
+            ax1.set_xlim(-10, self.explained_variance_ratio.shape[0] + 10)
+            ax1.set_ylim(0, 1)
+
+            if plot_truncation is not None:
+                ax2 = plt.subplot2grid((1, 3), (0, 2), colspan=1)
+                ax2.step(range(plot_truncation),
+                         self.explained_variance_ratio[:plot_truncation],
+                         alpha=alpha, where='mid', lw=lw)
+                ax2.plot(self.cevr[:plot_truncation], '.-', alpha=alpha, lw=lw)
+                ax2.set_xlabel('Principal components')
+                ax2.grid(linestyle='solid', alpha=0.2)
+                ax2.set_xlim(-2, plot_truncation + 2)
+                ax2.set_ylim(0, 1)
+
+            if plot_save:
+                plt.savefig('figure.pdf', dpi=300, bbox_inches='tight')
+
+        if self.ncomp_list is not None:
+            cevr_klist = []
+            expvar_ratio_klist = []
+            for k in self.ncomp_list:
+                cevr_klist.append(self.cevr[k - 1])
+                expvar_ratio_klist.append(self.explained_variance_ratio[k - 1])
+
+            df_klist = DataFrame({'ncomp': self.ncomp_list,
+                                  'exp_var_ratio': expvar_ratio_klist,
+                                  'cevr': cevr_klist})
+            self.cevr_ncomp = cevr_klist
+            self.table_cevr_ncomp = df_klist
+            return df_klist
+        else:
+            return df_allks
 
 
 def svd_wrapper(matrix, mode, ncomp, debug, verbose, full_output=False,

@@ -31,5 +31,5 @@ htmlcov/
 .vscode/
 
 # scripts
-submit_pypi.sh
-update_sphinx.sh
+_pypi.sh
+_sphinx.sh

@@ -43,6 +43,7 @@ from ..conf.utils_conf import vip_figsize
 
 class SVDecomposer:
     """
+    Class for SVD decomposition of 2d, 3d or 4d HCI arrays.
 
     Notes
     -----
@@ -53,11 +54,74 @@ class SVDecomposer:
                  svd_mode='lapack', scaling='temp-standard', wavelengths=None,
                  verbose=True):
         """
-
-
         Parameters
         ----------
-        cube : numpy ndarray
+        data : numpy ndarray
+            Input array (2d, 3d or 4d).
+        mode : {'fullfr', 'annular'}, optional
+            Whether to use the whole frames or a single annulus.
+        inrad : None or int, optional
+            [mode='annular'] Inner radius.
+        outrad : None or int, optional
+            [mode='annular'] Outer radius.
+        svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
+            'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+            Switch for the SVD method/library to be used.
+
+            ``lapack``: uses the LAPACK linear algebra library through Numpy
+            and it is the most conventional way of computing the SVD
+            (deterministic result computed on CPU).
+
+            ``arpack``: uses the ARPACK Fortran libraries accessible through
+            Scipy (computation on CPU).
+
+            ``eigen``: computes the singular vectors through the
+            eigendecomposition of the covariance M.M' (computation on CPU).
+
+            ``randsvd``: uses the randomized_svd algorithm implemented in
+            Sklearn (computation on CPU).
+
+            ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+            the LAPACK version. `
+
+            `eigencupy``: offers the same method as with the ``eigen`` option
+            but on GPU (through Cupy).
+
+            ``randcupy``: is an adaptation of the randomized_svd algorithm,
+            where all the computations are done on a GPU (through Cupy). `
+
+            `pytorch``: uses the Pytorch library for GPU computation of the SVD.
+
+            ``eigenpytorch``: offers the same method as with the ``eigen``
+            option but on GPU (through Pytorch).
+
+            ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+            where all the linear algebra computations are done on a GPU
+            (through Pytorch).
+
+        scaling : {None, "temp-mean", spat-mean", "temp-standard",
+                   "spat-standard"}, None or str optional
+            Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+            function. If set to None, the input matrix is left untouched.
+            Otherwise:
+
+            ``temp-mean``: temporal px-wise mean is subtracted.
+
+            ``spat-mean``: spatial mean is subtracted.
+
+            ``temp-standard``: temporal mean centering plus scaling pixel values
+            to unit variance.
+
+            ``spat-standard``: spatial mean centering plus scaling pixel values
+            to unit variance.
+
+        wavelengths : numpy ndarray, optional
+            Wavelengths in case of a 4d HCI cube. These are used to compute
+            scaling factors for re-scaling the spectral channels and aligning
+            the speckles.
+
+        verbose : bool, optional
+            If True intermediate messages and timing are printed.
 
         """
         self.data = data
@@ -80,6 +144,9 @@ class SVDecomposer:
 
     def generate_matrix(self):
         """
+        Generate a matrix from the input ``data``. Pixel values in the matrix
+        are scaled. Depending on ``mode``, the matrix can come from an annulus
+        instead of the whole frames.
         """
         start_time = time_ini(False)
         if self.data.ndim == 2:
@@ -157,6 +224,29 @@ class SVDecomposer:
         """
         Calculate the cumulative explained variance ratio for the SVD of a
         cube/matrix (either full frames or a single annulus could be used).
+
+        Parameters
+        ----------
+        ncomp_list : None, list or tuple, optional
+            If provided the list is used to filter the vector of CEVR.
+        plot : bool, optional
+            If True, the CEVR is plotted.
+        plot_save : bool, optional
+            If True, the plot is saved as ./figure.pdf.
+        plot_dpi : int, optional
+            The DPI of the figure.
+        plot_truncation : None or int, optional
+            If provided, it created a second panel in the plot, focusing on the
+            CEVR curve up to ``plot_truncation`` components.
+
+        Returns
+        -------
+        df_allks : pandas dataframe
+            [ncomp_list is None] A table with the explained varaince ratio and
+            the CEVR for all ncomps.
+        df_klist : pandas dataframe
+            [ncomp_list is not None] A table with the ncomp_list, the explained
+            varaince ratio and the CEVR.
         """
         start_time = time_ini(False)
         if not hasattr(self, 'v'):
@@ -264,24 +354,40 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
     matrix : array_like, 2d
         2d input matrix.
     mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
-            'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
-        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK 
-        linear algebra library through Numpy and it is the most conventional way 
-        of computing the SVD (deterministic result computed on CPU). ``arpack`` 
-        uses the ARPACK Fortran libraries accessible through Scipy (computation
-        on CPU). ``eigen`` computes the singular vectors through the 
+        'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+        Switch for the SVD method/library to be used.
+
+        ``lapack``: uses the LAPACK linear algebra library through Numpy
+        and it is the most conventional way of computing the SVD
+        (deterministic result computed on CPU).
+
+        ``arpack``: uses the ARPACK Fortran libraries accessible through
+        Scipy (computation on CPU).
+
+        ``eigen``: computes the singular vectors through the
         eigendecomposition of the covariance M.M' (computation on CPU).
-        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn 
-        (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
-        of the SVD as in the LAPACK version. ``eigencupy`` offers the same 
-        method as with the ``eigen`` option but on GPU (through Cupy). 
-        ``randcupy`` is an adaptation f the randomized_svd algorithm, where all
-        the computations are done on a GPU (through Cupy). ``pytorch`` uses the
-        Pytorch library for GPU computation of the SVD. ``eigenpytorch`` offers
-        the same method as with the ``eigen`` option but on GPU (through
-        Pytorch). ``randpytorch`` is an adaptation of the randomized_svd
-        algorithm, where all the linear algebra computations are done on a GPU
+
+        ``randsvd``: uses the randomized_svd algorithm implemented in
+        Sklearn (computation on CPU).
+
+        ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+        the LAPACK version. `
+
+        `eigencupy``: offers the same method as with the ``eigen`` option
+        but on GPU (through Cupy).
+
+        ``randcupy``: is an adaptation of the randomized_svd algorithm,
+        where all the computations are done on a GPU (through Cupy). `
+
+        `pytorch``: uses the Pytorch library for GPU computation of the SVD.
+
+        ``eigenpytorch``: offers the same method as with the ``eigen``
+        option but on GPU (through Pytorch).
+
+        ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+        where all the linear algebra computations are done on a GPU
         (through Pytorch).
+
     ncomp : int
         Number of singular vectors to be obtained. In the cases when the full
         SVD is computed (LAPACK, ARPACK, EIGEN, CUPY), the matrix of singular 

@@ -344,7 +344,7 @@ def _patch_rlrps(array, array_ref, rank, low_rank_ref, low_rank_mode,
                     Lnew = np.dot(np.dot(L, PC.T), PC)
             else:
                 rank_i = min(rank, min(L.shape[0], L.shape[1]))
-                PC = svd_wrapper(L, svdlib, rank_i, False, False,
+                PC = svd_wrapper(L, svdlib, rank_i, False,
                                  random_state=random_state)
                 Lnew = np.dot(np.dot(L, PC.T), PC)
 

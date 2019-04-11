@@ -69,7 +69,7 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     else:
         data_svd = data
         
-    V = svd_wrapper(data_svd, svd_mode, ncomp, debug=False, verbose=False)
+    V = svd_wrapper(data_svd, svd_mode, ncomp, verbose=False)
         
     transformed = np.dot(data, V.T)
     reconstructed = np.dot(transformed, V)                           

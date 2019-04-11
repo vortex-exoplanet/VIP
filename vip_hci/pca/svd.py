@@ -203,7 +203,7 @@ class SVDecomposer:
             return df_allks
 
 
-def svd_wrapper(matrix, mode, ncomp, debug, verbose, full_output=False,
+def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
                 random_state=None, to_numpy=True):
     """ Wrapper for different SVD libraries (CPU and GPU). 
       
@@ -459,7 +459,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
 
     if ncomp == 'auto':
         ncomp = 0
-        V_big = svd_wrapper(data_ref, svd_mode, max_evs, False, False)
+        V_big = svd_wrapper(data_ref, svd_mode, max_evs, False)
 
         if mode == 'noise':
             if not collapse:
@@ -469,7 +469,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
                 data_ref_sc = matrix_scaling(data_ref, 'temp-standard')
                 data_sc = matrix_scaling(data, 'temp-standard')
 
-            V_sc = svd_wrapper(data_ref_sc, svd_mode, max_evs, False, False)
+            V_sc = svd_wrapper(data_ref_sc, svd_mode, max_evs, False)
 
             px_noise = []
             px_noise_decay = 1
@@ -498,7 +498,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
             data_sc = matrix_scaling(data, 'temp-mean')
             _, S, _ = svd_wrapper(data_sc, svd_mode, min(data_sc.shape[0],
                                                          data_sc.shape[1]),
-                                  False, False, full_output=True)
+                                  False, full_output=True)
             exp_var = (S ** 2) / (S.shape[0] - 1)
             full_var = np.sum(exp_var)
             # % of variance explained by each PC
@@ -513,7 +513,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
     else:
         # Performing SVD/PCA according to "svd_mode" flag
         ncomp = min(ncomp, min(data_ref.shape[0], data_ref.shape[1]))
-        V = svd_wrapper(data_ref, svd_mode, ncomp, debug=False, verbose=False)
+        V = svd_wrapper(data_ref, svd_mode, ncomp, verbose=False)
 
     return V
 

@@ -93,7 +93,7 @@ class EvalRoc(object):
             svdecomp = SVDecomposer(self.dataset.cube, mode=expvar_mode,
                                     inrad=self.inrad, outrad=self.outrad,
                                     svd_mode='lapack', verbose=False)
-            svdecomp.get_cevr(ncomp_list=None)
+            _ = svdecomp.get_cevr(ncomp_list=None)
             ratio_cumsum = svdecomp.cevr
             self.optpcs = np.searchsorted(ratio_cumsum, cevr) + 1
             print("{}% of CEVR with {} PCs".format(cevr, self.optpcs))

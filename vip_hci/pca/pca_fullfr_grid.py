@@ -310,7 +310,7 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
     else:
         raise RuntimeError('Wrong mode. Choose either fullfr or annular')
 
-    V = svd_wrapper(ref_lib, svd_mode, pcmax, False, verbose)
+    V = svd_wrapper(ref_lib, svd_mode, pcmax, verbose)
 
     # sequential grid
     if range_pcs is not None:

@@ -34,6 +34,7 @@ from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import mean_absolute_error as MAE
 from sklearn.utils import check_random_state
 from pandas import DataFrame
+from ..conf import timing, time_ini, sep, Progressbar
 from ..var import matrix_scaling, prepare_matrix, matrix_scaling
 from ..preproc import check_scal_vector, cube_crop_frames
 from ..preproc import cube_rescaling_wavelengths as scwave
@@ -74,9 +75,13 @@ class SVDecomposer:
             if outrad is None:
                 raise ValueError("`outrad` must be a positive integer")
 
+        if self.verbose:
+            print(sep)
+
     def generate_matrix(self):
         """
         """
+        start_time = time_ini(False)
         if self.data.ndim == 2:
             print("`data` is already a 2d array")
             self.matrix = matrix_scaling(self.data, self.scaling)
@@ -93,7 +98,10 @@ class SVDecomposer:
                 scale_list = check_scal_vector(self.wavelengths)
                 big_cube = []
                 # Rescaling the spectral channels to align the speckles
-                for i in range(n_frames):
+                if self.verbose:
+                    print('Rescaling the spectral channels to align the '
+                          'speckles')
+                for i in Progressbar(range(n_frames), verbose=self.verbose):
                     cube_resc = scwave(self.data[:, i, :, :],
                                        self.wavelengths)[0]
                     cube_resc = cube_crop_frames(cube_resc, size=y_in,
@@ -121,10 +129,14 @@ class SVDecomposer:
             elif self.mode == 'fullfr':
                 self.matrix = result
 
+        if self.verbose:
+            timing(start_time)
+
     def run(self):
         """
         Decompose the input data.
         """
+        start_time = time_ini(False)
         if not hasattr(self, 'matrix'):
             self.generate_matrix()
 
@@ -137,15 +149,21 @@ class SVDecomposer:
         elif len(results) == 2:
             self.s, self.v = results
 
+        if self.verbose:
+            timing(start_time)
 
-    def get_cevr(self, ncomp_list=None, plot=True, plot_save=False, plot_dpi=100,
+    def get_cevr(self, ncomp_list=None, plot=True, plot_save=False, plot_dpi=90,
                  plot_truncation=None):
         """
         Calculate the cumulative explained variance ratio for the SVD of a
         cube/matrix (either full frames or a single annulus could be used).
         """
+        start_time = time_ini(False)
         if not hasattr(self, 'v'):
             self.run()
+
+        if self.verbose:
+            print("Computing the cumulative explained variance ratios")
 
         self.ncomp_list = ncomp_list
         exp_var = (self.s ** 2) / (self.s.shape[0] - 1)
@@ -203,8 +221,12 @@ class SVDecomposer:
                                   'cevr': cevr_klist})
             self.cevr_ncomp = cevr_klist
             self.table_cevr_ncomp = df_klist
+            if self.verbose:
+                timing(start_time)
             return df_klist
         else:
+            if self.verbose:
+                timing(start_time)
             return df_allks
 
     def cevr_to_ncomp(self, cevr=0.9):

@@ -101,9 +101,14 @@ class SVDecomposer:
                     big_cube.append(cube_resc)
                 big_cube = np.array(big_cube)
                 cube_ = big_cube.reshape(z * n_frames, y_in, x_in)
+                self.cube4d_shape = cube_.shape
 
-            self.ann_width = int(np.ceil(self.outrad - self.inrad))
-            self.cent_ann = self.inrad + int(np.round(self.ann_width / 2.))
+            if self.mode == 'annular':
+                self.ann_width = int(np.ceil(self.outrad - self.inrad))
+                self.cent_ann = self.inrad + int(np.round(self.ann_width / 2.))
+            else:
+                self.cent_ann = None
+                self.ann_width = None
 
             result = prepare_matrix(cube_, self.scaling, mode=self.mode,
                                     annulus_radius=self.cent_ann,

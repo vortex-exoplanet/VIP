@@ -49,63 +49,99 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         Corresponding parallactic angle for each frame.
     cube_ref : array_like, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    scale_list :
+    scale_list : array_like, 1d, optional
         Scaling factors in case of IFS data (ADI+mSDI cube). Usually, the
         scaling factors are the central channel wavelength divided by the
         shortest wavelength in the cube (more thorough approaches can be used
         to get the scaling factors). This scaling factors are used to re-scale
         the spectral channels and align the speckles.
-    ncomp : int, optional
+    ncomp : int, float or tuple of int/None, optional
         How many PCs are used as a lower-dimensional subspace to project the
-        target frames. For an ADI cube, ``ncomp`` is the number of PCs extracted
-        from ``cube``. For the RDI case, when ``cube`` and ``cube_ref`` are
-        provided, ``ncomp`` is the number of PCs obtained from ``cube_ref``.
-        For an ADI+mSDI cube (e.g. SPHERE/IFS), if ``adimsdi`` is ``double``
-        then ``ncomp`` is the number of PCs obtained from each multi-spectral
-        frame (if ``ncomp`` is None then this stage will be skipped and the
-        spectral channels will be combined without subtraction). If ``adimsdi``
-        is ``single``, then ``ncomp`` is the number of PCs obtained from the
-        whole set of frames (n_channels * n_adiframes).
-    ncomp2 : int, optional
-        Only used for ADI+mSDI cubes, when ``adimsdi`` is set to ``double``.
-        ``ncomp2`` sets the number of PCs used in the second PCA stage (ADI
-        fashion, using the residuals of the first stage). If None then the
-        second PCA stage is skipped and the residuals are de-rotated and
-        combined.
+        target frames.
+
+        * ADI case: ``ncomp`` is the number of PCs extracted from ``cube``
+        itself. Optionally if ``ncomp`` is a float in the interval (0, 1] then
+        it corresponds to the desired CEVR, and the corresponding number of
+        components will be estimated.
+
+        * ADI+RDI case: when both ``cube`` and ``cube_ref`` are provided,
+        ``ncomp`` is the number of PCs obtained from ``cube_ref``.
+
+        * ADI+mSDI case and ``adimsdi="double"``: ``ncomp`` must be a tuple,
+        where the first value is the number of PCs obtained from each
+        multi-spectral frame (if None then this stage will be skipped and the
+        spectral channels will be combined without subtraction); the second
+        value sets the number of PCs used in the second PCA stage, ADI-like
+        using the residuals of the first stage (if None then the second PCA
+        stage is skipped and the residuals are de-rotated and combined).
+
+        * ADI+mSDI case and ``adimsdi="single"``: ``ncomp`` is the number of PCs
+        obtained from the whole set of frames (n_channels * n_adiframes).
+        Optionally if ``ncomp`` is a float in the interval (0, 1] then it
+        corresponds to the desired CEVR, and the corresponding number of
+        components will be estimated.
+
     svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
-                'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, optional
-        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK
-        linear algebra library through Numpy and it is the most conventional way
-        of computing the SVD (deterministic result computed on CPU). ``arpack``
-        uses the ARPACK Fortran libraries accessible through Scipy (computation
-        on CPU). ``eigen`` computes the singular vectors through the
+        'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+        Switch for the SVD method/library to be used.
+
+        ``lapack``: uses the LAPACK linear algebra library through Numpy
+        and it is the most conventional way of computing the SVD
+        (deterministic result computed on CPU).
+
+        ``arpack``: uses the ARPACK Fortran libraries accessible through
+        Scipy (computation on CPU).
+
+        ``eigen``: computes the singular vectors through the
         eigendecomposition of the covariance M.M' (computation on CPU).
-        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn
-        (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
-        of the SVD as in the LAPACK version. ``eigencupy`` offers the same
-        method as with the ``eigen`` option but on GPU (through Cupy).
-        ``randcupy`` is an adaptation of the randomized_svd algorithm, where all
-        the computations are done on a GPU (through Cupy). ``pytorch`` uses the
-        Pytorch library for GPU computation of the SVD. ``eigenpytorch`` offers
-        the same method as with the ``eigen`` option but on GPU (through
-        Pytorch). ``randpytorch`` is an adaptation of the randomized_svd
-        algorithm, where all the linear algebra computations are done on a GPU
+
+        ``randsvd``: uses the randomized_svd algorithm implemented in
+        Sklearn (computation on CPU).
+
+        ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+        the LAPACK version. `
+
+        `eigencupy``: offers the same method as with the ``eigen`` option
+        but on GPU (through Cupy).
+
+        ``randcupy``: is an adaptation of the randomized_svd algorithm,
+        where all the computations are done on a GPU (through Cupy). `
+
+        `pytorch``: uses the Pytorch library for GPU computation of the SVD.
+
+        ``eigenpytorch``: offers the same method as with the ``eigen``
+        option but on GPU (through Pytorch).
+
+        ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+        where all the linear algebra computations are done on a GPU
         (through Pytorch).
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done, with
-        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
-        temporal mean centering plus scaling to unit variance is done and with
-        "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.
-    adimsdi : {'double', 'single'}, str optional
-        In the case ``cube`` is a 4d array, ``adimsdi`` determines whether a
-        single or double pass PCA is going to be computed. In the ``single``
-        case, the multi-spectral frames are rescaled wrt the largest wavelength
-        to align the speckles and all the frames are processed with a single
-        PCA low-rank approximation. In the ``double`` case, a firt stage is run
-        on the rescaled spectral frames, and a second PCA frame is run on the
-        residuals in an ADI fashion.
+
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        ``temp-mean``: temporal px-wise mean is subtracted.
+
+        ``spat-mean``: spatial mean is subtracted.
+
+        ``temp-standard``: temporal mean centering plus scaling pixel values
+        to unit variance.
+
+        ``spat-standard``: spatial mean centering plus scaling pixel values
+        to unit variance.
+
+    adimsdi : {'single', 'double'}, str optional
+        Changes the way the 4d cubes (ADI+mSDI) are processed. Basically it
+        determines whether a single or double pass PCA is going to be computed.
+
+        ``single``: the multi-spectral frames are rescaled wrt the largest
+        wavelength to align the speckles and all the frames (n_channels *
+        n_adiframes) are processed with a single PCA low-rank approximation.
+
+        ``double``: a firt stage is run on the rescaled spectral frames, and a
+        second PCA frame is run on the residuals in an ADI fashion.
+
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
         radius of the circular mask.
@@ -128,10 +164,10 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         If True, it check that the input cube(s) are smaller than the available
         system memory.
     crop_ifs: bool, optional
-        Only valid when ``adimsdi='single'``. If True cube is cropped at the
-        moment of frame rescaling in wavelength. This is recommended for large
-        FOVs such as the one of SPHERE, but can remove significant amount of
-        information close to the edge of small FOVs (e.g. SINFONI).
+        [adimsdi='single'] If True cube is cropped at the moment of frame
+        rescaling in wavelength. This is recommended for large FOVs such as the
+        one of SPHERE, but can remove significant amount of information close to
+        the edge of small FOVs (e.g. SINFONI).
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to (cpu_count()/2). Defaults to ``nproc=1``.
@@ -140,8 +176,6 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         intermediate arrays.
     verbose : bool, optional
         If True prints intermediate info and timing.
-    debug : bool, optional
-        Whether to print debug information or not.
 
     Returns
     -------

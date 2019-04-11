@@ -34,6 +34,7 @@ from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import mean_absolute_error as MAE
 from sklearn.utils import check_random_state
 from pandas import DataFrame
+from ..conf import timing, time_ini, sep, Progressbar
 from ..var import matrix_scaling, prepare_matrix, matrix_scaling
 from ..preproc import check_scal_vector, cube_crop_frames
 from ..preproc import cube_rescaling_wavelengths as scwave
@@ -42,6 +43,7 @@ from ..conf.utils_conf import vip_figsize
 
 class SVDecomposer:
     """
+    Class for SVD decomposition of 2d, 3d or 4d HCI arrays.
 
     Notes
     -----
@@ -52,11 +54,74 @@ class SVDecomposer:
                  svd_mode='lapack', scaling='temp-standard', wavelengths=None,
                  verbose=True):
         """
-
-
         Parameters
         ----------
-        cube : numpy ndarray
+        data : numpy ndarray
+            Input array (2d, 3d or 4d).
+        mode : {'fullfr', 'annular'}, optional
+            Whether to use the whole frames or a single annulus.
+        inrad : None or int, optional
+            [mode='annular'] Inner radius.
+        outrad : None or int, optional
+            [mode='annular'] Outer radius.
+        svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
+            'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+            Switch for the SVD method/library to be used.
+
+            ``lapack``: uses the LAPACK linear algebra library through Numpy
+            and it is the most conventional way of computing the SVD
+            (deterministic result computed on CPU).
+
+            ``arpack``: uses the ARPACK Fortran libraries accessible through
+            Scipy (computation on CPU).
+
+            ``eigen``: computes the singular vectors through the
+            eigendecomposition of the covariance M.M' (computation on CPU).
+
+            ``randsvd``: uses the randomized_svd algorithm implemented in
+            Sklearn (computation on CPU).
+
+            ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+            the LAPACK version. `
+
+            `eigencupy``: offers the same method as with the ``eigen`` option
+            but on GPU (through Cupy).
+
+            ``randcupy``: is an adaptation of the randomized_svd algorithm,
+            where all the computations are done on a GPU (through Cupy). `
+
+            `pytorch``: uses the Pytorch library for GPU computation of the SVD.
+
+            ``eigenpytorch``: offers the same method as with the ``eigen``
+            option but on GPU (through Pytorch).
+
+            ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+            where all the linear algebra computations are done on a GPU
+            (through Pytorch).
+
+        scaling : {None, "temp-mean", spat-mean", "temp-standard",
+                   "spat-standard"}, None or str optional
+            Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+            function. If set to None, the input matrix is left untouched.
+            Otherwise:
+
+            ``temp-mean``: temporal px-wise mean is subtracted.
+
+            ``spat-mean``: spatial mean is subtracted.
+
+            ``temp-standard``: temporal mean centering plus scaling pixel values
+            to unit variance.
+
+            ``spat-standard``: spatial mean centering plus scaling pixel values
+            to unit variance.
+
+        wavelengths : numpy ndarray, optional
+            Wavelengths in case of a 4d HCI cube. These are used to compute
+            scaling factors for re-scaling the spectral channels and aligning
+            the speckles.
+
+        verbose : bool, optional
+            If True intermediate messages and timing are printed.
 
         """
         self.data = data
@@ -74,9 +139,16 @@ class SVDecomposer:
             if outrad is None:
                 raise ValueError("`outrad` must be a positive integer")
 
+        if self.verbose:
+            print(sep)
+
     def generate_matrix(self):
         """
+        Generate a matrix from the input ``data``. Pixel values in the matrix
+        are scaled. Depending on ``mode``, the matrix can come from an annulus
+        instead of the whole frames.
         """
+        start_time = time_ini(False)
         if self.data.ndim == 2:
             print("`data` is already a 2d array")
             self.matrix = matrix_scaling(self.data, self.scaling)
@@ -93,7 +165,10 @@ class SVDecomposer:
                 scale_list = check_scal_vector(self.wavelengths)
                 big_cube = []
                 # Rescaling the spectral channels to align the speckles
-                for i in range(n_frames):
+                if self.verbose:
+                    print('Rescaling the spectral channels to align the '
+                          'speckles')
+                for i in Progressbar(range(n_frames), verbose=self.verbose):
                     cube_resc = scwave(self.data[:, i, :, :],
                                        self.wavelengths)[0]
                     cube_resc = cube_crop_frames(cube_resc, size=y_in,
@@ -101,9 +176,14 @@ class SVDecomposer:
                     big_cube.append(cube_resc)
                 big_cube = np.array(big_cube)
                 cube_ = big_cube.reshape(z * n_frames, y_in, x_in)
+                self.cube4d_shape = cube_.shape
 
-            self.ann_width = int(np.ceil(self.outrad - self.inrad))
-            self.cent_ann = self.inrad + int(np.round(self.ann_width / 2.))
+            if self.mode == 'annular':
+                self.ann_width = int(np.ceil(self.outrad - self.inrad))
+                self.cent_ann = self.inrad + int(np.round(self.ann_width / 2.))
+            else:
+                self.cent_ann = None
+                self.ann_width = None
 
             result = prepare_matrix(cube_, self.scaling, mode=self.mode,
                                     annulus_radius=self.cent_ann,
@@ -116,31 +196,64 @@ class SVDecomposer:
             elif self.mode == 'fullfr':
                 self.matrix = result
 
+        if self.verbose:
+            timing(start_time)
+
     def run(self):
         """
         Decompose the input data.
         """
+        start_time = time_ini(False)
         if not hasattr(self, 'matrix'):
             self.generate_matrix()
 
         max_pcs = min(self.matrix.shape[0], self.matrix.shape[1])
 
-        results = svd_wrapper(self.matrix, self.svd_mode, max_pcs, debug=False,
+        results = svd_wrapper(self.matrix, self.svd_mode, max_pcs,
                               verbose=self.verbose, full_output=True)
         if len(results) == 3:
             self.u, self.s, self.v = results
         elif len(results) == 2:
             self.s, self.v = results
 
+        if self.verbose:
+            timing(start_time)
 
-    def get_cevr(self, ncomp_list=None, plot=True, plot_save=False, plot_dpi=100,
+    def get_cevr(self, ncomp_list=None, plot=True, plot_save=False, plot_dpi=90,
                  plot_truncation=None):
         """
         Calculate the cumulative explained variance ratio for the SVD of a
         cube/matrix (either full frames or a single annulus could be used).
+
+        Parameters
+        ----------
+        ncomp_list : None, list or tuple, optional
+            If provided the list is used to filter the vector of CEVR.
+        plot : bool, optional
+            If True, the CEVR is plotted.
+        plot_save : bool, optional
+            If True, the plot is saved as ./figure.pdf.
+        plot_dpi : int, optional
+            The DPI of the figure.
+        plot_truncation : None or int, optional
+            If provided, it created a second panel in the plot, focusing on the
+            CEVR curve up to ``plot_truncation`` components.
+
+        Returns
+        -------
+        df_allks : pandas dataframe
+            [ncomp_list is None] A table with the explained varaince ratio and
+            the CEVR for all ncomps.
+        df_klist : pandas dataframe
+            [ncomp_list is not None] A table with the ncomp_list, the explained
+            varaince ratio and the CEVR.
         """
+        start_time = time_ini(False)
         if not hasattr(self, 'v'):
             self.run()
+
+        if self.verbose:
+            print("Computing the cumulative explained variance ratios")
 
         self.ncomp_list = ncomp_list
         exp_var = (self.s ** 2) / (self.s.shape[0] - 1)
@@ -198,12 +311,41 @@ class SVDecomposer:
                                   'cevr': cevr_klist})
             self.cevr_ncomp = cevr_klist
             self.table_cevr_ncomp = df_klist
+            if self.verbose:
+                timing(start_time)
             return df_klist
         else:
+            if self.verbose:
+                timing(start_time)
             return df_allks
 
+    def cevr_to_ncomp(self, cevr=0.9):
+        """
+        Infer the number of principal components for a given CEVR.
 
-def svd_wrapper(matrix, mode, ncomp, debug, verbose, full_output=False,
+        Parameters
+        ----------
+        cevr : float or tuple of floats, optional
+            The desired CEVR.
+
+        Returns
+        -------
+        ncomp : int or list of ints
+            The found number(s) of PCs.
+
+        """
+        if not hasattr(self, 'cevr'):
+            self.get_cevr(plot=False)
+
+        if isinstance(cevr, float):
+            ncomp = np.searchsorted(self.cevr, cevr) + 1
+        elif isinstance(cevr, tuple):
+            ncomp = [np.searchsorted(self.cevr, c) + 1 for c in cevr]
+
+        return ncomp
+
+
+def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
                 random_state=None, to_numpy=True):
     """ Wrapper for different SVD libraries (CPU and GPU). 
       
@@ -212,24 +354,40 @@ def svd_wrapper(matrix, mode, ncomp, debug, verbose, full_output=False,
     matrix : array_like, 2d
         2d input matrix.
     mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
-            'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
-        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK 
-        linear algebra library through Numpy and it is the most conventional way 
-        of computing the SVD (deterministic result computed on CPU). ``arpack`` 
-        uses the ARPACK Fortran libraries accessible through Scipy (computation
-        on CPU). ``eigen`` computes the singular vectors through the 
+        'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+        Switch for the SVD method/library to be used.
+
+        ``lapack``: uses the LAPACK linear algebra library through Numpy
+        and it is the most conventional way of computing the SVD
+        (deterministic result computed on CPU).
+
+        ``arpack``: uses the ARPACK Fortran libraries accessible through
+        Scipy (computation on CPU).
+
+        ``eigen``: computes the singular vectors through the
         eigendecomposition of the covariance M.M' (computation on CPU).
-        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn 
-        (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
-        of the SVD as in the LAPACK version. ``eigencupy`` offers the same 
-        method as with the ``eigen`` option but on GPU (through Cupy). 
-        ``randcupy`` is an adaptation f the randomized_svd algorithm, where all
-        the computations are done on a GPU (through Cupy). ``pytorch`` uses the
-        Pytorch library for GPU computation of the SVD. ``eigenpytorch`` offers
-        the same method as with the ``eigen`` option but on GPU (through
-        Pytorch). ``randpytorch`` is an adaptation of the randomized_svd
-        algorithm, where all the linear algebra computations are done on a GPU
+
+        ``randsvd``: uses the randomized_svd algorithm implemented in
+        Sklearn (computation on CPU).
+
+        ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+        the LAPACK version. `
+
+        `eigencupy``: offers the same method as with the ``eigen`` option
+        but on GPU (through Cupy).
+
+        ``randcupy``: is an adaptation of the randomized_svd algorithm,
+        where all the computations are done on a GPU (through Cupy). `
+
+        `pytorch``: uses the Pytorch library for GPU computation of the SVD.
+
+        ``eigenpytorch``: offers the same method as with the ``eigen``
+        option but on GPU (through Pytorch).
+
+        ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+        where all the linear algebra computations are done on a GPU
         (through Pytorch).
+
     ncomp : int
         Number of singular vectors to be obtained. In the cases when the full
         SVD is computed (LAPACK, ARPACK, EIGEN, CUPY), the matrix of singular 
@@ -459,7 +617,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
 
     if ncomp == 'auto':
         ncomp = 0
-        V_big = svd_wrapper(data_ref, svd_mode, max_evs, False, False)
+        V_big = svd_wrapper(data_ref, svd_mode, max_evs, False)
 
         if mode == 'noise':
             if not collapse:
@@ -469,7 +627,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
                 data_ref_sc = matrix_scaling(data_ref, 'temp-standard')
                 data_sc = matrix_scaling(data, 'temp-standard')
 
-            V_sc = svd_wrapper(data_ref_sc, svd_mode, max_evs, False, False)
+            V_sc = svd_wrapper(data_ref_sc, svd_mode, max_evs, False)
 
             px_noise = []
             px_noise_decay = 1
@@ -498,7 +656,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
             data_sc = matrix_scaling(data, 'temp-mean')
             _, S, _ = svd_wrapper(data_sc, svd_mode, min(data_sc.shape[0],
                                                          data_sc.shape[1]),
-                                  False, False, full_output=True)
+                                  False, full_output=True)
             exp_var = (S ** 2) / (S.shape[0] - 1)
             full_var = np.sum(exp_var)
             # % of variance explained by each PC
@@ -513,7 +671,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
     else:
         # Performing SVD/PCA according to "svd_mode" flag
         ncomp = min(ncomp, min(data_ref.shape[0], data_ref.shape[1]))
-        V = svd_wrapper(data_ref, svd_mode, ncomp, debug=False, verbose=False)
+        V = svd_wrapper(data_ref, svd_mode, ncomp, verbose=False)
 
     return V
 

@@ -586,7 +586,7 @@ def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):
 
 def matrix_scaling(matrix, scaling):
     """
-    Scale a matrix using sklearn.preprocessing.scale function.
+    Scale a matrix using ``sklearn.preprocessing.scale`` function.
 
     Parameters
     ----------
@@ -639,19 +639,20 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
     ----------
     array : 3d array_like
         Input cube.
-    scaling : None or string, optional
-        Scaling method.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard", "spat-standard"},
+        None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale`` function.
+        If set to None, the input matrix is left untouched. Otherwise:
 
-        ``None`` (default)
-            no scaling is performed on the input data before SVD
-        ``"temp-mean"``
-            temporal px-wise mean subtraction
-        ``"spat-mean"``
-            the spatial mean is subtracted
-        ``temp-standard"``
-            temporal mean centering plus scaling to unit variance
-        ``"spat-standard"``
-            spatial mean centering plus scaling to unit variance
+        ``temp-mean``: temporal px-wise mean is subtracted.
+
+        ``spat-mean``: spatial mean is subtracted.
+
+        ``temp-standard``: temporal mean centering plus scaling pixel values
+        to unit variance.
+
+        ``spat-standard``: spatial mean centering plus scaling pixel values
+        to unit variance.
 
     mask_center_px : None or int, optional
         [mode=fullfr] Whether to mask the center of the frames or not.

@@ -5,7 +5,9 @@ Module with utilities.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, Ralf Farkas'
-__all__ = ['Progressbar']
+__all__ = ['Progressbar',
+           'sep',
+           'vip_figsize']
 
 import os
 import sys
@@ -18,7 +20,7 @@ from multiprocessing import Pool
 
 from vip_hci import __version__
 
-sep = '-' * 80
+sep = '―' * 80
 vip_figsize = (10, 5)
 
 

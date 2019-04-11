@@ -130,7 +130,7 @@ class SVDecomposer:
 
         max_pcs = min(self.matrix.shape[0], self.matrix.shape[1])
 
-        results = svd_wrapper(self.matrix, self.svd_mode, max_pcs, debug=False,
+        results = svd_wrapper(self.matrix, self.svd_mode, max_pcs,
                               verbose=self.verbose, full_output=True)
         if len(results) == 3:
             self.u, self.s, self.v = results

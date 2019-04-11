@@ -202,6 +202,31 @@ class SVDecomposer:
         else:
             return df_allks
 
+    def cevr_to_ncomp(self, cevr=0.9):
+        """
+        Infer the number of principal components for a given CEVR.
+
+        Parameters
+        ----------
+        cevr : float or tuple of floats, optional
+            The desired CEVR.
+
+        Returns
+        -------
+        ncomp : int or list of ints
+            The found number(s) of PCs.
+
+        """
+        if not hasattr(self, 'cevr'):
+            self.get_cevr(plot=False)
+
+        if isinstance(cevr, float):
+            ncomp = np.searchsorted(self.cevr, cevr) + 1
+        elif isinstance(cevr, tuple):
+            ncomp = [np.searchsorted(self.cevr, c) + 1 for c in cevr]
+
+        return ncomp
+
 
 def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
                 random_state=None, to_numpy=True):

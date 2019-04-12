@@ -40,7 +40,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
     mode : {'sss', 'peakstddev'}, string optional
         'sss' uses the approach with the small sample statistics penalty and
         'peakstddev' uses the peak(aperture)/std(annulus) version.
-    source_mask : array_like, optional
+    source_mask : numpy ndarray, optional
         If exists, it takes into account existing sources. The mask is a ones
         2d array, with the same size as the input frame. The centers of the
         known sources have a zero value.
@@ -61,7 +61,7 @@ def snrmap(array, fwhm, plot=False, mode='sss', source_mask=None, nproc=None,
 
     Returns
     -------
-    snrmap : 2d array_like
+    snrmap : 2d numpy ndarray
         Frame with the same size as the input frame with each pixel.
     """
     if verbose:
@@ -175,7 +175,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True, **kwargs):
 
     Parameters
     ----------
-    array : 2d array_like
+    array : 2d numpy ndarray
         Input frame.
     fwhm : float
         Size in pixels of the FWHM.
@@ -191,7 +191,7 @@ def snrmap_fast(array, fwhm, nproc=None, plot=False, verbose=True, **kwargs):
 
     Returns
     -------
-    snrmap : array_like
+    snrmap : numpy ndarray
         Frame with the same size as the input frame with each pixel.
     """
     if verbose:
@@ -273,7 +273,7 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, array2=None, use2alone=False,
     
     Parameters
     ----------
-    array : array_like, 2d
+    array : numpy ndarray, 2d
         Post-processed frame where we want to measure S/N.
     source_xy : tuple of floats
         X and Y coordinates of the planet or test speckle.
@@ -282,7 +282,7 @@ def snr_ss(array, source_xy, fwhm, out_coor=False, array2=None, use2alone=False,
     out_coor: bool, optional
         If True returns back the S/N value and the y, x input coordinates. In
         this case it overrides the full_output parameter.
-    array2 : array_like, 2d, opt
+    array2 : numpy ndarray, 2d, opt
         Additional image (e.g. processed image with negative derotation angles) 
         enabling to have more apertures for noise estimation at each radial
         separation. Should have the same dimensions as array.
@@ -411,7 +411,7 @@ def snr_peakstddev(array, source_xy, fwhm, out_coor=False, array2=None,
 
     Parameters
     ----------
-    array : array_like, 2d
+    array : numpy ndarray, 2d
         Post-processed frame where we want to measure S/N.
     source_xy : tuple of floats
         X and Y coordinates of the planet or test speckle.
@@ -419,7 +419,7 @@ def snr_peakstddev(array, source_xy, fwhm, out_coor=False, array2=None,
         Size in pixels of the FWHM.
     out_coor: bool, optional
         If True returns back the S/N value and the y, x input coordinates.
-    array2 : array_like, 2d, opt
+    array2 : numpy ndarray, 2d, opt
         Additional image (e.g. processed image with negative derotation angles) 
         enabling to have more pixels for noise estimation at each radial 
         separation. Should have the same dimensions as array.

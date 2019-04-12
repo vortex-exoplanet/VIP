@@ -40,12 +40,12 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     Parameters
     ----------
-    cube : array_like
+    cube : numpy ndarray
         The input cube, 2d (ADI data) or 3d array (IFS data), without fake
         companions.
-    angle_list : array_like
+    angle_list : numpy ndarray
         Vector with the parallactic angles.
-    psf_template : array_like
+    psf_template : numpy ndarray
         Frame with the psf template for the fake companion(s).
         PSF must be centered in array. Normalization is done internally.
     fwhm: int or float or 1d array, optional
@@ -129,12 +129,12 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     If full_output is True then the function returns: 
         datafr, cube_fc_all, frame_fc_all, frame_nofc and fc_map_all.
 
-    frame_fc_all : array_like
+    frame_fc_all : numpy ndarray
         3d array with the 3 frames of the 3 (patterns) processed cubes with
         companions.
-    frame_nofc : array_like
+    frame_nofc : numpy ndarray
         2d array, PCA processed frame without companions.
-    fc_map_all : array_like
+    fc_map_all : numpy ndarray
         3d array with 3 frames containing the position of the companions in the
         3 patterns.
     """
@@ -396,12 +396,12 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
 
     Parameters
     ---------_
-    cube : array_like
+    cube : numpy ndarray
         The input cube, 2d (ADI data) or 3d array (IFS data), without fake
         companions.
-    angle_list : array_like
+    angle_list : numpy ndarray
         Vector with the parallactic angles.
-    psf_template : array_like
+    psf_template : numpy ndarray
         Frame with the psf template for the fake companion(s).
         PSF must be centered in array. Normalization is done internally.
     fwhm: int or float or 1d array, optional
@@ -446,23 +446,23 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
 
     Returns
     -------
-    thruput_arr : array_like
+    thruput_arr : numpy ndarray
         2d array whose rows are the annulus-wise throughput values for each
         branch.
-    vector_radd : array_like
+    vector_radd : numpy ndarray
         1d array with the distances in FWHM (the positions of the annuli).
 
     If full_output is True then the function returns: thruput_arr, noise,
     vector_radd, cube_fc_all, frame_fc_all, frame_nofc and fc_map_all.
 
-    noise : array_like
+    noise : numpy ndarray
         1d array with the noise per annulus.
-    frame_fc_all : array_like
+    frame_fc_all : numpy ndarray
         3d array with the 3 frames of the 3 (patterns) processed cubes with
         companions.
-    frame_nofc : array_like
+    frame_nofc : numpy ndarray
         2d array, PCA processed frame without companions.
-    fc_map_all : array_like
+    fc_map_all : numpy ndarray
         3d array with 3 frames containing the position of the companions in the
         3 patterns.
 
@@ -724,7 +724,7 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame.
     separation : float
         Separation in pixels of the centers of the annuli measured from the
@@ -745,9 +745,9 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
 
     Returns
     -------
-    noise : array_like
+    noise : numpy ndarray
         Vector with the noise value per annulus.
-    vector_radd : array_like
+    vector_radd : numpy ndarray
         Vector with the radial distances values.
 
     """
@@ -825,7 +825,7 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame.
     yc, xc : list or 1d arrays
         List of y and x coordinates of sources.

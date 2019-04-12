@@ -35,9 +35,9 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
 
     Parameters
     ----------
-    cube : array_like, 3d or 4d
+    cube : numpy ndarray, 3d or 4d
         Input cube.
-    angle_list : array_like, 1d
+    angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Default is 4.
@@ -93,7 +93,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
 
     Returns
     -------
-    frame_der_median : array_like, 2d
+    frame_der_median : numpy ndarray, 2d
         Median combination of the de-rotated cube of residuals.
 
     If ``full_output`` is True, the following intermediate arrays are returned:

@@ -48,7 +48,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
 
     Parameters
     ----------
-    cube : 3d array_like
+    cube : 3d numpy ndarray
         Input cube.
         IDL parameter: ``IMAGES_1_INPUT``
     oversampling_fact : float
@@ -56,13 +56,13 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         for obtaining ``cube`` (defined as the ratio between the wavelength of
         the filter and the Shannon wavelength).
         IDL parameter: ``OVERSAMPLING_1_INPUT``
-    angles : array_like
+    angles : numpy ndarray
         List of parallactic angles associated with each frame in ``cube``. Note
         that, compared to the IDL version, the PA convention is different: If
         you would pass ``[1,2,3]`` to the IDL version, you should pass ``[-1,
         -2, -3]`` to this function to obtain the same results.
         IDL parameter: ``- ANGLES_INPUT``
-    psf : 2d array_like
+    psf : 2d numpy ndarray
         The experimental PSF used to model the planet signature in the
         subtracted images. This PSF is usually a non-coronographic or saturated
         observation of the target star.
@@ -794,7 +794,7 @@ def create_indices(angles, angmin, verbose=True):
 
     Parameters
     ----------
-    angles : 1d array_like
+    angles : 1d numpy ndarray
         ndarray containing the angles associated to each image. The array should
         be monotonic
     angmin : float

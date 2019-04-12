@@ -30,9 +30,9 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     
     Parameters
     ----------
-    cube : array_like, 3d
+    cube : numpy ndarray, 3d
         Input cube.
-    angle_list : array_like, 1d
+    angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Default is 4.
@@ -70,7 +70,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         
     Returns
     -------
-    final_frame : array_like, 2d
+    final_frame : numpy ndarray, 2d
         Median combination of the de-rotated cube.
     """
     global array

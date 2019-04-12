@@ -32,7 +32,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     
     Parameters
     ----------
-    array : array_like 
+    array : numpy ndarray 
         Input 3d array, cube.
     mode : {'annulus', 'circle'}, string optional
         Whether to take the statistics from a circle or an annulus.
@@ -56,9 +56,9 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     
     Returns
     -------
-    good_index_list : array_like
+    good_index_list : numpy ndarray
         1d array of good indices.
-    bad_index_list : array_like
+    bad_index_list : numpy ndarray
         1d array of bad frames indices.
     
     """
@@ -137,7 +137,7 @@ def cube_detect_badfr_ellipticipy(array, fwhm, roundlo=-0.2, roundhi=0.2,
     
     Parameters
     ----------
-    array : array_like 
+    array : numpy ndarray 
         Input 3d array, cube.
     fwhm : float
         FWHM size in pixels.
@@ -148,9 +148,9 @@ def cube_detect_badfr_ellipticipy(array, fwhm, roundlo=-0.2, roundhi=0.2,
         
     Returns
     -------
-    good_index_list : array_like
+    good_index_list : numpy ndarray
         1d array of good indices.
-    bad_index_list : array_like
+    bad_index_list : numpy ndarray
         1d array of bad frames indices.
     
     Notes
@@ -230,7 +230,7 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     
     Parameters
     ----------
-    array : array_like 
+    array : numpy ndarray 
         Input 3d array, cube.
     frame_ref : int or 2d array
         Index of the frame that will be used as a reference or 2d reference
@@ -250,9 +250,9 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
             
     Returns
     -------
-    good_index_list : array_like
+    good_index_list : numpy ndarray
         1d array of good indices.
-    bad_index_list : array_like
+    bad_index_list : numpy ndarray
         1d array of bad frames indices.
         
     """

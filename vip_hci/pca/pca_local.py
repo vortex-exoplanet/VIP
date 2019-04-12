@@ -39,9 +39,9 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
 
     Parameters
     ----------
-    cube : array_like, 3d or 4d
+    cube : numpy ndarray, 3d or 4d
         Input cube.
-    angle_list : array_like, 1d
+    angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
     scale_list :
         Scaling factors in case of IFS data (ADI+mSDI cube). Usually, the
@@ -137,12 +137,12 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
 
     Returns
     -------
-    frame : array_like, 2d
+    frame : numpy ndarray, 2d
         Median combination of the de-rotated cube.
     If full_output is True:
-    array_out : array_like, 3d
+    array_out : numpy ndarray, 3d
         Cube of residuals.
-    array_der : array_like, 3d
+    array_der : numpy ndarray, 3d
         Cube residuals after de-rotation.
 
     """
@@ -253,11 +253,11 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
 
     Parameters
     ----------
-    cube : array_like, 3d
+    cube : numpy ndarray, 3d
         Input science cube.
-    angle_list : array_like, 1d
+    angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
-    cube_ref : array_like, 3d
+    cube_ref : numpy ndarray, 3d
         Reference library cube. For Reference Star Differential Imaging.
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the
@@ -305,12 +305,12 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
 
     Returns
     -------
-    frame : array_like, 2d
+    frame : numpy ndarray, 2d
         Median combination of the de-rotated cube.
     If full_output is True:
-    array_out : array_like, 3d
+    array_out : numpy ndarray, 3d
         Cube of residuals.
-    array_der : array_like, 3d
+    array_der : numpy ndarray, 3d
         Cube residuals after de-rotation.
 
     """

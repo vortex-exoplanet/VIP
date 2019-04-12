@@ -20,7 +20,7 @@ def frame_quick_report(array, fwhm, source_xy=None, verbose=True):
     
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         2d array or input frame.
     fwhm : float
         Size of the FWHM in pixels.

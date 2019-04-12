@@ -94,7 +94,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         The radius of the circular aperture in terms of the FWHM.
     initial_state: numpy.array
         The initial guess for the position and the flux of the planet.
-    cube_ref: array_like, 3d, optional
+    cube_ref: numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
@@ -186,7 +186,7 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
         The radius of the circular aperture.
     initial_state: numpy.array
         The initial guess for the position and the flux of the planet.
-    cube_ref : array_like, 3d, optional
+    cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
@@ -366,7 +366,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     initial_state: numpy.array
         The first guess for the position and flux of the planet, respectively.
         Each walker will start in a small ball around this preferred position.
-    cube_ref : array_like, 3d, optional
+    cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
@@ -772,7 +772,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         The number of bins used to sample the posterior distributions.
     gaussian_fit: boolean, optional
         If True, a gaussian fit is performed in order to determine (\mu,\sigma)
-    weights : (n, ) array_like or None, optional
+    weights : (n, ) numpy ndarray or None, optional
         An array of weights for each sample.
     verbose: boolean, optional
         Display information in the shell.

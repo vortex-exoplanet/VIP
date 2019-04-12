@@ -40,7 +40,7 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
 
     Returns
     -------
-    data : array_like
+    data : numpy ndarray
         Array containing the frames of the fits-cube.
     header : dict
         [header=True] Dictionary containing the fits header.
@@ -83,12 +83,12 @@ def byteswap_array(array):
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         2d input array.
 
     Returns
     -------
-    array_out : array_like
+    array_out : numpy ndarray
         2d resulting array after the byteswap operation.
 
     Notes
@@ -144,9 +144,9 @@ def write_fits(fitsfilename, array, header=None, precision=np.float32,
     ----------
     fitsfilename : string
         Full path of the fits file to be written.
-    array : array_like
+    array : numpy ndarray
         Array to be written into a fits file.
-    header : array_like, optional
+    header : numpy ndarray, optional
         Array with header.
     precision : numpy dtype, optional
         Float precision, by default np.float32 or single precision float.

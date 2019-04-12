@@ -35,7 +35,7 @@ def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
 
     Parameters
     ----------
-    cube : array_like
+    cube : numpy ndarray
         Input cube.
     coeff : int, optional
         Number of wavelet scales to be used in the decomposition.
@@ -49,7 +49,7 @@ def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
 
     Returns
     -------
-    cubeout : array_like
+    cubeout : numpy ndarray
         Output cube with the filtered frames.
 
     If full_output is True the filtered cube is returned together with the a
@@ -79,7 +79,7 @@ def cube_filter_highpass(array, mode='laplacian', verbose=True, **kwargs):
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input cube, 3d or 4d.
     mode : str, optional
         ``mode`` parameter to the ``frame_filter_highpass`` function. Defaults
@@ -91,7 +91,7 @@ def cube_filter_highpass(array, mode='laplacian', verbose=True, **kwargs):
 
     Returns
     -------
-    filtered : array_like
+    filtered : numpy ndarray
         High-pass filtered cube.
 
     """
@@ -157,7 +157,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input array, 2d frame.
     mode : str
         Type of High-pass filtering.
@@ -194,7 +194,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
 
     Returns
     -------
-    filtered : array_like
+    filtered : numpy ndarray
         High-pass filtered image.
 
     """
@@ -353,7 +353,7 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input array, 2d frame.
     mode : {'median', 'gauss'}, str optional
         Type of low-pass filtering.
@@ -367,7 +367,7 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
 
     Returns
     -------
-    filtered : array_like
+    filtered : numpy ndarray
         Low-pass filtered image.
 
     """
@@ -403,7 +403,7 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input cube, 3d or 4d.
     mode : str, optional
         See the documentation of the ``frame_filter_lowpass`` function.
@@ -418,7 +418,7 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
 
     Returns
     -------
-    filtered : array_like
+    filtered : numpy ndarray
         Low-pass filtered cube.
 
     """

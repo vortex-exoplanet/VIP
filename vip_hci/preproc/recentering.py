@@ -49,7 +49,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 2d array.
     shift_y, shift_x: float
         Shifts in y and x directions.
@@ -81,7 +81,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
 
     Returns
     -------
-    array_shifted : array_like
+    array_shifted : numpy ndarray
         Shifted 2d array.
 
     """
@@ -166,7 +166,7 @@ def cube_shift(cube, shift_y, shift_x, imlib='opencv',
 
     Parameters
     ----------
-    cube : array_like, 3d
+    cube : numpy ndarray, 3d
         Input cube.
     shift_y, shift_x: float, list of floats or np.ndarray of floats
         Shifts in y and x directions for each frame. If the a single value is
@@ -178,7 +178,7 @@ def cube_shift(cube, shift_y, shift_x, imlib='opencv',
 
     Returns
     -------
-    cube_out : array_like, 3d
+    cube_out : numpy ndarray, 3d
          Cube with shifted frames.
 
     """
@@ -211,7 +211,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
     Parameters
     ----------
-    array : array_like, 2d
+    array : numpy ndarray, 2d
         Image or frame.
     xy : tuple of 4 tuples
         Tuple with coordinates X,Y of the 4 satellite spots. When the spots are
@@ -325,7 +325,8 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
         sim, y, x = get_square(array, subi_size, xy[i][1], xy[i][0],
                                position=True, verbose=False)
         cent2dgy, cent2dgx = fit_2dgaussian(sim, crop=False, threshold=True,
-                                            sigfactor=sigfactor, debug=debug)
+                                            sigfactor=sigfactor, debug=debug,
+                                            full_output=False)
         centx.append(cent2dgx + x)
         centy.append(cent2dgy + y)
         subims.append(sim)
@@ -383,7 +384,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
 
     Parameters
     ----------
-    array : array_like, 3d
+    array : numpy ndarray, 3d
         Input cube.
     xy : tuple
         Tuple with coordinates X,Y of the 4 satellite spots. When the spots are
@@ -483,7 +484,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 2d array or image.
     cropsize : odd int, optional
         Size in pixels of the cropped central area of the input array that will
@@ -660,7 +661,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 3d array or cube.
     full_output : {False, True}, bool optional
         If True the recentered cube is returned along with the y and x shifts.
@@ -737,7 +738,7 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input cube.
     cy_1, cx_1 : int, optional
         Coordinates of the center of the subimage for fitting a 2d Gaussian and
@@ -772,10 +773,10 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
 
     Returns
     -------
-    array_recentered : array_like
+    array_recentered : numpy ndarray
         The recentered cube. Frames have now odd size.
     If full_output is True:
-    y, x : array_like
+    y, x : numpy ndarray
         1d arrays with the shifts in y and x.
 
     Notes
@@ -905,11 +906,11 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input cube.
     xy : tuple of int
         Coordinates of the center of the subimage (wrt the original frame).
-    fwhm : float or array_like
+    fwhm : float or numpy ndarray
         FWHM size in pixels, either one value (float) that will be the same for
         the whole cube, or an array of floats with the same dimension as the
         0th dim of array, containing the fwhm for each channel (e.g. in the case
@@ -950,10 +951,10 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
 
     Returns
     -------
-    array_recentered : array_like
+    array_recentered : numpy ndarray
         The recentered cube. Frames have now odd size.
     If full_output is True:
-    y, x : array_like
+    y, x : numpy ndarray
         1d arrays with the shifts in y and x.
 
     """
@@ -1074,7 +1075,8 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
         sub_image = -sub_image + np.abs(np.min(-sub_image))
 
     y_i, x_i = fit_2dgaussian(sub_image, crop=False, fwhmx=fwhm, fwhmy=fwhm,
-                              threshold=threshold, sigfactor=1, debug=debug)
+                              threshold=threshold, sigfactor=1, debug=debug,
+                              full_output=False)
     y_i = y1 + y_i
     x_i = x1 + x_i
     return y_i, x_i
@@ -1111,9 +1113,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
 
     Parameters
     ----------
-    cube_sci : array_like
+    cube_sci : numpy ndarray
         Science cube.
-    cube_ref : array_like
+    cube_ref : numpy ndarray
         Reference cube (e.g. for NIRC2 data in RDI mode).
     alignment_iter : int, optional
         Number of alignment iterations (recomputes median after each iteration).
@@ -1146,7 +1148,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
 
     Returns
     -------
-    array_shifted : array_like
+    array_shifted : numpy ndarray
         Shifted 2d array.
 
     If cube_ref is not None, returns:
@@ -1225,7 +1227,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             if negative:
                 sub_image = -sub_image + np.abs(np.min(-sub_image))
             y_i, x_i = fit_2dgaussian(sub_image, crop=False, threshold=False,
-                                      sigfactor=1, debug=debug)
+                                      sigfactor=1, debug=debug,
+                                      full_output=False)
             yshift = ceny - (y1 + y_i)
             xshift = cenx - (x1 + x_i)
 

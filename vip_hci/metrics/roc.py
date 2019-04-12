@@ -427,7 +427,7 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
 
     Parameters
     ----------
-    frame : array_like
+    frame : numpy ndarray
         Detection map.
     thresholds : list or numpy.ndarray
         List of thresholds (detection criteria).

@@ -25,11 +25,11 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
     
     Parameters
     ----------
-    cube : array_like, 3d
+    cube : numpy ndarray, 3d
         Input cube.
-    angle_list : array_like, 1d
+    angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.   
-    cube_ref : array_like, 3d, optional
+    cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     ncomp : int, optional
         How many components are used as for low-rank approximation of the 

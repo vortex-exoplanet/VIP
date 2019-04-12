@@ -41,9 +41,9 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
 
     Parameters
     ----------
-    cube : array_like, 3d
+    cube : numpy ndarray, 3d
         Input ADI cube.
-    angle_list : array_like, 1d
+    angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
     fwhm : float
         Known size of the FHWM in pixels to be used.
@@ -109,7 +109,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
 
     Returns
     -------
-    frame_s : array_like, 2d
+    frame_s : numpy ndarray, 2d
         Final frame (from the S component) after rotation and median-combination.
 
     If ``full_output`` is True, the following intermediate arrays are returned:

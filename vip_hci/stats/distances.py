@@ -42,7 +42,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input cube or 3d array.
     frame : int or 2d array
         Reference frame in the cube or 2d array.
@@ -59,7 +59,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
 
     Returns
     -------
-    lista : array_like
+    lista : numpy ndarray
         1d array of distances for each frame wrt the reference one.
 
     """

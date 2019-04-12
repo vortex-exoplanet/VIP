@@ -21,7 +21,7 @@ def fitaffine(x, y, debug=False):
 
     Parameters
     ----------
-    x,y : 1d array_like
+    x,y : 1d numpy ndarray
         The data to be fitted in a robust affine optimisation. Note the
         "reversed" order of the parameters, compared to the IDL implementation
         (see notes).
@@ -128,10 +128,10 @@ def rofunc(x, y, b):
 
     Parameters
     ----------
-    x : array_like
+    x : numpy ndarray
         the fitted data set
         in IDL: DATA_INPUT[0]
-    y : array_like
+    y : numpy ndarray
         the original data to be fitted
         in IDL: DATA_INPUT[1]
     b : float

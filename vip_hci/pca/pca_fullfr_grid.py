@@ -38,16 +38,16 @@ def pca_optimize_snr(cube, angle_list, source_xy, fwhm, cube_ref=None,
     
     Parameters
     ----------
-    cube : array_like, 3d
+    cube : numpy ndarray, 3d
         Input cube.
-    angle_list : array_like, 1d
+    angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
     source_xy : tuple of floats
         X and Y coordinates of the pixel where the source is located and whose
         SNR is going to be maximized.
     fwhm : float 
         Size of the PSF's FWHM in pixels.
-    cube_ref : array_like, 3d, optional
+    cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging. 
     mode : {'fullfr', 'annular'}, optional
         Mode for PCA processing (full-frame or just in an annulus). There is a

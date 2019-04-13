@@ -25,8 +25,7 @@ except ImportError:
     msg = "Opencv python bindings are missing."
     warnings.warn(msg, ImportWarning)
     no_opencv = True
-
-from hciplot import plot_frames
+    
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
 from skimage.transform import radon
@@ -722,10 +721,10 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
         return array_rec
 
 
-def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
+def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  fwhm=4, subi_size=None, upsample_factor=100,
                                  imlib='opencv', interpolation='lanczos4',
-                                 full_output=False, verbose=True,
+                                 full_output=False, verbose=True, nproc=1,
                                  save_shifts=False, debug=False, plot=True):
     """ Recenters a cube of frames using the DFT upsampling method as
     proposed in Guizar et al. 2008 and implemented in the
@@ -740,7 +739,7 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
     ----------
     array : numpy ndarray
         Input cube.
-    cy_1, cx_1 : int, optional
+    center_fr1 = (cy_1, cx_1) : Tuple, optional
         Coordinates of the center of the subimage for fitting a 2d Gaussian and
         centroiding the 1st frame.
     negative : bool, optional
@@ -752,6 +751,9 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
         Size of the square subimage sides in pixels, used to centroid to first
         frame. If subi_size is None then the first frame is assumed to be
         centered already.
+    nproc : int or None, optional
+        Number of processes (>1) for parallel computing. If 1 then it runs in
+        serial. If None the number of processes will be set to (cpu_count()/2).
     upsample_factor : int, optional
         Upsampling factor (default 100). Images will be registered to within
         1/upsample_factor of a pixel.
@@ -774,10 +776,11 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
     Returns
     -------
     array_recentered : numpy ndarray
-        The recentered cube. Frames have now odd size.
-    If full_output is True:
-    y, x : numpy ndarray
-        1d arrays with the shifts in y and x.
+        The recentered cube.
+    y : numpy ndarray
+        [full_output=True] 1d array with the shifts in y.
+    x : numpy ndarray
+        [full_output=True] 1d array with the shifts in x.
 
     Notes
     -----
@@ -799,11 +802,13 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
 
     n_frames, sizey, sizex = array.shape
     if subi_size is not None:
-        if cx_1 is None or cy_1 is None:
+        if center_fr1 is None:
             print('`cx_1` or `cy_1` not be provided')
             print('Using the coordinated of the 1st frame center for '
                   'the Gaussian 2d fit')
             cy_1, cx_1 = frame_center(array[0])
+        else:
+            cx_1, cy_1 = center_fr1
         if not isinstance(subi_size, int):
             raise ValueError('subi_size must be an integer or None')
         if subi_size < fwhm:
@@ -853,12 +858,22 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
         y[0] = 0
 
     # Finding the shifts with DTF upsampling of each frame wrt the first
-    for i in Progressbar(range(1, n_frames), desc="frames", verbose=verbose):
-        shift_yx, _, _ = register_translation(array_rec[0], array[i],
-                                              upsample_factor=upsample_factor)
-        y[i], x[i] = shift_yx
-        array_rec[i] = frame_shift(array[i], shift_y=y[i], shift_x=x[i],
-                                   imlib=imlib, interpolation=interpolation)
+    
+    if nproc == 1:
+        for i in Progressbar(range(1, n_frames), desc="frames", verbose=verbose):
+            y[i], x[i], array_rec[i] = _shift_dft(array_rec, array, i,
+                                                  upsample_factor, interpolation,
+                                                  imlib)
+    elif nproc > 1: 
+        res = pool_map(nproc, _shift_dft, array_rec, array,
+                       iterable(range(1, n_frames)),
+                       upsample_factor, interpolation, imlib)
+        res = np.array(res)
+        
+        y[1:] = res[:,0]
+        x[1:] = res[:,1]
+        array_rec[1:] = [frames for frames in res[:,2]]
+        
 
     if debug:
         print("\nShifts in X and Y")
@@ -893,7 +908,17 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
     else:
         return array_rec
 
-
+def _shift_dft(array_rec, array, frnum, upsample_factor, interpolation, imlib):
+    """
+    function used in recenter_dft_unsampling
+    """
+    shift_yx, _, _ = register_translation(array_rec[0], array[frnum],
+                                          upsample_factor=upsample_factor)
+    y_i, x_i = shift_yx
+    array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
+                              imlib=imlib, interpolation=interpolation)
+    return y_i, x_i, array_rec_i    
+    
 def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                         nproc=1, imlib='opencv', interpolation='lanczos4',
                         offset=None, negative=False, threshold=False,
@@ -952,10 +977,11 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     Returns
     -------
     array_recentered : numpy ndarray
-        The recentered cube. Frames have now odd size.
-    If full_output is True:
-    y, x : numpy ndarray
-        1d arrays with the shifts in y and x.
+        The recentered cube.
+    y : numpy ndarray
+        [full_output=True] 1d array with the shifts in y.
+    x : numpy ndarray
+        [full_output=True] 1d array with the shifts in x.
 
     """
     if verbose:

@@ -25,7 +25,6 @@ implemented:
 
 from .pca_fullfr import *
 from .pca_fullfr_grid import *
-from .pca_fullfr_increm import *
 from .pca_local import *
 from .svd import *
 from .utils_pca import *

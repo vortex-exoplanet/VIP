@@ -19,7 +19,7 @@ def cube_collapse(cube, mode='median', n=50):
     
     Parameters
     ----------
-    cube : array_like
+    cube : numpy ndarray
         Cube.
     mode : {'median', 'mean', 'sum', 'trimmean', 'max'}, str optional
         Sets the way of collapsing the images in the cube.
@@ -29,7 +29,7 @@ def cube_collapse(cube, mode='median', n=50):
         
     Returns
     -------
-    frame : array_like
+    frame : numpy ndarray
         Output array, cube combined. 
     """
     arr = cube
@@ -64,19 +64,19 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
     
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 3d array, cube.
     n : int
         Window for mean/median.
     mode : {'mean','median'}, optional
         Switch for choosing mean or median.
-    parallactic : array_like, optional
+    parallactic : numpy ndarray, optional
         List of corresponding parallactic angles.
     verbose : bool optional
         
     Returns
     -------
-    arr_view : array_like
+    arr_view : numpy ndarray
         Resulting array.
     If ``parallactic`` is provided the the new cube and angles are returned.
     """
@@ -140,7 +140,7 @@ def cube_subsample_trimmean(arr, n, m):
     
     Parameters
     ----------
-    arr : array_like
+    arr : numpy ndarray
         Cube.
     n : int
         Sets the discarded values at high and low ends. When n = N is the same
@@ -150,7 +150,7 @@ def cube_subsample_trimmean(arr, n, m):
         
     Returns
     -------
-    arr_view : array_like
+    arr_view : numpy ndarray
         Output array, cube combined. 
     """    
     if arr.ndim != 3:

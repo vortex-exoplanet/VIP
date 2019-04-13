@@ -149,7 +149,7 @@ def compute_derot_angles_pa(objname_tmp_A, digit_format=3, objname_tmp_B='',
 
     Returns
     -------
-    angle_list: 1-D array_like
+    angle_list: 1-D numpy ndarray
         vector of angles corresponding to the angular difference between the
         positive y axis and the North in the image.
         sign convention: positive angles in anti-clockwise direction.
@@ -279,7 +279,7 @@ def compute_derot_angles_cd(objname_tmp_A, digit_format=3, objname_tmp_B='',
 
     Returns
     -------
-    angle_list: 1-D array_like
+    angle_list: 1-D numpy ndarray
         vector of angles corresponding to the angular difference between the
         positive y axis and the North in the image.
         sign convention: positive angles in anti-clockwise direction.
@@ -378,14 +378,14 @@ def check_pa_vector(angle_list, unit='deg'):
        
     Parameters
     ----------
-    angle_list: 1D-array_like
+    angle_list: 1D-numpy ndarray
         Vector containing the derotation angles
     unit: string, {'deg','rad'}, optional
         The unit type of the input angle list
     
     Returns
     -------
-    angle_list: 1-D array_like 
+    angle_list: 1-D numpy ndarray 
         Vector containing the derotation angles (after correction to comply with
         the 3 criteria, if needed)
     """

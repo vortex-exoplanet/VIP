@@ -49,7 +49,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
         The radius of the circular aperture in terms of the FWHM.
     ncomp: int
         The number of principal components. 
-    cube_ref : array_like, 3d, optional
+    cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
@@ -169,7 +169,7 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
         The width in terms of the FWHM of the annulus on which the PCA is done.       
     aperture_radius: int, optional
         The radius of the circular aperture in terms of the FWHM.
-    cube_ref : array_like, 3d, optional
+    cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
@@ -262,7 +262,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
         The width in terms of the FWHM of the annulus on which the PCA is done.       
     aperture_radius: int, optional
         The radius of the circular aperture in terms of the FWHM.
-    cube_ref : array_like, 3d, optional
+    cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.

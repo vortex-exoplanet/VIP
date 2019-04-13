@@ -16,14 +16,14 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
 
     Parameters
     ----------
-    sci_cube : array_like
+    sci_cube : numpy ndarray
         3d array of science frames.
-    sky_cube : array_like
+    sky_cube : numpy ndarray
         3d array of sky frames.
-    mask : array_like
+    mask : numpy ndarray
         Mask indicating the region for the analysis. Can be created with the
         function vip_hci.var.create_ringed_spider_mask.
-    ref_cube : array_like or None
+    ref_cube : numpy ndarray or None
         Reference cube.
     ncomp : int
         Sets the number of PCs you want to use in the sky subtraction.

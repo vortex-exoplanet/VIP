@@ -33,7 +33,7 @@ def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
     Parameters
     ----------
-    array : 3d array_like
+    array : 3d numpy ndarray
         Input cube, 3d array.
     scale : int, float or tuple
         Scale factor for upsampling or downsampling the frames in the cube. If
@@ -49,7 +49,7 @@ def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
     Returns
     -------
-    array_resc : array_like
+    array_resc : numpy ndarray
         Output cube with resampled frames.
 
     """
@@ -80,7 +80,7 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame, 2d array.
     scale : int, float or tuple
         Scale factor for upsampling or downsampling the frame. If a tuple it
@@ -100,7 +100,7 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
     Returns
     -------
-    array_resc : array_like
+    array_resc : numpy ndarray
         Output resampled frame.
 
     """
@@ -313,7 +313,7 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 3d array, cube.
     scaling_list : 1D-array
         Scale corresponding to each frame in the cube.
@@ -334,7 +334,7 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
 
     Returns
     -------
-    array_sc : array_like
+    array_sc : numpy ndarray
         Resulting cube with rescaled frames.
 
     """
@@ -365,7 +365,7 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
 
         Parameters
         ----------
-        array : array_like
+        array : numpy ndarray
             Input frame, 2d array.
         ref_xy : float, optional
             Coordinates X,Y  of the point wrt which the rescaling will be
@@ -383,7 +383,7 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
 
         Returns
         -------
-        array_out : array_like
+        array_out : numpy ndarray
             Resulting frame.
 
         """
@@ -478,7 +478,7 @@ def check_scal_vector(scal_vec):
 
     Returns
     -------
-    scal_vec: array_like, 1d
+    scal_vec: numpy ndarray, 1d
         Vector containing the scaling factors (after correction to comply with
         the condition >= 1).
 

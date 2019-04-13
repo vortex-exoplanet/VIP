@@ -33,7 +33,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
     
     Parameters
     ----------
-    array : array_like 
+    array : numpy ndarray 
         Input image, 2d array.
     angle : float
         Rotation angle.
@@ -65,7 +65,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
         
     Returns
     -------
-    array_out : array_like
+    array_out : numpy ndarray
         Resulting frame.
         
     """
@@ -160,7 +160,7 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
     
     Parameters
     ----------
-    array : array_like 
+    array : numpy ndarray 
         Input 3d array, cube.
     angle_list : list
         Vector containing the parallactic angles.
@@ -182,7 +182,7 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         
     Returns
     -------
-    array_der : array_like
+    array_der : numpy ndarray
         Resulting cube with de-rotated frames.
         
     """
@@ -226,7 +226,7 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
 
     Parameters
     ----------
-    angle_list : array_like, 1d
+    angle_list : numpy ndarray, 1d
         Vector of parallactic angle (PA) for each frame.
     frame : int
         Index of the current frame for which we are applying the PA threshold.
@@ -246,7 +246,7 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
 
     Returns
     -------
-    indices : array_like, 1d
+    indices : numpy ndarray, 1d
         Vector with the indices left.
 
     If ``out_closest`` is True then the function returns instead:

@@ -47,7 +47,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         Position (r, theta) of the circular aperture center.
     ncomp: int
         The number of principal components.
-    cube_ref : array_like, 3d, optional
+    cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.         
@@ -137,7 +137,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         The angular position of the center of the circular aperture. This 
         parameter is NOT the angular position of the candidate associated to the 
         Markov chain, but should be the fixed initial guess.  
-    cube_ref : array_like, 3d, optional
+    cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.

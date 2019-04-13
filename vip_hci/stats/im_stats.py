@@ -20,7 +20,7 @@ def frame_average_radprofile(frame, sep=1, init_rad=None, plot=True):
 
     Parameters
     ----------
-    frame : array_like
+    frame : numpy ndarray
         Input image or 2d array.
     sep : int, optional
         The average radial profile is recorded every ``sep`` pixels.
@@ -75,7 +75,7 @@ def frame_histo_stats(image_array, plot=True):
     
     Parameters
     ----------
-    image_array : array_like
+    image_array : numpy ndarray
         The input frame.  
     plot : bool, optional
         If True plots the frame and the histogram with the values.

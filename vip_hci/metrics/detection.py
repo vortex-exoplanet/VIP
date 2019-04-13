@@ -36,12 +36,12 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
 
     Parameters
     ----------
-    array : array_like, 2d
+    array : numpy ndarray, 2d
         Input frame.
     fwhm : None or int, optional
         Size of the FWHM in pixels. If None and a ``psf`` is provided, then the
         FWHM is measured on the PSF image.
-    psf : array_like
+    psf : numpy ndarray
         Input PSF template. It must be normalized with the
         ``vip_hci.metrics.normalize_psf`` function.
     mode : {'lpeaks', 'log', 'dog', 'snrmap', 'snrmapf'}, optional
@@ -76,7 +76,7 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
 
     Returns
     -------
-    yy, xx : array_like
+    yy, xx : numpy ndarray
         Two vectors with the y and x coordinates of the centers of the sources
         (potential planets).
     If full_output is True then a table with all the candidates that passed the
@@ -489,7 +489,7 @@ def mask_source_centers(array, fwhm, y, x):
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame.
     fwhm : float
         Size in pixels of the FWHM.
@@ -498,7 +498,7 @@ def mask_source_centers(array, fwhm, y, x):
 
     Returns
     -------
-    mask : array_like
+    mask : numpy ndarray
         Mask frame.
 
     """

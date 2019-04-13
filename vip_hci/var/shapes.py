@@ -34,7 +34,7 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
 
     Parameters
     ----------
-    array : 2d/3d/4d array_like
+    array : 2d/3d/4d numpy ndarray
         Input frame or cube.
     radius : int
         Radius of the circular aperture.
@@ -47,7 +47,7 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
 
     Returns
     -------
-    array_masked : array_like
+    array_masked : numpy ndarray
         Masked frame or cube.
 
     """
@@ -100,7 +100,7 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
 
     Returns
     -------
-    mask : array_like
+    mask : numpy ndarray
         2d array of zeros and ones.
 
     """
@@ -180,7 +180,7 @@ def frame_center(array, verbose=False):
 
     Parameters
     ----------
-    array : 2d/3d/4d array_like
+    array : 2d/3d/4d numpy ndarray
         Frame or cube.
     verbose : bool optional
         If True the center coordinates are printed out.
@@ -214,7 +214,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
 
     Parameters
     ----------
-    array : 2d array_like
+    array : 2d numpy ndarray
         Input frame.
     size : int
         Size of the subframe.
@@ -234,7 +234,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
 
     Returns
     -------
-    array_out : array_like
+    array_out : numpy ndarray
         Sub array.
     y0, x0 : int
         [position=True] Coordinates of the bottom-left vertex.
@@ -308,7 +308,7 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 2d array or image.
     radius : int
         The radius of the circular region.
@@ -323,9 +323,9 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
 
     Returns
     -------
-    masked : array_like
+    masked : numpy ndarray
         [mode="mask"] Input array with the circular mask applied.
-    values : array_like
+    values : numpy ndarray
         [mode="val"] 1d array with the values of the pixels in the circular
         region.
 
@@ -361,7 +361,7 @@ def get_ellipse(data, a, b, pa, cy=None, cx=None, mode="ind"):
 
     Parameters
     ----------
-    data : array_like or tuple
+    data : numpy ndarray or tuple
         Input 2d array (image) or tuple with a shape.
     a : float
         Semi-major axis.
@@ -426,7 +426,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
 
     Parameters
     ----------
-    data : 2d array_like or tuple
+    data : 2d numpy ndarray or tuple
         Input 2d array (image) ot tuple with its shape.
     inner_radius : float
         The inner radius of the donut region.
@@ -530,7 +530,7 @@ def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):
 
     Parameters
     ----------
-    data : array_like or tuple
+    data : numpy ndarray or tuple
         Input 2d array (image) or tuple with a shape.
     a : float
         Semi-major axis.
@@ -590,7 +590,7 @@ def matrix_scaling(matrix, scaling):
 
     Parameters
     ----------
-    matrix : 2d array_like
+    matrix : 2d numpy ndarray
         Input 2d array.
     scaling : None or string
         Scaling method.
@@ -608,7 +608,7 @@ def matrix_scaling(matrix, scaling):
 
     Returns
     -------
-    matrix : 2d array_like
+    matrix : 2d numpy ndarray
         2d array with scaled values.
 
     """
@@ -637,7 +637,7 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
 
     Parameters
     ----------
-    array : 3d array_like
+    array : 3d numpy ndarray
         Input cube.
     scaling : {None, "temp-mean", spat-mean", "temp-standard", "spat-standard"},
         None or str optional
@@ -668,7 +668,7 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
 
     Returns
     -------
-    matrix : 2d array_like
+    matrix : 2d numpy ndarray
         Out matrix whose rows are vectorized frames from the input cube.
     ind : tuple
         [mode=annular] Indices of the annulus as ``(yy, xx)``.

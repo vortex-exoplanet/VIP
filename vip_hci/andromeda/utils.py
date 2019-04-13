@@ -19,7 +19,7 @@ def robust_std(x):
 
     Parameters
     ----------
-    x : array_like
+    x : numpy ndarray
         point set
 
     Returns
@@ -69,7 +69,7 @@ def idl_where(array_expression):
 
     Parameters
     ----------
-    array_expression : array_like / expression
+    array_expression : numpy ndarray / expression
         an expression like ``array > 0``
 
     Returns

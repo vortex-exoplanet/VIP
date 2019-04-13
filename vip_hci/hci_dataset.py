@@ -38,7 +38,7 @@ class HCIFrame(object):
 
     Parameters
     ----------
-    image : array_like
+    image : numpy ndarray
         2d array.
     hdu : int, optional
         If ``cube`` is a String, ``hdu`` indicates the HDU from the FITS file.
@@ -303,7 +303,7 @@ class HCIFrame(object):
             of ``vip_hci.phot.snrmap``.
         plot : bool, optional
             If True plots the S/N map. True by default.
-        source_mask : array_like, optional
+        source_mask : numpy ndarray, optional
             If exists, it takes into account existing sources. The mask is a
             ones 2d array, with the same size as the input frame. The centers
             of the known sources have a zero value.

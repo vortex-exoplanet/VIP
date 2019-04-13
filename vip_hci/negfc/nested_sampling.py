@@ -34,17 +34,17 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=2,
 
     Parameters
     ----------
-    init: array_like or tuple of length 3
+    init: numpy ndarray or tuple of length 3
         The first guess for the position and flux of the planet, respectively.
         It serves for generating the bounds of the log prior function (uniform
         in a bounded interval).
-    cube: array_like
+    cube: numpy ndarray
         Frame sequence of cube.
-    angs: array_like
+    angs: numpy ndarray
         The relative path to the parallactic angle fits image or the angs itself.
     plsc: float
         The platescale, in arcsec per pixel.
-    psf: array_like
+    psf: numpy ndarray
         The PSF template. It must be centered and the flux in a 1*FWHM aperture
         must equal 1.
     fwhm : float
@@ -62,7 +62,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=2,
         is done.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
-    cube_ref: array_like, 3d, optional
+    cube_ref: numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
         Sets the way of collapsing the frames for producing a final image. If

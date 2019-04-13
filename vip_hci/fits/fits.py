@@ -19,7 +19,7 @@ from astropy.io import fits as ap_fits
 
 
 def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
-              precision=np.float32, verbose=True):
+              precision=np.float32, return_memmap=False, verbose=True):
     """
     Load a fits file into a memory as numpy array.
 
@@ -27,31 +27,43 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     ----------
     fitsfilename : string or pathlib.Path
         Name of the fits file or ``pathlib.Path`` object
-    n : int
+    n : int, optional
         It chooses which HDU to open. Default is the first one.
     header : bool, optional
         Whether to return the header along with the data or not.
-    precision : numpy dtype
+    precision : numpy dtype, optional
         Float precision, by default np.float32 or single precision float.
-    ignore_missing_end : {False, True}, bool optional
+    ignore_missing_end : bool optional
         Allows to open fits files with a header missing END card.
+    return_memmap : bool, optional
+        If True, the functinor returns the handle to the FITS file opened by
+        mmap. With the hdulist, array data of each HDU to be accessed with mmap,
+        rather than being read into memory all at once. This is particularly
+        useful for working with very large arrays that cannot fit entirely into
+        physical memory.
     verbose : bool, optional
         If True prints message of completion.
 
     Returns
     -------
-    data : array_like
-        Array containing the frames of the fits-cube.
+    hdulist : hdulist
+        [memmap=True] FITS file ``n`` hdulist.
+    data : numpy ndarray
+        [memmap=False] Array containing the frames of the fits-cube.
     header : dict
-        [header=True] Dictionary containing the fits header.
+        [memmap=False, header=True] Dictionary containing the fits header.
 
     """
     fitsfilename = str(fitsfilename)
     if not os.path.isfile(fitsfilename):
         fitsfilename += '.fits'
 
-    with ap_fits.open(fitsfilename, memmap=True,
-                      ignore_missing_end=ignore_missing_end) as hdulist:
+    hdulist = ap_fits.open(fitsfilename, ignore_missing_end=ignore_missing_end,
+                           memmap=True)
+
+    if return_memmap:
+        return hdulist[n]
+    else:
         data = hdulist[n].data
         data = np.array(data, dtype=precision)
 
@@ -83,12 +95,12 @@ def byteswap_array(array):
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         2d input array.
 
     Returns
     -------
-    array_out : array_like
+    array_out : numpy ndarray
         2d resulting array after the byteswap operation.
 
     Notes
@@ -144,9 +156,9 @@ def write_fits(fitsfilename, array, header=None, precision=np.float32,
     ----------
     fitsfilename : string
         Full path of the fits file to be written.
-    array : array_like
+    array : numpy ndarray
         Array to be written into a fits file.
-    header : array_like, optional
+    header : numpy ndarray, optional
         Array with header.
     precision : numpy dtype, optional
         Float precision, by default np.float32 or single precision float.

@@ -54,7 +54,7 @@ def frame_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
 
     Parameters
     ----------
-    arr : array_like
+    arr : numpy ndarray
         Input array.
     region : {'circle', 'annulus'}, str optional
         Pixels are extracted either from a centered annulus or a circular
@@ -129,7 +129,7 @@ def cube_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
 
     Parameters
     ----------
-    arr : array_like
+    arr : numpy ndarray
         Input array.
     region : {'circle', 'annulus'}, str optional
         Pixels are extracted either from a centered annulus or a circular

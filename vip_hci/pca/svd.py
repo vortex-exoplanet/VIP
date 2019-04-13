@@ -351,7 +351,7 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
       
     Parameters
     ----------
-    matrix : array_like, 2d
+    matrix : numpy ndarray, 2d
         2d input matrix.
     mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
         'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
@@ -408,7 +408,7 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
 
     Returns
     -------
-    V : array_like
+    V : numpy ndarray
         The right singular vectors of the input matrix. If ``full_output`` is
         True it returns the left and right singular vectors and the singular
         values of the input matrix. If ``mode`` is set to eigen then only S and

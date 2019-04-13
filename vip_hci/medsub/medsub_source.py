@@ -42,9 +42,9 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
 
     Parameters
     ----------
-    cube : array_like, 3d
+    cube : numpy ndarray, 3d
         Input cube.
-    angle_list : array_like, 1d
+    angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
     scale_list :
         Scaling factors in case of IFS data (ADI+mSDI cube). Usually, the
@@ -94,11 +94,11 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
 
     Returns
     -------
-    cube_out : array_like, 3d
+    cube_out : numpy ndarray, 3d
         [full_output=True] The cube of residuals.
-    cube_der : array_like, 3d
+    cube_der : numpy ndarray, 3d
         [full_output=True] The derotated cube of residuals.
-    frame : array_like, 2d
+    frame : numpy ndarray, 2d
         Median combination of the de-rotated cube.
 
     """

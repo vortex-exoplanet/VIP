@@ -24,7 +24,7 @@ def cube_inject_fakedisk(fakedisk, angle_list, psf=None, imlib='opencv',
 
     Parameters
     ----------
-    fakedisk : array_like
+    fakedisk : numpy ndarray
         Input image of a fake disc
     angle_list : list
         Vector containing the parallactic angles.
@@ -51,7 +51,7 @@ def cube_inject_fakedisk(fakedisk, angle_list, psf=None, imlib='opencv',
 
     Returns
     -------
-    fakedisk_cube : array_like
+    fakedisk_cube : numpy ndarray
         Resulting cube with the fake disc inserted at the correct angles and
         convolved with the psf if a psf was provided.
 
@@ -122,9 +122,9 @@ def cube_inject_trace(array, psf_template, angle_list, flevel, rad_dists, theta,
     
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 3D cube in which the extended feature is injected.
-    psf_template : array_like 
+    psf_template : numpy ndarray 
         2d array with the normalized psf template. It should have an odd shape.
         It is recommended to run the function psf_norm to get a proper PSF
         template.
@@ -149,7 +149,7 @@ def cube_inject_trace(array, psf_template, angle_list, flevel, rad_dists, theta,
     
     Returns
     -------
-    array_out : array_like
+    array_out : numpy ndarray
         Output array with the injected fake companions.
         
     """

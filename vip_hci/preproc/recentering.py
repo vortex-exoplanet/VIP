@@ -25,7 +25,8 @@ except ImportError:
     msg = "Opencv python bindings are missing."
     warnings.warn(msg, ImportWarning)
     no_opencv = True
-    
+
+from hciplot import plot_frames
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
 from skimage.transform import radon
@@ -908,6 +909,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     else:
         return array_rec
 
+
 def _shift_dft(array_rec, array, frnum, upsample_factor, interpolation, imlib):
     """
     function used in recenter_dft_unsampling
@@ -918,7 +920,8 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, interpolation, imlib):
     array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
                               imlib=imlib, interpolation=interpolation)
     return y_i, x_i, array_rec_i    
-    
+
+
 def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                         nproc=1, imlib='opencv', interpolation='lanczos4',
                         offset=None, negative=False, threshold=False,

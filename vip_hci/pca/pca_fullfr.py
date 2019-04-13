@@ -30,9 +30,13 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
     are modeled using Principal Component Analysis. Depending on the input
     parameters this PCA function can work in ADI, RDI or SDI (IFS data) mode.
 
-    ADI: If neither a reference cube nor a scaling vector are provided, the
-    target cube itself is used to learn the PCs and to obtain a low-rank
-    approximation model PSF (star + speckles).
+    ADI: the target ``cube`` itself is used to learn the PCs and to obtain a
+    low-rank approximation model PSF (star + speckles). Both `cube_ref`` and
+    ``scale_list`` must be None. The full-frame ADI-PCA implementation is based
+    on Soummer et al. 2012 (http://arxiv.org/abs/1207.4197) and Amara & Quanz
+    2012 (http://arxiv.org/abs/1207.6637). If ``batch`` is provided then the
+    cube if processed with incremental PCA as described in Gomez Gonzalez et al.
+    2017 (https://arxiv.org/abs/1705.06184).
 
     ADI + RDI: if a reference cube is provided (``cube_ref``), its PCs are used
     to reconstruct the target frames to obtain the model PSF (star + speckles).
@@ -44,13 +48,15 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
 
     Parameters
     ----------
-    cube : array_like, 3d or 4d
-        Input cube (ADI or ADI+mSDI).
-    angle_list : array_like, 1d
+    cube : str or numpy ndarray, 3d or 4d
+        Input cube (ADI or ADI+mSDI). If a string is given, it must correspond
+        to the path to the fits file to be opened in memmap mode (for PCA
+        incremental of ADI 3d cubes).
+    angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
-    cube_ref : array_like, 3d, optional
+    cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    scale_list : array_like, 1d, optional
+    scale_list : numpy ndarray, 1d, optional
         Scaling factors in case of IFS data (ADI+mSDI cube). Usually, the
         scaling factors are the central channel wavelength divided by the
         shortest wavelength in the cube (more thorough approaches can be used
@@ -132,17 +138,6 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         ``spat-standard``: spatial mean centering plus scaling pixel values
         to unit variance.
 
-    adimsdi : {'single', 'double'}, str optional
-        Changes the way the 4d cubes (ADI+mSDI) are processed. Basically it
-        determines whether a single or double pass PCA is going to be computed.
-
-        ``single``: the multi-spectral frames are rescaled wrt the largest
-        wavelength to align the speckles and all the frames (n_channels *
-        n_adiframes) are processed with a single PCA low-rank approximation.
-
-        ``double``: a firt stage is run on the rescaled spectral frames, and a
-        second PCA frame is run on the residuals in an ADI fashion.
-
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
         radius of the circular mask.
@@ -155,20 +150,37 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         Default is 1 (excludes 1xFHWM on each side of the considered frame).
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Default value is 4.
+    adimsdi : {'single', 'double'}, str optional
+        Changes the way the 4d cubes (ADI+mSDI) are processed. Basically it
+        determines whether a single or double pass PCA is going to be computed.
+
+        ``single``: the multi-spectral frames are rescaled wrt the largest
+        wavelength to align the speckles and all the frames (n_channels *
+        n_adiframes) are processed with a single PCA low-rank approximation.
+
+        ``double``: a firt stage is run on the rescaled spectral frames, and a
+        second PCA frame is run on the residuals in an ADI fashion.
+
+    crop_ifs: bool, optional
+        [adimsdi='single'] If True cube is cropped at the moment of frame
+        rescaling in wavelength. This is recommended for large FOVs such as the
+        one of SPHERE, but can remove significant amount of information close to
+        the edge of small FOVs (e.g. SINFONI).
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
-    check_mem : bool, optional
-        If True, it check that the input cube(s) are smaller than the available
+    check_memory : bool, optional
+        If True, it checks that the input cube is smaller than the available
         system memory.
-    crop_ifs: bool, optional
-        [adimsdi='single'] If True cube is cropped at the moment of frame
-        rescaling in wavelength. This is recommended for large FOVs such as the
-        one of SPHERE, but can remove significant amount of information close to
-        the edge of small FOVs (e.g. SINFONI).
+    batch : None, int or float, optional
+        When it is not None, it triggers the incremental PCA (for ADI and
+        ADI+mSDI cubes). If an int is given, it corresponds to the number of
+        frames in each sequential mini-batch. If a float (0, 1] is given, it
+        corresponds to the size of the batch is computed wrt the available
+        memory in the system.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to (cpu_count()/2). Defaults to ``nproc=1``.
@@ -180,40 +192,36 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
 
     Returns
     -------
-    pcs
-        [full_output, 3D, source_xy]
-    recon_cube
-        [full_output, 3D, source_xy]
-    recon
-        [full_output, 3D, source_xy=None]
-    residuals_cube
-        [full_output, 3D]
-    residuals_cube_
-        [full_output, 3D]
-    residuals_cube_channels
-        [full_output, 4D, double]
-    residuals_cube_channels_
-        [full_output, 4D, double]
-    cube_allfr_residuals
-        [full_output, 4D, single]
-    cube_adi_residuals
-        [full_output, 4D, single]
-    frame : array_like, 2d
-        Median combination of the de-rotated/re-scaled residuals cube.
-
-    If full_output is True, and depending on the type of cube (ADI or ADI+mSDI),
-    then several arrays will be returned, such as the residuals, de-rotated
-    residuals, principal components
-
-    References
-    ----------
-    The full-frame ADI-PCA implementation is based on Soummer et al. 2012
-    (http://arxiv.org/abs/1207.4197) and Amara & Quanz 2012
-    (http://arxiv.org/abs/1207.6637).
-
-    """
-    if not cube.ndim > 2:
-        raise TypeError('Input array is not a 3d or 4d array')
+    frame : numpy ndarray
+        2D array, median combination of the de-rotated/re-scaled residuals cube.
+        Always returned.
+    pcs : numpy ndarray
+        [full_output=True, source_xy=None] Principal components. Valid for
+        ADI cubes (3D). This is also returned when ``batch`` is not None
+        (incremental PCA).
+    recon_cube, recon : numpy ndarray
+        [full_output=True] Reconstructed cube. Valid for ADI cubes (3D).
+    residuals_cube : numpy ndarray
+        [full_output=True] Residuals cube. Valid for ADI cubes (3D).
+    residuals_cube_ : numpy ndarray
+        [full_output=True] Derotated residuals cube. Valid for ADI cubes (3D).
+    residuals_cube_channels : numpy ndarray
+        [full_output=True, adimsdi='double'] Residuals for each multi-spectral
+        cube. Valid for ADI+mSDI (4D) cubes.
+    residuals_cube_channels_ : numpy ndarray
+        [full_output=True, adimsdi='double'] Derotated final residuals. Valid
+        for ADI+mSDI (4D) cubes.
+    cube_allfr_residuals : numpy ndarray
+        [full_output=True, adimsdi='single']  Residuals cube (of the big cube
+        with channels and time processed together). Valid for ADI+mSDI (4D)
+        cubes.
+    cube_adi_residuals : numpy ndarray
+        [full_output=True, adimsdi='single'] Residuals cube (of the big cube
+        with channels and time processed together) after de-scaling the wls.
+        Valid for ADI+mSDI (4D).
+    medians : numpy ndarray
+        [full_output=True, source_xy=None] This is also returned when ``batch``
+        is not None (incremental PCA).
 
 
     """

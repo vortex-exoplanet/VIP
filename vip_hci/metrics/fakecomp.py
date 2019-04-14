@@ -28,14 +28,14 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
     Parameters
     ----------
-    array : 3d/4d array_like
+    array : 3d/4d numpy ndarray
         Input cube. This is copied before the injections take place, so
         ``array`` is never modified.
-    psf_template : array_like
+    psf_template : numpy ndarray
         2d array with the normalized psf template. It should have an odd shape.
         It's recommended to run the function ``normalize_psf`` to get a proper
         PSF template. In the ADI+mSDI case it must be a 3d array.
-    angle_list : 1d array_like
+    angle_list : 1d numpy ndarray
         List of parallactic angles, in degrees.
     flevel : float or list
         Factor for controlling the brightness of the fake companions.
@@ -62,7 +62,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
     Returns
     -------
-    array_out : array_like
+    array_out : numpy ndarray
         Output array with the injected fake companions.
     positions : list of tuple(y, x)
         [full_output] Coordinates of the injections in the first frame (and
@@ -217,13 +217,13 @@ def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,
 
     Parameters
     ----------
-    array : 3d/4d array_like
+    array : 3d/4d numpy ndarray
         Original input cube.
-    psf_template : 2d/3d array_like
+    psf_template : 2d/3d numpy ndarray
         Array with the normalized psf template. It should have an odd shape.
         It's recommended to run the function ``normalize_psf`` to get a proper
         PSF template. In the ADI+mSDI case it must be a 3d array.
-    angle_list : 1d array_like
+    angle_list : 1d numpy ndarray
         List of parallactic angles, in degrees.
     plsc : float
         Value of the plsc in arcsec/px. Only used for printing debug output when
@@ -342,7 +342,7 @@ def collapse_psf_cube(array, size, fwhm=4, verbose=True, collapse='mean'):
 
     Parameters
     ----------
-    array : array_like, 3d
+    array : numpy ndarray, 3d
         Input cube.
     size : int
         Size of the squared subimage.
@@ -356,7 +356,7 @@ def collapse_psf_cube(array, size, fwhm=4, verbose=True, collapse='mean'):
 
     Returns
     -------
-    psf_normd : array_like
+    psf_normd : numpy ndarray
         Normalized PSF.
     """
     if array.ndim != 3 and array.ndim != 4:
@@ -380,14 +380,14 @@ def collapse_psf_cube(array, size, fwhm=4, verbose=True, collapse='mean'):
 
 def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                   model='gauss', imlib='opencv', interpolation='lanczos4',
-                  force_odd=True, full_output=False, verbose=True):
+                  force_odd=True, full_output=False, verbose=True, debug=False):
     """ Normalizes a PSF (2d or 3d array), to have the flux in a 1xFWHM
     aperture equal to one. It also allows to crop the array and center the PSF
     at the center of the frame(s).
 
     Parameters
     ----------
-    array: array_like
+    array: numpy ndarray
         The PSF, 2d (ADI data) or 3d array (IFS data).
     fwhm: int, float, 1d array or str, optional
         The the Full Width Half Maximum in pixels. It can handle a different
@@ -402,6 +402,9 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
     mask_core : None of float, optional
         Sets the radius of a circular aperture for the core of the PSF,
         everything else will be set to zero.
+    model : {'gauss', 'moff', 'airy'}, str optional
+        The assumed model used to fit the PSF: either a Gaussian, a Moffat
+        or an Airy 2d distribution.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
@@ -415,42 +418,39 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         normalized PSF.
     verbose : bool, optional
         If True intermediate results are printed out.
+    debug : bool, optional
+        If True the fitting will output additional information and a diagnostic
+        plot will be shown (this might cause a long output if ``array`` is 3d
+        and has many slices).
 
     Returns
     -------
-    psf_norm: array_like
-        The normalized psf.
+    psf_norm : numpy ndarray
+        The normalized PSF (2d or 3d array).
+    fwhm_flux : numpy ndarray
+        [full_output=True] The flux in a FWHM aperture (it can be a single
+        value or a vector).
+    fwhm : numpy ndarray
+        [full_output=True] The FWHM size. If ``fwhm`` is set to 'fit' then it
+        is the fitted FWHM value according to the assumed ``model`` (the mean in
+        X and Y is returned when ``model`` is set to 'gauss').
 
-    If ``full_output`` is True then the normalized PSF is returned along with
-    the flux in a FWHM aperture and the FWHM size (the later is useful when the
-    ``fwhm`` is set to 'fit'.
     """
-    def psf_norm_2d(array, fwhm, size, threshold, mask_core, full_output,
-                    verbose):
+    def psf_norm_2d(array, fwhm, threshold, mask_core, full_output, verbose):
         """ 2d case """
-        if size is not None:
-            if size < array.shape[0]:
-                psfs = frame_crop(array, size, force=True, verbose=False)
-            else:
-                psfs = array.copy()
-        else:
-            psfs = array.copy()
-
         # we check if the psf is centered and fix it if needed
-        cy, cx = frame_center(psfs, verbose=False)
-        xcom, ycom = photutils.centroid_com(psfs)
+        cy, cx = frame_center(array, verbose=False)
+        xcom, ycom = photutils.centroid_com(array)
         if not (np.allclose(cy, ycom, atol=1e-2) or
                 np.allclose(cx, xcom, atol=1e-2)):
             # first we find the centroid and put it in the center of the array
-            centry, centrx = fit_2d(psfs)
+            centry, centrx = fit_2d(array, full_output=False, debug=False)
             shiftx, shifty = centrx - cx, centry - cy
             psfs = frame_shift(array, -shifty, -shiftx, imlib=imlib,
                                interpolation=interpolation)
-            if size is not None:
-                psfs = frame_crop(psfs, size, force=True, verbose=False)
 
             for _ in range(2):
-                centry, centrx = fit_2d(psfs)
+                centry, centrx = fit_2d(psfs, full_output=False, debug=False)
                 cy, cx = frame_center(psfs, verbose=False)
                 shiftx, shifty = centrx - cx, centry - cy
                 psfs = frame_shift(psfs, -shifty, -shiftx, imlib=imlib,
@@ -504,18 +504,26 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                 msg += "new frame size was set to {}"
                 print(msg.format(size))
 
+        if size is not None:
+            if size < array.shape[0]:
+                array = frame_crop(array, size, force=True, verbose=False)
+            else:
+                array = array.copy()
+        else:
+            array = array.copy()
+
         if fwhm == 'fit':
-            fit = fit_2d(array, full_output=True)
+            fit = fit_2d(array, full_output=True, debug=debug)
             if model == 'gauss':
                 fwhm = np.mean((fit['fwhm_x'], fit['fwhm_y']))
                 if verbose:
-                    print("Mean FWHM: {:.3f}".format(fwhm))
+                    print("\nMean FWHM: {:.3f}".format(fwhm))
             elif model == 'moff' or model == 'airy':
                 fwhm = fit.fwhm.at[0]
                 if verbose:
                     print("FWHM: {:.3f}".format(fwhm))
 
-        res = psf_norm_2d(array, fwhm, size, threshold, mask_core, full_output,
+        res = psf_norm_2d(array, fwhm, threshold, mask_core, full_output,
                           verbose)
         return res
 
@@ -536,7 +544,8 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         if isinstance(fwhm, (int, float)):
             fwhm = [fwhm]*array.shape[0]
         elif fwhm == 'fit':
-            fits_vect = [fit_2d(array[i], full_output=True) for i in range(n)]
+            fits_vect = [fit_2d(array[i], full_output=True, debug=debug) for i
+                         in range(n)]
             if model == 'gauss':
                 fwhmx = [fits_vect[i]['fwhm_x'] for i in range(n)]
                 fwhmy = [fits_vect[i]['fwhm_y'] for i in range(n)]
@@ -557,8 +566,8 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         fwhm_flux = np.zeros(n)
 
         for fr in range(array.shape[0]):
-            restemp = psf_norm_2d(array[fr], fwhm[fr], size, threshold,
-                                  mask_core, True, False)
+            restemp = psf_norm_2d(array[fr], fwhm[fr], threshold, mask_core,
+                                  True, False)
             array_out.append(restemp[0])
             fwhm_flux[fr] = restemp[1]
 

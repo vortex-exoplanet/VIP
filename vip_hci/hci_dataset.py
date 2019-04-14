@@ -169,7 +169,6 @@ class Frame(object):
                                                 interpolation, debug, verbose)
         elif method == 'radon':
             pass
-            # TODO: radon centering
             #self.image = frame_center_radon()
         else:
             raise ValueError('Recentering method not recognized')
@@ -521,7 +520,6 @@ class Dataset(Saveable):
     def collapse(self, mode='median', n=50):
         """ Collapsing the sequence into a 2d array.
 
-        # TODO: support 4d case.
         """
         frame = cube_collapse(self.cube, mode, n)
         print('Cube successfully collapsed')
@@ -601,8 +599,6 @@ class Dataset(Saveable):
                btw_cutoff=0.2, btw_order=2, gauss_mode='conv', verbose=True):
         """ High/low pass filtering the frames of the cube.
 
-        # TODO: support 4d case, documentation
-
         Parameters
         ----------
         method : {'lp', 'hp'}
@@ -641,7 +637,6 @@ class Dataset(Saveable):
             Whether to plot the distances or not.
 
         """
-        # TODO: support 4d case.
         _ = cube_distance(self.cube, frame, region, dist, inner_radius, width,
                           plot)
 

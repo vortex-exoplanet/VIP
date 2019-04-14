@@ -6,7 +6,7 @@ Module with a class for creating a DS9 window through pyds9.
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 
 import warnings
-from .hci_dataset import HCIDataset, HCIFrame
+from .hci_dataset import Dataset, Frame
 try:
     import pyds9
     no_pyds9 = False
@@ -142,17 +142,17 @@ class Ds9Window(object):
         for i, array in enumerate(arrays):
             if i == 0:
                 self.create_frame()
-                if isinstance(array, HCIDataset):
+                if isinstance(array, Dataset):
                     self.window.set_np2arr(array.cube)
-                if isinstance(array, HCIFrame):
+                if isinstance(array, Frame):
                     self.window.set_np2arr(array.image)
                 else:
                     self.window.set_np2arr(array)
             else:
                 self.window.set('frame new')
-                if isinstance(array, HCIDataset):
+                if isinstance(array, Dataset):
                     self.window.set_np2arr(array.cube)
-                if isinstance(array, HCIFrame):
+                if isinstance(array, Frame):
                     self.window.set_np2arr(array.image)
                 else:
                     self.window.set_np2arr(array)

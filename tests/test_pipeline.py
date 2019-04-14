@@ -3,8 +3,6 @@ Tests for the post-processing pipeline, using the functional API.
 
 """
 
-__author__ = "Ralf Farkas"
-
 import copy
 import vip_hci as vip
 from .helpers import np, parametrize, fixture
@@ -31,17 +29,9 @@ def injected_cube_position(example_dataset):
     # we chose a shallow copy, as we will not use any in-place operations
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
-    dsi.cube, yx = vip.metrics.cube_inject_companions(dsi.cube,
-                                                      dsi.psfn,
-                                                      dsi.angles,
-                                                      flevel=300,
-                                                      plsc=dsi.px_scale,
-                                                      rad_dists=30,
-                                                      full_output=True,
-                                                      verbose=True)
-    injected_position_yx = yx[0]  # -> tuple
+    dsi.inject_companions(300, rad_dists=30)
 
-    return dsi, injected_position_yx
+    return dsi, dsi.injections_yx[0]
 
 
 # ====== algos
@@ -74,6 +64,17 @@ def algo_nmf(ds):
 
 def algo_pca(ds):
     return vip.pca.pca(ds.cube, ds.angles)
+
+
+def algo_pca_grid(ds):
+    """ PCA grid, obtaining the optimal residual for given location
+    """
+    return vip.pca.pca(ds.cube, ds.angles, ncomp=(1, 2),
+                       source_xy=ds.injections_yx[0][::-1])
+
+
+def algo_pca_incremental(ds):
+    return vip.pca.pca(ds.cube, ds.angles, batch=int(ds.cube.shape[0]/2))
 
 
 def algo_pca_annular(ds):
@@ -148,6 +149,8 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
         (algo_llsg, snrmap_fast),
         (algo_frdiff, snrmap_fast),
         (algo_pca, snrmap_fast),
+        (algo_pca_grid, snrmap_fast),
+        (algo_pca_incremental, snrmap_fast),
         (algo_pca_annular, snrmap_fast),
         (algo_andromeda, None),
         (algo_andromeda_fast, None),

@@ -5,8 +5,8 @@ Module with HCIDataset and HCIFrame classes.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['HCIDataset',
-           'HCIFrame']
+__all__ = ['Dataset',
+           'Frame']
 
 import numpy as np
 import copy
@@ -33,7 +33,7 @@ from .conf.utils_conf import check_array, Saveable, print_precision
 from .conf.mem import check_enough_memory
 
 
-class HCIFrame(object):
+class Frame(object):
     """ High-contrast imaging frame (2d array).
 
     Parameters
@@ -327,7 +327,7 @@ class HCIFrame(object):
                 mode = 'peakstddev'
             map = snrmap(self.image, self.fwhm, plot, mode, source_mask, nproc,
                          verbose=verbose)
-        return HCIFrame(map)
+        return Frame(map)
 
     def stats(self, region='circle', radius=5, xy=None, annulus_inner_radius=0,
               annulus_width=5, source_xy=None, verbose=True, plot=True):
@@ -382,7 +382,7 @@ class HCIFrame(object):
         _ = frame_quick_report(self.image, self.fwhm, source_xy, verbose)
 
 
-class HCIDataset(Saveable):
+class Dataset(Saveable):
     """ High-contrast imaging dataset class.
 
     Parameters
@@ -444,7 +444,7 @@ class HCIDataset(Saveable):
             if not cuberef.shape[1] == self.y:
                 raise ValueError(msg)
             self.cuberef = cuberef
-        elif isinstance(cuberef, HCIDataset):
+        elif isinstance(cuberef, Dataset):
             msg = '`Cuberef` array has wrong dimensions'
             if not cuberef.cube.ndim == 3:
                 raise ValueError(msg)
@@ -464,7 +464,7 @@ class HCIDataset(Saveable):
         if self.angles is not None:
             print('Angles array shape: {}'.format(self.angles.shape))
             # Checking the shape of the angles vector
-            check_array(self.angles, dim=1, name='Parallactic angles vector')
+            check_array(self.angles, dim=1, msg='Parallactic angles vector')
             if not self.angles.shape[0] == self.n:
                 raise ValueError('Parallactic angles vector has a wrong shape')
 
@@ -476,7 +476,7 @@ class HCIDataset(Saveable):
         if self.wavelengths is not None:
             print('Wavelengths array shape: {}'.format(self.wavelengths.shape))
             # Checking the shape of the scaling vector
-            check_array(self.wavelengths, dim=1, name='Wavelengths vector')
+            check_array(self.wavelengths, dim=1, msg='Wavelengths vector')
             if not self.wavelengths.shape[0] == self.w:
                 raise ValueError('Wavelengths vector has a wrong shape')
 
@@ -509,7 +509,7 @@ class HCIDataset(Saveable):
         self.fwhm = fwhm
         if self.fwhm is not None:
             if self.cube.ndim == 4:
-                check_array(self.fwhm, 1, 'FHWM')
+                check_array(self.fwhm, dim=1, msg='FHWM')
             elif self.cube.ndim == 3:
                 print('FWHM: {}'.format(self.fwhm))
         self.px_scale = px_scale
@@ -525,7 +525,7 @@ class HCIDataset(Saveable):
         """
         frame = cube_collapse(self.cube, mode, n)
         print('Cube successfully collapsed')
-        return HCIFrame(frame)
+        return Frame(frame)
 
     def crop_frames(self, size, xy=None, force=False):
         """ Cropping the frames of the sequence (3d or 4d cube).
@@ -728,8 +728,6 @@ class HCIDataset(Saveable):
             are stored in ``self.injections_yx``.
 
         """
-        # TODO: support the injection of a Gaussian/Moffat kernel.
-
         if self.angles is None:
             raise ValueError('The PA angles have not been set')
         if self.psfn is None:
@@ -831,7 +829,7 @@ class HCIDataset(Saveable):
 
         Returns
         -------
-        new_dataset : HCIDataset
+        new_dataset : Dataset
             (deep) copy of this HCIDataset.
 
         """

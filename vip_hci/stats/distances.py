@@ -4,16 +4,15 @@
 Distance between images.
 """
 
-
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_distance']
 
 import numpy as np
 import scipy.stats
 from matplotlib import pyplot as plt
-from ..var import get_annulus_segments
 from skimage.measure import compare_ssim as ssim
+from ..var import get_annulus_segments
+from ..conf import vip_figsize
 
 
 def cube_distance(array, frame, mode='full', dist='sad', inradius=None,

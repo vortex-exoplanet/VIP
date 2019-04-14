@@ -15,7 +15,7 @@ import pickle
 import numpy as np
 from sklearn.base import BaseEstimator
 
-from .hci_dataset import HCIDataset
+from .hci_dataset import Dataset
 from .medsub import median_sub
 from .metrics import snrmap_fast, snrmap
 from .andromeda import andromeda
@@ -71,7 +71,7 @@ class HCIPostProcAlgo(BaseEstimator):
         """
 
         dataset = locals_dict.get("dataset", None)
-        if not isinstance(dataset, (HCIDataset, type(None))):
+        if not isinstance(dataset, (Dataset, type(None))):
             raise ValueError('`dataset` must be a HCIDataset object or None')
 
         self._store_args(locals_dict, *skip)
@@ -111,7 +111,7 @@ class HCIPostProcAlgo(BaseEstimator):
 
         Returns
         -------
-        dataset : HCIDataset
+        dataset : Dataset
 
         """
         if dataset is None:

@@ -436,36 +436,36 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         X and Y is returned when ``model`` is set to 'gauss').
 
     """
-    def psf_norm_2d(array, fwhm, threshold, mask_core, full_output, verbose):
+    def psf_norm_2d(psf, fwhm, threshold, mask_core, full_output, verbose):
         """ 2d case """
         # we check if the psf is centered and fix it if needed
-        cy, cx = frame_center(array, verbose=False)
-        xcom, ycom = photutils.centroid_com(array)
+        cy, cx = frame_center(psf, verbose=False)
+        xcom, ycom = photutils.centroid_com(psf)
         if not (np.allclose(cy, ycom, atol=1e-2) or
                 np.allclose(cx, xcom, atol=1e-2)):
             # first we find the centroid and put it in the center of the array
-            centry, centrx = fit_2d(array, full_output=False, debug=False)
+            centry, centrx = fit_2d(psf, full_output=False, debug=False)
             shiftx, shifty = centrx - cx, centry - cy
-            psfs = frame_shift(array, -shifty, -shiftx, imlib=imlib,
-                               interpolation=interpolation)
+            psf = frame_shift(psf, -shifty, -shiftx, imlib=imlib,
+                              interpolation=interpolation)
 
             for _ in range(2):
-                centry, centrx = fit_2d(psfs, full_output=False, debug=False)
-                cy, cx = frame_center(psfs, verbose=False)
+                centry, centrx = fit_2d(psf, full_output=False, debug=False)
+                cy, cx = frame_center(psf, verbose=False)
                 shiftx, shifty = centrx - cx, centry - cy
-                psfs = frame_shift(psfs, -shifty, -shiftx, imlib=imlib,
-                                   interpolation=interpolation)
+                psf = frame_shift(psf, -shifty, -shiftx, imlib=imlib,
+                                  interpolation=interpolation)
 
         # we check whether the flux is normalized and fix it if needed
-        fwhm_aper = photutils.CircularAperture((frame_center(psfs)), fwhm/2)
-        fwhm_aper_phot = photutils.aperture_photometry(psfs, fwhm_aper,
+        fwhm_aper = photutils.CircularAperture((frame_center(psf)), fwhm/2)
+        fwhm_aper_phot = photutils.aperture_photometry(psf, fwhm_aper,
                                                        method='exact')
         fwhm_flux = np.array(fwhm_aper_phot['aperture_sum'])
 
         if fwhm_flux > 1.1 or fwhm_flux < 0.9:
-            psf_norm_array = psfs / np.array(fwhm_aper_phot['aperture_sum'])
+            psf_norm_array = psf / np.array(fwhm_aper_phot['aperture_sum'])
         else:
-            psf_norm_array = psfs
+            psf_norm_array = psf
 
         if threshold is not None:
             psf_norm_array[np.where(psf_norm_array < threshold)] = 0

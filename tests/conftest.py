@@ -40,8 +40,8 @@ def example_dataset():
     psf = vip.fits.open_fits(f2)
 
     # create dataset object
-    dataset = vip.HCIDataset(cube, angles=angles, psf=psf,
-                             px_scale=vip.conf.VLT_NACO['plsc'])
+    dataset = vip.Dataset(cube, angles=angles, psf=psf,
+                          px_scale=vip.conf.VLT_NACO['plsc'])
 
     dataset.normalize_psf(size=20, force_odd=False)
 
@@ -86,9 +86,9 @@ def example_dataset_ifs():
     wl = vip.fits.open_fits(f4)
 
     # create dataset object
-    dataset = vip.HCIDataset(cube, angles=angles, psf=psf,
-                             px_scale=vip.conf.VLT_SPHERE_IFS['plsc'],
-                             wavelengths=wl)
+    dataset = vip.Dataset(cube, angles=angles, psf=psf,
+                          px_scale=vip.conf.VLT_SPHERE_IFS['plsc'],
+                          wavelengths=wl)
 
     # crop
     dataset.crop_frames(size=100, force=True)

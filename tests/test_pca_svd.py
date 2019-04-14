@@ -20,6 +20,4 @@ def test_svd_recons():
     print(S.shape)
     print(V.shape)
     rec_matrix = np.dot(U, np.dot(np.diag(S), V))
-    # print(np.abs(mat))
-    # print(np.abs(rec_matrix))
     assert np.allclose(np.abs(mat), np.abs(rec_matrix), atol=1.e-2)

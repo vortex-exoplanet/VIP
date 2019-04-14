@@ -19,6 +19,7 @@ from astropy.modeling import models, fitting
 from astropy.stats import (gaussian_sigma_to_fwhm, gaussian_fwhm_to_sigma,
                            sigma_clipped_stats)
 from .shapes import get_square, frame_center
+from ..conf import check_array
 
 
 def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
@@ -66,7 +67,7 @@ def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
 
     Returns
     -------
-    im : array_like
+    im : numpy ndarray
         2d array with given ``shape`` and containing the synthetic PSF.
 
     Notes
@@ -129,13 +130,13 @@ def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
 
 
 def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
-                   theta=0, threshold=False, sigfactor=6, full_output=False,
-                   debug=False):
+                   theta=0, threshold=False, sigfactor=6, full_output=True,
+                   debug=True):
     """ Fitting a 2D Gaussian to the 2D distribution of the data.
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame with a single PSF.
     crop : bool, optional
         If True an square sub image will be cropped.
@@ -182,8 +183,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     'theta' : Float value. Rotation angle.
 
     """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array')
+    check_array(array, dim=2, msg='array')
 
     if crop:
         if cent is None:
@@ -229,11 +229,11 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
 
     if debug:
         if threshold:
-            msg = ['Subimage thresholded', 'Model', 'Residuals']
+            label = ('Subimage thresholded', 'Model', 'Residuals')
         else:
-            msg = ['Subimage', 'Model', 'Residuals']
+            label = ('Subimage', 'Model', 'Residuals')
         plot_frames((psf_subimage, fit(x, y), psf_subimage-fit(x, y)),
-                    grid=True, grid_spacing=1, label=msg)
+                    grid=True, grid_spacing=1, label=label)
         print('FWHM_y =', fwhm_y)
         print('FWHM_x =', fwhm_x, '\n')
         print('centroid y =', mean_y)
@@ -252,12 +252,12 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
 
 
 def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
-                 threshold=False, sigfactor=6, full_output=False, debug=False):
+                 threshold=False, sigfactor=6, full_output=True, debug=True):
     """ Fitting a 2D Moffat to the 2D distribution of the data.
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame with a single PSF.
     crop : bool, optional
         If True an square sub image will be cropped.
@@ -301,8 +301,7 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
     'gamma' : Float value. Gamma parameter.
 
     """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array')
+    check_array(array, dim=2, msg='array')
 
     if crop:
         if cent is None:
@@ -347,11 +346,11 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
 
     if debug:
         if threshold:
-            msg = ['Subimage thresholded', 'Model', 'Residuals']
+            label = ('Subimage thresholded', 'Model', 'Residuals')
         else:
-            msg = ['Subimage', 'Model', 'Residuals']
+            label = ('Subimage', 'Model', 'Residuals')
         plot_frames((psf_subimage, fit(x, y), psf_subimage - fit(x, y)),
-                    grid=True, grid_spacing=1, label=msg)
+                    grid=True, grid_spacing=1, label=label)
         print('FWHM =', fwhm)
         print('centroid y =', mean_y)
         print('centroid x =', mean_x)
@@ -370,12 +369,13 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
 
 
 def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
-                 threshold=False, sigfactor=6, full_output=False, debug=False):
+                   threshold=False, sigfactor=6, full_output=True,
+                   debug=True):
     """ Fitting a 2D Moffat to the 2D distribution of the data.
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame with a single PSF.
     crop : bool, optional
         If True an square sub image will be cropped.
@@ -419,8 +419,7 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     'gamma' : Float value. Gamma parameter.
 
     """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array')
+    check_array(array, dim=2, msg='array')
 
     if crop:
         if cent is None:
@@ -465,11 +464,11 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
 
     if debug:
         if threshold:
-            msg = ['Subimage thresholded', 'Model', 'Residuals']
+            label = ('Subimage thresholded', 'Model', 'Residuals')
         else:
-            msg = ['Subimage', 'Model', 'Residuals']
+            label = ('Subimage', 'Model', 'Residuals')
         plot_frames((psf_subimage, fit(x, y), psf_subimage - fit(x, y)),
-                    grid=True, grid_spacing=1, label=msg)
+                    grid=True, grid_spacing=1, label=label)
         print('FWHM =', fwhm)
         print('centroid y =', mean_y)
         print('centroid x =', mean_x)

@@ -38,7 +38,7 @@ from ..conf import timing, time_ini, sep, Progressbar
 from ..var import matrix_scaling, prepare_matrix, matrix_scaling
 from ..preproc import check_scal_vector, cube_crop_frames
 from ..preproc import cube_rescaling_wavelengths as scwave
-from ..conf.utils_conf import vip_figsize
+from ..conf import vip_figsize, check_array
 
 
 class SVDecomposer:
@@ -124,6 +124,7 @@ class SVDecomposer:
             If True intermediate messages and timing are printed.
 
         """
+        check_array(data, (2, 3, 4), msg='data')
         self.data = data
         self.mode = mode
         self.svd_mode = svd_mode

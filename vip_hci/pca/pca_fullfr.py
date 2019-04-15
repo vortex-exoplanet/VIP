@@ -10,12 +10,13 @@ __all__ = ['pca']
 import numpy as np
 from multiprocessing import cpu_count
 from .svd import svd_wrapper, SVDecomposer
-from .utils_pca import pca_incremental
+from .utils_pca import pca_incremental, pca_grid
 from ..preproc.derotation import _find_indices_adi, _compute_pa_thresh
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector, cube_crop_frames)
-from ..conf import timing, time_ini, check_enough_memory, Progressbar
+from ..conf import (timing, time_ini, check_enough_memory, Progressbar,
+                    check_array)
 from ..conf.utils_conf import pool_map, iterable
 from ..var import frame_center, dist, prepare_matrix, reshape_matrix
 from ..stats import descriptive_stats
@@ -228,10 +229,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
     start_time = time_ini(verbose)
 
     if batch is None:
-        if not isinstance(cube, np.ndarray):
-            raise TypeError('`cube` is not a numpy 3d or 4d array')
-        if cube.ndim not in [3, 4]:
-            raise TypeError('`cube` is not a numpy 3d or 4d array')
+        check_array(cube, (3, 4), msg='cube')
     else:
         if not isinstance(cube, (str, np.ndarray)):
             raise TypeError('`cube` must be a numpy (3d or 4d) array or a str '
@@ -282,9 +280,24 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
 
         if batch is None:
             if source_xy is not None:
-                recon_cube, residuals_cube, residuals_cube_, frame = res_pca
+                # PCA grid, computing S/Ns
+                if isinstance(ncomp, tuple):
+                    if full_output:
+                        final_residuals_cube, frame, table, _ = res_pca
+                    else:
+                        # returning only the optimal residual
+                        final_residuals_cube = res_pca[1]
+                # full-frame PCA with rotation threshold
+                else:
+                    recon_cube, residuals_cube, residuals_cube_, frame = res_pca
             else:
-                pcs, recon, residuals_cube, residuals_cube_, frame = res_pca
+                # PCA grid
+                if isinstance(ncomp, tuple):
+                    final_residuals_cube, pclist = res_pca
+                # full-frame standard PCA
+                else:
+                    pcs, recon, residuals_cube, residuals_cube_, frame = res_pca
+        # full-frame incremental PCA
         else:
             frame, _, pcs, medians = res_pca
 
@@ -301,23 +314,40 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         else:
             return frame
     else:
+        # ADI and ADI+RDI
         if full_output:
             if source_xy is not None:
-                return frame, recon_cube, residuals_cube, residuals_cube_
+                # PCA grid, computing S/Ns
+                if isinstance(ncomp, tuple):
+                    return final_residuals_cube, frame, table
+                # full-frame PCA with rotation threshold
+                else:
+                    return frame, recon_cube, residuals_cube, residuals_cube_
             else:
+                # incremental PCA
                 if batch is not None:
                     return frame, pcs, medians
                 else:
-                    return frame, pcs, recon, residuals_cube, residuals_cube_
+                    # PCA grid
+                    if isinstance(ncomp, tuple):
+                        return final_residuals_cube, pclist
+                    # full-frame standard PCA or ADI+RDI
+                    else:
+                        return (frame, pcs, recon, residuals_cube,
+                                residuals_cube_)
         else:
-            return frame
+            # PCA grid
+            if isinstance(ncomp, tuple):
+                return final_residuals_cube
+            # full-frame standard PCA or ADI+RDI
+            else:
+                return frame
 
 
 def _adi_pca(cube, angle_list, ncomp, batch, source_xy, delta_rot, fwhm,
              scaling, mask_center_px, svd_mode, imlib, interpolation, collapse,
              verbose, start_time, full_output):
     """ Handles the ADI PCA post-processing.
-
     """
     # Full/Single ADI processing, incremental PCA
     if batch is not None:
@@ -333,88 +363,106 @@ def _adi_pca(cube, angle_list, ncomp, batch, source_xy, delta_rot, fwhm,
 
         angle_list = check_pa_vector(angle_list)
         if not n == angle_list.shape[0]:
-            raise ValueError("Angle list vector has wrong length. It must "
+            raise ValueError("`angle_list` vector has wrong length. It must "
                              "equal the number of frames in the cube")
 
-        if not isinstance(ncomp, (int, float)):
-            raise TypeError("`ncomp` must be an int or a float in the ADI case")
-        if ncomp > n:
-            ncomp = min(ncomp, n)
-            msg = 'Number of PCs too high (max PCs={}), using {} PCs instead.'
-            print(msg.format(n, ncomp))
+        if not isinstance(ncomp, (int, float, tuple)):
+            raise TypeError("`ncomp` must be an int, float or a tuple in the "
+                            "ADI case")
 
-        if source_xy is None:
-            residuals_result = _project_subtract(cube, None, ncomp, scaling,
-                                                 mask_center_px, svd_mode,
-                                                 verbose, full_output)
-            if verbose:
-                timing(start_time)
-            if full_output:
-                residuals_cube = residuals_result[0]
-                reconstructed = residuals_result[1]
-                V = residuals_result[2]
-                pcs = reshape_matrix(V, y, x)
-                recon = reshape_matrix(reconstructed, y, x)
-            else:
-                residuals_cube = residuals_result
+        if isinstance(ncomp, (int, float)):
+            if isinstance(ncomp, int) and ncomp > n:
+                ncomp = min(ncomp, n)
+                print('Number of PCs too high (max PCs={}), using {} PCs '
+                      'instead.'.format(n, ncomp))
 
-        # A rotation threshold is applied
-        else:
-            if delta_rot is None or fwhm is None:
-                msg = 'Delta_rot or fwhm parameters missing. Needed for the'
-                msg += 'PA-based rejection of frames from the library'
-                raise TypeError(msg)
-            nfrslib = []
-            residuals_cube = np.zeros_like(cube)
-            recon_cube = np.zeros_like(cube)
-            yc, xc = frame_center(cube[0], False)
-            x1, y1 = source_xy
-            ann_center = dist(yc, xc, y1, x1)
-            pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
-            mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list)) / 2
-            if pa_thr >= mid_range - mid_range * 0.1:
-                new_pa_th = float(mid_range - mid_range * 0.1)
+            if source_xy is None:
+                residuals_result = _project_subtract(cube, None, ncomp, scaling,
+                                                     mask_center_px, svd_mode,
+                                                     verbose, full_output)
                 if verbose:
-                    msg = 'PA threshold {:.2f} is too big, will be set to '
-                    msg += '{:.2f}'
-                    print(msg.format(pa_thr, new_pa_th))
-                pa_thr = new_pa_th
-
-            for frame in range(n):
-                if ann_center > fwhm * 3:  # TODO: 3 optimal value? new par?
-                    ind = _find_indices_adi(angle_list, frame, pa_thr,
-                                            truncate=True)
-                else:
-                    ind = _find_indices_adi(angle_list, frame, pa_thr)
-
-                res_result = _project_subtract(cube, None, ncomp, scaling,
-                                               mask_center_px, svd_mode,
-                                               verbose, full_output, ind, frame)
+                    timing(start_time)
                 if full_output:
-                    nfrslib.append(res_result[0])
-                    residual_frame = res_result[1]
-                    recon_frame = res_result[2]
-                    residuals_cube[frame] = residual_frame.reshape((y, x))
-                    recon_cube[frame] = recon_frame.reshape((y, x))
+                    residuals_cube = residuals_result[0]
+                    reconstructed = residuals_result[1]
+                    V = residuals_result[2]
+                    pcs = reshape_matrix(V, y, x)
+                    recon = reshape_matrix(reconstructed, y, x)
                 else:
-                    nfrslib.append(res_result[0])
-                    residual_frame = res_result[1]
-                    residuals_cube[frame] = residual_frame.reshape((y, x))
+                    residuals_cube = residuals_result
 
-            # number of frames in library printed for each annular quadrant
+            # A rotation threshold is applied
+            else:
+                if delta_rot is None or fwhm is None:
+                    msg = 'Delta_rot or fwhm parameters missing. Needed for the'
+                    msg += 'PA-based rejection of frames from the library'
+                    raise TypeError(msg)
+                nfrslib = []
+                residuals_cube = np.zeros_like(cube)
+                recon_cube = np.zeros_like(cube)
+                yc, xc = frame_center(cube[0], False)
+                x1, y1 = source_xy
+                ann_center = dist(yc, xc, y1, x1)
+                pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
+                mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list))/2
+                if pa_thr >= mid_range - mid_range * 0.1:
+                    new_pa_th = float(mid_range - mid_range * 0.1)
+                    if verbose:
+                        msg = 'PA threshold {:.2f} is too big, will be set to '
+                        msg += '{:.2f}'
+                        print(msg.format(pa_thr, new_pa_th))
+                    pa_thr = new_pa_th
+
+                for frame in range(n):
+                    if ann_center > fwhm * 3:  # TODO: 3 optimal value? new par?
+                        ind = _find_indices_adi(angle_list, frame, pa_thr,
+                                                truncate=True)
+                    else:
+                        ind = _find_indices_adi(angle_list, frame, pa_thr)
+
+                    res_result = _project_subtract(cube, None, ncomp, scaling,
+                                                   mask_center_px, svd_mode,
+                                                   verbose, full_output, ind,
+                                                   frame)
+                    if full_output:
+                        nfrslib.append(res_result[0])
+                        residual_frame = res_result[1]
+                        recon_frame = res_result[2]
+                        residuals_cube[frame] = residual_frame.reshape((y, x))
+                        recon_cube[frame] = recon_frame.reshape((y, x))
+                    else:
+                        nfrslib.append(res_result[0])
+                        residual_frame = res_result[1]
+                        residuals_cube[frame] = residual_frame.reshape((y, x))
+
+                # number of frames in library printed for each annular quadrant
+                if verbose:
+                    descriptive_stats(nfrslib, verbose=verbose,
+                                      label='Size LIB: ')
+
+            residuals_cube_ = cube_derotate(residuals_cube, angle_list,
+                                            imlib=imlib,
+                                            interpolation=interpolation)
+            frame = cube_collapse(residuals_cube_, mode=collapse)
             if verbose:
-                descriptive_stats(nfrslib, verbose=verbose, label='Size LIB: ')
+                print('Done de-rotating and combining')
+                timing(start_time)
+            if source_xy is not None:
+                return recon_cube, residuals_cube, residuals_cube_, frame
+            else:
+                return pcs, recon, residuals_cube, residuals_cube_, frame
 
-        residuals_cube_ = cube_derotate(residuals_cube, angle_list, imlib=imlib,
-                                        interpolation=interpolation)
-        frame = cube_collapse(residuals_cube_, mode=collapse)
-        if verbose:
-            print('Done de-rotating and combining')
-            timing(start_time)
-        if source_xy is not None:
-            return recon_cube, residuals_cube, residuals_cube_, frame
+        # When ncomp is a tuple, pca_grid is called
         else:
-            return pcs, recon, residuals_cube, residuals_cube_, frame
+            gridre = pca_grid(cube, angle_list, fwhm, range_pcs=ncomp,
+                              source_xy=source_xy, cube_ref=None, mode='fullfr',
+                              svd_mode=svd_mode, scaling=scaling,
+                              mask_center_px=mask_center_px, fmerit='mean',
+                              imlib=imlib, interpolation=interpolation,
+                              collapse=collapse, verbose=verbose,
+                              full_output=full_output, debug=False,
+                              plot=verbose, start_time=start_time)
+            return gridre
 
 
 def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,

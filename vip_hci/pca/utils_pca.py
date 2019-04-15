@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Module with helping functions.
+Module with helping functions for PCA.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
@@ -9,11 +9,363 @@ __all__ = []
 
 import numpy as np
 from sklearn.decomposition import IncrementalPCA
-from ..conf import timing, time_ini, get_available_memory
-from ..var import prepare_matrix, reshape_matrix
-from ..preproc import cube_derotate, cube_collapse, check_pa_vector
+from pandas import DataFrame
+from skimage import draw
+from matplotlib import pyplot as plt
 from ..fits import open_fits
 from .svd import svd_wrapper
+from ..preproc import cube_derotate, cube_collapse, check_pa_vector
+from ..conf import timing, time_ini, check_array, get_available_memory
+from ..conf.utils_conf import vip_figsize, vip_figdpi
+from ..var import frame_center, dist, prepare_matrix, reshape_matrix
+
+
+def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
+             cube_ref=None, mode='fullfr', annulus_width=20, svd_mode='lapack',
+             scaling=None, mask_center_px=None, fmerit='mean', imlib='opencv',
+             interpolation='lanczos4', collapse='median', verbose=True,
+             full_output=False, debug=False, plot=True, save_plot=None,
+             start_time=None):
+    """
+    Compute a grid, depending on ``range_pcs``, of residual PCA frames out of a
+    3d ADI cube (or a reference cube). If ``source_xy`` is provided, the number
+    of principal components are optimized by measuring the S/N at this location
+    on the frame (ADI, RDI). The metric used, set by ``fmerit``, could be the
+    given pixel's S/N, the maximum S/N in a FWHM circular aperture centered on
+    the given coordinates or the mean S/N in the same circular aperture.
+
+    Parameters
+    ----------
+    cube : numpy ndarray, 3d
+        Input cube.
+    angle_list : numpy ndarray, 1d
+        Corresponding parallactic angle for each frame.
+    fwhm : float
+        Size of the FWHM in pixels.
+    range_pcs : None or tuple, optional
+        The interval of PCs to be tried. If a range is entered as
+        [PC_INI, PC_MAX] a sequential grid will be evaluated between PC_INI
+        and PC_MAX with step of 1. If a range is entered as
+        [PC_INI, PC_MAX, STEP] a grid will be evaluated between PC_INI and
+        PC_MAX with the given STEP. If None, PC_INI=1, PC_MAX=n_frames-1 and
+        STEP=1, which will result in longer running time.
+    source_xy : None or tuple of floats
+        X and Y coordinates of the pixel where the source is located and whose
+        SNR is going to be maximized.
+    cube_ref : numpy ndarray, 3d, optional
+        Reference library cube. For Reference Star Differential Imaging.
+    mode : {'fullfr', 'annular'}, optional
+        Mode for PCA processing (full-frame or just in an annulus). There is a
+        catch: the optimal number of PCs in full-frame may not coincide with the
+        one in annular mode. This is due to the fact that the annulus matrix is
+        smaller (less noisy, probably not containing the central star) and also
+        its intrinsic rank (smaller that in the full frame case).
+    annulus_width : float, optional
+        Width in pixels of the annulus in the case of the "annular" mode.
+    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
+        'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+        Switch for the SVD method/library to be used.
+
+        ``lapack``: uses the LAPACK linear algebra library through Numpy
+        and it is the most conventional way of computing the SVD
+        (deterministic result computed on CPU).
+
+        ``arpack``: uses the ARPACK Fortran libraries accessible through
+        Scipy (computation on CPU).
+
+        ``eigen``: computes the singular vectors through the
+        eigendecomposition of the covariance M.M' (computation on CPU).
+
+        ``randsvd``: uses the randomized_svd algorithm implemented in
+        Sklearn (computation on CPU).
+
+        ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+        the LAPACK version. `
+
+        `eigencupy``: offers the same method as with the ``eigen`` option
+        but on GPU (through Cupy).
+
+        ``randcupy``: is an adaptation of the randomized_svd algorithm,
+        where all the computations are done on a GPU (through Cupy). `
+
+        `pytorch``: uses the Pytorch library for GPU computation of the SVD.
+
+        ``eigenpytorch``: offers the same method as with the ``eigen``
+        option but on GPU (through Pytorch).
+
+        ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+        where all the linear algebra computations are done on a GPU
+        (through Pytorch).
+
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        ``temp-mean``: temporal px-wise mean is subtracted.
+
+        ``spat-mean``: spatial mean is subtracted.
+
+        ``temp-standard``: temporal mean centering plus scaling pixel values
+        to unit variance.
+
+        ``spat-standard``: spatial mean centering plus scaling pixel values
+        to unit variance.
+
+    mask_center_px : None or int, optional
+        If None, no masking is done. If an integer > 1 then this value is the
+        radius of the circular mask.
+    fmerit : {'px', 'max', 'mean'}
+        The function of merit to be maximized. 'px' is *source_xy* pixel's SNR,
+        'max' the maximum SNR in a FWHM circular aperture centered on
+        ``source_xy`` and 'mean' is the mean SNR in the same circular aperture.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.
+    verbose : bool, optional
+        If True prints intermediate info and timing.
+    full_output : bool, optional
+        If True it returns the optimal number of PCs, the final PCA frame for
+        the optimal PCs and a cube with all the final frames for each number
+        of PC that was tried.
+    debug : bool, bool optional
+        Whether to print debug information or not.
+    plot : bool, optional
+        Whether to plot the SNR and flux as functions of PCs and final PCA
+        frame or not.
+    save_plot: string
+        If provided, the pc optimization plot will be saved to that path.
+    start_time : None or datetime.datetime, optional
+        Used when embedding this function in the main ``pca`` function. The
+        object datetime.datetime is the global starting time. If None, it
+        initiates its own counter.
+
+    Returns
+    -------
+    cubeout : numpy ndarray
+        3D array with the residuals frames.
+    pclist : list
+        [full_output=True, source_xy is None] The list of PCs at which the
+        residual frames are computed.
+    finalfr : numpy ndarray
+        [source_xy is not None] Residual frame with the highest S/N for
+        ``source_xy''.
+    df : pandas Dataframe
+        [source_xy is not None]  Dataframe with the pcs, measured fluxed and
+        S/Ns for ``source_xy''.
+    opt_npc : int
+        [source_xy is not None] Optimal number of PCs for ``source_xy''.
+
+    """
+    from ..metrics import snr_ss, frame_quick_report
+
+    def truncate_svd_get_finframe(matrix, angle_list, ncomp, V):
+        """ Projection, subtraction, derotation plus combination in one frame.
+        Only for full-frame"""
+        transformed = np.dot(V[:ncomp], matrix.T)
+        reconstructed = np.dot(transformed.T, V[:ncomp])
+        residuals = matrix - reconstructed
+        frsize = int(np.sqrt(matrix.shape[1]))  # only for square frames
+        residuals_res = reshape_matrix(residuals, frsize, frsize)
+        residuals_res_der = cube_derotate(residuals_res, angle_list,
+                                          imlib=imlib,
+                                          interpolation=interpolation)
+        frame = cube_collapse(residuals_res_der, mode=collapse)
+        return frame
+
+    def truncate_svd_get_finframe_ann(matrix, indices, angle_list, ncomp, V):
+        """ Projection, subtraction, derotation plus combination in one frame.
+        Only for annular mode"""
+        transformed = np.dot(V[:ncomp], matrix.T)
+        reconstructed = np.dot(transformed.T, V[:ncomp])
+        residuals_ann = matrix - reconstructed
+        residuals_res = np.zeros_like(cube)
+        residuals_res[:, indices[0], indices[1]] = residuals_ann
+        residuals_res_der = cube_derotate(residuals_res, angle_list,
+                                          imlib=imlib,
+                                          interpolation=interpolation)
+        frame = cube_collapse(residuals_res_der, mode=collapse)
+        return frame
+
+    def get_snr(frame, y, x, fwhm, fmerit):
+        """
+        """
+        if fmerit == 'max':
+            yy, xx = draw.circle(y, x, fwhm / 2.)
+            res = [snr_ss(frame, (x_, y_), fwhm, plot=False, verbose=False,
+                          full_output=True)
+                   for y_, x_ in zip(yy, xx)]
+            snr_pixels = np.array(res)[:, -1]
+            fluxes = np.array(res)[:, 2]
+            argm = np.argmax(snr_pixels)
+            # integrated fluxes for the max snr
+            return np.max(snr_pixels), fluxes[argm]
+
+        elif fmerit == 'px':
+            res = snr_ss(frame, (x, y), fwhm, plot=False, verbose=False,
+                         full_output=True)
+            snrpx = res[-1]
+            fluxpx = np.array(res)[2]
+            # integrated fluxes for the given px
+            return snrpx, fluxpx
+
+        elif fmerit == 'mean':
+            yy, xx = draw.circle(y, x, fwhm / 2.)
+            res = [snr_ss(frame, (x_, y_), fwhm, plot=False, verbose=False,
+                          full_output=True) for y_, x_
+                   in zip(yy, xx)]
+            snr_pixels = np.array(res)[:, -1]
+            fluxes = np.array(res)[:, 2]
+            # mean of the integrated fluxes (shifting the aperture)
+            return np.mean(snr_pixels), np.mean(fluxes)
+
+    # --------------------------------------------------------------------------
+    check_array(cube, dim=3, msg='cube')
+
+    if start_time is None:
+        start_time = time_ini(verbose)
+    n = cube.shape[0]
+
+    if source_xy is not None:
+        x, y = source_xy
+    else:
+        x = None
+        y = None
+
+    if range_pcs is None:
+        pcmin = 1
+        pcmax = n - 1
+        step = 1
+    elif len(range_pcs) == 2:
+        pcmin, pcmax = range_pcs
+        pcmax = min(pcmax, n)
+        step = 1
+    elif len(range_pcs) == 3:
+        pcmin, pcmax, step = range_pcs
+        pcmax = min(pcmax, n)
+    else:
+        raise TypeError('`range_pcs` must be None or a tuple, corresponding to '
+                        '(PC_INI, PC_MAX) or (PC_INI, PC_MAX, STEP)')
+
+    # Getting `pcmax` principal components once
+    if mode == 'fullfr':
+        matrix = prepare_matrix(cube, scaling, mask_center_px, verbose=False)
+        if cube_ref is not None:
+            ref_lib = prepare_matrix(cube_ref, scaling, mask_center_px,
+                                     verbose=False)
+        else:
+            ref_lib = matrix
+
+    elif mode == 'annular':
+        y_cent, x_cent = frame_center(cube[0])
+        ann_radius = dist(y_cent, x_cent, y, x)
+        matrix, annind = prepare_matrix(cube, scaling, None, mode='annular',
+                                        annulus_radius=ann_radius,
+                                        annulus_width=annulus_width,
+                                        verbose=False)
+        if cube_ref is not None:
+            ref_lib, _ = prepare_matrix(cube_ref, scaling, mask_center_px,
+                                        'annular', annulus_radius=ann_radius,
+                                        annulus_width=annulus_width,
+                                        verbose=False)
+        else:
+            ref_lib = matrix
+
+    else:
+        raise RuntimeError('Wrong mode. Choose either fullfr or annular')
+
+    V = svd_wrapper(ref_lib, svd_mode, pcmax, verbose)
+
+    if verbose:
+        timing(start_time)
+
+    snrlist = []
+    pclist = []
+    fluxlist = []
+    frlist = []
+    counter = 0
+    for pc in range(pcmin, pcmax + 1, step):
+        if mode == 'fullfr':
+            frame = truncate_svd_get_finframe(matrix, angle_list, pc, V)
+        elif mode == 'annular':
+            frame = truncate_svd_get_finframe_ann(matrix, annind,
+                                                  angle_list, pc, V)
+        else:
+            raise RuntimeError('Wrong mode. Choose either full or annular')
+
+        if x is not None and y is not None:
+            snr, flux = get_snr(frame, y, x, fwhm, fmerit)
+            if np.isnan(snr):
+                snr = 0
+            snrlist.append(snr)
+            fluxlist.append(flux)
+
+        counter += 1
+        pclist.append(pc)
+        frlist.append(frame)
+
+    cubeout = np.array((frlist))
+
+    # measuring the S/Ns for the given position
+    if x is not None and y is not None:
+        argmax = np.argmax(snrlist)
+        opt_npc = pclist[argmax]
+        df = DataFrame({'PCs': pclist, 'S/Ns': snrlist, 'fluxes': fluxlist})
+        if debug:
+            print(df, '\n')
+
+        if verbose:
+            print('Number of steps', len(pclist))
+            msg = 'Optimal number of PCs = {}, for S/N={:.3f}'
+            print(msg.format(opt_npc, snrlist[argmax]))
+
+            # Plot of SNR and flux as function of PCs
+            if plot:
+                plt.figure(figsize=vip_figsize, dpi=vip_figdpi)
+                ax1 = plt.subplot(211)
+                ax1.plot(pclist, snrlist, '-', alpha=0.5, color='C0')
+                ax1.plot(pclist, snrlist, 'o', alpha=0.5, color='C0')
+                ax1.set_xlim(np.array(pclist).min(), np.array(pclist).max())
+                ax1.set_ylim(min(snrlist), np.array(snrlist).max() + 1)
+                ax1.set_ylabel('S/N')
+                ax1.minorticks_on()
+                ax1.grid('on', 'major', linestyle='solid', alpha=0.4)
+                ax1.set_title('Optimal # PCs: {}'.format(opt_npc))
+
+                ax2 = plt.subplot(212)
+                ax2.plot(pclist, fluxlist, '-', alpha=0.5, color='C1')
+                ax2.plot(pclist, fluxlist, 'o', alpha=0.5, color='C1')
+                ax2.set_xlim(np.array(pclist).min(), np.array(pclist).max())
+                ax2.set_ylim(min(fluxlist), np.array(fluxlist).max() + 1)
+                ax2.set_xlabel('Principal components')
+                ax2.set_ylabel('Flux in FWHM ap. [ADUs]')
+                ax2.minorticks_on()
+                ax2.grid('on', 'major', linestyle='solid', alpha=0.4)
+
+            if save_plot is not None:
+                plt.savefig(save_plot, dpi=100, bbox_inches='tight')
+
+            finalfr = cubeout[argmax]
+            _ = frame_quick_report(finalfr, fwhm, (x, y), verbose=verbose)
+
+            return cubeout, finalfr, df, opt_npc
+
+    else:
+        if verbose:
+            print('Computed residual frames for PCs interval: '
+                  '{}'.format(range_pcs))
+            print('Number of steps', len(pclist))
+
+    if verbose:
+        timing(start_time)
+
+    if full_output:
+        return cubeout, pclist
+    else:
+        return cubeout
 
 
 def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, imlib='opencv',

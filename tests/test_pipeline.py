@@ -149,7 +149,7 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
         (algo_llsg, snrmap_fast),
         (algo_frdiff, snrmap_fast),
         (algo_pca, snrmap_fast),
-        # (algo_pca_grid, snrmap_fast),
+        (algo_pca_grid, snrmap_fast),
         (algo_pca_incremental, snrmap_fast),
         (algo_pca_annular, snrmap_fast),
         (algo_andromeda, None),

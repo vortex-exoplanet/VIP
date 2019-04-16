@@ -67,13 +67,21 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         How many PCs are used as a lower-dimensional subspace to project the
         target frames.
 
-        * ADI case: ``ncomp`` is the number of PCs extracted from ``cube``
-        itself. Optionally if ``ncomp`` is a float in the interval (0, 1] then
-        it corresponds to the desired CEVR, and the corresponding number of
-        components will be estimated.
+        * ADI case: if an int is provided, ``ncomp`` is the number of PCs
+        extracted from ``cube`` itself. If ``ncomp`` is a float in the interval
+        (0, 1] then it corresponds to the desired cumulative explained variance
+        ratio (the corresponding number of components is estimated). If
+        ``ncomp`` is a tuple, then it corresponds to an interval of PCs in which
+        final residual frames are computed. If ``source_xy`` is not None, then
+        the (mean value in a 1xFWHM circular aperture) S/N of the given (X,Y)
+        coordinates is computed.
 
         * ADI+RDI case: when both ``cube`` and ``cube_ref`` are provided,
-        ``ncomp`` is the number of PCs obtained from ``cube_ref``.
+        ``ncomp`` is the number of PCs obtained from ``cube_ref``. If ``ncomp``
+        is a tuple, then it corresponds to an interval of PCs (obtained from
+        ``cube_ref``) in which final residual frames are computed. If `
+        `source_xy`` is not None, then the (mean value in a 1xFWHM circular
+        aperture) S/N of the given (X,Y) coordinates is computed.
 
         * ADI+mSDI case and ``adimsdi="double"``: ``ncomp`` must be a tuple,
         where the first value is the number of PCs obtained from each
@@ -223,6 +231,8 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
     medians : numpy ndarray
         [full_output=True, source_xy=None] This is also returned when ``batch``
         is not None (incremental PCA).
+    final_residuals_cube : numpy ndarray
+        [ncomp is tuple] The residual final PCA frames for a grid a PCs.
 
 
     """

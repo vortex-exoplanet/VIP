@@ -27,7 +27,7 @@ from .svd import get_eigenvectors
 
 def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
                 asize=4, n_segments=1, delta_rot=1, delta_sep=(0.1, 1), ncomp=1,
-                ncomp2=1, svd_mode='lapack', nproc=1, min_frames_lib=2,
+                svd_mode='lapack', nproc=1, min_frames_lib=2,
                 max_frames_lib=200, tol=1e-1, scaling=None, imlib='opencv',
                 interpolation='lanczos4', collapse='median', full_output=False,
                 verbose=True):
@@ -43,7 +43,7 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
         Input cube.
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
-    scale_list :
+    scale_list : numpy ndarray, 1d
         Scaling factors in case of IFS data (ADI+mSDI cube). Usually, the
         scaling factors are the central channel wavelength divided by the
         shortest wavelength in the cube (more thorough approaches can be used
@@ -72,38 +72,57 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
         If a tuple of two values is provided, they are used as the lower and
         upper intervals for the threshold (grows as a function of the
         separation).
-    ncomp : int or list or 1d numpy array, optional
+    ncomp : 'auto', int, tuple, 1d numpy array or tuple, optional
         How many PCs are used as a lower-dimensional subspace to project the
-        target (sectors of) frames. If ``auto`` it will be automatically
-        determined. If ``cube`` is a 3d array (ADI), ``ncomp`` can be a list,
-        in which case a different number of PCs will be used for each annulus
-        (starting with the innermost one). If ``cube`` is a 4d array, then
-        ``ncomp`` is the number of PCs obtained from each multi-spectral frame
-        (for each sector).
-    ncomp2 : int, optional
-        Only used for ADI+mSDI (4d) cubes. ``ncomp2`` sets the number of PCs
-        used in the second PCA stage (ADI fashion, using the residuals of the
-        first stage). If None then the second PCA stage is skipped and the
-        residuals are de-rotated and combined.
+        target (sectors of) frames. Depends on the dimensionality of `cube`.
+
+        * ADI case: if a single integer is provided, then the same number of PCs
+        will be subtracted at each separation (annulus). If a tuple is provided,
+        then a different number of PCs will be used for each annulus (starting
+        with the innermost one). If ``ncomp`` is set to ``auto`` then the number
+        of PCs are calculated for each region/patch automatically.
+
+        * ADI+mSDI case: ``ncomp`` must be a tuple (two integers) with the
+        number of PCs obtained from each multi-spectral frame (for each sector)
+        and the number of PCs used in the second PCA stage (ADI fashion, using
+        the residuals of the first stage). If None then the second PCA stage is
+        skipped and the residuals are de-rotated and combined.
+
     svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
-                'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, optional
-        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK
-        linear algebra library through Numpy and it is the most conventional way
-        of computing the SVD (deterministic result computed on CPU). ``arpack``
-        uses the ARPACK Fortran libraries accessible through Scipy (computation
-        on CPU). ``eigen`` computes the singular vectors through the
+        'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+        Switch for the SVD method/library to be used.
+
+        ``lapack``: uses the LAPACK linear algebra library through Numpy
+        and it is the most conventional way of computing the SVD
+        (deterministic result computed on CPU).
+
+        ``arpack``: uses the ARPACK Fortran libraries accessible through
+        Scipy (computation on CPU).
+
+        ``eigen``: computes the singular vectors through the
         eigendecomposition of the covariance M.M' (computation on CPU).
-        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn
-        (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
-        of the SVD as in the LAPACK version. ``eigencupy`` offers the same
-        method as with the ``eigen`` option but on GPU (through Cupy).
-        ``randcupy`` is an adaptation of the randomized_svd algorithm, where all
-        the computations are done on a GPU (through Cupy). ``pytorch`` uses the
-        Pytorch library for GPU computation of the SVD. ``eigenpytorch`` offers
-        the same method as with the ``eigen`` option but on GPU (through
-        Pytorch). ``randpytorch`` is an adaptation of the randomized_svd
-        algorithm, where all the linear algebra computations are done on a GPU
+
+        ``randsvd``: uses the randomized_svd algorithm implemented in
+        Sklearn (computation on CPU).
+
+        ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+        the LAPACK version. `
+
+        `eigencupy``: offers the same method as with the ``eigen`` option
+        but on GPU (through Cupy).
+
+        ``randcupy``: is an adaptation of the randomized_svd algorithm,
+        where all the computations are done on a GPU (through Cupy). `
+
+        `pytorch``: uses the Pytorch library for GPU computation of the SVD.
+
+        ``eigenpytorch``: offers the same method as with the ``eigen``
+        option but on GPU (through Pytorch).
+
+        ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+        where all the linear algebra computations are done on a GPU
         (through Pytorch).
+
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to (cpu_count()/2).
@@ -116,13 +135,21 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
     tol : float, optional
         Stopping criterion for choosing the number of PCs when ``ncomp``
         is None. Lower values will lead to smaller residuals and more PCs.
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done, with
-        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
-        temporal mean centering plus scaling to unit variance is done and with
-        "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        ``temp-mean``: temporal px-wise mean is subtracted.
+
+        ``spat-mean``: spatial mean is subtracted.
+
+        ``temp-standard``: temporal mean centering plus scaling pixel values
+        to unit variance.
+
+        ``spat-standard``: spatial mean centering plus scaling pixel values
+        to unit variance.
+        
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
@@ -183,6 +210,13 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
             if not scale_list.shape[0] == z:
                 raise ValueError('Scaling factors vector has wrong length')
 
+        if not isinstance(ncomp, tuple):
+            raise TypeError("`ncomp` must be a tuple of two integers when "
+                            "`cube` is a 4d array")
+        else:
+            ncomp2 = ncomp[1]
+            ncomp = ncomp[0]
+
         if verbose:
             print('First PCA subtraction exploiting the spectral variability')
             print('{} spectral channels per IFS frame'.format(z))
@@ -225,9 +259,6 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
             else:
                 frame = res
 
-        if verbose:
-            print('Done derotating and combining.')
-            timing(start_time)
         if full_output:
             return cube_out, cube_der, frame
         else:
@@ -350,7 +381,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
         residuals = matrix - reconstructed.T
         return residuals, V.shape[0]
 
-    #---------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     array = cube
     array_ref = cube_ref
     if array.ndim != 3:
@@ -533,12 +564,12 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
     # rejection are calculated (at the center of the annulus)
     cube_out = np.zeros_like(array)
     for ann in range(n_annuli):
-        if isinstance(ncomp, list) or isinstance(ncomp, np.ndarray):
+        if isinstance(ncomp, tuple) or isinstance(ncomp, np.ndarray):
             if len(ncomp) == n_annuli:
                 ncompann = ncomp[ann]
             else:
-                msge = 'If ncomp is a list, it must match the number of annuli'
-                raise TypeError(msge)
+                raise TypeError('If `ncomp` is a tuple, it must match the '
+                                'number of annuli')
         else:
             ncompann = ncomp
 
@@ -576,7 +607,6 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
 
         if verbose == 2:
             print('Done PCA with {} for current annulus'.format(svd_mode))
-        if verbose:
             timing(start_time)
 
     # Cube is derotated according to the parallactic angle and collapsed

@@ -27,7 +27,7 @@ from .svd import get_eigenvectors
 
 def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
                 asize=4, n_segments=1, delta_rot=1, delta_sep=(0.1, 1), ncomp=1,
-                ncomp2=1, svd_mode='lapack', nproc=1, min_frames_lib=2,
+                svd_mode='lapack', nproc=1, min_frames_lib=2,
                 max_frames_lib=200, tol=1e-1, scaling=None, imlib='opencv',
                 interpolation='lanczos4', collapse='median', full_output=False,
                 verbose=True):
@@ -183,6 +183,13 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
             if not scale_list.shape[0] == z:
                 raise ValueError('Scaling factors vector has wrong length')
 
+        if not isinstance(ncomp, tuple):
+            raise TypeError("`ncomp` must be a tuple of two integers when "
+                            "`cube` is a 4d array")
+        else:
+            ncomp2 = ncomp[1]
+            ncomp = ncomp[0]
+
         if verbose:
             print('First PCA subtraction exploiting the spectral variability')
             print('{} spectral channels per IFS frame'.format(z))
@@ -225,9 +232,6 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
             else:
                 frame = res
 
-        if verbose:
-            print('Done derotating and combining.')
-            timing(start_time)
         if full_output:
             return cube_out, cube_der, frame
         else:
@@ -350,7 +354,7 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
         residuals = matrix - reconstructed.T
         return residuals, V.shape[0]
 
-    #---------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     array = cube
     array_ref = cube_ref
     if array.ndim != 3:
@@ -533,12 +537,12 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
     # rejection are calculated (at the center of the annulus)
     cube_out = np.zeros_like(array)
     for ann in range(n_annuli):
-        if isinstance(ncomp, list) or isinstance(ncomp, np.ndarray):
+        if isinstance(ncomp, tuple) or isinstance(ncomp, np.ndarray):
             if len(ncomp) == n_annuli:
                 ncompann = ncomp[ann]
             else:
-                msge = 'If ncomp is a list, it must match the number of annuli'
-                raise TypeError(msge)
+                raise TypeError('If `ncomp` is a tuple, it must match the '
+                                'number of annuli')
         else:
             ncompann = ncomp
 
@@ -576,7 +580,6 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
 
         if verbose == 2:
             print('Done PCA with {} for current annulus'.format(svd_mode))
-        if verbose:
             timing(start_time)
 
     # Cube is derotated according to the parallactic angle and collapsed

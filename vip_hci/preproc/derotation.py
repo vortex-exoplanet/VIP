@@ -330,13 +330,13 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
     if pa_threshold >= mid_range - mid_range * 0.1:
         new_pa_th = float(mid_range - mid_range * 0.1)
         if verbose:
-            msg = '\tPA threshold {:.2f} is too big, will be set to {:.2f}'
+            msg = 'PA threshold {:.2f} is too big, will be set to {:.2f}'
             print(msg.format(pa_threshold, new_pa_th))
         pa_threshold = new_pa_th
 
     if verbose:
-        msg2 = '\tAnnulus {}, PA thresh = {:.2f}, Inn radius = {:.2f}, '
-        msg2 += 'Ann center = {:.2f}, N segments = {} '
-        print(msg2.format(ann+1, pa_threshold, inner_radius, ann_center,
+        msg2 = 'Ann{}, PA thresh: {:.2f}, Inner radius: {:.1f}, '
+        msg2 += 'Ann center: {:.1f}, N segments: {} '
+        print(msg2.format(ann + 1, pa_threshold, inner_radius, ann_center,
                           n_segments))
     return pa_threshold, inner_radius, ann_center

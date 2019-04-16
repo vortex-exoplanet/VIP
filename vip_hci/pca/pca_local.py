@@ -43,7 +43,7 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
         Input cube.
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
-    scale_list :
+    scale_list : numpy ndarray, 1d
         Scaling factors in case of IFS data (ADI+mSDI cube). Usually, the
         scaling factors are the central channel wavelength divided by the
         shortest wavelength in the cube (more thorough approaches can be used
@@ -72,38 +72,57 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
         If a tuple of two values is provided, they are used as the lower and
         upper intervals for the threshold (grows as a function of the
         separation).
-    ncomp : int or list or 1d numpy array, optional
+    ncomp : 'auto', int, tuple, 1d numpy array or tuple, optional
         How many PCs are used as a lower-dimensional subspace to project the
-        target (sectors of) frames. If ``auto`` it will be automatically
-        determined. If ``cube`` is a 3d array (ADI), ``ncomp`` can be a list,
-        in which case a different number of PCs will be used for each annulus
-        (starting with the innermost one). If ``cube`` is a 4d array, then
-        ``ncomp`` is the number of PCs obtained from each multi-spectral frame
-        (for each sector).
-    ncomp2 : int, optional
-        Only used for ADI+mSDI (4d) cubes. ``ncomp2`` sets the number of PCs
-        used in the second PCA stage (ADI fashion, using the residuals of the
-        first stage). If None then the second PCA stage is skipped and the
-        residuals are de-rotated and combined.
+        target (sectors of) frames. Depends on the dimensionality of `cube`.
+
+        * ADI case: if a single integer is provided, then the same number of PCs
+        will be subtracted at each separation (annulus). If a tuple is provided,
+        then a different number of PCs will be used for each annulus (starting
+        with the innermost one). If ``ncomp`` is set to ``auto`` then the number
+        of PCs are calculated for each region/patch automatically.
+
+        * ADI+mSDI case: ``ncomp`` must be a tuple (two integers) with the
+        number of PCs obtained from each multi-spectral frame (for each sector)
+        and the number of PCs used in the second PCA stage (ADI fashion, using
+        the residuals of the first stage). If None then the second PCA stage is
+        skipped and the residuals are de-rotated and combined.
+
     svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
-                'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, optional
-        Switch for the SVD method/library to be used. ``lapack`` uses the LAPACK
-        linear algebra library through Numpy and it is the most conventional way
-        of computing the SVD (deterministic result computed on CPU). ``arpack``
-        uses the ARPACK Fortran libraries accessible through Scipy (computation
-        on CPU). ``eigen`` computes the singular vectors through the
+        'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+        Switch for the SVD method/library to be used.
+
+        ``lapack``: uses the LAPACK linear algebra library through Numpy
+        and it is the most conventional way of computing the SVD
+        (deterministic result computed on CPU).
+
+        ``arpack``: uses the ARPACK Fortran libraries accessible through
+        Scipy (computation on CPU).
+
+        ``eigen``: computes the singular vectors through the
         eigendecomposition of the covariance M.M' (computation on CPU).
-        ``randsvd`` uses the randomized_svd algorithm implemented in Sklearn
-        (computation on CPU). ``cupy`` uses the Cupy library for GPU computation
-        of the SVD as in the LAPACK version. ``eigencupy`` offers the same
-        method as with the ``eigen`` option but on GPU (through Cupy).
-        ``randcupy`` is an adaptation of the randomized_svd algorithm, where all
-        the computations are done on a GPU (through Cupy). ``pytorch`` uses the
-        Pytorch library for GPU computation of the SVD. ``eigenpytorch`` offers
-        the same method as with the ``eigen`` option but on GPU (through
-        Pytorch). ``randpytorch`` is an adaptation of the randomized_svd
-        algorithm, where all the linear algebra computations are done on a GPU
+
+        ``randsvd``: uses the randomized_svd algorithm implemented in
+        Sklearn (computation on CPU).
+
+        ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+        the LAPACK version. `
+
+        `eigencupy``: offers the same method as with the ``eigen`` option
+        but on GPU (through Cupy).
+
+        ``randcupy``: is an adaptation of the randomized_svd algorithm,
+        where all the computations are done on a GPU (through Cupy). `
+
+        `pytorch``: uses the Pytorch library for GPU computation of the SVD.
+
+        ``eigenpytorch``: offers the same method as with the ``eigen``
+        option but on GPU (through Pytorch).
+
+        ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+        where all the linear algebra computations are done on a GPU
         (through Pytorch).
+
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to (cpu_count()/2).
@@ -116,13 +135,21 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
     tol : float, optional
         Stopping criterion for choosing the number of PCs when ``ncomp``
         is None. Lower values will lead to smaller residuals and more PCs.
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done, with
-        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
-        temporal mean centering plus scaling to unit variance is done and with
-        "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        ``temp-mean``: temporal px-wise mean is subtracted.
+
+        ``spat-mean``: spatial mean is subtracted.
+
+        ``temp-standard``: temporal mean centering plus scaling pixel values
+        to unit variance.
+
+        ``spat-standard``: spatial mean centering plus scaling pixel values
+        to unit variance.
+        
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional

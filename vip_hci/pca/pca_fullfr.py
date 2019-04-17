@@ -252,7 +252,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
                   'set `batch` to run incremental PCA (valid for ADI or ' \
                   'ADI+mSDI single-pass)'
         check_enough_memory(input_bytes, 1.0, raise_error=check_memory,
-                            error_msg=mem_msg, verbose=check_memory)
+                            error_msg=mem_msg, verbose=verbose)
 
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores

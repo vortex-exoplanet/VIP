@@ -57,7 +57,7 @@ def test_cube_inject_companions(dataset, branches, dists):
 
     c, yx = cube_inject_companions(cube, psf_template=psf, angle_list=angles,
                                    rad_dists=dists, n_branches=branches,
-                                   flevel=3, full_output=True, plsc=1,
+                                   flevel=3, full_output=True, plsc=0.999,
                                    verbose=True)
     yx_expected = _expected(branches, dists)
 

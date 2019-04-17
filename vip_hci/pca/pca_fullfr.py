@@ -167,7 +167,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         wavelength to align the speckles and all the frames (n_channels *
         n_adiframes) are processed with a single PCA low-rank approximation.
 
-        ``double``: a firt stage is run on the rescaled spectral frames, and a
+        ``double``: a first stage is run on the rescaled spectral frames, and a
         second PCA frame is run on the residuals in an ADI fashion.
 
     crop_ifs: bool, optional

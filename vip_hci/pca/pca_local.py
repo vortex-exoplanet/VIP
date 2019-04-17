@@ -1,9 +1,8 @@
 #! /usr/bin/env python
 
 """
-Module with local/smart PCA (annulus or patch-wise) model PSF subtraction for
-ADI, ADI+SDI (IFS) and ADI+RDI datasets. This implementation make use of
-Python multiprocessing capabilities.
+Module with local/smart PCA (annulus or patch-wise in a multi-processing
+fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
@@ -26,8 +25,8 @@ from .svd import get_eigenvectors
 
 
 def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
-                asize=4, n_segments=1, delta_rot=1, delta_sep=(0.1, 1), ncomp=1,
-                svd_mode='lapack', nproc=1, min_frames_lib=2,
+                asize=4, n_segments=1, delta_rot=(0.1, 1), delta_sep=(0.1, 1),
+                ncomp=1, svd_mode='lapack', nproc=1, min_frames_lib=2,
                 max_frames_lib=200, tol=1e-1, scaling=None, imlib='opencv',
                 interpolation='lanczos4', collapse='median', full_output=False,
                 verbose=True):
@@ -51,22 +50,21 @@ def pca_annular(cube, angle_list, scale_list=None, radius_int=0, fwhm=4,
         the spectral channels and align the speckles.
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the
-        central circular area is discarded.
+        central circular region is discarded.
     fwhm : float, optional
-        Known size of the FHWM in pixels to be used. Default is 4.
+        Size of the FHWM in pixels. Default is 4.
     asize : float, optional
         The size of the annuli, in pixels.
     n_segments : int or list of ints or 'auto', optional
         The number of segments for each annulus. When a single integer is given
         it is used for all annuli. When set to 'auto', the number of segments is
         automatically determined for every annulus, based on the annulus width.
-    delta_rot : float, optional
-        Factor for increasing the parallactic angle threshold, expressed in
+    delta_rot : float or tuple of floats, optional
+        Factor for adjusting the parallactic angle threshold, expressed in
         FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
-        frame). According to Absil+13, a slightly better contrast can be reached
-        for the innermost annuli if we consider a ``delta_rot`` condition as
-        small as 0.1 lambda/D. This is because at very small separation, the
-        effect of speckle correlation is more significant than self-subtraction.
+        frame). If a tuple of two floats is provided, they are used as the lower
+        and upper intervals for the threshold (grows linearly as a function of
+        the separation).
     delta_sep : float or tuple of floats, optional
         The threshold separation in terms of the mean FWHM (for ADI+mSDI data).
         If a tuple of two values is provided, they are used as the lower and
@@ -391,15 +389,16 @@ def pca_rdi_annular(cube, angle_list, cube_ref, radius_int=0, asize=1, ncomp=1,
             'Input vector or parallactic angles has wrong length.')
 
     n, y, _ = array.shape
-    if verbose:  start_time = time_ini()
+    if verbose:
+        start_time = time_ini()
 
     angle_list = check_pa_vector(angle_list)
 
     annulus_width = asize * fwhm  # equal size for all annuli
     n_annuli = int(np.floor((y / 2 - radius_int) / annulus_width))
     if verbose:
-        msg = '# annuli = {}, Ann width = {}, FWHM = {:.3f}\n'
-        print(msg.format(n_annuli, annulus_width, fwhm))
+        msg = 'N annuli = {}, FWHM = {:.3f}\n'
+        print(msg.format(n_annuli, fwhm))
         print('PCA will be done locally per annulus and per quadrant.\n')
 
     cube_out = np.zeros_like(array)
@@ -540,6 +539,9 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
     angle_list = check_pa_vector(angle_list)
     n_annuli = int((y / 2 - radius_int) / asize)
 
+    if isinstance(delta_rot, tuple):
+        delta_rot = np.linspace(delta_rot[0], delta_rot[1], num=n_annuli)
+
     if isinstance(n_segments, int):
         n_segments = [n_segments for _ in range(n_annuli)]
     elif n_segments == 'auto':
@@ -553,8 +555,8 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
             n_segments.append(int(np.ceil(360 / ang)))
 
     if verbose:
-        msg = '# annuli = {}, Ann width = {}, FWHM = {:.3f}'
-        print(msg.format(n_annuli, asize, fwhm))
+        msg = 'N annuli = {}, FWHM = {:.3f}'
+        print(msg.format(n_annuli, fwhm))
         print('PCA per annulus (or annular sectors):')
 
     if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
@@ -575,7 +577,7 @@ def _pca_adi_ann(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
 
         n_segments_ann = n_segments[ann]
         res_ann_par = _define_annuli(angle_list, ann, n_annuli, fwhm,
-                                     radius_int, asize, delta_rot,
+                                     radius_int, asize, delta_rot[ann],
                                      n_segments_ann, verbose)
         pa_thr, inner_radius, ann_center = res_ann_par
         indices = get_annulus_segments(array[0], inner_radius, asize,

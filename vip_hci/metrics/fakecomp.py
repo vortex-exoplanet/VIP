@@ -17,7 +17,7 @@ import photutils
 from ..preproc import cube_crop_frames, frame_shift, frame_crop, cube_shift
 from ..var import (frame_center, fit_2dgaussian, fit_2dairydisk, fit_2dmoffat,
                    get_circle, get_annulus_segments)
-from ..conf.utils_conf import print_precision
+from ..conf.utils_conf import print_precision, check_array
 
 
 def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
@@ -32,9 +32,11 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         Input cube. This is copied before the injections take place, so
         ``array`` is never modified.
     psf_template : numpy ndarray
-        2d array with the normalized psf template. It should have an odd shape.
-        It's recommended to run the function ``normalize_psf`` to get a proper
-        PSF template. In the ADI+mSDI case it must be a 3d array.
+        2d array with the normalized PSF template, with an odd or even shape.
+        The PSF image must be centered wrt to the array! Therefore, it is
+        recommended to run the function ``normalize_psf`` to generate a centered
+        and flux-normalized PSF template. In the ADI+mSDI case it must be a 3d
+        array.
     angle_list : 1d numpy ndarray
         List of parallactic angles, in degrees.
     flevel : float or list
@@ -69,10 +71,14 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         first wavelength for 4D cubes).
 
     """
-    if array.ndim not in [3, 4]:
-        raise ValueError('Array is not a cube, 3d or 4d array')
+    check_array(array, dim=(3, 4), msg="array")
+    check_array(psf_template, dim=(2, 3), msg="psf_template")
+
     if array.ndim == 4 and psf_template.ndim != 3:
         raise ValueError('PSF must be a 3d array')
+
+    if not isinstance(plsc, float):
+        raise TypeError("`plsc` must be a float")
 
     positions = []
 
@@ -102,14 +108,6 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                                                           array.shape))
             raise e
 
-        if size_fc % 2 == 0 and array.shape[1] % 2 == 1:
-            # odd cube, even PSF
-            fc_fr = frame_shift(fc_fr, -0.5, -0.5, imlib=imlib,
-                                interpolation=interpolation)
-        elif size_fc % 2 == 1 and array.shape[1] % 2 == 0:
-            fc_fr = frame_shift(fc_fr, 0.5, 0.5, imlib=imlib,
-                                interpolation=interpolation)
-
         array_out = array.copy()
 
         for branch in range(n_branches):
@@ -119,7 +117,6 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                 print('Branch {}:'.format(branch+1))
 
             for rad in rad_dists:
-
                 for fr in range(nframes):
                     shift_y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     shift_x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))

@@ -23,9 +23,9 @@ from ..conf.utils_conf import pool_map, iterable, Progressbar
 
 
 def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
-          dist_threshold=100, delta_rot=0.5, delta_sep=(0.1, 1), radius_int=0,
-          asize=4, n_segments=4, nproc=1, solver='lstsq', tol=1e-3,
-          optim_scale_fact=2, adimsdi='skipadi', imlib='opencv',
+          dist_threshold=100, delta_rot=(0.1, 1), delta_sep=(0.1, 1),
+          radius_int=0, asize=4, n_segments=4, nproc=1, solver='lstsq',
+          tol=1e-3, optim_scale_fact=2, adimsdi='skipadi', imlib='opencv',
           interpolation='lanczos4', collapse='median', verbose=True,
           full_output=False):
     """ LOCI style algorithm that models a PSF (for ADI and ADI+mSDI) with a
@@ -40,7 +40,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
     fwhm : float, optional
-        Known size of the FHWM in pixels to be used. Default is 4.
+        Size of the FHWM in pixels. Default is 4.
     metric : str, optional
         Distance metric to be used ('cityblock', 'cosine', 'euclidean', 'l1',
         'l2', 'manhattan', 'correlation', etc). It uses the scikit-learn
@@ -49,9 +49,12 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
     dist_threshold : int, optional
         Indices with a distance larger than ``dist_threshold`` percentile will
         initially discarded. 90 by default.
-    delta_rot : int, optional
-        Minimum parallactic angle distance between the pairs, in terms of the
-        FWHM.
+    delta_rot : float or tuple of floats, optional
+        Factor for adjusting the parallactic angle threshold, expressed in
+        FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
+        frame). If a tuple of two floats is provided, they are used as the lower
+        and upper intervals for the threshold (grows linearly as a function of
+        the separation).
     delta_sep : float or tuple of floats, optional
         The threshold separation in terms of the mean FWHM (for ADI+mSDI data).
         If a tuple of two values is provided, they are used as the lower and
@@ -59,7 +62,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
         separation).
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the
-        central circular area is discarded.
+        central circular region is discarded.
     asize : int, optional
         The size of the annuli, in pixels.
     n_segments : int or list of int or 'auto', optional
@@ -85,6 +88,23 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
         similar to LOCI. The optimization segments share the same inner radius,
         mean angular position and angular width as their corresponding
         subtraction segments.
+    adimsdi : {'skipadi', 'double'}, str optional
+        Changes the way the 4d cubes (ADI+mSDI) are processed.
+
+        ``skipadi``: the multi-spectral frames are rescaled wrt the largest
+        wavelength to align the speckles and the least-squares model is
+        subtracted on each spectral cube separately.
+
+        ``double``: a first subtraction is done on the rescaled spectral frames
+        (as in the ``skipadi`` case). Then the residuals are processed again in
+        an ADI fashion.
+
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.
     verbose: bool, optional
         If True prints info to stdout.
     full_output: bool, optional
@@ -167,30 +187,31 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
             if verbose:
                 print('SDI lst-sq modeling exploiting the spectral variability')
                 print('{} spectral channels per IFS frame'.format(z))
-                print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli,
-                                                                 fwhm))
-            res = pool_map(nproc, _leastsq_sdi_fr, iterable(range(n)), scale_list,
-                           radius_int, fwhm, asize, n_segments, delta_sep, tol,
-                           optim_scale_fact, metric, dist_threshold, solver,
-                           imlib, interpolation, collapse)
+                print('N annuli = {}, mean FWHM = '
+                      '{:.3f}'.format(n_annuli, fwhm))
+            res = pool_map(nproc, _leastsq_sdi_fr, iterable(range(n)),
+                           scale_list, radius_int, fwhm, asize, n_segments,
+                           delta_sep, tol, optim_scale_fact, metric,
+                           dist_threshold, solver, imlib, interpolation,
+                           collapse)
             cube_out = np.array(res)
 
-            # Exploiting rotational variability
+            # Choosing not to exploit the rotational variability
             if adimsdi == 'skipadi':
                 if verbose:
-                    msg = 'Skipping the ADI least-squares subtraction'
-                    print(msg)
+                    print('Skipping the ADI least-squares subtraction')
                     print('{} ADI frames'.format(n))
                     timing(start_time)
 
                 cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
                                          interpolation=interpolation)
                 frame = cube_collapse(cube_der, mode=collapse)
+
+            # Exploiting rotational variability
             elif adimsdi == 'double':
                 if verbose:
-                    msg = 'ADI lst-sq modeling exploiting the angular '
-                    msg += 'variability'
-                    print(msg)
+                    print('ADI lst-sq modeling exploiting the angular '
+                          'variability')
                     print('{} ADI frames'.format(n))
                     timing(start_time)
 
@@ -230,6 +251,9 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
     if verbose:
         print("Building {} annuli:".format(n_annuli))
 
+    if isinstance(delta_rot, tuple):
+        delta_rot = np.linspace(delta_rot[0], delta_rot[1], num=n_annuli)
+
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
@@ -258,7 +282,7 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
 
         # angles
         pa_threshold = _define_annuli(angle_list, ann, n_annuli, fwhm,
-                                      radius_int, asize, delta_rot,
+                                      radius_int, asize, delta_rot[ann],
                                       n_segments_ann, verbose)[0]
 
         # indices

@@ -307,7 +307,7 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
 
 
 def _compute_pa_thresh(ann_center, fwhm, delta_rot=1):
-    """ Computes the parallactic angle theshold[degrees]
+    """ Computes the parallactic angle threshold [degrees]
     Replacing approximation: delta_rot * (fwhm/ann_center) / np.pi * 180
     """
     return np.rad2deg(2 * np.arctan(delta_rot * fwhm / (2 * ann_center)))
@@ -325,18 +325,17 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
         inner_radius = radius_int + ann * annulus_width
     ann_center = inner_radius + (annulus_width / 2)
     pa_threshold = _compute_pa_thresh(ann_center, fwhm, delta_rot)
-
     mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list)) / 2
     if pa_threshold >= mid_range - mid_range * 0.1:
         new_pa_th = float(mid_range - mid_range * 0.1)
         if verbose:
-            msg = 'PA threshold {:.2f} is too big, will be set to {:.2f}'
-            print(msg.format(pa_threshold, new_pa_th))
+            print('PA threshold {:.2f} is too big, will be set to '
+                  '{:.2f}'.format(pa_threshold, new_pa_th))
         pa_threshold = new_pa_th
 
     if verbose:
-        msg2 = 'Ann{}, PA thresh: {:.2f}, Inner radius: {:.1f}, '
-        msg2 += 'Ann center: {:.1f}, N segments: {} '
-        print(msg2.format(ann + 1, pa_threshold, inner_radius, ann_center,
-                          n_segments))
+        print('Ann{}, PA thresh: {:.2f}, Inner radius: {:.1f}, Ann center: '
+              '{:.1f}, N segments: {} '.format(ann + 1, pa_threshold,
+                                               inner_radius, ann_center,
+                                               n_segments))
     return pa_threshold, inner_radius, ann_center

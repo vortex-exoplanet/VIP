@@ -629,7 +629,7 @@ def matrix_scaling(matrix, scaling):
 
 
 def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
-                   annulus_radius=None, annulus_width=None, verbose=True):
+                   inner_radius=None, outer_radius=None, verbose=True):
     """
     Build the matrix for the SVD/PCA and other matrix decompositions.
 
@@ -655,14 +655,14 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
         to unit variance.
 
     mask_center_px : None or int, optional
-        [mode=fullfr] Whether to mask the center of the frames or not.
+        [mode='fullfr'] Whether to mask the center of the frames or not.
     mode : {'fullfr', 'annular'}, optional
         Whether to use the whole frames or a single annulus.
     annulus_radius : float, optional
-        [mode=annular] Distance in pixels from the center of the frame to the
+        [mode='annular'] Distance in pixels from the center of the frame to the
         center of the annulus.
     annulus_width : float, optional
-        [mode=annular] Width of the annulus in pixels.
+        [mode='annular'] Width of the annulus in pixels.
     verbose : bool, optional
         If True prints intermediate info.
 
@@ -671,17 +671,17 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
     matrix : 2d numpy ndarray
         Out matrix whose rows are vectorized frames from the input cube.
     ind : tuple
-        [mode=annular] Indices of the annulus as ``(yy, xx)``.
+        [mode='annular'] Indices of the annulus as ``(yy, xx)``.
 
     """
     if mode == 'annular':
-        if annulus_radius is None or annulus_width is None:
-            raise ValueError('Annulus_radius and/or annulus_width can be None '
-                             'in annular mode')
+        if inner_radius is None or outer_radius is None:
+            raise ValueError('`inner_radius` and `outer_radius` must be defined'
+                             ' in annular mode')
         fr_size = array.shape[1]
-        inrad = annulus_radius - int(np.round(annulus_width / 2.))
-        ind = get_annulus_segments((fr_size, fr_size), inrad, annulus_width,
-                                   nsegm=1)[0]
+        annulus_width = int(np.round(outer_radius - inner_radius))
+        ind = get_annulus_segments((fr_size, fr_size), inner_radius,
+                                   annulus_width, nsegm=1)[0]
         yy, xx = ind
         matrix = array[:, yy, xx]
 

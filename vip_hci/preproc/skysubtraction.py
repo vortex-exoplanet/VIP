@@ -90,7 +90,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
             masked_image[ind_masked] = 0
             ref_cube_masked[i] = masked_image
         Mref_masked = prepare_matrix(ref_cube_masked, scaling=None,
-                                             verbose=False)
+                                     verbose=False)
         transf_ref = np.zeros((sky_cube.shape[0], Mref_masked.shape[0]))
         for i in range(Mref_masked.shape[0]):
             transf_ref[:, i] = np.inner(sky_pcs, Mref_masked[i].T)

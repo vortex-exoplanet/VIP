@@ -761,7 +761,8 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
             Q = cupy.dot(M, Q)
             Q = cupy.dot(M.T, Q)
 
-        # Sample the range of M using by linear projection of Q. Extract an orthonormal basis
+        # Sample the range of M by linear projection of Q.
+        # Extract an orthonormal basis
         Q, _ = cupy.linalg.qr(cupy.dot(M, Q), mode='reduced')
 
         # project M to the (k + p) dimensional space using the basis vectors
@@ -776,8 +777,8 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
 
         if transpose:
             # transpose back the results according to the input convention
-            return V[:n_components, :].T, s[:n_components], U[:,
-                                                            :n_components].T
+            return (V[:n_components, :].T, s[:n_components],
+                    U[:,:n_components].T)
         else:
             return U[:, :n_components], s[:n_components], V[:n_components, :]
 
@@ -793,7 +794,8 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
             Q = torch.mm(M_gpu, Q)
             Q = torch.mm(torch.transpose(M_gpu, 0, 1), Q)
 
-        # Sample the range of M using by linear projection of Q. Extract an orthonormal basis
+        # Sample the range of M by linear projection of Q.
+        # Extract an orthonormal basis
         Q, _ = torch.qr(torch.mm(M_gpu, Q))
 
         # project M to the (k + p) dimensional space using the basis vectors

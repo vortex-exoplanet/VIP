@@ -45,6 +45,75 @@ class SVDecomposer:
     """
     Class for SVD decomposition of 2d, 3d or 4d HCI arrays.
 
+    Parameters
+    ----------
+    data : numpy ndarray
+        Input array (2d, 3d or 4d).
+    mode : {'fullfr', 'annular'}, optional
+        Whether to use the whole frames or a single annulus.
+    inrad : None or int, optional
+        [mode='annular'] Inner radius.
+    outrad : None or int, optional
+        [mode='annular'] Outer radius.
+    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
+        'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+        Switch for the SVD method/library to be used.
+
+        ``lapack``: uses the LAPACK linear algebra library through Numpy
+        and it is the most conventional way of computing the SVD
+        (deterministic result computed on CPU).
+
+        ``arpack``: uses the ARPACK Fortran libraries accessible through
+        Scipy (computation on CPU).
+
+        ``eigen``: computes the singular vectors through the
+        eigendecomposition of the covariance M.M' (computation on CPU).
+
+        ``randsvd``: uses the randomized_svd algorithm implemented in
+        Sklearn (computation on CPU).
+
+        ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+        the LAPACK version. `
+
+        `eigencupy``: offers the same method as with the ``eigen`` option
+        but on GPU (through Cupy).
+
+        ``randcupy``: is an adaptation of the randomized_svd algorithm,
+        where all the computations are done on a GPU (through Cupy). `
+
+        `pytorch``: uses the Pytorch library for GPU computation of the SVD.
+
+        ``eigenpytorch``: offers the same method as with the ``eigen``
+        option but on GPU (through Pytorch).
+
+        ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+        where all the linear algebra computations are done on a GPU
+        (through Pytorch).
+
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+               "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched.
+        Otherwise:
+
+        ``temp-mean``: temporal px-wise mean is subtracted.
+
+        ``spat-mean``: spatial mean is subtracted.
+
+        ``temp-standard``: temporal mean centering plus scaling pixel values
+        to unit variance.
+
+        ``spat-standard``: spatial mean centering plus scaling pixel values
+        to unit variance.
+
+    wavelengths : numpy ndarray, optional
+        Wavelengths in case of a 4d HCI cube. These are used to compute
+        scaling factors for re-scaling the spectral channels and aligning
+        the speckles.
+
+    verbose : bool, optional
+        If True intermediate messages and timing are printed.
+
     Notes
     -----
     For info on CEVR search: # Get variance explained by singular values in
@@ -54,75 +123,6 @@ class SVDecomposer:
                  svd_mode='lapack', scaling='temp-standard', wavelengths=None,
                  verbose=True):
         """
-        Parameters
-        ----------
-        data : numpy ndarray
-            Input array (2d, 3d or 4d).
-        mode : {'fullfr', 'annular'}, optional
-            Whether to use the whole frames or a single annulus.
-        inrad : None or int, optional
-            [mode='annular'] Inner radius.
-        outrad : None or int, optional
-            [mode='annular'] Outer radius.
-        svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
-            'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
-            Switch for the SVD method/library to be used.
-
-            ``lapack``: uses the LAPACK linear algebra library through Numpy
-            and it is the most conventional way of computing the SVD
-            (deterministic result computed on CPU).
-
-            ``arpack``: uses the ARPACK Fortran libraries accessible through
-            Scipy (computation on CPU).
-
-            ``eigen``: computes the singular vectors through the
-            eigendecomposition of the covariance M.M' (computation on CPU).
-
-            ``randsvd``: uses the randomized_svd algorithm implemented in
-            Sklearn (computation on CPU).
-
-            ``cupy``: uses the Cupy library for GPU computation of the SVD as in
-            the LAPACK version. `
-
-            `eigencupy``: offers the same method as with the ``eigen`` option
-            but on GPU (through Cupy).
-
-            ``randcupy``: is an adaptation of the randomized_svd algorithm,
-            where all the computations are done on a GPU (through Cupy). `
-
-            `pytorch``: uses the Pytorch library for GPU computation of the SVD.
-
-            ``eigenpytorch``: offers the same method as with the ``eigen``
-            option but on GPU (through Pytorch).
-
-            ``randpytorch``: is an adaptation of the randomized_svd algorithm,
-            where all the linear algebra computations are done on a GPU
-            (through Pytorch).
-
-        scaling : {None, "temp-mean", spat-mean", "temp-standard",
-                   "spat-standard"}, None or str optional
-            Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
-            function. If set to None, the input matrix is left untouched.
-            Otherwise:
-
-            ``temp-mean``: temporal px-wise mean is subtracted.
-
-            ``spat-mean``: spatial mean is subtracted.
-
-            ``temp-standard``: temporal mean centering plus scaling pixel values
-            to unit variance.
-
-            ``spat-standard``: spatial mean centering plus scaling pixel values
-            to unit variance.
-
-        wavelengths : numpy ndarray, optional
-            Wavelengths in case of a 4d HCI cube. These are used to compute
-            scaling factors for re-scaling the spectral channels and aligning
-            the speckles.
-
-        verbose : bool, optional
-            If True intermediate messages and timing are printed.
-
         """
         check_array(data, (2, 3, 4), msg='data')
         self.data = data
@@ -179,16 +179,9 @@ class SVDecomposer:
                 cube_ = big_cube.reshape(z * n_frames, y_in, x_in)
                 self.cube4d_shape = cube_.shape
 
-            if self.mode == 'annular':
-                self.ann_width = int(np.ceil(self.outrad - self.inrad))
-                self.cent_ann = self.inrad + int(np.round(self.ann_width / 2.))
-            else:
-                self.cent_ann = None
-                self.ann_width = None
-
             result = prepare_matrix(cube_, self.scaling, mode=self.mode,
-                                    annulus_radius=self.cent_ann,
-                                    annulus_width=self.ann_width,
+                                    inner_radius=self.inrad,
+                                    outer_radius=self.outrad,
                                     verbose=self.verbose)
             if self.mode == 'annular':
                 self.matrix = result[0]

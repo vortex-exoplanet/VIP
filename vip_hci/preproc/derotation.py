@@ -335,12 +335,10 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
 
     if verbose:
         if pa_threshold > 0:
-            print('Ann{}, PA thresh: {:.2f}, Inner radius: {:.1f}, Ann center: '
+            print('Ann {}, PA thresh: {:.2f}, Ann center: '
                   '{:.1f}, N segments: {} '.format(ann + 1, pa_threshold,
-                                                   inner_radius, ann_center,
-                                                   n_segments))
+                                                   ann_center, n_segments))
         else:
-            print('Ann{}, Inner radius: {:.1f}, Ann center: {:.1f}, '
-                  'N segments: {} '.format(ann + 1, inner_radius, ann_center,
-                                           n_segments))
+            print('Ann {}, Ann center: {:.1f}, N segments: '
+                  '{} '.format(ann + 1, ann_center, n_segments))
     return pa_threshold, inner_radius, ann_center

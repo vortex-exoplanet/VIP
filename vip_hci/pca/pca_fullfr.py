@@ -494,12 +494,11 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, scaling,
         raise ValueError(msg)
 
     if scale_list is None:
-        raise ValueError('Scaling factors vector must be provided')
+        raise ValueError('`scale_list` must be provided')
     else:
-        if np.array(scale_list).ndim > 1:
-            raise ValueError('Scaling factors vector is not 1d')
-        if not scale_list.shape[0] == cube.shape[0]:
-            raise ValueError('Scaling factors vector has wrong length')
+        check_array(scale_list, dim=1, msg='scale_list')
+        if not scale_list.shape[0] == z:
+            raise ValueError('`scale_list` has wrong length')
 
     scale_list = check_scal_vector(scale_list)
     big_cube = []

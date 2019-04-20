@@ -75,7 +75,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     check_array(psf_template, dim=(2, 3), msg="psf_template")
 
     if array.ndim == 4 and psf_template.ndim != 3:
-        raise ValueError('PSF must be a 3d array')
+        raise ValueError('`psf_template` must be a 3d array')
 
     if not isinstance(plsc, float):
         raise TypeError("`plsc` must be a float")
@@ -88,7 +88,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
         rad_dists = np.asarray(rad_dists).reshape(-1)  # forces ndim=1
 
-        if not rad_dists[-1] < array[0].shape[0]/2:
+        if not rad_dists[-1] < min(ceny, cenx) - 5:
             raise ValueError('rad_dists last location is at the border (or '
                              'outside) of the field')
         size_fc = psf_template.shape[0]
@@ -134,16 +134,17 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     print('\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec '
                           '({:.2f} pxs)'.format(pos_x, pos_y, rad_arcs, rad))
 
-    # ADI+IFS case
+    # ADI+mSDI (IFS) case
     if array.ndim == 4 and psf_template.ndim == 3:
         ceny, cenx = frame_center(array[0, 0])
+
         if isinstance(rad_dists, (int, float)):
             check_coor = rad_dists
             rad_dists = np.array([rad_dists])
         elif isinstance(rad_dists, (list, np.ndarray)):
             check_coor = rad_dists[-1]
             rad_dists = np.array(rad_dists)
-        if not check_coor < array[0].shape[1]/2.:
+        if not check_coor < min(ceny, cenx) - 5:
             raise ValueError('rad_dists last location is at the border (or '
                              'outside) of the field')
 

@@ -167,6 +167,9 @@ def write_fits(fitsfilename, array, header=None, precision=np.float32,
 
     """
     array = array.astype(precision, copy=False)
+    if not fitsfilename.endswith('.fits'):
+        fitsfilename += '.fits'
+
     if os.path.exists(fitsfilename):
         os.remove(fitsfilename)
         ap_fits.writeto(fitsfilename, array, header)

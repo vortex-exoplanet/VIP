@@ -262,15 +262,15 @@ def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
     elif mode == 'annular':
         y_cent, x_cent = frame_center(cube[0])
         ann_radius = dist(y_cent, x_cent, y, x)
+        inrad = int(ann_radius - annulus_width / 2.)
+        outrad = int(ann_radius + annulus_width / 2.)
         matrix, annind = prepare_matrix(cube, scaling, None, mode='annular',
-                                        annulus_radius=ann_radius,
-                                        annulus_width=annulus_width,
+                                        inner_radius=inrad, outer_radius=outrad,
                                         verbose=False)
         if cube_ref is not None:
             ref_lib, _ = prepare_matrix(cube_ref, scaling, mask_center_px,
-                                        'annular', annulus_radius=ann_radius,
-                                        annulus_width=annulus_width,
-                                        verbose=False)
+                                        'annular', inner_radius=inrad,
+                                        outer_radius=outrad, verbose=False)
         else:
             ref_lib = matrix
 
@@ -594,15 +594,16 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     Depending on ``collapse`` parameter a final collapsed frame or the cube of
     residuals is returned.
     """
-    data, ind = prepare_matrix(cube, scaling, mode='annular',
-                               annulus_radius=r_guess, verbose=False,
-                               annulus_width=annulus_width)
+    inrad = int(r_guess - annulus_width / 2.)
+    outrad = int(r_guess + annulus_width / 2.)
+    data, ind = prepare_matrix(cube, scaling, mode='annular', verbose=False,
+                               inner_radius=inrad, outer_radius=outrad)
     yy, xx = ind
 
     if cube_ref is not None:
         data_svd, _ = prepare_matrix(cube_ref, scaling, mode='annular',
-                                     annulus_radius=r_guess, verbose=False,
-                                     annulus_width=annulus_width)
+                                     verbose=False, inner_radius=inrad,
+                                     outer_radius=outrad)
     else:
         data_svd = data
         

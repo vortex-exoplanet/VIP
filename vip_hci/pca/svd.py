@@ -162,22 +162,24 @@ class SVDecomposer:
                 if self.wavelengths is None:
                     raise ValueError("`wavelengths` must be provided when "
                                      "`data` is a 4D array")
-                z, n_frames, y_in, x_in = self.data.shape = self.data.shape
+                z, n_frames, y_in, x_in = self.data.shape
                 scale_list = check_scal_vector(self.wavelengths)
+                if not scale_list.shape[0] == z:
+                    raise ValueError("`wavelengths` length is {} instead of "
+                                     "{}".format(scale_list.shape[0], z))
                 big_cube = []
                 # Rescaling the spectral channels to align the speckles
                 if self.verbose:
                     print('Rescaling the spectral channels to align the '
                           'speckles')
                 for i in Progressbar(range(n_frames), verbose=self.verbose):
-                    cube_resc = scwave(self.data[:, i, :, :],
-                                       self.wavelengths)[0]
+                    cube_resc = scwave(self.data[:, i, :, :], scale_list)[0]
                     cube_resc = cube_crop_frames(cube_resc, size=y_in,
                                                  verbose=False)
                     big_cube.append(cube_resc)
                 big_cube = np.array(big_cube)
                 cube_ = big_cube.reshape(z * n_frames, y_in, x_in)
-                self.cube4d_shape = cube_.shape
+                self.cube4dto3d_shape = cube_.shape
 
             result = prepare_matrix(cube_, self.scaling, mode=self.mode,
                                     inner_radius=self.inrad,

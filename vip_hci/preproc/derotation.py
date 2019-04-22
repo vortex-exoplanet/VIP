@@ -222,8 +222,6 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
     """ Returns the indices to be left in frames library for annular ADI median
     subtraction, LOCI or annular PCA.
 
-    # TODO: find a more pythonic way to to this!
-
     Parameters
     ----------
     angle_list : numpy ndarray, 1d
@@ -335,10 +333,10 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
 
     if verbose:
         if pa_threshold > 0:
-            print('Ann {}, PA thresh: {:.2f}, Ann center: '
-                  '{:.1f}, N segments: {} '.format(ann + 1, pa_threshold,
+            print('Ann {}\tPA thresh: {:5.2f}\tAnn center: '
+                  '{:3.0f}\tN segments: {} '.format(ann + 1, pa_threshold,
                                                    ann_center, n_segments))
         else:
-            print('Ann {}, Ann center: {:.1f}, N segments: '
+            print('Ann {}\tAnn center: {:3.0f}\tN segments: '
                   '{} '.format(ann + 1, ann_center, n_segments))
     return pa_threshold, inner_radius, ann_center

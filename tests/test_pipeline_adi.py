@@ -9,7 +9,7 @@ from .helpers import np, parametrize, fixture
 
 
 @fixture(scope="module")
-def injected_cube_position(example_dataset):
+def injected_cube_position(example_dataset_adi):
     """
     Inject a fake companion into an example cube.
 
@@ -25,7 +25,7 @@ def injected_cube_position(example_dataset):
 
     """
     print("injecting fake planet...")
-    dsi = copy.copy(example_dataset)
+    dsi = copy.copy(example_dataset_adi)
     # we chose a shallow copy, as we will not use any in-place operations
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 

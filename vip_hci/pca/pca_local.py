@@ -358,11 +358,13 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
     angle_list = check_pa_vector(angle_list)
     n_annuli = int((y / 2 - radius_int) / asize)
 
-    if cube_ref is None:
-        if isinstance(delta_rot, tuple):
-            delta_rot = np.linspace(delta_rot[0], delta_rot[1], num=n_annuli)
-    else:
-        delta_rot = [0] * n_annuli
+    if isinstance(delta_rot, tuple):
+        delta_rot = np.linspace(delta_rot[0], delta_rot[1], num=n_annuli)
+    elif isinstance(delta_rot, (int, tuple)):
+        delta_rot = [delta_rot] * n_annuli
+
+    # forcing the 'temp-standard' scaling
+    if cube_ref is not None:
         if scaling != 'temp-standard':
             scaling = 'temp-standard'
             if verbose:
@@ -465,26 +467,27 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
     lower. This truncation is done on the annuli after 10*FWHM and the goal is
     to keep min(num_frames/2, 200) in the library.
     """
-    if matrix_ref is None:
-        if pa_threshold != 0:
-            if ann_center > fwhm*10:
-                indices_left = _find_indices_adi(angle_list, frame,
-                                                 pa_threshold, truncate=True,
-                                                 max_frames=max_frames_lib)
-            else:
-                indices_left = _find_indices_adi(angle_list, frame,
-                                                 pa_threshold, truncate=False)
-
-            data_ref = matrix[indices_left]
-
-            if data_ref.shape[0] <= min_frames_lib:
-                msg = 'Too few frames left in the PCA library. '
-                msg += 'Try decreasing either delta_rot or min_frames_lib.'
-                raise RuntimeError(msg)
+    if pa_threshold != 0:
+        if ann_center > fwhm*10:
+            indices_left = _find_indices_adi(angle_list, frame,
+                                             pa_threshold, truncate=True,
+                                             max_frames=max_frames_lib)
         else:
-            data_ref = matrix
+            indices_left = _find_indices_adi(angle_list, frame,
+                                             pa_threshold, truncate=False)
+
+        data_ref = matrix[indices_left]
+
+        if data_ref.shape[0] < min_frames_lib:
+            msg = 'Too few frames left in the PCA library. '
+            msg += 'Try decreasing either delta_rot or min_frames_lib.'
+            raise RuntimeError(msg)
     else:
-        data_ref = matrix_ref
+        data_ref = matrix
+
+    if matrix_ref is not None:
+        # Stacking the ref and the target ref (pa thresh) libraries
+        data_ref = np.vstack((matrix_ref, data_ref))
 
     curr_frame = matrix[frame]  # current frame
     V = get_eigenvectors(ncomp, data_ref, svd_mode, noise_error=tol)

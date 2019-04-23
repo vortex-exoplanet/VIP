@@ -3,8 +3,6 @@ Tests for the post-processing pipeline, using the functional API.
 
 """
 
-__author__ = "Carlos Alberto Gomez Gonzalez"
-
 import copy
 import vip_hci as vip
 from .helpers import np, parametrize, fixture
@@ -15,7 +13,7 @@ def print_debug(s, *args, **kwargs):
 
 
 @fixture(scope="module")
-def injected_cube_position(example_dataset_ifs):
+def injected_cube_position(example_dataset_rdi):
     """
     Inject a fake companion into an example cube.
 
@@ -31,37 +29,22 @@ def injected_cube_position(example_dataset_ifs):
 
     """
     print_debug("injecting fake planet...")
-    dsi = copy.copy(example_dataset_ifs)
+    dsi = copy.copy(example_dataset_rdi)
     # we chose a shallow copy, as we will not use any in-place operations
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
-    dsi.cube, yx = vip.metrics.cube_inject_companions(dsi.cube,
-                                                      dsi.psfn,
-                                                      dsi.angles,
-                                                      flevel=100,
-                                                      plsc=dsi.px_scale,
-                                                      rad_dists=30,
-                                                      full_output=True,
-                                                      verbose=True)
-    injected_position_yx = yx[0]  # -> tuple
+    dsi.inject_companions(300, rad_dists=30)
 
-    return dsi, injected_position_yx
+    return dsi, dsi.injections_yx[0]
 
 
 # ====== algos
-def algo_medsub(ds):
-    return vip.medsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
-                                 scale_list=ds.wavelengths)
-
-
-def algo_xloci(ds):
-    return vip.leastsq.xloci(ds.cube, ds.angles, fwhm=ds.fwhm,
-                             scale_list=ds.wavelengths,
-                             radius_int=20)  # <- speed up
-
-
 def algo_pca(ds):
-    return vip.pca.pca(ds.cube, ds.angles, scale_list=ds.wavelengths)
+    return vip.pca.pca(ds.cube, ds.angles, cube_ref=ds.cuberef)
+
+
+def algo_pca_annular(ds):
+    return vip.pca.pca_annular(ds.cube, ds.angles, cube_ref=ds.cuberef)
 
 
 # ====== SNR map
@@ -108,14 +91,10 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
     assert verify_expcoord(table.y, table.x, yx_exp), msg
 
 
-@parametrize("algo, make_detmap",
-    [
-        (algo_medsub, snrmap_fast),
-        (algo_xloci, snrmap_fast),
-        (algo_pca, snrmap_fast),
-
-    ],
-    ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
+@parametrize("algo, make_detmap", [(algo_pca, snrmap_fast),
+                                   (algo_pca_annular, snrmap_fast)],
+             ids=lambda x: (x.__name__.replace("algo_", "") if callable(x)
+             else x))
 def test_algos(injected_cube_position, algo, make_detmap):
     ds, position = injected_cube_position
     frame = algo(ds)

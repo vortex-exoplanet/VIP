@@ -499,32 +499,35 @@ def check_scal_vector(scal_vec):
 def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
                       debug=False):
     """
-    Find optimal wavelengths which minimize self-subtraction in model PSF subtr.
+    Find optimal wavelengths which minimize self-subtraction in model PSF
+    subtraction.
 
     Parameters
     ----------
-    wl : 1d array or list
+    wl : numpy ndarray or list
         Vector with the scaling factors.
-    dist : float [pixels]
-        Separation or distance from the center of the array (star).
+    dist : float
+        Separation or distance (in pixels) from the center of the array.
     index_ref : int
         The `wl` index for which we are finding the pairs.
-    fwhm : float [pixels]
-        Mean FWHM of all the wavelengths.
+    fwhm : float
+        Mean FWHM of all the wavelengths (in pixels).
     delta_sep : float, optional
         The threshold separation in terms of the mean FWHM.
+    nframes : None or int, optional
+        Must be an even value. In not None, then between 2 and adjacent
+        ``nframes`` are kept.
     debug : bool, optional
         It True it prints out debug information.
 
     Returns
     -------
-    indices : ndarray
+    indices : numpy ndarray
         List of good indices.
 
     """
     wl = np.asarray(wl)
     wl_ref = wl[index_ref]
-
     sep_lft = (wl_ref - wl) / wl_ref * ((dist + fwhm * delta_sep) / fwhm)
     sep_rgt = (wl - wl_ref) / wl_ref * ((dist - fwhm * delta_sep) / fwhm)
     map_lft = sep_lft >= delta_sep
@@ -532,20 +535,31 @@ def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
     indices = np.nonzero(map_lft | map_rgt)[0]
 
     if debug:
-        print("sep_lft:", "  ".join(["{:+.3f}".format(x) for x in sep_lft]))
-        print("sep_rgt:", "  ".join(["{:+.3f}".format(x) for x in sep_rgt]))
+        print("dist: {}, index_ref: {}".format(dist, index_ref))
+        print("sep_lft:", "  ".join(["{:+.2f}".format(x) for x in sep_lft]))
+        print("sep_rgt:", "  ".join(["{:+.2f}".format(x) for x in sep_rgt]))
         print("indices:", indices)
+        print("indices size: {}".format(indices.size))
 
     if indices.size == 0:
-        raise RuntimeError("No frames left after radial motion threshold. "
-                           "Try decreasing the value of `delta_sep`")
+        raise RuntimeError("No frames left after radial motion threshold. Try "
+                           "decreasing the value of `delta_sep`")
 
     if nframes is not None:
-        i = map_lft.sum()  # index of first good element of 'right'
-        indices = indices[i - nframes//2:i + nframes//2]
+        i1 = map_lft.sum()
+        window = nframes // 2
+        if i1 - window < 0 or i1 + window > indices[-1]:
+            window = nframes
+        ind1 = max(0, i1 - window)
+        ind2 = min(wl.size, i1 + window)
+        indices = indices[ind1: ind2]
 
-        if indices.size != nframes:
-            raise RuntimeError("Not enough frames left after radial motion "
-                               "threshold. Try decreasing the value of "
-                               "`delta_sep`")
+        if indices.size < 2:
+            raise RuntimeError("No frames left after radial motion threshold. "
+                               "Try decreasing the value of `delta_sep` or "
+                               "`nframes`")
+
+    if debug:
+        print("indices (nframes):", indices)
+
     return indices

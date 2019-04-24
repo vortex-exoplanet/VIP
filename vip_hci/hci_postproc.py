@@ -17,7 +17,7 @@ from sklearn.base import BaseEstimator
 
 from .hci_dataset import Dataset
 from .medsub import median_sub
-from .metrics import snrmap_fast, snrmap
+from .metrics import snrmap
 from .andromeda import andromeda
 from .pca import pca
 from .llsg import llsg
@@ -214,24 +214,26 @@ class HCIPostProcAlgo(BaseEstimator):
                 print("\t{}\twith .{}()".format(a, f))
 
     @calculates("snr_map", "detection_map")
-    def make_snr_map(self, method='fast', mode='sss', nproc=1, verbose=True):
+    def make_snrmap(self, approximated=False, plot=False, known_sources=None,
+                    nproc=None, verbose=False):
         """
-        Calculate a SNR map from ``self.frame_final``.
+        Calculate a S/N map from ``self.frame_final``.
 
         Parameters
         ----------
-        method : {'xpx', 'fast'}, str optional
-            Method for the S/N map creation. The `xpx` method uses the per-pixel
-            procedure of `vip_hci.metrics.snrmap`, while the `fast` method uses
-            the approximation in `vip_hci.metrics.snrmap_fast`.
-        mode : {'sss', 'peakstddev'}, optional
-            [method=xpx] 'sss' uses the approach with the small sample
-            statistics penalty and 'peakstddev' uses the
-            peak(aperture)/std(annulus) version.
-        nproc : int, optional
-            Number of processes. Defaults to single-process (serial) processing.
-        verbose : bool, optional
-            Show more output.
+        approximated : bool, optional
+            If True, a proxy to the S/N calculation will be used. If False, the
+            Mawet et al. 2014 definition is used.
+        plot : bool, optional
+            If True plots the S/N map. True by default.
+        known_sources : None, tuple or tuple of tuples, optional
+            To take into account existing sources. It should be a tuple of
+            float/int or a tuple of tuples (of float/int) with the coordinate(s)
+            of the known sources.
+        nproc : int or None
+            Number of processes for parallel computing.
+        verbose: bool, optional
+            Whether to print timing or not.
 
         Notes
         -----
@@ -247,16 +249,9 @@ class HCIPostProcAlgo(BaseEstimator):
         else:
             fwhm = self.dataset.fwhm
 
-        if method == 'fast':
-            self.snr_map = snrmap_fast(self.frame_final, fwhm,
-                                       nproc=nproc, verbose=verbose)
-        elif method == 'xpx':
-            self.snr_map = snrmap(self.frame_final, fwhm,
-                                  plot=False, mode=mode, source_mask=None,
-                                  nproc=nproc, save_plot=None, plot_title=None,
-                                  verbose=verbose)
-        else:
-            raise ValueError('`method` not recognized')
+        self.snr_map = snrmap(self.frame_final, fwhm, approximated, plot=plot,
+                              known_sources=known_sources, nproc=nproc,
+                              verbose=verbose)
 
         self.detection_map = self.snr_map
 

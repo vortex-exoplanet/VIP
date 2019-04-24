@@ -169,7 +169,7 @@ class EvalRoc(object):
                 #     algo.rank = self.optpcs
 
                 algo.run(dataset=_dataset, verbose=False)
-                algo.make_snr_map(method="fast", nproc=nproc, verbose=False)
+                algo.make_snrmap(approximated=True, nproc=nproc, verbose=False)
 
                 m.frames.append(algo.frame_final)
                 m.probmaps.append(algo.snr_map)
@@ -429,7 +429,7 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
     ----------
     frame : numpy ndarray
         Detection map.
-    thresholds : list or numpy.ndarray
+    thresholds : list or numpy ndarray
         List of thresholds (detection criteria).
     injections : tuple, list of tuples
         Coordinates (x,y) of the injected companions. Also accepts 1d/2d

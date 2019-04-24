@@ -365,7 +365,7 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
 
     # forcing the 'temp-standard' scaling
     if cube_ref is not None:
-        if scaling != 'temp-standard':
+        if not scaling == 'temp-standard':
             scaling = 'temp-standard'
             if verbose:
                 print("Pixel-wise scaling set to `temp-standard`")

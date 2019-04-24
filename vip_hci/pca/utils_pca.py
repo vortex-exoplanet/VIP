@@ -13,6 +13,7 @@ from pandas import DataFrame
 from skimage import draw
 from matplotlib import pyplot as plt
 from ..fits import open_fits
+from ..preproc import cube_rescaling_wavelengths as scwave
 from .svd import svd_wrapper
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import timing, time_ini, check_array, get_available_memory
@@ -20,12 +21,12 @@ from ..conf.utils_conf import vip_figsize, vip_figdpi
 from ..var import frame_center, dist, prepare_matrix, reshape_matrix
 
 
-def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
+def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
              cube_ref=None, mode='fullfr', annulus_width=20, svd_mode='lapack',
              scaling=None, mask_center_px=None, fmerit='mean', imlib='opencv',
              interpolation='lanczos4', collapse='median', verbose=True,
              full_output=False, debug=False, plot=True, save_plot=None,
-             start_time=None):
+             start_time=None, scale_list=None, initial_4dshape=None):
     """
     Compute a grid, depending on ``range_pcs``, of residual PCA frames out of a
     3d ADI cube (or a reference cube). If ``source_xy`` is provided, the number
@@ -40,8 +41,9 @@ def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
         Input cube.
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
-    fwhm : float
-        Size of the FWHM in pixels.
+    fwhm : None or float, optional
+        Size of the FWHM in pixels, used for computing S/Ns when ``source_xy``
+        is passed.
     range_pcs : None or tuple, optional
         The interval of PCs to be tried. If a range is entered as
         [PC_INI, PC_MAX] a sequential grid will be evaluated between PC_INI
@@ -142,6 +144,12 @@ def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
         Used when embedding this function in the main ``pca`` function. The
         object datetime.datetime is the global starting time. If None, it
         initiates its own counter.
+    scale_list : None or numpy ndarray, optional
+        Scaling factors in case of IFS data (ADI+mSDI cube). They will be used
+        to descale the spectral cubes and obtain the right residual frames,
+        assuming ``cube`` is a 4d ADI+mSDI cube turned into 3d.
+    initial_4dshape : None or tuple, optional
+        Shape of the initial ADI+mSDI cube.
 
     Returns
     -------
@@ -170,11 +178,26 @@ def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
         residuals = matrix - reconstructed
         frsize = int(np.sqrt(matrix.shape[1]))  # only for square frames
         residuals_res = reshape_matrix(residuals, frsize, frsize)
-        residuals_res_der = cube_derotate(residuals_res, angle_list,
+
+        # For the case of ADI+mSDI data (assuming crop_ifs=True), we descale
+        # and collapse each spectral residuals cube
+        if scale_list is not None and initial_4dshape is not None:
+            print("Descaling the spectral channels and obtaining a final frame")
+            z, n_adi, y_in, x_in = initial_4dshape
+            residuals_reshaped = np.zeros((n_adi, y_in, y_in))
+            for i in range(n_adi):
+                frame_i = scwave(residuals_res[i * z:(i + 1) * z, :, :],
+                                 scale_list, full_output=False, inverse=True,
+                                 y_in=y_in, x_in=x_in, collapse=collapse)
+                residuals_reshaped[i] = frame_i
+        else:
+            residuals_reshaped = residuals_res
+
+        residuals_res_der = cube_derotate(residuals_reshaped, angle_list,
                                           imlib=imlib,
                                           interpolation=interpolation)
-        frame = cube_collapse(residuals_res_der, mode=collapse)
-        return frame
+        res_frame = cube_collapse(residuals_res_der, mode=collapse)
+        return res_frame
 
     def truncate_svd_get_finframe_ann(matrix, indices, angle_list, ncomp, V):
         """ Projection, subtraction, derotation plus combination in one frame.
@@ -187,8 +210,8 @@ def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
         residuals_res_der = cube_derotate(residuals_res, angle_list,
                                           imlib=imlib,
                                           interpolation=interpolation)
-        frame = cube_collapse(residuals_res_der, mode=collapse)
-        return frame
+        res_frame = cube_collapse(residuals_res_der, mode=collapse)
+        return res_frame
 
     def get_snr(frame, y, x, fwhm, fmerit):
         """
@@ -296,7 +319,7 @@ def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
         else:
             raise RuntimeError('Wrong mode. Choose either full or annular')
 
-        if x is not None and y is not None:
+        if x is not None and y is not None and fwhm is not None:
             snr_value, flux = get_snr(frame, y, x, fwhm, fmerit)
             if np.isnan(snr_value):
                 snr_value = 0
@@ -310,7 +333,7 @@ def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
     cubeout = np.array((frlist))
 
     # measuring the S/Ns for the given position
-    if x is not None and y is not None:
+    if x is not None and y is not None and fwhm is not None:
         argmax = np.argmax(snrlist)
         opt_npc = pclist[argmax]
         df = DataFrame({'PCs': pclist, 'S/Ns': snrlist, 'fluxes': fluxlist})

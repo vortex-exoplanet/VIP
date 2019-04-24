@@ -15,12 +15,12 @@ def injected_cube_position(example_dataset_adi):
 
     Parameters
     ----------
-    example_dataset : fixture
+    example_dataset_adi : fixture
         Taken automatically from ``conftest.py``.
 
     Returns
     -------
-    dsi : HCIDataset
+    dsi : VIP Dataset
     injected_position_yx : tuple(y, x)
 
     """
@@ -97,7 +97,7 @@ def algo_andromeda_fast(ds):
 
 # ====== SNR map
 def snrmap_fast(frame, ds):
-    return vip.metrics.snrmap_fast(frame, fwhm=ds.fwhm)
+    return vip.metrics.snrmap(frame, fwhm=ds.fwhm, approximated=True)
 
 
 def snrmap(frame, ds):

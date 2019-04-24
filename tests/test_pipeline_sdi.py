@@ -19,12 +19,12 @@ def injected_cube_position(example_dataset_ifs):
 
     Parameters
     ----------
-    example_dataset : fixture
+    example_dataset_ifs : fixture
         Taken automatically from ``conftest.py``.
 
     Returns
     -------
-    dsi : HCIDataset
+    dsi : VIP Dataset
     injected_position_yx : tuple(y, x)
 
     """
@@ -72,7 +72,7 @@ def algo_pca_annular(ds):
 
 # ====== SNR map
 def snrmap_fast(frame, ds):
-    return vip.metrics.snrmap_fast(frame, fwhm=np.mean(ds.fwhm))
+    return vip.metrics.snrmap(frame, fwhm=np.mean(ds.fwhm), approximated=True)
 
 
 def snrmap(frame, ds):

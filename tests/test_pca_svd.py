@@ -3,8 +3,6 @@ Tests for pca/svd.py.
 
 """
 
-__author__ = "Carlos Alberto Gomez Gonzalez"
-
 import numpy as np
 
 from vip_hci.pca.svd import svd_wrapper

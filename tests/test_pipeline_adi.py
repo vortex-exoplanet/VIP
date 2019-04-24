@@ -101,7 +101,7 @@ def snrmap_fast(frame, ds):
 
 
 def snrmap(frame, ds):
-    return vip.metrics.snrmap(frame, fwhm=ds.fwhm, mode="sss")
+    return vip.metrics.snrmap(frame, fwhm=ds.fwhm)
 
 
 # ====== Detection with ``vip_hci.metrics.detection``, by default with a

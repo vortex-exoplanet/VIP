@@ -53,7 +53,7 @@ def snrmap_fast(frame, ds):
 
 
 def snrmap(frame, ds):
-    return vip.metrics.snrmap(frame, fwhm=np.mean(ds.fwhm), mode="sss")
+    return vip.metrics.snrmap(frame, fwhm=np.mean(ds.fwhm))
 
 
 # ====== Detection with ``vip_hci.metrics.detection``, by default with a
@@ -91,10 +91,11 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
     assert verify_expcoord(table.y, table.x, yx_exp), msg
 
 
-@parametrize("algo, make_detmap", [(algo_pca, snrmap_fast),
-                                   (algo_pca_annular, snrmap_fast)],
-             ids=lambda x: (x.__name__.replace("algo_", "") if callable(x)
-             else x))
+@parametrize("algo, make_detmap", [
+    (algo_pca, snrmap_fast),
+    (algo_pca_annular, snrmap_fast)],
+             ids=lambda x: (x.__name__.replace("algo_", "") if
+             callable(x) else x))
 def test_algos(injected_cube_position, algo, make_detmap):
     ds, position = injected_cube_position
     frame = algo(ds)

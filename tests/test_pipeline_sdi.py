@@ -33,7 +33,7 @@ def injected_cube_position(example_dataset_ifs):
     # we chose a shallow copy, as we will not use any in-place operations
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
-    dsi.inject_companions(100, rad_dists=30)
+    dsi.inject_companions(50, rad_dists=30)
 
     return dsi, dsi.injections_yx[0]
 
@@ -76,7 +76,7 @@ def snrmap_fast(frame, ds):
 
 
 def snrmap(frame, ds):
-    return vip.metrics.snrmap(frame, fwhm=np.mean(ds.fwhm), mode="sss")
+    return vip.metrics.snrmap(frame, fwhm=np.mean(ds.fwhm))
 
 
 # ====== Detection with ``vip_hci.metrics.detection``, by default with a

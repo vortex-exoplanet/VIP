@@ -3,8 +3,6 @@ Tests for metrics/fakecomp.py
 
 """
 
-__author__ = "Ralf Farkas, Carlos Alberto Gomez Gonzalez"
-
 from .helpers import aarc, np, param, parametrize, fixture, filterwarnings
 from vip_hci.metrics.fakecomp import cube_inject_companions, normalize_psf
 

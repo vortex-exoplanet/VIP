@@ -21,8 +21,7 @@ from skimage.feature import peak_local_max
 from ..var import (mask_circle, get_square, frame_center, fit_2dgaussian,
                    frame_filter_lowpass)
 from ..conf.utils_conf import sep
-from .snr import snr_ss, snrmap, snrmap_fast
-from .frame_analysis import frame_quick_report
+from .snr_source import snr, snrmap, frame_report
 
 
 def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
@@ -112,10 +111,10 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
         successively blurred images are stacked up in a cube. DOG assumes that
         the blobs are again assumed to be bright on dark.
 
-        'snrmap' or 'snrmapf': A threshold is applied to the S/N map (computed
-        with the ``snrmap`` or ``snrmap_fast`` functions). The threshold is
-        given by ``snr_thresh`` and local maxima are found as in the case of
-        'lpeaks'.
+        'snrmap' or 'snrmapf': A threshold is applied to the S/N map, computed
+        with the ``snrmap`` function (``snrmapf`` calls ``snrmap`` with
+        ``approximated`` set to True). The threshold is given by ``snr_thresh``
+        and local maxima are found as in the case of 'lpeaks'.
 
     Finally, a 2d Gaussian fit is done on each of the potential blobs
     constraining the position on a cropped sub-image and the sigma of the fit
@@ -245,11 +244,11 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
 
     elif mode in ('snrmap', 'snrmapf'):
         if mode == 'snrmap':
-            frame_det = snrmap(array, fwhm=fwhm, plot=False, mode='sss',
-                               nproc=nproc, verbose=verbose)
+            approx = False
         elif mode == 'snrmapf':
-            frame_det = snrmap_fast(array, fwhm=fwhm, plot=False, nproc=nproc,
-                                    verbose=verbose)
+            approx = True
+        frame_det = snrmap(array, fwhm=fwhm, approximated=approx, plot=False,
+                           nproc=nproc, verbose=verbose)
 
         if debug and plot:
             print('Signal-to-noise ratio map:')
@@ -333,11 +332,11 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
             print('')
             print(sep)
             print('X,Y = ({:.1f},{:.1f})'.format(x, y))
-        snr = snr_ss(array, (x, y), fwhm, False, verbose=False)
-        snr_list.append(snr)
-        if snr >= snr_thresh:
+        snr_value = snr(array, (x, y), fwhm, False, verbose=False)
+        snr_list.append(snr_value)
+        if snr_value >= snr_thresh:
             if verbose:
-                _ = frame_quick_report(array, fwhm, (x,y), verbose=verbose)
+                _ = frame_report(array, fwhm, (x, y), verbose=verbose)
             yy_final.append(y)
             xx_final.append(x)
         else:
@@ -345,9 +344,9 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
             xx_out.append(x)
             if verbose:
                 msg = 'S/N constraint NOT fulfilled (S/N = {:.3f})'
-                print(msg.format(snr))
+                print(msg.format(snr_value))
             if debug:
-                _ = frame_quick_report(array, fwhm, (x, y), verbose=verbose)
+                _ = frame_report(array, fwhm, (x, y), verbose=verbose)
     if verbose:
         print(sep)
 

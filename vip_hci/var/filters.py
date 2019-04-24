@@ -216,7 +216,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
 
         Returns
         -------
-        numpy.ndarray
+        numpy ndarray
           filter kernel in 2D centered
 
         """

@@ -142,6 +142,14 @@ def dist(yc, xc, y1, x1):
     """
     Return the Euclidean distance between two points.
     """
+    if not isinstance(xc, (float, int)):
+        raise TypeError("`xc` must be a float or int")
+    if not isinstance(yc, (float, int)):
+        raise TypeError("`yc` must be a float or int")
+    if not isinstance(x1, (float, int)):
+        raise TypeError("`x1` must be a float or int")
+    if not isinstance(y1, (float, int)):
+        raise TypeError("`y1` must be a float or int")
     return np.sqrt((yc-y1)**2 + (xc-x1)**2)
 
 
@@ -388,6 +396,11 @@ def get_ellipse(data, a, b, pa, cy=None, cx=None, mode="ind"):
         [mode='bool'] A boolean mask where ``True`` is the inner region.
 
     """
+
+    def distance(yc, xc, y1, x1):
+        return np.sqrt((yc - y1) ** 2 + (xc - x1) ** 2)
+    # --------------------------------------------------------------------------
+
     array = frame_or_shape(data)
 
     if cy is None or cx is None:
@@ -401,8 +414,8 @@ def get_ellipse(data, a, b, pa, cy=None, cx=None, mode="ind"):
 
     # ogrid is a multidim mesh creator (faster than mgrid):
     yy, xx = np.ogrid[:array.shape[0], :array.shape[1]]
-    ellipse = (dist(yy, xx, pos_f1[0], pos_f1[1])
-               + dist(yy, xx, pos_f2[0], pos_f2[1]))
+    ellipse = (distance(yy, xx, pos_f1[0], pos_f1[1]) +
+               distance(yy, xx, pos_f2[0], pos_f2[1]))
     ellipse_mask = ellipse < 2 * a  # boolean mask
 
     if mode == "ind":

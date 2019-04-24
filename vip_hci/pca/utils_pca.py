@@ -160,7 +160,7 @@ def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
         [source_xy is not None] Optimal number of PCs for ``source_xy''.
 
     """
-    from ..metrics import snr_ss, frame_quick_report
+    from ..metrics import snr, frame_report
 
     def truncate_svd_get_finframe(matrix, angle_list, ncomp, V):
         """ Projection, subtraction, derotation plus combination in one frame.
@@ -195,8 +195,8 @@ def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
         """
         if fmerit == 'max':
             yy, xx = draw.circle(y, x, fwhm / 2.)
-            res = [snr_ss(frame, (x_, y_), fwhm, plot=False, verbose=False,
-                          full_output=True)
+            res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
+                       full_output=True)
                    for y_, x_ in zip(yy, xx)]
             snr_pixels = np.array(res)[:, -1]
             fluxes = np.array(res)[:, 2]
@@ -205,8 +205,8 @@ def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
             return np.max(snr_pixels), fluxes[argm]
 
         elif fmerit == 'px':
-            res = snr_ss(frame, (x, y), fwhm, plot=False, verbose=False,
-                         full_output=True)
+            res = snr(frame, (x, y), fwhm, plot=False, verbose=False,
+                      full_output=True)
             snrpx = res[-1]
             fluxpx = np.array(res)[2]
             # integrated fluxes for the given px
@@ -214,8 +214,8 @@ def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
 
         elif fmerit == 'mean':
             yy, xx = draw.circle(y, x, fwhm / 2.)
-            res = [snr_ss(frame, (x_, y_), fwhm, plot=False, verbose=False,
-                          full_output=True) for y_, x_
+            res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
+                       full_output=True) for y_, x_
                    in zip(yy, xx)]
             snr_pixels = np.array(res)[:, -1]
             fluxes = np.array(res)[:, 2]
@@ -297,10 +297,10 @@ def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
             raise RuntimeError('Wrong mode. Choose either full or annular')
 
         if x is not None and y is not None:
-            snr, flux = get_snr(frame, y, x, fwhm, fmerit)
-            if np.isnan(snr):
-                snr = 0
-            snrlist.append(snr)
+            snr_value, flux = get_snr(frame, y, x, fwhm, fmerit)
+            if np.isnan(snr_value):
+                snr_value = 0
+            snrlist.append(snr_value)
             fluxlist.append(flux)
 
         counter += 1
@@ -349,7 +349,7 @@ def pca_grid(cube, angle_list, fwhm, range_pcs=None, source_xy=None,
                 plt.savefig(save_plot, dpi=100, bbox_inches='tight')
 
             finalfr = cubeout[argmax]
-            _ = frame_quick_report(finalfr, fwhm, (x, y), verbose=verbose)
+            _ = frame_report(finalfr, fwhm, (x, y), verbose=verbose)
 
             return cubeout, finalfr, df, opt_npc
 

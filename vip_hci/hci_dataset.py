@@ -24,10 +24,9 @@ from .var import (frame_filter_lowpass, frame_filter_highpass, frame_center,
                   cube_filter_highpass, cube_filter_lowpass, mask_circle)
 from .stats import (frame_basic_stats, frame_histo_stats,
                     frame_average_radprofile, cube_basic_stats, cube_distance)
-from .metrics import (frame_quick_report, cube_inject_companions,
-                      generate_cube_copies_with_injections, snr_ss,
-                      snr_peakstddev, snrmap, snrmap_fast, detection,
-                      normalize_psf)
+from .metrics import (frame_report, cube_inject_companions,
+                      generate_cube_copies_with_injections, snr,
+                      snrmap, detection, normalize_psf)
 
 from .conf.utils_conf import check_array, Saveable, print_precision
 from .conf.mem import check_enough_memory
@@ -38,7 +37,7 @@ class Frame(object):
 
     Parameters
     ----------
-    image : numpy ndarray
+    data : numpy ndarray
         2d array.
     hdu : int, optional
         If ``cube`` is a String, ``hdu`` indicates the HDU from the FITS file.
@@ -47,17 +46,15 @@ class Frame(object):
         The FWHM associated with this dataset (instrument dependent). Required
         for several methods (operations on the cube).
     """
-    def __init__(self, image, hdu=0, fwhm=None):
+    def __init__(self, data, hdu=0, fwhm=None):
         """ HCIFrame object initialization. """
-        if isinstance(image, str):
-            self.image = open_fits(image, hdu, verbose=False)
-        elif isinstance(image, np.ndarray):
-            if not image.ndim == 2:
-                raise ValueError('`Image` array has wrong dimensions')
-            self.image = image
+        if isinstance(data, str):
+            self.data = open_fits(data, hdu, verbose=False)
         else:
-            raise ValueError('`Image` has a wrong type')
-        print('Frame shape: {}'.format(self.image.shape))
+            self.data = data
+
+        check_array(self.data, dim=2, msg='Image.data')
+        print('Frame shape: {}'.format(self.data.shape))
 
         self.fwhm = fwhm
         if self.fwhm is not None:
@@ -77,7 +74,7 @@ class Frame(object):
             ``force`` set to True this condition can be avoided.
 
         """
-        self.image = frame_crop(self.image, size, xy, force, verbose=True)
+        self.data = frame_crop(self.data, size, xy, force, verbose=True)
 
     def detect_blobs(self, psf, bkg_sigma=1, method='lpeaks',
                      matched_filter=False, mask=True, snr_thresh=5, plot=True,
@@ -85,7 +82,7 @@ class Frame(object):
                      plot_title=None, angscale=False):
         """ Detecting blobs on the 2d array.
         """
-        self.detection_results = detection(self.image, psf, bkg_sigma, method,
+        self.detection_results = detection(self.data, psf, bkg_sigma, method,
                                            matched_filter, mask, snr_thresh,
                                            plot, debug, True, verbose,
                                            save_plot, plot_title, angscale)
@@ -102,12 +99,12 @@ class Frame(object):
         {'laplacian', 'laplacian-conv', 'median-subt', 'gauss-subt', 'fourier-butter'}
         """
         if method == 'hp':
-            self.image = frame_filter_highpass(self.image, mode, median_size,
-                                               kernel_size, fwhm_size,
-                                               btw_cutoff, btw_order)
+            self.data = frame_filter_highpass(self.data, mode, median_size,
+                                              kernel_size, fwhm_size,
+                                              btw_cutoff, btw_order)
         elif method == 'lp':
-            self.image = frame_filter_lowpass(self.image, mode, median_size,
-                                              fwhm_size, gauss_mode)
+            self.data = frame_filter_lowpass(self.data, mode, median_size,
+                                             fwhm_size, gauss_mode)
         else:
             raise ValueError('Filtering mode not recognized')
         print('Image successfully filtered')
@@ -120,7 +117,7 @@ class Frame(object):
         verbose : bool optional
             If True the center coordinates are printed out.
         """
-        return frame_center(self.image, verbose)
+        return frame_center(self.data, verbose)
 
     def plot(self, **kwargs):
         """ Plotting the 2d array.
@@ -131,7 +128,7 @@ class Frame(object):
             Parameters passed to the function ``plot_frames`` of the package
             ``HCIplot``.
         """
-        hp.plot_frames(self.image, **kwargs)
+        hp.plot_frames(self.data, **kwargs)
 
     def radial_profile(self, sep=1):
         """ Calculates the average radial profile of an image.
@@ -141,7 +138,7 @@ class Frame(object):
         sep : int, optional
             The average radial profile is recorded every ``sep`` pixels.
         """
-        radpro = frame_average_radprofile(self.image, sep=sep, plot=True)
+        radpro = frame_average_radprofile(self.data, sep=sep, plot=True)
         return radpro
 
     def recenter(self, method='satspots', xy=None, subi_size=19, sigfactor=6,
@@ -164,12 +161,13 @@ class Frame(object):
         if method == 'satspots':
             if xy is None:
                 raise ValueError('`xy` must be a tuple of 4 tuples')
-            self.image, _, _ = frame_center_satspots(self.image, xy, subi_size,
-                                                sigfactor, True, imlib,
-                                                interpolation, debug, verbose)
+            self.data, _, _ = frame_center_satspots(self.data, xy, subi_size,
+                                                    sigfactor, True, imlib,
+                                                    interpolation, debug,
+                                                    verbose)
         elif method == 'radon':
             pass
-            #self.image = frame_center_radon()
+            # self.data = frame_center_radon()
         else:
             raise ValueError('Recentering method not recognized')
 
@@ -195,8 +193,8 @@ class Frame(object):
         verbose : bool, optional
             Whether to print out additional info such as the new image shape.
         """
-        self.image = frame_px_resampling(self.image, scale, imlib, interpolation,
-                                         verbose)
+        self.data = frame_px_resampling(self.data, scale, imlib, interpolation,
+                                        verbose)
 
     def rotate(self, angle, imlib='opencv', interpolation='lanczos4', cxy=None):
         """ Rotating the image by a given ``angle``.
@@ -221,7 +219,7 @@ class Frame(object):
             vip_hci.var.frame_center.
 
         """
-        self.image = frame_rotate(self.image, angle, imlib, interpolation, cxy)
+        self.data = frame_rotate(self.data, angle, imlib, interpolation, cxy)
         print('Image successfully rotated')
 
     def shift(self, shift_y, shift_x, imlib='opencv', interpolation='lanczos4'):
@@ -249,21 +247,17 @@ class Frame(object):
             The 'nearneig' interpolation is the fastest and the 'lanczos4' the
             slowest and accurate. 'lanczos4' is the default.
         """
-        self.image = frame_shift(self.image, shift_y, shift_x, imlib,
-                                 interpolation)
+        self.data = frame_shift(self.data, shift_y, shift_x, imlib,
+                                interpolation)
         print('Image successfully shifted')
 
-    def snr(self, source_xy, method='student', plot=False, verbose=True):
+    def snr(self, source_xy, plot=False, verbose=True):
         """ Calculating the S/N for a test resolution element ``source_xy``.
 
         Parameters
         ----------
         source_xy : tuple of floats
             X and Y coordinates of the planet or test speckle.
-        method : {'student', 'classic'}, str optional
-            With 'student' the small sample statistics (Mawet et al. 2014) is
-            used. With 'classic', the S/N is estimated with the old approach
-            using the standard deviation of independent pixels.
         plot : bool, optional
             Plots the frame and the apertures considered for clarity.
         verbose : bool, optional
@@ -276,57 +270,7 @@ class Frame(object):
         """
         if self.fwhm is None:
             raise ValueError('FWHM has not been set')
-
-        if method == 'student':
-            snr_val = snr_ss(self.image, source_xy, self.fwhm, False, plot,
-                             verbose)
-        elif method == 'classic':
-            snr_val = snr_peakstddev(self.image, source_xy, self.fwhm, False,
-                                     plot, verbose)
-        else:
-            raise ValueError('S/N estimation method not recognized')
-        return snr_val
-
-    def snrmap(self, method='student', approx=False, plot=True,
-               source_mask=None, nproc=None, verbose=True):
-        """ Generating the S/N map for the image.
-
-        Parameters
-        ----------
-        method : {'student', 'classic'}, str optional
-            With 'student' the small sample statistics (Mawet et al. 2014) is
-            used. With 'classic', the S/N is estimated with the old approach
-            using the standard deviation of independent pixels.
-        approx : bool, optional
-            If True, the function ``vip_hci.phot.snrmap_fast`` is used instead
-            of ``vip_hci.phot.snrmap``.
-        plot : bool, optional
-            If True plots the S/N map. True by default.
-        source_mask : numpy ndarray, optional
-            If exists, it takes into account existing sources. The mask is a
-            ones 2d array, with the same size as the input frame. The centers
-            of the known sources have a zero value.
-        nproc : int or None
-            Number of processes for parallel computing.
-
-        Returns
-        -------
-        map : HCIFrame object
-            S/N map.
-        """
-        if self.fwhm is None:
-            raise ValueError('FWHM has not been set')
-
-        if approx:
-            map = snrmap_fast(self.image, self.fwhm, nproc, plot, verbose)
-        else:
-            if method == 'student':
-                mode = 'sss'
-            elif method == 'classic':
-                mode = 'peakstddev'
-            map = snrmap(self.image, self.fwhm, plot, mode, source_mask, nproc,
-                         verbose=verbose)
-        return Frame(map)
+        return snr(self.data, source_xy, self.fwhm, False, plot, verbose)
 
     def stats(self, region='circle', radius=5, xy=None, annulus_inner_radius=0,
               annulus_width=5, source_xy=None, verbose=True, plot=True):
@@ -355,7 +299,7 @@ class Frame(object):
         plot : bool, optional
             Whether to plot the frame, histograms and region.
         """
-        res_region = frame_basic_stats(self.image, region, radius, xy,
+        res_region = frame_basic_stats(self.data, region, radius, xy,
                                        annulus_inner_radius, annulus_width,
                                        plot, True)
         if verbose:
@@ -369,7 +313,7 @@ class Frame(object):
             msg = 'Mean: {:.3f}, Stddev: {:.3f}, Median: {:.3f}, Max: {:.3f}'
             print(msg.format(mean, std_dev, median, maxi))
 
-        res_ff = frame_histo_stats(self.image, plot)
+        res_ff = frame_histo_stats(self.data, plot)
         if verbose:
             mean, median, std, maxim, minim = res_ff
             print('Stats in the whole frame:')
@@ -378,7 +322,7 @@ class Frame(object):
             print(msg.format(mean, std, median, maxim, minim))
 
         print('\nS/N info:')
-        _ = frame_quick_report(self.image, self.fwhm, source_xy, verbose)
+        _ = frame_report(self.data, self.fwhm, source_xy, verbose)
 
 
 class Dataset(Saveable):
@@ -844,7 +788,7 @@ class Dataset(Saveable):
 
         Parameters
         ----------
-        angles : str or 1d numpy.ndarray
+        angles : str or 1d numpy ndarray
             List or vector with the parallactic angles.
         hdu : int, optional
             If ``angles`` is a String, ``hdu`` indicates the HDU from the FITS
@@ -864,7 +808,7 @@ class Dataset(Saveable):
 
         Parameters
         ----------
-        wavelengths : str or 1d numpy.ndarray
+        wavelengths : str or 1d numpy ndarray
             List or vector with the wavelengths.
         hdu : int, optional
             If ``wavelengths`` is a String, ``hdu`` indicates the HDU from the

@@ -256,7 +256,7 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         [full_output=True] Input coordinates (``source_xy``) in X.
     f_source : float
         [full_output=True] Flux in test elemnt.
-    fluxes_std : float
+    backgr_apertures_std : float
         [full_output=True] Standard deviation of the background apertures
         fluxes.
     
@@ -316,7 +316,9 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
     f_source = fluxes[0].copy()
     fluxes = fluxes[1:]
     n2 = fluxes.shape[0]
-    snr_vale = (f_source - fluxes.mean())/(fluxes.std()*np.sqrt(1+(1/n2)))
+    backgr_apertures_std = fluxes.std(ddof=1)
+    snr_vale = (f_source - fluxes.mean())/(backgr_apertures_std *
+                                           np.sqrt(1+(1/n2)))
 
     if verbose:
         msg1 = 'S/N for the given pixel = {:.3f}'
@@ -326,7 +328,7 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         print(msg1.format(snr_vale))
         print(msg2.format(f_source))
         print(msg3.format(fluxes.mean()))
-        print(msg4.format(fluxes.std()))
+        print(msg4.format(backgr_apertures_std))
 
     if plot:
         _, ax = plt.subplots(figsize=(6, 6))
@@ -347,8 +349,7 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         plt.show()
 
     if full_output:
-        fluxes_std = fluxes.std()
-        return sourcey, sourcex, f_source, fluxes_std, snr_vale
+        return sourcey, sourcex, f_source, backgr_apertures_std, snr_vale
     else:
         return snr_vale
 

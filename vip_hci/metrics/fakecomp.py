@@ -381,7 +381,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                   force_odd=True, full_output=False, verbose=True, debug=False):
     """ Normalizes a PSF (2d or 3d array), to have the flux in a 1xFWHM
     aperture equal to one. It also allows to crop the array and center the PSF
-    at the center of the frame(s).
+    at the center of the array(s).
 
     Parameters
     ----------
@@ -393,8 +393,9 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         a ``model`` (assuming the PSF is centered in the array) is fitted to
         estimate the FWHM in 2D or 3D PSF arrays.
     size : int or None, optional
-        If int it will correspond to the size of the squared subimage to be
-        cropped form the psf array.
+        If int it will correspond to the size of the centered sub-image to be
+        cropped form the PSF array. The PSF is assumed to be rougly centered wrt
+        the array.
     threshold : None of float, optional
         Sets to zero small values, trying to leave only the core of the PSF.
     mask_core : None of float, optional
@@ -539,8 +540,14 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                 msg += "new frame size was set to {}"
                 print(msg.format(size))
 
+        if size is not None:
+            if size < array.shape[1]:
+                array = cube_crop_frames(array, size, force=True, verbose=False)
+            else:
+                array = array.copy()
+
         if isinstance(fwhm, (int, float)):
-            fwhm = [fwhm]*array.shape[0]
+            fwhm = [fwhm] * array.shape[0]
         elif fwhm == 'fit':
             fits_vect = [fit_2d(array[i], full_output=True, debug=debug) for i
                          in range(n)]
@@ -573,6 +580,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         if verbose:
             print("Flux in 1xFWHM aperture: ")
             print_precision(fwhm_flux)
+
         if full_output:
             return array_out, fwhm_flux, fwhm
         else:

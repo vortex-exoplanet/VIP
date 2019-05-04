@@ -68,37 +68,39 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         target frames.
 
         * ADI (``cube`` is a 3d array): if an int is provided, ``ncomp`` is the
-        number of PCs extracted from ``cube`` itself. If ``ncomp`` is a float in
-        the interval (0, 1] then it corresponds to the desired cumulative
-        explained variance ratio (the corresponding number of components is
-        estimated). If ``ncomp`` is a tuple, then it corresponds to an interval
-        of PCs in which final residual frames are computed. If ``source_xy`` is
-        not None, then the S/Ns (mean value in a 1xFWHM circular aperture) of
-        the given (X,Y) coordinates are computed.
+          number of PCs extracted from ``cube`` itself. If ``ncomp`` is a float
+          in the interval (0, 1] then it corresponds to the desired cumulative
+          explained variance ratio (the corresponding number of components is
+          estimated). If ``ncomp`` is a tuple, then it corresponds to an
+          interval of PCs in which final residual frames are computed. If
+          ``source_xy`` is not None, then the S/Ns (mean value in a 1xFWHM
+          circular aperture) of the given (X,Y) coordinates are computed.
 
         * ADI+RDI (``cube`` and ``cube_ref`` are 3d arrays): ``ncomp`` is the
-        number of PCs obtained from ``cube_ref``. If ``ncomp`` is a tuple, then
-        it corresponds to an interval of PCs (obtained from ``cube_ref``) in
-        which final residual frames are computed. If ``source_xy`` is not None,
-        then the S/Ns (mean value in a 1xFWHM circular aperture) of the given
-        (X,Y) coordinates are computed.
+          number of PCs obtained from ``cube_ref``. If ``ncomp`` is a tuple,
+          then it corresponds to an interval of PCs (obtained from ``cube_ref``)
+          in which final residual frames are computed. If ``source_xy`` is not
+          None, then the S/Ns (mean value in a 1xFWHM circular aperture) of the
+          given (X,Y) coordinates are computed.
 
         * ADI+mSDI (``cube`` is a 4d array and ``adimsdi="single"``): ``ncomp``
-        is the number of PCs obtained from the whole set of frames
-        (n_channels * n_adiframes). If ``ncomp`` is a float in the interval
-        (0, 1] then it corresponds to the desired CEVR, and the corresponding
-        number of components will be estimated. If ``ncomp`` is a tuple, then it
-        corresponds to an interval of PCs in which final residual frames are
-        computed. If ``source_xy`` is not None, then the S/Ns (mean value in a
-        1xFWHM circular aperture) of the given (X,Y) coordinates are computed.
+          is the number of PCs obtained from the whole set of frames
+          (n_channels * n_adiframes). If ``ncomp`` is a float in the interval
+          (0, 1] then it corresponds to the desired CEVR, and the corresponding
+          number of components will be estimated. If ``ncomp`` is a tuple, then
+          it corresponds to an interval of PCs in which final residual frames
+          are computed. If ``source_xy`` is not None, then the S/Ns (mean value
+          in a 1xFWHM circular aperture) of the given (X,Y) coordinates are
+          computed.
 
         * ADI+mSDI  (``cube`` is a 4d array and ``adimsdi="double"``): ``ncomp``
-        must be a tuple, where the first value is the number of PCs obtained
-        from each multi-spectral frame (if None then this stage will be skipped
-        and the spectral channels will be combined without subtraction); the
-        second value sets the number of PCs used in the second PCA stage,
-        ADI-like using the residuals of the first stage (if None then the second
-        PCA stage is skipped and the residuals are de-rotated and combined).
+          must be a tuple, where the first value is the number of PCs obtained
+          from each multi-spectral frame (if None then this stage will be
+          skipped and the spectral channels will be combined without
+          subtraction); the second value sets the number of PCs used in the
+          second PCA stage, ADI-like using the residuals of the first stage (if
+          None then the second PCA stage is skipped and the residuals are
+          de-rotated and combined).
 
     svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
         'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional

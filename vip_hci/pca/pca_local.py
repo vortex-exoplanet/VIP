@@ -80,17 +80,18 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         target (sectors of) frames. Depends on the dimensionality of `cube`.
 
         * ADI and ADI+RDI case: if a single integer is provided, then the same
-        number of PCs will be subtracted at each separation (annulus). If a
-        tuple is provided, then a different number of PCs will be used for each
-        annulus (starting with the innermost one). If ``ncomp`` is set to
-        ``auto`` then the number of PCs are calculated for each region/patch
-        automatically.
+          number of PCs will be subtracted at each separation (annulus). If a
+          tuple is provided, then a different number of PCs will be used for
+          each annulus (starting with the innermost one). If ``ncomp`` is set to
+          ``auto`` then the number of PCs are calculated for each region/patch
+          automatically.
 
         * ADI+mSDI case: ``ncomp`` must be a tuple (two integers) with the
-        number of PCs obtained from each multi-spectral frame (for each sector)
-        and the number of PCs used in the second PCA stage (ADI fashion, using
-        the residuals of the first stage). If None then the second PCA stage is
-        skipped and the residuals are de-rotated and combined.
+          number of PCs obtained from each multi-spectral frame (for each
+          sector) and the number of PCs used in the second PCA stage (ADI
+          fashion, using the residuals of the first stage). If None then the
+          second PCA stage is skipped and the residuals are de-rotated and
+          combined.
 
     svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
         'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional

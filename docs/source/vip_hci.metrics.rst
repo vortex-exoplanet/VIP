@@ -49,14 +49,6 @@ vip\_hci.metrics.fakedisk module
     :undoc-members:
     :show-inheritance:
 
-vip\_hci.metrics.frame\_analysis module
----------------------------------------
-
-.. automodule:: vip_hci.metrics.frame_analysis
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 vip\_hci.metrics.phase\_function module
 ---------------------------------------
 
@@ -81,10 +73,10 @@ vip\_hci.metrics.scattered\_light\_disk module
     :undoc-members:
     :show-inheritance:
 
-vip\_hci.metrics.snr module
----------------------------
+vip\_hci.metrics.snr\_source module
+-----------------------------------
 
-.. automodule:: vip_hci.metrics.snr
+.. automodule:: vip_hci.metrics.snr_source
     :members:
     :undoc-members:
     :show-inheritance:

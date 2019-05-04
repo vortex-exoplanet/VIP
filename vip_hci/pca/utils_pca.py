@@ -45,12 +45,13 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         Size of the FWHM in pixels, used for computing S/Ns when ``source_xy``
         is passed.
     range_pcs : None or tuple, optional
-        The interval of PCs to be tried. If a range is entered as
-        [PC_INI, PC_MAX] a sequential grid will be evaluated between PC_INI
-        and PC_MAX with step of 1. If a range is entered as
-        [PC_INI, PC_MAX, STEP] a grid will be evaluated between PC_INI and
-        PC_MAX with the given STEP. If None, PC_INI=1, PC_MAX=n_frames-1 and
-        STEP=1, which will result in longer running time.
+        The interval of PCs to be tried. If a ``range_pcs`` is entered as
+        ``[PC_INI, PC_MAX]`` a sequential grid will be evaluated between
+        ``PC_INI`` and ``PC_MAX`` with step of 1. If a ``range_pcs`` is entered
+        as ``[PC_INI, PC_MAX, STEP]`` a grid will be evaluated between
+        ``PC_INI`` and ``PC_MAX`` with the given ``STEP``. If ``range_pcs`` is
+        None, ``PC_INI=1``, ``PC_MAX=n_frames-1`` and ``STEP=1``, which will
+        result in longer running time.
     source_xy : None or tuple of floats
         X and Y coordinates of the pixel where the source is located and whose
         SNR is going to be maximized.

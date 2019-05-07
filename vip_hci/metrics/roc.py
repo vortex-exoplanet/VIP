@@ -480,12 +480,16 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
             otherwise ``intersection_area / resolution_element``.
 
         """
-        injection_mask = get_circle(np.ones_like(blob_mask), radius=fwhm,
-                                    cy=injection[1], cx=injection[0],
-                                    mode="mask")
+        if len(injections[0]) > 0:
+            injection_mask = get_circle(np.ones_like(blob_mask), radius=fwhm,
+                                        cy=injection[1], cx=injection[0],
+                                        mode="mask")
+        else:
+            injection_mask = np.zeros_like(blob_mask)
         intersection = injection_mask & blob_mask
         smallest_area = min(blob_mask.sum(), injection_mask.sum())
         return intersection.sum() / smallest_area
+
     # --------------------------------------------------------------------------
     list_detections = []
     list_fps = []
@@ -529,12 +533,13 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
                             size_factor=3)
 
             for iinj, injection in enumerate(injections):
-                if injection[0] > sizex or injection[1] > sizey:
-                    raise ValueError("Wrong coordinates in `injections`")
+                if len(injections[0]) > 0:  # checking injections is not empty
+                    if injection[0] > sizex or injection[1] > sizey:
+                        raise ValueError("Wrong coordinates in `injections`")
 
-                if debug:
-                    print("\ttesting injection #{} at {}".format(iinj + 1,
-                                                                 injection))
+                    if debug:
+                        print("\ttesting injection #{} at {}".format(iinj + 1,
+                                                                     injection))
 
                 if blob_area > max_blob_fact * npix_circ_aperture:
                     number_of_apertures_in_blob = blob_area / npix_circ_aperture
@@ -579,10 +584,14 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
         labs = tuple(str(det) + ' detections' + '\n' + str(fps) +
                      ' false positives' for det, fps in zip(list_detections,
                                                             list_fps))
+        if len(injections[0]) > 0:
+            circles = tuple(tuple(xy) for xy in injections)
+        else:
+            circles = None
         plot_frames(tuple(list_binmaps), title='Final binary maps', label=labs,
                     label_size=8, cmap='binary', circle_alpha=0.8,
-                    circle=tuple(tuple(xy) for xy in injections),
-                    circle_radius=fwhm, circle_color='deepskyblue', axis=False)
+                    circle=circles, circle_radius=fwhm,
+                    circle_color='deepskyblue', axis=False)
 
     return list_detections, list_fps, list_binmaps
 

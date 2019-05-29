@@ -671,11 +671,12 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
         [mode='fullfr'] Whether to mask the center of the frames or not.
     mode : {'fullfr', 'annular'}, optional
         Whether to use the whole frames or a single annulus.
-    annulus_radius : float, optional
+    inner_radius : int or float, optional
         [mode='annular'] Distance in pixels from the center of the frame to the
-        center of the annulus.
-    annulus_width : float, optional
-        [mode='annular'] Width of the annulus in pixels.
+        inner radius of the annulus.
+    outer_radius : int or float, optional
+        [mode='annular'] Distance in pixels from the center of the frame to the
+        outer radius of the annulus.
     verbose : bool, optional
         If True prints intermediate info.
 

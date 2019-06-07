@@ -71,10 +71,12 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
           number of PCs extracted from ``cube`` itself. If ``ncomp`` is a float
           in the interval (0, 1] then it corresponds to the desired cumulative
           explained variance ratio (the corresponding number of components is
-          estimated). If ``ncomp`` is a tuple, then it corresponds to an
-          interval of PCs in which final residual frames are computed. If
-          ``source_xy`` is not None, then the S/Ns (mean value in a 1xFWHM
-          circular aperture) of the given (X,Y) coordinates are computed.
+          estimated). If ``ncomp`` is a tuple of two integers, then it
+          corresponds to an interval of PCs in which final residual frames are
+          computed (optionally, if a tuple of 3 integers is passed, the third
+          value is the step). When``source_xy`` is not None, then the S/Ns
+          (mean value in a 1xFWHM circular aperture) of the given
+          (X,Y) coordinates are computed.
 
         * ADI+RDI (``cube`` and ``cube_ref`` are 3d arrays): ``ncomp`` is the
           number of PCs obtained from ``cube_ref``. If ``ncomp`` is a tuple,

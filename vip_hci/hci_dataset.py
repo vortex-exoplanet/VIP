@@ -16,7 +16,7 @@ from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
                       frame_shift, frame_center_satspots, frame_center_radon)
 from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
                       cube_drop_frames, cube_detect_badfr_correlation,
-                      cube_detect_badfr_pxstats, cube_detect_badfr_ellipticipy,
+                      cube_detect_badfr_pxstats, cube_detect_badfr_ellipticity,
                       cube_px_resampling, cube_subsample, cube_recenter_2dfit,
                       cube_recenter_satspots, cube_recenter_radon,
                       cube_recenter_dft_upsampling, cube_recenter_via_speckles)
@@ -1123,9 +1123,9 @@ class Dataset(Saveable):
 
         """
         if self.cube.ndim == 4:
-            test_cube = self.cube[lambda_ref]
+            tcube = self.cube[lambda_ref]
         else:
-            test_cube = self.cube
+            tcube = self.cube
 
         if method == 'corr':
             if frame_ref is None:
@@ -1133,24 +1133,21 @@ class Dataset(Saveable):
                 print("Setting the 1st frame as the reference")
                 frame_ref = 0
 
-            self.good_indices, _ = cube_detect_badfr_correlation(
-                test_cube, frame_ref, crop_size, dist, percentile, plot,
-                verbose
-            )
+            self.good_indices, _ = cube_detect_badfr_correlation(tcube,
+                                        frame_ref, crop_size, dist, percentile,
+                                        plot, verbose)
         elif method == 'pxstats':
-            self.good_indices, _ = cube_detect_badfr_pxstats(
-                test_cube, stat_region, inner_radius, width, top_sigma,
-                low_sigma, window, plot, verbose
-            )
+            self.good_indices, _ = cube_detect_badfr_pxstats(tcube, stat_region,
+                                        inner_radius, width, top_sigma,
+                                        low_sigma, window, plot, verbose)
         elif method == 'ellip':
             if self.cube.ndim == 4:
                 fwhm = self.fwhm[lambda_ref]
             else:
                 fwhm = self.fwhm
-
-            self.good_indices, _ = cube_detect_badfr_ellipticipy(
-                test_cube, fwhm, roundlo, roundhi, verbose=verbose
-            )
+            self.good_indices, _ = cube_detect_badfr_ellipticity(tcube, fwhm,
+                                        crop_size, roundlo, roundhi, plot,
+                                        verbose)
         else:
             raise ValueError('Bad frames detection method not recognized')
 

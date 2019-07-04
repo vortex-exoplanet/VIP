@@ -45,11 +45,12 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     low_sigma : int, optional
         Lower boundary for rejection.
     window : int, optional
-        Window for smoothing the median and getting the rejection statistic.
-    plot : {True, False}, bool optional
+        Window for smoothing the mean and getting the rejection statistic. If
+        None, it is defined as ``n_frames//3``.
+    plot : bool, optional
         If true it plots the mean fluctuation as a function of the frames and 
         the boundaries.
-    verbose : {True, False}, bool optional
+    verbose : bool, optional
         Whether to print to stdout or not.
     
     Returns
@@ -60,8 +61,8 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
         1d array of bad frames indices.
     
     """
-    if array.ndim != 3:
-        raise TypeError('Input array is not a cube or 3d array')
+    check_array(array, 3, msg='array')
+
     if in_radius+width > array[0].shape[0]/2:
         msgve = 'Inner radius and annulus size are too big (out of boundaries)'
         raise ValueError(msgve)
@@ -86,9 +87,8 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     bot_boundary = np.empty([n])
     for i in range(n):
         if mode == 'annulus':
-            i_mean_value = get_annulus_segments(array[i],
+            i_mean_value = get_annulus_segments(array[i], width=width,
                                                 inner_radius=in_radius,
-                                                width=width,
                                                 mode="val")[0].mean()
         elif mode == 'circle':
             i_mean_value = mean_values[i]
@@ -276,16 +276,14 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     """
     from .cosmetics import cube_crop_frames
     
-    if array.ndim != 3:
-        raise TypeError('Input array is not a cube or 3d array')
+    check_array(array, 3, msg='array')
     
     if verbose:
         start_time = time_ini()
     
     n = array.shape[0]
     # the cube is cropped to the central area
-    subarray = cube_crop_frames(array, min(crop_size, array.shape[1]),
-                                verbose=False)
+    subarray = cube_crop_frames(array, crop_size, verbose=False)
     distances = cube_distance(subarray, frame_ref, 'full', dist, plot=False)
         
     if dist == 'pearson' or dist == 'spearman':

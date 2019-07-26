@@ -22,8 +22,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
                           annulus_width, aperture_radius, ncomp, cube_ref=None,
                           svd_mode='lapack', scaling=None, fmerit='sum',
                           imlib='opencv', interpolation='lanczos4',
-                          collapse='median', f_range=None, display=False,
-                          verbose=True, save=False, debug=False, **kwargs):
+                          collapse='median', f_range=None, plot=False,
+                          verbose=True, save=False, debug=False):
     """ Determine a first guess for the flux of a companion at a given position
     in the cube by doing a simple grid search evaluating the reduced chi2.
     
@@ -72,14 +72,12 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
     f_range: numpy.array, optional
         The range of flux tested values. If None, 20 values between 0 and 5000
         are tested.
-    display: boolean, optional
+    plot: boolean, optional
         If True, the figure chi2 vs. flux is displayed.
     verbose: boolean
         If True, display intermediate info in the shell.
     save: boolean, optional
         If True, the figure chi2 vs. flux is saved.
-    kwargs: dict, optional
-        Additional parameters are passed to the matplotlib plot method.
         
     Returns
     -------
@@ -118,22 +116,19 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
     chi2r = np.array(chi2r)
     f0 = f_range[chi2r.argmin()]  
 
-    if display:
-        plt.figure(figsize=kwargs.pop('figsize', (8, 4)))
-        plt.title(kwargs.pop('title',''))
+    if plot:
+        plt.figure(figsize=(8, 4))
+        plt.title('$\chi^2_{r}$ vs flux')
         plt.xlim(f_range[0], f_range[:chi2r.shape[0]].max())
         plt.ylim(chi2r.min()*0.9, chi2r.max()*1.1)
-        plt.plot(f_range[:chi2r.shape[0]],chi2r,
-                 linestyle=kwargs.pop('linestyle','-'),
-                 color=kwargs.pop('color','gray'),
-                 marker=kwargs.pop('marker','.'), markerfacecolor='r',
-                 markeredgecolor='r', **kwargs)
+        plt.plot(f_range[:chi2r.shape[0]], chi2r, linestyle='-', color='gray',
+                 marker='.', markerfacecolor='r', markeredgecolor='r')
         plt.xlabel('flux')
         plt.ylabel(r'$\chi^2_{r}$')
         plt.grid('on')
     if save:
         plt.savefig('chi2rVSflux.pdf')
-    if display:
+    if plot:
         plt.show()
 
     return r0, theta0, f0
@@ -223,8 +218,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                annulus_width=3, aperture_radius=4, cube_ref=None, 
                svd_mode='lapack', scaling=None, fmerit='sum', imlib='opencv',
                interpolation='lanczos4', collapse='median', p_ini=None,
-               f_range=None, simplex=True, simplex_options=None, display=False,
-               verbose=True, save=False, figure_options=None):
+               f_range=None, simplex=True, simplex_options=None, plot=False,
+               verbose=True, save=False):
     """ Determines a first guess for the position and the flux of a planet.
         
     We process the cube without injecting any negative fake companion. 
@@ -292,14 +287,12 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
         search.
     simplex_options: dict, optional
         The scipy.optimize.minimize options.
-    display: boolean, optional
+    plot: boolean, optional
         If True, the figure chi2 vs. flux is displayed.
     verbose: bool, optional
         If True, display intermediate info in the shell.
     save: bool, optional
         If True, the figure chi2 vs. flux is saved.
-    figure_options: dict, optional
-        Additional parameters are passed to the matplotlib plot method.    
 
     Returns
     -------
@@ -311,10 +304,6 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     """
     if verbose:
         start_time = time_ini()
-
-    if figure_options is None:
-        figure_options = {'color': 'gray', 'marker':'.',
-                          'title': r'$\chi^2_{r}$ vs flux'}
         
     planets_xy_coord = np.array(planets_xy_coord)
     n_planet = planets_xy_coord.shape[0]
@@ -342,9 +331,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                          svd_mode=svd_mode, scaling=scaling,
                                          fmerit=fmerit, imlib=imlib,
                                          collapse=collapse,
-                                         nterpolation=interpolation,
-                                         display=display, verbose=verbose,
-                                         save=save, **figure_options)
+                                         interpolation=interpolation,
+                                         plot=plot, verbose=verbose, save=save)
         r_pre, theta_pre, f_pre = res_init
 
         if verbose:

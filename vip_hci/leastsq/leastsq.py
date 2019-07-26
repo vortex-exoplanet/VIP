@@ -253,6 +253,8 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
 
     if isinstance(delta_rot, tuple):
         delta_rot = np.linspace(delta_rot[0], delta_rot[1], num=n_annuli)
+    elif isinstance(delta_rot, (int, float)):
+        delta_rot = [delta_rot] * n_annuli
 
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores

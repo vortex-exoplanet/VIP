@@ -185,7 +185,7 @@ def cube_detect_badfr_ellipticity(array, fwhm, crop_size=30, roundlo=-0.2,
     roundness1 = []
     roundness2 = []
     for i in range(n):
-        ff_clipped = sigma_clip(array[i], sigma=3, iters=None)
+        ff_clipped = sigma_clip(array[i], sigma=3, maxiters=None)
         thr = ff_clipped.max()
         DAOFIND = DAOStarFinder(threshold=thr, fwhm=fwhm)
         tbl = DAOFIND.find_stars(array[i])

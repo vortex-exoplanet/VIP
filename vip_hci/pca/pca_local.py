@@ -27,7 +27,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                 delta_sep=(0.1, 1), ncomp=1, svd_mode='lapack', nproc=1,
                 min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
                 imlib='opencv', interpolation='lanczos4', collapse='median',
-                full_output=False, verbose=True):
+                ifs_collapse_range='all', full_output=False, verbose=True):
     """ PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data. The
     PCA model is computed locally in each annulus (or annular sectors according
     to ``n_segments``). For each sector we discard reference frames taking into
@@ -161,6 +161,9 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
+    ifs_collapse_range: str 'all' or tuple of 2 int
+        If a tuple, it should contain the first and last channels where the mSDI 
+        residual channels will be collapsed (by default collapses all channels).
     full_output: boolean, optional
         Whether to return the final median combined image only or with other
         intermediate arrays.
@@ -227,7 +230,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         res = pool_map(nproc, _pca_sdi_fr, iterable(range(n)), scale_list,
                        radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
                        svd_mode, tol, scaling, imlib, interpolation, collapse,
-                       verbose=verbose)
+                       ifs_collapse_range, verbose=verbose)
         residuals_cube_channels = np.array(res)
 
         # Exploiting rotational variability
@@ -273,7 +276,8 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
 ################################################################################
 
 def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
-                ncomp, svd_mode, tol, scaling, imlib, interpolation, collapse):
+                ncomp, svd_mode, tol, scaling, imlib, interpolation, collapse,
+                ifs_collapse_range):
     """ Optimized PCA subtraction on a multi-spectral frame (IFS data).
     """
     z, n, y_in, x_in = ARRAY.shape
@@ -335,7 +339,14 @@ def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
                 # return residuals, V.shape[0], matrix_ref.shape[0]
                 cube_res[j, yy, xx] = residuals
 
-    frame_desc = scwave(cube_res, scale_list, full_output=False, inverse=True,
+    if ifs_collapse_range == 'all':
+        idx_ini = 0
+        idx_fin = z
+    else:
+        idx_ini = ifs_collapse_range[0]
+        idx_fin = ifs_collapse_range[1]
+    frame_desc = scwave(cube_res[idx_ini:idx_fin], scale_list[idx_ini:idx_fin], 
+                        full_output=False, inverse=True,
                         y_in=y_in, x_in=x_in, imlib=imlib,
                         interpolation=interpolation, collapse=collapse)
     return frame_desc

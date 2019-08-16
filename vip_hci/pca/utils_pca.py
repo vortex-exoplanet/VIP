@@ -24,8 +24,9 @@ from ..var import frame_center, dist, prepare_matrix, reshape_matrix
 def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
              cube_ref=None, mode='fullfr', annulus_width=20, svd_mode='lapack',
              scaling=None, mask_center_px=None, fmerit='mean', imlib='opencv',
-             interpolation='lanczos4', collapse='median', verbose=True,
-             full_output=False, debug=False, plot=True, save_plot=None,
+             interpolation='lanczos4', collapse='median', 
+             ifs_collapse_range='all', verbose=True, full_output=False, 
+             debug=False, plot=True, save_plot=None,
              start_time=None, scale_list=None, initial_4dshape=None):
     """
     Compute a grid, depending on ``range_pcs``, of residual PCA frames out of a
@@ -128,6 +129,9 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
+    ifs_collapse_range: str 'all' or tuple of 2 int
+        If a tuple, it should contain the first and last channels where the mSDI 
+        residual channels will be collapsed (by default collapses all channels).
     verbose : bool, optional
         If True prints intermediate info and timing.
     full_output : bool, optional
@@ -186,10 +190,19 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
             print("Descaling the spectral channels and obtaining a final frame")
             z, n_adi, y_in, x_in = initial_4dshape
             residuals_reshaped = np.zeros((n_adi, y_in, y_in))
+
+            if ifs_collapse_range == 'all':
+                idx_ini = 0
+                idx_fin = z
+            else:
+                idx_ini = ifs_collapse_range[0]
+                idx_fin = ifs_collapse_range[1]
+
             for i in range(n_adi):
-                frame_i = scwave(residuals_res[i * z:(i + 1) * z, :, :],
-                                 scale_list, full_output=False, inverse=True,
-                                 y_in=y_in, x_in=x_in, collapse=collapse)
+                frame_i = scwave(residuals_res[i*z+idx_ini:i*z+idx_fin, :, :],
+                                 scale_list[idx_ini,idx_fin], full_output=False, 
+                                 inverse=True, y_in=y_in, x_in=x_in, 
+                                 collapse=collapse)
                 residuals_reshaped[i] = frame_i
         else:
             residuals_reshaped = residuals_res

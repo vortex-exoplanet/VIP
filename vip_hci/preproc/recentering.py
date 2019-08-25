@@ -199,7 +199,7 @@ def cube_shift(cube, shift_y, shift_x, imlib='opencv',
 
 def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
                           imlib='opencv', interpolation='lanczos4',
-                          debug=False, verbose=True):
+                          fit_type='moff', debug=False, verbose=True):
     """ Finds the center of a frame with waffle/satellite spots (e.g. for
     VLT/SPHERE). The method used to determine the center is by centroiding the
     4 spots via a 2d Gaussian fit and finding the intersection of the
@@ -231,6 +231,8 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    fit_type: str, optional {'gaus','moff'}
+        Type of 2d fit to infer the centroid of the satellite spots.
     debug : bool, optional
         If True debug information is printed and plotted.
     verbose : bool, optional
@@ -312,6 +314,8 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
             return None
     # --------------------------------------------------------------------------
     check_array(array, dim=2)
+    if fit_type not in ['gaus','moff']:
+        raise TypeError('fit_type is not recognized')        
     if not isinstance(xy, (tuple, list)) or len(xy) != 4:
         raise TypeError('Input waffle spot coordinates in wrong format (must '
                         'be a tuple of 4 tuples')
@@ -324,9 +328,14 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     for i in range(len(xy)):
         sim, y, x = get_square(array, subi_size, xy[i][1], xy[i][0],
                                position=True, verbose=False)
-        cent2dgy, cent2dgx = fit_2dgaussian(sim, crop=False, threshold=True,
-                                            sigfactor=sigfactor, debug=debug,
-                                            full_output=False)
+        if fit_type=='gaus':
+            cent2dgy, cent2dgx = fit_2dgaussian(sim, crop=False, threshold=True,
+                                                sigfactor=sigfactor, debug=debug,
+                                                full_output=False)
+        else:
+            cent2dgy, cent2dgx = fit_2dmoffat(sim, crop=False, threshold=True,
+                                              sigfactor=sigfactor, debug=debug, 
+                                              full_output=False)          
         centx.append(cent2dgx + x)
         centy.append(cent2dgy + y)
         subims.append(sim)
@@ -361,7 +370,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
             if shift:
                 array_rec = frame_shift(array, shifty, shiftx, imlib=imlib,
                                         interpolation=interpolation)
-                return array_rec, shifty, shiftx
+                return array_rec, shifty, shiftx, centy, centx
             else:
                 return shifty, shiftx
         else:
@@ -372,7 +381,8 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
 
 def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
-                           debug=False, verbose=True, full_output=False):
+                           fit_type='moff', debug=False, verbose=True, 
+                           full_output=False):
     """ Function analog to frame_center_satspots but for image sequences. It
     actually will call frame_center_satspots for each image in the cube. The
     function also returns the shifted images (not recommended to use when the
@@ -400,6 +410,8 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         noise.
     plot : bool, optional
         Whether to plot the shifts.
+    fit_type: str, optional {'gaus','moff'}
+        Type of 2d fit to infer the centroid of the satellite spots.
     debug : bool, optional
         If True debug information is printed and plotted (fit and residuals,
         intersections and shifts). This has to be used carefully as it can
@@ -415,8 +427,10 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     array_rec
         The shifted cube.
     shift_y, shift_x
-        Shifts Y,X to get to the true center for each image.
-
+        [full_output==True] Shifts Y,X to get to the true center for each image.
+    sat_y, sat_x
+        [full_output==True] Y,X positions of the satellite spots in each image. 
+        Order: top-left, top-right, bottom-left and bottom-right.
     """
     check_array(array, dim=3)
 
@@ -426,6 +440,8 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     n_frames = array.shape[0]
     shift_x = np.zeros((n_frames))
     shift_y = np.zeros((n_frames))
+    sat_y = np.zeros([n_frames,4])
+    sat_x = np.zeros([n_frames,4])
     array_rec = []
 
     if verbose:
@@ -433,10 +449,12 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     for i in Progressbar(range(n_frames), verbose=verbose):
         res = frame_center_satspots(array[i], xy, debug=debug, shift=True,
                                     subi_size=subi_size, sigfactor=sigfactor,
-                                    verbose=False)
+                                    fit_type=fit_type, verbose=False)
         array_rec.append(res[0])
         shift_y[i] = res[1]
         shift_x[i] = res[2]
+        sat_y[i] = res[3]
+        sat_x[i] = res[4]
 
     if verbose:
         timing(start_time)
@@ -470,7 +488,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     array_rec = np.array(array_rec)
 
     if full_output:
-        return array_rec, shift_y, shift_x
+        return array_rec, shift_y, shift_x, sat_y, sat_x
     else:
         return array_rec
 

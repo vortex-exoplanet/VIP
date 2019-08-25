@@ -25,8 +25,8 @@ from ..stats import descriptive_stats
 def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         svd_mode='lapack', scaling=None, mask_center_px=None, source_xy=None,
         delta_rot=1, fwhm=4, adimsdi='single', crop_ifs=True, imlib='opencv',
-        interpolation='lanczos4', collapse='median', check_memory=True,
-        batch=None, nproc=1, full_output=False, verbose=True):
+        interpolation='lanczos4', collapse='median', ifs_collapse_range='all',
+        check_memory=True, batch=None, nproc=1, full_output=False, verbose=True):
     """ Algorithm where the reference PSF and the quasi-static speckle pattern
     are modeled using Principal Component Analysis. Depending on the input
     parameters this PCA function can work in ADI, RDI or SDI (IFS data) mode.
@@ -190,6 +190,9 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
+    ifs_collapse_range: str 'all' or tuple of 2 int
+        If a tuple, it should contain the first and last channels where the mSDI 
+        residual channels will be collapsed (by default collapses all channels).
     check_memory : bool, optional
         If True, it checks that the input cube is smaller than the available
         system memory.
@@ -271,16 +274,17 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         if adimsdi == 'double':
             res_pca = _adimsdi_doublepca(cube, angle_list, scale_list, ncomp,
                                          scaling, mask_center_px, svd_mode,
-                                         imlib, interpolation, collapse,
-                                         verbose, start_time, nproc)
+                                         imlib, interpolation, collapse, 
+                                         ifs_collapse_range, verbose, start_time, 
+                                         nproc)
             residuals_cube_channels, residuals_cube_channels_, frame = res_pca
         elif adimsdi == 'single':
             res_pca = _adimsdi_singlepca(cube, angle_list, scale_list, ncomp,
                                          fwhm, source_xy, scaling,
                                          mask_center_px, svd_mode, imlib,
-                                         interpolation, collapse, verbose,
-                                         start_time, crop_ifs, batch,
-                                         full_output=True)
+                                         interpolation, collapse, 
+                                         ifs_collapse_range, verbose, start_time, 
+                                         crop_ifs, batch, full_output=True)
             if isinstance(ncomp, (int, float)):
                 cube_allfr_residuals, cube_adi_residuals, frame = res_pca
             elif isinstance(ncomp, tuple):
@@ -515,8 +519,8 @@ def _adi_pca(cube, angle_list, ncomp, batch, source_xy, delta_rot, fwhm,
 
 def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, fwhm, source_xy,
                        scaling, mask_center_px, svd_mode, imlib, interpolation,
-                       collapse, verbose, start_time, crop_ifs, batch,
-                       full_output):
+                       collapse, ifs_collapse_range, verbose, start_time, 
+                       crop_ifs, batch, full_output):
     """ Handles the full-frame ADI+mSDI single PCA post-processing.
     """
     z, n, y_in, x_in = cube.shape
@@ -578,8 +582,16 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, fwhm, source_xy,
 
         if verbose:
             print('Descaling the spectral channels')
+        if ifs_collapse_range == 'all':
+            idx_ini = 0
+            idx_fin = z
+        else:
+            idx_ini = ifs_collapse_range[0]
+            idx_fin = ifs_collapse_range[1]
+            
         for i in Progressbar(range(n), verbose=verbose):
-            frame_i = scwave(res_cube[i * z:(i+1) * z, :, :], scale_list,
+            frame_i = scwave(res_cube[i*z+idx_ini:i*z+idx_fin, :, :], 
+                             scale_list[idx_ini:idx_fin],
                              full_output=False, inverse=True, y_in=y_in,
                              x_in=x_in, collapse=collapse)
             resadi_cube[i] = frame_i
@@ -601,8 +613,8 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, fwhm, source_xy,
                           svd_mode=svd_mode, scaling=scaling,
                           mask_center_px=mask_center_px, fmerit='mean',
                           imlib=imlib, interpolation=interpolation,
-                          collapse=collapse, verbose=verbose,
-                          full_output=full_output, debug=False,
+                          collapse=collapse, ifs_collapse_range=ifs_collapse_range,
+                          verbose=verbose, full_output=full_output, debug=False,
                           plot=verbose, start_time=start_time,
                           scale_list=scale_list, initial_4dshape=cube.shape)
         return gridre
@@ -614,7 +626,7 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, fwhm, source_xy,
 
 def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
                        mask_center_px, svd_mode, imlib, interpolation, collapse,
-                       verbose, start_time, nproc):
+                       ifs_collapse_range, verbose, start_time, nproc):
     """
     Handle the full-frame ADI+mSDI double PCA post-processing.
 
@@ -665,7 +677,7 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
 
     res = pool_map(nproc, _adimsdi_doublepca_ifs, iterable(range(n)), ncomp_ifs,
                    scale_list, scaling, mask_center_px, svd_mode, collapse,
-                   verbose=verbose)
+                   ifs_collapse_range, verbose=verbose)
     residuals_cube_channels = np.array(res)
 
     if verbose:
@@ -707,7 +719,7 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
 
 
 def _adimsdi_doublepca_ifs(fr, ncomp, scale_list, scaling, mask_center_px,
-                           svd_mode, collapse):
+                           svd_mode, collapse, ifs_collapse_range):
     """
     Called by _adimsdi_doublepca with pool_map.
     """
@@ -716,15 +728,22 @@ def _adimsdi_doublepca_ifs(fr, ncomp, scale_list, scaling, mask_center_px,
     z, n, y_in, x_in = ARRAY.shape
     multispec_fr = ARRAY[:, fr, :, :]
 
+    if ifs_collapse_range == 'all':
+        idx_ini = 0
+        idx_fin = z
+    else:
+        idx_ini = ifs_collapse_range[0]
+        idx_fin = ifs_collapse_range[1]
+
     if ncomp is None:
-        frame_i = cube_collapse(multispec_fr, mode=collapse)
+        frame_i = cube_collapse(multispec_fr[idx_ini:idx_fin], mode=collapse)
     else:
         cube_resc = scwave(multispec_fr, scale_list)[0]
         residuals = _project_subtract(cube_resc, None, ncomp, scaling,
                                       mask_center_px, svd_mode, verbose=False,
                                       full_output=False)
-        frame_i = scwave(residuals, scale_list, full_output=False,
-                         inverse=True, y_in=y_in, x_in=x_in,
+        frame_i = scwave(residuals[idx_ini:idx_fin], scale_list[idx_ini:idx_fin], 
+                         full_output=False, inverse=True, y_in=y_in, x_in=x_in,
                          collapse=collapse)
 
     return frame_i

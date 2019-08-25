@@ -303,7 +303,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         big_ell_frame = np.zeros_like(obj_tmp)
         sma_ell_frame = np.zeros_like(obj_tmp)
         ann_frame_cumul = np.zeros_like(obj_tmp)
-        n_neig = np.zeros(nrad)
+        n_neig = np.zeros(nrad, dtype=np.int16)
         med_neig = np.zeros(nrad)
         std_neig = np.zeros(nrad)
         neighbours = np.zeros([nrad,n_y*n_x])

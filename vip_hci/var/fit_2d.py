@@ -161,7 +161,8 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
         noise.
     full_output : bool, optional
         If False it returns just the centroid, if True also returns the
-        FWHM in X and Y (in pixels), the amplitude and the rotation angle.
+        FWHM in X and Y (in pixels), the amplitude and the rotation angle,
+        and the uncertainties on each parameter.
     debug : bool, optional
         If True, the function prints out parameters of the fit and plots the
         data, model and residuals.
@@ -226,6 +227,12 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     fwhm_x = fit.x_stddev.value*gaussian_sigma_to_fwhm
     amplitude = fit.amplitude.value
     theta = np.rad2deg(fit.theta.value)
+    
+    # compute uncertainties
+    perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
+    amplitude_err, theta_err, mean_x_err, mean_y_err, fwhm_x_err, fwhm_y_err = perr
+    fwhm_x_err /= gaussian_fwhm_to_sigma
+    fwhm_y_err /= gaussian_fwhm_to_sigma
 
     if debug:
         if threshold:
@@ -246,7 +253,10 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     if full_output:
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm_y': fwhm_y, 'fwhm_x': fwhm_x,
-                             'amplitude': amplitude, 'theta': theta}, index=[0])
+                             'amplitude': amplitude, 'theta': theta,
+                             'centroid_y_err': mean_y_err, 'centroid_x_err': mean_x_err,
+                             'fwhm_y_err': fwhm_y_err, 'fwhm_x_err': fwhm_x_err,
+                             'amplitude_err': amplitude_err, 'theta_err': theta_err}, index=[0])
     else:
         return mean_y, mean_x
 
@@ -344,6 +354,11 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
     alpha = fit.alpha.value
     gamma = fit.gamma.value
 
+    # compute uncertainties
+    perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
+    amplitude_err, mean_x_err, mean_y_err, gamma_err, alpha_err = perr
+    fwhm_err = 2*gamma_err
+
     if debug:
         if threshold:
             label = ('Subimage thresholded', 'Model', 'Residuals')
@@ -363,7 +378,11 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
     if full_output:
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm': fwhm, 'alpha': alpha, 'gamma': gamma,
-                             'amplitude': amplitude}, index=[0])
+                             'amplitude': amplitude, 'centroid_y_err': mean_y_err, 
+                             'centroid_x_err': mean_x_err,
+                             'fwhm_err': fwhm_err, 'alpha_err': alpha_err, 
+                             'gamma_err': gamma_err, 
+                             'amplitude_err': amplitude_err}, index=[0])
     else:
         return mean_y, mean_x
 
@@ -462,6 +481,11 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     radius = fit.radius.value
     fwhm = ((radius * 1.028) / 2.44) * 2
 
+    # compute uncertainties
+    perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
+    amplitude_err, mean_x_err, mean_y_err, radius_err = perr
+    fwhm_err = ((radius_err * 1.028) / 2.44) * 2
+
     if debug:
         if threshold:
             label = ('Subimage thresholded', 'Model', 'Residuals')
@@ -480,6 +504,9 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     if full_output:
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm': fwhm, 'radius': radius,
-                             'amplitude': amplitude}, index=[0])
+                             'amplitude': amplitude, 'centroid_y_err': mean_y_err, 
+                             'centroid_x_err': mean_x_err, 'fwhm_err': fwhm_err, 
+                             'radius_err': radius_err,
+                             'amplitude_err': amplitude_err}, index=[0])
     else:
         return mean_y, mean_x

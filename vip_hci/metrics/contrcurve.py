@@ -496,7 +496,10 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
             else:
                 if algo_dict['scale_list'].shape[0] != array.shape[0]:
                     raise TypeError('Input wavelength vector has wrong length')
-                maxfcsep = int((array.shape[2] / 2.) / fwhm) - 1
+                if isinstance(fwhm, float) or isinstance(fwhm, int):
+                    maxfcsep = int((array.shape[2] / 2.) / fwhm) - 1
+                else:
+                    maxfcsep = int((array.shape[2] / 2.) / np.amin(fwhm)) - 1
                 if fc_rad_sep < 3 or fc_rad_sep > maxfcsep:
                     msg = 'Too large separation between companions in the '
                     msg += 'radial patterns. Should lie between 3 and {}'

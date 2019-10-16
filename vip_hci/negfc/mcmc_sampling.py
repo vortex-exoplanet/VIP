@@ -357,9 +357,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     plsc: float
         The platescale, in arcsec per pixel.
     annulus_width: float, optional
-        The width in pixel of the annulus on which the PCA is performed.
+        The width in FWHM of the annulus on which the PCA is performed.
     aperture_radius: float, optional
-        The radius of the circular aperture.
+        The radius in FWHM of the circular aperture.
     nwalkers: int optional
         The number of Goodman & Weare 'walkers'.
     initial_state: numpy.array
@@ -490,8 +490,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     stop = np.inf
 
     if bounds is None:
-        bounds = [(initial_state[0] - annulus_width/2.,
-                   initial_state[0] + annulus_width/2.),  # radius
+        bounds = [(initial_state[0] - annulus_width*fwhm/2.,
+                   initial_state[0] + annulus_width*fwhm/2.),  # radius
                   (initial_state[1] - 10, initial_state[1] + 10),   # angle
                   (0, 2 * initial_state[2])]   # flux
     

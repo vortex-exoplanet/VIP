@@ -180,8 +180,6 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     else:
                         for i in range(len(flevel)):
                             array_out[i, fr] += shift[i] * flevel[i]
-                        #array_out[:, fr] += [shift[i] * flevel[i]
-                        #                     for i in range(len(flevel))]
 
                 pos_y = rad * np.sin(ang) + ceny
                 pos_x = rad * np.cos(ang) + cenx

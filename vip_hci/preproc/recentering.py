@@ -1170,9 +1170,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         Applies a gamma correction to emphasize speckles (useful for faint
         stars).
     min_spat_freq : float, optional
-        Spatial frequency for high pass filter.
-    max_spat_freq : float, optional
         Spatial frequency for low pass filter.
+    max_spat_freq : float, optional
+        Spatial frequency for high pass filter.
     fwhm : float, optional
         Full width at half maximum.
     debug : bool, optional
@@ -1243,7 +1243,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
                                         median_size=median_size, verbose=False)
     cube_sci_lpf = cube_filter_lowpass(cube_sci_hpf, 'gauss',
-                                       fwhm_size=median_size, verbose=False)
+                                       fwhm_size=min_spat_freq * fwhm, verbose=False)
 
     if ref_star:
         cube_ref_hpf = cube_filter_highpass(cube_ref_lpf, 'median-subt',

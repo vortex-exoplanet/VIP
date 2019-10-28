@@ -182,7 +182,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     kernel_size : int, optional
         Size of the Laplacian kernel used in ``laplacian`` mode. It must be an
         positive odd integer value.
-    fwhm_size : int, optional
+    fwhm_size : float, optional
         Size of the Gaussian kernel used in ``gaus-subt`` mode.
     btw_cutoff : float, optional
         Frequency cutoff for low-pass 2d Butterworth filter used in
@@ -359,7 +359,7 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
         Type of low-pass filtering.
     median_size : int, optional
         Size of the median box for filtering the low-pass median filter.
-    fwhm_size : int, optional
+    fwhm_size : float, optional
         Size of the Gaussian kernel for the low-pass Gaussian filter.
     gauss_mode : {'conv', 'convfft'}, str optional
         'conv' uses the multidimensional gaussian filter from scipy.ndimage and
@@ -409,7 +409,7 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
         See the documentation of the ``frame_filter_lowpass`` function.
     median_size : int, optional
         See the documentation of the ``frame_filter_lowpass`` function.
-    fwhm_size : int, optional
+    fwhm_size : float, optional
         See the documentation of the ``frame_filter_lowpass`` function.
     gauss_mode : str, optional
         See the documentation of the ``frame_filter_lowpass`` function.

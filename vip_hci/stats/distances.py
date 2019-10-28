@@ -1,12 +1,11 @@
 #! /usr/bin/env python
 
 """
-Distance and correlation between images.
+Distance between images.
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez; Valentin Christiaens'
-__all__ = ['cube_distance',
-           'spectral_correlation']
+__author__ = 'Carlos Alberto Gomez Gonzalez'
+__all__ = ['cube_distance']
 
 import numpy as np
 import scipy.stats
@@ -153,56 +152,3 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
 
     return lista
 
-
-
-def spectral_correlation(array, ann_width=2):
-    """ Computes the spectral correlation between (post-processed) IFS frames, 
-    as a function of radius, implemented as Eq. 7 of Greco & Brandt 2017. This 
-    is a crucial step for an unbias fit of a measured IFS spectrum to either 
-    synthetic or template spectra.
-    
-    Parameters
-    ----------
-    array : numpy ndarray
-        Input cube or 3d array, of dimensions n_ch x n_y x n_x; where n_y and 
-        n_x should be odd values (star should be centered on central pixel).
-    ann_width : int, optional
-        Width of the concentric annuli used to compute the spectral correlation
-        as a function of radial separation. Greco & Brandt 2017 noted no 
-        significant differences for annuli between 1 and 3 pixels width on GPI
-        data.
-
-    Returns
-    -------
-    sp_corr : numpy ndarray
-        3d array of spectral correlation, as a function of radius with 
-        dimensions: n_r x n_ch x n_ch, where n_r = min((n_y-1)/2,(n_x-1)/2) 
-        
-    """
-
-    if array.ndim != 3:
-        raise TypeError("Input array should be 3D.")
-        
-    n_ch, n_y, n_x = array.shape
-    n_r = min((n_y-1)/2.,(n_x-1)/2.)
-    if n_r%1:
-        raise TypeError("Input array y and x dimensions should be odd")
-
-    n_rad = int(np.ceil(n_r/ann_width)) # effective number of annuli probed
-
-    sp_corr = np.zeros([int(n_r),n_ch,n_ch])
-
-    for ann in range(n_rad):
-        inner_radius = 1+ (ann * ann_width)
-        indices = get_annulus_segments(array[0], inner_radius, ann_width)
-        yy = indices[0][0]
-        xx = indices[0][1]
-        matrix = array[:, yy, xx]  # shape (z, npx_annsegm)
-        for zi in range(n_ch):
-            for zj in range(n_ch):
-                num = np.nanmean(matrix[zi]*matrix[zj])
-                denom = np.sqrt(np.nanmean(matrix[zi]*matrix[zi])* \
-                                np.nanmean(matrix[zj]*matrix[zj]))
-                sp_corr[1+ann*ann_width:1+(ann+1)*ann_width,zi,zj] = num/denom
-    
-    return sp_corr

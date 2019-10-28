@@ -41,7 +41,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     Parameters
     ----------
     cube : numpy ndarray
-        The input cube, 3d (ADI data) or 4d array (IFS data), without fake
+        The input cube, 2d (ADI data) or 3d array (IFS data), without fake
         companions.
     angle_list : numpy ndarray
         Vector with the parallactic angles.

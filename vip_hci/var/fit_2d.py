@@ -11,7 +11,6 @@ __all__ = ['create_synth_psf',
            'fit_2dmoffat',
            'fit_2dairydisk']
 
-import pdb
 import numpy as np
 import pandas as pd
 import photutils
@@ -230,14 +229,10 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     theta = np.rad2deg(fit.theta.value)
     
     # compute uncertainties
-    if fitter.fit_info['param_cov'] is not None:
-        perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
-        amplitude_e, theta_e, mean_x_e, mean_y_e, fwhm_x_e, fwhm_y_e = perr
-        fwhm_x_e /= gaussian_fwhm_to_sigma
-        fwhm_y_e /= gaussian_fwhm_to_sigma
-    else:
-        amplitude_e, theta_e, mean_x_e = None, None, None
-        mean_y_e, fwhm_x_e, fwhm_y_e = None, None, None
+    perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
+    amplitude_err, theta_err, mean_x_err, mean_y_err, fwhm_x_err, fwhm_y_err = perr
+    fwhm_x_err /= gaussian_fwhm_to_sigma
+    fwhm_y_err /= gaussian_fwhm_to_sigma
 
     if debug:
         if threshold:
@@ -259,11 +254,9 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm_y': fwhm_y, 'fwhm_x': fwhm_x,
                              'amplitude': amplitude, 'theta': theta,
-                             'centroid_y_err': mean_y_e, 
-                             'centroid_x_err': mean_x_e,
-                             'fwhm_y_err': fwhm_y_e, 'fwhm_x_err': fwhm_x_e,
-                             'amplitude_err': amplitude_e, 
-                             'theta_err': theta_e}, index=[0])
+                             'centroid_y_err': mean_y_err, 'centroid_x_err': mean_x_err,
+                             'fwhm_y_err': fwhm_y_err, 'fwhm_x_err': fwhm_x_err,
+                             'amplitude_err': amplitude_err, 'theta_err': theta_err}, index=[0])
     else:
         return mean_y, mean_x
 
@@ -361,7 +354,10 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
     alpha = fit.alpha.value
     gamma = fit.gamma.value
 
-
+    # compute uncertainties
+    perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
+    amplitude_err, mean_x_err, mean_y_err, gamma_err, alpha_err = perr
+    fwhm_err = 2*gamma_err
 
     if debug:
         if threshold:
@@ -379,15 +375,6 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
         print('alpha =', alpha)
         print('gamma =', gamma)
 
-    # compute uncertainties
-    if fitter.fit_info['param_cov'] is not None:
-        perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
-        amplitude_err, mean_x_err, mean_y_err, gamma_err, alpha_err = perr
-        fwhm_err = 2*gamma_err
-    else:
-        amplitude_err, mean_x_err, mean_y_err = None, None, None
-        gamma_err, alpha_err, fwhm_err  = None, None, None
-    
     if full_output:
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm': fwhm, 'alpha': alpha, 'gamma': gamma,
@@ -495,13 +482,9 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     fwhm = ((radius * 1.028) / 2.44) * 2
 
     # compute uncertainties
-    if fitter.fit_info['param_cov'] is not None:
-        perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
-        amplitude_err, mean_x_err, mean_y_err, radius_err = perr
-        fwhm_err = ((radius_err * 1.028) / 2.44) * 2
-    else:
-        amplitude_err, mean_x_err, mean_y_err = None, None, None
-        radius_err, fwhm_err = None, None
+    perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
+    amplitude_err, mean_x_err, mean_y_err, radius_err = perr
+    fwhm_err = ((radius_err * 1.028) / 2.44) * 2
 
     if debug:
         if threshold:
@@ -521,10 +504,9 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     if full_output:
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm': fwhm, 'radius': radius,
-                             'amplitude': amplitude, 
-                             'centroid_y_err': mean_y_err, 
-                             'centroid_x_err': mean_x_err, 
-                             'fwhm_err': fwhm_err, 'radius_err': radius_err,
+                             'amplitude': amplitude, 'centroid_y_err': mean_y_err, 
+                             'centroid_x_err': mean_x_err, 'fwhm_err': fwhm_err, 
+                             'radius_err': radius_err,
                              'amplitude_err': amplitude_err}, index=[0])
     else:
         return mean_y, mean_x

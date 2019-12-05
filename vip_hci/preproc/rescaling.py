@@ -23,7 +23,7 @@ from ..var import frame_center, get_square
 from .subsampling import cube_collapse
 
 
-def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
+def cube_px_resampling(array, scale, imlib='ndimage', interpolation='lanczos4',
                        verbose=True):
     """
     Resample the frames of a cube with a single scale factor.
@@ -70,7 +70,7 @@ def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
     return array_resc
 
 
-def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
+def frame_px_resampling(array, scale, imlib='ndimage', interpolation='lanczos4',
                         verbose=False):
     """
     Resample the pixels of a frame wrt to the center, changing the frame size.
@@ -124,7 +124,7 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
             order = 2
         elif interpolation == 'bicubic':
             order = 3
-        elif interpolation == 'biquartic':
+        elif interpolation == 'biquartic' or interpolation == 'lanczos4':
             order = 4
         elif interpolation == 'biquintic':
             order = 5
@@ -408,7 +408,7 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
                 order = 2
             elif interpolation == 'bicubic':
                 order = 3
-            elif interpolation == 'biquartic':
+            elif interpolation == 'biquartic' or interpolation == 'lanczos4':
                 order = 4
             elif interpolation == 'biquintic':
                 order = 5

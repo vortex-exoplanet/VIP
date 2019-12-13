@@ -664,7 +664,7 @@ def chain_zero_truncated(chain):
     return chain[:, 0:idxzero, :]
  
    
-def show_walk_plot(chain, save=False, **kwargs):
+def show_walk_plot(chain, save=False, output_dir='', **kwargs):
     """
     Display or save a figure showing the path of each walker during the MCMC run
     
@@ -702,13 +702,13 @@ def show_walk_plot(chain, save=False, **kwargs):
         axes[j].set_ylabel(labels[j])
     fig.tight_layout(h_pad=0)
     if save:
-        plt.savefig('walk_plot.pdf')
+        plt.savefig(output_dir+'walk_plot.pdf')
         plt.close(fig)
     else:
         plt.show()
 
 
-def show_corner_plot(chain, burnin=0.5, save=False, **kwargs):
+def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
     """
     Display or save a figure showing the corner plot (pdfs + correlation plots)
     
@@ -752,14 +752,14 @@ def show_corner_plot(chain, burnin=0.5, save=False, **kwargs):
         labels = kwargs.pop('labels', ["$r$", r"$\theta$", "$f$"])
         fig = corner.corner(chain, labels=labels, **kwargs)
     if save:
-        plt.savefig('corner_plot.pdf')
+        plt.savefig(output_dir+'corner_plot.pdf')
         plt.close(fig)
     else:
         plt.show()
 
 
 def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
-               verbose=True, save=False, **kwargs):
+               verbose=True, save=False, output_dir='', **kwargs):
     """
     Determine the highly probable value for each model parameter, as well as
     the 1-sigma confidence interval.
@@ -795,7 +795,6 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     plsc = kwargs.pop('plsc', 0.001)
     title = kwargs.pop('title', None)
         
-    output_dir = kwargs.pop('output_dir', '')
     output_file = kwargs.pop('filename', 'confidence.txt')
         
     try:

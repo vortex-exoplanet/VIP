@@ -795,6 +795,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     plsc = kwargs.pop('plsc', 0.001)
     title = kwargs.pop('title', None)
         
+    output_dir = kwargs.pop('output_dir', '')
     output_file = kwargs.pop('filename', 'confidence.txt')
         
     try:
@@ -907,9 +908,9 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
 
     if save:
         if gaussian_fit:
-            plt.savefig('confi_hist_flux_r_theta_gaussfit.pdf')
+            plt.savefig(output_dir+'confi_hist_flux_r_theta_gaussfit.pdf')
         else:
-            plt.savefig('confi_hist_flux_r_theta.pdf')
+            plt.savefig(output_dir+'confi_hist_flux_r_theta.pdf')
 
     if verbose:
         print('\n\nConfidence intervals:')
@@ -933,7 +934,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     ##  Write inference results in a text file  ##
     ##############################################
     if save:
-        with open(output_file, "w") as f:
+        with open(output_dir+output_file, "w") as f:
             f.write('###########################')
             f.write('####   INFERENCE TEST   ###')
             f.write('###########################')

@@ -41,7 +41,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     Parameters
     ----------
     cube : numpy ndarray
-        The input cube, 2d (ADI data) or 3d array (IFS data), without fake
+        The input cube, 3d (ADI data) or 4d array (IFS data), without fake
         companions.
     angle_list : numpy ndarray
         Vector with the parallactic angles.
@@ -160,15 +160,20 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         for i in range(cube.shape[0]):
             cube[i] = cube[i] / starphot[i]
 
+    if isinstance(fwhm, (np.ndarray,list)):
+        fwhm_med = np.median(fwhm)
+    else:
+        fwhm_med = fwhm
+
     if verbose:
         start_time = time_ini()
         if isinstance(starphot, float) or isinstance(starphot, int):
             msg0 = 'ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {},'
             msg0 += ' STARPHOT = {}'
-            print(msg0.format(algo.__name__, fwhm, nbranch, sigma, starphot))
+            print(msg0.format(algo.__name__, fwhm_med, nbranch, sigma, starphot))
         else:
             msg0 = 'ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {}'
-            print(msg0.format(algo.__name__, fwhm, nbranch, sigma))
+            print(msg0.format(algo.__name__, fwhm_med, nbranch, sigma))
         print(sep)
 
     # throughput
@@ -197,7 +202,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         # noise measured in the empty frame with better sampling, every px
         # starting from 1*FWHM
         noise_samp, rad_samp = noise_per_annulus(frame_nofc, separation=1,
-                                                 fwhm=fwhm, init_rad=fwhm,
+                                                 fwhm=fwhm_med, init_rad=fwhm_med,
                                                  wedge=wedge)
         radmin = vector_radd.astype(int).min()
         cutin1 = np.where(rad_samp.astype(int) == radmin)[0][0]
@@ -234,7 +239,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     if smooth:
         # smoothing the noise vector using a Savitzky-Golay filter
-        win = min(noise_samp.shape[0]-2, int(2*fwhm))
+        win = min(noise_samp.shape[0]-2, int(2*fwhm_med))
         if win % 2 == 0:
             win += 1
         noise_samp_sm = savgol_filter(noise_samp, polyorder=2, mode='nearest',
@@ -252,7 +257,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     # calculating the Student corrected contrast
     if student:
-        n_res_els = np.floor(rad_samp/fwhm*2*np.pi)
+        n_res_els = np.floor(rad_samp/fwhm_med*2*np.pi)
         ss_corr = np.sqrt(1 + 1/(n_res_els-1))
         sigma_corr = stats.t.ppf(stats.norm.cdf(sigma), n_res_els)*ss_corr
         if isinstance(starphot, float) or isinstance(starphot, int):
@@ -397,7 +402,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     Parameters
     ---------_
     cube : numpy ndarray
-        The input cube, 2d (ADI data) or 3d array (IFS data), without fake
+        The input cube, 3d (ADI data) or 4d array (IFS data), without fake
         companions.
     angle_list : numpy ndarray
         Vector with the parallactic angles.
@@ -516,6 +521,11 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
             msg = 'Only a single branch is allowed when working on a wedge'
             raise RuntimeError(msg)
 
+    if isinstance(fwhm, (np.ndarray,list)):
+        fwhm_med = np.median(fwhm)
+    else:
+        fwhm_med = fwhm
+
     if verbose:
         start_time = time_ini()
     #***************************************************************************
@@ -523,7 +533,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     argl = inspect.getargspec(algo).args
     if 'cube' in argl and 'angle_list' in argl and 'verbose' in argl:
         if 'fwhm' in argl:
-            frame_nofc = algo(cube=array, angle_list=parangles, fwhm=fwhm,
+            frame_nofc = algo(cube=array, angle_list=parangles, fwhm=fwhm_med,
                               verbose=False, **algo_dict)
         else:
             frame_nofc = algo(array, angle_list=parangles, verbose=False,
@@ -534,8 +544,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
         print(msg1.format(algo.__name__))
         timing(start_time)
 
-    noise, vector_radd = noise_per_annulus(frame_nofc, separation=fwhm,
-                                           fwhm=fwhm, wedge=wedge)
+    noise, vector_radd = noise_per_annulus(frame_nofc, separation=fwhm_med,
+                                           fwhm=fwhm_med, wedge=wedge)
     vector_radd = vector_radd[inner_rad-1:]
     noise = noise[inner_rad-1:]
     if verbose:
@@ -544,7 +554,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
 
     # We crop the PSF and check if PSF has been normalized (so that flux in
     # 1*FWHM aperture = 1) and fix if needed
-    new_psf_size = int(round(3 * fwhm))
+    new_psf_size = int(round(3 * fwhm_med))
     if new_psf_size % 2 == 0:
         new_psf_size += 1
 
@@ -602,7 +612,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 if 'cube' in arg and 'angle_list' in arg and 'verbose' in arg:
                     if 'fwhm' in arg:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
-                                        fwhm=fwhm, verbose=False, **algo_dict)
+                                        fwhm=fwhm_med, verbose=False, **algo_dict)
                     else:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
                                         verbose=False, **algo_dict)
@@ -618,9 +628,9 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                     timing(start_time)
 
                 #***************************************************************
-                injected_flux = aperture_flux(fc_map, fcy, fcx, fwhm)
+                injected_flux = aperture_flux(fc_map, fcy, fcx, fwhm_med)
                 recovered_flux = aperture_flux((frame_fc - frame_nofc), fcy,
-                                               fcx, fwhm)
+                                               fcx, fwhm_med)
                 thruput = recovered_flux / injected_flux
                 thruput[np.where(thruput < 0)] = 0
 
@@ -684,7 +694,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 if 'cube' in arg and 'angle_list' in arg and 'verbose' in arg:
                     if 'fwhm' in arg:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
-                                        fwhm=fwhm, verbose=False, **algo_dict)
+                                        fwhm=fwhm_med, verbose=False, **algo_dict)
                     else:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
                                         verbose=False, **algo_dict)
@@ -700,7 +710,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                                  for i in range(array.shape[0])]
                 injected_flux = np.mean(injected_flux, axis=0)
                 recovered_flux = aperture_flux((frame_fc - frame_nofc), fcy,
-                                               fcx, np.mean(fwhm))
+                                               fcx, fwhm_med)
                 thruput = recovered_flux / injected_flux
                 thruput[np.where(thruput < 0)] = 0
 

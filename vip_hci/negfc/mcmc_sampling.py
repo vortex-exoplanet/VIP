@@ -323,8 +323,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1,
                         niteration_min=0, niteration_limit=1e2,
                         niteration_supp=0, check_maxgap=1e4, nproc=1,
-                        output_file=None, display=False, verbosity=0,
-                        save=False):
+                        output_dir='results/', output_file=None, display=False, 
+                        verbosity=0, save=False):
     r""" Runs an affine invariant mcmc sampling algorithm in order to determine
     the position and the flux of the planet using the 'Negative Fake Companion'
     technique. The result of this procedure is a chain with the samples from the
@@ -411,6 +411,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         Maximum number of steps per walker between two Gelman-Rubin test.
     nproc: int, optional
         The number of processes to use for parallelization.
+    output_dir: str, optional
+        The name of the output directory which contains the output files in the 
+        case  ``save`` is True.        
     output_file: str, optional
         The name of the output file which contains the MCMC results in the case
         ``save`` is True.
@@ -448,9 +451,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
             output_file = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             
         try:
-            os.makedirs('results/'+output_file)
+            os.makedirs(output_dir+output_file)
         except OSError as exc:
-            if exc.errno == 17 and os.path.isdir('results/'+output_file):
+            if exc.errno == 17 and os.path.isdir(output_dir+output_file):
                 # errno.EEXIST == 17 -> File exists
                 pass
             else:
@@ -551,7 +554,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                 
             if save:
                 import pickle
-                fname = 'results/{f}/{f}_temp_k{k}'.format(f=output_file, k=k)
+                fname = '{d}{f}/{f}_temp_k{k}'.format(d=output_dir,f=output_file, k=k)
                 data = {'chain': sampler.chain,
                         'lnprob': sampler.lnprobability,
                          'AR': sampler.acceptance_fraction}
@@ -626,11 +629,11 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                   'AR': sampler.acceptance_fraction,
                   'lnprobability': sampler.lnprobability}
                   
-        with open('results/'+output_file+'/MCMC_results', 'wb') as fileSave:
+        with open(output_dir+output_file+'/MCMC_results', 'wb') as fileSave:
             pickle.dump(output, fileSave)
         
         msg = "\nThe file MCMC_results has been stored in the folder {}"
-        print(msg.format('results/'+output_file+'/'))
+        print(msg.format(output_dir+output_file+'/'))
 
     if verbosity == 1 or verbosity == 2:
         timing(start_time)
@@ -661,7 +664,7 @@ def chain_zero_truncated(chain):
     return chain[:, 0:idxzero, :]
  
    
-def show_walk_plot(chain, save=False, **kwargs):
+def show_walk_plot(chain, save=False, output_dir='', **kwargs):
     """
     Display or save a figure showing the path of each walker during the MCMC run
     
@@ -699,13 +702,13 @@ def show_walk_plot(chain, save=False, **kwargs):
         axes[j].set_ylabel(labels[j])
     fig.tight_layout(h_pad=0)
     if save:
-        plt.savefig('walk_plot.pdf')
+        plt.savefig(output_dir+'walk_plot.pdf')
         plt.close(fig)
     else:
         plt.show()
 
 
-def show_corner_plot(chain, burnin=0.5, save=False, **kwargs):
+def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
     """
     Display or save a figure showing the corner plot (pdfs + correlation plots)
     
@@ -749,14 +752,14 @@ def show_corner_plot(chain, burnin=0.5, save=False, **kwargs):
         labels = kwargs.pop('labels', ["$r$", r"$\theta$", "$f$"])
         fig = corner.corner(chain, labels=labels, **kwargs)
     if save:
-        plt.savefig('corner_plot.pdf')
+        plt.savefig(output_dir+'corner_plot.pdf')
         plt.close(fig)
     else:
         plt.show()
 
 
 def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
-               verbose=True, save=False, **kwargs):
+               verbose=True, save=False, output_dir='', **kwargs):
     """
     Determine the highly probable value for each model parameter, as well as
     the 1-sigma confidence interval.
@@ -904,9 +907,9 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
 
     if save:
         if gaussian_fit:
-            plt.savefig('confi_hist_flux_r_theta_gaussfit.pdf')
+            plt.savefig(output_dir+'confi_hist_flux_r_theta_gaussfit.pdf')
         else:
-            plt.savefig('confi_hist_flux_r_theta.pdf')
+            plt.savefig(output_dir+'confi_hist_flux_r_theta.pdf')
 
     if verbose:
         print('\n\nConfidence intervals:')
@@ -930,7 +933,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     ##  Write inference results in a text file  ##
     ##############################################
     if save:
-        with open(output_file, "w") as f:
+        with open(output_dir+output_file, "w") as f:
             f.write('###########################')
             f.write('####   INFERENCE TEST   ###')
             f.write('###########################')

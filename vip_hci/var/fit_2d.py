@@ -403,7 +403,7 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
 def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
                    threshold=False, sigfactor=6, full_output=True,
                    debug=True):
-    """ Fitting a 2D Moffat to the 2D distribution of the data.
+    """ Fitting a 2D Airy to the 2D distribution of the data.
 
     Parameters
     ----------
@@ -448,7 +448,6 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     'centroid_x' : Float value. X coordinate of the centroid.
     'centroid_y' : Float value. Y coordinate of the centroid.
     'fwhm' : Float value. FHWM [px].
-    'gamma' : Float value. Gamma parameter.
 
     """
     check_array(array, dim=2, msg='array')

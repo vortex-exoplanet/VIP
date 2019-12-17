@@ -384,17 +384,16 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
     """Find the pixel coordinates of maximum in either a frame or a cube,
     after convolution with gaussian. It first applies a gaussian filter, to
     lower the probability of returning a hot pixel (although it may still
-    happen with clumps of hot pixels, hence the need for function
-    "approx_stellar_position").
+    happen with clumps of hot pixels, hence parameter "approx_peak").
 
     Parameters
     ----------
     obj_tmp : cube_like or frame_like
         Input 3d cube or image.
-    fwhm : float_like
+    fwhm : float_like or 1d array
         Input full width half maximum value of the PSF in pixels. This will be
         used as the standard deviation for Gaussian kernel of the Gaussian
-        filtering.
+        filtering. Can be a 1d array if obj_tmp is a 3D cube.
     approx_peak: 2 components list or array, opt
         Gives the approximate coordinates of the peak.
     search_box: float or 2 components list or array, opt
@@ -409,8 +408,10 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
 
     Returns
     -------
-    zz_max, yy_max, xx_max : integers
-        Indices of highest throughput channel
+    (zz_max,) yy_max, xx_max : integers
+        Indices of peak in either 3D or 2D array
+    ind_ch_max: 2d array
+        Coordinates of the peak in each channel
 
     """
 
@@ -450,6 +451,8 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
         n_z = obj_tmp.shape[0]
         gauss_filt_tmp = np.zeros_like(obj_tmp)
         ind_ch_max = np.zeros([n_z,2])
+        if isinstance(fwhm, float) or isinstance(fwhm, int):
+            fwhm = [fwhm]*n_z
 
         for zz in range(n_z):
             gauss_filt_tmp[zz] = frame_filter_lowpass(obj_tmp[zz], 'gauss',

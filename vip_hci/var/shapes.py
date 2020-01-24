@@ -248,13 +248,15 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
         [position=True] Coordinates of the bottom-left vertex.
 
     """
-    size_init = array.shape[0]  # assuming square frames
-
+    size_init_y = array.shape[0]
+    size_init_x = array.shape[1]
+    size_init = array.shape[0] # "force" cases assume square input frame
+    
     if array.ndim != 2:
         raise TypeError('Input array is not a 2d array.')
     if not isinstance(size, int):
         raise TypeError('`Size` must be integer')
-    if size >= size_init:  # assuming square frames
+    if size >= size_init_y and size >= size_init_x:  # assuming square frames
         msg = "`Size` is equal to or bigger than the initial frame size"
         raise ValueError(msg)
 
@@ -297,7 +299,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
     x0 = int(x - wing)
     x1 = int(x + wing + 1)
 
-    if y0 < 0 or x0 < 0 or y1 > size_init or x1 > size_init:
+    if y0 < 0 or x0 < 0 or y1 > size_init_y or x1 > size_init_x:
         # assuming square frames
         raise RuntimeError('square cannot be obtained with size={}, y={}, x={}'
                            ''.format(size, y, x))

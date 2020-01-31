@@ -5,7 +5,7 @@ Module with helping functions for PCA.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = []
+__all__ = ['pca_annulus']
 
 import numpy as np
 from sklearn.decomposition import IncrementalPCA

@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from .simplex_fmerit import chisquare
+from ..pca import pca_annulus, pca_annular
 from ..var import frame_center
 from ..conf import time_ini, timing
 from ..conf.utils_conf import sep
@@ -22,8 +23,9 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
                           annulus_width, aperture_radius, ncomp, cube_ref=None,
                           svd_mode='lapack', scaling=None, fmerit='sum',
                           imlib='opencv', interpolation='lanczos4',
-                          collapse='median', f_range=None, plot=False,
-                          verbose=True, save=False, debug=False):
+                          collapse='median', algo=pca_annulus, delta_rot=1, 
+                          f_range=None, plot=False, verbose=True, save=False, 
+                          debug=False):
     """ Determine a first guess for the flux of a companion at a given position
     in the cube by doing a simple grid search evaluating the reduced chi2.
     
@@ -69,6 +71,11 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
+    algo: vip function, optional {pca_annulus, pca_annular}
+        Post-processing algorithm used.
+    delta_rot: float, optional
+        If algo is set to pca_annular, delta_rot is the angular threshold used
+        to select frames in the PCA library (see description of pca_annular).
     f_range: numpy.array, optional
         The range of flux tested values. If None, 20 values between 0 and 5000
         are tested.
@@ -104,8 +111,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
         chi2r.append(chisquare((r0, theta0, f_guess), cube, angs, PLSC, psf,
                                fwhm, annulus_width, aperture_radius,
                                (r0, theta0), ncomp, cube_ref, svd_mode,
-                               scaling, fmerit, collapse, imlib, interpolation,
-                               debug))
+                               scaling, fmerit, collapse, algo, delta_rot,
+                               imlib, interpolation, debug))
         if chi2r[j] > chi2r[j-1]:
             counter += 1
         if counter == 4:
@@ -137,7 +144,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
 def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width, 
                        aperture_radius, cube_ref=None, svd_mode='lapack', 
                        scaling=None, fmerit='sum', imlib='opencv',
-                       interpolation='lanczos4', collapse='median', p_ini=None,
+                       interpolation='lanczos4', collapse='median', 
+                       algo=pca_annulus, delta_rot=1, p_ini=None,
                        options=None, verbose=False, **kwargs):
     """
     Determine the position of a companion using the negative fake companion 
@@ -184,6 +192,11 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
+    algo: vip function, optional {pca_annulus, pca_annular}
+        Post-processing algorithm used.
+    delta_rot: float, optional
+        If algo is set to pca_annular, delta_rot is the angular threshold used
+        to select frames in the PCA library (see description of pca_annular).
     p_ini : np.array
         Position (r, theta) of the circular aperture center.
     options: dict, optional
@@ -206,7 +219,8 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
     solu = minimize(chisquare, p, args=(cube, angs, plsc, psf, fwhm,
                                         annulus_width, aperture_radius, p_ini,
                                         ncomp, cube_ref, svd_mode, scaling,
-                                        fmerit, collapse, imlib, interpolation),
+                                        fmerit, collapse, algo, delta_rot, 
+                                        imlib, interpolation),
                     method='Nelder-Mead', options=options, **kwargs)
 
     if verbose:
@@ -217,9 +231,9 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
 def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4, 
                annulus_width=3, aperture_radius=4, cube_ref=None, 
                svd_mode='lapack', scaling=None, fmerit='sum', imlib='opencv',
-               interpolation='lanczos4', collapse='median', p_ini=None,
-               f_range=None, simplex=True, simplex_options=None, plot=False,
-               verbose=True, save=False):
+               interpolation='lanczos4', collapse='median', algo=pca_annulus,
+               delta_rot=1, p_ini=None, f_range=None, simplex=True, 
+               simplex_options=None, plot=False, verbose=True, save=False):
     """ Determines a first guess for the position and the flux of a planet.
         
     We process the cube without injecting any negative fake companion. 
@@ -249,7 +263,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
         The number of principal components.         
     plsc: float
         The platescale, in arcsec per pixel.  
-    planet_xy_coord: array or list
+    planets_xy_coord: array or list
         The list of (x,y) positions of the planets.
     fwhm : float, optional
         The FHWM in pixels.
@@ -279,6 +293,13 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
         merit (instead of a single final frame).
     p_ini: numpy.array
         Position (r, theta) of the circular aperture center.        
+    algo: vip function, optional {pca_annulus, pca_annular}
+        Post-processing algorithm used.
+    delta_rot: float, optional
+        If algo is set to pca_annular, delta_rot is the angular threshold used
+        to select frames in the PCA library (see description of pca_annular).
+    p_ini: numpy.array
+        Position (r, theta) of the circular aperture center.            
     f_range: numpy.array, optional
         The range of flux tested values. If None, 20 values between 0 and 5000
         are tested.
@@ -330,7 +351,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                          f_range=f_range, cube_ref=cube_ref,
                                          svd_mode=svd_mode, scaling=scaling,
                                          fmerit=fmerit, imlib=imlib,
-                                         collapse=collapse,
+                                         collapse=collapse, algo=algo, 
+                                         delta_rot=delta_rot,
                                          interpolation=interpolation,
                                          plot=plot, verbose=verbose, save=save)
         r_pre, theta_pre, f_pre = res_init
@@ -356,7 +378,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                      svd_mode=svd_mode, scaling=scaling,
                                      fmerit=fmerit, imlib=imlib,
                                      interpolation=interpolation,
-                                     collapse=collapse, p_ini=p_ini,
+                                     collapse=collapse, algo=algo, 
+                                     delta_rot=delta_rot,p_ini=p_ini,
                                      options=simplex_options, verbose=False)
             
             r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x

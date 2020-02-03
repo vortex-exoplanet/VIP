@@ -24,6 +24,7 @@ from scipy.stats import norm
 from ..metrics import cube_inject_companions
 from ..conf import time_ini, timing
 from ..conf.utils_conf import sep
+from ..pca import pca_annulus
 from .simplex_fmerit import get_values_optimize
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -67,7 +68,8 @@ def lnprior(param, bounds):
 
 def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
            ncomp, aperture_radius, initial_state, cube_ref=None,
-           svd_mode='lapack', scaling='temp-mean', fmerit='sum', imlib='opencv',
+           svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
+           delta_rot=1, fmerit='sum', imlib='opencv',
            interpolation='lanczos4', collapse='median', debug=False):
     """ Define the likelihood log-function.
     
@@ -102,6 +104,11 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         "temp-mean" then temporal px-wise mean subtraction is done and with
         "temp-standard" temporal mean centering plus scaling to unit variance
         is done.
+    algo: vip function, optional {pca_annulus, pca_annular}
+        Post-processing algorithm used.
+    delta_rot: float, optional
+        If algo is set to pca_annular, delta_rot is the angular threshold used
+        to select frames in the PCA library (see description of pca_annular).
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
         companions sitting on top of speckle noise.
@@ -135,7 +142,8 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
                                  aperture_radius*fwhm, initial_state[0],
                                  initial_state[1], cube_ref=cube_ref,
                                  svd_mode=svd_mode, scaling=scaling,
-                                 imlib=imlib, interpolation=interpolation,
+                                 algo=algo, delta_rot=delta_rot, imlib=imlib, 
+                                 interpolation=interpolation,
                                  collapse=collapse)
     
     # Function of merit

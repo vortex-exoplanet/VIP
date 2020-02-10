@@ -46,7 +46,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
     fwhm : float
         The FHWM in pixels.           
     annulus_width: int, optional
-        The width in terms of the FWHM of the annulus on which the PCA is done.       
+        The width in pixels of the annulus on which the PCA is done.       
     aperture_radius: int, optional
         The radius of the circular aperture in terms of the FWHM.
     ncomp: int
@@ -169,7 +169,7 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
     fwhm : float
         The FHWM in pixels.   
     annulus_width: int, optional
-        The width in terms of the FWHM of the annulus on which the PCA is done.       
+        The width in pixels of the annulus on which the PCA is done.       
     aperture_radius: int, optional
         The radius of the circular aperture in terms of the FWHM.
     cube_ref : numpy ndarray, 3d, optional
@@ -229,7 +229,7 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
     
 
 def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4, 
-               annulus_width=3, aperture_radius=4, cube_ref=None, 
+               annulus_width=4, aperture_radius=1, cube_ref=None, 
                svd_mode='lapack', scaling=None, fmerit='sum', imlib='opencv',
                interpolation='lanczos4', collapse='median', algo=pca_annulus,
                delta_rot=1, p_ini=None, f_range=None, simplex=True, 
@@ -268,7 +268,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     fwhm : float, optional
         The FHWM in pixels.
     annulus_width: int, optional
-        The width in terms of the FWHM of the annulus on which the PCA is done.       
+        The width in pixels of the annulus on which the PCA is done.       
     aperture_radius: int, optional
         The radius of the circular aperture in terms of the FWHM.
     cube_ref : numpy ndarray, 3d, optional

@@ -86,7 +86,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
     psf_norm: numpy.array
         The scaled psf expressed as a numpy.array.
     annulus_width: float
-        The width of the annulus of interest in terms of the FWHM.
+        The width of the annulus of interest in pixels.
     ncomp: int
         The number of principal components.
     fwhm : float
@@ -138,8 +138,8 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
                                         verbose=False)
                                   
     # Perform PCA and extract the zone of interest
-    values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width*fwhm,
-                                 aperture_radius*fwhm, initial_state[0],
+    values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width,
+                                 aperture_radius, initial_state[0],
                                  initial_state[1], cube_ref=cube_ref,
                                  svd_mode=svd_mode, scaling=scaling,
                                  algo=algo, delta_rot=delta_rot, imlib=imlib, 
@@ -190,7 +190,7 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
     ncomp: int
         The number of principal components.
     aperture_radius: float
-        The radius of the circular aperture.
+        The radius of the circular aperture in FWHM.
     initial_state: numpy.array
         The initial guess for the position and the flux of the planet.
     cube_ref : numpy ndarray, 3d, optional

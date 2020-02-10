@@ -42,7 +42,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     fwhm : float
         The FHWM in pixels.
     annulus_width: int, optional
-        The width in terms of the FWHM of the annulus on which the PCA is done.       
+        The width in pixels of the annulus on which the PCA is done.       
     aperture_radius: int, optional
         The radius of the circular aperture in terms of the FWHM.
     initialState: numpy.array
@@ -135,7 +135,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     ncomp: int
         The number of principal component.
     annulus_width: float
-        The width in fwhm of the annulus on which the PCA is performed.
+        The width in pixels of the annulus on which the PCA is performed.
     aperture_radius: float
         The radius in fwhm of the circular aperture.
     fwhm: float
@@ -183,7 +183,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     centy_fr, centx_fr = frame_center(cube[0])
     posy = r_guess * np.sin(np.deg2rad(theta_guess)) + centy_fr
     posx = r_guess * np.cos(np.deg2rad(theta_guess)) + centx_fr
-    halfw = max(aperture_radius*fwhm, annulus_width*fwhm/2)
+    halfw = max(aperture_radius*fwhm, annulus_width/2)
 
     # Checking annulus/aperture sizes. Assuming square frames
     msg = 'The annulus and/or the circular aperture used by the NegFC falls '
@@ -193,13 +193,13 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         raise RuntimeError(msg)
                           
     if algo == pca_annulus:
-        pca_res = pca_annulus(cube, angs, ncomp, annulus_width*fwhm, r_guess, cube_ref,
+        pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
                           svd_mode, scaling, imlib=imlib,
                           interpolation=interpolation, collapse=collapse)
     elif algo == pca_annular:
-        radius_int = int(np.floor(r_guess-annulus_width*fwhm/2))
+        radius_int = int(np.floor(r_guess-annulus_width/2))
         # crop cube to just be larger than annulus => FASTER PCA
-        crop_sz = int(np.ceil(r_guess+annulus_width*fwhm))
+        crop_sz = int(np.ceil(r_guess+annulus_width))
         if not crop_sz %2:
             crop_sz+=1
         if crop_sz < cube.shape[1] and crop_sz < cube.shape[2]:

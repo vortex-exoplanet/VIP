@@ -163,7 +163,8 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
 
 def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
            annulus_width, ncomp, aperture_radius, initial_state, cube_ref=None,
-           svd_mode='lapack', scaling='temp-mean', fmerit='sum', imlib='opencv',
+           svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
+           delta_rot=1, fmerit='sum', imlib='opencv',
            interpolation='lanczos4', collapse='median', display=False):
     """ Define the probability log-function as the sum between the prior and
     likelihood log-funtions.
@@ -232,7 +233,8 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
     
     return lp + lnlike(param, cube, angs, plsc, psf_norm, fwhm,
                        annulus_width, ncomp, aperture_radius, initial_state,
-                       cube_ref, svd_mode, scaling, fmerit, imlib,
+                       cube_ref, svd_mode, scaling, algo,
+                       delta_rot, fmerit, imlib,
                        interpolation, collapse, display)
 
 
@@ -325,7 +327,8 @@ def gelman_rubin_from_chain(chain, burnin):
 
 def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         annulus_width=3, aperture_radius=4, cube_ref=None,
-                        svd_mode='lapack', scaling='temp-mean', fmerit='sum',
+                        svd_mode='lapack', scaling='temp-mean', 
+                        algo=pca_annulus, delta_rot=1, fmerit='sum',
                         imlib='opencv', interpolation='lanczos4',
                         collapse='median', nwalkers=1000, bounds=None, a=2.0,
                         burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1,
@@ -510,8 +513,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                     args=([bounds, cube, angs, plsc, psfn,
                                            fwhm, annulus_width, ncomp,
                                            aperture_radius, initial_state,
-                                           cube_ref, svd_mode, scaling, fmerit,
-                                           imlib, interpolation, collapse]),
+                                           cube_ref, svd_mode, scaling, algo,
+                                           delta_rot, fmerit, imlib, 
+                                           interpolation, collapse]),
                                     threads=nproc)
     start = datetime.datetime.now()
 

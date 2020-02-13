@@ -139,7 +139,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
                                   
     # Perform PCA and extract the zone of interest
     values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width,
-                                 aperture_radius, initial_state[0],
+                                 aperture_radius, fwhm, initial_state[0],
                                  initial_state[1], cube_ref=cube_ref,
                                  svd_mode=svd_mode, scaling=scaling,
                                  algo=algo, delta_rot=delta_rot, imlib=imlib, 
@@ -524,7 +524,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     if verbosity == 2:
         print('\nStart of the MCMC run ...')
         print('Step  |  Duration/step (sec)  |  Remaining Estimated Time (sec)')
-                             
+    
     for k, res in enumerate(sampler.sample(pos, iterations=nIterations,
                                            storechain=True)):
         elapsed = (datetime.datetime.now()-start).total_seconds()

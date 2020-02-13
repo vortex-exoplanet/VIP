@@ -458,13 +458,12 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     # If required, one create the output folder.
     if save:
         
-        if output_file is None:
-            output_file = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file_tmp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             
         try:
-            os.makedirs(output_dir+output_file)
+            os.makedirs(output_dir)
         except OSError as exc:
-            if exc.errno == 17 and os.path.isdir(output_dir+output_file):
+            if exc.errno == 17 and os.path.isdir(output_dir):
                 # errno.EEXIST == 17 -> File exists
                 pass
             else:
@@ -566,7 +565,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                 
             if save:
                 import pickle
-                fname = '{d}{f}/{f}_temp_k{k}'.format(d=output_dir,f=output_file, k=k)
+                fname = '{d}/{f}_temp_k{k}'.format(d=output_dir,f=output_file_tmp, k=k)
                 data = {'chain': sampler.chain,
                         'lnprob': sampler.lnprobability,
                          'AR': sampler.acceptance_fraction}
@@ -641,11 +640,13 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                   'AR': sampler.acceptance_fraction,
                   'lnprobability': sampler.lnprobability}
                   
-        with open(output_dir+output_file+'/MCMC_results', 'wb') as fileSave:
+        if output_file is None:
+            output_file = 'MCMC_results'
+        with open(output_dir+'/'+output_file, 'wb') as fileSave:
             pickle.dump(output, fileSave)
         
         msg = "\nThe file MCMC_results has been stored in the folder {}"
-        print(msg.format(output_dir+output_file+'/'))
+        print(msg.format(output_dir+'/'))
 
     if verbosity == 1 or verbosity == 2:
         timing(start_time)

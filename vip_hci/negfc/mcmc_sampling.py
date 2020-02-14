@@ -503,8 +503,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     stop = np.inf
 
     if bounds is None:
-        bounds = [(initial_state[0] - annulus_width*fwhm/2.,
-                   initial_state[0] + annulus_width*fwhm/2.),  # radius
+        bounds = [(initial_state[0] - annulus_width/2.,
+                   initial_state[0] + annulus_width/2.),  # radius
                   (initial_state[1] - 10, initial_state[1] + 10),   # angle
                   (0, 2 * initial_state[2])]   # flux
     

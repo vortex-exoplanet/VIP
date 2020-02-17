@@ -853,22 +853,22 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         test = 0
         pourcentage = 0
         for k, jj in enumerate(n_arg_sort):
-            test = test + bins_width*n[jj]
+            test = test + bins_width*n[int(jj)]
             pourcentage = test/surface_total*100
             if pourcentage > cfd:
                 if verbose:
                     msg = 'percentage for {}: {}%'
                     print(msg.format(label_file[j], pourcentage))
                 break
-        n_arg_min = n_arg_sort[:k].min()
-        n_arg_max = n_arg_sort[:k+1].max()
+        n_arg_min = int(n_arg_sort[:k].min())
+        n_arg_max = int(n_arg_sort[:k+1].max())
         
         if n_arg_min == 0:
             n_arg_min += 1
         if n_arg_max == bins:
             n_arg_max -= 1
         
-        val_max[pKey[j]] = bin_vertices[n_arg_sort[0]]+bins_width/2.
+        val_max[pKey[j]] = bin_vertices[int(n_arg_sort[0])]+bins_width/2.
         confidenceInterval[pKey[j]] = np.array([bin_vertices[n_arg_min-1],
                                                bin_vertices[n_arg_max+1]]
                                                - val_max[pKey[j]])
@@ -879,7 +879,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             ax[0][j].hist(isamples[arg,j], bins=bin_vertices,
                           facecolor='gray', edgecolor='darkgray',
                           histtype='stepfilled', alpha=0.5)
-            ax[0][j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]],
+            ax[0][j].vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
                             linestyles='dashed', color='red')
             ax[0][j].set_xlabel(label[j])
             if j == 0:
@@ -907,7 +907,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             ax[j].hist(isamples[arg,j],bins=bin_vertices, facecolor='gray',
                        edgecolor='darkgray', histtype='stepfilled',
                        alpha=0.5)
-            ax[j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]],
+            ax[j].vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
                          linestyles='dashed', color='red')
             ax[j].set_xlabel(label[j])
             if j == 0:

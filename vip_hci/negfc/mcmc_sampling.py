@@ -459,7 +459,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     if save:
         
         output_file_tmp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            
+          
+        if output_dir[-1] == '/':
+            output_dir = output_dir[:-1]
         try:
             os.makedirs(output_dir)
         except OSError as exc:

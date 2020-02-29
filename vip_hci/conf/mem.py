@@ -3,8 +3,6 @@
 System memory related functions
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['check_enough_memory',
            'get_available_memory']
@@ -34,24 +32,33 @@ def get_available_memory(verbose=True):
     return mem.available
 
 
-def check_enough_memory(input_bytes, factor=1, verbose=True):
+def check_enough_memory(input_bytes, factor=1, raise_error=True, error_msg='',
+                        verbose=True):
     """
-    Check if the system's available memory is larger than factor*input_bytes.
-
-    This function is used to check the inputs of algorithms and avoid
-    system/Python crashes or heavy swapping.
+    Check if ``input_bytes`` are larger than system's available memory times
+    ``factor``. This function is used to check the inputs (largest ones such as
+    multi-dimensional cubes) of algorithms and avoid system/Python crashes or
+    heavy swapping.
 
     Parameters
     ----------
     input_bytes : float
         The size in bytes of the inputs of a given function.
-    factor : float
+    factor : float, optional
         Scales how much memory is needed in terms of the size of input_bytes.
+    raise_error : bool, optional
+        If True, a RuntimeError is raised when the condition is not met.
+    error_msg : str, optional
+        [raise_error=True] To be appended to the message of the RuntimeError.
+    verbose : bool, optional
+        If True, information about the available memory is printed out.
 
     """
     available_memory = get_available_memory(verbose=verbose)
-    load = factor*input_bytes
-    if load >= available_memory:
+    if input_bytes > factor * available_memory:
+        if raise_error:
+            raise RuntimeError('Input is larger than available system memory' +
+                               error_msg)
         return False
     else:
         return True

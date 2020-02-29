@@ -1,5 +1,5 @@
 """
-In subpackage ``pca`` are the PCA based algorithms for model PSF subtraction.
+Subpackage ``pca`` contains the PCA based algorithms for model PSF subtraction.
 The ADI version is inspired by Soumer et al. 2012 and Amara et al. 2012.
 Different flavors of PCA (with improvements and speed tricks) have been
 implemented:
@@ -21,11 +21,8 @@ implemented:
   computation time. This implementation uses the Python multiprocessing
   capabilities.
 """
-from __future__ import absolute_import
 
 from .pca_fullfr import *
-from .pca_fullfr_grid import *
-from .pca_fullfr_increm import *
 from .pca_local import *
 from .svd import *
 from .utils_pca import *

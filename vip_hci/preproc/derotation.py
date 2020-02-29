@@ -3,7 +3,7 @@
 """
 Module with frame de-rotation routine for ADI.
 """
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_derotate',
@@ -20,12 +20,11 @@ except ImportError:
     no_opencv = True
 
 from skimage.transform import rotate
-from multiprocessing import Pool, cpu_count
-import itertools as itt
-from ..conf.utils_conf import eval_func_tuple as EFT
+from multiprocessing import cpu_count
+from ..conf.utils_conf import pool_map, iterable
 from ..var import frame_center
 
-data_array = None # holds the (implicitly mem-shared) data array
+data_array = None  # holds the (implicitly mem-shared) data array
 
 
 def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
@@ -34,7 +33,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
     
     Parameters
     ----------
-    array : array_like 
+    array : numpy ndarray 
         Input image, 2d array.
     angle : float
         Rotation angle.
@@ -66,7 +65,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
         
     Returns
     -------
-    array_out : array_like
+    array_out : numpy ndarray
         Resulting frame.
         
     """
@@ -161,7 +160,7 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
     
     Parameters
     ----------
-    array : array_like 
+    array : numpy ndarray 
         Input 3d array, cube.
     angle_list : list
         Vector containing the parallactic angles.
@@ -183,7 +182,7 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         
     Returns
     -------
-    array_der : array_like
+    array_der : numpy ndarray
         Resulting cube with de-rotated frames.
         
     """
@@ -204,20 +203,17 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
         global data_array
         data_array = array
 
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(_cube_rotate_mp), range(n_frames),
-                                itt.repeat(angle_list), itt.repeat(imlib),
-                                itt.repeat(interpolation), itt.repeat(cxy),
-                                itt.repeat(border_mode)))
-        pool.close()
+        res = pool_map(nproc, _frame_rotate_mp, iterable(range(n_frames)),
+                       angle_list, imlib, interpolation, cxy, border_mode)
         array_der = np.array(res)
 
     return array_der
 
 
-def _cube_rotate_mp(num_fr, angle_list, imlib, interpolation, cxy, border_mode):
-    framerot = frame_rotate(data_array[num_fr], -angle_list[num_fr],
-                            imlib, interpolation, cxy, border_mode)
+def _frame_rotate_mp(num_fr, angle_list, imlib, interpolation, cxy,
+                     border_mode):
+    framerot = frame_rotate(data_array[num_fr], -angle_list[num_fr], imlib,
+                            interpolation, cxy, border_mode)
     return framerot
 
 
@@ -226,11 +222,9 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
     """ Returns the indices to be left in frames library for annular ADI median
     subtraction, LOCI or annular PCA.
 
-    # TODO: find a more pythonic way to to this!
-
     Parameters
     ----------
-    angle_list : array_like, 1d
+    angle_list : numpy ndarray, 1d
         Vector of parallactic angle (PA) for each frame.
     frame : int
         Index of the current frame for which we are applying the PA threshold.
@@ -250,7 +244,7 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
 
     Returns
     -------
-    indices : array_like, 1d
+    indices : numpy ndarray, 1d
         Vector with the indices left.
 
     If ``out_closest`` is True then the function returns instead:
@@ -311,7 +305,7 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
 
 
 def _compute_pa_thresh(ann_center, fwhm, delta_rot=1):
-    """ Computes the parallactic angle theshold[degrees]
+    """ Computes the parallactic angle threshold [degrees]
     Replacing approximation: delta_rot * (fwhm/ann_center) / np.pi * 180
     """
     return np.rad2deg(2 * np.arctan(delta_rot * fwhm / (2 * ann_center)))
@@ -329,18 +323,20 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
         inner_radius = radius_int + ann * annulus_width
     ann_center = inner_radius + (annulus_width / 2)
     pa_threshold = _compute_pa_thresh(ann_center, fwhm, delta_rot)
-
     mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list)) / 2
     if pa_threshold >= mid_range - mid_range * 0.1:
         new_pa_th = float(mid_range - mid_range * 0.1)
         if verbose:
-            msg = '\tPA threshold {:.2f} is too big, will be set to {:.2f}'
-            print(msg.format(pa_threshold, new_pa_th))
+            print('PA threshold {:.2f} is too big, will be set to '
+                  '{:.2f}'.format(pa_threshold, new_pa_th))
         pa_threshold = new_pa_th
 
     if verbose:
-        msg2 = '\tAnnulus {}, PA thresh = {:.2f}, Inn radius = {:.2f}, '
-        msg2 += 'Ann center = {:.2f}, N segments = {} '
-        print(msg2.format(ann+1, pa_threshold, inner_radius, ann_center,
-                          n_segments))
+        if pa_threshold > 0:
+            print('Ann {}    PA thresh: {:5.2f}    Ann center: '
+                  '{:3.0f}    N segments: {} '.format(ann + 1, pa_threshold,
+                                                   ann_center, n_segments))
+        else:
+            print('Ann {}    Ann center: {:3.0f}    N segments: '
+                  '{} '.format(ann + 1, ann_center, n_segments))
     return pa_threshold, inner_radius, ann_center

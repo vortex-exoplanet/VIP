@@ -1,13 +1,16 @@
 #! /usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Module with utilities.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez, Ralf Farkas'
-__all__ = ['Progressbar']
+__all__ = ['Progressbar',
+           'check_array',
+           'sep',
+           'vip_figsize',
+           'vip_figdpi']
 
 import os
 import sys
@@ -20,8 +23,9 @@ from multiprocessing import Pool
 
 from vip_hci import __version__
 
-sep = '-' * 80
-vip_figsize = (10, 5)
+sep = '―' * 80
+vip_figsize = (8, 5)
+vip_figdpi = 100
 
 
 def print_precision(array, precision=3):
@@ -32,7 +36,7 @@ def print_precision(array, precision=3):
 
 class SaveableEmpty(object):
     """
-    Empty object. Used by ``Saveable`` to restore the state of an object wihtout
+    Empty object. Used by ``Saveable`` to restore the state of an object without
     calling __init__. Similar to what pickle/copy do.
     """
     pass
@@ -267,52 +271,70 @@ def algo_calculates_decorator(*calculated_attributes):
     return decorator
 
 
-def check_array(input_array, dim, name=None):
-    """ Checks the dimensionality of input. Returns it as a np.ndarray.
+def check_array(input_array, dim, msg=None):
+    """ Checks the dimensionality of input. In case the check is not successful,
+    a TypeError is raised.
 
     Parameters
     ----------
     input_array : list, tuple or np.ndarray
         Input data.
-    dim : int
-        Number of dimensions that ``input_array`` is expected to have.
-    name : str, optional
-        String to be used in the error message.
+    dim : int or tuple
+        Number of dimensions that ``input_array`` should have. ``dim`` can take
+        one of these values: 1, 2, 3, 4, (1,2), (2,3), (3,4) or (2,3,4).
+    msg : str, optional
+        String to be used in the error message (``input_array`` name).
 
     """
-    if name is None:
-        name = 'Input array'
+    if not isinstance(input_array, (list, tuple, np.ndarray)):
+        raise TypeError("`input_array` must be a list, tuple of numpy ndarray")
+
+    if msg is None:
+        msg = 'Input array'
+    else:
+        msg = '`' + msg + '`'
+
+    error_msg = "`dim` must be: 1, 2, 3, 4, (1,2), (2,3), (3,4) or (2,3,4)"
+    if isinstance(dim, int):
+        if dim < 1 or dim > 4:
+            raise ValueError(error_msg)
+    elif isinstance(dim, tuple):
+        if dim not in ((1,2), (2,3), (3,4), (2,3,4)):
+            raise ValueError(error_msg)
+
+    msg2 = ' must be a '
+    msg3 = 'd numpy ndarray'
 
     if dim == 1:
-        msg = name + ' must be either a list or a 1d np.ndarray'
         if isinstance(input_array, (list, tuple)):
             input_array = np.array(input_array)
         if not isinstance(input_array, np.ndarray):
-            raise TypeError(msg)
-        input_array = np.squeeze(input_array)
-        if not input_array.ndim == 1:
-            raise TypeError(msg)
-    elif dim == 2:
-        msg = name + ' must be an image or 2d np.ndarray'
+            raise TypeError(msg + msg2 + 'list, tuple or a 1' + msg3)
+        if not input_array.ndim == dim:
+            raise TypeError(msg + msg2 + 'list, tuple or a 1' + msg3)
+
+    elif dim in (2, 3, 4):
         if not isinstance(input_array, np.ndarray):
-            raise TypeError(msg)
+            raise TypeError(msg + msg2 + str(dim) + msg3)
         else:
-            if not input_array.ndim == 2:
-                raise TypeError(msg)
-    elif dim == 3:
-        msg = name + ' must be a cube or 3d np.ndarray'
-        if not isinstance(input_array, np.ndarray):
-            raise TypeError(msg)
+            if not input_array.ndim == dim:
+                raise TypeError(msg + msg2 + str(dim) + msg3)
+
+    elif isinstance(dim, tuple):
+        if dim == (1, 2):
+            msg_tup = '1 or 2'
+        elif dim == (2, 3):
+            msg_tup = '2 or 3'
+        elif dim == (3, 4):
+            msg_tup = '3 or 4'
+        elif dim == (2, 3, 4):
+            msg_tup = '2, 3 or 4'
+
+        if isinstance(input_array, np.ndarray):
+            if input_array.ndim not in dim:
+                raise TypeError(msg + msg2 + msg_tup + msg3)
         else:
-            if not input_array.ndim == 3:
-                raise TypeError(msg)
-    elif dim == 4:
-        msg = name + ' must be a cube or 4d np.ndarray'
-        if not isinstance(input_array, np.ndarray):
-            raise TypeError(msg)
-        else:
-            if not input_array.ndim == 4:
-                raise TypeError(msg)
+            raise TypeError(msg + msg2 + msg_tup + msg3)
 
 
 def frame_or_shape(data):
@@ -353,7 +375,7 @@ class FixedObj(object):
         self.v = v
 
 
-def fixed(v):
+def iterable(v):
     """ Helper function for ``pool_map``: prevents the argument from being
     wrapped in ``itertools.repeat()``.
 
@@ -373,7 +395,7 @@ def fixed(v):
         method = 1
 
         # we then would use
-        pool_map(3, worker, fixed(words), method)
+        pool_map(3, worker, iterable(words), method)
 
         # this results in calling
         #
@@ -398,7 +420,8 @@ def pool_map(nproc, fkt, *args, **kwargs):
         The function to be called with each ``*args``
     *args : function arguments
         Arguments passed to ``fkt`` By default, ``itertools.repeat`` is applied
-        on all the arguments, except when you wrap the argument in ``fixed()``.
+        on all the arguments, except when you wrap the argument in
+        ``iterable()``.
     msg : str or None, optional
         Description to be displayed.
     progressbar_single : bool, optional
@@ -411,13 +434,6 @@ def pool_map(nproc, fkt, *args, **kwargs):
     -------
     res : list
         A list with the results.
-
-    Notes
-    -----
-    python2 does not support named keyword arguments after ``*args``. This is
-    why the rather un-elegant ``kwargs.get()`` are used.
-
-    # TODO: how do ``zip`` and ``map`` behave on python 2?
 
     """
     msg = kwargs.get("msg", None)
@@ -558,8 +574,8 @@ class redirect_output(object):
 
 
 def lines_of_code():
-    """ Calculates the lines of code for VIP pipeline. Not objective measure
-    of developer's work! (note to self).
+    """ Calculates the lines of code for VIP. Not objective measure of
+    developer's work! (note to self).
     """
     cur_path = os.path.dirname(os.path.abspath(__file__))
     path = cur_path[:-len('conf')]

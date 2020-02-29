@@ -10,14 +10,11 @@ Subpackage ``metrics`` includes:
     - contrast curve generation,
     - receiver operating characteristic (ROC) curves generation.
 """
-from __future__ import absolute_import
-
 from .contrcurve import *
 from .detection import *
 from .fakecomp import *
-from .frame_analysis import *
 from .roc import *
-from .snr import *
+from .snr_source import *
 from .fakedisk import *
 from .scattered_light_disk import *
 from .stim import *

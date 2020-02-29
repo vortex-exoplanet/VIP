@@ -4,8 +4,6 @@
 Module containing functions for cubes frame registration.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens, G. Ruane'
 __all__ = ['frame_shift',
            'cube_shift',
@@ -19,7 +17,6 @@ __all__ = ['frame_shift',
 
 import numpy as np
 import warnings
-import itertools as itt
 
 try:
     import cv2
@@ -29,18 +26,20 @@ except ImportError:
     warnings.warn(msg, ImportWarning)
     no_opencv = True
 
+from hciplot import plot_frames
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
 from skimage.transform import radon
 from skimage.feature import register_translation
-from multiprocessing import Pool, cpu_count
+from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
 from . import frame_crop
 from ..conf import time_ini, timing, Progressbar
-from ..conf.utils_conf import vip_figsize, check_array, eval_func_tuple as EFT
+from ..conf.utils_conf import vip_figsize, check_array
+from ..conf.utils_conf import pool_map, iterable
 from ..var import (get_square, frame_center, get_annulus_segments,
-                   pp_subplots, fit_2dmoffat, fit_2dgaussian,
-                   cube_filter_lowpass, cube_filter_highpass)
+                   fit_2dmoffat, fit_2dgaussian, cube_filter_lowpass,
+                   cube_filter_highpass)
 from ..preproc import cube_crop_frames
 
 
@@ -50,7 +49,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 2d array.
     shift_y, shift_x: float
         Shifts in y and x directions.
@@ -82,7 +81,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
 
     Returns
     -------
-    array_shifted : array_like
+    array_shifted : numpy ndarray
         Shifted 2d array.
 
     """
@@ -167,7 +166,7 @@ def cube_shift(cube, shift_y, shift_x, imlib='opencv',
 
     Parameters
     ----------
-    cube : array_like, 3d
+    cube : numpy ndarray, 3d
         Input cube.
     shift_y, shift_x: float, list of floats or np.ndarray of floats
         Shifts in y and x directions for each frame. If the a single value is
@@ -179,7 +178,7 @@ def cube_shift(cube, shift_y, shift_x, imlib='opencv',
 
     Returns
     -------
-    cube_out : array_like, 3d
+    cube_out : numpy ndarray, 3d
          Cube with shifted frames.
 
     """
@@ -200,7 +199,7 @@ def cube_shift(cube, shift_y, shift_x, imlib='opencv',
 
 def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
                           imlib='opencv', interpolation='lanczos4',
-                          debug=False, verbose=True):
+                          fit_type='moff', debug=False, verbose=True):
     """ Finds the center of a frame with waffle/satellite spots (e.g. for
     VLT/SPHERE). The method used to determine the center is by centroiding the
     4 spots via a 2d Gaussian fit and finding the intersection of the
@@ -212,7 +211,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
     Parameters
     ----------
-    array : array_like, 2d
+    array : numpy ndarray, 2d
         Image or frame.
     xy : tuple of 4 tuples
         Tuple with coordinates X,Y of the 4 satellite spots. When the spots are
@@ -232,6 +231,8 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    fit_type: str, optional {'gaus','moff'}
+        Type of 2d fit to infer the centroid of the satellite spots.
     debug : bool, optional
         If True debug information is printed and plotted.
     verbose : bool, optional
@@ -313,6 +314,8 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
             return None
     # --------------------------------------------------------------------------
     check_array(array, dim=2)
+    if fit_type not in ['gaus','moff']:
+        raise TypeError('fit_type is not recognized')        
     if not isinstance(xy, (tuple, list)) or len(xy) != 4:
         raise TypeError('Input waffle spot coordinates in wrong format (must '
                         'be a tuple of 4 tuples')
@@ -325,8 +328,14 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     for i in range(len(xy)):
         sim, y, x = get_square(array, subi_size, xy[i][1], xy[i][0],
                                position=True, verbose=False)
-        cent2dgy, cent2dgx = fit_2dgaussian(sim, crop=False, threshold=True,
-                                            sigfactor=sigfactor, debug=debug)
+        if fit_type=='gaus':
+            cent2dgy, cent2dgx = fit_2dgaussian(sim, crop=False, threshold=True,
+                                                sigfactor=sigfactor, debug=debug,
+                                                full_output=False)
+        else:
+            cent2dgy, cent2dgx = fit_2dmoffat(sim, crop=False, threshold=True,
+                                              sigfactor=sigfactor, debug=debug, 
+                                              full_output=False)          
         centx.append(cent2dgx + x)
         centy.append(cent2dgy + y)
         subims.append(sim)
@@ -336,7 +345,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     si1, si2, si3, si4 = subims
 
     if debug:
-        pp_subplots(si1, si2, si3, si4, colorb=True)
+        plot_frames((si1, si2, si3, si4), colorbar=True)
         print('Centroids X,Y:')
         print(cent2dgx_1, cent2dgy_1)
         print(cent2dgx_2, cent2dgy_2)
@@ -361,7 +370,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
             if shift:
                 array_rec = frame_shift(array, shifty, shiftx, imlib=imlib,
                                         interpolation=interpolation)
-                return array_rec, shifty, shiftx
+                return array_rec, shifty, shiftx, centy, centx
             else:
                 return shifty, shiftx
         else:
@@ -372,7 +381,8 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
 
 def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
-                           debug=False, verbose=True, full_output=False):
+                           fit_type='moff', debug=False, verbose=True, 
+                           full_output=False):
     """ Function analog to frame_center_satspots but for image sequences. It
     actually will call frame_center_satspots for each image in the cube. The
     function also returns the shifted images (not recommended to use when the
@@ -384,7 +394,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
 
     Parameters
     ----------
-    array : array_like, 3d
+    array : numpy ndarray, 3d
         Input cube.
     xy : tuple
         Tuple with coordinates X,Y of the 4 satellite spots. When the spots are
@@ -400,6 +410,8 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         noise.
     plot : bool, optional
         Whether to plot the shifts.
+    fit_type: str, optional {'gaus','moff'}
+        Type of 2d fit to infer the centroid of the satellite spots.
     debug : bool, optional
         If True debug information is printed and plotted (fit and residuals,
         intersections and shifts). This has to be used carefully as it can
@@ -415,8 +427,10 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     array_rec
         The shifted cube.
     shift_y, shift_x
-        Shifts Y,X to get to the true center for each image.
-
+        [full_output==True] Shifts Y,X to get to the true center for each image.
+    sat_y, sat_x
+        [full_output==True] Y,X positions of the satellite spots in each image. 
+        Order: top-left, top-right, bottom-left and bottom-right.
     """
     check_array(array, dim=3)
 
@@ -426,6 +440,8 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     n_frames = array.shape[0]
     shift_x = np.zeros((n_frames))
     shift_y = np.zeros((n_frames))
+    sat_y = np.zeros([n_frames,4])
+    sat_x = np.zeros([n_frames,4])
     array_rec = []
 
     if verbose:
@@ -433,10 +449,12 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     for i in Progressbar(range(n_frames), verbose=verbose):
         res = frame_center_satspots(array[i], xy, debug=debug, shift=True,
                                     subi_size=subi_size, sigfactor=sigfactor,
-                                    verbose=False)
+                                    fit_type=fit_type, verbose=False)
         array_rec.append(res[0])
         shift_y[i] = res[1]
         shift_x[i] = res[2]
+        sat_y[i] = res[3]
+        sat_x[i] = res[4]
 
     if verbose:
         timing(start_time)
@@ -470,7 +488,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     array_rec = np.array(array_rec)
 
     if full_output:
-        return array_rec, shift_y, shift_x
+        return array_rec, shift_y, shift_x, sat_y, sat_x
     else:
         return array_rec
 
@@ -484,7 +502,7 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 2d array or image.
     cropsize : odd int, optional
         Size in pixels of the cropped central area of the input array that will
@@ -555,13 +573,13 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
                                np.linspace(start=310, stop=320, num=samples,
                                            endpoint=False)))
             sinogram = radon(frame, theta=theta, circle=True)
-            pp_subplots(frame, sinogram)
-            print(np.sum(np.abs(sinogram[cent, :])))
+            plot_frames((frame, sinogram))
+            print(np.sum(np.abs(sinogram[int(cent), :])))
         else:
             theta = np.linspace(start=0, stop=360, num=cent*2, endpoint=False)
             sinogram = radon(frame, theta=theta, circle=True)
-            pp_subplots(frame, sinogram)
-            print(np.sum(np.abs(sinogram[cent, :])))
+            plot_frames((frame, sinogram))
+            print(np.sum(np.abs(sinogram[int(cent), :])))
 
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
@@ -578,13 +596,8 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
             costf.append(res)
         costf = np.array(costf)
     elif nproc > 1:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(costfkt),
-                                itt.repeat(frame), itt.repeat(cent),
-                                itt.repeat(radint), coords))
-
+        res = pool_map(nproc, costfkt, frame, cent, radint, iterable(coords))
         costf = np.array(res)
-        pool.close()
 
     if verbose:
         msg = 'Done {} radon transform calls distributed in {} processes'
@@ -666,7 +679,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 3d array or cube.
     full_output : {False, True}, bool optional
         If True the recentered cube is returned along with the y and x shifts.
@@ -727,10 +740,10 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
         return array_rec
 
 
-def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
+def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  fwhm=4, subi_size=None, upsample_factor=100,
                                  imlib='opencv', interpolation='lanczos4',
-                                 full_output=False, verbose=True,
+                                 full_output=False, verbose=True, nproc=1,
                                  save_shifts=False, debug=False, plot=True):
     """ Recenters a cube of frames using the DFT upsampling method as
     proposed in Guizar et al. 2008 and implemented in the
@@ -743,9 +756,9 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input cube.
-    cy_1, cx_1 : int, optional
+    center_fr1 = (cy_1, cx_1) : Tuple, optional
         Coordinates of the center of the subimage for fitting a 2d Gaussian and
         centroiding the 1st frame.
     negative : bool, optional
@@ -757,6 +770,9 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
         Size of the square subimage sides in pixels, used to centroid to first
         frame. If subi_size is None then the first frame is assumed to be
         centered already.
+    nproc : int or None, optional
+        Number of processes (>1) for parallel computing. If 1 then it runs in
+        serial. If None the number of processes will be set to (cpu_count()/2).
     upsample_factor : int, optional
         Upsampling factor (default 100). Images will be registered to within
         1/upsample_factor of a pixel.
@@ -778,11 +794,12 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
 
     Returns
     -------
-    array_recentered : array_like
-        The recentered cube. Frames have now odd size.
-    If full_output is True:
-    y, x : array_like
-        1d arrays with the shifts in y and x.
+    array_recentered : numpy ndarray
+        The recentered cube.
+    y : numpy ndarray
+        [full_output=True] 1d array with the shifts in y.
+    x : numpy ndarray
+        [full_output=True] 1d array with the shifts in x.
 
     Notes
     -----
@@ -804,11 +821,13 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
 
     n_frames, sizey, sizex = array.shape
     if subi_size is not None:
-        if cx_1 is None or cy_1 is None:
+        if center_fr1 is None:
             print('`cx_1` or `cy_1` not be provided')
             print('Using the coordinated of the 1st frame center for '
                   'the Gaussian 2d fit')
             cy_1, cx_1 = frame_center(array[0])
+        else:
+            cx_1, cy_1 = center_fr1
         if not isinstance(subi_size, int):
             raise ValueError('subi_size must be an integer or None')
         if subi_size < fwhm:
@@ -831,8 +850,8 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
 
     cy, cx = frame_center(array[0])
     # Centroiding first frame with 2d gaussian and shifting
-    msg0 = "The rest of the frames will be shifted by cross-correlation "
-    msg0 += "wrt the 1st"
+    msg0 = "The rest of the frames will be shifted by cross-correlation wrt the" \
+           " 1st"
     if subi_size is not None:
         y1, x1 = _centroid_2dg_frame(array_rec, 0, subi_size, cy_1, cx_1,
                                      negative, debug, fwhm)
@@ -846,23 +865,34 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
             print(msg0)
         if debug:
             titd = "original / shifted 1st frame subimage"
-            pp_subplots(frame_crop(array[0], subi_size, verbose=False),
-                        frame_crop(array_rec[0], subi_size, verbose=False),
+            plot_frames((frame_crop(array[0], subi_size, verbose=False),
+                        frame_crop(array_rec[0], subi_size, verbose=False)),
                         grid=True, title=titd)
     else:
         if verbose:
-            print("The first frame is assumed to be well centered.")
+            print("The first frame is assumed to be well centered wrt the"
+                  "center of the array")
             print(msg0)
-        x[0] = cx
-        y[0] = cy
+        x[0] = 0
+        y[0] = 0
 
     # Finding the shifts with DTF upsampling of each frame wrt the first
-    for i in Progressbar(range(1, n_frames), desc="frames", verbose=verbose):
-        shift_yx, _, _ = register_translation(array_rec[0], array[i],
-                                              upsample_factor=upsample_factor)
-        y[i], x[i] = shift_yx
-        array_rec[i] = frame_shift(array[i], shift_y=y[i], shift_x=x[i],
-                                   imlib=imlib, interpolation=interpolation)
+    
+    if nproc == 1:
+        for i in Progressbar(range(1, n_frames), desc="frames", verbose=verbose):
+            y[i], x[i], array_rec[i] = _shift_dft(array_rec, array, i,
+                                                  upsample_factor, interpolation,
+                                                  imlib)
+    elif nproc > 1: 
+        res = pool_map(nproc, _shift_dft, array_rec, array,
+                       iterable(range(1, n_frames)),
+                       upsample_factor, interpolation, imlib)
+        res = np.array(res)
+        
+        y[1:] = res[:,0]
+        x[1:] = res[:,1]
+        array_rec[1:] = [frames for frames in res[:,2]]
+        
 
     if debug:
         print("\nShifts in X and Y")
@@ -898,6 +928,18 @@ def cube_recenter_dft_upsampling(array, cy_1=None, cx_1=None, negative=False,
         return array_rec
 
 
+def _shift_dft(array_rec, array, frnum, upsample_factor, interpolation, imlib):
+    """
+    function used in recenter_dft_unsampling
+    """
+    shift_yx, _, _ = register_translation(array_rec[0], array[frnum],
+                                          upsample_factor=upsample_factor)
+    y_i, x_i = shift_yx
+    array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
+                              imlib=imlib, interpolation=interpolation)
+    return y_i, x_i, array_rec_i    
+
+
 def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                         nproc=1, imlib='opencv', interpolation='lanczos4',
                         offset=None, negative=False, threshold=False,
@@ -910,11 +952,11 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input cube.
     xy : tuple of int
         Coordinates of the center of the subimage (wrt the original frame).
-    fwhm : float or array_like
+    fwhm : float or numpy ndarray
         FWHM size in pixels, either one value (float) that will be the same for
         the whole cube, or an array of floats with the same dimension as the
         0th dim of array, containing the fwhm for each channel (e.g. in the case
@@ -955,11 +997,12 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
 
     Returns
     -------
-    array_recentered : array_like
-        The recentered cube. Frames have now odd size.
-    If full_output is True:
-    y, x : array_like
-        1d arrays with the shifts in y and x.
+    array_recentered : numpy ndarray
+        The recentered cube.
+    y : numpy ndarray
+        [full_output=True] 1d array with the shifts in y.
+    x : numpy ndarray
+        [full_output=True] 1d array with the shifts in x.
 
     """
     if verbose:
@@ -1020,14 +1063,9 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                             fwhm[i], threshold))
         res = np.array(res)
     elif nproc > 1:
-        pool = Pool(processes=nproc)
-        res = pool.map(EFT, zip(itt.repeat(func), itt.repeat(array),
-                                range(n_frames), itt.repeat(subi_size),
-                                itt.repeat(pos_y), itt.repeat(pos_x),
-                                itt.repeat(negative), itt.repeat(debug), fwhm,
-                                itt.repeat(threshold)))
+        res = pool_map(nproc, func, array, iterable(range(n_frames)), subi_size,
+                       pos_y, pos_x, negative, debug, iterable(fwhm), threshold)
         res = np.array(res)
-        pool.close()
     y = cy - res[:, 0]
     x = cx - res[:, 1]
 
@@ -1036,7 +1074,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         y -= offy
         x -= offx
 
-    for i in Progressbar(range(n_frames), desc="shifting", verbose=verbose):
+    for i in Progressbar(range(n_frames), desc="Shifting", verbose=verbose):
         if debug:
             print("\nShifts in X and Y")
             print(x[i], y[i])
@@ -1084,7 +1122,8 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
         sub_image = -sub_image + np.abs(np.min(-sub_image))
 
     y_i, x_i = fit_2dgaussian(sub_image, crop=False, fwhmx=fwhm, fwhmy=fwhm,
-                              threshold=threshold, sigfactor=1, debug=debug)
+                              threshold=threshold, sigfactor=1, debug=debug,
+                              full_output=False)
     y_i = y1 + y_i
     x_i = x1 + x_i
     return y_i, x_i
@@ -1121,9 +1160,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
 
     Parameters
     ----------
-    cube_sci : array_like
+    cube_sci : numpy ndarray
         Science cube.
-    cube_ref : array_like
+    cube_ref : numpy ndarray
         Reference cube (e.g. for NIRC2 data in RDI mode).
     alignment_iter : int, optional
         Number of alignment iterations (recomputes median after each iteration).
@@ -1131,9 +1170,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         Applies a gamma correction to emphasize speckles (useful for faint
         stars).
     min_spat_freq : float, optional
-        Spatial frequency for high pass filter.
-    max_spat_freq : float, optional
         Spatial frequency for low pass filter.
+    max_spat_freq : float, optional
+        Spatial frequency for high pass filter.
     fwhm : float, optional
         Full width at half maximum.
     debug : bool, optional
@@ -1156,7 +1195,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
 
     Returns
     -------
-    array_shifted : array_like
+    array_shifted : numpy ndarray
         Shifted 2d array.
 
     If cube_ref is not None, returns:
@@ -1204,7 +1243,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
                                         median_size=median_size, verbose=False)
     cube_sci_lpf = cube_filter_lowpass(cube_sci_hpf, 'gauss',
-                                       fwhm_size=median_size, verbose=False)
+                                       fwhm_size=min_spat_freq * fwhm, verbose=False)
 
     if ref_star:
         cube_ref_hpf = cube_filter_highpass(cube_ref_lpf, 'median-subt',
@@ -1235,7 +1274,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             if negative:
                 sub_image = -sub_image + np.abs(np.min(-sub_image))
             y_i, x_i = fit_2dgaussian(sub_image, crop=False, threshold=False,
-                                      sigfactor=1, debug=debug)
+                                      sigfactor=1, debug=debug,
+                                      full_output=False)
             yshift = ceny - (y1 + y_i)
             xshift = cenx - (x1 + x_i)
 

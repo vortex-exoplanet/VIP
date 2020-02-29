@@ -4,7 +4,7 @@
 Module with sigma clipping functions.
 """
 
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez', 'V. Christiaens'
 __all__ = ['clip_array',
@@ -23,9 +23,9 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
     
     Parameters
     ----------
-    frame_tmp : array_like 
+    frame_tmp : numpy ndarray 
         Input 2d array, image.
-    bpix_map: array_like
+    bpix_map: numpy ndarray
         Input array of the same size as frame_tmp, indicating the locations of 
         bad/nan pixels by 1 (the rest of the array is set to 0)
     neighbor_box : int, optional
@@ -39,7 +39,7 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
         
     Returns
     -------
-    frame_corr : array_like
+    frame_corr : numpy ndarray
         Output array with corrected bad/nan pixels
     
     """
@@ -103,7 +103,7 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
     
     Parameters
     ----------
-    array : array_like 
+    array : numpy ndarray 
         Input 2d array, image.
     lower_sigma : float 
         Value for sigma, lower boundary.
@@ -122,9 +122,9 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
         
     Returns
     -------
-    good : array_like
+    good : numpy ndarray
         If out_good argument is true, returns the indices of not-outlying px.
-    bad : array_like 
+    bad : numpy ndarray 
         If out_good argument is false, returns a vector with the outlier px.
     
     """

@@ -19,16 +19,13 @@ Based on ANDROMEDA v3.1 from 28/06/2018.
 
 """
 
-from __future__ import division, print_function
-from __future__ import absolute_import
-
 __author__ = "Ralf Farkas"
 __all__ = ["andromeda"]
 
 import numpy as np
 
 from ..var.filters import frame_filter_highpass, cube_filter_highpass
-from ..conf.utils_conf import pool_map, fixed
+from ..conf.utils_conf import pool_map, iterable
 from ..var.shapes import dist_matrix
 
 from .utils import robust_std, idl_round, idl_where
@@ -51,21 +48,28 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
 
     Parameters
     ----------
-    cube : 3d array_like
+    cube : 3d numpy ndarray
         Input cube.
         IDL parameter: ``IMAGES_1_INPUT``
     oversampling_fact : float
         Oversampling factor for the wavelength corresponding to the filter used
         for obtaining ``cube`` (defined as the ratio between the wavelength of
-        the filter and the Shannon wavelength).
+        the filter and the Shannon wavelength). Note that in ANDROMEDA everything
+        is coded in lambda/D unit so this is an important parameter. 
+        For instance, it is computed as (its value is above 1 and usually below 3): 
+        lambda = 3.8e-6                                            ; Imaging wavelength [m]
+        diam_tel = 8.0                                             ; Telescope diameter [m]
+        pixscale = 12.25                                           ; Pixscale [mas/px]
+        PIXSCALE_NYQUIST = (1/2.*lambda/diam_tel)/!pi*180*3600*1e3 ; Pixscale at Shannon [mas/px]
+        oversampling = PIXSCALE_NYQUIST / PIXSCALE                 ; Oversampling factor [1]
         IDL parameter: ``OVERSAMPLING_1_INPUT``
-    angles : array_like
+    angles : numpy ndarray
         List of parallactic angles associated with each frame in ``cube``. Note
         that, compared to the IDL version, the PA convention is different: If
         you would pass ``[1,2,3]`` to the IDL version, you should pass ``[-1,
         -2, -3]`` to this function to obtain the same results.
         IDL parameter: ``- ANGLES_INPUT``
-    psf : 2d array_like
+    psf : 2d numpy ndarray
         The experimental PSF used to model the planet signature in the
         subtracted images. This PSF is usually a non-coronographic or saturated
         observation of the target star.
@@ -384,7 +388,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     # ===== main loop
     res_all = pool_map(nproc, _process_annulus,
                        # start with outer annuli, they take longer:
-                       fixed(range(annuli_number)[::-1]),
+                       iterable(range(annuli_number)[::-1]),
                        annuli_limits, roa, min_sep, oversampling_fact,
                        angles, opt_method, multiply_gamma, psf_cube,
                        homogeneous_variance, verbose, msg="annulus",
@@ -797,7 +801,7 @@ def create_indices(angles, angmin, verbose=True):
 
     Parameters
     ----------
-    angles : 1d array_like
+    angles : 1d numpy ndarray
         ndarray containing the angles associated to each image. The array should
         be monotonic
     angmin : float

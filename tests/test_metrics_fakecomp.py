@@ -3,11 +3,7 @@ Tests for metrics/fakecomp.py
 
 """
 
-from __future__ import division, print_function, absolute_import
-
-__author__ = "Ralf Farkas"
-
-from helpers import aarc, np, param, parametrize, fixture, filterwarnings
+from .helpers import aarc, np, param, parametrize, fixture, filterwarnings
 from vip_hci.metrics.fakecomp import cube_inject_companions, normalize_psf
 
 
@@ -20,10 +16,10 @@ def dataset(request):
 
     """
     if request.param == "3D":
-        cube = np.zeros((3, 5, 5))
+        cube = np.zeros((3, 25, 25))
         psf = np.ones((1, 1))
     elif request.param == "4D":
-        cube = np.zeros((2, 3, 5, 5))  # lambda, frames, width, height
+        cube = np.zeros((2, 3, 25, 25))  # lambda, frames, width, height
         psf = np.ones((2, 1, 1))
 
     angles = np.array([0, 90, 180])
@@ -46,12 +42,11 @@ def test_cube_inject_companions(dataset, branches, dists):
         Expected positions.
         """
         if branches == 1 and dists == 2:
-            return [(2, 4)]
+            return [(12, 14)]
         elif branches == 2 and dists == 2:
-            return [(2, 4), (2, 0)]
+            return [(12, 14), (12, 10)]
         elif branches == 2 and dists == [1, 2]:
-            return [(2, 3), (2, 4), (2, 1), (2, 0)]
-
+            return [(12, 13), (12, 14), (12, 11), (12, 10)]
         else:
             raise ValueError("no expected result defined")
 
@@ -59,9 +54,8 @@ def test_cube_inject_companions(dataset, branches, dists):
 
     c, yx = cube_inject_companions(cube, psf_template=psf, angle_list=angles,
                                    rad_dists=dists, n_branches=branches,
-                                   flevel=3,
-                                   full_output=True,
-                                   plsc=1, verbose=True)
+                                   flevel=3, full_output=True, plsc=0.999,
+                                   verbose=True)
     yx_expected = _expected(branches, dists)
 
     aarc(yx, yx_expected)

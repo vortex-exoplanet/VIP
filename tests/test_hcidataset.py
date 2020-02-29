@@ -2,15 +2,13 @@
 Tests for HCIDataset.
 """
 
-from __future__ import division, print_function, absolute_import
-
 __author__ = "Ralf Farkas"
 
 import tempfile
 import os
-from helpers import aarc, np
+from .helpers import aarc, np
 
-from vip_hci.hci_dataset import HCIDataset
+from vip_hci.hci_dataset import Dataset
 
 
 def test_saveable_dataset():
@@ -22,14 +20,14 @@ def test_saveable_dataset():
     angles = np.linspace(1, 2, 5)
     fwhm = 4  # test non-numpy type saving/loading
 
-    ds = HCIDataset(cube=cube, angles=angles, fwhm=fwhm)
+    ds = Dataset(cube=cube, angles=angles, fwhm=fwhm)
 
     # save
     fd, fn = tempfile.mkstemp(prefix="vip_")
     ds.save(fn)
 
     # restore
-    ds2 = HCIDataset.load(fn)
+    ds2 = Dataset.load(fn)
 
     # compare
     aarc(ds2.cube, cube)

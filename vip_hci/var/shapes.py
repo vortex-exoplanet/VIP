@@ -4,8 +4,6 @@
 Module with various functions to create shapes, annuli and segments.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['dist',
            'frame_center',
@@ -36,7 +34,7 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
 
     Parameters
     ----------
-    array : 2d/3d/4d array_like
+    array : 2d/3d/4d numpy ndarray
         Input frame or cube.
     radius : int
         Radius of the circular aperture.
@@ -49,7 +47,7 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
 
     Returns
     -------
-    array_masked : array_like
+    array_masked : numpy ndarray
         Masked frame or cube.
 
     """
@@ -102,7 +100,7 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
 
     Returns
     -------
-    mask : array_like
+    mask : numpy ndarray
         2d array of zeros and ones.
 
     """
@@ -144,6 +142,14 @@ def dist(yc, xc, y1, x1):
     """
     Return the Euclidean distance between two points.
     """
+    if not isinstance(xc, (float, int)):
+        raise TypeError("`xc` must be a float or int")
+    if not isinstance(yc, (float, int)):
+        raise TypeError("`yc` must be a float or int")
+    if not isinstance(x1, (float, int)):
+        raise TypeError("`x1` must be a float or int")
+    if not isinstance(y1, (float, int)):
+        raise TypeError("`y1` must be a float or int")
     return np.sqrt((yc-y1)**2 + (xc-x1)**2)
 
 
@@ -182,7 +188,7 @@ def frame_center(array, verbose=False):
 
     Parameters
     ----------
-    array : 2d/3d/4d array_like
+    array : 2d/3d/4d numpy ndarray
         Frame or cube.
     verbose : bool optional
         If True the center coordinates are printed out.
@@ -216,7 +222,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
 
     Parameters
     ----------
-    array : 2d array_like
+    array : 2d numpy ndarray
         Input frame.
     size : int
         Size of the subframe.
@@ -236,7 +242,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
 
     Returns
     -------
-    array_out : array_like
+    array_out : numpy ndarray
         Sub array.
     y0, x0 : int
         [position=True] Coordinates of the bottom-left vertex.
@@ -310,7 +316,7 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 2d array or image.
     radius : int
         The radius of the circular region.
@@ -325,9 +331,9 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
 
     Returns
     -------
-    masked : array_like
+    masked : numpy ndarray
         [mode="mask"] Input array with the circular mask applied.
-    values : array_like
+    values : numpy ndarray
         [mode="val"] 1d array with the values of the pixels in the circular
         region.
 
@@ -363,7 +369,7 @@ def get_ellipse(data, a, b, pa, cy=None, cx=None, mode="ind"):
 
     Parameters
     ----------
-    data : array_like or tuple
+    data : numpy ndarray or tuple
         Input 2d array (image) or tuple with a shape.
     a : float
         Semi-major axis.
@@ -390,6 +396,11 @@ def get_ellipse(data, a, b, pa, cy=None, cx=None, mode="ind"):
         [mode='bool'] A boolean mask where ``True`` is the inner region.
 
     """
+
+    def distance(yc, xc, y1, x1):
+        return np.sqrt((yc - y1) ** 2 + (xc - x1) ** 2)
+    # --------------------------------------------------------------------------
+
     array = frame_or_shape(data)
 
     if cy is None or cx is None:
@@ -403,8 +414,8 @@ def get_ellipse(data, a, b, pa, cy=None, cx=None, mode="ind"):
 
     # ogrid is a multidim mesh creator (faster than mgrid):
     yy, xx = np.ogrid[:array.shape[0], :array.shape[1]]
-    ellipse = (dist(yy, xx, pos_f1[0], pos_f1[1])
-               + dist(yy, xx, pos_f2[0], pos_f2[1]))
+    ellipse = (distance(yy, xx, pos_f1[0], pos_f1[1]) +
+               distance(yy, xx, pos_f2[0], pos_f2[1]))
     ellipse_mask = ellipse < 2 * a  # boolean mask
 
     if mode == "ind":
@@ -428,7 +439,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
 
     Parameters
     ----------
-    data : 2d array_like or tuple
+    data : 2d numpy ndarray or tuple
         Input 2d array (image) ot tuple with its shape.
     inner_radius : float
         The inner radius of the donut region.
@@ -532,7 +543,7 @@ def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):
 
     Parameters
     ----------
-    data : array_like or tuple
+    data : numpy ndarray or tuple
         Input 2d array (image) or tuple with a shape.
     a : float
         Semi-major axis.
@@ -588,11 +599,11 @@ def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):
 
 def matrix_scaling(matrix, scaling):
     """
-    Scale a matrix using sklearn.preprocessing.scale function.
+    Scale a matrix using ``sklearn.preprocessing.scale`` function.
 
     Parameters
     ----------
-    matrix : 2d array_like
+    matrix : 2d numpy ndarray
         Input 2d array.
     scaling : None or string
         Scaling method.
@@ -610,7 +621,7 @@ def matrix_scaling(matrix, scaling):
 
     Returns
     -------
-    matrix : 2d array_like
+    matrix : 2d numpy ndarray
         2d array with scaled values.
 
     """
@@ -631,7 +642,7 @@ def matrix_scaling(matrix, scaling):
 
 
 def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
-                   annulus_radius=None, annulus_width=None, verbose=True):
+                   inner_radius=None, outer_radius=None, verbose=True):
     """
     Build the matrix for the SVD/PCA and other matrix decompositions.
 
@@ -639,50 +650,52 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
 
     Parameters
     ----------
-    array : 3d array_like
+    array : 3d numpy ndarray
         Input cube.
-    scaling : None or string, optional
-        Scaling method.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard", "spat-standard"},
+        None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale`` function.
+        If set to None, the input matrix is left untouched. Otherwise:
 
-        ``None`` (default)
-            no scaling is performed on the input data before SVD
-        ``"temp-mean"``
-            temporal px-wise mean subtraction
-        ``"spat-mean"``
-            the spatial mean is subtracted
-        ``temp-standard"``
-            temporal mean centering plus scaling to unit variance
-        ``"spat-standard"``
-            spatial mean centering plus scaling to unit variance
+        ``temp-mean``: temporal px-wise mean is subtracted.
+
+        ``spat-mean``: spatial mean is subtracted.
+
+        ``temp-standard``: temporal mean centering plus scaling pixel values
+        to unit variance.
+
+        ``spat-standard``: spatial mean centering plus scaling pixel values
+        to unit variance.
 
     mask_center_px : None or int, optional
-        [mode=fullfr] Whether to mask the center of the frames or not.
+        [mode='fullfr'] Whether to mask the center of the frames or not.
     mode : {'fullfr', 'annular'}, optional
         Whether to use the whole frames or a single annulus.
-    annulus_radius : float, optional
-        [mode=annular] Distance in pixels from the center of the frame to the
-        center of the annulus.
-    annulus_width : float, optional
-        [mode=annular] Width of the annulus in pixels.
+    inner_radius : int or float, optional
+        [mode='annular'] Distance in pixels from the center of the frame to the
+        inner radius of the annulus.
+    outer_radius : int or float, optional
+        [mode='annular'] Distance in pixels from the center of the frame to the
+        outer radius of the annulus.
     verbose : bool, optional
         If True prints intermediate info.
 
     Returns
     -------
-    matrix : 2d array_like
+    matrix : 2d numpy ndarray
         Out matrix whose rows are vectorized frames from the input cube.
     ind : tuple
-        [mode=annular] Indices of the annulus as ``(yy, xx)``.
+        [mode='annular'] Indices of the annulus as ``(yy, xx)``.
 
     """
     if mode == 'annular':
-        if annulus_radius is None or annulus_width is None:
-            raise ValueError('Annulus_radius and/or annulus_width can be None '
-                             'in annular mode')
+        if inner_radius is None or outer_radius is None:
+            raise ValueError('`inner_radius` and `outer_radius` must be defined'
+                             ' in annular mode')
         fr_size = array.shape[1]
-        inrad = annulus_radius - int(np.round(annulus_width / 2.))
-        ind = get_annulus_segments((fr_size, fr_size), inrad, annulus_width,
-                                   nsegm=1)[0]
+        annulus_width = int(np.round(outer_radius - inner_radius))
+        ind = get_annulus_segments((fr_size, fr_size), inner_radius,
+                                   annulus_width, nsegm=1)[0]
         yy, xx = ind
         matrix = array[:, yy, xx]
 

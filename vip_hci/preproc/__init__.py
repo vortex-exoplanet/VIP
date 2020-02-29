@@ -26,7 +26,7 @@ heterogeneity of the datasets coming from different observatories (each having
 different data storage and headers). You can perform this in python in
 procedures of a few lines or using dedicated instrument pipelines such as
 esorex (ESO instruments)."""
-from __future__ import absolute_import
+
 
 from .badframes import *
 from .badpixremoval import *

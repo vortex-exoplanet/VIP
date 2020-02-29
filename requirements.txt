@@ -1,7 +1,7 @@
 numpy ~= 1.8
 scipy ~= 1.1.0
-astropy ~= 2.0
-photutils == 0.4.1
+astropy ~= 3.0
+photutils ~= 0.6
 scikit-learn ~= 0.17
 scikit-image ~= 0.11
 emcee ~= 2.1
@@ -12,5 +12,6 @@ matplotlib >= 2.2
 psutil
 pyprind ~= 2.11
 munch
-opencv-python ~= 3.4
+opencv-python >= 3.4
 pytest
+hciplot ~= 0.1.3

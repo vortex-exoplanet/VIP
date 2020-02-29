@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 
 import numpy as np
 import matplotlib as mpl
@@ -249,7 +248,7 @@ def test_dft(debug=False):
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
                                     stddev=1)
 
-    method_args = dict(cy_1=mean, cx_1=mean, subi_size=None, negative=False,
+    method_args = dict(center_fr1=(mean,mean), subi_size=None, negative=False,
                        **method_args_additional)
     do_recenter(method, cube, randax, randay, errormsg=errormsg,
                 mse_skip_first=True, debug=debug, **method_args)
@@ -260,7 +259,7 @@ def test_dft(debug=False):
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
                                     stddev=1)
 
-    method_args = dict(cy_1=mean, cx_1=mean, subi_size=8, negative=False,
+    method_args = dict(center_fr1=(mean,mean), subi_size=8, negative=False,
                        **method_args_additional)
     do_recenter(method, cube, randax, randay, errormsg=errormsg,
                 mse_skip_first=True, debug=debug, **method_args)
@@ -272,7 +271,7 @@ def test_dft(debug=False):
                                          mean=mean, stddev_outer=3,
                                          stddev_inner=2)
 
-    method_args = dict(cy_1=mean, cx_1=mean, subi_size=12, negative=True,
+    method_args = dict(center_fr1=(mean,mean), subi_size=12, negative=True,
                        **method_args_additional)
     do_recenter(method, cube, randax, randay, errormsg=errormsg,
                 mse_skip_first=True, debug=debug, **method_args)
@@ -284,7 +283,7 @@ def test_dft(debug=False):
                                          mean=mean, stddev_outer=3,
                                          stddev_inner=2)
 
-    method_args = dict(cy_1=mean, cx_1=mean, subi_size=None, negative=True,
+    method_args = dict(center_fr1=(mean,mean), subi_size=None, negative=True,
                        **method_args_additional)
     do_recenter(method, cube, randax, randay, errormsg=errormsg,
                 mse_skip_first=True, debug=debug, **method_args)
@@ -316,7 +315,7 @@ def test_dft_image(debug=False):
     randay[0] = 0
 
     #===== recenter
-    method_args = dict(cy_1=51, cx_1=51, subi_size=None, verbose=True,
+    method_args = dict(center_fr1=(51,51), subi_size=None, verbose=True,
                        negative=True, full_output=True, plot=False)
     do_recenter(method, cube, randax, randay, errormsg=errormsg,
                 mse_skip_first=True, debug=debug, **method_args)

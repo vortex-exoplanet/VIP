@@ -4,16 +4,15 @@
 Distance between images.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_distance']
 
 import numpy as np
 import scipy.stats
 from matplotlib import pyplot as plt
-from ..var import get_annulus_segments
 from skimage.measure import compare_ssim as ssim
+from ..var import get_annulus_segments
+from ..conf import vip_figsize
 
 
 def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
@@ -42,7 +41,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input cube or 3d array.
     frame : int or 2d array
         Reference frame in the cube or 2d array.
@@ -59,7 +58,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
 
     Returns
     -------
-    lista : array_like
+    lista : numpy ndarray
         1d array of distances for each frame wrt the reference one.
 
     """

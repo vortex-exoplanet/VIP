@@ -5,7 +5,7 @@ Module with cosmetics procedures. Contains the function for bad pixel fixing.
 Also functions for cropping cubes.
 """
 
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens'
 __all__ = ['cube_crop_frames',
@@ -27,7 +27,7 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 3d or 4d array.
     size : int
         Size of the desired central sub-array in each frame, in pixels.
@@ -44,7 +44,7 @@ def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
 
     Returns
     -------
-    array_out : array_like
+    array_out : numpy ndarray
         Cube with cropped frames.
 
     """
@@ -91,7 +91,7 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame.
     size : int, odd
         Size of the subframe.
@@ -105,7 +105,7 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
 
     Returns
     -------
-    array_view : array_like
+    array_view : numpy ndarray
         Sub array.
 
     """
@@ -135,7 +135,7 @@ def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input cube, 3d or 4d.
     n : int
         1-based index of the first frame to be kept. Frames before this one are
@@ -149,9 +149,9 @@ def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
 
     Returns
     -------
-    array_view : array_like
+    array_view : numpy ndarray
         Cube with new size.
-    parallactic : 1d array_like
+    parallactic : 1d numpy ndarray
         [parallactic != None] New parallactic angles.
 
     """
@@ -220,7 +220,7 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
 
     Returns
     -------
-    obj_tmp : array_like
+    obj_tmp : numpy ndarray
         Output cube with corrected nan pixels in each frame
     """
     def nan_corr_2d(obj_tmp):
@@ -295,7 +295,7 @@ def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
 
     Parameters
     ----------
-    obj_tmp : array_like
+    obj_tmp : numpy ndarray
         Input 3d cube
     fwhm : float or array 1D
         Input full width half maximum value of the PSF for each channel.

@@ -4,7 +4,7 @@
 Various stat functions.
 """
 
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['descriptive_stats',
@@ -54,7 +54,7 @@ def frame_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
 
     Parameters
     ----------
-    arr : array_like
+    arr : numpy ndarray
         Input array.
     region : {'circle', 'annulus'}, str optional
         Pixels are extracted either from a centered annulus or a circular
@@ -129,7 +129,7 @@ def cube_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
 
     Parameters
     ----------
-    arr : array_like
+    arr : numpy ndarray
         Input array.
     region : {'circle', 'annulus'}, str optional
         Pixels are extracted either from a centered annulus or a circular

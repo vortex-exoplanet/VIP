@@ -3,7 +3,7 @@
 """
 2d fitting and creation of synthetic PSFs.
 """
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['create_synth_psf',
@@ -11,14 +11,16 @@ __all__ = ['create_synth_psf',
            'fit_2dmoffat',
            'fit_2dairydisk']
 
+import pdb
 import numpy as np
 import pandas as pd
 import photutils
+from hciplot import plot_frames
 from astropy.modeling import models, fitting
 from astropy.stats import (gaussian_sigma_to_fwhm, gaussian_fwhm_to_sigma,
                            sigma_clipped_stats)
 from .shapes import get_square, frame_center
-from .plotting import pp_subplots
+from ..conf import check_array
 
 
 def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
@@ -66,7 +68,7 @@ def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
 
     Returns
     -------
-    im : array_like
+    im : numpy ndarray
         2d array with given ``shape`` and containing the synthetic PSF.
 
     Notes
@@ -129,13 +131,13 @@ def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
 
 
 def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
-                   theta=0, threshold=False, sigfactor=6, full_output=False,
-                   debug=False):
+                   theta=0, threshold=False, sigfactor=6, full_output=True,
+                   debug=True):
     """ Fitting a 2D Gaussian to the 2D distribution of the data.
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame with a single PSF.
     crop : bool, optional
         If True an square sub image will be cropped.
@@ -160,7 +162,8 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
         noise.
     full_output : bool, optional
         If False it returns just the centroid, if True also returns the
-        FWHM in X and Y (in pixels), the amplitude and the rotation angle.
+        FWHM in X and Y (in pixels), the amplitude and the rotation angle,
+        and the uncertainties on each parameter.
     debug : bool, optional
         If True, the function prints out parameters of the fit and plots the
         data, model and residuals.
@@ -182,8 +185,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     'theta' : Float value. Rotation angle.
 
     """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array')
+    check_array(array, dim=2, msg='array')
 
     if crop:
         if cent is None:
@@ -226,14 +228,24 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     fwhm_x = fit.x_stddev.value*gaussian_sigma_to_fwhm
     amplitude = fit.amplitude.value
     theta = np.rad2deg(fit.theta.value)
+    
+    # compute uncertainties
+    if fitter.fit_info['param_cov'] is not None:
+        perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
+        amplitude_e, theta_e, mean_x_e, mean_y_e, fwhm_x_e, fwhm_y_e = perr
+        fwhm_x_e /= gaussian_fwhm_to_sigma
+        fwhm_y_e /= gaussian_fwhm_to_sigma
+    else:
+        amplitude_e, theta_e, mean_x_e = None, None, None
+        mean_y_e, fwhm_x_e, fwhm_y_e = None, None, None
 
     if debug:
         if threshold:
-            msg = ['Subimage thresholded', 'Model', 'Residuals']
+            label = ('Subimage thresholded', 'Model', 'Residuals')
         else:
-            msg = ['Subimage', 'Model', 'Residuals']
-        pp_subplots(psf_subimage, fit(x, y), psf_subimage-fit(x, y),
-                    grid=True, gridspacing=1, label=msg)
+            label = ('Subimage', 'Model', 'Residuals')
+        plot_frames((psf_subimage, fit(x, y), psf_subimage-fit(x, y)),
+                    grid=True, grid_spacing=1, label=label)
         print('FWHM_y =', fwhm_y)
         print('FWHM_x =', fwhm_x, '\n')
         print('centroid y =', mean_y)
@@ -246,18 +258,23 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     if full_output:
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm_y': fwhm_y, 'fwhm_x': fwhm_x,
-                             'amplitude': amplitude, 'theta': theta}, index=[0])
+                             'amplitude': amplitude, 'theta': theta,
+                             'centroid_y_err': mean_y_e, 
+                             'centroid_x_err': mean_x_e,
+                             'fwhm_y_err': fwhm_y_e, 'fwhm_x_err': fwhm_x_e,
+                             'amplitude_err': amplitude_e, 
+                             'theta_err': theta_e}, index=[0])
     else:
         return mean_y, mean_x
 
 
 def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
-                 threshold=False, sigfactor=6, full_output=False, debug=False):
+                 threshold=False, sigfactor=6, full_output=True, debug=True):
     """ Fitting a 2D Moffat to the 2D distribution of the data.
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame with a single PSF.
     crop : bool, optional
         If True an square sub image will be cropped.
@@ -301,8 +318,7 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
     'gamma' : Float value. Gamma parameter.
 
     """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array')
+    check_array(array, dim=2, msg='array')
 
     if crop:
         if cent is None:
@@ -345,13 +361,15 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
     alpha = fit.alpha.value
     gamma = fit.gamma.value
 
+
+
     if debug:
         if threshold:
-            msg = ['Subimage thresholded', 'Model', 'Residuals']
+            label = ('Subimage thresholded', 'Model', 'Residuals')
         else:
-            msg = ['Subimage', 'Model', 'Residuals']
-        pp_subplots(psf_subimage, fit(x, y), psf_subimage - fit(x, y),
-                    grid=True, gridspacing=1, label=msg)
+            label = ('Subimage', 'Model', 'Residuals')
+        plot_frames((psf_subimage, fit(x, y), psf_subimage - fit(x, y)),
+                    grid=True, grid_spacing=1, label=label)
         print('FWHM =', fwhm)
         print('centroid y =', mean_y)
         print('centroid x =', mean_x)
@@ -361,21 +379,35 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
         print('alpha =', alpha)
         print('gamma =', gamma)
 
+    # compute uncertainties
+    if fitter.fit_info['param_cov'] is not None:
+        perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
+        amplitude_err, mean_x_err, mean_y_err, gamma_err, alpha_err = perr
+        fwhm_err = 2*gamma_err
+    else:
+        amplitude_err, mean_x_err, mean_y_err = None, None, None
+        gamma_err, alpha_err, fwhm_err  = None, None, None
+    
     if full_output:
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm': fwhm, 'alpha': alpha, 'gamma': gamma,
-                             'amplitude': amplitude}, index=[0])
+                             'amplitude': amplitude, 'centroid_y_err': mean_y_err, 
+                             'centroid_x_err': mean_x_err,
+                             'fwhm_err': fwhm_err, 'alpha_err': alpha_err, 
+                             'gamma_err': gamma_err, 
+                             'amplitude_err': amplitude_err}, index=[0])
     else:
         return mean_y, mean_x
 
 
 def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
-                 threshold=False, sigfactor=6, full_output=False, debug=False):
-    """ Fitting a 2D Moffat to the 2D distribution of the data.
+                   threshold=False, sigfactor=6, full_output=True,
+                   debug=True):
+    """ Fitting a 2D Airy to the 2D distribution of the data.
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame with a single PSF.
     crop : bool, optional
         If True an square sub image will be cropped.
@@ -416,11 +448,9 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     'centroid_x' : Float value. X coordinate of the centroid.
     'centroid_y' : Float value. Y coordinate of the centroid.
     'fwhm' : Float value. FHWM [px].
-    'gamma' : Float value. Gamma parameter.
 
     """
-    if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array')
+    check_array(array, dim=2, msg='array')
 
     if crop:
         if cent is None:
@@ -463,13 +493,22 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     radius = fit.radius.value
     fwhm = ((radius * 1.028) / 2.44) * 2
 
+    # compute uncertainties
+    if fitter.fit_info['param_cov'] is not None:
+        perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
+        amplitude_err, mean_x_err, mean_y_err, radius_err = perr
+        fwhm_err = ((radius_err * 1.028) / 2.44) * 2
+    else:
+        amplitude_err, mean_x_err, mean_y_err = None, None, None
+        radius_err, fwhm_err = None, None
+
     if debug:
         if threshold:
-            msg = ['Subimage thresholded', 'Model', 'Residuals']
+            label = ('Subimage thresholded', 'Model', 'Residuals')
         else:
-            msg = ['Subimage', 'Model', 'Residuals']
-        pp_subplots(psf_subimage, fit(x, y), psf_subimage - fit(x, y),
-                    grid=True, gridspacing=1, label=msg)
+            label = ('Subimage', 'Model', 'Residuals')
+        plot_frames((psf_subimage, fit(x, y), psf_subimage - fit(x, y)),
+                    grid=True, grid_spacing=1, label=label)
         print('FWHM =', fwhm)
         print('centroid y =', mean_y)
         print('centroid x =', mean_x)
@@ -481,6 +520,10 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     if full_output:
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm': fwhm, 'radius': radius,
-                             'amplitude': amplitude}, index=[0])
+                             'amplitude': amplitude, 
+                             'centroid_y_err': mean_y_err, 
+                             'centroid_x_err': mean_x_err, 
+                             'fwhm_err': fwhm_err, 'radius_err': radius_err,
+                             'amplitude_err': amplitude_err}, index=[0])
     else:
         return mean_y, mean_x

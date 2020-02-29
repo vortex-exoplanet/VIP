@@ -4,7 +4,7 @@
 Module with functions for correcting bad pixels in cubes.
 """
 
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens'
 __all__ = ['frame_fix_badpix_isolated',
@@ -13,11 +13,12 @@ __all__ = ['frame_fix_badpix_isolated',
            'cube_fix_badpix_clump']
 
 import numpy as np
+from hciplot import plot_frames
 from skimage.draw import circle, ellipse
 from scipy.ndimage import median_filter
 from astropy.stats import sigma_clipped_stats
 from ..stats import sigma_filter
-from ..var import dist, frame_center, pp_subplots
+from ..var import dist, frame_center
 from ..stats import clip_array
 from ..conf import timing, time_ini, Progressbar
 
@@ -31,9 +32,9 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
 
      Parameters
      ----------
-     array : array_like
+     array : numpy ndarray
          Input 2d array.
-     bpm_mask : array_like, optional
+     bpm_mask : numpy ndarray, optional
          Input bad pixel map. Zeros frame where the bad pixels have a value of
          1.
          If None is provided a bad pixel map will be created per frame using
@@ -65,7 +66,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
 
      Return
      ------
-     frame : array_like
+     frame : numpy ndarray
          Frame with bad pixels corrected.
      """
     if array.ndim != 2:
@@ -95,7 +96,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
             bpm_mask[cir] = 0
         bpm_mask = bpm_mask.astype('bool')
         if debug:
-            pp_subplots(frame, bpm_mask, title='Frame / Bad pixel mask')
+            plot_frames((frame, bpm_mask), title='Frame / Bad pixel mask')
 
     smoothed = median_filter(frame, size, mode='mirror')
     frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
@@ -116,9 +117,9 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
      
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 3d array.
-    bpm_mask : array_like, optional
+    bpm_mask : numpy ndarray, optional
         Input bad pixel map. Zeros frame where the bad pixels have a value of 1.
         If None is provided a bad pixel map will be created per frame using 
         sigma clip statistics. In the case of a cube the bad pixels will be 
@@ -148,7 +149,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     
     Return
     ------
-    array_out : array_like
+    array_out : numpy ndarray
         Cube with bad pixels corrected.
     """
     if array.ndim != 3:
@@ -181,7 +182,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         bpm_mask = bpm_mask.astype('bool')
 
     if debug:
-        pp_subplots(bpm_mask, title='Bad pixel mask')
+        plot_frames(bpm_mask, title='Bad pixel mask')
 
     for i in Progressbar(range(n_frames), desc="frames"):
         frame = cube_out[i]
@@ -302,7 +303,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         big_ell_frame = np.zeros_like(obj_tmp)
         sma_ell_frame = np.zeros_like(obj_tmp)
         ann_frame_cumul = np.zeros_like(obj_tmp)
-        n_neig = np.zeros(nrad)
+        n_neig = np.zeros(nrad, dtype=np.int16)
         med_neig = np.zeros(nrad)
         std_neig = np.zeros(nrad)
         neighbours = np.zeros([nrad,n_y*n_x])
@@ -673,7 +674,7 @@ def find_outliers(frame, sig_dist, in_bpix=None, stddev=None, neighbor_box=3,
 
     Returns
     -------
-    bpix_map : array_like
+    bpix_map : numpy ndarray
         Output cube with frames indicating the location of bad pixels"""
 
     ndims = len(frame.shape)
@@ -791,7 +792,7 @@ def reject_outliers(data, test_value, m=5., stddev=None, debug=False,
 
     Parameters:
     -----------
-    data: array_like
+    data: numpy ndarray
         Input array with respect to which either a test_value or the central a 
         value of data is determined to be an outlier or not
     test_value: float

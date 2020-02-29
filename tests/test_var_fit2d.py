@@ -3,13 +3,11 @@ Tests for var/fit_2d.py
 
 """
 
-from __future__ import division, print_function, absolute_import
-
 __author__ = "Ralf Farkas"
 
-from helpers import aarc, np, parametrize, param, filterwarnings
-from vip_hci.var.fit_2d import (create_synth_psf,
-                                fit_2dgaussian, fit_2dmoffat, fit_2dairydisk)
+from .helpers import aarc, np, parametrize, param, filterwarnings
+from vip_hci.var.fit_2d import (create_synth_psf, fit_2dgaussian, fit_2dmoffat,
+                                fit_2dairydisk)
 
 
 def put(big_frame, small_frame, y, x):
@@ -44,7 +42,7 @@ def test_fit2d(psf_model, fit_fkt, y, x, framesize, psfsize):
 
     inj_frame = put_center(frame, psf, y, x)
 
-    y_out, x_out = fit_fkt(inj_frame)
+    y_out, x_out = fit_fkt(inj_frame, full_output=False, debug=False)
 
     # correct "half-pixel centering", to make output of fit_2d* comparable
     # with `put`.
@@ -60,7 +58,7 @@ def test_fit2d(psf_model, fit_fkt, y, x, framesize, psfsize):
 
     yx_real = np.unravel_index(inj_frame.argmax(), inj_frame.shape)
     print("demanded injection:   {}".format((y, x)))
-    print("brightes pixel:       {}".format(yx_real))
+    print("brightest pixel:       {}".format(yx_real))
     print("fit should return:    {}".format((y_exp, x_exp)))
     print("fitted injection:     {}".format((y_out, x_out)))
 

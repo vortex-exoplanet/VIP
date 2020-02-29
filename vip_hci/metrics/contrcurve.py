@@ -4,8 +4,6 @@
 Module with contrast curve generation function.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'C. Gomez, O. Absil @ ULg'
 __all__ = ['contrast_curve',
            'noise_per_annulus',
@@ -42,12 +40,12 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     Parameters
     ----------
-    cube : array_like
-        The input cube, 2d (ADI data) or 3d array (IFS data), without fake
+    cube : numpy ndarray
+        The input cube, 3d (ADI data) or 4d array (IFS data), without fake
         companions.
-    angle_list : array_like
+    angle_list : numpy ndarray
         Vector with the parallactic angles.
-    psf_template : array_like
+    psf_template : numpy ndarray
         Frame with the psf template for the fake companion(s).
         PSF must be centered in array. Normalization is done internally.
     fwhm: int or float or 1d array, optional
@@ -131,12 +129,12 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     If full_output is True then the function returns: 
         datafr, cube_fc_all, frame_fc_all, frame_nofc and fc_map_all.
 
-    frame_fc_all : array_like
+    frame_fc_all : numpy ndarray
         3d array with the 3 frames of the 3 (patterns) processed cubes with
         companions.
-    frame_nofc : array_like
+    frame_nofc : numpy ndarray
         2d array, PCA processed frame without companions.
-    fc_map_all : array_like
+    fc_map_all : numpy ndarray
         3d array with 3 frames containing the position of the companions in the
         3 patterns.
     """
@@ -162,15 +160,20 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         for i in range(cube.shape[0]):
             cube[i] = cube[i] / starphot[i]
 
+    if isinstance(fwhm, (np.ndarray,list)):
+        fwhm_med = np.median(fwhm)
+    else:
+        fwhm_med = fwhm
+
     if verbose:
         start_time = time_ini()
         if isinstance(starphot, float) or isinstance(starphot, int):
             msg0 = 'ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {},'
             msg0 += ' STARPHOT = {}'
-            print(msg0.format(algo.__name__, fwhm, nbranch, sigma, starphot))
+            print(msg0.format(algo.__name__, fwhm_med, nbranch, sigma, starphot))
         else:
             msg0 = 'ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {}'
-            print(msg0.format(algo.__name__, fwhm, nbranch, sigma))
+            print(msg0.format(algo.__name__, fwhm_med, nbranch, sigma))
         print(sep)
 
     # throughput
@@ -199,7 +202,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         # noise measured in the empty frame with better sampling, every px
         # starting from 1*FWHM
         noise_samp, rad_samp = noise_per_annulus(frame_nofc, separation=1,
-                                                 fwhm=fwhm, init_rad=fwhm,
+                                                 fwhm=fwhm_med, init_rad=fwhm_med,
                                                  wedge=wedge)
         radmin = vector_radd.astype(int).min()
         cutin1 = np.where(rad_samp.astype(int) == radmin)[0][0]
@@ -236,7 +239,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     if smooth:
         # smoothing the noise vector using a Savitzky-Golay filter
-        win = min(noise_samp.shape[0]-2, int(2*fwhm))
+        win = min(noise_samp.shape[0]-2, int(2*fwhm_med))
         if win % 2 == 0:
             win += 1
         noise_samp_sm = savgol_filter(noise_samp, polyorder=2, mode='nearest',
@@ -254,7 +257,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     # calculating the Student corrected contrast
     if student:
-        n_res_els = np.floor(rad_samp/fwhm*2*np.pi)
+        n_res_els = np.floor(rad_samp/fwhm_med*2*np.pi)
         ss_corr = np.sqrt(1 + 1/(n_res_els-1))
         sigma_corr = stats.t.ppf(stats.norm.cdf(sigma), n_res_els)*ss_corr
         if isinstance(starphot, float) or isinstance(starphot, int):
@@ -398,12 +401,12 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
 
     Parameters
     ---------_
-    cube : array_like
-        The input cube, 2d (ADI data) or 3d array (IFS data), without fake
+    cube : numpy ndarray
+        The input cube, 3d (ADI data) or 4d array (IFS data), without fake
         companions.
-    angle_list : array_like
+    angle_list : numpy ndarray
         Vector with the parallactic angles.
-    psf_template : array_like
+    psf_template : numpy ndarray
         Frame with the psf template for the fake companion(s).
         PSF must be centered in array. Normalization is done internally.
     fwhm: int or float or 1d array, optional
@@ -448,23 +451,23 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
 
     Returns
     -------
-    thruput_arr : array_like
+    thruput_arr : numpy ndarray
         2d array whose rows are the annulus-wise throughput values for each
         branch.
-    vector_radd : array_like
+    vector_radd : numpy ndarray
         1d array with the distances in FWHM (the positions of the annuli).
 
     If full_output is True then the function returns: thruput_arr, noise,
     vector_radd, cube_fc_all, frame_fc_all, frame_nofc and fc_map_all.
 
-    noise : array_like
+    noise : numpy ndarray
         1d array with the noise per annulus.
-    frame_fc_all : array_like
+    frame_fc_all : numpy ndarray
         3d array with the 3 frames of the 3 (patterns) processed cubes with
         companions.
-    frame_nofc : array_like
+    frame_nofc : numpy ndarray
         2d array, PCA processed frame without companions.
-    fc_map_all : array_like
+    fc_map_all : numpy ndarray
         3d array with 3 frames containing the position of the companions in the
         3 patterns.
 
@@ -498,7 +501,10 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
             else:
                 if algo_dict['scale_list'].shape[0] != array.shape[0]:
                     raise TypeError('Input wavelength vector has wrong length')
-                maxfcsep = int((array.shape[2] / 2.) / fwhm) - 1
+                if isinstance(fwhm, float) or isinstance(fwhm, int):
+                    maxfcsep = int((array.shape[2] / 2.) / fwhm) - 1
+                else:
+                    maxfcsep = int((array.shape[2] / 2.) / np.amin(fwhm)) - 1
                 if fc_rad_sep < 3 or fc_rad_sep > maxfcsep:
                     msg = 'Too large separation between companions in the '
                     msg += 'radial patterns. Should lie between 3 and {}'
@@ -515,6 +521,11 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
             msg = 'Only a single branch is allowed when working on a wedge'
             raise RuntimeError(msg)
 
+    if isinstance(fwhm, (np.ndarray,list)):
+        fwhm_med = np.median(fwhm)
+    else:
+        fwhm_med = fwhm
+
     if verbose:
         start_time = time_ini()
     #***************************************************************************
@@ -522,7 +533,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     argl = inspect.getargspec(algo).args
     if 'cube' in argl and 'angle_list' in argl and 'verbose' in argl:
         if 'fwhm' in argl:
-            frame_nofc = algo(cube=array, angle_list=parangles, fwhm=fwhm,
+            frame_nofc = algo(cube=array, angle_list=parangles, fwhm=fwhm_med,
                               verbose=False, **algo_dict)
         else:
             frame_nofc = algo(array, angle_list=parangles, verbose=False,
@@ -533,8 +544,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
         print(msg1.format(algo.__name__))
         timing(start_time)
 
-    noise, vector_radd = noise_per_annulus(frame_nofc, separation=fwhm,
-                                           fwhm=fwhm, wedge=wedge)
+    noise, vector_radd = noise_per_annulus(frame_nofc, separation=fwhm_med,
+                                           fwhm=fwhm_med, wedge=wedge)
     vector_radd = vector_radd[inner_rad-1:]
     noise = noise[inner_rad-1:]
     if verbose:
@@ -543,7 +554,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
 
     # We crop the PSF and check if PSF has been normalized (so that flux in
     # 1*FWHM aperture = 1) and fix if needed
-    new_psf_size = int(round(3 * fwhm))
+    new_psf_size = int(round(3 * fwhm_med))
     if new_psf_size % 2 == 0:
         new_psf_size += 1
 
@@ -601,7 +612,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 if 'cube' in arg and 'angle_list' in arg and 'verbose' in arg:
                     if 'fwhm' in arg:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
-                                        fwhm=fwhm, verbose=False, **algo_dict)
+                                        fwhm=fwhm_med, verbose=False, **algo_dict)
                     else:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
                                         verbose=False, **algo_dict)
@@ -617,9 +628,9 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                     timing(start_time)
 
                 #***************************************************************
-                injected_flux = aperture_flux(fc_map, fcy, fcx, fwhm)
+                injected_flux = aperture_flux(fc_map, fcy, fcx, fwhm_med)
                 recovered_flux = aperture_flux((frame_fc - frame_nofc), fcy,
-                                               fcx, fwhm)
+                                               fcx, fwhm_med)
                 thruput = recovered_flux / injected_flux
                 thruput[np.where(thruput < 0)] = 0
 
@@ -683,7 +694,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 if 'cube' in arg and 'angle_list' in arg and 'verbose' in arg:
                     if 'fwhm' in arg:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
-                                        fwhm=fwhm, verbose=False, **algo_dict)
+                                        fwhm=fwhm_med, verbose=False, **algo_dict)
                     else:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
                                         verbose=False, **algo_dict)
@@ -699,7 +710,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                                  for i in range(array.shape[0])]
                 injected_flux = np.mean(injected_flux, axis=0)
                 recovered_flux = aperture_flux((frame_fc - frame_nofc), fcy,
-                                               fcx, np.mean(fwhm))
+                                               fcx, fwhm_med)
                 thruput = recovered_flux / injected_flux
                 thruput[np.where(thruput < 0)] = 0
 
@@ -726,7 +737,7 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame.
     separation : float
         Separation in pixels of the centers of the annuli measured from the
@@ -747,9 +758,9 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
 
     Returns
     -------
-    noise : array_like
+    noise : numpy ndarray
         Vector with the noise value per annulus.
-    vector_radd : array_like
+    vector_radd : numpy ndarray
         Vector with the radial distances values.
 
     """
@@ -827,7 +838,7 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame.
     yc, xc : list or 1d arrays
         List of y and x coordinates of sources.

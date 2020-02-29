@@ -3,8 +3,6 @@
 """
 Module with frame px resampling/rescaling functions.
 """
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens, R. Farkas'
 __all__ = ['frame_px_resampling',
            'cube_px_resampling',
@@ -25,7 +23,7 @@ from ..var import frame_center, get_square
 from .subsampling import cube_collapse
 
 
-def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
+def cube_px_resampling(array, scale, imlib='ndimage', interpolation='lanczos4',
                        verbose=True):
     """
     Resample the frames of a cube with a single scale factor.
@@ -35,7 +33,7 @@ def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
     Parameters
     ----------
-    array : 3d array_like
+    array : 3d numpy ndarray
         Input cube, 3d array.
     scale : int, float or tuple
         Scale factor for upsampling or downsampling the frames in the cube. If
@@ -51,7 +49,7 @@ def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
     Returns
     -------
-    array_resc : array_like
+    array_resc : numpy ndarray
         Output cube with resampled frames.
 
     """
@@ -72,7 +70,7 @@ def cube_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
     return array_resc
 
 
-def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
+def frame_px_resampling(array, scale, imlib='ndimage', interpolation='lanczos4',
                         verbose=False):
     """
     Resample the pixels of a frame wrt to the center, changing the frame size.
@@ -82,7 +80,7 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input frame, 2d array.
     scale : int, float or tuple
         Scale factor for upsampling or downsampling the frame. If a tuple it
@@ -102,7 +100,7 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
 
     Returns
     -------
-    array_resc : array_like
+    array_resc : numpy ndarray
         Output resampled frame.
 
     """
@@ -126,7 +124,7 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='bicubic',
             order = 2
         elif interpolation == 'bicubic':
             order = 3
-        elif interpolation == 'biquartic':
+        elif interpolation == 'biquartic' or interpolation == 'lanczos4':
             order = 4
         elif interpolation == 'biquintic':
             order = 5
@@ -315,7 +313,7 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 3d array, cube.
     scaling_list : 1D-array
         Scale corresponding to each frame in the cube.
@@ -336,7 +334,7 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
 
     Returns
     -------
-    array_sc : array_like
+    array_sc : numpy ndarray
         Resulting cube with rescaled frames.
 
     """
@@ -367,7 +365,7 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
 
         Parameters
         ----------
-        array : array_like
+        array : numpy ndarray
             Input frame, 2d array.
         ref_xy : float, optional
             Coordinates X,Y  of the point wrt which the rescaling will be
@@ -385,7 +383,7 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
 
         Returns
         -------
-        array_out : array_like
+        array_out : numpy ndarray
             Resulting frame.
 
         """
@@ -410,7 +408,7 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
                 order = 2
             elif interpolation == 'bicubic':
                 order = 3
-            elif interpolation == 'biquartic':
+            elif interpolation == 'biquartic' or interpolation == 'lanczos4':
                 order = 4
             elif interpolation == 'biquintic':
                 order = 5
@@ -480,7 +478,7 @@ def check_scal_vector(scal_vec):
 
     Returns
     -------
-    scal_vec: array_like, 1d
+    scal_vec: numpy ndarray, 1d
         Vector containing the scaling factors (after correction to comply with
         the condition >= 1).
 
@@ -501,32 +499,35 @@ def check_scal_vector(scal_vec):
 def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
                       debug=False):
     """
-    Find optimal wavelengths which minimize self-subtraction in model PSF subtr.
+    Find optimal wavelengths which minimize self-subtraction in model PSF
+    subtraction.
 
     Parameters
     ----------
-    wl : 1d array or list
+    wl : numpy ndarray or list
         Vector with the scaling factors.
-    dist : float [pixels]
-        Separation or distance from the center of the array (star).
+    dist : float
+        Separation or distance (in pixels) from the center of the array.
     index_ref : int
         The `wl` index for which we are finding the pairs.
-    fwhm : float [pixels]
-        Mean FWHM of all the wavelengths.
+    fwhm : float
+        Mean FWHM of all the wavelengths (in pixels).
     delta_sep : float, optional
         The threshold separation in terms of the mean FWHM.
+    nframes : None or int, optional
+        Must be an even value. In not None, then between 2 and adjacent
+        ``nframes`` are kept.
     debug : bool, optional
         It True it prints out debug information.
 
     Returns
     -------
-    indices : ndarray
+    indices : numpy ndarray
         List of good indices.
 
     """
     wl = np.asarray(wl)
     wl_ref = wl[index_ref]
-
     sep_lft = (wl_ref - wl) / wl_ref * ((dist + fwhm * delta_sep) / fwhm)
     sep_rgt = (wl - wl_ref) / wl_ref * ((dist - fwhm * delta_sep) / fwhm)
     map_lft = sep_lft >= delta_sep
@@ -534,20 +535,31 @@ def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
     indices = np.nonzero(map_lft | map_rgt)[0]
 
     if debug:
-        print("sep_lft:", "  ".join(["{:+.3f}".format(x) for x in sep_lft]))
-        print("sep_rgt:", "  ".join(["{:+.3f}".format(x) for x in sep_rgt]))
+        print("dist: {}, index_ref: {}".format(dist, index_ref))
+        print("sep_lft:", "  ".join(["{:+.2f}".format(x) for x in sep_lft]))
+        print("sep_rgt:", "  ".join(["{:+.2f}".format(x) for x in sep_rgt]))
         print("indices:", indices)
+        print("indices size: {}".format(indices.size))
 
     if indices.size == 0:
-        raise RuntimeError("No frames left after radial motion threshold. "
-                           "Try decreasing the value of `delta_sep`")
+        raise RuntimeError("No frames left after radial motion threshold. Try "
+                           "decreasing the value of `delta_sep`")
 
     if nframes is not None:
-        i = map_lft.sum()  # index of first good element of 'right'
-        indices = indices[i - nframes//2:i + nframes//2]
+        i1 = map_lft.sum()
+        window = nframes // 2
+        if i1 - window < 0 or i1 + window > indices[-1]:
+            window = nframes
+        ind1 = max(0, i1 - window)
+        ind2 = min(wl.size, i1 + window)
+        indices = indices[ind1: ind2]
 
-        if indices.size != nframes:
-            raise RuntimeError("Not enough frames left after radial motion "
-                               "threshold. Try decreasing the value of "
-                               "`delta_sep`")
+        if indices.size < 2:
+            raise RuntimeError("No frames left after radial motion threshold. "
+                               "Try decreasing the value of `delta_sep` or "
+                               "`nframes`")
+
+    if debug:
+        print("indices (nframes):", indices)
+
     return indices

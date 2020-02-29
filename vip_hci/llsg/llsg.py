@@ -3,7 +3,6 @@
 """
 LLSG (Gomez Gonzalez et al. 2016)
 """
-from __future__ import division, print_function
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['llsg']
@@ -11,16 +10,14 @@ __all__ = ['llsg']
 
 import numpy as np
 from scipy.linalg import qr
-import itertools as itt
-from multiprocessing import Pool, cpu_count
+from multiprocessing import cpu_count
 from astropy.stats import median_absolute_deviation
 from ..conf import time_ini, timing
 from ..preproc import cube_derotate, cube_collapse
 from ..var import get_annulus_segments, cube_filter_highpass
 from ..pca.svd import svd_wrapper, get_eigenvectors
 from .thresholding import thresholding
-from ..conf.utils_conf import pool_map, fixed
-from ..conf.utils_conf import eval_func_tuple as EFT
+from ..conf.utils_conf import pool_map, iterable
 
 
 def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
@@ -44,9 +41,9 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
 
     Parameters
     ----------
-    cube : array_like, 3d
+    cube : numpy ndarray, 3d
         Input ADI cube.
-    angle_list : array_like, 1d
+    angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
     fwhm : float
         Known size of the FHWM in pixels to be used.
@@ -112,11 +109,12 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
 
     Returns
     -------
-    frame_s : array_like, 2d
+    frame_s : numpy ndarray, 2d
         Final frame (from the S component) after rotation and median-combination.
 
     If ``full_output`` is True, the following intermediate arrays are returned:
-    list_l_array_der, list_s_array_der, list_g_array_der, frame_l, frame_s, frame_g
+    list_l_array_der, list_s_array_der, list_g_array_der, frame_l, frame_s,
+    frame_g
 
     """
     if cube.ndim != 3:
@@ -210,7 +208,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
                                            theta_init)
 
             patches = pool_map(nproc, _decompose_patch, indices,
-                               fixed(range(n_segments_ann)), n_segments_ann,
+                               iterable(range(n_segments_ann)), n_segments_ann,
                                rank, low_rank_ref, low_rank_mode, thresh,
                                thresh_mode, max_iter, auto_rank_mode, cevr,
                                residuals_tol, random_seed, debug, full_output)
@@ -254,11 +252,6 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
                             for k in range(n_rots)]
         list_frame_s = [cube_collapse(list_s_array_der[k], mode=collapse)
                         for k in range(n_rots)]
-
-        # list_frame_s = []
-        # for nr in range(n_rots):
-        #     list_frame_s.append(np.mean(list_s_array_der[nr], axis=0) /
-        #                         np.std(list_s_array_der[nr], axis=0))
 
         frame_s = cube_collapse(np.array(list_frame_s), mode=collapse)
 
@@ -351,7 +344,7 @@ def _patch_rlrps(array, array_ref, rank, low_rank_ref, low_rank_mode,
                     Lnew = np.dot(np.dot(L, PC.T), PC)
             else:
                 rank_i = min(rank, min(L.shape[0], L.shape[1]))
-                PC = svd_wrapper(L, svdlib, rank_i, False, False,
+                PC = svd_wrapper(L, svdlib, rank_i, False,
                                  random_state=random_state)
                 Lnew = np.dot(np.dot(L, PC.T), PC)
 

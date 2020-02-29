@@ -1,7 +1,7 @@
 """
 subpixel shifting.
 """
-from __future__ import division, print_function
+
 
 __author__ = 'Ralf Farkas'
 __all__ = []
@@ -16,7 +16,7 @@ def calc_psf_shift_subpix(psf, precision):
 
     Parameters
     ----------
-    psf : 2d array_like
+    psf : 2d numpy ndarray
         The PSF that is to be shifted. Assumed square.
     precision : int
         Number of pixel subdivisions for the planet's signal pattern
@@ -65,7 +65,7 @@ def subpixel_shift(image, xshift, yshift):
 
     Parameters
     ----------
-    image : 2d array_like
+    image : 2d numpy ndarray
         The image to be shifted.
     xshift : float
         Amount of desired shift in X direction.

@@ -5,7 +5,7 @@ VIP - Vortex Image Processing package
 .. image:: https://badge.fury.io/py/vip-hci.svg
     :target: https://pypi.python.org/pypi/vip-hci
 
-.. image:: https://img.shields.io/badge/Python-2.7%2C%203.6%2C%203.7-brightgreen.svg
+.. image:: https://img.shields.io/badge/Python-3.6%2C%203.7-brightgreen.svg
     :target: https://pypi.python.org/pypi/vip-hci
 
 .. image:: https://travis-ci.org/vortex-exoplanet/VIP.svg?branch=master
@@ -22,8 +22,6 @@ VIP - Vortex Image Processing package
 
 .. image:: https://codecov.io/gh/vortex-exoplanet/VIP/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/vortex-exoplanet/VIP
-
-
 
 ::
 
@@ -44,10 +42,13 @@ Introduction
 ------------
 
 ``VIP`` is a python package for angular, reference star and spectral
-differential imaging for exoplanet/disk detection through high-contrast imaging.
-``VIP`` is compatible with Python 2.7, 3.6 and 3.7.
+differential imaging for exoplanet and disk high-contrast imaging. ``VIP`` is
+compatible with Python 3 (Python 2 compatibility dropped with ``VIP`` 0.9.9).
 
-The goal of ``VIP`` is to incorporate open-source, efficient, easy-to-use and
+.. image:: https://github.com/carlgogo/carlgogo.github.io/blob/master/assets/images/vip.png?raw=true
+    :alt: Mosaic of S/N maps
+
+The goal of ``VIP`` is to integrate open-source, efficient, easy-to-use and
 well-documented implementations of high-contrast image processing algorithms to
 the interested scientific community. The main repository of ``VIP`` resides on
 `GitHub <https://github.com/vortex-exoplanet/VIP>`_, the standard for scientific
@@ -55,7 +56,7 @@ open source code distribution, using Git as a version control system.
 
 ``VIP`` started as the effort of `Carlos Alberto Gomez Gonzalez <https://carlgogo.github.io/>`_,
 a former PhD student of the `VORTEX team <http://www.vortex.ulg.ac.be/>`_
-(ULiege, Belgium). ``VIP``'s development is led by C. Gomez with contributions
+(ULiege, Belgium). ``VIP``'s development is led by Dr. Gomez with contributions
 made by collaborators from several teams (take a look at the `contributors tab <https://github.com/vortex-exoplanet/VIP/graphs/contributors>`_ on
 ``VIP``'s GitHub repository). Most of ``VIP``'s functionalities are mature but
 it doesn't mean it's free from bugs. The code is continuously evolving and
@@ -93,7 +94,7 @@ Homebrew/MacPorts/Fink for macOS. I personally recommend using `Miniconda <https
 
 ``VIP`` depends on existing packages from the Python ecosystem, such as
 ``numpy``, ``scipy``, ``matplotlib``, ``pandas``, ``astropy``, ``scikit-learn``,
-``scikit-image``, ``photutils`` and ``emcee``. There are different ways of
+``scikit-image``, ``photutils`` and others. There are different ways of
 installing ``VIP`` suitable for different scenarios.
 
 

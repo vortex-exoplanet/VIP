@@ -3,11 +3,9 @@ Tests for preproc/rescaling.py
 
 """
 
-from __future__ import division, print_function
-
 __author__ = "Ralf Farkas"
 
-from helpers import np, aarc, raises, parametrize
+from .helpers import np, aarc, raises, parametrize
 from vip_hci.preproc.rescaling import (cube_px_resampling,
                                        frame_px_resampling,
                                        cube_rescaling_wavelengths,

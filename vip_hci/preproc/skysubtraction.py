@@ -4,8 +4,6 @@
 Module with sky subtraction function.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_subtract_sky_pca']
 
@@ -18,14 +16,14 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
 
     Parameters
     ----------
-    sci_cube : array_like
+    sci_cube : numpy ndarray
         3d array of science frames.
-    sky_cube : array_like
+    sky_cube : numpy ndarray
         3d array of sky frames.
-    mask : array_like
+    mask : numpy ndarray
         Mask indicating the region for the analysis. Can be created with the
         function vip_hci.var.create_ringed_spider_mask.
-    ref_cube : array_like or None
+    ref_cube : numpy ndarray or None
         Reference cube.
     ncomp : int
         Sets the number of PCs you want to use in the sky subtraction.
@@ -47,7 +45,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
 
     # Getting the EVs from the sky cube
     Msky = prepare_matrix(sky_cube, scaling=None, verbose=False)
-    sky_pcs = svd_wrapper(Msky, 'lapack', sky_cube.shape[0], False, False)
+    sky_pcs = svd_wrapper(Msky, 'lapack', sky_cube.shape[0], False)
     sky_pcs_cube = sky_pcs.reshape(sky_cube.shape[0], sky_cube.shape[1],
                                    sky_cube.shape[1])
 
@@ -92,7 +90,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
             masked_image[ind_masked] = 0
             ref_cube_masked[i] = masked_image
         Mref_masked = prepare_matrix(ref_cube_masked, scaling=None,
-                                             verbose=False)
+                                     verbose=False)
         transf_ref = np.zeros((sky_cube.shape[0], Mref_masked.shape[0]))
         for i in range(Mref_masked.shape[0]):
             transf_ref[:, i] = np.inner(sky_pcs, Mref_masked[i].T)

@@ -755,12 +755,6 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
     """
     n, y, x = cube.shape
 
-    # forcing the 'temp-standard' scaling
-    if scaling != 'temp-standard':
-        scaling = 'temp-standard'
-        if verbose:
-            print("Pixel-wise scaling set to `temp-standard`")
-
     angle_list = check_pa_vector(angle_list)
     if not isinstance(ncomp, int):
         raise TypeError("`ncomp` must be an int in the ADI+RDI case")

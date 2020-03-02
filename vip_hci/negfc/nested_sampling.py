@@ -221,7 +221,7 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None):
     """
     res = ns_object
     nsamples = res.samples.shape[0]
-    indburnin = np.percentile(np.array(range(nsamples)), burnin * 100)
+    indburnin = int(np.percentile(np.array(range(nsamples)), burnin * 100))
 
     print(res.summary())
 

@@ -151,14 +151,6 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if transmission is not None:
         if not isinstance(transmission, tuple) or not len(transmission) == 2:
             raise TypeError('transmission must be a tuple with 2 1d vectors')
-#    if isinstance(starphot, float) or isinstance(starphot, int):
-#        pass
-#    else:
-#        if starphot.shape[0] != cube.shape[0]:
-#            raise TypeError('Correction vector has bad size')
-#        cube = cube.copy()
-#        for i in range(cube.shape[0]):
-#            cube[i] = cube[i] / starphot[i]
 
     if isinstance(fwhm, (np.ndarray,list)):
         fwhm_med = np.median(fwhm)

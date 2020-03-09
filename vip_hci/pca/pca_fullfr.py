@@ -525,11 +525,6 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, fwhm, source_xy,
     """
     z, n, y_in, x_in = cube.shape
 
-#    if not scaling == 'temp-standard':
-#        scaling = 'temp-standard'
-#        if verbose:
-#            print("Pixel-wise scaling set to `temp-standard`")
-
     angle_list = check_pa_vector(angle_list)
     if not angle_list.shape[0] == n:
         msg = "Angle list vector has wrong length. It must equal the number"
@@ -642,11 +637,6 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
     else:
         ncomp_ifs, ncomp_adi = ncomp
 
-#    if not scaling == 'temp-standard':
-#        scaling = 'temp-standard'
-#        if verbose:
-#            print("Pixel-wise scaling set to `temp-standard`")
-
     angle_list = check_pa_vector(angle_list)
     if not angle_list.shape[0] == n:
         msg = "Angle list vector has wrong length. It must equal the number"
@@ -754,12 +744,6 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
     """ Handles the ADI+RDI post-processing.
     """
     n, y, x = cube.shape
-
-    # forcing the 'temp-standard' scaling
-#    if scaling != 'temp-standard':
-#        scaling = 'temp-standard'
-#        if verbose:
-#            print("Pixel-wise scaling set to `temp-standard`")
 
     angle_list = check_pa_vector(angle_list)
     if not isinstance(ncomp, int):

@@ -375,13 +375,6 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
     elif isinstance(delta_rot, (int, float)):
         delta_rot = [delta_rot] * n_annuli
 
-    # forcing the 'temp-standard' scaling
-#    if cube_ref is not None:
-#        if not scaling == 'temp-standard':
-#            scaling = 'temp-standard'
-#            if verbose:
-#                print("Pixel-wise scaling set to `temp-standard`")
-
     if isinstance(n_segments, int):
         n_segments = [n_segments for _ in range(n_annuli)]
     elif n_segments == 'auto':

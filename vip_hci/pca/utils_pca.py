@@ -200,7 +200,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
 
             for i in range(n_adi):
                 frame_i = scwave(residuals_res[i*z+idx_ini:i*z+idx_fin, :, :],
-                                 scale_list[idx_ini,idx_fin], full_output=False, 
+                                 scale_list[idx_ini:idx_fin], full_output=False, 
                                  inverse=True, y_in=y_in, x_in=x_in, 
                                  collapse=collapse)
                 residuals_reshaped[i] = frame_i

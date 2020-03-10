@@ -149,7 +149,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         ``spat-mean``: spatial mean is subtracted.
 
         ``temp-standard``: temporal mean centering plus scaling pixel values
-        to unit variance.
+        to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES!
 
         ``spat-standard``: spatial mean centering plus scaling pixel values
         to unit variance.
@@ -525,11 +525,6 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, fwhm, source_xy,
     """
     z, n, y_in, x_in = cube.shape
 
-    if not scaling == 'temp-standard':
-        scaling = 'temp-standard'
-        if verbose:
-            print("Pixel-wise scaling set to `temp-standard`")
-
     angle_list = check_pa_vector(angle_list)
     if not angle_list.shape[0] == n:
         msg = "Angle list vector has wrong length. It must equal the number"
@@ -641,11 +636,6 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
                         " is performed")
     else:
         ncomp_ifs, ncomp_adi = ncomp
-
-    if not scaling == 'temp-standard':
-        scaling = 'temp-standard'
-        if verbose:
-            print("Pixel-wise scaling set to `temp-standard`")
 
     angle_list = check_pa_vector(angle_list)
     if not angle_list.shape[0] == n:

@@ -36,10 +36,8 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
          Input 2d array.
      bpm_mask : numpy ndarray, optional
          Input bad pixel map. Zeros frame where the bad pixels have a value of
-         1.
-         If None is provided a bad pixel map will be created per frame using
-         sigma clip statistics. In the case of a cube the bad pixels will be
-         computed on the mean frame of the stack.
+         1. If None is provided a bad pixel map will be created using
+         sigma clip statistics. 
      sigma_clip : int, optional
          In case no bad pixel mask is provided all the pixels above and below
          sigma_clip*STDDEV will be marked as bad.
@@ -109,8 +107,8 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
 
 
 def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5, 
-                             size=5, protect_mask=False, radius=30,
-                             verbose=True, debug=False):
+                             size=5, frame_by_frame=False, protect_mask=False, 
+                             radius=30, verbose=True, debug=False):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is 
     replaced by the median of the adjacent pixels. This function is very fast
     but works only with isolated (sparse) pixels. 
@@ -122,8 +120,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     bpm_mask : numpy ndarray, optional
         Input bad pixel map. Zeros frame where the bad pixels have a value of 1.
         If None is provided a bad pixel map will be created per frame using 
-        sigma clip statistics. In the case of a cube the bad pixels will be 
-        computed on the mean frame of the stack.
+        sigma clip statistics.
     sigma_clip : int, optional
         In case no bad pixel mask is provided all the pixels above and below
         sigma_clip*STDDEV will be marked as bad. 
@@ -133,6 +130,10 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         0 then the statistics are computed in the whole frame.
     size : odd int, optional
         The size the box (size x size) of adjacent pixels for the median filter. 
+    frame_by_frame: bool, optional
+        Whether to correct bad pixels frame by frame in the cube. By default it
+        is set to False; the bad pixels are computed on the mean frame of the 
+        stack (faster but not necessarily optimal).
     protect_mask : bool, optional
         If True a circular aperture at the center of the frames will be 
         protected from any operation. With this we protect the star and its
@@ -168,27 +169,37 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         neigh = False
     
     cy, cx = frame_center(array[0])
-    cube_out = array.copy()
+    array_out = array.copy()
     n_frames = array.shape[0]
 
-    if bpm_mask is None:
-        ind = clip_array(np.mean(array, axis=0), sigma_clip, sigma_clip,
-                         neighbor=neigh, num_neighbor=num_neig, mad=True)
-        bpm_mask = np.zeros_like(array[0])
-        bpm_mask[ind] = 1
-        if protect_mask:
-            cir = circle(cy, cx, radius)
-            bpm_mask[cir] = 0
-        bpm_mask = bpm_mask.astype('bool')
-
-    if debug:
-        plot_frames(bpm_mask, title='Bad pixel mask')
-
-    for i in Progressbar(range(n_frames), desc="frames"):
-        frame = cube_out[i]
-        smoothed = median_filter(frame, size, mode='mirror')
-        frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
-    array_out = cube_out
+    if frame_by_frame:
+        for i in Progressbar(range(n_frames), desc="processing frames"):
+            array_out[i] = frame_fix_badpix_isolated(array[i], bpm_mask=bpm_mask, 
+                                                    sigma_clip=sigma_clip, 
+                                                    num_neig=num_neig,
+                                                    size=size, 
+                                                    protect_mask=protect_mask, 
+                                                    radius=radius,
+                                                    verbose=False, 
+                                                    debug=False)
+    else:                                                
+        if bpm_mask is None:
+            ind = clip_array(np.mean(array, axis=0), sigma_clip, sigma_clip,
+                             neighbor=neigh, num_neighbor=num_neig, mad=True)
+            bpm_mask = np.zeros_like(array[0])
+            bpm_mask[ind] = 1
+            if protect_mask:
+                cir = circle(cy, cx, radius)
+                bpm_mask[cir] = 0
+            bpm_mask = bpm_mask.astype('bool')
+    
+        if debug:
+            plot_frames(bpm_mask, title='Bad pixel mask')
+    
+        for i in Progressbar(range(n_frames), desc="processing frames"):
+            frame = array_out[i]
+            smoothed = median_filter(frame, size, mode='mirror')
+            frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
     
     if verbose: 
         print("/nDone replacing bad pixels using the median of the neighbors")

@@ -12,13 +12,15 @@ from hciplot import plot_frames
 from skimage.draw import circle
 from ..metrics import cube_inject_companions
 from ..var import frame_center
-from ..pca.utils_pca import pca_annulus
+from ..pca import pca_annulus, pca_annular
+from ..preproc import cube_crop_frames
 
 
 def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,  
               aperture_radius, initialState, ncomp, cube_ref=None, 
               svd_mode='lapack', scaling=None, fmerit='sum', collapse='median',
-              imlib='opencv', interpolation='lanczos4', debug=False):
+              algo=pca_annulus, delta_rot=1, imlib='opencv', 
+              interpolation='lanczos4', debug=False):
     """
     Calculate the reduced chi2:
     \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -40,7 +42,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     fwhm : float
         The FHWM in pixels.
     annulus_width: int, optional
-        The width in terms of the FWHM of the annulus on which the PCA is done.       
+        The width in pixels of the annulus on which the PCA is done.       
     aperture_radius: int, optional
         The radius of the circular aperture in terms of the FWHM.
     initialState: numpy.array
@@ -63,6 +65,11 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
+    algo: vip function, optional {pca_annulus, pca_annular}
+        Post-processing algorithm used.
+    delta_rot: float, optional
+        If algo is set to pca_annular, delta_rot is the angular threshold used
+        to select frames in the PCA library (see description of pca_annular).
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
@@ -87,11 +94,12 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
                                         interpolation=interpolation)
                                       
     # Perform PCA and extract the zone of interest
-    res = get_values_optimize(cube_negfc, angs, ncomp, annulus_width*fwhm,
-                              aperture_radius*fwhm, initialState[0],
+    res = get_values_optimize(cube_negfc, angs, ncomp, annulus_width,
+                              aperture_radius, fwhm, initialState[0],
                               initialState[1], cube_ref=cube_ref,
-                              svd_mode=svd_mode, scaling=scaling,
-                              collapse=collapse, debug=debug)
+                              svd_mode=svd_mode, scaling=scaling, algo=algo,
+                              delta_rot=delta_rot, collapse=collapse, 
+                              debug=debug)
     if debug and collapse is not None:
         values, frpca = res
         plot_frames(frpca)
@@ -111,8 +119,9 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
 
 
 def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius, 
-                        r_guess, theta_guess, cube_ref=None, svd_mode='lapack',
-                        scaling=None, imlib='opencv', interpolation='lanczos4',
+                        fwhm, r_guess, theta_guess, cube_ref=None, 
+                        svd_mode='lapack', scaling=None, algo=pca_annulus, 
+                        delta_rot=1, imlib='opencv', interpolation='lanczos4',
                         collapse='median', debug=False):
     """ Extracts a PCA-ed annulus from the cube and returns the flux values of
     the pixels included in a circular aperture centered at a given position.
@@ -128,7 +137,9 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     annulus_width: float
         The width in pixels of the annulus on which the PCA is performed.
     aperture_radius: float
-        The radius in pixels of the circular aperture.
+        The radius in fwhm of the circular aperture.
+    fwhm: float
+        Value of the FWHM of the PSF.
     r_guess: float
         The radial position of the center of the circular aperture. This 
         parameter is NOT the radial position of the candidate associated to the 
@@ -146,6 +157,11 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         "temp-mean" then temporal px-wise mean subtraction is done and with 
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done.
+    algo: vip function, optional {pca_annulus, pca_annular}
+        Post-processing algorithm used.
+    delta_rot: float, optional
+        If algo is set to pca_annular, delta_rot is the angular threshold used
+        to select frames in the PCA library (see description of pca_annular).
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
@@ -167,7 +183,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     centy_fr, centx_fr = frame_center(cube[0])
     posy = r_guess * np.sin(np.deg2rad(theta_guess)) + centy_fr
     posx = r_guess * np.cos(np.deg2rad(theta_guess)) + centx_fr
-    halfw = max(aperture_radius, annulus_width/2)
+    halfw = max(aperture_radius*fwhm, annulus_width/2)
 
     # Checking annulus/aperture sizes. Assuming square frames
     msg = 'The annulus and/or the circular aperture used by the NegFC falls '
@@ -175,11 +191,34 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     msg += 'decreasing the annulus or aperture size'
     if r_guess > centx_fr-halfw or r_guess <= halfw:
         raise RuntimeError(msg)
-        
-    pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
+                          
+    if algo == pca_annulus:
+        pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
                           svd_mode, scaling, imlib=imlib,
                           interpolation=interpolation, collapse=collapse)
-    indices = circle(posy, posx, radius=aperture_radius)
+    elif algo == pca_annular:
+        radius_int = int(np.floor(r_guess-annulus_width/2))
+        # crop cube to just be larger than annulus => FASTER PCA
+        crop_sz = int(np.ceil(r_guess+annulus_width))
+        if not crop_sz %2:
+            crop_sz+=1
+        if crop_sz < cube.shape[1] and crop_sz < cube.shape[2]:
+            pad = int((cube.shape[1]-crop_sz)/2)
+            crop_cube = cube_crop_frames(cube, crop_sz, verbose=False)
+        else:
+            crop_cube = cube
+
+        pca_res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int, fwhm=fwhm, 
+                              asize=annulus_width, delta_rot=delta_rot, 
+                              ncomp=ncomp, svd_mode=svd_mode, scaling=scaling, 
+                              imlib=imlib, interpolation=interpolation,
+                              collapse=collapse, full_output=False, 
+                              verbose=False)
+        # pad again now                      
+        pca_res = np.pad(pca_res_tmp,pad,mode='constant',constant_values=0)
+        
+                                  
+    indices = circle(posy, posx, radius=aperture_radius*fwhm)
     yy, xx = indices
 
     if collapse is None:

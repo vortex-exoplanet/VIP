@@ -24,6 +24,7 @@ from scipy.stats import norm
 from ..metrics import cube_inject_companions
 from ..conf import time_ini, timing
 from ..conf.utils_conf import sep
+from ..pca import pca_annulus
 from .simplex_fmerit import get_values_optimize
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -67,7 +68,8 @@ def lnprior(param, bounds):
 
 def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
            ncomp, aperture_radius, initial_state, cube_ref=None,
-           svd_mode='lapack', scaling='temp-mean', fmerit='sum', imlib='opencv',
+           svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
+           delta_rot=1, fmerit='sum', imlib='opencv',
            interpolation='lanczos4', collapse='median', debug=False):
     """ Define the likelihood log-function.
     
@@ -84,7 +86,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
     psf_norm: numpy.array
         The scaled psf expressed as a numpy.array.
     annulus_width: float
-        The width of the annulus of interest in terms of the FWHM.
+        The width of the annulus of interest in pixels.
     ncomp: int
         The number of principal components.
     fwhm : float
@@ -102,6 +104,11 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         "temp-mean" then temporal px-wise mean subtraction is done and with
         "temp-standard" temporal mean centering plus scaling to unit variance
         is done.
+    algo: vip function, optional {pca_annulus, pca_annular}
+        Post-processing algorithm used.
+    delta_rot: float, optional
+        If algo is set to pca_annular, delta_rot is the angular threshold used
+        to select frames in the PCA library (see description of pca_annular).
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
         companions sitting on top of speckle noise.
@@ -131,11 +138,12 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
                                         verbose=False)
                                   
     # Perform PCA and extract the zone of interest
-    values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width*fwhm,
-                                 aperture_radius*fwhm, initial_state[0],
+    values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width,
+                                 aperture_radius, fwhm, initial_state[0],
                                  initial_state[1], cube_ref=cube_ref,
                                  svd_mode=svd_mode, scaling=scaling,
-                                 imlib=imlib, interpolation=interpolation,
+                                 algo=algo, delta_rot=delta_rot, imlib=imlib, 
+                                 interpolation=interpolation,
                                  collapse=collapse)
     
     # Function of merit
@@ -155,7 +163,8 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
 
 def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
            annulus_width, ncomp, aperture_radius, initial_state, cube_ref=None,
-           svd_mode='lapack', scaling='temp-mean', fmerit='sum', imlib='opencv',
+           svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
+           delta_rot=1, fmerit='sum', imlib='opencv',
            interpolation='lanczos4', collapse='median', display=False):
     """ Define the probability log-function as the sum between the prior and
     likelihood log-funtions.
@@ -182,7 +191,7 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
     ncomp: int
         The number of principal components.
     aperture_radius: float
-        The radius of the circular aperture.
+        The radius of the circular aperture in FWHM.
     initial_state: numpy.array
         The initial guess for the position and the flux of the planet.
     cube_ref : numpy ndarray, 3d, optional
@@ -224,7 +233,8 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
     
     return lp + lnlike(param, cube, angs, plsc, psf_norm, fwhm,
                        annulus_width, ncomp, aperture_radius, initial_state,
-                       cube_ref, svd_mode, scaling, fmerit, imlib,
+                       cube_ref, svd_mode, scaling, algo,
+                       delta_rot, fmerit, imlib,
                        interpolation, collapse, display)
 
 
@@ -317,7 +327,8 @@ def gelman_rubin_from_chain(chain, burnin):
 
 def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         annulus_width=3, aperture_radius=4, cube_ref=None,
-                        svd_mode='lapack', scaling='temp-mean', fmerit='sum',
+                        svd_mode='lapack', scaling='temp-mean', 
+                        algo=pca_annulus, delta_rot=1, fmerit='sum',
                         imlib='opencv', interpolation='lanczos4',
                         collapse='median', nwalkers=1000, bounds=None, a=2.0,
                         burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1,
@@ -447,13 +458,14 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     # If required, one create the output folder.
     if save:
         
-        if output_file is None:
-            output_file = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            
+        output_file_tmp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+          
+        if output_dir[-1] == '/':
+            output_dir = output_dir[:-1]
         try:
-            os.makedirs(output_dir+output_file)
+            os.makedirs(output_dir)
         except OSError as exc:
-            if exc.errno == 17 and os.path.isdir(output_dir+output_file):
+            if exc.errno == 17 and os.path.isdir(output_dir):
                 # errno.EEXIST == 17 -> File exists
                 pass
             else:
@@ -493,8 +505,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     stop = np.inf
 
     if bounds is None:
-        bounds = [(initial_state[0] - annulus_width*fwhm/2.,
-                   initial_state[0] + annulus_width*fwhm/2.),  # radius
+        bounds = [(initial_state[0] - annulus_width/2.,
+                   initial_state[0] + annulus_width/2.),  # radius
                   (initial_state[1] - 10, initial_state[1] + 10),   # angle
                   (0, 2 * initial_state[2])]   # flux
     
@@ -502,8 +514,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                     args=([bounds, cube, angs, plsc, psfn,
                                            fwhm, annulus_width, ncomp,
                                            aperture_radius, initial_state,
-                                           cube_ref, svd_mode, scaling, fmerit,
-                                           imlib, interpolation, collapse]),
+                                           cube_ref, svd_mode, scaling, algo,
+                                           delta_rot, fmerit, imlib, 
+                                           interpolation, collapse]),
                                     threads=nproc)
     start = datetime.datetime.now()
 
@@ -513,7 +526,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     if verbosity == 2:
         print('\nStart of the MCMC run ...')
         print('Step  |  Duration/step (sec)  |  Remaining Estimated Time (sec)')
-                             
+    
     for k, res in enumerate(sampler.sample(pos, iterations=nIterations,
                                            storechain=True)):
         elapsed = (datetime.datetime.now()-start).total_seconds()
@@ -554,7 +567,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                 
             if save:
                 import pickle
-                fname = '{d}{f}/{f}_temp_k{k}'.format(d=output_dir,f=output_file, k=k)
+                fname = '{d}/{f}_temp_k{k}'.format(d=output_dir,f=output_file_tmp, k=k)
                 data = {'chain': sampler.chain,
                         'lnprob': sampler.lnprobability,
                          'AR': sampler.acceptance_fraction}
@@ -629,11 +642,13 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                   'AR': sampler.acceptance_fraction,
                   'lnprobability': sampler.lnprobability}
                   
-        with open(output_dir+output_file+'/MCMC_results', 'wb') as fileSave:
+        if output_file is None:
+            output_file = 'MCMC_results'
+        with open(output_dir+'/'+output_file, 'wb') as fileSave:
             pickle.dump(output, fileSave)
         
         msg = "\nThe file MCMC_results has been stored in the folder {}"
-        print(msg.format(output_dir+output_file+'/'))
+        print(msg.format(output_dir+'/'))
 
     if verbosity == 1 or verbosity == 2:
         timing(start_time)
@@ -840,22 +855,22 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         test = 0
         pourcentage = 0
         for k, jj in enumerate(n_arg_sort):
-            test = test + bins_width*n[jj]
+            test = test + bins_width*n[int(jj)]
             pourcentage = test/surface_total*100
             if pourcentage > cfd:
                 if verbose:
                     msg = 'percentage for {}: {}%'
                     print(msg.format(label_file[j], pourcentage))
                 break
-        n_arg_min = n_arg_sort[:k].min()
-        n_arg_max = n_arg_sort[:k+1].max()
+        n_arg_min = int(n_arg_sort[:k].min())
+        n_arg_max = int(n_arg_sort[:k+1].max())
         
         if n_arg_min == 0:
             n_arg_min += 1
         if n_arg_max == bins:
             n_arg_max -= 1
         
-        val_max[pKey[j]] = bin_vertices[n_arg_sort[0]]+bins_width/2.
+        val_max[pKey[j]] = bin_vertices[int(n_arg_sort[0])]+bins_width/2.
         confidenceInterval[pKey[j]] = np.array([bin_vertices[n_arg_min-1],
                                                bin_vertices[n_arg_max+1]]
                                                - val_max[pKey[j]])
@@ -866,7 +881,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             ax[0][j].hist(isamples[arg,j], bins=bin_vertices,
                           facecolor='gray', edgecolor='darkgray',
                           histtype='stepfilled', alpha=0.5)
-            ax[0][j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]],
+            ax[0][j].vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
                             linestyles='dashed', color='red')
             ax[0][j].set_xlabel(label[j])
             if j == 0:
@@ -894,7 +909,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             ax[j].hist(isamples[arg,j],bins=bin_vertices, facecolor='gray',
                        edgecolor='darkgray', histtype='stepfilled',
                        alpha=0.5)
-            ax[j].vlines(val_max[pKey[j]], 0, n[n_arg_sort[0]],
+            ax[j].vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
                          linestyles='dashed', color='red')
             ax[j].set_xlabel(label[j])
             if j == 0:

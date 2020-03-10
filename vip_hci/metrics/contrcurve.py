@@ -151,14 +151,6 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if transmission is not None:
         if not isinstance(transmission, tuple) or not len(transmission) == 2:
             raise TypeError('transmission must be a tuple with 2 1d vectors')
-    if isinstance(starphot, float) or isinstance(starphot, int):
-        pass
-    else:
-        if starphot.shape[0] != cube.shape[0]:
-            raise TypeError('Correction vector has bad size')
-        cube = cube.copy()
-        for i in range(cube.shape[0]):
-            cube[i] = cube[i] / starphot[i]
 
     if isinstance(fwhm, (np.ndarray,list)):
         fwhm_med = np.median(fwhm)
@@ -251,7 +243,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if isinstance(starphot, float) or isinstance(starphot, int):
         cont_curve_samp = ((sigma * noise_samp_sm) / thruput_interp) / starphot
     else:
-        cont_curve_samp = (sigma * noise_samp_sm) / thruput_interp
+        cont_curve_samp = ((sigma * noise_samp_sm) / thruput_interp) / np.median(starphot)
     cont_curve_samp[np.where(cont_curve_samp < 0)] = 1
     cont_curve_samp[np.where(cont_curve_samp > 1)] = 1
 
@@ -264,7 +256,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp
                                    )/starphot
         else:
-            cont_curve_samp_corr = (sigma_corr * noise_samp_sm)/thruput_interp
+            cont_curve_samp_corr = ((sigma_corr * noise_samp_sm)/thruput_interp
+                                   ) / np.median(starphot)
         cont_curve_samp_corr[np.where(cont_curve_samp_corr < 0)] = 1
         cont_curve_samp_corr[np.where(cont_curve_samp_corr > 1)] = 1
 
@@ -535,10 +528,24 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
         if 'fwhm' in argl:
             frame_nofc = algo(cube=array, angle_list=parangles, fwhm=fwhm_med,
                               verbose=False, **algo_dict)
+            if algo_dict.pop('scaling',None):
+                new_algo_dict = algo_dict.copy()
+                new_algo_dict['scaling'] = None
+                frame_nofc_noscal = algo(cube=array, angle_list=parangles, fwhm=fwhm_med,
+                                  verbose=False, **new_algo_dict)
+            else:
+                frame_nofc_noscal = frame_nofc
         else:
             frame_nofc = algo(array, angle_list=parangles, verbose=False,
                               **algo_dict)
-
+            if algo_dict.pop('scaling',None):
+                new_algo_dict = algo_dict.copy()
+                new_algo_dict['scaling'] = None
+                frame_nofc_noscal = algo(cube=array, angle_list=parangles,
+                                  verbose=False, **new_algo_dict)
+            else:
+                frame_nofc_noscal = frame_nofc
+                
     if verbose:
         msg1 = 'Cube without fake companions processed with {}'
         print(msg1.format(algo.__name__))
@@ -546,8 +553,11 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
 
     noise, vector_radd = noise_per_annulus(frame_nofc, separation=fwhm_med,
                                            fwhm=fwhm_med, wedge=wedge)
+    noise_noscal, vector_radd = noise_per_annulus(frame_nofc_noscal, separation=fwhm_med,
+                                           fwhm=fwhm_med, wedge=wedge)                                       
     vector_radd = vector_radd[inner_rad-1:]
     noise = noise[inner_rad-1:]
+    noise_noscal = noise_noscal[inner_rad-1:]
     if verbose:
         print('Measured annulus-wise noise in resulting frame')
         timing(start_time)
@@ -583,7 +593,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 fcy = []
                 fcx = []
                 for i in range(radvec.shape[0]):
-                    flux = fc_snr * noise[irad + i * fc_rad_sep]
+                    flux = fc_snr * noise_noscal[irad + i * fc_rad_sep]
                     cube_fc = cube_inject_companions(cube_fc, psf_template,
                                                      parangles, flux, pxscale,
                                                      rad_dists=[radvec[i]],
@@ -668,7 +678,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 fcy = []
                 fcx = []
                 for i in range(radvec.shape[0]):
-                    flux = fc_snr * noise[irad + i * fc_rad_sep]
+                    flux = fc_snr * noise_noscal[irad + i * fc_rad_sep]
                     cube_fc = cube_inject_companions(cube_fc, psf_template,
                                                      parangles, flux, pxscale,
                                                      rad_dists=[radvec[i]],

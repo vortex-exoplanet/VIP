@@ -150,7 +150,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         ``spat-mean``: spatial mean is subtracted.
 
         ``temp-standard``: temporal mean centering plus scaling pixel values
-        to unit variance.
+        to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES.
 
         ``spat-standard``: spatial mean centering plus scaling pixel values
         to unit variance.
@@ -374,13 +374,6 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
         delta_rot = np.linspace(delta_rot[0], delta_rot[1], num=n_annuli)
     elif isinstance(delta_rot, (int, float)):
         delta_rot = [delta_rot] * n_annuli
-
-    # forcing the 'temp-standard' scaling
-    if cube_ref is not None:
-        if not scaling == 'temp-standard':
-            scaling = 'temp-standard'
-            if verbose:
-                print("Pixel-wise scaling set to `temp-standard`")
 
     if isinstance(n_segments, int):
         n_segments = [n_segments for _ in range(n_annuli)]

@@ -52,7 +52,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=2,
     annulus_width: float, optional
         The width in pixel of the annulus on which the PCA is performed.
     aperture_radius: float, optional
-        The radius of the circular aperture.
+        The radius of the circular aperture in FWHM.
     ncomp: int optional
         The number of principal components.
     scaling : {'temp-mean', 'temp-standard'} or None, optional
@@ -221,7 +221,7 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None):
     """
     res = ns_object
     nsamples = res.samples.shape[0]
-    indburnin = np.percentile(np.array(range(nsamples)), burnin * 100)
+    indburnin = int(np.percentile(np.array(range(nsamples)), burnin * 100))
 
     print(res.summary())
 

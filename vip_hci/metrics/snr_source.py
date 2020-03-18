@@ -2,6 +2,8 @@
 
 """
 Module with S/N calculation functions.
+We strongly recommend users to read Mawet et al. (2014) before using routines 
+of this module: https://ui.adsabs.harvard.edu/abs/2014ApJ...792...97M/abstract
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, O. Absil @ ULg'
@@ -30,6 +32,7 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
     S/N function (small samples penalty) at each pixel.
     
     The S/N is computed as in Mawet et al. (2014) for each radial separation.    
+    https://ui.adsabs.harvard.edu/abs/2014ApJ...792...97M/abstract
     
     *** DISCLAIMER ***
     Signal-to-noise ratio is not significance! For a conversion from snr to 
@@ -220,8 +223,8 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
     in a residual frame (e.g. post-processed with LOCI, PCA, etc). Implements
     the approach described in Mawet et al. 2014 on small sample statistics,
     where a student t-test (eq. 9) can be used to determine S/N (and contrast)
-    in high contrast imaging. 3 extra possibilities compared to
-    Mawet et al. 2014:
+    in high contrast imaging. 3 extra possibilities compared to Mawet et al. 
+    2014 (https://ui.adsabs.harvard.edu/abs/2014ApJ...792...97M/abstract):
 
         * possibility to provide a second array (e.g. obtained with opposite
         derotation angles) to have more apertures for noise estimation

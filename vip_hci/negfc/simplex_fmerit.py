@@ -188,14 +188,16 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     # Checking annulus/aperture sizes. Assuming square frames
     msg = 'The annulus and/or the circular aperture used by the NegFC falls '
     msg += 'outside the FOV. Try increasing the size of your frames or '
-    msg += 'decreasing the annulus or aperture size'
+    msg += 'decreasing the annulus or aperture size.'
+    msg += 'rguess: {:.0f}px; centx_fr: {:.0f}px'.format(r_guess,centx_fr)
+    msg += 'halfw: {:.0f}px'.format(halfw)
     if r_guess > centx_fr-halfw or r_guess <= halfw:
         raise RuntimeError(msg)
                           
     if algo == pca_annulus:
         pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
-                          svd_mode, scaling, imlib=imlib,
-                          interpolation=interpolation, collapse=collapse)
+                              svd_mode, scaling, imlib=imlib,
+                              interpolation=interpolation, collapse=collapse)
     elif algo == pca_annular:
         radius_int = int(np.floor(r_guess-annulus_width/2))
         # crop cube to just be larger than annulus => FASTER PCA
@@ -209,11 +211,11 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
             crop_cube = cube
 
         pca_res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int, fwhm=fwhm, 
-                              asize=annulus_width, delta_rot=delta_rot, 
-                              ncomp=ncomp, svd_mode=svd_mode, scaling=scaling, 
-                              imlib=imlib, interpolation=interpolation,
-                              collapse=collapse, full_output=False, 
-                              verbose=False)
+                                  asize=annulus_width, delta_rot=delta_rot, 
+                                  ncomp=ncomp, svd_mode=svd_mode, scaling=scaling, 
+                                  imlib=imlib, interpolation=interpolation,
+                                  collapse=collapse, full_output=False, 
+                                  verbose=False)
         # pad again now                      
         pca_res = np.pad(pca_res_tmp,pad,mode='constant',constant_values=0)
         

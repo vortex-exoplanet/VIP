@@ -19,7 +19,7 @@ from ..conf import time_ini, timing
 from .mcmc_sampling import lnlike, confidence, show_walk_plot
 
 
-def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=2,
+def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
                           aperture_radius=1, ncomp=10, scaling=None,
                           svd_mode='lapack', cube_ref=None, collapse='median',
                           w=(5, 5, 200), method='single', npoints=100,
@@ -215,7 +215,8 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=2,
     return res
 
 
-def nested_sampling_results(ns_object, burnin=0.4, bins=None):
+def nested_sampling_results(ns_object, burnin=0.4, bins=None, save=False,
+                            output_dir='/'):
     """ Shows the results of the Nested Sampling, summary, parameters with errors,
     walk and corner plots.
     """
@@ -242,12 +243,17 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None):
                linestyles='dotted')
     plt.show()
 
+    if save:
+        plt.savefig(output_dir+'Nested_results.pdf')
+        
     print("\nWalk plots before the burnin")
     show_walk_plot(np.expand_dims(res.samples, axis=0))
     if burnin > 0:
         print("\nWalk plots after the burnin")
         show_walk_plot(np.expand_dims(res.samples[indburnin:], axis=0))
-
+    if save:
+        plt.savefig(output_dir+'Nested_walk_plots.pdf')
+        
     mean, cov = nestle.mean_and_cov(res.samples[indburnin:],
                                     res.weights[indburnin:])
     print("\nWeighted mean +- sqrt(covariance)")
@@ -255,6 +261,20 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None):
     print("Theta = {:.3f} +/- {:.3f}".format(mean[1], np.sqrt(cov[1, 1])))
     print("Flux = {:.3f} +/- {:.3f}".format(mean[2], np.sqrt(cov[2, 2])))
 
+    if save:
+        with open(output_dir+'Nested_sampling.txt', "w") as f:
+            f.write('#################################\n')
+            f.write('####   CONFIDENCE INTERVALS   ###\n')
+            f.write('#################################\n')
+            f.write(' \n')
+            f.write('Results of the NESTED SAMPLING fit\n')
+            f.write('----------------------------------\n ')
+            f.write(' \n')
+            f.write("\nWeighted mean +- sqrt(covariance)\n")
+            f.write("Radius = {:.3f} +/- {:.3f}\n".format(mean[0], np.sqrt(cov[0, 0])))
+            f.write("Theta = {:.3f} +/- {:.3f}\n".format(mean[1], np.sqrt(cov[1, 1])))
+            f.write("Flux = {:.3f} +/- {:.3f}\n".format(mean[2], np.sqrt(cov[2, 2])))
+                        
     if bins is None:
         bins = int(np.sqrt(res.samples[indburnin:].shape[0]))
         print("\nHist bins =", bins)
@@ -265,8 +285,18 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None):
                         weights=res.weights[indburnin:], range=ranges,
                         plot_contours=True)
     fig.set_size_inches(8, 8)
-
+    if save:
+        plt.savefig(output_dir+'Nested_corner.pdf')
+            
     print('\nConfidence intervals')
     _ = confidence(res.samples[indburnin:], cfd=68, bins=bins,
                    weights=res.weights[indburnin:],
                    gaussian_fit=True, verbose=True, save=False)
+                   
+    if save:
+        plt.savefig(output_dir+'Nested_confi_hist_flux_r_theta_gaussfit.pdf')
+
+    final_res = np.array([[mean[0], np.sqrt(cov[0, 0])],
+                          [mean[1], np.sqrt(cov[1, 1])],
+                          [mean[2], np.sqrt(cov[1, 1])]])
+    return final_res                     

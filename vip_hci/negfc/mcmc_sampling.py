@@ -326,7 +326,7 @@ def gelman_rubin_from_chain(chain, burnin):
 
 
 def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
-                        annulus_width=3, aperture_radius=4, cube_ref=None,
+                        annulus_width=8, aperture_radius=1, cube_ref=None,
                         svd_mode='lapack', scaling='temp-mean', 
                         algo=pca_annulus, delta_rot=1, fmerit='sum',
                         imlib='opencv', interpolation='lanczos4',
@@ -368,7 +368,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     plsc: float
         The platescale, in arcsec per pixel.
     annulus_width: float, optional
-        The width in FWHM of the annulus on which the PCA is performed.
+        The width in pixels of the annulus on which the PCA is performed.
     aperture_radius: float, optional
         The radius in FWHM of the circular aperture.
     nwalkers: int optional
@@ -949,31 +949,31 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     ##############################################
     if save:
         with open(output_dir+output_file, "w") as f:
-            f.write('###########################')
-            f.write('####   INFERENCE TEST   ###')
-            f.write('###########################')
-            f.write(' ')
-            f.write('Results of the MCMC fit')
-            f.write('----------------------- ')
-            f.write(' ')
-            f.write('>> Position and flux of the planet (highly probable):')
-            f.write('{} % confidence interval'.format(cfd))
-            f.write(' ')
+            f.write('###########################\n')
+            f.write('####   INFERENCE TEST   ###\n')
+            f.write('###########################\n')
+            f.write(' \n')
+            f.write('Results of the MCMC fit\n')
+            f.write('----------------------- \n')
+            f.write(' \n')
+            f.write('>> Position and flux of the planet (highly probable):\n')
+            f.write('{} % confidence interval\n'.format(cfd))
+            f.write(' \n')
 
             for i in range(3):
                 confidenceMax = confidenceInterval[pKey[i]][1]
                 confidenceMin = -confidenceInterval[pKey[i]][0]
                 if i == 2:
-                    text = '{}: \t\t\t{:.3f} \t-{:.3f} \t+{:.3f}'
+                    text = '{}: \t\t\t{:.3f} \t-{:.3f} \t+{:.3f}\n'
                 else:
-                    text = '{}: \t\t\t{:.3f} \t\t-{:.3f} \t\t+{:.3f}'
+                    text = '{}: \t\t\t{:.3f} \t\t-{:.3f} \t\t+{:.3f}\n'
                     
                 f.write(text.format(pKey[i], val_max[pKey[i]],
                                     confidenceMin, confidenceMax))
             
             f.write(' ')
-            f.write('Platescale = {} mas'.format(plsc*1000))
-            f.write('r (mas): \t\t{:.2f} \t\t-{:.2f} \t\t+{:.2f}'.format(
+            f.write('Platescale = {} mas\n'.format(plsc*1000))
+            f.write('r (mas): \t\t{:.2f} \t\t-{:.2f} \t\t+{:.2f}\n'.format(
                         val_max[pKey[0]]*plsc*1000,
                         -confidenceInterval[pKey[0]][0]*plsc*1000,
                         confidenceInterval[pKey[0]][1]*plsc*1000))

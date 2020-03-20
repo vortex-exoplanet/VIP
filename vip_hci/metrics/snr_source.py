@@ -2,15 +2,19 @@
 
 """
 Module with S/N calculation functions.
+We strongly recommend users to read Mawet et al. (2014) before using routines 
+of this module: https://ui.adsabs.harvard.edu/abs/2014ApJ...792...97M/abstract
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, O. Absil @ ULg'
 __all__ = ['snr',
            'snrmap',
+           'significance',
            'frame_report']
 
 import numpy as np
 import photutils
+from scipy.stats import norm, t
 from hciplot import plot_frames
 from skimage import draw
 from matplotlib import pyplot as plt
@@ -26,7 +30,16 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
            nproc=None, array2=None, use2alone=False, verbose=True, **kwargs):
     """Parallel implementation of the S/N map generation function. Applies the
     S/N function (small samples penalty) at each pixel.
-
+    
+    The S/N is computed as in Mawet et al. (2014) for each radial separation.    
+    https://ui.adsabs.harvard.edu/abs/2014ApJ...792...97M/abstract
+    
+    *** DISCLAIMER ***
+    Signal-to-noise ratio is not significance! For a conversion from snr to 
+    n-sigma (i.e. the equivalent confidence level of a Gaussian n-sigma), use 
+    the significance() function.    
+    
+    
     Parameters
     ----------
     array : numpy ndarray
@@ -210,8 +223,8 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
     in a residual frame (e.g. post-processed with LOCI, PCA, etc). Implements
     the approach described in Mawet et al. 2014 on small sample statistics,
     where a student t-test (eq. 9) can be used to determine S/N (and contrast)
-    in high contrast imaging. 3 extra possibilities compared to
-    Mawet et al. 2014:
+    in high contrast imaging. 3 extra possibilities compared to Mawet et al. 
+    2014 (https://ui.adsabs.harvard.edu/abs/2014ApJ...792...97M/abstract):
 
         * possibility to provide a second array (e.g. obtained with opposite
         derotation angles) to have more apertures for noise estimation
@@ -219,6 +232,11 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         tested xy location, to not bias the noise estimate
         * possibility to use only the second array for the noise estimation
         (useful for images containing a lot of disk/extended signals).
+        
+    *** DISCLAIMER ***
+    Signal-to-noise ratio is not significance! For a conversion from snr to 
+    n-sigma (i.e. the equivalent confidence level of a Gaussian n-sigma), use 
+    the significance() function.    
     
     Parameters
     ----------
@@ -353,6 +371,42 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
     else:
         return snr_vale
 
+
+
+def significance(snr, rad, fwhm, student_to_gauss=True):
+    """ Converts a S/N ratio (measured as in Mawet et al. 2014) into the 
+    equivalent gaussian significance, i.e. the n-sigma with the same confidence 
+    level as the S/N at the given separation.
+     
+     
+    Parameters
+    ----------
+    snr : float or numpy array
+        SNR value(s)
+    rad : float or numpy array
+        Radial separation(s) from the star in pixels. If an array, it should be
+        the same shape as snr and provide the radial separation corresponding
+        to each snr measurement.
+    fwhm : float
+        Full Width Half Maximum of the PSF.
+    student_to_gauss : bool, optional
+        Whether the conversion is from Student SNR to Gaussian significance. If 
+        False, will assume the opposite: Gaussian significance to Student SNR.
+    
+    Returns
+    -------
+    sigma : float
+        Gaussian significance in terms of n-sigma
+    
+    """
+    
+    if student_to_gauss:
+        sigma = norm.ppf(t.cdf(snr,(rad/fwhm)*2*np.pi-2))
+    else:
+        sigma = t.ppf(norm.cdf(snr), (rad/fwhm)*2*np.pi-2)
+        
+    return sigma      
+            
 
 def frame_report(array, fwhm, source_xy=None, verbose=True):
     """ Gets information from given frame: Integrated flux in aperture, S/N of

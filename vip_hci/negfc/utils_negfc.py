@@ -23,7 +23,8 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, plsc, imlib='opencv',
     ----------
     planet_parameter: numpy.array or list
         The (r, theta, flux) for all known companions. For a 4d cube r, 
-        theta and flux must all be 1d arrays with length equal to cube.shape[0].
+        theta and flux must all be 1d arrays with length equal to cube.shape[0];
+        i.e. planet_parameter should have shape: (n_pl,3,n_ch).
     cube: numpy.array
         The cube of fits images expressed as a numpy.array.
     angs: numpy.array

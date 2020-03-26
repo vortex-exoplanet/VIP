@@ -39,8 +39,13 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         array.
     angle_list : 1d numpy ndarray
         List of parallactic angles, in degrees.
-    flevel : float or list
-        Factor for controlling the brightness of the fake companions.
+    flevel : float or list/1d array
+        Factor for controlling the brightness of the fake companions. If a float, 
+        the same flux is used for all frames. For a 3D input cube: if a 
+        list/1d array is provided, it should have same length as number of 
+        frames in the 3D cube. For a 4D (ADI+mSDI) input cube, a list/1d array 
+        should have the same length as the number of spectral channels 
+        (i.e. provide a spectrum).
     plsc : float
         Value of the plsc in arcsec/px. Only used for printing debug output when
         ``verbose=True``.
@@ -122,7 +127,16 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     array_out[fr] += (frame_shift(fc_fr, shift_y, shift_x,
                                                   imlib, interpolation)
                                       * flevel)
-
+                    if isinstance(flevel, (int, float)):
+                        array_out[fr] += (frame_shift(fc_fr, shift_y, shift_x,
+                                                  imlib, interpolation)
+                                      * flevel)
+                    else:
+                        for i in range(len(flevel)):
+                            array_out[fr] += (frame_shift(fc_fr, shift_y, shift_x,
+                                                  imlib, interpolation)
+                                      * flevel[fr])
+                            
                 pos_y = rad * np.sin(ang) + ceny
                 pos_x = rad * np.cos(ang) + cenx
                 rad_arcs = rad * plsc
@@ -451,7 +465,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                                   interpolation=interpolation)
 
         # we check whether the flux is normalized and fix it if needed
-        fwhm_aper = photutils.CircularAperture((frame_center(psf)), fwhm/2)
+        fwhm_aper = photutils.CircularAperture((cx,cy), fwhm/2)
         fwhm_aper_phot = photutils.aperture_photometry(psf, fwhm_aper,
                                                        method='exact')
         fwhm_flux = np.array(fwhm_aper_phot['aperture_sum'])
@@ -474,7 +488,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
             return psf_norm_array, fwhm_flux, fwhm
         else:
             return psf_norm_array
-    ############################################################################
+    ###########################################################################
     if model == 'gauss':
         fit_2d = fit_2dgaussian
     elif model == 'moff':

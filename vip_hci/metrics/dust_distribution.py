@@ -12,7 +12,7 @@ class Dust_distribution(object):
     """
     def __init__(self,density_dico={'name':'2PowerLaws', 'ain':5, 'aout':-5,
                                     'a':60, 'e':0, 'ksi0':1., 'gamma':2.,
-                                    'beta':1.}):
+                                    'beta':1.,'amin':0.}):
         """ 
         Constructor for the Dust_distribution class.
         
@@ -77,7 +77,7 @@ class DustEllipticalDistribution2PowerLaws:
     """
     def __init__(self, accuracy=5.e-3, density_dico={'ain':5,'aout':-5,
                                                      'a':60,'e':0,'ksi0':1.,
-                                                     'gamma':2.,'beta':1.}):
+                                                     'gamma':2.,'beta':1.,'amin':0.}):
         """ 
         Constructor for the Dust_distribution class.
         
@@ -120,8 +120,12 @@ class DustEllipticalDistribution2PowerLaws:
             a = 60.
         else:
             a = density_dico['a']
+        if 'amin' not in density_dico.keys():
+            amin = 0.
+        else:
+            amin = density_dico['amin']            
         self.set_vertical_density(ksi0=ksi0, gamma=gamma, beta=beta)
-        self.set_radial_density(ain=ain, aout=aout, a=a, e=e)
+        self.set_radial_density(ain=ain, aout=aout, a=a, e=e,amin=amin)
 
     def set_vertical_density(self, ksi0=1., gamma=2., beta=1.):
         """ 
@@ -153,7 +157,7 @@ class DustEllipticalDistribution2PowerLaws:
         self.beta = float(beta)
         self.zmax = ksi0*(-np.log(self.accuracy))**(1./gamma)
 
-    def set_radial_density(self, ain=5., aout=-5., a=60., e=0.):
+    def set_radial_density(self, ain=5., aout=-5., a=60., e=0.,amin=0.):
         """ 
         Sets the parameters of the radial density function
 
@@ -169,6 +173,9 @@ class DustEllipticalDistribution2PowerLaws:
             reference radius in au (default 60)
         e : float 
             eccentricity (default 0)
+        amin: float 
+            minimim semi-major axis: the dust density is 0 below this 
+            value (default 0)
         """    
         if ain < 0.1:
             print('Warning the inner slope is greater than 0.1')
@@ -188,11 +195,17 @@ class DustEllipticalDistribution2PowerLaws:
             e = 0.99  
         if a < 0:
             raise ValueError('Warning the semi-major axis a is negative')
+        if amin < 0:
+            raise ValueError('Warning the minimum radius a is negative')
+            print('amin was changed from {0:6.2f} to 0.'.format(amin))
+            amin = 0. 
         self.ain = float(ain)
         self.aout = float(aout)
         self.a = float(a)
         self.e = float(e)
         self.p = self.a*(1-self.e**2)
+        self.amin = float(amin)
+        self.pmin = self.amin*(1-self.e**2) ## we assume the inner hole is also elliptic (convention)
         try:
             # maximum distance of integration, AU
             self.rmax = self.a*self.accuracy**(1/self.aout)
@@ -240,6 +253,8 @@ class DustEllipticalDistribution2PowerLaws:
         print('Ellipticity: {0:.3f}'.format(self.e))
         print('Inner slope: {0:.2f}'.format(self.ain))
         print('Outer slope: {0:.2f}'.format(self.aout))
+        if self.amin>0:
+            print('Minimum radius (sma): {0:.2f}au'.format(self.amin))        
         if pxInAu is not None:
             msg = 'Scale height: {0:.1f}au or {1:.1f}px at {2:.1f}'
             print(msg.format(self.ksi0,self.ksi0/pxInAu,self.a))
@@ -269,6 +284,8 @@ class DustEllipticalDistribution2PowerLaws:
         den = (np.power(radial_ratio, -2*self.ain) +
                np.power(radial_ratio,-2*self.aout))
         radial_density_term = np.sqrt(2./den)
+        if self.pmin>0:
+             radial_density_term[r/(self.pmin/(1-self.e*costheta)) <= 1]=0
         den2 = (self.ksi0*np.power(radial_ratio,self.beta))
         vertical_density_term = np.exp(-np.power(np.abs(z)/den2, self.gamma))
         return radial_density_term*vertical_density_term    

@@ -65,22 +65,25 @@ class ScatteredLightDisk(object):
             "name".
             For a to-power law distribution, you can set it with
             'name:'2PowerLaws' and with the following parameters:
-            a : float 
-                reference radius in au (default 40)
-            ksi0 : float
-                scale height in au at the reference radius (default 1 a.u.)
-            gamma : float 
-                exponent (2=gaussian,1=exponential profile, default 2)
-            beta : float 
-                flaring index (0=no flaring, 1=linear flaring, default 1)
-            ain : float 
-                slope of the power-low distribution in the inner disk. It 
-                must be positive (default 5)
-            aout : float 
-                slope of the power-low distribution in the outer disk. It 
-                must be negative (default -5)
-            e : float 
-                eccentricity (default 0)
+                a : float 
+                    reference radius in au (default 40)
+                ksi0 : float
+                    scale height in au at the reference radius (default 1 a.u.)
+                gamma : float 
+                    exponent (2=gaussian,1=exponential profile, default 2)
+                beta : float 
+                    flaring index (0=no flaring, 1=linear flaring, default 1)
+                ain : float 
+                    slope of the power-low distribution in the inner disk. It 
+                    must be positive (default 5)
+                aout : float 
+                    slope of the power-low distribution in the outer disk. It 
+                    must be negative (default -5)
+                e : float 
+                    eccentricity (default 0)
+                amin: float 
+                    minimim semi-major axis: the dust density is 0 below this 
+                    value (default 0)
         spf_dico :  dictionnary
             Parameters describing the scattering phase function to be implemented.
             By default, an isotropic phase function is implemented. It should
@@ -381,14 +384,14 @@ if __name__ == '__main__':
                                                     'e':0,'ksi0':1.,
                                                     'gamma':2.,'beta':1.})
     Scattered_light_disk2.set_phase_function({'name':'DoubleHG',
-                                             'g':[0.6,-0.6],'weight':0.7,
+                                              'g':[0.6,-0.6],'weight':0.7,
                                               'polar':False})
     Scattered_light_disk2.print_info()
     disk2 = Scattered_light_disk2.compute_scattered_light()    
 
     # Let's turn the polarisation on now:
     Scattered_light_disk2.set_phase_function({'name':'DoubleHG',
-                                             'g':[0.6,-0.6],'weight':0.7,
+                                              'g':[0.6,-0.6],'weight':0.7,
                                               'polar':True})
     disk2_polar = Scattered_light_disk2.compute_scattered_light()    
 

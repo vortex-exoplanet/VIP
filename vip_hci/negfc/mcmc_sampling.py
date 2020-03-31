@@ -70,7 +70,8 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
            ncomp, aperture_radius, initial_state, cube_ref=None,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
            delta_rot=1, fmerit='sum', imlib='opencv',
-           interpolation='lanczos4', collapse='median', debug=False):
+           interpolation='lanczos4', collapse='median', weights=None,
+           debug=False):
     """ Define the likelihood log-function.
     
     Parameters
@@ -120,6 +121,10 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
+    weights : 1d array, optional
+        If provided, the negative fake companion fluxes will be scaled according
+        to these weights before injection in the cube. Can reflect changes in 
+        the observing conditions throughout the sequence.
     debug: boolean
         If True, the cube is returned along with the likelihood log-function.
         
@@ -130,7 +135,11 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         
     """
     # Create the cube with the negative fake companion injected
-    cube_negfc = cube_inject_companions(cube, psf_norm, angs, flevel=-param[2],
+    if weights is None:   
+        flux = -param[2]
+    else:
+        flux = -param[2]*weights
+    cube_negfc = cube_inject_companions(cube, psf_norm, angs, flevel=flux,
                                         plsc=plsc, rad_dists=[param[0]],
                                         n_branches=1, theta=param[1],
                                         imlib=imlib,
@@ -151,7 +160,8 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         lnlikelihood = -0.5 * np.sum(np.abs(values))
     elif fmerit == 'stddev':
         values = values[values != 0]
-        lnlikelihood = -np.std(np.abs(values))
+        #lnlikelihood = -np.std(np.abs(values))
+        lnlikelihood = -np.std(values)
     else:
         raise RuntimeError('fmerit choice not recognized.')
     
@@ -165,7 +175,8 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
            annulus_width, ncomp, aperture_radius, initial_state, cube_ref=None,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
            delta_rot=1, fmerit='sum', imlib='opencv',
-           interpolation='lanczos4', collapse='median', display=False):
+           interpolation='lanczos4', collapse='median', weights=None, 
+           display=False):
     """ Define the probability log-function as the sum between the prior and
     likelihood log-funtions.
     
@@ -235,7 +246,7 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
                        annulus_width, ncomp, aperture_radius, initial_state,
                        cube_ref, svd_mode, scaling, algo,
                        delta_rot, fmerit, imlib,
-                       interpolation, collapse, display)
+                       interpolation, collapse, weights)
 
 
 def gelman_rubin(x):
@@ -330,12 +341,13 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         svd_mode='lapack', scaling='temp-mean', 
                         algo=pca_annulus, delta_rot=1, fmerit='sum',
                         imlib='opencv', interpolation='lanczos4',
-                        collapse='median', nwalkers=1000, bounds=None, a=2.0,
-                        burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1,
-                        niteration_min=0, niteration_limit=1e2,
-                        niteration_supp=0, check_maxgap=1e4, nproc=1,
-                        output_dir='results/', output_file=None, display=False, 
-                        verbosity=0, save=False):
+                        collapse='median', weights=None, nwalkers=1000, 
+                        bounds=None, a=2.0, burnin=0.3, rhat_threshold=1.01, 
+                        rhat_count_threshold=1, niteration_min=0, 
+                        niteration_limit=1e2, niteration_supp=0, 
+                        check_maxgap=1e4, nproc=1, output_dir='results/', 
+                        output_file=None, display=False, verbosity=0, 
+                        save=False):
     r""" Runs an affine invariant mcmc sampling algorithm in order to determine
     the position and the flux of the planet using the 'Negative Fake Companion'
     technique. The result of this procedure is a chain with the samples from the
@@ -397,6 +409,10 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
+    weights : 1d array, optional
+        If provided, the negative fake companion fluxes will be scaled according
+        to these weights before injection in the cube. Can reflect changes in 
+        the observing conditions throughout the sequence.
     bounds: numpy.array or list, default=None, optional
         The prior knowledge on the model parameters. If None, large bounds will
         be automatically estimated from the initial state.
@@ -478,7 +494,10 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     if cube_ref is not None:
         if not isinstance(cube_ref, np.ndarray) or cube_ref.ndim != 3:
             raise ValueError('`cube_ref` must be a 3D numpy array')
-    
+    if weights is not None:
+        if not len(weights)==cube.shape[0]:
+            raise TypeError("Weights should have same length as cube axis 0")
+        
     # #########################################################################
     # Initialization of the variables
     # #########################################################################
@@ -516,8 +535,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                            aperture_radius, initial_state,
                                            cube_ref, svd_mode, scaling, algo,
                                            delta_rot, fmerit, imlib, 
-                                           interpolation, collapse]),
+                                           interpolation, collapse, weights]),
                                     threads=nproc)
+                                    
     start = datetime.datetime.now()
 
     # #########################################################################
@@ -916,7 +936,11 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                 ax[j].set_ylabel('Counts')
 
             if title is not None:
-                ax[1].set_title(title, fontsize=10)
+                msg = r"{} - conf interval = {:.3f} {:.3f} +{:.3f}"
+                ax[1].set_title(msg.format(title, val_max[pKey[j]], 
+                                           confidenceInterval[pKey[j]][0], 
+                                           confidenceInterval[pKey[j]][1]),
+                                fontsize=10)
 
         plt.tight_layout(w_pad=0.1)
 

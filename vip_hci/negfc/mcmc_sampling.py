@@ -936,7 +936,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                 ax[j].set_ylabel('Counts')
 
             if title is not None:
-                msg = r"{} - conf interval = {:.3f} {:.3f} +{:.3f}"
+                msg = r"{} - {:.3f} {:.3f} +{:.3f}"
                 ax[1].set_title(msg.format(title, val_max[pKey[j]], 
                                            confidenceInterval[pKey[j]][0], 
                                            confidenceInterval[pKey[j]][1]),

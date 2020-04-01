@@ -145,7 +145,7 @@ def verify_fits(fitsfilename):
             f.verify()
 
 
-def write_fits(fitsfilename, array, header=None, precision=np.float32,
+def write_fits(fitsfilename, array, header=None, output_verify='exception', precision=np.float32,
                verbose=True):
     """
     Write array and header into FTIS file.
@@ -160,6 +160,8 @@ def write_fits(fitsfilename, array, header=None, precision=np.float32,
         Array to be written into a fits file.
     header : numpy ndarray, optional
         Array with header.
+    output_verify : fix silentfix ignore warn exception, optional
+        Verification options
     precision : numpy dtype, optional
         Float precision, by default np.float32 or single precision float.
     verbose : bool, optional
@@ -172,10 +174,10 @@ def write_fits(fitsfilename, array, header=None, precision=np.float32,
 
     if os.path.exists(fitsfilename):
         os.remove(fitsfilename)
-        ap_fits.writeto(fitsfilename, array, header)
+        ap_fits.writeto(fitsfilename, array, header, output_verify)
         if verbose:
             print("Fits file successfully overwritten")
     else:
-        ap_fits.writeto(fitsfilename, array, header)
+        ap_fits.writeto(fitsfilename, array, header, output_verify)
         if verbose:
             print("Fits file successfully saved")

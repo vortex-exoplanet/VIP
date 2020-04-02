@@ -22,9 +22,9 @@ from .mcmc_sampling import lnlike, confidence, show_walk_plot
 def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
                           aperture_radius=1, ncomp=10, scaling=None,
                           svd_mode='lapack', cube_ref=None, collapse='median',
-                          w=(5, 5, 200), method='single', npoints=100,
-                          dlogz=0.1, decline_factor=None, rstate=None,
-                          verbose=True):
+                          weights=None, w=(5, 5, 200), method='single', 
+                          npoints=100, dlogz=0.1, decline_factor=None, 
+                          rstate=None, verbose=True):
     """ Runs a nested sampling algorithm in order to determine the position and
     the flux of the planet using the 'Negative Fake Companion' technique. The
     result of this procedure is a a ``nestle`` object containing the samples
@@ -68,6 +68,10 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
+    weights : 1d array, optional
+        If provided, the negative fake companion fluxes will be scaled according
+        to these weights before injection in the cube. Can reflect changes in 
+        the observing conditions throughout the sequence.
     w : tuple of length 3
         The size of the bounds (around the initial state ``init``) for each
         parameter.
@@ -162,6 +166,13 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
 
     """
 
+    # If companion flux is too low MCMC will not converge. Solution: scale up 
+    # the intensities in the cube after injecting the negfc.
+    if init[2] < 100:
+        scale_fac = 100./init[2]
+    else:
+        scale_fac = 1
+
     def prior_transform(x):
         """ x:[0,1]
 
@@ -192,7 +203,8 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
                       psf_norm=psf, fwhm=fwhm, annulus_width=annulus_width,
                       aperture_radius=aperture_radius, initial_state=init,
                       cube_ref=cube_ref, svd_mode=svd_mode, scaling=scaling,
-                      fmerit='sum', ncomp=ncomp, collapse=collapse)
+                      fmerit='sum', ncomp=ncomp, collapse=collapse, 
+                      weights=weights, scale_fac=scale_fac)
 
     # -------------------------------------------------------------------------
     if verbose:  start = time_ini()

@@ -69,9 +69,8 @@ def lnprior(param, bounds):
 def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
            ncomp, aperture_radius, initial_state, cube_ref=None,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
-           delta_rot=1, fmerit='sum', imlib='opencv',
-           interpolation='lanczos4', collapse='median', weights=None,
-           debug=False):
+           delta_rot=1, fmerit='sum', imlib='opencv', interpolation='lanczos4', 
+           collapse='median', weights=None, scale_fac=1, debug=False):
     """ Define the likelihood log-function.
     
     Parameters
@@ -125,6 +124,12 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
+    scale_fac: float
+        Factor by which the intensities in the cube are scaled up, to 
+        increase the residuals. This operation is needed for very low companion 
+        fluxes. The probability exp(lnprob) would otherwise be ~1 for all flux 
+        values less or similar to the true value. In practice, for companion 
+        fluxes > 100, letting scale_fac to 1 should be fine.
     debug: boolean
         If True, the cube is returned along with the likelihood log-function.
         
@@ -142,10 +147,11 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
     cube_negfc = cube_inject_companions(cube, psf_norm, angs, flevel=flux,
                                         plsc=plsc, rad_dists=[param[0]],
                                         n_branches=1, theta=param[1],
-                                        imlib=imlib,
+                                        imlib=imlib, 
                                         interpolation=interpolation,
                                         verbose=False)
-                                  
+    if scale_fac > 1:
+        cube_negfc*=scale_fac                            
     # Perform PCA and extract the zone of interest
     values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width,
                                  aperture_radius, fwhm, initial_state[0],
@@ -160,8 +166,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         lnlikelihood = -0.5 * np.sum(np.abs(values))
     elif fmerit == 'stddev':
         values = values[values != 0]
-        #lnlikelihood = -np.std(np.abs(values))
-        lnlikelihood = -np.std(values)
+        lnlikelihood = -np.std(values)*values.size
     else:
         raise RuntimeError('fmerit choice not recognized.')
     
@@ -176,7 +181,7 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
            delta_rot=1, fmerit='sum', imlib='opencv',
            interpolation='lanczos4', collapse='median', weights=None, 
-           display=False):
+           scale_fac=1, display=False):
     """ Define the probability log-function as the sum between the prior and
     likelihood log-funtions.
     
@@ -225,6 +230,16 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
+    weights : 1d array, optional
+        If provided, the negative fake companion fluxes will be scaled according
+        to these weights before injection in the cube. Can reflect changes in 
+        the observing conditions throughout the sequence.
+    scale_fac: float
+        Factor by which the intensities in the cube are scaled up, to 
+        increase the residuals. This operation is needed for very low companion 
+        fluxes. The probability exp(lnprob) would otherwise be ~1 for all flux 
+        values less or similar to the true value. In practice, for companion 
+        fluxes > 100, letting scale_fac to 1 should be fine.
     display: boolean
         If True, the cube is displayed with ds9.
         
@@ -242,11 +257,10 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
     if np.isinf(lp):
         return -np.inf       
     
-    return lp + lnlike(param, cube, angs, plsc, psf_norm, fwhm,
-                       annulus_width, ncomp, aperture_radius, initial_state,
-                       cube_ref, svd_mode, scaling, algo,
-                       delta_rot, fmerit, imlib,
-                       interpolation, collapse, weights)
+    return lp + lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, 
+                       ncomp, aperture_radius, initial_state, cube_ref, 
+                       svd_mode, scaling, algo, delta_rot, fmerit, imlib,
+                       interpolation, collapse, weights, scale_fac)
 
 
 def gelman_rubin(x):
@@ -508,6 +522,13 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     maxgap = check_maxgap
     initial_state = np.array(initial_state)
     
+    # If companion flux is too low MCMC will not converge. Solution: scale up 
+    # the intensities in the cube after injecting the negfc.
+    if initial_state[2] < 100:
+        scale_fac = 100./initial_state[2]
+    else:
+        scale_fac = 1
+        
     if itermin > limit:
         itermin = 0
 
@@ -535,7 +556,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                            aperture_radius, initial_state,
                                            cube_ref, svd_mode, scaling, algo,
                                            delta_rot, fmerit, imlib, 
-                                           interpolation, collapse, weights]),
+                                           interpolation, collapse, weights,
+                                           scale_fac]),
                                     threads=nproc)
                                     
     start = datetime.datetime.now()

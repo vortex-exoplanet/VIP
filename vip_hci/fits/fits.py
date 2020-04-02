@@ -145,8 +145,8 @@ def verify_fits(fitsfilename):
             f.verify()
 
 
-def write_fits(fitsfilename, array, header=None, output_verify=None, precision=np.float32,
-               verbose=True):
+def write_fits(fitsfilename, array, header=None, output_verify='exception',
+               precision=np.float32, verbose=True):
     """
     Write array and header into FTIS file.
 
@@ -160,8 +160,10 @@ def write_fits(fitsfilename, array, header=None, output_verify=None, precision=n
         Array to be written into a fits file.
     header : numpy ndarray, optional
         Array with header.
-    output_verify : fix silentfix ignore warn expectation, optional
-        Verification options
+    output_verify : str, optional
+        {"fix", "silentfix", "ignore", "warn", "exception"} 
+        Verification options:
+        https://docs.astropy.org/en/stable/io/fits/api/verification.html
     precision : numpy dtype, optional
         Float precision, by default np.float32 or single precision float.
     verbose : bool, optional

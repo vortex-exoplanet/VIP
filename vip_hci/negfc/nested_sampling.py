@@ -228,7 +228,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
 
 
 def nested_sampling_results(ns_object, burnin=0.4, bins=None, save=False,
-                            output_dir='/',gaussian_fit=True):
+                            output_dir='/'):
     """ Shows the results of the Nested Sampling, summary, parameters with errors,
     walk and corner plots.
     """
@@ -303,7 +303,7 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, save=False,
     print('\nConfidence intervals')
     _ = confidence(res.samples[indburnin:], cfd=68, bins=bins,
                    weights=res.weights[indburnin:],
-                   gaussian_fit=gaussian_fit, verbose=True, save=False)
+                   gaussian_fit=True, verbose=True, save=False)
                    
     if save:
         plt.savefig(output_dir+'Nested_confi_hist_flux_r_theta_gaussfit.pdf')

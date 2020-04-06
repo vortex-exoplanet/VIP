@@ -485,29 +485,40 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         return obj_tmp
 
 
-def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True, 
-                          verbose=True, half_res_y=False, min_thr=None, 
-                          mid_thr=None, max_nit=15, full_output=False):
+def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4., 
+                          sig=4., protect_psf=True, verbose=True, 
+                          half_res_y=False, min_thr=None, mid_thr=None, 
+                          max_nit=15, full_output=False):
     """
-    Function to correct the bad pixels in obj_tmp. Slow alternative to 
+    Function to correct clumps of bad pixels. Slow alternative to 
     bp_annuli_removal to correct for bad pixels in either a frame or a spectral
     cube. It should be used instead of bp_annuli_removal only if the observed 
-    field is not composed of a single bright object (producing a circularly 
-    symmetric PSF). As it is based on an iterative process, it is able to 
-    correct clumps of bad pixels. The bad pixel values are sigma filtered 
-    (replaced by the median of neighbouring pixel values).
+    field is not composed of a single bright object producing a circularly 
+    symmetric PSF. 
+    The correction is based on an iterative process, where bad pixels are
+    replaced by the median of good neighbouring pixel values if enough of them.
+    The size of the box is set by the closest odd integer larger than fwhm (to
+    avoid accidentally replacing a companion).
+    If a bad pixel map is not provided, the bad pixel clumps will also be 
+    searched iteratively using method find_outliers().
 
 
     Parameters
     ----------
     array : 3D or 2D array 
         Input 3d cube or 2d image.
-    cy,cx : float or 1D array
+    bpix_map: 3D or 2D array, opt
+        Input bad pixel array. Should have same dimenstions as array. If not
+        provided, the algorithm will attempt to identify bad pixel clumps
+        automatically.
+    cy,cx : float or 1D array. opt
         Vector with approximate y and x coordinates of the star for each channel
-        (cube_like), or single 2-elements vector (frame_like).
-    fwhm: float or 1D array
+        (cube_like), or single 2-elements vector (frame_like). Should be 
+        provided if bpix_map is None.
+    fwhm: float or 1D array, opt
         Vector containing the full width half maximum of the PSF in pixels, for
-        each channel (cube_like); or single value (frame_like)
+        each channel (cube_like); or single value (frame_like). Shouod be 
+        provided if bpix map is None.
     sig: float, optional
         Value representing the number of "sigmas" above or below the "median" of
         the neighbouring pixel, to consider a pixel as bad. See details on 
@@ -556,6 +567,10 @@ def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True,
     obj_tmp = array.copy()
     ndims = obj_tmp.ndim
     assert ndims == 2 or ndims == 3, "Object is not two or three dimensional.\n"
+
+    if bpm_mask is not None:
+        if bpm_mask.shape[-2:] != array.shape[-2:]:
+            raise TypeError("Bad pixel map has wrong y/x dimensions.")
 
     def bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_psf, verbose):    
         n_x = obj_tmp.shape[1]
@@ -638,17 +653,42 @@ def cube_fix_badpix_clump(array, cy, cx, fwhm, sig=4., protect_psf=True,
         return obj_tmp, bpix_map_cumul
 
     if ndims == 2:
-        obj_tmp, bpix_map_cumul = bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, 
-                                                protect_psf, verbose)
-
+        if bpm_mask is None:
+            obj_tmp, bpix_map_cumul = bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, 
+                                                    protect_psf, verbose)
+        else:
+            fwhm_round = int(round(fwhm))
+            fwhm_round = fwhm_round+1-(fwhm_round%2) # make it odd
+            neighbor_box = max(3, fwhm_round) # to not replace a companion
+            nneig = sum(np.arange(3, neighbor_box+2, 2))
+            obj_tmp = sigma_filter(obj_tmp, bpm_mask, neighbor_box, nneig, 
+                                   verbose)
+            bpix_map_cumul = bpm_mask
+                                            
     if ndims == 3:
         n_z = obj_tmp.shape[0]
-        bpix_map_cumul = np.zeros_like(obj_tmp)
-        for i in range(n_z):
-            if verbose: print('************Frame # ', i,' *************')
-            obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], cy[i], 
-                                                          cx[i], fwhm[i], sig, 
-                                                          protect_psf, verbose)
+        if bpm_mask is None:
+            bpix_map_cumul = np.zeros_like(obj_tmp)
+            for i in range(n_z):
+                if verbose: print('************Frame # ', i,' *************')
+                obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], cy[i], 
+                                                              cx[i], fwhm[i], sig, 
+                                                              protect_psf, verbose)
+        else:
+            fwhm_round = int(round(fwhm))
+            fwhm_round = fwhm_round+1-(fwhm_round%2) # make it odd
+            neighbor_box = max(3, fwhm_round) # to not replace a companion
+            nneig = sum(np.arange(3, neighbor_box+2, 2))
+            for i in range(n_z):
+                if verbose: print('************Frame # ', i,' *************')
+                if bpm_mask.ndim == 3:
+                    bpm = bpm_mask[i]
+                else:
+                    bpm = bpm_mask
+                obj_tmp[i] = sigma_filter(obj_tmp[i], bpm, neighbor_box, 
+                                          nneig, verbose)
+            bpix_map_cumul = bpm_mask
+                                                 
     if full_output:
         return obj_tmp, bpix_map_cumul
     else:

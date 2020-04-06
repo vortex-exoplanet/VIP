@@ -17,6 +17,7 @@ from astropy.stats import median_absolute_deviation
 
 # TODO: If possible, replace this function using
 # scipy.ndimage.filters.generic_filter and astropy.stats.sigma_clip
+
 def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
                  verbose=False):
     """Sigma filtering of pixels in a 2d array.
@@ -50,14 +51,16 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
     sz_x = frame_tmp.shape[1]  # get image x-dim
     bp = bpix_map.copy()       # temporary bpix map; important to make a copy!
     im = frame_tmp             # corrected image
-    nb = int(np.sum(bpix_map)) # number of bad pixels remaining
+    #nb = int(np.sum(bpix_map)) # number of bad pixels remaining
     #In each iteration, correct only the bpix with sufficient good 'neighbors'
     nit = 0                                 # number of iterations
-    while nb > 0:
+    #nit_max = 10
+    
+    while(np.sum(bp)>0):
         nit += 1
         wb = np.where(bp)                   # find bad pixels
         gp = 1 - bp                         # temporary good pixel map
-        for n in range(nb):
+        for n in range(int(np.sum(bp))):
             #0/ Determine the box around each pixel
             half_box = np.floor(neighbor_box/2)
             hbox_b = min(half_box, wb[0][n])       # half size of the box at the
@@ -68,9 +71,6 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
                                                    # left of the pixel
             hbox_r = min(half_box, sz_x-1-wb[1][n])# half size of the box to the
                                                    # right of the pixel
-            # but in case we are at an edge, we want to extend the box by one 
-            # row/column of pixels in the direction opposite to the edge to 
-            # have 9 px instead of 6: 
             if half_box == 1:
                 if wb[0][n] == sz_y-1:
                     hbox_b = hbox_b+1
@@ -88,7 +88,7 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
                          int(wb[1][n]-hbox_l): int(wb[1][n]+hbox_r+1)]
                 im[wb[0][n],wb[1][n]] = np.median(sim[np.where(sgp)])
                 bp[wb[0][n],wb[1][n]] = 0
-        nb = int(np.sum(bp))
+
     if verbose:
         print('Required number of iterations in the sigma filter: ', nit)
     return im

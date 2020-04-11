@@ -1152,7 +1152,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                gammaval=1, min_spat_freq=0.5, max_spat_freq=3,
                                fwhm=4, debug=False, negative=True,
                                recenter_median=False, subframesize=20,
-                               imlib='opencv', interpolation='bilinear',
+                               imlib='opencv', interpolation='lanczos4',
                                save_shifts=False, plot=True):
     """ Registers frames based on the median speckle pattern. Optionally centers
     based on the position of the vortex null in the median frame. Images are

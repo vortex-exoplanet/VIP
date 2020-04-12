@@ -11,7 +11,6 @@ __all__ = ['create_synth_psf',
            'fit_2dmoffat',
            'fit_2dairydisk']
 
-import pdb
 import numpy as np
 import pandas as pd
 import photutils
@@ -232,7 +231,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     # compute uncertainties
     if fitter.fit_info['param_cov'] is not None:
         perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
-        amplitude_e, theta_e, mean_x_e, mean_y_e, fwhm_x_e, fwhm_y_e = perr
+        amplitude_e, mean_x_e, mean_y_e, fwhm_x_e, fwhm_y_e, theta_e = perr
         fwhm_x_e /= gaussian_fwhm_to_sigma
         fwhm_y_e /= gaussian_fwhm_to_sigma
     else:

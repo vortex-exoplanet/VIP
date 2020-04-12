@@ -99,9 +99,11 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     smoothed = median_filter(frame, size, mode='mirror')
     frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
     array_out = frame
-
+    count_bp = np.sum(bpm_mask)
+    
     if verbose:
-        print("\nDone replacing bad pixels using the median of the neighbors")
+        msg = "/nDone replacing {} bad pixels using the median of the neighbors"
+        print(msg.format(count_bp))
         timing(start)
     return array_out
 
@@ -171,7 +173,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     cy, cx = frame_center(array[0])
     array_out = array.copy()
     n_frames = array.shape[0]
-
+    count_bp = 0
     if frame_by_frame:
         for i in Progressbar(range(n_frames), desc="processing frames"):
             array_out[i] = frame_fix_badpix_isolated(array[i], bpm_mask=bpm_mask, 
@@ -180,8 +182,11 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                                                     size=size, 
                                                     protect_mask=protect_mask, 
                                                     radius=radius,
-                                                    verbose=False, 
+                                                    verbose=False,
                                                     debug=False)
+            if verbose:                                       
+                bpm = np.where(array_out[i]!=array[i])   
+                count_bp+=np.sum(np.ones_like(array_out[i])[bpm])                                   
     else:                                                
         if bpm_mask is None:
             ind = clip_array(np.mean(array, axis=0), sigma_clip, sigma_clip,
@@ -200,9 +205,12 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
             frame = array_out[i]
             smoothed = median_filter(frame, size, mode='mirror')
             frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
-    
+            if verbose: 
+                count_bp+=np.sum(bpm_mask)  
+            
     if verbose: 
-        print("/nDone replacing bad pixels using the median of the neighbors")
+        msg = "/nDone replacing {} bad pixels using the median of the neighbors"
+        print(msg.format(count_bp))
         timing(start)
     return array_out
 

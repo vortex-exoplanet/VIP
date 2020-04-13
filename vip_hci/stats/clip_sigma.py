@@ -100,7 +100,7 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
 # TODO: If possible, replace this function using astropy.stats.sigma_clip  
 @njit
 def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
-               num_neighbor=None, mad=False, min_std=0):
+               num_neighbor=None, mad=False):
     """Sigma clipping for detecting outlying values in 2d array. If the
     parameter 'neighbor' is True the clipping can be performed in a local patch
     around each pixel, whose size depends on 'neighbor' parameter.
@@ -180,19 +180,16 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
                     abs_diff = []
                     for i in range(num_neighbor*num_neighbor-1):
                         abs_diff.append(np.absolute(median-neigh_arr[i]))
-                    med = np.median(np.array(abs_diff))
-                    sigma = min(med, min_std)
+                    sigma = np.median(np.array(abs_diff))
                 else:
-                    std = np.std(neigh_arr)
-                    sigma = min(std,min_std)
+                    sigma = np.std(neigh_arr)
                 bad1 = array[y,x] < (median - lower_sigma * sigma) 
                 bad2 = array[y,x] > (median + upper_sigma * sigma)
                 bpm[y,x] = bad1 | bad2
                 gpm[y,x] = 1.-bpm[y,x]
     else:
         median = np.median(array)
-        std = np.std(array)
-        sigma = min(std,min_std)
+        sigma = np.std(array)
         for y in range(ny):
             for x in range(nx):
                 bad1 = array[y,x] < (median - lower_sigma * sigma) 

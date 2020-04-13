@@ -129,10 +129,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                                                   imlib, interpolation)
                                       * flevel)
                     else:
-                        for i in range(len(flevel)):
-                            array_out[fr] += (frame_shift(fc_fr, shift_y, shift_x,
-                                                  imlib, interpolation)
-                                      * flevel[fr])
+                        array_out[fr] += (frame_shift(fc_fr, shift_y, shift_x,
+                                              imlib, interpolation)
+                                  * flevel[fr])
                             
                 pos_y = rad * np.sin(ang) + ceny
                 pos_x = rad * np.cos(ang) + cenx

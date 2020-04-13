@@ -495,20 +495,14 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
 
 def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4., 
                           sig=4., protect_psf=True, verbose=True, 
-                          half_res_y=False, min_thr=None, mid_thr=None, 
-                          max_nit=15, full_output=False):
+                          half_res_y=False, max_nit=15, full_output=False):
     """
-    Function to correct clumps of bad pixels. Slow alternative to 
-    bp_annuli_removal to correct for bad pixels in either a frame or a spectral
-    cube. It should be used instead of bp_annuli_removal only if the observed 
-    field is not composed of a single bright object producing a circularly 
-    symmetric PSF. 
-    The correction is based on an iterative process, where bad pixels are
-    replaced by the median of good neighbouring pixel values if enough of them.
-    The size of the box is set by the closest odd integer larger than fwhm (to
-    avoid accidentally replacing a companion).
-    If a bad pixel map is not provided, the bad pixel clumps will also be 
-    searched iteratively using method find_outliers().
+    Function to correct clumps of bad pixels. Very fast when a bad pixel map is 
+    provided. If a bad pixel map is not provided, the bad pixel clumps will be 
+    searched iteratively and replaced by the median of good neighbouring pixel 
+    values if enough of them. The size of the box is set by the closest odd 
+    integer larger than fwhm (to avoid accidentally replacing a companion).
+
 
 
     Parameters
@@ -545,16 +539,6 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         there are always 2 rows of pixels with exactly the same values.
         The algorithm will just consider every other row (hence making it
         twice faster), then apply the bad pixel correction on all rows.
-    min_thr: {None,float}, optional
-        Any pixel whose value is lower than this threshold (expressed in adu)
-        will be automatically considered bad and hence sigma_filtered. If None, 
-        it is not used (not recommended).
-    mid_thr: {None, float}, optional
-        Pixels whose value is lower than this threshold (expressed in adu) will
-        have its neighbours checked; if there is at max 1 neighbour pixel whose
-        value is lower than mid_thr+(5*stddev), then the pixel is considered bad
-        (because it means it is a cold pixel in the middle of significant 
-        signal). If None, it is not used (not recommended).
     max_nit: float, optional
         Maximum number of iterations on a frame to correct bpix. Typically, it 
         should be set to less than ny/2 or nx/2. This is a mean of precaution in
@@ -618,10 +602,11 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         # empirically 2.5 is best to find stddev of background noise
         _, _, stddev = sigma_clipped_stats(obj_tmp, sigma=2.5) 
 
-        #3/ Create a bad pixel map, by detecting them with find_outliers
-        bpix_map = find_outliers(obj_tmp, sig_dist=sig, stddev=stddev, 
-                                 neighbor_box=neighbor_box,min_thr=min_thr,
-                                 mid_thr=mid_thr)
+        #3/ Create a bad pixel map, by detecting them with clip_array
+        bp=clip_array(obj_tmp, sig, sig, out_good=False, neighbor=True,
+                      num_neighbor=neighbor_box, mad=True)
+        bpix_map = np.zeros_like(obj_tmp)  
+        bpix_map[bp] = 1              
         nbpix_tot = np.sum(bpix_map)
         nbpix_tbc = nbpix_tot - np.sum(bpix_map[circl_new])
         bpix_map[circl_new] = 0
@@ -637,12 +622,12 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                       "corrected".format(nit, nbpix_tot, nbpix_tbc))
             obj_tmp = sigma_filter(obj_tmp, bpix_map, neighbor_box=neighbor_box,
                                    min_neighbors=nneig, verbose=verbose)
-            bpix_map = find_outliers(obj_tmp, sig_dist=sig, in_bpix=bpix_map,
-                                     stddev=stddev, neighbor_box=neighbor_box,
-                                     min_thr=min_thr,mid_thr=mid_thr)
-            nbpix_tot = np.sum(bpix_map)
-            nbpix_tbc = nbpix_tot - np.sum(bpix_map[circl_new])
+            bp=clip_array(obj_tmp, sig, sig, out_good=False, neighbor=True,
+                          num_neighbor=neighbor_box, mad=True)
+            bpix_map = np.zeros_like(obj_tmp)  
+            bpix_map[bp] = 1
             bpix_map[circl_new] = 0
+            nbpix_tbc = np.sum(bpix_map)
             bpix_map_cumul = bpix_map_cumul+bpix_map
 
         if verbose:
@@ -789,8 +774,8 @@ def find_outliers(frame, sig_dist, in_bpix=None, stddev=None, neighbor_box=3,
         wb = np.where(in_bpix)     # pixels to check
         bool_bpix= np.zeros_like(in_bpix)
         for n in range(nb):
-            for yy in [max(0,wb[0][n]-1),wb[0][n],min(ny-1,wb[0][n]+1)]:
-                for xx in [max(0,wb[1][n]-1),wb[1][n],min(ny-1,wb[1][n]+1)]:
+            for yy in [max(0,wb[0][n]-half_box),wb[0][n],min(ny-1,wb[0][n]+half_box)]:
+                for xx in [max(0,wb[1][n]-half_box),wb[1][n],min(ny-1,wb[1][n]+half_box)]:
                     bool_bpix[yy,xx] = 1
         nb = int(np.sum(bool_bpix))# true number of px to check  (including 
                                    # neighbours of bpix from previous iteration)

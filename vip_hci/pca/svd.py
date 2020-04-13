@@ -5,8 +5,7 @@ Module with functions for computing SVDs.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['SVDecomposer',
-           'svd_wrapper']
+__all__ = ['SVDecomposer']
 
 import warnings
 try:

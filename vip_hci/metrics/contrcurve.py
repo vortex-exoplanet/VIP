@@ -4,7 +4,7 @@
 Module with contrast curve generation function.
 """
 
-__author__ = 'C. Gomez, O. Absil @ ULg'
+__author__ = 'C. Gomez, O. Absil @ ULg, V. Christiaens'
 __all__ = ['contrast_curve',
            'noise_per_annulus',
            'throughput',

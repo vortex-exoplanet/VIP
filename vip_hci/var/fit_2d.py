@@ -691,22 +691,6 @@ def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4,
     amplitude_neg = fit.amplitude_1.value
     theta_neg = np.rad2deg(fit.theta_1.value)  
     
-    # compute uncertainties
-    if fitter.fit_info['param_cov'] is not None:
-        perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
-        amplitude_e, mean_x_e, mean_y_e = perr[0], perr[1], perr[2]
-        fwhm_x_e, fwhm_y_e, theta_e = perr[3], perr[4], perr[5]
-        amplitude_neg_e, mean_x_neg_e, mean_y_neg_e = perr[6], perr[7], perr[8]
-        fwhm_x_neg_e, fwhm_y_neg_e, theta_neg_e = perr[9], perr[10], perr[11]
-        fwhm_x_e /= gaussian_fwhm_to_sigma
-        fwhm_y_e /= gaussian_fwhm_to_sigma
-        fwhm_x_neg_e /= gaussian_fwhm_to_sigma
-        fwhm_y_neg_e /= gaussian_fwhm_to_sigma
-    else:
-        amplitude_e, theta_e, mean_x_e = None, None, None
-        mean_y_e, fwhm_x_e, fwhm_y_e = None, None, None
-        amplitude_neg_e, mean_x_neg_e, mean_y_neg_e = None, None, None
-        fwhm_x_neg_e, fwhm_y_neg_e, theta_neg_e = None, None, None
     if debug:
         if threshold:
             label = ('Subimage thresholded', 'Model', 'Residuals')
@@ -735,18 +719,11 @@ def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4,
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm_y': fwhm_y, 'fwhm_x': fwhm_x,
                              'amplitude': amplitude, 'theta': theta,
-                             'centroid_y_err': mean_y_e, 
-                             'centroid_x_err': mean_x_e,
-                             'fwhm_y_err': fwhm_y_e, 'fwhm_x_err': fwhm_x_e,
-                             'amplitude_err': amplitude_e, 
-                             'theta_err': theta_e,
-                             'centroid_y_neg': mean_y_neg, 'centroid_x_neg': mean_x_neg,
-                             'fwhm_y_neg': fwhm_y_neg, 'fwhm_x_neg': fwhm_x_neg,
-                             'amplitude_neg': amplitude_neg, 'theta_neg': theta_neg,
-                             'centroid_y_err_neg': mean_y_neg_e, 
-                             'centroid_x_err_neg': mean_x_neg_e,
-                             'fwhm_y_err_neg': fwhm_y_neg_e, 'fwhm_x_err_neg': fwhm_x_neg_e,
-                             'amplitude_err_neg': amplitude_neg_e, 
-                             'theta_err_neg': theta_neg_e}, index=[0])
+                             'centroid_y_neg': mean_y_neg, 
+                             'centroid_x_neg': mean_x_neg,
+                             'fwhm_y_neg': fwhm_y_neg, 
+                             'fwhm_x_neg': fwhm_x_neg,
+                             'amplitude_neg': amplitude_neg, 
+                             'theta_neg': theta_neg}, index=[0])
     else:
         return mean_y, mean_x

@@ -26,21 +26,21 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
     
     Parameters
     ----------
-    frame_tmp : array_like 
+    frame_tmp : numpy ndarray
         Input 2d array, image.
-    bpix_map: array_like
-        Input array of the same size as frame_tmp, indicating the locations of 
+    bpix_map: numpy ndarray
+        Input array of the same size as frame_tmp, indicating the locations of
         bad/nan pixels by 1 (the rest of the array is set to 0)
     neighbor_box : int, optional
-        The side of the square window around each pixel where the sigma and 
+        The side of the square window around each pixel where the sigma and
         median are calculated.
     min_neighbors : int, optional
-        Minimum number of good neighboring pixels to be able to correct the 
+        Minimum number of good neighboring pixels to be able to correct the
         bad/nan pixels
         
     Returns
     -------
-    frame_corr : array_like
+    frame_corr : numpy ndarray
         Output array with corrected bad/nan pixels
     
     """
@@ -68,11 +68,16 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
                                                    # the left of the pixel
             hbox_r = min(half_box,sz_x-1-wb[1][n]) # half size of the box to 
                                                    # the right of the pixel
-            if half_box == 1:
-                if wb[0][n] == sz_y-1: hbox_b = hbox_b+1 
-                elif wb[0][n] == 0: hbox_t = hbox_t+1
-                if wb[1][n] == sz_x-1:hbox_l = hbox_l+1 
-                elif wb[1][n] == 0: hbox_r = hbox_r+1
+            # in case we are close to an edge, we want to extend the box
+            # in the direction opposite to the edge: 
+            if hbox_b<hbox_t: 
+                hbox_t += half_box-hbox_b
+            elif hbox_t<hbox_b: 
+                hbox_b += half_box-hbox_t
+            if hbox_l<hbox_r: 
+                hbox_r += half_box-hbox_l
+            elif hbox_r<hbox_l:
+                hbox_l += half_box-hbox_r
             sgp = gp[(wb[0][n]-hbox_b):(wb[0][n]+hbox_t+1),
                      (wb[1][n]-hbox_l):(wb[1][n]+hbox_r+1)]
             if int(np.sum(sgp)) >= min_neighbors:
@@ -96,21 +101,21 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
 @njit
 def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
                num_neighbor=None, mad=False):
-    """Sigma clipping for detecting outlying values in 2d array. If the 
-    parameter 'neighbor' is True the clipping can be performed in a local patch 
+    """Sigma clipping for detecting outlying values in 2d array. If the
+    parameter 'neighbor' is True the clipping can be performed in a local patch
     around each pixel, whose size depends on 'neighbor' parameter.
     
     Parameters
     ----------
-    array : array_like 
+    array : numpy ndarray
         Input 2d array, image.
     lower_sigma : float 
         Value for sigma, lower boundary.
     upper_sigma : float 
         Value for sigma, upper boundary.
-    out_good : {'False','True'}, optional
+    out_good : bool, optional
         For choosing different outputs.
-    neighbor : {'False','True'}, optional
+    neighbor : bool, optional
         For clipping over the median of the contiguous pixels.
     num_neighbor : int, optional
         The side of the square window around each pixel where the sigma and 
@@ -127,7 +132,7 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
         If out_good argument is false, returns a vector with the outlier px.
     
     """
-    if not array.ndim == 2:
+    if array.ndim != 2:
         raise TypeError("Input array is not two dimensional (frame)\n")
         
     ny, nx = array.shape

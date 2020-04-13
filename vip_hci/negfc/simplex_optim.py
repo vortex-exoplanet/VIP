@@ -16,6 +16,7 @@ from ..conf import time_ini, timing
 from ..conf.utils_conf import sep
 
 
+__author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez'
 __all__ = ['firstguess']
 
 

@@ -4,7 +4,7 @@
 Module with the function of merit definitions for the NEGFC optimization.
 """
 
-
+__author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez'
 __all__ = []
 
 import numpy as np

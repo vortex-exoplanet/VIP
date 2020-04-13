@@ -5,6 +5,7 @@ Module with post-processing related functions called from within the NFC
 algorithm.
 """
 
+__author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_planet_free']
 
 import numpy as np

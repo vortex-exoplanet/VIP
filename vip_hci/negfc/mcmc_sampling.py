@@ -5,7 +5,7 @@ Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
 """
 
 
-__author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez'
+__author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez, V. Christiaens'
 __all__ = ['mcmc_negfc_sampling',
            'chain_zero_truncated',
            'show_corner_plot',

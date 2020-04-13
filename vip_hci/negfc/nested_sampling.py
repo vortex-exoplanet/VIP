@@ -7,7 +7,7 @@ nested sampling (``nestle``).
 
 
 
-__author__ = 'Carlos Alberto Gomez Gonzalez',
+__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens',
 __all__ = ['nested_negfc_sampling',
            'nested_sampling_results']
 

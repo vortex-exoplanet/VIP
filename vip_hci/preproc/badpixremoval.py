@@ -102,7 +102,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     count_bp = np.sum(bpm_mask)
     
     if verbose:
-        msg = "/nDone replacing {} bad pixels using the median of the neighbors"
+        msg = "/nDone replacing {} bad pixels using the median of neighbors"
         print(msg.format(count_bp))
         timing(start)
     return array_out
@@ -209,7 +209,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                 count_bp+=np.sum(bpm_mask)  
             
     if verbose: 
-        msg = "/nDone replacing {} bad pixels using the median of the neighbors"
+        msg = "/nDone replacing {} bad pixels using the median of neighbors"
         print(msg.format(count_bp))
         timing(start)
     return array_out

@@ -6,7 +6,7 @@ We strongly recommend users to read Mawet et al. (2014) before using routines
 of this module: https://ui.adsabs.harvard.edu/abs/2014ApJ...792...97M/abstract
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez, O. Absil @ ULg'
+__author__ = 'Carlos Alberto Gomez Gonzalez, O. Absil @ ULg, V. Christiaens'
 __all__ = ['snr',
            'snrmap',
            'significance',

@@ -12,16 +12,18 @@ __all__ = ['frame_fix_badpix_isolated',
            'cube_fix_badpix_annuli',
            'cube_fix_badpix_clump']
 
+from numba import njit
 import numpy as np
 from hciplot import plot_frames
+import photutils
 from skimage.draw import circle, ellipse
 from scipy.ndimage import median_filter
 from astropy.stats import sigma_clipped_stats
 from ..stats import sigma_filter
-from ..var import dist, frame_center
+from ..var import dist, frame_center, get_annulus_segments, frame_center
 from ..stats import clip_array
 from ..conf import timing, time_ini, Progressbar
-
+from .cosmetics import approx_stellar_position
 
 def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                               size=5, protect_mask=False, radius=30,
@@ -215,7 +217,8 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     return array_out
 
 
-def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True, 
+def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., 
+                           protect_psf=True, r_in_std=10, r_out_std=None, 
                            verbose=True, half_res_y=False, min_thr=None, 
                            mid_thr=None, full_output=False):
     """
@@ -232,12 +235,16 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
     ----------
     array : 3D or 2D array 
         Input 3d cube or 2d image.
-    cy, cx : float or 1D array
-        Vector with approximate y and x coordinates of the star for each channel
-        (cube_like), or single 2-elements vector (frame_like)
     fwhm: float or 1D array
         Vector containing the full width half maximum of the PSF in pixels, for 
         each channel (cube_like); or single value (frame_like)
+    cy, cx : None, float or 1D array, optional
+        If None: will use the barycentre of the image found by 
+        photutils.centroid_com()
+        If floats: coordinates of the center, assumed to be the same in all 
+        frames if the input is a cube.
+        If 1D arrays: they must be the same length as the 0th dimension of the
+        input cube.
     sig: Float scalar, optional
         Number of stddev above or below the median of the pixels in the same 
         annulus, to consider a pixel as bad.
@@ -246,6 +253,15 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         radius) from any bpix corr. If False, there is a risk of modifying a 
         centroid peak value if it is too "peaky"; but if True real bad pixels 
         within the core are not corrected.
+    r_in_std: float, optional
+        Inner radius in fwhm for the calculation of the standard 
+        deviation of the background - used for min threshold 
+        to consider bad pixels. Default: 10 FWHM.
+    r_out_std: float or None, optional
+        Outer radius in fwhm for the calculation of the standard 
+        deviation of the background - used for min threshold 
+        to consider bad pixels. If set to None, the default will be to 
+        consider the largest annulus that fits within the frame.
     verbose: bool, {False, True}, optional
         Whether to print out the number of bad pixels in each frame. 
     half_res_y: bool, {True,False}, optional
@@ -253,15 +269,15 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
         compared to horizontally (e.g. SINFONI data).
         The algorithm will then correct the bad pixels every other row.
     min_thr: {None,float}, optional
-        Any pixel whose value is lower than this threshold (expressed in stddev)
-        will be automatically considered bad and hence sigma_filtered. If None, 
-        it is not used.
+        Any pixel whose value is lower than this threshold will be automatically 
+        considered bad and hence sigma_filtered (e.g. -5). If None, it is not 
+        used.
     mid_thr: {None, float}, optional
-        Pixels whose value is lower than this threshold (expressed in stddev) 
-        will have its neighbours checked; if there is at max. 1 neighbour pixel
-        whose value is lower than (5+mid_thr)*stddev, then the pixel is 
-        considered bad (as it means it is a cold pixel in the middle of 
-        significant signal). If None, it is not used.
+        Pixels whose value is lower than this threshold will have its neighbours 
+        checked; if there is at max. 1 neighbour pixel whose value is lower 
+        than (5+mid_thr)*stddev, then the pixel is considered bad (as it means 
+        it is a cold pixel in the middle of significant signal). If None, it is 
+        not used.
     full_output: bool, {False,True}, optional
         Whether to return as well the cube of bad pixel maps and the cube of 
         defined annuli.
@@ -284,7 +300,8 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
     if mid_thr is None:
         mid_thr = np.amin(obj_tmp)-1
 
-    def bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_psf, verbose):
+    def bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_psf, r_in_std,
+                      r_out_std, verbose):
 
         n_x = obj_tmp.shape[1]
         n_y = obj_tmp.shape[0]
@@ -302,8 +319,21 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
             for yy in range(n_y):
                 obj_tmp[yy] = frame[2*yy]
 
-        #1/ Stddev of background
-        _, _, stddev = sigma_clipped_stats(obj_tmp, sigma=2.5)
+        #1/ Stddev of background 
+        if r_in_std or r_out_std:
+            r_in_std = min(r_in_std*fwhm,cx-2, cy-2,n_x-cx-2,n_y-cy-2)
+            if r_out_std:
+                r_out_std *= fwhm
+            else:
+                r_out_std = min(n_y-(cy+r_in_std), cy-r_in_std, 
+                                n_x-(cx+r_in_std), cx-r_in_std)
+            ceny, cenx = frame_center(obj_tmp)
+            width = max(2,r_out_std-r_in_std)
+            obj_tmp_crop = get_annulus_segments(obj_tmp, r_in_std, width, 
+                                                mode="val")
+        else:
+            obj_tmp_crop = obj_tmp
+        _, _, stddev = sigma_clipped_stats(obj_tmp_crop, sigma=2.5)
 
         #2/ Define each annulus, its median and stddev
         
@@ -313,7 +343,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
             ymax *= 2
         rmax = np.sqrt(ymax**2+xmax**2)
         # the annuli definition is optimized for Airy rings
-        ann_width = max(1.5, 0.61*fwhm) 
+        ann_width = max(1.5, 0.5*fwhm) #0.61*fwhm
         nrad = int(rmax/ann_width)+1
         d_bord_max = max(n_y-cy, cy, n_x-cx, cx)
         if half_res_y:
@@ -361,24 +391,21 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
             # We delete iteratively max and min outliers in each annulus, 
             # so that the annuli median and stddev are not corrupted by bpixs
             neigh = neighbours[rr,:n_neig[rr]]
-            n_removal = 0
+            n_rm = 0
             n_pix_init = neigh.shape[0]
-            while neigh.shape[0] > 10 and n_removal < n_pix_init/10:
+            while neigh.shape[0] >= np.amin(n_neig[rr]) and n_rm < n_pix_init/5:
                 min_neigh = np.amin(neigh)
-                if reject_outliers(neigh, min_neigh, m=5, stddev=stddev,
-                                   min_thr=min_thr*stddev,
-                                   mid_thr=mid_thr*stddev):
+                if reject_outliers_fast(neigh, min_neigh, m=5, stddev=stddev):
                     min_idx = np.argmin(neigh)
                     neigh = np.delete(neigh,min_idx)
-                    n_removal += 1
+                    n_rm += 1
                 else:
                     max_neigh = np.amax(neigh)
-                    if reject_outliers(neigh, max_neigh, m=5, stddev=stddev,
-                                       min_thr=min_thr*stddev, 
-                                       mid_thr=mid_thr*stddev):
+                    if reject_outliers_fast(neigh, max_neigh, m=5, 
+                                            stddev=stddev):
                         max_idx = np.argmax(neigh)
                         neigh = np.delete(neigh,max_idx)
-                        n_removal += 1
+                        n_rm += 1
                     else: break
             n_neig[rr] = neigh.shape[0]
             neighbours[rr,:n_neig[rr]] = neigh
@@ -412,7 +439,7 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                 dev = max(stddev,min(std_neig[rr],med_neig[rr]))
 
                 # check min_thr
-                if obj_tmp[yy,xx] < min_thr*stddev:
+                if obj_tmp[yy,xx] < min_thr:
                     bpix_map[yy,xx] = 1
                     # Gaussian noise
                     #obj_tmp_corr[yy,xx] = med_neig[rr] +dev*np.random.randn()
@@ -433,18 +460,18 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
                                           np.sqrt(np.abs(med_neig[rr]))*rand_fac
 
                 # check mid_thr and neighbours
-                else:
-                    min_el = max(2, 0.05*n_neig[rr])
-                    if (obj_tmp[yy,xx] < mid_thr*stddev and 
-                        neigh[neigh<(mid_thr+5)*stddev].shape[0] < min_el):
-                            bpix_map[yy,xx] = 1
-                            # Gaussian noise
-                            #obj_tmp_corr[yy,xx] = med_neig[rr] + \
-                            #                      dev*np.random.randn()
-                            # Poisson noise
-                            rand_fac = 2*(np.random.rand()-0.5)
-                            obj_tmp_corr[yy,xx] = med_neig[rr] + \
-                                          np.sqrt(np.abs(med_neig[rr]))*rand_fac
+#                else:
+#                    min_el = max(2, 0.05*n_neig[rr])
+#                    if (obj_tmp[yy,xx] < mid_thr and 
+#                        neigh[neigh<(mid_thr+5)].shape[0] < min_el):
+#                            bpix_map[yy,xx] = 1
+#                            # Gaussian noise
+#                            #obj_tmp_corr[yy,xx] = med_neig[rr] + \
+#                            #                      dev*np.random.randn()
+#                            # Poisson noise
+#                            rand_fac = 2*(np.random.rand()-0.5)
+#                            obj_tmp_corr[yy,xx] = med_neig[rr] + \
+#                                          np.sqrt(np.abs(med_neig[rr]))*rand_fac
 
         #5/ Count bpix and uncorrect if within the circle
         nbpix_tot = np.sum(bpix_map)
@@ -470,21 +497,35 @@ def cube_fix_badpix_annuli(array, cy, cx, fwhm, sig=5., protect_psf=True,
 
         return obj_tmp_corr, bpix_map, ann_frame_cumul
 
+
+
     if ndims == 2:
+        if cy is None or cx is None:
+            cen = approx_stellar_position([obj_tmp], fwhm)
+            cy = cen[0,0]
+            cx = cen[0,1]
         obj_tmp, bpix_map, ann_frame_cumul = bp_removal_2d(obj_tmp, cy, cx, 
                                                            fwhm, sig, 
-                                                           protect_psf, verbose)
+                                                           protect_psf, 
+                                                           r_in_std, r_out_std,
+                                                           verbose)
     if ndims == 3:
         n_z = obj_tmp.shape[0]
         bpix_map = np.zeros_like(obj_tmp)
         ann_frame_cumul = np.zeros_like(obj_tmp)
-        if cy.shape[0] != n_z or cx.shape[0] != n_z: 
-            raise ValueError('Please provide cy and cx as 1d-arr of size n_z')
+        if cy is None or cx is None:
+            cen = approx_stellar_position(obj_tmp, fwhm)
+            cy = cen[:,0]
+            cx = cen[:,1]
+        elif isinstance(cy, (float,int)) and isinstance(cx, (float,int)): 
+            cy = [cy]*n_z
+            cx = [cx]*n_z
         for i in range(n_z):
             if verbose:
                 print('************Frame # ', i,' *************')
+                print('centroid assumed at coords:',cx[i],cy[i])    
             res_i = bp_removal_2d(obj_tmp[i], cy[i], cx[i], fwhm[i], sig,
-                                  protect_psf, verbose)
+                                  protect_psf, r_in_std, r_out_std, verbose)
             obj_tmp[i], bpix_map[i], ann_frame_cumul[i] = res_i
  
     if full_output:
@@ -597,10 +638,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
             else: circl_new = circle(cy, cx, radius=1.8*fwhm, 
                                      shape=(n_y, n_x))
         else: circl_new = []
-        
-        #2/ Compute stddev of background
-        # empirically 2.5 is best to find stddev of background noise
-        _, _, stddev = sigma_clipped_stats(obj_tmp, sigma=2.5) 
+    
 
         #3/ Create a bad pixel map, by detecting them with clip_array
         bp=clip_array(obj_tmp, sig, sig, out_good=False, neighbor=True,
@@ -626,6 +664,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                           num_neighbor=neighbor_box, mad=True)
             bpix_map = np.zeros_like(obj_tmp)  
             bpix_map[bp] = 1
+            nbpix_tot = np.sum(bpix_map)
             bpix_map[circl_new] = 0
             nbpix_tbc = np.sum(bpix_map)
             bpix_map_cumul = bpix_map_cumul+bpix_map
@@ -647,6 +686,10 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
 
     if ndims == 2:
         if bpm_mask is None:
+            if cy is None or cx is None:
+                cen = approx_stellar_position([obj_tmp], fwhm)
+                cy = cen[0,0]
+                cx = cen[0,1]
             obj_tmp, bpix_map_cumul = bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, 
                                                     protect_psf, verbose)
         else:
@@ -661,6 +704,13 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
     if ndims == 3:
         n_z = obj_tmp.shape[0]
         if bpm_mask is None:
+            if cy is None or cx is None:
+                cen = approx_stellar_position(obj_tmp, fwhm)
+                cy = cen[:,0]
+                cx = cen[:,1]
+            elif isinstance(cy, (float,int)) and isinstance(cx, (float,int)): 
+                cy = [cy]*n_z
+                cx = [cx]*n_z
             bpix_map_cumul = np.zeros_like(obj_tmp)
             for i in range(n_z):
                 if verbose: print('************Frame # ', i,' *************')
@@ -911,4 +961,63 @@ def reject_outliers(data, test_value, m=5., stddev=None, debug=False,
     else:
         test_result = 0
 
+    return test_result
+    
+    
+@njit
+def reject_outliers_fast(data, test_value, m=5.,stddev=None):
+    """ FUNCTION TO REJECT OUTLIERS FROM A SET
+    Instead of the classic standard deviation criterion (e.g. 5-sigma), the 
+    discriminant is determined as follow:
+    - for each value in data, an absolute distance to the median of data is
+    computed and put in a new array "d" (of same size as data)
+    - scaling each element of "d" by the median value of "d" gives the absolute
+    distances "s" of each element
+    - each "s" is then compared to "m" (parameter): if s < m, we have a good 
+    neighbour, otherwise we have an outlier. A specific value test_value is 
+    tested as outlier.
+
+    Parameters:
+    -----------
+    data: numpy ndarray
+        Input array with respect to which either a test_value or the central a 
+        value of data is determined to be an outlier or not
+    test_value: float
+        Value to be tested as an outlier in the context of the input array data
+    m: float, optional
+        Criterion used to test if test_value is or pixels of data are outlier(s)
+        (similar to the number of "sigma" in std_dev statistics)
+    stddev: float, optional (but strongly recommended)
+        Global std dev of the non-PSF part of the considered frame. It is needed
+        as a reference to know the typical variation of the noise, and hence 
+        avoid detecting outliers out of very close pixel values. If the 9 pixels
+        of data happen to be very uniform in values at some location, the 
+        departure in value of only one pixel could make it appear as a bad 
+        pixel. If stddev is not provided, the stddev of data is used (not 
+        recommended).
+
+    Returns:
+    --------
+    test_result: 0 or 1
+        0 if test_value is not an outlier. 1 otherwise. 
+    """
+
+    if stddev is None:
+        stddev = np.std(data)
+
+    med = np.median(data)
+    d = data.copy()
+    d_flat = d.flatten()
+    for i in range(d_flat.shape[0]):
+        d_flat[i] = np.abs(data.flatten()[i] - med)
+    mdev = np.median(d_flat)
+    if max(np.max(d),np.abs(test_value-med)) > stddev:
+        test = np.abs((test_value-med)/mdev)
+        if test < m:
+            test_result = 0
+        else:
+            test_result = 1
+    else:
+        test_result = 0
+            
     return test_result

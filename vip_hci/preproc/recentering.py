@@ -38,8 +38,8 @@ from ..conf import time_ini, timing, Progressbar
 from ..conf.utils_conf import vip_figsize, check_array
 from ..conf.utils_conf import pool_map, iterable
 from ..var import (get_square, frame_center, get_annulus_segments,
-                   fit_2dmoffat, fit_2dgaussian, cube_filter_lowpass,
-                   cube_filter_highpass)
+                   fit_2dmoffat, fit_2dgaussian, fit_2dairydisk,
+                   fit_2d2gaussian, cube_filter_lowpass, cube_filter_highpass)
 from ..preproc import cube_crop_frames
 
 
@@ -942,7 +942,8 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, interpolation, imlib):
 
 def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                         nproc=1, imlib='opencv', interpolation='lanczos4',
-                        offset=None, negative=False, threshold=False,
+                        offset=None, negative=False, threshold=False, 
+                        fwhm_neg=3.5, fix_neg=True, neg_amp=0.5, 
                         save_shifts=False, full_output=False, verbose=True,
                         debug=False, plot=True):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d
@@ -954,8 +955,12 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     ----------
     array : numpy ndarray
         Input cube.
-    xy : tuple of int
-        Coordinates of the center of the subimage (wrt the original frame).
+    xy : tuple of integers or floats
+        Integer coordinates of the center of the subimage (wrt the original frame).
+        For the double gaussian fit with fixed negative gaussian, this should
+        correspond to the exact location of the center of the negative gaussiam
+        (e.g. the center of the coronagraph mask) - in that case a tuple of 
+        floats is also accepted.
     fwhm : float or numpy ndarray
         FWHM size in pixels, either one value (float) that will be the same for
         the whole cube, or an array of floats with the same dimension as the
@@ -964,8 +969,9 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     subi_size : int, optional
         Size of the square subimage sides in pixels.
     model : str, optional
-        Sets the type of fit to be used. 'gauss' for a 2d Gaussian fit and
-        'moff' for a 2d Moffat fit.
+        Sets the type of fit to be used. 'gauss' for a 2d Gaussian fit,
+        'moff' for a 2d Moffat fit, 'airy' for a 2d Airy disk fit, and 
+        'double_gauss' for a 2d double Gaussian (positive+negative) fit.
     nproc : int or None, optional
         Number of processes (>1) for parallel computing. If 1 then it runs in
         serial. If None the number of processes will be set to (cpu_count()/2).
@@ -979,6 +985,16 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         serves as the offset of the fitted area wrt the center of the 2d arrays.
     negative : bool, optional
         If True a negative 2d Gaussian/Moffat fit is performed.
+    fwhm_neg: float, optional
+        If model is a double gaussian, this should be either the estimate or
+        the fixed value for the negative gaussian.
+    fix_neg: bool, optional
+        Whether the FWHM and position of the negative gaussian should be fixed
+        when fitting the double gaussian (might yield better results).
+    neg_amp: float, optional
+        Esimated amplitude for the negative gaussian, in terms of the amplitude
+        for the positive gaussian (i.e. 1 means same amplitudes for negative and 
+        positive gaussians) 
     threshold : bool, optional
         If True the background pixels (estimated using sigma clipped statistics)
         will be replaced by small random Gaussian noise.
@@ -1037,7 +1053,8 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
 
     if xy is not None:
         pos_x, pos_y = xy
-        if not isinstance(pos_x, int) or not isinstance(pos_y, int):
+        cond = model != 'double_gauss'
+        if (not isinstance(pos_x, int) or not isinstance(pos_y, int)) and cond:
             raise TypeError('`xy` must be a tuple of integers')
     else:
         pos_y, pos_x = frame_center(array[0])
@@ -1049,25 +1066,47 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         func = _centroid_2dg_frame
     elif model == 'moff':
         func = _centroid_2dm_frame
+    elif model == 'airy':
+        func = _centroid_2da_frame
+    elif model == 'double_gauss':
+        func = _centroid_2d2g_frame
     else:
         raise ValueError('model not recognized')
 
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
-    if nproc == 1:
+    if nproc == 1:                 
         res = []
-        print('2d Gauss-fitting')
+        print('2d {}-fitting'.format(model))
         for i in Progressbar(range(n_frames), desc="frames", verbose=verbose):
-            res.append(func(array, i, subi_size, pos_y, pos_x, negative, debug,
-                            fwhm[i], threshold))
+            if model == "double_gauss":
+                args = [array, i, subi_size, pos_y, pos_x, debug, fwhm[i], 
+                        fwhm_neg, fix_neg, neg_amp, threshold]
+            else:
+                args = [array, i, subi_size, pos_y, pos_x, negative, debug,
+                        fwhm[i], threshold]
+  
+            res.append(func(*args))
         res = np.array(res)
     elif nproc > 1:
-        res = pool_map(nproc, func, array, iterable(range(n_frames)), subi_size,
-                       pos_y, pos_x, negative, debug, iterable(fwhm), threshold)
+        if model == "double_gauss":
+            args = [array, iterable(range(n_frames)), subi_size, pos_y, pos_x, 
+                    debug, iterable(fwhm), fwhm_neg, fix_neg, neg_amp, 
+                    threshold]
+        else:
+            args = [array, iterable(range(n_frames)), subi_size, pos_y, pos_x, 
+                    negative, debug, iterable(fwhm), threshold]
+        res = pool_map(nproc, func, *args)
         res = np.array(res)
     y = cy - res[:, 0]
     x = cx - res[:, 1]
+    
+    if model == "double_gauss" and not fix_neg:
+        y_neg = res[:, 2]
+        x_neg = res[:, 3]
+        fwhm = res[:, 4]
+        fwhm_neg = res[:, 5]
 
     if offset is not None:
         offx, offy = offset
@@ -1098,6 +1137,11 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         la = 'Histogram'
         _ = plt.hist(x, bins=b, alpha=0.5, label=la + ' shifts X')
         _ = plt.hist(y, bins=b, alpha=0.5, label=la + ' shifts Y')
+        if model == "double_gauss" and not fix_neg:
+            _ = plt.hist(cx-x_neg, bins=b, alpha=0.5, 
+                         label=la + ' shifts X (neg gaussian)')
+            _ = plt.hist(cy-y_neg, bins=b, alpha=0.5, 
+                         label=la + ' shifts Y (neg gaussian)')            
         plt.legend(loc='best')
         plt.ylabel('Bin counts')
         plt.xlabel('Pixels')
@@ -1105,6 +1149,8 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     if save_shifts:
         np.savetxt('recent_gauss_shifts.txt', np.transpose([y, x]), fmt='%f')
     if full_output:
+        if model == "double_gauss" and not fix_neg:
+            array_recentered, y, x, y_neg, x_neg, fwhm, fwhm_neg
         return array_recentered, y, x
     else:
         return array_recentered
@@ -1146,6 +1192,54 @@ def _centroid_2dm_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
     x_i = x1 + x_i
     return y_i, x_i
 
+
+def _centroid_2da_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
+                        fwhm, threshold=False):
+    """ Finds the centroid by using a 2d Airy disk fitting in one frame from a
+    cube.
+    """
+    sub_image, y1, x1 = get_square(cube[frnum], size=size, y=pos_y, x=pos_x,
+                                   position=True)
+    # negative fit
+    if negative:
+        sub_image = -sub_image + np.abs(np.min(-sub_image))
+
+    y_i, x_i = fit_2dairydisk(sub_image, crop=False, fwhm=fwhm, 
+                              threshold=threshold, sigfactor=1, 
+                              full_output=False, debug=debug)                   
+    y_i = y1 + y_i
+    x_i = x1 + x_i
+    return y_i, x_i
+    
+    
+def _centroid_2d2g_frame(cube, frnum, size, pos_y, pos_x, debug=False, fwhm=4, 
+                         fwhm_neg=4, fix_neg=True, neg_amp=0.5, 
+                         threshold=False):
+    """ Finds the centroid by using a 2d double gaussian (positive+negative) 
+    fitting in one frame from a cube. To be called from within 
+    cube_recenter_doublegauss2d_fit().
+    """
+
+    size = min(cube[frnum].shape[0],cube[frnum].shape[1],size)
+    #sub_image, y1, x1 = get_square_robust(cube[frnum], size=size, y=pos_y, 
+    #                                      x=pos_x, position=True)
+            
+    res = fit_2d2gaussian(cube[frnum], crop=True, cent=(pos_x,pos_y), 
+                          cropsize=size, fwhm_neg=fwhm_neg, fwhm_pos=fwhm, 
+                          neg_amp=neg_amp, fix_neg=fix_neg, threshold=threshold, 
+                          sigfactor=1, full_output=True, debug=debug)
+    y_i = res['centroid_y']
+    x_i = res['centroid_x']
+    if not fix_neg:
+        y_i_neg = res['centroid_y_neg']
+        x_i_neg = res['centroid_x_neg']
+        fwhm = np.mean([res['fwhm_y'],res['fwhm_x']])
+        fwhm_neg = np.mean([res['fwhm_y_neg'],res['fwhm_x_neg']])         
+        #y_i = y1 + y_i
+        #x_i = x1 + x_i
+        return y_i, x_i, y_i_neg, x_i_neg, fwhm, fwhm_neg
+    return y_i, x_i
+    
 
 # TODO: make parameter names match the API
 def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,

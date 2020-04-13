@@ -92,71 +92,106 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
     return im
 
 
-# TODO: If possible, replace this function using astropy.stats.sigma_clip
+# TODO: If possible, replace this function using astropy.stats.sigma_clip  
+@njit
 def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
                num_neighbor=None, mad=False):
-    """Sigma clipping for detecting outlying values in 2d array. If the
-    parameter 'neighbor' is True the clipping can be performed in a local patch
+    """Sigma clipping for detecting outlying values in 2d array. If the 
+    parameter 'neighbor' is True the clipping can be performed in a local patch 
     around each pixel, whose size depends on 'neighbor' parameter.
     
     Parameters
     ----------
-    array : numpy ndarray 
+    array : array_like 
         Input 2d array, image.
     lower_sigma : float 
         Value for sigma, lower boundary.
     upper_sigma : float 
         Value for sigma, upper boundary.
-    out_good : bool, optional
+    out_good : {'False','True'}, optional
         For choosing different outputs.
-    neighbor : bool optional
+    neighbor : {'False','True'}, optional
         For clipping over the median of the contiguous pixels.
     num_neighbor : int, optional
         The side of the square window around each pixel where the sigma and 
         median are calculated. 
-    mad : bool, optional
+    mad : {False, True}, bool optional
         If True, the median absolute deviation will be used instead of the 
         standard deviation.
         
     Returns
     -------
-    good : numpy ndarray
+    good : array_like
         If out_good argument is true, returns the indices of not-outlying px.
-    bad : numpy ndarray 
+    bad : array_like 
         If out_good argument is false, returns a vector with the outlier px.
     
     """
-    if array.ndim != 2:
+    if not array.ndim == 2:
         raise TypeError("Input array is not two dimensional (frame)\n")
-
-    values = array.copy()
-    if neighbor and num_neighbor:
-        median = generic_filter(array, function=np.median, 
-                                size=(num_neighbor,num_neighbor), mode="mirror")
-        if mad:
-            sigma = generic_filter(array, function=median_absolute_deviation,                                 
-                                   size=(num_neighbor,num_neighbor), 
-                                   mode="mirror")
-        else:
-            sigma = generic_filter(array, function=np.std,                                 
-                                   size=(num_neighbor,num_neighbor), 
-                                   mode="mirror")
-    else:
-        median = np.median(values)
-        sigma = values.std()
         
-    good1 = values > (median - lower_sigma * sigma) 
-    good2 = values < (median + upper_sigma * sigma)
-    bad1 = values < (median - lower_sigma * sigma)
-    bad2 = values > (median + upper_sigma * sigma)
+    ny, nx = array.shape
+    bpm = array.copy()    
+    gpm = array.copy()
+    
+    if neighbor and num_neighbor:
+        for y in range(ny):
+            for x in range(nx):
+                #0/ Determine the box around each pixel
+                half_box = int(np.floor(num_neighbor/2.))
+                hbox_b = min(half_box,y)    # half size of the box at the
+                                            # bottom of the pixel
+                hbox_t = min(half_box,ny-y) # half size of the box at the
+                                            # top of the pixel
+                hbox_l = min(half_box,x)    # half size of the box to the
+                                            # left of the pixel
+                hbox_r = min(half_box,nx-x) # half size of the box to the
+                                            # right of the pixel
+                # in case we are close to an edge, we want to extend the box
+                # in the direction opposite to the edge: 
+                if hbox_b<hbox_t: 
+                    hbox_t += half_box-hbox_b
+                elif hbox_t<hbox_b: 
+                    hbox_b += half_box-hbox_t
+                if hbox_l<hbox_r: 
+                    hbox_r += half_box-hbox_l
+                elif hbox_r<hbox_l:
+                    hbox_l += half_box-hbox_r
+                    
+                sub_arr = array[y-hbox_b:y+hbox_t+1,
+                                x-hbox_l:x+hbox_r+1]
+                neighbours = sub_arr.flatten()
+                neigh_list = []
+                for i in range(neighbours.shape[0]):
+                    neigh_list.append(neighbours[i])
+                neigh_list.remove(array[y,x])
+                
+                neigh_arr = np.array(neigh_list)
+                median=np.median(neigh_arr)
+                if mad:
+                    abs_diff = []
+                    for i in range(num_neighbor*num_neighbor-1):
+                        abs_diff.append(np.absolute(median-neigh_arr[i]))
+                    sigma = np.median(np.array(abs_diff))
+                else:
+                    sigma = np.std(neigh_arr)
+                bad1 = array[y,x] < (median - lower_sigma * sigma) 
+                bad2 = array[y,x] > (median + upper_sigma * sigma)
+                bpm[y,x] = bad1 | bad2
+                gpm[y,x] = 1.-bpm[y,x]
+    else:
+        median = np.median(array)
+        sigma = np.std(array)
+        for y in range(ny):
+            for x in range(nx):
+                bad1 = array[y,x] < (median - lower_sigma * sigma) 
+                bad2 = array[y,x] > (median + upper_sigma * sigma)
+                bpm[y,x] = bad1 | bad2   
+                gpm[y,x] = 1.-bpm[y,x]
     
     if out_good:
-        # normal px indices in both good1 and good2
-        good = np.where(good1 & good2)
+        good = np.where(gpm)
         return good
     else:
-        # deviating px indices in either bad1 or bad2
-        bad = np.where(bad1 | bad2)
+        bad = np.where(bpm)
         return bad
-    
-  

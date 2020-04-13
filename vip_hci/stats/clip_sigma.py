@@ -100,7 +100,7 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
 # TODO: If possible, replace this function using astropy.stats.sigma_clip  
 @njit
 def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
-               num_neighbor=None, mad=False):
+               num_neighbor=None, mad=False, min_std=0):
     """Sigma clipping for detecting outlying values in 2d array. If the
     parameter 'neighbor' is True the clipping can be performed in a local patch
     around each pixel, whose size depends on 'neighbor' parameter.
@@ -123,6 +123,9 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
     mad : {False, True}, bool optional
         If True, the median absolute deviation will be used instead of the 
         standard deviation.
+    min_std : float, optional
+        Min standard deviation considered for the lower and upper sigma 
+        conditions. Can be useful for frames with padded edges (e.g. SPHERE/IFS)
         
     Returns
     -------
@@ -177,16 +180,19 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
                     abs_diff = []
                     for i in range(num_neighbor*num_neighbor-1):
                         abs_diff.append(np.absolute(median-neigh_arr[i]))
-                    sigma = np.median(np.array(abs_diff))
+                    med = np.median(np.array(abs_diff))
+                    sigma = min(med, min_std)
                 else:
-                    sigma = np.std(neigh_arr)
+                    std = np.std(neigh_arr)
+                    sigma = min(std,min_std)
                 bad1 = array[y,x] < (median - lower_sigma * sigma) 
                 bad2 = array[y,x] > (median + upper_sigma * sigma)
                 bpm[y,x] = bad1 | bad2
                 gpm[y,x] = 1.-bpm[y,x]
     else:
         median = np.median(array)
-        sigma = np.std(array)
+        std = np.std(array)
+        sigma = min(std,min_std)
         for y in range(ny):
             for x in range(nx):
                 bad1 = array[y,x] < (median - lower_sigma * sigma) 

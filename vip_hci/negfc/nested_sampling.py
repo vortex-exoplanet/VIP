@@ -163,10 +163,23 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
     """
 
     def prior_transform(x):
-        """ x:[0,1]
+        """
+        Computes the trasnformation from the unit distribution `[0, 1]` to parameter space.
+        
+        The default prior bounds are
+        radius: (r - w[0], r + w[0])
+        theta: (theta - w[1], theta + w[1])
+        flux: (f - w[2], f + w[3])
 
-        The prior transform is dinamically created with these bound:
-        [radius-w1:radius+w1], [theta-w2:theta+w2], [flux-w3:flux+w3]
+        The default distributions used are
+        radius: Uniform distribution transformed into polar coordinates
+            This distribution assumes uniform distribution for the (x,y) coordinates transformed
+            to polar coordinates.
+        theta: Uniform distribution
+            This distribution is derived the same as the radial distribution, but there is no 
+            change on the prior for theta after the change-of-variables transformation.
+        flux: Poisson-invariant scale distribution
+            This distribution is the Jeffrey's prior for Poisson data
 
         Notes
         -----
@@ -179,13 +192,19 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
         http://kbarbary.github.io/nestle/prior.html
 
         """
-        a1 = 2 * w[0]
-        a2 = init[0] - w[0]
-        b1 = 2 * w[1]
-        b2 = init[1] - w[1]
-        c1 = 2 * w[2]
-        c2 = init[2] - w[2]
-        return np.array([a1 * x[0] + a2, b1 * x[1] + b2, c1 * x[2] + c2])
+        rmin = init[0] - w[0]
+        rmax = init[0] + w[0]
+        r = np.sqrt((rmax**2 - rmin**2) * x[0] + rmin**2)
+
+        tmin = init[1] - w[1]
+        tmax = init[1] + w[1]
+        t = x[1] * (tmax - tmin) + tmin
+
+        fmin = init[2] - w[2]
+        fmax = init[2] + w[2]
+        f = (x[2] * (np.sqrt(fmax) - np.sqrt(fmin)) + fmin)**2
+
+        return np.array([r, t, f])
 
     def f(param):
         return lnlike(param=param, cube=cube, angs=angs, plsc=plsc,

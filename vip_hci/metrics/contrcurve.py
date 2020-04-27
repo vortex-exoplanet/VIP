@@ -744,6 +744,9 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
                       verbose=False, debug=False):
     """ Measures the noise as the standard deviation of apertures defined in
     each annulus with a given separation.
+    
+    The annuli start at init_rad (== fwhm by default) and stop 2*separation
+    before the edge of the frame.
 
     Parameters
     ----------
@@ -799,7 +802,7 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
 
     init_angle, fin_angle = wedge
     centery, centerx = frame_center(array)
-    n_annuli = int(np.floor((centery - init_rad)/separation))
+    n_annuli = int(np.floor((centery - init_rad)/separation)) - 1
     noise = []
     vector_radd = []
     if verbose:

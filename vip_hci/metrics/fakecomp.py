@@ -12,18 +12,22 @@ __all__ = ['collapse_psf_cube',
            'frame_inject_companion']
 
 import numpy as np
+np_elements = (np.int64,np.int32,np.float64,np.float32)
 from scipy import stats
+from scipy.interpolate import interp1d
 import photutils
-from ..preproc import cube_crop_frames, frame_shift, frame_crop, cube_shift
+from ..preproc import (cube_crop_frames, frame_shift, frame_crop, cube_shift,
+                       frame_rotate)
 from ..var import (frame_center, fit_2dgaussian, fit_2dairydisk, fit_2dmoffat,
                    get_circle, get_annulus_segments)
+from ..var.shapes import dist_matrix                   
 from ..conf.utils_conf import print_precision, check_array
 
 
 def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                            rad_dists, n_branches=1, theta=0, imlib='opencv',
-                           interpolation='lanczos4', full_output=False,
-                           verbose=True):
+                           interpolation='lanczos4', transmission=None, 
+                           full_output=False, verbose=True):
     """ Injects fake companions in branches, at given radial distances.
 
     Parameters
@@ -61,6 +65,10 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    transmission: numpy array, optional
+        Array with 2 columns. First column is the radial separation in pixels. 
+        Second column is the off-axis transmission (between 0 and 1) at the 
+        radial separation given in column 1.
     full_output : bool, optional
         Returns the ``x`` and ``y`` coordinates of the injections, additionally
         to the new array.
@@ -87,6 +95,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
     rad_dists = np.asarray(rad_dists).reshape(-1)  # forces ndim=1
     positions = []
+
+    if transmission is not None:
+        interp_trans = interp1d(transmission[0],transmission[1])
 
     # ADI case
     if array.ndim == 3:
@@ -118,18 +129,27 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
             ang = (branch * 2 * np.pi / n_branches) + np.deg2rad(theta)
 
             if verbose:
-                print('Branch {}:'.format(branch+1))
+                print('Branch {}:'.format(branch+1))                
 
             for rad in rad_dists:
+                if transmission is not None:
+                    y_star = ceny
+                    x_star = cenx - rad
+                    d = dist_matrix(fc_fr.shape[0],x_star,y_star)
+                    fc_fr_rad = interp_trans(d)*fc_fr
                 for fr in range(nframes):
                     shift_y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     shift_x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
-                    if isinstance(flevel, (int, float)):
-                        array_out[fr] += (frame_shift(fc_fr, shift_y, shift_x,
+                    if transmission is not None:
+                        fc_fr_ang = frame_rotate(fc_fr_rad, ang)
+                    else:
+                        fc_fr_ang = fc_fr
+                    if isinstance(flevel, (int, float, np_elements)):
+                        array_out[fr] += (frame_shift(fc_fr_ang, shift_y, shift_x,
                                                   imlib, interpolation)
                                       * flevel)
                     else:
-                        array_out[fr] += (frame_shift(fc_fr, shift_y, shift_x,
+                        array_out[fr] += (frame_shift(fc_fr_ang, shift_y, shift_x,
                                               imlib, interpolation)
                                   * flevel[fr])
                             
@@ -185,7 +205,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     shift = cube_shift(fc_fr, shift_y, shift_x, imlib,
                                        interpolation)
 
-                    if isinstance(flevel, (int, float)):
+                    if isinstance(flevel, (int, float, np_elements)):
                         array_out[:, fr] += shift * flevel
                     else:
                         for i in range(len(flevel)):

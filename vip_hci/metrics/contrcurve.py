@@ -804,7 +804,7 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
 
     if init_rad is None:
         init_rad = fwhm
-
+        
     if debug:
         _, ax = plt.subplots(figsize=(6, 6))
         ax.imshow(array, origin='lower', interpolation='nearest',
@@ -817,7 +817,7 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
         yy += centery
         xx += centerx
 
-        apertures = photutils.CircularAperture((xx, yy), fwhm/2)
+        apertures = photutils.CircularAperture(np.array((xx, yy)).T, fwhm/2)
         fluxes = photutils.aperture_photometry(array, apertures)
         fluxes = np.array(fluxes['aperture_sum'])
 

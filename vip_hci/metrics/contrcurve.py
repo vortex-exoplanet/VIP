@@ -744,6 +744,9 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
                       verbose=False, debug=False):
     """ Measures the noise as the standard deviation of apertures defined in
     each annulus with a given separation.
+    
+    The annuli start at init_rad (== fwhm by default) and stop 2*separation
+    before the edge of the frame.
 
     Parameters
     ----------
@@ -794,16 +797,16 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
         raise TypeError('Wedge must be a tuple with the initial and final '
                         'angles')
 
+    if init_rad is None:
+        init_rad = fwhm
+
     init_angle, fin_angle = wedge
     centery, centerx = frame_center(array)
-    n_annuli = int(np.floor((centery)/separation)) - 1
+    n_annuli = int(np.floor((centery - init_rad)/separation)) - 1
     noise = []
     vector_radd = []
     if verbose:
         print('{} annuli'.format(n_annuli))
-
-    if init_rad is None:
-        init_rad = fwhm
 
     if debug:
         _, ax = plt.subplots(figsize=(6, 6))
@@ -817,7 +820,7 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
         yy += centery
         xx += centerx
 
-        apertures = photutils.CircularAperture((xx, yy), fwhm/2)
+        apertures = photutils.CircularAperture(np.array((xx, yy)).T, fwhm/2)
         fluxes = photutils.aperture_photometry(array, apertures)
         fluxes = np.array(fluxes['aperture_sum'])
 

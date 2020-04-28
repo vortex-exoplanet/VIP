@@ -70,7 +70,8 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
            ncomp, aperture_radius, initial_state, cube_ref=None,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
            delta_rot=1, fmerit='sum', imlib='opencv', interpolation='lanczos4', 
-           collapse='median', weights=None, scale_fac=1, debug=False):
+           collapse='median', weights=None, transmission=None, scale_fac=1, 
+           debug=False):
     """ Define the likelihood log-function.
     
     Parameters
@@ -124,6 +125,10 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
+    transmission: numpy array, optional
+        Array with 2 columns. First column is the radial separation in pixels. 
+        Second column is the off-axis transmission (between 0 and 1) at the 
+        radial separation given in column 1.
     scale_fac: float
         Factor by which the intensities in the cube are scaled up, to 
         increase the residuals. This operation is needed for very low companion 
@@ -149,6 +154,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
                                         n_branches=1, theta=param[1],
                                         imlib=imlib, 
                                         interpolation=interpolation,
+                                        transmission=transmission,
                                         verbose=False)
     if scale_fac > 1:
         cube_negfc*=scale_fac                            
@@ -181,7 +187,7 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
            delta_rot=1, fmerit='sum', imlib='opencv',
            interpolation='lanczos4', collapse='median', weights=None, 
-           scale_fac=1, display=False):
+           transmission=None, scale_fac=1, display=False):
     """ Define the probability log-function as the sum between the prior and
     likelihood log-funtions.
     
@@ -234,6 +240,10 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
+    transmission: numpy array, optional
+        Array with 2 columns. First column is the radial separation in pixels. 
+        Second column is the off-axis transmission (between 0 and 1) at the 
+        radial separation given in column 1.
     scale_fac: float
         Factor by which the intensities in the cube are scaled up, to 
         increase the residuals. This operation is needed for very low companion 
@@ -260,7 +270,8 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
     return lp + lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, 
                        ncomp, aperture_radius, initial_state, cube_ref, 
                        svd_mode, scaling, algo, delta_rot, fmerit, imlib,
-                       interpolation, collapse, weights, scale_fac)
+                       interpolation, collapse, weights, transmission, 
+                       scale_fac)
 
 
 def gelman_rubin(x):
@@ -355,13 +366,13 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         svd_mode='lapack', scaling='temp-mean', 
                         algo=pca_annulus, delta_rot=1, fmerit='sum',
                         imlib='opencv', interpolation='lanczos4',
-                        collapse='median', weights=None, nwalkers=1000, 
-                        bounds=None, a=2.0, burnin=0.3, rhat_threshold=1.01, 
-                        rhat_count_threshold=1, niteration_min=1, 
-                        niteration_limit=1e2, niteration_supp=0, 
-                        check_maxgap=1e4, nproc=1, output_dir='results/', 
-                        output_file=None, display=False, verbosity=0, 
-                        save=False):
+                        collapse='median', weights=None, transmission=None, 
+                        nwalkers=1000, bounds=None, a=2.0, burnin=0.3, 
+                        rhat_threshold=1.01, rhat_count_threshold=1, 
+                        niteration_min=1, niteration_limit=1e2, 
+                        niteration_supp=0, check_maxgap=1e4, nproc=1, 
+                        output_dir='results/', output_file=None, display=False, 
+                        verbosity=0, save=False):
     r""" Runs an affine invariant mcmc sampling algorithm in order to determine
     the position and the flux of the planet using the 'Negative Fake Companion'
     technique. The result of this procedure is a chain with the samples from the
@@ -427,6 +438,10 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
+    transmission: numpy array, optional
+        Array with 2 columns. First column is the radial separation in pixels. 
+        Second column is the off-axis transmission (between 0 and 1) at the 
+        radial separation given in column 1.
     bounds: numpy.array or list, default=None, optional
         The prior knowledge on the model parameters. If None, large bounds will
         be automatically estimated from the initial state.
@@ -557,7 +572,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                            cube_ref, svd_mode, scaling, algo,
                                            delta_rot, fmerit, imlib, 
                                            interpolation, collapse, weights,
-                                           scale_fac]),
+                                           transmission, scale_fac]),
                                     threads=nproc)
                                     
     start = datetime.datetime.now()
@@ -932,7 +947,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             mu[j], sigma[j] = norm.fit(isamples[:, j])
             n_fit, bins_fit = np.histogram(isamples[:, j], bins, normed=1,
                                            weights=weights)
-            ax[1][j].hist(isamples[:, j], bins, normed=1, weights=weights,
+            ax[1][j].hist(isamples[:, j], bins, density=1, weights=weights,
                           facecolor='gray', edgecolor='darkgray',
                           histtype='step')
             y = norm.pdf(bins_fit, mu[j], sigma[j])

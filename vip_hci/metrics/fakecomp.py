@@ -103,7 +103,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     if array.ndim == 3:
         ceny, cenx = frame_center(array[0])
 
-        if not rad_dists[-1] < min(ceny, cenx) - 5:
+        if not rad_dists[-1] < array[0].shape[0] / 2:
             raise ValueError('rad_dists last location is at the border (or '
                              'outside) of the field')
         size_fc = psf_template.shape[0]
@@ -168,7 +168,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     if array.ndim == 4 and psf_template.ndim == 3:
         ceny, cenx = frame_center(array[0, 0])
 
-        if not rad_dists[-1] < min(ceny, cenx) - 5:
+        if not rad_dists[-1] < array[0].shape[0] / 2:
             raise ValueError('rad_dists last location is at the border (or '
                              'outside) of the field')
 

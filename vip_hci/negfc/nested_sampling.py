@@ -261,15 +261,14 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, save=False,
                    linestyles='dotted')
         plt.show()
 
-    if save:
         plt.savefig(output_dir+'Nested_results.pdf')
         
-    print("\nWalk plots before the burnin")
-    show_walk_plot(np.expand_dims(res.samples, axis=0))
-    if burnin > 0:
-        print("\nWalk plots after the burnin")
-        show_walk_plot(np.expand_dims(res.samples[indburnin:], axis=0))
-    if save:
+        print("\nWalk plots before the burnin")
+        show_walk_plot(np.expand_dims(res.samples, axis=0))
+        if burnin > 0:
+            print("\nWalk plots after the burnin")
+            show_walk_plot(np.expand_dims(res.samples[indburnin:], axis=0))
+
         plt.savefig(output_dir+'Nested_walk_plots.pdf')
         
     mean, cov = nestle.mean_and_cov(res.samples[indburnin:],
@@ -296,18 +295,21 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, save=False,
     if bins is None:
         bins = int(np.sqrt(res.samples[indburnin:].shape[0]))
         print("\nHist bins =", bins)
-    ranges = None
+    
 
-    fig = corner.corner(res.samples[indburnin:], bins=bins,
-                        labels=["$r$", r"$\theta$", "$f$"],
-                        weights=res.weights[indburnin:], range=ranges,
-                        plot_contours=True)
-    fig.set_size_inches(8, 8)
     if save:
+        ranges = None
+        fig = corner.corner(res.samples[indburnin:], bins=bins,
+                            labels=["$r$", r"$\theta$", "$f$"],
+                            weights=res.weights[indburnin:], range=ranges,
+                            plot_contours=True)
+        fig.set_size_inches(8, 8)
+
         plt.savefig(output_dir+'Nested_corner.pdf')
             
-    print('\nConfidence intervals')
-    _ = confidence(res.samples[indburnin:], cfd=68, bins=bins,
+        print('\nConfidence intervals')
+
+        _ = confidence(res.samples[indburnin:], cfd=68, bins=bins,
                    weights=res.weights[indburnin:],
                    gaussian_fit=True, verbose=save, save=False)
                    

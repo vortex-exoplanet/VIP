@@ -202,7 +202,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
 
         fmin = init[2] - w[2]
         fmax = init[2] + w[2]
-        f = (x[2] * (np.sqrt(fmax) - np.sqrt(fmin)) + fmin)**2
+        f = (x[2] * (np.sqrt(fmax) - np.sqrt(fmin)) + np.sqrt(fmin))**2
 
         return np.array([r, t, f])
 

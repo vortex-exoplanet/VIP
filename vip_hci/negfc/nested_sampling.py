@@ -317,5 +317,5 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, save=False,
 
     final_res = np.array([[mean[0], np.sqrt(cov[0, 0])],
                           [mean[1], np.sqrt(cov[1, 1])],
-                          [mean[2], np.sqrt(cov[1, 1])]])
+                          [mean[2], np.sqrt(cov[2, 2])]])
     return final_res                     

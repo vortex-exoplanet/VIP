@@ -483,7 +483,7 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
 
         data_ref = matrix[indices_left]
 
-        if data_ref.shape[0] < min_frames_lib:
+        if data_ref.shape[0] < min_frames_lib and matrix_ref is None:
             msg = 'Too few frames left in the PCA library. '
             msg += 'Try decreasing either delta_rot or min_frames_lib.'
             raise RuntimeError(msg)

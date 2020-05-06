@@ -22,7 +22,7 @@ from .mcmc_sampling import lnlike, confidence, show_walk_plot
 def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
                           aperture_radius=1, ncomp=10, scaling=None,
                           svd_mode='lapack', cube_ref=None, collapse='median',
-                          weights=None, transmission=None, w=(5, 5, 200), method='single', 
+                          weights=None, w=(5, 5, 200), method='single', 
                           npoints=100, dlogz=0.1, decline_factor=None, 
                           rstate=None, verbose=True):
     """ Runs a nested sampling algorithm in order to determine the position and
@@ -72,10 +72,6 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
-    transmission: numpy array, optional
-        Array with 2 columns. First column is the radial separation in pixels. 
-        Second column is the off-axis transmission (between 0 and 1) at the 
-        radial separation given in column 1.
     w : tuple of length 3
         The size of the bounds (around the initial state ``init``) for each
         parameter.
@@ -178,11 +174,22 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
         scale_fac = 1
 
     def prior_transform(x):
-        """ x:[0,1]
-
-        The prior transform is dinamically created with these bound:
-        [radius-w1:radius+w1], [theta-w2:theta+w2], [flux-w3:flux+w3]
-
+        """
+        Computes the trasnformation from the unit distribution `[0, 1]` to parameter space.
+        
+        The default prior bounds are
+        radius: (r - w[0], r + w[0])
+        theta: (theta - w[1], theta + w[1])
+        flux: (f - w[2], f + w[3])
+        The default distributions used are
+        radius: Uniform distribution transformed into polar coordinates
+            This distribution assumes uniform distribution for the (x,y) coordinates transformed
+            to polar coordinates.
+        theta: Uniform distribution
+            This distribution is derived the same as the radial distribution, but there is no 
+            change on the prior for theta after the change-of-variables transformation.
+        flux: Poisson-invariant scale distribution
+            This distribution is the Jeffrey's prior for Poisson data
         Notes
         -----
         The prior transform function is used to specify the Bayesian prior for the
@@ -192,15 +199,20 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
         the product of the inverse cumulative distribution function (also known as
         the percent point function or quantile function) for each parameter.
         http://kbarbary.github.io/nestle/prior.html
-
         """
-        a1 = 2 * w[0]
-        a2 = init[0] - w[0]
-        b1 = 2 * w[1]
-        b2 = init[1] - w[1]
-        c1 = 2 * w[2]
-        c2 = init[2] - w[2]
-        return np.array([a1 * x[0] + a2, b1 * x[1] + b2, c1 * x[2] + c2])
+        rmin = init[0] - w[0]
+        rmax = init[0] + w[0]
+        r = np.sqrt((rmax**2 - rmin**2) * x[0] + rmin**2)
+
+        tmin = init[1] - w[1]
+        tmax = init[1] + w[1]
+        t = x[1] * (tmax - tmin) + tmin
+
+        fmin = init[2] - w[2]
+        fmax = init[2] + w[2]
+        f = (x[2] * (np.sqrt(fmax) - np.sqrt(fmin)) + np.sqrt(fmin))**2
+
+        return np.array([r, t, f])
 
     def f(param):
         return lnlike(param=param, cube=cube, angs=angs, plsc=plsc,
@@ -208,8 +220,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
                       aperture_radius=aperture_radius, initial_state=init,
                       cube_ref=cube_ref, svd_mode=svd_mode, scaling=scaling,
                       fmerit='sum', ncomp=ncomp, collapse=collapse, 
-                      weights=weights, transmission=transmission, 
-                      scale_fac=scale_fac)
+                      weights=weights, scale_fac=scale_fac)
 
     # -------------------------------------------------------------------------
     if verbose:  start = time_ini()
@@ -233,7 +244,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
 
 
 def nested_sampling_results(ns_object, burnin=0.4, bins=None, save=False,
-                            output_dir='/'):
+                            output_dir='/', plot=False):
     """ Shows the results of the Nested Sampling, summary, parameters with errors,
     walk and corner plots.
     """
@@ -245,7 +256,7 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, save=False,
 
     print(
         '\nNatural log of prior volume and Weight corresponding to each sample')
-    if save:
+    if save or plot:
         plt.figure(figsize=(12, 4))
         plt.subplot(1, 2, 1)
         plt.plot(res.logvol, '.', alpha=0.5, color='gray')
@@ -259,16 +270,16 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, save=False,
         plt.ylabel('weights')
         plt.vlines(indburnin, res.weights.min(), res.weights.max(),
                    linestyles='dotted')
-        plt.show()
-
+        if plot:
+            plt.show()
+    
         plt.savefig(output_dir+'Nested_results.pdf')
-        
+            
         print("\nWalk plots before the burnin")
         show_walk_plot(np.expand_dims(res.samples, axis=0))
         if burnin > 0:
             print("\nWalk plots after the burnin")
             show_walk_plot(np.expand_dims(res.samples[indburnin:], axis=0))
-
         plt.savefig(output_dir+'Nested_walk_plots.pdf')
         
     mean, cov = nestle.mean_and_cov(res.samples[indburnin:],
@@ -296,27 +307,26 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, save=False,
         bins = int(np.sqrt(res.samples[indburnin:].shape[0]))
         print("\nHist bins =", bins)
     
-
-    if save:
+    if save or plot:
         ranges = None
         fig = corner.corner(res.samples[indburnin:], bins=bins,
                             labels=["$r$", r"$\theta$", "$f$"],
                             weights=res.weights[indburnin:], range=ranges,
                             plot_contours=True)
         fig.set_size_inches(8, 8)
-
+    if save:
         plt.savefig(output_dir+'Nested_corner.pdf')
             
-        print('\nConfidence intervals')
-
+    print('\nConfidence intervals')
+    if save or plot:
         _ = confidence(res.samples[indburnin:], cfd=68, bins=bins,
-                   weights=res.weights[indburnin:],
-                   gaussian_fit=True, verbose=save, save=False)
+                       weights=res.weights[indburnin:],
+                       gaussian_fit=True, verbose=True, save=False)
                    
     if save:
         plt.savefig(output_dir+'Nested_confi_hist_flux_r_theta_gaussfit.pdf')
 
     final_res = np.array([[mean[0], np.sqrt(cov[0, 0])],
                           [mean[1], np.sqrt(cov[1, 1])],
-                          [mean[2], np.sqrt(cov[1, 1])]])
+                          [mean[2], np.sqrt(cov[2, 2])]])
     return final_res                     

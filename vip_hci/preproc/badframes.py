@@ -22,7 +22,7 @@ from ..stats import cube_basic_stats, cube_distance
 
 def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10, 
                               top_sigma=1.0, low_sigma=1.0, window=None, 
-                              plot=True, verbose=True):             
+                              plot=True, verbose=True):
     """ Returns the list of bad frames from a cube using the px statistics in 
     a centered annulus or circular aperture. Frames that are more than a few 
     standard deviations discrepant are rejected. Should be applied on a 
@@ -238,8 +238,8 @@ def cube_detect_badfr_ellipticity(array, fwhm, crop_size=30, roundlo=-0.2,
 
 
 def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
-                                  dist='pearson', percentile=20, plot=True,
-                                  verbose=True):
+                                  dist='pearson', threshold=None, percentile=20, 
+                                  plot=True, verbose=True):
     """ Returns the list of bad frames from a cube by measuring the distance 
     (similarity) or correlation of the frames (cropped to a 30x30 subframe) 
     wrt a reference frame from the same cube. Then the distance/correlation 
@@ -258,8 +258,13 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     dist : {'sad','euclidean','mse','pearson','spearman'}, str optional
         One of the similarity or dissimilarity measures from function
         vip_hci.stats.distances.cube_distance(). 
+    threshold: None or float, optional
+        If provided, correspond to the trheshold 'distance' value above/below 
+        which (depending on index of similarity/dissimilarity resp.) will be 
+        discarded. If not None, supersedes 'percentile'.
     percentile : int, optional
-        The percentage of frames that will be discarded. 
+        The percentage of frames that will be discarded, if threshold is not 
+        provided.
     plot : bool, optional
         If true it plots the mean fluctuation as a function of the frames and 
         the boundaries.
@@ -287,18 +292,20 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     if isinstance(frame_ref, np.ndarray):
         frame_ref = frame_crop(frame_ref, crop_size, verbose=False)
     distances = cube_distance(subarray, frame_ref, 'full', dist, plot=False)
-        
+    
     if dist == 'pearson' or dist == 'spearman':
-        # measures of correlation or similarity
-        minval = np.min(distances[~np.isnan(distances)])
-        distances = np.nan_to_num(distances)
-        distances[np.where(distances == 0)] = minval
-        threshold = np.percentile(distances, percentile)
+        if threshold is None:
+            # measures of correlation or similarity
+            minval = np.min(distances[~np.isnan(distances)])
+            distances = np.nan_to_num(distances)
+            distances[np.where(distances == 0)] = minval
+            threshold = np.percentile(distances, percentile)
         indbad = np.where(distances <= threshold)
         indgood = np.where(distances > threshold)
     else:
         # measures of dissimilarity
-        threshold = np.percentile(distances, 100-percentile)
+        if threshold is None:
+            threshold = np.percentile(distances, 100-percentile)
         indbad = np.where(distances >= threshold)
         indgood = np.where(distances < threshold)
         

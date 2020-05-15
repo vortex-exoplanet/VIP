@@ -257,8 +257,6 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
         if np.abs(angle_list[frame] - angle_list[i]) < thr:
             index_prev = i
             break
-        else:
-            index_prev += 1
     for k in range(frame, n):
         if np.abs(angle_list[k] - angle_list[frame]) > thr:
             index_foll = k

@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import photutils
 from hciplot import plot_frames
-from astropy.modeling import models, fitting, fix_inputs
+from astropy.modeling import models, fitting
 from astropy.stats import (gaussian_sigma_to_fwhm, gaussian_fwhm_to_sigma,
                            sigma_clipped_stats)
 from .shapes import get_square, frame_center
@@ -418,7 +418,7 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     cropsize : int, optional
         Size of the subimage.
     fwhm : float, optional
-        Initial values for the FWHM of the fitted 2d Moffat, in px.
+        Initial values for the FWHM of the fitted 2d Airy disk, in px.
     threshold : bool, optional
         If True the background pixels (estimated using sigma clipped statistics)
         will be replaced by small random Gaussian noise.
@@ -531,7 +531,7 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
         
 def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4, 
                     fwhm_pos=4, theta_neg=0, theta_pos=0, neg_amp=1, 
-                    fix_neg=True, threshold=False, sigfactor=6, 
+                    fix_neg=True, threshold=False, sigfactor=2, 
                     full_output=False, debug=True):
     """ Fitting a 2D superimposed double Gaussian (negative and positive) to 
     the 2D distribution of the data (reproduce e.g. the effect of a coronagraph)
@@ -588,13 +588,20 @@ def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4,
 
     If ``full_output`` is True it returns a Pandas dataframe containing the
     following columns:
+    - for the positive gaussian:
     'amplitude' : Float value. Amplitude of the Gaussian.
     'centroid_x' : Float value. X coordinate of the centroid.
     'centroid_y' : Float value. Y coordinate of the centroid.
     'fwhm_x' : Float value. FHWM in X [px].
     'fwhm_y' : Float value. FHWM in Y [px].
-    'theta' : Float value. Rotation angle.
-
+    'theta' : Float value. Rotation angle of x axis
+    - for the negative gaussian:
+    'amplitude_neg' : Float value. Amplitude of the Gaussian.
+    'centroid_x_neg' : Float value. X coordinate of the centroid.
+    'centroid_y_neg' : Float value. Y coordinate of the centroid.
+    'fwhm_x_neg' : Float value. FHWM in X [px].
+    'fwhm_y_neg' : Float value. FHWM in Y [px].
+    'theta_neg' : Float value. Rotation angle of x axis
     """
     if not array.ndim == 2:
         raise TypeError('Input array is not a frame or 2d array')
@@ -639,33 +646,54 @@ def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4,
 
     # Creating the 2D Gaussian model
     init_amplitude = np.ptp(psf_subimage)
-    xcom, ycom = photutils.centroid_com(psf_subimage)
+    #xcom, ycom = photutils.centroid_com(psf_subimage)
+    ycom, xcom = frame_center(psf_subimage)
+    fix_dico_pos = {'theta':True}
+    bounds_dico_pos = {'amplitude':[0.8*init_amplitude,1.2*init_amplitude],
+                       'x_mean':[xcom-3,xcom+3],
+                       'y_mean':[ycom-3,ycom+3],
+                       'x_stddev': [0.5*fwhm_pos_x*gaussian_fwhm_to_sigma,
+                                    2*fwhm_pos_x*gaussian_fwhm_to_sigma],
+                       'y_stddev': [0.5*fwhm_pos_y*gaussian_fwhm_to_sigma,
+                                    2*fwhm_pos_y*gaussian_fwhm_to_sigma]}
+                                    
     gauss_pos = models.Gaussian2D(amplitude=init_amplitude, x_mean=xcom, 
                                   y_mean=ycom, 
                                   x_stddev=fwhm_pos_x*gaussian_fwhm_to_sigma, 
                                   y_stddev=fwhm_pos_y*gaussian_fwhm_to_sigma, 
-                                  theta=theta_pos)
+                                  theta=np.deg2rad(theta_pos)%(np.pi), fixed=fix_dico_pos, 
+                                  bounds=bounds_dico_pos)
+    if fix_neg:                          
+        fix_dico_neg = {'x_mean':True,'y_mean':True,
+                        'x_stddev':True,
+                        'y_stddev':True,
+                        'theta':True}
+        bounds_dico_neg = {'amplitude':[neg_amp*0.5*init_amplitude,
+                                        neg_amp*2*init_amplitude]}
+    else:
+        fix_dico_neg = {}#{'theta':True}
+        bounds_dico_neg = {'amplitude':[neg_amp*0.5*init_amplitude,
+                                        neg_amp*2*init_amplitude],
+                           'x_mean':[xcom-3,xcom+3],
+                           'y_mean':[ycom-3,ycom+3],
+                           'x_stddev': [0.5*fwhm_neg_x*gaussian_fwhm_to_sigma,
+                                        2*fwhm_neg_x*gaussian_fwhm_to_sigma],
+                           'y_stddev': [0.5*fwhm_neg_y*gaussian_fwhm_to_sigma,
+                                        2*fwhm_neg_y*gaussian_fwhm_to_sigma],
+                           'theta': [0,np.pi]}
+    
     gauss_neg = models.Gaussian2D(amplitude=init_amplitude*neg_amp, x_mean=cenx, 
                                   y_mean=ceny, 
                                   x_stddev=fwhm_neg_x*gaussian_fwhm_to_sigma, 
                                   y_stddev=fwhm_neg_y*gaussian_fwhm_to_sigma, 
-                                  theta=theta_neg)
+                                  theta=np.deg2rad(theta_neg)%(np.pi), fixed=fix_dico_neg, 
+                                  bounds=bounds_dico_neg)
+
     double_gauss = gauss_pos-gauss_neg
-    
-    fitter = fitting.SLSQPLSQFitter() #LevMarLSQFitter()                  
-    y, x = np.indices(psf_subimage.shape)
-    
-    if fix_neg:                          
-        fix_dico = {'x_mean_1':cenx,'y_mean_1':ceny,
-                    'x_stddev_1':fwhm_neg_x*gaussian_fwhm_to_sigma,
-                    'y_stddev_1':fwhm_neg_y*gaussian_fwhm_to_sigma,
-                    'theta_1':theta_neg}
-        double_gauss_fix = fix_inputs(double_gauss,fix_dico)                          
-        fit = fitter(double_gauss_fix, x, y, psf_subimage, maxiter=1000, 
-                     acc=1e-08)
-    else:
-        fit = fitter(double_gauss, x, y, psf_subimage, maxiter=1000, acc=1e-08)
-    fit = fitter(double_gauss, x, y, psf_subimage, maxiter=1000, acc=1e-08)
+
+    fitter = fitting.LevMarLSQFitter() #SLSQPLSQFitter() #LevMarLSQFitter()                  
+    y, x = np.indices(psf_subimage.shape)                          
+    fit = fitter(double_gauss, x, y, psf_subimage, maxiter=100000, acc=1e-08)
     
     # positive gaussian
     if crop:

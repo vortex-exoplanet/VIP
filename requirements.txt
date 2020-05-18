@@ -16,3 +16,4 @@ opencv-python >= 3.4
 pytest
 hciplot ~= 0.1.3
 numba
+git+git://github.com/ericmandel/pyds9.git

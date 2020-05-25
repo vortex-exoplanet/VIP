@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+ #! /usr/bin/env python
 
 """
 Module containing functions for cubes frame registration.
@@ -1413,8 +1413,6 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     cum_y_shifts = 0
     cum_x_shifts = 0
 
-    opt_rad = []
-
     for i in range(alignment_iter):
         alignment_cube[0] = np.median(alignment_cube[1:(n + 1)], axis=0)
         if recenter_median:
@@ -1439,7 +1437,6 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                              hole_rad=0.5, sampl_cen=0.1, 
                                              sampl_rad=0.2, ann_width=0.5, 
                                              unc_in=2.)
-                opt_rad.append(rad)
             yshift = ceny - (y1 + y_i)
             xshift = cenx - (x1 + x_i)
 
@@ -1506,13 +1503,13 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         if full_output:
             return (cube_reg_sci, cube_reg_ref, cube_sci_lpf, cube_stret, 
                     cum_x_shifts_sci, cum_y_shifts_sci, cum_x_shifts_ref, 
-                    cum_y_shifts_ref, opt_rad)
+                    cum_y_shifts_ref)
         else:
             return (cube_reg_sci, cube_reg_ref)
     else:
         if full_output:
             return (cube_reg_sci, cube_sci_lpf, cube_stret, 
-                    cum_x_shifts_sci, cum_y_shifts_sci, opt_rad)
+                    cum_x_shifts_sci, cum_y_shifts_sci)
         else:
             return cube_reg_sci
 

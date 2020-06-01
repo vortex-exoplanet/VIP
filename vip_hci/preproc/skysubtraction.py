@@ -47,7 +47,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
     Msky = prepare_matrix(sky_cube, scaling=None, verbose=False)
     sky_pcs = svd_wrapper(Msky, 'lapack', sky_cube.shape[0], False)
     sky_pcs_cube = sky_pcs.reshape(sky_cube.shape[0], sky_cube.shape[1],
-                                   sky_cube.shape[1])
+                                   sky_cube.shape[2])
 
     # Masking the science cube
     sci_cube_masked = np.zeros_like(sci_cube)

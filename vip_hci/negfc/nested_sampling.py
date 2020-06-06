@@ -223,7 +223,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
                       psf_norm=psf, fwhm=fwhm, annulus_width=annulus_width,
                       aperture_radius=aperture_radius, initial_state=init,
                       cube_ref=cube_ref, svd_mode=svd_mode, scaling=scaling,
-                      algo=alog, delta_rot=delta_rot, fmerit='sum', ncomp=ncomp, 
+                      algo=algo, delta_rot=delta_rot, fmerit='sum', ncomp=ncomp, 
                       collapse=collapse, pca_args=pca_args, weights=weights, 
                       scale_fac=scale_fac)
 

@@ -17,11 +17,12 @@ import numpy as np
 from matplotlib import pyplot as plt
 from ..conf import time_ini, timing
 from .mcmc_sampling import lnlike, confidence, show_walk_plot
-
+from ..pca import pca_annulus
 
 def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
                           aperture_radius=1, ncomp=10, scaling=None,
-                          svd_mode='lapack', cube_ref=None, collapse='median',
+                          svd_mode='lapack', cube_ref=None, collapse='median', 
+                          algo=pca_annulus, delta_rot=1, pca_args={}, 
                           weights=None, w=(5, 5, 200), method='single', 
                           npoints=100, dlogz=0.1, decline_factor=None, 
                           rstate=None, verbose=True):
@@ -68,6 +69,9 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
+    pca_args: dict, opt
+        Dictionary with additional parameters for the pca algorithm (e.g. tol,
+        min_frames_lib, max_frames_lib)    
     weights : 1d array, optional
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
@@ -219,8 +223,9 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
                       psf_norm=psf, fwhm=fwhm, annulus_width=annulus_width,
                       aperture_radius=aperture_radius, initial_state=init,
                       cube_ref=cube_ref, svd_mode=svd_mode, scaling=scaling,
-                      fmerit='sum', ncomp=ncomp, collapse=collapse, 
-                      weights=weights, scale_fac=scale_fac)
+                      algo=alog, delta_rot=delta_rot, fmerit='sum', ncomp=ncomp, 
+                      collapse=collapse, pca_args=pca_args, weights=weights, 
+                      scale_fac=scale_fac)
 
     # -------------------------------------------------------------------------
     if verbose:  start = time_ini()

@@ -382,7 +382,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
 
 def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
-                           fit_type='moff', debug=False, verbose=True, 
+                           fit_type='moff', lbda=None, debug=False, verbose=True, 
                            full_output=False):
     """ Function analog to frame_center_satspots but for image sequences. It
     actually will call frame_center_satspots for each image in the cube. The
@@ -402,6 +402,10 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         in an X configuration, the order is the following: top-left, top-right,
         bottom-left and bottom-right. When the spots are in an + (cross-like)
         configuration, the order is the following: top, right, left, bottom.
+        If wavelength vector is not provided, assumes all sat spots of the cube
+        are at a similar location. If wavelength is provided, only coordinates 
+        of the sat spots in the first channel should be provided. The boxes
+        location in other channels will be scaled accordingly.
     subi_size : int, optional
         Size of subimage where the fitting is done.
     sigfactor : int, optional
@@ -413,6 +417,9 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         Whether to plot the shifts.
     fit_type: str, optional {'gaus','moff'}
         Type of 2d fit to infer the centroid of the satellite spots.
+    lbda: 1d array or list, opt
+        Wavelength vector. If provided, the subimages will be scaled accordingly 
+        to follow the motion of the satellite spots.
     debug : bool, optional
         If True debug information is printed and plotted (fit and residuals,
         intersections and shifts). This has to be used carefully as it can
@@ -445,10 +452,23 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     sat_x = np.zeros([n_frames,4])
     array_rec = []
 
+    if lbda is not None:
+        cy, cx = frame_center(array[0])
+        final_xy = []
+        rescal = lbda/lbda[0]
+        for i in range(n_frames):
+            xy_new = []
+            for s in range(4):
+                xy_new.append((cx+rescal[i]*(xy[s][0]-cx),cy+rescal[i]*(xy[s][1]-cy)))
+            xy_new = tuple(xy_new)
+            final_xy.append(xy_new)
+    else:
+        final_xy = [xy for i in range(n_frames)]
+
     if verbose:
         print('Looping through the frames, fitting the intersections:')
     for i in Progressbar(range(n_frames), verbose=verbose):
-        res = frame_center_satspots(array[i], xy, debug=debug, shift=True,
+        res = frame_center_satspots(array[i], final_xy[i], debug=debug, shift=True,
                                     subi_size=subi_size, sigfactor=sigfactor,
                                     fit_type=fit_type, verbose=False)
         array_rec.append(res[0])
@@ -1336,10 +1356,10 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         cube_reg_ref: Ref. cube registered to science frames (np 3d ndarray)
     
     If full_output is True, returns in addition to the above:
-        cum_x_shifts_sci: Vector of x shifts for science frames (np 1d array)
-        cum_y_shifts_sci: Vector of y shifts for science frames (np 1d array)
         cube_sci_lpf: Low+high-pass filtered science cube (np 3d ndarray)
         cube_stret: Cube with stretched values used for cross-corr (np 3d ndarray)
+        cum_x_shifts_sci: Vector of x shifts for science frames (np 1d array)
+        cum_y_shifts_sci: Vector of y shifts for science frames (np 1d array)
         
         And if cube_ref is not None, also returns:
         cum_x_shifts_ref: Vector of x shifts for ref. frames.
@@ -1412,7 +1432,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     n_frames = alignment_cube.shape[0]  # 1+n or 1+n+nref
     cum_y_shifts = 0
     cum_x_shifts = 0
-
+    opt_rad = []
+    
     for i in range(alignment_iter):
         alignment_cube[0] = np.median(alignment_cube[1:(n + 1)], axis=0)
         if recenter_median:
@@ -1437,9 +1458,10 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                              hole_rad=0.5, sampl_cen=0.1, 
                                              sampl_rad=0.2, ann_width=0.5, 
                                              unc_in=2.)
+                opt_rad.append(rad)                             
             yshift = ceny - (y1 + y_i)
             xshift = cenx - (x1 + x_i)
-
+            
             alignment_cube[0] = frame_shift(alignment_cube[0, :, :], yshift,
                                             xshift, imlib=imlib,
                                             interpolation=interpolation)
@@ -1502,14 +1524,14 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     if ref_star:
         if full_output:
             return (cube_reg_sci, cube_reg_ref, cube_sci_lpf, cube_stret, 
-                    cum_x_shifts_sci, cum_y_shifts_sci, cum_x_shifts_ref, 
+                    cum_x_shifts_sci, cum_y_shifts_sci, opt_rad, cum_x_shifts_ref, 
                     cum_y_shifts_ref)
         else:
             return (cube_reg_sci, cube_reg_ref)
     else:
         if full_output:
             return (cube_reg_sci, cube_sci_lpf, cube_stret, 
-                    cum_x_shifts_sci, cum_y_shifts_sci)
+                    cum_x_shifts_sci, cum_y_shifts_sci, opt_rad)
         else:
             return cube_reg_sci
 

@@ -15,7 +15,7 @@ from matplotlib.pyplot import plot, xlim, ylim, axes, gca, show
 
 
 def cube_planet_free(planet_parameter, cube, angs, psfn, plsc, imlib='opencv',
-                     interpolation='lanczos4'):
+                     interpolation='lanczos4',transmission=None):
     """
     Return a cube in which we have injected negative fake companion at the
     position/flux given by planet_parameter.
@@ -70,14 +70,15 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, plsc, imlib='opencv',
                                                 theta=planet_parameter[i, 1, j],
                                                 imlib=imlib, 
                                                 interpolation=interpolation,
-                                                verbose=False)
+                                                verbose=False,
+                                                transmission=transmission)
         else:    
             cpf = cube_inject_companions(cube_temp, psfn, angs,
                                          flevel=-planet_parameter[i, 2], plsc=plsc,
                                          rad_dists=[planet_parameter[i, 0]],
                                          n_branches=1, theta=planet_parameter[i, 1],
                                          imlib=imlib, interpolation=interpolation,
-                                         verbose=False)
+                                         verbose=False, transmission=transmission)
     return cpf
 
 

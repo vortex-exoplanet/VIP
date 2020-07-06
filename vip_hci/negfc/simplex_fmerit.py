@@ -20,7 +20,8 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
               aperture_radius, initialState, ncomp, cube_ref=None, 
               svd_mode='lapack', scaling=None, fmerit='sum', collapse='median',
               algo=pca_annulus, delta_rot=1, imlib='opencv', 
-              interpolation='lanczos4', debug=False):
+              interpolation='lanczos4', pca_args={}, transmission=None, 
+              debug=False):
     """
     Calculate the reduced chi2:
     \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -74,6 +75,16 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    pca_args: dict, opt
+        Dictionary with additional parameters for the pca algorithm (e.g. tol,
+        min_frames_lib, max_frames_lib)  
+    transmission: numpy array, optional
+        Array with 2 columns. First column is the radial separation in pixels. 
+        Second column is the off-axis transmission (between 0 and 1) at the 
+        radial separation given in column 1.
+    debug: bool, opt
+        Whether to debug and plot the post-processed frame after injection of 
+        the negative fake companion.
         
     Returns
     -------
@@ -91,7 +102,8 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     cube_negfc = cube_inject_companions(cube, psfs_norm, angs, flevel=-flux,
                                         plsc=plsc, rad_dists=[r], n_branches=1,
                                         theta=theta, imlib=imlib, verbose=False,
-                                        interpolation=interpolation)
+                                        interpolation=interpolation, 
+                                        transmission=transmission)
                                       
     # Perform PCA and extract the zone of interest
     res = get_values_optimize(cube_negfc, angs, ncomp, annulus_width,
@@ -99,7 +111,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
                               initialState[1], cube_ref=cube_ref,
                               svd_mode=svd_mode, scaling=scaling, algo=algo,
                               delta_rot=delta_rot, collapse=collapse, 
-                              debug=debug)
+                              pca_args=pca_args, debug=debug)
     if debug and collapse is not None:
         values, frpca = res
         plot_frames(frpca)
@@ -122,7 +134,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
                         fwhm, r_guess, theta_guess, cube_ref=None, 
                         svd_mode='lapack', scaling=None, algo=pca_annulus, 
                         delta_rot=1, imlib='opencv', interpolation='lanczos4',
-                        collapse='median', debug=False):
+                        collapse='median', pca_args={}, debug=False):
     """ Extracts a PCA-ed annulus from the cube and returns the flux values of
     the pixels included in a circular aperture centered at a given position.
     
@@ -169,6 +181,9 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is returned.
+    pca_args: dict, opt
+        Dictionary with additional parameters for the pca algorithm (e.g. tol,
+        min_frames_lib, max_frames_lib)
     debug: boolean
         If True, the cube is returned along with the values.        
         
@@ -191,7 +206,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     msg += 'decreasing the annulus or aperture size.'
     msg += 'rguess: {:.0f}px; centx_fr: {:.0f}px'.format(r_guess,centx_fr)
     msg += 'halfw: {:.0f}px'.format(halfw)
-    if r_guess > centx_fr-halfw or r_guess <= halfw:
+    if r_guess > centx_fr-halfw:# or r_guess <= halfw:
         raise RuntimeError(msg)
                           
     if algo == pca_annulus:
@@ -199,9 +214,13 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
                               svd_mode, scaling, imlib=imlib,
                               interpolation=interpolation, collapse=collapse)
     elif algo == pca_annular:
-        radius_int = int(np.floor(r_guess-annulus_width/2))
+                
+        tol = pca_args.get('tol',1e-1)
+        min_frames_lib=pca_args.get('min_frames_lib',2)
+        max_frames_lib=pca_args.get('max_frames_lib',200)
+        radius_int = pca_args.get('radius_int', max(1,int(np.floor(r_guess-annulus_width/2))))
         # crop cube to just be larger than annulus => FASTER PCA
-        crop_sz = int(np.ceil(r_guess+annulus_width))
+        crop_sz = int(2*np.ceil(radius_int+annulus_width+1))
         if not crop_sz %2:
             crop_sz+=1
         if crop_sz < cube.shape[1] and crop_sz < cube.shape[2]:
@@ -210,12 +229,15 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         else:
             crop_cube = cube
 
+
         pca_res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int, fwhm=fwhm, 
                                   asize=annulus_width, delta_rot=delta_rot, 
                                   ncomp=ncomp, svd_mode=svd_mode, scaling=scaling, 
                                   imlib=imlib, interpolation=interpolation,
-                                  collapse=collapse, full_output=False, 
-                                  verbose=False)
+                                  collapse=collapse, tol=tol, 
+                                  min_frames_lib=min_frames_lib, 
+                                  max_frames_lib=max_frames_lib, 
+                                  full_output=False, verbose=False)
         # pad again now                      
         pca_res = np.pad(pca_res_tmp,pad,mode='constant',constant_values=0)
         

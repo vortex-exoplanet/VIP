@@ -70,8 +70,8 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
            ncomp, aperture_radius, initial_state, cube_ref=None,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
            delta_rot=1, fmerit='sum', imlib='opencv', interpolation='lanczos4', 
-           collapse='median', weights=None, transmission=None, scale_fac=1, 
-           debug=False):
+           collapse='median', pca_args={}, weights=None, transmission=None, 
+           scale_fac=1, debug=False):
     """ Define the likelihood log-function.
     
     Parameters
@@ -121,6 +121,9 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
+    pca_args: dict, opt
+        Dictionary with additional parameters for the pca algorithm (e.g. tol,
+        min_frames_lib, max_frames_lib) 
     weights : 1d array, optional
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
@@ -165,7 +168,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
                                  svd_mode=svd_mode, scaling=scaling,
                                  algo=algo, delta_rot=delta_rot, imlib=imlib, 
                                  interpolation=interpolation,
-                                 collapse=collapse)
+                                 collapse=collapse, pca_args=pca_args)
     
     # Function of merit
     if fmerit == 'sum':
@@ -186,8 +189,8 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
            annulus_width, ncomp, aperture_radius, initial_state, cube_ref=None,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
            delta_rot=1, fmerit='sum', imlib='opencv',
-           interpolation='lanczos4', collapse='median', weights=None, 
-           transmission=None, scale_fac=1, display=False):
+           interpolation='lanczos4', collapse='median', pca_args={}, 
+           weights=None, transmission=None, scale_fac=1, display=False):
     """ Define the probability log-function as the sum between the prior and
     likelihood log-funtions.
     
@@ -232,6 +235,9 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    pca_args: dict, opt
+        Dictionary with additional parameters for the pca algorithm (e.g. tol,
+        min_frames_lib, max_frames_lib)   
     collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
@@ -270,7 +276,7 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
     return lp + lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, 
                        ncomp, aperture_radius, initial_state, cube_ref, 
                        svd_mode, scaling, algo, delta_rot, fmerit, imlib,
-                       interpolation, collapse, weights, transmission, 
+                       interpolation, collapse, pca_args, weights, transmission, 
                        scale_fac)
 
 
@@ -366,11 +372,11 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         svd_mode='lapack', scaling='temp-mean', 
                         algo=pca_annulus, delta_rot=1, fmerit='sum',
                         imlib='opencv', interpolation='lanczos4',
-                        collapse='median', weights=None, transmission=None, 
-                        nwalkers=1000, bounds=None, a=2.0, burnin=0.3, 
-                        rhat_threshold=1.01, rhat_count_threshold=1, 
-                        niteration_min=1, niteration_limit=1e2, 
-                        niteration_supp=0, check_maxgap=1e4, nproc=1, 
+                        collapse='median', pca_args={}, weights=None, 
+                        transmission=None, nwalkers=1000, bounds=None, a=2.0, 
+                        burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1, 
+                        niteration_min=10, niteration_limit=100, 
+                        niteration_supp=0, check_maxgap=20, nproc=1, 
                         output_dir='results/', output_file=None, display=False, 
                         verbosity=0, save=False):
     r""" Runs an affine invariant mcmc sampling algorithm in order to determine
@@ -434,6 +440,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
+    pca_args: dict, opt
+        Dictionary with additional parameters for the pca algorithm (e.g. tol,
+        min_frames_lib, max_frames_lib)   
     weights : 1d array, optional
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
@@ -571,8 +580,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                            aperture_radius, initial_state,
                                            cube_ref, svd_mode, scaling, algo,
                                            delta_rot, fmerit, imlib, 
-                                           interpolation, collapse, weights,
-                                           transmission, scale_fac]),
+                                           interpolation, collapse, pca_args, 
+                                           weights, transmission, scale_fac]),
                                     threads=nproc)
                                     
     start = datetime.datetime.now()
@@ -611,8 +620,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         # ---------------------------------------------------------------------
         # If k meets the criterion, one tests the non-convergence.
         # ---------------------------------------------------------------------
-        criterion = np.amin([np.ceil(itermin*(1+fraction)**geom),
-                             lastcheck+np.floor(maxgap)])
+        criterion = int(np.amin([np.ceil(itermin*(1+fraction)**geom),
+                             lastcheck+np.floor(maxgap)]))
         if k == criterion:
             if verbosity == 2:
                 print('\n   Gelman-Rubin statistic test in progress ...')

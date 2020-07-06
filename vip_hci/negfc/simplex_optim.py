@@ -25,8 +25,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
                           svd_mode='lapack', scaling=None, fmerit='sum',
                           imlib='opencv', interpolation='lanczos4',
                           collapse='median', algo=pca_annulus, delta_rot=1, 
-                          f_range=None, plot=False, verbose=True, save=False, 
-                          debug=False):
+                          pca_args={}, f_range=None, transmission=None, 
+                          plot=False, verbose=True, save=False, debug=False):
     """ Determine a first guess for the flux of a companion at a given position
     in the cube by doing a simple grid search evaluating the reduced chi2.
     
@@ -77,9 +77,16 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
+    pca_args: dict, opt
+        Dictionary with additional parameters for the pca algorithm (e.g. tol,
+        min_frames_lib, max_frames_lib)
     f_range: numpy.array, optional
         The range of flux tested values. If None, 20 values between 0 and 5000
         are tested.
+    transmission: numpy array, optional
+        Array with 2 columns. First column is the radial separation in pixels. 
+        Second column is the off-axis transmission (between 0 and 1) at the 
+        radial separation given in column 1.
     plot: boolean, optional
         If True, the figure chi2 vs. flux is displayed.
     verbose: boolean
@@ -113,7 +120,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
                                fwhm, annulus_width, aperture_radius,
                                (r0, theta0), ncomp, cube_ref, svd_mode,
                                scaling, fmerit, collapse, algo, delta_rot,
-                               imlib, interpolation, debug))
+                               imlib, interpolation, pca_args, transmission, 
+                               debug))
         if chi2r[j] > chi2r[j-1]:
             counter += 1
         if counter == 4:
@@ -146,8 +154,9 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
                        aperture_radius, cube_ref=None, svd_mode='lapack', 
                        scaling=None, fmerit='sum', imlib='opencv',
                        interpolation='lanczos4', collapse='median', 
-                       algo=pca_annulus, delta_rot=1, p_ini=None,
-                       options=None, verbose=False, **kwargs):
+                       algo=pca_annulus, delta_rot=1, pca_args={}, p_ini=None,
+                       transmission=None, options=None, verbose=False, 
+                       **kwargs):
     """
     Determine the position of a companion using the negative fake companion 
     technique and a standard minimization algorithm (Default=Nelder-Mead) .
@@ -198,8 +207,15 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
+    pca_args: dict, opt
+        Dictionary with additional parameters for the pca algorithm (e.g. tol,
+        min_frames_lib, max_frames_lib)
     p_ini : np.array
         Position (r, theta) of the circular aperture center.
+    transmission: numpy array, optional
+        Array with 2 columns. First column is the radial separation in pixels. 
+        Second column is the off-axis transmission (between 0 and 1) at the 
+        radial separation given in column 1.
     options: dict, optional
         The scipy.optimize.minimize options.
     verbose : boolean, optional
@@ -221,7 +237,8 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
                                         annulus_width, aperture_radius, p_ini,
                                         ncomp, cube_ref, svd_mode, scaling,
                                         fmerit, collapse, algo, delta_rot, 
-                                        imlib, interpolation),
+                                        imlib, interpolation, pca_args, 
+                                        transmission),
                     method='Nelder-Mead', options=options, **kwargs)
 
     if verbose:
@@ -233,8 +250,9 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                annulus_width=4, aperture_radius=1, cube_ref=None, 
                svd_mode='lapack', scaling=None, fmerit='sum', imlib='opencv',
                interpolation='lanczos4', collapse='median', algo=pca_annulus,
-               delta_rot=1, p_ini=None, f_range=None, simplex=True, 
-               simplex_options=None, plot=False, verbose=True, save=False):
+               delta_rot=1, pca_args={}, p_ini=None, f_range=None, 
+               transmission=None, simplex=True, simplex_options=None, 
+               plot=False, verbose=True, save=False):
     """ Determines a first guess for the position and the flux of a planet.
         
     We process the cube without injecting any negative fake companion. 
@@ -299,11 +317,18 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
+    pca_args: dict, opt
+        Dictionary with additional parameters for the pca algorithm (e.g. tol,
+        min_frames_lib, max_frames_lib)
     p_ini: numpy.array
         Position (r, theta) of the circular aperture center.            
     f_range: numpy.array, optional
         The range of flux tested values. If None, 20 values between 0 and 5000
         are tested.
+    transmission: numpy array, optional
+        Array with 2 columns. First column is the radial separation in pixels. 
+        Second column is the off-axis transmission (between 0 and 1) at the 
+        radial separation given in column 1.
     simplex: bool, optional
         If True, the Nelder-Mead minimization is performed after the flux grid
         search.
@@ -354,7 +379,9 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                          fmerit=fmerit, imlib=imlib,
                                          collapse=collapse, algo=algo, 
                                          delta_rot=delta_rot,
-                                         interpolation=interpolation,
+                                         interpolation=interpolation, 
+                                         pca_args=pca_args, 
+                                         transmission=transmission,
                                          plot=plot, verbose=verbose, save=save)
         r_pre, theta_pre, f_pre = res_init
 
@@ -380,7 +407,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                      fmerit=fmerit, imlib=imlib,
                                      interpolation=interpolation,
                                      collapse=collapse, algo=algo, 
-                                     delta_rot=delta_rot,p_ini=p_ini,
+                                     delta_rot=delta_rot, pca_args=pca_args, 
+                                     p_ini=p_ini, transmission=transmission,
                                      options=simplex_options, verbose=False)
             
             r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x

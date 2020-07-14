@@ -25,9 +25,8 @@ from ..stats import descriptive_stats
 def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         svd_mode='lapack', scaling=None, mask_center_px=None, source_xy=None,
         delta_rot=1, fwhm=4, adimsdi='single', crop_ifs=True, imlib='opencv',
-        imlib2='opencv', interpolation='lanczos4', collapse='median', 
-        ifs_collapse_range='all', check_memory=True, batch=None, nproc=1, 
-        full_output=False, verbose=True):
+        interpolation='lanczos4', collapse='median', ifs_collapse_range='all',
+        check_memory=True, batch=None, nproc=1, full_output=False, verbose=True):
     """ Algorithm where the reference PSF and the quasi-static speckle pattern
     are modeled using Principal Component Analysis. Depending on the input
     parameters this PCA function can work in ADI, RDI or SDI (IFS data) mode.
@@ -150,7 +149,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         ``spat-mean``: spatial mean is subtracted.
 
         ``temp-standard``: temporal mean centering plus scaling pixel values
-        to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES!
+        to unit variance.
 
         ``spat-standard``: spatial mean centering plus scaling pixel values
         to unit variance.
@@ -187,9 +186,6 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         the edge of small FOVs (e.g. SINFONI).
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    imlib2 : str, optional
-        See the documentation of the ``vip_hci.preproc.cube_rescaling_wavelengths`` 
-        function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
@@ -274,11 +270,11 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
     # ADI + mSDI. Shape of cube: (n_channels, n_adi_frames, y, x)
-    if scale_list is not None: #isinstance(cube, np.ndarray) and cube.ndim == 4:
+    if isinstance(cube, np.ndarray) and cube.ndim == 4:
         if adimsdi == 'double':
             res_pca = _adimsdi_doublepca(cube, angle_list, scale_list, ncomp,
                                          scaling, mask_center_px, svd_mode,
-                                         imlib, imlib2, interpolation, collapse, 
+                                         imlib, interpolation, collapse, 
                                          ifs_collapse_range, verbose, start_time, 
                                          nproc)
             residuals_cube_channels, residuals_cube_channels_, frame = res_pca
@@ -286,7 +282,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
             res_pca = _adimsdi_singlepca(cube, angle_list, scale_list, ncomp,
                                          fwhm, source_xy, scaling,
                                          mask_center_px, svd_mode, imlib,
-                                         imlib2, interpolation, collapse, 
+                                         interpolation, collapse, 
                                          ifs_collapse_range, verbose, start_time, 
                                          crop_ifs, batch, full_output=True)
             if isinstance(ncomp, (int, float)):
@@ -522,12 +518,17 @@ def _adi_pca(cube, angle_list, ncomp, batch, source_xy, delta_rot, fwhm,
 
 
 def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, fwhm, source_xy,
-                       scaling, mask_center_px, svd_mode, imlib, imlib2, interpolation,
+                       scaling, mask_center_px, svd_mode, imlib, interpolation,
                        collapse, ifs_collapse_range, verbose, start_time, 
                        crop_ifs, batch, full_output):
     """ Handles the full-frame ADI+mSDI single PCA post-processing.
     """
     z, n, y_in, x_in = cube.shape
+
+    if not scaling == 'temp-standard':
+        scaling = 'temp-standard'
+        if verbose:
+            print("Pixel-wise scaling set to `temp-standard`")
 
     angle_list = check_pa_vector(angle_list)
     if not angle_list.shape[0] == n:
@@ -548,8 +549,7 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, fwhm, source_xy,
     if verbose:
         print('Rescaling the spectral channels to align the speckles')
     for i in Progressbar(range(n), verbose=verbose):
-        cube_resc = scwave(cube[:, i, :, :], scale_list, imlib=imlib2,
-                           interpolation=interpolation)[0]
+        cube_resc = scwave(cube[:, i, :, :], scale_list)[0]
         if crop_ifs:
             cube_resc = cube_crop_frames(cube_resc, size=y_in, verbose=False)
         big_cube.append(cube_resc)
@@ -593,8 +593,7 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, fwhm, source_xy,
             frame_i = scwave(res_cube[i*z+idx_ini:i*z+idx_fin, :, :], 
                              scale_list[idx_ini:idx_fin],
                              full_output=False, inverse=True, y_in=y_in,
-                             x_in=x_in, imlib=imlib2,
-                             interpolation=interpolation, collapse=collapse)
+                             x_in=x_in, collapse=collapse)
             resadi_cube[i] = frame_i
 
         if verbose:
@@ -626,8 +625,8 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, fwhm, source_xy,
 
 
 def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
-                       mask_center_px, svd_mode, imlib, imlib2, interpolation,
-                       collapse, ifs_collapse_range, verbose, start_time, nproc):
+                       mask_center_px, svd_mode, imlib, interpolation, collapse,
+                       ifs_collapse_range, verbose, start_time, nproc):
     """
     Handle the full-frame ADI+mSDI double PCA post-processing.
 
@@ -642,6 +641,11 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
                         " is performed")
     else:
         ncomp_ifs, ncomp_adi = ncomp
+
+    if not scaling == 'temp-standard':
+        scaling = 'temp-standard'
+        if verbose:
+            print("Pixel-wise scaling set to `temp-standard`")
 
     angle_list = check_pa_vector(angle_list)
     if not angle_list.shape[0] == n:
@@ -672,8 +676,8 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
         print(msg.format(z, ncomp_ifs))
 
     res = pool_map(nproc, _adimsdi_doublepca_ifs, iterable(range(n)), ncomp_ifs,
-                   scale_list, scaling, mask_center_px, svd_mode, imlib2, 
-                   interpolation, collapse, ifs_collapse_range, verbose=verbose)
+                   scale_list, scaling, mask_center_px, svd_mode, collapse,
+                   ifs_collapse_range, verbose=verbose)
     residuals_cube_channels = np.array(res)
 
     if verbose:
@@ -715,8 +719,7 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
 
 
 def _adimsdi_doublepca_ifs(fr, ncomp, scale_list, scaling, mask_center_px,
-                           svd_mode, imlib, interpolation, collapse, 
-                           ifs_collapse_range):
+                           svd_mode, collapse, ifs_collapse_range):
     """
     Called by _adimsdi_doublepca with pool_map.
     """
@@ -735,14 +738,12 @@ def _adimsdi_doublepca_ifs(fr, ncomp, scale_list, scaling, mask_center_px,
     if ncomp is None:
         frame_i = cube_collapse(multispec_fr[idx_ini:idx_fin], mode=collapse)
     else:
-        cube_resc = scwave(multispec_fr, scale_list, imlib=imlib, 
-                           interpolation=interpolation)[0]
+        cube_resc = scwave(multispec_fr, scale_list)[0]
         residuals = _project_subtract(cube_resc, None, ncomp, scaling,
                                       mask_center_px, svd_mode, verbose=False,
                                       full_output=False)
         frame_i = scwave(residuals[idx_ini:idx_fin], scale_list[idx_ini:idx_fin], 
                          full_output=False, inverse=True, y_in=y_in, x_in=x_in,
-                         imlib=imlib, interpolation=interpolation, 
                          collapse=collapse)
 
     return frame_i
@@ -753,6 +754,12 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
     """ Handles the ADI+RDI post-processing.
     """
     n, y, x = cube.shape
+
+    # forcing the 'temp-standard' scaling
+    if scaling != 'temp-standard':
+        scaling = 'temp-standard'
+        if verbose:
+            print("Pixel-wise scaling set to `temp-standard`")
 
     angle_list = check_pa_vector(angle_list)
     if not isinstance(ncomp, int):

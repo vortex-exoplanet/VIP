@@ -56,7 +56,8 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
 
     cy, cx = frame_center(array)
 
-    ind = circle(cy, cx, radius)
+    shape = (array.shape[-2],array.shape[-1])
+    ind = circle(cy, cx, radius, shape=shape)
 
     if mode == 'in':
         array_masked = array.copy()
@@ -212,7 +213,8 @@ def frame_center(array, verbose=False):
     cx = shape[1] / 2 - 0.5
 
     if verbose:
-        print('Center px coordinates at x,y = ({}, {})'.format(cx, cy))
+        print('Center px coordinates at x,y = ({}, {})'.format(cx, cy))  
+    
     return cy, cx
 
 
@@ -322,8 +324,6 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
         Input 2d array or image.
     radius : int
         The radius of the circular region.
-    output_values : bool, optional
-        Sets the type of output.
     cy, cx : int, optional
         Coordinates of the circle center. If one of them is ``None``, the center
         of ``array`` is used.

@@ -434,12 +434,13 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
             sbox = np.zeros([n_z,2*sbox_y+1,2*sbox_x+1])
 
     if ndims == 2:
-        gauss_filt_tmp = frame_filter_lowpass(obj_tmp, 'gauss', fwhm_size=fwhm)
+        med_filt_tmp = frame_filter_lowpass(obj_tmp, 'median', 
+                                              median_size=int(fwhm))
         if approx_peak is None:
-            ind_max = np.unravel_index(gauss_filt_tmp.argmax(),
-                                       gauss_filt_tmp.shape)
+            ind_max = np.unravel_index(med_filt_tmp.argmax(),
+                                       med_filt_tmp.shape)
         else:
-            sbox = gauss_filt_tmp[approx_peak[0]-sbox_y:approx_peak[0]+sbox_y+1,
+            sbox = med_filt_tmp[approx_peak[0]-sbox_y:approx_peak[0]+sbox_y+1,
                                   approx_peak[1]-sbox_x:approx_peak[1]+sbox_x+1]
             ind_max_sbox = np.unravel_index(sbox.argmax(), sbox.shape)
             ind_max = (approx_peak[0]-sbox_y+ind_max_sbox[0],
@@ -449,19 +450,19 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
 
     if ndims == 3:
         n_z = obj_tmp.shape[0]
-        gauss_filt_tmp = np.zeros_like(obj_tmp)
+        med_filt_tmp = np.zeros_like(obj_tmp)
         ind_ch_max = np.zeros([n_z,2])
         if isinstance(fwhm, float) or isinstance(fwhm, int):
             fwhm = [fwhm]*n_z
 
         for zz in range(n_z):
-            gauss_filt_tmp[zz] = frame_filter_lowpass(obj_tmp[zz], 'gauss',
-                                                      fwhm_size=fwhm[zz])
+            med_filt_tmp[zz] = frame_filter_lowpass(obj_tmp[zz], 'median', 
+                                                    median_size=int(fwhm[zz]))
             if approx_peak is None:
-                ind_ch_max[zz] = np.unravel_index(gauss_filt_tmp[zz].argmax(),
-                                                  gauss_filt_tmp[zz].shape)
+                ind_ch_max[zz] = np.unravel_index(med_filt_tmp[zz].argmax(),
+                                                  med_filt_tmp[zz].shape)
             else:
-                sbox[zz] = gauss_filt_tmp[zz, approx_peak[0]-sbox_y:\
+                sbox[zz] = med_filt_tmp[zz, approx_peak[0]-sbox_y:\
                                           approx_peak[0]+sbox_y+1,
                                           approx_peak[1]-sbox_x:\
                                           approx_peak[1]+sbox_x+1]
@@ -471,8 +472,8 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
                                   approx_peak[1]-sbox_x+ind_max_sbox[1])
 
         if approx_peak is None:
-            ind_max = np.unravel_index(gauss_filt_tmp.argmax(),
-                                       gauss_filt_tmp.shape)
+            ind_max = np.unravel_index(med_filt_tmp.argmax(),
+                                       med_filt_tmp.shape)
         else:
             ind_max_tmp = np.unravel_index(sbox.argmax(),
                                            sbox.shape)

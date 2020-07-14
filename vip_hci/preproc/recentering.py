@@ -466,6 +466,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         final_xy = [xy for i in range(n_frames)]
 
     if verbose:
+        print("Final xy positions for sat spots:", final_xy)
         print('Looping through the frames, fitting the intersections:')
     for i in Progressbar(range(n_frames), verbose=verbose):
         res = frame_center_satspots(array[i], final_xy[i], debug=debug, shift=True,
@@ -1410,17 +1411,23 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     # Remove spatial frequencies <0.5 lam/D and >3lam/D to isolate speckles
     cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
                                         median_size=median_size, verbose=False)
-    cube_sci_lpf = cube_filter_lowpass(cube_sci_hpf, 'gauss',
-                                       fwhm_size=min_spat_freq * fwhm, verbose=False)
+    if min_spat_freq>0:
+        cube_sci_lpf = cube_filter_lowpass(cube_sci_hpf, 'gauss',
+                                           fwhm_size=min_spat_freq * fwhm, verbose=False)
+    else:
+        cube_sci_lpf = cube_sci_hpf
 
     if ref_star:
         cube_ref_hpf = cube_filter_highpass(cube_ref_lpf, 'median-subt',
                                             median_size=median_size,
                                             verbose=False)
-        cube_ref_lpf = cube_filter_lowpass(cube_ref_hpf, 'gauss',
+        if min_spat_freq>0:                                    
+            cube_ref_lpf = cube_filter_lowpass(cube_ref_hpf, 'gauss',
                                            fwhm_size=min_spat_freq * fwhm,
                                            verbose=False)
-
+        else:
+            cube_ref_lpf = cube_ref_hpf
+        
     if ref_star:
         alignment_cube = np.zeros((1 + n + nref, subframesize, subframesize))
         alignment_cube[1:(n + 1), :, :] = cube_sci_lpf

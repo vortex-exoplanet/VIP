@@ -4,7 +4,7 @@
 Module with fake companion injection functions.
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
+__author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
 __all__ = ['collapse_psf_cube',
            'normalize_psf',
            'cube_inject_companions',
@@ -82,6 +82,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     positions : list of tuple(y, x)
         [full_output] Coordinates of the injections in the first frame (and
         first wavelength for 4D cubes).
+    psf_trans: array with injected psf affected by transmission (only returned
+        if transmission is not None)
+        
 
     """
     check_array(array, dim=(3, 4), msg="array")
@@ -97,6 +100,23 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     positions = []
 
     if transmission is not None:
+        if transmission.shape[0] != 2:
+            raise ValueError("transmission should be a (2,N) ndarray")
+        # if transmission doesn't have right format for interpolation, adapt it
+        if transmission[0,0] != 0 or transmission[0,-1] < np.sqrt(2)*array.shape[-1]:
+            trans_rad_list = transmission[0].tolist()
+            trans_list = transmission[1].tolist()
+            ## should have a zero point        
+            if transmission[0,0] != 0:
+                trans_rad_list = [0]+trans_rad_list
+                trans_list = [0]+trans_list
+            ## last point should be max possible distance between fc and star
+            if transmission[0,-1] < np.sqrt(2)*array.shape[-1]:
+                trans_rad_list = trans_rad_list+[np.sqrt(2)*array.shape[-1]]
+                trans_list = trans_list+[1]
+            transmission = np.array([trans_rad_list,trans_list])
+        
+        ## last radial separation should be beyond the edge of frame
         interp_trans = interp1d(transmission[0],transmission[1])
 
     # ADI case
@@ -133,15 +153,26 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
             for rad in rad_dists:
                 if transmission is not None:
+                    fc_fr_rad = fc_fr.copy()
                     y_star = ceny
                     x_star = cenx - rad
                     d = dist_matrix(fc_fr.shape[0],x_star,y_star)
-                    fc_fr_rad = interp_trans(d)*fc_fr
+                    for i in range(d.shape[0]):
+                        fc_fr_rad[i] = interp_trans(d[i])*fc_fr[i]
+                    if full_output:
+                        # check the effect of transmission on a single PSF tmp
+                        psf_trans = frame_rotate(fc_fr_rad, 
+                                                 -(np.rad2deg(ang)))
+                        shift_y = rad * np.sin(ang)
+                        shift_x = rad * np.cos(ang)
+                        psf_trans = frame_shift(psf_trans, shift_y, shift_x,
+                                                 imlib, interpolation)
                 for fr in range(nframes):
                     shift_y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     shift_x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
                     if transmission is not None:
-                        fc_fr_ang = frame_rotate(fc_fr_rad, ang)
+                        fc_fr_ang = frame_rotate(fc_fr_rad, 
+                                                 -(np.rad2deg(ang)-angle_list[fr]))
                     else:
                         fc_fr_ang = fc_fr
                     if isinstance(flevel, (int, float, np_elements)):
@@ -223,7 +254,10 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                                                             rad_arcs, rad))
 
     if full_output:
-        return array_out, positions
+        if transmission is not None:
+            return array_out, positions, psf_trans
+        else:
+            return array_out, positions
     else:
         return array_out
 

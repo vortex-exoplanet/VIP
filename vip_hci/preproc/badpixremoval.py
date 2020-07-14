@@ -361,13 +361,13 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
                 rr_sma= rr
             if half_res_y:
                 big_ell_idx = ellipse(cy=cy, cx=cx, 
-                                      yradius=((rr_big+1)*ann_width)/2, 
-                                      xradius=(rr_big+1)*ann_width, 
+                                      r_radius=((rr_big+1)*ann_width)/2, 
+                                      c_radius=(rr_big+1)*ann_width, 
                                       shape=(n_y,n_x))
                 if rr != 0:
                     small_ell_idx = ellipse(cy=cy, cx=cx, 
-                                            yradius=(rr_sma*ann_width)/2, 
-                                            xradius=rr_sma*ann_width, 
+                                            r_radius=(rr_sma*ann_width)/2, 
+                                            c_radius=rr_sma*ann_width, 
                                             shape=(n_y,n_x))
             else:
                 big_ell_idx = circle(cy, cx, radius=(rr_big+1)*ann_width,
@@ -411,8 +411,8 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
         # centered on the provided coordinates of the star
         if protect_psf:
             if half_res_y: 
-                circl_new = ellipse(cy, cx, yradius=0.9*fwhm, 
-                                    xradius=1.8*fwhm, shape=(n_y,n_x))
+                circl_new = ellipse(cy, cx, r_radius=0.9*fwhm, 
+                                    c_radius=1.8*fwhm, shape=(n_y,n_x))
             else: 
                 circl_new = circle(cy, cx, radius=1.8*fwhm, 
                                    shape=(n_y, n_x))
@@ -493,7 +493,8 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
 
 def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4., 
                           sig=4., protect_psf=True, verbose=True, 
-                          half_res_y=False, max_nit=15, full_output=False):
+                          half_res_y=False, min_thr=None, max_nit=15, 
+                          full_output=False):
     """
     Function to correct clumps of bad pixels. Very fast when a bad pixel map is 
     provided. If a bad pixel map is not provided, the bad pixel clumps will be 
@@ -537,6 +538,10 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         there are always 2 rows of pixels with exactly the same values.
         The algorithm will just consider every other row (hence making it
         twice faster), then apply the bad pixel correction on all rows.
+    min_thr: float or None, opt
+        If provided, corresponds to a minimum absolute threshold below which
+        pixels are not considered bad (can be used to avoid the identification
+        of bad pixels within noise).
     max_nit: float, optional
         Maximum number of iterations on a frame to correct bpix. Typically, it 
         should be set to less than ny/2 or nx/2. This is a mean of precaution in
@@ -562,7 +567,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         if bpm_mask.shape[-2:] != array.shape[-2:]:
             raise TypeError("Bad pixel map has wrong y/x dimensions.")
 
-    def bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_psf, verbose):    
+    def bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_psf, min_thr, verbose):    
         n_x = obj_tmp.shape[1]
         n_y = obj_tmp.shape[0]
 
@@ -590,8 +595,8 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         # centered on the approximate coordinates of the star
         if protect_psf:
             if half_res_y: 
-                circl_new = ellipse(int(cy/2), cx, yradius=0.9*fwhm, 
-                                    xradius=1.8*fwhm, shape=(n_y, n_x))
+                circl_new = ellipse(int(cy/2), cx, r_radius=0.9*fwhm, 
+                                    c_radius=1.8*fwhm, shape=(n_y, n_x))
             else: circl_new = circle(cy, cx, radius=1.8*fwhm, 
                                      shape=(n_y, n_x))
         else: circl_new = []
@@ -603,8 +608,10 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         bpix_map = np.zeros_like(obj_tmp)  
         bpix_map[bp] = 1              
         nbpix_tot = np.sum(bpix_map)
-        nbpix_tbc = nbpix_tot - np.sum(bpix_map[circl_new])
         bpix_map[circl_new] = 0
+        if min_thr is not None:
+            bpix_map[np.where(np.abs(obj_tmp)<min_thr)] = 0
+        nbpix_tbc = np.sum(bpix_map)
         bpix_map_cumul = np.zeros_like(bpix_map)
         bpix_map_cumul[:] = bpix_map[:]
         nit = 0
@@ -623,6 +630,8 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
             bpix_map[bp] = 1
             nbpix_tot = np.sum(bpix_map)
             bpix_map[circl_new] = 0
+            if min_thr is not None:
+                bpix_map[np.where(np.abs(obj_tmp)<min_thr)] = 0
             nbpix_tbc = np.sum(bpix_map)
             bpix_map_cumul = bpix_map_cumul+bpix_map
 
@@ -648,7 +657,8 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                 cy = cen[0,0]
                 cx = cen[0,1]
             obj_tmp, bpix_map_cumul = bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, 
-                                                    protect_psf, verbose)
+                                                    protect_psf, min_thr, 
+                                                    verbose)
         else:
             fwhm_round = int(round(fwhm))
             fwhm_round = fwhm_round+1-(fwhm_round%2) # make it odd
@@ -675,9 +685,13 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                 if verbose: print('************Frame # ', i,' *************')
                 obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], cy[i], 
                                                               cx[i], fwhm[i], sig, 
-                                                              protect_psf, verbose)
+                                                              protect_psf,  
+                                                              min_thr, verbose)
         else:
-            fwhm_round = int(round(fwhm))
+            if isinstance(fwhm, (float,int)):
+                fwhm_round = int(round(fwhm))
+            else:
+                fwhm_round = int(np.median(fwhm))
             fwhm_round = fwhm_round+1-(fwhm_round%2) # make it odd
             neighbor_box = max(3, fwhm_round) # to not replace a companion
             nneig = sum(np.arange(3, neighbor_box+2, 2))

@@ -257,6 +257,8 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
         if np.abs(angle_list[frame] - angle_list[i]) < thr:
             index_prev = i
             break
+        else:
+            index_prev += 1
     for k in range(frame, n):
         if np.abs(angle_list[k] - angle_list[frame]) > thr:
             index_foll = k
@@ -289,7 +291,13 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
             # those based on the PA threshold
             if truncate:
                 thr = min(n//2, max_frames)
-                if frame < n//2:
+                mid_PA = angle_list[0]+(angle_list[-1]-angle_list[0])/2.
+                mid_idx = 0
+                for i in range(n):
+                    if abs(angle_list[i]-mid_PA) > abs(angle_list[i-1]-mid_PA):
+                        mid_idx = i
+                        break
+                if frame < mid_idx:
                     half1 = range(max(0, index_prev - thr // 2), index_prev)
                     half2 = range(index_foll,
                                   min(index_foll + thr - len(half1), n))
@@ -297,7 +305,7 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
                     half2 = range(index_foll, min(n, thr // 2 + index_foll))
                     half1 = range(max(0, index_prev - thr + len(half2)),
                                   index_prev)
-            indices = np.array(list(half1) + list(half2))
+            indices = np.array(list(half1) + list(half2), dtype='int32')
 
         return indices
 

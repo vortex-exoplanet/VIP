@@ -36,7 +36,7 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     ignore_missing_end : bool optional
         Allows to open fits files with a header missing END card.
     return_memmap : bool, optional
-        If True, the functinor returns the handle to the FITS file opened by
+        If True, the function returns the handle to the FITS file opened by
         mmap. With the hdulist, array data of each HDU to be accessed with mmap,
         rather than being read into memory all at once. This is particularly
         useful for working with very large arrays that cannot fit entirely into

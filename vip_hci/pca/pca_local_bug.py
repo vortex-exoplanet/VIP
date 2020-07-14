@@ -150,7 +150,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         ``spat-mean``: spatial mean is subtracted.
 
         ``temp-standard``: temporal mean centering plus scaling pixel values
-        to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES.
+        to unit variance.
 
         ``spat-standard``: spatial mean centering plus scaling pixel values
         to unit variance.
@@ -375,6 +375,13 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
     elif isinstance(delta_rot, (int, float)):
         delta_rot = [delta_rot] * n_annuli
 
+    # forcing the 'temp-standard' scaling
+    if cube_ref is not None:
+        if not scaling == 'temp-standard':
+            scaling = 'temp-standard'
+            if verbose:
+                print("Pixel-wise scaling set to `temp-standard`")
+
     if isinstance(n_segments, int):
         n_segments = [n_segments for _ in range(n_annuli)]
     elif n_segments == 'auto':
@@ -473,17 +480,17 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
     to keep min(num_frames/2, 200) in the library.
     """
     if pa_threshold != 0:
-        #if ann_center > fwhm*10:
-        indices_left = _find_indices_adi(angle_list, frame,
-                                         pa_threshold, truncate=True,
-                                         max_frames=max_frames_lib)
-        #else:
-        #    indices_left = _find_indices_adi(angle_list, frame,
-        #                                     pa_threshold, truncate=False)
+        if ann_center > fwhm*10:
+            indices_left = _find_indices_adi(angle_list, frame,
+                                             pa_threshold, truncate=True,
+                                             max_frames=max_frames_lib)
+        else:
+            indices_left = _find_indices_adi(angle_list, frame,
+                                             pa_threshold, truncate=False)
 
         data_ref = matrix[indices_left]
 
-        if data_ref.shape[0] < min_frames_lib and matrix_ref is None:
+        if data_ref.shape[0] < min_frames_lib:
             msg = 'Too few frames left in the PCA library. '
             msg += 'Try decreasing either delta_rot or min_frames_lib.'
             raise RuntimeError(msg)

@@ -849,7 +849,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                   'the Gaussian 2d fit')
             cy_1, cx_1 = frame_center(array[0])
         else:
-            cx_1, cy_1 = center_fr1
+            cy_1, cx_1 = center_fr1
         if not isinstance(subi_size, int):
             raise ValueError('subi_size must be an integer or None')
         if subi_size < fwhm:

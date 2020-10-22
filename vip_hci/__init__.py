@@ -12,6 +12,7 @@ from . import negfc
 from . import nmf
 from . import pca
 from . import metrics
+from . import specfit
 from . import stats
 from . import var
 from .hci_dataset import *

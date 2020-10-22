@@ -1,6 +1,6 @@
-numpy ~= 1.8
+numpy ~= 1.18
 scipy ~= 1.1.0
-astropy ~= 3.0
+astropy ~= 3.2
 photutils ~= 0.6
 scikit-learn ~= 0.17
 scikit-image ~= 0.11

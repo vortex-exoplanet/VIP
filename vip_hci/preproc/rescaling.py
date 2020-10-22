@@ -88,7 +88,7 @@ def frame_px_resampling(array, scale, imlib='opencv', interpolation='lanczos4',
     imlib : {'ndimage', 'opencv'}, optional
         Library used for image transformations.
     interpolation : str, optional
-        For 'ndimage' library: 'nearneig', bilinear', 'bicuadratic', 'bicubic',
+        For 'ndimage' library: 'nearneig', bilinear', 'biquadratic', 'bicubic',
         'biquartic', 'biquintic'. The 'nearneig' interpolation is the fastest
         and the 'biquintic' the slowest. The 'nearneig' is the worst
         option for interpolation of noisy astronomical images.
@@ -120,7 +120,7 @@ def frame_px_resampling(array, scale, imlib='opencv', interpolation='lanczos4',
             order = 0
         elif interpolation == 'bilinear':
             order = 1
-        elif interpolation == 'bicuadratic':
+        elif interpolation == 'biquadratic':
             order = 2
         elif interpolation == 'bicubic':
             order = 3

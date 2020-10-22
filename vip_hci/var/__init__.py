@@ -10,4 +10,3 @@ Subpackage ``var`` has helping functions such as:
 from .filters import *
 from .fit_2d import *
 from .shapes import *
-from .spectral_fit import *

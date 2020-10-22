@@ -25,7 +25,8 @@ from ..metrics import cube_inject_companions
 from ..conf import time_ini, timing
 from ..conf.utils_conf import sep
 from ..pca import pca_annulus
-from .simplex_fmerit import get_values_optimize
+from .simplex_fmerit import get_values_optimize, get_mu_and_sigma
+from .utils_mcmc import gelman_rubin, autocorr_test
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -71,7 +72,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
            delta_rot=1, fmerit='sum', imlib='opencv', interpolation='lanczos4', 
            collapse='median', pca_args={}, weights=None, transmission=None, 
-           scale_fac=1, debug=False):
+           mu_sigma=(0,1), debug=False):
     """ Define the likelihood log-function.
     
     Parameters
@@ -132,6 +133,10 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         Array with 2 columns. First column is the radial separation in pixels. 
         Second column is the off-axis transmission (between 0 and 1) at the 
         radial separation given in column 1.
+    mu_sigma: tuple of 2 floats, opt
+        Contains the mean and standard deviation of pixel intensities in an 
+        annulus centered on the location of the companion, excluding the area
+        directly adjacent to the companion.
     scale_fac: float
         Factor by which the intensities in the cube are scaled up, to 
         increase the residuals. This operation is needed for very low companion 
@@ -152,6 +157,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         flux = -param[2]
     else:
         flux = -param[2]*weights
+        norm_weights = weights/np.sum(weights)
     cube_negfc = cube_inject_companions(cube, psf_norm, angs, flevel=flux,
                                         plsc=plsc, rad_dists=[param[0]],
                                         n_branches=1, theta=param[1],
@@ -159,25 +165,31 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
                                         interpolation=interpolation,
                                         transmission=transmission,
                                         verbose=False)
-    if scale_fac > 1:
-        cube_negfc*=scale_fac                            
+#    if scale_fac > 1:
+#        cube_negfc*=scale_fac                            
     # Perform PCA and extract the zone of interest
     values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width,
                                  aperture_radius, fwhm, initial_state[0],
                                  initial_state[1], cube_ref=cube_ref,
                                  svd_mode=svd_mode, scaling=scaling,
                                  algo=algo, delta_rot=delta_rot, imlib=imlib, 
-                                 interpolation=interpolation,
-                                 collapse=collapse, pca_args=pca_args)
+                                 interpolation=interpolation, collapse=collapse, 
+                                 pca_args=pca_args, weights=norm_weights)
     
-    # Function of merit
-    if fmerit == 'sum':
-        lnlikelihood = -0.5 * np.sum(np.abs(values))
-    elif fmerit == 'stddev':
-        values = values[values != 0]
-        lnlikelihood = -np.std(values)*values.size
+    if mu_sigma is None:
+        # old version - delete after enough tests of mu_sigma
+        if fmerit == 'sum':
+            lnlikelihood = -0.5 * np.sum(np.abs(values))
+        elif fmerit == 'stddev':
+            values = values[values != 0]
+            lnlikelihood = -np.std(values)*values.size
+        else:
+            raise RuntimeError('fmerit choice not recognized.')
     else:
-        raise RuntimeError('fmerit choice not recognized.')
+        # true expression of a gaussian log probability
+        mu = mu_sigma[0]
+        sigma = mu_sigma[1]
+        lnlikelihood = -0.5 * np.sum(np.power(mu-values,2)/sigma**2)    
     
     if debug:
         return lnlikelihood, cube_negfc
@@ -188,9 +200,9 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
 def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
            annulus_width, ncomp, aperture_radius, initial_state, cube_ref=None,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
-           delta_rot=1, fmerit='sum', imlib='opencv',
-           interpolation='lanczos4', collapse='median', pca_args={}, 
-           weights=None, transmission=None, scale_fac=1, display=False):
+           delta_rot=1, fmerit='sum', imlib='opencv', interpolation='lanczos4', 
+           collapse='median', pca_args={}, weights=None, transmission=None, 
+           mu_sigma=(0,1), display=False):
     """ Define the probability log-function as the sum between the prior and
     likelihood log-funtions.
     
@@ -250,6 +262,10 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
         Array with 2 columns. First column is the radial separation in pixels. 
         Second column is the off-axis transmission (between 0 and 1) at the 
         radial separation given in column 1.
+    mu_sigma: tuple of 2 floats, opt
+        Contains the mean and standard deviation of pixel intensities in an 
+        annulus centered on the location of the companion, excluding the area
+        directly adjacent to the companion.
     scale_fac: float
         Factor by which the intensities in the cube are scaled up, to 
         increase the residuals. This operation is needed for very low companion 
@@ -277,94 +293,7 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
                        ncomp, aperture_radius, initial_state, cube_ref, 
                        svd_mode, scaling, algo, delta_rot, fmerit, imlib,
                        interpolation, collapse, pca_args, weights, transmission, 
-                       scale_fac)
-
-
-def gelman_rubin(x):
-    """
-    Determine the Gelman-Rubin \hat{R} statistical test between Markov chains.
-    
-    Parameters
-    ----------
-    x: numpy.array
-        The numpy.array on which the Gelman-Rubin test is applied. This array
-        should contain at least 2 set of data, i.e. x.shape >= (2,).
-        
-    Returns
-    -------
-    out: float
-        The Gelman-Rubin \hat{R}.
-
-    Example
-    -------
-    >>> x1 = np.random.normal(0.0,1.0,(1,100))
-    >>> x2 = np.random.normal(0.1,1.3,(1,100))
-    >>> x = np.vstack((x1,x2))
-    >>> gelman_rubin(x)
-    1.0366629898991262
-    >>> gelman_rubin(np.vstack((x1,x1)))
-    0.99
-        
-    """
-    if np.shape(x) < (2,):
-        msg = 'Gelman-Rubin diagnostic requires multiple chains of the same '
-        msg += 'length'
-        raise ValueError(msg)
-
-    try:
-        m, n = np.shape(x)
-    except ValueError:
-        print("Bad shape for the chains")
-        return
-
-    # Calculate between-chain variance
-    B_over_n = np.sum((np.mean(x, 1) - np.mean(x)) ** 2) / (m - 1)
-
-    # Calculate within-chain variances
-    W = np.sum([(x[i] - xbar) ** 2 for i, xbar in
-                enumerate(np.mean(x, 1))]) / (m * (n - 1))
-    # (over) estimate of variance
-    s2 = W * (n - 1) / n + B_over_n
-
-    # Pooled posterior variance estimate
-    V = s2 + B_over_n / m
-
-    # Calculate PSRF
-    R = V / W
-
-    return R
-
-
-def gelman_rubin_from_chain(chain, burnin):
-    """ Pack the MCMC chain and determine the Gelman-Rubin \hat{R} statistical
-    test. In other words, two sub-sets are extracted from the chain (burnin
-    parts are taken into account) and the Gelman-Rubin statistical test is
-    performed.
-    
-    Parameters
-    ----------
-    chain: numpy.array
-        The MCMC chain with the shape walkers x steps x model_parameters
-    burnin: float \in [0,1]
-        The fraction of a walker which is discarded.
-        
-    Returns
-    -------
-    out: float
-        The Gelman-Rubin \hat{R}.
-        
-    """
-    dim = chain.shape[2]
-    k = chain.shape[1]
-    thr0 = int(np.floor(burnin*k))
-    thr1 = int(np.floor((1-burnin) * k * 0.25))
-    rhat = np.zeros(dim)
-    for j in range(dim):
-        part1 = chain[:, thr0:thr0+thr1, j].reshape((-1))
-        part2 = chain[:, thr0+3*thr1:thr0+4*thr1, j].reshape((-1))
-        series = np.vstack((part1, part2))
-        rhat[j] = gelman_rubin(series)
-    return rhat
+                       mu_sigma)
 
 
 def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
@@ -372,13 +301,15 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         svd_mode='lapack', scaling='temp-mean', 
                         algo=pca_annulus, delta_rot=1, fmerit='sum',
                         imlib='opencv', interpolation='lanczos4',
-                        collapse='median', pca_args={}, weights=None, 
-                        transmission=None, nwalkers=1000, bounds=None, a=2.0, 
-                        burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1, 
-                        niteration_min=10, niteration_limit=100, 
-                        niteration_supp=0, check_maxgap=20, nproc=1, 
-                        output_dir='results/', output_file=None, display=False, 
-                        verbosity=0, save=False):
+                        collapse='median', pca_args={}, wedge=(0,360), 
+                        weights=None, transmission=None, mu_sigma=None, 
+                        nwalkers=100, bounds=None, a=2.0, burnin=0.3, 
+                        rhat_threshold=1.01, rhat_count_threshold=1, 
+                        niteration_min=10, niteration_limit=10000, 
+                        niteration_supp=0, check_maxgap=20, conv_test='gb',
+                        ac_c=50, ac_count_thr=3, nproc=1, output_dir='results/', 
+                        output_file=None, display=False, verbosity=0, 
+                        save=False):
     r""" Runs an affine invariant mcmc sampling algorithm in order to determine
     the position and the flux of the planet using the 'Negative Fake Companion'
     technique. The result of this procedure is a chain with the samples from the
@@ -441,8 +372,15 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
     pca_args: dict, opt
-        Dictionary with additional parameters for the pca algorithm (e.g. tol,
-        min_frames_lib, max_frames_lib)   
+        Dictionary with additional parameters either related to the pca 
+        algorithm (e.g. tol, min_frames_lib, max_frames_lib) or to values in 
+        the PCA image (e.g. mu and sigma) the mean and standard deviation in 
+        the defined wedge (not overlapping with PA_pl +- Delta PA).
+    wedge: tuple, opt
+        Range in theta which the mean and standard deviation are computed in an 
+        annulus defined in the PCA image. An additional check is made to only
+        take part of the wedge not overlapping with PA_pl +- Delta PA, where
+        Delta PA is the parallactic angle range.
     weights : 1d array, optional
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
@@ -451,18 +389,42 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         Array with 2 columns. First column is the radial separation in pixels. 
         Second column is the off-axis transmission (between 0 and 1) at the 
         radial separation given in column 1.
+    mu_sigma: tuple of 2 floats, opt
+        If set to None: not used, and falls back to original version of the 
+        algorithm, using fmerit.
+        If set to anything but None: will compute the mean and standard 
+        deviation of pixel intensities in an annulus centered on the location 
+        of the companion, excluding the area directly adjacent to the companion.
+        These values will then be used in the log-probability of the MCMC.
     bounds: numpy.array or list, default=None, optional
         The prior knowledge on the model parameters. If None, large bounds will
         be automatically estimated from the initial state.
     a: float, default=2.0
         The proposal scale parameter. See notes.
     burnin: float, default=0.3
-        The fraction of a walker which is discarded.
+        The fraction of a walker chain which is discarded. NOTE: only used for
+        Gelman-Rubin convergence test - the chains are returned full. 
     rhat_threshold: float, default=0.01
         The Gelman-Rubin threshold used for the test for nonconvergence.
     rhat_count_threshold: int, optional
         The Gelman-Rubin test must be satisfied 'rhat_count_threshold' times in
         a row before claiming that the chain has converged.
+    conv_test: str, optional {'gb','ac'}
+        Method to check for convergence: 
+        - 'gb' for gelman-rubin test
+        (http://digitalassets.lib.berkeley.edu/sdtr/ucb/text/305.pdf)
+        - 'ac' for autocorrelation analysis 
+        (https://emcee.readthedocs.io/en/stable/tutorials/autocorr/)
+    ac_c: float, optional
+        If the convergence test is made using the auto-correlation, this is the
+        value of C such that tau/N < 1/C is the condition required for tau to be
+        considered a reliable auto-correlation time estimate (for N number of 
+        samples). Recommended: C>50.
+        More details here: 
+        https://emcee.readthedocs.io/en/stable/tutorials/autocorr/
+    ac_c_thr: int, optional
+        The auto-correlation test must be satisfied ac_c_thr times in a row 
+        before claiming that the chain has converged.
     niteration_min: int, optional
         Steps per walker lower bound. The simulation will run at least this
         number of steps per walker.
@@ -535,6 +497,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     if weights is not None:
         if not len(weights)==cube.shape[0]:
             raise TypeError("Weights should have same length as cube axis 0")
+        norm_weights = weights/np.sum(weights)
         
     # #########################################################################
     # Initialization of the variables
@@ -545,13 +508,33 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     supp = niteration_supp
     maxgap = check_maxgap
     initial_state = np.array(initial_state)
+
+    # Measure mu and sigma once in the annulus (instead of each MCMC step)
+    if mu_sigma is not None:
+        mu_sigma = get_mu_and_sigma(cube, angs, ncomp, annulus_width, 
+                                     aperture_radius, fwhm, initial_state[0], 
+                                     initial_state[1], cube_ref=cube_ref, 
+                                     wedge=wedge, svd_mode=svd_mode, 
+                                     scaling=scaling, algo=algo, 
+                                     delta_rot=delta_rot, imlib=imlib, 
+                                     interpolation=interpolation,
+                                     collapse=collapse, weights=norm_weights, 
+                                     pca_args=pca_args)
+        if verbosity == 1 or verbosity==2:
+            msg = "The mean and stddev in the annulus at the radius of the "
+            msg+= "companion (excluding the PA area directly adjacent to it)"
+            msg+=" are {:.2f} and {:.2f} respectively."
+            print(msg.format(mu_sigma[0],mu_sigma[1]))
+#    pca_args['mu']=mu
+#    pca_args['sigma']=sigma
+    # if does not work, activate scale fac
     
     # If companion flux is too low MCMC will not converge. Solution: scale up 
     # the intensities in the cube after injecting the negfc.
-    if initial_state[2] < 100:
-        scale_fac = 100./initial_state[2]
-    else:
-        scale_fac = 1
+#    if initial_state[2] < 100:
+#        scale_fac = 100./initial_state[2]
+#    else:
+    #scale_fac = 1
         
     if itermin > limit:
         itermin = 0
@@ -561,6 +544,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     lastcheck = 0
     konvergence = np.inf
     rhat_count = 0
+    ac_count = 0
     chain = np.empty([nwalkers, 1, dim])
     isamples = np.empty(0)
     pos = initial_state + np.random.normal(0, 1e-1, (nwalkers, 3))
@@ -572,7 +556,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         bounds = [(initial_state[0] - annulus_width/2.,
                    initial_state[0] + annulus_width/2.),  # radius
                   (initial_state[1] - 10, initial_state[1] + 10),   # angle
-                  (0, 2 * initial_state[2])]   # flux
+                  (0.1* initial_state[2], 2 * initial_state[2])]   # flux
     
     sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a,
                                     args=([bounds, cube, angs, plsc, psfn,
@@ -581,7 +565,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                            cube_ref, svd_mode, scaling, algo,
                                            delta_rot, fmerit, imlib, 
                                            interpolation, collapse, pca_args, 
-                                           weights, transmission, scale_fac]),
+                                           weights, transmission, mu_sigma]),
                                     threads=nproc)
                                     
     start = datetime.datetime.now()
@@ -624,7 +608,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                              lastcheck+np.floor(maxgap)]))
         if k == criterion:
             if verbosity == 2:
-                print('\n   Gelman-Rubin statistic test in progress ...')
+                print('\n {} convergence test in progress...'.format(conv_test))
             
             geom += 1
             lastcheck = k
@@ -642,35 +626,57 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                 
             # We only test the rhat if we have reached the min # of steps
             if (k+1) >= itermin and konvergence == np.inf:
-                thr0 = int(np.floor(burnin*k))
-                thr1 = int(np.floor((1-burnin)*k*0.25))
-
-                # We calculate the rhat for each model parameter.
-                for j in range(dim):
-                    part1 = chain[:, thr0:thr0 + thr1, j].reshape(-1)
-                    part2 = chain[:, thr0 + 3 * thr1:thr0 + 4 * thr1, j
-                                 ].reshape(-1)
-                    series = np.vstack((part1, part2))
-                    rhat[j] = gelman_rubin(series)
-                if verbosity == 1 or verbosity == 2:
-                    print('   r_hat = {}'.format(rhat))
-                    cond = rhat <= rhat_threshold
-                    print('   r_hat <= threshold = {} \n'.format(cond))
-                # We test the rhat.
-                if (rhat <= rhat_threshold).all():
-                    rhat_count += 1
-                    if rhat_count < rhat_count_threshold:
+                if conv_test == 'gb':
+                    thr0 = int(np.floor(burnin*k))
+                    thr1 = int(np.floor((1-burnin)*k*0.25))
+    
+                    # We calculate the rhat for each model parameter.
+                    for j in range(dim):
+                        part1 = chain[:, thr0:thr0 + thr1, j].reshape(-1)
+                        part2 = chain[:, thr0 + 3 * thr1:thr0 + 4 * thr1, j
+                                     ].reshape(-1)
+                        series = np.vstack((part1, part2))
+                        rhat[j] = gelman_rubin(series)
+                    if verbosity == 1 or verbosity == 2:
+                        print('   r_hat = {}'.format(rhat))
+                        cond = rhat <= rhat_threshold
+                        print('   r_hat <= threshold = {} \n'.format(cond))
+                    # We test the rhat.
+                    if (rhat <= rhat_threshold).all():
+                        rhat_count += 1
+                        if rhat_count < rhat_count_threshold:
+                            if verbosity == 1 or verbosity == 2:
+                                msg = "Gelman-Rubin test OK {}/{}"
+                                print(msg.format(rhat_count, rhat_count_threshold))
+                        elif rhat_count >= rhat_count_threshold:
+                            if verbosity == 1 or verbosity == 2:
+                                print('... ==> convergence reached')
+                            konvergence = k
+                            stop = konvergence + supp
+                    else:
+                        rhat_count = 0
+                elif conv_test == 'ac':
+                    # We calculate the auto-corr test for each model parameter.
+                    for j in range(dim):
+                        rhat[j] = autocorr_test(chain[:,:k,j])
+                    thr = 1./ac_c
+                    if verbosity == 1 or verbosity == 2:
+                        print('Auto-corr tau/N = {}'.format(rhat))
+                        print('tau/N <= {} = {} \n'.format(thr, rhat<thr))
+                    if (rhat <= thr).all():
+                        ac_count+=1
                         if verbosity == 1 or verbosity == 2:
-                            msg = "Gelman-Rubin test OK {}/{}"
-                            print(msg.format(rhat_count, rhat_count_threshold))
-                    elif rhat_count >= rhat_count_threshold:
-                        if verbosity == 1 or verbosity == 2:
-                            print('... ==> convergence reached')
-                        konvergence = k
-                        stop = konvergence + supp
+                            msg = "Auto-correlation test passed for all params!"
+                            msg+= "{}/{}".format(ac_count,ac_count_thr)
+                            print(msg)
+                        if ac_count >= ac_count_thr:
+                            msg='\n ... ==> convergence reached'
+                            print(msg)
+                            stop = k
+                    else:
+                        ac_count = 0
                 else:
-                    rhat_count = 0
-
+                    raise ValueError('conv_test value not recognized')
         # We have reached the maximum number of steps for our Markov chain.
         if k+1 >= stop:
             if verbosity == 1 or verbosity == 2:
@@ -690,7 +696,14 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     else:
         idxzero = chain.shape[1]
     
-    idx = int(np.amin([np.floor(2e5/nwalkers), np.floor(0.1*idxzero)]))
+    # Valentin: I commented the line below as it seems the chain is shortened
+    # based on arbitrary cutoffs. Shouldn't we keep the whole non-zero chain? 
+    # After all isn't it the point of burnin to remove the first, 
+    # non-independent, samples?
+    # idx = int(np.amin([np.floor(2e5/nwalkers), np.floor(0.1*idxzero)]))
+    
+    idx=0
+        
     if idx == 0:
         isamples = chain[:, 0:idxzero, :]
     else:
@@ -800,7 +813,7 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
         If a part of the chain is filled with zero values, the method will
         discard these steps.
     burnin: float, default: 0
-        The fraction of a walker we want to discard.
+        The fraction of a walker chain we want to discard.
     save: boolean, default: False
         If True, a pdf file is created.
      

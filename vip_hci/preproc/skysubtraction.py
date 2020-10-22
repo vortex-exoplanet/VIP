@@ -17,7 +17,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
     Parameters
     ----------
     sci_cube : numpy ndarray
-        3d array of science frames.
+        3d array of science frames.o
     sky_cube : numpy ndarray
         3d array of sky frames.
     mask : numpy ndarray

@@ -25,4 +25,5 @@ from .simplex_fmerit import *
 from .mcmc_sampling import *
 from .nested_sampling import *
 from .simplex_optim import *
+from .utils_mcmc import *
 from .utils_negfc import *

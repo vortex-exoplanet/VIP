@@ -395,7 +395,7 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
         used as the standard deviation for Gaussian kernel of the Gaussian
         filtering. Can be a 1d array if obj_tmp is a 3D cube.
     approx_peak: 2 components list or array, opt
-        Gives the approximate coordinates of the peak.
+        Gives the approximate yx coordinates of the peak.
     search_box: float or 2 components list or array, opt
         Gives the half-size in pixels of a box in which the peak is searched,
         around approx_peak. If float, it is assumed the same box size is wanted

@@ -11,6 +11,7 @@ __all__ = ['dist',
            'get_circle',
            'get_ellipse',
            'get_annulus_segments',
+           'get_annular_wedge',
            'get_ell_annulus',
            'mask_circle',
            'create_ringed_spider_mask',
@@ -451,7 +452,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
         Number of segments of annulus to be extracted.
     theta_init : int
         Initial azimuth [degrees] of the first segment, counting from the
-        postivie y-axis clockwise.
+        positive x-axis counterclockwise.
     optim_scale_fact : float
         To enlarge the width of the segments, which can then be used as
         optimization segments (e.g. in LOCI).
@@ -503,7 +504,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
     azimuth_coverage = np.deg2rad(int(np.ceil(360 / nsegm)))
     twopi = 2 * np.pi
 
-    xx, yy = np.mgrid[:array.shape[0], :array.shape[1]]
+    yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
     rad = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
     phi = np.arctan2(yy - cy, xx - cx)
     phirot = phi % twopi
@@ -536,6 +537,100 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
     else:
         raise ValueError("mode '{}' unknown!".format(mode))
 
+
+def get_annular_wedge(data, inner_radius, width, wedge=(0,360), mode="ind"):
+    """
+    Return indices or values in segments of a centerered annulus.
+
+    The annulus is defined by ``inner_radius <= annulus < inner_radius+width``.
+
+    Parameters
+    ----------
+    data : 2d numpy ndarray or tuple
+        Input 2d array (image) ot tuple with its shape.
+    inner_radius : float
+        The inner radius of the donut region.
+    width : float
+        The size of the annulus.
+    wedge : tuple of 2 floats
+        Initial and final azimuths [degrees] of the annular segment, counting
+        from the positive x-axis counter-clockwise.
+    mode : {'ind', 'val', 'mask'}, optional
+        Controls what is returned: indices of selected pixels, values of
+        selected pixels, or a boolean mask.
+
+    Returns
+    -------
+    indices : list of ndarrays
+        [mode='ind'] Coordinates of pixels for each annulus segment.
+    values : list of ndarrays
+        [mode='val'] Pixel values.
+    masked : list of ndarrays
+        [mode='mask'] Copy of ``data`` with masked out regions.
+
+    Notes
+    -----
+    Moving from ``get_annulus`` to ``get_annulus_segments``:
+
+    .. code::python
+        # get_annulus handles one single segment only, so note the ``[0]`` after
+        the call to get_annulus_segments if you want to work with one single
+        segment only.
+
+        get_annulus(arr, 2, 3, output_indices=True)
+        # is the same as
+        get_annulus_segments(arr, 2, 3)[0]
+
+        get_annulus(arr, inr, w, output_values=True)
+        # is the same as
+        get_annulus_segments(arr, inr, w, mode="val")[0]
+
+        get_annulus(arr, inr, w)
+        # is the same as
+        get_annulus_segments(arr, inr, w, mode="mask")[0]
+
+        # the only difference is the handling of the border values:
+        # get_annulus_segments is `in <= ann < out`, while get_annulus is
+        # `in <= ann <= out`. But that should make no difference in practice.
+
+    """
+    array = frame_or_shape(data)
+
+    cy, cx = frame_center(array)
+    azimuth_coverage = np.deg2rad(wedge[1]-wedge[0])
+    twopi = 2 * np.pi
+
+    yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
+    rad = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
+    phi = np.arctan2(yy - cy, xx - cx)
+    phirot = phi % twopi
+    outer_radius = inner_radius + width
+
+    phi_start = np.deg2rad(wedge[0])
+    phi_end = phi_start + azimuth_coverage
+
+    if phi_start < twopi and phi_end > twopi:
+        mask = ((rad >= inner_radius) & (rad < outer_radius) &
+                     (phirot >= phi_start) & (phirot <= twopi) |
+                     (rad >= inner_radius) & (rad < outer_radius) &
+                     (phirot >= 0) & (phirot < phi_end - twopi))
+    elif phi_start >= twopi and phi_end > twopi:
+        mask = ((rad >= inner_radius) & (rad < outer_radius) &
+                     (phirot >= phi_start - twopi) &
+                     (phirot < phi_end - twopi))
+    else:
+        mask = ((rad >= inner_radius) & (rad < outer_radius) &
+                     (phirot >= phi_start) & (phirot < phi_end))
+
+    if mode == "ind":
+        return np.where(mask)
+    elif mode == "val":
+        return array[mask]
+    elif mode == "mask":
+        return array*mask
+    else:
+        raise ValueError("mode '{}' unknown!".format(mode))
+        
 
 def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):
     """

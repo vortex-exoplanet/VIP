@@ -515,7 +515,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
     cy,cx : float or 1D array. opt
         Vector with approximate y and x coordinates of the star for each channel
         (cube_like), or single 2-elements vector (frame_like). Should be 
-        provided if bpix_map is None.
+        provided if bpix_map is None and protect_psf set to True.
     fwhm: float or 1D array, opt
         Vector containing the full width half maximum of the PSF in pixels, for
         each channel (cube_like); or single value (frame_like). Shouod be 
@@ -652,7 +652,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
 
     if ndims == 2:
         if bpm_mask is None:
-            if cy is None or cx is None:
+            if (cy is None or cx is None) and protect_psf:
                 cen = approx_stellar_position([obj_tmp], fwhm)
                 cy = cen[0,0]
                 cx = cen[0,1]

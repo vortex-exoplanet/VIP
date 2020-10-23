@@ -155,6 +155,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
     # Create the cube with the negative fake companion injected
     if weights is None:   
         flux = -param[2]
+        norm_weights=weights
     else:
         flux = -param[2]*weights
         norm_weights = weights/np.sum(weights)
@@ -498,6 +499,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         if not len(weights)==cube.shape[0]:
             raise TypeError("Weights should have same length as cube axis 0")
         norm_weights = weights/np.sum(weights)
+    else:
+        norm_weights=weights
         
     # #########################################################################
     # Initialization of the variables

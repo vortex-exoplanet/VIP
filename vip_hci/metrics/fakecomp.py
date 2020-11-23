@@ -39,8 +39,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         2d array with the normalized PSF template, with an odd or even shape.
         The PSF image must be centered wrt to the array! Therefore, it is
         recommended to run the function ``normalize_psf`` to generate a centered
-        and flux-normalized PSF template. In the ADI+mSDI case it must be a 3d
-        array.
+        and flux-normalized PSF template. 
+        It can also be a 3D array, but length should match ADI cube.
+        In the ADI+mSDI (4D input cube) case it must be a 3d array.
     angle_list : 1d numpy ndarray
         List of parallactic angles, in degrees.
     flevel : float or list/1d array
@@ -126,22 +127,33 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         if not rad_dists[-1] < array[0].shape[0] / 2:
             raise ValueError('rad_dists last location is at the border (or '
                              'outside) of the field')
-        size_fc = psf_template.shape[0]
+        size_fc = psf_template.shape[1]
         nframes = array.shape[0]
-        fc_fr = np.zeros_like(array[0])
 
         w = int(np.ceil(size_fc/2)) - 1
-        starty = int(ceny) - w
-        startx = int(cenx) - w
+        sty = int(ceny) - w
+        sty = int(cenx) - w
 
         # fake companion in the center of a zeros frame
-        try:
-            fc_fr[starty:starty+size_fc, startx:startx+size_fc] = psf_template
-        except ValueError as e:
-            print("cannot place PSF on frame. Please verify the shapes! "
-                  "psf shape: {}, array shape: {}".format(psf_template.shape,
-                                                          array.shape))
-            raise e
+        fc_fr = np.zeros_like(array)
+        if psf_template.ndim == 2:
+            try:
+                for fr in range(nframes):
+                    fc_fr[fr, sty:sty+size_fc, sty:sty+size_fc] = psf_template
+            except ValueError as e:
+                print("cannot place PSF on frame. Please verify the shapes! "
+                      "psf shape: {}, array shape: {}".format(psf_template.shape,
+                                                              array.shape))
+                raise e
+        else:
+            try:
+                for fr in range(nframes):
+                    fc_fr[fr,sty:sty+size_fc, sty:sty+size_fc] = psf_template[fr]
+            except ValueError as e:
+                print("cannot place PSF on frames. Please verify the shapes!"
+                      "psf shape: {}, array shape: {}".format(psf_template.shape,
+                                                              array.shape))
+                raise e
 
         array_out = array.copy()
 
@@ -156,25 +168,26 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     fc_fr_rad = fc_fr.copy()
                     y_star = ceny
                     x_star = cenx - rad
-                    d = dist_matrix(fc_fr.shape[0],x_star,y_star)
+                    d = dist_matrix(fc_fr.shape[1],x_star,y_star)
                     for i in range(d.shape[0]):
-                        fc_fr_rad[i] = interp_trans(d[i])*fc_fr[i]
+                        fc_fr_rad[:,i] = interp_trans(d[i])*fc_fr[:,i]
                     if full_output:
                         # check the effect of transmission on a single PSF tmp
-                        psf_trans = frame_rotate(fc_fr_rad, 
+                        psf_trans = frame_rotate(fc_fr_rad[0], 
                                                  -(np.rad2deg(ang)))
                         shift_y = rad * np.sin(ang)
                         shift_x = rad * np.cos(ang)
                         psf_trans = frame_shift(psf_trans, shift_y, shift_x,
                                                  imlib, interpolation)
+                    
                 for fr in range(nframes):
                     shift_y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     shift_x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
-                    if transmission is not None:
-                        fc_fr_ang = frame_rotate(fc_fr_rad, 
+                    if transmission is not None:                       
+                        fc_fr_ang = frame_rotate(fc_fr_rad[fr], 
                                                  -(np.rad2deg(ang)-angle_list[fr]))
                     else:
-                        fc_fr_ang = fc_fr
+                        fc_fr_ang = fc_fr[fr]
                     if isinstance(flevel, (int, float, np_elements)):
                         array_out[fr] += (frame_shift(fc_fr_ang, shift_y, shift_x,
                                                   imlib, interpolation)

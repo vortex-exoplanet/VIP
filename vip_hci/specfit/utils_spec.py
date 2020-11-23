@@ -5,18 +5,29 @@ Utility functions for spectral fitting.
 """
 
 __author__ = 'Valentin Christiaens'
-__all__ = ['blackbody',
+__all__ = ['akaike',
+           'blackbody',
            'combine_spec_corrs',
            'convert_F_units',
            'extinction',
            'find_nearest',
+           'inject_em_line',
            'mj_from_rj_and_logg',
            'nrefrac']
 
 import astropy.constants as c
 import numpy as np
+from scipy.signal import gaussian
         
-        
+def akaike(LnL, k):
+    """
+    Computes the Akaike Information Criterion: 2k-2ln(L),
+    where k is the number of estimated parameters in the model and LnL is the 
+    max ln-likelihood for the model.
+    """
+    return 2*k-2*LnL  
+
+
 def blackbody(lbda, T): 
     """
     Assumes lbda is a wavelength vector in micrometers.
@@ -96,7 +107,7 @@ def convert_F_units(F, lbda, in_unit='cgs', out_unit='si'):
     --------
     Flux in output units.
     """
-    
+
     if in_unit == 'cgs':
         new_F = (F*1e23*np.power(lbda,2))/(c.c.value*1e6) # convert to jy
     elif in_unit == 'cgsA':
@@ -115,6 +126,8 @@ def convert_F_units(F, lbda, in_unit='cgs', out_unit='si'):
         return new_F*1e-26*c.c.value*1e6/np.power(lbda,2)
     else:
         raise TypeError("out_unit not recognized, try either 'cgs', 'si' or 'jy'.")  
+
+
 
 
 def extinction(lbda, AV, RV=3.1):
@@ -212,13 +225,14 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
         indices = np.arange(len(array),dtype=np.int32)
         if constraint == 'floor':
             fm = -(array-value)
-            crop_indices = indices[np.where(fm>0)]
         else:
             fm = array-value
-            crop_indices = indices[np.where(fm>0)]
-        fm = fm[np.where(fm>0)]  
+        crop_indices = indices[np.where(fm>0)]
+        fm = fm[np.where(fm>0)]
         idx = fm.argsort()[:n]
-        idx = crop_indices[idx]          
+        idx = crop_indices[idx]
+        if len(idx)==0:
+            raise ValueError("No indices match the constraint")
     else:
         raise ValueError("Constraint not recognised")
 
@@ -229,6 +243,75 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
     elif output=='value': return array[idx]
     else: return array[idx], idx
 
+
+def inject_em_line(wl, flux, lbda, spec, width=None, em=True, height=0.1):
+    """
+    Injects an emission (or absorption) line in a spectrum. The line will be 
+    injected assuming a gaussian profile with either the provided FWHM (in mu) 
+    or (if not provided) set to the equivalent width of the line.
+    Height is the ratio to peak where the line width is considered. E.g. if 
+    height=10%, the width will be the full width at 10% maximum.
+    """
+    # convert ew, assuming it's in mu
+    idx_mid = find_nearest(lbda, wl)
+    
+    nch = len(lbda)
+    dlbda = (lbda[idx_mid+1]-lbda[idx_mid-1])/2
+    
+    # estimate model continuum level using adjacent channels in the spectrum
+    lbda_b0 = 0.99*lbda[idx_mid]
+    idx_b0 = find_nearest(lbda, lbda_b0, constraint='floor')-1
+    lbda_b1 = 0.995*lbda[idx_mid]
+    idx_b1 = find_nearest(lbda, lbda_b1, constraint='floor')
+    lbda_r1 = 1.01*lbda[idx_mid] 
+    idx_r1 = find_nearest(lbda, lbda_r1, constraint='ceil')+1
+    lbda_r0 = 1.005*lbda[idx_mid] 
+    idx_r0 = find_nearest(lbda, lbda_r0, constraint='ceil')
+    if idx_b0<0 or idx_r1>nch-1:
+        raise ValueError("The line is too close from the edge of the spectrum")
+    spec_b = spec[idx_b0:idx_b1+1]
+    spec_r = spec[idx_r0:idx_r1+1]
+    cont = np.median(np.concatenate((spec_b,spec_r)))
+    
+    if width is None:
+        # infer ew
+        ew = flux/cont
+        # infer gaussian profile assuming FWHM = EW
+        stddev = ew/(2*np.sqrt(2*np.log(1/height)))
+    else:
+        stddev = width/(2*np.sqrt(2*np.log(1/height)))
+        
+    win_sz = int((5*stddev)/dlbda)
+
+    if win_sz%2==0:
+        win_sz+=1
+    idx_ini = int(idx_mid - (win_sz-1)/2)
+    if idx_ini<0:
+        msg = "idx ini for line injection negative: try smaller line flux"
+        msg+= " than: {} W/m2 (surface flux)"
+        raise ValueError(msg.format(flux))
+    elif idx_ini+win_sz>len(spec):
+        msg = "idx fin for line injection larger than spec length: try smaller"
+        msg += " line flux than: {} W/m2 (surface flux)"
+        raise ValueError(msg.format(flux))
+    if win_sz<1:
+        raise ValueError("window size for line injection = {}<1".format(win_sz))
+    elif win_sz==1:
+        gaus = flux/dlbda
+    else:
+        gaus = gaussian(win_sz,stddev/dlbda)
+        # scale the gaussian to contain exactly required flux
+        dlbda_tmp = lbda[idx_ini+1:idx_ini+win_sz+1]-lbda[idx_ini:idx_ini+win_sz]
+        gaus = flux*gaus/(np.sum(gaus)*dlbda_tmp)
+
+    
+    if em:
+        spec[idx_ini:idx_ini+win_sz] += gaus
+    else:
+        spec[idx_ini:idx_ini+win_sz] -= gaus
+    
+    return spec
+    
 
 def mj_from_rj_and_logg(rp, logg):
     """

@@ -7,12 +7,13 @@ Module with the MCMC (``emcee``) sampling for model spectra parameter estimation
 
 __author__ = 'V. Christiaens, O. Wertz, Carlos Alberto Gomez Gonzalez'
 __all__ = ['mcmc_spec_sampling',
+           'spec_lnprob',
            'spec_chain_zero_truncated',
            'spec_show_corner_plot',
            'spec_show_walk_plot',
            'spec_confidence']
 
-import astropy.constants as c
+from astropy import constants as con
 import numpy as np
 import os
 from os.path import isdir, isfile
@@ -28,9 +29,8 @@ from ..conf.utils_conf import sep
 from ..fits import open_fits, write_fits
 from ..negfc.utils_mcmc import gelman_rubin, autocorr_test
 from .chi import goodness_of_fit
-from .model_resampling import model_interpolation, resample_model
-from .model_resampling import make_resampled_models
-from .utils_spec import convert_F_units, blackbody, mj_from_rj_and_logg, extinction
+from .model_resampling import make_model_from_params, make_resampled_models
+from .utils_spec import mj_from_rj_and_logg
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -45,9 +45,11 @@ def spec_lnprior(params, labels, bounds, priors=None):
     labels: Tuple of strings
         Tuple of labels in the same order as initial_state, that is:
         - first all parameters related to loaded models (e.g. 'Teff', 'logg')
-        - next the planet photometric radius 'R',
-        - (optionally) the optical extinction 'Av',
-        - (optionally) the ratio of total to selecetive optical extinction 'Rv'
+        - then the planet photometric radius 'R', in Jupiter radius
+        - (optionally) the flux of emission lines (labels should match those in
+        the em_lines dictionary), in units of the model spectrum (times mu)
+        - (optionally) the optical extinction 'Av', in mag
+        - (optionally) the ratio of total to selective optical extinction 'Rv'
         - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb
         contribution.
     bounds: dictionary
@@ -112,10 +114,10 @@ def spec_lnprior(params, labels, bounds, priors=None):
 
 
 def spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, err_obs, 
-                dist, model_grid=None, model_reader=None, dlbda_obs=None, 
-                instru_corr=None, instru_fwhm=None, instru_idx=None, 
-                filter_reader=None, units_obs='si', units_mod='si', 
-                interp_order=1):
+                dist, model_grid=None, model_reader=None, em_lines={}, 
+                em_grid={}, dlbda_obs=None, instru_corr=None, 
+                instru_fwhm=None, instru_idx=None, filter_reader=None, 
+                units_obs='si', units_mod='si', interp_order=1):
     """ Define the likelihood log-function.
     
     Parameters
@@ -126,9 +128,11 @@ def spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, err_obs,
     labels: Tuple of strings
         Tuple of labels in the same order as initial_state, that is:
         - first all parameters related to loaded models (e.g. 'Teff', 'logg')
-        - next the planet photometric radius 'R',
-        - (optionally) the optical extinction 'Av',
-        - (optionally) the ratio of total to selecetive optical extinction 'Rv'
+        - then the planet photometric radius 'R', in Jupiter radius
+        - (optionally) the flux of emission lines (labels should match those in
+        the em_lines dictionary), in units of the model spectrum (times mu)
+        - (optionally) the optical extinction 'Av', in mag
+        - (optionally) the ratio of total to selective optical extinction 'Rv'
         - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb
         contribution.
     grid_param_list : list of 1d numpy arrays/lists OR None
@@ -164,6 +168,27 @@ def spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, err_obs,
         where the first column corresponds to wavelengths, and the second 
         contains model values. See example routine in model_interpolation() 
         description.
+    em_lines: dictionary, opt
+        Dictionary of emission lines to be added on top of the model spectrum.
+        Each dict entry should be the name of the line, assigned to a tuple of
+        4 values: 
+            1) the wavelength (in mu); 
+            2) a string indicating whether line intensity is expressed in flux 
+            ('F'), luminosity ('L') or log(L/LSun) ("LogL");
+            3) the FWHM of the gaussian (or None if to be set automatically); 
+            4) whether the FWHM is expressed in 'nm', 'mu' or 'km/s'. 
+        The third and fourth can also be set to None. In that case, the FWHM of 
+        the gaussian will automatically be set to the equivalent width of the
+        line, calculated from the flux to be injected and the continuum 
+        level (measured in the grid model to which the line is injected). 
+        Examples: em_lines = {'BrG':(2.1667,'F',None, None)};
+                  em_lines = {'BrG':(2.1667,'LogL', 100, 'km/s')}
+    em_grid: dictionary pointing to lists, opt
+        Dictionary where each entry corresponds to an emission line and points
+        to a list of values to inject for emission line fluxes. For computation 
+        efficiency, interpolation will be performed between the points of this 
+        grid during the MCMC sampling. Dict entries should match labels and 
+        em_lines.
     dlbda_obs: numpy 1d ndarray or list, optional
         Spectral channel width for the observed spectrum. It should be provided 
         IF one wants to weigh each point based on the spectral 
@@ -221,65 +246,15 @@ def spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, err_obs,
         msg = "model_name and model_reader must be provided if lists of params"
         msg+= "are provided instead of a numpy array of the models themselves."
         raise TypeError(msg)
+                           
+    lbda_mod, spec_mod = make_model_from_params(params, labels, grid_param_list, 
+                                                dist, lbda_obs, model_grid, 
+                                                model_reader, em_lines, em_grid, 
+                                                dlbda_obs, instru_fwhm, 
+                                                instru_idx, filter_reader, 
+                                                units_obs, units_mod, 
+                                                interp_order)
     
-    npar_grid = len(grid_param_list)
-    spec_mod = np.zeros_like(lbda_obs)
-    params_grid = [params[i] for i in range(npar_grid)]
-    params_grid = tuple(params_grid)
-    
-    if grid_param_list is not None:
-        # interpolate model to requested parameters
-        lbda_mod, spec_mod = model_interpolation(params_grid, grid_param_list, 
-                                                 model_grid, model_reader,
-                                                 interp_order)
-    
-        # resample to lbda_obs if needed
-        if not np.allclose(lbda_obs, lbda_mod):
-            _, spec_mod = resample_model(lbda_obs, lbda_mod, spec_mod, dlbda_obs, 
-                                         instru_fwhm, instru_idx, filter_reader)
-            
-        # convert model to same units as observed spectrum if necessary
-        if units_mod != units_obs:
-            spec_mod = convert_F_units(spec_mod, lbda_mod, in_unit=units_mod, 
-                                       out_unit=units_obs)
-
-        # scale by (R/dist)**2
-        idx_R = labels.index("R")
-        dilut_fac = ((params[idx_R]*c.R_jup.value)/(dist*c.pc.value))**2
-        spec_mod *= dilut_fac
-
-
-    # add n blackbody component(s) if requested 
-    if 'Tbb1' in labels:
-         n_bb = 0
-         for label in labels:
-             if 'Tbb' in label:
-                 n_bb+=1
-         idx_Tbb1 = labels.index("Tbb1")
-         Rj = c.R_jup.value
-         pc = c.pc.value
-         for ii in range(n_bb):
-             idx = ii*2
-             dilut_fac = ((params[idx_Tbb1+idx+1]*Rj)/(dist*pc))**2
-             bb = 4*np.pi*dilut_fac*blackbody(lbda_obs, params[idx_Tbb1+idx])
-             spec_mod += bb
-        
-        
-    # apply extinction if requested
-    if 'Av' in labels:
-        ## so far only assume Cardelli extinction law
-        idx_AV = labels.index("Av")
-        if 'Rv' in labels:
-            idx_RV = labels.index("Av")
-            RV = params[idx_RV]
-        else:
-            RV=3.1
-        extinc_curve = extinction(lbda_obs, params[idx_AV], RV)
-        flux_ratio_ext = np.power(10.,-extinc_curve/2.5)
-        spec_mod *= flux_ratio_ext
-        ## TBD: add more options
-
-
     # evaluate the goodness of fit indicator
     chi = goodness_of_fit(lbda_obs, spec_obs, err_obs, lbda_mod, spec_mod, 
                           dlbda_obs=dlbda_obs, instru_corr=instru_corr, 
@@ -293,10 +268,10 @@ def spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, err_obs,
 
 
 def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs, 
-                err_obs, dist, model_grid=None, model_reader=None, 
-                dlbda_obs=None, instru_corr=None, instru_fwhm=None, 
-                instru_idx=None, filter_reader=None, units_obs='si', 
-                units_mod='si', interp_order=1, priors=None):
+                err_obs, dist, model_grid=None, model_reader=None, em_lines={},
+                em_grid={}, dlbda_obs=None, instru_corr=None, 
+                instru_fwhm=None, instru_idx=None, filter_reader=None, 
+                units_obs='si', units_mod='si', interp_order=1, priors=None):
     """ Define the probability log-function as the sum between the prior and
     likelihood log-functions.
     
@@ -307,9 +282,11 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
     labels: Tuple of strings
         Tuple of labels in the same order as initial_state, that is:
         - first all parameters related to loaded models (e.g. 'Teff', 'logg')
-        - next the planet photometric radius 'R',
-        - (optionally) the optical extinction 'Av',
-        - (optionally) the ratio of total to selecetive optical extinction 'Rv'
+        - then the planet photometric radius 'R', in Jupiter radius
+        - (optionally) the flux of emission lines (labels should match those in
+        the em_lines dictionary), in units of the model spectrum (times mu)
+        - (optionally) the optical extinction 'Av', in mag
+        - (optionally) the ratio of total to selective optical extinction 'Rv'
         - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb
         contribution.
     bounds: dictionary
@@ -357,6 +334,27 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
         where the first column corresponds to wavelengths, and the second 
         contains model values. See example routine in model_interpolation() 
         description.
+    em_lines: dictionary, opt
+        Dictionary of emission lines to be added on top of the model spectrum.
+        Each dict entry should be the name of the line, assigned to a tuple of
+        4 values: 
+            1) the wavelength (in mu); 
+            2) a string indicating whether line intensity is expressed in flux 
+            ('F'), luminosity ('L') or log(L/LSun) ("LogL");
+            3) the FWHM of the gaussian (or None if to be set automatically); 
+            4) whether the FWHM is expressed in 'nm', 'mu' or 'km/s'. 
+        The third and fourth can also be set to None. In that case, the FWHM of 
+        the gaussian will automatically be set to the equivalent width of the
+        line, calculated from the flux to be injected and the continuum 
+        level (measured in the grid model to which the line is injected). 
+        Examples: em_lines = {'BrG':(2.1667,'F',None, None)};
+                  em_lines = {'BrG':(2.1667,'LogL', 100, 'km/s')}
+    em_grid: dictionary pointing to lists, opt
+        Dictionary where each entry corresponds to an emission line and points
+        to a list of values to inject for emission line fluxes. For computation 
+        efficiency, interpolation will be performed between the points of this 
+        grid during the MCMC sampling. Dict entries should match labels and 
+        em_lines.
     dlbda_obs: numpy 1d ndarray or list, optional
         Spectral channel width for the observed spectrum. It should be provided 
         IF one wants to weigh each point based on the spectral 
@@ -425,29 +423,41 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
         return -np.inf       
     
     return lp + spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, 
-                            err_obs, dist, model_grid, model_reader, dlbda_obs, 
-                            instru_corr, instru_fwhm, instru_idx, filter_reader, 
-                            units_obs, units_mod, interp_order)
+                            err_obs, dist, model_grid, model_reader, em_lines,
+                            em_grid, dlbda_obs, instru_corr, instru_fwhm, 
+                            instru_idx, filter_reader, units_obs, units_mod, 
+                            interp_order)
 
 
 def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list, 
                        initial_state, labels, bounds, resamp_before=True, 
-                       model_grid=None, model_reader=None, dlbda_obs=None, 
-                       instru_corr=None, instru_fwhm=None, instru_idx=None, 
-                       filter_reader=None, units_obs='si', units_mod='si', 
-                       interp_order=1, priors=None, a=2.0, nwalkers=1000, 
-                       niteration_min=10, niteration_limit=1000, 
+                       model_grid=None, model_reader=None, em_lines={}, 
+                       em_grid={}, dlbda_obs=None, instru_corr=None, 
+                       instru_fwhm=None, instru_idx=None, filter_reader=None, 
+                       units_obs='si', units_mod='si', interp_order=1, 
+                       priors=None, interp_nonexist=True, ini_ball=1e-1, a=2.0, 
+                       nwalkers=1000, niteration_min=10, niteration_limit=1000, 
                        niteration_supp=0, check_maxgap=20, conv_test='ac', 
                        ac_c=50, ac_count_thr=3, burnin=0.3, rhat_threshold=1.01, 
                        rhat_count_threshold=1, grid_name='resamp_grid.fits', 
                        output_dir='specfit/', output_file=None, nproc=1, 
                        display=False, verbosity=0, save=False):
-    r""" Runs an affine invariant MCMC sampling algorithm in order to determine
-    the best fit parameters of a type of spectral models to an observed 
-    spectrum. Spectral models can be read from a grid (e.g. BT-SETTL) or 
-    be purely parametric (e.g. a blackbody model). The result of this procedure 
-    is a chain with the samples from the posterior distributions of each of the 
-    free parameters in the model.
+    """ Runs an affine invariant MCMC sampling algorithm in order to determine
+    the most likely parameters of a type of spectral models to reproduce an
+    observed spectrum. Allowed features:
+        - Spectral models can either be read from a grid (e.g. BT-SETTL) or 
+        be purely parametric (e.g. a blackbody model). 
+        - A dictionary of emission lines can be provided and their flux can be 
+        sampled too.
+        - Gaussian priors can be provided for each parameter, including the 
+        mass of the object. The latter will be used if 'logg' is a parameter.
+        - Spectral correlation between measurements will be taken into account 
+        if provided in 'instru_corr'.
+        - The weight of each observed point will be directly proportional to
+        Delta lbda_i/lbda_i, where Delta lbda_i is either the FWHM of the 
+        photometric filter (imager) or the width the spectral channel (IFS).
+    The result of this procedure is a chain with the samples from the posterior 
+    distributions of each of the free parameters in the model.
     
     Parameters
     ----------
@@ -478,7 +488,9 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         will all be initialised in a small ball of parameter space around that
         first guess.
         - first all parameters related to loaded models (e.g. 'Teff', 'logg')
-        - next the planet photometric radius 'R', in Jupiter radius
+        - then the planet photometric radius 'R', in Jupiter radius
+        - (optionally) the intensity of emission lines (labels must match 
+        those in the em_lines dict), in units of the model spectrum (x mu)
         - (optionally) the optical extinction 'Av', in mag
         - (optionally) the ratio of total to selective optical extinction 'Rv'
         - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb
@@ -486,7 +498,9 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
     labels: Tuple of strings
         Tuple of labels in the same order as initial_state, that is:
         - first all parameters related to loaded models (e.g. 'Teff', 'logg')
-        - next the planet photometric radius 'R', in Jupiter radius
+        - then the planet photometric radius 'R', in Jupiter radius
+        - (optionally) the flux of emission lines (labels should match those in
+        the em_lines dictionary), in units of the model spectrum (times mu)
         - (optionally) the optical extinction 'Av', in mag
         - (optionally) the ratio of total to selective optical extinction 'Rv'
         - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb
@@ -518,6 +532,27 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         where the first column corresponds to wavelengths, and the second 
         contains model values. See example routine in model_interpolation() 
         description.
+    em_lines: dictionary, opt
+        Dictionary of emission lines to be added on top of the model spectrum.
+        Each dict entry should be the name of the line, assigned to a tuple of
+        4 values: 
+            1) the wavelength (in mu); 
+            2) a string indicating whether line intensity is expressed in flux 
+            ('F'), luminosity ('L') or log(L/LSun) ("LogL");
+            3) the FWHM of the gaussian (or None if to be set automatically); 
+            4) whether the FWHM is expressed in 'nm', 'mu' or 'km/s'. 
+        The third and fourth can also be set to None. In that case, the FWHM of 
+        the gaussian will automatically be set to the equivalent width of the
+        line, calculated from the flux to be injected and the continuum 
+        level (measured in the grid model to which the line is injected). 
+        Examples: em_lines = {'BrG':(2.1667,'F',None, None)};
+                  em_lines = {'BrG':(2.1667,'LogL', 100, 'km/s')}
+    em_grid: dictionary pointing to lists, opt
+        Dictionary where each entry corresponds to an emission line and points
+        to a list of values to inject for emission line fluxes. For computation 
+        efficiency, interpolation will be performed between the points of this 
+        grid during the MCMC sampling. Dict entries should match labels and 
+        em_lines.
     dlbda_obs: numpy 1d ndarray or list, optional
         Spectral channel width for the observed spectrum. It should be provided 
         IF one wants to weigh each point based on the spectral 
@@ -579,6 +614,13 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         e.g. priors = {'Teff':(1600,100), 'logg':(3.5,0.5),
                        'R':(1.6,0.1), 'Av':(1.8,0.2), 'M':(10,3)}
         Important: dictionary entry names should match exactly those of bounds.
+    interp_nonexist: bool, opt
+        Whether to interpolate non-existing models in the grid. Only used if 
+        resamp_before is set to True.
+    ini_ball: float or string, default=1e-1
+        Size of the initial ball in parameter space from which walkers start 
+        their chain. If "uniform" is provided, a uniform ini_ball spanning
+        the bounds interval will be used to initialise walkers.
     a: float, default=2.0
         The proposal scale parameter. See notes.
     nwalkers: int, default: 1000
@@ -631,7 +673,9 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
     Returns
     -------
     out : numpy.array
-        The MCMC chain.
+        The MCMC samples after truncation of zeros.
+    lnprobability: emcee sample object
+        The corresponding probabilities for each sample
         
     Notes
     -----
@@ -652,7 +696,62 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         gp_dims = tuple(gp_dims)
     else:
         n_gparams = 0
-            
+        
+    # format emission line dictionary and em grid
+    if len(em_grid)>0:
+        n_em = len(em_grid)
+        em_dims = []
+        for lab in labels:
+            if lab in em_grid.keys():
+                em_dims.append(len(em_grid[lab]))
+        em_dims = tuple(em_dims)
+        # update the grids depending on input units => make it surface flux
+        idx_R = labels.index('R')
+        for key, val in em_lines.items():
+            if val[1] == 'L':
+                idx_line = labels.index(key)
+                # adapt grid
+                R_si = initial_state[idx_R]*con.R_jup.value
+                conv_fac = 4*np.pi*R_si**2
+                tmp = np.array(em_grid[key])/conv_fac
+                em_grid[key] = tmp.tolist()
+                # adapt ini state 
+                initial_state = list(initial_state)
+                initial_state[idx_line] /= conv_fac
+                initial_state = tuple(initial_state)
+                #adapt bounds
+                bounds_ori = list(bounds[key])
+                bounds[key] = (bounds_ori[0]/conv_fac, bounds_ori[1]/conv_fac) 
+            elif val[1] == 'LogL':
+                idx_line = labels.index(key)
+                R_si = initial_state[idx_R]*con.R_jup.value
+                conv_fac = con.L_sun.value/(4*np.pi*R_si**2)
+                tmp = np.power(10,np.array(em_grid[key]))*conv_fac
+                em_grid[key] = tmp.tolist()  
+                # adapt ini state 
+                initial_state = list(initial_state)
+                initial_state[idx_line] = conv_fac*10**initial_state[idx_line]
+                initial_state = tuple(initial_state)
+                #adapt bounds
+                bounds_ori = list(bounds[key])
+                bounds[key] = (conv_fac*10**bounds_ori[0], 
+                               conv_fac*10**bounds_ori[1]) 
+            if em_lines[key][2] is not None:
+                if em_lines[key][-1] == 'km/s':
+                    v = em_lines[key][2]
+                    em_lines_tmp = list(em_lines[key])
+                    em_lines_tmp[2] = (1000*v/con.c.value)*em_lines[key][0]
+                    em_lines_tmp[3] = 'mu'
+                    em_lines[key] = tuple(em_lines_tmp)
+                elif em_lines[key][-1] == 'nm':
+                    em_lines_tmp = list(em_lines[key])
+                    em_lines_tmp[2] = em_lines[key][2]/1000
+                    em_lines_tmp[3] = 'mu'
+                    em_lines[key] = tuple(em_lines_tmp)
+                elif em_lines[key][-1] != 'mu':
+                    msg = "Invalid unit of FWHM for line injection"
+                    raise ValueError(msg)
+                
     if model_grid is None and model_reader is None:
         msg = "Either model_grid or filename+file_reader have to be provided"
         raise TypeError(msg)
@@ -706,7 +805,7 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         if isfile(output_dir+grid_name):
             model_grid = open_fits(output_dir+grid_name)
             # check its shape is consistent with grid_param_list
-            if model_grid.shape[:-2] != gp_dims:
+            if model_grid.shape[:n_gparams] != gp_dims:
                 msg="the loaded model grid ({}) doesn't have expected dims ({})"
                 raise TypeError(msg.format(model_grid.shape,gp_dims))
             elif model_grid.shape[-2] != len(lbda_obs):
@@ -715,11 +814,16 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
             elif model_grid.shape[-1] != 2:
                 msg="the loaded model grid doesn't have expected last dimension"
                 raise TypeError(msg)
+            elif len(em_grid) > 0:
+                if model_grid.shape[n_gparams:n_gparams+n_em] != em_dims:
+                    msg="loaded model grid ({}) doesn't have expected dims ({})"
+                    raise TypeError(msg.format(model_grid.shape,em_dims))
         else:
             model_grid = make_resampled_models(lbda_obs, grid_param_list, 
                                                model_grid, model_reader, 
-                                               dlbda_obs, instru_fwhm, 
-                                               instru_idx, filter_reader)
+                                               em_lines, em_grid, dlbda_obs, 
+                                               instru_fwhm, instru_idx, 
+                                               filter_reader, interp_nonexist)
             if output_dir and grid_name:
                 write_fits(output_dir+grid_name, model_grid)
         # note: if model_grid is provided, it is still resampled to the 
@@ -748,17 +852,29 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
     rhat_count = 0
     ac_count = 0
     chain = np.empty([nwalkers, 1, dim])
-    isamples = np.empty(0)
-    pos = initial_state + np.random.normal(0, 1e-1, (nwalkers, dim))
     nIterations = limit + supp
     rhat = np.zeros(dim)
     stop = np.inf
     
+    # initialise ball of walkers
+    if ini_ball == "uniform":
+        pos = np.zeros([nwalkers, dim])
+        for ii in range(dim):
+            low_b = bounds[labels[ii]][0]
+            up_b = (bounds[labels[ii]][1])
+            pos[:,ii] = np.random.uniform(low_b + 0.01*(up_b-low_b), 
+                                          up_b, nwalkers)
+    elif isinstance(ini_ball,float):
+        pos = initial_state + np.random.normal(0, ini_ball, (nwalkers, dim))
+    else:
+        raise ValueError("ini_ball must be string or float")
+    
     sampler = emcee.EnsembleSampler(nwalkers, dim, spec_lnprob, a,
                                     args=([labels, bounds, grid_param_list, 
                                            lbda_obs, spec_obs, err_obs, dist,
-                                           model_grid, model_reader, dlbda_obs, 
-                                           instru_corr, instru_fwhm, instru_idx, 
+                                           model_grid, model_reader, em_lines,
+                                           em_grid, dlbda_obs, instru_corr, 
+                                           instru_fwhm, instru_idx, 
                                            filter_reader, units_obs, units_mod, 
                                            interp_order, priors]),
                                     threads=nproc)
@@ -800,7 +916,7 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         # If k meets the criterion, one tests the non-convergence.
         # ---------------------------------------------------------------------
         criterion = int(np.amin([np.ceil(itermin*(1+fraction)**geom),
-                             lastcheck+np.floor(maxgap)]))
+                        lastcheck+np.floor(maxgap)]))
         if k == criterion:
             
             geom += 1
@@ -880,22 +996,28 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
             if verbosity == 1 or verbosity == 2:
                 print('We break the loop because we have reached convergence')
             break
+
+    isamples, ln_proba = spec_chain_zero_truncated(chain, sampler.lnprobability)   
+    # update units in the chain if needed
+    if len(em_grid)>0:
+        for key, val in em_lines.items():
+            idx_line = labels.index(key)
+            if val[1] == 'L':
+                R_si = isamples[:,:,idx_R]*con.R_jup.value
+                isamples[:,:,idx_line] *= 4*np.pi*R_si**2
+            elif val[1] == 'LogL':
+                R_si = isamples[:,:,idx_R]*con.R_jup.value
+                conv_fac = 4*np.pi*R_si**2/con.L_sun.value
+                isamples[:,:,idx_line] = np.log10(isamples[:,:,idx_line]*conv_fac)
       
     if k == nIterations-1:
         if verbosity == 1 or verbosity == 2:
             print("We have reached the limit # of steps without convergence")
             print("You may have to increase niteration_limit")
-            
     # #########################################################################
     # Construction of the independent samples
     # #########################################################################
-    temp = np.where(chain[0, :, 0] == 0.0)[0]
-    if len(temp) != 0:
-        idxzero = temp[0]
-    else:
-        idxzero = chain.shape[1]
-    
-    isamples = chain[:, 0:idxzero, :]
+ 
 
     if save:
         import pickle
@@ -904,10 +1026,10 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         input_parameters = {j: values[j] for j in args[1:]}
         
         output = {'isamples': isamples,
-                  'chain': spec_chain_zero_truncated(chain),
+                  #'chain': chain,
                   'input_parameters': input_parameters,
                   'AR': sampler.acceptance_fraction,
-                  'lnprobability': sampler.lnprobability}
+                  'lnprobability': ln_proba}
                   
         if output_file is None:
             output_file = 'MCMC_results'
@@ -920,10 +1042,10 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
     if verbosity == 1 or verbosity == 2:
         timing(start_time)
                                     
-    return spec_chain_zero_truncated(chain)
+    return isamples, ln_proba
 
                                     
-def spec_chain_zero_truncated(chain):
+def spec_chain_zero_truncated(chain, ln_proba=None):
     """
     Return the Markov chain with the dimension: walkers x steps* x parameters,
     where steps* is the last step before having 0 (not yet constructed chain).
@@ -932,18 +1054,26 @@ def spec_chain_zero_truncated(chain):
     ----------
     chain: numpy.array
         The MCMC chain.
+    ln_proba: numpy.array, opt
+        Corresponding ln-probabilities.
      
     Returns
     -------
     out: numpy.array
         The truncated MCMC chain, that is to say, the chain which only contains
         relevant information.
+    out_ln_proba: numpy.array
+        If ln_proba is provided as input, out_ln_proba contains the 
+        zero-truncated ln-proba (i.e. matching shape with non-zero samples)
     """
     try:
         idxzero = np.where(chain[0, :, 0] == 0.0)[0][0]
     except:
         idxzero = chain.shape[1]
-    return chain[:, 0:idxzero, :]
+    if ln_proba is not None:
+        return chain[:, 0:idxzero, :], ln_proba[:,0:idxzero]
+    else:
+        return chain[:, 0:idxzero, :]
  
    
 def spec_show_walk_plot(chain, labels, save=False, output_dir='', ntrunc=100,
@@ -992,7 +1122,7 @@ def spec_show_walk_plot(chain, labels, save=False, output_dir='', ntrunc=100,
     axes[2].set_xlabel(kwargs.pop('xlabel', 'step number'))
     axes[2].set_xlim(kwargs.pop('xlim', [0, chain.shape[1]]))
     color = kwargs.pop('color', 'k')
-    alpha = kwargs.pop('alpha', 0.4)
+    alpha = kwargs.pop('alpha', 0.1)
     for j in range(npar):
         axes[j].plot(chain[:ntrunc, :, j].T, color=color, alpha=alpha, **kwargs)
         axes[j].yaxis.set_major_locator(MaxNLocator(5))
@@ -1058,11 +1188,16 @@ def spec_show_corner_plot(chain, burnin=0.5, save=False, output_dir='',
     
     npar = chain.shape[-1]
     if "labels" in kwargs.keys():
-        labels = kwargs['labels']
+        labels = kwargs.pop('labels')
         if labels_plot is None:
             labels_plot = labels
     else:
         labels = None
+        
+    # allows for different title/units on top of 1D posterior distributions
+    labels_tit = kwargs.pop('labels_tit', labels_plot)
+    labels_tit_unit = kwargs.pop('labels_tit_unit', units)
+    
     try:
         temp = np.where(chain[0, :, 0] == 0.0)[0]
         if len(temp) != 0:
@@ -1076,7 +1211,7 @@ def spec_show_corner_plot(chain, burnin=0.5, save=False, output_dir='',
     if chain.shape[0] == 0:
         raise ValueError("It seems the chain is empty. Have you run the MCMC?")
     else:
-        fig = corner.corner(chain, **kwargs)
+        fig = corner.corner(chain, labels=labels_plot, **kwargs)
 
         
     if mcmc_res is not None and labels is not None:
@@ -1129,9 +1264,10 @@ def spec_show_corner_plot(chain, burnin=0.5, save=False, output_dir='',
 
             # Add in the column name if it's given.
             try:
-                title = "{0} = {1} {2}".format(labels_plot[i], title, units[i])
+                title = "{0} = {1} {2}".format(labels_tit[i], title, 
+                                               labels_tit_unit[i])
             except:
-                title = "{0} = {1}".format(labels_plot[i], title)
+                title = "{0} = {1}".format(labels_tit[i], title)
                 
             ax.set_title(title, **title_kwargs)
     
@@ -1189,13 +1325,14 @@ def spec_confidence(isamples, labels, cfd=68.27, bins=100, gaussian_fit=False,
         interval.
         
     """
-
-    if save and bounds is None:
-        raise ValueError("Missing bounds to save file.")
-
     title = kwargs.pop('title', None)
         
     output_file = kwargs.pop('filename', 'confidence.txt')
+    
+    if gaussian_fit:
+        output_pdf = kwargs.pop('pdfname','confi_hist_spec_params_gaussfit.pdf')
+    else:
+        output_pdf = kwargs.pop('pdfname','confi_hist_spec_params.pdf')
         
     try:
         l = isamples.shape[1]
@@ -1311,10 +1448,8 @@ def spec_confidence(isamples, labels, cfd=68.27, bins=100, gaussian_fit=False,
         plt.tight_layout(w_pad=0.1)
 
     if save:
-        if gaussian_fit:
-            plt.savefig(output_dir+'confi_hist_spec_params_gaussfit.pdf')
-        else:
-            plt.savefig(output_dir+'confi_hist_spec_params.pdf')
+        plt.savefig(output_dir+output_pdf)
+
 
     if verbose:
         for j in range(l):
@@ -1340,13 +1475,14 @@ def spec_confidence(isamples, labels, cfd=68.27, bins=100, gaussian_fit=False,
             f.write('----------------------- \n')
             f.write(' \n')
             f.write(' \n')
-            f.write('Bounds\n')
-            f.write('------ \n')
-            f.write(' \n')
-            for j in range(l):
-                f.write('\n{}: [{},{}]'.format(pKey[j], bounds[pKey[j]][0],
-                                               bounds[pKey[j]][1]))
-            f.write(' \n')
+            if bounds is not None:
+                f.write('Bounds\n')
+                f.write('------ \n')
+                f.write(' \n')
+                for j in range(l):
+                    f.write('\n{}: [{},{}]'.format(pKey[j], bounds[pKey[j]][0],
+                                                   bounds[pKey[j]][1]))
+                f.write(' \n')
             f.write('Priors\n')
             f.write('------ \n')
             if priors is not None:

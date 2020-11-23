@@ -335,9 +335,13 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         ADI fits cube.
     angs: numpy.array
         The parallactic angle vector.
-    psfn: numpy.array
-        PSF array. The PSF must be centered and the flux in a 1*FWHM aperture
-        must equal 1 (use ``vip_hci.phot.psf_norm``).
+    psfn: numpy 2D or 3D array
+        Normalised PSF template used for negative fake companion injection. 
+        The PSF must be centered and the flux in a 1*FWHM aperture must equal 1 
+        (use ``vip_hci.metrics.normalize_psf``).
+        If a 3D array is provided, it must match the number of frames of ADI 
+        cube. This can be useful if the cube was unsaturated and conditions 
+        were variable.s
     ncomp: int
         The number of principal components.
     plsc: float
@@ -501,6 +505,11 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         norm_weights = weights/np.sum(weights)
     else:
         norm_weights=weights
+        
+    if psfn.ndim==3:
+        if psfn.shape[0] != cube.shape[0]:
+            msg = "If PSF is 3D, number of frames must match cube length"
+            raise TypeError(msg)
         
     # #########################################################################
     # Initialization of the variables

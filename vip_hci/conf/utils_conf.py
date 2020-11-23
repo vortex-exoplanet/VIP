@@ -23,7 +23,7 @@ from multiprocessing import Pool
 
 from vip_hci import __version__
 
-sep = '―' * 80
+sep = '-' * 80
 vip_figsize = (8, 5)
 vip_figdpi = 100
 

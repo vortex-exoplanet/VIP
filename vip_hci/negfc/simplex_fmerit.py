@@ -21,7 +21,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
               svd_mode='lapack', scaling=None, fmerit='sum', collapse='median',
               algo=pca_annulus, delta_rot=1, imlib='opencv', 
               interpolation='lanczos4', pca_args={}, transmission=None, 
-              debug=False):
+              mu_sigma=(0,1), weights=None, force_rPA=False, debug=False):
     """
     Calculate the reduced chi2:
     \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -82,6 +82,19 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         Array with 2 columns. First column is the radial separation in pixels. 
         Second column is the off-axis transmission (between 0 and 1) at the 
         radial separation given in column 1.
+    mu_sigma: tuple of 2 floats, opt
+        If set to None: not used, and falls back to original version of the 
+        algorithm, using fmerit.
+        If set to anything but None: will compute the mean and standard 
+        deviation of pixel intensities in an annulus centered on the location 
+        of the companion, excluding the area directly adjacent to the companion.
+        These values will then be used in the log-probability of the MCMC.
+    weights : 1d array, optional
+        If provided, the negative fake companion fluxes will be scaled according
+        to these weights before injection in the cube. Can reflect changes in 
+        the observing conditions throughout the sequence.
+    force_rPA: bool, optional
+        Whether to only search for optimal flux, provided (r,PA).
     debug: bool, opt
         Whether to debug and plot the post-processed frame after injection of 
         the negative fake companion.
@@ -91,19 +104,31 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     out: float
         The reduced chi squared.
         
-    """    
-    try:
-        r, theta, flux = modelParameters
-    except TypeError:
-        msg = 'modelParameters must be a tuple, {} was given'
-        print(msg.format(type(modelParameters)))
+    """
+    if force_rPA:
+        r, theta = initialState
+        flux_tmp = modelParameters[0]
+    else:
+        try:
+            r, theta, flux_tmp = modelParameters
+        except TypeError:
+            msg = 'modelParameters must be a tuple, {} was given'
+            print(msg.format(type(modelParameters)))
+
+    if weights is None:   
+        flux = -flux_tmp
+        norm_weights=weights
+    else:
+        flux = -flux_tmp*weights
+        norm_weights = weights/np.sum(weights)
 
     # Create the cube with the negative fake companion injected
-    cube_negfc = cube_inject_companions(cube, psfs_norm, angs, flevel=-flux,
+    cube_negfc = cube_inject_companions(cube, psfs_norm, angs, flevel=flux,
                                         plsc=plsc, rad_dists=[r], n_branches=1,
                                         theta=theta, imlib=imlib, verbose=False,
                                         interpolation=interpolation, 
-                                        transmission=transmission)
+                                        transmission=transmission,
+                                        weights=norm_weights)
                                       
     # Perform PCA and extract the zone of interest
     res = get_values_optimize(cube_negfc, angs, ncomp, annulus_width,
@@ -111,7 +136,9 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
                               initialState[1], cube_ref=cube_ref,
                               svd_mode=svd_mode, scaling=scaling, algo=algo,
                               delta_rot=delta_rot, collapse=collapse, 
-                              pca_args=pca_args, debug=debug)
+                              pca_args=pca_args, weights=norm_weights, 
+                              debug=debug)
+    
     if debug and collapse is not None:
         values, frpca = res
         plot_frames(frpca)
@@ -119,15 +146,22 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         values = res
     
     # Function of merit
-    if fmerit == 'sum':
-        values = np.abs(values)
-        chi2 = np.sum(values[values > 0])
-        N = len(values[values > 0])
-        return chi2 / (N-3)
-    elif fmerit == 'stddev':
-        return np.std(values[values != 0])
+    if mu_sigma is None:
+        # old version - delete?
+        if fmerit == 'sum':
+            chi = np.sum(np.abs(values))
+        elif fmerit == 'stddev':
+            values = values[values != 0]
+            chi = np.std(values)*values.size
+        else:
+            raise RuntimeError('fmerit choice not recognized.')
     else:
-        raise RuntimeError('`fmerit` choice not recognized')
+        # true expression of a gaussian log probability
+        mu = mu_sigma[0]
+        sigma = mu_sigma[1]
+        chi = np.sum(np.power(mu-values,2)/sigma**2)   
+        
+    return chi
 
 
 def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius, 
@@ -185,6 +219,10 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     pca_args: dict, opt
         Dictionary with additional parameters for the pca algorithm (e.g. tol,
         min_frames_lib, max_frames_lib)
+    weights : 1d array, optional
+        If provided, the negative fake companion fluxes will be scaled according
+        to these weights before injection in the cube. Can reflect changes in 
+        the observing conditions throughout the sequence.
     debug: boolean
         If True, the cube is returned along with the values.        
         
@@ -258,7 +296,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         return values
 
 def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, 
-                     fwhm, r_guess, theta_guess, cube_ref=None, wedge=(0,360),
+                     fwhm, r_guess, theta_guess, cube_ref=None, wedge=None,
                      svd_mode='lapack', scaling=None, algo=pca_annulus, 
                      delta_rot=1, imlib='opencv', interpolation='lanczos4',
                      collapse='median', weights=None, pca_args={}):
@@ -291,10 +329,13 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
     cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     wedge: tuple, opt
-        Range in theta which the mean and standard deviation are computed in an 
-        annulus defined in the PCA image. An additional check is made to only
-        take part of the wedge not overlapping with PA_pl +- Delta PA, where
-        Delta PA is the parallactic angle range.
+        Range in theta where the mean and standard deviation are computed in an 
+        annulus defined in the PCA image. If None, it will be calculated 
+        automatically based on initial guess and derotation angles to avoid.
+        If some disc signal is present elsewhere in the annulus, it is 
+        recommended to provide wedge manually. The provided range should be 
+        continuous and >0. E.g. provide (270, 370) to consider a PA range 
+        between [-90,+10].
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     scaling : {None, 'temp-mean', 'temp-standard'}
@@ -376,10 +417,22 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
         # pad again now                      
         pca_res = np.pad(pca_res_tmp,pad,mode='constant',constant_values=0)
     
-    delta_theta = np.amax(angs)-np.amin(angs)
-    theta_ini = theta_guess+delta_theta
-    theta_fin = theta_guess-delta_theta+360
-    wedge = (theta_ini,theta_fin)
+    if wedge is None:
+        delta_theta = np.amax(angs)-np.amin(angs)
+        if delta_theta>150:
+            delta_theta = 150 # if too much rotation, be less conservative
+            
+        theta_ini = (theta_guess+delta_theta)%360
+        theta_fin = theta_ini+delta_theta
+        wedge = (theta_ini,theta_fin)
+    elif len(wedge)==2:
+        if wedge[0]>wedge[1]:
+            msg = '2nd value of wedge smaller than first one => 360 was added'
+            print(msg)
+            wedge = (wedge[0],wedge[1]+360)
+    else:
+        raise TypeError("Wedge should have exactly 2 values")
+        
     indices = get_annular_wedge(pca_res, radius_int, annulus_width, wedge=wedge)
     
     yy, xx = indices

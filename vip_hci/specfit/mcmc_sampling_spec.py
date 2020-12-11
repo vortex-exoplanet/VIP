@@ -23,6 +23,7 @@ import datetime
 import corner
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
+import pickle
 from scipy.stats import norm
 from ..conf import time_ini, timing
 from ..conf.utils_conf import sep
@@ -230,8 +231,9 @@ def spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, err_obs,
         Units of the model. 'si' for W/m^2/mu; 'cgs' for ergs/s/cm^2/mu or 'jy'
         for janskys. If different to units_obs, the spectrum units will be 
         converted.
-    interp_order: int, opt, {0,1} 
+    interp_order: int, opt, {-1,0,1} 
         Interpolation mode for model interpolation.
+        -1: log interpolation (i.e. linear interpolatlion on log(Flux))
         0: nearest neighbour model.
         1: Order 1 spline interpolation.
         
@@ -242,10 +244,10 @@ def spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, err_obs,
         
     """
 
-    if model_grid is None and model_reader is None:
-        msg = "model_name and model_reader must be provided if lists of params"
-        msg+= "are provided instead of a numpy array of the models themselves."
-        raise TypeError(msg)
+    if grid_param_list is not None:
+        if model_grid is None and model_reader is None:
+            msg = "model_name and model_reader must be provided"
+            raise TypeError(msg)
                            
     lbda_mod, spec_mod = make_model_from_params(params, labels, grid_param_list, 
                                                 dist, lbda_obs, model_grid, 
@@ -269,9 +271,9 @@ def spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, err_obs,
 
 def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs, 
                 err_obs, dist, model_grid=None, model_reader=None, em_lines={},
-                em_grid={}, dlbda_obs=None, instru_corr=None, 
-                instru_fwhm=None, instru_idx=None, filter_reader=None, 
-                units_obs='si', units_mod='si', interp_order=1, priors=None):
+                em_grid={}, dlbda_obs=None, instru_corr=None, instru_fwhm=None, 
+                instru_idx=None, filter_reader=None, units_obs='si', 
+                units_mod='si', interp_order=1, priors=None, physical=True):
     """ Define the probability log-function as the sum between the prior and
     likelihood log-functions.
     
@@ -396,8 +398,9 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
         Units of the model. 'si' for W/m^2/mu; 'cgs' for ergs/s/cm^2/mu or 'jy'
         for janskys. If different to units_obs, the spectrum units will be 
         converted.
-    interp_order: int, opt, {0,1} 
+    interp_order: int, opt, {-1,0,1} 
         Interpolation mode for model interpolation.
+        -1: log interpolation (i.e. linear interpolatlion on log(Flux))
         0: nearest neighbour model.
         1: Order 1 spline interpolation.
     priors: dictionary, opt
@@ -409,6 +412,9 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
         e.g. priors = {'Teff':(1600,100), 'logg':(3.5,0.5),
                        'R':(1.6,0.1), 'Av':(1.8,0.2), 'M':(10,3)}
         Important: dictionary entry names should match exactly those of bounds.
+    physical: bool, opt
+        In case of extra black body component(s) to a photosphere, whether to 
+        force lower temperature than the photosphere effective temperature.
         
     Returns
     -------
@@ -420,8 +426,30 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
     lp = spec_lnprior(params, labels, bounds, priors)
     
     if np.isinf(lp):
-        return -np.inf       
+        return -np.inf
     
+    if 'Tbb1' in labels:
+        condT = ('T' in labels or 'Teff' in labels)
+        n_bb = 0
+        for label in labels:
+            if 'Tbb' in label:
+                n_bb+=1
+        idx_Tbb1 = labels.index("Tbb1")
+        for ii in range(n_bb):
+            idx = ii*2
+            if grid_param_list is not None and condT:
+                if 'T' in labels:
+                    idx_Teff = labels.index("T")
+                else:
+                    idx_Teff = labels.index("Teff")
+                # only allow for Tbb1 < Teff
+                if physical and params[idx_Tbb1+idx] >= params[idx_Teff]:
+                    return -np.inf
+            elif ii>0:
+                # only allow for Teff1 > Teff2, Teff2 > Teff3, etc.
+                if params[idx_Tbb1+idx] >= params[idx_Tbb1+idx-2]:
+                    return -np.inf
+        
     return lp + spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, 
                             err_obs, dist, model_grid, model_reader, em_lines,
                             em_grid, dlbda_obs, instru_corr, instru_fwhm, 
@@ -435,13 +463,14 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
                        em_grid={}, dlbda_obs=None, instru_corr=None, 
                        instru_fwhm=None, instru_idx=None, filter_reader=None, 
                        units_obs='si', units_mod='si', interp_order=1, 
-                       priors=None, interp_nonexist=True, ini_ball=1e-1, a=2.0, 
-                       nwalkers=1000, niteration_min=10, niteration_limit=1000, 
-                       niteration_supp=0, check_maxgap=20, conv_test='ac', 
-                       ac_c=50, ac_count_thr=3, burnin=0.3, rhat_threshold=1.01, 
-                       rhat_count_threshold=1, grid_name='resamp_grid.fits', 
-                       output_dir='specfit/', output_file=None, nproc=1, 
-                       display=False, verbosity=0, save=False):
+                       priors=None, physical=True, interp_nonexist=True, 
+                       ini_ball=1e-1, a=2.0, nwalkers=1000, niteration_min=10, 
+                       niteration_limit=1000, niteration_supp=0, 
+                       check_maxgap=20, conv_test='ac', ac_c=50, ac_count_thr=3, 
+                       burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1, 
+                       grid_name='resamp_grid.fits', output_dir='specfit/', 
+                       output_file=None, nproc=1, display=False, verbosity=0, 
+                       save=False):
     """ Runs an affine invariant MCMC sampling algorithm in order to determine
     the most likely parameters of a type of spectral models to reproduce an
     observed spectrum. Allowed features:
@@ -601,8 +630,9 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         Units of the model. 'si' for W/m^2/mu; 'cgs' for ergs/s/cm^2/mu or 'jy'
         for janskys. If different to units_obs, the spectrum units will be 
         converted.
-    interp_order: int, opt, {0,1} 
+    interp_order: int, opt, {-1,0,1} 
         Interpolation mode for model interpolation.
+        -1: log interpolation (i.e. linear interpolatlion on log(Flux))
         0: nearest neighbour model.
         1: Order 1 spline interpolation.
     priors: dictionary, opt
@@ -614,6 +644,9 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         e.g. priors = {'Teff':(1600,100), 'logg':(3.5,0.5),
                        'R':(1.6,0.1), 'Av':(1.8,0.2), 'M':(10,3)}
         Important: dictionary entry names should match exactly those of bounds.
+    physical: bool, opt
+        In case of extra black body component(s) to a photosphere, whether to 
+        force lower temperature than the photosphere effective temperature.
     interp_nonexist: bool, opt
         Whether to interpolate non-existing models in the grid. Only used if 
         resamp_before is set to True.
@@ -689,6 +722,9 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
     nparams = len(initial_state)
     
     if grid_param_list is not None:
+        if model_grid is None and model_reader is None:
+            msg = "Either model_grid or model_reader have to be provided"
+            raise TypeError(msg)
         n_gparams = len(grid_param_list)
         gp_dims = []
         for nn in range(n_gparams):
@@ -752,15 +788,12 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
                     msg = "Invalid unit of FWHM for line injection"
                     raise ValueError(msg)
                 
-    if model_grid is None and model_reader is None:
-        msg = "Either model_grid or filename+file_reader have to be provided"
-        raise TypeError(msg)
     if model_grid is not None and grid_param_list is not None:
         if model_grid.ndim-2 != n_gparams:
             msg = "Ndim-2 of model_grid should match len(grid_param_list)"
             raise TypeError(msg)
     
-    if verbosity == 1 or verbosity == 2:
+    if verbosity > 0:
         start_time = time_ini()
         print("       MCMC sampler for spectral fitting       ")
         print(sep)
@@ -831,6 +864,9 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         # provided in grid_name and that file exists, it is assumed the model 
         # grid in it is already resampled to match lbda_obs.
 
+    if save and output_file is None:
+        output_file = 'MCMC_results'
+
     
     # #########################################################################
     # Initialization of the MCMC variables                                    #
@@ -852,6 +888,7 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
     rhat_count = 0
     ac_count = 0
     chain = np.empty([nwalkers, 1, dim])
+    ar_frac = np.empty([nwalkers, 1])
     nIterations = limit + supp
     rhat = np.zeros(dim)
     stop = np.inf
@@ -876,7 +913,7 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
                                            em_grid, dlbda_obs, instru_corr, 
                                            instru_fwhm, instru_idx, 
                                            filter_reader, units_obs, units_mod, 
-                                           interp_order, priors]),
+                                           interp_order, priors, physical]),
                                     threads=nproc)
                                     
     start = datetime.datetime.now()
@@ -884,14 +921,14 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
     # #########################################################################
     # Affine Invariant MCMC run
     # #########################################################################
-    if verbosity == 2:
+    if verbosity > 1:
         print('\nStart of the MCMC run ...')
         print('Step  |  Duration/step (sec)  |  Remaining Estimated Time (sec)')
     
     for k, res in enumerate(sampler.sample(pos, iterations=nIterations,
                                            storechain=True)):
         elapsed = (datetime.datetime.now()-start).total_seconds()
-        if verbosity == 2:
+        if verbosity > 1:
             if k == 0:
                 q = 0.5
             else:
@@ -909,8 +946,11 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         if k+1 > s:     # if not, one doubles the chain length
             empty = np.zeros([nwalkers, 2*s, dim])
             chain = np.concatenate((chain, empty), axis=1)
+            empty = np.zeros([nwalkers, 2*s])
+            ar_frac = np.concatenate((ar_frac, empty), axis=1)
         # Store the state of the chain
         chain[:, k] = res[0]
+        ar_frac[:,k] = sampler.acceptance_fraction
 
         # ---------------------------------------------------------------------
         # If k meets the criterion, one tests the non-convergence.
@@ -924,19 +964,9 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
             if display:
                 spec_show_walk_plot(chain)
                 
-#            if save:
-#                import pickle
-#                fname = '{d}/{f}_temp_k{k}'.format(d=output_dir,
-#                                                   f=output_file_tmp, k=k)
-#                data = {'chain': sampler.chain,
-#                        'lnprob': sampler.lnprobability,
-#                         'AR': sampler.acceptance_fraction}
-#                with open(fname, 'wb') as fileSave:
-#                    pickle.dump(data, fileSave)
-                
             # We only test the rhat if we have reached the min # of steps
             if (k+1) >= itermin and konvergence == np.inf:
-                if verbosity == 2:
+                if verbosity > 1:
                     print('\n{} convergence test in progress...'.format(conv_test))
                 if conv_test == 'gb':
                     thr0 = int(np.floor(burnin*k))
@@ -949,7 +979,7 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
                                      ].reshape(-1)
                         series = np.vstack((part1, part2))
                         rhat[j] = gelman_rubin(series)
-                    if verbosity == 1 or verbosity == 2:
+                    if verbosity > 0:
                         print('   r_hat = {}'.format(rhat))
                         cond = rhat <= rhat_threshold
                         print('   r_hat <= threshold = {} \n'.format(cond))
@@ -957,12 +987,12 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
                     if (rhat <= rhat_threshold).all():
                         rhat_count += 1
                         if rhat_count < rhat_count_threshold:
-                            if verbosity == 1 or verbosity == 2:
+                            if verbosity > 0:
                                 msg = "Gelman-Rubin test OK {}/{}"
                                 print(msg.format(rhat_count, 
                                                  rhat_count_threshold))
                         elif rhat_count >= rhat_count_threshold:
-                            if verbosity == 1 or verbosity == 2:
+                            if verbosity > 0:
                                 print('... ==> convergence reached')
                             konvergence = k
                             stop = konvergence + supp
@@ -973,12 +1003,12 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
                     for j in range(dim):
                         rhat[j] = autocorr_test(chain[:,:k,j])
                     thr = 1./ac_c
-                    if verbosity == 1 or verbosity == 2:
+                    if verbosity > 0:
                         print('Auto-corr tau/N = {}'.format(rhat))
                         print('tau/N <= {} = {} \n'.format(thr, rhat<thr))
                     if (rhat <= thr).all():
                         ac_count+=1
-                        if verbosity == 1 or verbosity == 2:
+                        if verbosity > 0:
                             msg = "Auto-correlation test passed for all params!"
                             msg+= "{}/{}".format(ac_count,ac_count_thr)
                             print(msg)
@@ -990,14 +1020,34 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
                         ac_count = 0
                 else:
                     raise ValueError('conv_test value not recognized')
+                
+                                
+                if save and verbosity == 3:
+                    ac_time = []
+                    for j in range(dim):
+                        ac_time.append(k*autocorr_test(chain[:,:k,j]))
+                    fname = '{d}/{f}_temp_k{k}'.format(d=output_dir,
+                                                       f=output_file, k=k)
+                    data = {'chain': sampler.chain,
+                            'lnprob': sampler.lnprobability,
+                            'ac_time': ac_time,
+                             'AR': ar_frac}
+                    with open(fname, 'wb') as fileSave:
+                        pickle.dump(data, fileSave)
 
-        # We have reached the maximum number of steps for our Markov chain.
+        # We have reached convergence
         if k+1 >= stop:
-            if verbosity == 1 or verbosity == 2:
+            if verbosity > 0:
                 print('We break the loop because we have reached convergence')
             break
-
-    isamples, ln_proba = spec_chain_zero_truncated(chain, sampler.lnprobability)   
+        # We have reached the maximum number of steps for our Markov chain.
+        if k+1 >= nIterations-1:
+            # break to avoid a bug related to font type
+            break
+        
+    isamples, ln_proba, ar = spec_chain_zero_truncated(chain, 
+                                                       sampler.lnprobability,
+                                                       ar_frac)   
     # update units in the chain if needed
     if len(em_grid)>0:
         for key, val in em_lines.items():
@@ -1011,7 +1061,7 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
                 isamples[:,:,idx_line] = np.log10(isamples[:,:,idx_line]*conv_fac)
       
     if k == nIterations-1:
-        if verbosity == 1 or verbosity == 2:
+        if verbosity > 0:
             print("We have reached the limit # of steps without convergence")
             print("You may have to increase niteration_limit")
     # #########################################################################
@@ -1020,32 +1070,32 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
  
 
     if save:
-        import pickle
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         input_parameters = {j: values[j] for j in args[1:]}
-        
+        ac_time = []
+        for j in range(dim):
+            ac_time.append(isamples.shape[1]*autocorr_test(isamples[:,:,j]))
         output = {'isamples': isamples,
                   #'chain': chain,
                   'input_parameters': input_parameters,
-                  'AR': sampler.acceptance_fraction,
+                  'AR': ar,
+                  'ac_time': ac_time,
                   'lnprobability': ln_proba}
                   
-        if output_file is None:
-            output_file = 'MCMC_results'
         with open(output_dir+output_file, 'wb') as fileSave:
             pickle.dump(output, fileSave)
         
         msg = "\nThe file MCMC_results has been stored in the folder {}"
         print(msg.format(output_dir))
 
-    if verbosity == 1 or verbosity == 2:
+    if verbosity > 0:
         timing(start_time)
                                     
     return isamples, ln_proba
 
                                     
-def spec_chain_zero_truncated(chain, ln_proba=None):
+def spec_chain_zero_truncated(chain, ln_proba=None, ar=None):
     """
     Return the Markov chain with the dimension: walkers x steps* x parameters,
     where steps* is the last step before having 0 (not yet constructed chain).
@@ -1070,10 +1120,16 @@ def spec_chain_zero_truncated(chain, ln_proba=None):
         idxzero = np.where(chain[0, :, 0] == 0.0)[0][0]
     except:
         idxzero = chain.shape[1]
+    res = [chain[:, 0:idxzero, :]]
+        
     if ln_proba is not None:
-        return chain[:, 0:idxzero, :], ln_proba[:,0:idxzero]
+        res.append(ln_proba[:,0:idxzero])
+    if ar is not None:
+        res.append(ar[:,0:idxzero])
+    if len(res) == 1:
+        return res[0]
     else:
-        return chain[:, 0:idxzero, :]
+        return tuple(res)
  
    
 def spec_show_walk_plot(chain, labels, save=False, output_dir='', ntrunc=100,
@@ -1116,20 +1172,30 @@ def spec_show_walk_plot(chain, labels, save=False, output_dir='', ntrunc=100,
     if len(temp) != 0:
         chain = chain[:, :temp[0], :]
 
+
+    color = kwargs.pop('color', 'k')
+    alpha = kwargs.pop('alpha', 0.1)
+    filename = kwargs.pop('filename','walk_plot.pdf')
     #labels = kwargs.pop('labels', ["$r$", r"$\theta$", "$f$"])
     fig, axes = plt.subplots(npar, 1, sharex=True,
                              figsize=kwargs.pop('figsize', (8, int(2*npar))))
-    axes[2].set_xlabel(kwargs.pop('xlabel', 'step number'))
-    axes[2].set_xlim(kwargs.pop('xlim', [0, chain.shape[1]]))
-    color = kwargs.pop('color', 'k')
-    alpha = kwargs.pop('alpha', 0.1)
-    for j in range(npar):
-        axes[j].plot(chain[:ntrunc, :, j].T, color=color, alpha=alpha, **kwargs)
-        axes[j].yaxis.set_major_locator(MaxNLocator(5))
-        axes[j].set_ylabel(labels[j])
+    if npar>1:
+        axes[-1].set_xlabel(kwargs.pop('xlabel', 'step number'))
+        axes[-1].set_xlim(kwargs.pop('xlim', [0, chain.shape[1]]))
+        for j in range(npar):
+            axes[j].plot(chain[:ntrunc, :, j].T, color=color, alpha=alpha, **kwargs)
+            axes[j].yaxis.set_major_locator(MaxNLocator(5))
+            axes[j].set_ylabel(labels[j])
+    else:
+        axes.set_xlabel(kwargs.pop('xlabel', 'step number'))
+        axes.set_xlim(kwargs.pop('xlim', [0, chain.shape[1]]))            
+        for j in range(npar):
+            axes.plot(chain[:ntrunc, :, j].T, color=color, alpha=alpha, **kwargs)
+            axes.yaxis.set_major_locator(MaxNLocator(5))
+            axes.set_ylabel(labels[j])
     fig.tight_layout(h_pad=0)
     if save:
-        plt.savefig(output_dir+'walk_plot.pdf')
+        plt.savefig(output_dir+filename)
         plt.close(fig)
     else:
         plt.show()

@@ -34,7 +34,9 @@ def blackbody(lbda, T):
     """
     fac = 2*c.h.value*(c.c.value**2)/(np.power(lbda*1e-6,5))
     div = (1/(np.exp((c.h.value*c.c.value)/((lbda*1e-6)*c.k_B.value*T))-1))
-    return fac*div
+    # convert from W m-3 Sr-1 to W m-2 mu-1 Sr-1 
+    conv = 1e-6
+    return fac*div*conv
 
 
 def combine_spec_corrs(arr_list):
@@ -126,7 +128,6 @@ def convert_F_units(F, lbda, in_unit='cgs', out_unit='si'):
         return new_F*1e-26*c.c.value*1e6/np.power(lbda,2)
     else:
         raise TypeError("out_unit not recognized, try either 'cgs', 'si' or 'jy'.")  
-
 
 
 
@@ -232,6 +233,8 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
         idx = fm.argsort()[:n]
         idx = crop_indices[idx]
         if len(idx)==0:
+            import pdb
+            pdb.set_trace()
             raise ValueError("No indices match the constraint")
     else:
         raise ValueError("Constraint not recognised")

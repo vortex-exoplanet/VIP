@@ -285,27 +285,22 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
             # For annular PCA, returning all indices (after PA thresholding)
             half1 = range(0, index_prev)
             half2 = range(index_foll, n)
-
-            # This truncation is done on the annuli after 10*FWHM and the goal
-            # is to keep min(num_frames/2, 200) in the library after discarding
-            # those based on the PA threshold
-            if truncate:
-                thr = min(n//2, max_frames)
-                mid_PA = angle_list[0]+(angle_list[-1]-angle_list[0])/2.
-                mid_idx = 0
-                for i in range(n):
-                    if abs(angle_list[i]-mid_PA) > abs(angle_list[i-1]-mid_PA):
-                        mid_idx = i
-                        break
-                if frame < mid_idx:
-                    half1 = range(max(0, index_prev - thr // 2), index_prev)
-                    half2 = range(index_foll,
-                                  min(index_foll + thr - len(half1), n))
-                else:
-                    half2 = range(index_foll, min(n, thr // 2 + index_foll))
-                    half1 = range(max(0, index_prev - thr + len(half2)),
-                                  index_prev)
             indices = np.array(list(half1) + list(half2), dtype='int32')
+            
+            # The goal is to keep min(num_frames/2, ntrunc) in the library after 
+            # discarding those based on the PA threshold
+            if truncate:
+                thr = min(n-1, max_frames)
+                all_indices = list(half1)+list(half2)
+                if len(all_indices) > thr:
+                    # then truncate and update indices
+                    # first sort by dPA
+                    dPA = np.abs(angle_list[all_indices]-angle_list[frame])
+                    sort_indices = all_indices[np.argsort(dPA)]
+                    # keep the ntrunc first ones
+                    good_indices = sort_indices[:thr]
+                    # sort again, this time by increasing indices
+                    indices = np.sort(good_indices)
 
         return indices
 

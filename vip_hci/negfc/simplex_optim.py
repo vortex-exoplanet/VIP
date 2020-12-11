@@ -9,7 +9,7 @@ position of a companion using the Negative Fake Companion.
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-from .simplex_fmerit import chisquare
+from .simplex_fmerit import chisquare, get_mu_and_sigma
 from ..pca import pca_annulus
 from ..var import frame_center
 from ..conf import time_ini, timing
@@ -26,7 +26,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
                           imlib='opencv', interpolation='lanczos4',
                           collapse='median', algo=pca_annulus, delta_rot=1, 
                           pca_args={}, f_range=None, transmission=None, 
-                          plot=False, verbose=True, save=False, debug=False):
+                          mu_sigma=(1,0), weights=None, plot=False, 
+                          verbose=True, save=False, debug=False):
     """ Determine a first guess for the flux of a companion at a given position
     in the cube by doing a simple grid search evaluating the reduced chi2.
     
@@ -87,6 +88,17 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
         Array with 2 columns. First column is the radial separation in pixels. 
         Second column is the off-axis transmission (between 0 and 1) at the 
         radial separation given in column 1.
+    mu_sigma: tuple of 2 floats, opt
+        If set to None: not used, and falls back to original version of the 
+        algorithm, using fmerit.
+        If set to anything but None: will compute the mean and standard 
+        deviation of pixel intensities in an annulus centered on the location 
+        of the companion, excluding the area directly adjacent to the companion.
+        These values will then be used in the log-probability of the MCMC.
+    weights : 1d array, optional
+        If provided, the negative fake companion fluxes will be scaled according
+        to these weights before injection in the cube. Can reflect changes in 
+        the observing conditions throughout the sequence.
     plot: boolean, optional
         If True, the figure chi2 vs. flux is displayed.
     verbose: boolean
@@ -121,7 +133,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
                                (r0, theta0), ncomp, cube_ref, svd_mode,
                                scaling, fmerit, collapse, algo, delta_rot,
                                imlib, interpolation, pca_args, transmission, 
-                               debug))
+                               mu_sigma, weights, debug))
         if chi2r[j] > chi2r[j-1]:
             counter += 1
         if counter == 4:
@@ -155,8 +167,8 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
                        scaling=None, fmerit='sum', imlib='opencv',
                        interpolation='lanczos4', collapse='median', 
                        algo=pca_annulus, delta_rot=1, pca_args={}, p_ini=None,
-                       transmission=None, options=None, verbose=False, 
-                       **kwargs):
+                       transmission=None, mu_sigma=(1,0), weights=None,
+                       force_rPA=False, options=None, verbose=False, **kwargs):
     """
     Determine the position of a companion using the negative fake companion 
     technique and a standard minimization algorithm (Default=Nelder-Mead) .
@@ -216,6 +228,19 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
         Array with 2 columns. First column is the radial separation in pixels. 
         Second column is the off-axis transmission (between 0 and 1) at the 
         radial separation given in column 1.
+    mu_sigma: tuple of 2 floats, opt
+        If set to None: not used, and falls back to original version of the 
+        algorithm, using fmerit.
+        If set to anything but None: will compute the mean and standard 
+        deviation of pixel intensities in an annulus centered on the location 
+        of the companion, excluding the area directly adjacent to the companion.
+        These values will then be used in the log-probability of the MCMC.
+    weights : 1d array, optional
+        If provided, the negative fake companion fluxes will be scaled according
+        to these weights before injection in the cube. Can reflect changes in 
+        the observing conditions throughout the sequence.
+    force_rPA: bool, optional
+        Whether to only search for optimal flux, provided (r,PA).
     options: dict, optional
         The scipy.optimize.minimize options.
     verbose : boolean, optional
@@ -233,12 +258,16 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
     if p_ini is None:
         p_ini = p
 
-    solu = minimize(chisquare, p, args=(cube, angs, plsc, psf, fwhm,
-                                        annulus_width, aperture_radius, p_ini,
-                                        ncomp, cube_ref, svd_mode, scaling,
-                                        fmerit, collapse, algo, delta_rot, 
-                                        imlib, interpolation, pca_args, 
-                                        transmission),
+    if force_rPA:
+        p_t = (p[-1],)
+    else:
+        p_t = p
+    solu = minimize(chisquare, p_t, args=(cube, angs, plsc, psf, fwhm,
+                                          annulus_width, aperture_radius, p_ini,
+                                          ncomp, cube_ref, svd_mode, scaling,
+                                          fmerit, collapse, algo, delta_rot, 
+                                          imlib, interpolation, pca_args, 
+                                          transmission, mu_sigma, weights),
                     method='Nelder-Mead', options=options, **kwargs)
 
     if verbose:
@@ -251,7 +280,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                svd_mode='lapack', scaling=None, fmerit='sum', imlib='opencv',
                interpolation='lanczos4', collapse='median', algo=pca_annulus,
                delta_rot=1, pca_args={}, p_ini=None, f_range=None, 
-               transmission=None, simplex=True, simplex_options=None, 
+               transmission=None, mu_sigma=(1,0), wedge=None, weights=None, 
+               force_rPA= False, simplex=True, simplex_options=None, 
                plot=False, verbose=True, save=False):
     """ Determines a first guess for the position and the flux of a planet.
         
@@ -329,6 +359,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
         Array with 2 columns. First column is the radial separation in pixels. 
         Second column is the off-axis transmission (between 0 and 1) at the 
         radial separation given in column 1.
+    force_rPA: bool, optional
+        Whether to only search for optimal flux, provided (r,PA).
     simplex: bool, optional
         If True, the Nelder-Mead minimization is performed after the flux grid
         search.
@@ -359,6 +391,13 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     r_0 = np.zeros(n_planet)
     theta_0 = np.zeros_like(r_0)
     f_0 = np.zeros_like(r_0)
+
+    if weights is not None:
+        if not len(weights)==cube.shape[0]:
+            raise TypeError("Weights should have same length as cube axis 0")
+        norm_weights = weights/np.sum(weights)
+    else:
+        norm_weights=weights
     
     for index_planet in range(n_planet):    
         if verbose:
@@ -369,6 +408,20 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
             msg2 += 'running ...'
             print(msg2.format(index_planet, planets_xy_coord[index_planet, 0],
                               planets_xy_coord[index_planet, 1]))
+        # Measure mu and sigma once in the annulus (instead of each MCMC step)
+        if mu_sigma is not None:
+            xy = planets_xy_coord[index_planet]-center_xy_coord
+            r0 = np.sqrt(xy[0]**2 + xy[1]**2)
+            theta0 = np.mod(np.arctan2(xy[1], xy[0]) / np.pi*180, 360)
+            mu_sigma = get_mu_and_sigma(cube, angs, ncomp, annulus_width, 
+                                        aperture_radius, fwhm, r0, 
+                                        theta0, cube_ref=cube_ref, 
+                                        wedge=wedge, svd_mode=svd_mode, 
+                                        scaling=scaling, algo=algo, 
+                                        delta_rot=delta_rot, imlib=imlib, 
+                                        interpolation=interpolation,
+                                        collapse=collapse, weights=norm_weights, 
+                                        pca_args=pca_args)
         
         res_init = firstguess_from_coord(planets_xy_coord[index_planet],
                                          center_xy_coord, cube, angs, plsc,
@@ -381,7 +434,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                          delta_rot=delta_rot,
                                          interpolation=interpolation, 
                                          pca_args=pca_args, 
-                                         transmission=transmission,
+                                         transmission=transmission, 
+                                         mu_sigma=mu_sigma, weights=weights,
                                          plot=plot, verbose=verbose, save=save)
         r_pre, theta_pre, f_pre = res_init
 
@@ -390,7 +444,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
             msg3 += '{:.1f}, {:.1f})'
             print(msg3.format(index_planet,r_pre, theta_pre, f_pre))
         
-        if simplex:
+        if simplex or force_rPA:
             if verbose:
                 msg4 = 'Planet {}: Simplex Nelder-Mead minimization, '
                 msg4 += 'running ...'
@@ -409,6 +463,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                      collapse=collapse, algo=algo, 
                                      delta_rot=delta_rot, pca_args=pca_args, 
                                      p_ini=p_ini, transmission=transmission,
+                                     mu_sigma=mu_sigma, weights=weights, 
+                                     force_rPA=force_rPA, 
                                      options=simplex_options, verbose=False)
             
             r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x

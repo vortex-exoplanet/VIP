@@ -125,8 +125,9 @@ def make_model_from_params(params, labels, grid_param_list, dist, lbda_obs=None,
         Units of the model. 'si' for W/m^2/mu; 'cgs' for ergs/s/cm^2/mu or 'jy'
         for janskys. If different to units_obs, the spectrum units will be 
         converted.
-    interp_order: int, opt, {0,1} 
+    interp_order: int, opt, {-1,0,1} 
         Interpolation mode for model interpolation.
+        -1: log interpolation (i.e. linear interpolatlion on log(Flux))
         0: nearest neighbour model.
         1: Order 1 spline interpolation.
         
@@ -195,7 +196,7 @@ def make_model_from_params(params, labels, grid_param_list, dist, lbda_obs=None,
          for ii in range(n_bb):
              idx = ii*2
              dilut_fac = ((params[idx_Tbb1+idx+1]*Rj)/(dist*pc))**2
-             bb = 4*np.pi*dilut_fac*blackbody(lbda_mod, params[idx_Tbb1+idx])
+             bb = dilut_fac*blackbody(lbda_mod, params[idx_Tbb1+idx])
              spec_mod += bb
         
         
@@ -402,13 +403,16 @@ def make_resampled_models(lbda_obs, grid_param_list, model_grid=None,
         if n_em > 0:
             flux_grids = []
             wls = []
+            widths = []
             for key, flux_grid in em_grid.items():
                 flux_grids.append(flux_grid)
                 wls.append(em_lines[key][0])
+                widths.append(em_lines[key][2])
             # recursively inject em lines
             for fluxes in itertools.product(*flux_grids):
                 for ff, flux in enumerate(fluxes):
-                    spec_mod = inject_em_line(wls[ff], flux, lbda_mod, spec_mod)                
+                    spec_mod = inject_em_line(wls[ff], flux, lbda_mod, spec_mod,
+                                              widths[ff])                
                 # interpolate OR convolve+bin model spectrum if required
                 if len(lbda_obs) != len(lbda_mod):
                     res = resample_model(lbda_obs, lbda_mod, spec_mod, 
@@ -550,8 +554,11 @@ def resample_model(lbda_obs, lbda_mod, spec_mod, dlbda_obs=None,
         lbda_min = lbda_obs[0]-dlbda_obs[0]
         lbda_max = lbda_obs[-1]+dlbda_obs[-1]
         try:
-            lbda_min = min(lbda_min,lbda_obs[0]-5*np.amax(instru_fwhm)/1000)
-            lbda_max = max(lbda_max,lbda_obs[-1]+5*np.amax(instru_fwhm)/1000)
+            lbda_min_tmp = min(lbda_min,lbda_obs[0]-3*np.amax(instru_fwhm)/1000)
+            lbda_max_tmp = max(lbda_max,lbda_obs[-1]+3*np.amax(instru_fwhm)/1000)
+            if lbda_min_tmp > 0:
+                lbda_min = lbda_min_tmp
+                lbda_max = lbda_max_tmp
         except:
             pass
             
@@ -592,7 +599,7 @@ def resample_model(lbda_obs, lbda_mod, spec_mod, dlbda_obs=None,
         nchunks_i = 0
         for ll in range(n_ch):
             idx_near = find_nearest(lbda_mod, lbda_obs[ll])
-            do_interp[ll] = (dlbda_obs[ll] <= dlbda_mod[idx_near])
+            do_interp[ll] = (dlbda_obs[ll] < dlbda_mod[idx_near])
             if ll > 0:
                 if do_interp[ll] and not do_interp[ll-1]:
                     nchunks_i+=1
@@ -836,7 +843,7 @@ def interpolate_model(params, grid_param_list, params_em={}, em_grid={},
             return tmp[:,0], tmp[:,1]
     
     
-    elif interp_order == 1:
+    elif abs(interp_order) == 1:
         # first compute new subgrid "coords" for interpolation
         if verbose:
             print("Computing new coords for interpolation")
@@ -992,14 +999,21 @@ def interpolate_model(params, grid_param_list, params_em={}, em_grid={},
             
         interp_model = np.zeros(nch)
         interp_lbdas = np.zeros(nch)
+        
+        if interp_order == -1:
+            sub_grid = np.log10(sub_grid)
+        
         for cc in range(nch):
             interp_model[cc] = map_coordinates(sub_grid[cc], new_coords, 
-                                               order=interp_order)
+                                               order=abs(interp_order))
             interp_lbdas[cc] = map_coordinates(sub_grid_lbda[cc], new_coords, 
-                                               order=interp_order)
+                                               order=abs(interp_order))
+            
+        if interp_order == -1:
+            interp_model = np.power(10,interp_model)
             
         return interp_lbdas, interp_model
     
     else:
-        msg = "Interpolation order not allowed. Only 0 or 1 accepted"
+        msg = "Interpolation order not allowed. Only -1, 0 or 1 accepted"
         raise TypeError(msg)

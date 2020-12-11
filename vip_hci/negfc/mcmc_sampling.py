@@ -11,7 +11,6 @@ __all__ = ['mcmc_negfc_sampling',
            'show_corner_plot',
            'show_walk_plot',
            'confidence']
-
 import numpy as np
 import os
 import emcee
@@ -20,6 +19,7 @@ import datetime
 import corner
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
+import pickle
 from scipy.stats import norm
 from ..metrics import cube_inject_companions
 from ..conf import time_ini, timing
@@ -29,7 +29,7 @@ from .simplex_fmerit import get_values_optimize, get_mu_and_sigma
 from .utils_mcmc import gelman_rubin, autocorr_test
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-
+from ..fits import write_fits
 
 def lnprior(param, bounds):
     """ Define the prior log-function.
@@ -178,7 +178,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
                                  pca_args=pca_args, weights=norm_weights)
     
     if mu_sigma is None:
-        # old version - delete after enough tests of mu_sigma
+        # old version - delete?
         if fmerit == 'sum':
             lnlikelihood = -0.5 * np.sum(np.abs(values))
         elif fmerit == 'stddev':
@@ -288,7 +288,7 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
     lp = lnprior(param, bounds)
     
     if np.isinf(lp):
-        return -np.inf       
+        return -np.inf
     
     return lp + lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, 
                        ncomp, aperture_radius, initial_state, cube_ref, 
@@ -302,7 +302,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         svd_mode='lapack', scaling='temp-mean', 
                         algo=pca_annulus, delta_rot=1, fmerit='sum',
                         imlib='opencv', interpolation='lanczos4',
-                        collapse='median', pca_args={}, wedge=(0,360), 
+                        collapse='median', pca_args={}, wedge=None, 
                         weights=None, transmission=None, mu_sigma=None, 
                         nwalkers=100, bounds=None, a=2.0, burnin=0.3, 
                         rhat_threshold=1.01, rhat_count_threshold=1, 
@@ -382,10 +382,13 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         the PCA image (e.g. mu and sigma) the mean and standard deviation in 
         the defined wedge (not overlapping with PA_pl +- Delta PA).
     wedge: tuple, opt
-        Range in theta which the mean and standard deviation are computed in an 
-        annulus defined in the PCA image. An additional check is made to only
-        take part of the wedge not overlapping with PA_pl +- Delta PA, where
-        Delta PA is the parallactic angle range.
+        Range in theta where the mean and standard deviation are computed in an 
+        annulus defined in the PCA image. If None, it will be calculated 
+        automatically based on initial guess and derotation angles to avoid.
+        If some disc signal is present elsewhere in the annulus, it is 
+        recommended to provide wedge manually. The provided range should be 
+        continuous and >0. E.g. provide (270, 370) to consider a PA range 
+        between [-90,+10].
     weights : 1d array, optional
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
@@ -452,8 +455,11 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     display: bool, optional
         If True, the walk plot is displayed at each evaluation of the Gelman-
         Rubin test.
-    verbosity: 0, 1 or 2, optional
-        Verbosity level. 0 for no output and 2 for full information.
+    verbosity: 0, 1, 2 or 3, optional
+        Verbosity level. 0 for no output and 3 for full information.
+        (only difference between 2 and 3 is that 3 also writes intermediate
+        pickles containing the state of the chain at convergence tests; these 
+        can end up taking a lot of space).
     save: bool, optional
         If True, the MCMC results are pickled.
                     
@@ -471,7 +477,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     The parameter 'rhat_threshold' can be a numpy.array with individual
     threshold value for each model parameter.
     """
-    if verbosity == 1 or verbosity == 2:
+    if verbosity >0:
         start_time = time_ini()
         print("        MCMC sampler for the NEGFC technique       ")
         print(sep)
@@ -532,7 +538,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                      interpolation=interpolation,
                                      collapse=collapse, weights=norm_weights, 
                                      pca_args=pca_args)
-        if verbosity == 1 or verbosity==2:
+        if verbosity >0:
             msg = "The mean and stddev in the annulus at the radius of the "
             msg+= "companion (excluding the PA area directly adjacent to it)"
             msg+=" are {:.2f} and {:.2f} respectively."
@@ -559,7 +565,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     ac_count = 0
     chain = np.empty([nwalkers, 1, dim])
     isamples = np.empty(0)
-    pos = initial_state + np.random.normal(0, 1e-1, (nwalkers, 3))
+    pos = initial_state*(1+np.random.normal(0, 0.01, (nwalkers, 3)))
     nIterations = limit + supp
     rhat = np.zeros(dim)
     stop = np.inf
@@ -585,14 +591,14 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     # #########################################################################
     # Affine Invariant MCMC run
     # #########################################################################
-    if verbosity == 2:
+    if verbosity > 1:
         print('\nStart of the MCMC run ...')
         print('Step  |  Duration/step (sec)  |  Remaining Estimated Time (sec)')
     
     for k, res in enumerate(sampler.sample(pos, iterations=nIterations,
                                            storechain=True)):
         elapsed = (datetime.datetime.now()-start).total_seconds()
-        if verbosity == 2:
+        if verbosity > 1:
             if k == 0:
                 q = 0.5
             else:
@@ -619,7 +625,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         criterion = int(np.amin([np.ceil(itermin*(1+fraction)**geom),
                              lastcheck+np.floor(maxgap)]))
         if k == criterion:
-            if verbosity == 2:
+            if verbosity > 1:
                 print('\n {} convergence test in progress...'.format(conv_test))
             
             geom += 1
@@ -627,8 +633,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
             if display:
                 show_walk_plot(chain)
                 
-            if save:
-                import pickle
+            if save and verbosity == 3:
                 fname = '{d}/{f}_temp_k{k}'.format(d=output_dir,f=output_file_tmp, k=k)
                 data = {'chain': sampler.chain,
                         'lnprob': sampler.lnprobability,
@@ -649,7 +654,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                      ].reshape(-1)
                         series = np.vstack((part1, part2))
                         rhat[j] = gelman_rubin(series)
-                    if verbosity == 1 or verbosity == 2:
+                    if verbosity > 0:
                         print('   r_hat = {}'.format(rhat))
                         cond = rhat <= rhat_threshold
                         print('   r_hat <= threshold = {} \n'.format(cond))
@@ -657,11 +662,11 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                     if (rhat <= rhat_threshold).all():
                         rhat_count += 1
                         if rhat_count < rhat_count_threshold:
-                            if verbosity == 1 or verbosity == 2:
+                            if verbosity > 0:
                                 msg = "Gelman-Rubin test OK {}/{}"
                                 print(msg.format(rhat_count, rhat_count_threshold))
                         elif rhat_count >= rhat_count_threshold:
-                            if verbosity == 1 or verbosity == 2:
+                            if verbosity > 0 :
                                 print('... ==> convergence reached')
                             konvergence = k
                             stop = konvergence + supp
@@ -669,15 +674,16 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         rhat_count = 0
                 elif conv_test == 'ac':
                     # We calculate the auto-corr test for each model parameter.
+                    write_fits(output_dir+"/TMP_test_chain{:.0f}.fits".format(k),chain[:,:k])
                     for j in range(dim):
                         rhat[j] = autocorr_test(chain[:,:k,j])
                     thr = 1./ac_c
-                    if verbosity == 1 or verbosity == 2:
+                    if verbosity > 0:
                         print('Auto-corr tau/N = {}'.format(rhat))
                         print('tau/N <= {} = {} \n'.format(thr, rhat<thr))
                     if (rhat <= thr).all():
                         ac_count+=1
-                        if verbosity == 1 or verbosity == 2:
+                        if verbosity > 0:
                             msg = "Auto-correlation test passed for all params!"
                             msg+= "{}/{}".format(ac_count,ac_count_thr)
                             print(msg)
@@ -691,12 +697,12 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                     raise ValueError('conv_test value not recognized')
         # We have reached the maximum number of steps for our Markov chain.
         if k+1 >= stop:
-            if verbosity == 1 or verbosity == 2:
+            if verbosity > 0:
                 print('We break the loop because we have reached convergence')
             break
       
     if k == nIterations-1:
-        if verbosity == 1 or verbosity == 2:
+        if verbosity > 0:
             print("We have reached the limit # of steps without convergence")
             
     # #########################################################################
@@ -709,9 +715,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         idxzero = chain.shape[1]
     
     # Valentin: I commented the line below as it seems the chain is shortened
-    # based on arbitrary cutoffs. Shouldn't we keep the whole non-zero chain? 
-    # After all isn't it the point of burnin to remove the first, 
-    # non-independent, samples?
+    # based on arbitrary cutoffs. Shouldn't we keep the whole non-zero chain, 
+    # given that the burn-in will remove the first samples anyway?
     # idx = int(np.amin([np.floor(2e5/nwalkers), np.floor(0.1*idxzero)]))
     
     idx=0
@@ -722,7 +727,6 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         isamples = chain[:, idxzero-idx:idxzero, :]
 
     if save:
-        import pickle
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         input_parameters = {j: values[j] for j in args[1:]}
@@ -741,7 +745,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         msg = "\nThe file MCMC_results has been stored in the folder {}"
         print(msg.format(output_dir+'/'))
 
-    if verbosity == 1 or verbosity == 2:
+    if verbosity > 0:
         timing(start_time)
                                     
     return chain_zero_truncated(chain)

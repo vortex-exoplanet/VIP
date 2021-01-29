@@ -118,7 +118,7 @@ def spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, err_obs,
                 dist, model_grid=None, model_reader=None, em_lines={}, 
                 em_grid={}, dlbda_obs=None, instru_corr=None, 
                 instru_fwhm=None, instru_idx=None, filter_reader=None, 
-                units_obs='si', units_mod='si', interp_order=1):
+                AV_bef_bb=False, units_obs='si', units_mod='si', interp_order=1):
     """ Define the likelihood log-function.
     
     Parameters
@@ -224,6 +224,11 @@ def spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, err_obs,
         - first row containing header
         - starting from 2nd row: 1st column: WL in mu, 2nd column: transmission
         Note: files should all have the same format and wavelength units.
+    AV_bef_bb: bool, optional
+        If both extinction and an extra bb component are free parameters, 
+        whether to apply extinction before adding the BB component (e.g. 
+        extinction mostly from circumplanetary dust) or after the BB component
+        (e.g. mostly insterstellar extinction).
     units_obs : str, opt {'si','cgs','jy'}
         Units of observed spectrum. 'si' for W/m^2/mu; 'cgs' for ergs/s/cm^2/mu 
         or 'jy' for janskys.
@@ -254,7 +259,7 @@ def spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, err_obs,
                                                 model_reader, em_lines, em_grid, 
                                                 dlbda_obs, instru_fwhm, 
                                                 instru_idx, filter_reader, 
-                                                units_obs, units_mod, 
+                                                AV_bef_bb, units_obs, units_mod, 
                                                 interp_order)
     
     # evaluate the goodness of fit indicator
@@ -272,8 +277,9 @@ def spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, err_obs,
 def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs, 
                 err_obs, dist, model_grid=None, model_reader=None, em_lines={},
                 em_grid={}, dlbda_obs=None, instru_corr=None, instru_fwhm=None, 
-                instru_idx=None, filter_reader=None, units_obs='si', 
-                units_mod='si', interp_order=1, priors=None, physical=True):
+                instru_idx=None, filter_reader=None, AV_bef_bb=False, 
+                units_obs='si', units_mod='si', interp_order=1, priors=None, 
+                physical=True):
     """ Define the probability log-function as the sum between the prior and
     likelihood log-functions.
     
@@ -391,6 +397,11 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
         - first row containing header
         - starting from 2nd row: 1st column: WL in mu, 2nd column: transmission
         Note: files should all have the same format and wavelength units.
+    AV_bef_bb: bool, optional
+        If both extinction and an extra bb component are free parameters, 
+        whether to apply extinction before adding the BB component (e.g. 
+        extinction mostly from circumplanetary dust) or after the BB component
+        (e.g. mostly insterstellar extinction).
     units_obs : str, opt {'si','cgs','jy'}
         Units of observed spectrum. 'si' for W/m^2/mu; 'cgs' for ergs/s/cm^2/mu 
         or 'jy' for janskys.
@@ -442,19 +453,31 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
                     idx_Teff = labels.index("T")
                 else:
                     idx_Teff = labels.index("Teff")
-                # only allow for Tbb1 < Teff
+                # COND 1: only allow Tbb < Teff
                 if physical and params[idx_Tbb1+idx] >= params[idx_Teff]:
                     return -np.inf
-            elif ii>0:
-                # only allow for Teff1 > Teff2, Teff2 > Teff3, etc.
+                elif physical:
+                    idx_R= labels.index("R")
+                    R = params[idx_R]
+                    Rbb = params[idx_Tbb1+idx+1]
+                    if Rbb<=R:
+                        pass
+                    else:
+                        Teq = params[idx_Teff] * np.sqrt(R/(2*Rbb))
+                        # COND 2: only allow Tbb <= Teq at Rbb
+                        if params[idx_Tbb1+idx] >= Teq:
+                            return -np.inf
+            if ii>0:
+                # avoid unnecessary degenerecaies by only allowing:
+                # Teff1 > Teff2, Teff2 > Teff3
                 if params[idx_Tbb1+idx] >= params[idx_Tbb1+idx-2]:
                     return -np.inf
         
     return lp + spec_lnlike(params, labels, grid_param_list, lbda_obs, spec_obs, 
                             err_obs, dist, model_grid, model_reader, em_lines,
                             em_grid, dlbda_obs, instru_corr, instru_fwhm, 
-                            instru_idx, filter_reader, units_obs, units_mod, 
-                            interp_order)
+                            instru_idx, filter_reader, AV_bef_bb, units_obs, 
+                            units_mod, interp_order)
 
 
 def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list, 
@@ -462,31 +485,39 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
                        model_grid=None, model_reader=None, em_lines={}, 
                        em_grid={}, dlbda_obs=None, instru_corr=None, 
                        instru_fwhm=None, instru_idx=None, filter_reader=None, 
-                       units_obs='si', units_mod='si', interp_order=1, 
-                       priors=None, physical=True, interp_nonexist=True, 
-                       ini_ball=1e-1, a=2.0, nwalkers=1000, niteration_min=10, 
-                       niteration_limit=1000, niteration_supp=0, 
-                       check_maxgap=20, conv_test='ac', ac_c=50, ac_count_thr=3, 
-                       burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1, 
-                       grid_name='resamp_grid.fits', output_dir='specfit/', 
-                       output_file=None, nproc=1, display=False, verbosity=0, 
-                       save=False):
+                       AV_bef_bb=False, units_obs='si', units_mod='si', 
+                       interp_order=1, priors=None, physical=True, 
+                       interp_nonexist=True, ini_ball=1e-1, a=2.0, 
+                       nwalkers=1000, niteration_min=10, niteration_limit=1000, 
+                       niteration_supp=0, check_maxgap=20, conv_test='ac', 
+                       ac_c=50, ac_count_thr=3, burnin=0.3, rhat_threshold=1.01, 
+                       rhat_count_threshold=1, grid_name='resamp_grid.fits', 
+                       output_dir='specfit/', output_file=None, nproc=1, 
+                       display=False, verbosity=0, save=False):
     """ Runs an affine invariant MCMC sampling algorithm in order to determine
-    the most likely parameters of a type of spectral models to reproduce an
-    observed spectrum. Allowed features:
+    the most likely parameters for given spectral model and observed spectrum. 
+    Allowed features:
         - Spectral models can either be read from a grid (e.g. BT-SETTL) or 
         be purely parametric (e.g. a blackbody model). 
+        - Extinction (A_V) and total-to-selective optical extinction ratio (R_V)
+        can be sampled. Default: A_V=0. If non-zero, default R_V=3.1 (ISM).
         - A dictionary of emission lines can be provided and their flux can be 
         sampled too.
         - Gaussian priors can be provided for each parameter, including the 
         mass of the object. The latter will be used if 'logg' is a parameter.
         - Spectral correlation between measurements will be taken into account 
         if provided in 'instru_corr'.
+        - Convolution of the model spectra with instrumental FWHM or 
+        photometric filter can be performed using 'instru_fwhm' and/or 
+        'filter_reader' (done before resampling to observed).
         - The weight of each observed point will be directly proportional to
         Delta lbda_i/lbda_i, where Delta lbda_i is either the FWHM of the 
-        photometric filter (imager) or the width the spectral channel (IFS).
+        photometric filter (imager) or the width of the spectral channel (IFS).
+        - MCMC convergence criterion can either be based on auto-correlation 
+        time (default) or the Gelman-Rubin test.
     The result of this procedure is a chain with the samples from the posterior 
     distributions of each of the free parameters in the model.
+    More details in Christiaens et al. (2021).
     
     Parameters
     ----------
@@ -623,6 +654,11 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         name: e.g. "WL(AA)" for angstrom, "wavelength(mu)" for micrometer or
         "lambda(nm)" for nanometer. Note: Only what is in parentheses matters.
         Important: filter files should all have the same format and WL units.
+    AV_bef_bb: bool, optional
+        If both extinction and an extra bb component are free parameters, 
+        whether to apply extinction before adding the BB component (e.g. 
+        extinction mostly from circumplanetary dust) or after the BB component
+        (e.g. mostly insterstellar extinction).
     units_obs : str, opt {'si','cgs','jy'}
         Units of observed spectrum. 'si' for W/m^2/mu; 'cgs' for ergs/s/cm^2/mu 
         or 'jy' for janskys.
@@ -911,8 +947,8 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
                                            lbda_obs, spec_obs, err_obs, dist,
                                            model_grid, model_reader, em_lines,
                                            em_grid, dlbda_obs, instru_corr, 
-                                           instru_fwhm, instru_idx, 
-                                           filter_reader, units_obs, units_mod, 
+                                           instru_fwhm,instru_idx,filter_reader, 
+                                           AV_bef_bb, units_obs, units_mod, 
                                            interp_order, priors, physical]),
                                     threads=nproc)
                                     
@@ -1203,7 +1239,7 @@ def spec_show_walk_plot(chain, labels, save=False, output_dir='', ntrunc=100,
 
 def spec_show_corner_plot(chain, burnin=0.5, save=False, output_dir='', 
                           mcmc_res=None, units=None, ndig=None, 
-                          labels_plot=None, **kwargs):
+                          labels_plot=None, plot_name='corner_plot.pdf', **kwargs):
     """
     Display/save a figure showing the corner plot (pdfs + correlation plots).
     
@@ -1338,7 +1374,7 @@ def spec_show_corner_plot(chain, burnin=0.5, save=False, output_dir='',
             ax.set_title(title, **title_kwargs)
     
     if save:
-        plt.savefig(output_dir+'corner_plot.pdf')
+        plt.savefig(output_dir+plot_name)
         plt.close(fig)
     else:
         plt.show()
@@ -1540,30 +1576,27 @@ def spec_confidence(isamples, labels, cfd=68.27, bins=100, gaussian_fit=False,
             f.write('Results of the MCMC fit\n')
             f.write('----------------------- \n')
             f.write(' \n')
-            f.write(' \n')
             if bounds is not None:
                 f.write('Bounds\n')
-                f.write('------ \n')
-                f.write(' \n')
+                f.write('------')
                 for j in range(l):
                     f.write('\n{}: [{},{}]'.format(pKey[j], bounds[pKey[j]][0],
                                                    bounds[pKey[j]][1]))
                 f.write(' \n')
+                f.write(' \n')
             f.write('Priors\n')
-            f.write('------ \n')
+            f.write('------')
             if priors is not None:
                 for key, prior in priors.items():
                     f.write('\n{}: {}+-{}'.format(key, prior[0], prior[1]))
             else:
                 f.write('\n None')
             f.write(' \n')
-            f.write('>> Spectral parameters for a')
-            f.write('{} % confidence interval:\n'.format(cfd))
             f.write(' \n')
+            f.write('>> Spectral parameters for a ')
+            f.write('{} % confidence interval:\n'.format(cfd))
             
             for j in range(l):
-                f.write("\n******* Results for {} ***** ".format(pKey[j]))
-                f.write('\n\nConfidence intervals:')
                 f.write('{}: {} [{},{}]'.format(pKey[j], val_max[pKey[j]],
                                               confidenceInterval[pKey[j]][0],
                                               confidenceInterval[pKey[j]][1]))

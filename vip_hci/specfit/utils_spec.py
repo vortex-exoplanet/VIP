@@ -9,6 +9,7 @@ __all__ = ['akaike',
            'blackbody',
            'combine_spec_corrs',
            'convert_F_units',
+           'convert_F_vs_mag',
            'extinction',
            'find_nearest',
            'inject_em_line',
@@ -119,7 +120,8 @@ def convert_F_units(F, lbda, in_unit='cgs', out_unit='si'):
     elif in_unit == "jy":
         new_F=F
     else:
-        raise TypeError("in_unit not recognized, try either 'cgs', 'si' or 'jy'.")        
+        msg = "in_unit not recognized, try either 'cgs', 'si' or 'jy'."
+        raise TypeError(msg)        
     if out_unit == 'jy':
         return new_F
     elif out_unit == 'cgs':
@@ -127,9 +129,103 @@ def convert_F_units(F, lbda, in_unit='cgs', out_unit='si'):
     elif out_unit == 'si':
         return new_F*1e-26*c.c.value*1e6/np.power(lbda,2)
     else:
-        raise TypeError("out_unit not recognized, try either 'cgs', 'si' or 'jy'.")  
+        msg = "out_unit not recognized, try either 'cgs', 'si' or 'jy'."
+        raise TypeError(msg)  
 
 
+def convert_F_vs_mag(value, F_0=None, band='H', system='Johnson', 
+                     conversion='to_mag'):
+    """
+    Function to convert Flux density (in Jy) to magnitude in a given band, or 
+    the opposite.
+
+    Sources for zero points:
+        - TOKUNAGA chapter on IR astronomy (from Cohen 1992)
+        - UKIRT webpage: 
+        (http://www.jach.hawaii.edu/UKIRT/astronomy/calib/phot_cal/conver.html)
+        - van der Bliek et al. 1996 (ESO standard stars)
+
+    Parameters:
+    -----------
+    value: float
+        Flux or magnitude to be converted.
+    F_0: float, opt
+        Zero-point flux. If provided will take precedence over band.
+    band: str, opt
+        Band of the given flux or magnitude. Choice between: {'U','B','V', 'R', 
+        'I', 'J', 'H', 'K', "L", "L'", 'M', 'N', 'O'} 
+        (but not for all band systems).
+    system: str, opt
+        Band system. Choice between: {'Johnson;,'2MASS', 'UKIRT', 'ESO'}
+    conversion: str, opt
+        In which sense to convert: flux to mag ('to_mag') or mag to flux 
+        ('to_flux')
+    
+    Returns:
+    --------
+    Converted flux or magnitude.
+    """               
+    
+    dico_zero_pts_Jo = {'U': [0.36,1823.],
+                        'B': [0.44,4130.],
+                        'V': [0.55,3781.],
+                        'R': [0.71,2941.],
+                        'I': [0.97,2635.],
+                        'J': [1.25,1603.],
+                        'H': [1.60,1075.],
+                        'K': [2.22,667.],
+                        'L': [3.54,288.],
+                        'M': [4.80,170.],
+                        'N': [10.6,36.],
+                        'O': [21.0,9.4]}
+    dico_zero_pts_2M = {'J': [1.235,1594.],
+                        'H': [1.662,1024.],
+                        'K': [2.159,666.7]}
+    dico_zero_pts_UK = {'V': [0.5556,3540.], # TOKUNAGA (from Cohen 1992)
+                        'I': [0.9,2250.],    # UKIRT webpage
+                        'J': [1.215,1630.],  # TOKUNAGA (from Cohen 1992)
+                        'H': [1.654,1050.],  # TOKUNAGA (from Cohen 1992)
+                        'Ks': [2.157,667.],  # TOKUNAGA (from Cohen 1992)
+                        'K': [2.179,655.],   # TOKUNAGA (from Cohen 1992)                        
+                        'L': [3.547,276.],   # TOKUNAGA (from Cohen 1992)  
+                        "L'": [3.761,248.],  # TOKUNAGA (from Cohen 1992)                          
+                        'M': [4.769,160.],   # TOKUNAGA (from Cohen 1992)  
+                        '8.7': [8.756,50.],  # TOKUNAGA (from Cohen 1992)                          
+                        'N': [10.472,35.3],  # TOKUNAGA (from Cohen 1992)  
+                        '11.7': [11.653,28.6], # TOKUNAGA (from Cohen 1992)         
+                        'Q': [20.13,9.7]}      # TOKUNAGA (from Cohen 1992)
+    dico_zero_pts_ESO = {'J': [1.228,3.44e-9],  # van der Bliek 1996
+                        'H': [1.651,1.21e-9],   # van der Bliek 1996
+                        'K': [2.216,4.12e-10],  # van der Bliek 1996
+                        "L'": [3.771,5.58e-11], # van der Bliek 1996
+                        "M": [4.772,2.21e-11]}  # van der Bliek 1996 
+    
+    if F_0 is None:
+        if system == 'Johnson' and band in dico_zero_pts_Jo:
+            dico_F_0 = dico_zero_pts_Jo
+        elif system == '2MASS' and band in dico_zero_pts_2M:
+            dico_F_0 = dico_zero_pts_2M
+        elif system == 'UKIRT' and band in dico_zero_pts_UK:
+            dico_F_0 = dico_zero_pts_UK
+        elif system == 'ESO' and band in dico_zero_pts_UK:
+            dico_F_0 = dico_zero_pts_ESO                   
+        else:
+            msg = 'Combination of band name and band system not recognized.'
+            raise TypeError(msg)
+        F_0 = dico_F_0[band][1]
+        if system == 'ESO':
+            # convert from W m-2 mu-1 to Jy
+            F_0 = convert_F_units(F_0, dico_F_0[band][0], in_unit='si', 
+                                  out_unit='jy')
+    
+    if conversion == 'to_mag':
+        return -2.5*np.log10(value/F_0)
+    elif conversion == 'to_flux':
+        return F_0*np.power(10.,-value/2.5)
+    else:
+        msg = "conversion not recognized, must be 'to_mag' or 'to_flux'."
+        raise TypeError(msg)
+        
 
 def extinction(lbda, AV, RV=3.1):
     """
@@ -198,7 +294,7 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
         If not None, will check for the closest element larger than value (ceil)
         or closest element smaller than value (floor).
     n: int, opt
-        Number of elements to be returned, sorted by proximity to the value.
+        Number of elements to be returned, sorted by proximity to the values.
         Default: only the closest value is returned.
     
     Returns:
@@ -233,8 +329,8 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
         idx = fm.argsort()[:n]
         idx = crop_indices[idx]
         if len(idx)==0:
-            import pdb
-            pdb.set_trace()
+            msg = "No indices match the constraint ({} w.r.t {:.2f})"
+            print(msg.format(constraint,value))
             raise ValueError("No indices match the constraint")
     else:
         raise ValueError("Constraint not recognised")
@@ -321,11 +417,11 @@ def mj_from_rj_and_logg(rp, logg):
     Estimates a planet mass in Jupiter mass for a given radius in Jupiter 
     radius and the log of the surface gravity. 
     """    
-    surf_g = 1e-2 * 10.**logg  # (m s-2)
+    surf_g = 1e-2 * np.power(10.,logg)  # (m s-2)
 
-    rp *= c.R_jup.value # (m)
+    rpJ = rp*c.R_jup.value # (m)
 
-    mp = surf_g*rp**2/c.G.value # (kg)
+    mp = surf_g*np.power(rpJ,2)/c.G.value # (kg)
     mp /= c.M_jup.value  # (Mjup)
 
     return mp

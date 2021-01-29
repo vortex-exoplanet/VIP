@@ -12,7 +12,7 @@ from ..var import prepare_matrix
 
 
 def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
-    """ PCA based sky subtraction.
+    """ PCA-based sky subtraction.
 
     Parameters
     ----------

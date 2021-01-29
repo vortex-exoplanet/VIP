@@ -105,11 +105,13 @@ def gelman_rubin_from_chain(chain, burnin):
         rhat[j] = gelman_rubin(series)
     return rhat
 
+
 def next_pow_two(n):
     i = 1
     while i < n:
         i = i << 1
     return i
+
 
 def autocorr_func_1d(x, norm=True):
     x = np.atleast_1d(x)
@@ -135,6 +137,7 @@ def auto_window(taus, c):
         return np.argmin(m)
     return len(taus) - 1
 
+
 def autocorr(y, c=5.0):
     f = np.zeros(y.shape[1])
     for yy in y:
@@ -143,6 +146,7 @@ def autocorr(y, c=5.0):
     taus = 2.0 * np.cumsum(f) - 1.0
     window = auto_window(taus, c)
     return taus[window]
+
 
 def autocorr_test(chain):
     N = chain.shape[1]

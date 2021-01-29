@@ -19,7 +19,8 @@ from astropy.io import fits as ap_fits
 
 
 def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
-              precision=np.float32, return_memmap=False, verbose=True):
+              precision=np.float32, return_memmap=False, verbose=True, 
+              **kwargs):
     """
     Load a fits file into a memory as numpy array.
 
@@ -43,6 +44,9 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         physical memory.
     verbose : bool, optional
         If True prints message of completion.
+    **kwargs: optional
+        Optional arguments to the astropy.io.fits.open() function. E.g. 
+        "output_verify" can be set to ignore, in case of non-standard header.
 
     Returns
     -------
@@ -59,7 +63,7 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         fitsfilename += '.fits'
 
     hdulist = ap_fits.open(fitsfilename, ignore_missing_end=ignore_missing_end,
-                           memmap=True)
+                           memmap=True, **kwargs)
 
     if return_memmap:
         return hdulist[n]
@@ -112,7 +116,7 @@ def byteswap_array(array):
     return array_out
 
 
-def info_fits(fitsfilename):
+def info_fits(fitsfilename, **kwargs):
     """
     Print the information about a fits file.
 
@@ -120,9 +124,12 @@ def info_fits(fitsfilename):
     ----------
     fitsfilename : str
         Path to the fits file.
+    **kwargs: optional
+        Optional arguments to the astropy.io.fits.open() function. E.g. 
+        "output_verify" can be set to ignore, in case of non-standard header.
 
     """
-    with ap_fits.open(fitsfilename, memmap=True) as hdulist:
+    with ap_fits.open(fitsfilename, memmap=True, **kwargs) as hdulist:
         hdulist.info()
 
 

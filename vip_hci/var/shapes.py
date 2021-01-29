@@ -6,6 +6,7 @@ Module with various functions to create shapes, annuli and segments.
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['dist',
+           'dist_matrix',
            'frame_center',
            'get_square',
            'get_circle',
@@ -82,9 +83,9 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
 
 
 def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
-                              sp_angle=0):
+                              sp_angle=0, nlegs=6):
     """
-    Mask out information is outside the annulus and inside the spiders (zeros).
+    Mask out information outside the annulus and inside the spiders (zeros).
 
     Parameters
     ----------
@@ -92,13 +93,15 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
         Tuple of length two with 2d array shape (Y,X).
     ann_out : int
         Outer radius of the annulus.
-    ann_in : int
+    ann_in : int, opt
         Inner radius of the annulus.
-    sp_width : int
-        Width of the spider arms (3 branches).
-    sp_angle : int
+    sp_width : int, opt
+        Width of the spider arms (6 legs by default).
+    sp_angle : int, opt
         angle of the first spider arm (on the positive horizontal axis) in
         counter-clockwise sense.
+    nlegs: int, opt
+        Number of legs of the spider.
 
     Returns
     -------
@@ -107,36 +110,34 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
 
     """
     mask = np.zeros(im_shape)
+    nbranch = int(nlegs/2)
 
-    s = im_shape[0]
-    r = s/2
+    s = im_shape
+    r = min(s)/2
     theta = np.arctan2(sp_width/2, r)
-
-    t0 = np.array([theta, np.pi-theta, np.pi+theta, np.pi*2 - theta])
-    t1 = t0 + sp_angle/180 * np.pi
-    t2 = t1 + np.pi/3
-    t3 = t2 + np.pi/3
-
-    x1 = r * np.cos(t1) + s/2
-    y1 = r * np.sin(t1) + s/2
-    x2 = r * np.cos(t2) + s/2
-    y2 = r * np.sin(t2) + s/2
-    x3 = r * np.cos(t3) + s/2
-    y3 = r * np.sin(t3) + s/2
-
-    rr1, cc1 = polygon(y1, x1)
-    rr2, cc2 = polygon(y2, x2)
-    rr3, cc3 = polygon(y3, x3)
 
     cy, cx = frame_center(mask)
     rr0, cc0 = circle(cy, cx, min(ann_out, cy))
-    rr4, cc4 = circle(cy, cx, ann_in)
-
     mask[rr0, cc0] = 1
-    mask[rr1, cc1] = 0
-    mask[rr2, cc2] = 0
-    mask[rr3, cc3] = 0
+
+    t0 = np.array([theta, np.pi-theta, np.pi+theta, np.pi*2 - theta])
+    if isinstance(sp_angle, (list,np.ndarray)):
+        dtheta = [sp_angle[i]-sp_angle[0] for i in range(nbranch)]
+    else:
+        sp_angle = [sp_angle]
+        dtheta = [i*np.pi/nbranch for i in range(nbranch)]
+    tn = np.zeros([nbranch,4])
+    xn = np.zeros_like(tn)
+    yn = np.zeros_like(tn)
+    for i in range(nbranch):
+        tn[i] = t0 + np.deg2rad(sp_angle[0] + dtheta[i])
+        xn[i] = r * np.cos(tn[i]) + s[1]/2
+        yn[i] = r * np.sin(tn[i]) + s[0]/2
+        rrn, ccn = polygon(yn[i], xn[i])
+        mask[rrn, ccn] = 0
+    rr4, cc4 = circle(cy, cx, ann_in)
     mask[rr4, cc4] = 0
+    
     return mask
 
 

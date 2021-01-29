@@ -12,22 +12,28 @@ __all__ = ['frame_fix_badpix_isolated',
            'cube_fix_badpix_annuli',
            'cube_fix_badpix_clump']
 
-from numba import njit
 import numpy as np
-from hciplot import plot_frames
-import photutils
 from skimage.draw import circle, ellipse
 from scipy.ndimage import median_filter
 from astropy.stats import sigma_clipped_stats
 from ..stats import sigma_filter
-from ..var import dist, frame_center, get_annulus_segments, frame_center
+from ..var import frame_center, get_annulus_segments
 from ..stats import clip_array
 from ..conf import timing, time_ini, Progressbar
 from .cosmetics import approx_stellar_position
 
+import warnings
+try:
+    from numba import njit
+    no_numba = False
+except ImportError:
+    msg = "Numba python bindings are missing."
+    warnings.warn(msg, ImportWarning)
+    no_numba = True
+
 def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                               size=5, protect_mask=False, radius=30,
-                              verbose=True, debug=False):
+                              verbose=True):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is
      replaced by the median of the adjacent pixels. This function is very fast
      but works only with isolated (sparse) pixels.
@@ -59,10 +65,6 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
          protection mask.
      verbose : bool, optional
          If True additional information will be printed.
-     debug : bool, optional
-         If debug is True, the bpm_mask and the input array are plotted. If the
-         input array is a cube, a long output is to be expected. Better check
-         the results with single images.
 
      Return
      ------
@@ -95,8 +97,6 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
             cir = circle(cy, cx, radius)
             bpm_mask[cir] = 0
         bpm_mask = bpm_mask.astype('bool')
-        if debug:
-            plot_frames((frame, bpm_mask), title='Frame / Bad pixel mask')
 
     smoothed = median_filter(frame, size, mode='mirror')
     frame[np.where(bpm_mask)] = smoothed[np.where(bpm_mask)]
@@ -112,7 +112,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
 
 def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5, 
                              size=5, frame_by_frame=False, protect_mask=False, 
-                             radius=30, verbose=True, debug=False):
+                             radius=30, verbose=True):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is 
     replaced by the median of the adjacent pixels. This function is very fast
     but works only with isolated (sparse) pixels. 
@@ -146,11 +146,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         Radius of the circular aperture (at the center of the frames) for the 
         protection mask.
     verbose : bool, optional
-        If True additional information will be printed. 
-    debug : bool, optional
-        If debug is True, the bpm_mask and the input array are plotted. If the
-        input array is a cube, a long output is to be expected. Better check the
-        results with single images.
+        If True additional information will be printed.
     
     Return
     ------
@@ -199,9 +195,6 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                 cir = circle(cy, cx, radius)
                 bpm_mask[cir] = 0
             bpm_mask = bpm_mask.astype('bool')
-    
-        if debug:
-            plot_frames(bpm_mask, title='Bad pixel mask')
     
         for i in Progressbar(range(n_frames), desc="processing frames"):
             frame = array_out[i]
@@ -421,12 +414,10 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
         #4/ Loop on all pixels to check bpix
         bpix_map = np.zeros_like(obj_tmp)
         obj_tmp_corr = obj_tmp.copy()
-        rand_arr = 2*(np.random.rand((n_y, n_x))-0.5)
-        obj_tmp_corr, bpix_map = _correct_ann_outliers(obj_tmp, ann_width, sig, 
-                                                       med_neig, std_neig, cy, 
-                                                       cx, min_thr, max_thr, 
-                                                       rand_arr, stddev, 
-                                                       half_res_y)
+        obj_tmp_corr, bpix_map = correct_ann_outliers(obj_tmp, ann_width, sig, 
+                                                      med_neig, std_neig, cy, 
+                                                      cx, min_thr, max_thr, 
+                                                      stddev, half_res_y)
 
         #5/ Count bpix and uncorrect if within the circle
         nbpix_tot = np.sum(bpix_map)
@@ -844,9 +835,9 @@ def find_outliers(frame, sig_dist, in_bpix=None, stddev=None, neighbor_box=3,
     return bpix_map
     
     
-@njit
-def reject_outliers(data, test_value, m=5.,stddev=None):
-    """ FUNCTION TO REJECT OUTLIERS FROM A SET
+
+def reject_outliers(data, test_value, m=5., stddev=None, debug=False):
+    """ Function to reject outliers from a set.
     Instead of the classic standard deviation criterion (e.g. 5-sigma), the 
     discriminant is determined as follow:
     - for each value in data, an absolute distance to the median of data is
@@ -882,56 +873,182 @@ def reject_outliers(data, test_value, m=5.,stddev=None):
         0 if test_value is not an outlier. 1 otherwise. 
     """
 
-    if stddev is None:
-        stddev = np.std(data)
-
-    med = np.median(data)
-    d = data.copy()
-    d_flat = d.flatten()
-    for i in range(d_flat.shape[0]):
-        d_flat[i] = np.abs(data.flatten()[i] - med)
-    mdev = np.median(d_flat)
-    if max(np.max(d),np.abs(test_value-med)) > stddev:
-        test = np.abs((test_value-med)/mdev)
-        if test < m:
-            test_result = 0
-        else:
-            test_result = 1
-    else:
-        test_result = 0
-            
-    return test_result
-
-@njit    
-def _correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, cy, cx, 
-                          min_thr, max_thr, rand_arr, stddev, half_res_y=False):                     
-    n_y, n_x = obj_tmp.shape
-    obj_tmp_corr = obj_tmp.copy()
-    bpix_map = np.zeros([n_y,n_x])
-    for yy in range(n_y):
-        for xx in range(n_x):
-            if half_res_y:
-                rad = np.sqrt((2*(cy-yy))**2+(cx-xx)**2)
+    if no_numba:
+        def _reject_outliers(data, test_value, m=5., stddev=None, debug=False):
+            if stddev is None:
+                stddev = np.std(data)
+        
+            med = np.median(data)
+            d = np.abs(data - med)
+            mdev = np.median(d)
+            if debug:
+                print("data = ", data)
+                print("median(data)= ", np.median(data))
+                print("d = ", d)
+                print("mdev = ", mdev)
+                print("stddev(box) = ", np.std(data))
+                print("stddev(frame) = ", stddev)
+                print("max(d) = ", np.max(d))
+        
+            if max(np.max(d),np.abs(test_value-med)) > stddev:
+                mdev = mdev if mdev>stddev else stddev
+                s = d/mdev
+                if debug:
+                    print("s =", s)
+                test = np.abs((test_value-np.median(data))/mdev)
+                if debug:
+                    print("test =", test)
+                else:
+                    if test < m:
+                        test_result = 0
+                    else:
+                        test_result = 1
             else:
-                rad = np.sqrt((cy-yy)**2+(cx-xx)**2)
-            rr = int(rad/ann_width)
-            dev = max(stddev,min(std_neig[rr],med_neig[rr]))
+                test_result = 0
+        
+            return test_result
+        return _reject_outliers(data, test_value, m=5., stddev=None, 
+                                debug=debug)
+    else:
+        @njit
+        def _reject_outliers(data, test_value, m=5.,stddev=None):
+            if stddev is None:
+                stddev = np.std(data)
+        
+            med = np.median(data)
+            d = data.copy()
+            d_flat = d.flatten()
+            for i in range(d_flat.shape[0]):
+                d_flat[i] = np.abs(data.flatten()[i] - med)
+            mdev = np.median(d_flat)
+            if max(np.max(d),np.abs(test_value-med)) > stddev:
+                test = np.abs((test_value-med)/mdev)
+                if test < m:
+                    test_result = 0
+                else:
+                    test_result = 1
+            else:
+                test_result = 0
+            
+            return test_result
+        
+        return _reject_outliers(data, test_value, m=5.,stddev=None)
 
-            # check min_thr
-            if obj_tmp[yy,xx] < min_thr:
-                bpix_map[yy,xx] = 1
-                obj_tmp_corr[yy,xx] = med_neig[rr] + \
-                                      np.sqrt(np.abs(med_neig[rr]))*rand_arr[yy,xx]
+  
+def correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, cy, cx, 
+                          min_thr, max_thr, rand_arr, stddev, half_res_y=False):
+    """ Function to correct outliers in concentric annuli.
 
-            # check max_thr
-            elif obj_tmp[yy,xx] > max_thr:
-                bpix_map[yy,xx] = 1
-                obj_tmp_corr[yy,xx] = med_neig[rr] + \
-                                      np.sqrt(np.abs(med_neig[rr]))*rand_arr[yy,xx]
-                                      
-            elif (obj_tmp[yy,xx] < med_neig[rr]-sig*dev or 
-                  obj_tmp[yy,xx] > med_neig[rr]+sig*dev):
-                bpix_map[yy,xx] = 1
-                obj_tmp_corr[yy,xx] = med_neig[rr] + \
-                                      np.sqrt(np.abs(med_neig[rr]))*rand_arr[yy,xx]
-    return obj_tmp_corr, bpix_map
+    Parameters:
+    -----------
+    obj_tmp: numpy ndarray
+        Input array with respect to which either a test_value or the central a 
+        value of data is determined to be an outlier or not
+    ann_width: float
+        Width of concenrtric annuli in pixels.
+    sig: float
+        Number of sigma to consider a pixel intensity as an outlier.
+    med_neig, std_neig: 1d arrays
+        Median and standard deviation of good pixel intensities in each annulus 
+    cy, cx: floats
+        Coordinates of the center of the concentric annuli.
+    min_thr, max_thr: {None,float}
+        Any pixel whose value is lower (resp. larger) than this threshold will 
+        be automatically considered bad and hence sigma_filtered. If None, it 
+        is not used.
+    stddev: float
+        Global std dev of the non-PSF part of the considered frame. It is needed
+        as a reference to know the typical variation of the noise, and hence 
+        avoid detecting outliers out of very close pixel values. If the 9 pixels
+        of data happen to be very uniform in values at some location, the 
+        departure in value of only one pixel could make it appear as a bad 
+        pixel. If stddev is not provided, the stddev of data is used (not 
+        recommended).
+    half_res_y: bool, {True,False}, optional
+        Whether the input data have only half the angular resolution vertically 
+        compared to horizontally (e.g. SINFONI data).
+        The algorithm will then correct the bad pixels every other row.
+
+    Returns:
+    --------
+    obj_tmp_corr: np.array
+        Array with corrected outliers.
+    bpix_map: np.array
+        Boolean array with location of outliers.
+    """ 
+    
+    if no_numba: 
+        def _correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, 
+                                  cy, cx, min_thr, max_thr, rand_arr, stddev, 
+                                  half_res_y=False):           
+            n_y, n_x = obj_tmp.shape
+            rand_arr = 2*(np.random.rand((n_y, n_x))-0.5)
+            obj_tmp_corr = obj_tmp.copy()
+            bpix_map = np.zeros([n_y,n_x])
+            for yy in range(n_y):
+                for xx in range(n_x):
+                    if half_res_y:
+                        rad = np.sqrt((2*(cy-yy))**2+(cx-xx)**2)
+                    else:
+                        rad = np.sqrt((cy-yy)**2+(cx-xx)**2)
+                    rr = int(rad/ann_width)
+                    dev = max(stddev,min(std_neig[rr],med_neig[rr]))
+        
+                    # check min_thr
+                    if obj_tmp[yy,xx] < min_thr:
+                        bpix_map[yy,xx] = 1
+                        obj_tmp_corr[yy,xx] = med_neig[rr] + \
+                                              np.sqrt(np.abs(med_neig[rr]))*rand_arr[yy,xx]
+        
+                    # check max_thr
+                    elif obj_tmp[yy,xx] > max_thr:
+                        bpix_map[yy,xx] = 1
+                        obj_tmp_corr[yy,xx] = med_neig[rr] + \
+                                              np.sqrt(np.abs(med_neig[rr]))*rand_arr[yy,xx]
+                                              
+                    elif (obj_tmp[yy,xx] < med_neig[rr]-sig*dev or 
+                          obj_tmp[yy,xx] > med_neig[rr]+sig*dev):
+                        bpix_map[yy,xx] = 1
+                        obj_tmp_corr[yy,xx] = med_neig[rr] + \
+                                              np.sqrt(np.abs(med_neig[rr]))*rand_arr[yy,xx]
+            return obj_tmp_corr, bpix_map
+    else:
+        @njit  
+        def _correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, 
+                                  cy, cx, min_thr, max_thr, rand_arr, stddev, 
+                                  half_res_y=False):           
+            n_y, n_x = obj_tmp.shape
+            rand_arr = 2*(np.random.rand((n_y, n_x))-0.5)
+            obj_tmp_corr = obj_tmp.copy()
+            bpix_map = np.zeros([n_y,n_x])
+            for yy in range(n_y):
+                for xx in range(n_x):
+                    if half_res_y:
+                        rad = np.sqrt((2*(cy-yy))**2+(cx-xx)**2)
+                    else:
+                        rad = np.sqrt((cy-yy)**2+(cx-xx)**2)
+                    rr = int(rad/ann_width)
+                    dev = max(stddev,min(std_neig[rr],med_neig[rr]))
+        
+                    # check min_thr
+                    if obj_tmp[yy,xx] < min_thr:
+                        bpix_map[yy,xx] = 1
+                        obj_tmp_corr[yy,xx] = med_neig[rr] + \
+                                              np.sqrt(np.abs(med_neig[rr]))*rand_arr[yy,xx]
+        
+                    # check max_thr
+                    elif obj_tmp[yy,xx] > max_thr:
+                        bpix_map[yy,xx] = 1
+                        obj_tmp_corr[yy,xx] = med_neig[rr] + \
+                                              np.sqrt(np.abs(med_neig[rr]))*rand_arr[yy,xx]
+                                              
+                    elif (obj_tmp[yy,xx] < med_neig[rr]-sig*dev or 
+                          obj_tmp[yy,xx] > med_neig[rr]+sig*dev):
+                        bpix_map[yy,xx] = 1
+                        obj_tmp_corr[yy,xx] = med_neig[rr] + \
+                                              np.sqrt(np.abs(med_neig[rr]))*rand_arr[yy,xx]
+            return obj_tmp_corr, bpix_map
+    
+    return _correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, 
+                                 cy, cx, min_thr, max_thr, rand_arr, stddev, 
+                                 half_res_y=False)

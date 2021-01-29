@@ -27,7 +27,7 @@ from .utils_spec import (convert_F_units, blackbody, find_nearest, extinction,
 def make_model_from_params(params, labels, grid_param_list, dist, lbda_obs=None, 
                            model_grid=None, model_reader=None, em_lines={}, 
                            em_grid={}, dlbda_obs=None, instru_fwhm=None, 
-                           instru_idx=None, filter_reader=None, 
+                           instru_idx=None, filter_reader=None, AV_bef_bb=False,
                            units_obs='si', units_mod='si', interp_order=1):
     """
     Routine to make the model from input parameters.
@@ -118,6 +118,11 @@ def make_model_from_params(params, labels, grid_param_list, dist, lbda_obs=None,
         - first row containing header
         - starting from 2nd row: 1st column: WL in mu, 2nd column: transmission
         Note: files should all have the same format and wavelength units.
+    AV_bef_bb: bool, optional
+        If both extinction and an extra bb component are free parameters, 
+        whether to apply extinction before adding the BB component (e.g. 
+        extinction mostly from circumplanetary dust) or after the BB component
+        (e.g. mostly insterstellar extinction).
     units_obs : str, opt {'si','cgs','jy'}
         Units of observed spectrum. 'si' for W/m^2/mu; 'cgs' for ergs/s/cm^2/mu 
         or 'jy' for janskys.
@@ -183,6 +188,20 @@ def make_model_from_params(params, labels, grid_param_list, dist, lbda_obs=None,
         dilut_fac = ((params[idx_R]*con.R_jup.value)/(dist*con.pc.value))**2
         spec_mod *= dilut_fac
 
+        
+    # apply extinction if requested
+    if 'Av' in labels and AV_bef_bb:
+        ## so far only assume Cardelli extinction law
+        idx_AV = labels.index("Av")
+        if 'Rv' in labels:
+            idx_RV = labels.index("Rv")
+            RV = params[idx_RV]
+        else:
+            RV=3.1
+        extinc_curve = extinction(lbda_mod, params[idx_AV], RV)
+        flux_ratio_ext = np.power(10.,-extinc_curve/2.5)
+        spec_mod *= flux_ratio_ext
+        ## TBD: add more options
 
     # add n blackbody component(s) if requested 
     if 'Tbb1' in labels:
@@ -198,10 +217,9 @@ def make_model_from_params(params, labels, grid_param_list, dist, lbda_obs=None,
              dilut_fac = ((params[idx_Tbb1+idx+1]*Rj)/(dist*pc))**2
              bb = dilut_fac*blackbody(lbda_mod, params[idx_Tbb1+idx])
              spec_mod += bb
-        
-        
+
     # apply extinction if requested
-    if 'Av' in labels:
+    if 'Av' in labels and not AV_bef_bb:
         ## so far only assume Cardelli extinction law
         idx_AV = labels.index("Av")
         if 'Rv' in labels:
@@ -212,8 +230,7 @@ def make_model_from_params(params, labels, grid_param_list, dist, lbda_obs=None,
         extinc_curve = extinction(lbda_mod, params[idx_AV], RV)
         flux_ratio_ext = np.power(10.,-extinc_curve/2.5)
         spec_mod *= flux_ratio_ext
-        ## TBD: add more options
-        
+        ## TBD: add more options                
         
     return lbda_mod, spec_mod
 
@@ -589,10 +606,10 @@ def resample_model(lbda_obs, lbda_mod, spec_mod, dlbda_obs=None,
     dlbda_obs_min = np.amin(dlbda_obs)
     idx_obs_min = np.argmin(dlbda_obs)
     idx_near = find_nearest(lbda_mod, lbda_obs[idx_obs_min])
-    dlbda_mod_tmp = (lbda_mod[idx_near+1]-lbda_mod[idx_near+1])/2
+    dlbda_mod_tmp = (lbda_mod[idx_near+1]-lbda_mod[idx_near-1])/2
     do_interp = np.zeros(n_ch, dtype='int32')
     
-    if dlbda_mod_tmp>dlbda_obs_min:
+    if dlbda_mod_tmp>dlbda_obs_min and dlbda_obs_min > 0:
         if verbose:
             print("checking where obs spec res is < or > than model's")
         ## check where obs spec res is < or > than model's
@@ -606,24 +623,35 @@ def resample_model(lbda_obs, lbda_mod, spec_mod, dlbda_obs=None,
             elif do_interp[ll]:
                 nchunks_i=1
             
-    ## interpolate model where the observed spectrum has higher resolution
-    if np.sum(do_interp):
+    ## interpolate model if the observed spectrum has higher resolution 
+    ## and is monotonically increasing
+    if np.sum(do_interp) and dlbda_obs_min > 0:
         if verbose:
             print("interpolating model where obs spectrum has higher res")    
         idx_0=0
         for nc in range(nchunks_i):
             idx_1 = np.argmax(do_interp[idx_0:])+idx_0
             idx_0 = np.argmin(do_interp[idx_1:])+idx_1
+            if idx_0==idx_1:
+                idx_0=-1
+                if nc != nchunks_i-1:
+                    pdb.set_trace() # should not happen
             idx_ini = find_nearest(lbda_mod,lbda_obs[idx_1],
                                    constraint='floor')
-            idx_fin = find_nearest(lbda_mod,lbda_obs[idx_0-1],
-                                   constraint='ceil')  
+            idx_fin = find_nearest(lbda_mod,lbda_obs[idx_0],
+                                   constraint='ceil')
+
+
             spl = InterpolatedUnivariateSpline(lbda_mod[idx_ini:idx_fin], 
-                                               spec_mod[idx_ini:idx_fin])
+                                               spec_mod[idx_ini:idx_fin],
+                                                   k=min(3,idx_fin-idx_ini-1))
             spec_mod_res[idx_1:idx_0] = spl(lbda_obs[idx_1:idx_0])
+
             
     ## convolve+bin where the model spectrum has higher resolution (most likely)
-    if np.sum(do_interp) < n_ch:
+    if np.sum(do_interp) < n_ch or dlbda_obs_min > 0:
+    # Note: if dlbda_obs_min < 0, it means several instruments are used with 
+    # overlapping WL ranges. instru_fwhm should be provided!
         if instru_fwhm is None:
             msg = "Warning! No spectral FWHM nor filter file provided"
             msg+= " => binning without convolution"
@@ -866,9 +894,9 @@ def interpolate_model(params, grid_param_list, params_em={}, em_grid={},
             for ii in range(2):
                 try:
                     sub_grid_param[nn,ii] = find_nearest(grid_tmp, 
-                                                     params_tmp,
-                                                     constraint=constraints[ii], 
-                                                     output='value')
+                                                         params_tmp,
+                                                         constraint=constraints[ii], 
+                                                         output='value')
                 except:
                     pdb.set_trace()
                 

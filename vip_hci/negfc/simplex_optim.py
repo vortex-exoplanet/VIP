@@ -245,6 +245,8 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
         The scipy.optimize.minimize options.
     verbose : boolean, optional
         If True, additional information is printed out.
+    **kwargs: optional
+        Optional arguments to the scipy.optimize.minimize function
         
     Returns
     -------

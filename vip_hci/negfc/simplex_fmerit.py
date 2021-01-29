@@ -127,8 +127,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
                                         plsc=plsc, rad_dists=[r], n_branches=1,
                                         theta=theta, imlib=imlib, verbose=False,
                                         interpolation=interpolation, 
-                                        transmission=transmission,
-                                        weights=norm_weights)
+                                        transmission=transmission)
                                       
     # Perform PCA and extract the zone of interest
     res = get_values_optimize(cube_negfc, angs, ncomp, annulus_width,

@@ -5,13 +5,14 @@ Function defining the goodness of fit.
 """
 
 __author__ = 'Valentin Christiaens'
-__all__ = ['goodness_of_fit']
+__all__ = ['goodness_of_fit',
+           'gof_scal']
 
 import numpy as np
 from matplotlib import pyplot as plt
 from ..conf import vip_figsize
 from .model_resampling import resample_model
-
+from .utils_spec import extinction
 
 def goodness_of_fit(lbda_obs, spec_obs, err_obs, lbda_mod, spec_mod, 
                     dlbda_obs=None, instru_corr=None, instru_fwhm=None, 
@@ -138,7 +139,7 @@ def goodness_of_fit(lbda_obs, spec_obs, err_obs, lbda_mod, spec_mod,
     wi = np.ones_like(dlbda_obs)
     if dlbda_obs is not None:
         if np.sum(np.power((dlbda_obs[1:]/lbda_obs[1:])-(dlbda_obs[:-1]/lbda_obs[:-1]),2))!=0:
-            # noramlize weights for their sum to be equal to the number of points
+            # normalize weights for their sum to be equal to the number of points
             wi = np.sqrt(((dlbda_obs/lbda_obs)/np.sum(dlbda_obs/lbda_obs))*dlbda_obs.shape[0])    
    
     chi_sq = np.linalg.multi_dot((wi*delta,np.linalg.inv(cov),wi*delta))
@@ -162,3 +163,109 @@ def goodness_of_fit(lbda_obs, spec_obs, err_obs, lbda_mod, spec_mod,
         plt.show()
 
     return chi_sq
+
+
+def gof_scal(params, lbda_obs, spec_obs, err_obs, lbda_mod, spec_mod, dlbda_obs, 
+             instru_corr, instru_fwhm, instru_idx, filter_reader, ext_range):
+    """ Wrapper for the goodness of fit routine to search for best template 
+    library fitting spectrum. The only difference is the "params" argument, 
+    
+    Parameters
+    ----------
+    params: tuple
+        Tuple of 1 or 2 elements: scaling factor and (optionally) differential
+        optical extinction (i.e. Delta A_V can be negative if template spectra
+        are not dereddened).
+    lbda_obs : numpy 1d ndarray or list
+        Wavelength of observed spectrum. If several instruments, should be 
+        ordered per instrument, not necessarily as monotonically increasing 
+        wavelength. Hereafter, n_ch = len(lbda_obs).
+    spec_obs : numpy 1d ndarray or list
+        Observed spectrum for each value of lbda_obs.
+    err_obs : numpy 1d/2d ndarray or list
+        Uncertainties on the observed spectrum. If 2d array, should be [2,n_ch]
+        where the first (resp. second) column corresponds to lower (upper) 
+        uncertainty, and n_ch is the length of lbda_obs and spec_obs.
+    lbda_mod : numpy 1d ndarray or list
+        Wavelength of tested model. Should have a wider wavelength extent than 
+        the observed spectrum.
+    spec_mod : numpy 1d ndarray
+        Model spectrum. It does not require the same wavelength sampling as the
+        observed spectrum. If higher spectral resolution, it will be convolved
+        with the instrumental spectral psf (if instru_fwhm is provided) and 
+        then binned to the same sampling. If lower spectral resolution, a 
+        linear interpolation is performed to infer the value at the observed 
+        spectrum wavelength sampling.
+    dlbda_obs: numpy 1d ndarray or list, optional
+        Spectral channel width for the observed spectrum. It should be provided 
+        IF one wants to weigh each point based on the spectral 
+        resolution of the respective instruments (as in Olofsson et al. 2016).
+    instru_corr : numpy 2d ndarray or list, optional
+        Spectral correlation throughout post-processed images in which the 
+        spectrum is measured. It is specific to the combination of instrument, 
+        algorithm and radial separation of the companion from the central star.
+        Can be computed using distances.spectral_correlation(). In case of
+        a spectrum obtained with different instruments, build it with
+        distances.combine_corrs(). If not provided, it will consider the 
+        uncertainties in each spectral channels are independent. See Greco & 
+        Brandt (2017) for details.
+    instru_fwhm : float or list, optional
+        The instrumental spectral fwhm provided in nm. This is used to convolve
+        the model spectrum. If several instruments are used, provide a list of 
+        instru_fwhm values, one for each instrument whose spectral resolution
+        is coarser than the model - including broad band
+        filter FWHM if relevant.
+    instru_idx: numpy 1d array, optional
+        1d array containing an index representing each instrument used 
+        to obtain the spectrum, label them from 0 to n_instru. Zero for points 
+        that don't correspond to any instru_fwhm provided above, and i in 
+        [1,n_instru] for points associated to instru_fwhm[i-1]. This parameter 
+        must be provided if the spectrum consists of points obtained with 
+        different instruments.
+    filter_reader: python routine, optional
+        External routine that reads a filter file and returns a 2D numpy array, 
+        where the first column corresponds to wavelengths, and the second 
+        contains transmission values. Important: if not provided, but strings 
+        are detected in instru_fwhm, the default format assumed for the files:
+        - first row containing header
+        - starting from 2nd row: 1st column: WL in mu, 2nd column: transmission
+        Note: files should all have the same format and wavelength units.
+    ext_range: tuple or None, opt
+        If None: differential extinction is not to be considered as a free 
+        parameter. Elif a tuple of 3 floats is provided, differential extinction 
+        will be considered, with the floats as lower limit, upper limit and step 
+        of the grid search.
+        Note: if simplex search, the range is still used to set a chi of 
+        np.inf outside of the range.
+        
+    Returns
+    -------
+    chi_sq : float
+        Goodness of fit indicator.
+    """
+    tmp_spec = spec_mod*params[0]
+    
+    if len(params) == 2:
+        if ext_range is None:
+            raise TypeError("ext_range should be a tuple of 3 elements")
+        else:
+            if params[1]<ext_range[0] or params[1]>ext_range[1]:
+                return np.inf
+            AV=params[1]
+            thr = ext_range[-1]
+            if abs(AV) < thr:
+                AV = 0
+            Albdas = extinction(lbda_obs,abs(AV))
+            extinc_fac = np.power(10.,-Albdas/2.5)
+            if AV>0:
+                tmp_spec *= extinc_fac
+            elif AV<0:
+                tmp_spec /= extinc_fac
+    elif len(params) > 2:
+        raise TypeError("params tuple should have length 1 or 2")
+    
+    
+    return goodness_of_fit(lbda_obs, spec_obs, err_obs, lbda_obs, tmp_spec, 
+                           dlbda_obs=dlbda_obs, instru_corr=instru_corr, 
+                           instru_fwhm=instru_fwhm, instru_idx=instru_idx, 
+                           filter_reader=filter_reader)

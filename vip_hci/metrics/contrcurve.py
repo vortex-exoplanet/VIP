@@ -183,7 +183,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                             **algo_dict)
     vector_radd = res_throug[3]
     if res_throug[0].shape[0] > 1:
-        thruput_mean = np.mean(res_throug[0], axis=0)
+        thruput_mean = np.nanmean(res_throug[0], axis=0)
     else:
         thruput_mean = res_throug[0][0]
     frame_fc_all = res_throug[4]

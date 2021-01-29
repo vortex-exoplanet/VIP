@@ -130,6 +130,9 @@ root folder and run:
 
   $ python setup.py install
 
+Note: if installing from a brand new conda environment, you may need to run
+this command twice.
+
 Using Git
 ^^^^^^^^^
 If you want to benefit from the ``git`` functionalities, you need to clone the
@@ -145,6 +148,9 @@ users who want to experiment with the code.
 
 Other dependencies
 ^^^^^^^^^^^^^^^^^^
+The following dependencies are optional, but may significantly improve your
+experience 
+
 ``OpenCV`` (Open source Computer Vision) provides fast C++ image processing
 operations and is used by ``VIP`` for basic image transformations. If you don't
 have/want the ``OpenCV`` python bindings (``OpenCV`` is optional since ``VIP``

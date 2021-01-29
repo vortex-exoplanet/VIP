@@ -674,7 +674,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         rhat_count = 0
                 elif conv_test == 'ac':
                     # We calculate the auto-corr test for each model parameter.
-                    write_fits(output_dir+"/TMP_test_chain{:.0f}.fits".format(k),chain[:,:k])
+                    if save:
+                        write_fits(output_dir+"/TMP_test_chain{:.0f}.fits".format(k),chain[:,:k])
                     for j in range(dim):
                         rhat[j] = autocorr_test(chain[:,:k,j])
                     thr = 1./ac_c

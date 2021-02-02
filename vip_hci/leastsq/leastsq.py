@@ -358,6 +358,10 @@ def _leastsq_patch(ayxyx,  pa_thresholds, angles, metric, dist_threshold,
             mat_dists_ann[i][ind_fr_i] = mat_dists_ann_full[i][ind_fr_i]
     else:
         mat_dists_ann = mat_dists_ann_full
+        
+    threshold = np.percentile(mat_dists_ann[mat_dists_ann != 0], dist_threshold)
+    mat_dists_ann[mat_dists_ann > threshold] = np.nan
+    mat_dists_ann[mat_dists_ann == 0] = np.nan
 
     matrix_res = np.zeros((values.shape[0], yy.shape[0]))
     for i in range(n_frames):

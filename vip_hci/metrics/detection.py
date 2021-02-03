@@ -436,7 +436,7 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
 
     if ndims == 2:
         med_filt_tmp = frame_filter_lowpass(obj_tmp, 'median', 
-                                              median_size=int(fwhm))
+                                            median_size=int(fwhm))
         if approx_peak is None:
             ind_max = np.unravel_index(med_filt_tmp.argmax(),
                                        med_filt_tmp.shape)

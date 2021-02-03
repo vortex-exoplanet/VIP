@@ -143,17 +143,10 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
 
 def dist(yc, xc, y1, x1):
     """
-    Return the Euclidean distance between two points.
+    Return the Euclidean distance between two points, or between an array 
+    of positions and a point.
     """
-    if not isinstance(xc, (float, int)):
-        raise TypeError("`xc` must be a float or int")
-    if not isinstance(yc, (float, int)):
-        raise TypeError("`yc` must be a float or int")
-    if not isinstance(x1, (float, int)):
-        raise TypeError("`x1` must be a float or int")
-    if not isinstance(y1, (float, int)):
-        raise TypeError("`y1` must be a float or int")
-    return np.sqrt((yc-y1)**2 + (xc-x1)**2)
+    return np.sqrt(np.power(yc-y1,2) + np.power(xc-x1,2))
 
 
 def dist_matrix(n, cx=None, cy=None):

@@ -27,7 +27,8 @@ from ..var import get_annulus_segments, frame_center, dist
 
 
 def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
-           nproc=None, array2=None, use2alone=False, verbose=True, **kwargs):
+           nproc=None, array2=None, use2alone=False, 
+           exclude_negative_lobes=False, verbose=True, **kwargs):
     """Parallel implementation of the S/N map generation function. Applies the
     S/N function (small samples penalty) at each pixel.
     
@@ -116,7 +117,7 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
         # computing s/n map with Mawet+14 definition
         else:
             res = pool_map(nproc, snr, array, iterable(coords), fwhm, True,
-                           array2, use2alone)
+                           array2, use2alone, exclude_negative_lobes)
             res = np.array(res)
             yy = res[:, 0]
             xx = res[:, 1]
@@ -169,7 +170,8 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
             coor_ann = [(x, y) for (x, y) in zip(annx, anny) if (x, y) not in
                         zip(cirx, ciry)]
             res = pool_map(nproc, snr, arr_masked_sources, iterable(coor_ann),
-                           fwhm, True, array2, use2alone)
+                           fwhm, True, array2, use2alone, 
+                           exclude_negative_lobes)
             res = np.array(res)
             yy_res = res[:, 0]
             xx_res = res[:, 1]
@@ -180,7 +182,7 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
         # S/Ns of the rest of the frame without the annulus
         coor_rest = [(x, y) for (x, y) in zip(xx, yy) if (x, y) not in coor_ann]
         res = pool_map(nproc, snr, array, iterable(coor_rest), fwhm, True,
-                       array2, use2alone)
+                       array2, use2alone, exclude_negative_lobes)
         res = np.array(res)
         yy_res = res[:, 0]
         xx_res = res[:, 1]

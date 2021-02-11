@@ -534,7 +534,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
 
 def get_annular_wedge(data, inner_radius, width, wedge=(0,360), mode="ind"):
     """
-    Return indices or values in segments of a centerered annulus.
+    Return indices or values in segments of a centered annulus.
 
     The annulus is defined by ``inner_radius <= annulus < inner_radius+width``.
 

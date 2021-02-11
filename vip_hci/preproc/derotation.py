@@ -231,7 +231,7 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
     thr : float
         PA threshold.
     nframes : int or None, optional
-        Number of indices to be left. For annular ADI median subtraction,
+        Exact number of indices to be left. For annular median-ADI subtraction,
         where we keep the closest frames (after the PA threshold). If None then
         all the indices are returned (after the PA threshold).
     out_closest : bool, optional
@@ -240,7 +240,8 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
         Useful for annular PCA, when we want to discard too far away frames and
         avoid increasing the computational cost.
     max_frames : int, optional
-        Max frames to leave if ``truncate`` is True.
+        Max number of indices to be left. To be provided if ``truncate`` is 
+        True (used e.g. in pca_annular). 
 
     Returns
     -------
@@ -291,7 +292,7 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
             # discarding those based on the PA threshold
             if truncate:
                 thr = min(n-1, max_frames)
-                all_indices = list(half1)+list(half2)
+                all_indices = np.array(list(half1)+list(half2))
                 if len(all_indices) > thr:
                     # then truncate and update indices
                     # first sort by dPA

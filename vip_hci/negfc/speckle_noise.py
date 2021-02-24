@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 
 """
-Module with routines related to the estimation of the uncertainty on the 
-parameters of an imaged companion due to speckle noise.
+Module with routines allowing for the estimation of the uncertainty on the 
+parameters of an imaged companion associated to residual speckle noise.
 """
 
 __author__ = 'O. Wertz, C. A. Gomez Gonzalez, V. Christiaens'
@@ -69,6 +69,14 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         Routine to be used to model and subtract the stellar PSF. From an input
         cube, derotation angles, and optional arguments, it should return a 
         post-processed frame.
+    psfn: 2d numpy array
+        2d array with the normalized PSF template. The PSF image must be 
+        centered wrt to the array. Therefore, it is recommended to run the 
+        function ``metrics/normalize_psf()`` to generate a centered and 
+        flux-normalized PSF template. 
+    plsc : float
+        Value of the plsc in arcsec/px. Only used for printing debug output when
+        ``verbose=True``.
     algo_options: dict
         Options for algo. To be provided as a dictionary. Can include ncomp 
         (for PCA), svd_mode, collapse, imlib, interpolation, scaling, delta_rot
@@ -90,17 +98,38 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         Figure of merit to use, if mu_sigma is None.
     simplex_options: dict
         ALl the required simplex parameters, for instance {'tol':1e-08, 
-        'max_iter':200}    
-    output: str (optional)
+        'max_iter':200}
+    full_output: bool, optional
+        Whether to return more outputs.
+    output: str, optional
         The name of the output file (if save is True)    
-    save: boolean (optional)
+    save: bool, optional
         If True, the result are pickled.
-    verbose: boolean (optional)
+    verbose: bool, optional
         If True, informations are displayed in the shell.
+    plot: bool, optional
+        Whether to plot the gaussian fit to the distributions of parameter 
+        deviations (between retrieved and injected).
      
     Returns:
     --------
-    
+    sp_unc: numpy ndarray of 3 elements
+        Uncertainties on the radius, position angle and flux of the companion,
+        respectively, associated to residual speckle noise. Only 1 element if
+        force_rPA is set to True.
+    If full_output, also returns:
+        mean_dev: numpy ndarray of 3 elements
+            Mean deviation for each of the 3 parameters
+        p_simplex: numpy ndarray n_fc x 3
+            Parameters retrieved by the simplex for the injected fake 
+            companions; n_fc is the number of injected  
+        offset: numpy ndarray n_fc x 3
+            Deviations with respect to the values used for injection of the 
+            fake companions.
+        chi2, nit, success: numpy ndarray of length n_fc 
+            Outputs from the simplex function for the retrieval of the 
+            parameters of each injected companion: chi square value, number of
+            iterations and whether the simplex converged, respectively.
     """    
     
     if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
@@ -150,57 +179,25 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                                     weights=norm_weights, 
                                     algo_options=algo_options)
       
-    # MULTIPROCESSING - old deprecated way
-#    pool = Pool(processes=nproc)
-#    res = pool.map(eval_func_tuple, itt.izip(itt.repeat(_estimate_speckle_one_angle),
-#                                             angle_range,
-#                                             itt.repeat(cube_pf),
-#                                             itt.repeat(psfn),
-#                                             itt.repeat(derot_angles),
-#                                             itt.repeat(r_true),
-#                                             itt.repeat(f_true),
-#                                             itt.repeat(plsc),
-#                                             itt.repeat(fwhm),
-#                                             itt.repeat(annulus_width),
-#                                             itt.repeat(aperture_radius),
-#                                             itt.repeat(cube_ref),
-#                                             itt.repeat(fmerit),
-#                                             itt.repeat(algo),
-#                                             itt.repeat(algo_options),
-#                                             itt.repeat(transmission),
-#                                             itt.repeat(mu_sigma),
-#                                             itt.repeat(weights),
-#                                             itt.repeat(force_rPA),
-#                                             itt.repeat(simplex_options),
-#                                             itt.repeat(verbose)))
     res = pool_map(nproc, _estimate_speckle_one_angle, iterable(angle_range), 
                    cube_pf, psfn, derot_angles, r_true, f_true, plsc, fwhm,
                    aperture_radius, cube_ref, fmerit, algo, algo_options, 
                    transmission, mu_sigma, weights, force_rPA, simplex_options, 
                    verbose=verbose)
     residuals = np.array(res)
-    #pool.close()
  
     if verbose:  
         print("residuals (offsets): ", residuals[:,3],residuals[:,4],
               residuals[:,5])
 
-    p_simplex = np.transpose(np.array([residuals[:,0],residuals[:,1],
-                                       residuals[:,2]]))
-    #np.transpose(np.vstack((residuals[:,0],residuals[:,1],
-                                        #residuals[:,2])))
-    #offset = np.transpose(np.array([residuals[:,3],residuals[:,4],
-                                   #residuals[:,5]]))
+    p_simplex = np.transpose(np.vstack((residuals[:,0],residuals[:,1],
+                                        residuals[:,2])))
     offset = np.transpose(np.vstack((residuals[:,3],residuals[:,4],
                             residuals[:,5])))
     print(offset)
     chi2 = residuals[:,6]
     nit = residuals[:,7]
     success = residuals[:,8]
-    chi2 = residuals[:,6]
-    nit = residuals[:,7]
-    success = residuals[:,8]
-
 
     if save:
         speckles = {'r_true':r_true,
@@ -228,7 +225,8 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     if force_rPA:
         offset = offset[:,2]
         print(offset.shape)
-    mean_dev, sp_unc = confidence(offset, cfd=68.27, bins=min(100,int(offset.shape[0]/2)), 
+    mean_dev, sp_unc = confidence(offset, cfd=68.27, 
+                                  bins=min(100,int(offset.shape[0]/2)), 
                                   gaussian_fit=True, verbose=True, save=False, 
                                   output_dir='')
     if plot:

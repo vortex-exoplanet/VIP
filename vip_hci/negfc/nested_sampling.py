@@ -179,29 +179,32 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
 
     def prior_transform(x):
         """
-        Computes the trasnformation from the unit distribution `[0, 1]` to parameter space.
+        Computes the transformation from the unit distribution `[0, 1]` to 
+        parameter space.
         
         The default prior bounds are
-        radius: (r - w[0], r + w[0])
-        theta: (theta - w[1], theta + w[1])
-        flux: (f - w[2], f + w[3])
+            radius: (r - w[0], r + w[0])
+            theta: (theta - w[1], theta + w[1])
+            flux: (f - w[2], f + w[3])
         The default distributions used are
         radius: Uniform distribution transformed into polar coordinates
-            This distribution assumes uniform distribution for the (x,y) coordinates transformed
-            to polar coordinates.
+            This distribution assumes uniform distribution for the (x,y) 
+            coordinates transformed to polar coordinates.
         theta: Uniform distribution
-            This distribution is derived the same as the radial distribution, but there is no 
-            change on the prior for theta after the change-of-variables transformation.
+            This distribution is derived the same as the radial distribution, 
+            but there is no change on the prior for theta after the 
+            change-of-variables transformation.
         flux: Poisson-invariant scale distribution
             This distribution is the Jeffrey's prior for Poisson data
         Notes
         -----
-        The prior transform function is used to specify the Bayesian prior for the
-        problem, in a round-about way. It is a transformation from a space where
-        variables are independently and uniformly distributed between 0 and 1 to
-        the parameter space of interest. For independent parameters, this would be
-        the product of the inverse cumulative distribution function (also known as
-        the percent point function or quantile function) for each parameter.
+        The prior transform function is used to specify the Bayesian prior for 
+        the problem, in a round-about way. It is a transformation from a space 
+        where variables are independently and uniformly distributed between 0 
+        and 1 to the parameter space of interest. For independent parameters, 
+        this would be the product of the inverse cumulative distribution 
+        function (also known as the percent point function or quantile function) 
+        for each parameter.
         http://kbarbary.github.io/nestle/prior.html
         """
         rmin = init[0] - w[0]
@@ -250,8 +253,8 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
 
 def nested_sampling_results(ns_object, burnin=0.4, bins=None, save=False,
                             output_dir='/', plot=False):
-    """ Shows the results of the Nested Sampling, summary, parameters with errors,
-    walk and corner plots.
+    """ Shows the results of the Nested Sampling, summary, parameters with 
+    errors, walk and corner plots.
     """
     res = ns_object
     nsamples = res.samples.shape[0]

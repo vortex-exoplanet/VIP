@@ -72,7 +72,7 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, plsc, imlib='opencv',
                                                 interpolation=interpolation,
                                                 verbose=False,
                                                 transmission=transmission)
-        else:    
+        else:
             cpf = cube_inject_companions(cube_temp, psfn, angs,
                                          flevel=-planet_parameter[i, 2], plsc=plsc,
                                          rad_dists=[planet_parameter[i, 0]],

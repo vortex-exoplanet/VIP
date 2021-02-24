@@ -25,7 +25,7 @@ from ..conf.utils_conf import pool_map, iterable, Progressbar
 def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
           dist_threshold=100, delta_rot=(0.1, 1), delta_sep=(0.1, 1),
           radius_int=0, asize=4, n_segments=4, nproc=1, solver='lstsq',
-          tol=1e-2, optim_scale_fact=2, adimsdi='skipadi', imlib='opencv',
+          tol=1e-3, optim_scale_fact=2, adimsdi='skipadi', imlib='opencv',
           interpolation='lanczos4', collapse='median', verbose=True,
           full_output=False):
     """ LOCI style algorithm that models a PSF (for ADI and ADI+mSDI) with a
@@ -237,7 +237,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
 
 def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
                  dist_threshold=50, delta_rot=0.5, radius_int=0, asize=4,
-                 n_segments=4, nproc=1, solver='lstsq', tol=1e-2,
+                 n_segments=4, nproc=1, solver='lstsq', tol=1e-3,
                  optim_scale_fact=1, imlib='opencv', interpolation='lanczos4',
                  collapse='median', verbose=True, full_output=False):
     """ Least-squares model PSF subtraction for ADI.

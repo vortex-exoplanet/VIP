@@ -238,7 +238,7 @@ def cube_detect_badfr_ellipticity(array, fwhm, crop_size=30, roundlo=-0.2,
 
 
 def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
-                                  dist='pearson', threshold=None, percentile=20, 
+                                  dist='pearson', percentile=20, threshold=None, 
                                   plot=True, verbose=True):
     """ Returns the list of bad frames from a cube by measuring the distance 
     (similarity) or correlation of the frames (cropped to a 30x30 subframe) 
@@ -258,13 +258,13 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     dist : {'sad','euclidean','mse','pearson','spearman'}, str optional
         One of the similarity or dissimilarity measures from function
         vip_hci.stats.distances.cube_distance(). 
-    threshold: None or float, optional
-        If provided, correspond to the trheshold 'distance' value above/below 
-        which (depending on index of similarity/dissimilarity resp.) will be 
-        discarded. If not None, supersedes 'percentile'.
     percentile : int, optional
         The percentage of frames that will be discarded, if threshold is not 
         provided.
+    threshold: None or float, optional
+        If provided, corresponds to the threshold 'distance' value above/below 
+        which (depending on index of similarity/dissimilarity resp.) will be 
+        discarded. If not None, supersedes 'percentile'.
     plot : bool, optional
         If true it plots the mean fluctuation as a function of the frames and 
         the boundaries.

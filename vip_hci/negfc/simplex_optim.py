@@ -16,7 +16,7 @@ from ..conf import time_ini, timing
 from ..conf.utils_conf import sep
 
 
-__author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez'
+__author__ = 'O. Wertz, C. A. Gomez Gonzalez, V. Christiaens'
 __all__ = ['firstguess']
 
 
@@ -63,8 +63,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done. 
     fmerit : {'sum', 'stddev'}, string optional
-        Chooses the figure of merit to be used. stddev works better for close in
-        companions sitting on top of speckle noise.
+        Figure of merit to be used, if mu_sigma is set to None.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
@@ -209,8 +208,7 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done. 
     fmerit : {'sum', 'stddev'}, string optional
-        Chooses the figure of merit to be used. stddev works better for close in
-        companions sitting on top of speckle noise.
+        Figure of merit to be used, if mu_sigma is set to None.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
@@ -292,10 +290,10 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                annulus_width=4, aperture_radius=1, cube_ref=None, 
                svd_mode='lapack', scaling=None, fmerit='sum', imlib='opencv',
                interpolation='lanczos4', collapse='median', algo=pca_annulus,
-               delta_rot=1, algo_options={}, p_ini=None, f_range=None, 
-               transmission=None, mu_sigma=None, wedge=None, weights=None, 
-               force_rPA= False, simplex=True, simplex_options=None, 
-               plot=False, verbose=True, save=False):
+               delta_rot=1, p_ini=None, f_range=None, transmission=None, 
+               mu_sigma=None, wedge=None, weights=None, force_rPA= False, 
+               algo_options={}, simplex=True, simplex_options=None, plot=False, 
+               verbose=True, save=False):
     """ Determines a first guess for the position and the flux of a planet.
         
     We process the cube without injecting any negative fake companion. 
@@ -343,8 +341,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done. 
     fmerit : {'sum', 'stddev'}, string optional
-        Chooses the figure of merit to be used. stddev works better for close 
-        in companions sitting on top of speckle noise.
+        Figure of merit to be used, if mu_sigma is set to None.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
@@ -362,12 +359,6 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
-    algo_options: dict, opt
-        Dictionary with additional parameters for the pca algorithm (e.g. tol,
-        min_frames_lib, max_frames_lib). Note: arguments such as svd_mode,
-        scaling imlib, interpolation or collapse can also be included in this
-        dict (the latter are also kept as function arguments for compatibility
-        with older versions of vip). 
     p_ini: numpy.array
         Position (r, theta) of the circular aperture center.            
     f_range: numpy.array, optional
@@ -399,6 +390,12 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
         the observing conditions throughout the sequence.
     force_rPA: bool, optional
         Whether to only search for optimal flux, provided (r,PA).
+    algo_options: dict, opt
+        Dictionary with additional parameters for the pca algorithm (e.g. tol,
+        min_frames_lib, max_frames_lib). Note: arguments such as svd_mode,
+        scaling imlib, interpolation or collapse can also be included in this
+        dict (the latter are also kept as function arguments for compatibility
+        with older versions of vip). 
     simplex: bool, optional
         If True, the Nelder-Mead minimization is performed after the flux grid
         search.
@@ -509,7 +506,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                      options=simplex_options, verbose=False)
             if force_rPA:
                 r_0[index_planet], theta_0[index_planet] = (r_pre, theta_pre)
-                f_0[index_planet] = res.x
+                f_0[index_planet], = res.x
             else:
                 r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x
             if verbose:

@@ -5,7 +5,7 @@ Module with routines related to the estimation of the uncertainty on the
 parameters of an imaged companion due to speckle noise.
 """
 
-__author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
+__author__ = 'O. Wertz, C. A. Gomez Gonzalez, V. Christiaens'
 __all__ = ['speckle_noise_uncertainty']
 
 #import itertools as itt

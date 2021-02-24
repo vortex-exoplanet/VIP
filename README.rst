@@ -98,7 +98,7 @@ The benefits of using a Python package manager (distribution), such as
 (ana)conda or Canopy, are many. Mainly, it brings easy and robust package
 management and avoids messing up with your system's default python. An
 alternative is to use package managers like apt-get for Ubuntu or
-Homebrew/MacPorts/Fink for macOS. I personally recommend using 
+Homebrew/MacPorts/Fink for macOS. We recommend using 
 `Miniconda <https://conda.io/miniconda>`_.
 
 ``VIP`` depends on existing packages from the Python ecosystem, such as
@@ -177,14 +177,10 @@ recommended along with ``OpenCV`` for maximum speed on ``VIP`` computations.
 as optional requirements, to be installed by the user, as well as a proper CUDA
 environment (and a decent GPU card).
 
-Bad pixel correction routines can be optimised with ``Numba`` by converting 
-Python and particularly ``NumPy`` code into fast machine code. A factor up to 
-~50x times speed improvement can be obtained on large images compared to NumPy.
-Numba can be installed with ``conda install numba``.
-
-Finally, we recommend ``hciplot`` to create paper-quality figures for your 
-processed images. This can be installed from the latest github version:
-``pip install hciplot``.
+Finally, bad pixel correction routines can be optimised with ``Numba``, which 
+converts some Python code, particularly ``NumPy``, into fast machine code. A 
+factor up to ~50x times speed improvement can be obtained on large images 
+compared to NumPy. Numba can be installed with ``conda install numba``.
 
 
 Loading VIP

@@ -741,9 +741,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     else:
         idxzero = chain.shape[1]
     
-    # Valentin: I commented the line below as it seems the chain is shortened
-    # based on arbitrary cutoffs. Shouldn't we keep the whole non-zero chain, 
-    # given that the burn-in will remove the first samples anyway?
+    # commented due to arbitrary cutoffs, rather tweak "burnin":
     # idx = int(np.amin([np.floor(2e5/nwalkers), np.floor(0.1*idxzero)]))
     
     idx=0

@@ -11,8 +11,7 @@ import numpy as np
 
 
 def robust_std(x):
-    """
-    Calculate and return the *robust* standard deviation of a point set.
+    """ Calculate and return the *robust* standard deviation of a point set.
 
     Corresponds to the *standard deviation* of the point set, without taking
     into account the outlier points.

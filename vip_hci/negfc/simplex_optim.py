@@ -25,8 +25,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
                           svd_mode='lapack', scaling=None, fmerit='sum',
                           imlib='opencv', interpolation='lanczos4',
                           collapse='median', algo=pca_annulus, delta_rot=1, 
-                          pca_args={}, f_range=None, transmission=None, 
-                          mu_sigma=(1,0), weights=None, plot=False, 
+                          algo_options={}, f_range=None, transmission=None, 
+                          mu_sigma=None, weights=None, plot=False, 
                           verbose=True, save=False, debug=False):
     """ Determine a first guess for the flux of a companion at a given position
     in the cube by doing a simple grid search evaluating the reduced chi2.
@@ -73,14 +73,19 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
-    algo: vip function, optional {pca_annulus, pca_annular}
-        Post-processing algorithm used.
+    algo: python routine, opt {pca_annulus, pca_annular, pca, custom}
+        Routine to be used to model and subtract the stellar PSF. From an input
+        cube, derotation angles, and optional arguments, it should return a 
+        post-processed frame.
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
-    pca_args: dict, opt
+    algo_options: dict, opt
         Dictionary with additional parameters for the pca algorithm (e.g. tol,
-        min_frames_lib, max_frames_lib)
+        min_frames_lib, max_frames_lib). Note: arguments such as svd_mode,
+        scaling imlib, interpolation or collapse can also be included in this
+        dict (the latter are also kept as function arguments for compatibility
+        with older versions of vip). 
     f_range: numpy.array, optional
         The range of flux tested values. If None, 20 values between 0 and 5000
         are tested.
@@ -88,13 +93,12 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
         Array with 2 columns. First column is the radial separation in pixels. 
         Second column is the off-axis transmission (between 0 and 1) at the 
         radial separation given in column 1.
-    mu_sigma: tuple of 2 floats, opt
+    mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the 
-        algorithm, using fmerit.
-        If set to anything but None: will compute the mean and standard 
-        deviation of pixel intensities in an annulus centered on the location 
-        of the companion, excluding the area directly adjacent to the companion.
-        These values will then be used in the log-probability of the MCMC.
+        algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
+        containing the mean and standard deviation of pixel intensities in an 
+        annulus centered on the location of the companion, excluding the area 
+        directly adjacent to the companion.
     weights : 1d array, optional
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
@@ -132,7 +136,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
                                fwhm, annulus_width, aperture_radius,
                                (r0, theta0), ncomp, cube_ref, svd_mode,
                                scaling, fmerit, collapse, algo, delta_rot,
-                               imlib, interpolation, pca_args, transmission, 
+                               imlib, interpolation, algo_options, transmission, 
                                mu_sigma, weights, debug))
         if chi2r[j] > chi2r[j-1]:
             counter += 1
@@ -166,9 +170,10 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
                        aperture_radius, cube_ref=None, svd_mode='lapack', 
                        scaling=None, fmerit='sum', imlib='opencv',
                        interpolation='lanczos4', collapse='median', 
-                       algo=pca_annulus, delta_rot=1, pca_args={}, p_ini=None,
-                       transmission=None, mu_sigma=(1,0), weights=None,
-                       force_rPA=False, options=None, verbose=False, **kwargs):
+                       algo=pca_annulus, delta_rot=1, algo_options={}, 
+                       p_ini=None, transmission=None, mu_sigma=None, 
+                       weights=None, force_rPA=False, options=None, 
+                       verbose=False, **kwargs):
     """
     Determine the position of a companion using the negative fake companion 
     technique and a standard minimization algorithm (Default=Nelder-Mead) .
@@ -186,7 +191,7 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
         The scaled psf expressed as a numpy.array.        
     plsc: float
         The platescale, in arcsec per pixel.
-    ncomp: int
+    ncomp: int or None
         The number of principal components.  
     fwhm : float
         The FHWM in pixels.   
@@ -214,27 +219,31 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
-    algo: vip function, optional {pca_annulus, pca_annular}
-        Post-processing algorithm used.
+    algo: python routine, opt {pca_annulus, pca_annular, pca, custom}
+        Routine to be used to model and subtract the stellar PSF. From an input
+        cube, derotation angles, and optional arguments, it should return a 
+        post-processed frame.
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
-    pca_args: dict, opt
+    algo_options: dict, opt
         Dictionary with additional parameters for the pca algorithm (e.g. tol,
-        min_frames_lib, max_frames_lib)
+        min_frames_lib, max_frames_lib). Note: arguments such as svd_mode,
+        scaling imlib, interpolation or collapse can also be included in this
+        dict (the latter are also kept as function arguments for compatibility
+        with older versions of vip). 
     p_ini : np.array
         Position (r, theta) of the circular aperture center.
     transmission: numpy array, optional
         Array with 2 columns. First column is the radial separation in pixels. 
         Second column is the off-axis transmission (between 0 and 1) at the 
         radial separation given in column 1.
-    mu_sigma: tuple of 2 floats, opt
+    mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the 
-        algorithm, using fmerit.
-        If set to anything but None: will compute the mean and standard 
-        deviation of pixel intensities in an annulus centered on the location 
-        of the companion, excluding the area directly adjacent to the companion.
-        These values will then be used in the log-probability of the MCMC.
+        algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
+        containing the mean and standard deviation of pixel intensities in an 
+        annulus centered on the location of the companion, excluding the area 
+        directly adjacent to the companion.
     weights : 1d array, optional
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
@@ -262,14 +271,16 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
 
     if force_rPA:
         p_t = (p[-1],)
+        p_ini = (p[0],p[1])
     else:
         p_t = p
     solu = minimize(chisquare, p_t, args=(cube, angs, plsc, psf, fwhm,
                                           annulus_width, aperture_radius, p_ini,
                                           ncomp, cube_ref, svd_mode, scaling,
                                           fmerit, collapse, algo, delta_rot, 
-                                          imlib, interpolation, pca_args, 
-                                          transmission, mu_sigma, weights),
+                                          imlib, interpolation, algo_options, 
+                                          transmission, mu_sigma, weights, 
+                                          force_rPA),
                     method='Nelder-Mead', options=options, **kwargs)
 
     if verbose:
@@ -281,8 +292,8 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                annulus_width=4, aperture_radius=1, cube_ref=None, 
                svd_mode='lapack', scaling=None, fmerit='sum', imlib='opencv',
                interpolation='lanczos4', collapse='median', algo=pca_annulus,
-               delta_rot=1, pca_args={}, p_ini=None, f_range=None, 
-               transmission=None, mu_sigma=(1,0), wedge=None, weights=None, 
+               delta_rot=1, algo_options={}, p_ini=None, f_range=None, 
+               transmission=None, mu_sigma=None, wedge=None, weights=None, 
                force_rPA= False, simplex=True, simplex_options=None, 
                plot=False, verbose=True, save=False):
     """ Determines a first guess for the position and the flux of a planet.
@@ -332,26 +343,31 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done. 
     fmerit : {'sum', 'stddev'}, string optional
-        Chooses the figure of merit to be used. stddev works better for close in
-        companions sitting on top of speckle noise.
+        Chooses the figure of merit to be used. stddev works better for close 
+        in companions sitting on top of speckle noise.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
+    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, opt
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
     p_ini: numpy.array
         Position (r, theta) of the circular aperture center.        
-    algo: vip function, optional {pca_annulus, pca_annular}
-        Post-processing algorithm used.
+    algo: python routine, opt {pca_annulus, pca_annular, pca, custom}
+        Routine to be used to model and subtract the stellar PSF. From an input
+        cube, derotation angles, and optional arguments, it should return a 
+        post-processed frame.
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
-    pca_args: dict, opt
+    algo_options: dict, opt
         Dictionary with additional parameters for the pca algorithm (e.g. tol,
-        min_frames_lib, max_frames_lib)
+        min_frames_lib, max_frames_lib). Note: arguments such as svd_mode,
+        scaling imlib, interpolation or collapse can also be included in this
+        dict (the latter are also kept as function arguments for compatibility
+        with older versions of vip). 
     p_ini: numpy.array
         Position (r, theta) of the circular aperture center.            
     f_range: numpy.array, optional
@@ -361,6 +377,26 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
         Array with 2 columns. First column is the radial separation in pixels. 
         Second column is the off-axis transmission (between 0 and 1) at the 
         radial separation given in column 1.
+    mu_sigma: tuple of 2 floats, bool or None, opt
+        If set to None: not used, and falls back to original version of the 
+        algorithm, using fmerit.
+        If a tuple of 2 elements: should be the mean and standard deviation of 
+        pixel intensities in an annulus centered on the lcoation of the 
+        companion candidate, excluding the area directly adjacent to the CC.
+        If set to anything else, but None/False/tuple: will compute said mean 
+        and standard deviation automatically.
+    wedge: tuple, opt
+        Range in theta where the mean and standard deviation are computed in an 
+        annulus defined in the PCA image. If None, it will be calculated 
+        automatically based on initial guess and derotation angles to avoid.
+        If some disc signal is present elsewhere in the annulus, it is 
+        recommended to provide wedge manually. The provided range should be 
+        continuous and >0. E.g. provide (270, 370) to consider a PA range 
+        between [-90,+10].
+    weights : 1d array, optional
+        If provided, the negative fake companion fluxes will be scaled according
+        to these weights before injection in the cube. Can reflect changes in 
+        the observing conditions throughout the sequence.
     force_rPA: bool, optional
         Whether to only search for optimal flux, provided (r,PA).
     simplex: bool, optional
@@ -411,7 +447,10 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
             print(msg2.format(index_planet, planets_xy_coord[index_planet, 0],
                               planets_xy_coord[index_planet, 1]))
         # Measure mu and sigma once in the annulus (instead of each MCMC step)
-        if mu_sigma is not None:
+        if isinstance(mu_sigma,tuple):
+            if len(mu_sigma)!=2:
+                raise TypeError("If a tuple, mu_sigma must have 2 elements")
+        elif mu_sigma is not None:
             xy = planets_xy_coord[index_planet]-center_xy_coord
             r0 = np.sqrt(xy[0]**2 + xy[1]**2)
             theta0 = np.mod(np.arctan2(xy[1], xy[0]) / np.pi*180, 360)
@@ -423,7 +462,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                         delta_rot=delta_rot, imlib=imlib, 
                                         interpolation=interpolation,
                                         collapse=collapse, weights=norm_weights, 
-                                        pca_args=pca_args)
+                                        algo_options=algo_options)
         
         res_init = firstguess_from_coord(planets_xy_coord[index_planet],
                                          center_xy_coord, cube, angs, plsc,
@@ -435,7 +474,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                          collapse=collapse, algo=algo, 
                                          delta_rot=delta_rot,
                                          interpolation=interpolation, 
-                                         pca_args=pca_args, 
+                                         algo_options=algo_options, 
                                          transmission=transmission, 
                                          mu_sigma=mu_sigma, weights=weights,
                                          plot=plot, verbose=verbose, save=save)
@@ -463,13 +502,16 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                      fmerit=fmerit, imlib=imlib,
                                      interpolation=interpolation,
                                      collapse=collapse, algo=algo, 
-                                     delta_rot=delta_rot, pca_args=pca_args, 
+                                     delta_rot=delta_rot, algo_options=algo_options, 
                                      p_ini=p_ini, transmission=transmission,
                                      mu_sigma=mu_sigma, weights=weights, 
                                      force_rPA=force_rPA, 
                                      options=simplex_options, verbose=False)
-            
-            r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x
+            if force_rPA:
+                r_0[index_planet], theta_0[index_planet] = (r_pre, theta_pre)
+                f_0[index_planet] = res.x
+            else:
+                r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x
             if verbose:
                 msg5 = 'Planet {}: Success: {}, nit: {}, nfev: {}, chi2r: {}'
                 print(msg5.format(index_planet, res.success, res.nit, res.nfev,

@@ -38,13 +38,10 @@ global CUBE
 
 def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
               min_sep=.5, annuli_width=1., roa=2, opt_method='lsq',
-              nsmooth_snr=18, iwa=None, owa=None, precision=50,
-              fast=False,
+              nsmooth_snr=18, iwa=None, owa=None, precision=50, fast=False,
               homogeneous_variance=True, ditimg=1.0, ditpsf=None, tnd=1.0,
-              total=False,
-              multiply_gamma=True, nproc=1, verbose=False):
-    """
-    Exoplanet detection in ADI sequences by maximum-likelihood approach.
+              total=False, multiply_gamma=True, nproc=1, verbose=False):
+    """ Exoplanet detection in ADI sequences by maximum-likelihood approach.
 
     Parameters
     ----------

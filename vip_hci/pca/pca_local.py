@@ -191,7 +191,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         global start_time
         start_time = time_ini()
 
-    # ADI or AD+RDI data
+    # ADI or ADI+RDI data
     if cube.ndim == 3:
         res = _pca_adi_rdi(cube, angle_list, radius_int, fwhm, asize,
                            n_segments, delta_rot, ncomp, svd_mode, nproc,

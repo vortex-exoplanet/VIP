@@ -48,7 +48,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
         documentation).
     dist_threshold : int, optional
         Indices with a distance larger than ``dist_threshold`` percentile will
-        initially discarded. 90 by default.
+        initially discarded. 100 by default.
     delta_rot : float or tuple of floats, optional
         Factor for adjusting the parallactic angle threshold, expressed in
         FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
@@ -359,6 +359,11 @@ def _leastsq_patch(ayxyx,  pa_thresholds, angles, metric, dist_threshold,
     else:
         mat_dists_ann = mat_dists_ann_full
 
+    threshold = np.percentile(mat_dists_ann[mat_dists_ann != 0],
+                              dist_threshold)
+    mat_dists_ann[mat_dists_ann > threshold] = np.nan
+    mat_dists_ann[mat_dists_ann == 0] = np.nan
+    
     matrix_res = np.zeros((values.shape[0], yy.shape[0]))
     for i in range(n_frames):
         vector = pn.DataFrame(mat_dists_ann[i])

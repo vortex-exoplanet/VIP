@@ -11,8 +11,8 @@ import numpy as np
 from hciplot import plot_frames
 from skimage.draw import circle
 from ..metrics import cube_inject_companions
-from ..var import frame_center, get_annular_wedge
-from ..pca import pca_annulus, pca_annular
+from ..var import frame_center, get_annular_wedge, cube_filter_highpass
+from ..pca import pca_annulus, pca_annular, pca
 from ..preproc import cube_crop_frames
 
 
@@ -20,8 +20,8 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
               aperture_radius, initialState, ncomp, cube_ref=None, 
               svd_mode='lapack', scaling=None, fmerit='sum', collapse='median',
               algo=pca_annulus, delta_rot=1, imlib='opencv', 
-              interpolation='lanczos4', pca_args={}, transmission=None, 
-              mu_sigma=(0,1), weights=None, force_rPA=False, debug=False):
+              interpolation='lanczos4', algo_options={}, transmission=None, 
+              mu_sigma=None, weights=None, force_rPA=False, debug=False):
     """
     Calculate the reduced chi2:
     \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -48,8 +48,8 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         The radius of the circular aperture in terms of the FWHM.
     initialState: numpy.array
         Position (r, theta) of the circular aperture center.
-    ncomp: int
-        The number of principal components.
+    ncomp: int or None
+        The number of principal components for PCA-based algorithms.
     cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
@@ -66,8 +66,10 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
-    algo: vip function, optional {pca_annulus, pca_annular}
-        Post-processing algorithm used.
+    algo: python routine, opt {pca_annulus, pca_annular, pca, custom}
+        Routine to be used to model and subtract the stellar PSF. From an input
+        cube, derotation angles, and optional arguments, it should return a 
+        post-processed frame.
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
@@ -75,20 +77,24 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
-    pca_args: dict, opt
-        Dictionary with additional parameters for the pca algorithm (e.g. tol,
-        min_frames_lib, max_frames_lib)  
+    algo_options: dict, opt
+        Dictionary with additional parameters related to the algorithm 
+        (e.g. tol, min_frames_lib, max_frames_lib). If 'algo' is not a vip
+        routine, this dict should contain all necessary arguments apart from
+        the cube and derotation angles. Note: arguments such as ncomp, svd_mode,
+        scaling, imlib, interpolation or collapse can also be included in this
+        dict (the latter are also kept as function arguments for consistency
+        with older versions of vip). 
     transmission: numpy array, optional
         Array with 2 columns. First column is the radial separation in pixels. 
         Second column is the off-axis transmission (between 0 and 1) at the 
         radial separation given in column 1.
-    mu_sigma: tuple of 2 floats, opt
+    mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the 
         algorithm, using fmerit.
         If set to anything but None: will compute the mean and standard 
         deviation of pixel intensities in an annulus centered on the location 
         of the companion, excluding the area directly adjacent to the companion.
-        These values will then be used in the log-probability of the MCMC.
     weights : 1d array, optional
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
@@ -135,7 +141,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
                               initialState[1], cube_ref=cube_ref,
                               svd_mode=svd_mode, scaling=scaling, algo=algo,
                               delta_rot=delta_rot, collapse=collapse, 
-                              pca_args=pca_args, weights=norm_weights, 
+                              algo_options=algo_options, weights=norm_weights, 
                               debug=debug)
     
     if debug and collapse is not None:
@@ -167,7 +173,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
                         fwhm, r_guess, theta_guess, cube_ref=None, 
                         svd_mode='lapack', scaling=None, algo=pca_annulus, 
                         delta_rot=1, imlib='opencv', interpolation='lanczos4',
-                        collapse='median', pca_args={}, weights=None, 
+                        collapse='median', algo_options={}, weights=None, 
                         debug=False):
     """ Extracts a PCA-ed annulus from the cube and returns the flux values of
     the pixels included in a circular aperture centered at a given position.
@@ -178,8 +184,8 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         The cube of fits images expressed as a numpy.array.
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array.
-    ncomp: int
-        The number of principal component.
+    ncomp: int or None
+        The number of principal components for PCA-based algorithms.
     annulus_width: float
         The width in pixels of the annulus on which the PCA is performed.
     aperture_radius: float
@@ -203,8 +209,10 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         "temp-mean" then temporal px-wise mean subtraction is done and with 
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done.
-    algo: vip function, optional {pca_annulus, pca_annular}
-        Post-processing algorithm used.
+    algo: python routine, opt {pca_annulus, pca_annular, pca, custom}
+        Routine to be used to model and subtract the stellar PSF. From an input
+        cube, derotation angles, and optional arguments, it should return a 
+        post-processed frame.
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
@@ -215,9 +223,14 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is returned.
-    pca_args: dict, opt
-        Dictionary with additional parameters for the pca algorithm (e.g. tol,
-        min_frames_lib, max_frames_lib)
+    algo_options: dict, opt
+        Dictionary with additional parameters related to the algorithm 
+        (e.g. tol, min_frames_lib, max_frames_lib). If 'algo' is not a vip
+        routine, this dict should contain all necessary arguments apart from
+        the cube and derotation angles. Note: arguments such as ncomp, svd_mode,
+        scaling, imlib, interpolation or collapse can also be included in this
+        dict (the latter are also kept as function arguments for consistency
+        with older versions of vip). 
     weights : 1d array, optional
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
@@ -230,7 +243,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     values: numpy.array
         The pixel values in the circular aperture after the PCA process.
 
-    If debug is True the PCA frame is returned (in case when collapse is not None)
+    If debug is True and collapse non-None, the PCA frame is also returned.
         
     """
     centy_fr, centx_fr = frame_center(cube[0])
@@ -246,7 +259,14 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     msg += 'halfw: {:.0f}px'.format(halfw)
     if r_guess > centx_fr-halfw:# or r_guess <= halfw:
         raise RuntimeError(msg)
-                          
+
+    ncomp = algo_options.get('ncomp',ncomp)
+    svd_mode = algo_options.get('svd_mode',svd_mode)
+    scaling = algo_options.get('scaling',scaling)
+    imlib = algo_options.get('imlib',imlib)
+    interpolation = algo_options.get('interpolation',interpolation)
+    collapse = algo_options.get('collapse',collapse)
+        
     if algo == pca_annulus:
         pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, 
                               cube_ref, svd_mode, scaling, imlib=imlib,
@@ -254,10 +274,11 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
                               weights=weights)
     elif algo == pca_annular:
                 
-        tol = pca_args.get('tol',1e-1)
-        min_frames_lib=pca_args.get('min_frames_lib',2)
-        max_frames_lib=pca_args.get('max_frames_lib',200)
-        radius_int = pca_args.get('radius_int', max(1,int(np.floor(r_guess-annulus_width/2))))
+        tol = algo_options.get('tol',1e-1)
+        min_frames_lib=algo_options.get('min_frames_lib',2)
+        max_frames_lib=algo_options.get('max_frames_lib',200)
+        radius_int = max(1,int(np.floor(r_guess-annulus_width/2)))
+        radius_int = algo_options.get('radius_int', radius_int)
         # crop cube to just be larger than annulus => FASTER PCA
         crop_sz = int(2*np.ceil(radius_int+annulus_width+1))
         if not crop_sz %2:
@@ -269,9 +290,10 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
             crop_cube = cube
 
 
-        pca_res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int, fwhm=fwhm, 
-                                  asize=annulus_width, delta_rot=delta_rot, 
-                                  ncomp=ncomp, svd_mode=svd_mode, scaling=scaling, 
+        pca_res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int, 
+                                  fwhm=fwhm, asize=annulus_width, 
+                                  delta_rot=delta_rot, ncomp=ncomp, 
+                                  svd_mode=svd_mode, scaling=scaling, 
                                   imlib=imlib, interpolation=interpolation,
                                   collapse=collapse, weights=weights, tol=tol, 
                                   min_frames_lib=min_frames_lib, 
@@ -280,6 +302,33 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         # pad again now                      
         pca_res = np.pad(pca_res_tmp,pad,mode='constant',constant_values=0)
         
+    elif algo == pca:
+        hp_filter = algo_options.get('hp_filter',None)
+        hp_kernel = algo_options.get('hp_kernel',None)
+        scale_list = algo_options.get('scale_list',None)
+        ifs_collapse_range = algo_options.get('ifs_collapse_range','all')
+        nproc = algo_options.get('nproc','all')
+        
+        # not recommended, except if large-scale residual sky present (NIRC2-L')
+        if hp_filter is not None:
+            if 'median' in hp_filter:
+                cube = cube_filter_highpass(cube, mode=hp_filter, 
+                                            median_size=hp_kernel)
+            elif "gauss" in hp_filter:
+                cube = cube_filter_highpass(cube, mode=hp_filter, 
+                                            fwhm_size=hp_kernel)
+            else:
+                cube = cube_filter_highpass(cube, mode=hp_filter, 
+                                            kernel_size=hp_kernel)
+        
+        pca_res = pca(cube, angs, cube_ref, scale_list, ncomp, 
+                      svd_mode=svd_mode, scaling=scaling, imlib=imlib,
+                      interpolation=interpolation, collapse=collapse,
+                      ifs_collapse_range=ifs_collapse_range, nproc=nproc,
+                      weights=weights, verbose=False)
+    else:
+        algo_args = algo_options
+        pca_res = algo(cube, angs, **algo_args)
                                   
     indices = circle(posy, posx, radius=aperture_radius*fwhm)
     yy, xx = indices
@@ -294,11 +343,12 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     else:
         return values
 
+
 def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, 
                      fwhm, r_guess, theta_guess, cube_ref=None, wedge=None,
                      svd_mode='lapack', scaling=None, algo=pca_annulus, 
                      delta_rot=1, imlib='opencv', interpolation='lanczos4',
-                     collapse='median', weights=None, pca_args={}):
+                     collapse='median', weights=None, algo_options={}):
     """ Extracts the mean and standard deviation of pixel intensities in an
     annulus of the PCA-ADI image obtained with 'algo', in the part of a defined 
     wedge that is not overlapping with PA_pl+-delta_PA.
@@ -309,8 +359,8 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
         The cube of fits images expressed as a numpy.array.
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array.
-    ncomp: int
-        The number of principal component.
+    ncomp: int or None
+        The number of principal components for PCA-based algorithms.
     annulus_width: float
         The width in pixels of the annulus on which the PCA is performed.
     aperture_radius: float
@@ -342,8 +392,10 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
         "temp-mean" then temporal px-wise mean subtraction is done and with 
         "temp-standard" temporal mean centering plus scaling to unit variance 
         is done.
-    algo: vip function, optional {pca_annulus, pca_annular}
-        Post-processing algorithm used.
+    algo: python routine, opt {pca_annulus, pca_annular, pca, custom}
+        Routine to be used to model and subtract the stellar PSF. From an input
+        cube, derotation angles, and optional arguments, it should return a 
+        post-processed frame.
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
@@ -357,16 +409,19 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
     weights: 1d numpy array or list, optional
         Weights to be applied for a weighted mean. Need to be provided if 
         collapse mode is 'wmean'.
-    pca_args: dict, opt
-        Dictionary with additional parameters for the pca algorithm (e.g. tol,
-        min_frames_lib, max_frames_lib)
+    algo_options: dict, opt
+        Dictionary with additional parameters related to the algorithm 
+        (e.g. tol, min_frames_lib, max_frames_lib). If 'algo' is not a vip
+        routine, this dict should contain all necessary arguments apart from
+        the cube and derotation angles. Note: arguments such as ncomp, svd_mode,
+        scaling, imlib, interpolation or collapse can also be included in this
+        dict (the latter are also kept as function arguments for consistency
+        with older versions of vip). 
         
     Returns
     -------
     values: numpy.array
         The pixel values in the circular aperture after the PCA process.
-
-    If debug is True the PCA frame is returned (in case when collapse is not None)
         
     """
     centy_fr, centx_fr = frame_center(cube[0])
@@ -380,19 +435,26 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
     msg += 'halfw: {:.0f}px'.format(halfw)
     if r_guess > centx_fr-halfw:# or r_guess <= halfw:
         raise RuntimeError(msg)
-                       
-    radius_int = pca_args.get('radius_int', max(1,int(np.floor(r_guess-annulus_width/2))))
+
+    ncomp = algo_options.get('ncomp',ncomp)                       
+    svd_mode = algo_options.get('svd_mode',svd_mode)
+    scaling = algo_options.get('scaling',scaling)
+    imlib = algo_options.get('imlib',imlib)
+    interpolation = algo_options.get('interpolation',interpolation)
+    collapse = algo_options.get('collapse',collapse)
+
+    radius_int = max(1,int(np.floor(r_guess-annulus_width/2)))
+    radius_int = algo_options.get('radius_int', radius_int)
     
     if algo == pca_annulus:
         pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, 
                               cube_ref, svd_mode, scaling, imlib=imlib,
                               interpolation=interpolation, collapse=collapse, 
                               weights=weights)
-    elif algo == pca_annular:
-                
-        tol = pca_args.get('tol',1e-1)
-        min_frames_lib=pca_args.get('min_frames_lib',2)
-        max_frames_lib=pca_args.get('max_frames_lib',200)       
+    elif algo == pca_annular:                
+        tol = algo_options.get('tol',1e-1)
+        min_frames_lib=algo_options.get('min_frames_lib',2)
+        max_frames_lib=algo_options.get('max_frames_lib',200)       
         # crop cube to just be larger than annulus => FASTER PCA
         crop_sz = int(2*np.ceil(radius_int+annulus_width+1))
         if not crop_sz %2:
@@ -404,9 +466,10 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
             crop_cube = cube
 
 
-        pca_res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int, fwhm=fwhm, 
-                                  asize=annulus_width, delta_rot=delta_rot, 
-                                  ncomp=ncomp, svd_mode=svd_mode, scaling=scaling, 
+        pca_res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int, 
+                                  fwhm=fwhm, asize=annulus_width, 
+                                  delta_rot=delta_rot, ncomp=ncomp, 
+                                  svd_mode=svd_mode, scaling=scaling, 
                                   imlib=imlib, interpolation=interpolation,
                                   collapse=collapse, tol=tol, 
                                   min_frames_lib=min_frames_lib, 
@@ -415,7 +478,34 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
                                   weights=weights)
         # pad again now                      
         pca_res = np.pad(pca_res_tmp,pad,mode='constant',constant_values=0)
-    
+    elif algo == pca:
+        hp_filter = algo_options.get('hp_filter',None)
+        hp_kernel = algo_options.get('hp_kernel',None)
+        scale_list = algo_options.get('scale_list',None)
+        ifs_collapse_range = algo_options.get('ifs_collapse_range','all')
+        nproc = algo_options.get('nproc','all')
+        
+        # not recommended, except if large-scale residual sky present (NIRC2-L')
+        if hp_filter is not None:
+            if 'median' in hp_filter:
+                cube = cube_filter_highpass(cube, mode=hp_filter, 
+                                            median_size=hp_kernel)
+            elif "gauss" in hp_filter:
+                cube = cube_filter_highpass(cube, mode=hp_filter, 
+                                            fwhm_size=hp_kernel)
+            else:
+                cube = cube_filter_highpass(cube, mode=hp_filter, 
+                                            kernel_size=hp_kernel)
+        
+        pca_res = pca(cube, angs, cube_ref, scale_list, ncomp, 
+                      svd_mode=svd_mode, scaling=scaling, imlib=imlib,
+                      interpolation=interpolation, collapse=collapse,
+                      ifs_collapse_range=ifs_collapse_range, nproc=nproc,
+                      weights=weights, verbose=False)
+    else:
+        algo_args = algo_options
+        pca_res = algo(cube, angs, **algo_args)
+        
     if wedge is None:
         delta_theta = np.amax(angs)-np.amin(angs)
         if delta_theta>150:

@@ -11,7 +11,8 @@ import numpy as np
 from ..var import prepare_matrix
 
 
-def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
+def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2,
+                          full_output=False):
     """ PCA-based sky subtraction.
 
     Parameters
@@ -23,14 +24,24 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
     mask : numpy ndarray
         Mask indicating the region for the analysis. Can be created with the
         function vip_hci.var.create_ringed_spider_mask.
-    ref_cube : numpy ndarray or None
+    ref_cube : numpy ndarray or None, opt
         Reference cube.
-    ncomp : int
+    ncomp : int, opt
         Sets the number of PCs you want to use in the sky subtraction.
+    full_output: bool, opt
+        Whether to also output pcs, reconstructed cube, residuals cube and 
+        derotated residual cube.        
 
     Returns
     -------
-    Sky subtracted cube.
+    Sky-subtracted science cube. 
+    If ref_cube is not None, also returns sky-subtracted reference cube.
+    If full_ouput, returns (in the following order):
+         - sky-subtracted science cube, 
+         - sky-subtracted reference cube (if any provided),
+         - principal components (non-masked),
+         - principal components (masked), and 
+         - reconstructed cube.
 
     """
     from ..pca.svd import svd_wrapper
@@ -77,10 +88,11 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
 
     # Obtaining the optimized sky and subtraction
     sci_cube_skysub = np.zeros_like(sci_cube)
+    sky_opt = sci_cube.copy()
     for i in range(Msci_masked.shape[0]):
-        sky_opt = np.array([np.sum(
+        sky_opt[i] = np.array([np.sum(
             transf_sci_scaled[j, i] * sky_pcs_cube[j] for j in range(ncomp))])
-        sci_cube_skysub[i] = sci_cube[i] - sky_opt
+        sci_cube_skysub[i] = sci_cube[i] - sky_opt[i]
 
     # Processing the reference cube (if any)
     if ref_cube is not None:
@@ -102,7 +114,14 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
             sky_opt = np.array([np.sum(transf_ref_scaled[j, i] * sky_pcs_cube[j]
                                        for j in range(ncomp))])
             ref_cube_skysub[i] = ref_cube[i] - sky_opt
-
-        return sci_cube_skysub, ref_cube_skysub
+        
+        if full_output:
+            return (sci_cube_skysub, ref_cube_skysub, sky_pcs_cube, 
+                    sky_pcs_cube_masked, sky_opt)
+        else:
+            return sci_cube_skysub, ref_cube_skysub
     else:
-        return sci_cube_skysub
+        if full_output:
+            return (sci_cube_skysub, sky_pcs_cube, sky_pcs_cube_masked, sky_opt)
+        else:
+            return sci_cube_skysub

@@ -1072,7 +1072,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
             print('`subi_size` is even (while frame size is odd)')
             print('Setting `subi_size` to {} pixels'.format(subi_size))
 
-    if isinstance(fwhm, (float, int)):
+    if isinstance(fwhm, (float, int, np.float32, np.float64)):
         fwhm = np.ones(n_frames) * fwhm
 
     if debug and array.shape[0] > 20:
@@ -1439,7 +1439,6 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     n_frames = alignment_cube.shape[0]  # 1+n or 1+n+nref
     cum_y_shifts = 0
     cum_x_shifts = 0
-    opt_rad = []
     
     for i in range(alignment_iter):
         alignment_cube[0] = np.median(alignment_cube[1:(n + 1)], axis=0)
@@ -1464,8 +1463,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                 y_i, x_i, rad = _fit_2dannulus(sub_image, fwhm=fwhm, crop=False,  
                                              hole_rad=0.5, sampl_cen=0.1, 
                                              sampl_rad=0.2, ann_width=0.5, 
-                                             unc_in=2.)
-                opt_rad.append(rad)                             
+                                             unc_in=2.)                         
             yshift = ceny - (y1 + y_i)
             xshift = cenx - (x1 + x_i)
             
@@ -1531,14 +1529,14 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     if ref_star:
         if full_output:
             return (cube_reg_sci, cube_reg_ref, cube_sci_lpf, cube_stret, 
-                    cum_x_shifts_sci, cum_y_shifts_sci, opt_rad, cum_x_shifts_ref, 
+                    cum_x_shifts_sci, cum_y_shifts_sci, cum_x_shifts_ref, 
                     cum_y_shifts_ref)
         else:
             return (cube_reg_sci, cube_reg_ref)
     else:
         if full_output:
             return (cube_reg_sci, cube_sci_lpf, cube_stret, 
-                    cum_x_shifts_sci, cum_y_shifts_sci, opt_rad)
+                    cum_x_shifts_sci, cum_y_shifts_sci)
         else:
             return cube_reg_sci
 

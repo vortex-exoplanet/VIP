@@ -14,7 +14,8 @@ from .utils_pca import pca_incremental, pca_grid
 from ..preproc.derotation import _find_indices_adi, _compute_pa_thresh
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
-                       check_scal_vector, cube_crop_frames)
+                       check_scal_vector, cube_crop_frames, 
+                       cube_subtract_sky_pca)
 from ..conf import (timing, time_ini, check_enough_memory, Progressbar,
                     check_array)
 from ..conf.utils_conf import pool_map, iterable
@@ -26,8 +27,8 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         svd_mode='lapack', scaling=None, mask_center_px=None, source_xy=None,
         delta_rot=1, fwhm=4, adimsdi='single', crop_ifs=True, imlib='opencv',
         imlib2='opencv', interpolation='lanczos4', collapse='median', 
-        ifs_collapse_range='all', check_memory=True, batch=None, nproc=1, 
-        full_output=False, verbose=True, weights=None):
+        ifs_collapse_range='all', mask_rdi=None, check_memory=True, batch=None, 
+        nproc=1, full_output=False, verbose=True, weights=None):
     """ Algorithm where the reference PSF and the quasi-static speckle pattern
     are modeled using Principal Component Analysis. Depending on the input
     parameters this PCA function can work in ADI, RDI or SDI (IFS data) mode.
@@ -307,7 +308,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
     elif cube_ref is not None:
         res_pca = _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling,
                                mask_center_px, svd_mode, imlib, interpolation,
-                               collapse, verbose, start_time, weights)
+                               collapse, verbose, start_time, weights, mask_rdi)
         pcs, recon, residuals_cube, residuals_cube_, frame = res_pca
 
     # ADI. Shape of cube: (n_adi_frames, y, x)
@@ -762,7 +763,7 @@ def _adimsdi_doublepca_ifs(fr, ncomp, scale_list, scaling, mask_center_px,
 
 def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
                  svd_mode, imlib, interpolation, collapse, verbose, start_time,
-                 weights=None):
+                 weights=None, mask_rdi=None):
     """ Handles the ADI+RDI post-processing.
     """
     n, y, x = cube.shape
@@ -782,14 +783,22 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
         msg = 'Reference and target frames have different shape'
         raise TypeError(msg)
 
-    residuals_result = _project_subtract(cube, cube_ref, ncomp, scaling,
-                                         mask_center_px, svd_mode, verbose,
-                                         True)
-    residuals_cube = residuals_result[0]
-    reconstructed = residuals_result[1]
-    V = residuals_result[2]
-    pcs = reshape_matrix(V, y, x)
-    recon = reshape_matrix(reconstructed, y, x)
+    if mask_rdi is None:
+        residuals_result = _project_subtract(cube, cube_ref, ncomp, scaling,
+                                             mask_center_px, svd_mode, verbose,
+                                             True)
+        residuals_cube = residuals_result[0]
+        reconstructed = residuals_result[1]
+        V = residuals_result[2]
+        pcs = reshape_matrix(V, y, x)
+        recon = reshape_matrix(reconstructed, y, x)
+    else:
+        residuals_result = cube_subtract_sky_pca(cube, cube_ref, mask_rdi,
+                                                 ncomp=ncomp, full_output=True)
+        residuals_cube = residuals_result[0]
+        pcs = residuals_result[2]
+        recon = residuals_result[-1]
+        
     residuals_cube_ = cube_derotate(residuals_cube, angle_list, imlib=imlib,
                                     interpolation=interpolation)
     frame = cube_collapse(residuals_cube_, mode=collapse, w=weights)

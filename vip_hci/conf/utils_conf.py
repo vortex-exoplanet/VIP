@@ -121,7 +121,7 @@ class Progressbar(object):
     --------
     .. code:: python
 
-        from vip_hci.var import Progressbar
+        from vip_hci.conf import Progressbar
         Progressbar.backend = "tqdm"
 
         from time import sleep

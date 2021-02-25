@@ -111,8 +111,11 @@ def do_recenter(method, cube, shiftx, shifty, errormsg, mse=1e-2,
             ", ".join("{}={}".format(k, v) for k, v in kwargs.items())))
 
     #===== recentering
-    recentered_cube, unshifty, unshiftx = method(shifted_cube, debug=debug,
-                                                 **kwargs)
+    rec_res = method(shifted_cube, debug=debug, **kwargs)
+    
+    recentered_cube= rec_res[0]
+    unshifty= rec_res[1]
+    unshiftx= rec_res[2]
 
     if debug:
         vip.var.pp_subplots(cube, title="input cube")

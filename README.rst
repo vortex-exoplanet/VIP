@@ -205,17 +205,17 @@ and/or updates).
 
 Attribution
 -----------
-Please cite `Gomez Gonzalez et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017AJ....154....7G/abstract>`_whenever 
-you publish data reduced with ``VIP``. Astrophysics Source Code Library reference [ascl:1603.003].
+Please cite `Gomez Gonzalez et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017AJ....154....7G/abstract>`_ whenever 
+you publish data reduced with ``VIP`` . Astrophysics Source Code Library reference [ascl:1603.003].
 In addition, if you use one of the following modules, please also cite:
 
 - andromeda: `Cantalloube et al. (2015) <https://ui.adsabs.harvard.edu/abs/2015A%26A...582A..89C/abstract>`_;
 - leastsq: `Lafrenière et al. (2007) <https://ui.adsabs.harvard.edu/abs/2007ApJ...660..770L/abstract>`_;
 - llsg: `Gomez Gonzalez et al. (2016) <https://ui.adsabs.harvard.edu/abs/2016A%26A...589A..54G/abstract>`_;
-- medsub: `Marois et al. (2006) <https://ui.adsabs.harvard.edu/abs/2006ApJ...641..556M/abstract>`_for
- ADI and `Sparks and Ford (2002) <https://ui.adsabs.harvard.edu/abs/2002ApJ...578..543S/abstract>`_for SDI;
+- medsub: `Marois et al. (2006) <https://ui.adsabs.harvard.edu/abs/2006ApJ...641..556M/abstract>`_ for
+ ADI and `Sparks and Ford (2002) <https://ui.adsabs.harvard.edu/abs/2002ApJ...578..543S/abstract>`_ for SDI;
 - negfc: `Wertz et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017A%26A...598A..83W/abstract>`_;
 - nmf: `Ren et al. (2018) <https://ui.adsabs.harvard.edu/abs/2018ApJ...852..104R/abstract>`_;
-- pca: `Amara and Quanz (2012) <https://ui.adsabs.harvard.edu/abs/2012MNRAS.427..948A/abstract>`_and
+- pca: `Amara and Quanz (2012) <https://ui.adsabs.harvard.edu/abs/2012MNRAS.427..948A/abstract>`_ and
  `Soummer et al. (2012) <https://ui.adsabs.harvard.edu/abs/2012ApJ...755L..28S/abstract>`_;
 - specfit: `Christiaens et al. (2021) <https://ui.adsabs.harvard.edu/abs/2021arXiv210210288C/abstract>`_;

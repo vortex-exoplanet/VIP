@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+ #! /usr/bin/env python
 
 """
 Module containing functions for cubes frame registration.
@@ -37,9 +37,10 @@ from . import frame_crop
 from ..conf import time_ini, timing, Progressbar
 from ..conf.utils_conf import vip_figsize, check_array
 from ..conf.utils_conf import pool_map, iterable
+from ..stats import frame_basic_stats
 from ..var import (get_square, frame_center, get_annulus_segments,
-                   fit_2dmoffat, fit_2dgaussian, cube_filter_lowpass,
-                   cube_filter_highpass)
+                   fit_2dmoffat, fit_2dgaussian, fit_2dairydisk,
+                   fit_2d2gaussian, cube_filter_lowpass, cube_filter_highpass)
 from ..preproc import cube_crop_frames
 
 
@@ -381,7 +382,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
 
 def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
-                           fit_type='moff', debug=False, verbose=True, 
+                           fit_type='moff', lbda=None, debug=False, verbose=True, 
                            full_output=False):
     """ Function analog to frame_center_satspots but for image sequences. It
     actually will call frame_center_satspots for each image in the cube. The
@@ -401,6 +402,10 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         in an X configuration, the order is the following: top-left, top-right,
         bottom-left and bottom-right. When the spots are in an + (cross-like)
         configuration, the order is the following: top, right, left, bottom.
+        If wavelength vector is not provided, assumes all sat spots of the cube
+        are at a similar location. If wavelength is provided, only coordinates 
+        of the sat spots in the first channel should be provided. The boxes
+        location in other channels will be scaled accordingly.
     subi_size : int, optional
         Size of subimage where the fitting is done.
     sigfactor : int, optional
@@ -412,6 +417,9 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         Whether to plot the shifts.
     fit_type: str, optional {'gaus','moff'}
         Type of 2d fit to infer the centroid of the satellite spots.
+    lbda: 1d array or list, opt
+        Wavelength vector. If provided, the subimages will be scaled accordingly 
+        to follow the motion of the satellite spots.
     debug : bool, optional
         If True debug information is printed and plotted (fit and residuals,
         intersections and shifts). This has to be used carefully as it can
@@ -444,10 +452,24 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     sat_x = np.zeros([n_frames,4])
     array_rec = []
 
+    if lbda is not None:
+        cy, cx = frame_center(array[0])
+        final_xy = []
+        rescal = lbda/lbda[0]
+        for i in range(n_frames):
+            xy_new = []
+            for s in range(4):
+                xy_new.append((cx+rescal[i]*(xy[s][0]-cx),cy+rescal[i]*(xy[s][1]-cy)))
+            xy_new = tuple(xy_new)
+            final_xy.append(xy_new)
+    else:
+        final_xy = [xy for i in range(n_frames)]
+
     if verbose:
+        print("Final xy positions for sat spots:", final_xy)
         print('Looping through the frames, fitting the intersections:')
     for i in Progressbar(range(n_frames), verbose=verbose):
-        res = frame_center_satspots(array[i], xy, debug=debug, shift=True,
+        res = frame_center_satspots(array[i], final_xy[i], debug=debug, shift=True,
                                     subi_size=subi_size, sigfactor=sigfactor,
                                     fit_type=fit_type, verbose=False)
         array_rec.append(res[0])
@@ -827,7 +849,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                   'the Gaussian 2d fit')
             cy_1, cx_1 = frame_center(array[0])
         else:
-            cx_1, cy_1 = center_fr1
+            cy_1, cx_1 = center_fr1
         if not isinstance(subi_size, int):
             raise ValueError('subi_size must be an integer or None')
         if subi_size < fwhm:
@@ -942,8 +964,9 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, interpolation, imlib):
 
 def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                         nproc=1, imlib='opencv', interpolation='lanczos4',
-                        offset=None, negative=False, threshold=False,
-                        save_shifts=False, full_output=False, verbose=True,
+                        offset=None, negative=False, threshold=False, 
+                        sigfactor=2, fix_neg=False, params_2g=None, 
+                        save_shifts=False, full_output=False, verbose=True, 
                         debug=False, plot=True):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d
     Gaussian or Moffat to a subimage centered at ``xy``. This assumes the frames
@@ -954,8 +977,12 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     ----------
     array : numpy ndarray
         Input cube.
-    xy : tuple of int
-        Coordinates of the center of the subimage (wrt the original frame).
+    xy : tuple of integers or floats
+        Integer coordinates of the center of the subimage (wrt the original frame).
+        For the double gaussian fit with fixed negative gaussian, this should
+        correspond to the exact location of the center of the negative gaussiam
+        (e.g. the center of the coronagraph mask) - in that case a tuple of 
+        floats is also accepted.
     fwhm : float or numpy ndarray
         FWHM size in pixels, either one value (float) that will be the same for
         the whole cube, or an array of floats with the same dimension as the
@@ -964,8 +991,9 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     subi_size : int, optional
         Size of the square subimage sides in pixels.
     model : str, optional
-        Sets the type of fit to be used. 'gauss' for a 2d Gaussian fit and
-        'moff' for a 2d Moffat fit.
+        Sets the type of fit to be used. 'gauss' for a 2d Gaussian fit,
+        'moff' for a 2d Moffat fit, 'airy' for a 2d Airy disk fit, and 
+        '2gauss' for a 2d double Gaussian (positive+negative) fit.
     nproc : int or None, optional
         Number of processes (>1) for parallel computing. If 1 then it runs in
         serial. If None the number of processes will be set to (cpu_count()/2).
@@ -979,9 +1007,27 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         serves as the offset of the fitted area wrt the center of the 2d arrays.
     negative : bool, optional
         If True a negative 2d Gaussian/Moffat fit is performed.
+    fix_neg: bool, optional
+        In case of a double gaussian fit, whether to fix the parameters of the
+        megative gaussian. If True, they should be provided in params_2g.
+    params_2g: None or dictionary, optional
+        In case of a double gaussian fit, dictionary with either fixed or first 
+        guess parameters for the double gaussian. E.g.: 
+        params_2g = {'fwhm_neg': 3.5, 'fwhm_pos': (3.5,4.2), 'theta_neg': 48., 
+        'theta_pos':145., 'neg_amp': 0.5}
+        fwhm_neg: float or tuple with fwhm of neg gaussian  
+        fwhm_pos: can be a tuple for x and y axes of pos gaussian (replaces fwhm)    
+        theta_neg: trigonometric angle of the x axis of the neg gaussian (deg)
+        theta_pos: trigonometric angle of the x axis of the pos gaussian (deg)
+        neg_amp: amplitude of the neg gaussian wrt the amp of the positive one
+        Note: it is always recommended to provide theta_pos and theta_neg for a 
+        better fit.
     threshold : bool, optional
         If True the background pixels (estimated using sigma clipped statistics)
-        will be replaced by small random Gaussian noise.
+        will be replaced by small random Gaussian noise (recommended for 2g).
+    sigfactor: float, optional
+        If thresholding is performed, set the the threshold in terms of 
+        gaussian sigma in the subimage (will depend on your cropping size).
     save_shifts : bool, optional
         Whether to save the shifts to a file in disk.
     full_output : bool, optional
@@ -997,7 +1043,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
 
     Returns
     -------
-    array_recentered : numpy ndarray
+    array_rec: numpy ndarray
         The recentered cube.
     y : numpy ndarray
         [full_output=True] 1d array with the shifts in y.
@@ -1014,8 +1060,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
 
     if not isinstance(subi_size, int):
         raise ValueError('`subi_size` must be an integer')
-    if subi_size < fwhm:
-        raise ValueError('`subi_size` (value in pixels) is too small')
+        
     if sizey % 2 == 0:
         if subi_size % 2 != 0:
             subi_size += 1
@@ -1027,7 +1072,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
             print('`subi_size` is even (while frame size is odd)')
             print('Setting `subi_size` to {} pixels'.format(subi_size))
 
-    if isinstance(fwhm, (float, int)):
+    if isinstance(fwhm, (float, int, np.float32, np.float64)):
         fwhm = np.ones(n_frames) * fwhm
 
     if debug and array.shape[0] > 20:
@@ -1037,38 +1082,67 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
 
     if xy is not None:
         pos_x, pos_y = xy
-        if not isinstance(pos_x, int) or not isinstance(pos_y, int):
+        cond = model != '2gauss'
+        if (not isinstance(pos_x, int) or not isinstance(pos_y, int)) and cond:
             raise TypeError('`xy` must be a tuple of integers')
     else:
         pos_y, pos_x = frame_center(array[0])
 
     cy, cx = frame_center(array[0])
-    array_recentered = np.empty_like(array)
+    array_rec = np.empty_like(array)
 
     if model == 'gauss':
         func = _centroid_2dg_frame
     elif model == 'moff':
         func = _centroid_2dm_frame
+    elif model == 'airy':
+        func = _centroid_2da_frame
+    elif model == '2gauss':
+        func = _centroid_2d2g_frame
     else:
         raise ValueError('model not recognized')
 
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
-    if nproc == 1:
+    if nproc == 1:                 
         res = []
-        print('2d Gauss-fitting')
+        print('2d {}-fitting'.format(model))
         for i in Progressbar(range(n_frames), desc="frames", verbose=verbose):
-            res.append(func(array, i, subi_size, pos_y, pos_x, negative, debug,
-                            fwhm[i], threshold))
+            if model == "2gauss":
+                args = [array, i, subi_size, pos_y, pos_x, debug, fwhm[i], 
+                        fix_neg, params_2g, threshold, sigfactor]
+            else:
+                args = [array, i, subi_size, pos_y, pos_x, negative, debug,
+                        fwhm[i], threshold, sigfactor]
+  
+            res.append(func(*args))
         res = np.array(res)
     elif nproc > 1:
-        res = pool_map(nproc, func, array, iterable(range(n_frames)), subi_size,
-                       pos_y, pos_x, negative, debug, iterable(fwhm), threshold)
+        if model == "2gauss":
+            args = [array, iterable(range(n_frames)), subi_size, pos_y, pos_x, 
+                    debug, iterable(fwhm), fix_neg, params_2g, threshold,
+                    sigfactor]
+        else:
+            args = [array, iterable(range(n_frames)), subi_size, pos_y, pos_x, 
+                    negative, debug, iterable(fwhm), threshold, sigfactor]
+        res = pool_map(nproc, func, *args)
         res = np.array(res)
     y = cy - res[:, 0]
     x = cx - res[:, 1]
-
+    
+    if model == "2gauss" and not fix_neg:
+        y_neg = res[:, 2]
+        x_neg = res[:, 3]
+        fwhm_x = res[:, 4]
+        fwhm_y = res[:, 5]
+        fwhm_neg_x = res[:, 6]
+        fwhm_neg_y = res[:, 7]
+        theta = res[:, 8]
+        theta_neg = res[:, 9]
+        amp_pos = res[:,10]
+        amp_neg = res[:, 11]
+        
     if offset is not None:
         offx, offy = offset
         y -= offy
@@ -1078,7 +1152,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         if debug:
             print("\nShifts in X and Y")
             print(x[i], y[i])
-        array_recentered[i] = frame_shift(array[i], y[i], x[i], imlib=imlib,
+        array_rec[i] = frame_shift(array[i], y[i], x[i], imlib=imlib,
                                           interpolation=interpolation)
 
     if verbose:
@@ -1098,6 +1172,11 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         la = 'Histogram'
         _ = plt.hist(x, bins=b, alpha=0.5, label=la + ' shifts X')
         _ = plt.hist(y, bins=b, alpha=0.5, label=la + ' shifts Y')
+        if model == "2gauss" and not fix_neg:
+            _ = plt.hist(cx-x_neg, bins=b, alpha=0.5, 
+                         label=la + ' shifts X (neg gaussian)')
+            _ = plt.hist(cy-y_neg, bins=b, alpha=0.5, 
+                         label=la + ' shifts Y (neg gaussian)')            
         plt.legend(loc='best')
         plt.ylabel('Bin counts')
         plt.xlabel('Pixels')
@@ -1105,13 +1184,17 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     if save_shifts:
         np.savetxt('recent_gauss_shifts.txt', np.transpose([y, x]), fmt='%f')
     if full_output:
-        return array_recentered, y, x
+        if model == "2gauss" and not fix_neg:
+            return (array_rec, y, x, y_neg, x_neg, fwhm_x, fwhm_y, fwhm_neg_x, 
+                    fwhm_neg_y, theta, theta_neg, amp_pos, amp_neg)
+        
+        return array_rec, y, x
     else:
-        return array_recentered
+        return array_rec
 
 
 def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
-                        fwhm, threshold=False):
+                        fwhm, threshold=False, sigfactor=1):
     """ Finds the centroid by using a 2d gaussian fitting in one frame from a
     cube.
     """
@@ -1122,7 +1205,7 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
         sub_image = -sub_image + np.abs(np.min(-sub_image))
 
     y_i, x_i = fit_2dgaussian(sub_image, crop=False, fwhmx=fwhm, fwhmy=fwhm,
-                              threshold=threshold, sigfactor=1, debug=debug,
+                              threshold=threshold, sigfactor=sigfactor, debug=debug,
                               full_output=False)
     y_i = y1 + y_i
     x_i = x1 + x_i
@@ -1130,7 +1213,7 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
 
 
 def _centroid_2dm_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
-                        fwhm, threshold=False):
+                        fwhm, threshold=False, sigfactor=1):
     """ Finds the centroid by using a 2d moffat fitting in one frame from a
     cube.
     """
@@ -1141,19 +1224,82 @@ def _centroid_2dm_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
         sub_image = -sub_image + np.abs(np.min(-sub_image))
 
     y_i, x_i = fit_2dmoffat(sub_image, crop=False, fwhm=fwhm, debug=debug,
-                            threshold=threshold, full_output=False)
+                            threshold=threshold, sigfactor=sigfactor, 
+                            full_output=False)
     y_i = y1 + y_i
     x_i = x1 + x_i
     return y_i, x_i
 
 
+def _centroid_2da_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
+                        fwhm, threshold=False, sigfactor=1):
+    """ Finds the centroid by using a 2d Airy disk fitting in one frame from a
+    cube.
+    """
+    sub_image, y1, x1 = get_square(cube[frnum], size=size, y=pos_y, x=pos_x,
+                                   position=True)
+    # negative fit
+    if negative:
+        sub_image = -sub_image + np.abs(np.min(-sub_image))
+
+    y_i, x_i = fit_2dairydisk(sub_image, crop=False, fwhm=fwhm, 
+                              threshold=threshold, sigfactor=sigfactor, 
+                              full_output=False, debug=debug)                   
+    y_i = y1 + y_i
+    x_i = x1 + x_i
+    return y_i, x_i
+    
+    
+def _centroid_2d2g_frame(cube, frnum, size, pos_y, pos_x, debug=False, fwhm=4, 
+                         fix_neg=True, params_2g=None, threshold=False,
+                         sigfactor=1):
+    """ Finds the centroid by using a 2d double gaussian (positive+negative) 
+    fitting in one frame from a cube. To be called from within 
+    cube_recenter_doublegauss2d_fit().
+    """
+
+    size = min(cube[frnum].shape[0],cube[frnum].shape[1],size)
+    #sub_image, y1, x1 = get_square_robust(cube[frnum], size=size, y=pos_y, 
+    #                                      x=pos_x, position=True)
+    if isinstance(params_2g,dict):
+        fwhm_neg = params_2g.get('fwhm_neg', 0.8*fwhm)
+        fwhm_pos = params_2g.get('fwhm_pos', 2*fwhm)
+        theta_neg = params_2g.get('theta_neg', 0.)
+        theta_pos = params_2g.get('theta_pos', 0.)
+        neg_amp = params_2g.get('neg_amp', 1)
+        
+    res_DF = fit_2d2gaussian(cube[frnum], crop=True, cent=(pos_x,pos_y), 
+                          cropsize=size, fwhm_neg=fwhm_neg, fwhm_pos=fwhm_pos, 
+                          neg_amp=neg_amp, fix_neg=fix_neg, theta_neg=theta_neg, 
+                          theta_pos=theta_pos, threshold=threshold, 
+                          sigfactor=sigfactor, full_output=True, debug=debug)
+    y_i = res_DF['centroid_y']
+    x_i = res_DF['centroid_x']
+
+    if not fix_neg:
+        y_neg = res_DF['centroid_y_neg']
+        x_neg = res_DF['centroid_x_neg']
+        fwhm_x = res_DF['fwhm_x']
+        fwhm_y = res_DF['fwhm_y']
+        fwhm_neg_x = res_DF['fwhm_x_neg']
+        fwhm_neg_y = res_DF['fwhm_y_neg']
+        theta = res_DF['theta']
+        theta_neg = res_DF['theta_neg']
+        amp_pos = res_DF['amplitude']
+        amp_neg = res_DF['amplitude_neg']
+        return (y_i, x_i, y_neg, x_neg, fwhm_x, fwhm_y, fwhm_neg_x, fwhm_neg_y, 
+                theta, theta_neg, amp_pos, amp_neg)
+    return y_i, x_i
+    
+
 # TODO: make parameter names match the API
 def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                gammaval=1, min_spat_freq=0.5, max_spat_freq=3,
-                               fwhm=4, debug=False, negative=True,
-                               recenter_median=False, subframesize=20,
-                               imlib='opencv', interpolation='bilinear',
-                               save_shifts=False, plot=True):
+                               fwhm=4, debug=False, recenter_median=False,
+                               fit_type='gaus', negative=True, crop=True,
+                               subframesize=21, imlib='opencv', 
+                               interpolation='lanczos4', plot=True, 
+                               full_output=False):
     """ Registers frames based on the median speckle pattern. Optionally centers
     based on the position of the vortex null in the median frame. Images are
     filtered to isolate speckle spatial frequencies.
@@ -1177,10 +1323,18 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         Full width at half maximum.
     debug : bool, optional
         Outputs extra info.
-    negative : bool, optional
-        Use a negative gaussian fit to determine the center of the median frame.
     recenter_median : bool, optional
-        Recenter the frames at each iteration based on the gaussian fit.
+        Recenter the frames at each iteration based on a 2d fit.
+    fit_type : str, optional
+        If recenter_median is True, this is the model to which the image is 
+        fitted to for recentering. 'gaus' works well for NIRC2_AGPM data. 
+        'ann' works better for NACO+AGPM data.
+    negative : bool, optional
+        If True, uses a negative gaussian fit to determine the center of the 
+        median frame.
+    crop: bool, optional
+        Whether to calculate the recentering on a cropped version of the cube
+        that is speckle-dominated (recommended).
     subframesize : int, optional
         Sub-frame window size used. Should cover the region where speckles are
         the dominant noise source.
@@ -1188,30 +1342,39 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         Image processing library to use.
     interpolation : str, optional
         Interpolation method to use.
-    save_shifts : bool, optional
-        Whether to save the shifts to a file in disk.
     plot : bool, optional
         If True, the shifts are plotted.
+    full_ouput: bool, optional
+        Whether to return more varibales, useful for debugging.
 
     Returns
     -------
-    array_shifted : numpy ndarray
-        Shifted 2d array.
+    if full_output is False, returns:
+        cube_reg_sci: Registered science cube (numpy 3d ndarray)
+    
+        If cube_ref is not None, also returns:
 
-    If cube_ref is not None, returns:
-    cube_reg_sci: Registered science cube.
-    cube_reg_ref: Ref. cube registered to science frames.
-    cum_x_shifts_sci: Vector of x shifts for science frames.
-    cum_y_shifts_sci: Vector of y shifts for science frames.
-    cum_x_shifts_ref: Vector of x shifts for ref. frames.
-    cum_y_shifts_ref: Vector of y shifts for ref. frames.
+        cube_reg_ref: Ref. cube registered to science frames (np 3d ndarray)
+    
+    If full_output is True, returns in addition to the above:
+        cube_sci_lpf: Low+high-pass filtered science cube (np 3d ndarray)
+        cube_stret: Cube with stretched values used for cross-corr (np 3d ndarray)
+        cum_x_shifts_sci: Vector of x shifts for science frames (np 1d array)
+        cum_y_shifts_sci: Vector of y shifts for science frames (np 1d array)
+        
+        And if cube_ref is not None, also returns:
+        cum_x_shifts_ref: Vector of x shifts for ref. frames.
+        cum_y_shifts_ref: Vector of y shifts for ref. frames.
 
-    Otherwise, returns: cube_reg_sci, cum_x_shifts_sci, cum_y_shifts_sci
+    
     """
     n, y, x = cube_sci.shape
     check_array(cube_sci, dim=3)
 
-    if not subframesize < y/2.:
+    if recenter_median and fit_type not in {'gaus','ann'}:
+        raise TypeError("fit type not recognized. Should be 'ann' or 'gaus'")
+
+    if crop and not subframesize < y/2.:
         raise ValueError('`Subframesize` is too large')
 
     if cube_ref is not None:
@@ -1220,10 +1383,16 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     else:
         ref_star = False
 
-    cube_sci_subframe = cube_crop_frames(cube_sci, subframesize, verbose=False)
-    if ref_star:
-        cube_ref_subframe = cube_crop_frames(cube_ref, subframesize,
-                                             verbose=False)
+    if crop:
+        cube_sci_subframe = cube_crop_frames(cube_sci, subframesize, verbose=False)
+        if ref_star:
+            cube_ref_subframe = cube_crop_frames(cube_ref, subframesize,
+                                                 verbose=False)
+    else:
+        subframesize = cube_sci.shape[-1]
+        cube_sci_subframe = cube_sci.copy()
+        if ref_star:
+            cube_ref_subframe = cube_ref.copy()             
 
     ceny, cenx = frame_center(cube_sci_subframe[0])
     print('Sub frame shape: {}'.format(cube_sci_subframe.shape))
@@ -1242,17 +1411,23 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     # Remove spatial frequencies <0.5 lam/D and >3lam/D to isolate speckles
     cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
                                         median_size=median_size, verbose=False)
-    cube_sci_lpf = cube_filter_lowpass(cube_sci_hpf, 'gauss',
-                                       fwhm_size=min_spat_freq * fwhm, verbose=False)
+    if min_spat_freq>0:
+        cube_sci_lpf = cube_filter_lowpass(cube_sci_hpf, 'gauss',
+                                           fwhm_size=min_spat_freq * fwhm, verbose=False)
+    else:
+        cube_sci_lpf = cube_sci_hpf
 
     if ref_star:
         cube_ref_hpf = cube_filter_highpass(cube_ref_lpf, 'median-subt',
                                             median_size=median_size,
                                             verbose=False)
-        cube_ref_lpf = cube_filter_lowpass(cube_ref_hpf, 'gauss',
+        if min_spat_freq>0:                                    
+            cube_ref_lpf = cube_filter_lowpass(cube_ref_hpf, 'gauss',
                                            fwhm_size=min_spat_freq * fwhm,
                                            verbose=False)
-
+        else:
+            cube_ref_lpf = cube_ref_hpf
+        
     if ref_star:
         alignment_cube = np.zeros((1 + n + nref, subframesize, subframesize))
         alignment_cube[1:(n + 1), :, :] = cube_sci_lpf
@@ -1264,31 +1439,47 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     n_frames = alignment_cube.shape[0]  # 1+n or 1+n+nref
     cum_y_shifts = 0
     cum_x_shifts = 0
-
+    
     for i in range(alignment_iter):
         alignment_cube[0] = np.median(alignment_cube[1:(n + 1)], axis=0)
         if recenter_median:
-            # Recenter the median frame using a neg. gaussian fit
-            sub_image, y1, x1 = get_square(alignment_cube[0], size=int(fwhm),
+            # Recenter the median frame using a 2d fit
+            if fit_type == 'gaus':
+                crop_sz = int(fwhm)
+            else:
+                crop_sz = int(6*fwhm)
+            if not crop_sz%2:
+                crop_sz+=1
+            sub_image, y1, x1 = get_square(alignment_cube[0], size=crop_sz,
                                            y=ceny, x=cenx, position=True)
-            if negative:
-                sub_image = -sub_image + np.abs(np.min(-sub_image))
-            y_i, x_i = fit_2dgaussian(sub_image, crop=False, threshold=False,
-                                      sigfactor=1, debug=debug,
-                                      full_output=False)
+
+            if fit_type == 'gaus':
+                if negative:
+                    sub_image = -sub_image + np.abs(np.min(-sub_image))
+                y_i, x_i = fit_2dgaussian(sub_image, crop=False, threshold=False,
+                                          sigfactor=1, debug=debug,
+                                          full_output=False)
+            elif fit_type == 'ann':
+                y_i, x_i, rad = _fit_2dannulus(sub_image, fwhm=fwhm, crop=False,  
+                                             hole_rad=0.5, sampl_cen=0.1, 
+                                             sampl_rad=0.2, ann_width=0.5, 
+                                             unc_in=2.)                         
             yshift = ceny - (y1 + y_i)
             xshift = cenx - (x1 + x_i)
-
+            
             alignment_cube[0] = frame_shift(alignment_cube[0, :, :], yshift,
                                             xshift, imlib=imlib,
                                             interpolation=interpolation)
 
         # center the cube with stretched values
         cube_stret = np.log10((np.abs(alignment_cube) + 1) ** gammaval)
-        _, y_shift, x_shift = cube_recenter_dft_upsampling(cube_stret, ceny,
-                                            cenx, fwhm=fwhm, subi_size=None,
-                                            full_output=True, verbose=False,
-                                            plot=False)
+        _, y_shift, x_shift = cube_recenter_dft_upsampling(cube_stret, 
+                                                           (ceny, cenx), 
+                                                           fwhm=fwhm, 
+                                                           subi_size=None,
+                                                           full_output=True, 
+                                                           verbose=False,
+                                                           plot=False)
         sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
         print('Square sum of shift vecs: ' + str(sqsum_shifts))
 
@@ -1335,11 +1526,114 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                           cum_x_shifts_ref[i], imlib=imlib,
                                           interpolation=interpolation)
 
-    if save_shifts:
-        np.savetxt('recent_gauss_shifts.txt',
-                   np.transpose([cum_y_shifts_sci, cum_x_shifts_sci]), fmt='%f')
     if ref_star:
-        return (cube_reg_sci, cube_reg_ref, cum_x_shifts_sci, cum_y_shifts_sci,
-                cum_x_shifts_ref, cum_y_shifts_ref)
+        if full_output:
+            return (cube_reg_sci, cube_reg_ref, cube_sci_lpf, cube_stret, 
+                    cum_x_shifts_sci, cum_y_shifts_sci, cum_x_shifts_ref, 
+                    cum_y_shifts_ref)
+        else:
+            return (cube_reg_sci, cube_reg_ref)
     else:
-        return cube_reg_sci, cum_x_shifts_sci, cum_y_shifts_sci
+        if full_output:
+            return (cube_reg_sci, cube_sci_lpf, cube_stret, 
+                    cum_x_shifts_sci, cum_y_shifts_sci)
+        else:
+            return cube_reg_sci
+
+
+
+def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15, 
+                   hole_rad=0.5, sampl_cen=0.1, sampl_rad=None, ann_width=0.5, 
+                   unc_in=2.):
+                    
+    """Finds the center the center of a donut-shape signal (e.g. a coronagraphic 
+    PSF) by fitting an annulus, using a grid of positions for the center and 
+    radius of the annulus. The best fit is found by maximizing the mean flux 
+    measured in the annular mask. Requires the image to be already roughly 
+    centered (by an uncertainty provided by unc_in).
+    
+    Parameters
+    ----------
+    array : array_like
+        Image with a single donut-like source, already approximately at the 
+        center of the frame. 
+    fwhm : float
+        Gaussian PSF full width half maximum from fitting (in pixels).
+    hole_rad: float, opt
+        First estimate of the hole radius (in terms of fwhm). The grid search 
+        on the radius of the optimal annulus goes from 0.5 to 2 times hole_rad.
+        Note: for the AGPM PSF of VLT/NACO, the optimal hole_rad ~ 0.5FWHM.
+    sampl_cen: float, opt
+        Precision of the grid sampling to find the center of the annulus (in 
+        pixels)
+    sampl_rad: float, opt or None.
+        Precision of the grid sampling to find the optimal radius of the 
+        annulus (in pixels). If set to None, there is no grid search for the 
+        optimal radius of the annulus, the value given by hole_rad is used.
+    ann_width: float, opt
+        Width of the annulus in FWHM; default is 0.5 FWHM.
+    unc_in: float, opt
+        Initial uncertainty on the center location (with respect to center of 
+        input subframe) in pixels; this will set the grid width.
+        
+    Returns
+    -------
+    mean_y : float
+        Source centroid y position on the full image from fitting. 
+    mean_x : float
+        Source centroid x position on the full image from fitting.
+    if sampl_rad is not None, also returns final_hole_rad:   
+    final_hole_rad : float
+        Best fit radius of the hole, in terms of fwhm.
+    """
+    
+    if cent is None:
+        ceny, cenx = frame_center(array)
+    else:
+        cenx, ceny = cent
+        
+    if crop:
+        x_sub_px = cenx%1
+        y_sub_px = ceny%1
+
+        imside = array.shape[0]
+        psf_subimage, suby, subx = get_square(array, min(cropsize, imside),
+                                              int(ceny), int(cenx), 
+                                              position=True)
+        ceny, cenx = frame_center(psf_subimage)
+        ceny+=y_sub_px
+        cenx+=x_sub_px              
+    else:
+        psf_subimage = array.copy()
+        
+    ann_sz = ann_width*fwhm
+    
+    grid_sh_x = np.arange(-unc_in,unc_in,sampl_cen)
+    grid_sh_y = np.arange(-unc_in,unc_in,sampl_cen)
+    if sampl_rad is None:
+        rads = [hole_rad*fwhm]
+    else:
+        rads = np.arange(0.5*hole_rad*fwhm,2*hole_rad*fwhm,sampl_rad)        
+    flux_ann = np.zeros([grid_sh_x.shape[0],grid_sh_y.shape[0]])
+    best_rad = np.zeros([grid_sh_x.shape[0],grid_sh_y.shape[0]])
+    
+    for ii, xx in enumerate(grid_sh_x):
+        for jj, yy in enumerate(grid_sh_y):
+            tmp_tmp = frame_shift(array,yy,xx)
+            for rr, rad in enumerate(rads):
+                # mean flux in the annulus
+                tmp = frame_basic_stats(tmp_tmp, 'annulus',inner_radius=rad, 
+                                        size=ann_sz, plot=False)
+            
+                if tmp > flux_ann[ii,jj]:
+                    flux_ann[ii,jj] = tmp
+                    best_rad[ii,jj] = rad
+    i_max,j_max = np.unravel_index(np.argmax(flux_ann),flux_ann.shape)
+    mean_x = cenx - grid_sh_x[i_max]
+    mean_y = ceny - grid_sh_y[j_max]
+    
+    if sampl_rad is None:
+        return mean_y, mean_x
+    else:
+        final_hole_rad = best_rad[i_max,j_max]/fwhm   
+        return mean_y, mean_x, final_hole_rad

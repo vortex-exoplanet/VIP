@@ -894,7 +894,7 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
 
 
 def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
-               verbose=True, save=False, output_dir='', **kwargs):
+               verbose=True, save=False, output_dir='', force=False, **kwargs):
     """
     Determine the highly probable value for each model parameter, as well as
     the 1-sigma confidence interval.
@@ -916,6 +916,14 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     save: boolean, optional
         If "True", a txt file with the results is saved in the output
         repository.
+    output_dir: str, optional
+        If save is True, this is the full path to a directory where the results
+        are saved.
+    force: bool, optional
+        If set to True, to force the confidence interval estimate even if too
+        many samples fall in a single bin (unreliable CI estimates). If False, 
+        an error message is raised if the percentile of samples falling in a 
+        single bin is larger than cfd, suggesting to increase number of bins.
     kwargs: optional
         Additional attributes are passed to the matplotlib hist() method.
         
@@ -1005,9 +1013,18 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                     msg = 'percentage for {}: {}%'
                     print(msg.format(label_file[j], pourcentage))
                 break
-        n_arg_min = int(n_arg_sort[:k].min())
+        if k ==0:
+            msg = "WARNING: Percentile reached in a single bin. "
+            msg += "This may be due to outliers or a small sample."
+            msg += "Uncertainties will be unreliable. Try one of these:"
+            msg += "increase bins, or trim outliers, or decrease cfd."
+            if force:
+                raise ValueError(msg)
+            else:
+                print(msg)               
+        n_arg_min = int(n_arg_sort[:k+1].min())
         n_arg_max = int(n_arg_sort[:k+1].max())
-        
+
         if n_arg_min == 0:
             n_arg_min += 1
         if n_arg_max == bins:

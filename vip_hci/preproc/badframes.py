@@ -315,7 +315,7 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
         bad = len(bad_index_list)
         percent_bad_frames = (bad*100)/n
         msg1 = "Done detecting bad frames from cube: {} out of {} ({:.3}%)"
-        print(msg1.format(bad, n, percent_bad_frames)) 
+        print(msg1.format(bad, n, percent_bad_frames))
     
     if plot:
         lista = distances

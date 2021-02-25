@@ -26,7 +26,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                               fmerit='sum', algo_options={}, transmission=None, 
                               mu_sigma=None, wedge=None, weights=None, 
                               force_rPA=False, nproc=None, simplex_options=None, 
-                              save=False, output=None, verbose=True, 
+                              bins=None, save=False, output=None, verbose=True, 
                               full_output=True, plot=False):
     """
     Step-by-step procedure used to determine the speckle noise uncertainty 
@@ -97,8 +97,11 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     fmerit: None
         Figure of merit to use, if mu_sigma is None.
     simplex_options: dict
-        ALl the required simplex parameters, for instance {'tol':1e-08, 
+        All the required simplex parameters, for instance {'tol':1e-08, 
         'max_iter':200}
+    bins: int or None, opt
+        Number of bins for histogram of parameter deviations. If None, will be
+        determined automatically based on number of injected fake companions.
     full_output: bool, optional
         Whether to return more outputs.
     output: str, optional
@@ -225,10 +228,11 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     if force_rPA:
         offset = offset[:,2]
         print(offset.shape)
-    mean_dev, sp_unc = confidence(offset, cfd=68.27, 
-                                  bins=min(100,int(offset.shape[0]/2)), 
+    if bins is None:
+        bins = offset.shape[0]
+    mean_dev, sp_unc = confidence(offset, cfd=68.27, bins=bins, 
                                   gaussian_fit=True, verbose=True, save=False, 
-                                  output_dir='')
+                                  output_dir='', force=True)
     if plot:
         plt.show()
 

@@ -6,11 +6,13 @@ Module with various functions to create shapes, annuli and segments.
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['dist',
+           'dist_matrix',
            'frame_center',
            'get_square',
            'get_circle',
            'get_ellipse',
            'get_annulus_segments',
+           'get_annular_wedge',
            'get_ell_annulus',
            'mask_circle',
            'create_ringed_spider_mask',
@@ -56,7 +58,8 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
 
     cy, cx = frame_center(array)
 
-    ind = circle(cy, cx, radius)
+    shape = (array.shape[-2],array.shape[-1])
+    ind = circle(cy, cx, radius, shape=shape)
 
     if mode == 'in':
         array_masked = array.copy()
@@ -80,9 +83,9 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
 
 
 def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
-                              sp_angle=0):
+                              sp_angle=0, nlegs=6):
     """
-    Mask out information is outside the annulus and inside the spiders (zeros).
+    Mask out information outside the annulus and inside the spiders (zeros).
 
     Parameters
     ----------
@@ -90,13 +93,15 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
         Tuple of length two with 2d array shape (Y,X).
     ann_out : int
         Outer radius of the annulus.
-    ann_in : int
+    ann_in : int, opt
         Inner radius of the annulus.
-    sp_width : int
-        Width of the spider arms (3 branches).
-    sp_angle : int
+    sp_width : int, opt
+        Width of the spider arms (6 legs by default).
+    sp_angle : int, opt
         angle of the first spider arm (on the positive horizontal axis) in
         counter-clockwise sense.
+    nlegs: int, opt
+        Number of legs of the spider.
 
     Returns
     -------
@@ -105,52 +110,43 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
 
     """
     mask = np.zeros(im_shape)
+    nbranch = int(nlegs/2)
 
-    s = im_shape[0]
-    r = s/2
+    s = im_shape
+    r = min(s)/2
     theta = np.arctan2(sp_width/2, r)
-
-    t0 = np.array([theta, np.pi-theta, np.pi+theta, np.pi*2 - theta])
-    t1 = t0 + sp_angle/180 * np.pi
-    t2 = t1 + np.pi/3
-    t3 = t2 + np.pi/3
-
-    x1 = r * np.cos(t1) + s/2
-    y1 = r * np.sin(t1) + s/2
-    x2 = r * np.cos(t2) + s/2
-    y2 = r * np.sin(t2) + s/2
-    x3 = r * np.cos(t3) + s/2
-    y3 = r * np.sin(t3) + s/2
-
-    rr1, cc1 = polygon(y1, x1)
-    rr2, cc2 = polygon(y2, x2)
-    rr3, cc3 = polygon(y3, x3)
 
     cy, cx = frame_center(mask)
     rr0, cc0 = circle(cy, cx, min(ann_out, cy))
-    rr4, cc4 = circle(cy, cx, ann_in)
-
     mask[rr0, cc0] = 1
-    mask[rr1, cc1] = 0
-    mask[rr2, cc2] = 0
-    mask[rr3, cc3] = 0
+
+    t0 = np.array([theta, np.pi-theta, np.pi+theta, np.pi*2 - theta])
+    if isinstance(sp_angle, (list,np.ndarray)):
+        dtheta = [sp_angle[i]-sp_angle[0] for i in range(nbranch)]
+    else:
+        sp_angle = [sp_angle]
+        dtheta = [i*np.pi/nbranch for i in range(nbranch)]
+    tn = np.zeros([nbranch,4])
+    xn = np.zeros_like(tn)
+    yn = np.zeros_like(tn)
+    for i in range(nbranch):
+        tn[i] = t0 + np.deg2rad(sp_angle[0] + dtheta[i])
+        xn[i] = r * np.cos(tn[i]) + s[1]/2
+        yn[i] = r * np.sin(tn[i]) + s[0]/2
+        rrn, ccn = polygon(yn[i], xn[i])
+        mask[rrn, ccn] = 0
+    rr4, cc4 = circle(cy, cx, ann_in)
     mask[rr4, cc4] = 0
+    
     return mask
 
 
 def dist(yc, xc, y1, x1):
     """
-    Return the Euclidean distance between two points.
+    Return the Euclidean distance between two points, or between an array 
+    of positions and a point.
     """
-    if not isinstance(xc, (float, int)):
-        raise TypeError("`xc` must be a float or int")
-    if not isinstance(yc, (float, int)):
-        raise TypeError("`yc` must be a float or int")
-    if not isinstance(x1, (float, int)):
-        raise TypeError("`x1` must be a float or int")
-    if not isinstance(y1, (float, int)):
-        raise TypeError("`y1` must be a float or int")
-    return np.sqrt((yc-y1)**2 + (xc-x1)**2)
+    return np.sqrt(np.power(yc-y1,2) + np.power(xc-x1,2))
 
 
 def dist_matrix(n, cx=None, cy=None):
@@ -212,7 +208,8 @@ def frame_center(array, verbose=False):
     cx = shape[1] / 2 - 0.5
 
     if verbose:
-        print('Center px coordinates at x,y = ({}, {})'.format(cx, cy))
+        print('Center px coordinates at x,y = ({}, {})'.format(cx, cy))  
+    
     return cy, cx
 
 
@@ -322,8 +319,6 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
         Input 2d array or image.
     radius : int
         The radius of the circular region.
-    output_values : bool, optional
-        Sets the type of output.
     cy, cx : int, optional
         Coordinates of the circle center. If one of them is ``None``, the center
         of ``array`` is used.
@@ -451,7 +446,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
         Number of segments of annulus to be extracted.
     theta_init : int
         Initial azimuth [degrees] of the first segment, counting from the
-        postivie y-axis clockwise.
+        positive x-axis counterclockwise.
     optim_scale_fact : float
         To enlarge the width of the segments, which can then be used as
         optimization segments (e.g. in LOCI).
@@ -503,7 +498,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
     azimuth_coverage = np.deg2rad(int(np.ceil(360 / nsegm)))
     twopi = 2 * np.pi
 
-    xx, yy = np.mgrid[:array.shape[0], :array.shape[1]]
+    yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
     rad = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
     phi = np.arctan2(yy - cy, xx - cx)
     phirot = phi % twopi
@@ -536,6 +531,100 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
     else:
         raise ValueError("mode '{}' unknown!".format(mode))
 
+
+def get_annular_wedge(data, inner_radius, width, wedge=(0,360), mode="ind"):
+    """
+    Return indices or values in segments of a centered annulus.
+
+    The annulus is defined by ``inner_radius <= annulus < inner_radius+width``.
+
+    Parameters
+    ----------
+    data : 2d numpy ndarray or tuple
+        Input 2d array (image) ot tuple with its shape.
+    inner_radius : float
+        The inner radius of the donut region.
+    width : float
+        The size of the annulus.
+    wedge : tuple of 2 floats
+        Initial and final azimuths [degrees] of the annular segment, counting
+        from the positive x-axis counter-clockwise.
+    mode : {'ind', 'val', 'mask'}, optional
+        Controls what is returned: indices of selected pixels, values of
+        selected pixels, or a boolean mask.
+
+    Returns
+    -------
+    indices : list of ndarrays
+        [mode='ind'] Coordinates of pixels for each annulus segment.
+    values : list of ndarrays
+        [mode='val'] Pixel values.
+    masked : list of ndarrays
+        [mode='mask'] Copy of ``data`` with masked out regions.
+
+    Notes
+    -----
+    Moving from ``get_annulus`` to ``get_annulus_segments``:
+
+    .. code::python
+        # get_annulus handles one single segment only, so note the ``[0]`` after
+        the call to get_annulus_segments if you want to work with one single
+        segment only.
+
+        get_annulus(arr, 2, 3, output_indices=True)
+        # is the same as
+        get_annulus_segments(arr, 2, 3)[0]
+
+        get_annulus(arr, inr, w, output_values=True)
+        # is the same as
+        get_annulus_segments(arr, inr, w, mode="val")[0]
+
+        get_annulus(arr, inr, w)
+        # is the same as
+        get_annulus_segments(arr, inr, w, mode="mask")[0]
+
+        # the only difference is the handling of the border values:
+        # get_annulus_segments is `in <= ann < out`, while get_annulus is
+        # `in <= ann <= out`. But that should make no difference in practice.
+
+    """
+    array = frame_or_shape(data)
+
+    cy, cx = frame_center(array)
+    azimuth_coverage = np.deg2rad(wedge[1]-wedge[0])
+    twopi = 2 * np.pi
+
+    yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
+    rad = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
+    phi = np.arctan2(yy - cy, xx - cx)
+    phirot = phi % twopi
+    outer_radius = inner_radius + width
+
+    phi_start = np.deg2rad(wedge[0])
+    phi_end = phi_start + azimuth_coverage
+
+    if phi_start < twopi and phi_end > twopi:
+        mask = ((rad >= inner_radius) & (rad < outer_radius) &
+                     (phirot >= phi_start) & (phirot <= twopi) |
+                     (rad >= inner_radius) & (rad < outer_radius) &
+                     (phirot >= 0) & (phirot < phi_end - twopi))
+    elif phi_start >= twopi and phi_end > twopi:
+        mask = ((rad >= inner_radius) & (rad < outer_radius) &
+                     (phirot >= phi_start - twopi) &
+                     (phirot < phi_end - twopi))
+    else:
+        mask = ((rad >= inner_radius) & (rad < outer_radius) &
+                     (phirot >= phi_start) & (phirot < phi_end))
+
+    if mode == "ind":
+        return np.where(mask)
+    elif mode == "val":
+        return array[mask]
+    elif mode == "mask":
+        return array*mask
+    else:
+        raise ValueError("mode '{}' unknown!".format(mode))
+        
 
 def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):
     """
@@ -758,5 +847,3 @@ def reshape_matrix(array, y, x):
 
     """
     return array.reshape(array.shape[0], y, x)
-
-

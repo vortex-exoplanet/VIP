@@ -27,7 +27,8 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
              interpolation='lanczos4', collapse='median', 
              ifs_collapse_range='all', verbose=True, full_output=False, 
              debug=False, plot=True, save_plot=None,
-             start_time=None, scale_list=None, initial_4dshape=None):
+             start_time=None, scale_list=None, initial_4dshape=None, 
+             weights=None):
     """
     Compute a grid, depending on ``range_pcs``, of residual PCA frames out of a
     3d ADI cube (or a reference cube). If ``source_xy`` is provided, the number
@@ -155,7 +156,10 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         assuming ``cube`` is a 4d ADI+mSDI cube turned into 3d.
     initial_4dshape : None or tuple, optional
         Shape of the initial ADI+mSDI cube.
-
+    weights: 1d numpy array or list, optional
+        Weights to be applied for a weighted mean. Need to be provided if 
+        collapse mode is 'wmean'.
+        
     Returns
     -------
     cubeout : numpy ndarray
@@ -210,7 +214,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         residuals_res_der = cube_derotate(residuals_reshaped, angle_list,
                                           imlib=imlib,
                                           interpolation=interpolation)
-        res_frame = cube_collapse(residuals_res_der, mode=collapse)
+        res_frame = cube_collapse(residuals_res_der, mode=collapse, w=weights)
         return res_frame
 
     def truncate_svd_get_finframe_ann(matrix, indices, angle_list, ncomp, V):
@@ -224,7 +228,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         residuals_res_der = cube_derotate(residuals_res, angle_list,
                                           imlib=imlib,
                                           interpolation=interpolation)
-        res_frame = cube_collapse(residuals_res_der, mode=collapse)
+        res_frame = cube_collapse(residuals_res_der, mode=collapse, w=weights)
         return res_frame
 
     def get_snr(frame, y, x, fwhm, fmerit):
@@ -407,7 +411,8 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
 
 def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, imlib='opencv',
                     interpolation='lanczos4', collapse='median', verbose=True,
-                    full_output=False, return_residuals=False, start_time=None):
+                    full_output=False, return_residuals=False, start_time=None,
+                    weights=None):
     """ Computes the full-frame PCA-ADI algorithm in batches, for processing
     fits files larger than the available system memory. It uses the incremental
     PCA algorithm from Sklearn. There is no ``scaling`` parameter as in other
@@ -445,7 +450,10 @@ def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, imlib='opencv',
         Used when embedding this function in the main ``pca`` function. The
         object datetime.datetime is the global starting time. If None, it
         initiates its own counter.
-
+    weights: 1d numpy array or list, optional
+        Weights to be applied for a weighted mean. Need to be provided if 
+        collapse mode is 'wmean'.
+        
     Returns
     -------
     frame : numpy ndarray
@@ -565,7 +573,7 @@ def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, imlib='opencv',
         else:
             resid_der = cube_derotate(resid_reshaped, angle_list[intini:intfin],
                                       imlib=imlib, interpolation=interpolation)
-            medians.append(cube_collapse(resid_der, mode=collapse))
+            medians.append(cube_collapse(resid_der, mode=collapse,w=weights))
 
     del matrix
     del batch
@@ -589,7 +597,7 @@ def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, imlib='opencv',
 
 def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
                 svd_mode='lapack', scaling=None, collapse='median',
-                imlib='opencv', interpolation='lanczos4'):
+                imlib='opencv', interpolation='lanczos4', weights=None):
     """
     PCA process the cube only for an annulus of a given width and at a given
     radial distance to the frame center. It returns a PCA processed frame with 
@@ -625,7 +633,10 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    
+    weights: 1d numpy array or list, optional
+        Weights to be applied for a weighted mean. Need to be provided if 
+        collapse mode is 'wmean'.
+        
     Returns
     -------
     Depending on ``collapse`` parameter a final collapsed frame or the cube of
@@ -656,18 +667,14 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         cube_res_der = cube_derotate(cube_zeros, angs, imlib=imlib,
                                      interpolation=interpolation)
         if collapse is not None:
-            pca_frame = cube_collapse(cube_res_der, mode=collapse)
+            pca_frame = cube_collapse(cube_res_der, mode=collapse, w=weights)
             return pca_frame
         else:
             return cube_res_der
 
     else:
         if collapse is not None:
-            pca_frame = cube_collapse(cube_zeros, mode=collapse)
+            pca_frame = cube_collapse(cube_zeros, mode=collapse, w=weights)
             return pca_frame
         else:
             return cube_zeros
-
-
-
-

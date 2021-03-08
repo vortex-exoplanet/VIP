@@ -4,9 +4,10 @@
 Module with detection algorithms.
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
+__author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
 __all__ = ['detection',
            'mask_source_centers',
+           'mask_sources',
            'peak_coordinates']
 
 import numpy as np
@@ -19,7 +20,7 @@ from astropy.stats import gaussian_fwhm_to_sigma, gaussian_sigma_to_fwhm
 from astropy.modeling import models, fitting
 from skimage.feature import peak_local_max
 from ..var import (mask_circle, get_square, frame_center, fit_2dgaussian,
-                   frame_filter_lowpass)
+                   frame_filter_lowpass, dist_matrix)
 from ..conf.utils_conf import sep
 from .snr_source import snr, snrmap, frame_report
 
@@ -395,7 +396,7 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
         used as the standard deviation for Gaussian kernel of the Gaussian
         filtering. Can be a 1d array if obj_tmp is a 3D cube.
     approx_peak: 2 components list or array, opt
-        Gives the approximate coordinates of the peak.
+        Gives the approximate yx coordinates of the peak.
     search_box: float or 2 components list or array, opt
         Gives the half-size in pixels of a box in which the peak is searched,
         around approx_peak. If float, it is assumed the same box size is wanted
@@ -403,7 +404,7 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
         approx_peak is provided.
     channels_peak: bool, {False, True}, opt
         Whether returns the indices of the peak in each channel in addition to
-        the global indices of the peak in the cube. If True, it would hence also
+        the global indices of the peak in the cube. If True, it would hence
         return two 1d-arrays. (note: only available if the input is a 3d cube)
 
     Returns
@@ -434,12 +435,13 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
             sbox = np.zeros([n_z,2*sbox_y+1,2*sbox_x+1])
 
     if ndims == 2:
-        gauss_filt_tmp = frame_filter_lowpass(obj_tmp, 'gauss', fwhm_size=fwhm)
+        med_filt_tmp = frame_filter_lowpass(obj_tmp, 'median', 
+                                            median_size=int(fwhm))
         if approx_peak is None:
-            ind_max = np.unravel_index(gauss_filt_tmp.argmax(),
-                                       gauss_filt_tmp.shape)
+            ind_max = np.unravel_index(med_filt_tmp.argmax(),
+                                       med_filt_tmp.shape)
         else:
-            sbox = gauss_filt_tmp[approx_peak[0]-sbox_y:approx_peak[0]+sbox_y+1,
+            sbox = med_filt_tmp[approx_peak[0]-sbox_y:approx_peak[0]+sbox_y+1,
                                   approx_peak[1]-sbox_x:approx_peak[1]+sbox_x+1]
             ind_max_sbox = np.unravel_index(sbox.argmax(), sbox.shape)
             ind_max = (approx_peak[0]-sbox_y+ind_max_sbox[0],
@@ -449,19 +451,19 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
 
     if ndims == 3:
         n_z = obj_tmp.shape[0]
-        gauss_filt_tmp = np.zeros_like(obj_tmp)
+        med_filt_tmp = np.zeros_like(obj_tmp)
         ind_ch_max = np.zeros([n_z,2])
         if isinstance(fwhm, float) or isinstance(fwhm, int):
             fwhm = [fwhm]*n_z
 
         for zz in range(n_z):
-            gauss_filt_tmp[zz] = frame_filter_lowpass(obj_tmp[zz], 'gauss',
-                                                      fwhm_size=fwhm[zz])
+            med_filt_tmp[zz] = frame_filter_lowpass(obj_tmp[zz], 'median', 
+                                                    median_size=int(fwhm[zz]))
             if approx_peak is None:
-                ind_ch_max[zz] = np.unravel_index(gauss_filt_tmp[zz].argmax(),
-                                                  gauss_filt_tmp[zz].shape)
+                ind_ch_max[zz] = np.unravel_index(med_filt_tmp[zz].argmax(),
+                                                  med_filt_tmp[zz].shape)
             else:
-                sbox[zz] = gauss_filt_tmp[zz, approx_peak[0]-sbox_y:\
+                sbox[zz] = med_filt_tmp[zz, approx_peak[0]-sbox_y:\
                                           approx_peak[0]+sbox_y+1,
                                           approx_peak[1]-sbox_x:\
                                           approx_peak[1]+sbox_x+1]
@@ -471,8 +473,8 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
                                   approx_peak[1]-sbox_x+ind_max_sbox[1])
 
         if approx_peak is None:
-            ind_max = np.unravel_index(gauss_filt_tmp.argmax(),
-                                       gauss_filt_tmp.shape)
+            ind_max = np.unravel_index(med_filt_tmp.argmax(),
+                                       med_filt_tmp.shape)
         else:
             ind_max_tmp = np.unravel_index(sbox.argmax(),
                                            sbox.shape)
@@ -485,9 +487,11 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
             return ind_max
 
 
-def mask_source_centers(array, fwhm, y, x):
+def mask_source_centers(array, fwhm, y=None, x=None):
     """ Creates a mask of ones with the size of the input frame and zeros at
     the center of the sources (planets) with coordinates x, y.
+    If y and x are not provided, the sources will be found automatically using
+    'detection()' ('log' mode).
 
     Parameters
     ----------
@@ -495,7 +499,7 @@ def mask_source_centers(array, fwhm, y, x):
         Input frame.
     fwhm : float
         Size in pixels of the FWHM.
-    y, x : tuples of int
+    y, x : tuples of int (optional)
         Coordinates of the center of the sources.
 
     Returns
@@ -508,7 +512,7 @@ def mask_source_centers(array, fwhm, y, x):
         raise TypeError('Wrong input array shape.')
 
     frame = array.copy()
-    if not y and x:
+    if y is None or x is None:
         frame = mask_circle(frame, radius=2*fwhm)
         yy, xx = detection(frame, fwhm, plot=False, mode='log')
     else:
@@ -520,3 +524,40 @@ def mask_source_centers(array, fwhm, y, x):
     return mask
 
 
+
+def mask_sources(mask, ap_rad):
+    """ Given an input mask with zeros only at the *center* of source locations
+    (ones elsewhere), returns a mask with zeros within a radius ap_rad of all 
+    sources.
+
+    Parameters
+    ----------
+    mask : numpy ndarray
+        Input mask with zeros at sources center. Mask has to be square.
+    ap_rad : float
+        Size in pixels of the apertures that should be filled with zeros 
+        around each source in the mask.
+
+    Returns
+    -------
+    mask_out : numpy ndarray
+        Output mask frame.
+
+    """
+    if mask.ndim != 2:
+        raise TypeError('Wrong input array shape.')
+    mask[np.where(mask>1)] = 1
+
+    ny, nx = mask.shape
+    n_s = int(ny*nx - np.sum(mask))
+    mask_out = np.ones([ny,nx])
+    
+    if n_s == 0:
+        return mask_out
+    else:
+        s_coords = np.where(mask==0)
+        for s in range(n_s):
+            rad_arr = dist_matrix(ny, cx=s_coords[1][s], cy=s_coords[0][s]) 
+            mask_out[np.where(rad_arr<ap_rad)] = 0
+
+        return mask_out

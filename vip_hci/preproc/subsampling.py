@@ -4,7 +4,7 @@
 Module with pixel and frame subsampling functions.
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
+__author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
 __all__ = ['cube_collapse',
            'cube_subsample',
            'cube_subsample_trimmean']
@@ -12,7 +12,7 @@ __all__ = ['cube_collapse',
 import numpy as np
 
 
-def cube_collapse(cube, mode='median', n=50):
+def cube_collapse(cube, mode='median', n=50, w=None):
     """ Collapses a cube into a frame (3D array -> 2D array) depending on the
     parameter ``mode``. It's possible to perform a trimmed mean combination of
     the frames based on description in Brandt+ 2012.
@@ -21,11 +21,15 @@ def cube_collapse(cube, mode='median', n=50):
     ----------
     cube : numpy ndarray
         Cube.
-    mode : {'median', 'mean', 'sum', 'trimmean', 'max'}, str optional
+    mode : {'median', 'mean', 'sum', 'trimmean', 'max', 'wmean'}, str optional
         Sets the way of collapsing the images in the cube.
+        'wmean' stands for weighted mean and requires weights w to be provided.
     n : int, optional
         Sets the discarded values at high and low ends. When n = N is the same
         as taking the mean, when n = 1 is like taking the median.
+    w: 1d numpy array or list, optional
+        Weights to be applied for a weighted mean. Need to be provided if 
+        collapse mode is 'wmean'.
         
     Returns
     -------
@@ -35,6 +39,14 @@ def cube_collapse(cube, mode='median', n=50):
     arr = cube
     if arr.ndim != 3:
         raise TypeError('The input array is not a cube or 3d array.')
+    
+    if mode == 'wmean':
+        if w is None:
+            raise ValueError("Weights have to be provided for weighted mean mode")
+        if len(w) != cube.shape[0]:
+            raise TypeError("Weights need same length as cube")
+        if isinstance(w,list):
+            w = np.array(w)
     
     if mode == 'mean':
         frame = np.mean(arr, axis=0)
@@ -55,7 +67,9 @@ def cube_collapse(cube, mode='median', n=50):
         for index, _ in np.ndenumerate(arr[0]):
             sort = np.sort(arr[:, index[0], index[1]])
             frame[index] = np.mean(sort[k:N-k])
-            
+    elif mode == 'wmean':
+        frame = np.inner(w, np.moveaxis(arr,0,-1))
+        
     return frame
 
 
@@ -170,5 +184,3 @@ def cube_subsample_trimmean(arr, n, m):
     msg += "frames"
     print(msg.format(m))
     return arr_view
-
-

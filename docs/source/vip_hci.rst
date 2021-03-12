@@ -24,6 +24,7 @@ Subpackages
     vip_hci.nmf
     vip_hci.pca
     vip_hci.preproc
+    vip_hci.specfit
     vip_hci.stats
     vip_hci.var
 

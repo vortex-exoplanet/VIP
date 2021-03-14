@@ -730,7 +730,7 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
 
 def _adimsdi_doublepca_ifs(fr, ncomp, scale_list, scaling, mask_center_px,
                            svd_mode, imlib, interpolation, collapse, 
-                           ifs_collapse_range, fwhm, conv):
+                           ifs_collapse_range, fwhm, conv, mask_rdi=None):
     """
     Called by _adimsdi_doublepca with pool_map.
     """
@@ -755,9 +755,19 @@ def _adimsdi_doublepca_ifs(fr, ncomp, scale_list, scaling, mask_center_px,
             # convolve all frames with the same kernel
             cube_resc = cube_filter_lowpass(cube_resc, mode='gauss', 
                                             fwhm_size=fwhm, verbose=False)
-        residuals = _project_subtract(cube_resc, None, ncomp, scaling,
-                                      mask_center_px, svd_mode, verbose=False,
-                                      full_output=False)
+        if mask_rdi is None:
+            residuals = _project_subtract(cube_resc, None, ncomp, scaling,
+                                          mask_center_px, svd_mode, 
+                                          verbose=False, full_output=False)
+        else:
+            residuals = np.zeros_like(cube_resc)
+            for i in range(z):
+                cube_tmp = np.array([cube_resc[i]])
+                cube_ref = np.array([cube_resc[j] for j in range(z) if j!=i])
+                residuals[i] = cube_subtract_sky_pca(cube_tmp, cube_ref, 
+                                                     mask_rdi, ncomp=ncomp, 
+                                                     full_output=False)        
+
         frame_i = scwave(residuals[idx_ini:idx_fin], scale_list[idx_ini:idx_fin], 
                          full_output=False, inverse=True, y_in=y_in, x_in=x_in,
                          imlib=imlib, interpolation=interpolation, 

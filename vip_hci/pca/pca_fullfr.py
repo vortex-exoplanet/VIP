@@ -199,6 +199,11 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
     ifs_collapse_range: str 'all' or tuple of 2 int
         If a tuple, it should contain the first and last channels where the mSDI 
         residual channels will be collapsed (by default collapses all channels).
+    mask_rdi: 2d numpy array, opt
+        If provided, this binary mask will be used either in RDI mode or in 
+        ADI+mSDI (2 steps) mode. The projection coefficients for the principal 
+        components will be found considering the area covered by the mask 
+        (useful to avoid self-subtraction in presence of bright disc signal)
     check_memory : bool, optional
         If True, it checks that the input cube is smaller than the available
         system memory.
@@ -285,7 +290,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
                                          scaling, mask_center_px, svd_mode,
                                          imlib, imlib2, interpolation, collapse, 
                                          ifs_collapse_range, verbose, start_time, 
-                                         nproc, weights, fwhm, conv)
+                                         nproc, weights, fwhm, conv, mask_rdi)
             residuals_cube_channels, residuals_cube_channels_, frame = res_pca
         elif adimsdi == 'single':
             res_pca = _adimsdi_singlepca(cube, angle_list, scale_list, ncomp,
@@ -639,7 +644,7 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, fwhm, source_xy,
 def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
                        mask_center_px, svd_mode, imlib, imlib2, interpolation,
                        collapse, ifs_collapse_range, verbose, start_time, nproc,
-                       weights=None, fwhm=4, conv=False):
+                       weights=None, fwhm=4, conv=False, mask_rdi=None):
     """
     Handle the full-frame ADI+mSDI double PCA post-processing.
 
@@ -685,7 +690,8 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
 
     res = pool_map(nproc, _adimsdi_doublepca_ifs, iterable(range(n)), ncomp_ifs,
                    scale_list, scaling, mask_center_px, svd_mode, imlib2, 
-                   interpolation, collapse, ifs_collapse_range, fwhm, conv)
+                   interpolation, collapse, ifs_collapse_range, fwhm, conv,
+                   mask_rdi)
     residuals_cube_channels = np.array(res)
 
     if verbose:

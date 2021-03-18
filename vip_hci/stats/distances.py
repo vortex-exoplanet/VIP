@@ -76,6 +76,8 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
         frame_ref = frame
     elif frame is None:
         frame_ref = np.median(array, axis=0)
+    else:
+        raise TypeError('Input ref frame format not recognized')
     if mode == 'full':
         pass
     elif mode == 'annulus':

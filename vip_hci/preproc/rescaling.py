@@ -7,7 +7,8 @@ __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens, R. Farkas'
 __all__ = ['frame_px_resampling',
            'cube_px_resampling',
            'cube_rescaling_wavelengths',
-           'check_scal_vector']
+           'check_scal_vector',
+           'find_scal_vector']
 
 import numpy as np
 import warnings
@@ -19,6 +20,7 @@ except ImportError:
     no_opencv = True
 
 from scipy.ndimage.interpolation import geometric_transform, zoom
+from scipy.optimize import minimize
 from ..var import frame_center, get_square
 from .subsampling import cube_collapse
 
@@ -498,6 +500,85 @@ def check_scal_vector(scal_vec):
     return scal_vec
 
 
+def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev", 
+                     simplex_options=None, debug=False, **kwargs):
+    """
+    Find the optimal scaling factor for the channels of an IFS cube (or .
+
+    The algorithm finds the optimal scaling factor that minimizes residuals in
+    the rescaled frames. It takes the inverse of the wavelength vector as a 
+    first guess, and uses a similar method as the negative fake companion 
+    technique, but minimizing residuals in either a mask or the whole field.
+
+    Parameters
+    ----------
+    cube: 3D-array
+       Data cube with frames to be rescaled.
+    lbdas: 1d array or list
+        Vector with the wavelengths, used for first guess on scaling factor.
+    fluxes: 1d array or list
+        Vector with the (unsaturated) fluxes at the different wavelengths, 
+        used for first guess on flux factor.
+    mask: 2D-array, opt
+        Binary mask, with ones where the residual intensities should be 
+        evaluated. If None is provided, the whole field is used.
+    nfp: int, opt, {1,2}
+        Number of free parameters: spatial scaling alone or spatial scaling + 
+        flux scaling.
+    fm: str, opt, {"sum","stddev"}
+        Figure of merit to use: sum of squared residuals or stddev of residual 
+        pixels.
+    options: dict, optional
+        The scipy.optimize.minimize options.
+    **kwargs: optional
+        Optional arguments to the scipy.optimize.minimize function
+        
+    Returns
+    -------
+    scal_vec: numpy ndarray, 1d
+        Vector containing the scaling factors (after correction to comply with
+        the condition >= 1).
+
+    """
+
+    scal_vec_ini = lbdas[-1]/lbdas
+    n_z = len(lbdas)
+    if n_z != len(fluxes) or n_z != cube.shape[0]:
+        msg = "first axis of cube, fluxes and lbda must have same length"
+        raise TypeError(msg)
+
+    if simplex_options is None:
+        simplex_options = {'xatol': 1e-6, 'fatol': 1e-6, 'maxiter': 800,
+                           'maxfev': 2000}
+    scal_vec = np.ones(n_z)
+    flux_vec = np.ones(n_z)
+    for z in range(n_z-1):
+        flux_scal = fluxes[-1]/fluxes[z]
+        cube_tmp = np.array([cube[z],cube[-1]])
+        if nfp==1:
+            p_ini = (scal_vec_ini[z],)
+            solu = minimize(_chisquare_scal, p_ini, args=(cube_tmp, flux_scal, 
+                                                          mask, fm),
+                            method='Nelder-Mead', options=simplex_options, 
+                            **kwargs)
+            scal_fac, =  solu.x
+            flux_fac = flux_scal
+        else:
+            p_ini = (scal_vec_ini[z],flux_scal)
+            solu = minimize(_chisquare_scal_2fp, p_ini, args=(cube_tmp, mask, fm),
+                            method='Nelder-Mead', options=simplex_options, 
+                            **kwargs)      
+            scal_fac, flux_fac =  solu.x
+        if debug:
+            print("channel {:.0f}:".format(z), solu.x)
+        scal_vec[z] = scal_fac
+        flux_vec[z] = flux_fac
+
+    scal_vec = check_scal_vector(scal_vec)
+    
+    return scal_vec, flux_vec
+
+
 def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
                       debug=False):
     """
@@ -565,3 +646,103 @@ def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
         print("indices (nframes):", indices)
 
     return indices
+
+
+def _chisquare_scal(modelParameters, cube, flux_fac=1, mask=None, fm='sum'):
+    """
+    Calculate the reduced chi2:
+    \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
+    where N is the number of pixels within a circular aperture centered on the 
+    first estimate of the planet position, and I_j the j-th pixel intensity.
+    
+    Parameters
+    ----------    
+    modelParameters: tuple
+        The model parameters, typically (scal_fac, flux_fac).
+    cube: numpy.array
+        The cube of fits images expressed as a numpy.array.
+    mask: 2D-array, opt
+        Binary mask, with ones where the residual intensities should be 
+        evaluated. If None is provided, the whole field is used.
+    fm: str, opt, {"sum","stddev"}
+        Figure of merit to use: sum of squared residuals or stddev of residual 
+        pixels.
+        
+    Returns
+    -------
+    chi: float
+        The reduced chi squared.
+        
+    """
+    # rescale in flux and spatially
+    array = cube.copy()
+    #scale_fac, flux_fac = modelParameters
+    scale_fac, = modelParameters
+    array[0]*=flux_fac
+    scaling_list = np.array([scale_fac,1])
+    array = _cube_resc_wave(array, scaling_list)
+
+    frame = array[1]-array[0]
+    if mask is None:
+        mask = np.ones_like(frame)
+    
+    
+    if fm == 'sum':
+        chi = np.sum(np.power(frame[np.where(mask)],2))
+    elif fm == 'stddev':
+        values = frame[np.where(mask)]
+        values = values[values != 0]
+        chi = np.std(values)
+    else:
+        raise RuntimeError('fm choice not recognized.')
+        
+    return chi
+
+def _chisquare_scal_2fp(modelParameters, cube, mask=None, fm='sum'):
+    """
+    Calculate the reduced chi2:
+    \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
+    where N is the number of pixels within a circular aperture centered on the 
+    first estimate of the planet position, and I_j the j-th pixel intensity.
+    
+    Parameters
+    ----------    
+    modelParameters: tuple
+        The model parameters, typically (scal_fac, flux_fac).
+    cube: numpy.array
+        The cube of fits images expressed as a numpy.array.
+    mask: 2D-array, opt
+        Binary mask, with ones where the residual intensities should be 
+        evaluated. If None is provided, the whole field is used.
+    fm: str, opt, {"sum","stddev"}
+        Figure of merit to use: sum of squared residuals or stddev of residual 
+        pixels.
+        
+    Returns
+    -------
+    chi: float
+        The reduced chi squared.
+        
+    """
+    # rescale in flux and spatially
+    array = cube.copy()
+    scale_fac, flux_fac = modelParameters
+    array[0]*=flux_fac
+    scaling_list = np.array([scale_fac,1])
+    array = _cube_resc_wave(array, scaling_list)
+
+    frame = array[1]-array[0]
+    if mask is None:
+        mask = np.ones_like(frame)
+    
+    
+    if fm == 'sum':
+        chi = np.sum(np.power(frame[np.where(mask)],2))
+    elif fm == 'stddev':
+        values = frame[np.where(mask)]
+        values = values[values != 0]
+        chi = np.std(values)
+    else:
+        raise RuntimeError('fm choice not recognized.')
+        
+    return chi

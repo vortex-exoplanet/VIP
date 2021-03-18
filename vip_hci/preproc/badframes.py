@@ -239,6 +239,7 @@ def cube_detect_badfr_ellipticity(array, fwhm, crop_size=30, roundlo=-0.2,
 
 def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
                                   dist='pearson', percentile=20, threshold=None, 
+                                  mode='full', inradius=None, width=None, 
                                   plot=True, verbose=True):
     """ Returns the list of bad frames from a cube by measuring the distance 
     (similarity) or correlation of the frames (cropped to a 30x30 subframe) 
@@ -265,6 +266,12 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
         If provided, corresponds to the threshold 'distance' value above/below 
         which (depending on index of similarity/dissimilarity resp.) will be 
         discarded. If not None, supersedes 'percentile'.
+    mode : {'full','annulus'}, string optional
+        Whether to use the full frames or a centered annulus.
+    inradius : None or int, optional
+        The inner radius when mode is 'annulus'.
+    width : None or int, optional
+        The width when mode is 'annulus'.
     plot : bool, optional
         If true it plots the mean fluctuation as a function of the frames and 
         the boundaries.
@@ -291,14 +298,15 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     subarray = cube_crop_frames(array, crop_size, verbose=False)
     if isinstance(frame_ref, np.ndarray):
         frame_ref = frame_crop(frame_ref, crop_size, verbose=False)
-    distances = cube_distance(subarray, frame_ref, 'full', dist, plot=False)
+    distances = cube_distance(subarray, frame_ref, mode, dist, 
+                              inradius=inradius, width=width, plot=False)
     
     if dist == 'pearson' or dist == 'spearman':
+        # measures of correlation or similarity
+        minval = np.min(distances[~np.isnan(distances)])
+        distances = np.nan_to_num(distances)
+        distances[np.where(distances == 0)] = minval
         if threshold is None:
-            # measures of correlation or similarity
-            minval = np.min(distances[~np.isnan(distances)])
-            distances = np.nan_to_num(distances)
-            distances[np.where(distances == 0)] = minval
             threshold = np.percentile(distances, percentile)
         indbad = np.where(distances <= threshold)
         indgood = np.where(distances > threshold)

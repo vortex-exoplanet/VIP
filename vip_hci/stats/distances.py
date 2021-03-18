@@ -46,8 +46,9 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
     ----------
     array : numpy ndarray
         Input cube or 3d array.
-    frame : int or 2d array
-        Reference frame in the cube or 2d array.
+    frame : int, 2d array or None
+        Reference frame in the cube or 2d array. If None, will take the median
+        frame of the 3d array.
     mode : {'full','annulus'}, string optional
         Whether to use the full frames or a centered annulus.
     dist : {'sad','euclidean','mse','pearson','spearman', 'ssim'}, str optional
@@ -69,20 +70,19 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
         raise TypeError('The input array is not a cube or 3d array')
     lista = []
     n = array.shape[0]
+    if isinstance(frame, int):
+        frame_ref = array[frame]
+    elif isinstance(frame, np.ndarray):
+        frame_ref = frame
+    elif frame is None:
+        frame_ref = np.median(array, axis=0)
     if mode == 'full':
-        if isinstance(frame, int):
-            frame_ref = array[frame]
-        elif isinstance(frame, np.ndarray):
-            frame_ref = frame
+        pass
     elif mode == 'annulus':
         if inradius is None:
             raise ValueError('`Inradius` has not been set')
         if width is None:
             raise ValueError('`Width` has not been set')
-        if isinstance(frame, int):
-            frame_ref = array[frame]
-        elif isinstance(frame, np.ndarray):
-            frame_ref = frame
         frame_ref = get_annulus_segments(frame_ref, inradius, width,
                                          mode="val")[0]
     else:

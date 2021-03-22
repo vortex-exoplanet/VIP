@@ -427,11 +427,13 @@ def pca_it(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, n_it=10,
            ifs_collapse_range='all', mask_rdi=None, check_memory=True, 
            nproc=1, full_output=False, verbose=True, weights=None, conv=False):
     """
-    Iterative version of PCA. The algorithm subtracts significant disc or planet 
-    signal found in the final PCA image at the next iteration, before projection
-    onto the principal components. This will progressively reduce geometric 
-    biases in the image (e.g. negative side lobes for ADI, radial negative 
-    signatures for SDI).
+    Iterative version of PCA. 
+    
+    The algorithm finds significant disc or planet signal in the final PCA 
+    image, then subtracts it from the input cube (after rotation) just before 
+    (and only for) projection onto the principal components. This is repeated
+    n_it times, which progressively reduces geometric biases in the image 
+    (e.g. negative side lobes for ADI, radial negative signatures for SDI).
     This is similar to the algorithm presented in Pairet et al. (2020).
 
     The same parameters as pca() can be provided, except 'batch'. There are two 
@@ -690,9 +692,21 @@ def pca_it(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, n_it=10,
         it_cube[it] = frame
         residuals_cube = res[-2]
         residuals_cube_ = res[-1]
-        res_nd = pca(cube-sig_cube, angle_list, cube_ref=cube_ref, 
+        # Scale cube and cube_ref if necessary
+        cube_tmp = prepare_matrix(cube, scaling=scaling, 
+                                  mask_center_px=mask_center_px, mode='fullfr',
+                                  verbose=False)
+        cube_tmp = np.reshape(cube_tmp, cube.shape)
+        if cube_ref is not None:
+            cube_ref_tmp = prepare_matrix(cube_ref, scaling=scaling, 
+                                          mask_center_px=mask_center_px, 
+                                          mode='fullfr', verbose=False)  
+        else:
+            cube_ref_tmp = None 
+        cube_ref_tmp = np.reshape(cube_ref_tmp, cube_ref.shape)
+        res_nd = pca(cube_tmp-sig_cube, angle_list, cube_ref=cube_ref_tmp, 
                      scale_list=scale_list,  ncomp=ncomp, svd_mode=svd_mode, 
-                     scaling=scaling, mask_center_px=mask_center_px, 
+                     scaling=None, mask_center_px=mask_center_px, 
                      source_xy=source_xy, delta_rot=delta_rot, fwhm=fwhm, 
                      adimsdi='double', crop_ifs=crop_ifs, imlib=imlib, 
                      imlib2=imlib2, interpolation=interpolation, 

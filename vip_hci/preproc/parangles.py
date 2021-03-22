@@ -402,11 +402,12 @@ def check_pa_vector(angle_list, unit='deg'):
             angle_list[ii] = 360+angle_list[ii]
 
     correct = False
-    sorted_rot = np.sort(angle_list)
+    #sorted_rot = np.sort(angle_list)
 
     # Check if there is a jump > 180deg  within the angle list
     for ii in range(npa-1):
-        if abs(sorted_rot[ii+1]-sorted_rot[ii]) > 180:
+        #if abs(sorted_rot[ii+1]-sorted_rot[ii]) > 180:
+        if abs(angle_list[ii+1]-angle_list[ii]) > 180:
             correct = True
             break
 

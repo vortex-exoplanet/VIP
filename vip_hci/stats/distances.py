@@ -19,7 +19,7 @@ from ..conf import vip_figsize
 
 
 def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
-                  width=None, plot=True):
+                  width=None, mask=None, plot=True):
     """ Computes the distance (or similarity) between frames in a cube, using
     one as the reference (it can be either a frame from the same cube or a
     separate 2d array). Depending on the mode, the whole image can be used,
@@ -49,14 +49,17 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
     frame : int, 2d array or None
         Reference frame in the cube or 2d array. If None, will take the median
         frame of the 3d array.
-    mode : {'full','annulus'}, string optional
-        Whether to use the full frames or a centered annulus.
+    mode : {'full','annulus', 'mask'}, string optional
+        Whether to use the full frames, a centered annulus or a provided mask.
     dist : {'sad','euclidean','mse','pearson','spearman', 'ssim'}, str optional
         Which criterion to use.
     inradius : None or int, optional
         The inner radius when mode is 'annulus'.
     width : None or int, optional
         The width when mode is 'annulus'.
+    mask: 2d array, optional
+        If mode is 'mask', this is the mask within which the metrics is
+        calculated in the images.
     plot : bool, optional
         Whether to plot the distances or not.
 
@@ -87,6 +90,10 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
             raise ValueError('`Width` has not been set')
         frame_ref = get_annulus_segments(frame_ref, inradius, width,
                                          mode="val")[0]
+    elif mode == 'mask':
+        if mask is None:
+            raise ValueError('mask has not been set')
+        frame_ref = frame_ref[np.where(mask)]
     else:
         raise TypeError('Mode not recognized or missing parameters')
 
@@ -96,7 +103,8 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
         elif mode == 'annulus':
             framei = get_annulus_segments(array[i], inradius, width,
                                           mode="val")[0]
-
+        elif mode == 'mask':
+            framei = array[i][np.where(mask)]
         if dist == 'sad':
             lista.append(np.sum(abs(frame_ref - framei)))
         elif dist == 'euclidean':

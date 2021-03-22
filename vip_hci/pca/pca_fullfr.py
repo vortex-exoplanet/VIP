@@ -422,8 +422,8 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
 
 def pca_it(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, n_it=10,
            thr=1., svd_mode='lapack', scaling=None, mask_center_px=None, 
-           delta_rot=1, fwhm=4, crop_ifs=True, imlib='opencv', imlib2='opencv', 
-           interpolation='lanczos4', collapse='median', 
+           source_xy=None, delta_rot=1, fwhm=4, crop_ifs=True, imlib='opencv', 
+           imlib2='opencv', interpolation='lanczos4', collapse='median', 
            ifs_collapse_range='all', mask_rdi=None, check_memory=True, 
            nproc=1, full_output=False, verbose=True, weights=None, conv=False):
     """
@@ -434,10 +434,10 @@ def pca_it(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, n_it=10,
     signatures for SDI).
     This is similar to the algorithm presented in Pairet et al. (2020).
 
-    The same parameters as pca() can be provided, except 'source_xy' and 
-    'batch'. There are two additional parameters related to the iterative 
-    algorithm: the number of iterations (n_it) and threshold for identification
-    of significant signals.
+    The same parameters as pca() can be provided, except 'batch'. There are two 
+    additional parameters related to the iterative algorithm: the number of 
+    iterations (n_it) and the threshold (thr) used for the identification of 
+    significant signals.
     
     Note: The iterative PCA can only be used in ADI, RDI or mSDI+ADI 
     (adimsdi='double') modes.
@@ -559,6 +559,12 @@ def pca_it(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, n_it=10,
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
         radius of the circular mask.
+    source_xy : tuple of int, optional
+        For ADI-PCA, this triggers a frame rejection in the PCA library, with
+        ``source_xy`` as the coordinates X,Y of the center of the annulus where
+        the PA criterion is estimated. When ``ncomp`` is a tuple, a PCA grid is
+        computed and the S/Ns (mean value in a 1xFWHM circular aperture) of the
+        given (X,Y) coordinates are computed.
     delta_rot : int, optional
         Factor for tunning the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1xFHWM on each side of the considered frame).
@@ -594,7 +600,6 @@ def pca_it(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, n_it=10,
     check_memory : bool, optional
         If True, it checks that the input cube is smaller than the available
         system memory.
-    batch : None, int or float, optional
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to (cpu_count()/2). Defaults to ``nproc=1``.
@@ -625,10 +630,10 @@ def pca_it(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, n_it=10,
     nframes = cube.shape[0]
     
     def _find_significant_signals(residuals_cube, residuals_cube_, angle_list, 
-                                  thr, mask=0):
+                                  thr, sig_cube=None, mask=0):
         # Identifies significant signals with STIM map (outside mask)
         stim = _compute_stim_map(residuals_cube_)
-        inv_stim = _compute_inverse_stim_map(residuals_cube_, angle_list)
+        inv_stim = _compute_inverse_stim_map(residuals_cube, angle_list)
         if mask is not None:
             stim = mask_circle(stim, mask)
             inv_stim = mask_circle(inv_stim, mask)
@@ -643,6 +648,7 @@ def pca_it(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, n_it=10,
     # 1. Get a first disc estimate, using PCA
     res = pca(cube, angle_list, cube_ref=cube_ref, scale_list=scale_list, 
               ncomp=ncomp, svd_mode=svd_mode, scaling=scaling, 
+              mask_center_px=mask_center_px, source_xy=source_xy,
               delta_rot=delta_rot, fwhm=fwhm, adimsdi='double', 
               crop_ifs=crop_ifs, imlib=imlib, imlib2=imlib2, 
               interpolation=interpolation, collapse=collapse, 
@@ -671,21 +677,33 @@ def pca_it(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, n_it=10,
                                  interpolation=interpolation, nproc=nproc, 
                                  border_mode='constant')    
         res = pca(cube, angle_list, cube_ref=cube_ref, scale_list=scale_list, 
-                    ncomp=ncomp, svd_mode=svd_mode, scaling=scaling, 
-                    delta_rot=delta_rot, fwhm=fwhm, adimsdi='double', 
-                    crop_ifs=crop_ifs, imlib=imlib, imlib2=imlib2, 
-                    interpolation=interpolation, collapse=collapse, 
-                    ifs_collapse_range=ifs_collapse_range, mask_rdi=mask_rdi, 
-                    check_memory=check_memory, nproc=nproc, full_output=True, 
-                    verbose=verbose, weights=weights, conv=conv, 
-                    cube_sig=sig_cube)
+                  ncomp=ncomp, svd_mode=svd_mode, scaling=scaling, 
+                  mask_center_px=mask_center_px, source_xy=source_xy, 
+                  delta_rot=delta_rot, fwhm=fwhm, adimsdi='double', 
+                  crop_ifs=crop_ifs, imlib=imlib, imlib2=imlib2, 
+                  interpolation=interpolation, collapse=collapse, 
+                  ifs_collapse_range=ifs_collapse_range, mask_rdi=mask_rdi, 
+                  check_memory=check_memory, nproc=nproc, full_output=True, 
+                  verbose=verbose, weights=weights, conv=conv, 
+                  cube_sig=sig_cube)
         frame = res[0]
         it_cube[it] = frame
         residuals_cube = res[-2]
         residuals_cube_ = res[-1]
-        sig_mask = _find_significant_signals(residuals_cube, residuals_cube_, 
-                                             angle_list, thr, 
-                                             mask=mask_center_px)
+        res_nd = pca(cube-sig_cube, angle_list, cube_ref=cube_ref, 
+                     scale_list=scale_list,  ncomp=ncomp, svd_mode=svd_mode, 
+                     scaling=scaling, mask_center_px=mask_center_px, 
+                     source_xy=source_xy, delta_rot=delta_rot, fwhm=fwhm, 
+                     adimsdi='double', crop_ifs=crop_ifs, imlib=imlib, 
+                     imlib2=imlib2, interpolation=interpolation, 
+                     collapse=collapse, ifs_collapse_range=ifs_collapse_range, 
+                     mask_rdi=mask_rdi, check_memory=check_memory, nproc=nproc, 
+                     full_output=True, verbose=False, weights=weights, 
+                     conv=conv)
+        residuals_cube_nd = res_nd[-2]
+        sig_mask = _find_significant_signals(residuals_cube_nd, 
+                                             residuals_cube_, angle_list, thr, 
+                                             sig_cube, mask=mask_center_px)
         sig_image = frame.copy()
         sig_image[np.where(1-sig_mask)] = 0
         sig_images[it] = sig_image
@@ -777,7 +795,7 @@ def _adi_pca(cube, angle_list, ncomp, batch, source_xy, delta_rot, fwhm,
                     res_result = _project_subtract(cube, None, ncomp, scaling,
                                                    mask_center_px, svd_mode,
                                                    verbose, full_output, ind,
-                                                   frame)
+                                                   frame, cube_sig=cube_sig)
                     if full_output:
                         nfrslib.append(res_result[0])
                         residual_frame = res_result[1]
@@ -1095,7 +1113,7 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
     if mask_rdi is None:
         residuals_result = _project_subtract(cube, cube_ref, ncomp, scaling,
                                              mask_center_px, svd_mode, verbose,
-                                             True, cube_sig)
+                                             True, cube_sig=cube_sig)
         residuals_cube = residuals_result[0]
         reconstructed = residuals_result[1]
         V = residuals_result[2]
@@ -1133,7 +1151,7 @@ def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px,
     cube : numpy ndarray
         Input cube.
     cube_ref : numpy ndarray
-        Refernce cube.
+        Reference cube.
     ncomp : int
         Number of principal components.
     scaling : str
@@ -1170,21 +1188,22 @@ def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px,
     """
     _, y, x = cube.shape
     if isinstance(ncomp, int):
-        if cube_sig is not None:
-            cube_emp = cube-cube_sig
-        else:
-            cube_emp = None
+        # if cube_sig is not None:
+        #     cube_emp = cube-cube_sig
+        # else:
+        #     cube_emp = None
         if indices is not None and frame is not None:
             matrix = prepare_matrix(cube, scaling, mask_center_px,
                                     mode='fullfr', verbose=False)
         else:
             matrix = prepare_matrix(cube, scaling, mask_center_px,
                                     mode='fullfr', verbose=verbose)
-        if cube_emp is None:
+        if cube_sig is None:
             matrix_emp = matrix.copy()
         else:
-            matrix_emp = prepare_matrix(cube_emp, scaling, mask_center_px,
-                                        mode='fullfr', verbose=False)   
+            nfr = cube_sig.shape[0]
+            cube_sig = np.reshape(cube_sig, (nfr, -1))
+            matrix_emp = matrix-cube_sig
 
         if cube_ref is not None:
             ref_lib = prepare_matrix(cube_ref, scaling, mask_center_px,

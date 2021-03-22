@@ -487,20 +487,30 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
         #else:
         #    indices_left = _find_indices_adi(angle_list, frame,
         #                                     pa_threshold, truncate=False)
-
-        data_ref = matrix[indices_left]
-
+        msg = 'Too few frames left in the PCA library. '
+        msg+= 'Accepted indices length ({:.0f}) less than {:.0f}. '
+        msg += 'Try decreasing either delta_rot or min_frames_lib.'               
+        try:
+            data_ref = matrix[indices_left]
+        except IndexError:
+            if matrix_ref is None:
+                raise RuntimeError(msg.format(0,min_frames_lib))
+            data_ref = None
+        
         if data_ref.shape[0] < min_frames_lib and matrix_ref is None:
             msg = 'Too few frames left in the PCA library. '
-            msg+= 'Accepted indices {} length less than {:.0f}. '
+            msg+= 'Accepted indices length ({:.0f}) less than {:.0f}. '
             msg += 'Try decreasing either delta_rot or min_frames_lib.'
             raise RuntimeError(msg.format(indices_left,min_frames_lib))
     else:
-        data_ref = matrix
+        data_ref = None
 
     if matrix_ref is not None:
         # Stacking the ref and the target ref (pa thresh) libraries
-        data_ref = np.vstack((matrix_ref, data_ref))
+        if data_ref is not None:
+            data_ref = np.vstack((matrix_ref, data_ref))
+        else:
+            data_ref = matrix_ref
 
     curr_frame = matrix[frame]  # current frame
     V = get_eigenvectors(ncomp, data_ref, svd_mode, noise_error=tol)

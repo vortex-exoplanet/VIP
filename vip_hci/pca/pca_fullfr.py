@@ -5,7 +5,8 @@ Full-frame PCA algorithm for ADI, ADI+RDI and ADI+mSDI (IFS data) cubes.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['pca']
+__all__ = ['pca',
+           'pca_it']
 
 import numpy as np
 from multiprocessing import cpu_count

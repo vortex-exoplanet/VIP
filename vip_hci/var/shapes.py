@@ -18,7 +18,9 @@ __all__ = ['dist',
            'create_ringed_spider_mask',
            'matrix_scaling',
            'prepare_matrix',
-           'reshape_matrix']
+           'reshape_matrix',
+           'cart_to_pol',
+           'pol_to_cart']
 
 import numpy as np
 from skimage.draw import polygon
@@ -847,3 +849,53 @@ def reshape_matrix(array, y, x):
 
     """
     return array.reshape(array.shape[0], y, x)
+
+
+def cart_to_pol(x, y, cx=0, cy=0):
+    """
+    Returns polar coordinates for input cartesian coordinates
+    
+    Parameters
+    ----------
+    x : float or numpy ndarray
+        x coordinates with respect to the center
+    y : float or numpy ndarray
+        y coordinates with respect to the center
+
+    Returns
+    -------
+    r, theta: floats or numpy ndarrays
+        radii and polar angles (trigonometric) corresponding to the input
+        x and y.
+    """
+    
+    r = dist(cy,cx,y,x)
+    theta = np.rad2deg(np.arctan2(y-cy,x-cx))
+    
+    return r, theta
+
+
+def pol_to_cart(r, theta, cx=0, cy=0):
+    """
+    Returns cartesian coordinates for input polar coordinates
+    
+    Parameters
+    ----------
+    r, theta : float or numpy ndarray
+        radii and polar angles (trigonometric) corresponding to the input
+        x and y.
+    cx, cy : float or numpy ndarray
+        x, y coordinates of the center of the image to be considered for 
+        conversion to cartesian coordinates.
+
+    Returns
+    -------
+    x, y: floats or numpy ndarrays
+        x, y coordinates corresponding to input radii and polar (trigonotetric)
+        angles.
+    """
+    
+    x = cx+r*np.cos(np.deg2rad(theta))
+    y = cy+r*np.sin(np.deg2rad(theta))
+    
+    return x, y

@@ -5,14 +5,12 @@ Full-frame PCA algorithm for ADI, ADI+RDI and ADI+mSDI (IFS data) cubes.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['pca',
-           'pca_it']
+__all__ = ['pca']
 
 import numpy as np
 from multiprocessing import cpu_count
 from .svd import svd_wrapper, SVDecomposer
-from .utils_pca import (pca_incremental, pca_grid, _compute_stim_map, 
-                        _compute_inverse_stim_map)
+from .utils_pca import pca_incremental, pca_grid
 from ..preproc.derotation import _find_indices_adi, _compute_pa_thresh
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,

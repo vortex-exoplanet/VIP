@@ -911,7 +911,7 @@ def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px,
             ref_lib = prepare_matrix(cube_ref, scaling, mask_center_px,
                                      mode='fullfr', verbose=verbose)
         else:
-            ref_lib = matrix
+            ref_lib = matrix_emp
 
         # a rotation threshold is used (frames are processed one by one)
         if indices is not None and frame is not None:

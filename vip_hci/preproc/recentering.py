@@ -30,7 +30,8 @@ from hciplot import plot_frames
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
 from skimage.transform import radon
-from skimage.feature import register_translation
+#from skimage.feature import register_translation
+from skimage.registration import phase_cross_correlation
 from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
 from . import frame_crop
@@ -214,7 +215,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     ----------
     array : numpy ndarray, 2d
         Image or frame.
-    xy : tuple of 4 tuples
+    xy : tuple of 4 tuples of 2 elements
         Tuple with coordinates X,Y of the 4 satellite spots. When the spots are
         in an X configuration, the order is the following: top-left, top-right,
         bottom-left and bottom-right. When the spots are in an + (cross-like)
@@ -397,7 +398,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     ----------
     array : numpy ndarray, 3d
         Input cube.
-    xy : tuple
+    xy : tuple of 4 tuples of 2 elements
         Tuple with coordinates X,Y of the 4 satellite spots. When the spots are
         in an X configuration, the order is the following: top-left, top-right,
         bottom-left and bottom-right. When the spots are in an + (cross-like)
@@ -515,9 +516,10 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         return array_rec
 
 
-def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
-                       mask_center=None, nproc=None, satspots=False,
-                       full_output=False, verbose=True, plot=True, debug=False):
+def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
+                       mask_center=None, nproc=None, satspots_cfg=None,
+                       full_output=False, verbose=True, 
+                       plot=True, debug=False):
     """ Finding the center of a broadband (co-added) frame with speckles and
     satellite spots elongated towards the star (center). We use the radon
     transform implementation from scikit-image.
@@ -526,9 +528,10 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     ----------
     array : numpy ndarray
         Input 2d array or image.
-    cropsize : odd int, optional
+    cropsize : None or odd int, optional
         Size in pixels of the cropped central area of the input array that will
-        be used. It should be large enough to contain the satellite spots.
+        be used. It should be large enough to contain the bright elongated 
+        speckle or satellite spots.
     hsize : float, optional
         Size of the box for the grid search. The frame is shifted to each
         direction from the center in a hsize length with a given step.
@@ -540,6 +543,12 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     nproc : int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to cpu_count()/2.
+    satspots_cfg: None or str ('x' or '+'), opt
+        If satellite spots are present, provide a string corresponding to the 
+        configuration of the satellite spots: either as a cross ('x') or as a 
+        plus sign ('+'). Leave to None if no satellite spots present. Usually 
+        the Radon transform centering works better if bright satellite spots 
+        are present.
     verbose : bool optional
         Whether to print to stdout some messages and info.
     plot : bool, optional
@@ -549,11 +558,11 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
 
     Returns
     -------
+    [full_output=True] 2d np array
+        Radon cost function surface is returned if full_output set to True
     optimy, optimx : float
         Values of the Y, X coordinates of the center of the frame based on the
-        radon optimization.
-    If full_output is True then the radon cost function surface is returned
-    along with the optimal x and y.
+        radon optimization. (always returned)
 
     Notes
     -----
@@ -568,8 +577,12 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     if verbose:
         start_time = time_ini()
     frame = array.copy()
-    frame = frame_crop(frame, cropsize, verbose=False)
-    listyx = np.linspace(start=-hsize, stop=hsize, num=2*hsize/step+1,
+    ori_cent, _ = frame_center(frame)
+    if cropsize is not None:
+        if not cropsize%2:
+            raise TypeError("If not None, cropsize should be odd integer")
+        frame = frame_crop(frame, cropsize, verbose=False)
+    listyx = np.linspace(start=-hsize, stop=hsize, num=int(2*hsize/step)+1,
                          endpoint=True)
     if not mask_center:
         radint = 0
@@ -584,21 +597,35 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     frame = get_annulus_segments(frame, radint, cent-radint, mode="mask")[0]
 
     if debug:
-        if satspots:
+        if satspots_cfg is not None:
             samples = 10
-            theta = np.hstack((np.linspace(start=40, stop=50, num=samples,
-                                           endpoint=False),
-                               np.linspace(start=130, stop=140, num=samples,
-                                           endpoint=False),
-                               np.linspace(start=220, stop=230, num=samples,
-                                           endpoint=False),
-                               np.linspace(start=310, stop=320, num=samples,
-                                           endpoint=False)))
+            if satspots_cfg == 'x':
+                theta = np.hstack((np.linspace(start=40, stop=50, num=samples,
+                                               endpoint=False),
+                                   np.linspace(start=130, stop=140, num=samples,
+                                               endpoint=False),
+                                   np.linspace(start=220, stop=230, num=samples,
+                                               endpoint=False),
+                                   np.linspace(start=310, stop=320, num=samples,
+                                               endpoint=False)))
+            elif satspots_cfg == '+':
+                theta = np.hstack((np.linspace(start=-5, stop=5, num=samples,
+                                   endpoint=False),
+                                   np.linspace(start=85, stop=95, num=samples,
+                                   endpoint=False),
+                                   np.linspace(start=175, stop=185, num=samples,
+                                   endpoint=False),
+                                   np.linspace(start=265, stop=275, num=samples,
+                                   endpoint=False)))
+            else:
+                msg = "If not None, satspots_cfg can only be 'x' or '+'."
+                raise ValueError(msg)
             sinogram = radon(frame, theta=theta, circle=True)
             plot_frames((frame, sinogram))
             print(np.sum(np.abs(sinogram[int(cent), :])))
         else:
-            theta = np.linspace(start=0, stop=360, num=cent*2, endpoint=False)
+            theta = np.linspace(start=0, stop=360, num=int(cent*2), 
+                                endpoint=False)
             sinogram = radon(frame, theta=theta, circle=True)
             plot_frames((frame, sinogram))
             print(np.sum(np.abs(sinogram[int(cent), :])))
@@ -606,19 +633,15 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     if nproc is None:
         nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
 
-    if satspots:
-        costfkt = _radon_costf2
-    else:
-        costfkt = _radon_costf
-
     if nproc == 1:
         costf = []
         for coord in coords:
-            res = costfkt(frame, cent, radint, coord)
+            res = _radon_costf(frame, cent, radint, coord, satspots_cfg)
             costf.append(res)
         costf = np.array(costf)
     elif nproc > 1:
-        res = pool_map(nproc, costfkt, frame, cent, radint, iterable(coords))
+        res = pool_map(nproc, _radon_costf, frame, cent, radint, 
+                       iterable(coords), satspots_cfg)
         costf = np.array(res)
 
     if verbose:
@@ -644,8 +667,8 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
     argmx = ind_maximax[int(np.ceil(num_max/2)) - 1]
     y_grid = np.array(coords)[:, 0].reshape(listyx.shape[0], listyx.shape[0])
     x_grid = np.array(coords)[:, 1].reshape(listyx.shape[0], listyx.shape[0])
-    optimy = y_grid[argmy, 0]
-    optimx = x_grid[0, argmx]
+    optimy = y_grid[argmy, 0]+(ori_cent-cent)/2
+    optimx = x_grid[0, argmx]+(ori_cent-cent)/2
 
     if verbose:
         print('Cost function max: {}'.format(costf.max()))
@@ -660,35 +683,37 @@ def frame_center_radon(array, cropsize=101, hsize=0.4, step=0.01,
         return optimy, optimx
 
 
-def _radon_costf(frame, cent, radint, coords):
+def _radon_costf(frame, cent, radint, coords, satspots_cfg=None):
     """ Radon cost function used in frame_center_radon().
     """
     frame_shifted = frame_shift(frame, coords[0], coords[1])
     frame_shifted_ann = get_annulus_segments(frame_shifted, radint,
                                              cent-radint, mode="mask")[0]
-    theta = np.linspace(start=0, stop=360, num=frame_shifted_ann.shape[0],
-                        endpoint=False)
-    sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
-    costf = np.sum(np.abs(sinogram[int(cent), :]))
-    return costf
 
 
-def _radon_costf2(frame, cent, radint, coords):
-    """ Radon cost function used in frame_center_radon().
-    """
-    frame_shifted = frame_shift(frame, coords[0], coords[1])
-    frame_shifted_ann = get_annulus_segments(frame_shifted, radint, cent-radint,
-                                             mode="mask")[0]
-    samples = 10
-    theta = np.hstack((np.linspace(start=40, stop=50, num=samples,
-                                   endpoint=False),
-                       np.linspace(start=130, stop=140, num=samples,
-                                   endpoint=False),
-                       np.linspace(start=220, stop=230, num=samples,
-                                   endpoint=False),
-                       np.linspace(start=310, stop=320, num=samples,
-                                   endpoint=False)))
-
+    if satspots_cfg is None:
+        theta = np.linspace(start=0, stop=360, num=frame_shifted_ann.shape[0],
+                            endpoint=False)
+    elif satspots_cfg == 'x':
+        samples = 10
+        theta = np.hstack((np.linspace(start=40, stop=50, num=samples,
+                                       endpoint=False),
+                           np.linspace(start=130, stop=140, num=samples,
+                                       endpoint=False),
+                           np.linspace(start=220, stop=230, num=samples,
+                                       endpoint=False),
+                           np.linspace(start=310, stop=320, num=samples,
+                                       endpoint=False)))
+    else:
+        samples = 10
+        theta = np.hstack((np.linspace(start=-5, stop=5, num=samples,
+                                       endpoint=False),
+                           np.linspace(start=85, stop=95, num=samples,
+                                       endpoint=False),
+                           np.linspace(start=175, stop=185, num=samples,
+                                       endpoint=False),
+                           np.linspace(start=265, stop=275, num=samples,
+                                       endpoint=False)))    
     sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
     costf = np.sum(np.abs(sinogram[int(cent), :]))
     return costf
@@ -765,7 +790,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
 def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  fwhm=4, subi_size=None, upsample_factor=100,
                                  imlib='opencv', interpolation='lanczos4',
-                                 full_output=False, verbose=True, nproc=1,
+                                 mask=None, full_output=False, verbose=True, nproc=1,
                                  save_shifts=False, debug=False, plot=True):
     """ Recenters a cube of frames using the DFT upsampling method as
     proposed in Guizar et al. 2008 and implemented in the
@@ -802,6 +827,9 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    mask: 2D np.ndarray, optional
+        Binary mask indicating where the cross-correlation should be calculated
+        in the images. If provided, should be the same size as array frames.
     full_output : bool, optional
         Whether to return 2 1d arrays of shifts along with the recentered cube
         or not.
@@ -840,7 +868,11 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         start_time = time_ini()
 
     check_array(array, dim=3)
-
+    if mask is not None:
+        if mask.shape[-1]!=array.shape[-1] or mask.shape[-2]!=array.shape[-2]:
+            msg = "If provided, mask should have same shape as frames"
+            raise TypeError(msg)
+            
     n_frames, sizey, sizex = array.shape
     if subi_size is not None:
         if center_fr1 is None:
@@ -903,8 +935,8 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     if nproc == 1:
         for i in Progressbar(range(1, n_frames), desc="frames", verbose=verbose):
             y[i], x[i], array_rec[i] = _shift_dft(array_rec, array, i,
-                                                  upsample_factor, interpolation,
-                                                  imlib)
+                                                  upsample_factor, mask,
+                                                  interpolation, imlib)
     elif nproc > 1: 
         res = pool_map(nproc, _shift_dft, array_rec, array,
                        iterable(range(1, n_frames)),
@@ -950,12 +982,16 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         return array_rec
 
 
-def _shift_dft(array_rec, array, frnum, upsample_factor, interpolation, imlib):
+def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation, 
+               imlib):
     """
     function used in recenter_dft_unsampling
     """
-    shift_yx, _, _ = register_translation(array_rec[0], array[frnum],
-                                          upsample_factor=upsample_factor)
+    #shift_yx, _, _ = register_translation(array_rec[0], array[frnum],
+    #                                      upsample_factor=upsample_factor)
+    shift_yx = phase_cross_correlation(array_rec[0], array[frnum],
+                                       upsample_factor=upsample_factor, 
+                                       reference_mask=mask, return_error=False)
     y_i, x_i = shift_yx
     array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
                               imlib=imlib, interpolation=interpolation)

@@ -362,7 +362,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
         # Optionally, save the figure to a path
         if save_plot is not None:
-            fig.savefig(save_plot, dpi=100)
+            fig.savefig(save_plot, dpi=dpi)
             
         if debug:
             fig2 = plt.figure(figsize=figsize, dpi=dpi)

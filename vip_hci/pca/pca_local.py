@@ -6,8 +6,7 @@ fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['pca_annular',
-           'pca_annular_it']
+__all__ = ['pca_annular']
 
 import numpy as np
 from multiprocessing import cpu_count
@@ -18,10 +17,9 @@ from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
 from ..conf import time_ini, timing
 from ..conf.utils_conf import pool_map, iterable
-from ..var import get_annulus_segments, matrix_scaling, mask_circle
+from ..var import get_annulus_segments, matrix_scaling
 from ..stats import descriptive_stats
 from .svd import get_eigenvectors
-from .utils_pca import _compute_stim_map, _compute_inverse_stim_map
 
 
 def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
@@ -288,8 +286,8 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
 ################################################################################
 
 
-def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
-                ncomp, svd_mode, tol, scaling, imlib, interpolation, collapse,
+def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep, ncomp, 
+                svd_mode, tol, scaling, imlib, interpolation, collapse,
                 ifs_collapse_range):
     """ Optimized PCA subtraction on a multi-spectral frame (IFS data).
     """
@@ -492,6 +490,7 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
     lower. This truncation is done on the annuli after 10*FWHM and the goal is
     to keep min(num_frames/2, 200) in the library.
     """
+    
     if pa_threshold != 0:
         # if ann_center > fwhm*10:
         indices_left = _find_indices_adi(angle_list, frame,
@@ -504,16 +503,16 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
         msg += 'Accepted indices length ({:.0f}) less than {:.0f}. '
         msg += 'Try decreasing either delta_rot or min_frames_lib.'
         try:
-            data_ref = matrix[indices_left]
+            if matrix_sig_segm is not None:
+                data_ref = matrix_sig_segm[indices_left]
+            else:
+                data_ref = matrix[indices_left]
         except IndexError:
             if matrix_ref is None:
                 raise RuntimeError(msg.format(0, min_frames_lib))
             data_ref = None
 
         if data_ref.shape[0] < min_frames_lib and matrix_ref is None:
-            msg = 'Too few frames left in the PCA library. '
-            msg += 'Accepted indices length ({:.0f}) less than {:.0f}. '
-            msg += 'Try decreasing either delta_rot or min_frames_lib.'
             raise RuntimeError(msg.format(indices_left, min_frames_lib))
     else:
         data_ref = None

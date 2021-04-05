@@ -13,7 +13,7 @@ import numpy as np
 import scipy.stats
 from scipy.optimize import curve_fit
 from matplotlib import pyplot as plt
-from skimage.measure import compare_ssim as ssim
+from skimage.metrics import structural_similarity as ssim
 from ..var import get_annulus_segments, get_circle
 from ..conf import vip_figsize
 
@@ -119,7 +119,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
             lista.append(spear)
         elif dist == 'ssim':
             mean_ssim = ssim(frame_ref, framei, win_size=7,
-                             dynamic_range=frame_ref.max() - frame_ref.min(),
+                             data_range=frame_ref.max() - frame_ref.min(),
                              gaussian_weights=True, sigma=1.5,
                              use_sample_covariance=True)
             lista.append(mean_ssim)

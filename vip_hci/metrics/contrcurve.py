@@ -91,7 +91,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         of order 2.
     interp_order : int or None, optional
         If True the throughput vector is interpolated with a spline of order
-        ``interp_order``. Takes values from 1 to 5. If None, then no the
+        ``interp_order``. Takes values from 1 to 5. If None, then the
         throughput is not interpolated.
     plot : bool, optional
         Whether to plot the final contrast curve or not. True by default.

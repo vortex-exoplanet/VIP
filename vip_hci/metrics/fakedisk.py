@@ -28,7 +28,7 @@ def cube_inject_fakedisk(fakedisk, angle_list, psf=None, imlib='opencv',
         Input image of a fake disc
     angle_list : list
         Vector containing the parallactic angles.
-    psf : (optionnal) the PSF to convolve the disk image with. It can be a
+    psf : (optional) the PSF to convolve the disk image with. It can be a
         small numpy.ndarray (we advise to use odd sizes to make sure the center
         s not shifted through the convolution). It forces normalization of the
         PSF to preserve the flux. It can also be a float representing

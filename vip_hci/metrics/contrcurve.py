@@ -238,6 +238,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     rad_samp_arcsec = rad_samp * pxscale
 
+    # take abs value of the mean residual fluxes otherwise the more 
+    # oversubtraction (negative res_lev_samp), the better the contrast!!
+    res_lev_samp = np.abs(res_lev_samp) 
+
     if smooth:
         # smoothing the noise vector using a Savitzky-Golay filter
         win = min(noise_samp.shape[0]-2, int(2*fwhm_med))
@@ -563,8 +567,9 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
             if algo_dict.pop('scaling',None):
                 new_algo_dict = algo_dict.copy()
                 new_algo_dict['scaling'] = None
-                frame_nofc_noscal = algo(cube=array, angle_list=parangles, fwhm=fwhm_med,
-                                  verbose=False, **new_algo_dict)
+                frame_nofc_noscal = algo(cube=array, angle_list=parangles, 
+                                         fwhm=fwhm_med, verbose=False, 
+                                         **new_algo_dict)
             else:
                 frame_nofc_noscal = frame_nofc
         else:
@@ -658,7 +663,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 if 'cube' in arg and 'angle_list' in arg and 'verbose' in arg:
                     if 'fwhm' in arg:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
-                                        fwhm=fwhm_med, verbose=False, **algo_dict)
+                                        fwhm=fwhm_med, verbose=False, 
+                                        **algo_dict)
                     else:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
                                         verbose=False, **algo_dict)
@@ -673,7 +679,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                     print(msg3.format(algo.__name__))
                     timing(start_time)
 
-                #***************************************************************
+                #**************************************************************
                 injected_flux = aperture_flux(fc_map, fcy, fcx, fwhm_med)
                 recovered_flux = aperture_flux((frame_fc - frame_nofc), fcy,
                                                fcx, fwhm_med)
@@ -740,7 +746,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 if 'cube' in arg and 'angle_list' in arg and 'verbose' in arg:
                     if 'fwhm' in arg:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
-                                        fwhm=fwhm_med, verbose=False, **algo_dict)
+                                        fwhm=fwhm_med, verbose=False, 
+                                        **algo_dict)
                     else:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
                                         verbose=False, **algo_dict)
@@ -751,7 +758,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                     print(msg3.format(algo.__name__))
                     timing(start_time)
 
-                # **************************************************************
+                # *************************************************************
                 injected_flux = [aperture_flux(fc_map[i], fcy, fcx, fwhm[i])
                                  for i in range(array.shape[0])]
                 injected_flux = np.mean(injected_flux, axis=0)

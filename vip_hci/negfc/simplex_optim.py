@@ -107,7 +107,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
     verbose: boolean
         If True, display intermediate info in the shell.
     save: boolean, optional
-        If True, the figure chi2 vs. flux is saved as pdf if plot is also True
+        If True, the figure chi2 vs. flux is saved as .pdf if plot is also True
         
     Returns
     -------

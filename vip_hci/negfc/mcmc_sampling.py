@@ -27,8 +27,8 @@ from ..conf.utils_conf import sep
 from ..pca import pca_annulus
 from .simplex_fmerit import get_values_optimize, get_mu_and_sigma
 from .utils_mcmc import gelman_rubin, autocorr_test
-import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
+# import warnings
+# warnings.filterwarnings("ignore", category=DeprecationWarning)
 from ..fits import write_fits
 
 def lnprior(param, bounds):

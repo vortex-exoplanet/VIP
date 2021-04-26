@@ -551,7 +551,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         if psfn.shape[0] != cube.shape[0]:
             msg = "If PSF is 3D, number of frames must match cube length"
             raise TypeError(msg)
-        
+    print('test7')
     # #########################################################################
     # Initialization of the variables
     # #########################################################################
@@ -566,6 +566,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     if isinstance(mu_sigma, tuple):
         if len(mu_sigma) != 2:
             raise TypeError("if a tuple, mu_sigma should have 2 elements")
+
     elif mu_sigma:
         mu_sigma = get_mu_and_sigma(cube, angs, ncomp, annulus_width, 
                                      aperture_radius, fwhm, initial_state[0], 
@@ -581,6 +582,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
             msg+= "companion (excluding the PA area directly adjacent to it)"
             msg+=" are {:.2f} and {:.2f} respectively."
             print(msg.format(mu_sigma[0],mu_sigma[1]))
+    print('test8')
 #    pca_args['mu']=mu
 #    pca_args['sigma']=sigma
     # if does not work, activate scale fac
@@ -613,7 +615,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                    initial_state[0] + annulus_width/2.),  # radius
                   (initial_state[1] - 10, initial_state[1] + 10),   # angle
                   (0.1* initial_state[2], 2 * initial_state[2])]   # flux
-    
+    print('test9')
     sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a,
                                     args=([bounds, cube, angs, plsc, psfn,
                                            fwhm, annulus_width, ncomp,

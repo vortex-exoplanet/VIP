@@ -508,21 +508,26 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
 
     # If required, one create the output folder.
     if save:
-        
+        print('test1')
         output_file_tmp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
           
         if output_dir[-1] == '/':
             output_dir = output_dir[:-1]
+            print('test2')
         try:
             os.makedirs(output_dir)
+            print('test3')
         except OSError as exc:
+            print('test4')
             if exc.errno == 17 and os.path.isdir(output_dir):
                 # errno.EEXIST == 17 -> File exists
+                print('test5')
                 pass
             else:
+                print('test6')
                 raise
 
-
+    print('test7')
     if not isinstance(cube, np.ndarray) or cube.ndim != 3:
         raise ValueError('`cube` must be a 3D numpy array')
 

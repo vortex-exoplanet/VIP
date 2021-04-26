@@ -623,9 +623,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                            interpolation, collapse, algo_options, 
                                            weights, transmission, mu_sigma]),
                                     threads=nproc)
-                                    
+    print('test10')
     start = datetime.datetime.now()
-
+    print('test11')
     # #########################################################################
     # Affine Invariant MCMC run
     # #########################################################################

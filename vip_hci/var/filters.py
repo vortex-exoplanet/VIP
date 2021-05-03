@@ -150,7 +150,7 @@ def ifft(array):
 
 def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
                           fwhm_size=5, btw_cutoff=0.2, btw_order=2,
-                          hann_cutoff=5):
+                          hann_cutoff=5, psf=None, mask=None):
     """
     High-pass filtering of input frame depending on parameter ``mode``.
 
@@ -193,6 +193,15 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         Order of low-pass 2d Butterworth filter used in ``fourier-butter`` mode.
     hann_cutoff : float
         Frequency cutoff for the ``hann`` mode.
+    psf: numpy ndarray, optional
+        Input normalised and centered psf, 2d frame. Should be provided if 
+        mode is set to 'psf'.
+    mask: numpy ndarray, optional
+        Binary mask indicating where the low-pass filtered image should be 
+        interpolated with astropy.convolution. This otion can be useful if the 
+        low-pass filtered image is aimed to capture low-spatial frequency sky 
+        signal, while avoiding a stellar halo (set to one in the binary mask).
+        Note: only works with Gaussian kernel or PSF convolution.
 
     Returns
     -------
@@ -265,6 +274,10 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     if array.ndim != 2:
         raise TypeError("Input array is not a frame or 2d array.")
 
+    if mask is not None and (mode!='psf-subt' and mode!='gauss-subt'):
+        msg="Masking option only available for gauss-subt and psf-subt modes"
+        raise TypeError(msg)
+
     if mode == 'laplacian':
         # Applying a Laplacian high-pass kernel
         if kernel_size % 2 == 0 or kernel_size < 0:
@@ -313,8 +326,15 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     elif mode == 'gauss-subt':
         # Subtracting the low_pass filtered (median) image from the image itself
         gaussed = frame_filter_lowpass(array, 'gauss', fwhm_size=fwhm_size,
-                                       gauss_mode='conv')
+                                       gauss_mode='conv', mask=mask)
         filtered = array - gaussed
+
+    elif mode == 'psf-subt':
+        if psf is None:
+            raise TypeError("psf should be provided for psf-subt mode")
+        # Subtracting the low_pass filtered (median) image from the image itself
+        psfed = frame_filter_lowpass(array, 'psf', psf=psf, mask=mask)
+        filtered = array - psfed
 
     elif mode == 'fourier-butter':
         # Designs an n-th order high-pass 2D Butterworth filter
@@ -349,7 +369,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
 
 
 def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
-                         gauss_mode='conv', psf=None):
+                         gauss_mode='conv', psf=None, mask=None):
     """
     Low-pass filtering of input frame depending on parameter ``mode``.
 
@@ -366,9 +386,15 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     gauss_mode : {'conv', 'convfft'}, str optional
         'conv' uses the multidimensional gaussian filter from scipy.ndimage and
         'convfft' uses the fft convolution with a 2d Gaussian kernel.
-    psf: numpy ndarray. optional
+    psf: numpy ndarray, optional
         Input normalised and centered psf, 2d frame. Should be provided if 
         mode is set to 'psf'.
+    mask: numpy ndarray, optional
+        Binary mask indicating where the low-pass filtered image should be 
+        interpolated with astropy.convolution. This otion can be useful if the 
+        low-pass filtered image is aimed to capture low-spatial frequency sky 
+        signal, while avoiding a stellar halo (set to one in the binary mask).
+        Note: only works with Gaussian kernel or PSF convolution.
 
     Returns
     -------
@@ -380,6 +406,13 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
         raise TypeError('Input array is not a frame or 2d array.')
     if not isinstance(median_size, int):
         raise ValueError('`Median_size` must be integer')
+        
+    if mask is not None:
+        if mode== 'median':
+            msg="Masking not available for median filter"
+        if mask.shape != array.shape:
+            msg = "Mask dimensions should be the same as array"
+            raise TypeError(msg)
 
     if mode == 'median':
         # creating the low_pass filtered (median) image
@@ -392,7 +425,8 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
                                        mode='nearest')
         elif gauss_mode == 'convfft':
             # FFT Convolution with a 2d gaussian kernel created with Astropy.
-            filtered = convolve_fft(array, Gaussian2DKernel(stddev=sigma))
+            filtered = convolve_fft(array, Gaussian2DKernel(stddev=sigma),
+                                    mask=mask)
         else:
             raise TypeError('2d Gaussian filter mode not recognized')
     elif mode == 'psf':
@@ -403,7 +437,7 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
         if psf.shape[-1] > array.shape[-1]:
             raise TypeError('Input psf is larger than input array. Crop.')
         # psf convolution
-        filtered = convolve_fft(array, psf)
+        filtered = convolve_fft(array, psf, mask=mask)
     else:
         raise TypeError('Low-pass filter mode not recognized')
 

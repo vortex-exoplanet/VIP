@@ -53,7 +53,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
         Coordinates X,Y  of the point with respect to which the rotation will be 
         performed. By default the rotation is done with respect to the center 
         of the frame; central pixel if frame has odd size.
-    border_mode : {'constant', 'edge', 'symmetric', 'reflect', 'wrap'}, str optional
+    border_mode : {'constant', 'edge', 'symmetric', 'reflect', 'wrap'}, str opt
         Pixel extrapolation method for handling the borders. 'constant' for
         padding with zeros. 'edge' for padding with the edge values of the
         image. 'symmetric' for padding with the reflection of the vector
@@ -314,7 +314,7 @@ def _compute_pa_thresh(ann_center, fwhm, delta_rot=1):
 
 
 def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
-                   delta_rot, n_segments, verbose):
+                   delta_rot, n_segments, verbose, strict=False):
     """ Function that defines the annuli geometry using the input parameters.
     Returns the parallactic angle threshold, the inner radius and the annulus
     center for each annulus.
@@ -328,10 +328,17 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
     mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list)) / 2
     if pa_threshold >= mid_range - mid_range * 0.1:
         new_pa_th = float(mid_range - mid_range * 0.1)
-        if verbose:
-            print('PA threshold {:.2f} is too big, will be set to '
-                  '{:.2f}'.format(pa_threshold, new_pa_th))
-        pa_threshold = new_pa_th
+        if strict:
+            if verbose:
+                print('WARNING: PA threshold {:.2f} is too big, recommended '
+                      ' value for annulus {:.0f}: {:.2f}'.format(pa_threshold,
+                                                                 ann, 
+                                                                 new_pa_th))
+        else:
+            if verbose:
+                print('PA threshold {:.2f} is too big, will be set to '
+                      '{:.2f}'.format(pa_threshold, new_pa_th))
+            pa_threshold = new_pa_th
 
     if verbose:
         if pa_threshold > 0:

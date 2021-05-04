@@ -20,7 +20,7 @@ from ..conf.utils_conf import pool_map, iterable
 from ..var import get_annulus_segments, matrix_scaling
 from ..stats import descriptive_stats
 from .svd import get_eigenvectors
-
+import pdb
 
 def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                 fwhm=4, asize=4, n_segments=1, delta_rot=(0.1, 1),
@@ -175,7 +175,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         collapse mode is 'wmean'.
     cube_sig: numpy ndarray, opt
         Cube with estimate of significant authentic signals. If provided, this
-        will subtracted before projecting cube onto reference cube.
+        will be subtracted before projecting cube onto reference cube.
 
     Returns
     -------
@@ -423,7 +423,7 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
         n_segments_ann = n_segments[ann]
         res_ann_par = _define_annuli(angle_list, ann, n_annuli, fwhm,
                                      radius_int, asize, delta_rot[ann],
-                                     n_segments_ann, verbose)
+                                     n_segments_ann, verbose, True)
         pa_thr, inner_radius, ann_center = res_ann_par
         indices = get_annulus_segments(array[0], inner_radius, asize,
                                        n_segments_ann)
@@ -446,8 +446,7 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
             res = pool_map(nproc, do_pca_patch, matrix_segm, iterable(range(n)),
                            angle_list, fwhm, pa_thr, ann_center, svd_mode,
                            ncompann, min_frames_lib, max_frames_lib, tol,
-                           matrix_segm_ref, matrix_sig_segm=matrix_sig_segm, 
-                           verbose=False)
+                           matrix_segm_ref, matrix_sig_segm)
 
             res = np.array(res)
             residuals = np.array(res[:, 0])
@@ -482,7 +481,7 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
 
 def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
                  svd_mode, ncomp, min_frames_lib, max_frames_lib, tol,
-                 matrix_ref, matrix_sig_segm=None):
+                 matrix_ref, matrix_sig_segm):
     """ Does the SVD/PCA for each frame patch (small matrix). For each frame we
     find the frames to be rejected depending on the amount of rotation. The
     library is also truncated on the other end (frames too far or which have
@@ -490,11 +489,11 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
     lower. This truncation is done on the annuli after 10*FWHM and the goal is
     to keep min(num_frames/2, 200) in the library.
     """
-    
+
     if pa_threshold != 0:
         # if ann_center > fwhm*10:
-        indices_left = _find_indices_adi(angle_list, frame,
-                                         pa_threshold, truncate=True,
+        indices_left = _find_indices_adi(angle_list, frame, pa_threshold, 
+                                         truncate=True, 
                                          max_frames=max_frames_lib)
         # else:
         #    indices_left = _find_indices_adi(angle_list, frame,
@@ -504,7 +503,7 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
         msg += 'Try decreasing either delta_rot or min_frames_lib.'
         try:
             if matrix_sig_segm is not None:
-                data_ref = matrix_sig_segm[indices_left]
+                data_ref = matrix[indices_left]-matrix_sig_segm[indices_left]
             else:
                 data_ref = matrix[indices_left]
         except IndexError:
@@ -514,15 +513,19 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
 
         if data_ref.shape[0] < min_frames_lib and matrix_ref is None:
             raise RuntimeError(msg.format(indices_left, min_frames_lib))
-    else:
-        data_ref = None
-
     if matrix_ref is not None:
+        #data_ref = None
+    #if matrix_ref is not None:
         # Stacking the ref and the target ref (pa thresh) libraries
         if data_ref is not None:
             data_ref = np.vstack((matrix_ref, data_ref))
         else:
             data_ref = matrix_ref
+    elif pa_threshold == 0:
+        if matrix_sig_segm is not None:
+            data_ref = matrix-matrix_sig_segm
+        else:
+            data_ref = matrix
 
     curr_frame = matrix[frame]  # current frame
     if matrix_sig_segm is not None:

@@ -1514,6 +1514,10 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
 
         # center the cube with stretched values
         cube_stret = np.log10((np.abs(alignment_cube) + 1) ** gammaval)
+        if mask is not None and crop:
+            mask_tmp = frame_crop(mask, subframesize)
+        else:
+            mask_tmp = mask
         _, y_shift, x_shift = cube_recenter_dft_upsampling(cube_stret, 
                                                            (ceny, cenx), 
                                                            fwhm=fwhm, 
@@ -1521,7 +1525,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                                            full_output=True, 
                                                            verbose=False,
                                                            plot=False,
-                                                           mask=mask)
+                                                           mask=mask_tmp)
         sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
         print('Square sum of shift vecs: ' + str(sqsum_shifts))
 

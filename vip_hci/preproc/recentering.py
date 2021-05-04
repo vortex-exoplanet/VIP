@@ -1333,7 +1333,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                gammaval=1, min_spat_freq=0.5, max_spat_freq=3,
                                fwhm=4, debug=False, recenter_median=False,
                                fit_type='gaus', negative=True, crop=True,
-                               subframesize=21, imlib='opencv', 
+                               subframesize=21, mask=None, imlib='opencv', 
                                interpolation='lanczos4', plot=True, 
                                full_output=False):
     """ Registers frames based on the median speckle pattern. Optionally centers
@@ -1374,6 +1374,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     subframesize : int, optional
         Sub-frame window size used. Should cover the region where speckles are
         the dominant noise source.
+    mask: 2D np.ndarray, optional
+        Binary mask indicating where the cross-correlation should be calculated
+        in the images. If provided, should be the same size as array frames.
     imlib : str, optional
         Image processing library to use.
     interpolation : str, optional
@@ -1420,7 +1423,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         ref_star = False
 
     if crop:
-        cube_sci_subframe = cube_crop_frames(cube_sci, subframesize, verbose=False)
+        cube_sci_subframe = cube_crop_frames(cube_sci, subframesize, 
+                                             verbose=False)
         if ref_star:
             cube_ref_subframe = cube_crop_frames(cube_ref, subframesize,
                                                  verbose=False)
@@ -1449,7 +1453,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                         median_size=median_size, verbose=False)
     if min_spat_freq>0:
         cube_sci_lpf = cube_filter_lowpass(cube_sci_hpf, 'gauss',
-                                           fwhm_size=min_spat_freq * fwhm, verbose=False)
+                                           fwhm_size=min_spat_freq * fwhm, 
+                                           verbose=False)
     else:
         cube_sci_lpf = cube_sci_hpf
 
@@ -1492,14 +1497,14 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             if fit_type == 'gaus':
                 if negative:
                     sub_image = -sub_image + np.abs(np.min(-sub_image))
-                y_i, x_i = fit_2dgaussian(sub_image, crop=False, threshold=False,
-                                          sigfactor=1, debug=debug,
-                                          full_output=False)
+                y_i, x_i = fit_2dgaussian(sub_image, crop=False, 
+                                          threshold=False, sigfactor=1, 
+                                          debug=debug, full_output=False)
             elif fit_type == 'ann':
                 y_i, x_i, rad = _fit_2dannulus(sub_image, fwhm=fwhm, crop=False,  
-                                             hole_rad=0.5, sampl_cen=0.1, 
-                                             sampl_rad=0.2, ann_width=0.5, 
-                                             unc_in=2.)                         
+                                               hole_rad=0.5, sampl_cen=0.1, 
+                                               sampl_rad=0.2, ann_width=0.5, 
+                                               unc_in=2.)                         
             yshift = ceny - (y1 + y_i)
             xshift = cenx - (x1 + x_i)
             
@@ -1515,7 +1520,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                                            subi_size=None,
                                                            full_output=True, 
                                                            verbose=False,
-                                                           plot=False)
+                                                           plot=False,
+                                                           mask=mask)
         sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
         print('Square sum of shift vecs: ' + str(sqsum_shifts))
 

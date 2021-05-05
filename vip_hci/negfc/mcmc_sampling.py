@@ -508,22 +508,16 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
 
     # If required, one create the output folder.
     if save:
-        print('test1')
         output_file_tmp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
         if output_dir[-1] == '/':
             output_dir = output_dir[:-1]
-            print('test2')
         try:
             os.makedirs(output_dir)
-            print('test3')
         except OSError as exc:
             if exc.errno == 17 and os.path.isdir(output_dir):
-                print('test4')
                 # errno.EEXIST == 17 -> File exists
                 pass
             else:
-                print('test5')
                 raise
 
     # If required, create the output folder.
@@ -533,7 +527,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     #     if output_dir[-1] == '/':
     #         output_dir = output_dir[:-1]
     #     output_file_tmp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    print('test6')
+
     if not isinstance(cube, np.ndarray) or cube.ndim != 3:
         raise ValueError('`cube` must be a 3D numpy array')
 
@@ -551,7 +545,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         if psfn.shape[0] != cube.shape[0]:
             msg = "If PSF is 3D, number of frames must match cube length"
             raise TypeError(msg)
-    print('test7')
+
     # #########################################################################
     # Initialization of the variables
     # #########################################################################
@@ -582,7 +576,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
             msg+= "companion (excluding the PA area directly adjacent to it)"
             msg+=" are {:.2f} and {:.2f} respectively."
             print(msg.format(mu_sigma[0],mu_sigma[1]))
-    print('test8')
+
 #    pca_args['mu']=mu
 #    pca_args['sigma']=sigma
     # if does not work, activate scale fac
@@ -615,7 +609,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                    initial_state[0] + annulus_width/2.),  # radius
                   (initial_state[1] - 10, initial_state[1] + 10),   # angle
                   (0.1* initial_state[2], 2 * initial_state[2])]   # flux
-    print('test9')
+    if verbosity > 0:
+        print('Beginning emcee Ensemble sampler...')
     sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a,
                                     args=([bounds, cube, angs, plsc, psfn,
                                            fwhm, annulus_width, ncomp,
@@ -625,9 +620,11 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                            interpolation, collapse, algo_options, 
                                            weights, transmission, mu_sigma]),
                                     threads=nproc)
-    print('test10')
+
+    if verbosity > 0:
+        print('emcee Ensemble sampler successful')
     start = datetime.datetime.now()
-    print('test11')
+
     # #########################################################################
     # Affine Invariant MCMC run
     # #########################################################################

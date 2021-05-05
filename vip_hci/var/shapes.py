@@ -119,7 +119,15 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
     theta = np.arctan2(sp_width/2, r)
 
     cy, cx = frame_center(mask)
-    rr0, cc0 = circle(cy, cx, min(ann_out, cy))
+    rr0, cc0 = circle(cy, cx, ann_out)
+    # check that all indices are within frame dimensions
+    cond1 = rr0>=0
+    cond2 = rr0<s[0]
+    cond3 = cc0>=0
+    cond4 = cc0<s[1]
+    all_cond = cond1 & cond2 & cond3 & cond4
+    rr0 = rr0[np.where(all_cond)]
+    cc0 = cc0[np.where(all_cond)]
     mask[rr0, cc0] = 1
 
     t0 = np.array([theta, np.pi-theta, np.pi+theta, np.pi*2 - theta])

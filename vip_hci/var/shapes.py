@@ -127,7 +127,7 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
         dtheta = [sp_angle[i]-sp_angle[0] for i in range(nbranch)]
     else:
         sp_angle = [sp_angle]
-        dtheta = [i*np.pi/nbranch for i in range(nbranch)]
+        dtheta = [i*180./nbranch for i in range(nbranch)]
     tn = np.zeros([nbranch,4])
     xn = np.zeros_like(tn)
     yn = np.zeros_like(tn)

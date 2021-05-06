@@ -67,9 +67,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     transmission: numpy array, optional
-        Array with 2 columns. First column is the radial separation in pixels. 
-        Second column is the off-axis transmission (between 0 and 1) at the 
-        radial separation given in column 1.
+        Radial transmission of the coronagraph, if any. Array with 2 columns.
+        First column is the radial separation in pixels. Second column is the
+        corresponding off-axis transmission (between 0 and 1).
     full_output : bool, optional
         Returns the ``x`` and ``y`` coordinates of the injections, additionally
         to the new array.

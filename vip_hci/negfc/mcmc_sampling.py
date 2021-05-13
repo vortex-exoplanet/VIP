@@ -135,9 +135,10 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
     transmission: numpy array, optional
-        Array with 2 columns. First column is the radial separation in pixels. 
-        Second column is the off-axis transmission (between 0 and 1) at the 
-        radial separation given in column 1.
+        Radial transmission of the coronagraph, if any. Array with 2 columns.
+        First column is the radial separation in pixels. Second column is the
+        off-axis transmission (between 0 and 1) at the radial separation given
+        in column 1.
     mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the 
         algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
@@ -272,9 +273,10 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
     transmission: numpy array, optional
-        Array with 2 columns. First column is the radial separation in pixels. 
-        Second column is the off-axis transmission (between 0 and 1) at the 
-        radial separation given in column 1.
+        Radial transmission of the coronagraph, if any. Array with 2 columns.
+        First column is the radial separation in pixels. Second column is the
+        off-axis transmission (between 0 and 1) at the radial separation given
+        in column 1.
     mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the 
         algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
@@ -416,9 +418,10 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
     transmission: numpy array, optional
-        Array with 2 columns. First column is the radial separation in pixels. 
-        Second column is the off-axis transmission (between 0 and 1) at the 
-        radial separation given in column 1.
+        Radial transmission of the coronagraph, if any. Array with 2 columns.
+        First column is the radial separation in pixels. Second column is the
+        off-axis transmission (between 0 and 1) at the radial separation given
+        in column 1.
     mu_sigma: tuple of 2 floats or bool, opt
         If set to None: not used, and falls back to original version of the 
         algorithm, using fmerit.
@@ -733,6 +736,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         ac_count = 0
                 else:
                     raise ValueError('conv_test value not recognized')
+                # append the autocorrelation factor to file for easy reading
+                with open('MCMC_results_tau.txt', 'a') as f:
+                    f.write(str(rhat) + '\n')
         # We have reached the maximum number of steps for our Markov chain.
         if k+1 >= stop:
             if verbosity > 0:

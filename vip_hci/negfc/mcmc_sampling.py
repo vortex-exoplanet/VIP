@@ -876,7 +876,7 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
         If True, a pdf file is created.
      
      kwargs:
-        Additional attributs are passed to the corner.corner() method.
+        Additional attributes are passed to the corner.corner() method.
                     
     Returns
     -------

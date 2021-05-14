@@ -737,7 +737,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                 else:
                     raise ValueError('conv_test value not recognized')
                 # append the autocorrelation factor to file for easy reading
-                with open('MCMC_results_tau.txt', 'a') as f:
+                with open(output_dir + 'MCMC_results_tau.txt', 'a') as f:
                     f.write(str(rhat) + '\n')
         # We have reached the maximum number of steps for our Markov chain.
         if k+1 >= stop:

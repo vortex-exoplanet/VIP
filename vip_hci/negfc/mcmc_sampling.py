@@ -644,7 +644,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
             else:
                 q = 1
             print('{}\t\t{:.5f}\t\t\t{:.5f}'.format(k, elapsed * q,
-                                                    elapsed * (limit-k-1) * q))
+                                                    elapsed * (limit-k-1) * q), flush=True)
             
         start = datetime.datetime.now()
 

@@ -27,7 +27,7 @@ def test_saveable_dataset():
     ds.save(fn)
 
     # restore
-    ds2 = Dataset.load(fn)
+    ds2 = Dataset.load(fn, allow_pickle=True)
 
     # compare
     aarc(ds2.cube, cube)

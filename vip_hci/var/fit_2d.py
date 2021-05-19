@@ -5,13 +5,13 @@
 """
 
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
+__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens'
 __all__ = ['create_synth_psf',
            'fit_2dgaussian',
            'fit_2dmoffat',
-           'fit_2dairydisk']
+           'fit_2dairydisk',
+           'fit_2d2gaussian']
 
-import pdb
 import numpy as np
 import pandas as pd
 import photutils
@@ -177,12 +177,19 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
 
     If ``full_output`` is True it returns a Pandas dataframe containing the
     following columns:
-    'amplitude' : Float value. Amplitude of the Gaussian.
-    'centroid_x' : Float value. X coordinate of the centroid.
-    'centroid_y' : Float value. Y coordinate of the centroid.
-    'fwhm_x' : Float value. FHWM in X [px].
-    'fwhm_y' : Float value. FHWM in Y [px].
-    'theta' : Float value. Rotation angle.
+        'centroid_y': Y coordinate of the centroid.
+        'centroid_x': X coordinate of the centroid.
+        'fwhm_y': Float value. FHWM in X [px].
+        'fwhm_x': Float value. FHWM in Y [px].
+        'amplitude': Amplitude of the Gaussian.
+        'theta': Float value. Rotation angle. 
+        # and fit uncertainties on the above values: 
+        'centroid_y_err'
+        'centroid_x_err'
+        'fwhm_y_err'
+        'fwhm_x_err'
+        'amplitude_err' 
+        'theta_err'
 
     """
     check_array(array, dim=2, msg='array')
@@ -232,7 +239,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     # compute uncertainties
     if fitter.fit_info['param_cov'] is not None:
         perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
-        amplitude_e, theta_e, mean_x_e, mean_y_e, fwhm_x_e, fwhm_y_e = perr
+        amplitude_e, mean_x_e, mean_y_e, fwhm_x_e, fwhm_y_e, theta_e = perr
         fwhm_x_e /= gaussian_fwhm_to_sigma
         fwhm_y_e /= gaussian_fwhm_to_sigma
     else:
@@ -401,8 +408,7 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
 
 
 def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
-                   threshold=False, sigfactor=6, full_output=True,
-                   debug=True):
+                   threshold=False, sigfactor=6, full_output=True, debug=True):
     """ Fitting a 2D Airy to the 2D distribution of the data.
 
     Parameters
@@ -418,7 +424,7 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     cropsize : int, optional
         Size of the subimage.
     fwhm : float, optional
-        Initial values for the FWHM of the fitted 2d Moffat, in px.
+        Initial values for the FWHM of the fitted 2d Airy disk, in px.
     threshold : bool, optional
         If True the background pixels (estimated using sigma clipped statistics)
         will be replaced by small random Gaussian noise.
@@ -525,5 +531,233 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
                              'centroid_x_err': mean_x_err, 
                              'fwhm_err': fwhm_err, 'radius_err': radius_err,
                              'amplitude_err': amplitude_err}, index=[0])
+    else:
+        return mean_y, mean_x
+        
+        
+def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4, 
+                    fwhm_pos=4, theta_neg=0, theta_pos=0, neg_amp=1, 
+                    fix_neg=True, threshold=False, sigfactor=2, 
+                    full_output=False, debug=True):
+    """ Fitting a 2D superimposed double Gaussian (negative and positive) to 
+    the 2D distribution of the data (reproduce e.g. the effect of a coronagraph)
+
+    Parameters
+    ----------
+    array : numpy ndarray
+        Input frame with a single PSF.
+    crop : bool, optional
+        If True an square sub image will be cropped.
+    cent : tuple of float, optional
+        X,Y position of the source in the array for extracting the 
+        subimage. If None the center of the frame is used for cropping the 
+        subframe. If fix_neg is set to True, this will also be used as the 
+        fixed position of the negative gaussian.
+    cropsize : int, optional
+        Size of the subimage.
+    fwhm_neg, fwhm_pos : float or tuple of floats, optional
+        Initial values for the FWHM of the fitted negative and positive 
+        Gaussians, in px. If a tuple, should be the FWHM value along x and y.
+    theta_neg, theta_pos: float, optional
+        Angle of inclination of the 2d Gaussian counting from the positive X
+        axis (only matters if a tuple was provided for fwhm_neg or fwhm_pos).
+    neg_amp: float, optional
+        First guess on the amplitude of the negative gaussian, relative to the
+        amplitude of the positive gaussian (i.e. 1 means the negative gaussian
+        has the same amplitude as the positive gaussian)
+    fix_neg: bool, optional
+        Whether to fix the position and FWHM of the negative gaussian for a 
+        fit with less free parameters. In that case, the center of the negative
+        gaussian is assumed to be cent
+    threshold : bool, optional
+        If True the background pixels (estimated using sigma clipped statistics)
+        will be replaced by small random Gaussian noise.
+    sigfactor : int, optional
+        The background pixels will be thresholded before fitting a 2d Gaussian
+        to the data using sigma clipped statistics. All values smaller than
+        (MEDIAN + sigfactor*STDDEV) will be replaced by small random Gaussian
+        noise.
+    full_output : bool, optional
+        If False it returns just the centroid, if True also returns the
+        FWHM in X and Y (in pixels), the amplitude and the rotation angle,
+        and the uncertainties on each parameter.
+    debug : bool, optional
+        If True, the function prints out parameters of the fit and plots the
+        data, model and residuals.
+
+    Returns
+    -------
+    mean_y : float
+        Source centroid y position on input array from fitting.
+    mean_x : float
+        Source centroid x position on input array from fitting.
+
+    If ``full_output`` is True it returns a Pandas dataframe containing the
+    following columns:
+    - for the positive gaussian:
+    'amplitude' : Float value. Amplitude of the Gaussian.
+    'centroid_x' : Float value. X coordinate of the centroid.
+    'centroid_y' : Float value. Y coordinate of the centroid.
+    'fwhm_x' : Float value. FHWM in X [px].
+    'fwhm_y' : Float value. FHWM in Y [px].
+    'theta' : Float value. Rotation angle of x axis
+    - for the negative gaussian:
+    'amplitude_neg' : Float value. Amplitude of the Gaussian.
+    'centroid_x_neg' : Float value. X coordinate of the centroid.
+    'centroid_y_neg' : Float value. Y coordinate of the centroid.
+    'fwhm_x_neg' : Float value. FHWM in X [px].
+    'fwhm_y_neg' : Float value. FHWM in Y [px].
+    'theta_neg' : Float value. Rotation angle of x axis
+    """
+    if not array.ndim == 2:
+        raise TypeError('Input array is not a frame or 2d array')
+
+    if cent is None:
+        ceny, cenx = frame_center(array)
+    else:
+        cenx, ceny = cent
+        
+    if crop:
+        x_sub_px = cenx%1
+        y_sub_px = ceny%1
+
+        imside = array.shape[0]
+        psf_subimage, suby, subx = get_square(array, min(cropsize, imside),
+                                              int(ceny), int(cenx), 
+                                              position=True)
+        ceny, cenx = frame_center(psf_subimage)
+        ceny+=y_sub_px
+        cenx+=x_sub_px              
+    else:
+        psf_subimage = array.copy()
+
+    if threshold:
+        _, clipmed, clipstd = sigma_clipped_stats(psf_subimage, sigma=2)
+        indi = np.where(psf_subimage <= clipmed + sigfactor * clipstd)
+        subimnoise = np.random.randn(psf_subimage.shape[0],
+                                     psf_subimage.shape[1]) * clipstd
+        psf_subimage[indi] = subimnoise[indi]
+
+    if isinstance(fwhm_neg, tuple):
+        fwhm_neg_x, fwhm_neg_y = fwhm_neg
+    else:
+        fwhm_neg_x = fwhm_neg
+        fwhm_neg_y = fwhm_neg
+        
+    if isinstance(fwhm_pos, tuple):
+        fwhm_pos_x, fwhm_pos_y = fwhm_pos
+    else:
+        fwhm_pos_x = fwhm_pos
+        fwhm_pos_y = fwhm_pos
+
+    # Creating the 2D Gaussian model
+    init_amplitude = np.ptp(psf_subimage)
+    #xcom, ycom = photutils.centroid_com(psf_subimage)
+    ycom, xcom = frame_center(psf_subimage)
+    fix_dico_pos = {'theta':True}
+    bounds_dico_pos = {'amplitude':[0.8*init_amplitude,1.2*init_amplitude],
+                       'x_mean':[xcom-3,xcom+3],
+                       'y_mean':[ycom-3,ycom+3],
+                       'x_stddev': [0.5*fwhm_pos_x*gaussian_fwhm_to_sigma,
+                                    2*fwhm_pos_x*gaussian_fwhm_to_sigma],
+                       'y_stddev': [0.5*fwhm_pos_y*gaussian_fwhm_to_sigma,
+                                    2*fwhm_pos_y*gaussian_fwhm_to_sigma]}
+                                    
+    gauss_pos = models.Gaussian2D(amplitude=init_amplitude, x_mean=xcom, 
+                                  y_mean=ycom, 
+                                  x_stddev=fwhm_pos_x*gaussian_fwhm_to_sigma, 
+                                  y_stddev=fwhm_pos_y*gaussian_fwhm_to_sigma, 
+                                  theta=np.deg2rad(theta_pos)%(np.pi), fixed=fix_dico_pos, 
+                                  bounds=bounds_dico_pos)
+    if fix_neg:                          
+        fix_dico_neg = {'x_mean':True,'y_mean':True,
+                        'x_stddev':True,
+                        'y_stddev':True,
+                        'theta':True}
+        bounds_dico_neg = {'amplitude':[neg_amp*0.5*init_amplitude,
+                                        neg_amp*2*init_amplitude]}
+    else:
+        fix_dico_neg = {}#{'theta':True}
+        bounds_dico_neg = {'amplitude':[neg_amp*0.5*init_amplitude,
+                                        neg_amp*2*init_amplitude],
+                           'x_mean':[xcom-3,xcom+3],
+                           'y_mean':[ycom-3,ycom+3],
+                           'x_stddev': [0.5*fwhm_neg_x*gaussian_fwhm_to_sigma,
+                                        2*fwhm_neg_x*gaussian_fwhm_to_sigma],
+                           'y_stddev': [0.5*fwhm_neg_y*gaussian_fwhm_to_sigma,
+                                        2*fwhm_neg_y*gaussian_fwhm_to_sigma],
+                           'theta': [0,np.pi]}
+    
+    gauss_neg = models.Gaussian2D(amplitude=init_amplitude*neg_amp, x_mean=cenx, 
+                                  y_mean=ceny, 
+                                  x_stddev=fwhm_neg_x*gaussian_fwhm_to_sigma, 
+                                  y_stddev=fwhm_neg_y*gaussian_fwhm_to_sigma, 
+                                  theta=np.deg2rad(theta_neg)%(np.pi), fixed=fix_dico_neg, 
+                                  bounds=bounds_dico_neg)
+
+    double_gauss = gauss_pos-gauss_neg
+
+    fitter = fitting.LevMarLSQFitter() #SLSQPLSQFitter() #LevMarLSQFitter()                  
+    y, x = np.indices(psf_subimage.shape)                          
+    fit = fitter(double_gauss, x, y, psf_subimage, maxiter=100000, acc=1e-08)
+    
+    # positive gaussian
+    if crop:
+        mean_y = fit.y_mean_0.value + suby
+        mean_x = fit.x_mean_0.value + subx
+    else:
+        mean_y = fit.y_mean_0.value
+        mean_x = fit.x_mean_0.value
+    fwhm_y = fit.y_stddev_0.value*gaussian_sigma_to_fwhm
+    fwhm_x = fit.x_stddev_0.value*gaussian_sigma_to_fwhm
+    amplitude = fit.amplitude_0.value
+    theta = np.rad2deg(fit.theta_0.value)
+
+    # negative gaussian    
+    if crop:
+        mean_y_neg = fit.y_mean_1.value + suby
+        mean_x_neg = fit.x_mean_1.value + subx
+    else:
+        mean_y_neg = fit.y_mean_1.value
+        mean_x_neg = fit.x_mean_1.value
+    fwhm_y_neg = fit.y_stddev_1.value*gaussian_sigma_to_fwhm
+    fwhm_x_neg = fit.x_stddev_1.value*gaussian_sigma_to_fwhm
+    amplitude_neg = fit.amplitude_1.value
+    theta_neg = np.rad2deg(fit.theta_1.value)  
+    
+    if debug:
+        if threshold:
+            label = ('Subimage thresholded', 'Model', 'Residuals')
+        else:
+            label = ('Subimage', 'Model', 'Residuals')
+        plot_frames((psf_subimage, fit(x, y), psf_subimage-fit(x, y)),
+                     grid=True, grid_spacing=1, label=label)
+        print('FWHM_y =', fwhm_y)
+        print('FWHM_x =', fwhm_x, '\n')
+        print('centroid y =', mean_y)
+        print('centroid x =', mean_x)
+        print('centroid y subim =', fit.y_mean_0.value)
+        print('centroid x subim =', fit.x_mean_0.value, '\n')
+        print('amplitude =', amplitude)
+        print('theta =', theta)
+        print('FWHM_y (neg) =', fwhm_y_neg)
+        print('FWHM_x (neg) =', fwhm_x_neg, '\n')
+        print('centroid y (neg) =', mean_y_neg)
+        print('centroid x (neg) =', mean_x_neg)
+        print('centroid y subim (neg) =', fit.y_mean_1.value)
+        print('centroid x subim (neg) =', fit.x_mean_1.value, '\n')
+        print('amplitude (neg) =', amplitude_neg)
+        print('theta (neg) =', theta_neg)
+        
+    if full_output:
+        return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
+                             'fwhm_y': fwhm_y, 'fwhm_x': fwhm_x,
+                             'amplitude': amplitude, 'theta': theta,
+                             'centroid_y_neg': mean_y_neg, 
+                             'centroid_x_neg': mean_x_neg,
+                             'fwhm_y_neg': fwhm_y_neg, 
+                             'fwhm_x_neg': fwhm_x_neg,
+                             'amplitude_neg': amplitude_neg, 
+                             'theta_neg': theta_neg}, index=[0])
     else:
         return mean_y, mean_x

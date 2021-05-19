@@ -56,9 +56,11 @@ open source code distribution, using Git as a version control system.
 
 ``VIP`` started as the effort of `Carlos Alberto Gomez Gonzalez <https://carlgogo.github.io/>`_,
 a former PhD student of the `VORTEX team <http://www.vortex.ulg.ac.be/>`_
-(ULiege, Belgium). ``VIP``'s development is led by Dr. Gomez with contributions
-made by collaborators from several teams (take a look at the `contributors tab <https://github.com/vortex-exoplanet/VIP/graphs/contributors>`_ on
-``VIP``'s GitHub repository). Most of ``VIP``'s functionalities are mature but
+(ULiege, Belgium). ``VIP``'s development has been led by Dr. Gomez with contributions
+made by collaborators from several teams (take a look at the 
+`contributors tab <https://github.com/vortex-exoplanet/VIP/graphs/contributors>`_ on
+``VIP``'s GitHub repository). It is now maintained by Dr. Valentin Christiaens.
+Most of ``VIP``'s functionalities are mature but
 it doesn't mean it's free from bugs. The code is continuously evolving and
 therefore feedback/contributions are greatly appreciated. If you want to report
 a bug or suggest a functionality please create an issue on GitHub. Pull
@@ -72,8 +74,14 @@ The documentation for ``VIP`` can be found here: http://vip.readthedocs.io.
 
 Jupyter notebook tutorial
 -------------------------
-Tutorials, in the form of Jupyter notebooks, showcasing ``VIP``'s usage and other resources such as test/dummy datasets are available on the ``VIP-extras`` `repository <https://github.com/carlgogo/VIP_extras>`_. Alternatively, you can execute this repository on `Binder <https://mybinder.org/v2/gh/carlgogo/VIP_extras/master>`_. The notebook for ADI processing can be visualized online with
-`nbviewer <http://nbviewer.jupyter.org/github/carlgogo/VIP_extras/blob/master/tutorials/01_adi_pre-postproc_fluxpos_ccs.ipynb>`_. If you are new to the Jupyter notebook application check out the `beginner's guide
+Tutorials, in the form of Jupyter notebooks, showcasing ``VIP``'s usage and 
+other resources such as test/dummy datasets are available on the 
+``VIP-extras`` `repository <https://github.com/carlgogo/VIP_extras>`_. 
+Alternatively, you can execute this repository on 
+`Binder <https://mybinder.org/v2/gh/carlgogo/VIP_extras/master>`_. The notebook 
+for ADI processing can be visualized online with
+`nbviewer <http://nbviewer.jupyter.org/github/carlgogo/VIP_extras/blob/master/tutorials/01_adi_pre-postproc_fluxpos_ccs.ipynb>`_. 
+If you are new to the Jupyter notebook application check out the `beginner's guide
 <https://jupyter-notebook-beginner-guide.readthedocs.io/en/latest/what_is_jupyter.html>`_.
 
 
@@ -90,7 +98,8 @@ The benefits of using a Python package manager (distribution), such as
 (ana)conda or Canopy, are many. Mainly, it brings easy and robust package
 management and avoids messing up with your system's default python. An
 alternative is to use package managers like apt-get for Ubuntu or
-Homebrew/MacPorts/Fink for macOS. I personally recommend using `Miniconda <https://conda.io/miniconda>`_.
+Homebrew/MacPorts/Fink for macOS. We recommend using 
+`Miniconda <https://conda.io/miniconda>`_.
 
 ``VIP`` depends on existing packages from the Python ecosystem, such as
 ``numpy``, ``scipy``, ``matplotlib``, ``pandas``, ``astropy``, ``scikit-learn``,
@@ -130,6 +139,7 @@ root folder and run:
 
   $ python setup.py install
 
+
 Using Git
 ^^^^^^^^^
 If you want to benefit from the ``git`` functionalities, you need to clone the
@@ -143,19 +153,10 @@ Then you can install the package by following the previous steps, using the
 setup.py file. Creating a fork with GitHub is recommended to developers or to
 users who want to experiment with the code.
 
-Other dependencies
-^^^^^^^^^^^^^^^^^^
-``OpenCV`` (Open source Computer Vision) provides fast C++ image processing
-operations and is used by ``VIP`` for basic image transformations. If you don't
-have/want the ``OpenCV`` python bindings (``OpenCV`` is optional since ``VIP``
-v0.5.2), ``VIP`` will use the much slower ``ndimage``/``scikit-image`` libraries
-transparently. Fortunately, installing ``OpenCV`` library is nowadays and easy
-process that is done automatically with the ``VIP`` installation. Alternatively,
-you could use ``conda``:
-
-.. code-block:: bash
-
-  $ conda install opencv
+Optional dependencies
+^^^^^^^^^^^^^^^^^^^^^
+The following dependencies are are not automatically installed upon installation
+of ``VIP`` but may significantly improve your experience:
 
 ``VIP`` contains a class ``vip_hci.fits.ds9`` that enables, through ``pyds9``,
 the interaction with a DS9 window (displaying numpy arrays, controlling the
@@ -166,7 +167,7 @@ installed from the latest development version:
 
     $ pip install git+git://github.com/ericmandel/pyds9.git#egg=pyds9
 
-Also, you can install the Intel Math Kernel Library (MKL) optimizations
+Also, you can install the Intel Math Kernel Library (``mkl``) optimizations
 (provided that you have a recent version of ``conda``) or ``openblas``
 libraries. Either of them can be installed with ``conda install``. This is
 recommended along with ``OpenCV`` for maximum speed on ``VIP`` computations.
@@ -175,6 +176,12 @@ recommended along with ``OpenCV`` for maximum speed on ``VIP`` computations.
 (starting from version 0.8.0) or ``PyTorch`` (from version 0.9.2). These remain
 as optional requirements, to be installed by the user, as well as a proper CUDA
 environment (and a decent GPU card).
+
+Finally, bad pixel correction routines can be optimised with ``Numba``, which 
+converts some Python code, particularly ``NumPy``, into fast machine code. A 
+factor up to ~50x times speed improvement can be obtained on large images 
+compared to NumPy. Numba can be installed with ``conda install numba``.
+
 
 Loading VIP
 ^^^^^^^^^^^
@@ -198,7 +205,15 @@ and/or updates).
 
 Attribution
 -----------
-Please cite Gomez Gonzalez et al. 2017 (http://iopscience.iop.org/article/10.3847/1538-3881/aa73d7/)
-whenever you publish data reduced with ``VIP``. Astrophysics Source Code Library
-reference [ascl:1603.003].
+Please cite `Gomez Gonzalez et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017AJ....154....7G/abstract>`_ whenever 
+you publish data reduced with ``VIP`` . Astrophysics Source Code Library reference [ascl:1603.003].
+In addition, if you use one of the following modules, please also cite:
 
+- andromeda: `Cantalloube et al. (2015) <https://ui.adsabs.harvard.edu/abs/2015A%26A...582A..89C/abstract>`_;
+- leastsq: `Lafrenière et al. (2007) <https://ui.adsabs.harvard.edu/abs/2007ApJ...660..770L/abstract>`_;
+- llsg: `Gomez Gonzalez et al. (2016) <https://ui.adsabs.harvard.edu/abs/2016A%26A...589A..54G/abstract>`_;
+- medsub: `Marois et al. (2006) <https://ui.adsabs.harvard.edu/abs/2006ApJ...641..556M/abstract>`_ for ADI and `Sparks and Ford (2002) <https://ui.adsabs.harvard.edu/abs/2002ApJ...578..543S/abstract>`_ for SDI;
+- negfc: `Wertz et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017A%26A...598A..83W/abstract>`_;
+- nmf: `Ren et al. (2018) <https://ui.adsabs.harvard.edu/abs/2018ApJ...852..104R/abstract>`_;
+- pca: `Amara and Quanz (2012) <https://ui.adsabs.harvard.edu/abs/2012MNRAS.427..948A/abstract>`_ and `Soummer et al. (2012) <https://ui.adsabs.harvard.edu/abs/2012ApJ...755L..28S/abstract>`_;
+- specfit: `Christiaens et al. (2021) <https://ui.adsabs.harvard.edu/abs/2021arXiv210210288C/abstract>`_;

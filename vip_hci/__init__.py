@@ -1,4 +1,4 @@
-__version__ = "0.9.11"
+__version__ = "1.0.0"
 
 from . import andromeda
 from . import preproc
@@ -12,6 +12,7 @@ from . import negfc
 from . import nmf
 from . import pca
 from . import metrics
+from . import specfit
 from . import stats
 from . import var
 from .hci_dataset import *

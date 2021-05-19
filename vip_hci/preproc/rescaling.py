@@ -23,7 +23,7 @@ from ..var import frame_center, get_square
 from .subsampling import cube_collapse
 
 
-def cube_px_resampling(array, scale, imlib='ndimage', interpolation='lanczos4',
+def cube_px_resampling(array, scale, imlib='opencv', interpolation='lanczos4',
                        verbose=True):
     """
     Resample the frames of a cube with a single scale factor.
@@ -70,7 +70,7 @@ def cube_px_resampling(array, scale, imlib='ndimage', interpolation='lanczos4',
     return array_resc
 
 
-def frame_px_resampling(array, scale, imlib='ndimage', interpolation='lanczos4',
+def frame_px_resampling(array, scale, imlib='opencv', interpolation='lanczos4',
                         verbose=False):
     """
     Resample the pixels of a frame wrt to the center, changing the frame size.
@@ -88,7 +88,7 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='lanczos4',
     imlib : {'ndimage', 'opencv'}, optional
         Library used for image transformations.
     interpolation : str, optional
-        For 'ndimage' library: 'nearneig', bilinear', 'bicuadratic', 'bicubic',
+        For 'ndimage' library: 'nearneig', bilinear', 'biquadratic', 'bicubic',
         'biquartic', 'biquintic'. The 'nearneig' interpolation is the fastest
         and the 'biquintic' the slowest. The 'nearneig' is the worst
         option for interpolation of noisy astronomical images.
@@ -120,7 +120,7 @@ def frame_px_resampling(array, scale, imlib='ndimage', interpolation='lanczos4',
             order = 0
         elif interpolation == 'bilinear':
             order = 1
-        elif interpolation == 'bicuadratic':
+        elif interpolation == 'biquadratic':
             order = 2
         elif interpolation == 'bicubic':
             order = 3
@@ -456,6 +456,8 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
         raise TypeError('Input array is not a cube or 3d array')
 
     array_sc = []
+    if scaling_list is None:
+        scaling_list = [None]*array.shape[0]
     for i in range(array.shape[0]):
         array_sc.append(_frame_rescaling(array[i], ref_xy=ref_xy,
                                          scale=scaling_list[i], imlib=imlib,

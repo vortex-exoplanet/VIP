@@ -780,9 +780,9 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
     if not isinstance(ncomp, int):
         raise TypeError("`ncomp` must be an int in the ADI+RDI case")
     if ncomp > n_ref:
-        msg = 'Number of PCs too high (max PCs={}), using {} PCs, the number frames of cube reference, instead.'
+        msg = 'Number of PCs too high (max PCs={}), using {} PCs, the number frames of the reference cube, instead.'
         print(msg.format(ncomp,n_ref))
-        ncomp = min(ncomp, n_ref)
+        ncomp = n_ref
 
     if not cube_ref.ndim == 3:
         msg = 'Input reference array is not a cube or 3d array'

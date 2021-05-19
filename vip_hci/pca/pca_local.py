@@ -27,7 +27,8 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                 delta_sep=(0.1, 1), ncomp=1, svd_mode='lapack', nproc=1,
                 min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
                 imlib='opencv', interpolation='lanczos4', collapse='median',
-                ifs_collapse_range='all', full_output=False, verbose=True):
+                ifs_collapse_range='all', full_output=False, verbose=True, 
+                weights=None):
     """ PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data. The
     PCA model is computed locally in each annulus (or annular sectors according
     to ``n_segments``). For each sector we discard reference frames taking into
@@ -169,28 +170,34 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         intermediate arrays.
     verbose : bool, optional
         If True prints to stdout intermediate info.
-
+    weights: 1d numpy array or list, optional
+        Weights to be applied for a weighted mean. Need to be provided if 
+        collapse mode is 'wmean'.
+        
     Returns
     -------
+    - If full_output is False:
     frame : numpy ndarray, 2d
         Median combination of the de-rotated cube.
-    If full_output is True:
+    - If full_output is True:
     array_out : numpy ndarray, 3d
         Cube of residuals.
     array_der : numpy ndarray, 3d
         Cube residuals after de-rotation.
-
+    frame : numpy ndarray, 2d
+        Median combination of the de-rotated cube.
     """
     if verbose:
         global start_time
         start_time = time_ini()
 
-    # ADI or AD+RDI data
+    # ADI or ADI+RDI data
     if cube.ndim == 3:
         res = _pca_adi_rdi(cube, angle_list, radius_int, fwhm, asize,
                            n_segments, delta_rot, ncomp, svd_mode, nproc,
                            min_frames_lib, max_frames_lib, tol, scaling, imlib,
-                           interpolation, collapse, True, verbose, cube_ref)
+                           interpolation, collapse, True, verbose, cube_ref,
+                           weights)
 
         cube_out, cube_der, frame = res
         if full_output:
@@ -245,7 +252,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
             cube_out = residuals_cube_channels
             cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
                                      interpolation=interpolation)
-            frame = cube_collapse(cube_der, mode=collapse)
+            frame = cube_collapse(cube_der, mode=collapse, w=weights)
 
         else:
             if verbose:
@@ -256,7 +263,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                                fwhm, asize, n_segments, delta_rot, ncomp2,
                                svd_mode, nproc, min_frames_lib, max_frames_lib,
                                tol, scaling, imlib, interpolation, collapse,
-                               full_output, verbose)
+                               full_output, verbose, None, weights)
             if full_output:
                 cube_out, cube_der, frame = res
             else:
@@ -356,7 +363,7 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
                  delta_rot=1, ncomp=1, svd_mode='lapack', nproc=None,
                  min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
                  imlib='opencv', interpolation='lanczos4', collapse='median',
-                 full_output=False, verbose=1, cube_ref=None):
+                 full_output=False, verbose=1, cube_ref=None, weights=None):
     """ PCA exploiting angular variability (ADI fashion).
     """
     array = cube
@@ -452,7 +459,7 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
     # Cube is derotated according to the parallactic angle and collapsed
     cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
                              interpolation=interpolation)
-    frame = cube_collapse(cube_der, mode=collapse)
+    frame = cube_collapse(cube_der, mode=collapse, w=weights)
     if verbose:
         print('Done derotating and combining.')
         timing(start_time)
@@ -473,20 +480,21 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
     to keep min(num_frames/2, 200) in the library.
     """
     if pa_threshold != 0:
-        if ann_center > fwhm*10:
-            indices_left = _find_indices_adi(angle_list, frame,
-                                             pa_threshold, truncate=True,
-                                             max_frames=max_frames_lib)
-        else:
-            indices_left = _find_indices_adi(angle_list, frame,
-                                             pa_threshold, truncate=False)
+        #if ann_center > fwhm*10:
+        indices_left = _find_indices_adi(angle_list, frame,
+                                         pa_threshold, truncate=True,
+                                         max_frames=max_frames_lib)
+        #else:
+        #    indices_left = _find_indices_adi(angle_list, frame,
+        #                                     pa_threshold, truncate=False)
 
         data_ref = matrix[indices_left]
 
-        if data_ref.shape[0] < min_frames_lib:
+        if data_ref.shape[0] < min_frames_lib and matrix_ref is None:
             msg = 'Too few frames left in the PCA library. '
+            msg+= 'Accepted indices {} length less than {:.0f}. '
             msg += 'Try decreasing either delta_rot or min_frames_lib.'
-            raise RuntimeError(msg)
+            raise RuntimeError(msg.format(indices_left,min_frames_lib))
     else:
         data_ref = matrix
 
@@ -500,4 +508,3 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
     reconstructed = np.dot(transformed.T, V)
     residuals = curr_frame - reconstructed
     return residuals, V.shape[0], data_ref.shape[0]
-

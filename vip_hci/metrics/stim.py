@@ -10,7 +10,7 @@ Implementation of the STIM map from [PAI18]
 
 
 import numpy as np
-import vip_hci as vip
+from ..preproc import cube_derotate
 from ..var import get_circle
 
 
@@ -55,10 +55,6 @@ def compute_inverse_stim_map(cube, angle_list):
         Inverse STIM detection map.
     """
     t, n, _ = cube.shape
-    cube_inv_der = vip.preproc.cube_derotate(cube, -angle_list)
+    cube_inv_der = cube_derotate(cube, -angle_list)
     inverse_stim_map = compute_stim_map(cube_inv_der)
     return inverse_stim_map
-
-
-
-

@@ -231,7 +231,7 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
     thr : float
         PA threshold.
     nframes : int or None, optional
-        Number of indices to be left. For annular ADI median subtraction,
+        Exact number of indices to be left. For annular median-ADI subtraction,
         where we keep the closest frames (after the PA threshold). If None then
         all the indices are returned (after the PA threshold).
     out_closest : bool, optional
@@ -240,7 +240,8 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
         Useful for annular PCA, when we want to discard too far away frames and
         avoid increasing the computational cost.
     max_frames : int, optional
-        Max frames to leave if ``truncate`` is True.
+        Max number of indices to be left. To be provided if ``truncate`` is 
+        True (used e.g. in pca_annular). 
 
     Returns
     -------
@@ -285,21 +286,22 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
             # For annular PCA, returning all indices (after PA thresholding)
             half1 = range(0, index_prev)
             half2 = range(index_foll, n)
-
-            # This truncation is done on the annuli after 10*FWHM and the goal
-            # is to keep min(num_frames/2, 200) in the library after discarding
-            # those based on the PA threshold
+            indices = np.array(list(half1) + list(half2), dtype='int32')
+            
+            # The goal is to keep min(num_frames/2, ntrunc) in the library after 
+            # discarding those based on the PA threshold
             if truncate:
-                thr = min(n//2, max_frames)
-                if frame < thr:
-                    half1 = range(max(0, index_prev - thr // 2), index_prev)
-                    half2 = range(index_foll,
-                                  min(index_foll + thr - len(half1), n))
-                else:
-                    half2 = range(index_foll, min(n, thr // 2 + index_foll))
-                    half1 = range(max(0, index_prev - thr + len(half2)),
-                                  index_prev)
-            indices = np.array(list(half1) + list(half2))
+                thr = min(n-1, max_frames)
+                all_indices = np.array(list(half1)+list(half2))
+                if len(all_indices) > thr:
+                    # then truncate and update indices
+                    # first sort by dPA
+                    dPA = np.abs(angle_list[all_indices]-angle_list[frame])
+                    sort_indices = all_indices[np.argsort(dPA)]
+                    # keep the ntrunc first ones
+                    good_indices = sort_indices[:thr]
+                    # sort again, this time by increasing indices
+                    indices = np.sort(good_indices)
 
         return indices
 

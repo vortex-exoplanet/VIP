@@ -327,8 +327,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         ac_c=50, ac_count_thr=3, nproc=1, output_dir='results/', 
                         output_file=None, display=False, verbosity=0, 
                         save=False):
-    """
-    Runs an affine invariant mcmc sampling algorithm in order to determine
+    r""" Runs an affine invariant mcmc sampling algorithm in order to determine
     the position and the flux of the planet using the 'Negative Fake Companion'
     technique. The result of this procedure is a chain with the samples from the
     posterior distributions of each of the 3 parameters.
@@ -426,7 +425,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         If set to None: not used, and falls back to original version of the 
         algorithm, using fmerit.
         If a tuple of 2 elements: should be the mean and standard deviation of 
-        pixel intensities in an annulus centered on the lcoation of the 
+        pixel intensities in an annulus centered on the location of the
         companion candidate, excluding the area directly adjacent to the CC.
         If set to anything else, but None/False/tuple: will compute said mean 
         and standard deviation automatically.

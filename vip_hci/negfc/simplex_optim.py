@@ -107,7 +107,7 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
     verbose: boolean
         If True, display intermediate info in the shell.
     save: boolean, optional
-        If True, the figure chi2 vs. flux is saved.
+        If True, the figure chi2 vs. flux is saved as .pdf if plot is also True
         
     Returns
     -------
@@ -350,8 +350,6 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
-    p_ini: numpy.array
-        Position (r, theta) of the circular aperture center.        
     algo: python routine, opt {pca_annulus, pca_annular, pca, custom}
         Routine to be used to model and subtract the stellar PSF. From an input
         cube, derotation angles, and optional arguments, it should return a 

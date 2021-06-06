@@ -328,17 +328,16 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
     mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list)) / 2
     if pa_threshold >= mid_range - mid_range * 0.1:
         new_pa_th = float(mid_range - mid_range * 0.1)
+        msg = 'WARNING: PA threshold {:.2f} is too big, recommended '
+        msg+=' value for annulus {:.0f}: {:.2f}'
         if strict:
-            if verbose:
-                print('WARNING: PA threshold {:.2f} is too big, recommended '
-                      ' value for annulus {:.0f}: {:.2f}'.format(pa_threshold,
-                                                                 ann, 
-                                                                 new_pa_th))
+            raise ValueError(msg.format(pa_threshold,ann, new_pa_th))
         else:
             if verbose:
-                print('PA threshold {:.2f} is too big, will be set to '
-                      '{:.2f}'.format(pa_threshold, new_pa_th))
-            pa_threshold = new_pa_th
+                print(msg.format(pa_threshold,ann, new_pa_th))
+                #print('PA threshold {:.2f} is likely too big, will be set to '
+                      #'{:.2f}'.format(pa_threshold, new_pa_th))
+            #pa_threshold = new_pa_th # uncomment line for VIP 0.* behaviour
 
     if verbose:
         if pa_threshold > 0:

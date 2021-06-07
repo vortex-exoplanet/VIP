@@ -223,8 +223,13 @@ class DustEllipticalDistribution2PowerLaws:
             if self.ain != self.aout:
                 self.apeak = self.a * np.power(-self.ain/self.aout,
                                                1./(2.*(self.ain-self.aout)))
+                Gamma_in = self.ain+self.beta
+                Gamma_out = self.aout+self.beta
+                self.apeak_surface_density = self.a * np.power(-Gamma_in/Gamma_out,
+                                               1./(2.*(Gamma_in-Gamma_out)))
             else:
                 self.apeak = self.a
+                self.apeak_surface_density = self.a
         except OverflowError:
             print('The error occured during the calculation of rmax or apeak')
             print('Inner slope: {0:.6e}'.format(self.ain))
@@ -251,26 +256,41 @@ class DustEllipticalDistribution2PowerLaws:
             return np.sqrt(2/(np.power(r/self.a,-2*self.ain) +
                        np.power(r/self.a,-2*self.aout)))
         half_max_density = lambda r:rad_density(r)/rad_density(self.apeak)-1./2.            
-        a_plus_hwhm = newton(half_max_density,self.apeak*1.02)
-        a_minus_hwhm = newton(half_max_density,self.apeak*0.98)            
+        try:
+            if self.aout < -3:            
+                a_plus_hwhm = newton(half_max_density,self.apeak*1.04)
+            else:
+                a_plus_hwhm = newton(half_max_density,self.apeak*1.1)
+        except RuntimeError:
+            a_plus_hwhm = np.nan
+        try: 
+            if self.ain < 2:
+                a_minus_hwhm = newton(half_max_density,self.apeak*0.5)            
+            else:
+                a_minus_hwhm = newton(half_max_density,self.apeak*0.95)                            
+        except RuntimeError:
+            a_minus_hwhm = np.nan
         if pxInAu is not None:
             msg = 'Reference semi-major axis: {0:.1f}au or {1:.1f}px'
             print(msg.format(self.a,self.a/pxInAu))
-            msg2 = 'Semi-major axis at maximum dust density: {0:.1f}au or ' \
+            msg2 = 'Semi-major axis at maximum dust density in plane z=0: {0:.1f}au or ' \
                    '{1:.1f}px (same as ref sma if ain=-aout)'
-            print(msg2.format(self.apeak,self.apeak/pxInAu))
-            msg3 = 'Semi-major axis at half max dust density: {0:.1f}au or ' \
+            print(msg2.format(self.apeak,self.apeak/pxInAu))            
+            msg3 = 'Semi-major axis at half max dust density in plane z=0: {0:.1f}au or ' \
                     '{1:.1f}px for the inner edge ' \
                     '/ {2:.1f}au or {3:.1f}px for the outer edge, with a FWHM of ' \
                     '{4:.1f}au or {5:.1f}px'
             print(msg3.format(a_minus_hwhm,a_minus_hwhm/pxInAu,a_plus_hwhm,\
                               a_plus_hwhm/pxInAu,a_plus_hwhm-a_minus_hwhm,\
                                   (a_plus_hwhm-a_minus_hwhm)/pxInAu))
-            msg4 = 'Ellipse p parameter: {0:.1f}au or {1:.1f}px'
-            print(msg4.format(self.p,self.p/pxInAu))
+            msg4 = 'Semi-major axis at maximum dust surface density: {0:.1f}au or ' \
+                   '{1:.1f}px (same as ref sma if ain=-aout)'
+            print(msg4.format(self.apeak_surface_density,self.apeak_surface_density/pxInAu))                            
+            msg5 = 'Ellipse p parameter: {0:.1f}au or {1:.1f}px'
+            print(msg5.format(self.p,self.p/pxInAu))
         else:
             print('Reference semi-major axis: {0:.1f}au'.format(self.a))
-            msg = 'Semi-major axis at maximum dust density: {0:.1f}au (same ' \
+            msg = 'Semi-major axis at maximum dust density in plane z=0: {0:.1f}au (same ' \
                   'as ref sma if ain=-aout)'
             print(msg.format(self.apeak))
             msg3 = 'Semi-major axis at half max dust density: {0:.1f}au ' \

@@ -873,7 +873,8 @@ def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px,
         threshold was applied).
     cube_sig: numpy ndarray, opt
         Cube with estimate of significant authentic signals. If provided, this
-        will subtracted before projecting cube onto reference cube.
+        will be subtracted from both the cube and the PCA library, before 
+        projecting the cube onto the principal components.
         
     Returns
     -------

@@ -787,7 +787,7 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
     if not cube_ref.ndim == 3:
         msg = 'Input reference array is not a cube or 3d array'
         raise ValueError(msg)
-    if not cube_ref.shape[1] == y:
+    if not y_ref == y and x_ref == x:
         msg = 'Reference and target frames have different shape'
         raise TypeError(msg)
 
@@ -908,7 +908,7 @@ def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px,
 
     elif isinstance(ncomp, float):
         if not 1 > ncomp > 0:
-            raise ValueError("when `ncomp` if float, it mus lie in the "
+            raise ValueError("when `ncomp` if float, it must lie in the "
                              "interval (0,1]")
 
         svdecomp = SVDecomposer(cube, mode='fullfr', svd_mode=svd_mode,

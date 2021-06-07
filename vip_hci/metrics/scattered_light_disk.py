@@ -22,7 +22,8 @@ class ScatteredLightDisk(object):
     def __init__(self, nx=200, ny=200, distance=50., itilt=60., omega=0.,
                  pxInArcsec=0.01225, pa=0., flux_max=None,
                  density_dico={'name': '2PowerLaws', 'ain':5, 'aout':-5,
-                               'a':40, 'e':0, 'ksi0':1., 'gamma':2., 'beta':1.},
+                               'a':40, 'e':0, 'ksi0':1., 'gamma':2., 'beta':1.,\
+                                'dens_at_r0':1.},
                  spf_dico={'name':'HG', 'g':0., 'polar':False}, xdo=0., ydo=0.):
         """
         Constructor of the Scattered_light_disk object, taking in input the 

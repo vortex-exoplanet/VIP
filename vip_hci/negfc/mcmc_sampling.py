@@ -135,9 +135,10 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
     transmission: numpy array, optional
-        Array with 2 columns. First column is the radial separation in pixels. 
-        Second column is the off-axis transmission (between 0 and 1) at the 
-        radial separation given in column 1.
+        Radial transmission of the coronagraph, if any. Array with 2 columns.
+        First column is the radial separation in pixels. Second column is the
+        off-axis transmission (between 0 and 1) at the radial separation given
+        in column 1.
     mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the 
         algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
@@ -272,9 +273,10 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
     transmission: numpy array, optional
-        Array with 2 columns. First column is the radial separation in pixels. 
-        Second column is the off-axis transmission (between 0 and 1) at the 
-        radial separation given in column 1.
+        Radial transmission of the coronagraph, if any. Array with 2 columns.
+        First column is the radial separation in pixels. Second column is the
+        off-axis transmission (between 0 and 1) at the radial separation given
+        in column 1.
     mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the 
         algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
@@ -415,14 +417,15 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
     transmission: numpy array, optional
-        Array with 2 columns. First column is the radial separation in pixels. 
-        Second column is the off-axis transmission (between 0 and 1) at the 
-        radial separation given in column 1.
+        Radial transmission of the coronagraph, if any. Array with 2 columns.
+        First column is the radial separation in pixels. Second column is the
+        off-axis transmission (between 0 and 1) at the radial separation given
+        in column 1.
     mu_sigma: tuple of 2 floats or bool, opt
         If set to None: not used, and falls back to original version of the 
         algorithm, using fmerit.
         If a tuple of 2 elements: should be the mean and standard deviation of 
-        pixel intensities in an annulus centered on the lcoation of the 
+        pixel intensities in an annulus centered on the location of the
         companion candidate, excluding the area directly adjacent to the CC.
         If set to anything else, but None/False/tuple: will compute said mean 
         and standard deviation automatically.
@@ -507,9 +510,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
 
     # If required, one create the output folder.
     if save:
-        
         output_file_tmp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-          
         if output_dir[-1] == '/':
             output_dir = output_dir[:-1]
         try:
@@ -520,7 +521,6 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                 pass
             else:
                 raise
-
 
     if not isinstance(cube, np.ndarray) or cube.ndim != 3:
         raise ValueError('`cube` must be a 3D numpy array')
@@ -539,7 +539,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         if psfn.shape[0] != cube.shape[0]:
             msg = "If PSF is 3D, number of frames must match cube length"
             raise TypeError(msg)
-        
+
     # #########################################################################
     # Initialization of the variables
     # #########################################################################
@@ -554,6 +554,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     if isinstance(mu_sigma, tuple):
         if len(mu_sigma) != 2:
             raise TypeError("if a tuple, mu_sigma should have 2 elements")
+
     elif mu_sigma:
         mu_sigma = get_mu_and_sigma(cube, angs, ncomp, annulus_width, 
                                      aperture_radius, fwhm, initial_state[0], 
@@ -569,6 +570,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
             msg+= "companion (excluding the PA area directly adjacent to it)"
             msg+=" are {:.2f} and {:.2f} respectively."
             print(msg.format(mu_sigma[0],mu_sigma[1]))
+
 #    pca_args['mu']=mu
 #    pca_args['sigma']=sigma
     # if does not work, activate scale fac
@@ -601,7 +603,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                    initial_state[0] + annulus_width/2.),  # radius
                   (initial_state[1] - 10, initial_state[1] + 10),   # angle
                   (0.1* initial_state[2], 2 * initial_state[2])]   # flux
-    
+    if verbosity > 0:
+        print('Beginning emcee Ensemble sampler...')
     sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a,
                                     args=([bounds, cube, angs, plsc, psfn,
                                            fwhm, annulus_width, ncomp,
@@ -611,7 +614,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                            interpolation, collapse, algo_options, 
                                            weights, transmission, mu_sigma]),
                                     threads=nproc)
-                                    
+
+    if verbosity > 0:
+        print('emcee Ensemble sampler successful')
     start = datetime.datetime.now()
 
     # #########################################################################
@@ -630,7 +635,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
             else:
                 q = 1
             print('{}\t\t{:.5f}\t\t\t{:.5f}'.format(k, elapsed * q,
-                                                    elapsed * (limit-k-1) * q))
+                                                    elapsed * (limit-k-1) * q), flush=True)
             
         start = datetime.datetime.now()
 
@@ -722,6 +727,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         ac_count = 0
                 else:
                     raise ValueError('conv_test value not recognized')
+                # append the autocorrelation factor to file for easy reading
+                with open(output_dir + '/MCMC_results_tau.txt', 'a') as f:
+                    f.write(str(rhat) + '\n')
         # We have reached the maximum number of steps for our Markov chain.
         if k+1 >= stop:
             if verbosity > 0:
@@ -859,7 +867,7 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
         If True, a pdf file is created.
      
      kwargs:
-        Additional attributs are passed to the corner.corner() method.
+        Additional attributes are passed to the corner.corner() method.
                     
     Returns
     -------

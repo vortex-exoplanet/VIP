@@ -30,7 +30,7 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, plsc, imlib='opencv',
         The cube of fits images expressed as a numpy.array.
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array.
-    psfsn: numpy.array
+    psfn: numpy.array
         The scaled psf expressed as a numpy.array.
     plsc: float
         The platescale, in arcsec per pixel.

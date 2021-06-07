@@ -796,19 +796,20 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
     """ Handles the ADI+RDI post-processing.
     """
     n, y, x = cube.shape
-
+    n_ref, y_ref, x_ref = cube_ref.shape
     angle_list = check_pa_vector(angle_list)
     if not isinstance(ncomp, int):
         raise TypeError("`ncomp` must be an int in the ADI+RDI case")
-    if ncomp > n:
-        ncomp = min(ncomp, n)
-        msg = 'Number of PCs too high (max PCs={}), using {} PCs instead.'
-        print(msg.format(n, ncomp))
+    if ncomp > n_ref:
+        msg = 'Requested number of PCs ({}) higher than the number of frames '+\
+              'in the reference cube ({}); using the latter instead.'
+        print(msg.format(ncomp,n_ref))
+        ncomp = n_ref
 
     if not cube_ref.ndim == 3:
         msg = 'Input reference array is not a cube or 3d array'
         raise ValueError(msg)
-    if not cube_ref.shape[1] == y:
+    if not y_ref == y and x_ref == x:
         msg = 'Reference and target frames have different shape'
         raise TypeError(msg)
 
@@ -945,7 +946,7 @@ def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px,
 
     elif isinstance(ncomp, float):
         if not 1 > ncomp > 0:
-            raise ValueError("when `ncomp` if float, it mus lie in the "
+            raise ValueError("when `ncomp` if float, it must lie in the "
                              "interval (0,1]")
 
         svdecomp = SVDecomposer(cube, mode='fullfr', svd_mode=svd_mode,

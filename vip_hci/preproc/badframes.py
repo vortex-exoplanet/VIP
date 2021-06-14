@@ -240,7 +240,7 @@ def cube_detect_badfr_ellipticity(array, fwhm, crop_size=30, roundlo=-0.2,
 def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
                                   dist='pearson', percentile=20, threshold=None, 
                                   mode='full', inradius=None, width=None, 
-                                  plot=True, verbose=True):
+                                  plot=True, verbose=True, full_output=False):
     """ Returns the list of bad frames from a cube by measuring the distance 
     (similarity) or correlation of the frames (cropped to a 30x30 subframe) 
     wrt a reference frame from the same cube. Then the distance/correlation 
@@ -256,7 +256,7 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
         array.
     crop_size : int, optional
         Size in pixels of the square subframe to be analyzed.
-    dist : {'sad','euclidean','mse','pearson','spearman'}, str optional
+    dist : {'sad','euclidean','mse','pearson','spearman','ssim'}, str optional
         One of the similarity or dissimilarity measures from function
         vip_hci.stats.distances.cube_distance(). 
     percentile : int, optional
@@ -277,7 +277,9 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
         the boundaries.
     verbose : bool, optional
         Whether to print to stdout or not.
-            
+    full_output: bool, optional
+        Whether to also return the array of distances.
+        
     Returns
     -------
     good_index_list : numpy ndarray
@@ -301,7 +303,7 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     distances = cube_distance(subarray, frame_ref, mode, dist, 
                               inradius=inradius, width=width, plot=False)
     
-    if dist == 'pearson' or dist == 'spearman':
+    if dist == 'pearson' or dist == 'spearman' or dist == 'ssim':
         # measures of correlation or similarity
         minval = np.min(distances[~np.isnan(distances)])
         distances = np.nan_to_num(distances)
@@ -362,4 +364,7 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
     if verbose:
         timing(start_time)
     
-    return good_index_list, bad_index_list
+    if full_output:
+        return good_index_list, bad_index_list, distances
+    else:   
+        return good_index_list, bad_index_list

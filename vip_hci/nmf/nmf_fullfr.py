@@ -125,7 +125,6 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
         if cube_ref is not None:
             matrix_ref = prepare_matrix(cube_ref, scaling, mask_center_px,
                                         mode='fullfr', verbose=verbose)
-            matrix_ref = matrix_ref[:,yy,xx] 
         if cube_sig is not None:
             matrix_sig = np.reshape(cube_sig, (n, -1))  
    
@@ -178,7 +177,10 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
             recon_cube = reshape_matrix(reconstructed, y, x)
             residuals = residuals[0]
         for fr in range(n):
-            residuals_cube[fr][yy, xx] = residuals[fr]
+            if handle_neg=='mask':
+                residuals_cube[fr][yy, xx] = residuals[fr]
+            else:
+                residuals_cube[fr] = residuals[fr].reshape((y, x))
     else:
         if delta_rot is None or fwhm is None:
             msg = 'Delta_rot or fwhm parameters missing. Needed for the'
@@ -220,7 +222,10 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
                 recon_cube[fr] = recon_frame.reshape((y, x))
             else:
                 residuals = res_result
-            residuals_cube[fr][yy, xx] = residuals[fr]
+            if handle_neg=='mask':
+                residuals_cube[fr][yy, xx] = residuals
+            else:
+                residuals_cube[fr] = residuals.reshape((y, x))
                 
     if verbose:  
         print('Done NMF with sklearn.NMF.')

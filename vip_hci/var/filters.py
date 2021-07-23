@@ -25,7 +25,8 @@ except ImportError:
 import numpy as np
 from scipy.ndimage import median_filter
 from skimage.restoration import richardson_lucy
-from astropy.convolution import convolve_fft, Gaussian2DKernel, convolve
+from astropy.convolution import (convolve_fft, convolve, Gaussian2DKernel, 
+                                 Moffat2DKernel)
 from astropy.convolution import interpolate_replace_nans as interp_nan
 from astropy.stats import gaussian_fwhm_to_sigma
 from ..exlib import iuwt
@@ -374,8 +375,8 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
 
 
 def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
-                         gauss_mode='conv', psf=None, mask=None, iterate=True,
-                         **kwargs):
+                         gauss_mode='conv', kernel_sz=None, psf=None, mask=None, 
+                         iterate=True, **kwargs):
     """
     Low-pass filtering of input frame depending on parameter ``mode``.
 
@@ -383,7 +384,7 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     ----------
     array : numpy ndarray
         Input array, 2d frame.
-    mode : {'median', 'gauss', 'psf'}, str optional
+    mode : {'median', 'gauss', 'moff', 'psf'}, str optional
         Type of low-pass filtering.
     median_size : int, optional
         Size of the median box for filtering the low-pass median filter.
@@ -392,6 +393,10 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     gauss_mode : {'conv', 'convfft'}, str optional
         'conv' uses the multidimensional gaussian filter from scipy.ndimage and
         'convfft' uses the fft convolution with a 2d Gaussian kernel.
+    kernel_sz: int or None, optional
+        Size of the kernel in pixels for 2D Gaussian and Moffat convolutions.
+        If None, astropy.convolution will automatically consider 8*radius 
+        kernel sizes.
     psf: numpy ndarray, optional
         Input normalised and centered psf, 2d frame. Should be provided if 
         mode is set to 'psf'.
@@ -433,17 +438,27 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
         # 2d Gaussian filter
         sigma = fwhm_size * gaussian_fwhm_to_sigma
         if gauss_mode == 'conv':
-            filtered = convolve(array, Gaussian2DKernel(x_stddev=sigma),
+            filtered = convolve(array, Gaussian2DKernel(x_stddev=sigma, 
+                                                        x_size=kernel_sz,
+                                                        y_size=kernel_sz),
                                 mask=mask, **kwargs)
             if iterate and np.sum(np.isnan(filtered))>0:
-                filtered = interp_nan(filtered, Gaussian2DKernel(x_stddev=sigma),
+                filtered = interp_nan(filtered, 
+                                      Gaussian2DKernel(x_stddev=sigma, 
+                                                       x_size=kernel_sz,
+                                                       y_size=kernel_sz),
                                       convolve=convolve)
         elif gauss_mode == 'convfft':
             # FFT Convolution with a 2d gaussian kernel created with Astropy.
-            filtered = convolve_fft(array, Gaussian2DKernel(x_stddev=sigma),
+            filtered = convolve_fft(array, Gaussian2DKernel(x_stddev=sigma, 
+                                                            x_size=kernel_sz,
+                                                            y_size=kernel_sz),
                                     mask=mask, **kwargs)
             if iterate and np.sum(np.isnan(filtered))>0:
-                filtered = interp_nan(filtered, Gaussian2DKernel(x_stddev=sigma),
+                filtered = interp_nan(filtered, 
+                                      Gaussian2DKernel(x_stddev=sigma, 
+                                                       x_size=kernel_sz,
+                                                       y_size=kernel_sz),
                                       convolve=convolve_fft, **kwargs)
         else:
             raise TypeError('2d Gaussian filter mode not recognized')
@@ -466,8 +481,8 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
 
 
 def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
-                        gauss_mode='conv', verbose=True, psf=None, mask=None, 
-                        iterate=True, **kwargs):
+                        gauss_mode='conv', kernel_sz=None, verbose=True, 
+                        psf=None, mask=None, iterate=True, **kwargs):
     """
     Apply ``frame_filter_lowpass`` to the frames of a 3d or 4d cube.
 
@@ -482,6 +497,8 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     fwhm_size : float, optional
         See the documentation of the ``frame_filter_lowpass`` function.
     gauss_mode : str, optional
+        See the documentation of the ``frame_filter_lowpass`` function.
+    kernel_sz: int, optional
         See the documentation of the ``frame_filter_lowpass`` function.
     verbose : bool, optional
         If True timing and progress bar are shown.
@@ -512,15 +529,17 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     if array.ndim == 3:
         for i in Progressbar(range(array.shape[0]), verbose=verbose):
             array_out[i] = frame_filter_lowpass(array[i], mode, median_size,
-                                                fwhm_size, gauss_mode, psf, 
-                                                mask, iterate, **kwargs)
+                                                fwhm_size, gauss_mode, 
+                                                kernel_sz, psf, mask, iterate, 
+                                                **kwargs)
     elif array.ndim == 4:
         for i in Progressbar(range(array.shape[1]), verbose=verbose):
             for lam in range(array.shape[0]):
                 array_out[lam][i] = frame_filter_lowpass(array[lam][i], mode,
                                                          median_size, fwhm_size,
-                                                         gauss_mode, psf, mask, 
-                                                         iterate, **kwargs)
+                                                         gauss_mode, kernel_sz, 
+                                                         psf, mask, iterate, 
+                                                         **kwargs)
     else:
         raise TypeError('Input array is not a 3d or 4d cube')
 

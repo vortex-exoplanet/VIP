@@ -198,8 +198,12 @@ def nmf_annular(cube, angle_list, cube_ref=None, radius_int=0, fwhm=4, asize=4,
             xx = indices[j][1]
             if handle_neg=='mask':
                 npts = range(len(yy))
-                yp = [yy[i] for i in npts if np.amin(array[:, yy[i], xx[i]])>0]
-                xp = [xx[i] for i in npts if np.amin(array[:, yy[i], xx[i]])>0]
+                if cube_sig is not None:
+                    yp = [yy[i] for i in npts if np.amin(array[:, yy[i], xx[i]]-np.abs(cube_sig[:, yy[i], xx[i]]))>0]
+                    xp = [xx[i] for i in npts if np.amin(array[:, yy[i], xx[i]]-np.abs(cube_sig[:, yy[i], xx[i]]))>0]
+                else:
+                    yp = [yy[i] for i in npts if np.amin(array[:, yy[i], xx[i]])>0]
+                    xp = [xx[i] for i in npts if np.amin(array[:, yy[i], xx[i]])>0]
                 yy = tuple(yp)
                 xx = tuple(xp)
             matrix_segm = array[:, yy, xx]  # shape [nframes x npx_segment]

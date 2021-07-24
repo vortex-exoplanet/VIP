@@ -12,7 +12,7 @@ from sklearn.decomposition import NMF
 from ..preproc import cube_derotate, cube_collapse
 from ..preproc.derotation import _compute_pa_thresh, _find_indices_adi
 from ..var import (prepare_matrix, reshape_matrix, frame_center, dist, 
-                   matrix_scaling)
+                   matrix_scaling, mask_circle)
 from ..conf import timing, time_ini
 
 
@@ -101,6 +101,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
     
     # how to handle negative values
     if handle_neg == 'mask':
+        array = mask_circle(array, mask_center_px)
         if cube_sig is not None:
             yy, xx = np.where(np.amin(array-np.abs(cube_sig),axis=0)>0)
         else:

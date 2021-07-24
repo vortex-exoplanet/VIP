@@ -101,7 +101,10 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
     
     # how to handle negative values
     if handle_neg == 'mask':
-        yy, xx = np.where(np.amin(array,axis=0)>0)
+        if cube_sig is not None:
+            yy, xx = np.where(np.amin(array-np.abs(cube_sig),axis=0)>0)
+        else:
+            yy, xx = np.where(np.amin(array,axis=0)>0)
         H_tmp = np.zeros([ncomp,y,x])
         if len(yy)>0:
             matrix = array[:,yy,xx]
@@ -110,7 +113,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
                 matrix_ref = cube_ref[:,yy,xx]
                 matrix_ref = matrix_scaling(matrix_ref, scaling)
             if cube_sig is not None:
-                matrix_sig = cube_sig[:,yy,xx]
+                matrix_sig = cube_sig[:,yy,xx]              
         else:
             raise ValueError("Remove frame(s) with negative values")
     else:

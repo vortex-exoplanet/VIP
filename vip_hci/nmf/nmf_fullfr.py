@@ -234,7 +234,8 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
             if handle_neg=='mask':
                 residuals_cube[fr][yy, xx] = residuals
                 if fr == n-1:
-                    H_tmp[pp][yy, xx] = H[pp]
+                    for pp in range(ncomp):
+                        H_tmp[pp][yy, xx] = H[pp]
                     H = H_tmp
             else:
                 residuals_cube[fr] = residuals.reshape((y, x))

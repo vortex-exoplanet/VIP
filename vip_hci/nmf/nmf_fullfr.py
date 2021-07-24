@@ -219,7 +219,10 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
                 residuals = res_result[0]
                 recon_frame = res_result[1]
                 H = res_result[2]
-                recon_cube[fr] = recon_frame.reshape((y, x))
+                if handle_neg=='mask':
+                    recon_cube[fr][yy,xx] = recon_frame
+                else:
+                    recon_cube[fr] = recon_frame.reshape((y, x))
             else:
                 residuals = res_result
             if handle_neg=='mask':

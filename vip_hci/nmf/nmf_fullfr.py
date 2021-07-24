@@ -102,6 +102,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
     # how to handle negative values
     if handle_neg == 'mask':
         yy, xx = np.where(np.amin(array,axis=0)>0)
+        H_tmp = np.zeros([ncomp,y,x])
         if len(yy)>0:
             matrix = array[:,yy,xx]
             matrix = matrix_scaling(matrix, scaling)
@@ -117,7 +118,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
             array[np.where(array<0)]=0
         elif handle_neg=='subtr_min':
             array -= np.amin(array)
-        elif not handle_neg=='mask':
+        else:
             raise ValueError("Mode to handle neg. pixels not recognized")
     
         matrix = prepare_matrix(array, scaling, mask_center_px, mode='fullfr',
@@ -176,11 +177,16 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
             H = residuals[2]
             recon_cube = reshape_matrix(reconstructed, y, x)
             residuals = residuals[0]
-        for fr in range(n):
-            if handle_neg=='mask':
+        if handle_neg=='mask':
+            for fr in range(n):
                 residuals_cube[fr][yy, xx] = residuals[fr]
-            else:
+            for pp in range(ncomp):
+                H_tmp[pp][yy,xx] = H[pp]
+            H = H_tmp
+        else:
+            for fr in range(n):
                 residuals_cube[fr] = residuals[fr].reshape((y, x))
+            H = H.reshape(ncomp,y,x)
     else:
         if delta_rot is None or fwhm is None:
             msg = 'Delta_rot or fwhm parameters missing. Needed for the'
@@ -227,8 +233,13 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
                 residuals = res_result
             if handle_neg=='mask':
                 residuals_cube[fr][yy, xx] = residuals
+                if fr == n-1:
+                    H_tmp[pp][yy, xx] = H[pp]
+                    H = H_tmp
             else:
                 residuals_cube[fr] = residuals.reshape((y, x))
+                if fr == n-1:
+                    H = H.reshape(ncomp,y,x)
                 
     if verbose:  
         print('Done NMF with sklearn.NMF.')
@@ -242,7 +253,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
         print('Done derotating and combining.')
         timing(start_time)
     if full_output:
-        return (H.reshape(ncomp,y,x), recon_cube, residuals_cube,
+        return (H, recon_cube, residuals_cube,
                 residuals_cube_, frame)
     else:
         return frame

@@ -307,11 +307,11 @@ def do_nmf_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
         else: #'mask'
             zp = np.nonzero(np.amin(data_ref,axis=0)>0)
         
-
-    if init_svd == 'nndsvda':
-        solver = 'mu'
-    else:
-        solver = 'cd'
+    solver = 'mu'
+    # if init_svd == 'nndsvda':
+    #     solver = 'mu'
+    # else:
+    #     solver = 'cd'
     mod = NMF(n_components=ncomp, alpha=0, solver=solver, init=init_svd, 
               max_iter=max_iter, random_state=random_state, **kwargs)  
 

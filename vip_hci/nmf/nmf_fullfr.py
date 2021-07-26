@@ -16,11 +16,11 @@ from ..var import (prepare_matrix, reshape_matrix, frame_center, dist,
 from ..conf import timing, time_ini
 
 
-def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
+def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
         random_state=None, mask_center_px=None, source_xy=None, delta_rot=1, 
         fwhm=4, init_svd='nndsvd', imlib='opencv', interpolation='lanczos4', 
         collapse='median', full_output=False, verbose=True, cube_sig=None, 
-        handle_neg='mask', **kwargs):
+        handle_neg='null', **kwargs):
     """ Non Negative Matrix Factorization for ADI sequences. Alternative to the
     full-frame ADI-PCA processing that does not rely on SVD or ED for obtaining
     a low-rank approximation of the datacube. This function embeds the 
@@ -80,6 +80,12 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
         intermediate arrays.  
     verbose : {True, False}, bool optional
         If True prints intermediate info and timing. 
+    handle_neg: str, opt {'subtr_min','mask','null'}
+        Determines how to handle negative values: mask them, set them to zero,
+        or subtract the minimum value in the arrays. Note: 'mask' or 'null' 
+        may leave significant artefacts after derotation of residual cube
+        => those options should be used carefully (e.g. with proper treatment
+        of masked values in non-derotated cube of residuals).
     kwargs 
         Additional arguments for scikit-learn NMF algorithm. See:
         https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.NMF.html             
@@ -119,9 +125,17 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
             raise ValueError("Remove frame(s) with negative values")
     else:
         if handle_neg=='null':
-            array[np.where(array<0)]=0
+            if cube_sig is not None:
+                array[np.where(array-cube_sig<0)]=0
+                cube_sig[np.where(array-cube_sig<0)]=0
+            else:
+                array[np.where(array<0)]=0
+            
         elif handle_neg=='subtr_min':
-            array -= np.amin(array)
+            if cube_sig is not None:
+                array -= np.amin(array-cube_sig)
+            else:
+                array -= np.amin(array)
         else:
             raise ValueError("Mode to handle neg. pixels not recognized")
     
@@ -131,7 +145,8 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
             matrix_ref = prepare_matrix(cube_ref, scaling, mask_center_px,
                                         mode='fullfr', verbose=verbose)
         if cube_sig is not None:
-            matrix_sig = np.reshape(cube_sig, (n, -1))  
+            matrix_sig = prepare_matrix(cube_sig, scaling, mask_center_px, 
+                                        mode='fullfr', verbose=verbose)
    
 
     # elif source_xy is None or delta_rot is None:
@@ -165,7 +180,11 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
     #             ind = _find_indices_adi(angle_list, frame, pa_thr)
     
 
-    residuals_cube = np.zeros_like(array)
+    if cube_sig is not None:
+        # derotate
+        residuals_cube = cube_sig.copy()
+    else:
+        residuals_cube = np.zeros_like(array)
     
     
     if source_xy is None:
@@ -177,20 +196,26 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
         if verbose:
             timing(start_time)
         if full_output:
-            reconstructed = residuals[1]
+            #reconstructed = residuals[1]
             H = residuals[2]
-            recon_cube = reshape_matrix(reconstructed, y, x)
+            reconstructed = residuals[1]
             residuals = residuals[0]
+        recon_cube = residuals_cube.copy()
         if handle_neg=='mask':
             for fr in range(n):
                 residuals_cube[fr][yy, xx] = residuals[fr]
-            for pp in range(ncomp):
-                H_tmp[pp][yy,xx] = H[pp]
-            H = H_tmp
+            if full_output:
+                for fr in range(n):
+                    recon_cube[fr][yy, xx] = reconstructed[fr]
+                for pp in range(ncomp):
+                    H_tmp[pp][yy,xx] = H[pp]
+                H = H_tmp
         else:
             for fr in range(n):
                 residuals_cube[fr] = residuals[fr].reshape((y, x))
-            H = H.reshape(ncomp,y,x)
+            if full_output:
+                recon_cube = reshape_matrix(reconstructed, y,x)
+                H = H.reshape(ncomp,y,x)
     else:
         if delta_rot is None or fwhm is None:
             msg = 'Delta_rot or fwhm parameters missing. Needed for the'
@@ -211,12 +236,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=100,
             pa_thr = new_pa_th
 
         for fr in range(n):
-            if ann_center > fwhm * 3:  # TODO: 3 optimal value? new par?
-                ind = _find_indices_adi(angle_list, fr, pa_thr,
-                                        truncate=True)
-            else:
-                ind = _find_indices_adi(angle_list, fr, pa_thr)
-
+            ind = _find_indices_adi(angle_list, fr, pa_thr)
             res_result = _project_subtract(matrix, matrix_ref, ncomp, scaling,
                                            mask_center_px, verbose, 
                                            full_output, ind, fr, 
@@ -319,9 +339,9 @@ def _project_subtract(matrix, matrix_ref, ncomp, scaling, mask_center_px,
     if matrix_ref is not None:
         ref_lib = matrix_ref
     elif indices is not None and frame is not None:
-        ref_lib = matrix_emp[indices]
+        ref_lib = matrix_emp[indices].copy()
     else:
-        ref_lib = matrix_emp
+        ref_lib = matrix_emp.copy()
 
     # to avoid bug, just consider positive values
     if np.median(ref_lib)<0:
@@ -329,10 +349,11 @@ def _project_subtract(matrix, matrix_ref, ncomp, scaling, mask_center_px,
     else:
         ref_lib[np.where(ref_lib<0)] = 0
 
-    if init_svd == 'nndsvda':
-        solver = 'mu'
-    else:
-        solver = 'cd'
+    solver = 'mu'
+    # if init_svd != 'nndsvd':
+    #     solver = 'mu'
+    # else:
+    #     solver = 'cd'
     mod = NMF(n_components=ncomp, alpha=0, solver=solver, init=init_svd, 
               max_iter=max_iter, random_state=random_state, **kwargs)   
     # a rotation threshold is used (frames are processed one by one)

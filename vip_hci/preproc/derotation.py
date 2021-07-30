@@ -56,7 +56,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
         zero-interpolation may help if sharp transitions are unavoidable.
     interpolation : str, optional
         [Only used for imlib='opencv' or imlib='skimage']
-        For Skimage the options are: 'nearneig', bilinear', 'bicuadratic',
+        For Skimage the options are: 'nearneig', bilinear', 'biquadratic',
         'bicubic', 'biquartic' or 'biquintic'. The 'nearneig' interpolation is
         the fastest and the 'biquintic' the slowest. The 'nearneig' is the
         poorer option for interpolation of noisy astronomical images.
@@ -67,7 +67,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
     cxy : float, optional
         Coordinates X,Y  of the point with respect to which the rotation will be 
         performed. By default the rotation is done with respect to the center 
-        of the frame; central pixel if frame has odd size.
+        of the frame.
     border_mode : {'constant', 'edge', 'symmetric', 'reflect', 'wrap'}, str opt
         Pixel extrapolation method for handling the borders. 'constant' for
         padding with zeros. 'edge' for padding with the edge values of the
@@ -124,18 +124,20 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
             array_zeros[np.where(np.isnan(array))]=0
         if 'noise' in edge_blend :
             # evaluate std and med far from the star, avoiding nans
-            _, med, stddev = sigma_clipped_stats(array_nan, sigma=2.5,
+            _, med, stddev = sigma_clipped_stats(array_nan, sigma=1.5,
                                                  cenfunc=np.nanmedian, 
                                                  stdfunc=np.nanstd)
-        fac=2
+        # pad and interpolate, about 1.2x original size
         if imlib=='vip-fft':
-            fac=4
-        if y_ori%2:
-            new_y = int((y_ori-1)*fac+1)
-            new_x = int((x_ori-1)*fac+1)
+            fac=1.5
         else:
-            new_y = int(y_ori*fac)
-            new_x = int(x_ori*fac)
+            fac=1.1
+        new_y = int(y_ori*fac)
+        new_x = int(x_ori*fac)
+        if y_ori%2 != new_y%2:
+            new_y += 1
+        if x_ori%2 != new_x%2:
+            new_x += 1
         array_prep = np.empty([new_y,new_x])
         array_prep1 = np.zeros([new_y,new_x])
         array_prep[:] = np.nan
@@ -146,39 +148,59 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
             array_prep = np.random.normal(loc=med, scale=stddev, 
                                           size=(new_y,new_x))
         cy, cx = frame_center(array_prep)
-        y0 = int(cy-cy_ori)
-        y1 = int(cy+cy_ori+1)
-        x0 = int(cx-cx_ori)
-        x1 = int(cx+cx_ori+1)
+        y0_p = int(cy-cy_ori)
+        y1_p = int(cy+cy_ori+1)
+        x0_p = int(cx-cx_ori)
+        x1_p = int(cx+cx_ori+1)
         if interp_zeros:
-            array_prep[y0:y1,x0:x1] = array_nan.copy()
-            array_prep1[y0:y1,x0:x1] = array_nan.copy()
+            array_prep[y0_p:y1_p,x0_p:x1_p] = array_nan.copy()
+            array_prep1[y0_p:y1_p,x0_p:x1_p] = array_nan.copy()
         else:
-            array_prep[y0:y1,x0:x1] = array_zeros.copy()
+            array_prep[y0_p:y1_p,x0_p:x1_p] = array_zeros.copy()
         # interpolate nans with a Gaussian filter
         if 'interp' in edge_blend:
-            array_prep2[y0:y1,x0:x1] = array_nan.copy()
-            gauss_ker1 = Gaussian2DKernel(x_stddev=int(array_nan.shape[0]/5))
+            array_prep2[y0_p:y1_p,x0_p:x1_p] = array_nan.copy()
+            #gauss_ker1 = Gaussian2DKernel(x_stddev=int(array_nan.shape[0]/15))
             # Lanczos4 requires 4 neighbours & default Gaussian box=8*stddev+1:
-            gauss_ker2 = Gaussian2DKernel(x_stddev=1)
+            #gauss_ker2 = Gaussian2DKernel(x_stddev=1)
             cond1 = array_prep1==0
             cond2 = np.isnan(array_prep2)
             new_nan = np.where(cond1&cond2)
             mask_nan = np.where(np.isnan(array_prep2))
-            array_prep_corr1 = interp_nan(array_prep2, kernel=gauss_ker1)
+            ker1 = array_nan.shape[0]/5
+            ker2 = 0.5
+            array_prep_corr1 = frame_filter_lowpass(array_prep2, mode='gauss',
+                                                    fwhm_size=ker1)
+            #interp_nan(array_prep2, kernel=gauss_ker1)
             if 'noise' in edge_blend:
-                array_prep_corr2 = interp_nan(array_prep2, kernel=gauss_ker2)
+                array_prep_corr2 = frame_filter_lowpass(array_prep2, 
+                                                        mode='gauss',
+                                                        fwhm_size=ker2)
+                #interp_nan(array_prep2, kernel=gauss_ker2)
                 ori_nan = np.where(np.isnan(array_prep1))
                 array_prep[ori_nan] = array_prep_corr2[ori_nan]
                 array_prep[new_nan] += array_prep_corr1[new_nan]
             else:
                 array_prep[mask_nan] = array_prep_corr1[mask_nan]
+        # finally pad zeros for 4x larger images before FFT
+        if imlib=='vip-fft':
+            array_prep, new_idx = _pad(array_prep, fac=4/fac, fillwith=0, 
+                                       comp=False, full_output=True)
+            y0 = new_idx[0]+y0_p
+            y1 = new_idx[0]+y1_p
+            x0 = new_idx[2]+x0_p
+            x1 = new_idx[2]+x1_p
+        else:
+            y0 = y0_p
+            y1 = y1_p
+            x0 = x0_p
+            x1 = x1_p            
     else:
         array_prep = array.copy()
 
     # residual (non-interp) nans should be set to 0 to avoid bug in rotation
     array_prep[np.where(np.isnan(array_prep))] = 0
-
+    
     y, x = array_prep.shape
     
     if cxy is None:
@@ -200,7 +222,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
             order = 0
         elif interpolation == 'bilinear':
             order = 1
-        elif interpolation == 'bicuadratic':
+        elif interpolation == 'biquadratic':
             order = 2
         elif interpolation == 'bicubic':
             order = 3
@@ -272,8 +294,9 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
     
     
 def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
-                  cxy=None, nproc=1, border_mode='constant', mask_val=np.nan, 
+                  cxy=None, nproc=1, border_mode='constant', mask_val=np.nan,
                   edge_blend=None, interp_zeros=False):
+                  #edge_blend=None, interp_zeros=False):
     """ Rotates an cube (3d array or image sequence) providing a vector or
     corresponding angles. Serves for rotating an ADI sequence to a common north
     given a vector with the corresponding parallactic angles for each frame. By
@@ -576,24 +599,23 @@ def rotate_fft(array, angle):
     arr_y = arr_xy[0]-cy
     arr_x = arr_xy[1]-cx
 
-    # TODO: pad of FFT is not working properly at the moment
+    # TODO: FFT padding not currently working properly. Only option '0' works.
     s_x = _fft_shear(array_in, arr_x, a, ax=1, pad=0)
     s_xy = _fft_shear(s_x, arr_y, b, ax=0, pad=0) 
     s_xyx = _fft_shear(s_xy, arr_x, a, ax=1, pad=0)
     
     if y_ori%2 or x_ori%2:
-        # shift + crop back to odd dimensions 
+        # shift + crop back to odd dimensions , using FFT
         array_out = np.zeros([s_xyx.shape[0]+1,s_xyx.shape[1]+1])
-        array_tmp = frame_shift(np.real(s_xyx), -0.5, -0.5, 
-                                imlib='ndimage-fourier')
-        array_out[1:,1:] = array_tmp
+        array_out[1:,1:] = frame_shift(np.real(s_xyx), -0.5, -0.5, 
+                                       imlib='ndimage-fourier')
     else:
         array_out = np.real(s_xyx)
     
     return array_out
 
 
-def _pad(arr, fac, fillwith=0, loc=0, scale=1, comp=True):
+def _pad(arr, fac, fillwith=0, loc=0, scale=1, comp=True, full_output=False):
     y,x = arr.shape
     cy_ori, cx_ori = frame_center(arr)
     new_y = int(y*fac)
@@ -616,5 +638,9 @@ def _pad(arr, fac, fillwith=0, loc=0, scale=1, comp=True):
     x0 = int(cx-cx_ori)
     x1 = int(cx+cx_ori+1)
     narr[y0:y1,x0:x1] = arr.copy()
-        
-    return narr
+    ori_indices =  (y0, y1, x0, x1)
+    
+    if full_output:
+        return narr, ori_indices
+    else:
+        return narr

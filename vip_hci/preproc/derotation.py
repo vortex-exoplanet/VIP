@@ -7,7 +7,8 @@ Module with frame de-rotation routine for ADI.
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
 __all__ = ['cube_derotate',
-           'frame_rotate']
+           'frame_rotate',
+           'rotate_fft']
 
 from astropy.convolution import interpolate_replace_nans as interp_nan
 from astropy.convolution import Gaussian2DKernel
@@ -28,7 +29,7 @@ except ImportError:
 from scipy.ndimage import fourier_shift
 from skimage.transform import rotate
 from multiprocessing import cpu_count
-from .cosmetics import frame_crop
+from .cosmetics import frame_crop, frame_pad
 from .recentering import frame_shift
 from ..conf.utils_conf import pool_map, iterable
 from ..var import frame_center, frame_filter_lowpass  
@@ -118,10 +119,13 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
             mask_ori = np.where(array==mask_val)
         array_nan = array.copy()
         array_zeros = array.copy()
-        if interp_zeros: # set to nans for interpolation
+        if interp_zeros == 1: # set to nans for interpolation
             array_nan[np.where(array==0)]=np.nan
         else:
             array_zeros[np.where(np.isnan(array))]=0
+            if interp_zeros == -1:
+                array_fill = array.copy()
+                array_fill[np.where(array==0)]=np.nan
         if 'noise' in edge_blend :
             # evaluate std and med far from the star, avoiding nans
             _, med, stddev = sigma_clipped_stats(array_nan, sigma=1.5,
@@ -159,7 +163,10 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
             array_prep[y0_p:y1_p,x0_p:x1_p] = array_zeros.copy()
         # interpolate nans with a Gaussian filter
         if 'interp' in edge_blend:
-            array_prep2[y0_p:y1_p,x0_p:x1_p] = array_nan.copy()
+            if interp_zeros == -1:
+                array_prep2[y0_p:y1_p,x0_p:x1_p] = array_fill.copy()
+            else:
+                array_prep2[y0_p:y1_p,x0_p:x1_p] = array_nan.copy()
             #gauss_ker1 = Gaussian2DKernel(x_stddev=int(array_nan.shape[0]/15))
             # Lanczos4 requires 4 neighbours & default Gaussian box=8*stddev+1:
             #gauss_ker2 = Gaussian2DKernel(x_stddev=1)
@@ -168,7 +175,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
             new_nan = np.where(cond1&cond2)
             mask_nan = np.where(np.isnan(array_prep2))
             ker1 = array_nan.shape[0]/5
-            ker2 = 0.5
+            ker2 = 1
             array_prep_corr1 = frame_filter_lowpass(array_prep2, mode='gauss',
                                                     fwhm_size=ker1)
             #interp_nan(array_prep2, kernel=gauss_ker1)
@@ -182,10 +189,11 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
                 array_prep[new_nan] += array_prep_corr1[new_nan]
             else:
                 array_prep[mask_nan] = array_prep_corr1[mask_nan]
+                
         # finally pad zeros for 4x larger images before FFT
         if imlib=='vip-fft':
-            array_prep, new_idx = _pad(array_prep, fac=4/fac, fillwith=0, 
-                                       comp=False, full_output=True)
+            array_prep, new_idx = frame_pad(array_prep, fac=4/fac, fillwith=0, 
+                                            full_output=True)
             y0 = new_idx[0]+y0_p
             y1 = new_idx[0]+y1_p
             x0 = new_idx[2]+x0_p
@@ -363,9 +371,10 @@ def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
 
 
 def _frame_rotate_mp(num_fr, angle_list, imlib, interpolation, cxy,
-                     border_mode):
+                     border_mode, mask_val, edge_blend, interp_zeros):
     framerot = frame_rotate(data_array[num_fr], -angle_list[num_fr], imlib,
-                            interpolation, cxy, border_mode)
+                            interpolation, cxy, border_mode, mask_val, 
+                            edge_blend, interp_zeros)
     return framerot
 
 
@@ -502,12 +511,19 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
 
 
 def rotate_fft(array, angle):
-    """ Rotates a frame or 2D array using the phase of Fourier transforms:
+    """ Rotates a frame or 2D array using Fourier transform phases:
         Rotation = 3 consecutive lin. shears = 3 consecutive FFT phase shifts 
         See details in Larkin et al. (1997) and Hagelberg et al. (2016).
         Note: this is significantly slower than interpolation methods
-        (e.g. opencv/lanczos4 or ndimage). May preserve flux better, but is
-        also more prone to large-scale Gibbs artefacts.
+        (e.g. opencv/lanczos4 or ndimage), but preserves the flux better 
+        (by construction it preserves the total power). It is more prone to 
+        large-scale Gibbs artefacts, so make sure no sharp edge is present in 
+        the image to be rotated.
+        
+        ! Warning: if input frame has even dimensions, the center of rotation 
+        will NOT be between the 4 central pixels, instead it will be on the top 
+        right of those 4 pixels. Make sure your images are centered with 
+        respect to that pixel before rotation.
     
     Parameters
     ----------
@@ -569,11 +585,6 @@ def rotate_fft(array, angle):
      
     y_ori, x_ori = array.shape
     
-    if y_ori%2 or x_ori%2:
-        # for consistency shift with FFT
-        array =  array[1:,1:]
-        array = frame_shift(array, 0.5, 0.5, imlib='ndimage-fourier')
-    
     while angle<0:
         angle+=360
     while angle>360:
@@ -587,12 +598,16 @@ def rotate_fft(array, angle):
         array_in = np.rot90(array, nangle)
     else:
         dangle = angle
-        array_in = array.copy()
-    
+        array_in = array.copy()   
+
+    if y_ori%2 or x_ori%2:
+        # NO NEED TO SHIFT BY 0.5px: FFT assumes rot. center on cx+0.5, cy+0.5!
+        array_in = array_in[:-1,:-1]
+            
     a = np.tan(np.deg2rad(dangle)/2)
     b = -np.sin(np.deg2rad(dangle))
     
-    ori_y, ori_x = array.shape
+    ori_y, ori_x = array_in.shape
     
     cy, cx = frame_center(array)
     arr_xy = np.mgrid[0:ori_y,0:ori_x]
@@ -607,40 +622,9 @@ def rotate_fft(array, angle):
     if y_ori%2 or x_ori%2:
         # shift + crop back to odd dimensions , using FFT
         array_out = np.zeros([s_xyx.shape[0]+1,s_xyx.shape[1]+1])
-        array_out[1:,1:] = frame_shift(np.real(s_xyx), -0.5, -0.5, 
-                                       imlib='ndimage-fourier')
+        # NO NEED TO SHIFT BY 0.5px: FFT assumes rot. center on cx+0.5, cy+0.5!
+        array_out[:-1,:-1] = np.real(s_xyx)
     else:
         array_out = np.real(s_xyx)
-    
+        
     return array_out
-
-
-def _pad(arr, fac, fillwith=0, loc=0, scale=1, comp=True, full_output=False):
-    y,x = arr.shape
-    cy_ori, cx_ori = frame_center(arr)
-    new_y = int(y*fac)
-    new_x = int(x*fac)
-    if new_y%2 != y%2:
-        new_y-=1
-    if new_x%2 != x%2:
-        new_x-=1
-    if fillwith == 'noise':
-        narr = np.random.normal(loc=loc, scale=scale, size=(new_y,new_x))
-    else:
-        if comp:
-            narr = np.zeros([new_y,new_x],dtype=complex)
-        else:
-            narr = np.empty([new_y,new_x])
-        narr[:] = fillwith
-    cy, cx = frame_center(narr)
-    y0 = int(cy-cy_ori)
-    y1 = int(cy+cy_ori+1)
-    x0 = int(cx-cx_ori)
-    x1 = int(cx+cx_ori+1)
-    narr[y0:y1,x0:x1] = arr.copy()
-    ori_indices =  (y0, y1, x0, x1)
-    
-    if full_output:
-        return narr, ori_indices
-    else:
-        return narr

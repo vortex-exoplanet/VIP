@@ -442,7 +442,7 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
             ind4 = index_foll + window
             ind4 = min(ind4, n)
             indices = np.array(list(range(ind1, ind2)) +
-                               list(range(ind3, ind4)))
+                               list(range(ind3, ind4)), dtype='int32')
         else:
             # For annular PCA, returning all indices (after PA thresholding)
             half1 = range(0, index_prev)

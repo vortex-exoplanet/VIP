@@ -142,21 +142,57 @@ root folder and run:
 
 Using Git
 ^^^^^^^^^
-If you want to benefit from the ``git`` functionalities, you need to clone the
-repository (make sure your system has ``git`` installed):
+If you plan to contribute or experiment with the code you need to make a 
+fork of the repository (click on the fork button in the top right corner) and 
+clone it:
+
+.. code-block:: bash
+
+  $ git clone https://github.com/<replace-by-your-username>/VIP.git
+
+If you do not create a fork, you can still benefit from the ``git`` syncing
+functionalities by cloning the repository (but will not be able to contribute):
 
 .. code-block:: bash
 
   $ git clone https://github.com/vortex-exoplanet/VIP.git
 
-Then you can install the package by following the previous steps, using the
-setup.py file. Creating a fork with GitHub is recommended to developers or to
-users who want to experiment with the code.
+Before installing the package, it is highly recommended to create a dedicated
+conda environment to not mess up with the package versions in your base 
+environment. This can be done easily with (replace vipenv by the name you want
+for your environment):
+
+.. code-block:: bash
+
+  $ conda create -n vipenv python=3.7 ipython
+
+I recommend installing ipython while creating the environment to avoid the most 
+commonly reported issue for VIP failing to load after installation: trying to
+import it from a base py2.7 ipython console.
+
+To install VIP, simply cd into the VIP directory and run the setup file 
+in 'develop' mode:
+
+.. code-block:: bash
+
+  $ cd VIP
+  $ python setup.py develop
+
+Make sure to link your directory to the upstream source, to be able to easily 
+update your local copy when a new version comes out or a bug is fixed:
+
+.. code-block:: bash
+
+  $ git add remote upstream https://github.com/vortex-exoplanet/VIP.git
+
+If you plan to develop VIP or use it intensively, it is highly recommended to 
+also install the optional dependencies listed below.
+
 
 Optional dependencies
 ^^^^^^^^^^^^^^^^^^^^^
-The following dependencies are are not automatically installed upon installation
-of ``VIP`` but may significantly improve your experience:
+The following dependencies are not automatically installed upon installation of
+ ``VIP`` but may significantly improve your experience:
 
 ``VIP`` contains a class ``vip_hci.fits.ds9`` that enables, through ``pyds9``,
 the interaction with a DS9 window (displaying numpy arrays, controlling the

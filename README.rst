@@ -166,9 +166,9 @@ for your environment):
 
   $ conda create -n vipenv python=3.7 ipython
 
-I recommend installing ipython while creating the environment to avoid the most 
-commonly reported issue for VIP failing to load after installation: trying to
-import it from a base py2.7 ipython console.
+Note: installing ipython while creating the environment with the above line will
+avoid a commonly reported issue which stems from trying to import VIP from 
+within a base python2.7 ipython console.
 
 To install VIP, simply cd into the VIP directory and run the setup file 
 in 'develop' mode:
@@ -178,8 +178,9 @@ in 'develop' mode:
   $ cd VIP
   $ python setup.py develop
 
-Make sure to link your directory to the upstream source, to be able to easily 
-update your local copy when a new version comes out or a bug is fixed:
+If cloned from your fork, make sure to link your VIP directory to the upstream 
+source, to be able to easily update your local copy when a new version comes 
+out or a bug is fixed:
 
 .. code-block:: bash
 
@@ -191,8 +192,9 @@ also install the optional dependencies listed below.
 
 Optional dependencies
 ^^^^^^^^^^^^^^^^^^^^^
+
 The following dependencies are not automatically installed upon installation of
- ``VIP`` but may significantly improve your experience:
+``VIP`` but may significantly improve your experience:
 
 ``VIP`` contains a class ``vip_hci.fits.ds9`` that enables, through ``pyds9``,
 the interaction with a DS9 window (displaying numpy arrays, controlling the

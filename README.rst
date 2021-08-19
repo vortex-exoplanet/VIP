@@ -157,7 +157,20 @@ functionalities by cloning the repository (but will not be able to contribute):
 
   $ git clone https://github.com/vortex-exoplanet/VIP.git
 
-To install the package, simply cd into the VIP directory and run the setup file 
+Before installing the package, it is highly recommended to create a dedicated
+conda environment to not mess up with the package versions in your base 
+environment. This can be done easily with (replace vipenv by the name you want
+for your environment):
+
+.. code-block:: bash
+
+  $ conda create -n vipenv python=3.7 ipython
+
+I recommend installing ipython while creating the environment to avoid the most 
+commonly reported issue for VIP failing to load after installation: trying to
+import it from a base py2.7 ipython console.
+
+To install VIP, simply cd into the VIP directory and run the setup file 
 in 'develop' mode:
 
 .. code-block:: bash
@@ -172,11 +185,14 @@ update your local copy when a new version comes out or a bug is fixed:
 
   $ git add remote upstream https://github.com/vortex-exoplanet/VIP.git
 
+If you plan to develop VIP or use it intensively, it is highly recommended to 
+also install the optional dependencies listed below.
+
 
 Optional dependencies
 ^^^^^^^^^^^^^^^^^^^^^
-The following dependencies are are not automatically installed upon installation
-of ``VIP`` but may significantly improve your experience:
+The following dependencies are not automatically installed upon installation of
+ ``VIP`` but may significantly improve your experience:
 
 ``VIP`` contains a class ``vip_hci.fits.ds9`` that enables, through ``pyds9``,
 the interaction with a DS9 window (displaying numpy arrays, controlling the

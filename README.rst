@@ -142,16 +142,36 @@ root folder and run:
 
 Using Git
 ^^^^^^^^^
-If you want to benefit from the ``git`` functionalities, you need to clone the
-repository (make sure your system has ``git`` installed):
+If you plan to contribute or experiment with the code you need to make a 
+fork of the repository (click on the fork button in the top right corner) and 
+clone it:
+
+.. code-block:: bash
+
+  $ git clone https://github.com/<replace-by-your-username>/VIP.git
+
+If you do not create a fork, you can still benefit from the ``git`` syncing
+functionalities by cloning the repository (but will not be able to contribute):
 
 .. code-block:: bash
 
   $ git clone https://github.com/vortex-exoplanet/VIP.git
 
-Then you can install the package by following the previous steps, using the
-setup.py file. Creating a fork with GitHub is recommended to developers or to
-users who want to experiment with the code.
+To install the package, simply cd into the VIP directory and run the setup file 
+in 'develop' mode:
+
+.. code-block:: bash
+
+  $ cd VIP
+  $ python setup.py develop
+
+Make sure to link your directory to the upstream source, to be able to easily 
+update your local copy when a new version comes out or a bug is fixed:
+
+.. code-block:: bash
+
+  $ git add remote upstream https://github.com/vortex-exoplanet/VIP.git
+
 
 Optional dependencies
 ^^^^^^^^^^^^^^^^^^^^^

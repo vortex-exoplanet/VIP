@@ -17,6 +17,7 @@ __all__ = ['frame_shift',
 
 import numpy as np
 import warnings
+from packaging import version
 
 try:
     import cv2
@@ -25,12 +26,17 @@ except ImportError:
     msg = "Opencv python bindings are missing."
     warnings.warn(msg, ImportWarning)
     no_opencv = True
+    
+import skimage
+if version.parse(skimage.__version__) < version.parse("0.17"):
+    from skimage.feature import register_translation  
+else:
+    from skimage.registration import phase_cross_correlation as register_translation
 
 from hciplot import plot_frames
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
 from skimage.transform import radon
-from skimage.feature import register_translation
 from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
 from . import frame_crop

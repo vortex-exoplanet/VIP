@@ -151,7 +151,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
                            verbose=verbose, msg='Processing annuli:',
                            progressbar_single=True)
 
-            res = np.array(res)
+            res = np.array(res, dtype=object)
             mres = res[:, 0]
             yy = res[:, 1]
             xx = res[:, 2]
@@ -225,7 +225,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
                            angle_list, n_annuli, fwhm, radius_int, asize,
                            delta_rot, nframes)
 
-            res = np.array(res)
+            res = np.array(res, dtype=object)
             mres = res[:, 0]
             yy = res[:, 1]
             xx = res[:, 2]

@@ -24,7 +24,7 @@ from ..conf import check_array
 
 
 def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
-                     y_mean=None, fwhm=4, theta=0, gamma=None, alpha=1,
+                     y_mean=None, fwhm=4, theta=0, gamma=None, alpha=1.5,
                      radius=None, msdi=False):
     """ Creates a synthetic 2d or 3d PSF with a 2d model: Airy disk, Gaussian or
     Moffat, depending on ``model``.
@@ -270,7 +270,8 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
                              'centroid_x_err': mean_x_e,
                              'fwhm_y_err': fwhm_y_e, 'fwhm_x_err': fwhm_x_e,
                              'amplitude_err': amplitude_e, 
-                             'theta_err': theta_e}, index=[0])
+                             'theta_err': theta_e}, index=[0],
+                            dtype=np.float64)
     else:
         return mean_y, mean_x
 
@@ -368,8 +369,6 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
     alpha = fit.alpha.value
     gamma = fit.gamma.value
 
-
-
     if debug:
         if threshold:
             label = ('Subimage thresholded', 'Model', 'Residuals')
@@ -402,7 +401,8 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
                              'centroid_x_err': mean_x_err,
                              'fwhm_err': fwhm_err, 'alpha_err': alpha_err, 
                              'gamma_err': gamma_err, 
-                             'amplitude_err': amplitude_err}, index=[0])
+                             'amplitude_err': amplitude_err}, index=[0],
+                            dtype=np.float64)
     else:
         return mean_y, mean_x
 
@@ -449,7 +449,6 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
 
     If ``full_output`` is True it returns a Pandas dataframe containing the
     following columns:
-    'alpha': Float value. Alpha parameter.
     'amplitude' : Float value. Moffat Amplitude.
     'centroid_x' : Float value. X coordinate of the centroid.
     'centroid_y' : Float value. Y coordinate of the centroid.
@@ -758,6 +757,7 @@ def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4,
                              'fwhm_y_neg': fwhm_y_neg, 
                              'fwhm_x_neg': fwhm_x_neg,
                              'amplitude_neg': amplitude_neg, 
-                             'theta_neg': theta_neg}, index=[0])
+                             'theta_neg': theta_neg}, index=[0],
+                            dtype=np.float64)
     else:
         return mean_y, mean_x

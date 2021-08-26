@@ -31,7 +31,8 @@ def akaike(LnL, k):
 
 def blackbody(lbda, T): 
     """
-    Assumes lbda is a wavelength vector in micrometers.
+    Planck function. Returns specific intensity for an input wavelength vector
+    lbda (in micrometers) and a given input temperature.
     """
     fac = 2*c.h.value*(c.c.value**2)/(np.power(lbda*1e-6,5))
     div = (1/(np.exp((c.h.value*c.c.value)/((lbda*1e-6)*c.k_B.value*T))-1))
@@ -300,10 +301,10 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
     Returns:
     --------
     Either:
-    1) index/indices of the closest n value(s) in the array;
-    2) the closest n value(s) in the array, 
-    3) both 1) and 2). 
-    By default, only returns the index/indices
+        (output='index'): index/indices of the closest n value(s) in the array;
+        (output='value'): the closest n value(s) in the array, 
+        (output='both'): closest value(s) and index/-ices, respectively.
+    By default, only returns the index/indices.
     
     Possible constraints: 'ceil', 'floor', None ("ceil" will return the closest 
     element with a value greater than 'value', "floor" the opposite)

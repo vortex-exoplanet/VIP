@@ -266,12 +266,14 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     imlib = algo_options.get('imlib',imlib)
     interpolation = algo_options.get('interpolation',interpolation)
     collapse = algo_options.get('collapse',collapse)
-        
+
+
     if algo == pca_annulus:
         pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, 
                               cube_ref, svd_mode, scaling, imlib=imlib,
                               interpolation=interpolation, collapse=collapse,
                               weights=weights)
+        
     elif algo == pca_annular:
                 
         tol = algo_options.get('tol',1e-1)
@@ -302,25 +304,10 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         # pad again now                      
         pca_res = np.pad(pca_res_tmp,pad,mode='constant',constant_values=0)
         
-    elif algo == pca:
-        hp_filter = algo_options.get('hp_filter',None)
-        hp_kernel = algo_options.get('hp_kernel',None)
+    elif algo == pca: 
         scale_list = algo_options.get('scale_list',None)
         ifs_collapse_range = algo_options.get('ifs_collapse_range','all')
         nproc = algo_options.get('nproc','all')
-        
-        # not recommended, except if large-scale residual sky present (NIRC2-L')
-        if hp_filter is not None:
-            if 'median' in hp_filter:
-                cube = cube_filter_highpass(cube, mode=hp_filter, 
-                                            median_size=hp_kernel)
-            elif "gauss" in hp_filter:
-                cube = cube_filter_highpass(cube, mode=hp_filter, 
-                                            fwhm_size=hp_kernel)
-            else:
-                cube = cube_filter_highpass(cube, mode=hp_filter, 
-                                            kernel_size=hp_kernel)
-        
         pca_res = pca(cube, angs, cube_ref, scale_list, ncomp, 
                       svd_mode=svd_mode, scaling=scaling, imlib=imlib,
                       interpolation=interpolation, collapse=collapse,
@@ -445,12 +432,28 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
 
     radius_int = max(1,int(np.floor(r_guess-annulus_width/2)))
     radius_int = algo_options.get('radius_int', radius_int)
+
+
+    # not recommended, except if large-scale residual sky present (NIRC2-L')
+    hp_filter = algo_options.get('hp_filter',None)
+    hp_kernel = algo_options.get('hp_kernel',None)
+    if hp_filter is not None:
+        if 'median' in hp_filter:
+            cube = cube_filter_highpass(cube, mode=hp_filter, 
+                                        median_size=hp_kernel)
+        elif "gauss" in hp_filter:
+            cube = cube_filter_highpass(cube, mode=hp_filter, 
+                                        fwhm_size=hp_kernel)
+        else:
+            cube = cube_filter_highpass(cube, mode=hp_filter, 
+                                        kernel_size=hp_kernel)
     
     if algo == pca_annulus:
         pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, 
                               cube_ref, svd_mode, scaling, imlib=imlib,
                               interpolation=interpolation, collapse=collapse, 
                               weights=weights)
+        
     elif algo == pca_annular:                
         tol = algo_options.get('tol',1e-1)
         min_frames_lib=algo_options.get('min_frames_lib',2)
@@ -465,7 +468,6 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
         else:
             crop_cube = cube
 
-
         pca_res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int, 
                                   fwhm=fwhm, asize=annulus_width, 
                                   delta_rot=delta_rot, ncomp=ncomp, 
@@ -478,30 +480,18 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
                                   weights=weights)
         # pad again now                      
         pca_res = np.pad(pca_res_tmp,pad,mode='constant',constant_values=0)
+        
     elif algo == pca:
-        hp_filter = algo_options.get('hp_filter',None)
-        hp_kernel = algo_options.get('hp_kernel',None)
         scale_list = algo_options.get('scale_list',None)
         ifs_collapse_range = algo_options.get('ifs_collapse_range','all')
         nproc = algo_options.get('nproc','all')
-        
-        # not recommended, except if large-scale residual sky present (NIRC2-L')
-        if hp_filter is not None:
-            if 'median' in hp_filter:
-                cube = cube_filter_highpass(cube, mode=hp_filter, 
-                                            median_size=hp_kernel)
-            elif "gauss" in hp_filter:
-                cube = cube_filter_highpass(cube, mode=hp_filter, 
-                                            fwhm_size=hp_kernel)
-            else:
-                cube = cube_filter_highpass(cube, mode=hp_filter, 
-                                            kernel_size=hp_kernel)
         
         pca_res = pca(cube, angs, cube_ref, scale_list, ncomp, 
                       svd_mode=svd_mode, scaling=scaling, imlib=imlib,
                       interpolation=interpolation, collapse=collapse,
                       ifs_collapse_range=ifs_collapse_range, nproc=nproc,
                       weights=weights, verbose=False)
+        
     else:
         algo_args = algo_options
         pca_res = algo(cube, angs, **algo_args)

@@ -18,13 +18,13 @@ try:
     from skimage.measure import compare_ssim as ssim
 except:
     # for skimage version '0.18' or above the function is skimage.metrics.structural_similarity
-    from skimage.metrics import structural_similarity as ssim    
+    from skimage.metrics import structural_similarity as ssim
 from ..var import get_annulus_segments, get_circle
 from ..conf import vip_figsize
 
 
 def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
-                  width=None, plot=True):
+                  width=None, mask=None, plot=True):
     """ Computes the distance (or similarity) between frames in a cube, using
     one as the reference (it can be either a frame from the same cube or a
     separate 2d array). Depending on the mode, the whole image can be used,
@@ -51,16 +51,20 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
     ----------
     array : numpy ndarray
         Input cube or 3d array.
-    frame : int or 2d array
-        Reference frame in the cube or 2d array.
-    mode : {'full','annulus'}, string optional
-        Whether to use the full frames or a centered annulus.
+    frame : int, 2d array or None
+        Reference frame in the cube or 2d array. If None, will take the median
+        frame of the 3d array.
+    mode : {'full','annulus', 'mask'}, string optional
+        Whether to use the full frames, a centered annulus or a provided mask.
     dist : {'sad','euclidean','mse','pearson','spearman', 'ssim'}, str optional
         Which criterion to use.
     inradius : None or int, optional
         The inner radius when mode is 'annulus'.
     width : None or int, optional
         The width when mode is 'annulus'.
+    mask: 2d array, optional
+        If mode is 'mask', this is the mask within which the metrics is
+        calculated in the images.
     plot : bool, optional
         Whether to plot the distances or not.
 
@@ -74,22 +78,27 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
         raise TypeError('The input array is not a cube or 3d array')
     lista = []
     n = array.shape[0]
+    if isinstance(frame, int):
+        frame_ref = array[frame]
+    elif isinstance(frame, np.ndarray):
+        frame_ref = frame
+    elif frame is None:
+        frame_ref = np.median(array, axis=0)
+    else:
+        raise TypeError('Input ref frame format not recognized')
     if mode == 'full':
-        if isinstance(frame, int):
-            frame_ref = array[frame]
-        elif isinstance(frame, np.ndarray):
-            frame_ref = frame
+        pass
     elif mode == 'annulus':
         if inradius is None:
             raise ValueError('`Inradius` has not been set')
         if width is None:
             raise ValueError('`Width` has not been set')
-        if isinstance(frame, int):
-            frame_ref = array[frame]
-        elif isinstance(frame, np.ndarray):
-            frame_ref = frame
         frame_ref = get_annulus_segments(frame_ref, inradius, width,
                                          mode="val")[0]
+    elif mode == 'mask':
+        if mask is None:
+            raise ValueError('mask has not been set')
+        frame_ref = frame_ref[np.where(mask)]
     else:
         raise TypeError('Mode not recognized or missing parameters')
 
@@ -99,7 +108,8 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
         elif mode == 'annulus':
             framei = get_annulus_segments(array[i], inradius, width,
                                           mode="val")[0]
-
+        elif mode == 'mask':
+            framei = array[i][np.where(mask)]
         if dist == 'sad':
             lista.append(np.sum(abs(frame_ref - framei)))
         elif dist == 'euclidean':
@@ -114,7 +124,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
             lista.append(spear)
         elif dist == 'ssim':
             mean_ssim = ssim(frame_ref, framei, win_size=7,
-                             dynamic_range=frame_ref.max() - frame_ref.min(),
+                             data_range=frame_ref.max() - frame_ref.min(),
                              gaussian_weights=True, sigma=1.5,
                              use_sample_covariance=True)
             lista.append(mean_ssim)

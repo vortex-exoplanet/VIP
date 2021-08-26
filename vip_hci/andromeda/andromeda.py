@@ -1098,7 +1098,8 @@ def normalize_snr(snr, nsmooth_snr=1, iwa=None, owa=None, oversampling=None,
                 if prof_snr[i] != 0:
                     k = i
             if k is None:  # error handling not present in IDL version.
-                set_trace()
+                import pdb
+                pdb.set_trace()
                 raise RuntimeError("prof_snr is zero!")
 
             for i in range(j - nsmooth_snr, k):

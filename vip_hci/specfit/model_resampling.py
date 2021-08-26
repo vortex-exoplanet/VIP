@@ -214,8 +214,8 @@ def make_model_from_params(params, labels, grid_param_list, dist, lbda_obs=None,
          pc = con.pc.value
          for ii in range(n_bb):
              idx = ii*2
-             dilut_fac = ((params[idx_Tbb1+idx+1]*Rj)/(dist*pc))**2
-             bb = dilut_fac*blackbody(lbda_mod, params[idx_Tbb1+idx])
+             Omega = np.pi*((params[idx_Tbb1+idx+1]*Rj)/(dist*pc))**2
+             bb = Omega*blackbody(lbda_mod, params[idx_Tbb1+idx])
              spec_mod += bb
 
     # apply extinction if requested

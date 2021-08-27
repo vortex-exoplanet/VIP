@@ -21,8 +21,9 @@ from ..preproc.derotation import _find_indices_adi, _define_annuli
 
 
 def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
-               n_similar=None, delta_rot=0.5, radius_int=2, asize=4, ncomp=None,
-               nproc=1, verbose=True, debug=False):
+               n_similar=None, delta_rot=0.5, radius_int=0, asize=4, ncomp=None,
+               nproc=1, imlib='opencv', interpolation='lanczos4', 
+               collapse='median', verbose=True, debug=False):
     """ Frame differencing algorithm. It uses vector distance (depending on
     ``metric``), using separately the pixels from different annuli of ``asize``
     width, to create pairs of most similar images. Then it performs pair-wise
@@ -62,6 +63,10 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         Number of processes for parallel computing. If None the number of
         processes will be set to cpu_count()/2. By default the algorithm works
         in single-process mode.
+    imlib : str, opt
+        See description in vip.preproc.frame_rotate()
+    interpolation : str, opt
+        See description in vip.preproc.frame_rotate()
     verbose: bool, optional
         If True prints info to stdout.
     debug : bool, optional
@@ -95,14 +100,19 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
             print(msg.format(n_annuli))
 
     if nproc is None:
-        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
+        nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
 
     res = pool_map(nproc, _pairwise_ann, iterable(range(n_annuli)),
                    n_annuli, fwhm, angle_list, delta_rot, metric,
-                   dist_threshold, n_similar, radius_int, asize, ncomp,
+                   dist_threshold, n_similar, radius_int, asize, ncomp, 
                    verbose, debug)
 
-    final_frame = np.sum(res, axis=0)
+    #final_frame = np.sum(res, axis=0)
+    cube_out_fin = np.sum(res, axis=0)
+    cube_der = cube_derotate(cube_out_fin, angle_list, imlib=imlib, 
+                             interpolation=interpolation)
+    final_frame = cube_collapse(cube_der, collapse)
+
 
     if verbose:
         print('Done processing annuli')
@@ -112,7 +122,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
 
 
 def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
-                  dist_threshold, n_similar, radius_int, asize, ncomp, verbose,
+                  dist_threshold, n_similar, radius_int, asize, ncomp, verbose, 
                   debug=False):
     """
     Helper functions for pair-wise subtraction for a single annulus.
@@ -182,7 +192,6 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
                 cube_res.append(res)
 
         cube_res = np.array(cube_res)
-        angles_list = angles
 
     # taking just the most similar frame
     else:
@@ -219,9 +228,7 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
 
     cube_out = np.zeros((cube_res.shape[0], array.shape[1], array.shape[2]))
     cube_out[:, yy, xx] = cube_res
-    cube_der = cube_derotate(cube_out, angles_list)
-    frame_der_median = cube_collapse(cube_der, 'median')
 
-    return frame_der_median
+    return cube_out
 
 

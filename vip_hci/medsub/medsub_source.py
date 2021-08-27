@@ -128,11 +128,13 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
         ARRAY -= model_psf
 
         # Depending on the ``mode``
+        cube_out = ARRAY
         if mode == 'fullfr':
-            if radius_int > 0:
-                cube_out = mask_circle(ARRAY, radius_int)
-            else:
-                cube_out = ARRAY
+            # MASK AFTER DEROTATION TO AVOID ARTEFACTS
+            # if radius_int > 0:
+            #     cube_out = mask_circle(ARRAY, radius_int, fillwith=np.nan)
+            # else:
+            #     cube_out = ARRAY
             if verbose:
                 print('Median psf reference subtracted')
 
@@ -155,7 +157,8 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
             mres = res[:, 0]
             yy = res[:, 1]
             xx = res[:, 2]
-            cube_out = np.zeros_like(ARRAY)
+            #cube_out = np.zeros_like(ARRAY)
+            #cube_out[:] = np.nan
             for ann in range(n_annuli):
                 cube_out[:, yy[ann], xx[ann]] = mres[ann]
 
@@ -167,6 +170,9 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
 
         cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
                                  interpolation=interpolation)
+        if radius_int:
+            cube_out = mask_circle(cube_out, radius_int)
+            cube_der = mask_circle(cube_der, radius_int)
         frame = cube_collapse(cube_der, mode=collapse)
 
     elif ARRAY.ndim == 4:
@@ -207,7 +213,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
             print('Median subtraction in the ADI fashion')
 
         if mode == 'fullfr':
-            median_frame = np.median(residuals_cube_channels, axis=0)
+            median_frame = np.nanmedian(residuals_cube_channels, axis=0)
             cube_out = residuals_cube_channels - median_frame
             cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
                                      interpolation=interpolation)
@@ -235,6 +241,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
                 print_precision(pa_thrs)
 
             cube_out = np.zeros_like(ARRAY)
+            cube_out[:] = np.nan
             for ann in range(n_annuli):
                 cube_out[:, yy[ann], xx[ann]] = mres[ann]
 
@@ -266,7 +273,6 @@ def _median_subt_fr_sdi(fr, wl, n_annuli, fwhm, radius_int, annulus_width,
 
     if mode == 'annular':
         cube_res = np.zeros_like(multispec_fr)  # shape (z, resc_y, resc_x)
-
         if isinstance(delta_sep, tuple):
             delta_sep_vec = np.linspace(delta_sep[0], delta_sep[1], n_annuli)
         else:
@@ -289,13 +295,13 @@ def _median_subt_fr_sdi(fr, wl, n_annuli, fwhm, radius_int, annulus_width,
                 indices_left = _find_indices_sdi(wl, ann_center, j, fwhm,
                                                  delta_sep_vec[ann], nframes)
                 matrix_masked = matrix[indices_left]
-                ref_psf_opt = np.median(matrix_masked, axis=0)
+                ref_psf_opt = np.nanmedian(matrix_masked, axis=0)
                 curr_wv = matrix[j]
                 subtracted = curr_wv - ref_psf_opt
                 cube_res[j, yy, xx] = subtracted
 
     elif mode == 'fullfr':
-        median_frame = np.median(multispec_fr, axis=0)
+        median_frame = np.nanmedian(multispec_fr, axis=0)
         cube_res = multispec_fr - median_frame
 
     frame_desc = scwave(cube_res, scale_list, full_output=False, inverse=True,
@@ -339,7 +345,7 @@ def _median_subt_ann_adi(ann, angle_list, n_annuli, fwhm, radius_int,
         else:
             matrix_disc = matrix
 
-        ref_psf_opt = np.median(matrix_disc, axis=0)
+        ref_psf_opt = np.nanmedian(matrix_disc, axis=0)
         curr_frame = matrix[frame]
         subtracted = curr_frame - ref_psf_opt
         matrix_res[frame] = subtracted

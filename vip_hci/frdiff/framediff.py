@@ -226,8 +226,9 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
             res = values[indices[i][0]] - values[indices[i][1]]
             cube_res[i] = res
 
-    cube_out = np.zeros((cube_res.shape[0], array.shape[1], array.shape[2]))
-    cube_out[:, yy, xx] = cube_res
+    cube_out = np.zeros((array.shape[0], array.shape[1], array.shape[2]))
+    for i in range(n_frames):
+        cube_out[i, yy, xx] = cube_res[i]
 
     return cube_out
 

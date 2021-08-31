@@ -12,7 +12,6 @@ __all__ = ['collapse_psf_cube',
            'frame_inject_companion']
 
 import numpy as np
-np_elements = (np.int64,np.int32,np.float64,np.float32)
 from scipy import stats
 from scipy.interpolate import interp1d
 import photutils
@@ -188,14 +187,14 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                                                  -(np.rad2deg(ang)-angle_list[fr]))
                     else:
                         fc_fr_ang = fc_fr[fr]
-                    if isinstance(flevel, (int, float, np_elements)):
-                        array_out[fr] += (frame_shift(fc_fr_ang, shift_y, shift_x,
-                                                  imlib, interpolation)
-                                      * flevel)
-                    else:
+                    if isinstance(flevel, (list, tuple, np.ndarray)):
                         array_out[fr] += (frame_shift(fc_fr_ang, shift_y, shift_x,
                                               imlib, interpolation)
                                   * flevel[fr])
+                    else:
+                        array_out[fr] += (frame_shift(fc_fr_ang, shift_y, shift_x,
+                                                  imlib, interpolation)
+                                      * flevel)
                             
                 pos_y = rad * np.sin(ang) + ceny
                 pos_x = rad * np.cos(ang) + cenx
@@ -249,11 +248,11 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     shift = cube_shift(fc_fr, shift_y, shift_x, imlib,
                                        interpolation)
 
-                    if isinstance(flevel, (int, float, np_elements)):
-                        array_out[:, fr] += shift * flevel
-                    else:
+                    if isinstance(flevel, (list, tuple, np.ndarray)):
                         for i in range(len(flevel)):
                             array_out[i, fr] += shift[i] * flevel[i]
+                    else:
+                        array_out[:, fr] += shift * flevel
 
                 pos_y = rad * np.sin(ang) + ceny
                 pos_x = rad * np.cos(ang) + cenx

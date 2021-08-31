@@ -9,7 +9,7 @@ __all__ = []
 
 import numpy as np
 from hciplot import plot_frames
-from skimage.draw import circle
+from skimage.draw import disk
 from ..metrics import cube_inject_companions
 from ..var import frame_center, get_annular_wedge, cube_filter_highpass
 from ..pca import pca_annulus, pca_annular, pca
@@ -317,7 +317,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         algo_args = algo_options
         pca_res = algo(cube, angs, **algo_args)
                                   
-    indices = circle(posy, posx, radius=aperture_radius*fwhm)
+    indices = disk((posy, posx), radius=aperture_radius*fwhm)
     yy, xx = indices
 
     if collapse is None:

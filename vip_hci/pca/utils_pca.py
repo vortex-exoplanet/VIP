@@ -10,7 +10,7 @@ __all__ = ['pca_annulus']
 import numpy as np
 from sklearn.decomposition import IncrementalPCA
 from pandas import DataFrame
-from skimage import draw
+from skimage.draw import disk
 from matplotlib import pyplot as plt
 from ..fits import open_fits
 from ..preproc import cube_rescaling_wavelengths as scwave
@@ -235,7 +235,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         """
         """
         if fmerit == 'max':
-            yy, xx = draw.circle(y, x, fwhm / 2.)
+            yy, xx = disk((y, x), fwhm / 2.)
             res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
                        full_output=True)
                    for y_, x_ in zip(yy, xx)]
@@ -254,7 +254,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
             return snrpx, fluxpx
 
         elif fmerit == 'mean':
-            yy, xx = draw.circle(y, x, fwhm / 2.)
+            yy, xx = disk((y, x), fwhm / 2.)
             res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
                        full_output=True) for y_, x_
                    in zip(yy, xx)]

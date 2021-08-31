@@ -11,11 +11,8 @@ import numpy as np
 from multiprocessing import cpu_count
 from sklearn.decomposition import NMF
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
-from ..preproc.derotation import (_compute_pa_thresh, _find_indices_adi,
-                                  _define_annuli)
-from ..stats import descriptive_stats
-from ..var import (prepare_matrix, reshape_matrix, frame_center, dist,
-                   get_annulus_segments, matrix_scaling)
+from ..preproc.derotation import _find_indices_adi, _define_annuli
+from ..var import get_annulus_segments, matrix_scaling
 from ..conf import timing, time_ini
 from ..conf.utils_conf import pool_map, iterable
 

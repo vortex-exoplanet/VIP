@@ -107,7 +107,8 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
     
     # how to handle negative values
     if handle_neg == 'mask':
-        array = mask_circle(array, mask_center_px)
+        if mask_center_px:
+            array = mask_circle(array, mask_center_px)
         if cube_sig is not None:
             yy, xx = np.where(np.amin(array-np.abs(cube_sig),axis=0)>0)
         else:

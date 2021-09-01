@@ -12,7 +12,6 @@ __all__ = ['collapse_psf_cube',
            'frame_inject_companion']
 
 import numpy as np
-np_elements = (np.int64,np.int32,np.float64,np.float32)
 from scipy import stats
 from scipy.interpolate import interp1d
 import photutils
@@ -96,6 +95,10 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
     if not isinstance(plsc, float):
         raise TypeError("`plsc` must be a float")
+    if not np.isscalar(flevel):
+        if len(flevel) != array.shape[0]:
+            msg = "if not scalar `flevel` must have same length as array"
+            raise TypeError(msg) 
 
     rad_dists = np.asarray(rad_dists).reshape(-1)  # forces ndim=1
     positions = []
@@ -188,7 +191,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                                                  -(np.rad2deg(ang)-angle_list[fr]))
                     else:
                         fc_fr_ang = fc_fr[fr]
-                    if isinstance(flevel, (int, float, np_elements)):
+                    if np.isscalar(flevel):
                         array_out[fr] += (frame_shift(fc_fr_ang, shift_y, shift_x,
                                                   imlib, interpolation)
                                       * flevel)
@@ -249,7 +252,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     shift = cube_shift(fc_fr, shift_y, shift_x, imlib,
                                        interpolation)
 
-                    if isinstance(flevel, (int, float, np_elements)):
+                    if np.isscalar(flevel):
                         array_out[:, fr] += shift * flevel
                     else:
                         for i in range(len(flevel)):

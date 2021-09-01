@@ -448,7 +448,7 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
                            ncompann, min_frames_lib, max_frames_lib, tol,
                            matrix_segm_ref, matrix_sig_segm)
 
-            res = np.array(res)
+            res = np.array(res, dtype=object)
             residuals = np.array(res[:, 0])
             ncomps = res[:, 1]
             nfrslib = res[:, 2]

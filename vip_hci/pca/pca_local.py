@@ -343,7 +343,8 @@ def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
                 matrix_ref = matrix[indices_left]
                 curr_frame = matrix[j]  # current frame
                 V = get_eigenvectors(ncomp, matrix_ref, svd_mode,
-                                     noise_error=tol, debug=False)
+                                     noise_error=tol, debug=False, 
+                                     scaling=scaling)
                 transformed = np.dot(curr_frame, V.T)
                 reconstructed = np.dot(transformed.T, V)
                 residuals = curr_frame - reconstructed

@@ -160,6 +160,19 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         The log of the likelihood.
         
     """
+    ## set imlib for rotation and shift
+    if imlib == 'opencv':
+        imlib_rot = imlib
+        imlib_sh = imlib
+    elif imlib == 'skimage' or imlib == 'ndimage-interp':
+        imlib_rot = 'skimage'
+        imlib_sh = 'ndimage-interp'
+    elif imlib == 'vip-fft' or imlib == 'ndimage-fourier':
+        imlib_rot = 'vip-fft'
+        imlib_sh = 'ndimage-fourier'
+    else:
+        raise TypeError("Interpolation not recognized.")
+    
     # Create the cube with the negative fake companion injected
     if weights is None:   
         flux = -param[2]
@@ -170,7 +183,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
     cube_negfc = cube_inject_companions(cube, psf_norm, angs, flevel=flux,
                                         plsc=plsc, rad_dists=[param[0]],
                                         n_branches=1, theta=param[1],
-                                        imlib=imlib, 
+                                        imlib=imlib_sh, 
                                         interpolation=interpolation,
                                         transmission=transmission,
                                         verbose=False)
@@ -181,7 +194,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
                                  aperture_radius, fwhm, initial_state[0],
                                  initial_state[1], cube_ref=cube_ref,
                                  svd_mode=svd_mode, scaling=scaling,
-                                 algo=algo, delta_rot=delta_rot, imlib=imlib, 
+                                 algo=algo, delta_rot=delta_rot, imlib=imlib_rot, 
                                  interpolation=interpolation, collapse=collapse, 
                                  algo_options=algo_options, 
                                  weights=norm_weights)
@@ -315,16 +328,16 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
 
 def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         annulus_width=8, aperture_radius=1, cube_ref=None,
-                        svd_mode='lapack', scaling='temp-mean', 
-                        algo=pca_annulus, delta_rot=1, fmerit='sum',
-                        imlib='opencv', interpolation='lanczos4',
-                        collapse='median', algo_options={}, wedge=None, 
-                        weights=None, transmission=None, mu_sigma=None, 
-                        nwalkers=100, bounds=None, a=2.0, burnin=0.3, 
-                        rhat_threshold=1.01, rhat_count_threshold=1, 
-                        niteration_min=10, niteration_limit=10000, 
-                        niteration_supp=0, check_maxgap=20, conv_test='gb',
-                        ac_c=50, ac_count_thr=3, nproc=1, output_dir='results/', 
+                        svd_mode='lapack', scaling=None, algo=pca_annulus, 
+                        delta_rot=1, fmerit='sum', imlib='opencv', 
+                        interpolation='lanczos4', collapse='median', 
+                        algo_options={}, wedge=None, weights=None, 
+                        transmission=None, mu_sigma=None, nwalkers=100, 
+                        bounds=None, a=2.0, burnin=0.3, rhat_threshold=1.01, 
+                        rhat_count_threshold=1, niteration_min=10, 
+                        niteration_limit=10000, niteration_supp=0, 
+                        check_maxgap=20, conv_test='gb', ac_c=50, 
+                        ac_count_thr=3, nproc=1, output_dir='results/', 
                         output_file=None, display=False, verbosity=0, 
                         save=False):
     r""" Runs an affine invariant mcmc sampling algorithm in order to determine
@@ -389,9 +402,17 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         Chooses the figure of merit to be used. stddev works better for close in
         companions sitting on top of speckle noise.
     imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+        Imlib used for both image rotation and sub-px shift:
+            - "opencv": will use it for both;
+            - "skimage" or "ndimage-interp" will use scikit-image and 
+            scipy.ndimage for rotation and shift resp.;
+            - "ndimage-fourier" or "vip-fft" will use Fourier transform based 
+            methods for both.
     interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+        Interpolation order. See the documentation of the 
+        ``vip_hci.preproc.frame_rotate`` function. Note that the interpolation 
+        options are identical for rotation and shift within each of the 3 imlib 
+        cases above.
     collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
@@ -539,7 +560,17 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         if psfn.shape[0] != cube.shape[0]:
             msg = "If PSF is 3D, number of frames must match cube length"
             raise TypeError(msg)
-
+            
+    ## set imlib for rotation and shift
+    if imlib == 'opencv':
+        imlib_rot = imlib
+    elif imlib == 'skimage' or imlib == 'ndimage-interp':
+        imlib_rot = 'skimage'
+    elif imlib == 'vip-fft' or imlib == 'ndimage-fourier':
+        imlib_rot = 'vip-fft'
+    else:
+        raise TypeError("Interpolation not recognized.")
+        
     # #########################################################################
     # Initialization of the variables
     # #########################################################################
@@ -561,7 +592,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                      initial_state[1], cube_ref=cube_ref, 
                                      wedge=wedge, svd_mode=svd_mode, 
                                      scaling=scaling, algo=algo, 
-                                     delta_rot=delta_rot, imlib=imlib, 
+                                     delta_rot=delta_rot, imlib=imlib_rot, 
                                      interpolation=interpolation,
                                      collapse=collapse, weights=norm_weights, 
                                      algo_options=algo_options)
@@ -570,17 +601,6 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
             msg+= "companion (excluding the PA area directly adjacent to it)"
             msg+=" are {:.2f} and {:.2f} respectively."
             print(msg.format(mu_sigma[0],mu_sigma[1]))
-
-#    pca_args['mu']=mu
-#    pca_args['sigma']=sigma
-    # if does not work, activate scale fac
-    
-    # If companion flux is too low MCMC will not converge. Solution: scale up 
-    # the intensities in the cube after injecting the negfc.
-#    if initial_state[2] < 100:
-#        scale_fac = 100./initial_state[2]
-#    else:
-    #scale_fac = 1
         
     if itermin > limit:
         itermin = 0
@@ -611,8 +631,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                            aperture_radius, initial_state,
                                            cube_ref, svd_mode, scaling, algo,
                                            delta_rot, fmerit, imlib, 
-                                           interpolation, collapse, algo_options, 
-                                           weights, transmission, mu_sigma]),
+                                           interpolation, collapse, 
+                                           algo_options, weights, transmission, 
+                                           mu_sigma]),
                                     threads=nproc)
 
     if verbosity > 0:
@@ -728,8 +749,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                 else:
                     raise ValueError('conv_test value not recognized')
                 # append the autocorrelation factor to file for easy reading
-                with open(output_dir + '/MCMC_results_tau.txt', 'a') as f:
-                    f.write(str(rhat) + '\n')
+                if save:
+                    with open(output_dir + '/MCMC_results_tau.txt', 'a') as f:
+                        f.write(str(rhat) + '\n')
         # We have reached the maximum number of steps for our Markov chain.
         if k+1 >= stop:
             if verbosity > 0:
@@ -739,33 +761,13 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     if k == nIterations-1:
         if verbosity > 0:
             print("We have reached the limit # of steps without convergence")
-            
-    # #########################################################################
-    # Construction of the independent samples
-    # #########################################################################
-    temp = np.where(chain[0, :, 0] == 0.0)[0]
-    if len(temp) != 0:
-        idxzero = temp[0]
-    else:
-        idxzero = chain.shape[1]
-    
-    # commented due to arbitrary cutoffs, rather tweak "burnin":
-    # idx = int(np.amin([np.floor(2e5/nwalkers), np.floor(0.1*idxzero)]))
-    
-    idx=0
-        
-    if idx == 0:
-        isamples = chain[:, 0:idxzero, :]
-    else:
-        isamples = chain[:, idxzero-idx:idxzero, :]
 
     if save:
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         input_parameters = {j: values[j] for j in args[1:]}
         
-        output = {'isamples': isamples,
-                  'chain': chain_zero_truncated(chain),
+        output = {'chain': chain_zero_truncated(chain),
                   'input_parameters': input_parameters,
                   'AR': sampler.acceptance_fraction,
                   'lnprobability': sampler.lnprobability}
@@ -1056,7 +1058,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                     ax[0][j].set_ylabel('Counts')
     
                 mu[j], sigma[j] = norm.fit(isamples[:, j])
-                n_fit, bins_fit = np.histogram(isamples[:, j], bins, normed=1,
+                n_fit, bins_fit = np.histogram(isamples[:, j], bins, density=1,
                                                weights=weights)
                 ax[1][j].hist(isamples[:, j], bins, density=1, weights=weights,
                               facecolor='gray', edgecolor='darkgray',
@@ -1074,7 +1076,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                                        fontsize=10)
     
             else:            
-                ax[j].hist(isamples[arg,j],bins=bin_vertices, facecolor='gray',
+                ax[j].hist(isamples[arg,j], bins=bin_vertices, facecolor='gray',
                            edgecolor='darkgray', histtype='stepfilled',
                            alpha=0.5)
                 ax[j].vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
@@ -1103,7 +1105,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                     ax[0].set_ylabel('Counts')
     
                 mu[j], sigma[j] = norm.fit(isamples[:])
-                n_fit, bins_fit = np.histogram(isamples[:], bins, normed=1,
+                n_fit, bins_fit = np.histogram(isamples[:], bins, density=1,
                                                weights=weights)
                 ax[1].hist(isamples[:], bins, density=1, weights=weights,
                               facecolor='gray', edgecolor='darkgray',

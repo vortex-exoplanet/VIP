@@ -5,7 +5,8 @@ Module with helping functions for PCA.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['pca_annulus']
+__all__ = ['pca_annulus',
+           'pca_grid']
 
 import numpy as np
 from sklearn.decomposition import IncrementalPCA
@@ -389,10 +390,10 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
             if save_plot is not None:
                 plt.savefig(save_plot, dpi=100, bbox_inches='tight')
 
-            finalfr = cubeout[argmax]
-            _ = frame_report(finalfr, fwhm, (x, y), verbose=verbose)
+        finalfr = cubeout[argmax]
+        _ = frame_report(finalfr, fwhm, (x, y), verbose=verbose)
 
-            return cubeout, finalfr, df, opt_npc
+        return cubeout, finalfr, df, opt_npc
 
     else:
         if verbose:

@@ -16,7 +16,7 @@ import numpy as np
 import photutils
 from scipy.stats import norm, t
 from hciplot import plot_frames
-from skimage import draw
+from skimage.draw import disk, circle_perimeter
 from matplotlib import pyplot as plt
 from astropy.convolution import convolve, Tophat2DKernel
 from astropy.stats import median_absolute_deviation as mad
@@ -162,7 +162,7 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
             anny, annx = get_annulus_segments(array, int(radd-fwhm),
                                               int(np.round(3 * fwhm)))[0]
 
-            ciry, cirx = draw.circle(y, x, int(np.ceil(fwhm)))
+            ciry, cirx = disk((y, x), int(np.ceil(fwhm)))
             # masking the sources positions (using the MAD of pixels in annulus)
             arr_masked_sources[ciry, cirx] = mad(array[anny, annx])
 
@@ -204,10 +204,10 @@ def _snr_approx(array, source_xy, fwhm, centery, centerx):
     """
     sourcex, sourcey = source_xy
     rad = dist(centery, centerx, sourcey, sourcex)
-    ind_aper = draw.circle(sourcey, sourcex, fwhm/2.)
+    ind_aper = disk((sourcey, sourcex), fwhm/2.)
     # noise : STDDEV in convolved array of 1px wide annulus (while
     # masking the flux aperture) * correction of # of resolution elements
-    ind_ann = draw.circle_perimeter(int(centery), int(centerx), int(rad))
+    ind_ann = circle_perimeter(int(centery), int(centerx), int(rad))
     array2 = array.copy()
     array2[ind_aper] = mad(array[ind_ann])  # mask
     n2 = (2 * np.pi * rad) / fwhm - 1
@@ -464,7 +464,7 @@ def frame_report(array, fwhm, source_xy=None, verbose=True):
             obj_flux_i = obj_flux_i['aperture_sum'][0]
 
             # we get the mean and stddev of SNRs on aperture
-            yy, xx = draw.circle(y, x, fwhm / 2)
+            yy, xx = disk((y, x), fwhm / 2)
             snr_pixels_i = [snr(array, (x_, y_), fwhm, plot=False,
                                 verbose=False) for y_, x_ in zip(yy, xx)]
             meansnr_i = np.mean(snr_pixels_i)
@@ -503,7 +503,7 @@ def frame_report(array, fwhm, source_xy=None, verbose=True):
         obj_flux_i = obj_flux_i['aperture_sum'][0]
 
         # we get the mean and stddev of SNRs on aperture
-        yy, xx = draw.circle(y, x, fwhm / 2.)
+        yy, xx = disk((y, x), fwhm / 2.)
         snr_pixels_i = [snr(array, (x_, y_), fwhm, plot=False,
                             verbose=False) for y_, x_ in zip(yy, xx)]
         meansnr_pixels = np.mean(snr_pixels_i)

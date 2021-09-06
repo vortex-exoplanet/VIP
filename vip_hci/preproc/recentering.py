@@ -65,7 +65,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
     interpolation : str, optional
         Only used in case of imlib is set to 'opencv' or 'ndimage-interp'
         (Scipy.ndimage), where the images are shifted via interpolation.
-        For Scipy.ndimage the options are: 'nearneig', bilinear', 'bicuadratic',
+        For Scipy.ndimage the options are: 'nearneig', bilinear', 'biquadratic',
         'bicubic', 'biquartic' or 'biquintic'. The 'nearneig' interpolation is
         the fastest and the 'biquintic' the slowest. The 'nearneig' is the
         poorer option for interpolation of noisy astronomical images.
@@ -102,7 +102,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
             order = 0
         elif interpolation == 'bilinear':
             order = 1
-        elif interpolation == 'bicuadratic':
+        elif interpolation == 'biquadratic':
             order = 2
         elif interpolation == 'bicubic':
             order = 3

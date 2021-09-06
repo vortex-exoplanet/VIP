@@ -10,8 +10,6 @@ __all__ = ['cube_derotate',
            'frame_rotate',
            'rotate_fft']
 
-from astropy.convolution import interpolate_replace_nans as interp_nan
-from astropy.convolution import Gaussian2DKernel
 from astropy.stats import sigma_clipped_stats
 import numpy as np
 from numpy.fft import fft, ifft, fftshift, fftfreq
@@ -26,11 +24,17 @@ except ImportError:
     msg = "Opencv python bindings are missing."
     warnings.warn(msg, ImportWarning)
     no_opencv = True
-from scipy.ndimage import fourier_shift
+try:
+    from numba import njit
+    no_numba = False
+except ImportError:
+    msg = "Numba python bindings are missing. "
+    msg+= "Consider installing Numba for faster fft-based image rotations."
+    warnings.warn(msg, ImportWarning)
+    no_numba = True
 from skimage.transform import rotate
 from multiprocessing import cpu_count
-from .cosmetics import frame_crop, frame_pad
-from .recentering import frame_shift
+from .cosmetics import frame_pad
 from ..conf.utils_conf import pool_map, iterable
 from ..var import frame_center, frame_filter_lowpass  
     
@@ -39,7 +43,7 @@ data_array = None  # holds the (implicitly mem-shared) data array
 
 def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
                  cxy=None, border_mode='constant', mask_val=np.nan, 
-                 edge_blend=None, interp_zeros=False):
+                 edge_blend=None, interp_zeros=False, ker=1):
     """ Rotates a frame or 2D array.
     
     Parameters
@@ -96,6 +100,8 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
         Whether to interpolate zeros in the frame before (de)rotation. Not 
         dealing with them can induce a Gibbs phenomenon near their location. 
         However, this flag should be false if rotating a binary mask. 
+    ker: float, opt
+        Size of the Gaussian kernel used for interpolation.
         
     Returns
     -------
@@ -119,13 +125,10 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
             mask_ori = np.where(array==mask_val)
         array_nan = array.copy()
         array_zeros = array.copy()
-        if interp_zeros == 1: # set to nans for interpolation
-            array_nan[np.where(array==0)]=np.nan
+        if interp_zeros == 1 or mask_val!=0: # set to nans for interpolation
+            array_nan[np.where(array==mask_val)]=np.nan
         else:
             array_zeros[np.where(np.isnan(array))]=0
-            if interp_zeros == -1:
-                array_fill = array.copy()
-                array_fill[np.where(array==0)]=np.nan
         if 'noise' in edge_blend :
             # evaluate std and med far from the star, avoiding nans
             _, med, stddev = sigma_clipped_stats(array_nan, sigma=1.5,
@@ -163,10 +166,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
             array_prep[y0_p:y1_p,x0_p:x1_p] = array_zeros.copy()
         # interpolate nans with a Gaussian filter
         if 'interp' in edge_blend:
-            if interp_zeros == -1:
-                array_prep2[y0_p:y1_p,x0_p:x1_p] = array_fill.copy()
-            else:
-                array_prep2[y0_p:y1_p,x0_p:x1_p] = array_nan.copy()
+            array_prep2[y0_p:y1_p,x0_p:x1_p] = array_nan.copy()
             #gauss_ker1 = Gaussian2DKernel(x_stddev=int(array_nan.shape[0]/15))
             # Lanczos4 requires 4 neighbours & default Gaussian box=8*stddev+1:
             #gauss_ker2 = Gaussian2DKernel(x_stddev=1)
@@ -174,10 +174,11 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
             cond2 = np.isnan(array_prep2)
             new_nan = np.where(cond1&cond2)
             mask_nan = np.where(np.isnan(array_prep2))
-            ker1 = array_nan.shape[0]/5
+            if not ker:
+                ker = array_nan.shape[0]/5
             ker2 = 1
             array_prep_corr1 = frame_filter_lowpass(array_prep2, mode='gauss',
-                                                    fwhm_size=ker1)
+                                                    fwhm_size=ker)
             #interp_nan(array_prep2, kernel=gauss_ker1)
             if 'noise' in edge_blend:
                 array_prep_corr2 = frame_filter_lowpass(array_prep2, 
@@ -304,7 +305,6 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
 def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
                   cxy=None, nproc=1, border_mode='constant', mask_val=np.nan,
                   edge_blend=None, interp_zeros=False):
-                  #edge_blend=None, interp_zeros=False):
     """ Rotates an cube (3d array or image sequence) providing a vector or
     corresponding angles. Serves for rotating an ADI sequence to a common north
     given a vector with the corresponding parallactic angles for each frame. By
@@ -510,6 +510,7 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
     return pa_threshold, inner_radius, ann_center
 
 
+
 def rotate_fft(array, angle):
     """ Rotates a frame or 2D array using Fourier transform phases:
         Rotation = 3 consecutive lin. shears = 3 consecutive FFT phase shifts 
@@ -537,52 +538,7 @@ def rotate_fft(array, angle):
     array_out : numpy ndarray
         Resulting frame.
         
-    """
-    def _get_shear(a, arr_ori, F_u=None, ax=1):
-        narr_x = arr_ori.copy()
-        if F_u is not None:
-            cyx = frame_center(F_u) 
-            y_FFT, x_FFT = F_u.shape
-            arr_xy = np.mgrid[0:y_FFT,0:x_FFT]
-            narr_x = arr_xy[ax]-cyx[ax]
-        arr_u = np.zeros_like(narr_x)
-        ax2=1-ax%2
-        for i in range(arr_u.shape[ax]):
-            u = fftfreq(arr_u.shape[ax2])
-            if ax==1:
-                arr_u[:,i] = fftshift(u)
-            else:
-                arr_u[i] = fftshift(u)
-        shear = np.exp(-2j*np.pi*a*arr_u*narr_x)  
-        return shear
-
-    def _fft_shear(arr, arr_ori, c, ax, pad=0, shift_ini=True):
-        if pad == 0:
-            shear = _get_shear(c, arr_ori, ax=ax)
-            s_x = fftshift(ifft(fftshift(shear*fftshift(fft(fftshift(arr), 
-                                                            axis=ax))), 
-                                axis=ax))
-        elif pad == 1:
-            # not working properly
-            new_n = int(arr.shape[ax]*2)
-            tmp = fftshift(fft(fftshift(arr), n=new_n, axis=ax))
-            shear = _get_shear(c, arr_ori, tmp, ax=ax,fac=2)
-            s_x = fftshift(ifft(fftshift(shear*tmp), axis=ax))
-        elif pad == 2: 
-            # not working properly either
-            # add axes in shift?
-            new_n = int(arr.shape[ax]*2)
-            tmp = fftshift(fft(fftshift(arr), n=new_n, axis=ax),axes=ax)
-            shear = _get_shear(c, arr_ori, tmp, ax=ax,fac=2)
-            s_x = fftshift(ifft(fftshift(shear*tmp,axes=ax), axis=ax),axes=ax)
-        else:
-            # no add. pad, but not original dimensions either (e.g. 3rd shear)
-            tmp = fftshift(fft(fftshift(arr), axis=ax))
-            shear = _get_shear(c, arr_ori, tmp, ax=ax)
-            s_x = fftshift(ifft(fftshift(shear*tmp), axis=ax))
-            
-        return s_x
-     
+    """     
     y_ori, x_ori = array.shape
     
     while angle<0:
@@ -628,3 +584,21 @@ def rotate_fft(array, angle):
         array_out = np.real(s_xyx)
         
     return array_out
+
+
+def _fft_shear(arr, arr_ori, c, ax, pad=0, shift_ini=True):
+    ax2=1-ax%2
+    freqs = fftfreq(arr_ori.shape[ax2])
+    sh_freqs = fftshift(freqs)
+    arr_u = np.tile(sh_freqs, (arr_ori.shape[ax],1))
+    if ax==1:
+        arr_u = arr_u.T
+    s_x = fftshift(arr)
+    s_x = fft(s_x, axis=ax)
+    s_x = fftshift(s_x)
+    s_x = np.exp(-2j*np.pi*c*arr_u*arr_ori)*s_x
+    s_x = fftshift(s_x)
+    s_x = ifft(s_x, axis=ax)
+    s_x = fftshift(s_x)
+        
+    return s_x

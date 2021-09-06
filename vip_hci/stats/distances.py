@@ -14,11 +14,11 @@ import scipy.stats
 from scipy.optimize import curve_fit
 from matplotlib import pyplot as plt
 try:
-    # before skimage version '0.18' the function is skimage.measure.compare_ssim
-    from skimage.measure import compare_ssim as ssim
-except:
-    # for skimage version '0.18' or above the function is skimage.metrics.structural_similarity
+    # for skimage version >= '0.16' use skimage.metrics.structural_similarity
     from skimage.metrics import structural_similarity as ssim
+except:
+    # before skimage version '0.16' use skimage.measure.compare_ssim
+    from skimage.measure import compare_ssim as ssim
 from ..var import get_annulus_segments, get_circle
 from ..conf import vip_figsize
 

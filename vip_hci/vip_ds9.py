@@ -142,7 +142,7 @@ class Ds9Window(object):
         for i, array in enumerate(arrays):
             if i == 0:
                 self.create_frame()
-                if isinstance(array, Dataset):
+                if isinstance(array, Dataset) or array.ndim==3:
                     self.window.set_np2arr(array.cube)
                 if isinstance(array, Frame):
                     self.window.set_np2arr(array.image)
@@ -150,7 +150,7 @@ class Ds9Window(object):
                     self.window.set_np2arr(array)
             else:
                 self.window.set('frame new')
-                if isinstance(array, Dataset):
+                if isinstance(array, Dataset) or array.ndim==3:
                     self.window.set_np2arr(array.cube)
                 if isinstance(array, Frame):
                     self.window.set_np2arr(array.image)

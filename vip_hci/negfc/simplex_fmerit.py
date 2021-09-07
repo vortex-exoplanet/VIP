@@ -121,6 +121,19 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
             msg = 'modelParameters must be a tuple, {} was given'
             print(msg.format(type(modelParameters)))
 
+    ## set imlib for rotation and shift
+    if imlib == 'opencv':
+        imlib_sh = imlib
+        imlib_rot = imlib
+    elif imlib == 'skimage' or imlib == 'ndimage-interp':
+        imlib_sh = 'ndimage-interp'
+        imlib_rot = 'skimage'
+    elif imlib == 'vip-fft' or imlib == 'ndimage-fourier':
+        imlib_sh = 'ndimage-fourier'
+        imlib_rot = 'vip-fft'
+    else:
+        raise TypeError("Interpolation not recognized.")
+
     if weights is None:   
         flux = -flux_tmp
         norm_weights=weights
@@ -131,7 +144,8 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     # Create the cube with the negative fake companion injected
     cube_negfc = cube_inject_companions(cube, psfs_norm, angs, flevel=flux,
                                         plsc=plsc, rad_dists=[r], n_branches=1,
-                                        theta=theta, imlib=imlib, verbose=False,
+                                        theta=theta, imlib=imlib_sh, 
+                                        verbose=False, 
                                         interpolation=interpolation, 
                                         transmission=transmission)
                                       
@@ -142,6 +156,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
                               svd_mode=svd_mode, scaling=scaling, algo=algo,
                               delta_rot=delta_rot, collapse=collapse, 
                               algo_options=algo_options, weights=norm_weights, 
+                              imlib=imlib_rot, interpolation=interpolation, 
                               debug=debug)
     
     if debug and collapse is not None:

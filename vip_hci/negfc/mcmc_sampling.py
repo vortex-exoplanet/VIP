@@ -612,7 +612,6 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     rhat_count = 0
     ac_count = 0
     chain = np.empty([nwalkers, 1, dim])
-    isamples = np.empty(0)
     pos = initial_state*(1+np.random.normal(0, 0.01, (nwalkers, 3)))
     nIterations = limit + supp
     rhat = np.zeros(dim)
@@ -904,7 +903,8 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
 
 
 def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
-               verbose=True, save=False, output_dir='', force=False, **kwargs):
+               verbose=True, save=False, output_dir='', force=False, 
+               output_file='confidence.txt', title=None, plsc=None, **kwargs):
     """
     Determine the highly probable value for each model parameter, as well as
     the 1-sigma confidence interval.
@@ -930,27 +930,32 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         If save is True, this is the full path to a directory where the results
         are saved.
     force: bool, optional
-        If set to True, to force the confidence interval estimate even if too
+        If set to True, force the confidence interval estimate even if too
         many samples fall in a single bin (unreliable CI estimates). If False, 
         an error message is raised if the percentile of samples falling in a 
         single bin is larger than cfd, suggesting to increase number of bins.
-    kwargs: optional
-        Additional attributes are passed to the matplotlib hist() method.
+    output_file: str, opt
+        If save is True, name of the text file in which the results are saved.
+    title: bool or str, opt
+        If not None, will print labels and parameter values on top of each
+        plot. If a string, will print that label in front of the parameter
+        values.
+    plsc: float, opt
+        If save is True, this is used to convert pixels to arcsec when writing
+        results for r.
         
     Returns
     -------
     out: tuple
-        A 2 elements tuple with either 1) the highly probable solution and the 
-        confidence interval; or 2) (if gaussian_fit is True) the center of the 
-        best-fit 1d gaussian distribution and its standard deviation, for each
-        planet parameter.
+        A 2 elements tuple with either:
+            [gaussian_fit=False] a) the highly probable solutions (dictionary),
+                                 b) the respective confidence interval (dict.); 
+            [gaussian_fit=True] a) the center of the best-fit 1d Gaussian 
+                                distributions (tuple of 3 floats), and 
+                                b) their standard deviation, for each parameter
         
     """
-
-    plsc = kwargs.pop('plsc', 0.001)
-    title = kwargs.pop('title', None)
-        
-    output_file = kwargs.pop('filename', 'confidence.txt')
+    
         
     try:
         l = isamples.shape[1]
@@ -960,8 +965,8 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             label_file = ['flux']
             label = [r'$\Delta f$']
         elif l == 3:
-            pKey = ['r', 'theta', 'f']
-            label_file = ['r', 'theta', 'flux']
+            pKey = ['r', r'$\theta$', 'f']
+            label_file = ['r', r'$\theta$', 'flux']
             label = [r'$\Delta r$', r'$\Delta \theta$', r'$\Delta f$']
         else:
             raise TypeError("input shape of isamples not recognized")
@@ -994,21 +999,25 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         if l>1:
             if gaussian_fit:
                 n, bin_vertices, _ = ax[0][j].hist(isamples[:,j], bins=bins,
-                                                   weights=weights, histtype='step',
+                                                   weights=weights, 
+                                                   histtype='step',
                                                    edgecolor='gray')
             else:
                 n, bin_vertices, _ = ax[j].hist(isamples[:,j], bins=bins,
-                                                weights=weights, histtype='step',
+                                                weights=weights, 
+                                                histtype='step',
                                                 edgecolor='gray')
         else:
             if gaussian_fit:
                 n, bin_vertices, _ = ax[0].hist(isamples[:], bins=bins,
-                                                   weights=weights, histtype='step',
-                                                   edgecolor='gray')
+                                                weights=weights, 
+                                                histtype='step',
+                                                edgecolor='gray')
             else:
                 n, bin_vertices, _ = ax.hist(isamples[:], bins=bins,
-                                                weights=weights, histtype='step',
-                                                edgecolor='gray')                
+                                             weights=weights, 
+                                             histtype='step',
+                                             edgecolor='gray')                
         bins_width = np.mean(np.diff(bin_vertices))
         surface_total = np.sum(np.ones_like(n)*bins_width * n)
         n_arg_sort = np.argsort(n)[::-1]
@@ -1044,6 +1053,11 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         confidenceInterval[pKey[j]] = np.array([bin_vertices[n_arg_min-1],
                                                bin_vertices[n_arg_max+1]]
                                                - val_max[pKey[j]])
+        if title is not None:
+            if isinstance(title, str):
+                lab = title
+            else:
+                lab = pKey[j]
         if l>1:                
             arg = (isamples[:, j] >= bin_vertices[n_arg_min - 1]) * \
                   (isamples[:, j] <= bin_vertices[n_arg_max + 1])            
@@ -1056,7 +1070,13 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                 ax[0][j].set_xlabel(label[j])
                 if j == 0:
                     ax[0][j].set_ylabel('Counts')
-    
+                if title is not None:
+                    msg = r"{}: {:.3f} {:.3f} +{:.3f}"
+                    ax[1][j].set_title(msg.format(lab, val_max[pKey[j]], 
+                                               confidenceInterval[pKey[j]][0], 
+                                               confidenceInterval[pKey[j]][1]),
+                                       fontsize=10)
+                    
                 mu[j], sigma[j] = norm.fit(isamples[:, j])
                 n_fit, bins_fit = np.histogram(isamples[:, j], bins, density=1,
                                                weights=weights)
@@ -1072,7 +1092,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     
                 if title is not None:
                     msg = r"{}   $\mu$ = {:.4f}, $\sigma$ = {:.4f}"
-                    ax[1][j].set_title(msg.format(title, mu[j], sigma[j]),
+                    ax[1][j].set_title(msg.format(lab, mu[j], sigma[j]),
                                        fontsize=10)
     
             else:            
@@ -1086,8 +1106,8 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                     ax[j].set_ylabel('Counts')
     
                 if title is not None:
-                    msg = r"{} - {:.3f} {:.3f} +{:.3f}"
-                    ax[1].set_title(msg.format(title, val_max[pKey[j]], 
+                    msg = r"{}: {:.3f} {:.3f} +{:.3f}"
+                    ax[1].set_title(msg.format(lab, val_max[pKey[j]], 
                                                confidenceInterval[pKey[j]][0], 
                                                confidenceInterval[pKey[j]][1]),
                                     fontsize=10)
@@ -1103,7 +1123,14 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                 ax[0].set_xlabel(label[j])
                 if j == 0:
                     ax[0].set_ylabel('Counts')
-    
+                    
+                if title is not None:
+                    msg = r"{}: {:.3f} {:.3f} +{:.3f}"
+                    ax[0].set_title(msg.format(lab, val_max[pKey[j]], 
+                                               confidenceInterval[pKey[j]][0], 
+                                               confidenceInterval[pKey[j]][1]),
+                                    fontsize=10)   
+                    
                 mu[j], sigma[j] = norm.fit(isamples[:])
                 n_fit, bins_fit = np.histogram(isamples[:], bins, density=1,
                                                weights=weights)
@@ -1118,8 +1145,8 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                     ax[1].set_ylabel('Counts')
     
                 if title is not None:
-                    msg = r"{}   $\mu$ = {:.4f}, $\sigma$ = {:.4f}"
-                    ax[1].set_title(msg.format(title, mu[j], sigma[j]),
+                    msg = r"{}: $\mu$ = {:.4f}, $\sigma$ = {:.4f}"
+                    ax[1].set_title(msg.format(lab, mu[j], sigma[j]),
                                        fontsize=10)
     
             else:
@@ -1133,11 +1160,11 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                     ax.set_ylabel('Counts')
     
                 if title is not None:
-                    msg = r"{} - {:.3f} {:.3f} +{:.3f}"
-                    ax.set_title(msg.format(title, val_max[pKey[j]], 
-                                               confidenceInterval[pKey[j]][0], 
-                                               confidenceInterval[pKey[j]][1]),
-                                    fontsize=10)            
+                    msg = r"{}: {:.3f} {:.3f} +{:.3f}"
+                    ax.set_title(msg.format(lab, val_max[pKey[j]], 
+                                            confidenceInterval[pKey[j]][0], 
+                                            confidenceInterval[pKey[j]][1]),
+                                 fontsize=10)            
 
         plt.tight_layout(w_pad=0.1)
 
@@ -1195,7 +1222,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                     
                 f.write(text.format(pKey[i], val_max[pKey[i]],
                                     confidenceMin, confidenceMax))
-            if l>1:
+            if l>1 and plsc is not None:
                 f.write(' ')
                 f.write('Platescale = {} mas\n'.format(plsc*1000))
                 f.write('r (mas): \t\t{:.2f} \t\t-{:.2f} \t\t+{:.2f}\n'.format(

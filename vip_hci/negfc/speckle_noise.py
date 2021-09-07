@@ -229,7 +229,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         offset = offset[:,2]
         print(offset.shape)
     if bins is None:
-        bins = offset.shape[0]
+        bins = int(offset.shape[0]/10)
     mean_dev, sp_unc = confidence(offset, cfd=68.27, bins=bins, 
                                   gaussian_fit=True, verbose=True, save=False, 
                                   output_dir='', force=True)

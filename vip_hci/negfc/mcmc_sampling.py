@@ -612,16 +612,27 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     rhat_count = 0
     ac_count = 0
     chain = np.empty([nwalkers, 1, dim])
-    pos = initial_state*(1+np.random.normal(0, 0.01, (nwalkers, 3)))
     nIterations = limit + supp
     rhat = np.zeros(dim)
     stop = np.inf
 
     if bounds is None:
+        # angle subtended by aperture_radius/2 or fwhm at r=initial_state[0]
+        drot = 360/(2*np.pi*initial_state[0]/min(aperture_radius/2,fwhm))
         bounds = [(initial_state[0] - annulus_width/2.,
                    initial_state[0] + annulus_width/2.),  # radius
-                  (initial_state[1] - 10, initial_state[1] + 10),   # angle
+                  (initial_state[1] - drot, initial_state[1] + drot),   # angle
                   (0.1* initial_state[2], 2 * initial_state[2])]   # flux
+    # size of ball of parameters for MCMC initialization
+    scal = abs(bounds[0][0]-initial_state[0])/initial_state[0]
+    for i in range(3):
+        for j in range(2):
+            test_scal = abs(bounds[i][j]-initial_state[i])/initial_state[i]
+            if test_scal < scal:
+                scal= test_scal
+    pos = initial_state*(1+np.random.normal(0, scal/7., (nwalkers, 3)))
+    # divided by 7 to not have any walker initialized out of bounds
+    
     if verbosity > 0:
         print('Beginning emcee Ensemble sampler...')
     sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a,
@@ -655,7 +666,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
             else:
                 q = 1
             print('{}\t\t{:.5f}\t\t\t{:.5f}'.format(k, elapsed * q,
-                                                    elapsed * (limit-k-1) * q), flush=True)
+                                                    elapsed * (limit-k-1) * q), 
+                  flush=True)
             
         start = datetime.datetime.now()
 
@@ -965,9 +977,9 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             label_file = ['flux']
             label = [r'$\Delta f$']
         elif l == 3:
-            pKey = ['r', r'$\theta$', 'f']
+            pKey = ['r', 'theta', 'f']
             label_file = ['r', r'$\theta$', 'flux']
-            label = [r'$\Delta r$', r'$\Delta \theta$', r'$\Delta f$']
+            label = [r'$r$', r'$\theta$', r'$f$']
         else:
             raise TypeError("input shape of isamples not recognized")
     except:
@@ -1072,7 +1084,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                     ax[0][j].set_ylabel('Counts')
                 if title is not None:
                     msg = r"{}: {:.3f} {:.3f} +{:.3f}"
-                    ax[1][j].set_title(msg.format(lab, val_max[pKey[j]], 
+                    ax[0][j].set_title(msg.format(lab, val_max[pKey[j]], 
                                                confidenceInterval[pKey[j]][0], 
                                                confidenceInterval[pKey[j]][1]),
                                        fontsize=10)
@@ -1091,7 +1103,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                     ax[1][j].set_ylabel('Counts')
     
                 if title is not None:
-                    msg = r"{}   $\mu$ = {:.4f}, $\sigma$ = {:.4f}"
+                    msg = r"{}:  $\mu$ = {:.4f}, $\sigma$ = {:.4f}"
                     ax[1][j].set_title(msg.format(lab, mu[j], sigma[j]),
                                        fontsize=10)
     

@@ -20,15 +20,15 @@ from ..conf.utils_conf import pool_map, iterable
 from ..var import get_annulus_segments, matrix_scaling
 from ..stats import descriptive_stats
 from .svd import get_eigenvectors
-
+import pdb
 
 def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                 fwhm=4, asize=4, n_segments=1, delta_rot=(0.1, 1),
                 delta_sep=(0.1, 1), ncomp=1, svd_mode='lapack', nproc=1,
                 min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
                 imlib='opencv', interpolation='lanczos4', collapse='median',
-                ifs_collapse_range='all', full_output=False, verbose=True, 
-                weights=None):
+                ifs_collapse_range='all', full_output=False, verbose=True,
+                weights=None, cube_sig=None):
     """ PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data. The
     PCA model is computed locally in each annulus (or annular sectors according
     to ``n_segments``). For each sector we discard reference frames taking into
@@ -163,7 +163,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     ifs_collapse_range: str 'all' or tuple of 2 int
-        If a tuple, it should contain the first and last channels where the mSDI 
+        If a tuple, it should contain the first and last channels where the mSDI
         residual channels will be collapsed (by default collapses all channels).
     full_output: boolean, optional
         Whether to return the final median combined image only or with other
@@ -171,9 +171,12 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
     verbose : bool, optional
         If True prints to stdout intermediate info.
     weights: 1d numpy array or list, optional
-        Weights to be applied for a weighted mean. Need to be provided if 
+        Weights to be applied for a weighted mean. Need to be provided if
         collapse mode is 'wmean'.
-        
+    cube_sig: numpy ndarray, opt
+        Cube with estimate of significant authentic signals. If provided, this
+        will be subtracted before projecting cube onto reference cube.
+
     Returns
     -------
     - If full_output is False:
@@ -197,7 +200,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                            n_segments, delta_rot, ncomp, svd_mode, nproc,
                            min_frames_lib, max_frames_lib, tol, scaling, imlib,
                            interpolation, collapse, True, verbose, cube_ref,
-                           weights)
+                           weights, cube_sig)
 
         cube_out, cube_der, frame = res
         if full_output:
@@ -263,7 +266,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                                fwhm, asize, n_segments, delta_rot, ncomp2,
                                svd_mode, nproc, min_frames_lib, max_frames_lib,
                                tol, scaling, imlib, interpolation, collapse,
-                               full_output, verbose, None, weights)
+                               full_output, verbose, None, weights, cube_sig)
             if full_output:
                 cube_out, cube_der, frame = res
             else:
@@ -282,8 +285,9 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
 # Functions encapsulating portions of the main algorithm
 ################################################################################
 
-def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
-                ncomp, svd_mode, tol, scaling, imlib, interpolation, collapse,
+
+def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep, ncomp, 
+                svd_mode, tol, scaling, imlib, interpolation, collapse,
                 ifs_collapse_range):
     """ Optimized PCA subtraction on a multi-spectral frame (IFS data).
     """
@@ -339,7 +343,8 @@ def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
                 matrix_ref = matrix[indices_left]
                 curr_frame = matrix[j]  # current frame
                 V = get_eigenvectors(ncomp, matrix_ref, svd_mode,
-                                     noise_error=tol, debug=False)
+                                     noise_error=tol, debug=False, 
+                                     scaling=scaling)
                 transformed = np.dot(curr_frame, V.T)
                 reconstructed = np.dot(transformed.T, V)
                 residuals = curr_frame - reconstructed
@@ -352,7 +357,7 @@ def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
     else:
         idx_ini = ifs_collapse_range[0]
         idx_fin = ifs_collapse_range[1]
-    frame_desc = scwave(cube_res[idx_ini:idx_fin], scale_list[idx_ini:idx_fin], 
+    frame_desc = scwave(cube_res[idx_ini:idx_fin], scale_list[idx_ini:idx_fin],
                         full_output=False, inverse=True,
                         y_in=y_in, x_in=x_in, imlib=imlib,
                         interpolation=interpolation, collapse=collapse)
@@ -363,7 +368,8 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
                  delta_rot=1, ncomp=1, svd_mode='lapack', nproc=None,
                  min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
                  imlib='opencv', interpolation='lanczos4', collapse='median',
-                 full_output=False, verbose=1, cube_ref=None, weights=None):
+                 full_output=False, verbose=1, cube_ref=None, weights=None,
+                 cube_sig=None):
     """ PCA exploiting angular variability (ADI fashion).
     """
     array = cube
@@ -418,7 +424,7 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
         n_segments_ann = n_segments[ann]
         res_ann_par = _define_annuli(angle_list, ann, n_annuli, fwhm,
                                      radius_int, asize, delta_rot[ann],
-                                     n_segments_ann, verbose)
+                                     n_segments_ann, verbose, True)
         pa_thr, inner_radius, ann_center = res_ann_par
         indices = get_annulus_segments(array[0], inner_radius, asize,
                                        n_segments_ann)
@@ -433,13 +439,17 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
                 matrix_segm_ref = matrix_scaling(matrix_segm_ref, scaling)
             else:
                 matrix_segm_ref = None
+            if cube_sig is not None:
+                matrix_sig_segm = cube_sig[:, yy, xx]
+            else:
+                matrix_sig_segm = None
 
             res = pool_map(nproc, do_pca_patch, matrix_segm, iterable(range(n)),
                            angle_list, fwhm, pa_thr, ann_center, svd_mode,
                            ncompann, min_frames_lib, max_frames_lib, tol,
-                           matrix_segm_ref, verbose=False)
+                           matrix_segm_ref, matrix_sig_segm)
 
-            res = np.array(res)
+            res = np.array(res, dtype=object)
             residuals = np.array(res[:, 0])
             ncomps = res[:, 1]
             nfrslib = res[:, 2]
@@ -449,7 +459,8 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
             # number of frames in library printed for each annular quadrant
             # number of PCs printed for each annular quadrant
             if verbose == 2:
-                descriptive_stats(nfrslib, verbose=verbose, label='\tLIBsize: ')
+                descriptive_stats(nfrslib, verbose=verbose,
+                                  label='\tLIBsize: ')
                 descriptive_stats(ncomps, verbose=verbose, label='\tNum PCs: ')
 
         if verbose == 2:
@@ -471,7 +482,7 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
 
 def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
                  svd_mode, ncomp, min_frames_lib, max_frames_lib, tol,
-                 matrix_ref):
+                 matrix_ref, matrix_sig_segm):
     """ Does the SVD/PCA for each frame patch (small matrix). For each frame we
     find the frames to be rejected depending on the amount of rotation. The
     library is also truncated on the other end (frames too far or which have
@@ -479,32 +490,51 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
     lower. This truncation is done on the annuli after 10*FWHM and the goal is
     to keep min(num_frames/2, 200) in the library.
     """
+
     if pa_threshold != 0:
-        #if ann_center > fwhm*10:
-        indices_left = _find_indices_adi(angle_list, frame,
-                                         pa_threshold, truncate=True,
+        # if ann_center > fwhm*10:
+        indices_left = _find_indices_adi(angle_list, frame, pa_threshold, 
+                                         truncate=True, 
                                          max_frames=max_frames_lib)
-        #else:
+        # else:
         #    indices_left = _find_indices_adi(angle_list, frame,
         #                                     pa_threshold, truncate=False)
-
-        data_ref = matrix[indices_left]
+        msg = 'Too few frames left in the PCA library. '
+        msg += 'Accepted indices length ({:.0f}) less than {:.0f}. '
+        msg += 'Try decreasing either delta_rot or min_frames_lib.'
+        try:
+            if matrix_sig_segm is not None:
+                data_ref = matrix[indices_left]-matrix_sig_segm[indices_left]
+            else:
+                data_ref = matrix[indices_left]
+        except IndexError:
+            if matrix_ref is None:
+                raise RuntimeError(msg.format(0, min_frames_lib))
+            data_ref = None
 
         if data_ref.shape[0] < min_frames_lib and matrix_ref is None:
-            msg = 'Too few frames left in the PCA library. '
-            msg+= 'Accepted indices {} length less than {:.0f}. '
-            msg += 'Try decreasing either delta_rot or min_frames_lib.'
-            raise RuntimeError(msg.format(indices_left,min_frames_lib))
-    else:
-        data_ref = matrix
-
+            raise RuntimeError(msg.format(indices_left, min_frames_lib))
     if matrix_ref is not None:
+        #data_ref = None
+    #if matrix_ref is not None:
         # Stacking the ref and the target ref (pa thresh) libraries
-        data_ref = np.vstack((matrix_ref, data_ref))
+        if data_ref is not None:
+            data_ref = np.vstack((matrix_ref, data_ref))
+        else:
+            data_ref = matrix_ref
+    elif pa_threshold == 0:
+        if matrix_sig_segm is not None:
+            data_ref = matrix-matrix_sig_segm
+        else:
+            data_ref = matrix
 
     curr_frame = matrix[frame]  # current frame
+    if matrix_sig_segm is not None:
+        curr_frame_emp = matrix[frame]-matrix_sig_segm[frame]
+    else:
+        curr_frame_emp = curr_frame
     V = get_eigenvectors(ncomp, data_ref, svd_mode, noise_error=tol)
-    transformed = np.dot(curr_frame, V.T)
+    transformed = np.dot(curr_frame_emp, V.T)
     reconstructed = np.dot(transformed.T, V)
     residuals = curr_frame - reconstructed
     return residuals, V.shape[0], data_ref.shape[0]

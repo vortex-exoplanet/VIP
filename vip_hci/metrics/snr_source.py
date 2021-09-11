@@ -16,7 +16,7 @@ import numpy as np
 import photutils
 from scipy.stats import norm, t
 from hciplot import plot_frames
-from skimage import draw
+from skimage.draw import disk, circle_perimeter
 from matplotlib import pyplot as plt
 from astropy.convolution import convolve, Tophat2DKernel
 from astropy.stats import median_absolute_deviation as mad
@@ -162,7 +162,7 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
             anny, annx = get_annulus_segments(array, int(radd-fwhm),
                                               int(np.round(3 * fwhm)))[0]
 
-            ciry, cirx = draw.circle(y, x, int(np.ceil(fwhm)))
+            ciry, cirx = disk((y, x), int(np.ceil(fwhm)))
             # masking the sources positions (using the MAD of pixels in annulus)
             arr_masked_sources[ciry, cirx] = mad(array[anny, annx])
 
@@ -204,14 +204,14 @@ def _snr_approx(array, source_xy, fwhm, centery, centerx):
     """
     sourcex, sourcey = source_xy
     rad = dist(centery, centerx, sourcey, sourcex)
-    ind_aper = draw.circle(sourcey, sourcex, fwhm/2.)
+    ind_aper = disk((sourcey, sourcex), fwhm/2.)
     # noise : STDDEV in convolved array of 1px wide annulus (while
     # masking the flux aperture) * correction of # of resolution elements
-    ind_ann = draw.circle_perimeter(int(centery), int(centerx), int(rad))
+    ind_ann = circle_perimeter(int(centery), int(centerx), int(rad))
     array2 = array.copy()
     array2[ind_aper] = mad(array[ind_ann])  # mask
     n2 = (2 * np.pi * rad) / fwhm - 1
-    noise = array2[ind_ann].std() * np.sqrt(1+(1/n2))
+    noise = array2[ind_ann].std(ddof=1) * np.sqrt(1+(1/n2))
     # signal : central px minus the mean of the pxs (masked) in 1px annulus
     signal = array[sourcey, sourcex] - array2[ind_ann].mean()
     snr_value = signal / noise
@@ -268,18 +268,18 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
 
     Returns
     -------
-    snr_vale : float
-        Value of the S/N for the given test resolution element.
+    [if full_output=True:]
     sourcey : numpy ndarray
         [full_output=True] Input coordinates (``source_xy``) in Y.
     sourcex : numpy ndarray
         [full_output=True] Input coordinates (``source_xy``) in X.
     f_source : float
         [full_output=True] Flux in test elemnt.
-    backgr_apertures_std : float
-        [full_output=True] Standard deviation of the background apertures
-        fluxes.
-    
+    fluxes : numpy ndarray
+        [full_output=True] Background apertures fluxes.
+    [always:]    
+    snr_vale : float
+        Value of the S/N for the given test resolution element.
     """
     check_array(array, dim=2, msg='array')
     if not isinstance(source_xy, tuple):
@@ -369,7 +369,7 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         plt.show()
 
     if full_output:
-        return sourcey, sourcex, f_source, backgr_apertures_std, snr_vale
+        return sourcey, sourcex, f_source, fluxes, snr_vale
     else:
         return snr_vale
 
@@ -404,6 +404,10 @@ def significance(snr, rad, fwhm, student_to_gauss=True):
     
     if student_to_gauss:
         sigma = norm.ppf(t.cdf(snr,(rad/fwhm)*2*np.pi-2))
+        if t.cdf(snr,(rad/fwhm)*2*np.pi-2)==1.0:
+            print("Warning high S/N! cdf>0.9999999999999999 is rounded to 1")
+            print(r"Returning 8.2 instead of inf. Quote detection>8.2 $\sigma$")
+            return 8.2
     else:
         sigma = t.ppf(norm.cdf(snr), (rad/fwhm)*2*np.pi-2)
         
@@ -464,11 +468,11 @@ def frame_report(array, fwhm, source_xy=None, verbose=True):
             obj_flux_i = obj_flux_i['aperture_sum'][0]
 
             # we get the mean and stddev of SNRs on aperture
-            yy, xx = draw.circle(y, x, fwhm / 2)
+            yy, xx = disk((y, x), fwhm / 2)
             snr_pixels_i = [snr(array, (x_, y_), fwhm, plot=False,
                                 verbose=False) for y_, x_ in zip(yy, xx)]
             meansnr_i = np.mean(snr_pixels_i)
-            stdsnr_i = np.std(snr_pixels_i)
+            stdsnr_i = np.std(snr_pixels_i,ddof=1)
             pxsnr_i = snr(array, (x, y), fwhm, plot=False, verbose=False)
 
             obj_flux.append(obj_flux_i)
@@ -503,11 +507,11 @@ def frame_report(array, fwhm, source_xy=None, verbose=True):
         obj_flux_i = obj_flux_i['aperture_sum'][0]
 
         # we get the mean and stddev of SNRs on aperture
-        yy, xx = draw.circle(y, x, fwhm / 2.)
+        yy, xx = disk((y, x), fwhm / 2.)
         snr_pixels_i = [snr(array, (x_, y_), fwhm, plot=False,
                             verbose=False) for y_, x_ in zip(yy, xx)]
         meansnr_pixels = np.mean(snr_pixels_i)
-        stdsnr_i = np.std(snr_pixels_i)
+        stdsnr_i = np.std(snr_pixels_i,ddof=1)
         pxsnr_i = snr(array, (x, y), fwhm, plot=False, verbose=False)
 
         obj_flux.append(obj_flux_i)

@@ -7,7 +7,9 @@ Implementation of the STIM map from [PAI18]
    | **STIM map: detection map for exoplanets imaging beyond asymptotic Gaussian residual speckle noise**
    | *submitted in Monthly Notices of the Royal Astronomical Society*
 """
-
+__author__ = 'Benoit Pairet'
+__all__ = ['compute_stim_map',
+           'compute_inverse_stim_map']
 
 import numpy as np
 from ..preproc import cube_derotate

@@ -12,7 +12,6 @@ __all__ = ['collapse_psf_cube',
            'frame_inject_companion']
 
 import numpy as np
-np_elements = (np.int64,np.int32,np.float64,np.float32)
 from scipy import stats
 from scipy.interpolate import interp1d
 import photutils
@@ -96,6 +95,23 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
 
     if not isinstance(plsc, float):
         raise TypeError("`plsc` must be a float")
+    if not np.isscalar(flevel):
+        if len(flevel) != array.shape[0]:
+            msg = "if not scalar `flevel` must have same length as array"
+            raise TypeError(msg) 
+
+    ## set imlib for rotation & shift (rotation used if transmission!=None)
+    if imlib == 'opencv':
+        imlib_sh = imlib
+        imlib_rot = imlib
+    elif imlib == 'skimage' or imlib == 'ndimage-interp':
+        imlib_sh = 'ndimage-interp'
+        imlib_rot = 'skimage'
+    elif imlib == 'vip-fft' or imlib == 'ndimage-fourier':
+        imlib_sh = 'ndimage-fourier'
+        imlib_rot = 'vip-fft'
+    else:
+        raise TypeError("Interpolation not recognized.")
 
     rad_dists = np.asarray(rad_dists).reshape(-1)  # forces ndim=1
     positions = []
@@ -173,28 +189,34 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                         fc_fr_rad[:,i] = interp_trans(d[i])*fc_fr[:,i]
                     if full_output:
                         # check the effect of transmission on a single PSF tmp
-                        psf_trans = frame_rotate(fc_fr_rad[0], 
-                                                 -(np.rad2deg(ang)))
+                        psf_trans = frame_rotate(fc_fr_rad[0],
+                                                 -(np.rad2deg(ang)),
+                                                 imlib=imlib_rot,
+                                                 interpolation=interpolation)
                         shift_y = rad * np.sin(ang)
                         shift_x = rad * np.cos(ang)
                         psf_trans = frame_shift(psf_trans, shift_y, shift_x,
-                                                 imlib, interpolation)
+                                                imlib_sh, interpolation)
                     
                 for fr in range(nframes):
                     shift_y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     shift_x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
                     if transmission is not None:                       
                         fc_fr_ang = frame_rotate(fc_fr_rad[fr], 
-                                                 -(np.rad2deg(ang)-angle_list[fr]))
+                                                 -(ang*180/np.pi-angle_list[fr]),
+                                                 imlib=imlib_rot,
+                                                 interpolation=interpolation)
                     else:
                         fc_fr_ang = fc_fr[fr]
-                    if isinstance(flevel, (int, float, np_elements)):
-                        array_out[fr] += (frame_shift(fc_fr_ang, shift_y, shift_x,
-                                                  imlib, interpolation)
+                    if np.isscalar(flevel):
+                        array_out[fr] += (frame_shift(fc_fr_ang, shift_y, 
+                                                      shift_x, imlib_sh, 
+                                                      interpolation)
                                       * flevel)
                     else:
-                        array_out[fr] += (frame_shift(fc_fr_ang, shift_y, shift_x,
-                                              imlib, interpolation)
+                        array_out[fr] += (frame_shift(fc_fr_ang, shift_y, 
+                                                      shift_x, imlib_sh, 
+                                                      interpolation)
                                   * flevel[fr])
                             
                 pos_y = rad * np.sin(ang) + ceny
@@ -221,7 +243,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         size_fc = psf_template.shape[2]  # considering square frames
         nframes_wav = array.shape[0]
         nframes_adi = array.shape[1]
-        fc_fr = np.zeros((nframes_wav, sizey, sizex), dtype=np.float64)  # -> 3d
+        fc_fr = np.zeros((nframes_wav, sizey, sizex), dtype=np.float64) # -> 3d
 
         for i in range(nframes_wav):
             w = int(np.floor(size_fc/2.))
@@ -246,10 +268,10 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                 for fr in range(nframes_adi):
                     shift_y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     shift_x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
-                    shift = cube_shift(fc_fr, shift_y, shift_x, imlib,
+                    shift = cube_shift(fc_fr, shift_y, shift_x, imlib_sh,
                                        interpolation)
 
-                    if isinstance(flevel, (int, float, np_elements)):
+                    if np.isscalar(flevel):
                         array_out[:, fr] += shift * flevel
                     else:
                         for i in range(len(flevel)):

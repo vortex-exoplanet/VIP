@@ -18,11 +18,13 @@ __all__ = ['dist',
            'create_ringed_spider_mask',
            'matrix_scaling',
            'prepare_matrix',
-           'reshape_matrix']
+           'reshape_matrix',
+           'cart_to_pol',
+           'pol_to_cart']
 
 import numpy as np
 from skimage.draw import polygon
-from skimage.draw import circle
+from skimage.draw import disk
 from sklearn.preprocessing import scale
 
 from ..conf.utils_conf import frame_or_shape
@@ -59,7 +61,7 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
     cy, cx = frame_center(array)
 
     shape = (array.shape[-2],array.shape[-1])
-    ind = circle(cy, cx, radius, shape=shape)
+    ind = disk((cy, cx), radius, shape=shape)
 
     if mode == 'in':
         array_masked = array.copy()
@@ -117,7 +119,15 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
     theta = np.arctan2(sp_width/2, r)
 
     cy, cx = frame_center(mask)
-    rr0, cc0 = circle(cy, cx, min(ann_out, cy))
+    rr0, cc0 = disk((cy, cx), ann_out)
+    # check that all indices are within frame dimensions
+    cond1 = rr0>=0
+    cond2 = rr0<s[0]
+    cond3 = cc0>=0
+    cond4 = cc0<s[1]
+    all_cond = cond1 & cond2 & cond3 & cond4
+    rr0 = rr0[np.where(all_cond)]
+    cc0 = cc0[np.where(all_cond)]
     mask[rr0, cc0] = 1
 
     t0 = np.array([theta, np.pi-theta, np.pi+theta, np.pi*2 - theta])
@@ -125,7 +135,7 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
         dtheta = [sp_angle[i]-sp_angle[0] for i in range(nbranch)]
     else:
         sp_angle = [sp_angle]
-        dtheta = [i*np.pi/nbranch for i in range(nbranch)]
+        dtheta = [i*180./nbranch for i in range(nbranch)]
     tn = np.zeros([nbranch,4])
     xn = np.zeros_like(tn)
     yn = np.zeros_like(tn)
@@ -135,7 +145,7 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
         yn[i] = r * np.sin(tn[i]) + s[0]/2
         rrn, ccn = polygon(yn[i], xn[i])
         mask[rrn, ccn] = 0
-    rr4, cc4 = circle(cy, cx, ann_in)
+    rr4, cc4 = disk((cy, cx), ann_in)
     mask[rr4, cc4] = 0
     
     return mask
@@ -847,3 +857,53 @@ def reshape_matrix(array, y, x):
 
     """
     return array.reshape(array.shape[0], y, x)
+
+
+def cart_to_pol(x, y, cx=0, cy=0):
+    """
+    Returns polar coordinates for input cartesian coordinates
+    
+    Parameters
+    ----------
+    x : float or numpy ndarray
+        x coordinates with respect to the center
+    y : float or numpy ndarray
+        y coordinates with respect to the center
+
+    Returns
+    -------
+    r, theta: floats or numpy ndarrays
+        radii and polar angles (trigonometric) corresponding to the input
+        x and y.
+    """
+    
+    r = dist(cy,cx,y,x)
+    theta = np.rad2deg(np.arctan2(y-cy,x-cx))
+    
+    return r, theta
+
+
+def pol_to_cart(r, theta, cx=0, cy=0):
+    """
+    Returns cartesian coordinates for input polar coordinates
+    
+    Parameters
+    ----------
+    r, theta : float or numpy ndarray
+        radii and polar angles (trigonometric) corresponding to the input
+        x and y.
+    cx, cy : float or numpy ndarray
+        x, y coordinates of the center of the image to be considered for 
+        conversion to cartesian coordinates.
+
+    Returns
+    -------
+    x, y: floats or numpy ndarrays
+        x, y coordinates corresponding to input radii and polar (trigonotetric)
+        angles.
+    """
+    
+    x = cx+r*np.cos(np.deg2rad(theta))
+    y = cy+r*np.sin(np.deg2rad(theta))
+    
+    return x, y

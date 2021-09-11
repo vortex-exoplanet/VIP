@@ -336,7 +336,7 @@ def _patch_rlrps(array, array_ref, rank, low_rank_ref, low_rank_mode,
                 PC = get_eigenvectors(rank, L, svdlib, mode=auto_rank_mode,
                                       cevr=cevr, noise_error=residuals_tol,
                                       data_ref=L_ref, debug=debug,
-                                      collapse=True)
+                                      collapse=True, scaling='temp-standard')
                 rank = PC.shape[0]  # so we can use the optimized rank
                 if low_rank_ref:
                     Lnew = np.dot(np.dot(PC, L).T, PC).T

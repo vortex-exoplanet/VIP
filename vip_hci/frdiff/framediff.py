@@ -22,7 +22,8 @@ from ..preproc.derotation import _find_indices_adi, _define_annuli
 
 def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
                n_similar=None, delta_rot=0.5, radius_int=2, asize=4, ncomp=None,
-               nproc=1, verbose=True, debug=False):
+               imlib='opencv', interpolation='lanczos4', nproc=1, verbose=True, 
+               debug=False):
     """ Frame differencing algorithm. It uses vector distance (depending on
     ``metric``), using separately the pixels from different annuli of ``asize``
     width, to create pairs of most similar images. Then it performs pair-wise
@@ -42,7 +43,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         function ``sklearn.metrics.pairwise.pairwise_distances`` (check its
         documentation).
     dist_threshold : int
-        Indices with a distance larger thatn ``dist_threshold`` percentile will
+        Indices with a distance larger than ``dist_threshold`` percentile will
         initially discarded.
     n_similar : None or int, optional
         If a postive integer value is given, then a median combination of
@@ -99,8 +100,8 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
 
     res = pool_map(nproc, _pairwise_ann, iterable(range(n_annuli)),
                    n_annuli, fwhm, angle_list, delta_rot, metric,
-                   dist_threshold, n_similar, radius_int, asize, ncomp,
-                   verbose, debug)
+                   dist_threshold, n_similar, radius_int, asize, ncomp, imlib, 
+                   interpolation, verbose, debug)
 
     final_frame = np.sum(res, axis=0)
 
@@ -111,9 +112,9 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     return final_frame
 
 
-def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
-                  dist_threshold, n_similar, radius_int, asize, ncomp, verbose,
-                  debug=False):
+def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric, 
+                  dist_threshold, n_similar, radius_int, asize, ncomp, imlib, 
+                  interpolation, verbose, debug=False):
     """
     Helper functions for pair-wise subtraction for a single annulus.
     """
@@ -219,7 +220,8 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
 
     cube_out = np.zeros((cube_res.shape[0], array.shape[1], array.shape[2]))
     cube_out[:, yy, xx] = cube_res
-    cube_der = cube_derotate(cube_out, angles_list)
+    cube_der = cube_derotate(cube_out, angles_list, imlib=imlib, 
+                             interpolation=interpolation)
     frame_der_median = cube_collapse(cube_der, 'median')
 
     return frame_der_median

@@ -5,12 +5,13 @@ Module with helping functions for PCA.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['pca_annulus']
+__all__ = ['pca_annulus',
+           'pca_grid']
 
 import numpy as np
 from sklearn.decomposition import IncrementalPCA
 from pandas import DataFrame
-from skimage import draw
+from skimage.draw import disk
 from matplotlib import pyplot as plt
 from ..fits import open_fits
 from ..preproc import cube_rescaling_wavelengths as scwave
@@ -18,7 +19,7 @@ from .svd import svd_wrapper
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..conf import timing, time_ini, check_array, get_available_memory
 from ..conf.utils_conf import vip_figsize, vip_figdpi
-from ..var import frame_center, dist, prepare_matrix, reshape_matrix
+from ..var import frame_center, dist, prepare_matrix, reshape_matrix, get_circle
 
 
 def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
@@ -235,7 +236,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         """
         """
         if fmerit == 'max':
-            yy, xx = draw.circle(y, x, fwhm / 2.)
+            yy, xx = disk((y, x), fwhm / 2.)
             res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
                        full_output=True)
                    for y_, x_ in zip(yy, xx)]
@@ -254,7 +255,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
             return snrpx, fluxpx
 
         elif fmerit == 'mean':
-            yy, xx = draw.circle(y, x, fwhm / 2.)
+            yy, xx = disk((y, x), fwhm / 2.)
             res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
                        full_output=True) for y_, x_
                    in zip(yy, xx)]
@@ -389,10 +390,10 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
             if save_plot is not None:
                 plt.savefig(save_plot, dpi=100, bbox_inches='tight')
 
-            finalfr = cubeout[argmax]
-            _ = frame_report(finalfr, fwhm, (x, y), verbose=verbose)
+        finalfr = cubeout[argmax]
+        _ = frame_report(finalfr, fwhm, (x, y), verbose=verbose)
 
-            return cubeout, finalfr, df, opt_npc
+        return cubeout, finalfr, df, opt_npc
 
     else:
         if verbose:
@@ -678,3 +679,56 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
             return pca_frame
         else:
             return cube_zeros
+            
+            
+def _compute_stim_map(cube_der):
+    """
+    Computes the STIM detection map. 
+    
+    Note: this is a duplicate of the STIM map routine in the metrics module 
+    that is necessary to avoid circular imports (used in iterative PCA function)
+
+    Parameters
+    ----------
+    cube_der : 3d numpy ndarray
+        Input de-rotated cube, e.g. output 'residuals_cube_' from
+        ``vip_hci.pca.pca``.
+
+    Returns
+    -------
+    detection_map : 2d ndarray
+        STIM detection map.
+    """
+    t, n, _ = cube_der.shape
+    mu = np.mean(cube_der, axis=0)
+    sigma = np.sqrt(np.var(cube_der, axis=0))
+    detection_map = np.divide(mu, sigma, out=np.zeros_like(mu),
+                              where=sigma != 0)
+    return get_circle(detection_map, int(np.round(n/2.)))
+
+
+def _compute_inverse_stim_map(cube, angle_list):
+    """
+    Computes the inverse STIM detection map, i.e. obtained with opposite 
+    derotation angles.
+    
+    Note: this is a duplicate of the STIM map routine in the metrics module 
+    that is necessary to avoid circular imports (used in iterative PCA function)
+
+    Parameters
+    ----------
+    cube : 3d numpy ndarray
+        Non de-rotated residuals from reduction algorithm, eg. output residuals
+        from ``vip_hci.pca.pca``.
+    angle_list : numpy ndarray, 1d
+        Corresponding parallactic angle for each frame.    
+
+    Returns
+    -------
+    inverse_stim_map : 2d ndarray
+        Inverse STIM detection map.
+    """
+    t, n, _ = cube.shape
+    cube_inv_der = cube_derotate(cube, -angle_list)
+    inverse_stim_map = _compute_stim_map(cube_inv_der)
+    return inverse_stim_map

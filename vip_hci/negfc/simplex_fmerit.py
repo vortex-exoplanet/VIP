@@ -9,12 +9,14 @@ __all__ = []
 
 import numpy as np
 from hciplot import plot_frames
-from skimage.draw import circle
-from ..metrics import cube_inject_companions
-from ..var import frame_center, get_annular_wedge, cube_filter_highpass
+import photutils
+from skimage.draw import disk
+from ..metrics import cube_inject_companions, snr
+from ..var import (frame_center, get_annular_wedge, cube_filter_highpass, dist,
+                   get_circle)
 from ..pca import pca_annulus, pca_annular, pca
 from ..preproc import cube_crop_frames
-
+from ..conf import check_array
 
 def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,  
               aperture_radius, initialState, ncomp, cube_ref=None, 
@@ -121,6 +123,19 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
             msg = 'modelParameters must be a tuple, {} was given'
             print(msg.format(type(modelParameters)))
 
+    ## set imlib for rotation and shift
+    if imlib == 'opencv':
+        imlib_sh = imlib
+        imlib_rot = imlib
+    elif imlib == 'skimage' or imlib == 'ndimage-interp':
+        imlib_sh = 'ndimage-interp'
+        imlib_rot = 'skimage'
+    elif imlib == 'vip-fft' or imlib == 'ndimage-fourier':
+        imlib_sh = 'ndimage-fourier'
+        imlib_rot = 'vip-fft'
+    else:
+        raise TypeError("Interpolation not recognized.")
+
     if weights is None:   
         flux = -flux_tmp
         norm_weights=weights
@@ -131,7 +146,8 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     # Create the cube with the negative fake companion injected
     cube_negfc = cube_inject_companions(cube, psfs_norm, angs, flevel=flux,
                                         plsc=plsc, rad_dists=[r], n_branches=1,
-                                        theta=theta, imlib=imlib, verbose=False,
+                                        theta=theta, imlib=imlib_sh, 
+                                        verbose=False, 
                                         interpolation=interpolation, 
                                         transmission=transmission)
                                       
@@ -142,6 +158,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
                               svd_mode=svd_mode, scaling=scaling, algo=algo,
                               delta_rot=delta_rot, collapse=collapse, 
                               algo_options=algo_options, weights=norm_weights, 
+                              imlib=imlib_rot, interpolation=interpolation, 
                               debug=debug)
     
     if debug and collapse is not None:
@@ -157,7 +174,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
             chi = np.sum(np.abs(values))
         elif fmerit == 'stddev':
             values = values[values != 0]
-            chi = np.std(values)*values.size
+            chi = np.std(values)*values.size # TODO: test std**2
         else:
             raise RuntimeError('fmerit choice not recognized.')
     else:
@@ -266,12 +283,14 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     imlib = algo_options.get('imlib',imlib)
     interpolation = algo_options.get('interpolation',interpolation)
     collapse = algo_options.get('collapse',collapse)
-        
+
+
     if algo == pca_annulus:
         pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, 
                               cube_ref, svd_mode, scaling, imlib=imlib,
                               interpolation=interpolation, collapse=collapse,
                               weights=weights)
+        
     elif algo == pca_annular:
                 
         tol = algo_options.get('tol',1e-1)
@@ -302,25 +321,10 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         # pad again now                      
         pca_res = np.pad(pca_res_tmp,pad,mode='constant',constant_values=0)
         
-    elif algo == pca:
-        hp_filter = algo_options.get('hp_filter',None)
-        hp_kernel = algo_options.get('hp_kernel',None)
+    elif algo == pca: 
         scale_list = algo_options.get('scale_list',None)
         ifs_collapse_range = algo_options.get('ifs_collapse_range','all')
         nproc = algo_options.get('nproc','all')
-        
-        # not recommended, except if large-scale residual sky present (NIRC2-L')
-        if hp_filter is not None:
-            if 'median' in hp_filter:
-                cube = cube_filter_highpass(cube, mode=hp_filter, 
-                                            median_size=hp_kernel)
-            elif "gauss" in hp_filter:
-                cube = cube_filter_highpass(cube, mode=hp_filter, 
-                                            fwhm_size=hp_kernel)
-            else:
-                cube = cube_filter_highpass(cube, mode=hp_filter, 
-                                            kernel_size=hp_kernel)
-        
         pca_res = pca(cube, angs, cube_ref, scale_list, ncomp, 
                       svd_mode=svd_mode, scaling=scaling, imlib=imlib,
                       interpolation=interpolation, collapse=collapse,
@@ -330,7 +334,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         algo_args = algo_options
         pca_res = algo(cube, angs, **algo_args)
                                   
-    indices = circle(posy, posx, radius=aperture_radius*fwhm)
+    indices = disk((posy, posx), radius=aperture_radius*fwhm)
     yy, xx = indices
 
     if collapse is None:
@@ -348,7 +352,8 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
                      fwhm, r_guess, theta_guess, cube_ref=None, wedge=None,
                      svd_mode='lapack', scaling=None, algo=pca_annulus, 
                      delta_rot=1, imlib='opencv', interpolation='lanczos4',
-                     collapse='median', weights=None, algo_options={}):
+                     collapse='median', weights=None, as_snr=False, 
+                     algo_options={}):
     """ Extracts the mean and standard deviation of pixel intensities in an
     annulus of the PCA-ADI image obtained with 'algo', in the part of a defined 
     wedge that is not overlapping with PA_pl+-delta_PA.
@@ -445,12 +450,28 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
 
     radius_int = max(1,int(np.floor(r_guess-annulus_width/2)))
     radius_int = algo_options.get('radius_int', radius_int)
+
+
+    # not recommended, except if large-scale residual sky present (NIRC2-L')
+    hp_filter = algo_options.get('hp_filter',None)
+    hp_kernel = algo_options.get('hp_kernel',None)
+    if hp_filter is not None:
+        if 'median' in hp_filter:
+            cube = cube_filter_highpass(cube, mode=hp_filter, 
+                                        median_size=hp_kernel)
+        elif "gauss" in hp_filter:
+            cube = cube_filter_highpass(cube, mode=hp_filter, 
+                                        fwhm_size=hp_kernel)
+        else:
+            cube = cube_filter_highpass(cube, mode=hp_filter, 
+                                        kernel_size=hp_kernel)
     
     if algo == pca_annulus:
         pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, 
                               cube_ref, svd_mode, scaling, imlib=imlib,
                               interpolation=interpolation, collapse=collapse, 
                               weights=weights)
+        
     elif algo == pca_annular:                
         tol = algo_options.get('tol',1e-1)
         min_frames_lib=algo_options.get('min_frames_lib',2)
@@ -465,7 +486,6 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
         else:
             crop_cube = cube
 
-
         pca_res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int, 
                                   fwhm=fwhm, asize=annulus_width, 
                                   delta_rot=delta_rot, ncomp=ncomp, 
@@ -478,30 +498,18 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
                                   weights=weights)
         # pad again now                      
         pca_res = np.pad(pca_res_tmp,pad,mode='constant',constant_values=0)
+        
     elif algo == pca:
-        hp_filter = algo_options.get('hp_filter',None)
-        hp_kernel = algo_options.get('hp_kernel',None)
         scale_list = algo_options.get('scale_list',None)
         ifs_collapse_range = algo_options.get('ifs_collapse_range','all')
         nproc = algo_options.get('nproc','all')
-        
-        # not recommended, except if large-scale residual sky present (NIRC2-L')
-        if hp_filter is not None:
-            if 'median' in hp_filter:
-                cube = cube_filter_highpass(cube, mode=hp_filter, 
-                                            median_size=hp_kernel)
-            elif "gauss" in hp_filter:
-                cube = cube_filter_highpass(cube, mode=hp_filter, 
-                                            fwhm_size=hp_kernel)
-            else:
-                cube = cube_filter_highpass(cube, mode=hp_filter, 
-                                            kernel_size=hp_kernel)
         
         pca_res = pca(cube, angs, cube_ref, scale_list, ncomp, 
                       svd_mode=svd_mode, scaling=scaling, imlib=imlib,
                       interpolation=interpolation, collapse=collapse,
                       ifs_collapse_range=ifs_collapse_range, nproc=nproc,
                       weights=weights, verbose=False)
+        
     else:
         algo_args = algo_options
         pca_res = algo(cube, angs, **algo_args)
@@ -521,11 +529,122 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
             wedge = (wedge[0],wedge[1]+360)
     else:
         raise TypeError("Wedge should have exactly 2 values")
-        
-    indices = get_annular_wedge(pca_res, radius_int, annulus_width, wedge=wedge)
     
-    yy, xx = indices
-    mu = np.mean(pca_res[yy, xx])
-    sigma = np.std(pca_res[yy, xx])
+    if as_snr:
+        source_xy = (centx_fr+r_guess*np.cos(np.deg2rad(theta_guess)), 
+                     centy_fr+r_guess*np.sin(np.deg2rad(theta_guess)))
+        print(source_xy)
+        res_snr = snr(pca_res, source_xy, fwhm, full_output=True, 
+                      exclude_negative_lobes=True)
+        fluxes = res_snr[-2]
+        fluxes = fluxes[1:-1]
+        n2 = len(fluxes)
+        mu = fluxes.mean()
+        #sigma = fluxes.std()*np.sqrt(1+1/n2)
+        sigma = get_sigma(pca_res, source_xy, fwhm, aperture_radius,
+                          exclude_negative_lobes=True)
+    else:
+        indices = get_annular_wedge(pca_res, radius_int, annulus_width, 
+                                    wedge=wedge)
+        
+        yy, xx = indices
+        mu = np.mean(pca_res[yy, xx])
+        # effective number of samples = Npx/Nfwhm instead of Npx
+        # trick is to adapt ddof parameter in std function:
+        npx = len(yy)
+        area = np.pi*(fwhm/2)**2
+        ddof = min(int(npx*(1.-(1./area)))+1, npx-1)
+        sigma = np.std(pca_res[yy, xx], ddof=ddof)
 
     return mu, sigma
+
+
+def get_sigma(array, source_xy, fwhm, aperture, full_output=False, 
+              exclude_negative_lobes=False, verbose=False):
+    """
+    Estimate the average standard deviation in apertures similar as the one
+    used for NEGFC minimization. This is done through the mean of as many 
+    independent apertures of the same size at the same radius.
+    
+    Parameters
+    ----------
+    array : numpy ndarray, 2d
+        Post-processed frame where we want to measure S/N.
+    source_xy : tuple of floats
+        X and Y coordinates of the planet or test speckle.
+    fwhm : float
+        Size in pixels of the FWHM.
+    aperture: float
+        Size of aperture in FWHM.
+    full_output : bool, optional
+        If True returns back the S/N value, the y, x input coordinates, noise
+        and flux.
+    exclude_negative_lobes : bool, opt
+        Whether to include the adjacent aperture lobes to the tested location 
+        or not. Can be set to True if the image shows significant neg lobes.
+    verbose: bool, optional
+        Chooses whether to print some output or not.
+
+    Returns
+    -------
+    [if full_output=True:]
+    sourcey : numpy ndarray
+        [full_output=True] Input coordinates (``source_xy``) in Y.
+    sourcex : numpy ndarray
+        [full_output=True] Input coordinates (``source_xy``) in X.
+    f_source : float
+        [full_output=True] Flux in test elemnt.
+    fluxes : numpy ndarray
+        [full_output=True] Background apertures fluxes.
+    [always:]    
+    snr_vale : float
+        Value of the S/N for the given test resolution element.
+    """
+    check_array(array, dim=2, msg='array')
+    if not isinstance(source_xy, tuple):
+        raise TypeError("`source_xy` must be a tuple of floats")
+
+    sourcex, sourcey = source_xy
+    centery, centerx = frame_center(array)
+    sep = dist(centery, centerx, float(sourcey), float(sourcex))
+
+    if not sep > (aperture*fwhm)+1:
+        raise RuntimeError('`source_xy` is too close to the frame center')
+
+    sens = 'clock'  # counterclock
+
+    angle = np.arcsin(aperture*fwhm/sep)*2
+    number_apertures = int(np.floor(2*np.pi/angle))
+    yy = np.zeros((number_apertures))
+    xx = np.zeros((number_apertures))
+    cosangle = np.cos(angle)
+    sinangle = np.sin(angle)
+    xx[0] = sourcex - centerx
+    yy[0] = sourcey - centery
+    for i in range(number_apertures-1):
+        if sens == 'clock':
+            xx[i+1] = cosangle*xx[i] + sinangle*yy[i] 
+            yy[i+1] = cosangle*yy[i] - sinangle*xx[i] 
+        elif sens == 'counterclock':
+            xx[i+1] = cosangle*xx[i] - sinangle*yy[i] 
+            yy[i+1] = cosangle*yy[i] + sinangle*xx[i]
+
+    xx += centerx
+    yy += centery
+    rad = aperture*fwhm
+    if exclude_negative_lobes:
+        xx = np.concatenate(([xx[0]], xx[2:-1]))
+        yy = np.concatenate(([yy[0]], yy[2:-1]))
+
+    sigmas = np.zeros_like(yy)
+    for i in range(1,len(sigmas)):
+        sigmas[i] = np.std(get_circle(array, rad, cy=yy[i], cx=xx[i], 
+                                      mode="val"), ddof=1)
+
+    sigmas = sigmas[1:] # do not consider companion itself
+    sigma = np.mean(sigmas)
+
+    if full_output:
+        return sigmas, sigma
+    else:
+        return sigma

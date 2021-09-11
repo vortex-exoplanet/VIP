@@ -11,6 +11,7 @@ __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens'
 __all__ = ['cube_crop_frames',
            'cube_drop_frames',
            'frame_crop',
+           'frame_pad',
            'cube_correct_nan',
            'approx_stellar_position']
 
@@ -122,6 +123,72 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
     if verbose:
         print("New shape: {}".format(array_view.shape))
     return array_view
+
+
+def frame_pad(array, fac, fillwith=0, loc=0, scale=1, full_output=False):
+    """ Pads a frame (2d array) equally on each sides, where the final frame
+    size is set by a multiplicative factor applied to the original size. The 
+    padding is set by fillwith, which can be either a fixed value or white 
+    noise, characterized by (loc, scale).
+    Uses the ``get_square`` function.
+
+    Parameters
+    ----------
+    array : numpy ndarray
+        Input frame.
+    fac : float > 1.
+        Ratio of the size between padded and input frame.
+    fillwith : float or str, optional
+        If a float or np.nan: value used for padding.
+        If str, must be 'noise', which will inject white noise, using loc and 
+        scale parameters.
+    loc : float, optional
+        If padding noise, mean of the white noise.
+    scale : float, optional
+        If padding noise, standard deviation of the white noise.
+    full_output : bool, optional
+        Whether to also return the indices of input frame within the padded 
+        frame (in addition to padded frame).
+
+    Returns
+    -------
+    array_out : numpy ndarray
+        Padded array.
+    ori_indices: tuple
+        [returned if full_output=True] Indices of the bottom left and top 
+        right vertices of the original image within the padded array:
+        (y0, yN, x0, xN).  
+
+    """
+    
+    if not array.ndim==2:
+        raise TypeError("The input array must be 2d")
+    
+    y,x = array.shape
+    cy_ori, cx_ori = frame_center(array)
+    new_y = int(y*fac)
+    new_x = int(x*fac)
+    if new_y%2 != y%2:
+        new_y-=1
+    if new_x%2 != x%2:
+        new_x-=1
+    if fillwith == 'noise':
+        array_out = np.random.normal(loc=loc, scale=scale, size=(new_y,new_x))
+    else:
+        array_out = np.zeros([new_y,new_x],dtype=array.dtype)
+        array_out[:] = fillwith
+    cy, cx = frame_center(array_out)
+    y0 = int(cy-cy_ori)
+    y1 = int(cy+cy_ori+1)
+    x0 = int(cx-cx_ori)
+    x1 = int(cx+cx_ori+1)
+    array_out[y0:y1,x0:x1] = array.copy()
+    ori_indices =  (y0, y1, x0, x1)
+    
+    if full_output:
+        return array_out, ori_indices
+    else:
+        return array_out
 
 
 def cube_drop_frames(array, n, m, parallactic=None, verbose=True):

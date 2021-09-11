@@ -22,13 +22,13 @@ from .mcmc_sampling import confidence
 
 
 def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo, 
-                              psfn, plsc, fwhm, aperture_radius, indep_ap=True,
-                              cube_ref=None, fmerit='sum', algo_options={}, 
-                              transmission=None, mu_sigma=None, wedge=None,
-                              weights=None, force_rPA=False, nproc=None, 
-                              simplex_options=None, bins=None, save=False, 
-                              output=None, verbose=True, full_output=True, 
-                              plot=False):
+                              psfn, plsc, fwhm, aperture_radius, 
+                              indep_ap=False, cube_ref=None, fmerit='sum', 
+                              algo_options={}, transmission=None, mu_sigma=None, 
+                              wedge=None, weights=None, force_rPA=False, 
+                              nproc=None, simplex_options=None, bins=None, 
+                              save=False, output=None, verbose=True, 
+                              full_output=True, plot=False):
     """
     Step-by-step procedure used to determine the speckle noise uncertainty 
     associated to the parameters of a companion candidate.

@@ -22,12 +22,13 @@ from .mcmc_sampling import confidence
 
 
 def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo, 
-                              psfn, plsc, fwhm, aperture_radius, cube_ref=None, 
-                              fmerit='sum', algo_options={}, transmission=None, 
-                              mu_sigma=None, wedge=None, weights=None, 
-                              force_rPA=False, nproc=None, simplex_options=None, 
-                              bins=None, save=False, output=None, verbose=True, 
-                              full_output=True, plot=False):
+                              psfn, plsc, fwhm, aperture_radius, indep_ap=True,
+                              cube_ref=None, fmerit='sum', algo_options={}, 
+                              transmission=None, mu_sigma=None, wedge=None,
+                              weights=None, force_rPA=False, nproc=None, 
+                              simplex_options=None, bins=None, save=False, 
+                              output=None, verbose=True, full_output=True, 
+                              plot=False):
     """
     Step-by-step procedure used to determine the speckle noise uncertainty 
     associated to the parameters of a companion candidate.
@@ -77,7 +78,17 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     plsc : float
         Value of the plsc in arcsec/px. Only used for printing debug output when
         ``verbose=True``.
-    algo_options: dict
+    fwhm: float
+        FWHM of the PSF in pixels.
+    aperture_radius: float
+        Radius of the apertures used for NEGFC, in terms of FWHM.
+    indep_ap: bool, opt.
+        Whether to only consider independent apertures. If yes, will supersede
+        the range provided in angle_range, and only consider the first and last
+        values, then fit as many non-overlapping apertures as possible. 
+        The empty cube will also be used with opposite derotation angles to 
+        double the number of independent apertures.
+    algo_options: dict, opt.
         Options for algo. To be provided as a dictionary. Can include ncomp 
         (for PCA), svd_mode, collapse, imlib, interpolation, scaling, delta_rot
     transmission: numpy array, optional
@@ -147,7 +158,15 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     
     r_true, theta_true, f_true = p_true
 
-    if angle_range[0]%360 == angle_range[-1]%360:
+    if indep_ap:
+        angle_span = angle_range[-1]-angle_range[0]
+        n_ap = int(np.deg2rad(angle_span)*r_true/fwhm)
+        delta_theta = angle_span/n_ap
+        angle_range = np.linspace(angle_range[0]+delta_theta/2, 
+                                  angle_range[-1]+delta_theta/2, n_ap, 
+                                  endpoint=False)
+
+    elif angle_range[0]%360 == angle_range[-1]%360:
         angle_range = angle_range[:-1]
                   
     if verbose:              
@@ -188,12 +207,21 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                    transmission, mu_sigma, weights, force_rPA, simplex_options, 
                    verbose=verbose)
     residuals = np.array(res)
- 
+    
+    if indep_ap: # do opposite angles
+        res = pool_map(nproc, _estimate_speckle_one_angle, 
+                       iterable(angle_range), cube_pf, psfn, -derot_angles, 
+                       r_true, f_true, plsc, fwhm, aperture_radius, cube_ref, 
+                       fmerit, algo, algo_options, transmission, mu_sigma, 
+                       weights, force_rPA, simplex_options, verbose=verbose)
+        residuals2 = np.array(res)
+        residuals = np.concatenate((residuals,residuals2))
+        
     if verbose:  
-        print("residuals (offsets): ", residuals[:,3],residuals[:,4],
+        print("residuals (offsets): ", residuals[:,3], residuals[:,4],
               residuals[:,5])
 
-    p_simplex = np.transpose(np.vstack((residuals[:,0],residuals[:,1],
+    p_simplex = np.transpose(np.vstack((residuals[:,0], residuals[:,1],
                                         residuals[:,2])))
     offset = np.transpose(np.vstack((residuals[:,3],residuals[:,4],
                             residuals[:,5])))

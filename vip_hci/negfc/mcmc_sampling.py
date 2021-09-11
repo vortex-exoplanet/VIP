@@ -14,6 +14,7 @@ __all__ = ['mcmc_negfc_sampling',
 import numpy as np
 import os
 import emcee
+from multiprocessing import cpu_count
 import inspect
 import datetime
 import corner
@@ -202,14 +203,18 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
     if isinstance(mu_sigma, tuple):
         mu = mu_sigma[0]
         sigma = mu_sigma[1]
-        lnlikelihood = -0.5 * np.sum(np.power(mu-values,2)/sigma**2)
+        num = np.power(mu-values,2)
+        denom = (np.abs(values)+sigma**2)
+        lnlikelihood = -0.5* np.sum(num/denom)
+        
     else:
+        mu = mu_sigma
         # old version - delete?
         if fmerit == 'sum':
-            lnlikelihood = -0.5 * np.sum(np.abs(values))
+            lnlikelihood = -0.5 * np.sum(np.abs(values-mu))
         elif fmerit == 'stddev':
             values = values[values != 0]
-            lnlikelihood = -np.std(values)*values.size
+            lnlikelihood = -np.std(values,ddof=1)*values.size
         else:
             raise RuntimeError('fmerit choice not recognized.')
    
@@ -517,9 +522,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         
     Notes
     -----
-    The parameter ``a`` must be > 1. For more theoretical information concerning
-    this parameter, see Goodman & Weare, 2010, Comm. App. Math. Comp. Sci.,
-    5, 65, Eq. [9] p70.
+    The parameter ``a`` must be > 1. For more theoretical information 
+    concerning this parameter, see Goodman & Weare, 2010, Comm. App. Math. 
+    Comp. Sci., 5, 65, Eq. [9] p70.
     
     The parameter 'rhat_threshold' can be a numpy.array with individual
     threshold value for each model parameter.
@@ -570,7 +575,10 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         imlib_rot = 'vip-fft'
     else:
         raise TypeError("Interpolation not recognized.")
-        
+ 
+    if nproc is None:
+        nproc = cpu_count() // 2      # Hyper-threading doubles the # of cores       
+ 
     # #########################################################################
     # Initialization of the variables
     # #########################################################################
@@ -581,26 +589,28 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     maxgap = check_maxgap
     initial_state = np.array(initial_state)
 
+    mu_sig = get_mu_and_sigma(cube, angs, ncomp, annulus_width,
+                              aperture_radius, fwhm, initial_state[0], 
+                              initial_state[1], cube_ref=cube_ref, wedge=wedge, 
+                              svd_mode=svd_mode, scaling=scaling, algo=algo, 
+                              delta_rot=delta_rot, imlib=imlib_rot, as_snr=True,
+                              interpolation=interpolation, collapse=collapse, 
+                              weights=norm_weights, algo_options=algo_options)
+
     # Measure mu and sigma once in the annulus (instead of each MCMC step)
     if isinstance(mu_sigma, tuple):
         if len(mu_sigma) != 2:
             raise TypeError("if a tuple, mu_sigma should have 2 elements")
 
     elif mu_sigma:
-        mu_sigma = get_mu_and_sigma(cube, angs, ncomp, annulus_width, 
-                                     aperture_radius, fwhm, initial_state[0], 
-                                     initial_state[1], cube_ref=cube_ref, 
-                                     wedge=wedge, svd_mode=svd_mode, 
-                                     scaling=scaling, algo=algo, 
-                                     delta_rot=delta_rot, imlib=imlib_rot, 
-                                     interpolation=interpolation,
-                                     collapse=collapse, weights=norm_weights, 
-                                     algo_options=algo_options)
+        mu_sigma = mu_sig
         if verbosity >0:
             msg = "The mean and stddev in the annulus at the radius of the "
             msg+= "companion (excluding the PA area directly adjacent to it)"
             msg+=" are {:.2f} and {:.2f} respectively."
             print(msg.format(mu_sigma[0],mu_sigma[1]))
+    else:
+        mu_sigma = mu_sig[0] # just take mean
         
     if itermin > limit:
         itermin = 0

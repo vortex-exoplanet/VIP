@@ -211,7 +211,7 @@ def _snr_approx(array, source_xy, fwhm, centery, centerx):
     array2 = array.copy()
     array2[ind_aper] = mad(array[ind_ann])  # mask
     n2 = (2 * np.pi * rad) / fwhm - 1
-    noise = array2[ind_ann].std() * np.sqrt(1+(1/n2))
+    noise = array2[ind_ann].std(ddof=1) * np.sqrt(1+(1/n2))
     # signal : central px minus the mean of the pxs (masked) in 1px annulus
     signal = array[sourcey, sourcex] - array2[ind_ann].mean()
     snr_value = signal / noise
@@ -268,18 +268,18 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
 
     Returns
     -------
-    snr_vale : float
-        Value of the S/N for the given test resolution element.
+    [if full_output=True:]
     sourcey : numpy ndarray
         [full_output=True] Input coordinates (``source_xy``) in Y.
     sourcex : numpy ndarray
         [full_output=True] Input coordinates (``source_xy``) in X.
     f_source : float
         [full_output=True] Flux in test elemnt.
-    backgr_apertures_std : float
-        [full_output=True] Standard deviation of the background apertures
-        fluxes.
-    
+    fluxes : numpy ndarray
+        [full_output=True] Background apertures fluxes.
+    [always:]    
+    snr_vale : float
+        Value of the S/N for the given test resolution element.
     """
     check_array(array, dim=2, msg='array')
     if not isinstance(source_xy, tuple):
@@ -369,7 +369,7 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         plt.show()
 
     if full_output:
-        return sourcey, sourcex, f_source, backgr_apertures_std, snr_vale
+        return sourcey, sourcex, f_source, fluxes, snr_vale
     else:
         return snr_vale
 
@@ -472,7 +472,7 @@ def frame_report(array, fwhm, source_xy=None, verbose=True):
             snr_pixels_i = [snr(array, (x_, y_), fwhm, plot=False,
                                 verbose=False) for y_, x_ in zip(yy, xx)]
             meansnr_i = np.mean(snr_pixels_i)
-            stdsnr_i = np.std(snr_pixels_i)
+            stdsnr_i = np.std(snr_pixels_i,ddof=1)
             pxsnr_i = snr(array, (x, y), fwhm, plot=False, verbose=False)
 
             obj_flux.append(obj_flux_i)
@@ -511,7 +511,7 @@ def frame_report(array, fwhm, source_xy=None, verbose=True):
         snr_pixels_i = [snr(array, (x_, y_), fwhm, plot=False,
                             verbose=False) for y_, x_ in zip(yy, xx)]
         meansnr_pixels = np.mean(snr_pixels_i)
-        stdsnr_i = np.std(snr_pixels_i)
+        stdsnr_i = np.std(snr_pixels_i,ddof=1)
         pxsnr_i = snr(array, (x, y), fwhm, plot=False, verbose=False)
 
         obj_flux.append(obj_flux_i)

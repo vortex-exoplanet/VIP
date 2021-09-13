@@ -26,22 +26,16 @@ except ImportError:
     msg = "Opencv python bindings are missing."
     warnings.warn(msg, ImportWarning)
     no_opencv = True
-    
-from skimage.registration import phase_cross_correlation
 
 from hciplot import plot_frames
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
 import skimage
 from skimage.transform import radon
-<<<<<<< HEAD
-
-=======
 if version.parse(skimage.__version__) <= version.parse('0.17.0'):
     from skimage.feature import register_translation as cc_center
 else:
     from skimage.registration import phase_cross_correlation as cc_center
->>>>>>> 81f45e1bc1599a0d35d56986d30f919806e6e92c
 from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
 from . import frame_crop

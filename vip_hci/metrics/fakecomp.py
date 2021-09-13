@@ -208,6 +208,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                                                  interpolation=interpolation)
                     else:
                         fc_fr_ang = fc_fr[fr]
+<<<<<<< HEAD
                     if np.isscalar(flevel):
                         array_out[fr] += (frame_shift(fc_fr_ang, shift_y, 
                                                       shift_x, imlib_sh, 
@@ -217,7 +218,16 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                         array_out[fr] += (frame_shift(fc_fr_ang, shift_y, 
                                                       shift_x, imlib_sh, 
                                                       interpolation)
+=======
+                    if isinstance(flevel, (list, tuple, np.ndarray)):
+                        array_out[fr] += (frame_shift(fc_fr_ang, shift_y, shift_x,
+                                              imlib, interpolation)
+>>>>>>> 81f45e1bc1599a0d35d56986d30f919806e6e92c
                                   * flevel[fr])
+                    else:
+                        array_out[fr] += (frame_shift(fc_fr_ang, shift_y, shift_x,
+                                                  imlib, interpolation)
+                                      * flevel)
                             
                 pos_y = rad * np.sin(ang) + ceny
                 pos_x = rad * np.cos(ang) + cenx
@@ -271,11 +281,17 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     shift = cube_shift(fc_fr, shift_y, shift_x, imlib_sh,
                                        interpolation)
 
+<<<<<<< HEAD
                     if np.isscalar(flevel):
                         array_out[:, fr] += shift * flevel
                     else:
+=======
+                    if isinstance(flevel, (list, tuple, np.ndarray)):
+>>>>>>> 81f45e1bc1599a0d35d56986d30f919806e6e92c
                         for i in range(len(flevel)):
                             array_out[i, fr] += shift[i] * flevel[i]
+                    else:
+                        array_out[:, fr] += shift * flevel
 
                 pos_y = rad * np.sin(ang) + ceny
                 pos_x = rad * np.cos(ang) + cenx

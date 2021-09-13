@@ -9,11 +9,17 @@ __all__ = []
 
 import numpy as np
 from hciplot import plot_frames
+<<<<<<< HEAD
 import photutils
 from skimage.draw import disk
 from ..metrics import cube_inject_companions, snr
 from ..var import (frame_center, get_annular_wedge, cube_filter_highpass, dist,
                    get_circle)
+=======
+from skimage.draw import disk
+from ..metrics import cube_inject_companions
+from ..var import frame_center, get_annular_wedge, cube_filter_highpass
+>>>>>>> 81f45e1bc1599a0d35d56986d30f919806e6e92c
 from ..pca import pca_annulus, pca_annular, pca
 from ..preproc import cube_crop_frames
 from ..conf import check_array

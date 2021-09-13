@@ -513,7 +513,7 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
             data_ref = None
 
         if data_ref.shape[0] < min_frames_lib and matrix_ref is None:
-            raise RuntimeError(msg.format(indices_left, min_frames_lib))
+            raise RuntimeError(msg.format(len(indices_left), min_frames_lib))
     if matrix_ref is not None:
         #data_ref = None
     #if matrix_ref is not None:

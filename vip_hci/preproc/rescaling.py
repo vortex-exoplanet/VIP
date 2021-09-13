@@ -375,7 +375,7 @@ def _frame_rescaling(array, ref_xy=None, scale=1.0, imlib='opencv',
             order = 0
         elif interpolation == 'bilinear':
             order = 1
-        elif interpolation == 'bicuadratic':
+        elif interpolation == 'biquadratic':
             order = 2
         elif interpolation == 'bicubic':
             order = 3

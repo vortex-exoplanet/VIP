@@ -17,6 +17,7 @@ __all__ = ['frame_shift',
 
 import numpy as np
 import warnings
+from packaging import version
 
 try:
     import cv2
@@ -31,8 +32,16 @@ from skimage.registration import phase_cross_correlation
 from hciplot import plot_frames
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
+import skimage
 from skimage.transform import radon
+<<<<<<< HEAD
 
+=======
+if version.parse(skimage.__version__) <= version.parse('0.17.0'):
+    from skimage.feature import register_translation as cc_center
+else:
+    from skimage.registration import phase_cross_correlation as cc_center
+>>>>>>> 81f45e1bc1599a0d35d56986d30f919806e6e92c
 from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
 from . import frame_crop
@@ -791,8 +800,9 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
 def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  fwhm=4, subi_size=None, upsample_factor=100,
                                  imlib='opencv', interpolation='lanczos4',
-                                 mask=None, full_output=False, verbose=True, nproc=1,
-                                 save_shifts=False, debug=False, plot=True):
+                                 mask=None, full_output=False, verbose=True, 
+                                 nproc=1, save_shifts=False, debug=False, 
+                                 plot=True):
     """ Recenters a cube of frames using the DFT upsampling method as
     proposed in Guizar et al. 2008 and implemented in the
     ``register_translation`` function from scikit-image.
@@ -831,6 +841,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     mask: 2D np.ndarray, optional
         Binary mask indicating where the cross-correlation should be calculated
         in the images. If provided, should be the same size as array frames.
+        [Note: only ysed uf version of skimage >= 0.18.0]
     full_output : bool, optional
         Whether to return 2 1d arrays of shifts along with the recentered cube
         or not.
@@ -988,11 +999,13 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
     """
     function used in recenter_dft_unsampling
     """
-    #shift_yx, _, _ = register_translation(array_rec[0], array[frnum],
-    #                                      upsample_factor=upsample_factor)
-    shift_yx = phase_cross_correlation(array_rec[0], array[frnum],
-                                       upsample_factor=upsample_factor, 
-                                       reference_mask=mask, return_error=False)
+    if version.parse(skimage.__version__) > version.parse('0.17.0'):
+        shift_yx = cc_center(array_rec[0], array[frnum], 
+                             upsample_factor=upsample_factor, reference_mask=mask, 
+                             return_error=False)
+    else:
+        shift_yx = cc_center(array_rec[0], array[frnum], 
+                             upsample_factor=upsample_factor)
     y_i, x_i = shift_yx
     array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
                               imlib=imlib, interpolation=interpolation)

@@ -17,7 +17,7 @@ import inspect
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy import stats
 from scipy.signal import savgol_filter
-from skimage.draw import circle
+from skimage.draw import disk
 from matplotlib import pyplot as plt
 from .fakecomp import (cube_inject_companions, frame_inject_companion,
                        normalize_psf)
@@ -931,7 +931,7 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
     flux = np.zeros((n_obj))
     for i, (y, x) in enumerate(zip(yc, xc)):
         if mean:
-            ind = circle(y, x,  (ap_factor*fwhm)/2)
+            ind = disk((y, x),  (ap_factor*fwhm)/2)
             values = array[ind]
             obj_flux = np.mean(values)
         else:

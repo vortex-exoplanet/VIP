@@ -346,7 +346,7 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
 
     Notes
     -----
-    An alternative implementation would use ``skimage.draw.circle``. ``circle``
+    An alternative implementation would use ``skimage.draw.disk``. ``disk``
     performs better on large ``array``s (e.g. 1000px, 10.000px), while the
     current implementation is faster for small ``array``s (e.g. 100px). See
     `test_shapes.py` for benchmark details.

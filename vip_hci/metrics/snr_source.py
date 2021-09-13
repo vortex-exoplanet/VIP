@@ -16,10 +16,6 @@ import numpy as np
 import photutils
 from scipy.stats import norm, t
 from hciplot import plot_frames
-<<<<<<< HEAD
-=======
-
->>>>>>> 81f45e1bc1599a0d35d56986d30f919806e6e92c
 from skimage.draw import disk, circle_perimeter
 from matplotlib import pyplot as plt
 from astropy.convolution import convolve, Tophat2DKernel

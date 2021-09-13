@@ -13,7 +13,7 @@ __all__ = ['frame_fix_badpix_isolated',
            'cube_fix_badpix_clump']
 
 import numpy as np
-from skimage.draw import circle, ellipse
+from skimage.draw import disk, ellipse
 from scipy.ndimage import median_filter
 from astropy.stats import sigma_clipped_stats
 from ..stats import sigma_filter
@@ -94,7 +94,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         bpm_mask = np.zeros_like(frame)
         bpm_mask[ind] = 1
         if protect_mask:
-            cir = circle(cy, cx, radius)
+            cir = disk((cy, cx), radius)
             bpm_mask[cir] = 0
         bpm_mask = bpm_mask.astype('bool')
 
@@ -192,7 +192,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
             bpm_mask = np.zeros_like(array[0])
             bpm_mask[ind] = 1
             if protect_mask:
-                cir = circle(cy, cx, radius)
+                cir = disk((cy, cx), radius)
                 bpm_mask[cir] = 0
             bpm_mask = bpm_mask.astype('bool')
     
@@ -363,11 +363,11 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
                                             c_radius=rr_sma*ann_width, 
                                             shape=(n_y,n_x))
             else:
-                big_ell_idx = circle(cy, cx, radius=(rr_big+1)*ann_width,
-                                     shape=(n_y,n_x))
+                big_ell_idx = disk((cy, cx), radius=(rr_big+1)*ann_width,
+                                   shape=(n_y,n_x))
                 if rr != 0:
-                    small_ell_idx = circle(cy, cx, radius=rr_sma*ann_width, 
-                                           shape=(n_y,n_x))
+                    small_ell_idx = disk((cy, cx), radius=rr_sma*ann_width, 
+                                         shape=(n_y,n_x))
             big_ell_frame[big_ell_idx] = 1
             if rr!=0: sma_ell_frame[small_ell_idx] = 1
             ann_frame = big_ell_frame - sma_ell_frame
@@ -407,8 +407,8 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
                 circl_new = ellipse(cy, cx, r_radius=0.9*fwhm, 
                                     c_radius=1.8*fwhm, shape=(n_y,n_x))
             else: 
-                circl_new = circle(cy, cx, radius=1.8*fwhm, 
-                                   shape=(n_y, n_x))
+                circl_new = disk((cy, cx), radius=1.8*fwhm, 
+                                 shape=(n_y, n_x))
         else: circl_new = []
 
         #4/ Loop on all pixels to check bpix
@@ -588,8 +588,8 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
             if half_res_y: 
                 circl_new = ellipse(int(cy/2), cx, r_radius=0.9*fwhm, 
                                     c_radius=1.8*fwhm, shape=(n_y, n_x))
-            else: circl_new = circle(cy, cx, radius=1.8*fwhm, 
-                                     shape=(n_y, n_x))
+            else: circl_new = disk((cy, cx), radius=1.8*fwhm, 
+                                   shape=(n_y, n_x))
         else: circl_new = []
     
 

@@ -270,7 +270,6 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                     shift_x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
                     shift = cube_shift(fc_fr, shift_y, shift_x, imlib_sh,
                                        interpolation)
-
                     if np.isscalar(flevel):
                         array_out[:, fr] += shift * flevel
                     else:

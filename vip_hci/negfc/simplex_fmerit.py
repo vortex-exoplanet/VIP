@@ -9,7 +9,6 @@ __all__ = []
 
 import numpy as np
 from hciplot import plot_frames
-import photutils
 from skimage.draw import disk
 from ..metrics import cube_inject_companions, snr
 from ..var import (frame_center, get_annular_wedge, cube_filter_highpass, dist,
@@ -352,8 +351,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
                      fwhm, r_guess, theta_guess, cube_ref=None, wedge=None,
                      svd_mode='lapack', scaling=None, algo=pca_annulus, 
                      delta_rot=1, imlib='opencv', interpolation='lanczos4',
-                     collapse='median', weights=None, as_snr=False, 
-                     algo_options={}):
+                     collapse='median', weights=None, algo_options={}):
     """ Extracts the mean and standard deviation of pixel intensities in an
     annulus of the PCA-ADI image obtained with 'algo', in the part of a defined 
     wedge that is not overlapping with PA_pl+-delta_PA.
@@ -530,31 +528,18 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
     else:
         raise TypeError("Wedge should have exactly 2 values")
     
-    if as_snr:
-        source_xy = (centx_fr+r_guess*np.cos(np.deg2rad(theta_guess)), 
-                     centy_fr+r_guess*np.sin(np.deg2rad(theta_guess)))
-        print(source_xy)
-        res_snr = snr(pca_res, source_xy, fwhm, full_output=True, 
-                      exclude_negative_lobes=True)
-        fluxes = res_snr[-2]
-        fluxes = fluxes[1:-1]
-        n2 = len(fluxes)
-        mu = fluxes.mean()
-        #sigma = fluxes.std()*np.sqrt(1+1/n2)
-        sigma = get_sigma(pca_res, source_xy, fwhm, aperture_radius,
-                          exclude_negative_lobes=True)
-    else:
-        indices = get_annular_wedge(pca_res, radius_int, annulus_width, 
-                                    wedge=wedge)
-        
-        yy, xx = indices
-        mu = np.mean(pca_res[yy, xx])
-        # effective number of samples = Npx/Nfwhm instead of Npx
-        # trick is to adapt ddof parameter in std function:
-        npx = len(yy)
-        area = np.pi*(fwhm/2)**2
-        ddof = min(int(npx*(1.-(1./area)))+1, npx-1)
-        sigma = np.std(pca_res[yy, xx], ddof=ddof)
+
+    indices = get_annular_wedge(pca_res, radius_int, annulus_width, 
+                                wedge=wedge)
+    
+    yy, xx = indices
+    mu = np.mean(pca_res[yy, xx])
+    # effective number of samples = Npx/Nfwhm instead of Npx
+    # trick is to adapt ddof parameter in std function:
+    npx = len(yy)
+    area = np.pi*(fwhm/2)**2
+    ddof = min(int(npx*(1.-(1./area)))+1, npx-1)
+    sigma = np.std(pca_res[yy, xx], ddof=ddof)
 
     return mu, sigma
 

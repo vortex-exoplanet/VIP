@@ -21,15 +21,9 @@ from ..preproc.derotation import _find_indices_adi, _define_annuli
 
 
 def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
-<<<<<<< HEAD
                n_similar=None, delta_rot=0.5, radius_int=2, asize=4, ncomp=None,
-               imlib='opencv', interpolation='lanczos4', nproc=1, verbose=True, 
-               debug=False):
-=======
-               n_similar=None, delta_rot=0.5, radius_int=0, asize=4, ncomp=None,
-               nproc=1, imlib='opencv', interpolation='lanczos4', 
-               collapse='median', verbose=True, debug=False):
->>>>>>> 81f45e1bc1599a0d35d56986d30f919806e6e92c
+               imlib='opencv', interpolation='lanczos4', collapse='median',
+               nproc=1, verbose=True, debug=False):
     """ Frame differencing algorithm. It uses vector distance (depending on
     ``metric``), using separately the pixels from different annuli of ``asize``
     width, to create pairs of most similar images. Then it performs pair-wise
@@ -73,6 +67,9 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         See description in vip.preproc.frame_rotate()
     interpolation : str, opt
         See description in vip.preproc.frame_rotate()
+    collapse: str, opt
+        What to do with derotated residual cube? See options of 
+        vip.preproc.cube_collapse()
     verbose: bool, optional
         If True prints info to stdout.
     debug : bool, optional
@@ -110,13 +107,8 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
 
     res = pool_map(nproc, _pairwise_ann, iterable(range(n_annuli)),
                    n_annuli, fwhm, angle_list, delta_rot, metric,
-<<<<<<< HEAD
                    dist_threshold, n_similar, radius_int, asize, ncomp, imlib, 
                    interpolation, verbose, debug)
-=======
-                   dist_threshold, n_similar, radius_int, asize, ncomp, 
-                   verbose, debug)
->>>>>>> 81f45e1bc1599a0d35d56986d30f919806e6e92c
 
     #final_frame = np.sum(res, axis=0)
     cube_out_fin = np.sum(res, axis=0)
@@ -132,15 +124,9 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     return final_frame
 
 
-<<<<<<< HEAD
 def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric, 
                   dist_threshold, n_similar, radius_int, asize, ncomp, imlib, 
                   interpolation, verbose, debug=False):
-=======
-def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
-                  dist_threshold, n_similar, radius_int, asize, ncomp, verbose, 
-                  debug=False):
->>>>>>> 81f45e1bc1599a0d35d56986d30f919806e6e92c
     """
     Helper functions for pair-wise subtraction for a single annulus.
     """
@@ -243,17 +229,9 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
             res = values[indices[i][0]] - values[indices[i][1]]
             cube_res[i] = res
 
-<<<<<<< HEAD
-    cube_out = np.zeros((cube_res.shape[0], array.shape[1], array.shape[2]))
-    cube_out[:, yy, xx] = cube_res
-    cube_der = cube_derotate(cube_out, angles_list, imlib=imlib, 
-                             interpolation=interpolation)
-    frame_der_median = cube_collapse(cube_der, 'median')
-=======
     cube_out = np.zeros((array.shape[0], array.shape[1], array.shape[2]))
     for i in range(n_frames):
         cube_out[i, yy, xx] = cube_res[i]
->>>>>>> 81f45e1bc1599a0d35d56986d30f919806e6e92c
 
     return cube_out
 

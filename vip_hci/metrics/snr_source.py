@@ -108,7 +108,7 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
             coords = [(int(x), int(y)) for (x, y) in zip(xx, yy)]
             res = pool_map(nproc, _snr_approx, array, iterable(coords), fwhm,
                            cy, cx)
-            res = np.array(res)
+            res = np.array(res, dtype=object)
             yy = res[:, 0]
             xx = res[:, 1]
             snr_value = res[:, 2]
@@ -118,7 +118,7 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
         else:
             res = pool_map(nproc, snr, array, iterable(coords), fwhm, True,
                            array2, use2alone, exclude_negative_lobes)
-            res = np.array(res)
+            res = np.array(res, dtype=object)
             yy = res[:, 0]
             xx = res[:, 1]
             snr_value = res[:, -1]
@@ -172,7 +172,7 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
             res = pool_map(nproc, snr, arr_masked_sources, iterable(coor_ann),
                            fwhm, True, array2, use2alone, 
                            exclude_negative_lobes)
-            res = np.array(res)
+            res = np.array(res, dtype=object)
             yy_res = res[:, 0]
             xx_res = res[:, 1]
             snr_value = res[:, 4]
@@ -183,7 +183,7 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
         coor_rest = [(x, y) for (x, y) in zip(xx, yy) if (x, y) not in coor_ann]
         res = pool_map(nproc, snr, array, iterable(coor_rest), fwhm, True,
                        array2, use2alone, exclude_negative_lobes)
-        res = np.array(res)
+        res = np.array(res, dtype=object)
         yy_res = res[:, 0]
         xx_res = res[:, 1]
         snr_value = res[:, 4]

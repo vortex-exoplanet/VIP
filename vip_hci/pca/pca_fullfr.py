@@ -168,7 +168,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         computed and the S/Ns (mean value in a 1xFWHM circular aperture) of the
         given (X,Y) coordinates are computed.
     delta_rot : int, optional
-        Factor for tunning the parallactic angle threshold, expressed in FWHM.
+        Factor for tuning the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1xFHWM on each side of the considered frame).
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Default value is 4. 

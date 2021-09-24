@@ -17,13 +17,12 @@ from ..var import get_circle
 
 
 def compute_stim_map(cube_der):
-    """
-    Computes the STIM detection map.
+    """ Computes the STIM detection map.
 
     Parameters
     ----------
     cube_der : 3d numpy ndarray
-        Input de-rotated cube, e.g. output 'residuals_cube_' from
+        Input de-rotated cube, e.g. ``residuals_cube_`` output from
         ``vip_hci.pca.pca``.
 
     Returns
@@ -39,10 +38,9 @@ def compute_stim_map(cube_der):
     return get_circle(detection_map, int(np.round(n/2.)))
 
 
-def compute_inverse_stim_map(cube, angle_list, imlib='opencv', 
+def compute_inverse_stim_map(cube, angle_list, imlib='opencv',
                              interpolation='lanczos4'):
-    """
-    Computes the STIM detection map.
+    """ Computes the inverse STIM detection map.
 
     Parameters
     ----------

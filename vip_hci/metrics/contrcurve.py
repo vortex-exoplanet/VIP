@@ -30,9 +30,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                    algo, sigma=5, nbranch=1, theta=0, inner_rad=1,
                    wedge=(0,360), fc_snr=100, student=True, transmission=None,
                    smooth=True, interp_order=2, plot=True, dpi=100,
-                   imlib='opencv', debug=False, verbose=True, full_output=False,
-                   save_plot=None, object_name=None, frame_size=None,
-                   fix_y_lim=(), figsize=(8, 4), **algo_dict):
+                   imlib='opencv', interpolation='Lanczos4', debug=False, 
+                   verbose=True, full_output=False, save_plot=None, 
+                   object_name=None, frame_size=None, fix_y_lim=(), 
+                   figsize=(8, 4), **algo_dict):
     """ Computes the contrast curve at a given SIGMA (``sigma``) level for an
     ADI cube or ADI+IFS cube. The contrast is calculated as
     sigma*noise/throughput. This implementation takes into account the small
@@ -98,8 +99,11 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     dpi : int optional
         Dots per inch for the plots. 100 by default. 300 for printing quality.
     imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
-        Library or method used for image operations (shifts). Opencv is the
-        default for being the fastest.
+        Library or method used for image operations (rotations). Opencv is the
+        default for being the fastest. See description of
+        `vip_hci.preproc.frame_rotate`.
+    interpolation: str, opt
+        See description of ``vip_hci.preproc.frame_rotate`` function
     debug : bool, optional
         Whether to print and plot additional info such as the noise, throughput,
         the contrast curve with different X axis and the delta magnitude instead
@@ -172,6 +176,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             print(msg0.format(algo.__name__, fwhm_med, nbranch, sigma))
         print(sep)
 
+    # add imlib and interpolation to algo_dict
+    algo_dict['imlib']=imlib
+    algo_dict['interpolation']=interpolation
+
     # throughput
     verbose_thru = False
     if verbose == 2:
@@ -179,8 +187,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     res_throug = throughput(cube, angle_list, psf_template, fwhm, pxscale,
                             nbranch=nbranch, theta=theta, inner_rad=inner_rad,
                             wedge=wedge, fc_snr=fc_snr, full_output=True,
-                            algo=algo, imlib=imlib, verbose=verbose_thru,
-                            **algo_dict)
+                            algo=algo, imlib=imlib, interpolation=interpolation,
+                            verbose=verbose_thru, **algo_dict)
     vector_radd = res_throug[3]
     if res_throug[0].shape[0] > 1:
         thruput_mean = np.nanmean(res_throug[0], axis=0)
@@ -579,7 +587,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 new_algo_dict = algo_dict.copy()
                 new_algo_dict['scaling'] = None
                 frame_nofc_noscal = algo(cube=array, angle_list=parangles,
-                                  verbose=False, **new_algo_dict)
+                                         verbose=False, **new_algo_dict)
             else:
                 frame_nofc_noscal = frame_nofc
                 

@@ -30,7 +30,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                    algo, sigma=5, nbranch=1, theta=0, inner_rad=1,
                    wedge=(0,360), fc_snr=100, student=True, transmission=None,
                    smooth=True, interp_order=2, plot=True, dpi=100,
-                   imlib='opencv', interpolation='Lanczos4', debug=False, 
+                   imlib='opencv', interpolation='lanczos4', debug=False, 
                    verbose=True, full_output=False, save_plot=None, 
                    object_name=None, frame_size=None, fix_y_lim=(), 
                    figsize=(8, 4), **algo_dict):

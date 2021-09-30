@@ -10,7 +10,7 @@ __all__ = []
 import numpy as np
 from hciplot import plot_frames
 from skimage.draw import disk
-from ..metrics import cube_inject_companions, snr
+from ..metrics import cube_inject_companions
 from ..var import (frame_center, get_annular_wedge, cube_filter_highpass, dist,
                    get_circle)
 from ..pca import pca_annulus, pca_annular, pca

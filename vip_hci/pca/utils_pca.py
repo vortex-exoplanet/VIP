@@ -240,8 +240,8 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
             res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
                        full_output=True)
                    for y_, x_ in zip(yy, xx)]
-            snr_pixels = np.array(res)[:, -1]
-            fluxes = np.array(res)[:, 2]
+            snr_pixels = np.array(res, dtype=object)[:, -1]
+            fluxes = np.array(res, dtype=object)[:, 2]
             argm = np.argmax(snr_pixels)
             # integrated fluxes for the max snr
             return np.max(snr_pixels), fluxes[argm]
@@ -250,7 +250,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
             res = snr(frame, (x, y), fwhm, plot=False, verbose=False,
                       full_output=True)
             snrpx = res[-1]
-            fluxpx = np.array(res)[2]
+            fluxpx = np.array(res, dtype=object)[2]
             # integrated fluxes for the given px
             return snrpx, fluxpx
 
@@ -259,8 +259,8 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
             res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
                        full_output=True) for y_, x_
                    in zip(yy, xx)]
-            snr_pixels = np.array(res)[:, -1]
-            fluxes = np.array(res)[:, 2]
+            snr_pixels = np.array(res, dtype=object)[:, -1]
+            fluxes = np.array(res, dtype=object)[:, 2]
             # mean of the integrated fluxes (shifting the aperture)
             return np.mean(snr_pixels), np.mean(fluxes)
 
@@ -707,7 +707,8 @@ def _compute_stim_map(cube_der):
     return get_circle(detection_map, int(np.round(n/2.)))
 
 
-def _compute_inverse_stim_map(cube, angle_list):
+def _compute_inverse_stim_map(cube, angle_list, imlib='opencv',
+                              interpolation='lanczos4'):
     """
     Computes the inverse STIM detection map, i.e. obtained with opposite 
     derotation angles.
@@ -721,14 +722,19 @@ def _compute_inverse_stim_map(cube, angle_list):
         Non de-rotated residuals from reduction algorithm, eg. output residuals
         from ``vip_hci.pca.pca``.
     angle_list : numpy ndarray, 1d
-        Corresponding parallactic angle for each frame.    
-
+        Corresponding parallactic angle for each frame.   
+    imlib: str, opt
+        See description of vip_hci.preproc.frame_rotate
+    interpolation: str, opt
+        See description of vip_hci.preproc.frame_rotate
+        
     Returns
     -------
     inverse_stim_map : 2d ndarray
         Inverse STIM detection map.
     """
     t, n, _ = cube.shape
-    cube_inv_der = cube_derotate(cube, -angle_list)
+    cube_inv_der = cube_derotate(cube, -angle_list, imlib=imlib,
+                                 interpolation=interpolation)
     inverse_stim_map = _compute_stim_map(cube_inv_der)
     return inverse_stim_map

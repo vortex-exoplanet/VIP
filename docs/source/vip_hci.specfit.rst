@@ -1,5 +1,5 @@
 vip\_hci.specfit package
-====================
+========================
 
 .. automodule:: vip_hci.specfit
     :members:
@@ -34,7 +34,7 @@ vip\_hci.specfit.model\_resampling module
     :show-inheritance:
 
 vip\_hci.specfit.template\_lib module
-------------------------------------
+-------------------------------------
 
 .. automodule:: vip_hci.specfit.template_lib
     :members:
@@ -42,7 +42,7 @@ vip\_hci.specfit.template\_lib module
     :show-inheritance:
 
 vip\_hci.specfit.utils\_spec module
-------------------------------
+-----------------------------------
 
 .. automodule:: vip_hci.specfit.utils_spec
     :members:

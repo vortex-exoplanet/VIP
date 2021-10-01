@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 
 """
-Module with the MCMC (``emcee``) sampling for model spectra parameter estimation.
+Module with the MCMC (``emcee``) sampling for model spectra parameter 
+estimation.
 """
-
 
 __author__ = 'V. Christiaens, O. Wertz, Carlos Alberto Gomez Gonzalez'
 __all__ = ['mcmc_spec_sampling',

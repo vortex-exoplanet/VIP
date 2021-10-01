@@ -1,10 +1,11 @@
 """
-Subpackage ``specfit`` has helping functions such as:
+Subpackage ``specfit`` has helping functions for the analysis of (low-res) 
+spectra, including:
 
-- spectral fitting
-- mcmc sampling of model parameter space
-- best fit search within a template libraty
-- utility functions for the spectral fit
+- fitting of input spectra to models and templates;
+- mcmc sampling of model parameter space;
+- best fit search within a template library;
+- utility functions for the spectral fit.
 """
 
 from .chi import *

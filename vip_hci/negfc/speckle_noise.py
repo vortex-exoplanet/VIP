@@ -205,7 +205,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                    cube_pf, psfn, derot_angles, r_true, f_true, plsc, fwhm,
                    aperture_radius, cube_ref, fmerit, algo, algo_options, 
                    transmission, mu_sigma, weights, force_rPA, simplex_options, 
-                   verbose=verbose)
+                   imlib, interpolation, verbose=verbose)
     residuals = np.array(res)
     
     if indep_ap: # do opposite angles
@@ -213,7 +213,8 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                        iterable(angle_range), cube_pf, psfn, -derot_angles, 
                        r_true, f_true, plsc, fwhm, aperture_radius, cube_ref, 
                        fmerit, algo, algo_options, transmission, mu_sigma, 
-                       weights, force_rPA, simplex_options, verbose=verbose)
+                       weights, force_rPA, simplex_options, imlib, 
+                       interpolation, verbose=verbose)
         residuals2 = np.array(res)
         residuals = np.concatenate((residuals,residuals2))
         
@@ -273,8 +274,8 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
 def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true, 
                                 plsc, fwhm, aperture_radius, cube_ref, fmerit, 
                                 algo, algo_options, transmission, mu_sigma, 
-                                weights, force_rPA, simplex_options, 
-                                verbose=True):
+                                weights, force_rPA, simplex_options, imlib,
+                                interpolation, verbose=True):
                          
     if verbose:
         print('Process is running for angle: {:.2f}'.format(angle))
@@ -282,7 +283,8 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
     cube_fc = cube_inject_companions(cube_pf, psfn, angs, flevel=f_true, 
                                      plsc=plsc, rad_dists=[r_true], 
                                      n_branches=1, theta=angle, 
-                                     transmission=transmission, verbose=False)
+                                     transmission=transmission, imlib=imlib,
+                                     interpolation=interpolation, verbose=False)
     
     ncomp = algo_options.get('ncomp', None)
     annulus_width = algo_options.get('annulus_width', int(fwhm))
@@ -291,7 +293,8 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
                                      plsc, ncomp, fwhm, annulus_width, 
                                      aperture_radius, cube_ref=cube_ref,
                                      fmerit=fmerit, algo=algo, 
-                                     algo_options=algo_options,
+                                     algo_options=algo_options, imlib=imlib,
+                                     interpolation=interpolation, 
                                      transmission=transmission, 
                                      mu_sigma=mu_sigma, weights=weights, 
                                      force_rPA=force_rPA, 

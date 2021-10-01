@@ -1526,14 +1526,12 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             mask_tmp = frame_crop(mask, subframesize)
         else:
             mask_tmp = mask
-        _, y_shift, x_shift = cube_recenter_dft_upsampling(cube_stret, 
-                                                           (ceny, cenx), 
-                                                           fwhm=fwhm, 
-                                                           subi_size=None,
-                                                           full_output=True, 
-                                                           verbose=False,
-                                                           plot=False,
-                                                           mask=mask_tmp)
+        res = cube_recenter_dft_upsampling(cube_stret, (ceny, cenx), fwhm=fwhm, 
+                                           subi_size=None, full_output=True, 
+                                           verbose=False, plot=False,
+                                           mask=mask_tmp, imlib=imlib,
+                                           interpolation=interpolation)
+        _, y_shift, x_shift = res
         sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
         print('Square sum of shift vecs: ' + str(sqsum_shifts))
 

@@ -33,21 +33,19 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     Step-by-step procedure used to determine the speckle noise uncertainty 
     associated to the parameters of a companion candidate.
 
-      __ 
-     |   The steps 1 to 3 need to be performed for each angle.
-     | 
-     | - 1 - At the true planet radial distance and for a given angle, we 
-     |       inject a fake companion in our planet-free cube.
-     |   
-     | - 2 - Then, using the negative fake companion method, we determine the 
-     |       position and flux of the fake companion thanks to a Simplex  
-     |       Nelder-Mead minimization.
-     |
-     | - 3 - We calculate the offset between the true values of the position 
-     |       and the flux of the fake companion, and those obtained from the 
-     |       minimization. The results will be dependent on the angular 
-     |       position of the fake companion. 
-     |__
+    The steps 1 to 3 need to be performed for each angle.
+     
+    1) At the true planet radial distance and for a given angle, we \
+    inject a fake companion in our planet-free cube.
+       
+    2) Then, using the negative fake companion method, we determine the \
+    position and flux of the fake companion thanks to a Simplex \
+    Nelder-Mead minimization.
+    
+    3) We calculate the offset between the true values of the position \
+    and the flux of the fake companion, and those obtained from the \
+    minimization. The results will be dependent on the angular \
+    position of the fake companion. 
      
     The resulting distribution of deviations is then used to infer the 
     1-sigma uncertainty on each parameter by fitting a 1d-gaussian.

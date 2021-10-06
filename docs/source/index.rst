@@ -1,5 +1,5 @@
 .. vip_hci documentation master file, created by
-   sphinx-quickstart on Wed Oct  6 18:04:46 2021.
+   sphinx-quickstart on Wed Oct  6 21:57:19 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
@@ -10,7 +10,7 @@ Welcome to vip_hci's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-readme
+
 
 Indices and tables
 ==================

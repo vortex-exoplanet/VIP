@@ -355,8 +355,9 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
         the gaussian will automatically be set to the equivalent width of the
         line, calculated from the flux to be injected and the continuum 
         level (measured in the grid model to which the line is injected). 
-        Examples: em_lines = {'BrG':(2.1667,'F',None, None)};
-                  em_lines = {'BrG':(2.1667,'LogL', 100, 'km/s')}
+        Examples:
+        em_lines = {'BrG':(2.1667,'F',None, None)};
+        em_lines = {'BrG':(2.1667,'LogL', 100, 'km/s')}
     em_grid: dictionary pointing to lists, opt
         Dictionary where each entry corresponds to an emission line and points
         to a list of values to inject for emission line fluxes. For computation 
@@ -420,8 +421,9 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
         containing prior estimate and uncertainty on the estimate.
         Missing entries (i.e. provided in bounds dictionary but not here) will
         be associated no prior.
-        e.g. priors = {'Teff':(1600,100), 'logg':(3.5,0.5),
-                       'R':(1.6,0.1), 'Av':(1.8,0.2), 'M':(10,3)}
+        e.g. priors = {'Teff':(1600,100), 'logg':(3.5,0.5), 'R':(1.6,0.1), 
+        'Av':(1.8,0.2), 'M':(10,3)}
+        
         Important: dictionary entry names should match exactly those of bounds.
     physical: bool, opt
         In case of extra black body component(s) to a photosphere, whether to 
@@ -617,8 +619,9 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         the gaussian will automatically be set to the equivalent width of the
         line, calculated from the flux to be injected and the continuum 
         level (measured in the grid model to which the line is injected). 
-        Examples: em_lines = {'BrG':(2.1667,'F', None, None)};
-                  em_lines = {'BrG':(2.1667,'LogL', 100, 'km/s')}
+        Examples: 
+        em_lines = {'BrG':(2.1667,'F', None, None)};
+        em_lines = {'BrG':(2.1667,'LogL', 100, 'km/s')}
     em_grid: dictionary pointing to lists, opt
         Dictionary where each entry corresponds to an emission line and points
         to a list of values to inject for emission line fluxes. For computation 

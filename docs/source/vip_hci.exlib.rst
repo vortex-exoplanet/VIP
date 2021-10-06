@@ -1,16 +1,11 @@
-vip\_hci.exlib package
-======================
-
-.. automodule:: vip_hci.exlib
-    :members:
-    :undoc-members:
-    :show-inheritance:
+vip\_hci\.exlib package
+=======================
 
 Submodules
 ----------
 
-vip\_hci.exlib.iuwt module
---------------------------
+vip\_hci\.exlib\.iuwt module
+----------------------------
 
 .. automodule:: vip_hci.exlib.iuwt
     :members:
@@ -18,3 +13,10 @@ vip\_hci.exlib.iuwt module
     :show-inheritance:
 
 
+Module contents
+---------------
+
+.. automodule:: vip_hci.exlib
+    :members:
+    :undoc-members:
+    :show-inheritance:

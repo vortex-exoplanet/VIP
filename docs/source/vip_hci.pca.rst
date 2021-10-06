@@ -1,40 +1,35 @@
-vip\_hci.pca package
-====================
-
-.. automodule:: vip_hci.pca
-    :members:
-    :undoc-members:
-    :show-inheritance:
+vip\_hci\.pca package
+=====================
 
 Submodules
 ----------
 
-vip\_hci.pca.pca\_fullfr module
--------------------------------
+vip\_hci\.pca\.pca\_fullfr module
+---------------------------------
 
 .. automodule:: vip_hci.pca.pca_fullfr
     :members:
     :undoc-members:
     :show-inheritance:
 
-vip\_hci.pca.pca\_local module
-------------------------------
+vip\_hci\.pca\.pca\_local module
+--------------------------------
 
 .. automodule:: vip_hci.pca.pca_local
     :members:
     :undoc-members:
     :show-inheritance:
 
-vip\_hci.pca.svd module
------------------------
+vip\_hci\.pca\.svd module
+-------------------------
 
 .. automodule:: vip_hci.pca.svd
     :members:
     :undoc-members:
     :show-inheritance:
 
-vip\_hci.pca.utils\_pca module
-------------------------------
+vip\_hci\.pca\.utils\_pca module
+--------------------------------
 
 .. automodule:: vip_hci.pca.utils_pca
     :members:
@@ -42,3 +37,10 @@ vip\_hci.pca.utils\_pca module
     :show-inheritance:
 
 
+Module contents
+---------------
+
+.. automodule:: vip_hci.pca
+    :members:
+    :undoc-members:
+    :show-inheritance:

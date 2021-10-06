@@ -1,11 +1,6 @@
 vip\_hci package
 ================
 
-.. automodule:: vip_hci
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Subpackages
 -----------
 
@@ -31,24 +26,24 @@ Subpackages
 Submodules
 ----------
 
-vip\_hci.hci\_dataset module
-----------------------------
+vip\_hci\.hci\_dataset module
+-----------------------------
 
 .. automodule:: vip_hci.hci_dataset
     :members:
     :undoc-members:
     :show-inheritance:
 
-vip\_hci.hci\_postproc module
------------------------------
+vip\_hci\.hci\_postproc module
+------------------------------
 
 .. automodule:: vip_hci.hci_postproc
     :members:
     :undoc-members:
     :show-inheritance:
 
-vip\_hci.vip\_ds9 module
-------------------------
+vip\_hci\.vip\_ds9 module
+-------------------------
 
 .. automodule:: vip_hci.vip_ds9
     :members:
@@ -56,3 +51,10 @@ vip\_hci.vip\_ds9 module
     :show-inheritance:
 
 
+Module contents
+---------------
+
+.. automodule:: vip_hci
+    :members:
+    :undoc-members:
+    :show-inheritance:

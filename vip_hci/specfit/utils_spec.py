@@ -89,11 +89,11 @@ def combine_spec_corrs(arr_list):
 
 def convert_F_units(F, lbda, in_unit='cgs', out_unit='si'):
     """
-    Function to convert Flux density between [ergs s^-1 cm^-2 um^-1], 
-    [W m^-2 um^-1] and [Jy].
+    Function to convert Flux density between [ergs s-1 cm-2 um-1], 
+    [W m-2 um-1] and [Jy].
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     F: float or 1d array
         Flux
     lbda: float or 1d array
@@ -107,8 +107,8 @@ def convert_F_units(F, lbda, in_unit='cgs', out_unit='si'):
     out_unit: str, opt {"si", "cgs", "jy"}
         Output flux units.
         
-    Returns:
-    --------
+    Returns
+    -------
     Flux in output units.
     """
 
@@ -141,13 +141,13 @@ def convert_F_vs_mag(value, F_0=None, band='H', system='Johnson',
     the opposite.
 
     Sources for zero points:
-        - TOKUNAGA chapter on IR astronomy (from Cohen 1992)
-        - UKIRT webpage: 
+        * TOKUNAGA chapter on IR astronomy (from Cohen 1992)
+        * UKIRT webpage: \
         (http://www.jach.hawaii.edu/UKIRT/astronomy/calib/phot_cal/conver.html)
-        - van der Bliek et al. 1996 (ESO standard stars)
+        * van der Bliek et al. 1996 (ESO standard stars)
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     value: float
         Flux or magnitude to be converted.
     F_0: float, opt
@@ -162,8 +162,8 @@ def convert_F_vs_mag(value, F_0=None, band='H', system='Johnson',
         In which sense to convert: flux to mag ('to_mag') or mag to flux 
         ('to_flux')
     
-    Returns:
-    --------
+    Returns
+    -------
     Converted flux or magnitude.
     """               
     
@@ -298,8 +298,8 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
         Number of elements to be returned, sorted by proximity to the values.
         Default: only the closest value is returned.
     
-    Returns:
-    --------
+    Returns
+    -------
     Either:
         (output='index'): index/indices of the closest n value(s) in the array;
         (output='value'): the closest n value(s) in the array, 

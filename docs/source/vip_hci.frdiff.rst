@@ -1,16 +1,11 @@
-vip\_hci.frdiff package
-=======================
-
-.. automodule:: vip_hci.frdiff
-    :members:
-    :undoc-members:
-    :show-inheritance:
+vip\_hci\.frdiff package
+========================
 
 Submodules
 ----------
 
-vip\_hci.frdiff.framediff module
---------------------------------
+vip\_hci\.frdiff\.framediff module
+----------------------------------
 
 .. automodule:: vip_hci.frdiff.framediff
     :members:
@@ -18,3 +13,10 @@ vip\_hci.frdiff.framediff module
     :show-inheritance:
 
 
+Module contents
+---------------
+
+.. automodule:: vip_hci.frdiff
+    :members:
+    :undoc-members:
+    :show-inheritance:

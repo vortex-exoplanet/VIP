@@ -32,30 +32,30 @@ def make_model_from_params(params, labels, grid_param_list, dist, lbda_obs=None,
     """
     Routine to make the model from input parameters.
     
-        Parameters
+    Parameters
     ----------
     params : tuple
         Set of models parameters for which the model grid has to be 
         interpolated.
     labels: Tuple of strings
         Tuple of labels in the same order as initial_state, that is:
-        - first all parameters related to loaded models (e.g. 'Teff', 'logg')
-        - then the planet photometric radius 'R', in Jupiter radius
-        - (optionally) the flux of emission lines (labels should match those in
-        the em_lines dictionary), in units of the model spectrum (times mu)
-        - (optionally) the optical extinction 'Av', in mag
-        - (optionally) the ratio of total to selective optical extinction 'Rv'
-        - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb
+        * first all parameters related to loaded models (e.g. 'Teff', 'logg')
+        * then the planet photometric radius 'R', in Jupiter radius
+        * (optionally) the flux of emission lines (labels should match those \
+        in the em_lines dictionary), in units of the model spectrum (times mu)
+        * (optionally) the optical extinction 'Av', in mag
+        * (optionally) the ratio of total to selective optical extinction 'Rv'
+        * (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb \
         contribution.
     grid_param_list : list of 1d numpy arrays/lists OR None
-        - If list, should contain list/numpy 1d arrays with available grid of 
+        * If list, should contain list/numpy 1d arrays with available grid of \
         model parameters. 
-        - Set to None for a pure n-blackbody fit, n=1,2,...
-        - Note1: model grids should not contain grids on radius and Av, but 
+        * Set to None for a pure n-blackbody fit, n=1,2,...
+        * Note1: model grids should not contain grids on radius and Av, but \
         these should still be passed in initial_state (Av optional).
-        - Note2: for a combined grid model + black body, just provide
-        the grid parameter list here, and provide values for 'Tbbn' and 'Rbbn'
-        in initial_state, labels and bounds.
+        * Note2: for a combined grid model + black body, just provide \
+        the grid parameter list here, and provide values for 'Tbbn' and \
+        'Rbbn' in initial_state, labels and bounds.
     dist :  float
         Distance in parsec, used for flux scaling of the models.
     lbda_obs : numpy 1d ndarray or list, opt
@@ -115,7 +115,7 @@ def make_model_from_params(params, labels, grid_param_list, dist, lbda_obs=None,
         where the first column corresponds to wavelengths, and the second 
         contains transmission values. Important: if not provided, but strings 
         are detected in instru_fwhm, the default format assumed for the files:
-        - first row containing header
+        - first row containing header;
         - starting from 2nd row: 1st column: WL in mu, 2nd column: transmission
         Note: files should all have the same format and wavelength units.
     AV_bef_bb: bool, optional
@@ -243,8 +243,8 @@ def make_resampled_models(lbda_obs, grid_param_list, model_grid=None,
     Returns a cube of models after convolution and resampling as in the 
     observations.
     
-    Parameters:
-    -----------   
+    Parameters
+    ----------   
     lbda_obs : numpy 1d ndarray or list
         Wavelength of observed spectrum. If several instruments, should be 
         ordered per instrument, not necessarily as monotonically increasing 
@@ -470,8 +470,8 @@ def resample_model(lbda_obs, lbda_mod, spec_mod, dlbda_obs=None,
     Convolve, interpolate and resample a model spectrum to match observed 
     spectrum.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     lbda_obs : numpy 1d ndarray or list
         Wavelength of observed spectrum. If several instruments, should be 
         ordered per instrument, not necessarily as monotonically increasing 
@@ -720,9 +720,9 @@ def interpolate_model(params, grid_param_list, params_em={}, em_grid={},
         Set of models parameters for which the model grid has to be 
         interpolated.
     grid_param_list : list of 1d numpy arrays/lists
-        - If list, should contain list/numpy 1d arrays with available grid of 
+        * If list, should contain list/numpy 1d arrays with available grid of \
         model parameters.
-        - Note1: model grids should not contain grids on radius and Av, but 
+        * Note1: model grids should not contain grids on radius and Av, but \
         these should still be passed in initial_state (Av optional).
     params_em : dictionary, opt
         Set of emission line parameters (typically fluxes) for which the model 
@@ -748,13 +748,13 @@ def interpolate_model(params, grid_param_list, params_em={}, em_grid={},
         em_lines = {'BrG':(2.1667,'F',263)}
     labels: Tuple of strings
         Tuple of labels in the same order as initial_state, that is:
-        - first all parameters related to loaded models (e.g. 'Teff', 'logg')
-        - next the planet photometric radius 'R', in Jupiter radius
-        - (optionally) the flux of emission lines (labels should match those in
-        the em_lines dictionary), in units of the model spectrum (times mu)
-        - (optionally) the optical extinction 'Av', in mag
-        - (optionally) the ratio of total to selective optical extinction 'Rv'
-        - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb
+        * first all parameters related to loaded models (e.g. 'Teff', 'logg')
+        * next the planet photometric radius 'R', in Jupiter radius
+        * (optionally) the flux of emission lines (labels should match those \
+        in the em_lines dictionary), in units of the model spectrum (times mu)
+        * (optionally) the optical extinction 'Av', in mag
+        * (optionally) the ratio of total to selective optical extinction 'Rv'
+        * (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb \
         contribution.
         Note: only necessary if an emission list dictionary is provided.
     model_grid : numpy N-d array
@@ -786,7 +786,7 @@ def interpolate_model(params, grid_param_list, params_em={}, em_grid={},
         Interpolated model for input parameters. First column corresponds
         to wavelengths, and the second contains model values.
         
-    Example file_reader:
+    Example file_reader
     -------------------
     def _example_file_reader(params):
         '''This is a minimal example for the file_reader routine to be provided 

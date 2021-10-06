@@ -1,16 +1,11 @@
-vip\_hci.leastsq package
-========================
-
-.. automodule:: vip_hci.leastsq
-    :members:
-    :undoc-members:
-    :show-inheritance:
+vip\_hci\.leastsq package
+=========================
 
 Submodules
 ----------
 
-vip\_hci.leastsq.leastsq module
--------------------------------
+vip\_hci\.leastsq\.leastsq module
+---------------------------------
 
 .. automodule:: vip_hci.leastsq.leastsq
     :members:
@@ -18,3 +13,10 @@ vip\_hci.leastsq.leastsq module
     :show-inheritance:
 
 
+Module contents
+---------------
+
+.. automodule:: vip_hci.leastsq
+    :members:
+    :undoc-members:
+    :show-inheritance:

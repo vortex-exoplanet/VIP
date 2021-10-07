@@ -24,7 +24,7 @@ from ..var import frame_center, dist, prepare_matrix, reshape_matrix, get_circle
 
 def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
              cube_ref=None, mode='fullfr', annulus_width=20, svd_mode='lapack',
-             scaling=None, mask_center_px=None, fmerit='mean', imlib='opencv',
+             scaling=None, mask_center_px=None, fmerit='mean', imlib='vip-fft',
              interpolation='lanczos4', collapse='median', 
              ifs_collapse_range='all', verbose=True, full_output=False, 
              debug=False, plot=True, save_plot=None,
@@ -410,7 +410,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         return cubeout
 
 
-def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, imlib='opencv',
+def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, imlib='vip-fft',
                     interpolation='lanczos4', collapse='median', verbose=True,
                     full_output=False, return_residuals=False, start_time=None,
                     weights=None):
@@ -598,7 +598,7 @@ def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, imlib='opencv',
 
 def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
                 svd_mode='lapack', scaling=None, collapse='median',
-                imlib='opencv', interpolation='lanczos4', weights=None):
+                imlib='vip-fft', interpolation='lanczos4', weights=None):
     """
     PCA process the cube only for an annulus of a given width and at a given
     radial distance to the frame center. It returns a PCA processed frame with 
@@ -707,7 +707,7 @@ def _compute_stim_map(cube_der):
     return get_circle(detection_map, int(np.round(n/2.)))
 
 
-def _compute_inverse_stim_map(cube, angle_list, imlib='opencv',
+def _compute_inverse_stim_map(cube, angle_list, imlib='vip-fft',
                               interpolation='lanczos4'):
     """
     Computes the inverse STIM detection map, i.e. obtained with opposite 

@@ -22,7 +22,7 @@ from ..preproc.derotation import _find_indices_adi, _define_annuli
 
 def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
                n_similar=None, delta_rot=0.5, radius_int=2, asize=4, ncomp=None,
-               imlib='opencv', interpolation='lanczos4', collapse='median',
+               imlib='vip-fft', interpolation='lanczos4', collapse='median',
                nproc=1, verbose=True, debug=False):
     """ Frame differencing algorithm. It uses vector distance (depending on
     ``metric``), using separately the pixels from different annuli of ``asize``

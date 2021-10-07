@@ -14,7 +14,7 @@ import math
 from matplotlib.pyplot import plot, xlim, ylim, axes, gca, show
 
 
-def cube_planet_free(planet_parameter, cube, angs, psfn, plsc, imlib='opencv',
+def cube_planet_free(planet_parameter, cube, angs, psfn, plsc, imlib='vip-fft',
                      interpolation='lanczos4',transmission=None):
     """
     Return a cube in which we have injected negative fake companion at the

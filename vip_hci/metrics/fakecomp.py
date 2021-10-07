@@ -24,7 +24,7 @@ from ..conf.utils_conf import print_precision, check_array
 
 
 def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
-                           rad_dists, n_branches=1, theta=0, imlib='opencv',
+                           rad_dists, n_branches=1, theta=0, imlib='vip-fft',
                            interpolation='lanczos4', transmission=None, 
                            full_output=False, verbose=True):
     """ Injects fake companions in branches, at given radial distances.
@@ -394,7 +394,7 @@ def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,
 
 
 def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
-                           imlib='opencv', interpolation='lanczos4'):
+                           imlib='vip-fft', interpolation='lanczos4'):
     """ Injects a fake companion in a single frame (it could be a single
      multi-wavelength frame) at given coordinates.
     """
@@ -470,7 +470,7 @@ def collapse_psf_cube(array, size, fwhm=4, verbose=True, collapse='mean'):
 
 
 def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
-                  model='gauss', imlib='opencv', interpolation='lanczos4',
+                  model='gauss', imlib='vip-fft', interpolation='lanczos4',
                   force_odd=True, full_output=False, verbose=True, debug=False):
     """ Normalizes a PSF (2d or 3d array), to have the flux in a 1xFWHM
     aperture equal to one. It also allows to crop the array and center the PSF

@@ -71,7 +71,7 @@ def lnprior(param, bounds):
 def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
            ncomp, aperture_radius, initial_state, cube_ref=None,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
-           delta_rot=1, fmerit='sum', imlib='opencv', interpolation='lanczos4', 
+           delta_rot=1, fmerit='sum', imlib='vip-fft', interpolation='lanczos4', 
            collapse='median', algo_options={}, weights=None, transmission=None, 
            mu_sigma=True, debug=False):
     """ Define the likelihood log-function.
@@ -227,7 +227,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
 def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
            annulus_width, ncomp, aperture_radius, initial_state, cube_ref=None,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
-           delta_rot=1, fmerit='sum', imlib='opencv', interpolation='lanczos4', 
+           delta_rot=1, fmerit='sum', imlib='vip-fft', interpolation='lanczos4', 
            collapse='median', algo_options={}, weights=None, transmission=None, 
            mu_sigma=True, display=False):
     """ Define the probability log-function as the sum between the prior and
@@ -334,7 +334,7 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
 def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         annulus_width=8, aperture_radius=1, cube_ref=None,
                         svd_mode='lapack', scaling=None, algo=pca_annulus, 
-                        delta_rot=1, fmerit='sum', imlib='opencv', 
+                        delta_rot=1, fmerit='sum', imlib='vip-fft', 
                         interpolation='lanczos4', collapse='median', 
                         algo_options={}, wedge=None, weights=None, 
                         transmission=None, mu_sigma=None, nwalkers=100, 

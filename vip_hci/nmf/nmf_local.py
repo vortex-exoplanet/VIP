@@ -20,7 +20,7 @@ from ..conf.utils_conf import pool_map, iterable
 def nmf_annular(cube, angle_list, cube_ref=None, radius_int=0, fwhm=4, asize=4, 
                 n_segments=1, delta_rot=(0.1, 1), ncomp=1, init_svd='nndsvd', 
                 nproc=1, min_frames_lib=2, max_frames_lib=200, scaling=None, 
-                imlib='opencv', interpolation='lanczos4', collapse='median', 
+                imlib='vip-fft', interpolation='lanczos4', collapse='median', 
                 full_output=False, verbose=True, theta_init=0, weights=None, 
                 cube_sig=None, handle_neg='mask', max_iter=1000, 
                 random_state=None, **kwargs):

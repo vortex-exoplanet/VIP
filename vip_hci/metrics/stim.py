@@ -40,7 +40,7 @@ def compute_stim_map(cube_der):
     return get_circle(detection_map, int(np.round(n/2.)))
 
 
-def compute_inverse_stim_map(cube, angle_list, imlib='opencv',
+def compute_inverse_stim_map(cube, angle_list, imlib='vip-fft',
                              interpolation='lanczos4'):
     """ Computes the inverse STIM detection map.
 

@@ -24,14 +24,6 @@ except ImportError:
     msg = "Opencv python bindings are missing."
     warnings.warn(msg, ImportWarning)
     no_opencv = True
-try:
-    from numba import njit
-    no_numba = False
-except ImportError:
-    msg = "Numba python bindings are missing. "
-    msg+= "Consider installing Numba for faster fft-based image rotations."
-    warnings.warn(msg, ImportWarning)
-    no_numba = True
 from skimage.transform import rotate
 from multiprocessing import cpu_count
 from .cosmetics import frame_pad
@@ -41,7 +33,7 @@ from ..var import frame_center, frame_filter_lowpass
 data_array = None  # holds the (implicitly mem-shared) data array
 
 
-def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
+def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
                  cxy=None, border_mode='constant', mask_val=np.nan, 
                  edge_blend=None, interp_zeros=False, ker=1):
     """ Rotates a frame or 2D array.
@@ -214,18 +206,15 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
     
     if cxy is None:
         cy, cx = frame_center(array_prep)
-    elif edge_blend:
-        cx_rot, cy_rot = cxy
-        cx += cx_rot-cx_ori
-        cy += cy_rot-cy_ori
-        if imlib=='fft' and (cy, cx) != frame_center(array_prep):
-            msg = "Case not yet implemented. Center image manually first"
-            raise ValueError(msg)
+    elif imlib!='opencv':
+        msg = "Only 'opencv' imlib allows for different center to be provided"
+        raise ValueError(msg)
     else:
         cx, cy = cxy
 
     if imlib == 'vip-fft':
         array_out = rotate_fft(array_prep, angle)
+        
     elif imlib == 'skimage':
         if interpolation == 'nearneig':
             order = 0
@@ -302,7 +291,7 @@ def frame_rotate(array, angle, imlib='opencv', interpolation='lanczos4',
     return array_out
     
     
-def cube_derotate(array, angle_list, imlib='opencv', interpolation='lanczos4',
+def cube_derotate(array, angle_list, imlib='vip-fft', interpolation='lanczos4',
                   cxy=None, nproc=1, border_mode='constant', mask_val=np.nan,
                   edge_blend=None, interp_zeros=False):
     """ Rotates an cube (3d array or image sequence) providing a vector or

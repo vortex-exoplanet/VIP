@@ -14,7 +14,7 @@ from ..preproc import cube_derotate, frame_shift
 from ..var import frame_center
 
 
-def cube_inject_fakedisk(fakedisk, angle_list, psf=None, imlib='opencv',
+def cube_inject_fakedisk(fakedisk, angle_list, psf=None, imlib='vip-fft',
                          interpolation='lanczos4', cxy=None, nproc=1,
                          border_mode='constant'):
     """
@@ -112,7 +112,7 @@ def cube_inject_fakedisk(fakedisk, angle_list, psf=None, imlib='opencv',
 
 
 def cube_inject_trace(array, psf_template, angle_list, flevel, rad_dists, theta, 
-                      plsc=0.01225, n_branches=1, imlib='opencv', verbose=True):
+                      plsc=0.01225, n_branches=1, imlib='vip-fft', verbose=True):
     """ Injects fake companions along a trace, such as a spiral. The trace is 
     provided by 2 arrays corresponding to the polar coordinates where the 
     companions will be located in the final derotated frame.
@@ -141,7 +141,7 @@ def cube_inject_trace(array, psf_template, angle_list, flevel, rad_dists, theta,
         if verbose is True).
     n_branches : int, optional
         Number of azimutal branches on which the trace is injected.
-    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt
         Library or method used for image operations (shifts). Opencv is the
         default for being the fastest.
     verbose : {True, False}, bool optional
@@ -161,7 +161,7 @@ def cube_inject_trace(array, psf_template, angle_list, flevel, rad_dists, theta,
     cenx = int(cenx)
     rad_dists = np.array(rad_dists)
     if not rad_dists[-1]<array[0].shape[0]/2.:
-        msg = 'rad_dists last location is at the border (or outside) of the field'
+        msg = 'rad_dists last location is at the border or outside of the field'
         raise ValueError(msg)
     
     size_fc = psf_template.shape[0]

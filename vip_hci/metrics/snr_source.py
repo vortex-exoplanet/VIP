@@ -228,13 +228,13 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
     in high contrast imaging. 3 extra possibilities compared to Mawet et al. 
     2014 (https://ui.adsabs.harvard.edu/abs/2014ApJ...792...97M/abstract):
 
-        * possibility to provide a second array (e.g. obtained with opposite
-        derotation angles) to have more apertures for noise estimation
+        * possibility to provide a second array (e.g. obtained with opposite \
+        derotation angles) to have more apertures for noise estimation;
+            
+        * possibility to exclude negative ADI lobes directly adjacent to the \
+        tested xy location, to not bias the noise estimate;
         
-        * possibility to exclude negative ADI lobes directly adjacent to the
-        tested xy location, to not bias the noise estimate
-        
-        * possibility to use only the second array for the noise estimation
+        * possibility to use only the second array for the noise estimation \
         (useful for images containing a lot of disk/extended signals).
         
     *** DISCLAIMER ***

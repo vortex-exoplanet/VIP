@@ -1,11 +1,13 @@
 #! /usr/bin/env python
 
 """
-Implementation of the STIM map from [PAI18]
-.. [PAI18]
-   | Paret et al, 1018
-   | **STIM map: detection map for exoplanets imaging beyond asymptotic Gaussian residual speckle noise**
-   | *submitted in Monthly Notices of the Royal Astronomical Society*
+Implementation of the STIM map from [PAI19]
+
+.. [PAI19]
+   | Pairet et al, 2019
+   | STIM map: detection map for exoplanets imaging beyond asymptotic Gaussian residual speckle noise**
+   | *MNRAS, 487, 2262*
+   | `doi:10.1093/mnras/stz1350 <http://doi.org/10.1093/mnras/stz1350>`_
 """
 __author__ = 'Benoit Pairet'
 __all__ = ['compute_stim_map',

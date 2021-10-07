@@ -371,11 +371,11 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         The parallactic angle vector.
     psfn: numpy 2D or 3D array
         Normalised PSF template used for negative fake companion injection. 
-        The PSF must be centered and the flux in a 1*FWHM aperture must equal 1 
+        The PSF must be centered and the flux in a 1xFWHM aperture must equal 1 
         (use ``vip_hci.metrics.normalize_psf``).
         If a 3D array is provided, it must match the number of frames of ADI 
         cube. This can be useful if the cube was unsaturated and conditions 
-        were variable.s
+        were variable.
     ncomp: int or None
         The number of principal components for PCA-based algorithms.
     plsc: float
@@ -408,11 +408,12 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         companions sitting on top of speckle noise.
     imlib : str, optional
         Imlib used for both image rotation and sub-px shift:
-            - "opencv": will use it for both;
-            - "skimage" or "ndimage-interp" will use scikit-image and 
-            scipy.ndimage for rotation and shift resp.;
-            - "ndimage-fourier" or "vip-fft" will use Fourier transform based 
-            methods for both.
+        - "opencv": will use it for both;
+        - "skimage" or "ndimage-interp" will use scikit-image and \
+        scipy.ndimage for rotation and shift resp.;
+        - "ndimage-fourier" or "vip-fft" will use Fourier transform based \
+        methods for both.
+            
     interpolation : str, optional
         Interpolation order. See the documentation of the 
         ``vip_hci.preproc.frame_rotate`` function. Note that the interpolation 
@@ -475,6 +476,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         (http://digitalassets.lib.berkeley.edu/sdtr/ucb/text/305.pdf)
         - 'ac' for autocorrelation analysis 
         (https://emcee.readthedocs.io/en/stable/tutorials/autocorr/)
+        
     ac_c: float, optional
         If the convergence test is made using the auto-correlation, this is the
         value of C such that tau/N < 1/C is the condition required for tau to be

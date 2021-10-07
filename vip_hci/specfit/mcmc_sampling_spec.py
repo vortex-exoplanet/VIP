@@ -291,11 +291,11 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
         Tuple of labels in the same order as initial_state, that is:
         - first all parameters related to loaded models (e.g. 'Teff', 'logg')
         - then the planet photometric radius 'R', in Jupiter radius
-        - (optionally) the flux of emission lines (labels should match those in
-        the em_lines dictionary), in units of the model spectrum (times mu)
+        - (optionally) the flux of emission lines (labels should match those \
+        in the em_lines dictionary), in units of the model spectrum (times mu)
         - (optionally) the optical extinction 'Av', in mag
         - (optionally) the ratio of total to selective optical extinction 'Rv'
-        - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb
+        - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb \
         contribution.
     bounds: dictionary
         Each entry should be associated with a tuple corresponding to lower and 
@@ -310,13 +310,13 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
         corresponding prior log probability is computed from the values for 
         parameters 'logg' and 'R'.
     grid_param_list : list of 1d numpy arrays/lists OR None
-        - If list, should contain list/numpy 1d arrays with available grid of 
+        - If list, should contain list/numpy 1d arrays with available grid of \
         model parameters. 
         - Set to None for a pure n-blackbody fit, n=1,2,...
-        - Note1: model grids should not contain grids on radius and Av, but 
+        - Note1: model grids should not contain grids on radius and Av, but \
         these should still be passed in initial_state (Av optional).
-        - Note2: for a combined grid model + black body, just provide
-        the grid parameter list here, and provide values for 'Tbbn' and 'Rbbn'
+        - Note2: for a combined grid model + black body, just provide \
+        the grid parameter list here, and provide values for 'Tbbn' and 'Rbbn' \
         in initial_state, labels and bounds.
     lbda_obs : numpy 1d ndarray or list
         Wavelength of observed spectrum. If several instruments, should be 
@@ -346,17 +346,18 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
         Dictionary of emission lines to be added on top of the model spectrum.
         Each dict entry should be the name of the line, assigned to a tuple of
         4 values: 
-            1) the wavelength (in mu); 
-            2) a string indicating whether line intensity is expressed in flux 
-            ('F'), luminosity ('L') or log(L/LSun) ("LogL");
-            3) the FWHM of the gaussian (or None if to be set automatically); 
-            4) whether the FWHM is expressed in 'nm', 'mu' or 'km/s'. 
+        1) the wavelength (in mu); 
+        2) a string indicating whether line intensity is expressed in flux 
+        ('F'), luminosity ('L') or log(L/LSun) ("LogL");
+        3) the FWHM of the gaussian (or None if to be set automatically); 
+        4) whether the FWHM is expressed in 'nm', 'mu' or 'km/s'. 
         The third and fourth can also be set to None. In that case, the FWHM of 
         the gaussian will automatically be set to the equivalent width of the
         line, calculated from the flux to be injected and the continuum 
         level (measured in the grid model to which the line is injected). 
-        Examples: em_lines = {'BrG':(2.1667,'F',None, None)};
-                  em_lines = {'BrG':(2.1667,'LogL', 100, 'km/s')}
+        Examples:
+        em_lines = {'BrG':(2.1667,'F',None, None)};
+        em_lines = {'BrG':(2.1667,'LogL', 100, 'km/s')}
     em_grid: dictionary pointing to lists, opt
         Dictionary where each entry corresponds to an emission line and points
         to a list of values to inject for emission line fluxes. For computation 
@@ -420,8 +421,9 @@ def spec_lnprob(params, labels, bounds, grid_param_list, lbda_obs, spec_obs,
         containing prior estimate and uncertainty on the estimate.
         Missing entries (i.e. provided in bounds dictionary but not here) will
         be associated no prior.
-        e.g. priors = {'Teff':(1600,100), 'logg':(3.5,0.5),
-                       'R':(1.6,0.1), 'Av':(1.8,0.2), 'M':(10,3)}
+        e.g. priors = {'Teff':(1600,100), 'logg':(3.5,0.5), 'R':(1.6,0.1), 
+        'Av':(1.8,0.2), 'M':(10,3)}
+        
         Important: dictionary entry names should match exactly those of bounds.
     physical: bool, opt
         In case of extra black body component(s) to a photosphere, whether to 
@@ -497,24 +499,33 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
     """ Runs an affine invariant MCMC sampling algorithm in order to determine
     the most likely parameters for given spectral model and observed spectrum. 
     Allowed features:
-        - Spectral models can either be read from a grid (e.g. BT-SETTL) or 
+        
+        * Spectral models can either be read from a grid (e.g. BT-SETTL) or \
         be purely parametric (e.g. a blackbody model). 
-        - Extinction (A_V) and total-to-selective optical extinction ratio (R_V)
-        can be sampled. Default: A_V=0. If non-zero, default R_V=3.1 (ISM).
-        - A dictionary of emission lines can be provided and their flux can be 
-        sampled too.
-        - Gaussian priors can be provided for each parameter, including the 
+        
+        * Extinction (A_V) and total-to-selective optical extinction ratio \
+        (R_V) can be sampled. Default: A_V=0. If non-zero, default R_V=3.1 (ISM).
+        
+        * A dictionary of emission lines can be provided and their flux can \
+        be sampled too.
+        
+        * Gaussian priors can be provided for each parameter, including the \
         mass of the object. The latter will be used if 'logg' is a parameter.
-        - Spectral correlation between measurements will be taken into account 
+        
+        * Spectral correlation between measurements will be taken into account \ 
         if provided in 'instru_corr'.
-        - Convolution of the model spectra with instrumental FWHM or 
-        photometric filter can be performed using 'instru_fwhm' and/or 
+        
+        * Convolution of the model spectra with instrumental FWHM or \
+        photometric filter can be performed using 'instru_fwhm' and/or \
         'filter_reader' (done before resampling to observed).
-        - The weight of each observed point will be directly proportional to
-        Delta lbda_i/lbda_i, where Delta lbda_i is either the FWHM of the 
+        
+        * The weight of each observed point will be directly proportional to \
+        Delta lbda_i/lbda_i, where Delta lbda_i is either the FWHM of the \
         photometric filter (imager) or the width of the spectral channel (IFS).
-        - MCMC convergence criterion can either be based on auto-correlation 
+        
+        * MCMC convergence criterion can either be based on auto-correlation \
         time (default) or the Gelman-Rubin test.
+    
     The result of this procedure is a chain with the samples from the posterior 
     distributions of each of the free parameters in the model.
     More details in Christiaens et al. (2021).
@@ -534,14 +545,15 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
     dist :  float
         Distance in parsec, used for flux scaling of the models.
     grid_param_list : list of 1d numpy arrays/lists OR None
-        - If list, should contain list/numpy 1d arrays with available grid of 
+        - If list, should contain list/numpy 1d arrays with available grid of \
         model parameters. 
         - Set to None for a pure n-blackbody fit, n=1,2,...
-        - Note1: model grids should not contain grids on radius and Av, but 
+        - Note1: model grids should not contain grids on radius and Av, but \
         these should still be passed in initial_state (Av optional).
-        - Note2: for a combined grid model + black body, just provide
-        the grid parameter list here, and provide values for 'Tbbn' and 'Rbbn'
+        - Note2: for a combined grid model + black body, just provide \
+        the grid parameter list here, and provide values for 'Tbbn' and 'Rbbn' \
         in initial_state, labels and bounds.
+        
     initial_state: tuple of floats
         Initial guess on the best fit parameters of the spectral fit. Length of 
         the tuple should match the total number of free parameters. Walkers
@@ -549,22 +561,24 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         first guess.
         - first all parameters related to loaded models (e.g. 'Teff', 'logg')
         - then the planet photometric radius 'R', in Jupiter radius
-        - (optionally) the intensity of emission lines (labels must match 
+        - (optionally) the intensity of emission lines (labels must match \
         those in the em_lines dict), in units of the model spectrum (x mu)
         - (optionally) the optical extinction 'Av', in mag
         - (optionally) the ratio of total to selective optical extinction 'Rv'
-        - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb
+        - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb \
         contribution
+        
     labels: Tuple of strings
         Tuple of labels in the same order as initial_state, that is:
         - first all parameters related to loaded models (e.g. 'Teff', 'logg')
         - then the planet photometric radius 'R', in Jupiter radius
-        - (optionally) the flux of emission lines (labels should match those in
-        the em_lines dictionary), in units of the model spectrum (times mu)
+        - (optionally) the flux of emission lines (labels should match those \
+        in the em_lines dictionary), in units of the model spectrum (times mu)
         - (optionally) the optical extinction 'Av', in mag
         - (optionally) the ratio of total to selective optical extinction 'Rv'
-        - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb
+        - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb \
         contribution.
+        
     bounds: dictionary
         Each entry should be associated with a tuple corresponding to lower and 
         upper bounds respectively. Bounds should be provided for ALL model
@@ -596,17 +610,18 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         Dictionary of emission lines to be added on top of the model spectrum.
         Each dict entry should be the name of the line, assigned to a tuple of
         4 values: 
-            1) the wavelength (in mu); 
-            2) a string indicating whether line intensity is expressed in flux 
-            ('F'), luminosity ('L') or log(L/LSun) ("LogL");
-            3) the FWHM of the gaussian (or None if to be set automatically); 
-            4) whether the FWHM is expressed in 'nm', 'mu' or 'km/s'. 
+        1) the wavelength (in mu); 
+        2) a string indicating whether line intensity is expressed in flux 
+        ('F'), luminosity ('L') or log(L/LSun) ("LogL");
+        3) the FWHM of the gaussian (or None if to be set automatically); 
+        4) whether the FWHM is expressed in 'nm', 'mu' or 'km/s'. 
         The third and fourth can also be set to None. In that case, the FWHM of 
         the gaussian will automatically be set to the equivalent width of the
         line, calculated from the flux to be injected and the continuum 
         level (measured in the grid model to which the line is injected). 
-        Examples: em_lines = {'BrG':(2.1667,'F',None, None)};
-                  em_lines = {'BrG':(2.1667,'LogL', 100, 'km/s')}
+        Examples: 
+        em_lines = {'BrG':(2.1667,'F', None, None)};
+        em_lines = {'BrG':(2.1667,'LogL', 100, 'km/s')}
     em_grid: dictionary pointing to lists, opt
         Dictionary where each entry corresponds to an emission line and points
         to a list of values to inject for emission line fluxes. For computation 
@@ -650,9 +665,11 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         It assumes the following format for the files:
         - first row containing header
         - starting from 2nd row: 1st column: wavelength, 2nd col.: transmission
-        - Unit of wavelength can be provided in parentheses of first header key
-        name: e.g. "WL(AA)" for angstrom, "wavelength(mu)" for micrometer or
-        "lambda(nm)" for nanometer. Note: Only what is in parentheses matters.
+        - Unit of wavelength can be provided in parentheses of first header \
+        key name: e.g. "WL(AA)" for angstrom, "wavelength(mu)" for micrometer \
+        or "lambda(nm)" for nanometer. Note: Only what is in parentheses \
+        matters.
+        
         Important: filter files should all have the same format and WL units.
     AV_bef_bb: bool, optional
         If both extinction and an extra bb component are free parameters, 
@@ -677,8 +694,8 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         containing prior estimate and uncertainty on the estimate.
         Missing entries (i.e. provided in bounds dictionary but not here) will
         be associated no prior.
-        e.g. priors = {'Teff':(1600,100), 'logg':(3.5,0.5),
-                       'R':(1.6,0.1), 'Av':(1.8,0.2), 'M':(10,3)}
+        e.g. priors = {'Teff':(1600,100), 'logg':(3.5,0.5), 'R':(1.6,0.1), 
+        'Av':(1.8,0.2), 'M':(10,3)}
         Important: dictionary entry names should match exactly those of bounds.
     physical: bool, opt
         In case of extra black body component(s) to a photosphere, whether to 
@@ -714,10 +731,11 @@ def mcmc_spec_sampling(lbda_obs, spec_obs, err_obs, dist, grid_param_list,
         Maximum number of steps per walker between two convergence tests.
     conv_test: str, optional {'gb','autocorr'}
         Method to check for convergence: 
-        - 'gb' for gelman-rubin test
+        - 'gb' for gelman-rubin test \
         (http://digitalassets.lib.berkeley.edu/sdtr/ucb/text/305.pdf)
-        - 'autocorr' for autocorrelation analysis 
+        - 'autocorr' for autocorrelation analysis \
         (https://emcee.readthedocs.io/en/stable/tutorials/autocorr/)
+        
     nproc: int, optional
         The number of processes to use for parallelization.
     grid_name: str, optional
@@ -1255,15 +1273,15 @@ def spec_show_corner_plot(chain, burnin=0.5, save=False, output_dir='',
         If True, a pdf file is created.
     mcmc_res: numpy array OR tuple of 2 dictionaries/np.array, opt
         Values to be printed on top of each 1d posterior distribution   
-        - if numpy array: 
-            - npar x 3 dimensions (where npar is the number of parameters), 
-            containing the most likely value of each parameter and the lower 
-            and upper uncertainties at the desired quantiles, resp. 
-            - npar x 2 dimensions: same as above but with a single value of  
-            uncertainty. E.g. output of spec_confidence() for a gaussian fit
-        - if tuple of 2 dictionaries: output of spec_confidence without 
-                                      gaussian fit
-        - if tuple of 2 np.array: output of spec_confidence() with gaussian fit
+        * if numpy array: \
+        - npar x 3 dimensions (where npar is the number of parameters), \
+        containing the most likely value of each parameter and the lower \
+        and upper uncertainties at the desired quantiles, resp. 
+        - npar x 2 dimensions: same as above but with a single value of  \
+        uncertainty. E.g. output of spec_confidence() for a gaussian fit
+        * if tuple of 2 dictionaries: output of spec_confidence without \
+        gaussian fit
+        * if tuple of 2 np.array: output of spec_confidence() with gaussian fit
     units: tuple, opt
         Tuple of strings containing units for each parameter. If provided,
         mcmc_res will be printed on top of each 1d posterior distribution along 
@@ -1396,7 +1414,7 @@ def spec_confidence(isamples, labels, cfd=68.27, bins=100, gaussian_fit=False,
         - first all parameters related to loaded models (e.g. 'Teff', 'logg')
         - next the planet photometric radius 'R',
         - (optionally) the optical extinction 'Av'.
-        - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb
+        - (optionally) 'Tbb1', 'Rbb1', 'Tbb2', 'Rbb2', etc. for each extra bb \
         contribution
     cfd: float, optional
         The confidence level given in percentage.

@@ -20,7 +20,7 @@ vip\_hci.specfit.chi module
 vip\_hci.specfit.mcmc\_sampling\_spec module
 --------------------------------------------
 
-.. automodule:: vip_hci.specfit.mcmc_samling_spec
+.. automodule:: vip_hci.specfit.mcmc_sampling_spec
     :members:
     :undoc-members:
     :show-inheritance:

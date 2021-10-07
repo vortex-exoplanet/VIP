@@ -75,12 +75,11 @@ The documentation for ``VIP`` can be found here: http://vip.readthedocs.io.
 Jupyter notebook tutorial
 -------------------------
 Tutorials, in the form of Jupyter notebooks, showcasing ``VIP``'s usage and 
-other resources such as test/dummy datasets are available on the 
-``VIP-extras`` `repository <https://github.com/carlgogo/VIP_extras>`_. 
+other resources such as test/dummy datasets are available in the 
+``VIP-extras`` `repository <https://github.com/vortex-exoplanet/VIP_extras>`_. 
 Alternatively, you can execute this repository on 
-`Binder <https://mybinder.org/v2/gh/carlgogo/VIP_extras/master>`_. The notebook 
-for ADI processing can be visualized online with
-`nbviewer <http://nbviewer.jupyter.org/github/carlgogo/VIP_extras/blob/master/tutorials/01_adi_pre-postproc_fluxpos_ccs.ipynb>`_. 
+`Binder <https://mybinder.org/v2/gh/vortex-exoplanet/VIP_extras/master>`_. The first notebook for ADI processing can be visualized online with
+`nbviewer <http://nbviewer.jupyter.org/github/vortex-exoplanet/VIP_extras/blob/master/tutorials/01_adi_pre-postproc_fluxpos_ccs.ipynb>`_. 
 If you are new to the Jupyter notebook application check out the `beginner's guide
 <https://jupyter-notebook-beginner-guide.readthedocs.io/en/latest/what_is_jupyter.html>`_.
 
@@ -231,6 +230,17 @@ that you are able to import ``VIP``:
 
 If everything went fine with the installation, you will see a welcome message.
 Now you can start finding exoplanets!
+
+
+VIP convention regarding image center and dimension parity
+----------------------------------------------------------
+
+By default, VIP routines are compatible with either even- or odd-dimension input frames. For VIP routines that require the star to be centered in the input image(s), the code will assume that it is placed on size/2-0.5 (zero-based indexing); i.e. the scikit-image convention. In the case of VIP recentering routines, the star will be placed at such location.
+It is recommended to crop images/cubes to odd-size input frames, such that size/2-0.5 corresponds to the middle of the central pixel in the image (although not strictly a necessity).
+There are, however, *two major exceptions* to the above convention:
+
+- Routines in the `andromeda` module (external contribution) only accept even-size input frames (with a center at size/2-0.5).
+- Routines involving image rescaling and rotation (e.g. PCA-SDI, PCA-ADI, etc.) will assume a center at size/2-0.5, *except* in the case of even input dimensions *and* a chosen FFT-based method to perform the operation (scaling or rotation). If these two conditions are met, the center will be assumed to be at dim/2 (instead of dim/2-0.5). This is because it is the assumed center for FFT images (and FT frequencies), as calculated by common python packages (e.g. numpy.fft, scipy.fft), and as also assumed by some HCI instrument consortia.
 
 
 Mailing list

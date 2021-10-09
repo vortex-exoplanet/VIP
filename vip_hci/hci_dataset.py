@@ -142,7 +142,7 @@ class Frame(object):
         return radpro
 
     def recenter(self, method='satspots', xy=None, subi_size=19, sigfactor=6,
-                 imlib='opencv', interpolation='lanczos4', debug=False,
+                 imlib='vip-fft', interpolation='lanczos4', debug=False,
                  verbose=True):
         """ Recentering the frame using the satellite spots or a radon
         transform.
@@ -171,7 +171,7 @@ class Frame(object):
         else:
             raise ValueError('Recentering method not recognized')
 
-    def rescale(self, scale, imlib='ndimage', interpolation='bicubic',
+    def rescale(self, scale, imlib='vip-fft', interpolation='bicubic',
                 verbose=True):
         """ Resampling the image (upscaling or downscaling).
 
@@ -180,7 +180,7 @@ class Frame(object):
         scale : int, float or tuple
             Scale factor for upsampling or downsampling the frames in the cube.
             If a tuple it corresponds to the scale along x and y.
-        imlib : {'ndimage', 'opencv'}, str optional
+        imlib : {'ndimage', 'opencv', 'vip-fft'}, str optional
             Library used for image transformations. ndimage is the default.
         interpolation : str, optional
             For 'ndimage' library: 'nearneig', bilinear', 'bicuadratic',
@@ -201,7 +201,7 @@ class Frame(object):
 
         Parameters
         ----------
-        imlib : {'opencv', 'skimage'}, str optional
+        imlib : {'opencv', 'skimage', 'vip-fft'}, str optional
             Library used for image transformations. Opencv is faster than
             ndimage or skimage.
         interpolation : str, optional
@@ -222,14 +222,14 @@ class Frame(object):
         self.data = frame_rotate(self.data, angle, imlib, interpolation, cxy)
         print('Image successfully rotated')
 
-    def shift(self, shift_y, shift_x, imlib='opencv', interpolation='lanczos4'):
+    def shift(self, shift_y, shift_x, imlib='vip-fft', interpolation='lanczos4'):
         """ Shifting the image.
 
         Parameters
         ----------
         shift_y, shift_x: float
             Shifts in x and y directions.
-        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt
             Library or method used for performing the image shift.
             'ndimage-fourier', does a fourier shift operation and preserves
             better the pixel values (therefore the flux and photometry).
@@ -485,14 +485,14 @@ class Dataset(Saveable):
         """
         self.cube = cube_crop_frames(self.cube, size, xy, force, verbose=True)
 
-    def derotate(self, imlib='opencv', interpolation='lanczos4', cxy=None,
+    def derotate(self, imlib='vip-fft', interpolation='lanczos4', cxy=None,
                  nproc=1):
         """ Derotating the frames of the sequence according to the parallactic
         angles.
 
         Parameters
         ----------
-        imlib : {'opencv', 'skimage'}, str optional
+        imlib : {'opencv', 'skimage', 'vip-fft'}, str optional
             Library used for image transformations. Opencv is faster than
             ndimage or skimage.
         interpolation : str, optional
@@ -620,7 +620,7 @@ class Dataset(Saveable):
                                  False)
 
     def inject_companions(self, flux, rad_dists, n_branches=1, theta=0,
-                          imlib='opencv', interpolation='lanczos4',
+                          imlib='vip-fft', interpolation='lanczos4',
                           full_output=False, verbose=True):
         """ Injection of fake companions in 3d or 4d cubes.
 
@@ -636,7 +636,7 @@ class Dataset(Saveable):
             Angle in degrees for rotating the position of the first branch that
             by default is located at zero degrees. Theta counts
             counterclockwise from the positive x axis.
-        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt
             Library or method used for performing the image shift.
             'ndimage-fourier', does a fourier shift operation and preserves
             better the pixel values (therefore the flux and photometry).
@@ -841,7 +841,7 @@ class Dataset(Saveable):
         self.cube = mask_circle(self.cube, radius, fillwith, mode)
 
     def normalize_psf(self, fit_fwhm=True, size=None, threshold=None,
-                      mask_core=None, model='gauss', imlib='opencv',
+                      mask_core=None, model='gauss', imlib='vip-fft',
                       interpolation='lanczos4', force_odd=True, verbose=True):
         """ Normalizes a PSF (2d or 3d array), to have the flux in a 1xFWHM
         aperture equal to one. It also allows to crop the array and center the
@@ -860,7 +860,7 @@ class Dataset(Saveable):
         mask_core : None of float, optional
             Sets the radius of a circular aperture for the core of the PSF,
             everything else will be set to zero.
-        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt
             Library or method used for performing the image shift.
             'ndimage-fourier', does a fourier shift operation and preserves
             better the pixel values (therefore the flux and photometry).
@@ -913,7 +913,7 @@ class Dataset(Saveable):
         hp.plot_cubes(self.cube, **kwargs)
 
     def recenter(self, method='2dfit', xy=None, subi_size=5, model='gauss',
-                 nproc=1, imlib='opencv', interpolation='lanczos4',
+                 nproc=1, imlib='vip-fft', interpolation='lanczos4',
                  offset=None, negative=False, threshold=False,
                  save_shifts=False, cy_1=None, cx_1=None, upsample_factor=100,
                  alignment_iter=5, gamma=1, min_spat_freq=0.5, max_spat_freq=3,
@@ -943,7 +943,7 @@ class Dataset(Saveable):
             Number of processes (>1) for parallel computing. If 1 then it runs
             in serial. If None the number of processes will be set to
             (cpu_count()/2).
-        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt
             Library or method used for performing the image shift.
             'ndimage-fourier', does a fourier shift operation and preserves
             better the pixel values (therefore the flux and photometry).
@@ -1174,7 +1174,7 @@ class Dataset(Saveable):
         scale : int, float or tuple
             Scale factor for upsampling or downsampling the frames in the cube.
             If a tuple it corresponds to the scale along x and y.
-        imlib : {'ndimage', 'opencv'}, str optional
+        imlib : {'ndimage', 'opencv', 'vip-fft'}, str optional
             Library used for image transformations. ndimage is the default.
         interpolation : str, optional
             For 'ndimage' library: 'nearneig', bilinear', 'bicuadratic',

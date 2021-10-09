@@ -304,7 +304,7 @@ class HCIMedianSub(HCIPostProcAlgo):
     nframes : even int, optional
         Number of frames to be used for building the optimized reference PSF
         when working in annular mode.
-    imlib : {'opencv', 'skimage'}, str optional
+    imlib : {'opencv', 'skimage', 'vip-fft'}, str optional
         Library used for image transformations. Opencv is faster than ndimage or
         skimage.
     interpolation : str, optional
@@ -327,7 +327,7 @@ class HCIMedianSub(HCIPostProcAlgo):
 
     """
     def __init__(self, dataset=None, mode='fullfr', radius_int=0, asize=1,
-                 delta_rot=1, delta_sep=(0.2, 1), nframes=4, imlib='opencv',
+                 delta_rot=1, delta_sep=(0.2, 1), nframes=4, imlib='vip-fft',
                  interpolation='lanczos4', collapse='median',
                  verbose=True):
         super(HCIMedianSub, self).__init__(locals())
@@ -429,7 +429,7 @@ class HCIPca(HCIPostProcAlgo):
     delta_rot : int, optional
         Factor for tunning the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1xFHWM on each side of the considered frame).
-    imlib : {'opencv', 'skimage'}, str optional
+    imlib : {'opencv', 'skimage', 'vip-fft'}, str optional
         Library used for image transformations. Opencv is faster than ndimage or
         skimage.
     interpolation : str, optional
@@ -448,7 +448,7 @@ class HCIPca(HCIPostProcAlgo):
     """
     def __init__(self, dataset=None, ncomp=1, ncomp2=1, svd_mode='lapack', scaling=None,
                  adimsdi='double', mask_center_px=None, source_xy=None,
-                 delta_rot=1, imlib='opencv', interpolation='lanczos4',
+                 delta_rot=1, imlib='vip-fft', interpolation='lanczos4',
                  collapse='median', check_mem=True, crop_ifs=True, verbose=True):
 
         super(HCIPca, self).__init__(locals())
@@ -545,7 +545,7 @@ class HCILoci(HCIPostProcAlgo):
     def __init__(self, dataset=None, scale_list=None, metric="manhattan",
                  dist_threshold=90, delta_rot=0.5, delta_sep=(0.1, 1),
                  radius_int=0, asize=4, n_segments=4, solver="lstsq", tol=1e-3,
-                 optim_scale_fact=1, adimsdi="skipadi", imlib="opencv",
+                 optim_scale_fact=1, adimsdi="skipadi", imlib='vip-fft',
                  interpolation="lanczos4", collapse="median", verbose=True):
         super(HCILoci, self).__init__(locals())
 
@@ -578,7 +578,7 @@ class HCILLSG(HCIPostProcAlgo):
                  low_rank_ref=False, low_rank_mode='svd', auto_rank_mode='noise',
                  residuals_tol=1e-1, cevr=0.9, thresh_mode='soft', nproc=1,
                  asize=None, n_segments=4, azimuth_overlap=None, radius_int=None,
-                 random_seed=None, imlib='opencv', interpolation='lanczos4',
+                 random_seed=None, imlib='vip-fft', interpolation='lanczos4',
                  high_pass=None, collapse='median', verbose=True):
         super(HCILLSG, self).__init__(locals())
 

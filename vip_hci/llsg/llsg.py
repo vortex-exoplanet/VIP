@@ -24,7 +24,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
          low_rank_ref=False, low_rank_mode='svd', auto_rank_mode='noise',
          residuals_tol=1e-1, cevr=0.9, thresh_mode='soft', nproc=1,
          asize=None, n_segments=4, azimuth_overlap=None, radius_int=None,
-         random_seed=None, imlib='opencv', interpolation='lanczos4',
+         random_seed=None, imlib='vip-fft', interpolation='lanczos4',
          high_pass=None, collapse='median', full_output=False, verbose=True,
          debug=False):
     """ Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as

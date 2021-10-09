@@ -30,7 +30,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                    algo, sigma=5, nbranch=1, theta=0, inner_rad=1,
                    wedge=(0,360), fc_snr=100, student=True, transmission=None,
                    smooth=True, interp_order=2, plot=True, dpi=100,
-                   imlib='opencv', interpolation='lanczos4', debug=False, 
+                   imlib='vip-fft', interpolation='lanczos4', debug=False, 
                    verbose=True, full_output=False, save_plot=None, 
                    object_name=None, frame_size=None, fix_y_lim=(), 
                    figsize=(8, 4), **algo_dict):
@@ -98,7 +98,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         Whether to plot the final contrast curve or not. True by default.
     dpi : int optional
         Dots per inch for the plots. 100 by default. 300 for printing quality.
-    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt
         Library or method used for image operations (rotations). Opencv is the
         default for being the fastest. See description of
         `vip_hci.preproc.frame_rotate`.
@@ -429,7 +429,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
 def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                theta=0, inner_rad=1, fc_rad_sep=3, wedge=(0,360), fc_snr=100,
-               full_output=False, imlib='opencv', interpolation='lanczos4',
+               full_output=False, imlib='vip-fft', interpolation='lanczos4',
                verbose=True, **algo_dict):
     """ Measures the throughput for chosen algorithm and input dataset (ADI or
     ADI+mSDI). The final throughput is the average of the same procedure

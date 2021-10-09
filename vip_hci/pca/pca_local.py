@@ -20,13 +20,12 @@ from ..conf.utils_conf import pool_map, iterable
 from ..var import get_annulus_segments, matrix_scaling
 from ..stats import descriptive_stats
 from .svd import get_eigenvectors
-import pdb
 
 def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                 fwhm=4, asize=4, n_segments=1, delta_rot=(0.1, 1),
                 delta_sep=(0.1, 1), ncomp=1, svd_mode='lapack', nproc=1,
                 min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
-                imlib='opencv', interpolation='lanczos4', collapse='median',
+                imlib='vip-fft', interpolation='lanczos4', collapse='median',
                 ifs_collapse_range='all', full_output=False, verbose=True,
                 weights=None, cube_sig=None):
     """ PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data. The
@@ -368,7 +367,7 @@ def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
 def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
                  delta_rot=1, ncomp=1, svd_mode='lapack', nproc=None,
                  min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
-                 imlib='opencv', interpolation='lanczos4', collapse='median',
+                 imlib='vip-fft', interpolation='lanczos4', collapse='median',
                  full_output=False, verbose=1, cube_ref=None, weights=None,
                  cube_sig=None):
     """ PCA exploiting angular variability (ADI fashion).

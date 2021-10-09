@@ -20,7 +20,7 @@ from ..conf import check_array
 def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,  
               aperture_radius, initialState, ncomp, cube_ref=None, 
               svd_mode='lapack', scaling=None, fmerit='sum', collapse='median',
-              algo=pca_annulus, delta_rot=1, imlib='opencv', 
+              algo=pca_annulus, delta_rot=1, imlib='vip-fft', 
               interpolation='lanczos4', algo_options={}, transmission=None, 
               mu_sigma=None, weights=None, force_rPA=False, debug=False):
     """
@@ -188,7 +188,7 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
 def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius, 
                         fwhm, r_guess, theta_guess, cube_ref=None, 
                         svd_mode='lapack', scaling=None, algo=pca_annulus, 
-                        delta_rot=1, imlib='opencv', interpolation='lanczos4',
+                        delta_rot=1, imlib='vip-fft', interpolation='lanczos4',
                         collapse='median', algo_options={}, weights=None, 
                         debug=False):
     """ Extracts a PCA-ed annulus from the cube and returns the flux values of
@@ -350,7 +350,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
 def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, 
                      fwhm, r_guess, theta_guess, cube_ref=None, wedge=None,
                      svd_mode='lapack', scaling=None, algo=pca_annulus, 
-                     delta_rot=1, imlib='opencv', interpolation='lanczos4',
+                     delta_rot=1, imlib='vip-fft', interpolation='lanczos4',
                      collapse='median', weights=None, algo_options={}):
     """ Extracts the mean and standard deviation of pixel intensities in an
     annulus of the PCA-ADI image obtained with 'algo', in the part of a defined 

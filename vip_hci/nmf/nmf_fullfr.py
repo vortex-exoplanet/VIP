@@ -18,7 +18,7 @@ from ..conf import timing, time_ini
 
 def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
         random_state=None, mask_center_px=None, source_xy=None, delta_rot=1, 
-        fwhm=4, init_svd='nndsvd', imlib='opencv', interpolation='lanczos4', 
+        fwhm=4, init_svd='nndsvd', imlib='vip-fft', interpolation='lanczos4', 
         collapse='median', full_output=False, verbose=True, cube_sig=None, 
         handle_neg='mask', **kwargs):
     """ Non Negative Matrix Factorization for ADI sequences. Alternative to the

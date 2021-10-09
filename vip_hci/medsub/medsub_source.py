@@ -33,7 +33,7 @@ from ..preproc.rescaling import _find_indices_sdi
 
 def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
                delta_rot=1, delta_sep=(0.1, 1), mode='fullfr', nframes=4,
-               imlib='opencv', interpolation='lanczos4', collapse='median',
+               imlib='vip-fft', interpolation='lanczos4', collapse='median',
                nproc=1, full_output=False, verbose=True):
     """ Implementation of a median subtraction algorithm for model PSF
     subtraction in high-contrast imaging sequences. In the case of ADI, the

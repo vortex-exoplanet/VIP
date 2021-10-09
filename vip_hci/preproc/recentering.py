@@ -4,9 +4,10 @@
 Module containing functions for cubes frame registration.
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens, G. Ruane'
+__author__ = 'C. A. Gomez Gonzalez, V. Christiaens, G. Ruane, R. Farkas'
 __all__ = ['frame_shift',
            'cube_shift',
+           'shift_fft',
            'frame_center_radon',
            'frame_center_satspots',
            'cube_recenter_satspots',
@@ -49,7 +50,7 @@ from ..var import (get_square, frame_center, get_annulus_segments,
 from ..preproc import cube_crop_frames
 
 
-def frame_shift(array, shift_y, shift_x, imlib='opencv',
+def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
                 interpolation='lanczos4', border_mode='reflect'):
     """ Shifts a 2D array by shift_y, shift_x. Boundaries are filled with zeros.
 
@@ -59,7 +60,7 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
         Input 2d array.
     shift_y, shift_x: float
         Shifts in y and x directions.
-    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+    imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt
         Library or method used for performing the image shift.
         'ndimage-fourier', does a fourier shift operation and preserves better
         the pixel values (therefore the flux and photometry). Interpolation
@@ -160,13 +161,16 @@ def frame_shift(array, shift_y, shift_x, imlib='opencv',
         array_shifted = cv2.warpAffine(image, M, (x, y), flags=intp,
                                        borderMode=bormo)
 
+    elif imlib == 'vip-fft':
+        array_shifted = shift_fft(array, shift_x, shift_y)
+        
     else:
         raise ValueError('Image transformation library not recognized')
 
     return array_shifted
 
 
-def cube_shift(cube, shift_y, shift_x, imlib='opencv',
+def cube_shift(cube, shift_y, shift_x, imlib='vip-fft', 
                interpolation='lanczos4'):
     """ Shifts the X-Y coordinates of a cube or 3D array by x and y values.
 
@@ -204,7 +208,7 @@ def cube_shift(cube, shift_y, shift_x, imlib='opencv',
 
 
 def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
-                          imlib='opencv', interpolation='lanczos4',
+                          imlib='vip-fft', interpolation='lanczos4',
                           fit_type='moff', debug=False, verbose=True):
     """ Finds the center of a frame with waffle/satellite spots (e.g. for
     VLT/SPHERE). The method used to determine the center is by centroiding the
@@ -384,6 +388,48 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     else:
         raise RuntimeError("Something went wrong, no intersection found. " +
                            msgerr)
+
+def shift_fft(array, xshift, yshift):
+    """
+    Subpixel shifting of ``image`` using Fourier transformation.
+
+    Parameters
+    ----------
+    array : 2d numpy ndarray
+        The image to be shifted.
+    xshift : float
+        Amount of desired shift in X direction.
+    yshift : float
+        Amount of desired shift in Y direction.
+
+    Returns
+    -------
+    shifted_array : 2d ndarray
+        Input ``image`` shifted by ``xshift`` and ``yshift``.
+
+    Notes
+    -----
+    based on ``LibAndromeda/oneralib/subpixel_shift.pro``, v1.3 2009/05/28
+
+    """
+    npix = array.shape[0]
+
+    if npix != array.shape[1]:
+        raise ValueError("Input array must be square")
+
+
+    if npix%2:
+        cte = npix/2-0.5
+    else:
+        cte = npix/2        
+    ramp = np.outer(np.ones(npix), np.arange(npix) - cte)
+    tilt = (-2*np.pi / npix) * (xshift*ramp + yshift*ramp.T)
+    fact = np.fft.fftshift(np.cos(tilt) + 1j*np.sin(tilt))
+
+    array_ft = np.fft.fft2(array)  # no np.fft.fftshift applied!
+    shifted_array = np.fft.ifft2(array_ft * fact).real
+
+    return shifted_array
 
 
 def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
@@ -723,7 +769,7 @@ def _radon_costf(frame, cent, radint, coords, satspots_cfg=None):
     return costf
 
 
-def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
+def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
                         interpolation='lanczos4', **kwargs):
     """ Recenters a cube looping through its frames and calling the
     ``frame_center_radon`` function.
@@ -793,7 +839,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='opencv',
 
 def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  fwhm=4, subi_size=None, upsample_factor=100,
-                                 imlib='opencv', interpolation='lanczos4',
+                                 imlib='vip-fft', interpolation='lanczos4',
                                  mask=None, full_output=False, verbose=True, 
                                  nproc=1, save_shifts=False, debug=False, 
                                  plot=True):
@@ -1007,7 +1053,7 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
 
 
 def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
-                        nproc=1, imlib='opencv', interpolation='lanczos4',
+                        nproc=1, imlib='vip-fft', interpolation='lanczos4',
                         offset=None, negative=False, threshold=False, 
                         sigfactor=2, fix_neg=False, params_2g=None, 
                         save_shifts=False, full_output=False, verbose=True, 
@@ -1341,7 +1387,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                gammaval=1, min_spat_freq=0.5, max_spat_freq=3,
                                fwhm=4, debug=False, recenter_median=False,
                                fit_type='gaus', negative=True, crop=True,
-                               subframesize=21, mask=None, imlib='opencv', 
+                               subframesize=21, mask=None, imlib='vip-fft', 
                                interpolation='lanczos4', plot=True, 
                                full_output=False):
     """ Registers frames based on the median speckle pattern. Optionally centers

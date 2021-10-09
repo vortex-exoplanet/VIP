@@ -27,7 +27,7 @@ from ..var import frame_center, get_square
 from .subsampling import cube_collapse
 
 
-def cube_px_resampling(array, scale, imlib='opencv', interpolation='lanczos4',
+def cube_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
                        verbose=True):
     """
     Resample the frames of a cube with a single scale factor. Can deal with NaN 
@@ -75,7 +75,7 @@ def cube_px_resampling(array, scale, imlib='opencv', interpolation='lanczos4',
     return array_resc
 
 
-def frame_px_resampling(array, scale, imlib='opencv', interpolation='lanczos4',
+def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
                         verbose=False):
     """
     Resample the pixels of a frame wrt to the center, changing the frame size.
@@ -228,7 +228,7 @@ def frame_px_resampling(array, scale, imlib='opencv', interpolation='lanczos4',
 
 
 def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
-                               y_in=None, x_in=None, imlib='opencv',
+                               y_in=None, x_in=None, imlib='vip-fft',
                                interpolation='lanczos4', collapse='median',
                                pad_mode='reflect'):
     """
@@ -387,7 +387,7 @@ def _scale_func(output_coords, ref_xy=0, scaling=1.0, scale_y=None,
             ref_x + (output_coords[1] - ref_x) / scale_x)
 
 
-def frame_rescaling(array, ref_xy=None, scale=1.0, imlib='opencv',
+def frame_rescaling(array, ref_xy=None, scale=1.0, imlib='vip-fft',
                     interpolation='lanczos4', scale_y=None, scale_x=None):
     """
     Rescale a frame by a factor wrt a reference point.
@@ -544,7 +544,7 @@ def frame_rescaling(array, ref_xy=None, scale=1.0, imlib='opencv',
     return array_out
 
 
-def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='opencv',
+def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='vip-fft',
                     interpolation='lanczos4', scaling_y=None, scaling_x=None):
     """
     Rescale a cube by factors from ``scaling_list`` wrt a position.

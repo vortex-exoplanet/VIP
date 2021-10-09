@@ -168,14 +168,15 @@ def goodness_of_fit(lbda_obs, spec_obs, err_obs, lbda_mod, spec_mod,
 def gof_scal(params, lbda_obs, spec_obs, err_obs, lbda_mod, spec_mod, dlbda_obs, 
              instru_corr, instru_fwhm, instru_idx, filter_reader, ext_range):
     """ Wrapper for the goodness of fit routine to search for best template 
-    library fitting spectrum. The only difference is the "params" argument, 
+    library fitting spectrum. The only difference with `goodness_of_fit` is 
+    the "params" argument.
     
     Parameters
     ----------
     params: tuple
         Tuple of 1 or 2 elements: scaling factor and (optionally) differential
-        optical extinction (i.e. Delta A_V can be negative if template spectra
-        are not dereddened).
+        optical extinction $\Delta A_V$ ($\Delta A_V$ can be negative if 
+        template spectra are not dereddened).
     lbda_obs : numpy 1d ndarray or list
         Wavelength of observed spectrum. If several instruments, should be 
         ordered per instrument, not necessarily as monotonically increasing 

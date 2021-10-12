@@ -191,6 +191,8 @@ def dist_matrix(n, cx=None, cy=None):
 def frame_center(array, verbose=False):
     """
     Return the coordinates y,x of the frame(s) center.
+    If odd: dim/2-0.5
+    If even: dim/2
 
     Parameters
     ----------
@@ -201,7 +203,7 @@ def frame_center(array, verbose=False):
 
     Returns
     -------
-    cy, cx : float
+    cy, cx : int
         Coordinates of the center.
 
     """
@@ -214,13 +216,18 @@ def frame_center(array, verbose=False):
     else:
         raise ValueError('`array` is not a 2d, 3d or 4d array')
 
-    cy = shape[0] / 2 - 0.5
-    cx = shape[1] / 2 - 0.5
+    cy = shape[0] / 2
+    cx = shape[1] / 2
+
+    if shape[0]%2:
+        cy-=0.5
+    if shape[1]%2:
+        cx-=0.5        
 
     if verbose:
         print('Center px coordinates at x,y = ({}, {})'.format(cx, cy))  
     
-    return cy, cx
+    return int(cy), int(cx)
 
 
 def get_square(array, size, y, x, position=False, force=False, verbose=True):
@@ -233,10 +240,10 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
         Input frame.
     size : int
         Size of the subframe.
-    y : int
+    y : int or float
         Y coordinate of the center of the subframe (obtained with the function
         ``frame_center``).
-    x : int
+    x : int or float
         X coordinate of the center of the subframe (obtained with the function
         ``frame_center``).
     position : bool, optional

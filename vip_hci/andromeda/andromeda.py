@@ -29,7 +29,7 @@ from ..conf.utils_conf import pool_map, iterable
 from ..var.shapes import dist_matrix
 
 from .utils import robust_std, idl_round, idl_where
-from .shift import calc_psf_shift_subpix
+from .shift import calc_psf_shift_subpix, subpixel_shift
 from .fit import fitaffine
 
 
@@ -228,13 +228,23 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     npixpsf, _ = psf.shape
 
     if npix % 2 == 1:
-        raise ValueError("The side of the images must be an even number, with "
-                         "the star centered on the intersection between the "
-                         "four central pixels.")
+        # shift and crop
+        for cc in range(cube.shape[0]):
+            cube[cc] = subpixel_shift(cube[cc],0.5,0.5)
+        cube = cube[:,1:,1:]
+    else:
+        # shifting due to new VIP convention for even-sized images        
+        for cc in range(cube.shape[0]):
+            cube[cc] = subpixel_shift(cube[cc],-0.5,-0.5)
 
     if npixpsf % 2 == 1:
-        raise ValueError("The PSF provided must be of an even dimension!")
-
+        # shift and crop
+        psf = subpixel_shift(psf,0.5,0.5)
+        psf = psf[1:,1:]
+    else:
+        # shifting due to new VIP convention for even-sized images        
+        psf = subpixel_shift(psf,-0.5,-0.5)
+        
     if filtering_fraction > 1 or filtering_fraction < 0:
         raise ValueError("``filtering_fraction`` must be between 0 and 1")
 

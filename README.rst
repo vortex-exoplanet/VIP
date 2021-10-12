@@ -236,12 +236,10 @@ Now you can start finding exoplanets!
 Convention regarding image center and parity of image dimensions
 ----------------------------------------------------------------
 
-By default, VIP routines are compatible with either even- or odd-dimension input frames. For VIP routines that require the star to be centered in the input image(s), the code will assume that it is placed on size/2-0.5 (zero-based indexing); i.e. the scikit-image convention. In the case of VIP recentering routines, the star will be placed at such location.
-It is recommended to crop images/cubes to odd-size input frames, such that size/2-0.5 corresponds to the middle of the central pixel in the image (although not strictly a necessity).
-There are, however, *two major exceptions* to the above convention:
-
-- Routines in the ``andromeda`` module (external contribution) only accept even-size input frames (with a center at size/2-0.5).
-- Routines involving image rescaling and rotation (e.g. PCA-SDI, PCA-ADI, etc.) will assume a center at size/2-0.5, *except* in the case of even input dimensions *and* a chosen FFT-based method to perform the operation (scaling or rotation). If these two conditions are met, the center will be assumed to be at dim/2 (instead of dim/2-0.5). This is because it is the assumed center for FFT images (and FT frequencies) in common python packages (e.g. numpy.fft, scipy.fft) and some HCI instrument consortia.
+By default, VIP routines are compatible with either even- or odd-dimension input frames. For VIP routines that require the star to be centered in the input images (e.g. post-processing routines involving (de)rotation or scaling), the code will assume that it is placed on (zero-based indexing):
+- size/2-0.5 for odd-size input images; 
+- size/2 for even-size input images;
+i.e. exactly on a pixel in either cases. The VIP recentering routines will place the star centroid at one of these locations accordingly.
 
 
 Mailing list

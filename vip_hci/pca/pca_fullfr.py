@@ -26,8 +26,8 @@ from ..stats import descriptive_stats
 
 def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         svd_mode='lapack', scaling=None, mask_center_px=None, source_xy=None,
-        delta_rot=1, fwhm=4, adimsdi='single', crop_ifs=True, imlib='opencv',
-        imlib2='opencv', interpolation='lanczos4', collapse='median', 
+        delta_rot=1, fwhm=4, adimsdi='single', crop_ifs=True, imlib='vip-fft',
+        imlib2='vip-fft', interpolation='lanczos4', collapse='median', 
         ifs_collapse_range='all', mask_rdi=None, check_memory=True, batch=None, 
         nproc=1, full_output=False, verbose=True, weights=None, conv=False,
         cube_sig=None):

@@ -236,10 +236,15 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         # shifting due to new VIP convention for even-sized images        
         for cc in range(cube.shape[0]):
             cube[cc] = subpixel_shift(cube[cc],-0.5,-0.5)
-            
-    if npixpsf % 2 == 1:
-        raise ValueError("The PSF provided must be of an even dimension!")
 
+    if npixpsf % 2 == 1:
+        # shift and crop
+        psf = subpixel_shift(psf,0.5,0.5)
+        psf = psf[1:,1:]
+    else:
+        # shifting due to new VIP convention for even-sized images        
+        psf = subpixel_shift(psf,-0.5,-0.5)
+        
     if filtering_fraction > 1 or filtering_fraction < 0:
         raise ValueError("``filtering_fraction`` must be between 0 and 1")
 

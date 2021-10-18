@@ -61,6 +61,8 @@ def algo_llsg(ds):
 def algo_nmf(ds):
     return vip.nmf.nmf(ds.cube, ds.angles)
 
+def algo_nmf_annular(ds):
+    return vip.nmf.nmf_annular(ds.cube, ds.angles)
 
 def algo_pca(ds):
     return vip.pca.pca(ds.cube, ds.angles)
@@ -146,6 +148,7 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
         (algo_medsub_annular, snrmap_fast),
         (algo_xloci, snrmap_fast),
         (algo_nmf, snrmap_fast),
+        (algo_nmf_annular, snrmap_fast),
         (algo_llsg, snrmap_fast),
         (algo_frdiff, snrmap_fast),
         (algo_pca, snrmap_fast),

@@ -34,7 +34,7 @@ def test_frame_center():
     frames = 39
     nlambda = 2
 
-    res44 = (1.5, 1.5)
+    res44 = (2.0, 2.0) # replaced (1.5, 1.5) considering new convention
     res55 = (2.0, 2.0)
 
     # 2D

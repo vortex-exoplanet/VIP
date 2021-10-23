@@ -84,7 +84,7 @@ def algo_pca_annular(ds):
 
 
 def algo_andromeda(ds):
-    res = vip.andromeda.andromeda(ds.cube[:,:-1,:-1], oversampling_fact=1,
+    res = vip.andromeda.andromeda(ds.cube[:,:-1,:-1], oversampling_fact=1.8,
                                   angles=ds.angles, psf=ds.psf)
     contrast, snr, snr_n, stdcontrast, stdcontrast_n, likelihood, r = res
     return snr_n

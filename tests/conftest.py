@@ -6,7 +6,6 @@ Configuration file for pytest, containing global ("session-level") fixtures.
 import pytest
 from astropy.utils.data import download_file
 import vip_hci as vip
-from vip_hci.preproc import cube_px_resampling, cube_crop_frames
 import numpy as np
 
 
@@ -132,9 +131,9 @@ def example_dataset_rdi():
     cube = vip.fits.open_fits(f1)
     angles = vip.fits.open_fits(f3).flatten()  # shape (61,1) -> (61,)
     psf = vip.fits.open_fits(f2)
-    # creating a flux screen
+    # creating a variable flux screen
     scr = vip.var.create_synth_psf('moff', (101, 101), fwhm=50)
-    scrcu = np.array([scr * i for i in np.linspace(1e3, 2e3, num=31)])
+    scrcu = np.array([scr * i for i in np.linspace(-1e2, 1e2, num=31)])
     
     # OLD: scaling ?!
     # upscaling (1.2) and taking half of the frames, reversing order

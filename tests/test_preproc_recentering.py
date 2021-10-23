@@ -202,7 +202,7 @@ def test_2d(debug=False):
                     errormsg=errormsg.format(name), debug=debug, **method_args)
 
         #===== even
-        cube = create_cube_with_gauss2d(shape=(n_frames, 10, 10),mean=4.5,
+        cube = create_cube_with_gauss2d(shape=(n_frames, 10, 10),mean=5,
                                         stddev=1)
 
         method_args = dict(fwhm=1, subi_size=6, model=model, verbose=False,
@@ -220,7 +220,7 @@ def test_2d(debug=False):
                     errormsg=errormsg.format(name), debug=debug, **method_args)
 
         #===== even negative (ring)
-        cube = create_cube_with_gauss2d_ring(shape=(n_frames, 10, 10), mean=4.5,
+        cube = create_cube_with_gauss2d_ring(shape=(n_frames, 10, 10), mean=5,
                                              stddev_outer=3, stddev_inner=2)
 
         method_args = dict(fwhm=1, subi_size=6, model=model, verbose=False,
@@ -258,7 +258,7 @@ def test_dft(debug=False):
 
     #===== even, subi_size
     size = 10
-    mean = size // 2 - 0.5 # 0-indexed
+    mean = size // 2 #- 0.5 # 0-indexed
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
                                     stddev=1)
 
@@ -281,7 +281,7 @@ def test_dft(debug=False):
 
     #===== even negative (ring), subi_size=None
     size = 16
-    mean = size // 2 - 0.5
+    mean = size // 2 #- 0.5
     cube = create_cube_with_gauss2d_ring(shape=(n_frames, size, size),
                                          mean=mean, stddev_outer=3,
                                          stddev_inner=2)

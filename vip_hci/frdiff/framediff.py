@@ -23,7 +23,7 @@ from ..preproc.derotation import _find_indices_adi, _define_annuli
 def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
                n_similar=None, delta_rot=0.5, radius_int=2, asize=4, ncomp=None,
                imlib='vip-fft', interpolation='lanczos4', collapse='median',
-               nproc=1, verbose=True, debug=False):
+               nproc=1, verbose=True, debug=False, full_output=False):
     """ Frame differencing algorithm. It uses vector distance (depending on
     ``metric``), using separately the pixels from different annuli of ``asize``
     width, to create pairs of most similar images. Then it performs pair-wise
@@ -110,10 +110,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
                    dist_threshold, n_similar, radius_int, asize, ncomp, imlib, 
                    interpolation, verbose, debug)
 
-    #final_frame = np.sum(res, axis=0)
-    cube_out_fin = np.sum(res, axis=0)
-    cube_der = cube_derotate(cube_out_fin, angle_list, imlib=imlib, 
-                             interpolation=interpolation)
+    cube_der = np.sum(res, axis=0)
     final_frame = cube_collapse(cube_der, collapse)
 
 
@@ -188,7 +185,9 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
             if vector.sum().values == 0:
                 continue
             else:
-                vector_sorted = vector.i.sort_values()[:n_similar]
+                import pdb
+                pdb.set_trace()
+                vector_sorted = vector[:][0].sort_values()[:n_similar]
                 ind_n_similar = vector_sorted.index.values
                 # median subtraction
                 res = values[i] - np.median((values[ind_n_similar]), axis=0)
@@ -232,7 +231,11 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     cube_out = np.zeros((array.shape[0], array.shape[1], array.shape[2]))
     for i in range(n_frames):
         cube_out[i, yy, xx] = cube_res[i]
+        
+    cube_der = cube_derotate(cube_out, angles_list, imlib=imlib, 
+                             interpolation=interpolation, mask_val=0, 
+                             edge_blend='noise+interp', interp_zeros=True)
 
-    return cube_out
+    return cube_der
 
 

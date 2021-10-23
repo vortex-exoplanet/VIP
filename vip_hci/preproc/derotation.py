@@ -148,9 +148,13 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
                                           size=(new_y,new_x))
         cy, cx = frame_center(array_prep)
         y0_p = int(cy-cy_ori)
-        y1_p = int(cy+cy_ori+1)
+        y1_p = int(cy+cy_ori)
+        if new_y%2:
+            y1_p+=1
         x0_p = int(cx-cx_ori)
         x1_p = int(cx+cx_ori+1)
+        if new_x%2:
+            x1_p+=1
         if interp_zeros:
             array_prep[y0_p:y1_p,x0_p:x1_p] = array_nan.copy()
             array_prep1[y0_p:y1_p,x0_p:x1_p] = array_nan.copy()
@@ -195,7 +199,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
             y0 = y0_p
             y1 = y1_p
             x0 = x0_p
-            x1 = x1_p            
+            x1 = x1_p
     else:
         array_prep = array.copy()
 

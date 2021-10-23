@@ -46,19 +46,19 @@ def test_fit2d(psf_model, fit_fkt, y, x, framesize, psfsize):
 
     # correct "half-pixel centering", to make output of fit_2d* comparable
     # with `put`.
-    if (
-        (framesize % 2 == 0 and psfsize % 2 == 0) or
-        (framesize % 2 == 1 and psfsize % 2 == 0)
-    ):
-        y_exp = y - 0.5
-        x_exp = x - 0.5
-    else:
-        y_exp = y
-        x_exp = x
+    # if (
+    #     (framesize % 2 == 0 and psfsize % 2 == 0) or
+    #     (framesize % 2 == 1 and psfsize % 2 == 0)
+    # ):
+    #     y_exp = y - 0.5
+    #     x_exp = x - 0.5
+    # else:
+    y_exp = y
+    x_exp = x
 
     yx_real = np.unravel_index(inj_frame.argmax(), inj_frame.shape)
     print("demanded injection:   {}".format((y, x)))
-    print("brightest pixel:       {}".format(yx_real))
+    print("brightest pixel:      {}".format(yx_real))
     print("fit should return:    {}".format((y_exp, x_exp)))
     print("fitted injection:     {}".format((y_out, x_out)))
 

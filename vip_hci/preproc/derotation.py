@@ -152,7 +152,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         if new_y%2:
             y1_p+=1
         x0_p = int(cx-cx_ori)
-        x1_p = int(cx+cx_ori+1)
+        x1_p = int(cx+cx_ori)
         if new_x%2:
             x1_p+=1
         if interp_zeros:

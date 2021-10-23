@@ -62,4 +62,4 @@ def test_fit2d(psf_model, fit_fkt, y, x, framesize, psfsize):
     print("fit should return:    {}".format((y_exp, x_exp)))
     print("fitted injection:     {}".format((y_out, x_out)))
 
-    aarc((y_out, x_out), (y_exp, x_exp), atol=0.05)
+    aarc((y_out, x_out), (y_exp, x_exp), atol=0.1)

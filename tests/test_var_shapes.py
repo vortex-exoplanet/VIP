@@ -175,7 +175,9 @@ def test_get_annulus_segments():
              (np.array([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3]),
               np.array([0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 5, 0, 1]))]
 
-    aarc(res, truth)
+    #aarc(res, truth)
+    # TODO: cannot compare using `allclose`, as elements have variable length!
+    assert repr(res) == repr(truth)
 
     res = get_annulus_segments(PRETTY_EVEN, 2, 3, nsegm=3)
     truth = [(np.array([3, 4, 5, 5, 5, 5]), np.array([5, 5, 2, 3, 4, 5])),

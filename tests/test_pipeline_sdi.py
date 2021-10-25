@@ -150,7 +150,7 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
         (algo_pca_annular, snrmap_fast),
     ],
     ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
-def test_algos(injected_cube_position, algo, make_detmap):
+def test_algos(injected_cube_position, estimated_scal_factor, algo, make_detmap):
     ds, position = injected_cube_position
     scal_fac = estimated_scal_factor
     frame = algo(ds, scal_fac)

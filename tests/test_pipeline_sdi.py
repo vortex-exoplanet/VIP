@@ -59,8 +59,8 @@ def estimated_scal_factor(example_dataset_ifs):
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
     dsi_flux = np.ones_like(dsi.wavelengths)
-    scal_fac = vip.preproc.find_scal_vector(dsi.psf, dsi.wavelengths, dsi_flux, 
-                                            nfp=2, fm="stddev")
+    scal_fac, _ = vip.preproc.find_scal_vector(dsi.psf, dsi.wavelengths, 
+                                               dsi_flux, nfp=2, fm="stddev")
 
     return scal_fac
 

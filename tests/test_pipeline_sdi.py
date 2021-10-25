@@ -59,10 +59,11 @@ def estimated_scal_factor(example_dataset_ifs):
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
     dsi_flux = np.ones_like(dsi.wavelengths)
+    scal_fac_ori = dsi.wavelengths[-1]/dsi.wavelengths
     scal_fac, _ = vip.preproc.find_scal_vector(dsi.psf, dsi.wavelengths, 
                                                dsi_flux, nfp=2, fm="stddev")
 
-    return scal_fac
+    return scal_fac_ori, scal_fac
 
 # ====== algos
 def algo_medsub(ds, sc):
@@ -83,12 +84,12 @@ def algo_xloci(ds, sc):
 
 def algo_pca_single(ds, sc):
     return vip.pca.pca(ds.cube, ds.angles, scale_list=sc,
-                       adimsdi='single')
+                       adimsdi='single', ncomp=10)
 
 
 def algo_pca_double(ds, sc):
     return vip.pca.pca(ds.cube, ds.angles, scale_list=sc,
-                       adimsdi='double', ncomp=(1, 1))
+                       adimsdi='double', ncomp=(1, 5))
 
 
 def algo_pca_annular(ds, sc):
@@ -152,8 +153,8 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
     ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
 def test_algos(injected_cube_position, estimated_scal_factor, algo, make_detmap):
     ds, position = injected_cube_position
-    scal_fac = estimated_scal_factor
-    frame = algo(ds, scal_fac)
+    sc, scal_fac = estimated_scal_factor
+    frame = algo(ds, sc)
 
     if make_detmap is not None:
         detmap = make_detmap(frame, ds)

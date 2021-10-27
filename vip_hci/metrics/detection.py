@@ -259,6 +259,8 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
         # Padding the image with zeros to avoid errors at the edges
         pad = 10
         array_padded = np.lib.pad(array, pad, 'constant', constant_values=0)
+    else:
+        pad=0
 
     if mode in ('lpeaks', 'snrmap', 'snrmapf'):
         if mode == 'lpeaks':

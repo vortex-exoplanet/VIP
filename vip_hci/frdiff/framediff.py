@@ -178,6 +178,7 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     # median of n ``n_similar`` most similar patches
     cube_res = []
     if n_similar is not None:
+        angles_list = []
         if n_similar < 3:
             raise ValueError("n_similar must be >= 3 or None")
         for i in range(n_frames):
@@ -190,8 +191,9 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
                 # median subtraction
                 res = values[i] - np.median((values[ind_n_similar]), axis=0)
                 cube_res.append(res)
-
-        angles_list = angles.copy()
+                angles_list.append(angles[i])
+                
+        angles_list = np.array(angles_list)
         cube_res = np.array(cube_res)
 
     # taking just the most similar frame
@@ -227,8 +229,8 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
             res = values[indices[i][0]] - values[indices[i][1]]
             cube_res[i] = res
 
-    cube_out = np.zeros((array.shape[0], array.shape[1], array.shape[2]))
-    for i in range(n_frames):
+    cube_out = np.zeros((cube_res.shape[0], array.shape[1], array.shape[2]))
+    for i in range(cube_res.shape[0]):
         cube_out[i, yy, xx] = cube_res[i]
         
     cube_der = cube_derotate(cube_out, angles_list, imlib=imlib, 

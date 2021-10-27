@@ -185,14 +185,13 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
             if vector.sum().values == 0:
                 continue
             else:
-                import pdb
-                pdb.set_trace()
                 vector_sorted = vector[:][0].sort_values()[:n_similar]
                 ind_n_similar = vector_sorted.index.values
                 # median subtraction
                 res = values[i] - np.median((values[ind_n_similar]), axis=0)
                 cube_res.append(res)
 
+        angles_list = angles.copy()
         cube_res = np.array(cube_res)
 
     # taking just the most similar frame

@@ -143,12 +143,12 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
 
 @parametrize("algo, make_detmap",
     [
-        (algo_medsub, snrmap_fast),
-        (algo_medsub_annular, snrmap_fast),
+        (algo_medsub, None),
+        (algo_medsub_annular, None),
         (algo_xloci, snrmap_fast),
         (algo_pca_single, snrmap_fast),
         (algo_pca_double, snrmap_fast),
-        (algo_pca_annular, snrmap_fast),
+        (algo_pca_annular, None),
     ],
     ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
 def test_algos(injected_cube_position, estimated_scal_factor, algo, make_detmap):

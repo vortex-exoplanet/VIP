@@ -53,6 +53,8 @@ def algo_xloci(ds):
 def algo_frdiff(ds):
     return vip.frdiff.frame_diff(ds.cube, ds.angles)
 
+def algo_frdiff4(ds):
+    return vip.frdiff.frame_diff(ds.cube, ds.angles, n_similar=4)
 
 def algo_llsg(ds):
     return vip.llsg.llsg(ds.cube, ds.angles, ds.fwhm, rank=2)
@@ -151,6 +153,7 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
         (algo_nmf_annular, snrmap_fast),
         (algo_llsg, snrmap_fast),
         (algo_frdiff, snrmap_fast),
+        (algo_frdiff4, snrmap_fast),
         (algo_pca, snrmap_fast),
         (algo_pca_grid, snrmap_fast),
         (algo_pca_incremental, snrmap_fast),

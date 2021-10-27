@@ -108,11 +108,9 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     res = pool_map(nproc, _pairwise_ann, iterable(range(n_annuli)),
                    n_annuli, fwhm, angle_list, delta_rot, metric,
                    dist_threshold, n_similar, radius_int, asize, ncomp, imlib, 
-                   interpolation, verbose, debug)
+                   interpolation, collapse, verbose, debug)
 
-    cube_der = np.sum(res, axis=0)
-    final_frame = cube_collapse(cube_der, collapse)
-
+    final_frame = np.sum(res, axis=0)
 
     if verbose:
         print('Done processing annuli')
@@ -123,7 +121,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
 
 def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric, 
                   dist_threshold, n_similar, radius_int, asize, ncomp, imlib, 
-                  interpolation, verbose, debug=False):
+                  interpolation, collapse, verbose, debug=False):
     """
     Helper functions for pair-wise subtraction for a single annulus.
     """
@@ -192,7 +190,6 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
                 res = values[i] - np.median((values[ind_n_similar]), axis=0)
                 cube_res.append(res)
                 angles_list.append(angles[i])
-                
         angles_list = np.array(angles_list)
         cube_res = np.array(cube_res)
 
@@ -236,7 +233,8 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     cube_der = cube_derotate(cube_out, angles_list, imlib=imlib, 
                              interpolation=interpolation, mask_val=0, 
                              edge_blend='noise+interp', interp_zeros=True)
+    frame_collapse = cube_collapse(cube_der, collapse)
 
-    return cube_der
+    return frame_collapse
 
 

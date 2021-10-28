@@ -23,7 +23,7 @@ from ..preproc.derotation import _find_indices_adi, _define_annuli
 def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
                n_similar=None, delta_rot=0.5, radius_int=2, asize=4, ncomp=None,
                imlib='vip-fft', interpolation='lanczos4', collapse='median',
-               nproc=1, verbose=True, debug=False):
+               nproc=1, verbose=True, debug=False, full_output=False):
     """ Frame differencing algorithm. It uses vector distance (depending on
     ``metric``), using separately the pixels from different annuli of ``asize``
     width, to create pairs of most similar images. Then it performs pair-wise
@@ -108,14 +108,9 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     res = pool_map(nproc, _pairwise_ann, iterable(range(n_annuli)),
                    n_annuli, fwhm, angle_list, delta_rot, metric,
                    dist_threshold, n_similar, radius_int, asize, ncomp, imlib, 
-                   interpolation, verbose, debug)
+                   interpolation, collapse, verbose, debug)
 
-    #final_frame = np.sum(res, axis=0)
-    cube_out_fin = np.sum(res, axis=0)
-    cube_der = cube_derotate(cube_out_fin, angle_list, imlib=imlib, 
-                             interpolation=interpolation)
-    final_frame = cube_collapse(cube_der, collapse)
-
+    final_frame = np.sum(res, axis=0)
 
     if verbose:
         print('Done processing annuli')
@@ -126,7 +121,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
 
 def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric, 
                   dist_threshold, n_similar, radius_int, asize, ncomp, imlib, 
-                  interpolation, verbose, debug=False):
+                  interpolation, collapse, verbose, debug=False):
     """
     Helper functions for pair-wise subtraction for a single annulus.
     """
@@ -181,6 +176,7 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     # median of n ``n_similar`` most similar patches
     cube_res = []
     if n_similar is not None:
+        angles_list = []
         if n_similar < 3:
             raise ValueError("n_similar must be >= 3 or None")
         for i in range(n_frames):
@@ -188,12 +184,13 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
             if vector.sum().values == 0:
                 continue
             else:
-                vector_sorted = vector.i.sort_values()[:n_similar]
+                vector_sorted = vector[:][0].sort_values()[:n_similar]
                 ind_n_similar = vector_sorted.index.values
                 # median subtraction
                 res = values[i] - np.median((values[ind_n_similar]), axis=0)
                 cube_res.append(res)
-
+                angles_list.append(angles[i])
+        angles_list = np.array(angles_list)
         cube_res = np.array(cube_res)
 
     # taking just the most similar frame
@@ -229,10 +226,15 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
             res = values[indices[i][0]] - values[indices[i][1]]
             cube_res[i] = res
 
-    cube_out = np.zeros((array.shape[0], array.shape[1], array.shape[2]))
-    for i in range(n_frames):
+    cube_out = np.zeros((cube_res.shape[0], array.shape[1], array.shape[2]))
+    for i in range(cube_res.shape[0]):
         cube_out[i, yy, xx] = cube_res[i]
+        
+    cube_der = cube_derotate(cube_out, angles_list, imlib=imlib, 
+                             interpolation=interpolation, mask_val=0, 
+                             edge_blend='noise+interp', interp_zeros=True)
+    frame_collapse = cube_collapse(cube_der, collapse)
 
-    return cube_out
+    return frame_collapse
 
 

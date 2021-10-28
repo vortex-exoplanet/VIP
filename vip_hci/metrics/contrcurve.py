@@ -29,8 +29,7 @@ from ..var import frame_center, dist
 def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                    algo, sigma=5, nbranch=1, theta=0, inner_rad=1,
                    wedge=(0,360), fc_snr=100, student=True, transmission=None,
-                   smooth=True, interp_order=2, plot=True, dpi=100,
-                   imlib='vip-fft', interpolation='lanczos4', debug=False, 
+                   smooth=True, interp_order=2, plot=True, dpi=100, debug=False, 
                    verbose=True, full_output=False, save_plot=None, 
                    object_name=None, frame_size=None, fix_y_lim=(), 
                    figsize=(8, 4), **algo_dict):
@@ -125,7 +124,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         between plots.
     **algo_dict
         Any other valid parameter of the post-processing algorithms can be
-        passed here.
+        passed here, including e.g. imlib and interpolation.
 
     Returns
     -------
@@ -176,10 +175,6 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             print(msg0.format(algo.__name__, fwhm_med, nbranch, sigma))
         print(sep)
 
-    # add imlib and interpolation to algo_dict
-    algo_dict['imlib']=imlib
-    algo_dict['interpolation']=interpolation
-
     # throughput
     verbose_thru = False
     if verbose == 2:
@@ -187,8 +182,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     res_throug = throughput(cube, angle_list, psf_template, fwhm, pxscale,
                             nbranch=nbranch, theta=theta, inner_rad=inner_rad,
                             wedge=wedge, fc_snr=fc_snr, full_output=True,
-                            algo=algo, imlib=imlib, interpolation=interpolation,
-                            verbose=verbose_thru, **algo_dict)
+                            algo=algo, verbose=verbose_thru, **algo_dict)
     vector_radd = res_throug[3]
     if res_throug[0].shape[0] > 1:
         thruput_mean = np.nanmean(res_throug[0], axis=0)
@@ -429,8 +423,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
 def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                theta=0, inner_rad=1, fc_rad_sep=3, wedge=(0,360), fc_snr=100,
-               full_output=False, imlib='vip-fft', interpolation='lanczos4',
-               verbose=True, **algo_dict):
+               full_output=False, verbose=True, **algo_dict):
     """ Measures the throughput for chosen algorithm and input dataset (ADI or
     ADI+mSDI). The final throughput is the average of the same procedure
     measured in ``nbranch`` azimutally equidistant branches.
@@ -477,14 +470,11 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
         distribution).
     full_output : bool, optional
         If True returns intermediate arrays.
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     verbose : bool, optional
         If True prints out timing and information.
     **algo_dict
-        Parameters of the post-processing algorithms must be passed here.
+        Parameters of the post-processing algorithms must be passed here,
+        including imlib and interpolation.
 
     Returns
     -------
@@ -511,6 +501,8 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
     """
     array = cube
     parangles = angle_list
+    imlib = algo_dict.get('imlib', 'vip-fft')
+    interpolation = algo_dict.get('interpolation', 'lanczos4')
 
     if array.ndim != 3 and array.ndim != 4:
         raise TypeError('The input array is not a 3d or 4d cube')
@@ -733,7 +725,10 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                                                      parangles, flux, pxscale,
                                                      rad_dists=[radvec[i]],
                                                      theta=thetavec[i],
-                                                     verbose=False)
+                                                     verbose=False,
+                                                     imlib=imlib, 
+                                                     interpolation=
+                                                        interpolation)
                     y = cy + radvec[i] * np.sin(np.deg2rad(br * angle_branch +
                                                            thetavec[i]))
                     x = cx + radvec[i] * np.cos(np.deg2rad(br * angle_branch +

@@ -146,7 +146,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         size_fc = psf_template.shape[1]
         nframes = array.shape[0]
 
-        w = int(np.ceil(size_fc/2)) - 1
+        w = int(np.ceil(size_fc/2))
+        if size_fc%2: # new convention
+            w -= 1
         sty = int(ceny) - w
         sty = int(cenx) - w
 

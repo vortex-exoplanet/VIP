@@ -626,7 +626,8 @@ def check_scal_vector(scal_vec):
 def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev", 
                      simplex_options=None, debug=False, **kwargs):
     """
-    Find the optimal scaling factor for the channels of an IFS cube (or .
+    Find the optimal scaling factor for the channels of an IFS cube (or of 
+    dual-band pairs of images).
 
     The algorithm finds the optimal scaling factor that minimizes residuals in
     the rescaled frames. It takes the inverse of the wavelength vector as a 
@@ -661,7 +662,9 @@ def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev",
     scal_vec: numpy ndarray, 1d
         Vector containing the scaling factors (after correction to comply with
         the condition >= 1).
-
+    if nfp==2, also returns:
+    flux_vec: numpy ndarray, 1d
+        Vector containing the associated flux factors.
     """
 
     scal_vec_ini = lbdas[-1]/lbdas

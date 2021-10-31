@@ -6,7 +6,6 @@ Configuration file for pytest, containing global ("session-level") fixtures.
 import pytest
 from astropy.utils.data import download_file
 import vip_hci as vip
-from vip_hci.preproc import cube_px_resampling, cube_crop_frames
 import numpy as np
 
 
@@ -27,9 +26,9 @@ def example_dataset_adi():
     """
     print("downloading data...")
 
-    url_prefix = "https://github.com/carlgogo/VIP_extras/raw/master/datasets"
+    url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_file("{}/naco_betapic_cube.fits".format(url_prefix),
+    f1 = download_file("{}/naco_betapic_cube_cen.fits".format(url_prefix),
                        cache=True)
     f2 = download_file("{}/naco_betapic_psf.fits".format(url_prefix),
                        cache=True)
@@ -70,7 +69,7 @@ def example_dataset_ifs():
     """
     print("downloading data...")
 
-    url_prefix = "https://github.com/carlgogo/VIP_extras/raw/master/datasets"
+    url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
     f1 = download_file("{}/sphere_v471tau_cube.fits".format(url_prefix),
                        cache=True)
@@ -119,9 +118,9 @@ def example_dataset_rdi():
     """
     print("downloading data...")
 
-    url_prefix = "https://github.com/carlgogo/VIP_extras/raw/master/datasets"
+    url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_file("{}/naco_betapic_cube.fits".format(url_prefix),
+    f1 = download_file("{}/naco_betapic_cube_cen.fits".format(url_prefix),
                        cache=True)
     f2 = download_file("{}/naco_betapic_psf.fits".format(url_prefix),
                        cache=True)
@@ -132,13 +131,24 @@ def example_dataset_rdi():
     cube = vip.fits.open_fits(f1)
     angles = vip.fits.open_fits(f3).flatten()  # shape (61,1) -> (61,)
     psf = vip.fits.open_fits(f2)
-    # creating a flux screen
+    # creating a variable flux screen
     scr = vip.var.create_synth_psf('moff', (101, 101), fwhm=50)
-    scrcu = np.array([scr * i for i in np.linspace(1e3, 2e3, num=31)])
+    scrcu = np.array([scr * i for i in np.linspace(-1e2, 1e2, num=31)])
+    
+    # OLD: scaling ?!
     # upscaling (1.2) and taking half of the frames, reversing order
-    cube_upsc = cube_px_resampling(cube[::-1], 1.2, verbose=False)[::2]
+    #cube_upsc = cube_px_resampling(cube[::-1], 1.2, verbose=False)[::2]
     # cropping and adding the flux screen
-    cube_ref = cube_crop_frames(cube_upsc, 101, verbose=False) + scrcu
+    #cube_ref = cube_crop_frames(cube_upsc, 101, verbose=False) + scrcu
+
+    # NEW: take centro-symmetric images (i.e. flip along both x and y)
+    cube_rot = cube[::-1]
+    cube_rot = cube_rot[::2]
+    cube_rot = np.flip(cube_rot, axis=1)
+    cube_rot = np.flip(cube_rot, axis=2)
+    
+    # cropping and adding the flux screen
+    cube_ref = cube_rot + scrcu    
 
     # create dataset object
     dataset = vip.Dataset(cube, angles=angles, psf=psf, cuberef=cube_ref,

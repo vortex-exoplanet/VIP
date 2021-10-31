@@ -75,9 +75,9 @@ class Saveable(object):
     @classmethod
     def load(cls, filename):
         try:
-            data = np.load(filename)
+            data = np.load(filename, allow_pickle=True)
         except:
-            data = np.load(filename + ".npz")
+            data = np.load(filename + ".npz", allow_pickle=True)
 
         if "_vip_object" not in data:
             raise RuntimeError("The file you specified is not a VIP object.")

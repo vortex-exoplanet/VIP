@@ -179,9 +179,13 @@ def frame_pad(array, fac, fillwith=0, loc=0, scale=1, full_output=False):
         array_out[:] = fillwith
     cy, cx = frame_center(array_out)
     y0 = int(cy-cy_ori)
-    y1 = int(cy+cy_ori+1)
+    y1 = int(cy+cy_ori)
+    if new_y%2:
+        y1+=1
     x0 = int(cx-cx_ori)
-    x1 = int(cx+cx_ori+1)
+    x1 = int(cx+cx_ori)
+    if new_x%2:
+        x1+=1
     array_out[y0:y1,x0:x1] = array.copy()
     ori_indices =  (y0, y1, x0, x1)
     

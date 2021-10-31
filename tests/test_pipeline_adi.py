@@ -53,6 +53,8 @@ def algo_xloci(ds):
 def algo_frdiff(ds):
     return vip.frdiff.frame_diff(ds.cube, ds.angles)
 
+def algo_frdiff4(ds):
+    return vip.frdiff.frame_diff(ds.cube, ds.angles, n_similar=4)
 
 def algo_llsg(ds):
     return vip.llsg.llsg(ds.cube, ds.angles, ds.fwhm, rank=2)
@@ -61,6 +63,8 @@ def algo_llsg(ds):
 def algo_nmf(ds):
     return vip.nmf.nmf(ds.cube, ds.angles)
 
+def algo_nmf_annular(ds):
+    return vip.nmf.nmf_annular(ds.cube, ds.angles)
 
 def algo_pca(ds):
     return vip.pca.pca(ds.cube, ds.angles)
@@ -82,7 +86,7 @@ def algo_pca_annular(ds):
 
 
 def algo_andromeda(ds):
-    res = vip.andromeda.andromeda(ds.cube[:,:-1,:-1], oversampling_fact=1,
+    res = vip.andromeda.andromeda(ds.cube[:,:-1,:-1], oversampling_fact=1.8,
                                   angles=ds.angles, psf=ds.psf)
     contrast, snr, snr_n, stdcontrast, stdcontrast_n, likelihood, r = res
     return snr_n
@@ -146,8 +150,10 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
         (algo_medsub_annular, snrmap_fast),
         (algo_xloci, snrmap_fast),
         (algo_nmf, snrmap_fast),
+        (algo_nmf_annular, snrmap_fast),
         (algo_llsg, snrmap_fast),
         (algo_frdiff, snrmap_fast),
+        (algo_frdiff4, snrmap_fast),
         (algo_pca, snrmap_fast),
         (algo_pca_grid, snrmap_fast),
         (algo_pca_incremental, snrmap_fast),

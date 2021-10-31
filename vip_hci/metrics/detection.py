@@ -259,6 +259,8 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
         # Padding the image with zeros to avoid errors at the edges
         pad = 10
         array_padded = np.lib.pad(array, pad, 'constant', constant_values=0)
+    else:
+        pad=0
 
     if mode in ('lpeaks', 'snrmap', 'snrmapf'):
         if mode == 'lpeaks':
@@ -276,7 +278,7 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
             coords = check_blobs(array, coords_temp, fwhm, debug)
         coords = np.array(coords)
         if verbose and coords.shape[0] > 0:
-            print_coords(coords)
+            print_coords(coords-pad)
 
     elif mode == 'log':
         sigma = fwhm * gaussian_fwhm_to_sigma
@@ -290,7 +292,7 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
         coords = check_blobs(array_padded, coords, fwhm, debug)
         coords = np.array(coords)
         if coords.shape[0] > 0 and verbose:
-            print_coords(coords)
+            print_coords(coords-pad)
 
     elif mode == 'dog':
         sigma = fwhm * gaussian_fwhm_to_sigma
@@ -304,7 +306,7 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
         coords = check_blobs(array_padded, coords, fwhm, debug)
         coords = np.array(coords)
         if coords.shape[0] > 0 and verbose:
-            print_coords(coords)
+            print_coords(coords-pad)
 
     else:
         raise ValueError('`mode` not recognized')

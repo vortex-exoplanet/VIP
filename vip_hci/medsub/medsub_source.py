@@ -52,7 +52,7 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
         shortest wavelength in the cube (more thorough approaches can be used
         to get the scaling factors). This scaling factors are used to re-scale
         the spectral channels and align the speckles.
-    fwhm : float
+    fwhm : float or 1d numpy array
         Known size of the FHWM in pixels to be used. Default is 4.
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the

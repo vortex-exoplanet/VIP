@@ -322,7 +322,7 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         xx = np.concatenate(([xx[0]], xx[2:-1]))
         yy = np.concatenate(([yy[0]], yy[2:-1]))
 
-    apertures = photutils.CircularAperture((xx, yy), r=rad)  # Coordinates (X,Y)
+    apertures = photutils.CircularAperture(zip(xx, yy), r=rad)  # Coordinates (X,Y)
     fluxes = photutils.aperture_photometry(array, apertures, method='exact')
     fluxes = np.array(fluxes['aperture_sum'])
 

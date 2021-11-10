@@ -1,10 +1,11 @@
-__version__ = "1.0.2"
+__version__ = "1.0.0"
 
 from . import andromeda
 from . import preproc
 from . import conf
 from . import fits
 from . import frdiff
+from . import itpca
 from . import leastsq
 from . import llsg
 from . import medsub

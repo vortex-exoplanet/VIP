@@ -842,8 +842,8 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
     return pcs, recon, residuals_cube, residuals_cube_, frame
 
 
-def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px,
-                      svd_mode, verbose, full_output, indices=None, frame=None,
+def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px, svd_mode, 
+                      verbose, full_output, indices=None, frame=None,
                       cube_sig=None):
     """
     PCA projection and model PSF subtraction. Used as a helping function by

@@ -168,7 +168,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         Type of High-pass filtering.
 
         ``laplacian``
-            applies a Laplacian fiter with kernel size defined by
+            applies a Laplacian filter with kernel size defined by
             ``kernel_size`` using the Opencv library.
         ``laplacian-conv``
             applies a Laplacian high-pass filter by defining a kernel (with

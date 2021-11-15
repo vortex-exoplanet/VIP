@@ -18,9 +18,9 @@ from ..conf import timing, time_ini
 
 def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
         random_state=None, mask_center_px=None, source_xy=None, delta_rot=1, 
-        fwhm=4, init_svd='nndsvd', imlib='vip-fft', interpolation='lanczos4', 
-        collapse='median', full_output=False, verbose=True, cube_sig=None, 
-        handle_neg='mask', **kwargs):
+        fwhm=4, init_svd='nndsvd', collapse='median', full_output=False, 
+        verbose=True, cube_sig=None, handle_neg='mask', nmf_args={},
+        **rot_options):
     """ Non Negative Matrix Factorization for ADI sequences. Alternative to the
     full-frame ADI-PCA processing that does not rely on SVD or ED for obtaining
     a low-rank approximation of the datacube. This function embeds the 
@@ -69,10 +69,6 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
         'nndsvda': NNDSVD where zeros are filled with the average of cube; 
         recommended when sparsity is not desired
         'random': random initial non-negative matrix
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
@@ -86,9 +82,14 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
         may leave significant artefacts after derotation of residual cube
         => those options should be used carefully (e.g. with proper treatment
         of masked values in non-derotated cube of residuals).
-    kwargs 
+    nmf_args : dictionary, optional
         Additional arguments for scikit-learn NMF algorithm. See:
-        https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.NMF.html             
+        https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.NMF.html   
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "nproc", "imlib", 
+        "interpolation, "border_mode", "mask_val",  "edge_blend", 
+        "interp_zeros", "ker" (see documentation of 
+        ``vip_hci.preproc.frame_rotate``)   
              
     Returns
     -------
@@ -148,37 +149,6 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
         if cube_sig is not None:
             matrix_sig = prepare_matrix(cube_sig, scaling, mask_center_px, 
                                         mode='fullfr', verbose=verbose)
-   
-
-    # elif source_xy is None or delta_rot is None:
-    #     pass
-    # else:
-    #     # rotation threshold applied and NMF repeated for each frame on different matrices
-    #     if delta_rot is None or fwhm is None:
-    #         msg = 'Delta_rot or fwhm parameters missing. Needed for the'
-    #         msg += 'PA-based rejection of frames from the library'
-    #         raise TypeError(msg)
-    #     residuals_cube = np.zeros_like(cube)
-    #     recon_cube = np.zeros_like(cube)
-    #     yc, xc = frame_center(cube[0], False)
-    #     x1, y1 = source_xy
-    #     ann_center = dist(yc, xc, y1, x1)
-    #     pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
-    #     mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list))/2
-    #     if pa_thr >= mid_range - mid_range * 0.1:
-    #         new_pa_th = float(mid_range - mid_range * 0.1)
-    #         if verbose:
-    #             msg = 'PA threshold {:.2f} is too big, will be set to '
-    #             msg += '{:.2f}'
-    #             print(msg.format(pa_thr, new_pa_th))
-    #         pa_thr = new_pa_th
-
-    #     for frame in range(n):
-    #         if ann_center > fwhm * 3:  # TODO: 3 optimal value? new par?
-    #             ind = _find_indices_adi(angle_list, frame, pa_thr,
-    #                                     truncate=True)
-    #         else:
-    #             ind = _find_indices_adi(angle_list, frame, pa_thr)
     
 
     if cube_sig is not None:
@@ -193,7 +163,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
                                       mask_center_px, verbose, full_output, 
                                       matrix_sig=matrix_sig, max_iter=max_iter, 
                                       random_state=random_state, 
-                                      init_svd=init_svd, **kwargs)
+                                      init_svd=init_svd, **nmf_args)
         if verbose:
             timing(start_time)
         if full_output:
@@ -244,7 +214,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
                                            matrix_sig=matrix_sig, 
                                            max_iter=max_iter, 
                                            random_state=random_state, 
-                                           init_svd=init_svd, **kwargs)
+                                           init_svd=init_svd, **nmf_args)
             # ! Instead of reshaping, fill frame using get_annulus?
             if full_output:
                 residuals = res_result[0]
@@ -271,16 +241,14 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
         print('Done NMF with sklearn.NMF.')
         timing(start_time)
             
-    residuals_cube_ = cube_derotate(residuals_cube, angle_list, imlib=imlib,
-                                    interpolation=interpolation)
+    residuals_cube_ = cube_derotate(residuals_cube, angle_list, **rot_options)
     frame = cube_collapse(residuals_cube_, mode=collapse)
     
     if verbose:  
         print('Done derotating and combining.')
         timing(start_time)
     if full_output:
-        return (H, recon_cube, residuals_cube,
-                residuals_cube_, frame)
+        return (H, recon_cube, residuals_cube, residuals_cube_, frame)
     else:
         return frame
     

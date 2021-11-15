@@ -23,7 +23,8 @@ from ..preproc.derotation import _find_indices_adi, _define_annuli
 def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
                n_similar=None, delta_rot=0.5, radius_int=2, asize=4, ncomp=None,
                imlib='vip-fft', interpolation='lanczos4', collapse='median',
-               nproc=1, verbose=True, debug=False, full_output=False):
+               nproc=1, verbose=True, debug=False, full_output=False,
+               **rot_options):
     """ Frame differencing algorithm. It uses vector distance (depending on
     ``metric``), using separately the pixels from different annuli of ``asize``
     width, to create pairs of most similar images. Then it performs pair-wise
@@ -75,6 +76,10 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     debug : bool, optional
         If True the distance matrices will be plotted and additional information
         will be given.
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "border_mode", "edge_blend", 
+        "interp_zeros", "ker" (see documentation of 
+        ``vip_hci.preproc.frame_rotate``)
         
     Returns
     -------
@@ -105,10 +110,17 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     if nproc is None:
         nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
 
-    res = pool_map(nproc, _pairwise_ann, iterable(range(n_annuli)),
-                   n_annuli, fwhm, angle_list, delta_rot, metric,
-                   dist_threshold, n_similar, radius_int, asize, ncomp, imlib, 
-                   interpolation, collapse, verbose, debug)
+    # rotation options
+    border_mode = rot_options.get('border_mode','constant')
+    edge_blend = rot_options.get('edge_blend',None)
+    interp_zeros = rot_options.get('interp_zeros',False)
+    ker = rot_options.get('ker',1)    
+
+    res = pool_map(nproc, _pairwise_ann, iterable(range(n_annuli)), n_annuli, 
+                   fwhm, angle_list, delta_rot, metric, dist_threshold,
+                   n_similar, radius_int, asize, ncomp, imlib, interpolation, 
+                   collapse, verbose, debug, border_mode, edge_blend, 
+                   interp_zeros, ker)
 
     final_frame = np.sum(res, axis=0)
 
@@ -121,7 +133,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
 
 def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric, 
                   dist_threshold, n_similar, radius_int, asize, ncomp, imlib, 
-                  interpolation, collapse, verbose, debug=False):
+                  interpolation, collapse, verbose, debug=False, **rot_options):
     """
     Helper functions for pair-wise subtraction for a single annulus.
     """
@@ -231,8 +243,8 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
         cube_out[i, yy, xx] = cube_res[i]
         
     cube_der = cube_derotate(cube_out, angles_list, imlib=imlib, 
-                             interpolation=interpolation, mask_val=0, 
-                             edge_blend='noise+interp', interp_zeros=True)
+                             interpolation=interpolation, mask_val=0,
+                             **rot_options)
     frame_collapse = cube_collapse(cube_der, collapse)
 
     return frame_collapse

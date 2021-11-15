@@ -27,7 +27,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                 min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
                 imlib='vip-fft', interpolation='lanczos4', collapse='median',
                 ifs_collapse_range='all', full_output=False, verbose=True,
-                weights=None, cube_sig=None):
+                weights=None, cube_sig=None, **rot_options):
     """ PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data. The
     PCA model is computed locally in each annulus (or annular sectors according
     to ``n_segments``). For each sector we discard reference frames taking into
@@ -175,7 +175,11 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
     cube_sig: numpy ndarray, opt
         Cube with estimate of significant authentic signals. If provided, this
         will be subtracted before projecting cube onto reference cube.
-
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "border_mode", "mask_val",  
+        "edge_blend", "interp_zeros", "ker" (see documentation of 
+        ``vip_hci.preproc.frame_rotate``)
+        
     Returns
     -------
     - If full_output is False:
@@ -199,7 +203,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                            n_segments, delta_rot, ncomp, svd_mode, nproc,
                            min_frames_lib, max_frames_lib, tol, scaling, imlib,
                            interpolation, collapse, True, verbose, cube_ref,
-                           weights, cube_sig)
+                           weights, cube_sig, **rot_options)
 
         cube_out, cube_der, frame = res
         if full_output:
@@ -252,8 +256,9 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                 print('Skipping the second PCA subtraction')
 
             cube_out = residuals_cube_channels
-            cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
-                                     interpolation=interpolation)
+            cube_der = cube_derotate(cube_out, angle_list, nproc=nproc,
+                                     imlib=imlib, interpolation=interpolation, 
+                                     **rot_options)
             frame = cube_collapse(cube_der, mode=collapse, w=weights)
 
         else:
@@ -265,7 +270,8 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                                fwhm, asize, n_segments, delta_rot, ncomp2,
                                svd_mode, nproc, min_frames_lib, max_frames_lib,
                                tol, scaling, imlib, interpolation, collapse,
-                               full_output, verbose, None, weights, cube_sig)
+                               full_output, verbose, None, weights, cube_sig,
+                               **rot_options)
             if full_output:
                 cube_out, cube_der, frame = res
             else:
@@ -368,7 +374,7 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
                  min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
                  imlib='vip-fft', interpolation='lanczos4', collapse='median',
                  full_output=False, verbose=1, cube_ref=None, weights=None,
-                 cube_sig=None):
+                 cube_sig=None, **rot_options):
     """ PCA exploiting angular variability (ADI fashion).
     """
     array = cube
@@ -467,8 +473,8 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
             timing(start_time)
 
     # Cube is derotated according to the parallactic angle and collapsed
-    cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
-                             interpolation=interpolation)
+    cube_der = cube_derotate(cube_out, angle_list, nproc=nproc, imlib=imlib,
+                             interpolation=interpolation, **rot_options)
     frame = cube_collapse(cube_der, mode=collapse, w=weights)
     if verbose:
         print('Done derotating and combining.')

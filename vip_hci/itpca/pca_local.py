@@ -616,7 +616,7 @@ def feves(cube, angle_list, cube_ref=None, ncomp=1, algo=pca_annular, n_it=2,
     thr_per_ann: bool, opt
         Whether the threshold should be calculated annulus per annulus
         (recommended).
-    n_frac: int, opt (between 2 and 7)
+    n_frac: int, opt (between 1 and 7)
         Fractionation level. If asizes and n_elements are not provided 
         manually, the algorithm will consider the following automatic scheme,
         capped to the n_frac first elements:
@@ -829,8 +829,8 @@ def feves(cube, angle_list, cube_ref=None, ncomp=1, algo=pca_annular, n_it=2,
     asz_max = int((cy-radius_int-buffer)/fwhm)
     asizes = [a for a in asz_def if a < asz_max]
     n_segments = [n for i, n in enumerate(nsegm_def) if asz_def[i]<asz_max]
-    if n_frac < 2 or n_frac > len(asizes):
-        msg="set n_frac to a value between 2 and {:.0f}"
+    if n_frac < 1 or n_frac > len(asizes):
+        msg="set n_frac to a value between 1 and {:.0f}"
         raise ValueError(msg.format(len(asizes)))
     elif n_frac < len(asizes):
         asizes = asizes[:n_frac]

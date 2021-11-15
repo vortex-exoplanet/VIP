@@ -538,7 +538,7 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
         fn_tmp += "_{:.1f}drot_{:.0f}npc"
         
     if fm == 'fiducial':
-        nfrac_max = np.amax(fiducial_results[0])
+        nfrac_max = int(np.amax(fiducial_results[0]))
         
     ## loop over delta_rot_test
     for delta_rot_tmp in drots:

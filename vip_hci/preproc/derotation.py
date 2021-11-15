@@ -297,7 +297,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
     
 def cube_derotate(array, angle_list, imlib='vip-fft', interpolation='lanczos4',
                   cxy=None, nproc=1, border_mode='constant', mask_val=np.nan,
-                  edge_blend=None, interp_zeros=False):
+                  edge_blend=None, interp_zeros=False, ker=1):
     """ Rotates an cube (3d array or image sequence) providing a vector or
     corresponding angles. Serves for rotating an ADI sequence to a common north
     given a vector with the corresponding parallactic angles for each frame. By
@@ -322,11 +322,15 @@ def cube_derotate(array, angle_list, imlib='vip-fft', interpolation='lanczos4',
         Whether to rotate the frames in the sequence in a multi-processing
         fashion. Only useful if the cube is significantly large (frame size and
         number of frames).
+    mask_val: flt, opt
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     border_mode : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     edge_blend : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interp_zeros : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    ker: int, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
         
     Returns
@@ -350,24 +354,24 @@ def cube_derotate(array, angle_list, imlib='vip-fft', interpolation='lanczos4',
                                         border_mode=border_mode, 
                                         mask_val=mask_val, 
                                         edge_blend=edge_blend,
-                                        interp_zeros=interp_zeros)
+                                        interp_zeros=interp_zeros, ker=ker)
     elif nproc > 1:
         global data_array
         data_array = array
 
         res = pool_map(nproc, _frame_rotate_mp, iterable(range(n_frames)),
                        angle_list, imlib, interpolation, cxy, border_mode, 
-                       mask_val, edge_blend, interp_zeros)
+                       mask_val, edge_blend, interp_zeros, ker)
         array_der = np.array(res)
 
     return array_der
 
 
 def _frame_rotate_mp(num_fr, angle_list, imlib, interpolation, cxy,
-                     border_mode, mask_val, edge_blend, interp_zeros):
+                     border_mode, mask_val, edge_blend, interp_zeros, ker):
     framerot = frame_rotate(data_array[num_fr], -angle_list[num_fr], imlib,
                             interpolation, cxy, border_mode, mask_val, 
-                            edge_blend, interp_zeros)
+                            edge_blend, interp_zeros, ker)
     return framerot
 
 

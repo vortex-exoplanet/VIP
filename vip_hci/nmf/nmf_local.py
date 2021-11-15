@@ -23,7 +23,7 @@ def nmf_annular(cube, angle_list, cube_ref=None, radius_int=0, fwhm=4, asize=4,
                 imlib='vip-fft', interpolation='lanczos4', collapse='median', 
                 full_output=False, verbose=True, theta_init=0, weights=None, 
                 cube_sig=None, handle_neg='mask', max_iter=1000, 
-                random_state=None, **kwargs):
+                random_state=None, nmf_args={}, **rot_options):
     """ Non Negative Matrix Factorization in concentric annuli, for ADI/RDI 
     sequences. Alternative to the annular ADI-PCA processing that does not rely 
     on SVD or ED for obtaining a low-rank approximation of the datacube. 
@@ -93,10 +93,6 @@ def nmf_annular(cube, angle_list, cube_ref=None, radius_int=0, fwhm=4, asize=4,
         'nndsvda': NNDSVD where zeros are filled with the average of cube; 
         recommended when sparsity is not desired
         'random': random initial non-negative matrix
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
@@ -104,9 +100,13 @@ def nmf_annular(cube, angle_list, cube_ref=None, radius_int=0, fwhm=4, asize=4,
         intermediate arrays.  
     verbose : {True, False}, bool optional
         If True prints intermediate info and timing. 
-    kwargs 
+    nmf_args: dictionary, optional 
         Additional arguments for scikit-learn NMF algorithm. See:
-        https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.NMF.html             
+        https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.NMF.html   
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "imlib", "interpolation, 
+        "border_mode", "mask_val",  "edge_blend", "interp_zeros", "ker" (see 
+        documentation of ``vip_hci.preproc.frame_rotate``)          
              
     Returns
     -------
@@ -237,8 +237,7 @@ def nmf_annular(cube, angle_list, cube_ref=None, radius_int=0, fwhm=4, asize=4,
             timing(start_time)
 
     # Cube is derotated according to the parallactic angle and collapsed
-    cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
-                             interpolation=interpolation)
+    cube_der = cube_derotate(cube_out, angle_list, nproc=nproc, **rot_options)
     frame = cube_collapse(cube_der, mode=collapse, w=weights)
     if verbose:
         print('Done derotating and combining.')

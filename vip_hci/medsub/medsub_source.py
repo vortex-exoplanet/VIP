@@ -34,7 +34,7 @@ from ..preproc.rescaling import _find_indices_sdi
 def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
                delta_rot=1, delta_sep=(0.1, 1), mode='fullfr', nframes=4,
                imlib='vip-fft', interpolation='lanczos4', collapse='median',
-               nproc=1, full_output=False, verbose=True):
+               nproc=1, full_output=False, verbose=True, **rot_options):
     """ Implementation of a median subtraction algorithm for model PSF
     subtraction in high-contrast imaging sequences. In the case of ADI, the
     algorithm is based on [MAR06]_. The ADI+IFS method is an extension of this
@@ -91,6 +91,10 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
         intermediate arrays.
     verbose : bool, optional
         If True prints to stdout intermediate info.
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "border_mode", "mask_val",  
+        "edge_blend", "interp_zeros", "ker" (see documentation of 
+        ``vip_hci.preproc.frame_rotate``)
 
     Returns
     -------
@@ -168,8 +172,8 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
         else:
             raise RuntimeError('Mode not recognized')
 
-        cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
-                                 interpolation=interpolation)
+        cube_der = cube_derotate(cube_out, angle_list, nproc=nproc, imlib=imlib,
+                                 interpolation=interpolation, **rot_options)
         if radius_int:
             cube_out = mask_circle(cube_out, radius_int)
             cube_der = mask_circle(cube_der, radius_int)
@@ -216,7 +220,8 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
             median_frame = np.nanmedian(residuals_cube_channels, axis=0)
             cube_out = residuals_cube_channels - median_frame
             cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
-                                     interpolation=interpolation)
+                                     interpolation=interpolation, nproc=nproc, 
+                                     **rot_options)
             frame = cube_collapse(cube_der, mode=collapse)
             if verbose:
                 timing(start_time)
@@ -246,7 +251,8 @@ def median_sub(cube, angle_list, scale_list=None, fwhm=4, radius_int=0, asize=4,
                 cube_out[:, yy[ann], xx[ann]] = mres[ann]
 
             cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
-                                     interpolation=interpolation)
+                                     interpolation=interpolation, nproc=nproc,
+                                     **rot_options)
             frame = cube_collapse(cube_der, mode=collapse)
 
         else:

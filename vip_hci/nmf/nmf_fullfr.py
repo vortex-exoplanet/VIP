@@ -19,7 +19,7 @@ from ..conf import timing, time_ini
 def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
         random_state=None, mask_center_px=None, source_xy=None, delta_rot=1, 
         fwhm=4, init_svd='nndsvd', collapse='median', full_output=False, 
-        verbose=True, cube_sig=None, handle_neg='mask', nproc=1, nmf_args={}, 
+        verbose=True, cube_sig=None, handle_neg='mask', nmf_args={},
         **rot_options):
     """ Non Negative Matrix Factorization for ADI sequences. Alternative to the
     full-frame ADI-PCA processing that does not rely on SVD or ED for obtaining
@@ -82,9 +82,6 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
         may leave significant artefacts after derotation of residual cube
         => those options should be used carefully (e.g. with proper treatment
         of masked values in non-derotated cube of residuals).
-    nproc : None or int, optional
-        Number of processes for parallel computing. If None the number of
-        processes will be set to (cpu_count()/2).
     nmf_args : dictionary, optional
         Additional arguments for scikit-learn NMF algorithm. See:
         https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.NMF.html   

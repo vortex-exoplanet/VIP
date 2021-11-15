@@ -435,7 +435,7 @@ def feves_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI',
                                  starphot, plsc, mask_inner_sz, nproc_tmp,
                                  scaling, svd_mode, init_svd, imlib, 
                                  interpolation, path, debug, overwrite, smooth,
-                                 fiducial_buff[:,bb*n_az:(bb+1)*n_az])
+                                 fiducial_results[:,bb*n_az:(bb+1)*n_az])
             nfrac_opt.extend(res[0])
             drot_opt.extend(res[1])
             thr_opt.extend(res[2])

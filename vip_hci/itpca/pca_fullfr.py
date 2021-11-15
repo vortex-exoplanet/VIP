@@ -28,7 +28,7 @@ def pca_it(cube, angle_list, cube_ref=None, algo=pca, mode=None, ncomp=1,
            delta_rot=1, fwhm=4, mask_rdi=None, imlib='vip-fft', 
            interpolation='lanczos4', collapse='median', nproc=1, 
            check_memory=True, full_output=False, verbose=True, weights=None, 
-           smooth=False, add_res=False, rtol=1e-2, atol=1, **kwargs_nmf):
+           smooth=False, rtol=1e-2, atol=1, **kwargs_nmf):
     """
     Iterative version of PCA. 
     
@@ -493,8 +493,6 @@ def pca_it(cube, angle_list, cube_ref=None, algo=pca, mode=None, ncomp=1,
                                        fillwith=1)
         sig_image = frame.copy()
         sig_image[np.where(inv_sig_mask)] = 0
-        if add_res and n_neigh==0:
-            sig_image[np.where(sig_mask_p)] += frame_nd[np.where(sig_mask_p)]
         sig_image[np.where(sig_image<0)] = 0
         # correct by algo throughput if requested
         if thru_corr:# == 'psf':
@@ -629,9 +627,6 @@ def pca_it(cube, angle_list, cube_ref=None, algo=pca, mode=None, ncomp=1,
         #         print(msg.format(mean_thru,mean_conv_thru))
         #     #sig_image = frame_filter_lowpass(sig_image, mode="psf", psf=psfn)
         sig_image/=thru_2d
-        # if add_res and n_neigh==0:
-        #     sig_image[np.where(sig_mask_p)] += frame_nd[np.where(sig_mask_p)]
-        #     sig_image[np.where(sig_image<0)] = 0
         #frame[np.where(frame>0)] /= thru_2d[np.where(frame>0)]
         it_cube[it] = frame.copy()
         it_cube[it][np.where(frame>0)]/=thru_2d[np.where(frame>0)]

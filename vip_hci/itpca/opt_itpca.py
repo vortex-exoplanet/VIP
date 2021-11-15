@@ -33,13 +33,13 @@ from ..var import frame_center, get_annulus_segments
 def feves_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI', 
               algo=pca_annular, fm='med_stim', gt_image=None, nfrac_max=6, 
               ncomps=[1,2,3,4,5], nits=[1,2], thrs=[0,0.5], drots=[0,0.5,1], 
-              buffer=1, add_res=False, thru_corr=False, n_br=6, psfn=None, 
-              starphot=1., plsc=1., svd_mode='lapack', init_svd='nndsvd', 
-              scaling=None, mask_center_px=None, imlib='opencv',
-              interpolation='lanczos4', collapse='median', check_memory=True, 
-              nproc=1, full_output=False, verbose=True, weights=None, 
-              debug=False, path='', overwrite=True, auto_crop=False, 
-              smooth=False):
+              buffer=1, fiducial_results=None, thru_corr=False, n_br=6, 
+              psfn=None, starphot=1., plsc=1., svd_mode='lapack', 
+              init_svd='nndsvd', scaling=None, mask_center_px=None, 
+              imlib='opencv', interpolation='lanczos4', collapse='median', 
+              check_memory=True, nproc=1, full_output=False, verbose=True, 
+              weights=None, debug=False, path='', overwrite=True,  
+              auto_crop=False, smooth=False):
     """
     Optimal version of Fractionation for Embedded Very young Exoplanet Search 
     algorithm: Iterative PCA or NMF applied in progressively more fractionated 
@@ -65,32 +65,26 @@ def feves_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI',
         Corresponding parallactic angle for each frame.
     cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    scale_list : numpy ndarray, 1d, optional
-        Scaling factors in case of IFS data (ADI+mSDI cube). Usually, the
-        scaling factors are the central channel wavelength divided by the
-        shortest wavelength in the cube (more thorough approaches can be used
-        to get the scaling factors). This scaling factors are used to re-scale
-        the spectral channels and align the speckles.
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Default value is 4.
+    strategy: str, opt
+        Whether to do iterative ADI only ('ADI'), iterative RDI only ('RDI'), 
+        or iterative RDI and iterative ADI consecutivey ('RADI'). A reference 
+        cube needs to be provided for 'RDI' and 'RADI'.
+    algo: function, opt, {vip_hci.pca.pca, vip_hci.nmf.nmf}
+        Either PCA or NMF, used iteratively.
     fm : str, optional {'med_stim','mean_stim','max_stim','perc**_stim','ssim', 
                         'fiducial'}
         Figure of merit to reconstruct the optimal image: median, mean, max or
         ** percentile (replace ** with a number between 0 and 100) of the STIM 
         value in each patch, respectively, OR the maximum structural 
-        similarity index measure ('ssim') with a reference ground truth image,
-        OR 
+        similarity index measure ('ssim') with a reference ground truth image.
     gt_image: 2d numpy a rray, optional
         If fm is set to 'ssim', this is the ground truth image to which the 
         processed FEVES images are compared to, when searching for the optimal 
         reduction parameters.
-    fiducial_results: 4d numpy array, optional
-        If fm is set to fiducial, this 4d cube of images should contain, for 
-        each buffer (axis 0), the optimal nfrac (axis 1, index 0), optimal ncomp 
-        (axis 1, index 1), optimal number of iterations (axis 1, index 2), 
-        optimal thr (axis 1, index 3) and optimal delta rot (axis 1, index 4).
-    nfrac: int, optional
-        Fractionation level. At the first iteration, the full frame is 
+    nfrac_max: int, optional
+        Maximum fractionation level. At the first iteration, the full frame is 
         considered, for each sugsequent iteration, the annular segments will be
         thinner and/or subdivided in azimuthal segments. The higher nfrac, the 
         smaller the segments in the last iteration. Max: 7.
@@ -98,19 +92,10 @@ def feves_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI',
         # 2. it. PCA in ~8FWHM-wide annuli (2)
         # 3. it. PCA in ~4FWHM-wide annuli (4)
         # 4. it. PCA in ~2FWHM-wide annuli (8)
-        # Loops:
+        # Loops on azimuthal segments:
         # 5. it. PCA in ~2FWHM-annuli and 3 az. segments [shift 3 times az.]
         # 6. it. PCA in ~2FWHM-annuli and 6 az. segments [shift 6 times az.]
-    buffer: float, option
-        Buffer in terms of FWHM used to smooth the transition. In practice, the
-        annular (resp. full-frame) PCA will be performed several times, with an 
-        outer radius (resp. inner radius) ranging between (r_lim-buffer/2)*FWHM
-        and (r_lim+buffer/2)*FWHM, per steps of 1 px.
-    strategy: str, opt
-        Whether to do iterative ADI only ('ADI'), iterative RDI only ('RDI'), 
-        or iterative RDI and iterative ADI consecutivey ('RADI'). A reference 
-        cube needs to be provided for 'RDI' and 'RADI'.
-    ncomp_range : list or tuple of int/None/float, optional
+    ncomps : list or tuple of int/None/float, optional
         Test list of number of PC values used as a lower-dimensional subspace 
         to project the target frames. The format of each test ncomp in the list 
         should be compatible with the pca.pca() function, that is:
@@ -133,21 +118,36 @@ def feves_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI',
           None, then the S/Ns (mean value in a 1xFWHM circular aperture) of the
           given (X,Y) coordinates are computed.
 
-    n_it_max: int, opt
+    nits: list of int, opt
         Maximum number of iterations for the iterative PCA. Note that if no 
         improvement is found from one iteration to the next, the algorithm 
         will stop automatically.
-    thr: float, tuple of floats or tuple or tuples/lists, opt
-        Threshold used to (iteratively) identify significant signals in the 
-        final PCA image obtained in each regime. If a float, the same value 
-        will be used for both regimes. If a tuple, can either contain 1) two 
-        floats corresponding to the resp. thresholds to be used for inner and 
-        outer regions; or ii) two lists/tuples of float values which will be 
-        tested. This threshold is a minimum pixel intensity in the STIM map 
-        computed with the PCA residual cube (Pairet et al. 2019), as expressed 
+    thrs: list of float, tuple of floats or tuple or tuples/lists, opt
+        List of tested thresholds. The threshold is used to (iteratively) 
+        identify significant signals in the final PCA image obtained in each 
+        regime. If a float, the same value will be used for both regimes. This 
+        threshold is a minimum pixel intensity in the STIM map computed with 
+        the PCA residual cube (Pairet et al. 2019), as expressed 
         in units of max. pixel intensity obtained in the inverse STIM map. 
         Recommended value: 1. But for discs with bright axisymmetric signals, a 
         lower value may be necessary.
+    drots : list of float, optional
+        Factor for adjusting the parallactic angle threshold, expressed in
+        FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
+        frame). If a tuple of two floats is provided, they are used as the lower
+        and upper intervals for the threshold (grows linearly as a function of
+        the separation).
+    buffer: float, option
+        Buffer in terms of FWHM used to smooth the transition. In practice, the
+        annular (resp. full-frame) PCA will be performed several times, with an 
+        outer radius (resp. inner radius) ranging between (r_lim-buffer/2)*FWHM
+        and (r_lim+buffer/2)*FWHM, per steps of 1 px.
+    fiducial_results: 4d numpy array, optional
+        If fm is set to fiducial, this 4d cube of images should contain, the 
+        optimal nfrac (axis 0, index 0), optimal ncomp (axis 0, index 1), 
+        optimal number of iterations (axis 0, index 2), optimal thr (axis 0, 
+        index 3) and optimal delta rot (axis 0, index 4), for each buffer and 
+        azimuthal shift (axis 1).
     thru_corr: bool, opt
         Whether to correct the significant signals by the algorithmic 
         throughput before subtraction to the original cube at the next
@@ -402,14 +402,23 @@ def feves_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI',
         nproc=1
     else:
         nproc_tmp=1
+        
+    if fiducial_results is not None:
+        n_az = 1
+        if nfrac_max == 5:
+            n_az=3
+        elif nfrac_max == 6:
+            n_az=6
+        fiducial_buff = [fiducial_results[:,i*n_az:(i+1)*n_az] for i in range(buff)]
     
     if nproc>1:
         res = pool_map(nproc, _opt_buff_feve, iterable(range(buff)), cube_tmp, 
                        angle_list, ref_cube_tmp, algo, ncomps, thrs, nits, 
                        strategy, drots, fwhm, fm, gt_image, nfrac_max,
-                       thru_corr, psfn, n_br, starphot, plsc, add_res, 
-                       mask_inner_sz, nproc_tmp, scaling, svd_mode, init_svd, 
-                       imlib, interpolation, path, debug, overwrite, smooth)
+                       thru_corr, psfn, n_br, starphot, plsc, mask_inner_sz, 
+                       nproc_tmp, scaling, svd_mode, init_svd, imlib, 
+                       interpolation, path, debug, overwrite, smooth, 
+                       iterable(fiducial_buff))
         for bb in range(buff):
             nfrac_opt.extend(res[bb][0])
             drot_opt.extend(res[bb][1])
@@ -423,9 +432,10 @@ def feves_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI',
             res = _opt_buff_feve(bb, cube_tmp, angle_list, ref_cube_tmp, algo, 
                                  ncomps, thrs, nits, strategy, drots, fwhm, fm, 
                                  gt_image, nfrac_max, thru_corr, psfn, n_br, 
-                                 starphot, plsc, add_res, mask_inner_sz, 
-                                 nproc_tmp, scaling, svd_mode, init_svd, imlib, 
-                                 interpolation, path, debug, overwrite, smooth)
+                                 starphot, plsc, mask_inner_sz, nproc_tmp,
+                                 scaling, svd_mode, init_svd, imlib, 
+                                 interpolation, path, debug, overwrite, smooth,
+                                 fiducial_buff[:,bb*n_az:(bb+1)*n_az])
             nfrac_opt.extend(res[0])
             drot_opt.extend(res[1])
             thr_opt.extend(res[2])
@@ -466,10 +476,10 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
                    ncomps=[1,2,5], thrs=[0,1], nits=[3,5,10], strategy='ADI', 
                    drots=[0,0.5], fwhm=4, fm='med_stim', gt_image=None, 
                    nfrac_max=6, thru_corr=False, psfn=None, n_br=6, starphot=1, 
-                   plsc=1., add_res=False, in_mask_sz=0, nproc=1, scaling=None, 
+                   plsc=1., in_mask_sz=0, nproc=1, scaling=None, 
                    svd_mode='lapack', init_svd='nndsvda', imlib='opencv', 
                    interpolation='lanczos4', path='', debug=False, 
-                   overwrite=False, smooth=False):
+                   overwrite=False, smooth=False, fiducial_results=None):
     # select fm function
     if fm == 'med_stim':
         ffm = np.median
@@ -488,6 +498,10 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
         # done in preparation of ssim:
         if not smooth:
             gt_image = gaussian_filter(gt_image, sigma=1.5)
+    elif fm == 'fiducial':
+        if fiducial_results is None:
+            msg = "For 'fiducial' figure of merit, provide fiducial results"
+            raise TypeError(msg)
     else:
         msg="fm not recognized. Should be 'med_stim', 'mean_stim' or 'max_stim'"
         raise ValueError(msg)
@@ -523,6 +537,9 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
         fn_tmp = "TMP_{}-{}_{:.0f}bb_{:.0f}frac_{:.0f}nit_{:.1f}thr"
         fn_tmp += "_{:.1f}drot_{:.0f}npc"
         
+    if fm == 'fiducial':
+        nfrac_max = np.amax(fiducial_results[0])
+        
     ## loop over delta_rot_test
     for delta_rot_tmp in drots:
         ## loop over pcs
@@ -536,6 +553,14 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
                                               nit, thr_t, delta_rot_tmp)
 
                 for pp, ncomp in enumerate(ncomps):
+                    if fm == 'fiducial':
+                        cond_dr = delta_rot_tmp in fiducial_results[4]
+                        cond_thr = thr_t in fiducial_results[3]
+                        cond_nit = nit in fiducial_results[2]
+                        cond_npc = ncomp in fiducial_results[1]
+                        necessary = cond_dr & cond_thr & cond_nit & cond_npc
+                        if not necessary:
+                            continue
                     if debug:
                         fn = path+fn_tmp.format(algo_lab, strategy, bb, 
                                                 nfrac_max, nit, thr_t, 
@@ -553,8 +578,7 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
                                     init_svd=init_svd, nproc=nproc,
                                     interpolation=interpolation,
                                     imlib=imlib, full_output=True,
-                                    interp_order=None, add_res=add_res, 
-                                    smooth=smooth)
+                                    interp_order=None, smooth=smooth)
                         it_cube_nd = res[-5]
                         norm_stim_cube = res[-4]
                         stim_cube = res[-3]
@@ -633,18 +657,40 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
             for j in range(n_segments): # actual loop on segments
                 yy = indices[j][0]
                 xx = indices[j][1]
-                if fm == 'ssim':
-                    fm_stim = np.zeros(bb_frames.shape[0])
+                if fm == 'fiducial':
+                    # first check all values in annulus segment are equal
+                    ann_match = True
+                    for m in range(1,5):
+                        if np.all(fiducial_results[m,i,yy,xx])!=fiducial_results[m,i,yy,xx][0]:
+                            ann_match=False
+                    if not ann_match:
+                        import pdb
+                        pdb.set_trace()
+                        msg = "Tested annuli and in fiducial results do not match"
+                        raise ValueError(msg)
                     for k in range(bb_frames.shape[0]):
-                        fm_stim[k] = ffm(gt_image[yy, xx],
-                                         bb_frames[k, yy, xx], win_size=1, 
-                                         gaussian_weights=False,
-                                         use_sample_covariance=False)
-                elif 'perc' in fm:
-                    fm_stim = ffm(stim_bb[:, yy, xx], perc, axis=1)
+                        cond_dr = bb_drot[k] == fiducial_results[4,i,yy,xx][0]
+                        cond_thr = bb_thr[k] == fiducial_results[3,i,yy,xx][0]
+                        cond_nit = bb_it[k] == fiducial_results[2,i,yy,xx:][0]
+                        cond_npc = bb_npc[k] == fiducial_results[1,i,yy,xx][0]
+                        found_it = cond_dr & cond_thr & cond_nit & cond_npc
+                        if found_it:
+                            idx_opt = k
+                            break
                 else:
-                    fm_stim = ffm(stim_bb[:, yy, xx],axis=1)
-                idx_opt = np.argmax(fm_stim, axis=0)
+                    if fm == 'ssim':
+                        fm_stim = np.zeros(bb_frames.shape[0])
+                        for k in range(bb_frames.shape[0]):
+                            fm_stim[k] = ffm(gt_image[yy, xx],
+                                             bb_frames[k, yy, xx], win_size=1, 
+                                             gaussian_weights=False,
+                                             use_sample_covariance=False)
+                    elif 'perc' in fm:
+                        fm_stim = ffm(stim_bb[:, yy, xx], perc, axis=1)
+                    else:
+                        fm_stim = ffm(stim_bb[:, yy, xx],axis=1)
+                    idx_opt = np.argmax(fm_stim, axis=0)
+                    
                 stim_tmp[yy, xx] = stim_bb[idx_opt, yy, xx].copy()
                 frame_tmp[yy, xx] = bb_frames[idx_opt, yy, xx].copy()
                 frac_tmp[yy, xx] = bb_nfrac[idx_opt]

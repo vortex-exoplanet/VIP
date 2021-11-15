@@ -28,7 +28,7 @@ def pca_annular_it(cube, angle_list, cube_ref=None, ncomp=1, n_it=10, thr=1.,
                    n_segments=1, delta_rot=(0.1, 1), svd_mode='lapack', nproc=1, 
                    min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None, 
                    imlib='opencv', interpolation='lanczos4', collapse='median', 
-                   full_output=False, verbose=True, weights=None, add_res=False, 
+                   full_output=False, verbose=True, weights=None,
                    interp_order=2, rtol=1e-2, atol=1):
     """
     Iterative version of annular PCA.
@@ -386,7 +386,6 @@ def pca_annular_it(cube, angle_list, cube_ref=None, ncomp=1, n_it=10, thr=1.,
                              weights=weights)
         residuals_cube_nd = res_nd[0]
         frame_nd = res_nd[-1]
-        sig_mask_p = sig_mask.copy()
         res_sig = _find_significant_signals(residuals_cube_nd, residuals_cube_, 
                                             angle_list, thr, mask=radius_int,
                                             thr_per_ann=thr_per_ann, 
@@ -401,8 +400,7 @@ def pca_annular_it(cube, angle_list, cube_ref=None, ncomp=1, n_it=10, thr=1.,
             inv_sig_mask = mask_circle(inv_sig_mask, radius_int, fillwith=1)
         sig_image = frame.copy()
         sig_image[np.where(inv_sig_mask)] = 0
-        if not add_res or n_neigh>0:
-            sig_image[np.where(sig_image<0)] = 0
+        sig_image[np.where(sig_image<0)] = 0
         # correct by algo throughput if requested
         if thru_corr:
             thru_arr, rad_vec = throughput(cube_tmp-sig_cube, -angle_list,
@@ -507,9 +505,6 @@ def pca_annular_it(cube, angle_list, cube_ref=None, ncomp=1, n_it=10, thr=1.,
         #         print(msg.format(mean_thru,mean_conv_thru))
         #     #sig_image = frame_filter_lowpass(sig_image, mode="psf", psf=psfn)
         sig_image/=thru_2d
-        if add_res and n_neigh==0:
-            sig_image[np.where(sig_mask_p)] += frame_nd[np.where(sig_mask_p)]
-            sig_image[np.where(sig_image<0)] = 0
         #tmp=frame.copy()
         frame[np.where(frame>0)] = frame[np.where(frame>0)]/thru_2d[np.where(frame>0)]
         it_cube[it] = frame
@@ -558,11 +553,11 @@ def pca_annular_it(cube, angle_list, cube_ref=None, ncomp=1, n_it=10, thr=1.,
 def feves(cube, angle_list, cube_ref=None, ncomp=1, algo=pca_annular, n_it=2, 
           fwhm=4, buff=1, thr=1, thr_per_ann=False, n_frac=6, asizes=None, 
           n_segments=None, thru_corr=False, n_neigh=0, strategy='ADI', 
-          psfn=None, n_br=6, radius_int=0, delta_rot=(0.1, 1), 
+          psfn=None, n_br=6, radius_int=0, delta_rot=(0.1, 1),
           svd_mode='lapack', init_svd='nndsvda', nproc=1, min_frames_lib=2, 
           max_frames_lib=200, tol=1e-1, scaling=None, imlib='opencv', 
           interpolation='lanczos4', collapse='median', full_output=False, 
-          verbose=True, weights=None, add_res=False, interp_order=2, rtol=1e-2, 
+          verbose=True, weights=None, interp_order=2, rtol=1e-2, 
           atol=1, smooth=False):
     """
     Fractionation for Embedded Very young Exoplanet Search algorithm: Iterative
@@ -597,6 +592,8 @@ def feves(cube, angle_list, cube_ref=None, ncomp=1, algo=pca_annular, n_it=2,
             - if its elements are int: ncomp used for each fractionation level
             - if its elements are lists: additional iterations with different
             ncomp will be done for each fractionation level.
+    algo: function, opt, {vip_hci.pca.pca_annular, vip_hci.nmf.nmf_annular}
+        Either PCA or NMF in concentric annuli, used iteratively.
     n_it: int, opt
         Number of iterations at each fractionation level.
     n_neigh: int, opt
@@ -870,7 +867,7 @@ def feves(cube, angle_list, cube_ref=None, ncomp=1, algo=pca_annular, n_it=2,
     if nproc>1:
         res = pool_map(nproc, _do_one_buff, iterable(range(buffer)), cube, 
                        angle_list, ref_cube, algo, n_it, thr, thr_per_ann, 
-                       radius_int, fwhm, asizes, n_segments, n_neigh, add_res, 
+                       radius_int, fwhm, asizes, n_segments, n_neigh,
                        thru_corr, psfn, n_br, interp_order, strategy, delta_rot, 
                        ncomp, svd_mode, init_svd, min_frames_lib, 
                        max_frames_lib, tol, scaling, imlib, interpolation, 
@@ -891,7 +888,7 @@ def feves(cube, angle_list, cube_ref=None, ncomp=1, algo=pca_annular, n_it=2,
         for bb in range(buffer):
             res = _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, 
                                thr_per_ann, radius_int, fwhm, asizes, 
-                               n_segments, n_neigh, add_res, thru_corr, psfn,
+                               n_segments, n_neigh, thru_corr, psfn,
                                n_br, interp_order, strategy, delta_rot, ncomp, 
                                svd_mode, init_svd, min_frames_lib,
                                max_frames_lib, tol, scaling, imlib, 
@@ -944,11 +941,11 @@ def feves(cube, angle_list, cube_ref=None, ncomp=1, algo=pca_annular, n_it=2,
     
     
 def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann, 
-                 rad_int, fwhm, asizes, n_segments, n_neigh, add_res, 
-                 thru_corr, psfn,  n_br, interp_order, strategy, delta_rot, 
-                 ncomp, svd_mode, init_svd, min_frames_lib, max_frames_lib, tol, 
-                 scaling, imlib, interpolation, collapse, atol, rtol, nproc, 
-                 full_output, verbose, weights, smooth):
+                 rad_int, fwhm, asizes, n_segments, n_neigh, thru_corr, psfn, 
+                 n_br, interp_order, strategy, delta_rot, ncomp, svd_mode, 
+                 init_svd, min_frames_lib, max_frames_lib, tol, scaling, imlib, 
+                 interpolation, collapse, atol, rtol, nproc, full_output, 
+                 verbose, weights, smooth):
     
     def _blurring_2d(array, mask_center_sz, fwhm_sz=2):
         if mask_center_sz:
@@ -1174,7 +1171,6 @@ def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann,
                                                 imlib=imlib, nproc=nproc)
                 frame = cube_collapse(residuals_cube_, collapse)
             
-            sig_mask_p = sig_mask.copy()
             res_sig = _find_significant_signals(residuals_cube_nd, 
                                                 residuals_cube_, angle_list, 
                                                 thr, mask=radius_int,
@@ -1191,8 +1187,7 @@ def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann,
                                            fillwith=1)
             sig_image = frame.copy()
             sig_image[np.where(inv_sig_mask)] = 0
-            if not add_res or n_neigh>0:
-                sig_image[np.where(sig_image<0)] = 0
+            sig_image[np.where(sig_image<0)] = 0
             # correct by algo throughput if requested
             if thru_corr:
                 if algo == pca_annular:
@@ -1251,10 +1246,6 @@ def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann,
                 thru_2d=np.ones_like(sig_image)
     
             sig_image/=thru_2d
-            if add_res and n_neigh==0:
-                # add missing flux (throughput) and subtract overestimated (neg noise?)
-                sig_image[np.where(sig_mask_p)] += frame_nd[np.where(sig_mask_p)] # c
-                sig_image[np.where(sig_image<0)] = 0
             #tmp=frame.copy()
                 
             frame[np.where(frame>0)] = frame[np.where(frame>0)]/thru_2d[np.where(frame>0)]

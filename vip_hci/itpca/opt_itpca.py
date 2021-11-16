@@ -51,7 +51,7 @@ def feves_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI',
     See complete description of the algorithm in Christiaens et al. (2021b):
     *** INSERT LINK ***    
 
-    Note: The feves_opt can only be used in ADI or RDI modes.
+    Note: The feves_opt routine can only be used in ADI or RDI modes.
 
     Parameters
     ----------
@@ -72,13 +72,14 @@ def feves_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI',
         or iterative RDI and iterative ADI consecutivey ('RADI'). A reference 
         cube needs to be provided for 'RDI' and 'RADI'.
     algo: function, opt, {vip_hci.pca.pca, vip_hci.nmf.nmf}
-        Either PCA or NMF, used iteratively.
+        Either PCA or NMF in concentric annuli, used iteratively.
     fm : str, optional {'med_stim','mean_stim','max_stim','perc**_stim','ssim', 
                         'fiducial'}
         Figure of merit to reconstruct the optimal image: median, mean, max or
         ** percentile (replace ** with a number between 0 and 100) of the STIM 
         value in each patch, respectively, OR the maximum structural 
-        similarity index measure ('ssim') with a reference ground truth image.
+        similarity index measure ('ssim') with a reference ground truth image,
+        OR the results obtained with a fiducial cube.
     gt_image: 2d numpy a rray, optional
         If fm is set to 'ssim', this is the ground truth image to which the 
         processed FEVES images are compared to, when searching for the optimal 
@@ -540,89 +541,129 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
     if fm == 'fiducial':
         nfrac_max = int(np.amax(fiducial_results[0]))
         
-    ## loop over delta_rot_test
-    for delta_rot_tmp in drots:
-        ## loop over pcs
-        tmp_imgs = np.zeros([len(ncomps), cube.shape[-2], 
-                             cube.shape[-1]])
-        for tt, thr_t in enumerate(thrs):
-            for nit in nits:
-                fn = "TMP_{}-{}_{:.0f}bb_{:.0f}frac_{:.0f}nit"
-                fn+="_{:.1f}thr_{:.1f}drot_imgs.fits"
-                filename_tmp = path+fn.format(algo_lab, strategy, bb, nfrac_max, 
-                                              nit, thr_t, delta_rot_tmp)
-
-                for pp, ncomp in enumerate(ncomps):
-                    if fm == 'fiducial':
-                        cond_dr = delta_rot_tmp in fiducial_results[4]
-                        cond_thr = thr_t in fiducial_results[3]
-                        cond_nit = nit in fiducial_results[2]
-                        cond_npc = ncomp in fiducial_results[1]
-                        necessary = cond_dr & cond_thr & cond_nit & cond_npc
-                        if not necessary:
-                            continue
-                    if debug:
-                        fn = path+fn_tmp.format(algo_lab, strategy, bb, 
-                                                nfrac_max, nit, thr_t, 
-                                                delta_rot_tmp, ncomp)
-                    else:
-                        fn=''
-                    if not debug or not isfile(fn+"_norm_stim_cube.fits") or overwrite:
-                        res = feves(cube, angle_list, cube_ref=ref_cube, 
-                                    ncomp=ncomp, algo=algo, n_it=nit, fwhm=fwhm, 
-                                    buff=0, thr=thr_t, n_frac=nfrac_max,
-                                    asizes=None, n_segments=None,
-                                    thru_corr=thru_corr, strategy=strategy, 
-                                    psfn=psfn, n_br=n_br, radius_int=mask_sz, 
-                                    delta_rot=delta_rot_tmp, svd_mode=svd_mode, 
-                                    init_svd=init_svd, nproc=nproc,
-                                    interpolation=interpolation,
-                                    imlib=imlib, full_output=True,
-                                    interp_order=None, smooth=smooth)
-                        it_cube_nd = res[-5]
-                        norm_stim_cube = res[-4]
-                        stim_cube = res[-3]
-                        inv_stim_cube = res[-2]
-
-                        tmp_imgs[pp] = res[0]
-                        it_cube = res[1]
-                        sig_cube = res[2]
-                        if debug:
-                            fn = path+fn_tmp.format(algo_lab, strategy, bb, 
-                                                    nfrac_max, nit, thr_t,
-                                                    delta_rot_tmp, ncomp)
-                            write_fits(fn+"_it_cube.fits", it_cube)
-                            write_fits(fn+"_sig_cube.fits", sig_cube)
-                            write_fits(fn+"_norm_stim_cube.fits", 
-                                       norm_stim_cube)
-                            write_fits(fn+"_it_cube_nd.fits", it_cube_nd)
-                            write_fits(fn+"_stim_cube.fits", stim_cube)
-                            write_fits(fn+"_inv_stim_cube.fits", 
-                                       inv_stim_cube)
-                    else:
-                        it_cube = open_fits(fn+"_it_cube.fits")
-                        sig_cube = open_fits(fn+"_sig_cube.fits")
-                        norm_stim_cube = open_fits(fn+"_norm_stim_cube.fits")
-                        
-                    for i in range(norm_stim_cube.shape[0]):
-                        stim_bb.append(norm_stim_cube[i])
-                        bb_frames.append(it_cube[i])
-                    for i in range(nfrac_max):
-                        for it in range(nit):
-                            bb_nfrac.append(i)
-                            bb_drot.append(delta_rot_tmp)
-                            bb_npc.append(ncomp)
-                            bb_thr.append(thr_t)
-                            bb_it.append(nit)
-                    
-                ### save if debug
-                if debug and not isfile(filename_tmp):
+    if nproc == 1:
+        ## loop over delta_rot_test
+        for delta_rot_tmp in drots:
+            ## loop over pcs
+            tmp_imgs = np.zeros([len(ncomps), cube.shape[-2], 
+                                 cube.shape[-1]])
+            for tt, thr_t in enumerate(thrs):
+                for nit in nits:
                     fn = "TMP_{}-{}_{:.0f}bb_{:.0f}frac_{:.0f}nit"
                     fn+="_{:.1f}thr_{:.1f}drot_imgs.fits"
-                    write_fits(path+fn.format(algo_lab, strategy, bb, nfrac_max,
-                                              nit, thr_t, delta_rot_tmp),
-                               tmp_imgs)
+                    filename_tmp = path+fn.format(algo_lab, strategy, bb, nfrac_max, 
+                                                  nit, thr_t, delta_rot_tmp)
     
+                    for pp, ncomp in enumerate(ncomps):
+                        if fm == 'fiducial':
+                            cond_dr = delta_rot_tmp in fiducial_results[4]
+                            cond_thr = thr_t in fiducial_results[3]
+                            cond_nit = nit in fiducial_results[2]
+                            cond_npc = ncomp in fiducial_results[1]
+                            necessary = cond_dr & cond_thr & cond_nit & cond_npc
+                            if not necessary:
+                                continue
+                        if debug:
+                            fn = path+fn_tmp.format(algo_lab, strategy, bb, 
+                                                    nfrac_max, nit, thr_t, 
+                                                    delta_rot_tmp, ncomp)
+                        else:
+                            fn=''
+                        if not debug or not isfile(fn+"_norm_stim_cube.fits") or overwrite:
+                            res = feves(cube, angle_list, cube_ref=ref_cube, 
+                                        ncomp=ncomp, algo=algo, n_it=nit, fwhm=fwhm, 
+                                        buff=0, thr=thr_t, n_frac=nfrac_max,
+                                        asizes=None, n_segments=None,
+                                        thru_corr=thru_corr, strategy=strategy, 
+                                        psfn=psfn, n_br=n_br, radius_int=mask_sz, 
+                                        delta_rot=delta_rot_tmp, svd_mode=svd_mode, 
+                                        init_svd=init_svd, nproc=nproc,
+                                        interpolation=interpolation,
+                                        imlib=imlib, full_output=True,
+                                        interp_order=None, smooth=smooth)
+                            it_cube_nd = res[-5]
+                            norm_stim_cube = res[-4]
+                            stim_cube = res[-3]
+                            inv_stim_cube = res[-2]
+    
+                            tmp_imgs[pp] = res[0]
+                            it_cube = res[1]
+                            sig_cube = res[2]
+                            if debug:
+                                fn = path+fn_tmp.format(algo_lab, strategy, bb, 
+                                                        nfrac_max, nit, thr_t,
+                                                        delta_rot_tmp, ncomp)
+                                write_fits(fn+"_it_cube.fits", it_cube)
+                                write_fits(fn+"_sig_cube.fits", sig_cube)
+                                write_fits(fn+"_norm_stim_cube.fits", 
+                                           norm_stim_cube)
+                                write_fits(fn+"_it_cube_nd.fits", it_cube_nd)
+                                write_fits(fn+"_stim_cube.fits", stim_cube)
+                                write_fits(fn+"_inv_stim_cube.fits", 
+                                           inv_stim_cube)
+                        else:
+                            it_cube = open_fits(fn+"_it_cube.fits")
+                            sig_cube = open_fits(fn+"_sig_cube.fits")
+                            norm_stim_cube = open_fits(fn+"_norm_stim_cube.fits")
+                            
+                        for i in range(norm_stim_cube.shape[0]):
+                            stim_bb.append(norm_stim_cube[i])
+                            bb_frames.append(it_cube[i])
+                        for i in range(nfrac_max):
+                            for it in range(nit):
+                                bb_nfrac.append(i)
+                                bb_drot.append(delta_rot_tmp)
+                                bb_npc.append(ncomp)
+                                bb_thr.append(thr_t)
+                                bb_it.append(nit)
+                        
+                    ### save if debug
+                    if debug and not isfile(filename_tmp):
+                        fn = "TMP_{}-{}_{:.0f}bb_{:.0f}frac_{:.0f}nit"
+                        fn+="_{:.1f}thr_{:.1f}drot_imgs.fits"
+                        write_fits(path+fn.format(algo_lab, strategy, bb, 
+                                                  nfrac_max, nit, thr_t, 
+                                                  delta_rot_tmp),
+                                   tmp_imgs)
+    #MP version of above
+    else:
+        # create list of params
+        it_params = []
+        for drot_i in drots:
+            for tt, thr_i in enumerate(thrs):
+                for nit_i in nits:
+                    for pp, ncomp_i in enumerate(ncomps):
+                        it_params.append((drot_i, thr_i, nit_i, ncomp_i))
+                        
+        pool_map(nproc, _feves_wrap, iterable(it_params), path, algo_lab, 
+                 strategy, bb, nfrac_max, cube, angle_list, ref_cube, algo, 
+                 fwhm, thru_corr, psfn, n_br, mask_sz, svd_mode, init_svd, 
+                 interpolation, imlib, smooth, overwrite, fm, fiducial_results)
+                
+        for it_param in it_params:
+            delta_rot_tmp, thr_t, nit, ncomp = it_param
+            if debug:
+                fn = path+fn_tmp.format(algo_lab, strategy, bb, 
+                                        nfrac_max, nit, thr_t, 
+                                        delta_rot_tmp, ncomp)
+            else:
+                fn=''
+            it_cube = open_fits(fn+"_it_cube.fits")
+            sig_cube = open_fits(fn+"_sig_cube.fits")
+            norm_stim_cube = open_fits(fn+"_norm_stim_cube.fits")
+            
+            for i in range(norm_stim_cube.shape[0]):
+                stim_bb.append(norm_stim_cube[i])
+                bb_frames.append(it_cube[i])
+            for i in range(nfrac_max):
+                for it in range(nit):
+                    bb_nfrac.append(i)
+                    bb_drot.append(delta_rot_tmp)
+                    bb_npc.append(ncomp)
+                    bb_thr.append(thr_t)
+                    bb_it.append(nit)
+                    
+                    
     # FIND optimal params for each annular section
     stim_bb = np.array(stim_bb)
     bb_frames = np.array(bb_frames)
@@ -650,7 +691,6 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
             _, inner_radius, ann_center = res_ann_par
 
             # Library matrix is created for each segment and scaled if needed
-
             indices = get_annulus_segments(stim_bb[0], inner_radius, 
                                            asize, n_segments, 
                                            theta_init[i])
@@ -708,8 +748,79 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
         master_crop_cube.append(frame_tmp)    
         
     return (nfrac_opt, drot_opt, thr_opt, npc_opt, nit_opt, stim_opt, 
-            master_crop_cube)    
+            master_crop_cube)
 
+
+def _feves_wrap(it_param, path, algo_lab, strategy, bb, nfrac_max, cube,
+                angle_list, ref_cube, algo, fwhm, thru_corr, psfn, n_br, 
+                mask_sz, svd_mode, init_svd, interpolation, imlib, 
+                smooth, overwrite, fm, fiducial_results):
+    
+    delta_rot_tmp, thr_t, nit, ncomp = it_param
+    
+    fn_tmp = "TMP_{}-{}_{:.0f}bb_{:.0f}frac_{:.0f}nit_{:.1f}thr"
+    fn_tmp += "_{:.1f}drot_{:.0f}npc"
+    
+    # filename_tmp = path+fn.format(algo_lab, strategy, bb, nfrac_max, 
+    #                               nit, thr_t, delta_rot_tmp)
+
+    #for pp, ncomp in enumerate(ncomps):
+
+    fn = path+fn_tmp.format(algo_lab, strategy, bb, 
+                            nfrac_max, nit, thr_t, 
+                            delta_rot_tmp, ncomp)
+
+    if fm == 'fiducial':
+        cond_dr = delta_rot_tmp in fiducial_results[4]
+        cond_thr = thr_t in fiducial_results[3]
+        cond_nit = nit in fiducial_results[2]
+        cond_npc = ncomp in fiducial_results[1]
+        necessary = cond_dr & cond_thr & cond_nit & cond_npc
+        if not necessary:
+            return None
+
+    #print(fn+"_norm_stim_cube.fits")
+    if not isfile(fn+"_norm_stim_cube.fits") or overwrite:
+        res = feves(cube, angle_list, cube_ref=ref_cube, 
+                    ncomp=ncomp, algo=algo, n_it=nit, fwhm=fwhm, 
+                    buff=0, thr=thr_t, n_frac=nfrac_max,
+                    asizes=None, n_segments=None,
+                    thru_corr=thru_corr, strategy=strategy, 
+                    psfn=psfn, n_br=n_br, radius_int=mask_sz, 
+                    delta_rot=delta_rot_tmp, svd_mode=svd_mode, 
+                    init_svd=init_svd, nproc=1,
+                    interpolation=interpolation,
+                    imlib=imlib, full_output=True,
+                    interp_order=None, 
+                    smooth=smooth)
+        it_cube_nd = res[-5]
+        norm_stim_cube = res[-4]
+        stim_cube = res[-3]
+        inv_stim_cube = res[-2]
+
+        #tmp_imgs[pp] = res[0]
+        it_cube = res[1]
+        sig_cube = res[2]
+        
+        fn = path+fn_tmp.format(algo_lab, strategy, bb, 
+                                nfrac_max, nit, thr_t,
+                                delta_rot_tmp, ncomp)
+        write_fits(fn+"_it_cube.fits", it_cube)
+        write_fits(fn+"_sig_cube.fits", sig_cube)
+        write_fits(fn+"_norm_stim_cube.fits", 
+                   norm_stim_cube)
+        write_fits(fn+"_it_cube_nd.fits", it_cube_nd)
+        write_fits(fn+"_stim_cube.fits", stim_cube)
+        write_fits(fn+"_inv_stim_cube.fits", 
+                   inv_stim_cube)
+        
+    ### save if debug
+    # if debug and not isfile(filename_tmp) or overwrite:
+    #     fn = "TMP_{}-{}_{:.0f}bb_{:.0f}frac_{:.0f}nit"
+    #     fn+="_{:.1f}thr_{:.1f}drot_imgs.fits"
+    #     write_fits(path+fn.format(algo_lab, strategy, bb, nfrac_max,
+    #                               nit, thr_t, delta_rot_tmp),
+    #                tmp_imgs) 
 
 
 def greeds_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI', 

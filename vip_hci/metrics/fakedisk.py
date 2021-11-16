@@ -79,7 +79,7 @@ def cube_inject_fakedisk(fakedisk, angle_list, psf=None, **rot_options):
     nframes = len(angle_list)
     ny, nx = fakedisk.shape
     fakedisk_cube = np.repeat(fakedisk[np.newaxis, :, :], nframes, axis=0)
-    fakedisk_cube = cube_derotate(fakedisk_cube, angle_list)
+    fakedisk_cube = cube_derotate(fakedisk_cube, angle_list, **rot_options)
 
     if psf is not None:
         if isinstance(psf, np.ndarray):

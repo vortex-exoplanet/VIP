@@ -545,14 +545,14 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
         ## loop over delta_rot_test
         for delta_rot_tmp in drots:
             ## loop over pcs
-            tmp_imgs = np.zeros([len(ncomps), cube.shape[-2], 
-                                 cube.shape[-1]])
+            tmp_imgs = np.zeros([len(ncomps), cube.shape[-2], cube.shape[-1]])
             for tt, thr_t in enumerate(thrs):
                 for nit in nits:
                     fn = "TMP_{}-{}_{:.0f}bb_{:.0f}frac_{:.0f}nit"
-                    fn+="_{:.1f}thr_{:.1f}drot_imgs.fits"
-                    filename_tmp = path+fn.format(algo_lab, strategy, bb, nfrac_max, 
-                                                  nit, thr_t, delta_rot_tmp)
+                    fn+= "_{:.1f}thr_{:.1f}drot_imgs.fits"
+                    filename_tmp = path+fn.format(algo_lab, strategy, bb, 
+                                                  nfrac_max, nit, thr_t, 
+                                                  delta_rot_tmp)
     
                     for pp, ncomp in enumerate(ncomps):
                         if fm == 'fiducial':
@@ -580,7 +580,8 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
                                         init_svd=init_svd, nproc=nproc,
                                         interpolation=interpolation,
                                         imlib=imlib, full_output=True,
-                                        interp_order=None, smooth=smooth)
+                                        interp_order=None, smooth=smooth, 
+                                        **rot_options)
                             it_cube_nd = res[-5]
                             norm_stim_cube = res[-4]
                             stim_cube = res[-3]
@@ -701,7 +702,7 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
                     # first check all values in annulus segment are equal
                     ann_match = True
                     for m in range(1,5):
-                        if np.all(fiducial_results[m,i,yy,xx])!=fiducial_results[m,i,yy,xx][0]:
+                        if np.all(fiducial_results[m,i,yy,xx]!=fiducial_results[m,i,yy,xx][0]):
                             ann_match=False
                     if not ann_match:
                         import pdb
@@ -711,7 +712,7 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
                     for k in range(bb_frames.shape[0]):
                         cond_dr = bb_drot[k] == fiducial_results[4,i,yy,xx][0]
                         cond_thr = bb_thr[k] == fiducial_results[3,i,yy,xx][0]
-                        cond_nit = bb_it[k] == fiducial_results[2,i,yy,xx:][0]
+                        cond_nit = bb_it[k] == fiducial_results[2,i,yy,xx][0]
                         cond_npc = bb_npc[k] == fiducial_results[1,i,yy,xx][0]
                         found_it = cond_dr & cond_thr & cond_nit & cond_npc
                         if found_it:

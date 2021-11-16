@@ -9,6 +9,7 @@ __author__ = 'Valentin Christiaens'
 __all__ = ['pca_annular_it',
            'feves']
 
+from multiprocessing import cpu_count
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 from ..conf.utils_conf import pool_map, iterable
@@ -29,7 +30,7 @@ def pca_annular_it(cube, angle_list, cube_ref=None, ncomp=1, n_it=10, thr=1.,
                    min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None, 
                    imlib='opencv', interpolation='lanczos4', collapse='median', 
                    full_output=False, verbose=True, weights=None,
-                   interp_order=2, rtol=1e-2, atol=1):
+                   interp_order=2, rtol=1e-2, atol=1, **rot_options):
     """
     Iterative version of annular PCA.
 
@@ -271,6 +272,9 @@ def pca_annular_it(cube, angle_list, cube_ref=None, ncomp=1, n_it=10, thr=1.,
     else:
         raise ValueError("strategy not recognized: should be ADI, RDI or RADI")
 
+    if nproc is None:
+        nproc = int(cpu_count()/2)
+
     nframes = cube.shape[0]
 
     if imlib=='vip-fft' and cube.shape[-1]%2: # convert to even-size for FFT-based rotation
@@ -330,7 +334,7 @@ def pca_annular_it(cube, angle_list, cube_ref=None, ncomp=1, n_it=10, thr=1.,
         # create and rotate sig cube
         sig_cube = np.repeat(frame[np.newaxis, :, :], nframes, axis=0)
         sig_cube = cube_derotate(sig_cube, -angle_list, imlib=imlib, 
-                                 edge_blend='interp+noise', nproc=nproc)
+                                 edge_blend='interp', nproc=nproc)
         #write_fits("TMP_sig_cube.fits",sig_cube)
         # create and rotate binary mask
         mask_sig = np.zeros_like(sig_image)
@@ -558,7 +562,7 @@ def feves(cube, angle_list, cube_ref=None, ncomp=1, algo=pca_annular, n_it=2,
           max_frames_lib=200, tol=1e-1, scaling=None, imlib='opencv', 
           interpolation='lanczos4', collapse='median', full_output=False, 
           verbose=True, weights=None, interp_order=2, rtol=1e-2, 
-          atol=1, smooth=False):
+          atol=1, smooth=False, **rot_options):
     """
     Fractionation for Embedded Very young Exoplanet Search algorithm: Iterative
     PCA or NMF applied in progressively more fractionated image sections.
@@ -793,6 +797,9 @@ def feves(cube, angle_list, cube_ref=None, ncomp=1, algo=pca_annular, n_it=2,
         buffer = 1
     else:
         buffer = max(int(buff*fwhm),1)
+        
+    if nproc is None:
+        nproc = int(cpu_count()/2)
         
     # select when to do mp depending on buffer
     if buffer < nproc:
@@ -1049,7 +1056,7 @@ def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann,
             # create and rotate sig cube
             sig_cube = np.repeat(frame[np.newaxis, :, :], nframes, axis=0)
             sig_cube = cube_derotate(sig_cube, -angle_list, imlib=imlib, 
-                                     edge_blend='interp+noise', nproc=nproc)
+                                     edge_blend='interp', nproc=nproc)
             #write_fits("TMP_sig_cube.fits",sig_cube)
             # create and rotate binary mask
             mask_sig = np.zeros_like(sig_image)

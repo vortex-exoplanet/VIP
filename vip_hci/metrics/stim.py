@@ -40,8 +40,7 @@ def compute_stim_map(cube_der):
     return get_circle(detection_map, int(np.round(n/2.)))
 
 
-def compute_inverse_stim_map(cube, angle_list, imlib='vip-fft',
-                             interpolation='lanczos4'):
+def compute_inverse_stim_map(cube, angle_list, **rot_options):
     """ Computes the inverse STIM detection map.
 
     Parameters
@@ -51,10 +50,11 @@ def compute_inverse_stim_map(cube, angle_list, imlib='vip-fft',
         from ``vip_hci.pca.pca``.
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.  
-    imlib: str, opt
-        See description of vip_hci.preproc.frame_derotate()
-    interpolation: str, opt
-        See description of vip_hci.preproc.frame_derotate()
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "nproc", "imlib", 
+        "interpolation, "border_mode", "mask_val",  "edge_blend", 
+        "interp_zeros", "ker" (see documentation of 
+        ``vip_hci.preproc.frame_rotate``)
         
     Returns
     -------
@@ -62,7 +62,6 @@ def compute_inverse_stim_map(cube, angle_list, imlib='vip-fft',
         Inverse STIM detection map.
     """
     t, n, _ = cube.shape
-    cube_inv_der = cube_derotate(cube, -angle_list, imlib=imlib, 
-                                 interpolation=interpolation)
+    cube_inv_der = cube_derotate(cube, -angle_list, **rot_options)
     inverse_stim_map = compute_stim_map(cube_inv_der)
     return inverse_stim_map

@@ -14,9 +14,7 @@ from ..preproc import cube_derotate, frame_shift
 from ..var import frame_center
 
 
-def cube_inject_fakedisk(fakedisk, angle_list, psf=None, imlib='vip-fft',
-                         interpolation='lanczos4', cxy=None, nproc=1,
-                         border_mode='constant'):
+def cube_inject_fakedisk(fakedisk, angle_list, psf=None, **rot_options):
     """
     Rotates an ADI cube to a common north given a vector with the corresponding
     parallactic angles for each frame of the sequence. By default bicubic
@@ -48,7 +46,12 @@ def cube_inject_fakedisk(fakedisk, angle_list, psf=None, imlib='vip-fft',
         number of frames).
     border_mode : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "nproc", "cxy", "imlib", 
+        "interpolation, "border_mode", "mask_val",  "edge_blend", 
+        "interp_zeros", "ker" (see documentation of 
+        ``vip_hci.preproc.frame_rotate``)
+        
     Returns
     -------
     fakedisk_cube : numpy ndarray
@@ -76,9 +79,7 @@ def cube_inject_fakedisk(fakedisk, angle_list, psf=None, imlib='vip-fft',
     nframes = len(angle_list)
     ny, nx = fakedisk.shape
     fakedisk_cube = np.repeat(fakedisk[np.newaxis, :, :], nframes, axis=0)
-    fakedisk_cube = cube_derotate(fakedisk_cube, angle_list, imlib=imlib,
-                                  interpolation=interpolation, cxy=cxy,
-                                  nproc=nproc, border_mode=border_mode)
+    fakedisk_cube = cube_derotate(fakedisk_cube, angle_list, **rot_options)
 
     if psf is not None:
         if isinstance(psf, np.ndarray):
@@ -112,7 +113,8 @@ def cube_inject_fakedisk(fakedisk, angle_list, psf=None, imlib='vip-fft',
 
 
 def cube_inject_trace(array, psf_template, angle_list, flevel, rad_dists, theta, 
-                      plsc=0.01225, n_branches=1, imlib='vip-fft', verbose=True):
+                      plsc=0.01225, n_branches=1, imlib='vip-fft', 
+                      interpolation='lanczos4', verbose=True):
     """ Injects fake companions along a trace, such as a spiral. The trace is 
     provided by 2 arrays corresponding to the polar coordinates where the 
     companions will be located in the final derotated frame.
@@ -142,8 +144,10 @@ def cube_inject_trace(array, psf_template, angle_list, flevel, rad_dists, theta,
     n_branches : int, optional
         Number of azimutal branches on which the trace is injected.
     imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt
-        Library or method used for image operations (shifts). Opencv is the
-        default for being the fastest.
+        Library or method used for image operations (shifts).
+    interpolation: str, optional
+        Interpolation method. Check documentation of the function
+        ``vip_hci.preproc.frame_shift``.
     verbose : {True, False}, bool optional
         If True prints out additional information. 
     
@@ -201,7 +205,8 @@ def cube_inject_trace(array, psf_template, angle_list, flevel, rad_dists, theta,
                     psf_tmp = flevel*psf_template[y0_psf:yn_psf,x0_psf:xn_psf]
                     fc_fr[y0_fr:yn_fr, x0_fr:xn_fr] = frame_shift(psf_tmp, 
                                                                   mod_y, mod_x, 
-                                                                  imlib=imlib)
+                                                                  imlib=imlib,
+                                                                  interpolation=interpolation)
                 except:
                     raise TypeError('Problem with the coordinates of the trace')
                 tmp += fc_fr

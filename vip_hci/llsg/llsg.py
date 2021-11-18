@@ -22,11 +22,10 @@ from ..conf.utils_conf import pool_map, iterable
 
 def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
          low_rank_ref=False, low_rank_mode='svd', auto_rank_mode='noise',
-         residuals_tol=1e-1, cevr=0.9, thresh_mode='soft', nproc=1,
-         asize=None, n_segments=4, azimuth_overlap=None, radius_int=None,
-         random_seed=None, imlib='vip-fft', interpolation='lanczos4',
+         residuals_tol=1e-1, cevr=0.9, thresh_mode='soft', nproc=1, asize=None, 
+         n_segments=4, azimuth_overlap=None, radius_int=None, random_seed=None, 
          high_pass=None, collapse='median', full_output=False, verbose=True,
-         debug=False):
+         debug=False, **rot_options):
     """ Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as
     described in Gomez Gonzalez et al. 2016. This first version of our algorithm
     aims at decomposing ADI cubes into three terms L+S+G (low-rank, sparse and
@@ -87,10 +86,6 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         central circular area is discarded.
     random_seed : int or None, optional
         Controls the seed for the Pseudo Random Number generator.
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     high_pass : odd int or None, optional
         If set to an odd integer <=7, a high-pass filter is applied to the
         frames. The ``vip_hci.var.frame_filter_highpass`` is applied twice,
@@ -106,6 +101,10 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         If True prints to stdout intermediate info.
     debug : bool, optional
         Whether to output some intermediate information.
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "imlib", "interpolation",
+        "border_mode", "mask_val", "edge_blend", "interp_zeros", "ker" (see 
+        documentation of ``vip_hci.preproc.frame_rotate``)
 
     Returns
     -------
@@ -225,30 +224,30 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
                     matrix_s[i, :, yy, xx] = patches[j]
 
     if full_output:
-        list_s_array_der = [cube_derotate(matrix_s[k], angle_list, imlib=imlib,
-                                          interpolation=interpolation)
+        list_s_array_der = [cube_derotate(matrix_s[k], angle_list, nproc=nproc,
+                                          **rot_options)
                             for k in range(n_rots)]
         list_frame_s = [cube_collapse(list_s_array_der[k], mode=collapse)
                         for k in range(n_rots)]
         frame_s = cube_collapse(np.array(list_frame_s), mode=collapse)
 
-        list_l_array_der = [cube_derotate(matrix_l[k], angle_list, imlib=imlib,
-                                          interpolation=interpolation)
+        list_l_array_der = [cube_derotate(matrix_l[k], angle_list, nproc=nproc,
+                                          **rot_options)
                             for k in range(n_rots)]
         list_frame_l = [cube_collapse(list_l_array_der[k], mode=collapse)
                         for k in range(n_rots)]
         frame_l = cube_collapse(np.array(list_frame_l), mode=collapse)
 
-        list_g_array_der = [cube_derotate(matrix_g[k], angle_list, imlib=imlib,
-                                          interpolation=interpolation)
+        list_g_array_der = [cube_derotate(matrix_g[k], angle_list, nproc=nproc,
+                                          **rot_options)
                             for k in range(n_rots)]
         list_frame_g = [cube_collapse(list_g_array_der[k], mode=collapse)
                         for k in range(n_rots)]
         frame_g = cube_collapse(np.array(list_frame_g), mode=collapse)
 
     else:
-        list_s_array_der = [cube_derotate(matrix_s[k], angle_list, imlib=imlib,
-                                          interpolation=interpolation)
+        list_s_array_der = [cube_derotate(matrix_s[k], angle_list, nproc=nproc,
+                                          **rot_options)
                             for k in range(n_rots)]
         list_frame_s = [cube_collapse(list_s_array_der[k], mode=collapse)
                         for k in range(n_rots)]

@@ -43,7 +43,7 @@ Introduction
 
 ``VIP`` is a python package for angular, reference star and spectral
 differential imaging for exoplanet and disk high-contrast imaging. ``VIP`` is
-compatible with Python 3 (Python 2 compatibility dropped with ``VIP`` 0.9.9).
+compatible with Python 3.7, 3.8 and 3.9 (Python 2 compatibility dropped with ``VIP`` 0.9.9).
 
 .. image:: https://github.com/carlgogo/carlgogo.github.io/blob/master/assets/images/vip.png?raw=true
     :alt: Mosaic of S/N maps
@@ -75,10 +75,10 @@ The documentation for ``VIP`` can be found here: http://vip.readthedocs.io.
 Jupyter notebook tutorial
 -------------------------
 Tutorials, in the form of Jupyter notebooks, showcasing ``VIP``'s usage and 
-other resources such as test/dummy datasets are available in the 
+other resources such as test datasets are available in the 
 ``VIP-extras`` `repository <https://github.com/vortex-exoplanet/VIP_extras>`_. 
 Alternatively, you can execute this repository on 
-`Binder <https://mybinder.org/v2/gh/vortex-exoplanet/VIP_extras/master>`_. The first notebook for ADI processing can be visualized online with
+`Binder <https://mybinder.org/v2/gh/vortex-exoplanet/VIP_extras/master>`_(in the tutorials directory). The first notebook for ADI processing can be visualized online with
 `nbviewer <http://nbviewer.jupyter.org/github/vortex-exoplanet/VIP_extras/blob/master/tutorials/01_adi_pre-postproc_fluxpos_ccs.ipynb>`_. 
 If you are new to the Jupyter notebook application check out the `beginner's guide
 <https://jupyter-notebook-beginner-guide.readthedocs.io/en/latest/what_is_jupyter.html>`_.
@@ -163,7 +163,7 @@ for your environment):
 
 .. code-block:: bash
 
-  $ conda create -n vipenv python=3.7 ipython
+  $ conda create -n vipenv python=3.9 ipython
 
 Note: installing ipython while creating the environment with the above line will
 avoid a commonly reported issue which stems from trying to import VIP from 
@@ -240,6 +240,7 @@ By default, VIP routines are compatible with either even- or odd-dimension input
 
 - size/2-0.5 for odd-size input images; 
 - size/2 for even-size input images;
+
 i.e. exactly on a pixel in either cases. The VIP recentering routines will place the star centroid at one of these locations accordingly.
 
 

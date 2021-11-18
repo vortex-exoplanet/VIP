@@ -27,7 +27,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
           radius_int=0, asize=4, n_segments=4, nproc=1, solver='lstsq',
           tol=1e-2, optim_scale_fact=2, adimsdi='skipadi', imlib='vip-fft',
           interpolation='lanczos4', collapse='median', verbose=True,
-          full_output=False):
+          full_output=False, **rot_options):
     """ LOCI style algorithm that models a PSF (for ADI and ADI+mSDI) with a
     least-square combination of neighbouring frames (solving the equation
     a x = b by computing a vector x of coefficients that minimizes the
@@ -110,6 +110,10 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
     full_output: bool, optional
         Whether to return the final median combined image only or with other
         intermediate arrays.
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "border_mode", "mask_val",  
+        "edge_blend", "interp_zeros", "ker" (see documentation of 
+        ``vip_hci.preproc.frame_rotate``)
 
     Returns
     -------
@@ -167,7 +171,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
 
             frame = cube_collapse(cube_res, collapse)
             if verbose:
-                print('Done combining the residuals'.format(n))
+                print('Done combining the residuals')
                 timing(start_time)
 
             if full_output:
@@ -203,8 +207,9 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
                     print('{} ADI frames'.format(n))
                     timing(start_time)
 
-                cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
-                                         interpolation=interpolation)
+                cube_der = cube_derotate(cube_out, angle_list, imlib=imlib, 
+                                         interpolation=interpolation, 
+                                         nproc=nproc, **rot_options)
                 frame = cube_collapse(cube_der, mode=collapse)
 
             # Exploiting rotational variability
@@ -220,7 +225,8 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
                                    dist_threshold, delta_rot, radius_int, asize,
                                    n_segments, nproc, solver, tol,
                                    optim_scale_fact, imlib, interpolation,
-                                   collapse, verbose, full_output)
+                                   collapse, verbose, full_output, 
+                                   **rot_options)
                 if full_output:
                     cube_out, cube_der, frame = res
                 else:
@@ -239,7 +245,8 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
                  dist_threshold=50, delta_rot=0.5, radius_int=0, asize=4,
                  n_segments=4, nproc=1, solver='lstsq', tol=1e-2,
                  optim_scale_fact=1, imlib='vip-fft', interpolation='lanczos4',
-                 collapse='median', verbose=True, full_output=False):
+                 collapse='median', verbose=True, full_output=False,
+                 **rot_options):
     """ Least-squares model PSF subtraction for ADI.
     """
     y = cube.shape[1]
@@ -312,7 +319,8 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
         matrix_res, yy, xx = patch
         cube_res[:, yy, xx] = matrix_res
 
-    cube_der = cube_derotate(cube_res, angle_list, imlib, interpolation)
+    cube_der = cube_derotate(cube_res, angle_list, imlib, interpolation,
+                             nproc=nproc, **rot_options)
     frame_der_median = cube_collapse(cube_der, collapse)
 
     if verbose:

@@ -486,7 +486,8 @@ class Dataset(Saveable):
         self.cube = cube_crop_frames(self.cube, size, xy, force, verbose=True)
 
     def derotate(self, imlib='vip-fft', interpolation='lanczos4', cxy=None,
-                 nproc=1):
+                 nproc=1, border_mode='constant', mask_val=np.nan,
+                 edge_blend=None, interp_zeros=False, ker=1):
         """ Derotating the frames of the sequence according to the parallactic
         angles.
 
@@ -512,12 +513,28 @@ class Dataset(Saveable):
             Whether to rotate the frames in the sequence in a multi-processing
             fashion. Only useful if the cube is significantly large (frame size
             and number of frames).
+        border_mode : str, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            function.
+        mask_val : float, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            function.
+        edge_blend : str, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            function.
+        interp_zeros : str, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            function.
+        ker: int, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            function.
         """
         if self.angles is None:
             raise ValueError('Parallactic angles vector has not been set')
 
         self.cube = cube_derotate(self.cube, self.angles, imlib,
-                                  interpolation, cxy, nproc)
+                                  interpolation, cxy, nproc, border_mode, 
+                                  mask_val, edge_blend, interp_zeros, ker)
         print('Cube successfully derotated')
 
     def drop_frames(self, n, m, verbose=True):

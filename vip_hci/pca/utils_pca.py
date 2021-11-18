@@ -24,12 +24,11 @@ from ..var import frame_center, dist, prepare_matrix, reshape_matrix, get_circle
 
 def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
              cube_ref=None, mode='fullfr', annulus_width=20, svd_mode='lapack',
-             scaling=None, mask_center_px=None, fmerit='mean', imlib='vip-fft',
-             interpolation='lanczos4', collapse='median', 
-             ifs_collapse_range='all', verbose=True, full_output=False, 
-             debug=False, plot=True, save_plot=None,
+             scaling=None, mask_center_px=None, fmerit='mean', 
+             collapse='median', ifs_collapse_range='all', verbose=True, 
+             full_output=False, debug=False, plot=True, save_plot=None, 
              start_time=None, scale_list=None, initial_4dshape=None, 
-             weights=None):
+             weights=None, **rot_options):
     """
     Compute a grid, depending on ``range_pcs``, of residual PCA frames out of a
     3d ADI cube (or a reference cube). If ``source_xy`` is provided, the number
@@ -125,10 +124,6 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         The function of merit to be maximized. 'px' is *source_xy* pixel's SNR,
         'max' the maximum SNR in a FWHM circular aperture centered on
         ``source_xy`` and 'mean' is the mean SNR in the same circular aperture.
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     ifs_collapse_range: str 'all' or tuple of 2 int
@@ -160,6 +155,11 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
     weights: 1d numpy array or list, optional
         Weights to be applied for a weighted mean. Need to be provided if 
         collapse mode is 'wmean'.
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "nproc", "imlib", 
+        "interpolation", "border_mode", "mask_val",  "edge_blend", 
+        "interp_zeros", "ker" (see documentation of 
+        ``vip_hci.preproc.frame_rotate``)
         
     Returns
     -------
@@ -212,9 +212,8 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         else:
             residuals_reshaped = residuals_res
 
-        residuals_res_der = cube_derotate(residuals_reshaped, angle_list,
-                                          imlib=imlib,
-                                          interpolation=interpolation)
+        residuals_res_der = cube_derotate(residuals_reshaped, angle_list, 
+                                          **rot_options)
         res_frame = cube_collapse(residuals_res_der, mode=collapse, w=weights)
         return res_frame
 
@@ -226,9 +225,8 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         residuals_ann = matrix - reconstructed
         residuals_res = np.zeros_like(cube)
         residuals_res[:, indices[0], indices[1]] = residuals_ann
-        residuals_res_der = cube_derotate(residuals_res, angle_list,
-                                          imlib=imlib,
-                                          interpolation=interpolation)
+        residuals_res_der = cube_derotate(residuals_res, angle_list, 
+                                          **rot_options)
         res_frame = cube_collapse(residuals_res_der, mode=collapse, w=weights)
         return res_frame
 
@@ -410,10 +408,9 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         return cubeout
 
 
-def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, imlib='vip-fft',
-                    interpolation='lanczos4', collapse='median', verbose=True,
-                    full_output=False, return_residuals=False, start_time=None,
-                    weights=None):
+def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, collapse='median', 
+                    verbose=True, full_output=False, return_residuals=False, 
+                    start_time=None, weights=None, **rot_options):
     """ Computes the full-frame PCA-ADI algorithm in batches, for processing
     fits files larger than the available system memory. It uses the incremental
     PCA algorithm from Sklearn. There is no ``scaling`` parameter as in other
@@ -434,12 +431,13 @@ def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, imlib='vip-fft',
     ncomp : int, optional
         How many PCs are used as a lower-dimensional subspace to project the
         target frames.
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "nproc", "imlib", 
+        "interpolation, "border_mode", "mask_val",  "edge_blend", 
+        "interp_zeros", "ker" (see documentation of 
+        ``vip_hci.preproc.frame_rotate``)
     verbose : {True, False}, bool optional
         If True prints intermediate info and timing.
     full_output : boolean, optional
@@ -573,7 +571,7 @@ def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, imlib='vip-fft',
             cube_residuals[intini:intfin] = resid_reshaped
         else:
             resid_der = cube_derotate(resid_reshaped, angle_list[intini:intfin],
-                                      imlib=imlib, interpolation=interpolation)
+                                      **rot_options)
             medians.append(cube_collapse(resid_der, mode=collapse,w=weights))
 
     del matrix
@@ -597,8 +595,8 @@ def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, imlib='vip-fft',
 
 
 def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
-                svd_mode='lapack', scaling=None, collapse='median',
-                imlib='vip-fft', interpolation='lanczos4', weights=None):
+                svd_mode='lapack', scaling=None, collapse='median', 
+                weights=None, **rot_options):
     """
     PCA process the cube only for an annulus of a given width and at a given
     radial distance to the frame center. It returns a PCA processed frame with 
@@ -630,19 +628,21 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is returned.
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     weights: 1d numpy array or list, optional
         Weights to be applied for a weighted mean. Need to be provided if 
         collapse mode is 'wmean'.
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "nproc", "imlib", 
+        "interpolation, "border_mode", "mask_val",  "edge_blend", 
+        "interp_zeros", "ker" (see documentation of 
+        ``vip_hci.preproc.frame_rotate``)
         
     Returns
     -------
     Depending on ``collapse`` parameter a final collapsed frame or the cube of
     residuals is returned.
     """
+    
     inrad = int(r_guess - annulus_width / 2.)
     outrad = int(r_guess + annulus_width / 2.)
     data, ind = prepare_matrix(cube, scaling, mode='annular', verbose=False,
@@ -665,8 +665,7 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     cube_zeros[:, yy, xx] = residuals
 
     if angs is not None:
-        cube_res_der = cube_derotate(cube_zeros, angs, imlib=imlib,
-                                     interpolation=interpolation)
+        cube_res_der = cube_derotate(cube_zeros, angs, **rot_options)
         if collapse is not None:
             pca_frame = cube_collapse(cube_res_der, mode=collapse, w=weights)
             return pca_frame
@@ -707,8 +706,7 @@ def _compute_stim_map(cube_der):
     return get_circle(detection_map, int(np.round(n/2.)))
 
 
-def _compute_inverse_stim_map(cube, angle_list, imlib='vip-fft',
-                              interpolation='lanczos4'):
+def _compute_inverse_stim_map(cube, angle_list, **rot_options):
     """
     Computes the inverse STIM detection map, i.e. obtained with opposite 
     derotation angles.
@@ -723,10 +721,11 @@ def _compute_inverse_stim_map(cube, angle_list, imlib='vip-fft',
         from ``vip_hci.pca.pca``.
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.   
-    imlib: str, opt
-        See description of vip_hci.preproc.frame_rotate
-    interpolation: str, opt
-        See description of vip_hci.preproc.frame_rotate
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "nproc", "imlib", 
+        "interpolation, "border_mode", "mask_val",  "edge_blend", 
+        "interp_zeros", "ker" (see documentation of 
+        ``vip_hci.preproc.frame_rotate``)
         
     Returns
     -------
@@ -734,7 +733,6 @@ def _compute_inverse_stim_map(cube, angle_list, imlib='vip-fft',
         Inverse STIM detection map.
     """
     t, n, _ = cube.shape
-    cube_inv_der = cube_derotate(cube, -angle_list, imlib=imlib,
-                                 interpolation=interpolation)
+    cube_inv_der = cube_derotate(cube, -angle_list, **rot_options)
     inverse_stim_map = _compute_stim_map(cube_inv_der)
     return inverse_stim_map

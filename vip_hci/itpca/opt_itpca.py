@@ -580,8 +580,7 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
                                         init_svd=init_svd, nproc=nproc,
                                         interpolation=interpolation,
                                         imlib=imlib, full_output=True,
-                                        interp_order=None, smooth=smooth, 
-                                        **rot_options)
+                                        interp_order=None, smooth=smooth)
                             it_cube_nd = res[-5]
                             norm_stim_cube = res[-4]
                             stim_cube = res[-3]
@@ -649,20 +648,21 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
                                         delta_rot_tmp, ncomp)
             else:
                 fn=''
-            it_cube = open_fits(fn+"_it_cube.fits")
-            sig_cube = open_fits(fn+"_sig_cube.fits")
-            norm_stim_cube = open_fits(fn+"_norm_stim_cube.fits")
-            
-            for i in range(norm_stim_cube.shape[0]):
-                stim_bb.append(norm_stim_cube[i])
-                bb_frames.append(it_cube[i])
-            for i in range(nfrac_max):
-                for it in range(nit):
-                    bb_nfrac.append(i)
-                    bb_drot.append(delta_rot_tmp)
-                    bb_npc.append(ncomp)
-                    bb_thr.append(thr_t)
-                    bb_it.append(nit)
+            if isfile(fn+"_it_cube.fits"):
+                it_cube = open_fits(fn+"_it_cube.fits")
+                sig_cube = open_fits(fn+"_sig_cube.fits")
+                norm_stim_cube = open_fits(fn+"_norm_stim_cube.fits")
+                
+                for i in range(norm_stim_cube.shape[0]):
+                    stim_bb.append(norm_stim_cube[i])
+                    bb_frames.append(it_cube[i])
+                for i in range(nfrac_max):
+                    for it in range(nit):
+                        bb_nfrac.append(i)
+                        bb_drot.append(delta_rot_tmp)
+                        bb_npc.append(ncomp)
+                        bb_thr.append(thr_t)
+                        bb_it.append(nit)
                     
                     
     # FIND optimal params for each annular section

@@ -124,7 +124,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
             _, med, stddev = sigma_clipped_stats(array_nan, sigma=1.5,
                                                  cenfunc=np.nanmedian, 
                                                  stdfunc=np.nanstd)
-        # pad and interpolate, about 1.2x original size
+        # pad and interpolate, about 1.5x original size
         if imlib=='vip-fft':
             fac=1.5
         else:

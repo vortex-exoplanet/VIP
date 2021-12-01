@@ -522,19 +522,19 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
 
         if data_ref.shape[0] < min_frames_lib and matrix_ref is None:
             raise RuntimeError(msg.format(len(indices_left), min_frames_lib))
-    if matrix_ref is not None:
-        #data_ref = None
-    #if matrix_ref is not None:
-        # Stacking the ref and the target ref (pa thresh) libraries
-        if data_ref is not None:
-            data_ref = np.vstack((matrix_ref, data_ref))
-        else:
-            data_ref = matrix_ref
+    
     elif pa_threshold == 0:
         if matrix_sig_segm is not None:
             data_ref = matrix-matrix_sig_segm
         else:
             data_ref = matrix
+
+    if matrix_ref is not None and matrix_sig_segm is None:
+        # Stacking the ref and the target (pa thresh) libraries
+        if data_ref is not None:
+            data_ref = np.vstack((matrix_ref, data_ref))
+        else:
+            data_ref = matrix_ref
 
     curr_frame = matrix[frame]  # current frame
     if matrix_sig_segm is not None:

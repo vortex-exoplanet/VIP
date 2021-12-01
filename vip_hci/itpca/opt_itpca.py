@@ -710,11 +710,12 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
                         msg = "Tested annuli and in fiducial results do not match"
                         raise ValueError(msg)
                     for k in range(bb_frames.shape[0]):
-                        cond_dr = bb_drot[k] == fiducial_results[4,i,yy,xx][0]
-                        cond_thr = bb_thr[k] == fiducial_results[3,i,yy,xx][0]
-                        cond_nit = bb_it[k] == fiducial_results[2,i,yy,xx][0]
-                        cond_npc = bb_npc[k] == fiducial_results[1,i,yy,xx][0]
-                        found_it = cond_dr & cond_thr & cond_nit & cond_npc
+                        c_dr = bb_drot[k] == fiducial_results[4,i,yy,xx][0]
+                        c_thr = bb_thr[k] == fiducial_results[3,i,yy,xx][0]
+                        c_nit = bb_it[k] == fiducial_results[2,i,yy,xx][0]
+                        c_npc = bb_npc[k] == fiducial_results[1,i,yy,xx][0]
+                        c_nfrac = bb_nfrac[k] == fiducial_results[0,i,yy,xx][0]
+                        found_it = c_dr & c_thr & c_nit & c_npc & c_nfrac
                         if found_it:
                             idx_opt = k
                             break

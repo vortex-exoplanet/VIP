@@ -27,11 +27,11 @@ class Ds9Window(object):
     http://ds9.si.edu/doc/ref/xpa.html.
 
     """
-    def __init__(self):
+    def __init__(self,wait=10):
         """ __init__ method.
         """
         self.window_name = 'VIP_ds9'
-        self.window = pyds9.DS9(self.window_name)
+        self.window = pyds9.DS9(self.window_name,wait=wait)
 
     def clear_frames(self):
         """ Clears all frames. """

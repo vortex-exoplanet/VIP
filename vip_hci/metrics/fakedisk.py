@@ -107,8 +107,11 @@ def cube_inject_fakedisk(fakedisk, angle_list, psf=None, **rot_options):
                             'create_fakedisk_cube accepts ndarray, int or '
                             'float.')
         for i in range(nframes):
-            fakedisk_cube[i, :, :] = signal.convolve2d(fakedisk_cube[i, :, :],
-                                                       psf, mode='same')
+            # fakedisk_cube[i, :, :] = signal.convolve2d(fakedisk_cube[i, :, :],
+            #                                            psf, mode='same')
+            # much faster
+            fakedisk_cube[i, :, :] = signal.fftconvolve(fakedisk_cube[i, :, :],\
+                                                        psf, mode='same')
     return fakedisk_cube
 
 

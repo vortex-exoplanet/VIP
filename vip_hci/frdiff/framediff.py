@@ -111,16 +111,16 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
 
     # rotation options
-    border_mode = rot_options.get('border_mode','constant')
-    edge_blend = rot_options.get('edge_blend',None)
-    interp_zeros = rot_options.get('interp_zeros',False)
-    ker = rot_options.get('ker',1)    
+    #border_mode = rot_options.get('border_mode','constant')
+    #edge_blend = rot_options.get('edge_blend',None)
+    #interp_zeros = rot_options.get('interp_zeros',False)
+    #ker = rot_options.get('ker',1)    
 
     res = pool_map(nproc, _pairwise_ann, iterable(range(n_annuli)), n_annuli, 
                    fwhm, angle_list, delta_rot, metric, dist_threshold,
                    n_similar, radius_int, asize, ncomp, imlib, interpolation, 
-                   collapse, verbose, debug, border_mode, edge_blend, 
-                   interp_zeros, ker)
+                   collapse, verbose, debug, **rot_options) #border_mode, edge_blend, 
+                   #interp_zeros, ker)
 
     final_frame = np.sum(res, axis=0)
 

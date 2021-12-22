@@ -334,11 +334,11 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         delta_rot=1, fmerit='sum', imlib='vip-fft', 
                         interpolation='lanczos4', collapse='median', 
                         algo_options={}, wedge=None, weights=None, 
-                        transmission=None, mu_sigma=None, sigma='spe+pho',
+                        transmission=None, mu_sigma=True, sigma='spe+pho',
                         nwalkers=100, bounds=None, a=2.0, burnin=0.3, 
                         rhat_threshold=1.01, rhat_count_threshold=1, 
                         niteration_min=10, niteration_limit=10000, 
-                        niteration_supp=0, check_maxgap=20, conv_test='gb', 
+                        niteration_supp=0, check_maxgap=20, conv_test='ac', 
                         ac_c=50, ac_count_thr=3, nproc=1, output_dir='results/', 
                         output_file=None, display=False, verbosity=0, 
                         save=False):
@@ -446,7 +446,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         in column 1.
     mu_sigma: tuple of 2 floats or bool, opt
         If set to None: not used, and falls back to original version of the 
-        algorithm, using fmerit.
+        algorithm, using fmerit (Wertz et al. 2017).
         If a tuple of 2 elements: should be the mean and standard deviation of 
         pixel intensities in an annulus centered on the location of the
         companion candidate, excluding the area directly adjacent to the CC.

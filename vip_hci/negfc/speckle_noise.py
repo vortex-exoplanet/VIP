@@ -22,7 +22,7 @@ from .mcmc_sampling import confidence
 
 
 def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo, 
-                              psfn, plsc, fwhm, aperture_radius, 
+                              psfn, plsc, fwhm, aperture_radius, opp_ang=False,
                               indep_ap=False, cube_ref=None, fmerit='sum', 
                               algo_options={}, transmission=None, mu_sigma=None, 
                               wedge=None, weights=None, force_rPA=False, 
@@ -80,6 +80,9 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         FWHM of the PSF in pixels.
     aperture_radius: float
         Radius of the apertures used for NEGFC, in terms of FWHM.
+    opp_ang: bool, opt
+        Whether to also use opposite derotation angles to double sample size.
+        Uses the same angle range.
     indep_ap: bool, opt.
         Whether to only consider independent apertures. If yes, will supersede
         the range provided in angle_range, and only consider the first and last
@@ -206,7 +209,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                    imlib, interpolation, verbose=verbose)
     residuals = np.array(res)
     
-    if indep_ap: # do opposite angles
+    if opp_ang: # do opposite angles
         res = pool_map(nproc, _estimate_speckle_one_angle, 
                        iterable(angle_range), cube_pf, psfn, -derot_angles, 
                        r_true, f_true, plsc, fwhm, aperture_radius, cube_ref, 

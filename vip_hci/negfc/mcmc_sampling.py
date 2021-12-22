@@ -73,7 +73,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
            delta_rot=1, fmerit='sum', imlib='vip-fft', interpolation='lanczos4', 
            collapse='median', algo_options={}, weights=None, transmission=None, 
-           mu_sigma=True, debug=False):
+           mu_sigma=True, sigma='spe+pho', debug=False):
     """ Define the likelihood log-function.
     
     Parameters
@@ -146,12 +146,10 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
         containing the mean and standard deviation of pixel intensities in an 
         annulus centered on the location of the companion, excluding the area 
         directly adjacent to the companion.
-    scale_fac: float
-        Factor by which the intensities in the cube are scaled up, to 
-        increase the residuals. This operation is needed for very low companion 
-        fluxes. The probability exp(lnprob) would otherwise be ~1 for all flux 
-        values less or similar to the true value. In practice, for companion 
-        fluxes > 100, letting scale_fac to 1 should be fine.
+    sigma: str, opt
+        Sets the type of noise to be included as sigma^2 in the log-probability 
+        expression. Choice between 'pho' for photon (Poisson) noise, 'spe' for 
+        residual (mostly whitened) speckle noise, or 'spe+pho' for both.
     debug: boolean
         If True, the cube is returned along with the likelihood log-function.
         
@@ -187,9 +185,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
                                         imlib=imlib_sh, 
                                         interpolation=interpolation,
                                         transmission=transmission,
-                                        verbose=False)
-#    if scale_fac > 1:
-#        cube_negfc*=scale_fac                            
+                                        verbose=False)                        
     # Perform PCA and extract the zone of interest
     values = get_values_optimize(cube_negfc, angs, ncomp, annulus_width,
                                  aperture_radius, fwhm, initial_state[0],
@@ -202,11 +198,14 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
     
     if isinstance(mu_sigma, tuple):
         mu = mu_sigma[0]
-        sigma = mu_sigma[1]
+        sigma2 = mu_sigma[1]**2
         num = np.power(mu-values,2)
-        denom = (np.abs(values)+sigma**2)
+        denom = 0
+        if 'spe' in sigma:
+            denom += sigma2
+        if 'pho' in sigma:
+            denom += np.abs(values-mu)
         lnlikelihood = -0.5* np.sum(num/denom)
-        
     else:
         mu = mu_sigma
         # old version - delete?
@@ -229,7 +228,7 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
            svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
            delta_rot=1, fmerit='sum', imlib='vip-fft', interpolation='lanczos4', 
            collapse='median', algo_options={}, weights=None, transmission=None, 
-           mu_sigma=True, display=False):
+           mu_sigma=True, sigma='spe+pho', display=False):
     """ Define the probability log-function as the sum between the prior and
     likelihood log-funtions.
     
@@ -301,12 +300,10 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
         containing the mean and standard deviation of pixel intensities in an 
         annulus centered on the location of the companion, excluding the area 
         directly adjacent to the companion.
-    scale_fac: float
-        Factor by which the intensities in the cube are scaled up, to 
-        increase the residuals. This operation is needed for very low companion 
-        fluxes. The probability exp(lnprob) would otherwise be ~1 for all flux 
-        values less or similar to the true value. In practice, for companion 
-        fluxes > 100, letting scale_fac to 1 should be fine.
+    sigma: str, opt
+        Sets the type of noise to be included as sigma^2 in the log-probability 
+        expression. Choice between 'pho' for photon (Poisson) noise, 'spe' for 
+        residual (mostly whitened) speckle noise, or 'spe+pho' for both.
     display: boolean
         If True, the cube is displayed with ds9.
         
@@ -328,7 +325,7 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
                        ncomp, aperture_radius, initial_state, cube_ref, 
                        svd_mode, scaling, algo, delta_rot, fmerit, imlib,
                        interpolation, collapse, algo_options, weights, 
-                       transmission, mu_sigma)
+                       transmission, mu_sigma, sigma)
 
 
 def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
@@ -337,12 +334,12 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         delta_rot=1, fmerit='sum', imlib='vip-fft', 
                         interpolation='lanczos4', collapse='median', 
                         algo_options={}, wedge=None, weights=None, 
-                        transmission=None, mu_sigma=None, nwalkers=100, 
-                        bounds=None, a=2.0, burnin=0.3, rhat_threshold=1.01, 
-                        rhat_count_threshold=1, niteration_min=10, 
-                        niteration_limit=10000, niteration_supp=0, 
-                        check_maxgap=20, conv_test='gb', ac_c=50, 
-                        ac_count_thr=3, nproc=1, output_dir='results/', 
+                        transmission=None, mu_sigma=True, sigma='spe+pho',
+                        nwalkers=100, bounds=None, a=2.0, burnin=0.3, 
+                        rhat_threshold=1.01, rhat_count_threshold=1, 
+                        niteration_min=10, niteration_limit=10000, 
+                        niteration_supp=0, check_maxgap=20, conv_test='ac', 
+                        ac_c=50, ac_count_thr=3, nproc=1, output_dir='results/', 
                         output_file=None, display=False, verbosity=0, 
                         save=False):
     r""" Runs an affine invariant mcmc sampling algorithm in order to determine
@@ -413,7 +410,6 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         scipy.ndimage for rotation and shift resp.;
         - "ndimage-fourier" or "vip-fft" will use Fourier transform based \
         methods for both.
-            
     interpolation : str, optional
         Interpolation order. See the documentation of the 
         ``vip_hci.preproc.frame_rotate`` function. Note that the interpolation 
@@ -450,13 +446,17 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         in column 1.
     mu_sigma: tuple of 2 floats or bool, opt
         If set to None: not used, and falls back to original version of the 
-        algorithm, using fmerit.
+        algorithm, using fmerit (Wertz et al. 2017).
         If a tuple of 2 elements: should be the mean and standard deviation of 
         pixel intensities in an annulus centered on the location of the
         companion candidate, excluding the area directly adjacent to the CC.
         If set to anything else, but None/False/tuple: will compute said mean 
         and standard deviation automatically.
         These values will then be used in the log-probability of the MCMC.
+    sigma: str, opt
+        Sets the type of noise to be included as sigma^2 in the log-probability 
+        expression. Choice between 'pho' for photon (Poisson) noise, 'spe' for 
+        residual (mostly whitened) speckle noise, or 'spe+pho' for both.
     bounds: numpy.array or list, default=None, optional
         The prior knowledge on the model parameters. If None, large bounds will
         be automatically estimated from the initial state.
@@ -568,6 +568,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
             msg = "If PSF is 3D, number of frames must match cube length"
             raise TypeError(msg)
             
+    if 'spe' not in sigma and 'pho' not in sigma:
+        raise ValueError("sigma not recognized")
+            
     ## set imlib for rotation and shift
     if imlib == 'opencv':
         imlib_rot = imlib
@@ -584,7 +587,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     # #########################################################################
     # Initialization of the variables
     # #########################################################################
-    dim = 3     # There are 3 model parameters: rad, theta, flux
+    dim = 3  # There are 3 model parameters: rad, theta, flux
     itermin = niteration_min
     limit = niteration_limit
     supp = niteration_supp
@@ -630,7 +633,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
 
     if bounds is None:
         # angle subtended by aperture_radius/2 or fwhm at r=initial_state[0]
-        drot = 360/(2*np.pi*initial_state[0]/min(aperture_radius/2,fwhm))
+        drot = 360/(2*np.pi*initial_state[0]/(aperture_radius*fwhm/2))
         bounds = [(initial_state[0] - annulus_width/2.,
                    initial_state[0] + annulus_width/2.),  # radius
                   (initial_state[1] - drot, initial_state[1] + drot),   # angle
@@ -655,7 +658,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                                            delta_rot, fmerit, imlib, 
                                            interpolation, collapse, 
                                            algo_options, weights, transmission, 
-                                           mu_sigma]),
+                                           mu_sigma, sigma]),
                                     threads=nproc)
 
     if verbosity > 0:

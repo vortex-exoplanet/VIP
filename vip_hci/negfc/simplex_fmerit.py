@@ -10,7 +10,7 @@ __all__ = []
 import numpy as np
 from hciplot import plot_frames
 from skimage.draw import disk
-from ..metrics import cube_inject_companions
+from ..metrics import cube_inject_companions, snr
 from ..var import (frame_center, get_annular_wedge, cube_filter_highpass, dist,
                    get_circle)
 from ..pca import pca_annulus, pca_annular, pca
@@ -347,8 +347,8 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         return values
 
 
-def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, 
-                     fwhm, r_guess, theta_guess, cube_ref=None, wedge=None,
+def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm, 
+                     r_guess, theta_guess, cube_ref=None, wedge=None, 
                      svd_mode='lapack', scaling=None, algo=pca_annulus, 
                      delta_rot=1, imlib='vip-fft', interpolation='lanczos4',
                      collapse='median', weights=None, algo_options={}):
@@ -469,6 +469,10 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
                               cube_ref, svd_mode, scaling, imlib=imlib,
                               interpolation=interpolation, collapse=collapse, 
                               weights=weights)
+        pca_res_inv = pca_annulus(cube, -angs, ncomp, annulus_width, r_guess, 
+                              cube_ref, svd_mode, scaling, imlib=imlib,
+                              interpolation=interpolation, collapse=collapse, 
+                              weights=weights)
         
     elif algo == pca_annular:                
         tol = algo_options.get('tol',1e-1)
@@ -494,8 +498,20 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
                                   max_frames_lib=max_frames_lib, 
                                   full_output=False, verbose=False, 
                                   weights=weights)
+        pca_res_tinv = pca_annular(crop_cube, -angs, radius_int=radius_int, 
+                                  fwhm=fwhm, asize=annulus_width, 
+                                  delta_rot=delta_rot, ncomp=ncomp, 
+                                  svd_mode=svd_mode, scaling=scaling, 
+                                  imlib=imlib, interpolation=interpolation,
+                                  collapse=collapse, tol=tol, 
+                                  min_frames_lib=min_frames_lib, 
+                                  max_frames_lib=max_frames_lib, 
+                                  full_output=False, verbose=False, 
+                                  weights=weights)
         # pad again now                      
         pca_res = np.pad(pca_res_tmp,pad,mode='constant',constant_values=0)
+        pca_res_inv = np.pad(pca_res_tinv,pad,mode='constant',
+                              constant_values=0)
         
     elif algo == pca:
         scale_list = algo_options.get('scale_list',None)
@@ -507,10 +523,16 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
                       interpolation=interpolation, collapse=collapse,
                       ifs_collapse_range=ifs_collapse_range, nproc=nproc,
                       weights=weights, verbose=False)
+        pca_res_inv = pca(cube, -angs, cube_ref, scale_list, ncomp, 
+                      svd_mode=svd_mode, scaling=scaling, imlib=imlib,
+                      interpolation=interpolation, collapse=collapse,
+                      ifs_collapse_range=ifs_collapse_range, nproc=nproc,
+                      weights=weights, verbose=False)
         
     else:
         algo_args = algo_options
         pca_res = algo(cube, angs, **algo_args)
+        #pca_res_inv = algo(cube, -angs, **algo_args)
         
     if wedge is None:
         delta_theta = np.amax(angs)-np.amin(angs)
@@ -527,20 +549,22 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
             wedge = (wedge[0],wedge[1]+360)
     else:
         raise TypeError("Wedge should have exactly 2 values")
+        
     
-
-    indices = get_annular_wedge(pca_res, radius_int, annulus_width, 
+    indices = get_annular_wedge(pca_res, radius_int, 2*fwhm, #annulus_width, 
                                 wedge=wedge)
-    
     yy, xx = indices
-    mu = np.mean(pca_res[yy, xx])
-    # effective number of samples = Npx/Nfwhm instead of Npx
-    # trick is to adapt ddof parameter in std function:
-    npx = len(yy)
+    indices_inv = get_annular_wedge(pca_res_inv, radius_int, 2*fwhm, #annulus_width, 
+                                    wedge=wedge)
+    yyi, xxi = indices_inv
+    all_res = np.concatenate((pca_res[yy, xx], pca_res_inv[yyi, xxi]))
+    mu = np.mean(all_res)
+    all_res-=mu
+    npx = len(yy)+len(yyi)
     area = np.pi*(fwhm/2)**2
-    ddof = min(int(npx*(1.-(1./area)))+1, npx-1)
-    sigma = np.std(pca_res[yy, xx], ddof=ddof)
-
+    ddof = min(int(npx*(1.-(1./area)))+1, npx-1) 
+    sigma = np.std(all_res, ddof=ddof)   
+    
     return mu, sigma
 
 

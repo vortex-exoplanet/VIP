@@ -39,7 +39,7 @@ def feves_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI',
               imlib='opencv', interpolation='lanczos4', collapse='median', 
               check_memory=True, nproc=1, full_output=False, verbose=True, 
               weights=None, debug=False, path='', overwrite=True,  
-              auto_crop=False, smooth=False):
+              auto_crop=False, smooth=False, **rot_options):
     """
     Optimal version of Fractionation for Embedded Very young Exoplanet Search 
     algorithm: Iterative PCA or NMF applied in progressively more fractionated 
@@ -419,7 +419,7 @@ def feves_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI',
                        thru_corr, psfn, n_br, starphot, plsc, mask_inner_sz, 
                        nproc_tmp, scaling, svd_mode, init_svd, imlib, 
                        interpolation, path, debug, overwrite, smooth, 
-                       iterable(fiducial_buff))
+                       iterable(fiducial_buff), **rot_options)
         for bb in range(buff):
             nfrac_opt.extend(res[bb][0])
             drot_opt.extend(res[bb][1])
@@ -430,13 +430,17 @@ def feves_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI',
             master_crop_cube.extend(res[bb][6])
     else:
         for bb in range(buff):
+            if fiducial_results is not None:
+                fiducial_res = fiducial_results[:,bb*n_az:(bb+1)*n_az]
+            else:
+                fiducial_res = None
             res = _opt_buff_feve(bb, cube_tmp, angle_list, ref_cube_tmp, algo, 
                                  ncomps, thrs, nits, strategy, drots, fwhm, fm, 
                                  gt_image, nfrac_max, thru_corr, psfn, n_br, 
                                  starphot, plsc, mask_inner_sz, nproc_tmp,
                                  scaling, svd_mode, init_svd, imlib, 
                                  interpolation, path, debug, overwrite, smooth,
-                                 fiducial_results[:,bb*n_az:(bb+1)*n_az])
+                                 fiducial_res, **rot_options)
             nfrac_opt.extend(res[0])
             drot_opt.extend(res[1])
             thr_opt.extend(res[2])
@@ -480,7 +484,8 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
                    plsc=1., in_mask_sz=0, nproc=1, scaling=None, 
                    svd_mode='lapack', init_svd='nndsvda', imlib='opencv', 
                    interpolation='lanczos4', path='', debug=False, 
-                   overwrite=False, smooth=False, fiducial_results=None):
+                   overwrite=False, smooth=False, fiducial_results=None,
+                   **rot_options):
     # select fm function
     if fm == 'med_stim':
         ffm = np.median
@@ -580,7 +585,8 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
                                         init_svd=init_svd, nproc=nproc,
                                         interpolation=interpolation,
                                         imlib=imlib, full_output=True,
-                                        interp_order=None, smooth=smooth)
+                                        interp_order=None, smooth=smooth, 
+                                        **rot_options)
                             it_cube_nd = res[-5]
                             norm_stim_cube = res[-4]
                             stim_cube = res[-3]
@@ -638,7 +644,8 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
         pool_map(nproc, _feves_wrap, iterable(it_params), path, algo_lab, 
                  strategy, bb, nfrac_max, cube, angle_list, ref_cube, algo, 
                  fwhm, thru_corr, psfn, n_br, mask_sz, svd_mode, init_svd, 
-                 interpolation, imlib, smooth, overwrite, fm, fiducial_results)
+                 interpolation, imlib, smooth, overwrite, fm, fiducial_results,
+                 **rot_options)
                 
         for it_param in it_params:
             delta_rot_tmp, thr_t, nit, ncomp = it_param
@@ -670,7 +677,9 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
     bb_frames = np.array(bb_frames)
     if fm == 'ssim' and not smooth:
         # done in preparation of ssim:
-        bb_frames = gaussian_filter(bb_frames, sigma=[0,1.5,1.5])
+        bb_frames_g = gaussian_filter(bb_frames, sigma=[0,1.5,1.5])
+    else:
+        bb_frames_g = bb_frames.copy()
     
     # Default: 1FWHM-wide ann, 6 azimuthal segments
     asize = int(fwhm)
@@ -724,7 +733,7 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
                         fm_stim = np.zeros(bb_frames.shape[0])
                         for k in range(bb_frames.shape[0]):
                             fm_stim[k] = ffm(gt_image[yy, xx],
-                                             bb_frames[k, yy, xx], win_size=1, 
+                                             bb_frames_g[k, yy, xx], win_size=1, 
                                              gaussian_weights=False,
                                              use_sample_covariance=False)
                     elif 'perc' in fm:
@@ -756,7 +765,7 @@ def _opt_buff_feve(bb, cube, angle_list, ref_cube=None, algo=pca_annular,
 def _feves_wrap(it_param, path, algo_lab, strategy, bb, nfrac_max, cube,
                 angle_list, ref_cube, algo, fwhm, thru_corr, psfn, n_br, 
                 mask_sz, svd_mode, init_svd, interpolation, imlib, 
-                smooth, overwrite, fm, fiducial_results):
+                smooth, overwrite, fm, fiducial_results, **rot_options):
     
     delta_rot_tmp, thr_t, nit, ncomp = it_param
     
@@ -783,18 +792,14 @@ def _feves_wrap(it_param, path, algo_lab, strategy, bb, nfrac_max, cube,
 
     #print(fn+"_norm_stim_cube.fits")
     if not isfile(fn+"_norm_stim_cube.fits") or overwrite:
-        res = feves(cube, angle_list, cube_ref=ref_cube, 
-                    ncomp=ncomp, algo=algo, n_it=nit, fwhm=fwhm, 
-                    buff=0, thr=thr_t, n_frac=nfrac_max,
-                    asizes=None, n_segments=None,
-                    thru_corr=thru_corr, strategy=strategy, 
-                    psfn=psfn, n_br=n_br, radius_int=mask_sz, 
+        res = feves(cube, angle_list, cube_ref=ref_cube, ncomp=ncomp, algo=algo, 
+                    n_it=nit, fwhm=fwhm, buff=0, thr=thr_t, n_frac=nfrac_max,
+                    asizes=None, n_segments=None, thru_corr=thru_corr, 
+                    strategy=strategy, psfn=psfn, n_br=n_br, radius_int=mask_sz, 
                     delta_rot=delta_rot_tmp, svd_mode=svd_mode, 
-                    init_svd=init_svd, nproc=1,
-                    interpolation=interpolation,
-                    imlib=imlib, full_output=True,
-                    interp_order=None, 
-                    smooth=smooth)
+                    init_svd=init_svd, nproc=1, interpolation=interpolation,
+                    imlib=imlib, full_output=True, interp_order=None, 
+                    smooth=smooth, **rot_options)
         it_cube_nd = res[-5]
         norm_stim_cube = res[-4]
         stim_cube = res[-3]

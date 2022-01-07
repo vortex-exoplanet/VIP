@@ -292,7 +292,7 @@ def pca_annular_it(cube, angle_list, cube_ref=None, ncomp=1, n_it=10, thr=1.,
                       max_frames_lib=max_frames_lib, tol=tol, scaling=scaling,
                       imlib=imlib, interpolation=interpolation,
                       collapse=collapse, full_output=True, verbose=verbose, 
-                      weights=weights)
+                      weights=weights, **rot_options)
 
     # 2. Identify significant signals with STIM map (outside mask)
     frame = res[-1].copy()
@@ -334,7 +334,7 @@ def pca_annular_it(cube, angle_list, cube_ref=None, ncomp=1, n_it=10, thr=1.,
         # create and rotate sig cube
         sig_cube = np.repeat(frame[np.newaxis, :, :], nframes, axis=0)
         sig_cube = cube_derotate(sig_cube, -angle_list, imlib=imlib, 
-                                 edge_blend='interp', nproc=nproc)
+                                 nproc=nproc, **rot_options)
         #write_fits("TMP_sig_cube.fits",sig_cube)
         # create and rotate binary mask
         mask_sig = np.zeros_like(sig_image)
@@ -365,7 +365,7 @@ def pca_annular_it(cube, angle_list, cube_ref=None, ncomp=1, n_it=10, thr=1.,
                           scaling=scaling, imlib=imlib,
                           interpolation=interpolation, collapse=collapse,
                           full_output=True, verbose=verbose,
-                          weights=weights, cube_sig=sig_cube)
+                          weights=weights, cube_sig=sig_cube, **rot_options)
         it_cube[it] = res_it[-1]
         frame = res_it[-1]
         residuals_cube = res_it[0].copy()
@@ -387,7 +387,7 @@ def pca_annular_it(cube, angle_list, cube_ref=None, ncomp=1, n_it=10, thr=1.,
                              scaling=scaling, imlib=imlib, 
                              interpolation=interpolation, collapse=collapse, 
                              full_output=True, verbose=False,
-                             weights=weights)
+                             weights=weights, **rot_options)
         residuals_cube_nd = res_nd[0]
         frame_nd = res_nd[-1]
         res_sig = _find_significant_signals(residuals_cube_nd, residuals_cube_, 
@@ -879,7 +879,7 @@ def feves(cube, angle_list, cube_ref=None, ncomp=1, algo=pca_annular, n_it=2,
                        ncomp, svd_mode, init_svd, min_frames_lib, 
                        max_frames_lib, tol, scaling, imlib, interpolation, 
                        collapse, atol, rtol, nproc_tmp, True, verbose, weights,
-                       smooth)
+                       smooth, **rot_options)
         for bb in range(buffer):
             master_cube.append(res[bb][0])
             master_it_cube.append(res[bb][1])
@@ -900,7 +900,7 @@ def feves(cube, angle_list, cube_ref=None, ncomp=1, algo=pca_annular, n_it=2,
                                svd_mode, init_svd, min_frames_lib,
                                max_frames_lib, tol, scaling, imlib, 
                                interpolation, collapse, atol, rtol, nproc_tmp, 
-                               True, verbose, weights, smooth)
+                               True, verbose, weights, smooth, **rot_options)
             master_cube.append(res[0])
             master_it_cube.append(res[1])
             master_sig_cube.append(res[2])
@@ -952,7 +952,7 @@ def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann,
                  n_br, interp_order, strategy, delta_rot, ncomp, svd_mode, 
                  init_svd, min_frames_lib, max_frames_lib, tol, scaling, imlib, 
                  interpolation, collapse, atol, rtol, nproc, full_output, 
-                 verbose, weights, smooth):
+                 verbose, weights, smooth, **rot_options):
     
     def _blurring_2d(array, mask_center_sz, fwhm_sz=2):
         if mask_center_sz:
@@ -990,7 +990,8 @@ def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann,
                           max_frames_lib=max_frames_lib, tol=tol, 
                           scaling=scaling, imlib=imlib, 
                           interpolation=interpolation, collapse=collapse, 
-                          full_output=True, verbose=verbose, weights=weights)
+                          full_output=True, verbose=verbose, weights=weights,
+                          **rot_options)
     elif algo == nmf_annular:
         res = nmf_annular(cube, angle_list, cube_ref=ref_cube, 
                           radius_int=radius_int, fwhm=fwhm, asize=asizes[0], 
@@ -1000,7 +1001,7 @@ def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann,
                           max_frames_lib=max_frames_lib, scaling=scaling, 
                           imlib=imlib, interpolation=interpolation, 
                           collapse=collapse, full_output=True, verbose=verbose, 
-                          weights=weights)
+                          weights=weights, **rot_options)
     else:
         msg = "algo not recognized, can only be pca_annular or nmf_annular"
         raise ValueError(msg)
@@ -1056,7 +1057,7 @@ def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann,
             # create and rotate sig cube
             sig_cube = np.repeat(frame[np.newaxis, :, :], nframes, axis=0)
             sig_cube = cube_derotate(sig_cube, -angle_list, imlib=imlib, 
-                                     edge_blend='interp', nproc=nproc)
+                                     nproc=nproc, **rot_options)
             #write_fits("TMP_sig_cube.fits",sig_cube)
             # create and rotate binary mask
             mask_sig = np.zeros_like(sig_image)
@@ -1099,7 +1100,8 @@ def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann,
                                          interpolation=interpolation, 
                                          collapse=collapse, full_output=True, 
                                          verbose=verbose, theta_init=th_i, 
-                                         weights=weights, cube_sig=sig_cube)
+                                         weights=weights, cube_sig=sig_cube, 
+                                         **rot_options)
                 else:
                     res_it = nmf_annular(cube, angle_list, cube_ref=ref_cube, 
                                          radius_int=radius_int, fwhm=fwhm, 
@@ -1113,7 +1115,8 @@ def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann,
                                          interpolation=interpolation, 
                                          collapse=collapse, full_output=True, 
                                          verbose=verbose, theta_init=th_i, 
-                                         weights=weights, cube_sig=sig_cube)
+                                         weights=weights, cube_sig=sig_cube, 
+                                         **rot_options)
                 fit_cube.append(res_it[-1])
                 fresiduals_cube.append(res_it[0].copy())
                 fresiduals_cube_.append(res_it[1].copy())
@@ -1140,7 +1143,8 @@ def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann,
                                          interpolation=interpolation, 
                                          collapse=collapse, 
                                          full_output=True, verbose=False, 
-                                         theta_init=th_i, weights=weights)
+                                         theta_init=th_i, weights=weights, 
+                                         **rot_options)
                 else:
                     res_nd = nmf_annular(cube_tmp-sig_cube, angle_list, 
                                          cube_ref=cube_ref_tmp, 
@@ -1155,7 +1159,8 @@ def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann,
                                          interpolation=interpolation, 
                                          collapse=collapse, 
                                          full_output=True, verbose=False, 
-                                         theta_init=th_i, weights=weights)                
+                                         theta_init=th_i, weights=weights, 
+                                         **rot_options)                
                 fresiduals_cube_nd.append(res_nd[0])
                 fframe_nd.append(res_nd[-1])
                 

@@ -409,8 +409,9 @@ def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
         cenx = int(cenx)
         fc_fr = np.zeros_like(array)
         w = int(np.floor(size_fc/2.))
+        odd = size_fc%2
         # fake companion in the center of a zeros frame
-        fc_fr[ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc
+        fc_fr[ceny-w:ceny+w+odd, cenx-w:cenx+w+odd] = array_fc
         array_out = array + frame_shift(fc_fr, pos_y-ceny, pos_x-cenx, imlib,
                                         interpolation) * flux
 
@@ -421,8 +422,9 @@ def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
         cenx = int(cenx)
         fc_fr = np.zeros_like(array)
         w = int(np.floor(size_fc/2.))
+        odd = size_fc%2
         # fake companion in the center of a zeros frame
-        fc_fr[:, ceny-w:ceny+w+1, cenx-w:cenx+w+1] = array_fc
+        fc_fr[:, ceny-w:ceny+w+odd, cenx-w:cenx+w+odd] = array_fc
         array_out = array + cube_shift(fc_fr, pos_y - ceny, pos_x - cenx,
                                        imlib, interpolation) * flux
 

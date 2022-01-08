@@ -7,7 +7,6 @@ Module containing functions for cubes frame registration.
 __author__ = 'C. A. Gomez Gonzalez, V. Christiaens, G. Ruane, R. Farkas'
 __all__ = ['frame_shift',
            'cube_shift',
-           'shift_fft',
            'frame_center_radon',
            'frame_center_satspots',
            'cube_recenter_satspots',
@@ -62,10 +61,11 @@ def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
         Shifts in y and x directions.
     imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt
         Library or method used for performing the image shift.
-        'ndimage-fourier', does a fourier shift operation and preserves better
-        the pixel values (therefore the flux and photometry). Interpolation
-        based shift ('opencv' and 'ndimage-interp') is faster than the fourier
-        shift. 'opencv' is recommended when speed is critical.
+        'ndimage-fourier' or 'vip-fft': does a fourier shift operation and 
+        preserves better the pixel values - therefore the flux and photometry
+        (wrapper of scipy.ndimage.fourier_shift). Interpolation-based shift 
+        ('opencv' and 'ndimage-interp') is faster but less accurate than the 
+        fourier shift. 'opencv' is recommended when speed is critical.
     interpolation : str, optional
         Only used in case of imlib is set to 'opencv' or 'ndimage-interp'
         (Scipy.ndimage), where the images are shifted via interpolation.
@@ -95,7 +95,7 @@ def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
     check_array(array, dim=2)
     image = array.copy()
 
-    if imlib == 'ndimage-fourier':
+    if imlib == 'ndimage-fourier' or imlib == 'vip-fft':
         shift_val = (shift_y, shift_x)
         array_shifted = fourier_shift(np.fft.fftn(image), shift_val)
         array_shifted = np.fft.ifftn(array_shifted)
@@ -160,9 +160,6 @@ def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
         M = np.float32([[1, 0, shift_x], [0, 1, shift_y]])
         array_shifted = cv2.warpAffine(image, M, (x, y), flags=intp,
                                        borderMode=bormo)
-
-    elif imlib == 'vip-fft':
-        array_shifted = shift_fft(array, shift_x, shift_y)
         
     else:
         raise ValueError('Image transformation library not recognized')
@@ -388,48 +385,6 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     else:
         raise RuntimeError("Something went wrong, no intersection found. " +
                            msgerr)
-
-def shift_fft(array, xshift, yshift):
-    """
-    Subpixel shifting of ``image`` using Fourier transformation.
-
-    Parameters
-    ----------
-    array : 2d numpy ndarray
-        The image to be shifted.
-    xshift : float
-        Amount of desired shift in X direction.
-    yshift : float
-        Amount of desired shift in Y direction.
-
-    Returns
-    -------
-    shifted_array : 2d ndarray
-        Input ``image`` shifted by ``xshift`` and ``yshift``.
-
-    Notes
-    -----
-    based on ``LibAndromeda/oneralib/subpixel_shift.pro``, v1.3 2009/05/28
-
-    """
-    npix = array.shape[0]
-
-    if npix != array.shape[1]:
-        raise ValueError("Input array must be square")
-
-
-    if npix%2:
-        cte = npix/2-0.5
-    else:
-        cte = npix/2        
-    ramp = np.outer(np.ones(npix), np.arange(npix) - cte)
-    tilt = (-2*np.pi / npix) * (xshift*ramp + yshift*ramp.T)
-    fact = np.fft.fftshift(np.cos(tilt) + 1j*np.sin(tilt))
-
-    array_ft = np.fft.fft2(array)  # no np.fft.fftshift applied!
-    shifted_array = np.fft.ifft2(array_ft * fact).real
-
-    return shifted_array
 
 
 def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,

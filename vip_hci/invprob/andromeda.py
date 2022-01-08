@@ -28,9 +28,8 @@ from ..var.filters import frame_filter_highpass, cube_filter_highpass
 from ..conf.utils_conf import pool_map, iterable
 from ..var.shapes import dist_matrix
 
-from .utils import robust_std, idl_round, idl_where
-from .shift import calc_psf_shift_subpix, subpixel_shift
-from .fit import fitaffine
+from .utils_andro import (calc_psf_shift_subpix, fitaffine, idl_round, 
+                          idl_where, robust_std, subpixel_shift)
 
 
 global CUBE

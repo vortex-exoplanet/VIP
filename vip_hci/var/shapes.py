@@ -27,7 +27,7 @@ from skimage.draw import polygon
 from skimage.draw import disk
 from sklearn.preprocessing import scale
 
-from ..conf.utils_conf import frame_or_shape
+from ..config.utils_conf import frame_or_shape
 
 
 def mask_circle(array, radius, fillwith=0, mode='in'):

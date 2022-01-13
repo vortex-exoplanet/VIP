@@ -32,11 +32,11 @@ from scipy.sparse.linalg import svds
 from sklearn.decomposition import randomized_svd
 from sklearn.utils import check_random_state
 from pandas import DataFrame
-from ..conf import timing, time_ini, sep, Progressbar
+from ..config import timing, time_ini, sep, Progressbar
 from ..var import matrix_scaling, prepare_matrix
 from ..preproc import check_scal_vector, cube_crop_frames
 from ..preproc import cube_rescaling_wavelengths as scwave
-from ..conf import vip_figsize, check_array
+from ..config import vip_figsize, check_array
 
 
 class SVDecomposer:

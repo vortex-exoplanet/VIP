@@ -23,9 +23,9 @@ from matplotlib.ticker import MaxNLocator
 import pickle
 from scipy.stats import norm
 from ..metrics import cube_inject_companions
-from ..conf import time_ini, timing
-from ..conf.utils_conf import sep
-from ..pca import pca_annulus
+from ..config import time_ini, timing
+from ..config.utils_conf import sep
+from ..psfsub import pca_annulus
 from .simplex_fmerit import get_values_optimize, get_mu_and_sigma
 from .utils_mcmc import gelman_rubin, autocorr_test
 import warnings
@@ -650,7 +650,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     
     if verbosity > 0:
         print('Beginning emcee Ensemble sampler...')
-    sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a,
+    sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a=a,
                                     args=([bounds, cube, angs, plsc, psfn,
                                            fwhm, annulus_width, ncomp,
                                            aperture_radius, initial_state,
@@ -672,8 +672,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         print('\nStart of the MCMC run ...')
         print('Step  |  Duration/step (sec)  |  Remaining Estimated Time (sec)')
     
-    for k, res in enumerate(sampler.sample(pos, iterations=nIterations,
-                                           storechain=True)):
+    for k, res in enumerate(sampler.sample(pos, iterations=nIterations)):
         elapsed = (datetime.datetime.now()-start).total_seconds()
         if verbosity > 1:
             if k == 0:

@@ -20,7 +20,7 @@ except:
     # before skimage version '0.16' use skimage.measure.compare_ssim
     from skimage.measure import compare_ssim as ssim
 from ..var import get_annulus_segments, get_circle
-from ..conf import vip_figsize
+from ..config import vip_figsize
 
 
 def cube_distance(array, frame, mode='full', dist='sad', inradius=None,

@@ -15,7 +15,7 @@ import numpy as np
 from matplotlib.pyplot import boxplot
 from matplotlib import pyplot as plt
 from ..var import get_annulus_segments, get_circle
-from ..conf.utils_conf import vip_figsize
+from ..config.utils_conf import vip_figsize
 
 
 def descriptive_stats(array, verbose=True, label='', mean=False, plot=False):

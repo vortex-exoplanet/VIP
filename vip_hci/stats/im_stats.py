@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from ..var import frame_center
-from ..conf.utils_conf import check_array, vip_figsize
+from ..config.utils_conf import check_array, vip_figsize
 
 
 def frame_average_radprofile(frame, sep=1, init_rad=None, plot=True):

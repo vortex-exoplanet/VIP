@@ -16,10 +16,10 @@ from ..var import get_annulus_segments
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector)
 from ..preproc.rescaling import _find_indices_sdi
-from ..conf import time_ini, timing
+from ..config import time_ini, timing
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc.derotation import _find_indices_adi, _define_annuli
-from ..conf.utils_conf import pool_map, iterable, Progressbar
+from ..config.utils_conf import pool_map, iterable, Progressbar
 
 
 def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',

@@ -14,9 +14,9 @@ from multiprocessing import cpu_count
 from sklearn.metrics import pairwise_distances
 from ..var import get_annulus_segments
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
-from ..conf import time_ini, timing
-from ..conf.utils_conf import pool_map, iterable
-from ..pca.utils_pca import pca_annulus
+from ..config import time_ini, timing
+from ..config.utils_conf import pool_map, iterable
+from .utils_pca import pca_annulus
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 
 

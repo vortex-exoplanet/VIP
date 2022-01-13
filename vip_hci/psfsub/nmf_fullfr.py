@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 
 """
-Module with NMF algorithm for ADI.
+Module with PSF reference approximation using Non-negative matrix factorization 
+for ADI and RDI data, in full frames.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
@@ -13,7 +14,7 @@ from ..preproc import cube_derotate, cube_collapse
 from ..preproc.derotation import _compute_pa_thresh, _find_indices_adi
 from ..var import (prepare_matrix, reshape_matrix, frame_center, dist, 
                    matrix_scaling, mask_circle)
-from ..conf import timing, time_ini
+from ..config import timing, time_ini
 
 
 def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,

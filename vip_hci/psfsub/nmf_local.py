@@ -13,8 +13,8 @@ from sklearn.decomposition import NMF
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..var import get_annulus_segments, matrix_scaling
-from ..conf import timing, time_ini
-from ..conf.utils_conf import pool_map, iterable
+from ..config import timing, time_ini
+from ..config.utils_conf import pool_map, iterable
 
 
 def nmf_annular(cube, angle_list, cube_ref=None, radius_int=0, fwhm=4, asize=4, 

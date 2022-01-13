@@ -27,7 +27,7 @@ except ImportError:
 from skimage.transform import rotate
 from multiprocessing import cpu_count
 from .cosmetics import frame_pad
-from ..conf.utils_conf import pool_map, iterable
+from ..config.utils_conf import pool_map, iterable
 from ..var import frame_center, frame_filter_lowpass
 
 

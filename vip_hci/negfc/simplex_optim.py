@@ -10,10 +10,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from .simplex_fmerit import chisquare, get_mu_and_sigma
-from ..pca import pca_annulus
+from ..psfsub import pca_annulus
 from ..var import frame_center
-from ..conf import time_ini, timing
-from ..conf.utils_conf import sep
+from ..config import time_ini, timing
+from ..config.utils_conf import sep
 
 
 __author__ = 'O. Wertz, C. A. Gomez Gonzalez, V. Christiaens'

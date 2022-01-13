@@ -58,20 +58,13 @@ with open(resource('vip_hci', '__init__.py')) as version_file:
 
 
 PACKAGES = ['vip_hci',
-            'vip_hci.andromeda',
-            'vip_hci.conf',
-            'vip_hci.exlib',
+            'vip_hci.config',
             'vip_hci.fits',
-            'vip_hci.frdiff',
-            'vip_hci.leastsq',
-            'vip_hci.llsg',
-            'vip_hci.medsub',
+            'vip_hci.invprob',
             'vip_hci.metrics',
             'vip_hci.negfc',
-            'vip_hci.nmf',
-            'vip_hci.pca',
             'vip_hci.preproc',
-            'vip_hci.specfit',
+            'vip_hci.psfsub',
             'vip_hci.stats',
             'vip_hci.var']
 

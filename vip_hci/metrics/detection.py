@@ -21,7 +21,7 @@ from astropy.modeling import models, fitting
 from skimage.feature import peak_local_max
 from ..var import (mask_circle, get_square, frame_center, fit_2dgaussian,
                    frame_filter_lowpass, dist_matrix)
-from ..conf.utils_conf import sep
+from ..config.utils_conf import sep
 from .snr_source import snr, snrmap, frame_report
 
 

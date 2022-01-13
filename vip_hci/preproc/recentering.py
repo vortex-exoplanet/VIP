@@ -39,9 +39,9 @@ else:
 from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
 from . import frame_crop
-from ..conf import time_ini, timing, Progressbar
-from ..conf.utils_conf import vip_figsize, check_array
-from ..conf.utils_conf import pool_map, iterable
+from ..config import time_ini, timing, Progressbar
+from ..config.utils_conf import vip_figsize, check_array
+from ..config.utils_conf import pool_map, iterable
 from ..stats import frame_basic_stats
 from ..var import (get_square, frame_center, get_annulus_segments,
                    fit_2dmoffat, fit_2dgaussian, fit_2dairydisk,

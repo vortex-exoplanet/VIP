@@ -28,8 +28,8 @@ from .metrics import (frame_report, cube_inject_companions,
                       generate_cube_copies_with_injections, snr,
                       snrmap, detection, normalize_psf)
 
-from .conf.utils_conf import check_array, Saveable, print_precision
-from .conf.mem import check_enough_memory
+from .config.utils_conf import check_array, Saveable, print_precision
+from .config.mem import check_enough_memory
 
 
 class Frame(object):

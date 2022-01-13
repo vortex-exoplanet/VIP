@@ -21,12 +21,12 @@ __all__ = ['median_sub']
 
 import numpy as np
 from multiprocessing import cpu_count
-from ..conf import time_ini, timing
+from ..config import time_ini, timing
 from ..var import get_annulus_segments, mask_circle
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector)
 from ..preproc import cube_rescaling_wavelengths as scwave
-from ..conf.utils_conf import pool_map, iterable, print_precision
+from ..config.utils_conf import pool_map, iterable, print_precision
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
 

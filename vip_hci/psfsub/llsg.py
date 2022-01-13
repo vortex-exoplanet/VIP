@@ -1,23 +1,24 @@
 #! /usr/bin/env python
 
 """
-LLSG (Gomez Gonzalez et al. 2016)
+Module containing the Local Low-rank plus Sparse plus Gaussian-noise 
+decomposition algorithm (Gomez Gonzalez et al. 2016) for ADI data.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['llsg']
+__all__ = ['llsg',
+           'thresholding']
 
 
 import numpy as np
 from scipy.linalg import qr
 from multiprocessing import cpu_count
 from astropy.stats import median_absolute_deviation
-from ..conf import time_ini, timing
+from ..config import time_ini, timing
 from ..preproc import cube_derotate, cube_collapse
 from ..var import get_annulus_segments, cube_filter_highpass
-from ..pca.svd import svd_wrapper, get_eigenvectors
-from .thresholding import thresholding
-from ..conf.utils_conf import pool_map, iterable
+from .svd import svd_wrapper, get_eigenvectors
+from ..config.utils_conf import pool_map, iterable
 
 
 def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
@@ -380,5 +381,36 @@ def _patch_rlrps(array, array_ref, rank, low_rank_ref, low_rank_mode,
         return L, S, G
     else:
         return S
+    
+    
+def thresholding(array, threshold, mode):
+    """ Array thresholding strategies.
+    """
+    x = array.copy()
+    if mode == 'soft':
+        j = np.abs(x) <= threshold
+        x[j] = 0
+        k = np.abs(x) > threshold
+        if isinstance(threshold, float):
+            x[k] = x[k] - np.sign(x[k]) * threshold
+        else:
+            x[k] = x[k] - np.sign(x[k]) * threshold[k]
+    elif mode == 'hard':
+        j = np.abs(x) < threshold
+        x[j] = 0
+    elif mode == 'nng':
+        j = np.abs(x) <= threshold
+        x[j] = 0
+        j = np.abs(x) > threshold
+        x[j] = x[j] - threshold**2/x[j]
+    elif mode == 'greater':
+        j = x < threshold
+        x[j] = 0
+    elif mode == 'less':
+        j = x > threshold
+        x[j] = 0
+    else:
+        raise RuntimeError('Thresholding mode not recognized')
+    return x
 
 

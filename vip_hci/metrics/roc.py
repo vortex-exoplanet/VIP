@@ -11,9 +11,9 @@ from hciplot import plot_frames
 from scipy import stats
 from photutils import detect_sources
 from munch import Munch
-from ..pca.svd import SVDecomposer
+from ..psfsub.svd import SVDecomposer
 from ..var import frame_center, get_annulus_segments
-from ..conf import time_ini, timing, Progressbar
+from ..config import time_ini, timing, Progressbar
 from ..var import get_circle
 from .fakecomp import cube_inject_companions
 

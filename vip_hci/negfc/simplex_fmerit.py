@@ -10,12 +10,12 @@ __all__ = []
 import numpy as np
 from hciplot import plot_frames
 from skimage.draw import disk
-from ..metrics import cube_inject_companions, snr
+from ..metrics import cube_inject_companions
 from ..var import (frame_center, get_annular_wedge, cube_filter_highpass, dist,
                    get_circle)
-from ..pca import pca_annulus, pca_annular, pca
+from ..psfsub import pca_annulus, pca_annular, pca
 from ..preproc import cube_crop_frames
-from ..conf import check_array
+from ..config import check_array
 
 def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,  
               aperture_radius, initialState, ncomp, cube_ref=None, 

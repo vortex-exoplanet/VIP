@@ -1,7 +1,18 @@
 #! /usr/bin/env python
 
 """
-Full-frame PCA algorithm for ADI, ADI+RDI and ADI+mSDI (IFS data) cubes.
+Full-frame PCA algorithm for ADI, ADI+RDI and ADI+mSDI (IFS data) cubes:
+
+- *Full-frame PCA*, using the whole cube as the PCA reference library in the
+  case of ADI or ADI+mSDI (ISF cube), or a sequence of reference frames
+  (reference star) in the case of RDI. For ADI a big data matrix NxP, where N
+  is the number of frames and P the number of pixels in a frame is created. Then
+  PCA is done through eigen-decomposition of the covariance matrix (~$DD^T$) or
+  the SVD of the data matrix. SVD can be calculated using different libraries
+  including the fast randomized SVD (Halko et al. 2009).
+
+- *Full-frame incremental PCA* for big (larger than available memory) cubes.
+
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
@@ -16,9 +27,9 @@ from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
                        check_scal_vector, cube_crop_frames, 
                        cube_subtract_sky_pca)
-from ..conf import (timing, time_ini, check_enough_memory, Progressbar,
+from ..config import (timing, time_ini, check_enough_memory, Progressbar,
                     check_array)
-from ..conf.utils_conf import pool_map, iterable
+from ..config.utils_conf import pool_map, iterable
 from ..var import (frame_center, dist, prepare_matrix, reshape_matrix,
                    cube_filter_lowpass, mask_circle)
 from ..stats import descriptive_stats

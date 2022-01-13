@@ -17,8 +17,8 @@ from ..fits import open_fits
 from ..preproc import cube_rescaling_wavelengths as scwave
 from .svd import svd_wrapper
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
-from ..conf import timing, time_ini, check_array, get_available_memory
-from ..conf.utils_conf import vip_figsize, vip_figdpi
+from ..config import timing, time_ini, check_array, get_available_memory
+from ..config.utils_conf import vip_figsize, vip_figdpi
 from ..var import frame_center, dist, prepare_matrix, reshape_matrix, get_circle
 
 

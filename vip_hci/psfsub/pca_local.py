@@ -15,8 +15,8 @@ from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
-from ..conf import time_ini, timing
-from ..conf.utils_conf import pool_map, iterable
+from ..config import time_ini, timing
+from ..config.utils_conf import pool_map, iterable
 from ..var import get_annulus_segments, matrix_scaling
 from ..stats import descriptive_stats
 from .svd import get_eigenvectors

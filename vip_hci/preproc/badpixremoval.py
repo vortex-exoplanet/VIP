@@ -19,7 +19,7 @@ from astropy.stats import sigma_clipped_stats
 from ..stats import sigma_filter
 from ..var import frame_center, get_annulus_segments
 from ..stats import clip_array
-from ..conf import timing, time_ini, Progressbar
+from ..config import timing, time_ini, Progressbar
 from .cosmetics import approx_stellar_position
 
 import warnings

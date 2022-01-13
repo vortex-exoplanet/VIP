@@ -25,12 +25,11 @@ except ImportError:
 import numpy as np
 from scipy.ndimage import median_filter
 from skimage.restoration import richardson_lucy
-from astropy.convolution import (convolve_fft, convolve, Gaussian2DKernel, 
-                                 Moffat2DKernel)
+from astropy.convolution import (convolve_fft, convolve, Gaussian2DKernel)
 from astropy.convolution import interpolate_replace_nans as interp_nan
 from astropy.stats import gaussian_fwhm_to_sigma
-from ..exlib import iuwt
-from ..conf import Progressbar
+from .iuwt import iuwt_decomposition
+from ..config import Progressbar
 
 
 def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
@@ -66,7 +65,7 @@ def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
 
     print('Decomposing frames with the Isotropic Undecimated Wavelet Transform')
     for i in Progressbar(range(n_frames)):
-        res = iuwt.iuwt_decomposition(cube[i], coeff, store_smoothed=False)
+        res = iuwt_decomposition(cube[i], coeff, store_smoothed=False)
         cube_coeff[i] = res
         for j in range(rel_coeff):
             cubeout[i] += cube_coeff[i][j]
@@ -384,7 +383,7 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     ----------
     array : numpy ndarray
         Input array, 2d frame.
-    mode : {'median', 'gauss', 'moff', 'psf'}, str optional
+    mode : {'median', 'gauss', 'psf'}, str optional
         Type of low-pass filtering.
     median_size : int, optional
         Size of the median box for filtering the low-pass median filter.

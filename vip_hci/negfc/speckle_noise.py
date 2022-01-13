@@ -13,7 +13,7 @@ from multiprocessing import cpu_count
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ..conf.utils_conf import pool_map, iterable #eval_func_tuple
+from ..config.utils_conf import pool_map, iterable #eval_func_tuple
 from ..metrics import cube_inject_companions 
 from .simplex_optim import firstguess_simplex
 from .simplex_fmerit import get_mu_and_sigma

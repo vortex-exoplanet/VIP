@@ -20,7 +20,7 @@ from ..preproc import (cube_crop_frames, frame_shift, frame_crop, cube_shift,
 from ..var import (frame_center, fit_2dgaussian, fit_2dairydisk, fit_2dmoffat,
                    get_circle, get_annulus_segments)
 from ..var.shapes import dist_matrix                   
-from ..conf.utils_conf import print_precision, check_array
+from ..config.utils_conf import print_precision, check_array
 
 
 def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,

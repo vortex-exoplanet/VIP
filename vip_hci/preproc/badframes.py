@@ -15,8 +15,8 @@ from matplotlib import pyplot as plt
 from photutils import DAOStarFinder
 from astropy.stats import sigma_clip
 from ..var import get_annulus_segments
-from ..conf import time_ini, timing, check_array
-from ..conf.utils_conf import vip_figsize
+from ..config import time_ini, timing, check_array
+from ..config.utils_conf import vip_figsize
 from ..stats import cube_basic_stats, cube_distance
 
 

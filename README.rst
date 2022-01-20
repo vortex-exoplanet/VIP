@@ -79,7 +79,7 @@ other resources such as test datasets are available in the
 ``VIP-extras`` `repository <https://github.com/vortex-exoplanet/VIP_extras>`_. 
 Alternatively, you can execute this repository on 
 `Binder <https://mybinder.org/v2/gh/vortex-exoplanet/VIP_extras/master>`_(in the tutorials directory). The first notebook for ADI processing can be visualized online with
-`nbviewer <http://nbviewer.jupyter.org/github/vortex-exoplanet/VIP_extras/blob/master/tutorials/01_adi_pre-postproc_fluxpos_ccs.ipynb>`_. 
+`nbviewer <http://nbviewer.jupyter.org/github/vortex-exoplanet/VIP_extras/blob/master/tutorials/01_quickstart.ipynb>`_. 
 If you are new to the Jupyter notebook application check out the `beginner's guide
 <https://jupyter-notebook-beginner-guide.readthedocs.io/en/latest/what_is_jupyter.html>`_.
 

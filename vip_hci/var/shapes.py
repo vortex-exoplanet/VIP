@@ -866,9 +866,10 @@ def reshape_matrix(array, y, x):
     return array.reshape(array.shape[0], y, x)
 
 
-def cart_to_pol(x, y, cx=0, cy=0):
+def cart_to_pol(x, y, cx=0, cy=0, north_convention=False):
     """
     Returns polar coordinates for input cartesian coordinates
+    
     
     Parameters
     ----------
@@ -876,16 +877,23 @@ def cart_to_pol(x, y, cx=0, cy=0):
         x coordinates with respect to the center
     y : float or numpy ndarray
         y coordinates with respect to the center
-
+    cx, cy : float or numpy ndarray
+        x, y coordinates of the center of the image to be considered for 
+        conversion to cartesian coordinates.
+    north_convention: bool
+        Whether to use angles measured from North up/East left (True), or
+        measured from the positive x axis (False).
+        
     Returns
     -------
     r, theta: floats or numpy ndarrays
-        radii and polar angles (trigonometric) corresponding to the input
-        x and y.
+        radii and polar angles corresponding to the input x and y.
     """
     
     r = dist(cy,cx,y,x)
     theta = np.rad2deg(np.arctan2(y-cy,x-cx))
+    if north_convention:
+        theta -= 90
     
     return r, theta
 

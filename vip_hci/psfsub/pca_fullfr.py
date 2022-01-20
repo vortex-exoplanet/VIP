@@ -338,6 +338,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
                                mask_rdi, cube_sig, **rot_options)
         pcs, recon, residuals_cube, residuals_cube_, frame = res_pca
 
+
     # ADI. Shape of cube: (n_adi_frames, y, x)
     elif cube_ref is None:
         res_pca = _adi_pca(cube, angle_list, ncomp, batch, source_xy, delta_rot,

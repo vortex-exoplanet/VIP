@@ -42,7 +42,7 @@ def example_dataset_adi():
 
     # create dataset object
     dataset = vip.Dataset(cube, angles=angles, psf=psf,
-                          px_scale=vip.conf.VLT_NACO['plsc'])
+                          px_scale=vip.config.VLT_NACO['plsc'])
 
     dataset.normalize_psf(size=20, force_odd=False)
 
@@ -88,7 +88,7 @@ def example_dataset_ifs():
 
     # create dataset object
     dataset = vip.Dataset(cube, angles=angles, psf=psf,
-                          px_scale=vip.conf.VLT_SPHERE_IFS['plsc'],
+                          px_scale=vip.config.VLT_SPHERE_IFS['plsc'],
                           wavelengths=wl)
 
     # crop
@@ -152,7 +152,7 @@ def example_dataset_rdi():
 
     # create dataset object
     dataset = vip.Dataset(cube, angles=angles, psf=psf, cuberef=cube_ref,
-                          px_scale=vip.conf.VLT_NACO['plsc'])
+                          px_scale=vip.config.VLT_NACO['plsc'])
 
     dataset.normalize_psf(size=20, force_odd=False)
 

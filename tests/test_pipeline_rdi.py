@@ -40,11 +40,11 @@ def injected_cube_position(example_dataset_rdi):
 
 # ====== algos
 def algo_pca(ds):
-    return vip.pca.pca(ds.cube, ds.angles, cube_ref=ds.cuberef, ncomp=30)
+    return vip.psfsub.pca(ds.cube, ds.angles, cube_ref=ds.cuberef, ncomp=30)
 
 
 def algo_pca_annular(ds):
-    return vip.pca.pca_annular(ds.cube, ds.angles, cube_ref=ds.cuberef, 
+    return vip.psfsub.pca_annular(ds.cube, ds.angles, cube_ref=ds.cuberef, 
                                ncomp=10)
 
 

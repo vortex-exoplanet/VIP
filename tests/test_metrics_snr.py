@@ -5,7 +5,7 @@ Tests for metrics/snr.py
 
 import copy
 from .helpers import fixture, np
-from vip_hci.pca import pca
+from vip_hci.psfsub import pca
 from vip_hci.hci_dataset import Frame
 from vip_hci.metrics import snrmap, frame_report
 

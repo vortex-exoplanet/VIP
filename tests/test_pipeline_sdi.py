@@ -67,33 +67,33 @@ def estimated_scal_factor(example_dataset_ifs):
 
 # ====== algos
 def algo_medsub(ds, sc):
-    return vip.medsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
+    return vip.psfsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
                                  scale_list=sc)
 
 
 def algo_medsub_annular(ds, sc):
-    return vip.medsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
+    return vip.psfsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
                                  scale_list=sc, mode='annular',
                                  radius_int=20)
 
 
 def algo_xloci(ds, sc):
-    return vip.leastsq.xloci(ds.cube, ds.angles, fwhm=ds.fwhm,
+    return vip.psfsub.xloci(ds.cube, ds.angles, fwhm=ds.fwhm,
                              scale_list=sc, radius_int=20)
 
 
 def algo_pca_single(ds, sc):
-    return vip.pca.pca(ds.cube, ds.angles, scale_list=sc,
+    return vip.psfsub.pca(ds.cube, ds.angles, scale_list=sc,
                        adimsdi='single', ncomp=10)
 
 
 def algo_pca_double(ds, sc):
-    return vip.pca.pca(ds.cube, ds.angles, scale_list=sc,
+    return vip.psfsub.pca(ds.cube, ds.angles, scale_list=sc,
                        adimsdi='double', ncomp=(1, 5))
 
 
 def algo_pca_annular(ds, sc):
-    return vip.pca.pca_annular(ds.cube, ds.angles, scale_list=sc,
+    return vip.psfsub.pca_annular(ds.cube, ds.angles, scale_list=sc,
                                radius_int=20, ncomp=(1, 1), delta_sep=0.1)
 
 

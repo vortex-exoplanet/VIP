@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
 from astropy.modeling import models
+import hciplot
 import vip_hci as vip
 from vip_hci.preproc import (cube_recenter_2dfit, cube_recenter_dft_upsampling,
                              cube_recenter_satspots, frame_shift)
@@ -95,7 +96,7 @@ def create_cube_with_satspots(n_frames=6, wh=31, star_fwhm=3, debug=False):
     cube = star + sat1 + sat2 + sat3 + sat4
 
     if debug:
-        vip.var.pp_subplots(cube[0])
+        hciplot.plot_frames(cube[0])
 
     return cube, [sat1_coords, sat2_coords, sat3_coords, sat4_coords]
 
@@ -118,12 +119,12 @@ def do_recenter(method, cube, shiftx, shifty, errormsg, mse=1e-2,
     unshiftx= rec_res[2]
 
     if debug:
-        vip.var.pp_subplots(cube, title="input cube")
-        vip.var.pp_subplots(shifted_cube, title="shifted cube")
-        vip.var.pp_subplots(recentered_cube, title="recentered cube")
+        hciplot.plot_frames(cube, title="input cube")
+        hciplot.plot_frames(shifted_cube, title="shifted cube")
+        hciplot.plot_frames(recentered_cube, title="recentered cube")
 
     if debug:
-        vip.var.pp_subplots(cube[1], recentered_cube[1], shifted_cube[1],
+        hciplot.plot_frames(cube[1], recentered_cube[1], shifted_cube[1],
                             label=["cube[1]", "recentered[1]", "shifted[1]"])
 
     if mse_skip_first:

@@ -78,8 +78,8 @@ def algo_medsub_annular(ds, sc):
 
 
 def algo_xloci(ds, sc):
-    return vip.psfsub.xloci(ds.cube, ds.angles, fwhm=ds.fwhm,
-                            scale_list=sc, radius_int=20, asize=12)
+    return vip.psfsub.xloci(ds.cube, ds.angles, fwhm=ds.fwhm, scale_list=sc, 
+                            radius_int=20, asize=8, adimsdi='double')
 
 
 def algo_pca_single(ds, sc):
@@ -89,7 +89,7 @@ def algo_pca_single(ds, sc):
 
 def algo_pca_double(ds, sc):
     return vip.psfsub.pca(ds.cube, ds.angles, scale_list=sc,
-                       adimsdi='double', ncomp=(1, 1))
+                          mask_center_px=20, adimsdi='double', ncomp=(1, 10))
 
 
 def algo_pca_annular(ds, sc):

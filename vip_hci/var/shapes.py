@@ -250,7 +250,10 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
         If set to True return also the coordinates of the bottom-left vertex.
     force : bool, optional
         Size and the size of the 2d array must be both even or odd. With
-        ``force`` set to True this condition can be avoided.
+        ``force`` set to False, the requested size is flexible (i.e. +1 can be
+        applied to requested crop size for its parity to match the input size).
+        If ``force`` set to True, the requested crop size is enforced, even if
+        parities do not match (warnings are raised!).
     verbose : bool optional
         If True, warning messages might be shown.
 
@@ -309,9 +312,9 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
     wing = (size - 1) / 2
 
     y0 = int(y - wing)
-    y1 = int(y + wing + 1)  # +1 cause endpoint is excluded when slicing
+    y1 = int(np.ceil(y + wing + 1)) #+1 cause endpoint is excluded when slicing
     x0 = int(x - wing)
-    x1 = int(x + wing + 1)
+    x1 = int(np.ceil(x + wing + 1)) #ceil to match convention for even input sz
 
     if y0 < 0 or x0 < 0 or y1 > size_init_y or x1 > size_init_x:
         # assuming square frames

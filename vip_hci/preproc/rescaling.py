@@ -356,7 +356,7 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
         siz = max(y_in, x_in)
         if frame.shape[0] > siz:
             frame = get_square(frame, siz, cy, cx)
-        if full_output:
+        if full_output and cube.shape[-1]>siz:
             n_z = cube.shape[0]
             array_old = cube.copy()
             cube = np.zeros([n_z, siz, siz])

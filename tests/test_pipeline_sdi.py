@@ -95,7 +95,7 @@ def algo_pca_double(ds, sc):
 
 def algo_pca_annular(ds, sc):
     return vip.psfsub.pca_annular(ds.cube, ds.angles, scale_list=sc,
-                                  ncomp=(1, 1), delta_sep=0.1)
+                                  radius_int=10, ncomp=(1, 1), delta_sep=0.1)
 
 
 # ====== SNR map

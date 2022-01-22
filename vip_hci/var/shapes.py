@@ -312,9 +312,9 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
     wing = (size - 1) / 2
 
     y0 = int(y - wing)
-    y1 = int(np.ceil(y + wing + 1)) #+1 cause endpoint is excluded when slicing
+    y1 = int(y + wing + 1) # +1 cause endpoint is excluded when slicing
     x0 = int(x - wing)
-    x1 = int(np.ceil(x + wing + 1)) #ceil to match convention for even input sz
+    x1 = int(x + wing + 1)
 
     if y0 < 0 or x0 < 0 or y1 > size_init_y or x1 > size_init_x:
         # assuming square frames

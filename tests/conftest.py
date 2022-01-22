@@ -133,7 +133,8 @@ def example_dataset_rdi():
     psf = vip.fits.open_fits(f2)
     # creating a variable flux screen
     scr = vip.var.create_synth_psf('moff', (101, 101), fwhm=50)
-    scrcu = np.array([scr * i for i in np.linspace(-1e2, 1e2, num=31)])
+    scrcu = np.array([scr * i for i in np.linspace(-1e2, 1e2, num=31)], 
+                     dtype=np.float32)
     
     # OLD: scaling ?!
     # upscaling (1.2) and taking half of the frames, reversing order

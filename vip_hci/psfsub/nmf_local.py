@@ -308,7 +308,7 @@ def do_nmf_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
     #     solver = 'mu'
     # else:
     #     solver = 'cd'
-    mod = NMF(n_components=ncomp, alpha=0, solver=solver, init=init_svd, 
+    mod = NMF(n_components=ncomp, solver=solver, init=init_svd, 
               max_iter=max_iter, random_state=random_state, **kwargs)  
 
     curr_frame = matrix[frame]  # current frame

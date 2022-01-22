@@ -100,7 +100,10 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
         Coordinates of the center of the subframe.
     force : bool, optional
         Size and the size of the 2d array must be both even or odd. With
-        ``force`` set to True this condition can be avoided.
+        ``force`` set to False, the requested size is flexible (i.e. +1 can be
+        applied to requested crop size for its parity to match the input size).
+        If ``force`` set to True, the requested crop size is enforced, even if
+        parities do not match (warnings are raised!).
     verbose : bool optional
         If True, a message of completion is shown.
 

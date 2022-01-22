@@ -1304,8 +1304,6 @@ def _centroid_2d2g_frame(cube, frnum, size, pos_y, pos_x, debug=False, fwhm=4,
     """
 
     size = min(cube[frnum].shape[0],cube[frnum].shape[1],size)
-    #sub_image, y1, x1 = get_square_robust(cube[frnum], size=size, y=pos_y, 
-    #                                      x=pos_x, position=True)
     if isinstance(params_2g,dict):
         fwhm_neg = params_2g.get('fwhm_neg', 0.8*fwhm)
         fwhm_pos = params_2g.get('fwhm_pos', 2*fwhm)

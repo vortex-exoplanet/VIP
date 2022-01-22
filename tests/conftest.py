@@ -42,7 +42,7 @@ def example_dataset_adi():
 
     # create dataset object
     dataset = vip.Dataset(cube, angles=angles, psf=psf,
-                          px_scale=vip.conf.VLT_NACO['plsc'])
+                          px_scale=vip.config.VLT_NACO['plsc'])
 
     dataset.normalize_psf(size=20, force_odd=False)
 
@@ -88,7 +88,7 @@ def example_dataset_ifs():
 
     # create dataset object
     dataset = vip.Dataset(cube, angles=angles, psf=psf,
-                          px_scale=vip.conf.VLT_SPHERE_IFS['plsc'],
+                          px_scale=vip.config.VLT_SPHERE_IFS['plsc'],
                           wavelengths=wl)
 
     # crop
@@ -133,7 +133,8 @@ def example_dataset_rdi():
     psf = vip.fits.open_fits(f2)
     # creating a variable flux screen
     scr = vip.var.create_synth_psf('moff', (101, 101), fwhm=50)
-    scrcu = np.array([scr * i for i in np.linspace(-1e2, 1e2, num=31)])
+    scrcu = np.array([scr * i for i in np.linspace(-1e2, 1e2, num=31)], 
+                     dtype=np.float32)
     
     # OLD: scaling ?!
     # upscaling (1.2) and taking half of the frames, reversing order
@@ -152,7 +153,7 @@ def example_dataset_rdi():
 
     # create dataset object
     dataset = vip.Dataset(cube, angles=angles, psf=psf, cuberef=cube_ref,
-                          px_scale=vip.conf.VLT_NACO['plsc'])
+                          px_scale=vip.config.VLT_NACO['plsc'])
 
     dataset.normalize_psf(size=20, force_odd=False)
 

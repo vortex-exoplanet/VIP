@@ -415,7 +415,7 @@ def _leastsq_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
 
     # Exploiting spectral variability (radial movement)
     fwhm = int(np.round(np.mean(fwhm)))
-    annulus_width = int(np.ceil(asize * fwhm))  # equal size for all annuli
+    annulus_width = int(np.ceil(asize))  # equal size for all annuli
     n_annuli = int(np.floor((y_in / 2 - radius_int) / annulus_width))
 
     if isinstance(n_segments, int):

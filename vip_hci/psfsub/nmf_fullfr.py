@@ -324,7 +324,7 @@ def _project_subtract(matrix, matrix_ref, ncomp, scaling, mask_center_px,
     #     solver = 'mu'
     # else:
     #     solver = 'cd'
-    mod = NMF(n_components=ncomp, alpha=0, solver=solver, init=init_svd, 
+    mod = NMF(n_components=ncomp, solver=solver, init=init_svd, 
               max_iter=max_iter, random_state=random_state, **kwargs)   
     # a rotation threshold is used (frames are processed one by one)
     if indices is not None and frame is not None:

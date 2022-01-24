@@ -8,9 +8,8 @@ Subpackage ``var`` has helping functions such as:
 - Q/U to Qphi/Uphi image conversion (for polarimetric data).
 """
 
-
+from .coords import *
 from .filters import *
 from .fit_2d import *
 from .iuwt import *
 from .shapes import *
-from .polar import *

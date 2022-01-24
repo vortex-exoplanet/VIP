@@ -9,7 +9,7 @@ Subpackage ``var`` has helping functions such as:
 """
 
 from .coords import *
-from .filters import *
+from .shapes import *
 from .fit_2d import *
 from .iuwt import *
-from .shapes import *
+from .filters import *

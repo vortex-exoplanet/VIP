@@ -18,8 +18,7 @@ import photutils
 from ..preproc import (cube_crop_frames, frame_shift, frame_crop, cube_shift,
                        frame_rotate)
 from ..var import (frame_center, fit_2dgaussian, fit_2dairydisk, fit_2dmoffat,
-                   get_circle, get_annulus_segments)
-from ..var.shapes import dist_matrix                   
+                   get_circle, get_annulus_segments, dist_matrix)                  
 from ..config.utils_conf import print_precision, check_array
 
 

@@ -26,7 +26,7 @@ import numpy as np
 
 from ..var.filters import frame_filter_highpass, cube_filter_highpass
 from ..config.utils_conf import pool_map, iterable
-from ..var.shapes import dist_matrix
+from ..var import dist_matrix
 
 from .utils_andro import (calc_psf_shift_subpix, fitaffine, idl_round, 
                           idl_where, robust_std, subpixel_shift)

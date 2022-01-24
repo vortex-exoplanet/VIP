@@ -9,6 +9,14 @@ vip\_hci.var package
 Submodules
 ----------
 
+vip\_hci.var.coords module
+--------------------------
+
+.. automodule:: vip_hci.var.coords
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    
 vip\_hci.var.filters module
 ---------------------------
 
@@ -32,5 +40,11 @@ vip\_hci.var.shapes module
     :members:
     :undoc-members:
     :show-inheritance:
+    
+vip\_hci.var.iuwt module
+---------------------------
 
-
+.. automodule:: vip_hci.var.iuwt
+    :members:
+    :undoc-members:
+    :show-inheritance:

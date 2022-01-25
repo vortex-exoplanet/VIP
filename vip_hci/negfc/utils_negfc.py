@@ -10,8 +10,6 @@ __all__ = ['cube_planet_free']
 
 import numpy as np
 from ..metrics import cube_inject_companions
-import math
-from matplotlib.pyplot import plot, xlim, ylim, axes, gca, show
 
 
 def cube_planet_free(planet_parameter, cube, angs, psfn, plsc, imlib='vip-fft',

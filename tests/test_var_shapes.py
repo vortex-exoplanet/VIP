@@ -6,10 +6,9 @@ Tests for var/shapes.py
 __author__ = "Ralf Farkas"
 
 from .helpers import aarc, np
-from vip_hci.var.shapes import (frame_center, mask_circle, get_square, 
-                                get_circle, get_annulus_segments, dist,
-                                matrix_scaling, reshape_matrix, get_ell_annulus,
-                                get_ellipse)
+from vip_hci.var import (frame_center, mask_circle, get_square, get_circle, 
+                         get_annulus_segments, dist, matrix_scaling, 
+                         reshape_matrix, get_ell_annulus, get_ellipse)
 
 
 PRETTY_ODD = np.array([

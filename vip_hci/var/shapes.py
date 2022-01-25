@@ -5,10 +5,7 @@ Module with various functions to create shapes, annuli and segments.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['dist',
-           'dist_matrix',
-           'frame_center',
-           'get_square',
+__all__ = ['get_square',
            'get_circle',
            'get_ellipse',
            'get_annulus_segments',
@@ -18,15 +15,14 @@ __all__ = ['dist',
            'create_ringed_spider_mask',
            'matrix_scaling',
            'prepare_matrix',
-           'reshape_matrix',
-           'cart_to_pol',
-           'pol_to_cart']
+           'reshape_matrix']
 
 import numpy as np
 from skimage.draw import polygon
 from skimage.draw import disk
 from sklearn.preprocessing import scale
 
+from .coords import frame_center
 from ..config.utils_conf import frame_or_shape
 
 
@@ -149,85 +145,6 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
     mask[rr4, cc4] = 0
     
     return mask
-
-
-def dist(yc, xc, y1, x1):
-    """
-    Return the Euclidean distance between two points, or between an array 
-    of positions and a point.
-    """
-    return np.sqrt(np.power(yc-y1,2) + np.power(xc-x1,2))
-
-
-def dist_matrix(n, cx=None, cy=None):
-    """
-    Create matrix with euclidian distances from a reference point (cx, cy).
-
-    Parameters
-    ----------
-    n : int
-        output image shape is (n, n)
-    cx,cy : float
-        reference point. Defaults to the center.
-
-    Returns
-    -------
-    im : ndarray with shape (n, n)
-
-    Notes
-    -----
-    This is a replacement for ANDROMEDA's DISTC.
-
-    """
-    if cx is None:
-        cx = (n - 1) / 2
-    if cy is None:
-        cy = (n - 1) / 2
-
-    yy, xx = np.ogrid[:n, :n]
-    return np.sqrt((yy-cy)**2 + (xx-cx)**2)
-
-
-def frame_center(array, verbose=False):
-    """
-    Return the coordinates y,x of the frame(s) center.
-    If odd: dim/2-0.5
-    If even: dim/2
-
-    Parameters
-    ----------
-    array : 2d/3d/4d numpy ndarray
-        Frame or cube.
-    verbose : bool optional
-        If True the center coordinates are printed out.
-
-    Returns
-    -------
-    cy, cx : int
-        Coordinates of the center.
-
-    """
-    if array.ndim == 2:
-        shape = array.shape
-    elif array.ndim == 3:
-        shape = array[0].shape
-    elif array.ndim == 4:
-        shape = array[0, 0].shape
-    else:
-        raise ValueError('`array` is not a 2d, 3d or 4d array')
-
-    cy = shape[0] / 2
-    cx = shape[1] / 2
-
-    if shape[0]%2:
-        cy-=0.5
-    if shape[1]%2:
-        cx-=0.5        
-
-    if verbose:
-        print('Center px coordinates at x,y = ({}, {})'.format(cx, cy))  
-    
-    return int(cy), int(cx)
 
 
 def get_square(array, size, y, x, position=False, force=False, verbose=True):
@@ -867,61 +784,3 @@ def reshape_matrix(array, y, x):
 
     """
     return array.reshape(array.shape[0], y, x)
-
-
-def cart_to_pol(x, y, cx=0, cy=0, north_convention=False):
-    """
-    Returns polar coordinates for input cartesian coordinates
-    
-    
-    Parameters
-    ----------
-    x : float or numpy ndarray
-        x coordinates with respect to the center
-    y : float or numpy ndarray
-        y coordinates with respect to the center
-    cx, cy : float or numpy ndarray
-        x, y coordinates of the center of the image to be considered for 
-        conversion to cartesian coordinates.
-    north_convention: bool
-        Whether to use angles measured from North up/East left (True), or
-        measured from the positive x axis (False).
-        
-    Returns
-    -------
-    r, theta: floats or numpy ndarrays
-        radii and polar angles corresponding to the input x and y.
-    """
-    
-    r = dist(cy,cx,y,x)
-    theta = np.rad2deg(np.arctan2(y-cy,x-cx))
-    if north_convention:
-        theta -= 90
-    
-    return r, theta
-
-
-def pol_to_cart(r, theta, cx=0, cy=0):
-    """
-    Returns cartesian coordinates for input polar coordinates
-    
-    Parameters
-    ----------
-    r, theta : float or numpy ndarray
-        radii and polar angles (trigonometric) corresponding to the input
-        x and y.
-    cx, cy : float or numpy ndarray
-        x, y coordinates of the center of the image to be considered for 
-        conversion to cartesian coordinates.
-
-    Returns
-    -------
-    x, y: floats or numpy ndarrays
-        x, y coordinates corresponding to input radii and polar (trigonotetric)
-        angles.
-    """
-    
-    x = cx+r*np.cos(np.deg2rad(theta))
-    y = cy+r*np.sin(np.deg2rad(theta))
-    
-    return x, y

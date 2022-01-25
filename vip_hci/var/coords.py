@@ -10,7 +10,7 @@ __all__ = ['dist',
            'frame_center',
            'cart_to_pol',
            'pol_to_cart',
-           'radial_to_eq',
+           'pol_to_eq',
            'QU_to_QUphi']
 
 import math
@@ -98,7 +98,7 @@ def frame_center(array, verbose=False):
     return int(cy), int(cx)
 
 
-def cart_to_pol(x, y, cx=0, cy=0, north_convention=False):
+def cart_to_pol(x, y, cx=0, cy=0, astro_convention=False):
     """
     Returns polar coordinates for input cartesian coordinates
     
@@ -112,9 +112,9 @@ def cart_to_pol(x, y, cx=0, cy=0, north_convention=False):
     cx, cy : float or numpy ndarray
         x, y coordinates of the center of the image to be considered for 
         conversion to cartesian coordinates.
-    north_convention: bool
+    astro_convention: bool
         Whether to use angles measured from North up/East left (True), or
-        measured from the positive x axis (False).
+        measured from the positive x axis (False). 
         
     Returns
     -------
@@ -124,54 +124,89 @@ def cart_to_pol(x, y, cx=0, cy=0, north_convention=False):
     
     r = dist(cy,cx,y,x)
     theta = np.rad2deg(np.arctan2(y-cy,x-cx))
-    if north_convention:
+    if astro_convention:
         theta -= 90
     
     return r, theta
 
 
-def pol_to_cart(r, theta, cx=0, cy=0):
+def pol_to_cart(r, theta, r_err=0, theta_err=0, cx=0, cy=0, 
+                astro_convention=False):
     """
-    Returns cartesian coordinates for input polar coordinates
+    Returns cartesian coordinates for input polar coordinates, with error
+    propagation.
     
     Parameters
     ----------
     r, theta : float or numpy ndarray
-        radii and polar angles (trigonometric) corresponding to the input
-        x and y.
+        radii and position angles to be converted to cartesian coords x and y.
+    r_err : float, optional
+        Error on radial separation. Default is 0
+    theta_err : float, optional
+        Error on position angle, in degrees. Default is 0
     cx, cy : float or numpy ndarray
-        x, y coordinates of the center of the image to be considered for 
-        conversion to cartesian coordinates.
+        x, y coordinates of the center to be considered for conversion to 
+        cartesian coordinates.
+    astro_convention: bool
+        Whether to use angles measured from North up/East left (True), or
+        measured from the positive x axis (False). If True, the x axis is 
+        reversed to match positive axis pointing East (left).
 
     Returns
     -------
     x, y: floats or numpy ndarrays
-        x, y coordinates corresponding to input radii and polar (trigonotetric)
-        angles.
+        x, y positions corresponding to input radii and position angles.
+    dx, dy: floats or numpy arrays
+        dx, dy uncertainties on positions propagated from input uncertainties 
+        on r and theta. 
     """
     
-    x = cx+r*np.cos(np.deg2rad(theta))
-    y = cy+r*np.sin(np.deg2rad(theta))
+    if astro_convention:
+        theta += 90
+        sign = -1
+    else:
+        sign = 1
     
-    return x, y
+    theta = np.deg2rad(theta)
+    theta_err = np.deg2rad(theta_err)
+    
+    x = cx+sign*r*np.cos(theta)
+    y = cy+r*np.sin(theta)
+
+    t1x = np.cos(theta)**2 * r_err**2
+    t2x = r**2 * np.sin(theta)**2 * theta_err**2
+    t1y = np.sin(theta)**2 * r_err**2
+    t2y = r**2 * np.cos(theta)**2 * theta_err**2
+    
+    dx_err = np.sqrt(t1x + t2x)
+    dy_err = np.sqrt(t1y + t2y)
+    
+    if r_err !=0 or theta_err != 0:
+        return x, y, dx_err, dy_err
+    else:
+        return x, y
 
 
-def radial_to_eq(r=1, t=0, rError=0, tError=0, plot=False):
+def pol_to_eq(r, t, rError=0, tError=0, astro_convention=False, plot=False):
     """ 
-    Convert the position given in (r,t) into \delta RA and \delta DEC, as 
-    well as the corresponding uncertainties. 
-    t = 0 deg (resp. 90 deg) points toward North (resp. East).   
+    Converts a position (r,t) given in polar coordinates into \delta RA and 
+    \delta DEC (equatorial coordinates), with error propagation. 
+    Note: regardless of the assumption on input angle t (see astro_convention),
+    the output RA is counted positive towards left.
 
     Parameters
     ----------
     r: float
         The radial coordinate.
     t: float
-        The angular coordinate.
-    rError: float
+        The angular coordinate in degrees
+    rError: float, optional
         The error bar related to r.
-    tError: float
-        The error bar related to t.
+    tError: float, optional
+        The error bar related to t, in deg.
+    astro_convention: bool, optional
+        Whether the input angle t is assumed to be measured from North up, 
+        East left (True), or measured from the positive x axis (False).
     plot: boolean, optional
         If True, a figure illustrating the error ellipse is displayed.
         
@@ -180,7 +215,11 @@ def radial_to_eq(r=1, t=0, rError=0, tError=0, plot=False):
     out : tuple
         ((RA, RA error), (DEC, DEC error))
                               
-    """  
+    """
+    
+    if not astro_convention:
+        t -= 90
+    
     ra = (r * np.sin(math.radians(t)))
     dec = (r * np.cos(math.radians(t)))   
     u, v = (ra, dec)

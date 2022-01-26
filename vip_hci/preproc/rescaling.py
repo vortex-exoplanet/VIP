@@ -152,6 +152,7 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
         if mask is not None:
             mask = zoom(mask, zoom=(scale_y, scale_x), order=order)
         array_resc = zoom(array, zoom=(scale_y, scale_x), order=order)
+        # For flux conservation:
         array_resc /= scale_y * scale_x
         
     elif imlib == 'opencv':
@@ -177,6 +178,8 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
             
         array_resc = cv2.resize(array.astype(np.float32), (0, 0), fx=scale_x,
                                 fy=scale_y, interpolation=intp)
+        
+        # For flux conservation:
         array_resc /= scale_y * scale_x
 
     elif imlib == 'vip-fft':
@@ -212,6 +215,8 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
             array = np.zeros([array_resc.shape[0]-1,array_resc.shape[1]-1])
             array = array_resc[1:,1:]
             array_resc = array
+        
+        #Note: FFT preserves flux - no need to scale flux separately
         
     else:
         raise ValueError('Image transformation library not recognized')
@@ -476,6 +481,7 @@ def frame_rescaling(array, ref_xy=None, scale=1.0, imlib='vip-fft',
                                                         'scaling': scale,
                                                         'scale_y': scale_y,
                                                         'scale_x': scale_x})
+        array_out /= scale_y * scale_x
 
     elif imlib == 'opencv':
         if no_opencv:
@@ -498,6 +504,7 @@ def frame_rescaling(array, ref_xy=None, scale=1.0, imlib='vip-fft',
                       [0, scale_y, (1. - scale_y) * ref_xy[1]]])
         array_out = cv2.warpAffine(array.astype(np.float32), M, outshape,
                                    flags=intp)
+        array_out /= scale_y * scale_x
 
     elif imlib == 'vip-fft':
         if scale_x != scale_y:
@@ -540,7 +547,7 @@ def frame_rescaling(array, ref_xy=None, scale=1.0, imlib='vip-fft',
     if mask is not None:
         array_out[mask >= 0.5] = np.nan
 
-    array_out /= scale_y * scale_x
+    
     return array_out
 
 

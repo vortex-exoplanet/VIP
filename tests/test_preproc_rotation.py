@@ -20,8 +20,8 @@ CUBE_odd = np.ones((4, 81, 81))
              [
                  ("vip-fft", None, 'constant'),
                  ("opencv", "lanczos4", 'edge'),
-                 ("skimage", "biquartic", 'constant'),
-                 ("skimage", "biquintic", 'edge'),
+                 ("skimage", "biquartic", 'symmetric'),
+                 ("skimage", "biquintic", 'wrap'),
              ])
 def test_cube_derotate(imlib, interpolation, border_mode):
     """

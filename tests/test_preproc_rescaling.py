@@ -78,7 +78,7 @@ def test_cube_rescaling_wavelengths(imlib, interpolation):
                                       inverse=True, x_in=100, y_in=100)
     cube2, med2, y2, x2, cy2, cx2 = res2
 
-    aarc(cube2, CUBE)
+    aarc(cube2, CUBE, 1e-2, 1e-2)
 
 
 def test_check_scal_vector():

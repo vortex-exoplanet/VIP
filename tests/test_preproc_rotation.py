@@ -16,12 +16,13 @@ CUBE_even = np.ones((4, 80, 80))
 CUBE_odd = np.ones((4, 81, 81))
 
 
-@parametrize("imlib,interpolation,border_mode",
+@parametrize("imlib,interpolation,border_mode,edge_blend",
              [
-                 ("vip-fft", None, 'constant'),
-                 ("opencv", "lanczos4", 'edge'),
-                 ("skimage", "biquartic", 'symmetric'),
-                 ("skimage", "biquintic", 'wrap'),
+                 ("vip-fft", None, 'constant', None),
+                 ("vip-fft", None, 'reflect', 'noise'),
+                 ("opencv", "lanczos4", 'edge', 'interp+noise'),
+                 ("skimage", "biquartic", 'symmetric', 'interp+noise'),
+                 ("skimage", "biquintic", 'wrap', 'noise'),
              ])
 def test_cube_derotate(imlib, interpolation, border_mode):
     """
@@ -54,7 +55,7 @@ def test_cube_derotate(imlib, interpolation, border_mode):
               [
                   ("vip-fft", None, 'reflect', 'interp+noise', True),
                   ("opencv", "lanczos4", 'edge', 'interp', False),
-                  ("skimage", "bicubic", 'reflect', 'noise', True),
+                  ("skimage", "bicubic", 'reflect', 'interp', True),
               ])   
 def test_cube_derotate_mask(imlib, interpolation, border_mode, edge_blend,
                             interp_zeros):
@@ -116,7 +117,7 @@ def test_define_annuli():
                 (1, None, 0, 0, 10, [3,4,5,6]),
                 (2, None, 0, 0, 10, [4,5,6]),
                 (3, None, 0, 0, 10, [0,1,5,6]),
-                (3, None, 1, 0, 10, [1,5]),
+                (3, None, 1, 0, 10, (2,4)),
                 (3, 2, 0, 0, 10, [1, 5]),
                 (3, None, 0, 1, 3, [1, 5,6])])
 def test_find_indices_adi(frame, nframes, out_closest, truncate, max_frames, 

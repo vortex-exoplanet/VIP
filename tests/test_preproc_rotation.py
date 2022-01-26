@@ -20,8 +20,8 @@ CUBE_odd = np.ones((4, 81, 81))
              [
                  ("vip-fft", None, 'constant'),
                  ("opencv", "lanczos4", 'edge'),
-                 ("skimage", "biquartic", 'symmetric'),
-                 ("skimage", "biquintic", 'wrap'),
+                 ("skimage", "biquartic", 'constant'),
+                 ("skimage", "biquintic", 'edge'),
              ])
 def test_cube_derotate(imlib, interpolation, border_mode):
     """
@@ -36,7 +36,7 @@ def test_cube_derotate(imlib, interpolation, border_mode):
     # to avoid differences due to edge effects
     res = cube_crop_frames(res, 50)
     CUBE_test = cube_crop_frames(CUBE_even, 50)
-    aarc(res, CUBE_test, rtol=1e-2, atol=1e-2)
+    aarc(res, CUBE_test, rtol=1e-1, atol=1e-1)
     
     # odd
     res = CUBE_odd.copy()
@@ -47,7 +47,7 @@ def test_cube_derotate(imlib, interpolation, border_mode):
     # to avoid differences due to edge effects
     res = cube_crop_frames(res, 51)
     CUBE_test = cube_crop_frames(CUBE_odd, 51)
-    aarc(res, CUBE_test, rtol=1e-2, atol=1e-2)
+    aarc(res, CUBE_test, rtol=1e-1, atol=1e-1)
     
     
 @parametrize("imlib,interpolation,border_mode,edge_blend,interp_zeros",
@@ -64,7 +64,7 @@ def test_cube_derotate_mask(imlib, interpolation, border_mode, edge_blend,
     # mask with nans
     CUBE_odd_mask = mask_circle(CUBE_odd, 4, np.nan)
     res = CUBE_odd_mask.copy()
-    angles = np.array([180,120,60])
+    angles = np.array([180,120,90,60])
     for i in range(6): # yields 360deg multiples for all derotation angles
         res = cube_derotate(res, angles, imlib=imlib, nproc=1+(i%2),
                             mask_val=np.nan, edge_blend=edge_blend, 
@@ -78,7 +78,7 @@ def test_cube_derotate_mask(imlib, interpolation, border_mode, edge_blend,
     # mask with zeros
     CUBE_odd_mask = mask_circle(CUBE_odd, 4, np.nan)
     res = CUBE_odd_mask.copy()
-    angles = np.array([180,120,60])
+    angles = np.array([180,120,90,60])
     for i in range(6): # yields 360deg multiples for all derotation angles
         res = cube_derotate(res, angles, imlib=imlib, nproc=1+(i%2),
                             mask_val=np.nan, edge_blend=edge_blend, 
@@ -112,11 +112,11 @@ def test_define_annuli():
 
 @parametrize("frame, nframes, out_closest, truncate, max_frames, truth",
              [
-                (0, None, 0, 0, 10, [2,3,4,5,6]),
+                (0, None, 0, 0, 10, [3,4,5,6]),
                 (1, None, 0, 0, 10, [3,4,5,6]),
-                (2, None, 1, 0, 10, [0,4]),
-                (2, None, 0, 0, 10, [0,4,5,6]),
+                (2, None, 0, 0, 10, [4,5,6]),
                 (3, None, 0, 0, 10, [0,1,5,6]),
+                (3, None, 1, 0, 10, [1,5]),
                 (3, 2, 0, 0, 10, [1, 5]),
                 (3, None, 0, 1, 3, [1, 5,6])])
 def test_find_indices_adi(frame, nframes, out_closest, truncate, max_frames, 

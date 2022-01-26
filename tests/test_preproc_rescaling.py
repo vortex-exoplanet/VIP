@@ -17,7 +17,7 @@ CUBE = np.ones((10, 100, 100))
 FRAME = np.zeros((100, 100))
 
 
-@parametrize("imlib", ["ndimage", "opencv"])
+@parametrize("imlib", ["vip-fft", "ndimage", "opencv"])
 def test_cube_px_resampling(imlib):
 
     # === enlargen ===
@@ -31,7 +31,7 @@ def test_cube_px_resampling(imlib):
     assert res.shape == (10, 50, 50)
 
 
-@parametrize("imlib", ["ndimage", "opencv"])
+@parametrize("imlib", ["vip-fft", "ndimage", "opencv"])
 def test_frame_px_resampling(imlib):
     """
 
@@ -53,6 +53,7 @@ def test_frame_px_resampling(imlib):
 
 @parametrize("imlib,interpolation",
              [
+                 ("vip-fft", None),
                  ("opencv", "lanczos4"),
                  ("ndimage", "bicubic"),
              ])

@@ -208,11 +208,12 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
     
     if cxy is None:
         cy, cx = frame_center(array_prep)
-    elif imlib!='opencv':
-        msg = "Only 'opencv' imlib allows for different center to be provided"
-        raise ValueError(msg)
     else:
         cx, cy = cxy
+        if imlib=='vip-fft' and (cy, cx) != frame_center(array_prep):
+            msg = "'vip-fft'imlib does not yet allow for custom center to be "
+            msg+= " provided "
+            raise ValueError(msg)
 
     if imlib == 'vip-fft':
         array_out = rotate_fft(array_prep, angle)

@@ -154,15 +154,18 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
     # expected output size
     out_sz = int(array.shape[0]*scale_y), int(array.shape[1]*scale_x)
     
-    if not odd and keep_center:
-        # prevents a potential centered star to get decentered
-        array_odd = np.zeros([array.shape[0]+1,array.shape[1]+1])
-        array_odd[:-1,:-1] = array.copy()
-        array_odd[-1,:-1] = array[-1].copy()
-        array_odd[:-1,-1] = array[:,-1].copy()
-        array_odd[-1,-1] = np.mean([array[-1,-2],array[-2,-1],array[-2,-2]])
-        array = array_odd.copy()
-        
+    if not odd and keep_center and imlib != 'vip-fft':
+        def _make_odd(img):
+            img_odd = np.zeros([img.shape[0]+1,img.shape[1]+1])
+            img_odd[:-1,:-1] = img.copy()
+            img_odd[-1,:-1] = img[-1].copy()
+            img_odd[:-1,-1] = img[:,-1].copy()
+            img_odd[-1,-1] = np.mean([img[-1,-2],img[-2,-1],img[-2,-2]])
+            return img_odd
+        array = _make_odd(array)
+        if mask is not None:
+            mask = _make_odd(mask)
+            
 
     if imlib == 'ndimage':
         if interpolation == 'nearneig':
@@ -263,7 +266,8 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
     if array_resc.shape != out_sz:
         if out_sz[0] == out_sz[1]:
             if out_sz[0]<array_resc.shape[0]:
-                array_resc = frame_crop(array_resc, out_sz[0], force=True)
+                array_resc = frame_crop(array_resc, out_sz[0], force=True,
+                                        verbose=False)
         else:
             # crop manually along each axis
             cy, cx = frame_center(array_resc)

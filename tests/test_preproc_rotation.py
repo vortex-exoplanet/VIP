@@ -7,7 +7,7 @@ __author__ = "Valentin Christiaens"
 
 from .helpers import np, aarc, parametrize
 from vip_hci.preproc.derotation import (cube_derotate, _define_annuli, 
-                                      _find_indices_adi)
+                                        _find_indices_adi)
 from vip_hci.preproc import cube_crop_frames
 from vip_hci.var import mask_circle
 
@@ -32,7 +32,8 @@ def test_cube_derotate(imlib, interpolation, border_mode, edge_blend):
     res = CUBE_even.copy()
     angles = np.array([120,90,60,45])
     for i in range(24): # yields 360deg multiples for all derotation angles
-        res = cube_derotate(res, angles, imlib=imlib, nproc=1+(i%2))
+        res = cube_derotate(res, angles, imlib=imlib, border_mode=border_mode, 
+                            edge_blend=edge_blend, nproc=1+(i%2))
     # just consider cropped image for evaluation
     # to avoid differences due to edge effects
     res = cube_crop_frames(res, 50)
@@ -43,7 +44,8 @@ def test_cube_derotate(imlib, interpolation, border_mode, edge_blend):
     res = CUBE_odd.copy()
     angles = np.array([120,90,60,45])
     for i in range(24): # yields 360deg multiples for all derotation angles
-        res = cube_derotate(res, angles, imlib=imlib, nproc=1+(i%2))
+        res = cube_derotate(res, angles, imlib=imlib, border_mode=border_mode, 
+                            edge_blend=edge_blend, nproc=1+(i%2))
     # just consider cropped image for evaluation
     # to avoid differences due to edge effects
     res = cube_crop_frames(res, 51)
@@ -82,7 +84,7 @@ def test_cube_derotate_mask(imlib, interpolation, border_mode, edge_blend,
     angles = np.array([180,120,90,60])
     for i in range(6): # yields 360deg multiples for all derotation angles
         res = cube_derotate(res, angles, imlib=imlib, nproc=1+(i%2),
-                            mask_val=np.nan, edge_blend=edge_blend, 
+                            mask_val=0, edge_blend=edge_blend, 
                             interp_zeros=interp_zeros)
     # just consider cropped image for evaluation
     # to avoid differences due to edge effects

@@ -24,7 +24,7 @@ CUBE_odd = np.ones((4, 81, 81))
                  ("skimage", "biquartic", 'symmetric', 'interp+noise'),
                  ("skimage", "biquintic", 'wrap', 'noise'),
              ])
-def test_cube_derotate(imlib, interpolation, border_mode):
+def test_cube_derotate(imlib, interpolation, border_mode, edge_blend):
     """
     Note: this calls most other routines defined in rotation.py
     """

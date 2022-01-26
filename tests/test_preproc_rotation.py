@@ -6,7 +6,7 @@ Tests for preproc/rescaling.py
 __author__ = "Valentin Christiaens"
 
 from .helpers import np, aarc, parametrize
-from vip_hci.preproc.rotation import (cube_derotate, _define_annuli, 
+from vip_hci.preproc.derotation import (cube_derotate, _define_annuli, 
                                       _find_indices_adi)
 from vip_hci.preproc import cube_crop_frames
 from vip_hci.var import mask_circle

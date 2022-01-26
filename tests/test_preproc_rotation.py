@@ -71,7 +71,7 @@ def test_cube_derotate_mask(imlib, interpolation, border_mode, edge_blend,
     for i in range(6): # yields 360deg multiples for all derotation angles
         res = cube_derotate(res, angles, imlib=imlib, nproc=1+(i%2),
                             mask_val=np.nan, edge_blend=edge_blend, 
-                            interp_zeros=interp_zeros)
+                            interp_zeros=False)
     # just consider cropped image for evaluation
     # to avoid differences due to edge effects
     res = cube_crop_frames(res, 51)
@@ -79,7 +79,7 @@ def test_cube_derotate_mask(imlib, interpolation, border_mode, edge_blend,
     aarc(res, CUBE_test, rtol=1e-1, atol=1e-1)
     
     # mask with zeros
-    CUBE_odd_mask = mask_circle(CUBE_odd, 4, np.nan)
+    CUBE_odd_mask = mask_circle(CUBE_odd, 4, 0)
     res = CUBE_odd_mask.copy()
     angles = np.array([180,120,90,60])
     for i in range(6): # yields 360deg multiples for all derotation angles

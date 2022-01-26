@@ -25,10 +25,11 @@ from scipy.ndimage.interpolation import geometric_transform, zoom
 from scipy.optimize import minimize
 from ..var import frame_center, get_square
 from .subsampling import cube_collapse
+from .recentering import frame_shift
 
 
 def cube_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
-                       verbose=True):
+                       keep_center=True, verbose=True):
     """
     Resample the frames of a cube with a single scale factor. Can deal with NaN 
     values.
@@ -49,6 +50,10 @@ def cube_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_px_resampling``
         function.
+    keep_center: bool, opt
+        If input dimensions are even and the star centered (i.e. on 
+        dim//2, dim//2), this will keep the star centered after scaling, i.e.
+        on (new_dim//2, new_dim//2)
     verbose : bool, optional
         Whether to print out additional info such as the new cube shape.
 
@@ -64,7 +69,8 @@ def cube_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
     array_resc = []
     for i in range(array.shape[0]):
         imresc = frame_px_resampling(array[i], scale=scale, imlib=imlib,
-                                     interpolation=interpolation)
+                                     interpolation=interpolation, 
+                                     keep_center=keep_center)
         array_resc.append(imresc)
 
     array_resc = np.array(array_resc)
@@ -76,9 +82,9 @@ def cube_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
 
 
 def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
-                        verbose=False):
+                        keep_center=True, verbose=False):
     """
-    Resample the pixels of a frame wrt to the center, changing the frame size.
+    Resample the pixels of a frame changing the frame size.
     Can deal with NaN values.
     
     If ``scale`` < 1 then the frame is downsampled and if ``scale`` > 1 then its
@@ -103,6 +109,10 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
         For 'opencv' library: 'nearneig', 'bilinear', 'bicubic', 'lanczos4'.
         The 'nearneig' interpolation is the fastest and the 'lanczos4' the
         slowest and accurate.
+    keep_center: bool, opt
+        If input dimensions are even and the star centered (i.e. on 
+        dim//2, dim//2), this will keep the star centered after scaling, i.e.
+        on (new_dim//2, new_dim//2)
     verbose : bool, optional
         Whether to print out additional info such as the new image shape.
 
@@ -132,6 +142,22 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
 
         mask = np.zeros_like(array)
         mask[nan_mask] = 1
+    
+    if array.shape[0]%2:
+        odd=True
+    else:
+        odd=False
+            
+    
+    if not odd and keep_center:
+        # prevents a potential centered star to get decentered
+        array_odd = np.zeros([array.shape[0]+1,array.shape[1]+1])
+        array_odd[:-1,:-1] = array.copy()
+        array_odd[-1,:-1] = array[-1].copy()
+        array_odd[:-1,-1] = array[:,-1].copy()
+        array_odd[-1,-1] = np.mean([array[-1,-2],array[-2,-1],array[-2,-2]])
+        array = array_odd.copy()
+        
 
     if imlib == 'ndimage':
         if interpolation == 'nearneig':
@@ -191,13 +217,10 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
             raise ValueError(msg)   
             
         # make array with even dimensions before FFT-scaling
-        if array.shape[0]%2:
-            odd=True
+        if odd:
             array_even = np.zeros([array.shape[0]+1,array.shape[1]+1])
             array_even[1:,1:] = array
             array = array_even
-        else:
-            odd = False
 
         if mask is not None:
             if odd:
@@ -224,6 +247,13 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
     # Place back NaN values in scaled array
     if mask is not None:
         array_resc[mask >= 0.5] = np.nan
+ 
+    if keep_center and not array_resc.shape[0]%2:
+        if interpolation == 'ndimage':
+            interp = 'ndimage-interp'
+        else:
+            interp = interpolation
+        array_resc = frame_shift(array_resc, 0.5, 0.5, imlib, interp)
         
     if verbose:
         print("Image successfully rescaled")
@@ -447,6 +477,11 @@ def frame_rescaling(array, ref_xy=None, scale=1.0, imlib='vip-fft',
     outshape = array.shape
     if ref_xy is None:
         ref_xy = frame_center(array)
+    else:
+        if imlib == 'vip-fft' and ref_xy != frame_center(array):
+            msg = "'vip-fft'imlib does not yet allow for custom center to be "
+            msg+= " provided "
+            raise ValueError(msg)
         
     # Replace any NaN with real values before scaling
     mask = None

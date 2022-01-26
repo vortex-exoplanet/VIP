@@ -26,6 +26,7 @@ from scipy.optimize import minimize
 from ..var import frame_center, get_square
 from .subsampling import cube_collapse
 from .recentering import frame_shift
+from .cosmetics import frame_crop
 
 
 def cube_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
@@ -52,8 +53,9 @@ def cube_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
         function.
     keep_center: bool, opt
         If input dimensions are even and the star centered (i.e. on 
-        dim//2, dim//2), this will keep the star centered after scaling, i.e.
-        on (new_dim//2, new_dim//2)
+        dim//2, dim//2), whether to keep the star centered after scaling, i.e.
+        on (new_dim//2, new_dim//2). For a non-centered input cube, better to
+        leave it to False.
     verbose : bool, optional
         Whether to print out additional info such as the new cube shape.
 
@@ -111,8 +113,9 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
         slowest and accurate.
     keep_center: bool, opt
         If input dimensions are even and the star centered (i.e. on 
-        dim//2, dim//2), this will keep the star centered after scaling, i.e.
-        on (new_dim//2, new_dim//2)
+        dim//2, dim//2), whether to keep the star centered after scaling, i.e.
+        on (new_dim//2, new_dim//2). For a non-centered input frame, better to
+        leave it to False.
     verbose : bool, optional
         Whether to print out additional info such as the new image shape.
 
@@ -148,6 +151,8 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
     else:
         odd=False
             
+    # expected output size
+    out_sz = int(array.shape[0]*scale_y), int(array.shape[1]*scale_x)
     
     if not odd and keep_center:
         # prevents a potential centered star to get decentered
@@ -249,12 +254,27 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
         array_resc[mask >= 0.5] = np.nan
  
     if keep_center and not array_resc.shape[0]%2:
-        if interpolation == 'ndimage':
-            interp = 'ndimage-interp'
+        if imlib == 'ndimage':
+            imlib_s = 'ndimage-interp'
         else:
-            interp = interpolation
-        array_resc = frame_shift(array_resc, 0.5, 0.5, imlib, interp)
+            imlib_s = imlib
+        array_resc = frame_shift(array_resc, 0.5, 0.5, imlib_s, interpolation)
         
+    if array_resc.shape != out_sz:
+        if out_sz[0] == out_sz[1]:
+            if out_sz[0]<array_resc.shape[0]:
+                array_resc = frame_crop(array_resc, out_sz[0], force=True)
+        else:
+            # crop manually along each axis
+            cy, cx = frame_center(array_resc)
+            wing_y = (out_sz[0]-1)/2
+            y0 = int(cy-wing_y)
+            yN = int(cy+wing_y+1)
+            wing_x = (out_sz[1]-1)/2
+            x0 = int(cx-wing_x)
+            xN = int(cx+wing_x+1)
+            array_resc = array_resc[y0:yN,x0:xN]
+            
     if verbose:
         print("Image successfully rescaled")
         print("New shape: {}".format(array_resc.shape))

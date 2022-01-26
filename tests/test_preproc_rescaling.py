@@ -11,10 +11,10 @@ from vip_hci.preproc.rescaling import (cube_px_resampling,
                                        cube_rescaling_wavelengths,
                                        check_scal_vector,
                                        _find_indices_sdi)
-
+from vip_hci.var import mask_circle
 
 CUBE = np.ones((10, 100, 100))
-FRAME = np.zeros((100, 100))
+FRAME = np.ones((100, 100))
 
 
 @parametrize("imlib", ["vip-fft", "ndimage", "opencv"])
@@ -31,8 +31,14 @@ def test_cube_px_resampling(imlib):
     assert res.shape == (10, 50, 50)
 
 
-@parametrize("imlib", ["vip-fft", "ndimage", "opencv"])
-def test_frame_px_resampling(imlib):
+@parametrize("imlib,keep_center", 
+             [("vip-fft", False),
+              ("ndimage", False), 
+              ("opencv", False),
+              ("vip-fft", True),
+              ("ndimage", True), 
+              ("opencv", True)])
+def test_frame_px_resampling(imlib, keep_center):
     """
 
     Notes
@@ -43,13 +49,30 @@ def test_frame_px_resampling(imlib):
     """
 
     # === enlargen ===
-    res = frame_px_resampling(FRAME, scale=2, imlib=imlib, verbose=True)
+    frame_star = FRAME.copy()
+    frame_star[50,50] = 2
+    res = frame_px_resampling(frame_star, scale=2, imlib=imlib, 
+                              keep_center=keep_center, verbose=True)
+    assert res.shape == (200, 200)
+
+    if keep_center:
+        # further check whether max pixel (star proxy) is still centered
+        max_idx = np.argmax(res)
+        max_coords = np.unravel_index(max_idx,res.shape)
+        assert max_coords == (100,100)
+
+    # === enlargen with mask ===
+    res = frame_px_resampling(mask_circle(FRAME, 4, np.nan), scale=2, 
+                              imlib=imlib, keep_center=keep_center,
+                              verbose=True)
     assert res.shape == (200, 200)
 
     # === shrink ===
-    res = frame_px_resampling(FRAME, scale=0.5, imlib=imlib, verbose=True)
+    res = frame_px_resampling(FRAME, scale=0.5, imlib=imlib, 
+                              keep_center=keep_center, verbose=True)
     assert res.shape == (50, 50)
 
+    
 
 @parametrize("imlib,interpolation",
              [

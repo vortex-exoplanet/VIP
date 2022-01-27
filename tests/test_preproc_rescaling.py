@@ -50,7 +50,9 @@ def test_frame_px_resampling(imlib, keep_center):
 
     # === enlargen ===
     frame_star = FRAME.copy()
-    frame_star[50,50] = 2
+    frame_star[48:53,48:53] = 2
+    frame_star[49:52,49:52] = 4
+    frame_star[50,50] = 8
     res = frame_px_resampling(frame_star, scale=2, imlib=imlib, 
                               keep_center=keep_center, verbose=True)
     assert res.shape == (200, 200)

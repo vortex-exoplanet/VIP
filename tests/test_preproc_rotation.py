@@ -21,7 +21,7 @@ CUBE_odd = np.ones((4, 81, 81))
                  ("vip-fft", None, 'constant', None),
                  ("vip-fft", None, 'reflect', 'noise'),
                  ("opencv", "lanczos4", 'edge', 'interp+noise'),
-                 ("skimage", "biquartic", 'symmetric', 'interp+noise'),
+                 ("skimage", "bicubic", 'symmetric', 'interp+noise'),
                  ("skimage", "biquintic", 'wrap', 'noise'),
              ])
 def test_cube_derotate(imlib, interpolation, border_mode, edge_blend):
@@ -55,9 +55,9 @@ def test_cube_derotate(imlib, interpolation, border_mode, edge_blend):
     
 @parametrize("imlib,interpolation,border_mode,edge_blend,interp_zeros",
               [
-                  ("vip-fft", None, 'reflect', 'interp+noise', True),
-                  ("opencv", "lanczos4", 'edge', 'interp', False),
-                  ("skimage", "bicubic", 'reflect', 'interp', True),
+                  ("vip-fft", None, 'reflect', 'interp', True),
+                  ("opencv", "lanczos4", 'edge', 'interp', True),
+                  ("skimage", "biquintic", 'reflect', 'interp', True),
               ])   
 def test_cube_derotate_mask(imlib, interpolation, border_mode, edge_blend,
                             interp_zeros):
@@ -69,7 +69,8 @@ def test_cube_derotate_mask(imlib, interpolation, border_mode, edge_blend,
     res = CUBE_odd_mask.copy()
     angles = np.array([180,120,90,60])
     for i in range(6): # yields 360deg multiples for all derotation angles
-        res = cube_derotate(res, angles, imlib=imlib, nproc=1+(i%2),
+        res = cube_derotate(res, angles, border_mode=border_mode, imlib=imlib, 
+                            interpolation=interpolation, nproc=1+(i%2),
                             mask_val=np.nan, edge_blend=edge_blend, 
                             interp_zeros=False)
     # just consider cropped image for evaluation
@@ -83,7 +84,8 @@ def test_cube_derotate_mask(imlib, interpolation, border_mode, edge_blend,
     res = CUBE_odd_mask.copy()
     angles = np.array([180,120,90,60])
     for i in range(6): # yields 360deg multiples for all derotation angles
-        res = cube_derotate(res, angles, imlib=imlib, nproc=1+(i%2),
+        res = cube_derotate(res, angles, border_mode=border_mode, imlib=imlib, 
+                            interpolation=interpolation, nproc=1+(i%2),
                             mask_val=0, edge_blend=edge_blend, 
                             interp_zeros=interp_zeros)
     # just consider cropped image for evaluation

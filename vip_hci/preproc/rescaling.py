@@ -91,6 +91,10 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
     
     If ``scale`` < 1 then the frame is downsampled and if ``scale`` > 1 then its
     pixels are upsampled.
+    
+    Warning: if imlib is not 'vip-fft', the input size is even and keep_center
+    set to True, an additional interpolation (shifting by (0.5,0.5)px) may 
+    occur after rescaling, to ensure center location stays on (dim//2,dim//2).
 
     Parameters
     ----------
@@ -256,12 +260,12 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
     if mask is not None:
         array_resc[mask >= 0.5] = np.nan
  
-    # if keep_center and not array_resc.shape[0]%2:
-    #     if imlib == 'ndimage':
-    #         imlib_s = 'ndimage-interp'
-    #     else:
-    #         imlib_s = imlib
-    #     array_resc = frame_shift(array_resc, 0.5, 0.5, imlib_s, interpolation)
+    if keep_center and not array_resc.shape[0]%2 and imlib != 'vip-fft':
+        if imlib == 'ndimage':
+            imlib_s = 'ndimage-interp'
+        else:
+            imlib_s = imlib
+        array_resc = frame_shift(array_resc, 0.5, 0.5, imlib_s, interpolation)
         
     if array_resc.shape != out_sz:
         if out_sz[0] == out_sz[1]:

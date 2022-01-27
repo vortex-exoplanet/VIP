@@ -761,7 +761,7 @@ def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev",
             flux_fac = flux_scal
         else:
             p_ini = (scal_vec_ini[z],flux_scal)
-            solu = minimize(_chisquare_scal_2fp, p_ini, args=(cube_tmp, mask, fm),
+            solu = minimize(_chisquare_scal_2fp, p_ini, args=(cube_tmp,mask,fm),
                             method='Nelder-Mead', options=simplex_options, 
                             **kwargs)      
             scal_fac, flux_fac =  solu.x
@@ -845,11 +845,13 @@ def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
 
 
 def _chisquare_scal(modelParameters, cube, flux_fac=1, mask=None, fm='sum'):
-    """
-    Calculate the reduced chi2:
-    \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
-    where N is the number of pixels within a circular aperture centered on the 
-    first estimate of the planet position, and I_j the j-th pixel intensity.
+    r"""
+    Calculate the reduced math:`\chi^2`:
+    .. math:: \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
+    where N is the number of pixels in the image (or mask if provided), and 
+    :math:`I_j` the j-th pixel intensity, considering one free parameter: the 
+    physical scaling factor between images of the cube, for a given
+    input flux scaling factor.
     
     Parameters
     ----------    
@@ -857,6 +859,8 @@ def _chisquare_scal(modelParameters, cube, flux_fac=1, mask=None, fm='sum'):
         The model parameters, typically (scal_fac, flux_fac).
     cube: numpy.array
         The cube of fits images expressed as a numpy.array.
+    flux_fac:     
+        
     mask: 2D-array, opt
         Binary mask, with ones where the residual intensities should be 
         evaluated. If None is provided, the whole field is used.
@@ -895,11 +899,12 @@ def _chisquare_scal(modelParameters, cube, flux_fac=1, mask=None, fm='sum'):
     return chi
 
 def _chisquare_scal_2fp(modelParameters, cube, mask=None, fm='sum'):
-    """
-    Calculate the reduced chi2:
-    \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
+    r"""
+    Calculate the reduced :math:`\chi^2`:
+    .. math:: \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
     where N is the number of pixels within a circular aperture centered on the 
-    first estimate of the planet position, and I_j the j-th pixel intensity.
+    first estimate of the planet position, and :math:`I_j` the j-th pixel 
+    intensity. Two free parameters: physical and flux scaling factors.
     
     Parameters
     ----------    

@@ -979,7 +979,7 @@ def scale_fft(array, scale, ori_dim=False):
     dim = array.shape[0] # even square
     dtype = array.dtype.kind
 
-    kd_array = np.arange(dim/2 + 1, dtype=np.int)
+    kd_array = np.arange(dim/2 + 1, dtype=int)
     
     # scaling factor chosen as *close* as possible to N''/N', where: 
     #   N' = N + 2*KD (N': dim after FT)
@@ -988,11 +988,11 @@ def scale_fft(array, scale, ori_dim=False):
     #   => KF = (N"-N)/2 = round(N'*sc/2 - N/2) 
     #         = round(N/2*(sc-1) + KD*sc)
     # We call yy=N/2*(sc-1) +KD*sc   
-    yy = dim/2 * (scale - 1) + kd_array.astype(np.float)*scale
+    yy = dim/2 * (scale - 1) + kd_array.astype(float)*scale
     
     # We minimize the difference between the `ideal' N" and its closest 
     # integer value by minimizing |yy-int(yy)|.
-    kf_array = np.round(yy).astype(np.int)
+    kf_array = np.round(yy).astype(int)
     tmp = np.abs(yy-kf_array)
     imin = np.nanargmin(tmp)
 

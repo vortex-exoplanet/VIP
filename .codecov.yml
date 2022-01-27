@@ -1,0 +1,9 @@
+coverage:
+  status:
+    patch: false
+
+ignore:
+  - tests/*
+  - setup.py
+  - vip_hci/vip_ds9.py
+  - */__init__.py

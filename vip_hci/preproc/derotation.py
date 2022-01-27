@@ -208,11 +208,12 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
     
     if cxy is None:
         cy, cx = frame_center(array_prep)
-    elif imlib!='opencv':
-        msg = "Only 'opencv' imlib allows for different center to be provided"
-        raise ValueError(msg)
     else:
         cx, cy = cxy
+        if imlib=='vip-fft' and (cy, cx) != frame_center(array_prep):
+            msg = "'vip-fft'imlib does not yet allow for custom center to be "
+            msg+= " provided "
+            raise ValueError(msg)
 
     if imlib == 'vip-fft':
         array_out = rotate_fft(array_prep, angle)
@@ -237,16 +238,24 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
                                'wrap']:
             raise ValueError('Skimage `border_mode` not recognized.')
 
+        # for a non-constant image, normalize manually
         min_val = np.min(array_prep)
-        im_temp = array_prep - min_val
-        max_val = np.max(im_temp)
-        im_temp /= max_val
+        max_val = np.max(array_prep)
+        if min_val != max_val:
+            norm=True
+            im_temp = array_prep - min_val
+            max_val = np.max(im_temp)
+            im_temp /= max_val
+        else:
+            norm=False
+            im_temp = array_prep.copy()
 
         array_out = rotate(im_temp, angle, order=order, center=(cx, cy), 
                            cval=np.nan, mode=border_mode)
-
-        array_out *= max_val
-        array_out += min_val
+        
+        if norm:
+            array_out *= max_val
+            array_out += min_val
         array_out = np.nan_to_num(array_out)
 
     elif imlib == 'opencv':

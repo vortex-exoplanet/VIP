@@ -37,8 +37,8 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
         bad/nan pixels by 1 (the rest of the array is set to 0)
     neighbor_box : int, optional
         The side of the window around each pixel where the sigma and
-        median are calculated. If half_res_y, this is the vertical side (the
-        horizontal side will be twice larger).
+        median are calculated. If half_res_y, this is the horizontal side (the
+        vertical side will be twice smaller).
     min_neighbors : int, optional
         Minimum number of good neighboring pixels to be able to correct the
         bad/nan pixels
@@ -75,11 +75,11 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
                 gp = 1 - bp                         # temporary good pixel map
                 for n in range(nb):
                     #0/ Determine the box around each pixel
-                    half_box_y = int(np.floor(neighbor_box/2.))
+                    half_box_x = int(np.floor(neighbor_box/2.))
                     if half_res_y:
-                        half_box_x = int(np.floor(neighbor_box/2.))
+                        half_box_y = max(1,int(half_box_x/2))
                     else:
-                        half_box_x = half_box_y
+                        half_box_y = half_box_x
                     hbox_b = min(half_box_y,wb[0][n])        # half size of the box at
                                                            # the bottom of the pixel
                     hbox_t = min(half_box_y,sz_y-1-wb[0][n]) # half size of the box at 
@@ -139,11 +139,11 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
             gp = 1 - bp                         # temporary good pixel map
             for n in range(nb):
                 #0/ Determine the box around each pixel
-                half_box_y = int(np.floor(neighbor_box/2.))
+                half_box_x = int(np.floor(neighbor_box/2.))
                 if half_res_y:
-                    half_box_x = int(np.floor(neighbor_box/2.))
+                    half_box_y = max(1,int(half_box_x/2))
                 else:
-                    half_box_x = half_box_y
+                    half_box_y = half_box_x
                 hbox_b = min(half_box_y, wb[0][n])       # half size of the box at the
                                                        # bottom of the pixel
                 hbox_t = min(half_box_y, sz_y-1-wb[0][n])# half size of the box at the
@@ -245,11 +245,11 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
                     for x in range(nx):
                         #0/ Determine the box around each pixel
                     #0/ Determine the box around each pixel
-                        half_box_y = int(np.floor(num_neighbor/2.))
+                        half_box_x = int(np.floor(num_neighbor/2.))
                         if half_res_y:
-                            half_box_x = int(np.floor(num_neighbor/2.))
+                            half_box_y = max(1,int(half_box_x/2))
                         else:
-                            half_box_x = half_box_y
+                            half_box_y = half_box_x
                         hbox_b = min(half_box_y,y)    # half size of the box at the
                                                     # bottom of the pixel
                         hbox_t = min(half_box_y,ny-y) # half size of the box at the
@@ -352,11 +352,11 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
     
         values = array.copy()
         if neighbor and num_neighbor:
-            num_neighbor_y = num_neighbor
+            num_neighbor_x = num_neighbor
             if half_res_y:
-                num_neighbor_x = int(2*num_neighbor)
+                num_neighbor_y = max(int(num_neighbor/2),1)
             else:
-                num_neighbor_x = num_neighbor
+                num_neighbor_y = num_neighbor
             median = generic_filter(array, function=np.median, 
                                     size=(num_neighbor_y,num_neighbor_x),
                                     mode="mirror")

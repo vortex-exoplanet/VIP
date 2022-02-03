@@ -319,7 +319,8 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
         nnanpix = int(np.sum(nan_map))
         # Correct nan with iterative sigma filter
         obj_tmp = sigma_filter(obj_tmp, nan_map, neighbor_box=neighbor_box,
-                               min_neighbors=min_neighbors, verbose=verbose)
+                               min_neighbors=min_neighbors, verbose=verbose,
+                               half_res_y=half_res_y)
         if half_res_y:
             frame = obj_tmp
             n_y = 2 * n_y

@@ -679,8 +679,8 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
             for i in range(n_z):
                 if verbose: print('************Frame # ', i,' *************')
                 obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], cy[i], 
-                                                              cx[i], fwhm[i], sig, 
-                                                              protect_psf,  
+                                                              cx[i], fwhm[i], 
+                                                              sig, protect_psf,  
                                                               min_thr, 
                                                               half_res_y,
                                                               verbose)

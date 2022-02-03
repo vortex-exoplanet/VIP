@@ -558,7 +558,8 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         if bpm_mask.shape[-2:] != array.shape[-2:]:
             raise TypeError("Bad pixel map has wrong y/x dimensions.")
 
-    def bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_psf, min_thr, verbose):    
+    def bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_psf, min_thr, 
+                      half_res_y, verbose):    
         n_x = obj_tmp.shape[1]
         n_y = obj_tmp.shape[0]
 
@@ -595,7 +596,8 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
 
         #3/ Create a bad pixel map, by detecting them with clip_array
         bp=clip_array(obj_tmp, sig, sig, out_good=False, neighbor=True,
-                      num_neighbor=neighbor_box, mad=True)
+                      num_neighbor=neighbor_box, mad=True, 
+                      half_res_y=half_res_y)
         bpix_map = np.zeros_like(obj_tmp)  
         bpix_map[bp] = 1              
         nbpix_tot = np.sum(bpix_map)
@@ -614,9 +616,11 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                 print("Iteration {}: {} bpix in total, {} to be "
                       "corrected".format(nit, nbpix_tot, nbpix_tbc))
             obj_tmp = sigma_filter(obj_tmp, bpix_map, neighbor_box=neighbor_box,
-                                   min_neighbors=nneig, verbose=verbose)
+                                   min_neighbors=nneig, half_res_y=half_res_y, 
+                                   verbose=verbose)
             bp=clip_array(obj_tmp, sig, sig, out_good=False, neighbor=True,
-                          num_neighbor=neighbor_box, mad=True)
+                          num_neighbor=neighbor_box, mad=True, 
+                          half_res_y=half_res_y)
             bpix_map = np.zeros_like(obj_tmp)  
             bpix_map[bp] = 1
             nbpix_tot = np.sum(bpix_map)
@@ -649,14 +653,14 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                 cx = cen[0,1]
             obj_tmp, bpix_map_cumul = bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, 
                                                     protect_psf, min_thr, 
-                                                    verbose)
+                                                    half_res_y, verbose)
         else:
             fwhm_round = int(round(fwhm))
             fwhm_round = fwhm_round+1-(fwhm_round%2) # make it odd
             neighbor_box = max(3, fwhm_round) # to not replace a companion
             nneig = sum(np.arange(3, neighbor_box+2, 2))
             obj_tmp = sigma_filter(obj_tmp, bpm_mask, neighbor_box, nneig, 
-                                   verbose)
+                                   half_res_y, verbose)
             bpix_map_cumul = bpm_mask
                                             
     if ndims == 3:
@@ -677,7 +681,9 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                 obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], cy[i], 
                                                               cx[i], fwhm[i], sig, 
                                                               protect_psf,  
-                                                              min_thr, verbose)
+                                                              min_thr, 
+                                                              half_res_y,
+                                                              verbose)
         else:
             if isinstance(fwhm, (float,int)):
                 fwhm_round = int(round(fwhm))
@@ -693,7 +699,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                 else:
                     bpm = bpm_mask
                 obj_tmp[i] = sigma_filter(obj_tmp[i], bpm, neighbor_box, 
-                                          nneig, verbose)
+                                          nneig, half_res_y, verbose)
             bpix_map_cumul = bpm_mask
                                                  
     if full_output:

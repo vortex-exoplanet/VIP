@@ -206,8 +206,9 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
     neighbor : bool, optional
         For clipping over the median of the contiguous pixels.
     num_neighbor : int, optional
-        The side of the square window around each pixel where the sigma and 
-        median are calculated. 
+        The side of the window around each pixel where the sigma and
+        median are calculated. If half_res_y, this is the horizontal side (the
+        vertical side will be twice smaller).
     mad : {False, True}, bool optional
         If True, the median absolute deviation will be used instead of the 
         standard deviation.
@@ -329,8 +330,9 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
         neighbor : bool optional
             For clipping over the median of the contiguous pixels.
         num_neighbor : int, optional
-            The side of the square window around each pixel where the sigma and 
-            median are calculated. 
+            The side of the window around each pixel where the sigma and
+            median are calculated. If half_res_y, this is the horizontal side (the
+            vertical side will be twice smaller).
         mad : bool, optional
             If True, the median absolute deviation will be used instead of the 
             standard deviation.

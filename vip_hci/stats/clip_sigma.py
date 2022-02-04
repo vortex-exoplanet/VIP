@@ -274,9 +274,12 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
                                         x-hbox_l:x+hbox_r+1]
                         neighbours = sub_arr.flatten()
                         neigh_list = []
+                        remove_itself=True
                         for i in range(neighbours.shape[0]):
-                            neigh_list.append(neighbours[i])
-                        neigh_list.remove(array[y,x])
+                            if neighbours[i] == array[y,x] and remove_itself:
+                                remove_itself=False
+                            else:
+                                neigh_list.append(neighbours[i])
                         
                         neigh_arr = np.array(neigh_list)
                         median=np.median(neigh_arr)

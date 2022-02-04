@@ -10,14 +10,15 @@ __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens'
 __all__ = ['frame_fix_badpix_isolated',
            'cube_fix_badpix_isolated',
            'cube_fix_badpix_annuli',
-           'cube_fix_badpix_clump']
+           'cube_fix_badpix_clump',
+           'cube_fix_badpix_with_kernel']
 
 import numpy as np
 from skimage.draw import disk, ellipse
 from scipy.ndimage import median_filter
 from astropy.stats import sigma_clipped_stats
 from ..stats import sigma_filter
-from ..var import frame_center, get_annulus_segments
+from ..var import frame_center, get_annulus_segments, frame_filter_lowpass
 from ..stats import clip_array
 from ..config import timing, time_ini, Progressbar
 from .cosmetics import approx_stellar_position
@@ -487,11 +488,12 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                           half_res_y=False, min_thr=None, max_nit=15, 
                           full_output=False):
     """
-    Function to correct clumps of bad pixels. Very fast when a bad pixel map is 
-    provided. If a bad pixel map is not provided, the bad pixel clumps will be 
-    searched iteratively and replaced by the median of good neighbouring pixel 
-    values if enough of them. The size of the box is set by the closest odd 
-    integer larger than fwhm (to avoid accidentally replacing a companion).
+    Function to identify and correct clumps of bad pixels. Very fast when a bad 
+    pixel map is provided. If a bad pixel map is not provided, the bad pixel 
+    clumps will be searched iteratively and replaced by the median of good 
+    neighbouring pixel values, when enough of them are available. The size of 
+    the box is set by the closest odd integer larger than fwhm (to avoid 
+    accidentally replacing point sources).
 
 
 
@@ -706,6 +708,147 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         return obj_tmp, bpix_map_cumul
     else:
         return obj_tmp
+    
+    
+def cube_fix_badpix_with_kernel(array, bpm_mask, mode='gauss', fwhm=4., 
+                                kernel_sz=None, psf=None, half_res_y=False,
+                                **kwargs):
+    """
+    Function to correct clumps of bad pixels by interpolation with a 
+    user-defined kernel (through astropy.convolution). A bad pixel map must be 
+    provided (e.g. found with function `cube_fix_badpix_clump`).
+
+
+    Parameters
+    ----------
+    array : 3D or 2D array 
+        Input 3d cube or 2d image.
+    bpix_map: 3D or 2D array
+        Input bad pixel array. Should have same x,y dimenstions as array. 
+        If 2D, but input array is 3D, the same bpix_map will be assumed for all 
+        frames.
+    mode: str, optional {'gauss', 'psf'}
+        Can be either a 2D Gaussian ('gauss') or an input normalized PSF 
+        ('psf').
+    fwhm: float or 1D array, opt
+        If mode is 'gauss', the fwhm of the Gaussian.
+    kernel_sz: int or None, optional
+        Size of the kernel in pixels for 2D Gaussian and Moffat convolutions.
+        If None, astropy.convolution will automatically consider 8*radius 
+        kernel sizes.
+    psf: 2D or 3D array, optional
+        If mode is 'psf', a normalized PSF array. If a 3D cube is provided 
+        (e.g. for spectral cubes), the first dimension should match that of the 
+        input array (which should also be 3D). Else, the same 2D PSF kernel 
+        will be for all input frames, whether the input is 2D or 3D.
+        If half_res_y is True, psf should be provided vertically squashed.
+    half_res_y: bool, {True,False}, optional
+        Whether the input data has only half the angular resolution vertically 
+        compared to horizontally (e.g. the case for some IFUs); in other words
+        there are always 2 rows of pixels with exactly the same values.
+        If so, the Gaussian kernel will also be squashed vertically by a 
+        factor 2.
+    **kwargs : dict
+        Passed through to the astropy.convolution.convolve or convolve_fft
+        function.
+
+    Returns:
+    --------
+    obj_tmp: 2d or 3d array; the bad pixel corrected frame/cube.
+    """
+    
+    obj_tmp = array.copy()
+    ndims = obj_tmp.ndim
+    assert ndims == 2 or ndims == 3, "Object is not two or three dimensional.\n"
+
+    if bpm_mask.shape[-2:] != array.shape[-2:]:
+        raise TypeError("Bad pixel map has wrong y/x dimensions.")
+        
+    if np.sum(bpm_mask) == 0:
+        msg = "Warning: no bad pixel found in bad pixel map. "
+        msg += "Returning input array as is."
+        print("msg")
+        return obj_tmp
+        
+    ny, nx = obj_tmp.shape[-2:]
+    if ndims == 3:
+        nz = obj_tmp.shape[0]
+        
+    if bpm_mask.ndim == 2 and ndims == 3:
+        master_bpm = np.zeros([nz, ny, nx])
+        for z in range(nz):
+            master_bpm[z] = bpm_mask[np.newaxis,:,:]
+        bpm_mask = master_bpm.copy()
+    
+    # below: superseded by mask option?
+    # first replace all bad pixels with NaN values - they will be interpolated
+    # obj_tmp[np.where(bpm_mask)] = np.nan
+    
+    if half_res_y:
+        # squash vertically
+        def squash_v(array):
+            ny, nx = array.shape
+            if ny%2:
+                raise ValueError("Input array y dimension should be even")
+            nny = ny//2
+            new_obj_tmp = np.zeros([nny, nx])
+            for y in range(nny):
+                new_obj_tmp[y] = array[int(y*2)]
+            return new_obj_tmp
+            
+        if ndims == 2:
+            obj_tmp = squash_v(obj_tmp)
+            bpm_mask = squash_v(bpm_mask)
+        else:
+            new_obj_tmp = []
+            new_bpm_mask = []
+            for z in range(nz):
+                new_obj_tmp.append(squash_v(obj_tmp[z]))
+                new_bpm_mask.append(squash_v(bpm_mask[z]))
+            obj_tmp = np.array(new_obj_tmp)
+            bpm_mask = np.array(new_bpm_mask)
+    
+    if ndims == 2:     
+        obj_tmp_corr = frame_filter_lowpass(obj_tmp, mode=mode, fwhm_size=fwhm,
+                                            conv_mode='convfft', 
+                                            kernel_sz=kernel_sz, psf=psf, 
+                                            mask=bpm_mask, iterate=True, 
+                                            half_res_y=half_res_y, **kwargs)
+    else:
+        obj_tmp_corr = obj_tmp.copy()
+        if np.isscalar(fwhm):
+            fwhm = [fwhm]*nz
+        if psf is None:
+            psf = [psf]*nz
+        elif psf.ndim==2:
+            psf = [psf]*nz
+        elif psf.shape[0] != nz:
+            raise ValueError("input psf must have same z dimension as array")
+        for z in range(nz):
+            obj_tmp_corr[z] = frame_filter_lowpass(obj_tmp[z], mode=mode, 
+                                                   fwhm_size=fwhm[z],
+                                                   conv_mode='convfft', 
+                                                   kernel_sz=kernel_sz,
+                                                   psf=psf[z], mask=bpm_mask[z],
+                                                   iterate=True, 
+                                                   half_res_y=half_res_y, 
+                                                   **kwargs)
+    
+    ## replace only the bad pixels (obj_tmp_corr is low-pass filtered)
+    obj_tmp[np.where(bpm_mask)] = obj_tmp_corr[np.where(bpm_mask)]
+    
+    if half_res_y:
+        # unsquash vertically
+        def unsquash_v(array):
+            ny, nx = array.shape
+            nny = int(ny*2)
+            new_obj_tmp = np.zeros([nny, nx])
+            for y in range(nny):
+                new_obj_tmp[y] = array[y//2]
+            return new_obj_tmp
+        obj_tmp = unsquash_v(obj_tmp)
+    
+    return obj_tmp
     
     
 def find_outliers(frame, sig_dist, in_bpix=None, stddev=None, neighbor_box=3,

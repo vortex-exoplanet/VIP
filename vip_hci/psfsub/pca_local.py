@@ -134,9 +134,8 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
     min_frames_lib : int, optional
         Minimum number of frames in the PCA reference library.
     max_frames_lib : int, optional
-        Maximum number of frames in the PCA reference library for annuli beyond
-        10*FWHM. The more distant/decorrelated frames are removed from the
-        library.
+        Maximum number of frames in the PCA reference library. The more 
+        distant/decorrelated frames are removed from the library.
     tol : float, optional
         Stopping criterion for choosing the number of PCs when ``ncomp``
         is None. Lower values will lead to smaller residuals and more PCs.

@@ -33,45 +33,58 @@ except ImportError:
     no_numba = True
 
 def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
-                              size=5, protect_mask=False, radius=30,
-                              verbose=True):
+                              size=5, protect_mask=False, radius=30, cxy=None,
+                              mad=True, verbose=True, full_output=False):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is
-     replaced by the median of the adjacent pixels. This function is very fast
-     but works only with isolated (sparse) pixels.
+    replaced by the median of the adjacent pixels. This function is very fast
+    but works only with isolated (sparse) pixels.
 
-     Parameters
-     ----------
-     array : numpy ndarray
-         Input 2d array.
-     bpm_mask : numpy ndarray, optional
-         Input bad pixel map. Zeros frame where the bad pixels have a value of
-         1. If None is provided a bad pixel map will be created using
-         sigma clip statistics. 
-     sigma_clip : int, optional
-         In case no bad pixel mask is provided all the pixels above and below
-         sigma_clip*STDDEV will be marked as bad.
-     num_neig : int, optional
-         The side of the square window around each pixel where the sigma clipped
-         statistics are calculated (STDDEV and MEDIAN). If the value is equal to
-         0 then the statistics are computed in the whole frame.
-     size : odd int, optional
-         The size the box (size x size) of adjacent pixels for the median
-         filter.
-     protect_mask : bool, optional
-         If True a circular aperture at the center of the frames will be
-         protected from any operation. With this we protect the star and
-         vicinity.
-     radius : int, optional
-         Radius of the circular aperture (at the center of the frames) for the
-         protection mask.
-     verbose : bool, optional
-         If True additional information will be printed.
-
-     Return
-     ------
-     frame : numpy ndarray
-         Frame with bad pixels corrected.
-     """
+    Parameters
+    ----------
+    array : numpy ndarray
+        Input 2d array.
+    bpm_mask : numpy ndarray, optional
+        Input bad pixel map. Zeros frame where the bad pixels have a value of
+        1. If None is provided a bad pixel map will be created using
+        sigma clip statistics. 
+    sigma_clip : int, optional
+        In case no bad pixel mask is provided all the pixels above and below
+        sigma_clip*STDDEV will be marked as bad.
+    num_neig : int, optional
+        The side of the square window around each pixel where the sigma clipped
+        statistics are calculated (STDDEV and MEDIAN). If the value is equal to
+        0 then the statistics are computed in the whole frame.
+    size : odd int, optional
+        The size the box (size x size) of adjacent pixels for the median
+        filter.
+    protect_mask : bool, optional
+        If True a circular aperture at the center of the frames will be
+        protected from any operation. With this we protect the star and
+        vicinity.
+    radius : int, optional
+        Radius of the circular aperture (at the center of the frames) for the
+        protection mask.
+    cxy: None or tuple
+        If protect_mask is True, this is the location of the star centroid in
+        the images. If None, assumes the star is already centered. If a tuple,
+        the location of the star is assumed to be the same in all frames of the 
+        cube.
+    mad : {False, True}, bool optional
+        If True, the median absolute deviation will be used instead of the 
+        standard deviation.  
+    verbose : bool, optional
+        If True additional information will be printed.
+    full_output: bool, {False,True}, optional
+        Whether to return as well the cube of bad pixel maps and the cube of 
+        defined annuli.
+        
+    Return
+    ------
+    frame : numpy ndarray
+        Frame with bad pixels corrected.
+    bpm_mask: 2d array
+        The bad pixel map
+    """
     if array.ndim != 2:
         raise TypeError('Array is not a 2d array or single frame')
     if size % 2 == 0:
@@ -88,10 +101,14 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         neigh = False
 
     frame = array.copy()
-    cy, cx = frame_center(frame)
+    if cxy is None:
+        cy, cx = frame_center(frame)
+    else:
+        cx, cy = cxy
+        
     if bpm_mask is None:
         ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=neigh,
-                         num_neighbor=num_neig, mad=True)
+                         num_neighbor=num_neig, mad=mad)
         bpm_mask = np.zeros_like(frame)
         bpm_mask[ind] = 1
         if protect_mask:
@@ -108,12 +125,17 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         msg = "/nDone replacing {} bad pixels using the median of neighbors"
         print(msg.format(count_bp))
         timing(start)
-    return array_out
+        
+    if full_output:
+        return array_out, bpm_mask
+    else:
+        return array_out
 
 
 def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5, 
                              size=5, frame_by_frame=False, protect_mask=False, 
-                             radius=30, verbose=True):
+                             radius=30, cxy=None, mad=True, verbose=True, 
+                             full_output=False):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is 
     replaced by the median of the adjacent pixels. This function is very fast
     but works only with isolated (sparse) pixels. 
@@ -140,19 +162,31 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         is set to False; the bad pixels are computed on the mean frame of the 
         stack (faster but not necessarily optimal).
     protect_mask : bool, optional
-        If True a circular aperture at the center of the frames will be 
-        protected from any operation. With this we protect the star and its
-        vicinity.
+        If True a circular aperture, centered on cxy, will be protected from 
+        any operation. With this we protect the star and its vicinity.
     radius : int, optional 
-        Radius of the circular aperture (at the center of the frames) for the 
-        protection mask.
+        Radius of the circular aperture for the protection mask.
+    cxy: None, tuple or 2d numpy ndarray
+        If protect_mask is True, this is the location of the star centroid in
+        the images. If None, assumes the star is already centered. If a tuple,
+        the location of the star is assumed to be the same in all frames of the 
+        cube. If a (n_frames x 2) ndarray, it should contain the xy location of 
+        the star in each frame.
+    mad : {False, True}, bool optional
+        If True, the median absolute deviation will be used instead of the 
+        standard deviation.  
     verbose : bool, optional
         If True additional information will be printed.
-    
+    full_output: bool, {False,True}, optional
+        Whether to return as well the cube of bad pixel maps and the cube of 
+        defined annuli.
+        
     Return
     ------
     array_out : numpy ndarray
         Cube with bad pixels corrected.
+    bpm_mask: 2d or 3d array
+        The bad pixel map or the cube of bpix maps
     """
     if array.ndim != 3:
         raise TypeError('Array is not a 3d array or cube')
@@ -169,27 +203,54 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     else:
         neigh = False
     
-    cy, cx = frame_center(array[0])
+    nz = array.shape[0]
+        
+    if cxy is None:
+        cy, cx = frame_center(array[0])
+    elif isinstance(cxy, tuple):
+        cx, cy = cxy
+    elif isinstance(cxy, np.ndarray):
+        if cxy.shape[0] != nz or cxy.shape[1] != 2 or cxy.ndim != 2:
+            raise ValueError("cxy does not have right shape")
+        elif not frame_by_frame:
+            msg = "cxy must be a tuple or None if not in frame_by_frame mode"
+            raise ValueError(msg)
+        else:
+            cx = cxy[:,0]
+            cy = cxy[:,1]
+
+            
     array_out = array.copy()
+    if full_output:
+        bpm_mask = array_out.copy()
     n_frames = array.shape[0]
     count_bp = 0
     if frame_by_frame:
+        if np.isscalar(cx):
+            cx = [cx]*nz
+            cy = [cy]*nz
         for i in Progressbar(range(n_frames), desc="processing frames"):
-            array_out[i] = frame_fix_badpix_isolated(array[i], bpm_mask=bpm_mask, 
+            res = frame_fix_badpix_isolated(array[i], bpm_mask=bpm_mask, 
                                                     sigma_clip=sigma_clip, 
                                                     num_neig=num_neig,
                                                     size=size, 
                                                     protect_mask=protect_mask, 
                                                     radius=radius,
-                                                    verbose=False,
-                                                    debug=False)
+                                                    verbose=False, 
+                                                    cxy=(cx[i],cy[i]),
+                                                    full_output=full_output)
+            if full_output:
+                array_out[i] = res[0]
+                bpm_mask[i] = res[1]
+            else:
+                array_out[i] = res
             if verbose:                                       
                 bpm = np.where(array_out[i]!=array[i])   
                 count_bp+=np.sum(np.ones_like(array_out[i])[bpm])                                   
     else:                                                
         if bpm_mask is None:
             ind = clip_array(np.mean(array, axis=0), sigma_clip, sigma_clip,
-                             neighbor=neigh, num_neighbor=num_neig, mad=True)
+                             neighbor=neigh, num_neighbor=num_neig, mad=mad)
             bpm_mask = np.zeros_like(array[0])
             bpm_mask[ind] = 1
             if protect_mask:
@@ -205,10 +266,14 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                 count_bp+=np.sum(bpm_mask)  
             
     if verbose: 
-        msg = "/nDone replacing {} bad pixels using the median of neighbors"
+        msg = "Done replacing {} bad pixels using the median of neighbors"
         print(msg.format(count_bp))
         timing(start)
-    return array_out
+        
+    if full_output:
+        return array_out, bpm_mask
+    else:
+        return array_out
 
 
 def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., 
@@ -272,10 +337,13 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
 
     Returns:
     --------
-    obj_tmp: 2d or 3d array; the bad pixel corrected frame/cube.
+    obj_tmp: 2d or 3d array
+        The bad pixel corrected frame/cube.
     If full_output is set to True, it returns as well:
-    bpix_map: 2d or 3d array; the bad pixel map or the cube of bpix maps
-    ann_frame_cumul: 2 or 3d array; the cube of defined annuli
+    bpix_map: 2d or 3d array
+        The bad pixel map or the cube of bpix maps
+    ann_frame_cumul: 2 or 3d array
+        The cube of defined annuli
     """
 
     obj_tmp = array.copy()
@@ -485,7 +553,7 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
 
 def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4., 
                           sig=4., protect_psf=True, verbose=True, 
-                          half_res_y=False, min_thr=None, max_nit=15, 
+                          half_res_y=False, min_thr=None, max_nit=15, mad=True,
                           full_output=False):
     """
     Function to identify and correct clumps of bad pixels. Very fast when a bad 
@@ -531,16 +599,21 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         there are always 2 rows of pixels with exactly the same values.
         The algorithm will just consider every other row (hence making it
         twice faster), then apply the bad pixel correction on all rows.
-    min_thr: float or None, opt
-        If provided, corresponds to a minimum absolute threshold below which
-        pixels are not considered bad (can be used to avoid the identification
-        of bad pixels within noise).
+    min_thr: float, tuple or None, opt
+        If a float is provided, corresponds to a minimum absolute threshold 
+        below which pixels are not considered bad (can be used to avoid the 
+        identification of bad pixels within noise).
+        If a tuple of 2 values, corresponds to the range of values within which 
+        not to consider a pixel as bad. (e.g. (-0.1, 10.)).
     max_nit: float, optional
         Maximum number of iterations on a frame to correct bpix. Typically, it 
         should be set to less than ny/2 or nx/2. This is a mean of precaution in
         case the algorithm gets stuck with 2 neighbouring pixels considered bpix
         alternately on two consecutively iterations hence leading to an infinite
         loop (very very rare case).
+    mad : {False, True}, bool optional
+        If True, the median absolute deviation will be used instead of the 
+        standard deviation.
     full_output: bool, {False,True}, optional
         Whether to return as well the cube of bad pixel maps and the cube of 
         defined annuli.
@@ -561,7 +634,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
             raise TypeError("Bad pixel map has wrong y/x dimensions.")
 
     def bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_psf, min_thr, 
-                      half_res_y, verbose):    
+                      half_res_y, mad, verbose):    
         n_x = obj_tmp.shape[1]
         n_y = obj_tmp.shape[0]
 
@@ -598,14 +671,25 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
 
         #3/ Create a bad pixel map, by detecting them with clip_array
         bp=clip_array(obj_tmp, sig, sig, out_good=False, neighbor=True,
-                      num_neighbor=neighbor_box, mad=True, 
+                      num_neighbor=neighbor_box, mad=mad, 
                       half_res_y=half_res_y)
         bpix_map = np.zeros_like(obj_tmp)  
-        bpix_map[bp] = 1              
+        bpix_map[bp] = 1
+        if min_thr is not None:
+            if np.isscalar(min_thr):
+                min_thr = (-min_thr, min_thr)
+            elif not isinstance(min_thr, tuple):
+                msg = "if provided, min_thr should be float or tuple"
+                raise ValueError(msg)
+            else:
+                if len(min_thr) != 2:
+                   msg = "if min_thr is a tuple, it should have 2 elements"
+                   raise ValueError(msg) 
+            cond1 = obj_tmp>min_thr[0]
+            cond2 = obj_tmp<min_thr[1]
+            bpix_map[np.where(cond1 & cond2)] = 0
         nbpix_tot = np.sum(bpix_map)
         bpix_map[circl_new] = 0
-        if min_thr is not None:
-            bpix_map[np.where(np.abs(obj_tmp)<min_thr)] = 0
         nbpix_tbc = np.sum(bpix_map)
         bpix_map_cumul = np.zeros_like(bpix_map)
         bpix_map_cumul[:] = bpix_map[:]
@@ -621,14 +705,16 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                                    min_neighbors=nneig, half_res_y=half_res_y, 
                                    verbose=verbose)
             bp=clip_array(obj_tmp, sig, sig, out_good=False, neighbor=True,
-                          num_neighbor=neighbor_box, mad=True, 
+                          num_neighbor=neighbor_box, mad=mad, 
                           half_res_y=half_res_y)
             bpix_map = np.zeros_like(obj_tmp)  
             bpix_map[bp] = 1
+            if min_thr is not None:
+                cond1 = obj_tmp>min_thr[0]
+                cond2 = obj_tmp<min_thr[1]
+                bpix_map[np.where(cond1 & cond2)] = 0
             nbpix_tot = np.sum(bpix_map)
             bpix_map[circl_new] = 0
-            if min_thr is not None:
-                bpix_map[np.where(np.abs(obj_tmp)<min_thr)] = 0
             nbpix_tbc = np.sum(bpix_map)
             bpix_map_cumul = bpix_map_cumul+bpix_map
 
@@ -655,7 +741,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                 cx = cen[0,1]
             obj_tmp, bpix_map_cumul = bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, 
                                                     protect_psf, min_thr, 
-                                                    half_res_y, verbose)
+                                                    half_res_y, mad, verbose)
         else:
             fwhm_round = int(round(fwhm))
             fwhm_round = fwhm_round+1-(fwhm_round%2) # make it odd
@@ -684,7 +770,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                                                               cx[i], fwhm[i], 
                                                               sig, protect_psf,  
                                                               min_thr, 
-                                                              half_res_y,
+                                                              half_res_y, mad,
                                                               verbose)
         else:
             if isinstance(fwhm, (float,int)):
@@ -846,9 +932,16 @@ def cube_fix_badpix_with_kernel(array, bpm_mask, mode='gauss', fwhm=4.,
             for y in range(nny):
                 new_obj_tmp[y] = array[y//2]
             return new_obj_tmp
-        obj_tmp = unsquash_v(obj_tmp)
+        if ndims == 2:
+            obj_tmp = unsquash_v(obj_tmp)
+        else:
+            new_obj_tmp = []
+            for z in range(nz):
+                new_obj_tmp.append(unsquash_v(obj_tmp[z]))
+            obj_tmp = np.array(new_obj_tmp)
     
     return obj_tmp
+
     
     
 def find_outliers(frame, sig_dist, in_bpix=None, stddev=None, neighbor_box=3,

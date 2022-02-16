@@ -151,7 +151,7 @@ def ifft(array):
 
 def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
                           fwhm_size=5, btw_cutoff=0.2, btw_order=2,
-                          hann_cutoff=5, psf=None, gauss_mode='conv', 
+                          hann_cutoff=5, psf=None, conv_mode='conv', 
                           mask=None):
     """
     High-pass filtering of input frame depending on parameter ``mode``.
@@ -198,7 +198,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     psf: numpy ndarray, optional
         Input normalised and centered psf, 2d frame. Should be provided if 
         mode is set to 'psf'.
-    gauss_mode : {'conv', 'convfft'}, str optional
+    conv_mode : {'conv', 'convfft'}, str optional
         'conv' uses the multidimensional gaussian filter from scipy.ndimage and
         'convfft' uses the fft convolution with a 2d Gaussian kernel.
     mask: numpy ndarray, optional
@@ -331,7 +331,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
     elif mode == 'gauss-subt':
         # Subtracting the low_pass filtered (median) image from the image itself
         gaussed = frame_filter_lowpass(array, 'gauss', fwhm_size=fwhm_size,
-                                       gauss_mode=gauss_mode, mask=mask)
+                                       conv_mode=conv_mode, mask=mask)
         filtered = array - gaussed
 
     elif mode == 'psf-subt':
@@ -506,7 +506,7 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
 
 
 def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
-                        gauss_mode='conv', kernel_sz=None, verbose=True, 
+                        conv_mode='conv', kernel_sz=None, verbose=True, 
                         psf=None, mask=None, iterate=True, **kwargs):
     """
     Apply ``frame_filter_lowpass`` to the frames of a 3d or 4d cube.
@@ -521,7 +521,7 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
         See the documentation of the ``frame_filter_lowpass`` function.
     fwhm_size : float, optional
         See the documentation of the ``frame_filter_lowpass`` function.
-    gauss_mode : str, optional
+    conv_mode : str, optional
         See the documentation of the ``frame_filter_lowpass`` function.
     kernel_sz: int, optional
         See the documentation of the ``frame_filter_lowpass`` function.
@@ -554,7 +554,7 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     if array.ndim == 3:
         for i in Progressbar(range(array.shape[0]), verbose=verbose):
             array_out[i] = frame_filter_lowpass(array[i], mode, median_size,
-                                                fwhm_size, gauss_mode, 
+                                                fwhm_size, conv_mode, 
                                                 kernel_sz, psf, mask, iterate, 
                                                 **kwargs)
     elif array.ndim == 4:
@@ -562,7 +562,7 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
             for lam in range(array.shape[0]):
                 array_out[lam][i] = frame_filter_lowpass(array[lam][i], mode,
                                                          median_size, fwhm_size,
-                                                         gauss_mode, kernel_sz, 
+                                                         conv_mode, kernel_sz, 
                                                          psf, mask, iterate, 
                                                          **kwargs)
     else:

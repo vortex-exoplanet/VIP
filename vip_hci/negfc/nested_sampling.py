@@ -170,13 +170,6 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
 
     """
 
-    # If companion flux is too low MCMC will not converge. Solution: scale up 
-    # the intensities in the cube after injecting the negfc.
-    if init[2] < 100:
-        scale_fac = 100./init[2]
-    else:
-        scale_fac = 1
-
     def prior_transform(x):
         """
         Computes the transformation from the unit distribution `[0, 1]` to 
@@ -228,7 +221,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
                       cube_ref=cube_ref, svd_mode=svd_mode, scaling=scaling,
                       algo=algo, delta_rot=delta_rot, fmerit='sum', ncomp=ncomp, 
                       collapse=collapse, algo_options=algo_options, 
-                      weights=weights, scale_fac=scale_fac)
+                      weights=weights)
 
     # -------------------------------------------------------------------------
     if verbose:  start = time_ini()

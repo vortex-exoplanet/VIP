@@ -244,10 +244,35 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
     return res
 
 
-def nested_sampling_results(ns_object, burnin=0.4, bins=None, save=False,
-                            output_dir='/', plot=False):
+def nested_sampling_results(ns_object, burnin=0.4, bins=None, cfd=68.27,
+                            save=False, output_dir='/', plot=False):
     """ Shows the results of the Nested Sampling, summary, parameters with 
     errors, walk and corner plots.
+    
+    Parameters
+    ----------
+    ns_object: numpy.array
+        The nestle object returned from `nested_spec_sampling`.
+    burnin: float, default: 0
+        The fraction of a walker we want to discard.
+    bins: int, optional
+        The number of bins used to sample the posterior distributions.
+    cfd: float, optional
+        The confidence level given in percentage.
+    save: boolean, default: False
+        If True, a pdf file is created.
+    output_dir: str, optional
+        The name of the output directory which contains the output files in the 
+        case  ``save`` is True. 
+    plot: bool, optional
+        Whether to show the plots (instead of saving them).
+                    
+    Returns
+    -------
+    final_res: numpy ndarray
+         Best-fit parameters and uncertainties (corresponding to 68% confidence
+         interval). Dimensions: nparams x 2.
+         
     """
     res = ns_object
     nsamples = res.samples.shape[0]

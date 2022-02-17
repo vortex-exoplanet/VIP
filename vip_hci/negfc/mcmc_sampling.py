@@ -68,12 +68,12 @@ def lnprior(param, bounds):
         return -np.inf
 
 
-def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
-           ncomp, aperture_radius, initial_state, cube_ref=None,
-           svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
-           delta_rot=1, fmerit='sum', imlib='vip-fft', interpolation='lanczos4', 
-           collapse='median', algo_options={}, weights=None, transmission=None, 
-           mu_sigma=True, sigma='spe+pho', debug=False):
+def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, ncomp, 
+           aperture_radius, initial_state, cube_ref=None, svd_mode='lapack', 
+           scaling='temp-mean', algo=pca_annulus, delta_rot=1, fmerit='sum', 
+           imlib='vip-fft', interpolation='lanczos4', collapse='median', 
+           algo_options={}, weights=None, transmission=None, mu_sigma=True, 
+           sigma='spe+pho', debug=False):
     """ Define the likelihood log-function.
     
     Parameters
@@ -861,6 +861,9 @@ def show_walk_plot(chain, save=False, output_dir='', **kwargs):
         discard these steps.
     save: boolean, default: False
         If True, a pdf file is created.
+    output_dir: str, optional
+        The name of the output directory which contains the output files in the 
+        case  ``save`` is True.    
     kwargs:
         Additional attributes are passed to the matplotlib plot method.
                                                         
@@ -907,7 +910,9 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
         The fraction of a walker chain we want to discard.
     save: boolean, default: False
         If True, a pdf file is created.
-     
+    output_dir: str, optional
+        The name of the output directory which contains the output files in the 
+        case  ``save`` is True.         
      kwargs:
         Additional attributes are passed to the corner.corner() method.
                     

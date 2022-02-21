@@ -28,7 +28,7 @@ coverage:
 	coverage report -m
 
 test:
-	pytest --cov=vip_hci --cov-report=xml
+	pytest --cov=vip_hci/ --cov-report=xml
 
 clean:
 	find . -name '*.pyc' -exec rm -f {} +

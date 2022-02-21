@@ -836,7 +836,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     mask: 2D np.ndarray, optional
         Binary mask indicating where the cross-correlation should be calculated
         in the images. If provided, should be the same size as array frames.
-        [Note: only ysed uf version of skimage >= 0.18.0]
+        [Note: only used if version of skimage >= 0.18.0]
     full_output : bool, optional
         Whether to return 2 1d arrays of shifts along with the recentered cube
         or not.
@@ -937,7 +937,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         x[0] = 0
         y[0] = 0
 
-    # Finding the shifts with DTF upsampling of each frame wrt the first
+    # Finding the shifts with DFT upsampling of each frame wrt the first
     
     if nproc == 1:
         for i in Progressbar(range(1, n_frames), desc="frames", verbose=verbose):
@@ -947,7 +947,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     elif nproc > 1: 
         res = pool_map(nproc, _shift_dft, array_rec, array,
                        iterable(range(1, n_frames)),
-                       upsample_factor, interpolation, imlib)
+                       upsample_factor, mask, interpolation, imlib)
         res = np.array(res)
         
         y[1:] = res[:,0]

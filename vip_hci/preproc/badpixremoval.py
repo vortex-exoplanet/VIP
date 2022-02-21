@@ -112,7 +112,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         bpm_mask = np.zeros_like(frame)
         bpm_mask[ind] = 1
         if protect_mask:
-            cir = disk((cy, cx), radius)
+            cir = disk((cy, cx), radius, shape=bpm_mask.shape)
             bpm_mask[cir] = 0
         bpm_mask = bpm_mask.astype('bool')
 
@@ -254,7 +254,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
             bpm_mask = np.zeros_like(array[0])
             bpm_mask[ind] = 1
             if protect_mask:
-                cir = disk((cy, cx), radius)
+                cir = disk((cy, cx), radius, shape=bpm_mask.shape)
                 bpm_mask[cir] = 0
             bpm_mask = bpm_mask.astype('bool')
     

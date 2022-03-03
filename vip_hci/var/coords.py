@@ -188,11 +188,11 @@ def pol_to_cart(r, theta, r_err=0, theta_err=0, cx=0, cy=0,
 
 
 def pol_to_eq(r, t, rError=0, tError=0, astro_convention=False, plot=False):
-    """ 
-    Converts a position (r,t) given in polar coordinates into \delta RA and 
-    \delta DEC (equatorial coordinates), with error propagation. 
-    Note: regardless of the assumption on input angle t (see astro_convention),
-    the output RA is counted positive towards left.
+    r""" 
+    Converts a position (r,t) given in polar coordinates into :math:`\Delta` RA 
+    and :math:`\Delta` DEC (equatorial coordinates), with error propagation. 
+    Note: regardless of the assumption on input angle t (see description for
+    `astro_convention`), the output RA is counted positive towards left.
 
     Parameters
     ----------

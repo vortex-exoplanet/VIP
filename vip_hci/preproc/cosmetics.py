@@ -16,8 +16,10 @@ __all__ = ['cube_crop_frames',
            'approx_stellar_position']
 
 
+from multiprocessing import cpu_count
 import numpy as np
 from astropy.stats import sigma_clipped_stats
+from ..config.utils_conf import pool_map, iterable
 from ..stats import sigma_filter
 from ..var import frame_center, get_square
 
@@ -270,7 +272,7 @@ def frame_remove_stripes(array):
 
 
 def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
-                     half_res_y=False):
+                     half_res_y=False, nproc=1):
     """Sigma filtering of nan pixels in a whole frame or cube. Tested on
     SINFONI data.
 
@@ -291,44 +293,15 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
         is twice less angular resolution vertically than horizontally (e.g.
         SINFONI data). The algorithm goes twice faster if this option is
         rightfully set to True.
+    nproc: None or int, optional
+        Number of CPUs for multiprocessing (only used for 3D input). If None, 
+        will automatically set it to half the available number of CPUs.
 
     Returns
     -------
     obj_tmp : numpy ndarray
         Output cube with corrected nan pixels in each frame
     """
-    def nan_corr_2d(obj_tmp):
-        n_x = obj_tmp.shape[1]
-        n_y = obj_tmp.shape[0]
-
-        if half_res_y:
-            if n_y % 2 != 0:
-                raise ValueError("The input frames do not have an even number "
-                                 "of rows. Hence, you should probably not be "
-                                 "using the option half_res_y = True.")
-            n_y = int(n_y / 2)
-            frame = obj_tmp
-            obj_tmp = np.zeros([n_y, n_x])
-            for yy in range(n_y):
-                obj_tmp[yy] = frame[2 * yy]
-
-        # tuple with the 2D indices of each nan value of the frame
-        nan_indices = np.where(np.isnan(obj_tmp))
-        nan_map = np.zeros_like(obj_tmp)
-        nan_map[nan_indices] = 1
-        nnanpix = int(np.sum(nan_map))
-        # Correct nan with iterative sigma filter
-        obj_tmp = sigma_filter(obj_tmp, nan_map, neighbor_box=neighbor_box,
-                               min_neighbors=min_neighbors, verbose=verbose)
-        if half_res_y:
-            frame = obj_tmp
-            n_y = 2 * n_y
-            obj_tmp = np.zeros([n_y, n_x])
-            for yy in range(n_y):
-                obj_tmp[yy] = frame[int(yy / 2)]
-
-        return obj_tmp, nnanpix
-    ############################################################################
 
     obj_tmp = cube.copy()
 
@@ -350,18 +323,69 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
             print("{} NaN pixels were corrected".format(nnanpix))
 
     elif ndims == 3:
+        if nproc is None:
+            nproc = cpu_count()//2
         n_z = obj_tmp.shape[0]
-        for zz in range(n_z):
-            obj_tmp[zz], nnanpix = nan_corr_2d(obj_tmp[zz])
+        if nproc == 1:
+            for zz in range(n_z):
+                obj_tmp[zz], nnanpix = nan_corr_2d(obj_tmp[zz], neighbor_box,
+                                                   min_neighbors, half_res_y, 
+                                                   verbose, True)
+                if verbose:
+                    msg = "In channel {}, {} NaN pixels were corrected"
+                    print(msg.format(zz, nnanpix))
+        else:
             if verbose:
-                msg = "In channel {}, {} NaN pixels were corrected"
-                print(msg.format(zz, nnanpix))
+                msg = "Correcting NaNs in multiprocessing..."
+                print(msg)
+            res = pool_map(nproc, nan_corr_2d, iterable(obj_tmp), neighbor_box,
+                           min_neighbors, half_res_y, verbose, False) 
+            obj_tmp = np.array(res, dtype=object)
 
     if verbose:
         print('All nan pixels are corrected.')
 
     return obj_tmp
 
+
+def nan_corr_2d(obj_tmp, neighbor_box, min_neighbors, half_res_y, verbose,
+                full_output=True):
+    
+    n_x = obj_tmp.shape[1]
+    n_y = obj_tmp.shape[0]
+
+    if half_res_y:
+        if n_y % 2 != 0:
+            raise ValueError("The input frames do not have an even number "
+                             "of rows. Hence, you should probably not be "
+                             "using the option half_res_y = True.")
+        n_y = int(n_y / 2)
+        frame = obj_tmp
+        obj_tmp = np.zeros([n_y, n_x])
+        for yy in range(n_y):
+            obj_tmp[yy] = frame[2 * yy]
+
+    # tuple with the 2D indices of each nan value of the frame
+    nan_indices = np.where(np.isnan(obj_tmp))
+    nan_map = np.zeros_like(obj_tmp)
+    nan_map[nan_indices] = 1
+    nnanpix = int(np.sum(nan_map))
+    # Correct nan with iterative sigma filter
+    obj_tmp = sigma_filter(obj_tmp, nan_map, neighbor_box=neighbor_box,
+                           min_neighbors=min_neighbors, verbose=verbose,
+                           half_res_y=half_res_y)
+    if half_res_y:
+        frame = obj_tmp
+        n_y = 2 * n_y
+        obj_tmp = np.zeros([n_y, n_x])
+        for yy in range(n_y):
+            obj_tmp[yy] = frame[int(yy / 2)]
+
+    if full_output:
+        return obj_tmp, nnanpix
+    else:
+        return obj_tmp
+    
 
 def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
     """FIND THE APPROX COORDS OF THE STAR IN EACH CHANNEL (even the ones

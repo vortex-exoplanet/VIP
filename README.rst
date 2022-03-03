@@ -78,7 +78,7 @@ Tutorials, in the form of Jupyter notebooks, showcasing ``VIP``'s usage and
 other resources such as test datasets are available in the 
 ``VIP-extras`` `repository <https://github.com/vortex-exoplanet/VIP_extras>`_. 
 Alternatively, you can execute this repository on 
-`Binder <https://mybinder.org/v2/gh/vortex-exoplanet/VIP_extras/master>`_(in the tutorials directory). The first notebook for ADI processing can be visualized online with
+`Binder <https://mybinder.org/v2/gh/vortex-exoplanet/VIP_extras/master>`_(in the tutorials directory). The first (quick-start) notebook can be visualized online with
 `nbviewer <http://nbviewer.jupyter.org/github/vortex-exoplanet/VIP_extras/blob/master/tutorials/01_quickstart.ipynb>`_. 
 If you are new to the Jupyter notebook application check out the `beginner's guide
 <https://jupyter-notebook-beginner-guide.readthedocs.io/en/latest/what_is_jupyter.html>`_.
@@ -263,3 +263,6 @@ In addition, if you use one of the following modules, please also cite:
 - medsub: `Marois et al. (2006) <https://ui.adsabs.harvard.edu/abs/2006ApJ...641..556M/abstract>`_ for ADI and `Sparks and Ford (2002) <https://ui.adsabs.harvard.edu/abs/2002ApJ...578..543S/abstract>`_ for SDI;
 - negfc: `Wertz et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017A%26A...598A..83W/abstract>`_;
 - pca: `Amara and Quanz (2012) <https://ui.adsabs.harvard.edu/abs/2012MNRAS.427..948A/abstract>`_ and `Soummer et al. (2012) <https://ui.adsabs.harvard.edu/abs/2012ApJ...755L..28S/abstract>`_;
+
+
+Note: The `specfit <https://github.com/VChristiaens/specfit>`_ module, previously part of VIP, has now been moved to a separate GitHub repository.

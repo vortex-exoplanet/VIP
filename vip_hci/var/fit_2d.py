@@ -14,7 +14,12 @@ __all__ = ['create_synth_psf',
 
 import numpy as np
 import pandas as pd
-import photutils
+try:
+    # for photutils version >= '0.3' use photutils.centroids.centroid_com
+    from photutils.centroids import centroid_com as cen_com
+except:
+    # for photutils version < '0.3' use photutils.centroid_com
+    import photutils.centroid_com as cen_com
 from hciplot import plot_frames
 from astropy.modeling import models, fitting
 from astropy.stats import (gaussian_sigma_to_fwhm, gaussian_fwhm_to_sigma,
@@ -216,7 +221,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
 
     # Creating the 2D Gaussian model
     init_amplitude = np.ptp(psf_subimage)
-    xcom, ycom = photutils.centroid_com(psf_subimage)
+    xcom, ycom = cen_com(psf_subimage)
     gauss = models.Gaussian2D(amplitude=init_amplitude, theta=theta,
                               x_mean=xcom, y_mean=ycom,
                               x_stddev=fwhmx * gaussian_fwhm_to_sigma,
@@ -350,7 +355,7 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
 
     # Creating the 2D Moffat model
     init_amplitude = np.ptp(psf_subimage)
-    xcom, ycom = photutils.centroid_com(psf_subimage)
+    xcom, ycom = cen_com(psf_subimage)
     moffat = models.Moffat2D(amplitude=init_amplitude, x_0=xcom, y_0=ycom,
                              gamma=fwhm / 2., alpha=1)
     # Levenberg-Marquardt algorithm
@@ -479,7 +484,7 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
 
     # Creating the 2d Airy disk model
     init_amplitude = np.ptp(psf_subimage)
-    xcom, ycom = photutils.centroid_com(psf_subimage)
+    xcom, ycom = cen_com(psf_subimage)
     diam_1st_zero = (fwhm * 2.44) / 1.028
     airy = models.AiryDisk2D(amplitude=init_amplitude, x_0=xcom, y_0=ycom,
                              radius=diam_1st_zero/2.)
@@ -652,7 +657,7 @@ def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4,
 
     # Creating the 2D Gaussian model
     init_amplitude = np.ptp(psf_subimage)
-    #xcom, ycom = photutils.centroid_com(psf_subimage)
+    #xcom, ycom = cen_com(psf_subimage)
     ycom, xcom = frame_center(psf_subimage)
     fix_dico_pos = {'theta':True}
     bounds_dico_pos = {'amplitude':[0.8*init_amplitude,1.2*init_amplitude],

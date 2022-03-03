@@ -1,5 +1,7 @@
 -r requirements.txt
 sphinx
+nbsphinx
+pandoc
 pytest
 pytest-cov
 codecov

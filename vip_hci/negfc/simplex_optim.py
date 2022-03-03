@@ -122,8 +122,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
     if f_range is not None:    
         n = f_range.shape[0]
     else:
-        n = 100
-        f_range = np.linspace(0, 5000, n)
+        n = 30
+        f_range = np.geomspace(1e-1, 1e4, n)
     
     chi2r = []
     if verbose:

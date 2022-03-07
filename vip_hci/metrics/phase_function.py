@@ -33,8 +33,12 @@ class Phase_function(object):
             (single Henyey Greenstein), 'DoubleHG' (double Heyney Greenstein) or
             'interpolated' (custom function). 
             The parameter "polar" enables to switch on the polarisation (if set 
-            to True, the default is False). In this case it assumes a Rayleigh
-            polarised fraction (1-(cos phi)^2) / (1+(cos phi)^2).
+            to True, the default is False). In this case it assumes either 
+                - a Rayleigh polarised fraction (1-(cos phi)^2) / (1+(cos phi)^2).
+                  if nothing else is specified
+                - a polynomial if the keyword 'polar_polynom_coeff' is defined 
+                  and corresponds to an array of polynomial coefficient, e.g. 
+                  [p3,p2,p1,p0] evaluated as np.polyval([p3,p2,p1,p0],np.arange(0, 180, 1))
         """
         if not isinstance(spf_dico,dict):
             msg = 'The parameters describing the phase function must be a ' \
@@ -47,12 +51,22 @@ class Phase_function(object):
         self.type = spf_dico['name']
         if 'polar' not in spf_dico.keys():
             self.polar = False
-        elif not isinstance(spf_dico['polar'], bool):
-            msg = 'The dictionnary describing the polarisation must be a ' \
-                  'boolean'
-            raise TypeError(msg)
-        else: 
+        else:
+            if not isinstance(spf_dico['polar'], bool):
+                msg = 'The dictionnary describing the polarisation must be a ' \
+                      'boolean'
+                raise TypeError(msg)
             self.polar = spf_dico['polar']
+            if 'polar_polynom_coeff' in spf_dico.keys():
+                self.polar_polynom = True
+                if isinstance(spf_dico['polar_polynom_coeff'], (tuple,list,np.ndarray)):
+                    self.polar_polynom_coeff = spf_dico['polar_polynom_coeff']
+                else:
+                    msg = 'The dictionnary describing the polarisation polynomial function must be an ' \
+                          'array'
+                    raise TypeError(msg)
+            else:
+                self.polar_polynom = False
         if self.type == 'HG':
             self.phase_function_calc = HenyeyGreenstein_SPF(spf_dico)
         elif self.type == 'DoubleHG':
@@ -77,7 +91,11 @@ class Phase_function(object):
         """
         phf = self.phase_function_calc.compute_phase_function_from_cosphi(cos_phi)
         if self.polar:
-            return (1-cos_phi**2)/(1+cos_phi**2) * phf
+            if self.polar_polynom:
+                phi = np.rad2deg(np.arccos(cos_phi))
+                return  np.polyval(self.polar_polynom_coeff, phi) * phf                
+            else:
+                return (1-cos_phi**2)/(1+cos_phi**2) * phf
         else:
             return phf
 
@@ -100,8 +118,11 @@ class Phase_function(object):
         phi = np.arange(0, 180, 1)
         phase_func = self.compute_phase_function_from_cosphi(np.cos(np.deg2rad(phi)))
         if self.polar:
-            phase_func = (1-np.cos(np.deg2rad(phi))**2) / \
-                         (1+np.cos(np.deg2rad(phi))**2) * phase_func
+            if self.polar_polynom:
+                phase_func =  np.polyval(self.polar_polynom_coeff, phi) * phase_func                
+            else:
+                phase_func = (1-np.cos(np.deg2rad(phi))**2) / \
+                             (1+np.cos(np.deg2rad(phi))**2) * phase_func
 
         plt.close(0)
         plt.figure(0)
@@ -331,10 +352,15 @@ class Interpolated_SPF(object):
                 kind=spf_dico['kind']
         else:
             kind='quadratic'
-        self.interpolation_function = interp1d(np.cos(np.deg2rad(spf_dico['phi'])),\
+        self.interpolation_function = interp1d(spf_dico['phi'],\
                                                spf_dico['spf'],kind=kind,\
                                                bounds_error=False,
                                                fill_value=np.nan)
+        # commented on 2022-02-16
+        # self.interpolation_function = interp1d(np.cos(np.deg2rad(spf_dico['phi'])),\
+        #                                        spf_dico['spf'],kind=kind,\
+        #                                        bounds_error=False,
+        #                                        fill_value=np.nan)
 
     def compute_phase_function_from_cosphi(self, cos_phi):
         """
@@ -348,4 +374,5 @@ class Interpolated_SPF(object):
             cosine of the scattering angle(s) at which the scattering function
             must be calculated.
         """
-        return self.interpolation_function(cos_phi)
+        return self.interpolation_function(np.rad2deg(np.arccos(cos_phi)))
+        # return self.interpolation_function(cos_phi)

@@ -361,10 +361,10 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     dmax = owa  # size of the greatest annuli, in lambda/D
     if fast:
         first_distarray = dmin + np.arange(
-            np.int(np.round(np.abs(dmean-dmin-1)) / annuli_width + 1),
+            int(np.round(np.abs(dmean-dmin-1)) / annuli_width + 1),
             dtype=float) * annuli_width
         second_distarray = dmean + dmin - 1 + np.arange(
-            np.int(np.round(dmax-dmean) / (4*annuli_width) + 1),
+            int(np.round(dmax-dmean) / (4*annuli_width) + 1),
             dtype=float) * 4*annuli_width
         distarray_lambdaonD = np.hstack([first_distarray, second_distarray])
         if iwa > fast:

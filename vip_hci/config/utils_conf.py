@@ -19,6 +19,8 @@ import numpy as np
 import itertools as itt
 from inspect import getargspec
 from functools import wraps
+import multiprocessing
+multiprocessing.set_start_method('fork')
 from multiprocessing import Pool
 
 from vip_hci import __version__

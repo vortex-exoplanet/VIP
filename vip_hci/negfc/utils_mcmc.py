@@ -20,8 +20,9 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 def gelman_rubin(x):
-    """
-    Determine the Gelman-Rubin \hat{R} statistical test between Markov chains.
+    r"""
+    Determine the Gelman-Rubin :math:`\hat{R}` statistical test between Markov 
+    chains.
     
     Parameters
     ----------
@@ -32,7 +33,7 @@ def gelman_rubin(x):
     Returns
     -------
     out: float
-        The Gelman-Rubin \hat{R}.
+        The Gelman-Rubin :math:`\hat{R}`.
 
     Example
     -------
@@ -75,10 +76,10 @@ def gelman_rubin(x):
 
 
 def gelman_rubin_from_chain(chain, burnin):
-    """ Pack the MCMC chain and determine the Gelman-Rubin \hat{R} statistical
-    test. In other words, two sub-sets are extracted from the chain (burnin
-    parts are taken into account) and the Gelman-Rubin statistical test is
-    performed.
+    r""" Pack the MCMC chain and determine the Gelman-Rubin :math:`\hat{R}` 
+    statistical test. In other words, two sub-sets are extracted from the chain 
+    (burnin parts are taken into account) and the Gelman-Rubin statistical test 
+    is performed.
     
     Parameters
     ----------
@@ -90,7 +91,7 @@ def gelman_rubin_from_chain(chain, burnin):
     Returns
     -------
     out: float
-        The Gelman-Rubin \hat{R}.
+        The Gelman-Rubin :math:`\hat{R}`.
         
     """
     dim = chain.shape[2]

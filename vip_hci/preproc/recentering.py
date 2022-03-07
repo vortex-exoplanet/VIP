@@ -168,7 +168,7 @@ def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
 
 
 def cube_shift(cube, shift_y, shift_x, imlib='vip-fft', 
-               interpolation='lanczos4'):
+               interpolation='lanczos4', border_mode='reflect'):
     """ Shifts the X-Y coordinates of a cube or 3D array by x and y values.
 
     Parameters
@@ -182,7 +182,9 @@ def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
-
+    border_mode : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+        
     Returns
     -------
     cube_out : numpy ndarray, 3d
@@ -200,13 +202,14 @@ def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
 
     for i in range(cube.shape[0]):
         cube_out[i] = frame_shift(cube[i], shift_y[i], shift_x[i], imlib,
-                                  interpolation)
+                                  interpolation, border_mode)
     return cube_out
 
 
 def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
                           imlib='vip-fft', interpolation='lanczos4',
-                          fit_type='moff', debug=False, verbose=True):
+                          fit_type='moff', border_mode='reflect', debug=False, 
+                          verbose=True):
     """ Finds the center of a frame with waffle/satellite spots (e.g. for
     VLT/SPHERE). The method used to determine the center is by centroiding the
     4 spots via a 2d Gaussian fit and finding the intersection of the
@@ -240,6 +243,14 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     fit_type: str, optional {'gaus','moff'}
         Type of 2d fit to infer the centroid of the satellite spots.
+    border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
+        Points outside the boundaries of the input are filled accordingly.
+        With 'reflect', the input is extended by reflecting about the edge of
+        the last pixel. With 'nearest', the input is extended by replicating the
+        last pixel. With 'constant', the input is extended by filling all values
+        beyond the edge with zeros. With 'mirror', the input is extended by
+        reflecting about the center of the last pixel. With 'wrap', the input is
+        extended by wrapping around to the opposite edge. Default is 'reflect'.
     debug : bool, optional
         If True debug information is printed and plotted.
     verbose : bool, optional
@@ -376,7 +387,8 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
             if shift:
                 array_rec = frame_shift(array, shifty, shiftx, imlib=imlib,
-                                        interpolation=interpolation)
+                                        interpolation=interpolation,
+                                        border_mode=border_mode)
                 return array_rec, shifty, shiftx, centy, centx
             else:
                 return shifty, shiftx
@@ -388,8 +400,8 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
 
 def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
-                           fit_type='moff', lbda=None, debug=False, verbose=True, 
-                           full_output=False):
+                           fit_type='moff', lbda=None, border_mode='constant', 
+                           debug=False, verbose=True, full_output=False):
     """ Function analog to frame_center_satspots but for image sequences. It
     actually will call frame_center_satspots for each image in the cube. The
     function also returns the shifted images (not recommended to use when the
@@ -426,6 +438,14 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     lbda: 1d array or list, opt
         Wavelength vector. If provided, the subimages will be scaled accordingly 
         to follow the motion of the satellite spots.
+    border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
+        Points outside the boundaries of the input are filled accordingly.
+        With 'reflect', the input is extended by reflecting about the edge of
+        the last pixel. With 'nearest', the input is extended by replicating the
+        last pixel. With 'constant', the input is extended by filling all values
+        beyond the edge with zeros. With 'mirror', the input is extended by
+        reflecting about the center of the last pixel. With 'wrap', the input is
+        extended by wrapping around to the opposite edge. Default is 'reflect'.
     debug : bool, optional
         If True debug information is printed and plotted (fit and residuals,
         intersections and shifts). This has to be used carefully as it can
@@ -477,7 +497,8 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     for i in Progressbar(range(n_frames), verbose=verbose):
         res = frame_center_satspots(array[i], final_xy[i], debug=debug, shift=True,
                                     subi_size=subi_size, sigfactor=sigfactor,
-                                    fit_type=fit_type, verbose=False)
+                                    fit_type=fit_type, verbose=False,
+                                    border_mode=border_mode)
         array_rec.append(res[0])
         shift_y[i] = res[1]
         shift_x[i] = res[2]
@@ -523,8 +544,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
 
 def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
                        mask_center=None, nproc=None, satspots_cfg=None,
-                       full_output=False, verbose=True, 
-                       plot=True, debug=False):
+                       full_output=False, verbose=True, plot=True, debug=False):
     """ Finding the center of a broadband (co-added) frame with speckles and
     satellite spots elongated towards the star (center). We use the radon
     transform implementation from scikit-image.
@@ -725,7 +745,8 @@ def _radon_costf(frame, cent, radint, coords, satspots_cfg=None):
 
 
 def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
-                        interpolation='lanczos4', **kwargs):
+                        interpolation='lanczos4', border_mode='reflect', 
+                        **kwargs):
     """ Recenters a cube looping through its frames and calling the
     ``frame_center_radon`` function.
 
@@ -741,22 +762,18 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
-    cropsize : odd int, optional
-        Size in pixels of the cropped central area of the input array that will
-        be used. It should be large enough to contain the satellite spots.
-    hsize : float, optional
-        Size of the box for the grid search. The frame is shifted to each
-        direction from the center in a hsize length with a given step.
-    step : float, optional
-        The step of the coordinates change.
-    mask_center : None or int, optional
-        If None the central area of the frame is kept. If int a centered zero
-        mask will be applied to the frame. By default the center isn't masked.
-    nproc : int, optional
-        Number of processes for parallel computing. If None the number of
-        processes will be set to cpu_count()/2.
-    debug : bool, optional
-        Whether to print and plot intermediate info from ``frame_center_radon``.
+    border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
+        Points outside the boundaries of the input are filled accordingly.
+        With 'reflect', the input is extended by reflecting about the edge of
+        the last pixel. With 'nearest', the input is extended by replicating the
+        last pixel. With 'constant', the input is extended by filling all values
+        beyond the edge with zeros. With 'mirror', the input is extended by
+        reflecting about the center of the last pixel. With 'wrap', the input is
+        extended by wrapping around to the opposite edge. Default is 'reflect'.
+    kwargs:
+        Additional optional parameters from vip_hci.preproc.frame_center_radon
+        function, such as cropsize, hsize, step, satspots_cfg, mask_center, 
+        nproc or debug.
 
 
     Returns
@@ -781,7 +798,8 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
         y[i], x[i] = frame_center_radon(array[i], verbose=False, plot=False,
                                         **kwargs)
         array_rec[i] = frame_shift(array[i], y[i], x[i], imlib=imlib,
-                                   interpolation=interpolation)
+                                   interpolation=interpolation, 
+                                   border_mode=border_mode)
 
     if verbose:
         timing(start_time)
@@ -795,9 +813,9 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
 def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  fwhm=4, subi_size=None, upsample_factor=100,
                                  imlib='vip-fft', interpolation='lanczos4',
-                                 mask=None, full_output=False, verbose=True, 
-                                 nproc=1, save_shifts=False, debug=False, 
-                                 plot=True):
+                                 mask=None, border_mode='reflect', 
+                                 full_output=False, verbose=True, nproc=1, 
+                                 save_shifts=False, debug=False, plot=True):
     """ Recenters a cube of frames using the DFT upsampling method as
     proposed in Guizar et al. 2008 and implemented in the
     ``register_translation`` function from scikit-image.
@@ -836,7 +854,15 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     mask: 2D np.ndarray, optional
         Binary mask indicating where the cross-correlation should be calculated
         in the images. If provided, should be the same size as array frames.
-        [Note: only ysed uf version of skimage >= 0.18.0]
+        [Note: only used if version of skimage >= 0.18.0]
+    border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
+        Points outside the boundaries of the input are filled accordingly.
+        With 'reflect', the input is extended by reflecting about the edge of
+        the last pixel. With 'nearest', the input is extended by replicating the
+        last pixel. With 'constant', the input is extended by filling all values
+        beyond the edge with zeros. With 'mirror', the input is extended by
+        reflecting about the center of the last pixel. With 'wrap', the input is
+        extended by wrapping around to the opposite edge. Default is 'reflect'.
     full_output : bool, optional
         Whether to return 2 1d arrays of shifts along with the recentered cube
         or not.
@@ -937,17 +963,18 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         x[0] = 0
         y[0] = 0
 
-    # Finding the shifts with DTF upsampling of each frame wrt the first
+    # Finding the shifts with DFT upsampling of each frame wrt the first
     
     if nproc == 1:
         for i in Progressbar(range(1, n_frames), desc="frames", verbose=verbose):
             y[i], x[i], array_rec[i] = _shift_dft(array_rec, array, i,
                                                   upsample_factor, mask,
-                                                  interpolation, imlib)
+                                                  interpolation, imlib,
+                                                  border_mode)
     elif nproc > 1: 
-        res = pool_map(nproc, _shift_dft, array_rec, array,
-                       iterable(range(1, n_frames)),
-                       upsample_factor, interpolation, imlib)
+        res = pool_map(nproc, _shift_dft, array_rec, array, 
+                       iterable(range(1, n_frames)), upsample_factor, mask,
+                       interpolation, imlib, border_mode)
         res = np.array(res)
         
         y[1:] = res[:,0]
@@ -990,7 +1017,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
 
 
 def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation, 
-               imlib):
+               imlib, border_mode):
     """
     function used in recenter_dft_unsampling
     """
@@ -1003,7 +1030,8 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
                              upsample_factor=upsample_factor)
     y_i, x_i = shift_yx
     array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
-                              imlib=imlib, interpolation=interpolation)
+                              imlib=imlib, interpolation=interpolation,
+                              border_mode=border_mode)
     return y_i, x_i, array_rec_i    
 
 
@@ -1011,8 +1039,9 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                         nproc=1, imlib='vip-fft', interpolation='lanczos4',
                         offset=None, negative=False, threshold=False, 
                         sigfactor=2, fix_neg=False, params_2g=None, 
-                        save_shifts=False, full_output=False, verbose=True, 
-                        debug=False, plot=True):
+                        border_mode='reflect', save_shifts=False, 
+                        full_output=False, verbose=True, debug=False, 
+                        plot=True):
     """ Recenters the frames of a cube. The shifts are found by fitting a 2d
     Gaussian or Moffat to a subimage centered at ``xy``. This assumes the frames
     don't have too large shifts (>5px). The frames are shifted using the
@@ -1073,6 +1102,14 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
     sigfactor: float, optional
         If thresholding is performed, set the the threshold in terms of 
         gaussian sigma in the subimage (will depend on your cropping size).
+    border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
+        Points outside the boundaries of the input are filled accordingly.
+        With 'reflect', the input is extended by reflecting about the edge of
+        the last pixel. With 'nearest', the input is extended by replicating the
+        last pixel. With 'constant', the input is extended by filling all values
+        beyond the edge with zeros. With 'mirror', the input is extended by
+        reflecting about the center of the last pixel. With 'wrap', the input is
+        extended by wrapping around to the opposite edge. Default is 'reflect'.
     save_shifts : bool, optional
         Whether to save the shifts to a file in disk.
     full_output : bool, optional
@@ -1198,20 +1235,13 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
             print("\nShifts in X and Y")
             print(x[i], y[i])
         array_rec[i] = frame_shift(array[i], y[i], x[i], imlib=imlib,
-                                          interpolation=interpolation)
+                                          interpolation=interpolation,
+                                          border_mode=border_mode)
 
     if verbose:
         timing(start_time)
 
     if plot:
-        plt.figure(figsize=vip_figsize)
-        plt.plot(y, 'o-', label='shifts in y', alpha=0.5)
-        plt.plot(x, 'o-', label='shifts in x', alpha=0.5)
-        plt.legend(loc='best')
-        plt.grid('on', alpha=0.2)
-        plt.ylabel('Pixels')
-        plt.xlabel('Frame number')
-
         plt.figure(figsize=vip_figsize)
         b = int(np.sqrt(n_frames))
         la = 'Histogram'
@@ -1225,6 +1255,14 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         plt.legend(loc='best')
         plt.ylabel('Bin counts')
         plt.xlabel('Pixels')
+
+        plt.figure(figsize=vip_figsize)
+        plt.plot(y, 'o-', label='shifts in y', alpha=0.5)
+        plt.plot(x, 'o-', label='shifts in x', alpha=0.5)
+        plt.legend(loc='best')
+        plt.grid('on', alpha=0.2)
+        plt.ylabel('Pixels')
+        plt.xlabel('Frame number')
 
     if save_shifts:
         np.savetxt('recent_gauss_shifts.txt', np.transpose([y, x]), fmt='%f')
@@ -1341,8 +1379,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                fwhm=4, debug=False, recenter_median=False,
                                fit_type='gaus', negative=True, crop=True,
                                subframesize=21, mask=None, imlib='vip-fft', 
-                               interpolation='lanczos4', plot=True, 
-                               full_output=False):
+                               interpolation='lanczos4', border_mode='reflect',
+                               plot=True, full_output=False):
     """ Registers frames based on the median speckle pattern. Optionally centers
     based on the position of the vortex null in the median frame. Images are
     filtered to isolate speckle spatial frequencies.
@@ -1388,6 +1426,14 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         Image processing library to use.
     interpolation : str, optional
         Interpolation method to use.
+    border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
+        Points outside the boundaries of the input are filled accordingly.
+        With 'reflect', the input is extended by reflecting about the edge of
+        the last pixel. With 'nearest', the input is extended by replicating the
+        last pixel. With 'constant', the input is extended by filling all values
+        beyond the edge with zeros. With 'mirror', the input is extended by
+        reflecting about the center of the last pixel. With 'wrap', the input is
+        extended by wrapping around to the opposite edge. Default is 'reflect'.
     plot : bool, optional
         If True, the shifts are plotted.
     full_ouput: bool, optional
@@ -1517,7 +1563,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             
             alignment_cube[0] = frame_shift(alignment_cube[0, :, :], yshift,
                                             xshift, imlib=imlib,
-                                            interpolation=interpolation)
+                                            interpolation=interpolation,
+                                            border_mode=border_mode)
 
         # center the cube with stretched values
         cube_stret = np.log10((np.abs(alignment_cube) + 1) ** gammaval)
@@ -1537,7 +1584,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         for j in range(1, n_frames):
             alignment_cube[j] = frame_shift(alignment_cube[j], y_shift[j],
                                             x_shift[j], imlib=imlib,
-                                            interpolation=interpolation)
+                                            interpolation=interpolation,
+                                            border_mode=border_mode)
 
         cum_y_shifts += y_shift
         cum_x_shifts += x_shift
@@ -1548,7 +1596,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     for i in range(n):
         cube_reg_sci[i] = frame_shift(cube_sci[i], cum_y_shifts_sci[i],
                                       cum_x_shifts_sci[i], imlib=imlib,
-                                      interpolation=interpolation)
+                                      interpolation=interpolation,
+                                      border_mode=border_mode)
 
     if plot:
         plt.figure(figsize=vip_figsize)
@@ -1575,7 +1624,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         for i in range(nref):
             cube_reg_ref[i] = frame_shift(cube_ref[i], cum_y_shifts_ref[i],
                                           cum_x_shifts_ref[i], imlib=imlib,
-                                          interpolation=interpolation)
+                                          interpolation=interpolation,
+                                          border_mode=border_mode)
 
     if ref_star:
         if full_output:

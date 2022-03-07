@@ -5,7 +5,7 @@ Tests for pca/svd.py.
 
 import numpy as np
 
-from vip_hci.pca.svd import svd_wrapper
+from vip_hci.psfsub.svd import svd_wrapper
 
 
 def test_svd_recons():

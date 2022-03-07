@@ -10,10 +10,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from .simplex_fmerit import chisquare, get_mu_and_sigma
-from ..pca import pca_annulus
+from ..psfsub import pca_annulus
 from ..var import frame_center
-from ..conf import time_ini, timing
-from ..conf.utils_conf import sep
+from ..config import time_ini, timing
+from ..config.utils_conf import sep
 
 
 __author__ = 'O. Wertz, C. A. Gomez Gonzalez, V. Christiaens'
@@ -122,8 +122,8 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
     if f_range is not None:    
         n = f_range.shape[0]
     else:
-        n = 100
-        f_range = np.linspace(0, 5000, n)
+        n = 30
+        f_range = np.geomspace(1e-1, 1e4, n)
     
     chi2r = []
     if verbose:

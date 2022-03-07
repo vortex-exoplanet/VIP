@@ -16,6 +16,7 @@ docs/time
 
 # unit test / coverage reports
 .coverage
+coverage.xml
 .cache
 .pytest_cache/
 htmlcov/

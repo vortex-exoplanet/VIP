@@ -23,9 +23,9 @@ from matplotlib.ticker import MaxNLocator
 import pickle
 from scipy.stats import norm
 from ..metrics import cube_inject_companions
-from ..conf import time_ini, timing
-from ..conf.utils_conf import sep
-from ..pca import pca_annulus
+from ..config import time_ini, timing
+from ..config.utils_conf import sep
+from ..psfsub import pca_annulus
 from .simplex_fmerit import get_values_optimize, get_mu_and_sigma
 from .utils_mcmc import gelman_rubin, autocorr_test
 import warnings
@@ -68,12 +68,12 @@ def lnprior(param, bounds):
         return -np.inf
 
 
-def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width,
-           ncomp, aperture_radius, initial_state, cube_ref=None,
-           svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
-           delta_rot=1, fmerit='sum', imlib='vip-fft', interpolation='lanczos4', 
-           collapse='median', algo_options={}, weights=None, transmission=None, 
-           mu_sigma=True, sigma='spe+pho', debug=False):
+def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, ncomp, 
+           aperture_radius, initial_state, cube_ref=None, svd_mode='lapack', 
+           scaling='temp-mean', algo=pca_annulus, delta_rot=1, fmerit='sum', 
+           imlib='vip-fft', interpolation='lanczos4', collapse='median', 
+           algo_options={}, weights=None, transmission=None, mu_sigma=True, 
+           sigma='spe+pho', debug=False):
     """ Define the likelihood log-function.
     
     Parameters
@@ -354,11 +354,27 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     regardless of the position of the candidate.
     3) We extract the intensity values of all the pixels contained in a
     circular aperture centered on the initial guess.
-    4) We calculate the function of merit. The associated chi^2 is given by
-    chi^2 = sum(\|I_j\|) where j \in {1,...,N} with N the total number of pixels
-    contained in the circular aperture.
-    The steps 1) to 4) are looped. At each iteration, the candidate model
+    4) We calculate a function of merit :math:`\chi^2` (see below).
+    The steps 1) to 4) are then looped. At each iteration, the candidate model 
     parameters are defined by the emcee Affine Invariant algorithm.
+    
+    There are different possibilities for the figure of merit (step 4):
+        - mu_sigma=None; fmerit='sum' (as in Wertz et al. 2017):
+        .. math:: \chi^2 = \sum(\|I_j\|) 
+        - mu_sigma=None; fmerit='stddev' (likely more appropriate when speckle
+        noise still significant):
+        .. math:: \chi^2 = N \sigma_{I_j}(values,ddof=1)*values.size
+        - mu_sigma=True or a tuple (as in Christiaens et al. 2021, new default):
+        .. math:: \chi^2 = \sum\frac{(I_j- mu)^2}{\sigma^2}     
+            
+    where :math:`j \in {1,...,N}` with N the total number of pixels 
+    contained in the circular aperture, :math:`\sigma_{I_j}` is the standard
+    deviation of :math:`I_j` values, and :math:`\mu` is the mean pixel 
+    intensity in a truncated annulus at the radius of the companion candidate 
+    (i.e. excluding the cc region).
+    
+    See description of `mu_sigma` and `sigma` for more details on 
+    :math:`\sigma\`.
     
     Parameters
     ----------
@@ -401,8 +417,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         "temp-standard" temporal mean centering plus scaling to unit variance
         is done.
     fmerit : {'sum', 'stddev'}, string optional
-        Chooses the figure of merit to be used. stddev works better for close in
-        companions sitting on top of speckle noise.
+        Chooses the figure of merit to be used. stddev works better for 
+        close-in companions sitting on top of speckle noise.
     imlib : str, optional
         Imlib used for both image rotation and sub-px shift:
         - "opencv": will use it for both;
@@ -476,7 +492,6 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         (http://digitalassets.lib.berkeley.edu/sdtr/ucb/text/305.pdf)
         - 'ac' for autocorrelation analysis 
         (https://emcee.readthedocs.io/en/stable/tutorials/autocorr/)
-        
     ac_c: float, optional
         If the convergence test is made using the auto-correlation, this is the
         value of C such that tau/N < 1/C is the condition required for tau to be
@@ -650,7 +665,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     
     if verbosity > 0:
         print('Beginning emcee Ensemble sampler...')
-    sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a,
+    sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a=a,
                                     args=([bounds, cube, angs, plsc, psfn,
                                            fwhm, annulus_width, ncomp,
                                            aperture_radius, initial_state,
@@ -672,8 +687,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         print('\nStart of the MCMC run ...')
         print('Step  |  Duration/step (sec)  |  Remaining Estimated Time (sec)')
     
-    for k, res in enumerate(sampler.sample(pos, iterations=nIterations,
-                                           storechain=True)):
+    for k, res in enumerate(sampler.sample(pos, iterations=nIterations)):
         elapsed = (datetime.datetime.now()-start).total_seconds()
         if verbosity > 1:
             if k == 0:
@@ -847,6 +861,9 @@ def show_walk_plot(chain, save=False, output_dir='', **kwargs):
         discard these steps.
     save: boolean, default: False
         If True, a pdf file is created.
+    output_dir: str, optional
+        The name of the output directory which contains the output files in the 
+        case  ``save`` is True.    
     kwargs:
         Additional attributes are passed to the matplotlib plot method.
                                                         
@@ -893,7 +910,9 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
         The fraction of a walker chain we want to discard.
     save: boolean, default: False
         If True, a pdf file is created.
-     
+    output_dir: str, optional
+        The name of the output directory which contains the output files in the 
+        case  ``save`` is True.         
      kwargs:
         Additional attributes are passed to the corner.corner() method.
                     
@@ -932,7 +951,7 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
 def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                verbose=True, save=False, output_dir='', force=False, 
                output_file='confidence.txt', title=None, plsc=None, **kwargs):
-    """
+    r"""
     Determine the highly probable value for each model parameter, as well as
     the 1-sigma confidence interval.
     
@@ -945,7 +964,8 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     bins: int, optional
         The number of bins used to sample the posterior distributions.
     gaussian_fit: boolean, optional
-        If True, a gaussian fit is performed in order to determine (\mu,\sigma)
+        If True, a gaussian fit is performed in order to determine 
+        (:math:`\mu, \sigma`).
     weights : (n, ) numpy ndarray or None, optional
         An array of weights for each sample.
     verbose: boolean, optional

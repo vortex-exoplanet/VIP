@@ -13,8 +13,8 @@ from sklearn.decomposition import NMF
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..var import get_annulus_segments, matrix_scaling
-from ..conf import timing, time_ini
-from ..conf.utils_conf import pool_map, iterable
+from ..config import timing, time_ini
+from ..config.utils_conf import pool_map, iterable
 
 
 def nmf_annular(cube, angle_list, cube_ref=None, radius_int=0, fwhm=4, asize=4, 
@@ -308,7 +308,7 @@ def do_nmf_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
     #     solver = 'mu'
     # else:
     #     solver = 'cd'
-    mod = NMF(n_components=ncomp, alpha=0, solver=solver, init=init_svd, 
+    mod = NMF(n_components=ncomp, solver=solver, init=init_svd, 
               max_iter=max_iter, random_state=random_state, **kwargs)  
 
     curr_frame = matrix[frame]  # current frame

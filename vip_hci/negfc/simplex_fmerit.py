@@ -10,12 +10,12 @@ __all__ = []
 import numpy as np
 from hciplot import plot_frames
 from skimage.draw import disk
-from ..metrics import cube_inject_companions, snr
+from ..metrics import cube_inject_companions
 from ..var import (frame_center, get_annular_wedge, cube_filter_highpass, dist,
                    get_circle)
-from ..pca import pca_annulus, pca_annular, pca
+from ..psfsub import pca_annulus, pca_annular, pca
 from ..preproc import cube_crop_frames
-from ..conf import check_array
+from ..config import check_array
 
 def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,  
               aperture_radius, initialState, ncomp, cube_ref=None, 
@@ -23,11 +23,12 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
               algo=pca_annulus, delta_rot=1, imlib='vip-fft', 
               interpolation='lanczos4', algo_options={}, transmission=None, 
               mu_sigma=None, weights=None, force_rPA=False, debug=False):
-    """
-    Calculate the reduced chi2:
-    \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
+    r"""
+    Calculate the reduced :math:`\chi^2`:
+    .. math:: \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
     where N is the number of pixels within a circular aperture centered on the 
-    first estimate of the planet position, and I_j the j-th pixel intensity.
+    first estimate of the planet position, and :math:`I_j` the j-th pixel 
+    intensity.
     
     Parameters
     ----------    
@@ -551,10 +552,10 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
         raise TypeError("Wedge should have exactly 2 values")
         
     
-    indices = get_annular_wedge(pca_res, radius_int, 2*fwhm, #annulus_width, 
+    indices = get_annular_wedge(pca_res, radius_int, 2*fwhm,
                                 wedge=wedge)
     yy, xx = indices
-    indices_inv = get_annular_wedge(pca_res_inv, radius_int, 2*fwhm, #annulus_width, 
+    indices_inv = get_annular_wedge(pca_res_inv, radius_int, 2*fwhm,
                                     wedge=wedge)
     yyi, xxi = indices_inv
     all_res = np.concatenate((pca_res[yy, xx], pca_res_inv[yyi, xxi]))

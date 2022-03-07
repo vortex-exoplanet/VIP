@@ -27,7 +27,7 @@ except ImportError:
 from skimage.transform import rotate
 from multiprocessing import cpu_count
 from .cosmetics import frame_pad
-from ..conf.utils_conf import pool_map, iterable
+from ..config.utils_conf import pool_map, iterable
 from ..var import frame_center, frame_filter_lowpass
 
 
@@ -208,11 +208,12 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
     
     if cxy is None:
         cy, cx = frame_center(array_prep)
-    elif imlib!='opencv':
-        msg = "Only 'opencv' imlib allows for different center to be provided"
-        raise ValueError(msg)
     else:
         cx, cy = cxy
+        if imlib=='vip-fft' and (cy, cx) != frame_center(array_prep):
+            msg = "'vip-fft'imlib does not yet allow for custom center to be "
+            msg+= " provided "
+            raise ValueError(msg)
 
     if imlib == 'vip-fft':
         array_out = rotate_fft(array_prep, angle)
@@ -237,16 +238,24 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
                                'wrap']:
             raise ValueError('Skimage `border_mode` not recognized.')
 
+        # for a non-constant image, normalize manually
         min_val = np.min(array_prep)
-        im_temp = array_prep - min_val
-        max_val = np.max(im_temp)
-        im_temp /= max_val
+        max_val = np.max(array_prep)
+        if min_val != max_val:
+            norm=True
+            im_temp = array_prep - min_val
+            max_val = np.max(im_temp)
+            im_temp /= max_val
+        else:
+            norm=False
+            im_temp = array_prep.copy()
 
-        array_out = rotate(im_temp, angle, order=order, center=cxy, cval=np.nan,
-                           mode=border_mode)
-
-        array_out *= max_val
-        array_out += min_val
+        array_out = rotate(im_temp, angle, order=order, center=(cx, cy), 
+                           cval=np.nan, mode=border_mode)
+        
+        if norm:
+            array_out *= max_val
+            array_out += min_val
         array_out = np.nan_to_num(array_out)
 
     elif imlib == 'opencv':
@@ -539,19 +548,24 @@ def rotate_fft(array, angle):
     while angle>360:
         angle-=360
     
+    # first convert to odd size before multiple 90deg rotations
+    if not y_ori%2 or not x_ori%2:
+        array_in = np.zeros([array.shape[0]+1,array.shape[1]+1])
+        array_in[:-1,:-1] = array.copy()
+    else:
+        array_in = array.copy()
+        
     if angle>45:
         dangle = angle%90
         if dangle>45:
             dangle = -(90-dangle)
         nangle = np.rint(angle/90)
-        array_in = np.rot90(array, nangle)
+        array_in = np.rot90(array_in, nangle)
     else:
-        dangle = angle
-        array_in = array.copy()   
+        dangle = angle 
 
-    if y_ori%2 or x_ori%2:
-        # NO NEED TO SHIFT BY 0.5px: FFT assumes rot. center on cx+0.5, cy+0.5!
-        array_in = array_in[:-1,:-1]
+    # remove last row and column to make it even size before FFT
+    array_in = array_in[:-1,:-1]
             
     a = np.tan(np.deg2rad(dangle)/2)
     b = -np.sin(np.deg2rad(dangle))
@@ -569,9 +583,8 @@ def rotate_fft(array, angle):
     s_xyx = _fft_shear(s_xy, arr_x, a, ax=1, pad=0)
     
     if y_ori%2 or x_ori%2:
-        # shift + crop back to odd dimensions , using FFT
+        # set it back to original dimensions
         array_out = np.zeros([s_xyx.shape[0]+1,s_xyx.shape[1]+1])
-        # NO NEED TO SHIFT BY 0.5px: FFT assumes rot. center on cx+0.5, cy+0.5!
         array_out[:-1,:-1] = np.real(s_xyx)
     else:
         array_out = np.real(s_xyx)

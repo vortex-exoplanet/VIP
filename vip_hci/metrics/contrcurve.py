@@ -21,8 +21,8 @@ from skimage.draw import disk
 from matplotlib import pyplot as plt
 from .fakecomp import (cube_inject_companions, frame_inject_companion,
                        normalize_psf)
-from ..conf import time_ini, timing
-from ..conf.utils_conf import sep
+from ..config import time_ini, timing
+from ..config.utils_conf import sep
 from ..var import frame_center, dist
 
 

@@ -1,18 +1,12 @@
-__version__ = "1.0.3"
+__version__ = "1.1.0"
 
-from . import andromeda
 from . import preproc
-from . import conf
+from . import config
 from . import fits
-from . import frdiff
-from . import leastsq
-from . import llsg
-from . import medsub
+from . import invprob
+from . import psfsub
 from . import negfc
-from . import nmf
-from . import pca
 from . import metrics
-from . import specfit
 from . import stats
 from . import var
 from .hci_dataset import *

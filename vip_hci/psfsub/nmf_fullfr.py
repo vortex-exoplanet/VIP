@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 
 """
-Module with NMF algorithm for ADI.
+Module with PSF reference approximation using Non-negative matrix factorization 
+for ADI and RDI data, in full frames.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
@@ -13,7 +14,7 @@ from ..preproc import cube_derotate, cube_collapse
 from ..preproc.derotation import _compute_pa_thresh, _find_indices_adi
 from ..var import (prepare_matrix, reshape_matrix, frame_center, dist, 
                    matrix_scaling, mask_circle)
-from ..conf import timing, time_ini
+from ..config import timing, time_ini
 
 
 def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
@@ -323,7 +324,7 @@ def _project_subtract(matrix, matrix_ref, ncomp, scaling, mask_center_px,
     #     solver = 'mu'
     # else:
     #     solver = 'cd'
-    mod = NMF(n_components=ncomp, alpha=0, solver=solver, init=init_svd, 
+    mod = NMF(n_components=ncomp, solver=solver, init=init_svd, 
               max_iter=max_iter, random_state=random_state, **kwargs)   
     # a rotation threshold is used (frames are processed one by one)
     if indices is not None and frame is not None:

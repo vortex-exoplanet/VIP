@@ -16,13 +16,10 @@ import numpy as np
 from sklearn.base import BaseEstimator
 
 from .hci_dataset import Dataset
-from .medsub import median_sub
 from .metrics import snrmap
-from .andromeda import andromeda
-from .pca import pca
-from .llsg import llsg
-from .leastsq import xloci
-from .conf.utils_conf import algo_calculates_decorator as calculates
+from .invprob import andromeda
+from .psfsub import pca, llsg, median_sub, xloci
+from .config.utils_conf import algo_calculates_decorator as calculates
 
 
 class HCIPostProcAlgo(BaseEstimator):

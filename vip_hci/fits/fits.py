@@ -163,10 +163,12 @@ def write_fits(fitsfilename, array, header=None, output_verify='exception',
     ----------
     fitsfilename : string
         Full path of the fits file to be written.
-    array : numpy ndarray
-        Array to be written into a fits file.
-    header : numpy ndarray, optional
-        Array with header.
+    array : numpy ndarray or tuple of numpy ndarray
+        Array(s) to be written into a fits file. If a tuple of several arrays,
+        the fits fille will be written as a multiple extension fits file
+    header : numpy ndarray, or tuple of headers, optional
+        Header dictionary, or tuple of headers for a multiple extension fits
+        file.
     output_verify : str, optional
         {"fix", "silentfix", "ignore", "warn", "exception"} 
         Verification options:
@@ -177,16 +179,34 @@ def write_fits(fitsfilename, array, header=None, output_verify='exception',
         If True prints message.
 
     """
-    array = array.astype(precision, copy=False)
+    
     if not fitsfilename.endswith('.fits'):
         fitsfilename += '.fits'
 
+    res = "saved"
     if os.path.exists(fitsfilename):
         os.remove(fitsfilename)
-        ap_fits.writeto(fitsfilename, array, header, output_verify)
-        if verbose:
-            print("Fits file successfully overwritten")
+        res = 'overwritten'
+    
+    if isinstance(array, tuple):
+        new_hdul = ap_fits.HDUList()
+        if header is None:
+            header = [None]*len(array)
+        elif not isinstance(header, tuple):
+            header = [header]*len(array)
+        elif len(header) != len(array):
+            msg = "If input header is a tuple, it should have the same length "
+            msg+= "as tuple of arrays."
+            raise ValueError(msg)
+            
+        for i in range(len(array)):
+            array_tmp = array[i].astype(precision, copy=False)
+            new_hdul.append(ap_fits.ImageHDU(array_tmp, header=header[i]))
+            
+        new_hdul.writeto(fitsfilename, output_verify=output_verify)
     else:
+        array = array.astype(precision, copy=False)
         ap_fits.writeto(fitsfilename, array, header, output_verify)
-        if verbose:
-            print("Fits file successfully saved")
+        
+    if verbose:
+        print("Fits file successfully {}".format(res))

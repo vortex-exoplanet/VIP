@@ -15,9 +15,9 @@ import nestle
 import corner
 import numpy as np
 from matplotlib import pyplot as plt
-from ..conf import time_ini, timing
+from ..config import time_ini, timing
 from .mcmc_sampling import lnlike, confidence, show_walk_plot
-from ..pca import pca_annulus
+from ..psfsub import pca_annulus
 
 def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
                           aperture_radius=1, ncomp=10, scaling=None,
@@ -170,13 +170,6 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
 
     """
 
-    # If companion flux is too low MCMC will not converge. Solution: scale up 
-    # the intensities in the cube after injecting the negfc.
-    if init[2] < 100:
-        scale_fac = 100./init[2]
-    else:
-        scale_fac = 1
-
     def prior_transform(x):
         """
         Computes the transformation from the unit distribution `[0, 1]` to 
@@ -228,7 +221,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
                       cube_ref=cube_ref, svd_mode=svd_mode, scaling=scaling,
                       algo=algo, delta_rot=delta_rot, fmerit='sum', ncomp=ncomp, 
                       collapse=collapse, algo_options=algo_options, 
-                      weights=weights, scale_fac=scale_fac)
+                      weights=weights)
 
     # -------------------------------------------------------------------------
     if verbose:  start = time_ini()
@@ -251,10 +244,35 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
     return res
 
 
-def nested_sampling_results(ns_object, burnin=0.4, bins=None, save=False,
-                            output_dir='/', plot=False):
+def nested_sampling_results(ns_object, burnin=0.4, bins=None, cfd=68.27,
+                            save=False, output_dir='/', plot=False):
     """ Shows the results of the Nested Sampling, summary, parameters with 
     errors, walk and corner plots.
+    
+    Parameters
+    ----------
+    ns_object: numpy.array
+        The nestle object returned from `nested_spec_sampling`.
+    burnin: float, default: 0
+        The fraction of a walker we want to discard.
+    bins: int, optional
+        The number of bins used to sample the posterior distributions.
+    cfd: float, optional
+        The confidence level given in percentage.
+    save: boolean, default: False
+        If True, a pdf file is created.
+    output_dir: str, optional
+        The name of the output directory which contains the output files in the 
+        case  ``save`` is True. 
+    plot: bool, optional
+        Whether to show the plots (instead of saving them).
+                    
+    Returns
+    -------
+    final_res: numpy ndarray
+         Best-fit parameters and uncertainties (corresponding to 68% confidence
+         interval). Dimensions: nparams x 2.
+         
     """
     res = ns_object
     nsamples = res.samples.shape[0]

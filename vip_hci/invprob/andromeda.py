@@ -25,12 +25,11 @@ __all__ = ["andromeda"]
 import numpy as np
 
 from ..var.filters import frame_filter_highpass, cube_filter_highpass
-from ..conf.utils_conf import pool_map, iterable
-from ..var.shapes import dist_matrix
+from ..config.utils_conf import pool_map, iterable
+from ..var import dist_matrix
 
-from .utils import robust_std, idl_round, idl_where
-from .shift import calc_psf_shift_subpix, subpixel_shift
-from .fit import fitaffine
+from .utils_andro import (calc_psf_shift_subpix, fitaffine, idl_round, 
+                          idl_where, robust_std, subpixel_shift)
 
 
 global CUBE
@@ -362,10 +361,10 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     dmax = owa  # size of the greatest annuli, in lambda/D
     if fast:
         first_distarray = dmin + np.arange(
-            np.int(np.round(np.abs(dmean-dmin-1)) / annuli_width + 1),
+            int(np.round(np.abs(dmean-dmin-1)) / annuli_width + 1),
             dtype=float) * annuli_width
         second_distarray = dmean + dmin - 1 + np.arange(
-            np.int(np.round(dmax-dmean) / (4*annuli_width) + 1),
+            int(np.round(dmax-dmean) / (4*annuli_width) + 1),
             dtype=float) * 4*annuli_width
         distarray_lambdaonD = np.hstack([first_distarray, second_distarray])
         if iwa > fast:

@@ -33,4 +33,4 @@ def test_dust_distribution(r):
     z = 0.
     t = test.density_cylindrical(r, costheta, z)
     
-    aarc(t, t_expected)
+    aarc(t, t_expected(r))

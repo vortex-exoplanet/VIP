@@ -42,26 +42,34 @@ def test_cube_inject_fakedisk(dataset):
     cube = cube_inject_fakedisk(psf, angle_list=angles)
     
     # find coords
+    coords = []
+    for i in range(cube.shape[0]):
+        max_idx = np.argmax(cube[i])
+        coords.append(np.unravel_index(max_idx, cube[0].shape))
 
-    yx = np.unravel_index(np.argmax(cube, axis=0), cube[0].shape)    
     yx_expected = _expected()
 
-    aarc(yx, yx_expected)
+    aarc(coords, yx_expected)
 
 
 def test_cube_inject_trace(dataset):
     """
     Verify position of injected disk image with 1 value, for 3D and 4D cases.
     """
-    def _expected():
+    def _expected(ang):
         """
         Expected positions.
         """
-        return [(15, 12), (12, 9), (9, 12)]
+        if ang == 0:
+            return [(9, 12), (12, 9), (15, 12)]
+        elif ang == 90:
+            return [(12, 9), (12, 15), (15, 12)]
+        elif ang == 180:
+            return [(9, 12), (12, 15), (15, 12)]
 
     cube, psf, angles = dataset
     
-    rads = [3,3,3]
+    rads = [3,4,5]
     thetas = [90,180,270]
     
     cube = cube_inject_trace(cube, psf, angles, flevel=1, 
@@ -69,9 +77,17 @@ def test_cube_inject_trace(dataset):
                              plsc=0.01225, n_branches=1, imlib='vip-fft', 
                              interpolation='lanczos4', verbose=True)
     
-    # find coords
-
-    yx = np.unravel_index(np.argmax(cube, axis=0), cube[0].shape)    
-    yx_expected = _expected()
-
-    aarc(yx, yx_expected)
+    for i in range(cube.shape[0]):
+        # find coords of trace in each image of the cube
+        coords = []
+        nspi = len(rads)
+        frame_tmp = cube[i].copy()
+        for s in range(nspi):
+            max_idx = np.argmax(frame_tmp)
+            coords_tmp = np.unravel_index(max_idx, frame_tmp.shape)
+            coords.append(coords_tmp)
+            frame_tmp[coords_tmp]=0
+            
+        yx_expected = _expected(angles[i])
+    
+        aarc(coords, yx_expected)

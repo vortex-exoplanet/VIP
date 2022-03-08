@@ -22,11 +22,11 @@ def test_dust_distribution(r):
         Expected positions.
         """
         if r == 55:
-            return 0.8442
+            return 0.844237
         elif r == 60:
             return 1
         elif r == 65:
-            return 0.8646
+            return 0.864574
     test = DustEllipticalDistribution2PowerLaws()
     test.set_radial_density(ain=5., aout=-5., a=60., e=0.)
     costheta = 0.

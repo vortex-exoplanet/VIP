@@ -61,11 +61,11 @@ def test_cube_inject_trace(dataset):
         Expected positions.
         """
         if ang == 0:
-            return [(9, 12), (12, 9), (15, 12)]
+            return [(7, 12), (12, 8), (15, 12)]
         elif ang == 90:
-            return [(12, 9), (12, 15), (15, 12)]
+            return [(12, 7), (12, 15), (16, 12)]
         elif ang == 180:
-            return [(9, 12), (12, 15), (15, 12)]
+            return [(9, 12), (12, 16), (17, 12)]
 
     cube, psf, angles = dataset
     

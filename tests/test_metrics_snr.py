@@ -7,7 +7,7 @@ import copy
 from .helpers import fixture, np
 from vip_hci.psfsub import pca
 from vip_hci.hci_dataset import Frame
-from vip_hci.metrics import snrmap, frame_report
+from vip_hci.metrics import snrmap, frame_report, stim_map, inverse_stim_map
 
 
 @fixture(scope="module")
@@ -31,9 +31,12 @@ def get_frame(example_dataset_adi):
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
     print("producing a final frame...")
-    res_frame = pca(dsi.cube, dsi.angles, ncomp=10)
+    res = pca(dsi.cube, dsi.angles, ncomp=10)
+    res_frame = res[0]
+    res_cube = res[-2]
+    res_der_cube = res[-1]
     frame = Frame(res_frame, fwhm=dsi.fwhm)
-    return frame, (63, 63)
+    return frame, (63, 63), res_cube, res_der_cube, dsi.angles
 
 
 atol = 2
@@ -41,7 +44,7 @@ plot = False
 
 
 def test_snrmap_sss(get_frame):
-    frame, positions = get_frame
+    frame, positions, _, _, _ = get_frame
     y0, x0 = positions
     snmap = snrmap(frame.data, fwhm=frame.fwhm, plot=plot, nproc=2)
     y1, x1 = np.where(snmap == snmap.max())
@@ -49,7 +52,7 @@ def test_snrmap_sss(get_frame):
 
 
 def test_snrmap_masked(get_frame):
-    frame, positions = get_frame
+    frame, positions, _, _, _ = get_frame
     y0, x0 = positions
     snmap = snrmap(frame.data, fwhm=frame.fwhm, plot=plot, nproc=2,
                    known_sources=(int(x0), int(y0)))
@@ -58,14 +61,29 @@ def test_snrmap_masked(get_frame):
 
 
 def test_snrmap_fast(get_frame):
-    frame, positions = get_frame
+    frame, positions, _, _, _ = get_frame
     y0, x0 = positions
     snmap = snrmap(frame.data, fwhm=frame.fwhm, plot=plot, approximated=True,
                    nproc=2)
     y1, x1 = np.where(snmap == snmap.max())
     assert np.allclose(x1, x0, atol=atol) and np.allclose(y1, y0, atol=atol)
 
+def test_stimmap(get_frame):
+    frame, positions, _, res_der_cube, _ = get_frame
+    y0, x0 = positions
+    stimap = stim_map(res_der_cube)
+    y1, x1 = np.where(stimap == stimap.max())
+    assert np.allclose(x1, x0, atol=atol) and np.allclose(y1, y0, atol=atol)
 
+def test_normstimmap(get_frame):
+    frame, positions, res_cube, res_der_cube, angles = get_frame
+    y0, x0 = positions
+    stimap = stim_map(res_der_cube)
+    inv_stimap = inverse_stim_map(res_cube, angles)
+    norm_stimap = stimap/np.amax(inv_stimap)
+    y1, x1 = np.where(norm_stimap == norm_stimap.max())
+    assert np.allclose(x1, x0, atol=atol) and np.allclose(y1, y0, atol=atol)
+        
 def test_frame_report(get_frame):
     frame, positions = get_frame
     y0, x0 = positions

@@ -14,10 +14,12 @@ __all__ = ['create_synth_psf',
 
 import numpy as np
 import pandas as pd
-try:
+from packaging import version
+import photutils
+if version.parse(photutils.__version__) >= version.parse('0.3'):
     # for photutils version >= '0.3' use photutils.centroids.centroid_com
     from photutils.centroids import centroid_com as cen_com
-except:
+else:
     # for photutils version < '0.3' use photutils.centroid_com
     import photutils.centroid_com as cen_com
 from hciplot import plot_frames

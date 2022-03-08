@@ -25,7 +25,7 @@ def stim_map(cube_der):
     ----------
     cube_der : 3d numpy ndarray
         Input de-rotated cube, e.g. ``residuals_cube_`` output from
-        ``vip_hci.pca.pca``.
+        ``vip_hci.psfsub.pca``.
 
     Returns
     -------
@@ -47,8 +47,8 @@ def inverse_stim_map(cube, angle_list, **rot_options):
     Parameters
     ----------
     cube : 3d numpy ndarray
-        Non de-rotated residuals from reduction algorithm, eg. output residuals
-        from ``vip_hci.pca.pca``.
+        Non de-rotated residuals from reduction algorithm, eg. 
+        ``residuals_cube`` output from ``vip_hci.psfsub.pca``.
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.  
     rot_options: dictionary, optional

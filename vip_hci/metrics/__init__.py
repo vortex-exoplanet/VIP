@@ -12,9 +12,6 @@ Subpackage ``metrics`` includes:
 """
 from .contrcurve import *
 from .detection import *
-from .fakecomp import *
 from .roc import *
 from .snr_source import *
-from .fakedisk import *
-from .scattered_light_disk import *
 from .stim import *

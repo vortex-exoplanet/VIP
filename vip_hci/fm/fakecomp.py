@@ -149,7 +149,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         if size_fc%2: # new convention
             w -= 1
         sty = int(ceny) - w
-        sty = int(cenx) - w
+        stx = int(cenx) - w
 
         # fake companion in the center of a zeros frame
         fc_fr = np.zeros_like(array)
@@ -165,7 +165,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         else:
             try:
                 for fr in range(nframes):
-                    fc_fr[fr,sty:sty+size_fc, sty:sty+size_fc] = psf_template[fr]
+                    fc_fr[fr,sty:sty+size_fc, stx:stx+size_fc] = psf_template[fr]
             except ValueError as e:
                 print("cannot place PSF on frames. Please verify the shapes!"
                       "psf shape: {}, array shape: {}".format(psf_template.shape,

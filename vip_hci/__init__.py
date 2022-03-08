@@ -5,7 +5,7 @@ from . import config
 from . import fits
 from . import invprob
 from . import psfsub
-from . import negfc
+from . import fm
 from . import metrics
 from . import stats
 from . import var

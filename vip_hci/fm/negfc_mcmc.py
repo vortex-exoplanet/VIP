@@ -22,11 +22,11 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import pickle
 from scipy.stats import norm
-from ..metrics import cube_inject_companions
+from ..fm import cube_inject_companions
 from ..config import time_ini, timing
 from ..config.utils_conf import sep
 from ..psfsub import pca_annulus
-from .simplex_fmerit import get_values_optimize, get_mu_and_sigma
+from .negfc_fmerit import get_values_optimize, get_mu_and_sigma
 from .utils_mcmc import gelman_rubin, autocorr_test
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)

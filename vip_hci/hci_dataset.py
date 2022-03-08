@@ -12,6 +12,8 @@ import numpy as np
 import copy
 import hciplot as hp
 from .fits import open_fits
+from .fm import (cube_inject_companions, generate_cube_copies_with_injections,
+                 normalize_psf)
 from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
                       frame_shift, frame_center_satspots, frame_center_radon)
 from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
@@ -24,9 +26,7 @@ from .var import (frame_filter_lowpass, frame_filter_highpass, frame_center,
                   cube_filter_highpass, cube_filter_lowpass, mask_circle)
 from .stats import (frame_basic_stats, frame_histo_stats,
                     frame_average_radprofile, cube_basic_stats, cube_distance)
-from .metrics import (frame_report, cube_inject_companions,
-                      generate_cube_copies_with_injections, snr,
-                      snrmap, detection, normalize_psf)
+from .metrics import (frame_report, snr, snrmap, detection)
 
 from .config.utils_conf import check_array, Saveable, print_precision
 from .config.mem import check_enough_memory

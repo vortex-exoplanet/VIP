@@ -16,7 +16,7 @@ import corner
 import numpy as np
 from matplotlib import pyplot as plt
 from ..config import time_ini, timing
-from .mcmc_sampling import lnlike, confidence, show_walk_plot
+from .negfc_mcmc import lnlike, confidence, show_walk_plot
 from ..psfsub import pca_annulus
 
 def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,

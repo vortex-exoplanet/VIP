@@ -4,7 +4,7 @@ Tests for fm/fakecomp.py
 """
 
 from .helpers import aarc, np, param, parametrize, fixture, filterwarnings
-from vip_hci.fm.fakecomp import cube_inject_companions, normalize_psf
+from vip_hci.fm import cube_inject_companions, normalize_psf
 
 
 # ===== utility functions

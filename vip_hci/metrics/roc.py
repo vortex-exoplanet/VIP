@@ -12,7 +12,7 @@ from scipy import stats
 from photutils import detect_sources
 from munch import Munch
 from ..config import time_ini, timing, Progressbar
-from ..fm.fakecomp import cube_inject_companions
+from ..fm import cube_inject_companions
 from ..psfsub.svd import SVDecomposer
 from ..var import frame_center, get_annulus_segments, get_circle
 

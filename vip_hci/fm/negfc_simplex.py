@@ -9,7 +9,7 @@ position of a companion using the Negative Fake Companion.
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-from .simplex_fmerit import chisquare, get_mu_and_sigma
+from .negfc_fmerit import chisquare, get_mu_and_sigma
 from ..psfsub import pca_annulus
 from ..var import frame_center
 from ..config import time_ini, timing

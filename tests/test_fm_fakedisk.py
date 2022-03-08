@@ -4,7 +4,7 @@ Tests for fm/fakecomp.py
 """
 
 from .helpers import aarc, np, fixture
-from vip_hci.fm.fakedisk import cube_inject_fakedisk, cube_inject_trace
+from vip_hci.fm import cube_inject_fakedisk, cube_inject_trace
 
 
 # ===== utility functions

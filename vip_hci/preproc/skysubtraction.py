@@ -44,7 +44,10 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2,
          - reconstructed cube.
 
     """
-    from ..pca.svd import svd_wrapper
+    try:
+        from ..psfsub.svd import svd_wrapper
+    except:
+        from ..pca.svd import svd_wrapper
 
     if sci_cube.shape[1] != sky_cube.shape[1] or sci_cube.shape[2] != \
             sky_cube.shape[2]:

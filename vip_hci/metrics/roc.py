@@ -11,12 +11,10 @@ from hciplot import plot_frames
 from scipy import stats
 from photutils import detect_sources
 from munch import Munch
-from ..psfsub.svd import SVDecomposer
-from ..var import frame_center, get_annulus_segments
 from ..config import time_ini, timing, Progressbar
-from ..var import get_circle
-from .fakecomp import cube_inject_companions
-
+from ..fm import cube_inject_companions
+from ..psfsub.svd import SVDecomposer
+from ..var import frame_center, get_annulus_segments, get_circle
 
 # TODO: remove the munch dependency
 class EvalRoc(object):

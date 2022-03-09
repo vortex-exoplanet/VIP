@@ -58,15 +58,13 @@ def cube_collapse(cube, mode='median', n=50, w=None):
         frame = np.nanmax(arr, axis=0)
     elif mode == 'trimmean':
         N = arr.shape[0]
-        if N % 2 == 0:
-            k = (N - n)//2
-        else:
-            k = (N - n)/2                                                               
-        
+        k = (N - n)//2                                                          
+        if N%2 != n%2:
+            n+=1
         frame = np.empty_like(arr[0])                                    
         for index, _ in np.ndenumerate(arr[0]):
             sort = np.sort(arr[:, index[0], index[1]])
-            frame[index] = np.nanmean(sort[k:N-k])
+            frame[index] = np.nanmean(sort[k:k+n])
     elif mode == 'wmean':
         arr[np.where(np.isnan(arr))]=0 # to avoid product with nan
         frame = np.inner(w, np.moveaxis(arr,0,-1))

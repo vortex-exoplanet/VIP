@@ -18,8 +18,8 @@ pypi-test:
 
 docs:
 	rm -rf docs/api
-	sphinx-apidoc -o docs vip_hci
-	cd docs/
+	sphinx-apidoc -o docs/source vip_hci
+	cd docs/source/
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 

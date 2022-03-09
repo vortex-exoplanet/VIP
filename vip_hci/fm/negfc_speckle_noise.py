@@ -14,11 +14,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ..config.utils_conf import pool_map, iterable #eval_func_tuple
-from ..metrics import cube_inject_companions 
-from .simplex_optim import firstguess_simplex
-from .simplex_fmerit import get_mu_and_sigma
+from ..fm import cube_inject_companions 
+from .negfc_simplex import firstguess_simplex
+from .negfc_fmerit import get_mu_and_sigma
 from .utils_negfc import cube_planet_free
-from .mcmc_sampling import confidence
+from .negfc_mcmc import confidence
 
 
 def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo, 

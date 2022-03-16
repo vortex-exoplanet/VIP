@@ -20,9 +20,6 @@ import itertools as itt
 from inspect import getargspec
 from functools import wraps
 import multiprocessing
-multiprocessing.set_start_method('fork')
-from multiprocessing import Pool
-
 from vip_hci import __version__
 
 sep = '―' * 80
@@ -438,6 +435,9 @@ def pool_map(nproc, fkt, *args, **kwargs):
         A list with the results.
 
     """
+    multiprocessing.set_start_method('fork', force=True)
+    from multiprocessing import Pool
+
     msg = kwargs.get("msg", None)
     verbose = kwargs.get("verbose", True)
     progressbar_single = kwargs.get("progressbar_single", False)

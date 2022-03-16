@@ -936,32 +936,6 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     array_rec = array.copy()
 
     cy, cx = frame_center(array[0])
-    # Centroiding first frame with 2d gaussian and shifting
-    msg0 = "The rest of the frames will be shifted by cross-correlation wrt the" \
-           " 1st"
-    if subi_size is not None:
-        y1, x1 = _centroid_2dg_frame(array_rec, 0, subi_size, cy_1, cx_1,
-                                     negative, debug, fwhm)
-        x[0] = cx - x1
-        y[0] = cy - y1
-        array_rec[0] = frame_shift(array_rec[0], shift_y=y[0], shift_x=x[0],
-                                   imlib=imlib, interpolation=interpolation)
-        if verbose:
-            msg = "Shift for first frame X,Y=({:.3f}, {:.3f})"
-            print(msg.format(x[0], y[0]))
-            print(msg0)
-        if debug:
-            titd = "original / shifted 1st frame subimage"
-            plot_frames((frame_crop(array[0], subi_size, verbose=False),
-                        frame_crop(array_rec[0], subi_size, verbose=False)),
-                        grid=True, title=titd)
-    else:
-        if verbose:
-            print("The first frame is assumed to be well centered wrt the"
-                  "center of the array")
-            print(msg0)
-        x[0] = 0
-        y[0] = 0
 
     # Finding the shifts with DFT upsampling of each frame wrt the first
     
@@ -986,6 +960,36 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         print("\nShifts in X and Y")
         for i in range(n_frames):
             print(x[i], y[i])
+            
+            
+    # Centroiding mean frame with 2d gaussian and shifting (only necessary if
+    # first frame was not well-centered)
+    msg0 = "The rest of the frames will be shifted by cross-correlation wrt the" \
+           " 1st"
+    if subi_size is not None:
+        y1, x1 = _centroid_2dg_frame([np.mean(array_rec, axis=0)], 0, subi_size, 
+                                     cy_1, cx_1, negative, debug, fwhm)
+        x[:] += cx - x1
+        y[:] += cy - y1
+        array_rec = cube_shift(array, shift_y=y, shift_x=x, imlib=imlib, 
+                               interpolation=interpolation)
+        if verbose:
+            msg = "Shift for first frame X,Y=({:.3f}, {:.3f})"
+            print(msg.format(x[0], y[0]))
+            print(msg0)
+        if debug:
+            titd = "original / shifted 1st frame subimage"
+            plot_frames((frame_crop(array[0], subi_size, verbose=False),
+                        frame_crop(array_rec[0], subi_size, verbose=False)),
+                        grid=True, title=titd)
+    else:
+        if verbose:
+            print("The first frame is assumed to be well centered wrt the"
+                  "center of the array")
+            print(msg0)
+        x[0] = 0
+        y[0] = 0
+
 
     if verbose:
         timing(start_time)

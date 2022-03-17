@@ -254,8 +254,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         if bpm_mask is None:
             ori_nan_mask = np.where(np.isnan(np.nanmean(array, axis=0)))
             ind = clip_array(np.nanmean(array, axis=0), sigma_clip, sigma_clip,
-                             neighbor=neigh, num_neighbor=num_neig, mad=mad,
-                             ignore_nan=ignore_nan)
+                             neighbor=neigh, num_neighbor=num_neig, mad=mad)
             final_bpm = np.zeros_like(array[0])
             final_bpm[ind] = 1
             if ignore_nan:

@@ -34,7 +34,8 @@ except ImportError:
 
 def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                               size=5, protect_mask=False, radius=30, cxy=None,
-                              mad=False, verbose=True, full_output=False):
+                              mad=False, ignore_nan=True, verbose=True, 
+                              full_output=False):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is
     replaced by the median of the adjacent pixels. This function is very fast
     but works only with isolated (sparse) pixels.
@@ -72,6 +73,9 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     mad : {False, True}, bool optional
         If True, the median absolute deviation will be used instead of the 
         standard deviation.  
+    ignore_nan: bool, optional
+        Whether to not consider NaN values as bad pixels. If False, will also 
+        correct them.
     verbose : bool, optional
         If True additional information will be printed.
     full_output: bool, {False,True}, optional
@@ -107,10 +111,13 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         cx, cy = cxy
         
     if bpm_mask is None:
+        ori_nan_mask = np.where(np.isnan(frame))
         ind = clip_array(frame, sigma_clip, sigma_clip, neighbor=neigh,
                          num_neighbor=num_neig, mad=mad)
         bpm_mask = np.zeros_like(frame)
         bpm_mask[ind] = 1
+        if ignore_nan:
+            bpm_mask[ori_nan_mask] = 0
         if protect_mask:
             cir = disk((cy, cx), radius, shape=bpm_mask.shape)
             bpm_mask[cir] = 0
@@ -134,8 +141,8 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
 
 def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5, 
                              size=5, frame_by_frame=False, protect_mask=False, 
-                             radius=30, cxy=None, mad=True, verbose=True, 
-                             full_output=False):
+                             radius=30, cxy=None, mad=False, ignore_nan=True,
+                             verbose=True, full_output=False):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is 
     replaced by the median of the adjacent pixels. This function is very fast
     but works only with isolated (sparse) pixels. 
@@ -175,6 +182,9 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     mad : {False, True}, bool optional
         If True, the median absolute deviation will be used instead of the 
         standard deviation.  
+    ignore_nan: bool, optional
+        Whether to not consider NaN values as bad pixels. If False, will also 
+        correct them.
     verbose : bool, optional
         If True additional information will be printed.
     full_output: bool, {False,True}, optional
@@ -235,7 +245,8 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                                             num_neig=num_neig, size=size, 
                                             protect_mask=protect_mask, 
                                             radius=radius, verbose=False, 
-                                            cxy=(cx[i],cy[i]),
+                                            cxy=(cx[i],cy[i]), 
+                                            ignore_nan=ignore_nan,
                                             full_output=full_output)
             if full_output:
                 array_out[i] = res[0]
@@ -247,10 +258,14 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                 count_bp+=np.sum(np.ones_like(array_out[i])[bpm])                                   
     else:                                                
         if bpm_mask is None:
-            ind = clip_array(np.mean(array, axis=0), sigma_clip, sigma_clip,
-                             neighbor=neigh, num_neighbor=num_neig, mad=mad)
+            ori_nan_mask = np.where(np.isnan(np.nanmean(array, axis=0)))
+            ind = clip_array(np.nanmean(array, axis=0), sigma_clip, sigma_clip,
+                             neighbor=neigh, num_neighbor=num_neig, mad=mad,
+                             ignore_nan=ignore_nan)
             final_bpm = np.zeros_like(array[0])
             final_bpm[ind] = 1
+            if ignore_nan:
+                final_bpm[ori_nan_mask] = 0
             if protect_mask:
                 cir = disk((cy, cx), radius, shape=final_bpm.shape)
                 final_bpm[cir] = 0

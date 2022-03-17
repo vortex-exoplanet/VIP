@@ -404,7 +404,29 @@ def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,
 def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
                            imlib='vip-fft', interpolation='lanczos4'):
     """ Injects a fake companion in a single frame (it could be a single
-     multi-wavelength frame) at given coordinates.
+     multi-wavelength frame) at given coordinates, or in a cube (at the same
+     coordinates, flux and with same fake companion image throughout the cube).
+                                                   
+    Parameters
+    ----------
+    array : numpy ndarray, 2d or 3d
+        Input frame or cube.
+    array_fc : numpy ndarray, 2d
+        Fake companion image ti be injected
+    pos_y, pos_x: float
+         Y and X coordinates where the companion should be injected
+    flux : int
+        Flux at which the fake companion should be injected (i.e. scaling 
+        factor for the injected image)
+    imlib : str, optional
+        See documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See documentation of the ``vip_hci.preproc.frame_shift`` function.
+            
+    Returns
+    -------
+    array_out : numpy ndarray
+        Frame or cube with the companion injected
     """
     if not (array.ndim == 2 or array.ndim == 3):
         raise TypeError('Array is not a 2d or 3d array.')

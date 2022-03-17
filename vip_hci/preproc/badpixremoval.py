@@ -231,8 +231,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
 
             
     array_out = array.copy()
-    if full_output:
-        final_bpm = array_out.copy()
+    final_bpm = array_out.copy()
     n_frames = array.shape[0]
     count_bp = 0
     if frame_by_frame:
@@ -247,15 +246,10 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                                             radius=radius, verbose=False, 
                                             cxy=(cx[i],cy[i]), 
                                             ignore_nan=ignore_nan,
-                                            full_output=full_output)
-            if full_output:
-                array_out[i] = res[0]
-                final_bpm[i] = res[1]
-            else:
-                array_out[i] = res
-            if verbose:                                       
-                bpm = np.where(array_out[i]!=array[i])   
-                count_bp+=np.sum(np.ones_like(array_out[i])[bpm])                                   
+                                            full_output=True)
+            array_out[i] = res[0]
+            final_bpm[i] = res[1]     
+        count_bp = np.sum(final_bpm)                           
     else:                                                
         if bpm_mask is None:
             ori_nan_mask = np.where(np.isnan(np.nanmean(array, axis=0)))

@@ -191,7 +191,6 @@ also install the optional dependencies listed below.
 
 Optional dependencies
 ^^^^^^^^^^^^^^^^^^^^^
-
 The following dependencies are not automatically installed upon installation of
  ``VIP`` but may significantly improve your experience:
 
@@ -265,4 +264,4 @@ In addition, if you use one of the following modules, please also cite:
 - pca: `Amara and Quanz (2012) <https://ui.adsabs.harvard.edu/abs/2012MNRAS.427..948A/abstract>`_ and `Soummer et al. (2012) <https://ui.adsabs.harvard.edu/abs/2012ApJ...755L..28S/abstract>`_;
 
 
-Note: The `specfit <https://github.com/VChristiaens/specfit>`_ module, previously part of VIP, has now been moved to a separate GitHub repository.
+Note: The ``specfit`` module, previously part of VIP, has now been moved to a separate `GitHub repository <https://github.com/VChristiaens/special>`_.

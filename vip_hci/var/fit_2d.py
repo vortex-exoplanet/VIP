@@ -99,11 +99,11 @@ def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
         x, y = np.meshgrid(x, y)
 
         if model == 'gauss':
-            if isinstance(fwhm, (tuple, list)):
-                fwhm_x, fwhm_y = fwhm
-            else:
+            if np.isscalar(fwhm):
                 fwhm_y = fwhm
                 fwhm_x = fwhm
+            else:
+                fwhm_x, fwhm_y = fwhm
             gauss = models.Gaussian2D(amplitude=amplitude, x_mean=x_mean,
                                       y_mean=y_mean,
                                       x_stddev=fwhm_x * gaussian_fwhm_to_sigma,
@@ -126,7 +126,7 @@ def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
         return im
     # 3d case
     else:
-        if not isinstance(fwhm, (list, np.ndarray)):
+        if np.isscalar(fwhm):
             raise ValueError('`Fwhm` must be a 1d vector')
 
         cube = []

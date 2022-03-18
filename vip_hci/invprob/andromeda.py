@@ -223,10 +223,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     # VIP. This normalizes the API:
     angles = -angles
 
-    frames, npix, _ = cube.shape
-    npixpsf, _ = psf.shape
-
-    if npix % 2 == 1:
+    if cube.shape[-1] % 2 == 1:
         # shift and crop
         for cc in range(cube.shape[0]):
             cube[cc] = subpixel_shift(cube[cc],0.5,0.5)
@@ -236,7 +233,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         for cc in range(cube.shape[0]):
             cube[cc] = subpixel_shift(cube[cc],-0.5,-0.5)
 
-    if npixpsf % 2 == 1:
+    if psf.shape[0] % 2 == 1:
         # shift and crop
         psf = subpixel_shift(psf,0.5,0.5)
         psf = psf[1:,1:]
@@ -247,6 +244,10 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     if filtering_fraction > 1 or filtering_fraction < 0:
         raise ValueError("``filtering_fraction`` must be between 0 and 1")
 
+
+    frames, npix, _ = cube.shape
+    npixpsf, _ = psf.shape
+    
     # ===== set default parameters:
 
     if opt_method != "no":

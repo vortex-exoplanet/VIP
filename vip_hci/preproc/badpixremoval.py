@@ -231,7 +231,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
 
             
     array_out = array.copy()
-    final_bpm = array_out.copy()
+    final_bpm = np.zeros_like(array_out, dtype=bool)
     n_frames = array.shape[0]
     count_bp = 0
     if frame_by_frame:
@@ -255,7 +255,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
             ori_nan_mask = np.where(np.isnan(np.nanmean(array, axis=0)))
             ind = clip_array(np.nanmean(array, axis=0), sigma_clip, sigma_clip,
                              neighbor=neigh, num_neighbor=num_neig, mad=mad)
-            final_bpm = np.zeros_like(array[0])
+            final_bpm = np.zeros_like(array[0], dtype=bool)
             final_bpm[ind] = 1
             if ignore_nan:
                 final_bpm[ori_nan_mask] = 0
@@ -272,8 +272,11 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                 count_bp+=np.sum(final_bpm)  
             
     if verbose: 
-        msg = "Done replacing {} bad pixels using the median of neighbors"
+        msg = "Done replacing {:.0f} bad pixels using the median of neighbors"
         print(msg.format(count_bp))
+        if not frame_by_frame:
+            msg = "(i.e. {:.0f} static bad pixels per channel))"
+            print(msg.format(count_bp/n_frames))            
         timing(start)
         
     if full_output:

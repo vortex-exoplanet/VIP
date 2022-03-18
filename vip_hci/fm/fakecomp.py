@@ -412,7 +412,9 @@ def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
     array : numpy ndarray, 2d or 3d
         Input frame or cube.
     array_fc : numpy ndarray, 2d
-        Fake companion image ti be injected
+        Fake companion image to be injected. If even-dimensions, the center
+        should be placed at coordinates [dim//2, dim//2] (0-based indexing),
+        as per VIP's convention.
     pos_y, pos_x: float
          Y and X coordinates where the companion should be injected
     flux : int
@@ -513,7 +515,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
     array: numpy ndarray
         The PSF, 2d (ADI data) or 3d array (IFS data).
     fwhm: int, float, 1d array or str, optional
-        The the Full Width Half Maximum in pixels. It can handle a different
+        The Full Width Half Maximum in pixels. It can handle a different
         FWHM value for different wavelengths (IFS data). If set to 'fit' then
         a ``model`` (assuming the PSF is centered in the array) is fitted to
         estimate the FWHM in 2D or 3D PSF arrays.
@@ -521,9 +523,10 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         If int it will correspond to the size of the centered sub-image to be
         cropped form the PSF array. The PSF is assumed to be rougly centered wrt
         the array.
-    threshold : None of float, optional
-        Sets to zero small values, trying to leave only the core of the PSF.
-    mask_core : None of float, optional
+    threshold : None or float, optional
+        Sets to zero values smaller than threshold, trying to leave only the 
+        core of the PSF.
+    mask_core : None or float, optional
         Sets the radius of a circular aperture for the core of the PSF,
         everything else will be set to zero.
     model : {'gauss', 'moff', 'airy'}, str optional

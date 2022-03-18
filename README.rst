@@ -193,22 +193,10 @@ Optional dependencies
 ^^^^^^^^^^^^^^^^^^^^^
 The following dependencies are not automatically installed upon installation of ``VIP`` but may significantly improve your experience:
 
-- ``VIP`` contains a class ``vip_hci.fits.ds9`` that enables, through ``pyds9``,
-the interaction with a DS9 window (displaying numpy arrays, controlling the
-display options, etc). ``pyds9`` is an optional requirement and must be
-installed from the latest development version: ``pip install git+git://github.com/ericmandel/pyds9.git#egg=pyds9``
-- Also, you can install the Intel Math Kernel Library (``mkl``) optimizations
-(provided that you have a recent version of ``conda``) or ``openblas``
-libraries. Either of them can be installed with ``conda install``. This is
-recommended along with ``OpenCV`` for maximum speed on ``VIP`` computations.
-- ``VIP`` offers the possibility of computing SVDs on GPU by using ``CuPy``
-(starting from version 0.8.0) or ``PyTorch`` (from version 0.9.2). These remain
-as optional requirements, to be installed by the user, as well as a proper CUDA
-environment (and a decent GPU card).
-- Finally, bad pixel correction routines can be optimised with ``Numba``, which 
-converts some Python code, particularly ``NumPy``, into fast machine code. A 
-factor up to ~50x times speed improvement can be obtained on large images 
-compared to NumPy. Numba can be installed with ``conda install numba``.
+- ``VIP`` contains a class ``vip_hci.fits.ds9`` that enables, through ``pyds9``, the interaction with a DS9 window (displaying numpy arrays, controlling the display options, etc). ``pyds9`` is an optional requirement and must be installed from the latest development version: ``pip install git+git://github.com/ericmandel/pyds9.git#egg=pyds9``
+- Also, you can install the Intel Math Kernel Library (``mkl``) optimizations (provided that you have a recent version of ``conda``) or ``openblas`` libraries. Either of them can be installed with ``conda install``. This is recommended along with ``OpenCV`` for maximum speed on ``VIP`` computations.
+- ``VIP`` offers the possibility of computing SVDs on GPU by using ``CuPy`` (starting from version 0.8.0) or ``PyTorch`` (from version 0.9.2). These remain as optional requirements, to be installed by the user, as well as a proper CUDA environment (and a decent GPU card).
+- Finally, bad pixel correction routines can be optimised with ``Numba``, which  converts some Python code, particularly ``NumPy``, into fast machine code. A factor up to ~50x times speed improvement can be obtained on large images compared to NumPy. Numba can be installed with ``conda install numba``.
 
 
 Loading VIP

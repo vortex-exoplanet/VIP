@@ -191,8 +191,7 @@ also install the optional dependencies listed below.
 
 Optional dependencies
 ^^^^^^^^^^^^^^^^^^^^^
-The following dependencies are not automatically installed upon installation of
- ``VIP`` but may significantly improve your experience:
+The following dependencies are not automatically installed upon installation of ``VIP`` but may significantly improve your experience:
 
 ``VIP`` contains a class ``vip_hci.fits.ds9`` that enables, through ``pyds9``,
 the interaction with a DS9 window (displaying numpy arrays, controlling the

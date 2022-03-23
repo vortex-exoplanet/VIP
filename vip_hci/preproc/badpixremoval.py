@@ -629,9 +629,11 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
 
     Returns:
     --------
-    obj_tmp: 2d or 3d array; the bad pixel corrected frame/cube.
+    obj_tmp: 2d or 3d array
+        the bad pixel corrected frame/cube.
     If full_output is set to True, it returns as well:
-    bpix_map: 2d or 3d array; the bad pixel map or the cube of bpix maps
+    bpix_map: 2d or 3d array
+        the bad pixel map or the cube of bpix maps
     """
 
     obj_tmp = array.copy()

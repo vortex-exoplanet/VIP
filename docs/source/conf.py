@@ -41,7 +41,8 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'nbsphinx'
     # 'sphinx.ext.githubpages',
 ]
 
@@ -137,9 +138,9 @@ todo_include_todos = True
 # a list of builtin themes.
 #
 #html_theme = 'classic'
-#html_theme = 'sphinx_rtd_theme'
+html_theme = 'sphinx_rtd_theme'
 #html_theme = 'bizstyle'
-html_theme = 'alabaster'
+#html_theme = 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -147,15 +148,15 @@ html_theme = 'alabaster'
 #
 html_theme_options = {
     ### for alabaster theme
-    'logo': 'logo.png',
-    'logo_name': True,
-    'font_family': 'Georgia',
-    'github_banner': True,
-    'github_repo': 'vortex-exoplanet/VIP',
-    'github_count': True,
-    'github_type': 'star',
-    'fixed_sidebar': True,
-    'analytics_id': 'UA-84473187-1',
+    # 'logo': 'logo.png',
+    # 'logo_name': True,
+    # 'font_family': 'Georgia',
+    # 'github_banner': True,
+    # 'github_repo': 'vortex-exoplanet/VIP',
+    # 'github_count': True,
+    # 'github_type': 'star',
+    # 'fixed_sidebar': True,
+    # 'analytics_id': 'UA-84473187-1',
 
     ### for classic theme
     #'stickysidebar': True,
@@ -165,6 +166,8 @@ html_theme_options = {
 
     ### for bizstyle theme
     #'rightsidebar': True
+    
+    'logo_only': True
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -182,7 +185,7 @@ html_theme_options = {
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 #
-# html_logo = None
+html_logo = '_static/logo.jpg'
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -381,3 +384,8 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #
 # texinfo_no_detailmenu = False
+
+html_context = {'display_github': True,
+                'github_user': 'vortex-exoplanets',
+                'github_repo': 'VIP',
+                'github_version': 'main/docs/'}

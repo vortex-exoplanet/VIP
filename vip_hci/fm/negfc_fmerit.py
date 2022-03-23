@@ -277,12 +277,12 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     if r_guess > centx_fr-halfw:# or r_guess <= halfw:
         raise RuntimeError(msg)
 
-    ncomp = algo_options.get('ncomp',ncomp)
-    svd_mode = algo_options.get('svd_mode',svd_mode)
-    scaling = algo_options.get('scaling',scaling)
-    imlib = algo_options.get('imlib',imlib)
-    interpolation = algo_options.get('interpolation',interpolation)
-    collapse = algo_options.get('collapse',collapse)
+    ncomp = algo_options.get('ncomp', ncomp)
+    svd_mode = algo_options.get('svd_mode', svd_mode)
+    scaling = algo_options.get('scaling', scaling)
+    imlib = algo_options.get('imlib', imlib)
+    interpolation = algo_options.get('interpolation', interpolation)
+    collapse = algo_options.get('collapse', collapse)
 
 
     if algo == pca_annulus:

@@ -170,12 +170,12 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         residual frames are computed.
     finalfr : numpy ndarray
         [source_xy is not None] Residual frame with the highest S/N for
-        ``source_xy''.
+        ``source_xy``.
     df : pandas Dataframe
         [source_xy is not None]  Dataframe with the pcs, measured fluxed and
-        S/Ns for ``source_xy''.
+        S/Ns for ``source_xy``.
     opt_npc : int
-        [source_xy is not None] Optimal number of PCs for ``source_xy''.
+        [source_xy is not None] Optimal number of PCs for ``source_xy``.
 
     """
     from ..metrics import snr, frame_report

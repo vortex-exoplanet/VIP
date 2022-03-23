@@ -360,13 +360,13 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     
     There are different possibilities for the figure of merit (step 4):
         - mu_sigma=None; fmerit='sum' (as in Wertz et al. 2017):
-        .. math:: \chi^2 = \sum(\|I_j\|) 
+        :math:`\chi^2 = \sum(\|I_j\|)` 
         - mu_sigma=None; fmerit='stddev' (likely more appropriate when speckle
-        noise still significant):
-        .. math:: \chi^2 = N \sigma_{I_j}(values,ddof=1)*values.size
+        noise still significant): 
+        :math:`\chi^2 = N \sigma_{I_j}(values,ddof=1)*`values.size
         - mu_sigma=True or a tuple (as in Christiaens et al. 2021, new default):
-        .. math:: \chi^2 = \sum\frac{(I_j- mu)^2}{\sigma^2}     
-            
+        :math:`\chi^2 = \sum\frac{(I_j- mu)^2}{\sigma^2}`
+        
     where :math:`j \in {1,...,N}` with N the total number of pixels 
     contained in the circular aperture, :math:`\sigma_{I_j}` is the standard
     deviation of :math:`I_j` values, and :math:`\mu` is the mean pixel 

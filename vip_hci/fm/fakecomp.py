@@ -337,11 +337,11 @@ def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,
         ``*params`` are passed to it. Method can also be a string, for a
         pre-defined random function:
 
-            ``("skewnormal", skew, mean, var)``
+            ``('skewnormal', skew, mean, var)``
                 uses scipy.stats.skewnorm.rvs
-            ``("uniform", low, high)``
+            ``('uniform', low, high)``
                 uses np.random.uniform
-            ``("normal", loc, scale)``
+            ``('normal', loc, scale)``
                 uses np.random.normal
 
     Yields

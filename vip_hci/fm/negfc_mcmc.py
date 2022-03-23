@@ -366,14 +366,14 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         :math:`\chi^2 = N \sigma_{I_j}(values,ddof=1)*`values.size
         - mu_sigma=True or a tuple (as in Christiaens et al. 2021, new default):
         :math:`\chi^2 = \sum\frac{(I_j- mu)^2}{\sigma^2}`
-        
+
     where :math:`j \in {1,...,N}` with N the total number of pixels 
     contained in the circular aperture, :math:`\sigma_{I_j}` is the standard
     deviation of :math:`I_j` values, and :math:`\mu` is the mean pixel 
     intensity in a truncated annulus at the radius of the companion candidate 
     (i.e. excluding the cc region).
     
-    See description of `mu_sigma` and `sigma` for more details on 
+    See description of ``mu_sigma`` and ``sigma`` for more details on 
     :math:`\sigma\`.
     
     Parameters

@@ -3,13 +3,25 @@
 .. Welcome to ``VIP``'s documentation
 .. ==============================
 
-.. image::  _static/logo.jpg
-   :align:  center
-   :scale:  20 %
-   :target: #
+.. image:: _static/logo.jpg
+   :align: center
+   :width: 400px
 
 .. include:: ../../README.rst
 
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Tutorials
+
+   tutorials/01_quickstart.ipynb
+   tutorials/02_preproc.ipynb
+   tutorials/03_psfsub.ipynb
+   tutorials/04_metrics.ipynb
+   tutorials/05_fm_planets.ipynb
+   tutorials/06_fm_disk.ipynb
+   tutorials/07_imlib_and_interpolation.ipynb
+   tutorials/08_datasets_as_objects.ipynb
 
 Frequently asked questions
 --------------------------

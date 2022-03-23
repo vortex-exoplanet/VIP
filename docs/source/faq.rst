@@ -75,7 +75,7 @@ Please make sure you have ``DS9`` and ``XPA`` in your system path. Try installin
 them using your system's package management tool.
 
 
-.. rubric:: Why does Python crash when using some of the parallel functions, e.g. ``pca_adi_annular`` and ``run_mcmc_strometry``?
+.. rubric:: Why does Python crash when using some of the parallel functions, e.g. ``pca_annular`` and ``mcmc_negfc_sampling``?
 
 
 These functions require running SVD on several processes and this can be

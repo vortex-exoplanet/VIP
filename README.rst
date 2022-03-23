@@ -213,8 +213,8 @@ If everything went fine with the installation, you will see a welcome message.
 Now you can start finding exoplanets!
 
 
-Convention regarding image center and parity of image dimensions
-----------------------------------------------------------------
+Image conventions
+-----------------
 
 By default, VIP routines are compatible with either even- or odd-dimension input frames. For VIP routines that require the star to be centered in the input images (e.g. post-processing routines involving (de)rotation or scaling), the code will assume that it is placed on (zero-based indexing):
 
@@ -235,14 +235,7 @@ Attribution
 -----------
 Please cite `Gomez Gonzalez et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017AJ....154....7G/abstract>`_ whenever 
 you publish data reduced with ``VIP`` . Astrophysics Source Code Library reference [ascl:1603.003].
-In addition, if you use one of the following modules, please also cite:
-
-- andromeda: `Cantalloube et al. (2015) <https://ui.adsabs.harvard.edu/abs/2015A%26A...582A..89C/abstract>`_;
-- leastsq: `Lafrenière et al. (2007) <https://ui.adsabs.harvard.edu/abs/2007ApJ...660..770L/abstract>`_;
-- llsg: `Gomez Gonzalez et al. (2016) <https://ui.adsabs.harvard.edu/abs/2016A%26A...589A..54G/abstract>`_;
-- medsub: `Marois et al. (2006) <https://ui.adsabs.harvard.edu/abs/2006ApJ...641..556M/abstract>`_ for ADI and `Sparks and Ford (2002) <https://ui.adsabs.harvard.edu/abs/2002ApJ...578..543S/abstract>`_ for SDI;
-- negfc: `Wertz et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017A%26A...598A..83W/abstract>`_;
-- pca: `Amara and Quanz (2012) <https://ui.adsabs.harvard.edu/abs/2012MNRAS.427..948A/abstract>`_ and `Soummer et al. (2012) <https://ui.adsabs.harvard.edu/abs/2012ApJ...755L..28S/abstract>`_;
+In addition, please cite the relevant publications for the algorithms you use (often mentioned in the documentation of VIP routines, e.g. `Marois et al. 2006 <https://ui.adsabs.harvard.edu/abs/2006ApJ...641..556M/abstract>`_ for median-ADI).
 
 
 Note: The ``specfit`` module, previously part of VIP, has now been moved to a separate `GitHub repository <https://github.com/VChristiaens/special>`_.

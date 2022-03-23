@@ -47,7 +47,7 @@ extensions = [
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['./_templates']
+templates_path = []#['./_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -64,8 +64,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'VIP'
-copyright = u'Carlos Alberto Gomez Gonzalez & VORTEX team. Logo by Cristina Gomez Gonzalez'
-author = u'Carlos Alberto Gomez Gonzalez & VORTEX team'
+copyright = u'Carlos Alberto Gomez Gonzalez, Valentin Christiaens & VORTEX team. Logo by Cristina Gomez Gonzalez'
+author = u'Carlos Alberto Gomez Gonzalez, Valentin Christiaens & VORTEX team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -117,7 +117,7 @@ exclude_patterns = []
 # show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+#pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -138,8 +138,8 @@ todo_include_todos = True
 # a list of builtin themes.
 #
 #html_theme = 'classic'
-#html_theme = 'sphinx_book_theme'
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'sphinx_book_theme'
+#html_theme = 'sphinx_rtd_theme'
 #html_theme = 'bizstyle'
 #html_theme = 'alabaster'
 
@@ -147,7 +147,7 @@ html_theme = 'sphinx_rtd_theme'
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-html_theme_options = {
+#html_theme_options = {
     ### for alabaster theme
     # 'logo': 'logo.png',
     # 'logo_name': True,
@@ -167,8 +167,19 @@ html_theme_options = {
 
     ### for bizstyle theme
     #'rightsidebar': True
-    
-    'logo_only': True
+html_theme_options = {
+    'path_to_docs': 'docs/source',
+    'repository_url': 'https://github.com/vortex-exoplanets/VIP',
+    'repository_branch': 'main',
+    'launch_buttons': {
+        'binderhub_url': 'https://mybinder.org/v2/gh/vortex-exoplanet/VIP_extras/master',
+        'notebook_interface': 'jupyterlab',
+    },
+    'use_edit_page_button': True,
+    'use_issues_button': True,
+    'use_repository_button': True,
+    'use_download_button': True,
+    'logo_only': True,
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -177,7 +188,7 @@ html_theme_options = {
 # The name for this set of Sphinx documents.
 # "<project> v<release> documentation" by default.
 #
-# html_title = u'VIP - Vortex Image Processing v0.5.1'
+html_title = u'VIP - Vortex Image Processing'
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #
@@ -218,11 +229,11 @@ html_static_path = ['./_static']
 
 # Custom sidebar templates, maps document names to template names.
 #
-html_sidebars = {
-    'index':    ['mysidebar.html', 'localtoc.html', 'searchbox.html'],
-    '**':       ['mysidebar.html', 'localtoc.html', 'relations.html',
-                 'searchbox.html']
-}
+# html_sidebars = {
+#     'index':    ['mysidebar.html', 'localtoc.html', 'searchbox.html'],
+#     '**':       ['mysidebar.html', 'localtoc.html', 'relations.html',
+#                  'searchbox.html']
+# }
 
 
 # Additional templates that should be rendered to pages, maps page names to
@@ -309,7 +320,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'VIP-VortexImageProcessing.tex', u'VIP Documentation',
-     u'Carlos Alberto Gomez Gonzalez, Olivier Wertz \\& VORTEX team', 'manual'),
+     u'Carlos Alberto Gomez Gonzalez, Valentin Christiaens \\& VORTEX team', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

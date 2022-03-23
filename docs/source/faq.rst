@@ -1,6 +1,6 @@
 
 FAQ
-----
+---
 First things first. Please make sure you have the latest version of ``VIP``.
 Please go and check the repository now. Alternatively, you can run:
 

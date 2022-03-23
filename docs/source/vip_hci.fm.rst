@@ -1,8 +1,6 @@
 vip\_hci.fm package
 ===================
 
-Submodules
-----------
 
 vip\_hci.fm.fakecomp module
 ---------------------------

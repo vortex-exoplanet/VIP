@@ -1,7 +1,10 @@
+Frequently asked questions
+--------------------------
 
-FAQ
----
-First things first. Please make sure you have the latest version of ``VIP``.
+Check out the FAQ if you encounter problems when installing or running ``VIP``
+for the first time.
+
+Before skimming this list, please make sure you have the latest version of ``VIP``.
 Please go and check the repository now. Alternatively, you can run:
 
 .. code-block:: bash

@@ -42,7 +42,8 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
-    'nbsphinx'
+    'nbsphinx',
+    'sphinx_thebe'
     # 'sphinx.ext.githubpages',
 ]
 
@@ -138,8 +139,8 @@ todo_include_todos = True
 # a list of builtin themes.
 #
 #html_theme = 'classic'
-html_theme = 'sphinx_book_theme'
-#html_theme = 'sphinx_rtd_theme'
+#html_theme = 'sphinx_book_theme'
+html_theme = 'sphinx_rtd_theme'
 #html_theme = 'bizstyle'
 #html_theme = 'alabaster'
 
@@ -147,7 +148,7 @@ html_theme = 'sphinx_book_theme'
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-#html_theme_options = {
+html_theme_options = {
     ### for alabaster theme
     # 'logo': 'logo.png',
     # 'logo_name': True,
@@ -167,18 +168,20 @@ html_theme = 'sphinx_book_theme'
 
     ### for bizstyle theme
     #'rightsidebar': True
-html_theme_options = {
-    'path_to_docs': 'docs/source',
-    'repository_url': 'https://github.com/vortex-exoplanets/VIP',
-    'repository_branch': 'main',
-    'launch_buttons': {
-        'binderhub_url': 'https://mybinder.org/v2/gh/vortex-exoplanet/VIP_extras/master',
-        'notebook_interface': 'jupyterlab',
-    },
-    'use_edit_page_button': True,
-    'use_issues_button': True,
-    'use_repository_button': True,
-    'use_download_button': True,
+    
+    ### for sphinx_book theme
+    # 'path_to_docs': 'docs/source',
+    # 'repository_url': 'https://github.com/vortex-exoplanets/VIP',
+    # 'repository_branch': 'main',
+    # 'launch_buttons': {
+    #     'binderhub_url': 'https://mybinder.org/',#'v2/gh/vortex-exoplanet/VIP_extras/master',
+    #     'notebook_interface': 'jupyterlab',
+    #     "thebe": True,
+    # },
+    # 'use_edit_page_button': True,
+    # 'use_issues_button': True,
+    # 'use_repository_button': True,
+    # 'use_download_button': True,
     'logo_only': True,
 }
 
@@ -197,7 +200,7 @@ html_title = u'VIP - Vortex Image Processing'
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 #
-html_logo = '_static/logo.jpg'
+html_logo = '_static/logo.png'
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32

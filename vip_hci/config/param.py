@@ -8,10 +8,12 @@ Usage
 
 .. code:: python
 
-    from param import VLT_NACO
-    VLT_NACO['diam']
+    from vip_hci.config import VLT_NACO
+    lbda = VLT_NACO['lambdal']
+    diameter = VLT_NACO['diam']
+    pxscale = VLT_NACO['plsc']
 
-    fwhm = lambda/diameter*206265/pxscale
+    resel = lambda/diameter*206265/pxscale
 
 """
 

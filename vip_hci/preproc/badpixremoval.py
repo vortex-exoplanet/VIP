@@ -431,12 +431,12 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
                 rr_big = rr
                 rr_sma= rr
             if half_res_y:
-                big_ell_idx = ellipse(cy=cy, cx=cx, 
+                big_ell_idx = ellipse(r=cy, c=cx, 
                                       r_radius=((rr_big+1)*ann_width)/2, 
                                       c_radius=(rr_big+1)*ann_width, 
                                       shape=(n_y,n_x))
                 if rr != 0:
-                    small_ell_idx = ellipse(cy=cy, cx=cx, 
+                    small_ell_idx = ellipse(r=cy, c=cx, 
                                             r_radius=(rr_sma*ann_width)/2, 
                                             c_radius=rr_sma*ann_width, 
                                             shape=(n_y,n_x))
@@ -1230,12 +1230,12 @@ def correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, cy, cx,
         Boolean array with location of outliers.
     """ 
     
-    if no_numba: 
+    if True:#no_numba: 
         def _correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, 
                                   cy, cx, min_thr, max_thr, rand_arr, stddev, 
                                   half_res_y=False):           
             n_y, n_x = obj_tmp.shape
-            rand_arr = 2*(np.random.rand((n_y, n_x))-0.5)
+            rand_arr = 2*(np.random.rand(n_y, n_x)-0.5)
             obj_tmp_corr = obj_tmp.copy()
             bpix_map = np.zeros([n_y,n_x])
             for yy in range(n_y):
@@ -1271,7 +1271,7 @@ def correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, cy, cx,
                                   cy, cx, min_thr, max_thr, rand_arr, stddev, 
                                   half_res_y=False):           
             n_y, n_x = obj_tmp.shape
-            rand_arr = 2*(np.random.rand((n_y, n_x))-0.5)
+            rand_arr = 2*(np.random.rand(n_y, n_x)-0.5)
             obj_tmp_corr = obj_tmp.copy()
             bpix_map = np.zeros([n_y,n_x])
             for yy in range(n_y):

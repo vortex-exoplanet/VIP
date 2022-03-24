@@ -388,8 +388,10 @@ def nan_corr_2d(obj_tmp, neighbor_box, min_neighbors, half_res_y, verbose,
     
 
 def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
-    """FIND THE APPROX COORDS OF THE STAR IN EACH CHANNEL (even the ones
-    dominated by noise)
+    """Finds the approximate coordinates of the star, assuming it is the 
+    brightest signal in the images. The algorithm can handle images dominated 
+    by noise, since outliers are corrected based on the position of ths star in 
+    other channels.
 
     Parameters
     ----------

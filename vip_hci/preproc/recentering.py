@@ -675,7 +675,7 @@ def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
 
     cost_bound = costf.reshape(listyx.shape[0], listyx.shape[0])
     if plot:
-        plt.contour(cost_bound, cmap='CMRmap', origin='lower', lw=1, hold='on')
+        plt.contour(cost_bound, cmap='CMRmap', origin='lower')
         plt.imshow(cost_bound, cmap='CMRmap', origin='lower',
                    interpolation='nearest')
         plt.colorbar()

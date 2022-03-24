@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Module with HCIDataset and HCIFrame classes.
+Module with Dataset and Frame classes.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
@@ -47,7 +47,7 @@ class Frame(object):
         for several methods (operations on the cube).
     """
     def __init__(self, data, hdu=0, fwhm=None):
-        """ HCIFrame object initialization. """
+        """ Frame object initialization. """
         if isinstance(data, str):
             self.data = open_fits(data, hdu, verbose=False)
         else:
@@ -359,7 +359,7 @@ class Dataset(Saveable):
 
     def __init__(self, cube, hdu=0, angles=None, wavelengths=None, fwhm=None,
                  px_scale=None, psf=None, psfn=None, cuberef=None):
-        """ Initialization of the HCIDataset object.
+        """ Initialization of the Dataset object.
         """
         # Loading the 3d/4d cube or image sequence
         if isinstance(cube, str):
@@ -728,17 +728,17 @@ class Dataset(Saveable):
             ``*params`` are passed to it. Method can also be a string, for a
             pre-defined random function:
 
-                ``("skewnormal", skew, mean, var)``
+                ``('skewnormal', skew, mean, var)``
                     uses scipy.stats.skewnorm.rvs
-                ``("uniform", low, high)``
+                ``('uniform', low, high)``
                     uses np.random.uniform
-                ``("normal", loc, scale)``
+                ``('normal', loc, scale)``
                     uses np.random.normal
 
         Yields
         -------
-        fake_dataset : HCIDataset
-            Copy of the original HCIDataset, with injected companions.
+        fake_dataset : Dataset
+            Copy of the original Dataset, with injected companions.
 
         """
 
@@ -756,7 +756,7 @@ class Dataset(Saveable):
 
     def get_nbytes(self):
         """
-        Return the total number of bytes the HCIDataset consumes.
+        Return the total number of bytes the Dataset consumes.
         """
         return sum(arr.nbytes for arr in [self.cube, self.cuberef, self.angles,
                                           self.wavelengths, self.psf, self.psfn]
@@ -764,7 +764,7 @@ class Dataset(Saveable):
 
     def copy(self, deep=True, check_mem=True):
         """
-        Create an in-memory copy of this HCIDataset.
+        Create an in-memory copy of this Dataset.
 
         This is especially useful for keeping a backup copy of the original
         dataset before modifying if (e.g. with injections).
@@ -774,8 +774,8 @@ class Dataset(Saveable):
         deep : bool, optional
             By default, a deep copy is created. That means every (sub)attribute
             is copied in memory. While this requires more memory, one can safely
-            modify the attributes without touching the original HCIDataset. When
-            ``deep=False``, a shallow copy of the HCIDataset is returned
+            modify the attributes without touching the original Dataset. When
+            ``deep=False``, a shallow copy of the Dataset is returned
             instead. That means all attributes (e.g. ``self.cube``) point back
             to the original object's attributes. Pay attention when modifying
             such a shallow copy!
@@ -786,7 +786,7 @@ class Dataset(Saveable):
         Returns
         -------
         new_dataset : Dataset
-            (deep) copy of this HCIDataset.
+            (deep) copy of this Dataset.
 
         """
         if deep:

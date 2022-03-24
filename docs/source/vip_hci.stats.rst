@@ -1,8 +1,6 @@
 vip\_hci.stats package
 ======================
 
-Submodules
-----------
 
 vip\_hci.stats.bkg\_proba module
 --------------------------------

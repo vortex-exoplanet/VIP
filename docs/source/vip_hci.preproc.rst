@@ -1,8 +1,6 @@
 vip\_hci.preproc package
 ========================
 
-Submodules
-----------
 
 vip\_hci.preproc.badframes module
 ---------------------------------

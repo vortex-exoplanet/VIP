@@ -194,7 +194,8 @@ Optional dependencies
 The following dependencies are not automatically installed upon installation of ``VIP`` but may significantly improve your experience:
 
 - ``VIP`` contains a class ``vip_hci.vip_ds9`` that enables, through ``pyds9``, the interaction with a DS9 window (displaying numpy arrays, controlling the display options, etc). To enable this feature, ``pyds9`` must be installed from the latest development version: ``pip install git+git://github.com/ericmandel/pyds9.git#egg=pyds9``
-- Also, you can install the Intel Math Kernel Library (``mkl``) optimizations (provided that you have a recent version of ``conda``) or ``openblas`` libraries. Either of them can be installed with ``conda install``. This is recommended along with ``OpenCV`` for maximum speed on ``VIP`` computations.
+- Also, you can install the Intel Math Kernel Library (``mkl``) optimizations (provided that you have a recent version of ``conda``) or ``openblas`` libraries. Either of them can be installed with ``conda install``. 
+- For maximum speed on image operations, such as scaling, shifts or rotations (the latter being a typical bottleneck in most post-processing routines), one can install ``OpenCV`` (`pip install opencv-python`). To use it, just set `imlib='opencv'` (combined e.g. with `interpolation='lanczos4'`) instead of the default `imlib='vip-fft'` when using any routine involving image operations. While it can yield up to 3 orders of magnitude speed improvement, note that flux conservation will be worse than using FFT-based methods.
 - ``VIP`` offers the possibility of computing SVDs on GPU by using ``CuPy`` (starting from version 0.8.0) or ``PyTorch`` (from version 0.9.2). These remain as optional requirements, to be installed by the user, as well as a proper CUDA environment (and a decent GPU card).
 - Finally, bad pixel correction routines can be optimised with ``Numba``, which  converts some Python code, particularly ``NumPy``, into fast machine code. A factor up to ~50x times speed improvement can be obtained on large images compared to NumPy. Numba can be installed with ``conda install numba``.
 
@@ -212,8 +213,8 @@ If everything went fine with the installation, you will see a welcome message.
 Now you can start finding exoplanets!
 
 
-Convention regarding image center and parity of image dimensions
-----------------------------------------------------------------
+Image conventions
+-----------------
 
 By default, VIP routines are compatible with either even- or odd-dimension input frames. For VIP routines that require the star to be centered in the input images (e.g. post-processing routines involving (de)rotation or scaling), the code will assume that it is placed on (zero-based indexing):
 
@@ -234,14 +235,7 @@ Attribution
 -----------
 Please cite `Gomez Gonzalez et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017AJ....154....7G/abstract>`_ whenever 
 you publish data reduced with ``VIP`` . Astrophysics Source Code Library reference [ascl:1603.003].
-In addition, if you use one of the following modules, please also cite:
-
-- andromeda: `Cantalloube et al. (2015) <https://ui.adsabs.harvard.edu/abs/2015A%26A...582A..89C/abstract>`_;
-- leastsq: `Lafrenière et al. (2007) <https://ui.adsabs.harvard.edu/abs/2007ApJ...660..770L/abstract>`_;
-- llsg: `Gomez Gonzalez et al. (2016) <https://ui.adsabs.harvard.edu/abs/2016A%26A...589A..54G/abstract>`_;
-- medsub: `Marois et al. (2006) <https://ui.adsabs.harvard.edu/abs/2006ApJ...641..556M/abstract>`_ for ADI and `Sparks and Ford (2002) <https://ui.adsabs.harvard.edu/abs/2002ApJ...578..543S/abstract>`_ for SDI;
-- negfc: `Wertz et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017A%26A...598A..83W/abstract>`_;
-- pca: `Amara and Quanz (2012) <https://ui.adsabs.harvard.edu/abs/2012MNRAS.427..948A/abstract>`_ and `Soummer et al. (2012) <https://ui.adsabs.harvard.edu/abs/2012ApJ...755L..28S/abstract>`_;
+In addition, please cite the relevant publication(s) for the algorithms you use within VIP (usually mentioned in the documentation, e.g. `Marois et al. 2006 <https://ui.adsabs.harvard.edu/abs/2006ApJ...641..556M/abstract>`_ for median-ADI).
 
 
 Note: The ``specfit`` module, previously part of VIP, has now been moved to a separate `GitHub repository <https://github.com/VChristiaens/special>`_.

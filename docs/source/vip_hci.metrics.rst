@@ -1,8 +1,6 @@
 vip\_hci.metrics package
 ========================
 
-Submodules
-----------
 
 vip\_hci.metrics.contrcurve module
 ----------------------------------

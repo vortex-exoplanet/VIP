@@ -418,7 +418,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     xy : tuple of 4 tuples of 2 elements
         Tuple with coordinates X,Y of the 4 satellite spots. When the spots are
         in an X configuration, the order is the following: top-left, top-right,
-        bottom-left and bottom-right. When the spots are in an + (cross-like)
+        bottom-left and bottom-right. When the spots are in an + (plus-like)
         configuration, the order is the following: top, right, left, bottom.
         If wavelength vector is not provided, assumes all sat spots of the cube
         are at a similar location. If wavelength is provided, only coordinates 
@@ -602,7 +602,7 @@ def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
     if verbose:
         start_time = time_ini()
     frame = array.copy()
-    ori_cent, _ = frame_center(frame)
+    ori_cent_y, ori_cent_x = frame_center(frame)
     if cropsize is not None:
         if not cropsize%2:
             raise TypeError("If not None, cropsize should be odd integer")
@@ -692,8 +692,8 @@ def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
     argmx = ind_maximax[int(np.ceil(num_max/2)) - 1]
     y_grid = np.array(coords)[:, 0].reshape(listyx.shape[0], listyx.shape[0])
     x_grid = np.array(coords)[:, 1].reshape(listyx.shape[0], listyx.shape[0])
-    optimy = y_grid[argmy, 0]+(ori_cent-cent)/2
-    optimx = x_grid[0, argmx]+(ori_cent-cent)/2
+    optimy = ori_cent_y+y_grid[argmy, 0]#+(ori_cent-cent)/2
+    optimx = ori_cent_x+x_grid[0, argmx]#+(ori_cent-cent)/2
 
     if verbose:
         print('Cost function max: {}'.format(costf.max()))
@@ -792,12 +792,13 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
     n_frames = array.shape[0]
     x = np.zeros((n_frames))
     y = np.zeros((n_frames))
+    cy ,cx = frame_center(array[0])
     array_rec = array.copy()
 
     for i in Progressbar(range(n_frames), desc="frames", verbose=verbose):
         y[i], x[i] = frame_center_radon(array[i], verbose=False, plot=False,
                                         **kwargs)
-        array_rec[i] = frame_shift(array[i], y[i], x[i], imlib=imlib,
+        array_rec[i] = frame_shift(array[i], cy-y[i], cx-x[i], imlib=imlib,
                                    interpolation=interpolation, 
                                    border_mode=border_mode)
 

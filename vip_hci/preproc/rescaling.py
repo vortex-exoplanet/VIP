@@ -30,7 +30,7 @@ from .cosmetics import frame_crop
 
 
 def cube_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
-                       keep_center=True, verbose=True):
+                       keep_center=False, verbose=True):
     """
     Resample the frames of a cube with a single scale factor. Can deal with NaN 
     values.
@@ -84,7 +84,7 @@ def cube_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
 
 
 def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
-                        keep_center=True, verbose=False):
+                        keep_center=False, verbose=False):
     """
     Resample the pixels of a frame changing the frame size.
     Can deal with NaN values.
@@ -156,7 +156,7 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
         odd=False
             
     # expected output size
-    out_sz = int(array.shape[0]*scale_y), int(array.shape[1]*scale_x)
+    out_sz = int(round(array.shape[0]*scale_y)), int(round(array.shape[1]*scale_x))
     
     if not odd and keep_center and imlib != 'vip-fft':
         def _make_odd(img):
@@ -267,7 +267,7 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
             imlib_s = imlib
         array_resc = frame_shift(array_resc, 0.5, 0.5, imlib_s, interpolation)
         
-    if array_resc.shape != out_sz:
+    if array_resc.shape != out_sz and imlib != 'vip-fft':
         if out_sz[0] == out_sz[1]:
             if out_sz[0]<array_resc.shape[0]:
                 array_resc = frame_crop(array_resc, out_sz[0], force=True,
@@ -1026,9 +1026,9 @@ def scale_fft(array, scale, ori_dim=False):
     # Extract a part of or expand the scaled image to desired number of pixels
     dim_resc = int(round(scale*dim))
     if dim_resc>dim and dim_resc%2 != dim%2:
-        dim_resc+=1
+         dim_resc+=1
     elif dim_resc<dim and dim_resc%2 != dim%2:
-        dim_resc-=1 # for reversibility
+         dim_resc-=1 # for reversibility
     
     if not ori_dim and dim_pp > dim_resc:
         array_resc = array_resc[(dim_pp-dim_resc)//2:(dim_pp+dim_resc)//2,

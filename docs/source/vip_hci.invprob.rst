@@ -1,9 +1,6 @@
 vip\_hci.invprob package
 ========================
 
-Submodules
-----------
-
 vip\_hci.invprob.andromeda module
 ---------------------------------
 

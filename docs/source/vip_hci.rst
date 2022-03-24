@@ -24,28 +24,8 @@ Subpackages
 Submodules
 ----------
 
-vip\_hci.hci\_dataset module
-----------------------------
+.. toctree::
 
-.. automodule:: vip_hci.hci_dataset
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-vip\_hci.hci\_postproc module
------------------------------
-
-.. automodule:: vip_hci.hci_postproc
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-vip\_hci.vip\_ds9 module
-------------------------
-
-.. automodule:: vip_hci.vip_ds9
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
+    vip_hci.hci_dataset
+    vip_hci.hci_postproc
+    vip_hci.vip_ds9

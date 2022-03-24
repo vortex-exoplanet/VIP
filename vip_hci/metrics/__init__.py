@@ -2,7 +2,7 @@
 Subpackage ``metrics`` includes:
     - signal-to-noise (S/N) estimation,
     - S/N map generation,
-    - STIMP map generation,
+    - STIM map generation,
     - detection of point like sources (for pipelines),
     - fake companions injection,
     - fake disks generation and injection,

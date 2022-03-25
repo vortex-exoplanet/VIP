@@ -33,9 +33,8 @@ except ImportError:
     no_numba = True
 
 def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
-                              size=5, protect_mask=False, radius=30, cxy=None,
-                              mad=False, ignore_nan=True, verbose=True, 
-                              full_output=False):
+                              size=5, protect_mask=0, cxy=None, mad=False, 
+                              ignore_nan=True, verbose=True, full_output=False):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is
     replaced by the median of the adjacent pixels. This function is very fast
     but works only with isolated (sparse) pixels.
@@ -58,13 +57,10 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     size : odd int, optional
         The size the box (size x size) of adjacent pixels for the median
         filter.
-    protect_mask : bool, optional
-        If True a circular aperture at the center of the frames will be
-        protected from any operation. With this we protect the star and
-        vicinity.
-    radius : int, optional
-        Radius of the circular aperture (at the center of the frames) for the
-        protection mask.
+    protect_mask : int or float, optional
+        If larger than 0, radius of a circular aperture (at the center of the 
+        frames) in which no bad pixels will be identified. This can be useful 
+        to protect the star and vicinity.
     cxy: None or tuple
         If protect_mask is True, this is the location of the star centroid in
         the images. If None, assumes the star is already centered. If a tuple,
@@ -119,7 +115,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         if ignore_nan:
             bpm_mask[ori_nan_mask] = 0
         if protect_mask:
-            cir = disk((cy, cx), radius, shape=bpm_mask.shape)
+            cir = disk((cy, cx), protect_mask, shape=bpm_mask.shape)
             bpm_mask[cir] = 0
         bpm_mask = bpm_mask.astype('bool')
 
@@ -140,9 +136,9 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
 
 
 def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5, 
-                             size=5, frame_by_frame=False, protect_mask=False, 
-                             radius=30, cxy=None, mad=False, ignore_nan=True,
-                             verbose=True, full_output=False):
+                             size=5, frame_by_frame=False, protect_mask=0, 
+                             cxy=None, mad=False, ignore_nan=True, verbose=True, 
+                             full_output=False):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is 
     replaced by the median of the adjacent pixels. This function is very fast
     but works only with isolated (sparse) pixels. 
@@ -168,11 +164,10 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         Whether to correct bad pixels frame by frame in the cube. By default it
         is set to False; the bad pixels are computed on the mean frame of the 
         stack (faster but not necessarily optimal).
-    protect_mask : bool, optional
-        If True a circular aperture, centered on cxy, will be protected from 
-        any operation. With this we protect the star and its vicinity.
-    radius : int, optional 
-        Radius of the circular aperture for the protection mask.
+    protect_mask : int or float, optional
+        If larger than 0, radius of a circular aperture (at the center of the 
+        frames) in which no bad pixels will be identified. This can be useful 
+        to protect the star and vicinity.
     cxy: None, tuple or 2d numpy ndarray
         If protect_mask is True, this is the location of the star centroid in
         the images. If None, assumes the star is already centered. If a tuple,
@@ -243,8 +238,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                                             sigma_clip=sigma_clip,
                                             num_neig=num_neig, size=size, 
                                             protect_mask=protect_mask, 
-                                            radius=radius, verbose=False, 
-                                            cxy=(cx[i],cy[i]), 
+                                            verbose=False, cxy=(cx[i],cy[i]), 
                                             ignore_nan=ignore_nan,
                                             full_output=True)
             array_out[i] = res[0]
@@ -260,7 +254,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
             if ignore_nan:
                 final_bpm[ori_nan_mask] = 0
             if protect_mask:
-                cir = disk((cy, cx), radius, shape=final_bpm.shape)
+                cir = disk((cy, cx), protect_mask, shape=final_bpm.shape)
                 final_bpm[cir] = 0
             final_bpm = final_bpm.astype('bool')
     
@@ -286,14 +280,14 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
 
 
 def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., 
-                           protect_psf=True, r_in_std=10, r_out_std=None, 
+                           protect_mask=0, r_in_std=10, r_out_std=None,
                            verbose=True, half_res_y=False, min_thr=None, 
                            max_thr=None, full_output=False):
     """
     Function to correct the bad pixels annulus per annulus (centered on the 
     provided location of the star), in an input frame or cube.
-    This function is MUCH FASTER than bp_clump_removal (about 20 times faster);
-    hence to be prefered in all cases where there is only one bright source.
+    This function is faster than bp_clump_removal; hence to be prefered in all 
+    cases where there is only one bright source with circularly symmetric PSF.
     The bad pixel values are replaced by: ann_median + ann_stddev*random_gauss;
     where ann_median is the median of the annulus, ann_stddev is the standard 
     deviation in the annulus, and random_gauss is a random factor picked from a 
@@ -316,11 +310,10 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
     sig: Float scalar, optional
         Number of stddev above or below the median of the pixels in the same 
         annulus, to consider a pixel as bad.
-    protect_psf: bool, {True, False}, optional
-        Whether to protect a circular region centered on the star (1.8*fwhm 
-        radius) from any bpix corr. If False, there is a risk of modifying a 
-        centroid peak value if it is too "peaky"; but if True real bad pixels 
-        within the core are not corrected.
+    protect_mask : int or float, optional
+        If larger than 0, radius of a circular aperture (at the center of the 
+        frames) in which no bad pixels will be identified. This can be useful 
+        to protect the star and vicinity.
     r_in_std: float, optional
         Inner radius in fwhm for the calculation of the standard 
         deviation of the background - used for min threshold 
@@ -365,7 +358,7 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
     if max_thr is None:
         max_thr = np.amax(obj_tmp)-1
 
-    def bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_psf, r_in_std,
+    def bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_mask, r_in_std,
                       r_out_std, verbose):
 
         n_x = obj_tmp.shape[1]
@@ -431,12 +424,12 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
                 rr_big = rr
                 rr_sma= rr
             if half_res_y:
-                big_ell_idx = ellipse(cy=cy, cx=cx, 
+                big_ell_idx = ellipse(r=cy, c=cx, 
                                       r_radius=((rr_big+1)*ann_width)/2, 
                                       c_radius=(rr_big+1)*ann_width, 
                                       shape=(n_y,n_x))
                 if rr != 0:
-                    small_ell_idx = ellipse(cy=cy, cx=cx, 
+                    small_ell_idx = ellipse(r=cy, c=cx, 
                                             r_radius=(rr_sma*ann_width)/2, 
                                             c_radius=rr_sma*ann_width, 
                                             shape=(n_y,n_x))
@@ -480,12 +473,12 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
         
         #3/ Create a tuple-array with coordinates of a circle of radius 1.8*fwhm
         # centered on the provided coordinates of the star
-        if protect_psf:
+        if protect_mask:
             if half_res_y: 
-                circl_new = ellipse(cy, cx, r_radius=0.9*fwhm, 
-                                    c_radius=1.8*fwhm, shape=(n_y,n_x))
+                circl_new = ellipse(cy, cx, r_radius=protect_mask/2., 
+                                    c_radius=protect_mask, shape=(n_y,n_x))
             else: 
-                circl_new = disk((cy, cx), radius=1.8*fwhm, 
+                circl_new = disk((cy, cx), radius=protect_mask, 
                                  shape=(n_y, n_x))
         else: circl_new = []
 
@@ -530,7 +523,7 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
             cx = cen[0,1]
         obj_tmp, bpix_map, ann_frame_cumul = bp_removal_2d(obj_tmp, cy, cx, 
                                                            fwhm, sig, 
-                                                           protect_psf, 
+                                                           protect_mask, 
                                                            r_in_std, r_out_std,
                                                            verbose)
     if ndims == 3:
@@ -551,7 +544,7 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
                 print('************Frame # ', i,' *************')
                 print('centroid assumed at coords:',cx[i],cy[i])    
             res_i = bp_removal_2d(obj_tmp[i], cy[i], cx[i], fwhm[i], sig,
-                                  protect_psf, r_in_std, r_out_std, verbose)
+                                  protect_mask, r_in_std, r_out_std, verbose)
             obj_tmp[i], bpix_map[i], ann_frame_cumul[i] = res_i
  
     if full_output:
@@ -561,7 +554,7 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
 
 
 def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4., 
-                          sig=4., protect_psf=True, verbose=True, 
+                          sig=4., protect_mask=0, verbose=True, 
                           half_res_y=False, min_thr=None, max_nit=15, mad=True,
                           full_output=False):
     """
@@ -594,11 +587,10 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         Value representing the number of "sigmas" above or below the "median" of
         the neighbouring pixel, to consider a pixel as bad. See details on 
         parameter "m" of function reject_outlier.
-    protect_psf: bool, {True, False}, optional
-        True if you want to protect a circular region centered on the star 
-        (1.8*fwhm radius) from any bpix corr. If False, there is a risk to 
-        modify a psf peak value; but if True, real bpix within the core are 
-        not corrected.
+    protect_mask : int or float, optional
+        If larger than 0, radius of a circular aperture (at the center of the 
+        frames) in which no bad pixels will be identified. This can be useful 
+        to protect the star and vicinity.
     verbose: bool, {False,True}, optional
         Whether to print the number of bad pixels and number of iterations 
         required for each frame.
@@ -644,7 +636,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         if bpm_mask.shape[-2:] != array.shape[-2:]:
             raise TypeError("Bad pixel map has wrong y/x dimensions.")
 
-    def bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_psf, min_thr, 
+    def bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_mask, min_thr, 
                       half_res_y, mad, verbose):    
         n_x = obj_tmp.shape[1]
         n_y = obj_tmp.shape[0]
@@ -671,11 +663,11 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         
         #1/ Create a tuple-array with coordinates of a circle of radius 1.8*fwhm
         # centered on the approximate coordinates of the star
-        if protect_psf:
+        if protect_mask:
             if half_res_y: 
-                circl_new = ellipse(int(cy/2), cx, r_radius=0.9*fwhm, 
-                                    c_radius=1.8*fwhm, shape=(n_y, n_x))
-            else: circl_new = disk((cy, cx), radius=1.8*fwhm, 
+                circl_new = ellipse(int(cy/2), cx, r_radius=0.5*protect_mask, 
+                                    c_radius=protect_mask, shape=(n_y, n_x))
+            else: circl_new = disk((cy, cx), radius=protect_mask, 
                                    shape=(n_y, n_x))
         else: circl_new = []
     
@@ -746,12 +738,12 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
 
     if ndims == 2:
         if bpm_mask is None:
-            if (cy is None or cx is None) and protect_psf:
+            if (cy is None or cx is None) and protect_mask:
                 cen = approx_stellar_position([obj_tmp], fwhm)
                 cy = cen[0,0]
                 cx = cen[0,1]
             obj_tmp, bpix_map_cumul = bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, 
-                                                    protect_psf, min_thr, 
+                                                    protect_mask, min_thr, 
                                                     half_res_y, mad, verbose)
         else:
             fwhm_round = int(round(fwhm))
@@ -779,7 +771,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                 if verbose: print('************Frame # ', i,' *************')
                 obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], cy[i], 
                                                               cx[i], fwhm[i], 
-                                                              sig, protect_psf,  
+                                                              sig, protect_mask,  
                                                               min_thr, 
                                                               half_res_y, mad,
                                                               verbose)
@@ -1230,12 +1222,12 @@ def correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, cy, cx,
         Boolean array with location of outliers.
     """ 
     
-    if no_numba: 
+    if True:#no_numba: 
         def _correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, 
                                   cy, cx, min_thr, max_thr, rand_arr, stddev, 
                                   half_res_y=False):           
             n_y, n_x = obj_tmp.shape
-            rand_arr = 2*(np.random.rand((n_y, n_x))-0.5)
+            rand_arr = 2*(np.random.rand(n_y, n_x)-0.5)
             obj_tmp_corr = obj_tmp.copy()
             bpix_map = np.zeros([n_y,n_x])
             for yy in range(n_y):
@@ -1271,7 +1263,7 @@ def correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, cy, cx,
                                   cy, cx, min_thr, max_thr, rand_arr, stddev, 
                                   half_res_y=False):           
             n_y, n_x = obj_tmp.shape
-            rand_arr = 2*(np.random.rand((n_y, n_x))-0.5)
+            rand_arr = 2*(np.random.rand(n_y, n_x)-0.5)
             obj_tmp_corr = obj_tmp.copy()
             bpix_map = np.zeros([n_y,n_x])
             for yy in range(n_y):

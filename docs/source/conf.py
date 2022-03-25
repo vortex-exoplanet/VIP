@@ -42,8 +42,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
-    'nbsphinx',
-    'sphinx_thebe'
+    'nbsphinx'
     # 'sphinx.ext.githubpages',
 ]
 
@@ -175,8 +174,7 @@ html_theme_options = {
     # 'repository_branch': 'main',
     # 'launch_buttons': {
     #     'binderhub_url': 'https://mybinder.org/',#'v2/gh/vortex-exoplanet/VIP_extras/master',
-    #     'notebook_interface': 'jupyterlab',
-    #     "thebe": True,
+    #     'notebook_interface': 'jupyterlab'
     # },
     # 'use_edit_page_button': True,
     # 'use_issues_button': True,

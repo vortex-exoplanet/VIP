@@ -14,4 +14,4 @@ pyprind
 munch
 opencv-python
 pytest
-hciplot
+hciplot>0.2.0

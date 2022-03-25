@@ -12,6 +12,6 @@ matplotlib<=3.4.3
 psutil
 pyprind
 munch
-opencv-python
+nbsphinx
 pytest
 hciplot>0.2.0

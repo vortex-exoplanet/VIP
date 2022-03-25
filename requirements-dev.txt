@@ -1,5 +1,4 @@
 -r requirements.txt
-opencv-python
 sphinx
 pandoc
 pytest

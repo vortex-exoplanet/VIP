@@ -64,7 +64,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'VIP'
-copyright = u'Carlos Alberto Gomez Gonzalez, Valentin Christiaens & VORTEX team. Logo by Cristina Gomez Gonzalez'
+copyright = u'Carlos Alberto Gomez Gonzalez, Valentin Christiaens & VORTEX team. Logo by Cristina Gomez Gonzalez. '
 author = u'Carlos Alberto Gomez Gonzalez, Valentin Christiaens & VORTEX team'
 
 # The version info for the project you're documenting, acts as replacement for

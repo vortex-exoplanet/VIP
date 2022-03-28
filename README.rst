@@ -41,12 +41,8 @@ VIP - Vortex Image Processing package
 Introduction
 ------------
 
-``VIP`` is a python package for angular, reference star and spectral
-differential imaging for exoplanet and disk high-contrast imaging. ``VIP`` is
-compatible with Python 3.7, 3.8 and 3.9 (Python 2 compatibility dropped with ``VIP`` 0.9.9).
-
-.. image:: https://github.com/carlgogo/carlgogo.github.io/blob/master/assets/images/vip.png?raw=true
-    :alt: Mosaic of S/N maps
+``VIP`` is a python package for high-contrast imaging of exoplanets and circumstellar disks. 
+``VIP`` is compatible with Python 3.7, 3.8 and 3.9 (Python 2 compatibility dropped with ``VIP`` 0.9.9).
 
 The goal of ``VIP`` is to integrate open-source, efficient, easy-to-use and
 well-documented implementations of high-contrast image processing algorithms to
@@ -54,18 +50,20 @@ the interested scientific community. The main repository of ``VIP`` resides on
 `GitHub <https://github.com/vortex-exoplanet/VIP>`_, the standard for scientific
 open source code distribution, using Git as a version control system.
 
-``VIP`` started as the effort of `Carlos Alberto Gomez Gonzalez <https://carlgogo.github.io/>`_,
+``VIP`` started as the effort of `Carlos Alberto Gomez Gonzalez <https://github.com/carlos-gg>`_,
 a former PhD student of the `VORTEX team <http://www.vortex.ulg.ac.be/>`_
 (ULiege, Belgium). ``VIP``'s development has been led by Dr. Gomez with contributions
 made by collaborators from several teams (take a look at the 
 `contributors tab <https://github.com/vortex-exoplanet/VIP/graphs/contributors>`_ on
-``VIP``'s GitHub repository). It is now maintained by Dr. Valentin Christiaens.
-Most of ``VIP``'s functionalities are mature but
-it doesn't mean it's free from bugs. The code is continuously evolving and
-therefore feedback/contributions are greatly appreciated. If you want to report
-a bug or suggest a functionality please create an issue on GitHub. Pull
-requests are very welcomed!
+``VIP``'s GitHub repository). Maintenance and current development is now led by `Valentin Christiaens <https://github.com/VChristiaens>`_.
 
+Most of ``VIP``'s functionalities are mature but
+it does not mean it is free from bugs. The code is continuously evolving and
+therefore feedback/contributions are greatly appreciated. Please refer to `these instructions <https://vip.readthedocs.io/en/latest/Contact.html>`_ if you want to report
+a bug, ask a question, suggest a new functionality or contribute to the code!
+
+.. image:: https://github.com/carlgogo/carlgogo.github.io/blob/master/assets/images/vip.png?raw=true
+    :alt: Mosaic of S/N maps
 
 Documentation
 -------------
@@ -223,11 +221,17 @@ By default, VIP routines are compatible with either even- or odd-dimension input
 i.e. exactly on a pixel in either cases. The VIP recentering routines will place the star centroid at one of these locations accordingly.
 
 
-Mailing list
-------------
-Please subscribe to our `mailing list <http://lists.astro.caltech.edu:88/mailman/listinfo/vip>`_
-if you want to be informed of ``VIP``'s latest developments (new versions
-and/or updates).
+Contact
+-------
+Answers to `frequently asked questions <https://vip.readthedocs.io/en/latest/faq.html>`_ are provided in the relevant section of the documentation.
+If you find a bug or issue in VIP, it is recommended to post a new entry in the `Issues section <https://github.com/vortex-exoplanet/VIP/issues>`_ on GitHub. Feel free to propose a pull request if you have already identified the source of the issue.
+
+If you have a global comment, enquiry about how to solve a specific task using VIP, or suggestions to improve VIP, feel free to open a new thread in the `Discussions <https://github.com/vortex-exoplanet/VIP/discussions>`_ section. The 'Discussions' section is also used to post new updates and discuss recent/on-going changes in VIP.
+Envisioned future developments are listed in the `Projects <https://github.com/vortex-exoplanet/VIP/projects/1>`_ section. Contributions are very welcome!
+
+If the nature of your enquiry does not fit in any of the previous categories, feel free to contact me by email at valentin.christiaens@uliege.be.
+
+If you wish to be kept informed about major VIP updates and on-going/future developments, feel free to click the 'watch' button at the top of the GitHub page.
 
 
 Attribution

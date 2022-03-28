@@ -33,7 +33,7 @@ for i in range(len(str_titles)-1):
                 if occ > titles_occ[i]:
                     f_i.write(line)
                     start_write=True
-            elif str_titles[i+1] in line:
+            elif str_titles[i+1] in line and occ > titles_occ[i]:
                 stop_write=True
             else:
                 continue

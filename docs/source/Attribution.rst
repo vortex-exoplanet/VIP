@@ -5,4 +5,4 @@ you publish data reduced with ``VIP`` . Astrophysics Source Code Library referen
 In addition, please cite the relevant publication(s) for the algorithms you use within VIP (usually mentioned in the documentation, e.g. `Marois et al. 2006 <https://ui.adsabs.harvard.edu/abs/2006ApJ...641..556M/abstract>`_ for median-ADI).
 
 
-Note: The ``specfit`` module, previously part of VIP, has now been moved to a separate `GitHub repository <https://github.com/VChristiaens/special>`_.
+Note: The ``specfit`` module, previously part of VIP, has now been renamed and moved to a separate `GitHub repository <https://github.com/VChristiaens/special>`_.

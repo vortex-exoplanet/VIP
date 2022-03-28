@@ -39,16 +39,16 @@ requests are very welcomed!
    :caption: Getting started
    :hidden:
 
-   trimmed_readme_1
-   trimmed_readme_2
-   trimmed_readme_3
+   TLDR
+   Installation-and-dependencies
+   Image-conventions
 
 .. toctree::
    :maxdepth: 3
    :caption: Tutorials
    :hidden:
 
-   tuto_link
+   tutos
    tutorials/01_quickstart.ipynb
    tutorials/02_preproc.ipynb
    tutorials/03_psfsub.ipynb
@@ -63,8 +63,8 @@ requests are very welcomed!
    :caption: About
    :hidden:
 
-   trimmed_readme_5
-   trimmed_readme_4
+   Contact
+   Attribution
    faq
 
 .. toctree::

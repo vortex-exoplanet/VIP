@@ -51,17 +51,10 @@ the interested scientific community. The main repository of ``VIP`` resides on
 `GitHub <https://github.com/vortex-exoplanet/VIP>`_, the standard for scientific
 open source code distribution, using Git as a version control system.
 
-``VIP`` started as the effort of `Carlos Alberto Gomez Gonzalez <https://github.com/carlos-gg>`_,
-a former PhD student of the `VORTEX team <http://www.vortex.ulg.ac.be/>`_
-(ULiege, Belgium). ``VIP``'s development has been led by Dr. Gomez with contributions
-made by collaborators from several teams (take a look at the 
-`contributors tab <https://github.com/vortex-exoplanet/VIP/graphs/contributors>`_ on
-``VIP``'s GitHub repository). Maintenance and current development is now led by `Valentin Christiaens <https://github.com/VChristiaens>`_.
-
 Most of ``VIP``'s functionalities are mature but
 it does not mean it is free from bugs. The code is continuously evolving and
 therefore feedback/contributions are greatly appreciated. Please refer to `these instructions <https://vip.readthedocs.io/en/latest/Contact.html>`_ if you want to report
-a bug, ask a question, suggest a new functionality or contribute to the code!
+a bug, ask a question, suggest a new functionality or contribute to the code (the latter is particularly welcome)!
 
 .. image:: https://github.com/carlgogo/carlgogo.github.io/blob/master/assets/images/vip.png?raw=true
     :alt: Mosaic of S/N maps
@@ -238,9 +231,16 @@ If you wish to be kept informed about major VIP updates and on-going/future deve
 
 Attribution
 -----------
+
+``VIP`` started as the effort of `Carlos Alberto Gomez Gonzalez <https://github.com/carlos-gg>`_,
+a former PhD student of the `VORTEX team <http://www.vortex.ulg.ac.be/>`_
+(ULiege, Belgium), who has led the development of VIP from 2015 to 2020.
+Maintenance and current development is now led by `Valentin Christiaens <https://github.com/VChristiaens>`_.
+VIP benefitted from contributions made by collaborators from several teams, including: Ralf Farkas, Julien Milli, Olivier Wertz, Henry Ago, Alan Rainot, Gary Ruane, Corentin Doco, Miles Lucas, Gilles Orban de Xivry, Lewis Picker, Faustine Cantalloube, Iain Hammond, Christian Delacroix, Arthur Vigan, Dimitri Mawet and Olivier Absil.
+More details about the respective contributions are available `here <https://github.com/vortex-exoplanet/VIP/graphs/contributors>`_.
+
 Please cite `Gomez Gonzalez et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017AJ....154....7G/abstract>`_ whenever 
 you publish data reduced with ``VIP`` . Astrophysics Source Code Library reference [ascl:1603.003].
 In addition, please cite the relevant publication(s) for the algorithms you use within VIP (usually mentioned in the documentation, e.g. `Marois et al. 2006 <https://ui.adsabs.harvard.edu/abs/2006ApJ...641..556M/abstract>`_ for median-ADI).
 
-
-Note: The ``specfit`` module, previously part of VIP, has now been renamed and moved to a separate `GitHub repository <https://github.com/VChristiaens/special>`_.
+Note: A new JOSS paper led by Valentin Christiaens is in preparation.

@@ -19,17 +19,17 @@ the interested scientific community. The main repository of ``VIP`` resides on
 `GitHub <https://github.com/vortex-exoplanet/VIP>`_, the standard for scientific
 open source code distribution, using Git as a version control system.
 
-The project started as the effort of `Carlos Alberto Gomez Gonzalez <https://carlgogo.github.io/>`_,
+``VIP`` started as the effort of `Carlos Alberto Gomez Gonzalez <https://github.com/carlos-gg>`_,
 a former PhD student of the `VORTEX team <http://www.vortex.ulg.ac.be/>`_
-(ULiege, Belgium). ``VIP``'s development has first been led by Dr. Gomez with contributions
+(ULiege, Belgium), who led the development and integration of contributions
 made by collaborators from several teams (take a look at the 
 `contributors tab <https://github.com/vortex-exoplanet/VIP/graphs/contributors>`_ on
-``VIP``'s GitHub repository). It is now maintained and developed by Dr. Valentin Christiaens.
+``VIP``'s GitHub repository). Maintenance and current development is now led by `Valentin Christiaens <https://github.com/VChristiaens>`_.
+
 Most of ``VIP``'s functionalities are mature but
-it doesn't mean it's free from bugs. The code is continuously evolving and
-therefore feedback/contributions are greatly appreciated. If you want to report
-a bug or suggest a functionality please create an issue on GitHub. Pull
-requests are very welcomed!
+it does not mean it is free from bugs. The code is continuously evolving and
+therefore feedback/contributions are greatly appreciated. Please refer to `these instructions <https://vip.readthedocs.io/en/latest/Contact.html>`_ if you want to report
+a bug, ask a question, suggest a new functionality or contribute to the code (the latter is particularly welcome)!
 
 .. image:: https://github.com/carlgogo/carlgogo.github.io/blob/master/assets/images/vip.png?raw=true
     :alt: Mosaic of S/N maps

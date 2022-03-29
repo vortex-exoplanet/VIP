@@ -104,4 +104,6 @@ your ``~/.bash_profile``:
   export LC_ALL=en_US.UTF-8
   export LANG=en_US.UTF-8
 
+.. rubric:: Where is the ``specfit`` module?
 
+Up to version 1.0.3, ``specfit`` was a module of VIP offering atmosphere retrieval and spectral characterisation of directly imaged companions. Given the divergence with the original purpose of VIP, starting from version 1.1.0, it has been renamed, expanded, moved to a separate `GitHub repository <https://github.com/VChristiaens/special>`_ and converted into its own `package <https://pypi.org/project/special/>`_ (called ``special``).

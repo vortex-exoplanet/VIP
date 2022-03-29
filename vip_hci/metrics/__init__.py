@@ -2,19 +2,16 @@
 Subpackage ``metrics`` includes:
     - signal-to-noise (S/N) estimation,
     - S/N map generation,
+    - STIM map generation,
     - detection of point like sources (for pipelines),
     - fake companions injection,
-    - algorithms throughput,
+    - fake disks generation and injection,
+    - algorithms throughput estimation,
     - contrast curve generation,
-    - receiver operating characteristic (ROC) curves.
+    - receiver operating characteristic (ROC) curves generation.
 """
-from __future__ import absolute_import
-
 from .contrcurve import *
 from .detection import *
-from .fakecomp import *
-from .frame_analysis import *
 from .roc import *
-from .snr import *
-from .fakedisk import *
-from .scattered_light_disk import *
+from .snr_source import *
+from .stim import *

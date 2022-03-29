@@ -1,0 +1,11 @@
+[report]
+exclude_lines =
+    pragma: no cover
+    if debug:
+    if verbose:
+    if plot:
+[run]
+omit =
+    # omit ds9 submodule, as DS9 interaction cannot be tested on CI
+    vip_hci/vip_ds9.py
+    */__init__.py

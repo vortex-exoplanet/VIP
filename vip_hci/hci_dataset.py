@@ -1,43 +1,43 @@
 #! /usr/bin/env python
 
 """
-Module with HCIDataset and HCIFrame classes.
+Module with Dataset and Frame classes.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['HCIDataset',
-           'HCIFrame']
+__all__ = ['Dataset',
+           'Frame']
 
 import numpy as np
+import copy
+import hciplot as hp
 from .fits import open_fits
+from .fm import (cube_inject_companions, generate_cube_copies_with_injections,
+                 normalize_psf)
 from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
                       frame_shift, frame_center_satspots, frame_center_radon)
 from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
                       cube_drop_frames, cube_detect_badfr_correlation,
-                      cube_detect_badfr_pxstats, cube_px_resampling,
-                      cube_subsample, cube_recenter_2dfit,
+                      cube_detect_badfr_pxstats, cube_detect_badfr_ellipticity,
+                      cube_px_resampling, cube_subsample, cube_recenter_2dfit,
                       cube_recenter_satspots, cube_recenter_radon,
                       cube_recenter_dft_upsampling, cube_recenter_via_speckles)
-from .var import frame_filter_lowpass, frame_filter_highpass, frame_center
-from .var import (cube_filter_highpass, cube_filter_lowpass, mask_circle,
-                  pp_subplots)
+from .var import (frame_filter_lowpass, frame_filter_highpass, frame_center,
+                  cube_filter_highpass, cube_filter_lowpass, mask_circle)
 from .stats import (frame_basic_stats, frame_histo_stats,
                     frame_average_radprofile, cube_basic_stats, cube_distance)
-from .metrics import (frame_quick_report, cube_inject_companions, snr_ss,
-                      snr_peakstddev, snrmap, snrmap_fast, detection,
-                      normalize_psf)
+from .metrics import (frame_report, snr, snrmap, detection)
 
-from .conf.utils_conf import check_array, Saveable, print_precision
+from .config.utils_conf import check_array, Saveable, print_precision
+from .config.mem import check_enough_memory
 
 
-class HCIFrame(object):
+class Frame(object):
     """ High-contrast imaging frame (2d array).
 
     Parameters
     ----------
-    image : array_like
+    data : numpy ndarray
         2d array.
     hdu : int, optional
         If ``cube`` is a String, ``hdu`` indicates the HDU from the FITS file.
@@ -46,17 +46,15 @@ class HCIFrame(object):
         The FWHM associated with this dataset (instrument dependent). Required
         for several methods (operations on the cube).
     """
-    def __init__(self, image, hdu=0, fwhm=None):
-        """ HCIFrame object initialization. """
-        if isinstance(image, str):
-            self.image = open_fits(image, hdu, verbose=False)
-        elif isinstance(image, np.ndarray):
-            if not image.ndim == 2:
-                raise ValueError('`Image` array has wrong dimensions')
-            self.image = image
+    def __init__(self, data, hdu=0, fwhm=None):
+        """ Frame object initialization. """
+        if isinstance(data, str):
+            self.data = open_fits(data, hdu, verbose=False)
         else:
-            raise ValueError('`Image` has a wrong type')
-        print('Frame shape: {}'.format(self.image.shape))
+            self.data = data
+
+        check_array(self.data, dim=2, msg='Image.data')
+        print('Frame shape: {}'.format(self.data.shape))
 
         self.fwhm = fwhm
         if self.fwhm is not None:
@@ -76,7 +74,7 @@ class HCIFrame(object):
             ``force`` set to True this condition can be avoided.
 
         """
-        self.image = frame_crop(self.image, size, xy, force, verbose=True)
+        self.data = frame_crop(self.data, size, xy, force, verbose=True)
 
     def detect_blobs(self, psf, bkg_sigma=1, method='lpeaks',
                      matched_filter=False, mask=True, snr_thresh=5, plot=True,
@@ -84,7 +82,7 @@ class HCIFrame(object):
                      plot_title=None, angscale=False):
         """ Detecting blobs on the 2d array.
         """
-        self.detection_results = detection(self.image, psf, bkg_sigma, method,
+        self.detection_results = detection(self.data, psf, bkg_sigma, method,
                                            matched_filter, mask, snr_thresh,
                                            plot, debug, True, verbose,
                                            save_plot, plot_title, angscale)
@@ -101,12 +99,12 @@ class HCIFrame(object):
         {'laplacian', 'laplacian-conv', 'median-subt', 'gauss-subt', 'fourier-butter'}
         """
         if method == 'hp':
-            self.image = frame_filter_highpass(self.image, mode, median_size,
-                                               kernel_size, fwhm_size,
-                                               btw_cutoff, btw_order)
+            self.data = frame_filter_highpass(self.data, mode, median_size,
+                                              kernel_size, fwhm_size,
+                                              btw_cutoff, btw_order)
         elif method == 'lp':
-            self.image = frame_filter_lowpass(self.image, mode, median_size,
-                                              fwhm_size, gauss_mode)
+            self.data = frame_filter_lowpass(self.data, mode, median_size,
+                                             fwhm_size, gauss_mode)
         else:
             raise ValueError('Filtering mode not recognized')
         print('Image successfully filtered')
@@ -119,82 +117,18 @@ class HCIFrame(object):
         verbose : bool optional
             If True the center coordinates are printed out.
         """
-        return frame_center(self.image, verbose)
+        return frame_center(self.data, verbose)
 
     def plot(self, **kwargs):
         """ Plotting the 2d array.
 
         Parameters
         ----------
-        angscale : bool
-            If True, the axes are displayed in angular scale (arcsecs).
-        angticksep : int
-            Separation for the ticks when using axis in angular scale.
-        arrow : bool
-            To show an arrow pointing to input px coordinates.
-        arrowalpha : float
-            Alpha transparency for the arrow.
-        arrowlength : int
-            Length of the arrow, 20 px by default.
-        arrowshiftx : int
-            Shift in x of the arrow pointing position, 5 px by default.
-        axis : bool
-            Show the axis, on by default.
-        circle : list of tuples
-            To show a circle at given px coordinates, list of tuples.
-        circlerad : int
-            Radius of the circle, 6 px by default.
-        cmap : str
-            Colormap to be used, 'viridis' by default.
-        colorb : bool
-            To attach a colorbar, on by default.
-        cross : tuple of float
-            If provided, a crosshair is displayed at given px coordinates.
-        crossalpha : float
-            Alpha transparency of thr crosshair.
-        dpi : int
-            Dots per inch, for plot quality.
-        getfig : bool
-            Returns the matplotlib figure.
-        grid : bool
-            If True, a grid is displayed over the image, off by default.
-        gridalpha : float
-            Alpha transparency of the grid.
-        gridcolor : str
-            Color of the grid lines.
-        gridspacing : int
-            Separation of the grid lines in pixels.
-        horsp : float
-            Horizontal gap between subplots.
-        label : str or list of str
-            Text for annotating on subplots.
-        labelpad : int
-            Padding of the label from the left bottom corner.
-        labelsize : int
-            Size of the labels.
-        log : bool
-            Log colorscale.
-        maxplots : int
-            When the input (``*args``) is a 3d array, maxplots sets the number
-            of cube slices to be displayed.
-        pxscale : float
-            Pixel scale in arcseconds/px. Default 0.01 for Keck/NIRC2.
-        rows : int
-            How many rows (subplots in a grid).
-        save : str
-            If a string is provided the plot is saved using this as the path.
-        showcent : bool
-            To show a big crosshair at the center of the frame.
-        title : str
-            Title of the plot(s), None by default.
-        vmax : int
-            For stretching the displayed pixels values.
-        vmin : int
-            For stretching the displayed pixels values.
-        versp : float
-            Vertical gap between subplots.
+        **kwargs : dict, optional
+            Parameters passed to the function ``plot_frames`` of the package
+            ``HCIplot``.
         """
-        pp_subplots(self.image, **kwargs)
+        hp.plot_frames(self.data, **kwargs)
 
     def radial_profile(self, sep=1):
         """ Calculates the average radial profile of an image.
@@ -204,11 +138,11 @@ class HCIFrame(object):
         sep : int, optional
             The average radial profile is recorded every ``sep`` pixels.
         """
-        radpro = frame_average_radprofile(self.image, sep=sep, plot=True)
+        radpro = frame_average_radprofile(self.data, sep=sep, plot=True)
         return radpro
 
     def recenter(self, method='satspots', xy=None, subi_size=19, sigfactor=6,
-                 imlib='opencv', interpolation='lanczos4', debug=False,
+                 imlib='vip-fft', interpolation='lanczos4', debug=False,
                  verbose=True):
         """ Recentering the frame using the satellite spots or a radon
         transform.
@@ -227,17 +161,17 @@ class HCIFrame(object):
         if method == 'satspots':
             if xy is None:
                 raise ValueError('`xy` must be a tuple of 4 tuples')
-            self.image, _, _ = frame_center_satspots(self.image, xy, subi_size,
-                                                sigfactor, True, imlib,
-                                                interpolation, debug, verbose)
+            self.data, _, _ = frame_center_satspots(self.data, xy, subi_size,
+                                                    sigfactor, True, imlib,
+                                                    interpolation, debug,
+                                                    verbose)
         elif method == 'radon':
             pass
-            # TODO: radon centering
-            #self.image = frame_center_radon()
+            # self.data = frame_center_radon()
         else:
             raise ValueError('Recentering method not recognized')
 
-    def rescale(self, scale, imlib='ndimage', interpolation='bicubic',
+    def rescale(self, scale, imlib='vip-fft', interpolation='bicubic',
                 verbose=True):
         """ Resampling the image (upscaling or downscaling).
 
@@ -246,7 +180,7 @@ class HCIFrame(object):
         scale : int, float or tuple
             Scale factor for upsampling or downsampling the frames in the cube.
             If a tuple it corresponds to the scale along x and y.
-        imlib : {'ndimage', 'opencv'}, str optional
+        imlib : {'ndimage', 'opencv', 'vip-fft'}, str optional
             Library used for image transformations. ndimage is the default.
         interpolation : str, optional
             For 'ndimage' library: 'nearneig', bilinear', 'bicuadratic',
@@ -259,15 +193,15 @@ class HCIFrame(object):
         verbose : bool, optional
             Whether to print out additional info such as the new image shape.
         """
-        self.image = frame_px_resampling(self.image, scale, imlib, interpolation,
-                                         verbose)
+        self.data = frame_px_resampling(self.data, scale, imlib, interpolation,
+                                        verbose)
 
     def rotate(self, angle, imlib='opencv', interpolation='lanczos4', cxy=None):
         """ Rotating the image by a given ``angle``.
 
         Parameters
         ----------
-        imlib : {'opencv', 'skimage'}, str optional
+        imlib : {'opencv', 'skimage', 'vip-fft'}, str optional
             Library used for image transformations. Opencv is faster than
             ndimage or skimage.
         interpolation : str, optional
@@ -285,17 +219,17 @@ class HCIFrame(object):
             vip_hci.var.frame_center.
 
         """
-        self.image = frame_rotate(self.image, angle, imlib, interpolation, cxy)
+        self.data = frame_rotate(self.data, angle, imlib, interpolation, cxy)
         print('Image successfully rotated')
 
-    def shift(self, shift_y, shift_x, imlib='opencv', interpolation='lanczos4'):
+    def shift(self, shift_y, shift_x, imlib='vip-fft', interpolation='lanczos4'):
         """ Shifting the image.
 
         Parameters
         ----------
         shift_y, shift_x: float
             Shifts in x and y directions.
-        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt
             Library or method used for performing the image shift.
             'ndimage-fourier', does a fourier shift operation and preserves
             better the pixel values (therefore the flux and photometry).
@@ -313,21 +247,17 @@ class HCIFrame(object):
             The 'nearneig' interpolation is the fastest and the 'lanczos4' the
             slowest and accurate. 'lanczos4' is the default.
         """
-        self.image = frame_shift(self.image, shift_y, shift_x, imlib,
-                                 interpolation)
+        self.data = frame_shift(self.data, shift_y, shift_x, imlib,
+                                interpolation)
         print('Image successfully shifted')
 
-    def snr(self, source_xy, method='student', plot=False, verbose=True):
+    def snr(self, source_xy, plot=False, verbose=True):
         """ Calculating the S/N for a test resolution element ``source_xy``.
 
         Parameters
         ----------
         source_xy : tuple of floats
             X and Y coordinates of the planet or test speckle.
-        method : {'student', 'classic'}, str optional
-            With 'student' the small sample statistics (Mawet et al. 2014) is
-            used. With 'classic', the S/N is estimated with the old approach
-            using the standard deviation of independent pixels.
         plot : bool, optional
             Plots the frame and the apertures considered for clarity.
         verbose : bool, optional
@@ -340,57 +270,7 @@ class HCIFrame(object):
         """
         if self.fwhm is None:
             raise ValueError('FWHM has not been set')
-
-        if method == 'student':
-            snr_val = snr_ss(self.image, source_xy, self.fwhm, False, plot,
-                             verbose)
-        elif method == 'classic':
-            snr_val = snr_peakstddev(self.image, source_xy, self.fwhm, False,
-                                     plot, verbose)
-        else:
-            raise ValueError('S/N estimation method not recognized')
-        return snr_val
-
-    def snrmap(self, method='student', approx=False, plot=True,
-               source_mask=None, nproc=None, verbose=True):
-        """ Generating the S/N map for the image.
-
-        Parameters
-        ----------
-        method : {'student', 'classic'}, str optional
-            With 'student' the small sample statistics (Mawet et al. 2014) is
-            used. With 'classic', the S/N is estimated with the old approach
-            using the standard deviation of independent pixels.
-        approx : bool, optional
-            If True, the function ``vip_hci.phot.snrmap_fast`` is used instead
-            of ``vip_hci.phot.snrmap``.
-        plot : bool, optional
-            If True plots the S/N map. True by default.
-        source_mask : array_like, optional
-            If exists, it takes into account existing sources. The mask is a
-            ones 2d array, with the same size as the input frame. The centers
-            of the known sources have a zero value.
-        nproc : int or None
-            Number of processes for parallel computing.
-
-        Returns
-        -------
-        map : HCIFrame object
-            S/N map.
-        """
-        if self.fwhm is None:
-            raise ValueError('FWHM has not been set')
-
-        if approx:
-            map = snrmap_fast(self.image, self.fwhm, nproc, plot, verbose)
-        else:
-            if method == 'student':
-                mode = 'sss'
-            elif method == 'classic':
-                mode = 'peakstddev'
-            map = snrmap(self.image, self.fwhm, plot, mode, source_mask, nproc,
-                         verbose=verbose)
-        return HCIFrame(map)
+        return snr(self.data, source_xy, self.fwhm, False, plot, verbose)
 
     def stats(self, region='circle', radius=5, xy=None, annulus_inner_radius=0,
               annulus_width=5, source_xy=None, verbose=True, plot=True):
@@ -419,7 +299,7 @@ class HCIFrame(object):
         plot : bool, optional
             Whether to plot the frame, histograms and region.
         """
-        res_region = frame_basic_stats(self.image, region, radius, xy,
+        res_region = frame_basic_stats(self.data, region, radius, xy,
                                        annulus_inner_radius, annulus_width,
                                        plot, True)
         if verbose:
@@ -433,7 +313,7 @@ class HCIFrame(object):
             msg = 'Mean: {:.3f}, Stddev: {:.3f}, Median: {:.3f}, Max: {:.3f}'
             print(msg.format(mean, std_dev, median, maxi))
 
-        res_ff = frame_histo_stats(self.image, plot)
+        res_ff = frame_histo_stats(self.data, plot)
         if verbose:
             mean, median, std, maxim, minim = res_ff
             print('Stats in the whole frame:')
@@ -442,10 +322,10 @@ class HCIFrame(object):
             print(msg.format(mean, std, median, maxim, minim))
 
         print('\nS/N info:')
-        _ = frame_quick_report(self.image, self.fwhm, source_xy, verbose)
+        _ = frame_report(self.data, self.fwhm, source_xy, verbose)
 
 
-class HCIDataset(Saveable):
+class Dataset(Saveable):
     """ High-contrast imaging dataset class.
 
     Parameters
@@ -475,11 +355,11 @@ class HCIDataset(Saveable):
     """
 
     _saved_attributes = ["cube", "psf", "psfn", "angles", "fwhm", "wavelengths",
-                         "px_scale"]
+                         "px_scale", "cuberef", "injections_yx"]
 
     def __init__(self, cube, hdu=0, angles=None, wavelengths=None, fwhm=None,
                  px_scale=None, psf=None, psfn=None, cuberef=None):
-        """ Initialization of the HCIDataset object.
+        """ Initialization of the Dataset object.
         """
         # Loading the 3d/4d cube or image sequence
         if isinstance(cube, str):
@@ -507,7 +387,7 @@ class HCIDataset(Saveable):
             if not cuberef.shape[1] == self.y:
                 raise ValueError(msg)
             self.cuberef = cuberef
-        elif isinstance(cuberef, HCIDataset):
+        elif isinstance(cuberef, Dataset):
             msg = '`Cuberef` array has wrong dimensions'
             if not cuberef.cube.ndim == 3:
                 raise ValueError(msg)
@@ -527,7 +407,7 @@ class HCIDataset(Saveable):
         if self.angles is not None:
             print('Angles array shape: {}'.format(self.angles.shape))
             # Checking the shape of the angles vector
-            check_array(self.angles, dim=1, name='Parallactic angles vector')
+            check_array(self.angles, dim=1, msg='Parallactic angles vector')
             if not self.angles.shape[0] == self.n:
                 raise ValueError('Parallactic angles vector has a wrong shape')
 
@@ -539,7 +419,7 @@ class HCIDataset(Saveable):
         if self.wavelengths is not None:
             print('Wavelengths array shape: {}'.format(self.wavelengths.shape))
             # Checking the shape of the scaling vector
-            check_array(self.wavelengths, dim=1, name='Wavelengths vector')
+            check_array(self.wavelengths, dim=1, msg='Wavelengths vector')
             if not self.wavelengths.shape[0] == self.w:
                 raise ValueError('Wavelengths vector has a wrong shape')
 
@@ -572,21 +452,22 @@ class HCIDataset(Saveable):
         self.fwhm = fwhm
         if self.fwhm is not None:
             if self.cube.ndim == 4:
-                check_array(self.fwhm, 1, 'FHWM')
+                check_array(self.fwhm, dim=1, msg='FHWM')
             elif self.cube.ndim == 3:
                 print('FWHM: {}'.format(self.fwhm))
         self.px_scale = px_scale
         if self.px_scale is not None:
             print('Pixel/plate scale: {}'.format(self.px_scale))
 
+        self.injections_yx = None
+
     def collapse(self, mode='median', n=50):
         """ Collapsing the sequence into a 2d array.
 
-        # TODO: support 4d case.
         """
         frame = cube_collapse(self.cube, mode, n)
         print('Cube successfully collapsed')
-        return HCIFrame(frame)
+        return Frame(frame)
 
     def crop_frames(self, size, xy=None, force=False):
         """ Cropping the frames of the sequence (3d or 4d cube).
@@ -604,14 +485,15 @@ class HCIDataset(Saveable):
         """
         self.cube = cube_crop_frames(self.cube, size, xy, force, verbose=True)
 
-    def derotate(self, imlib='opencv', interpolation='lanczos4', cxy=None,
-                 nproc=1):
+    def derotate(self, imlib='vip-fft', interpolation='lanczos4', cxy=None,
+                 nproc=1, border_mode='constant', mask_val=np.nan,
+                 edge_blend=None, interp_zeros=False, ker=1):
         """ Derotating the frames of the sequence according to the parallactic
         angles.
 
         Parameters
         ----------
-        imlib : {'opencv', 'skimage'}, str optional
+        imlib : {'opencv', 'skimage', 'vip-fft'}, str optional
             Library used for image transformations. Opencv is faster than
             ndimage or skimage.
         interpolation : str, optional
@@ -631,27 +513,52 @@ class HCIDataset(Saveable):
             Whether to rotate the frames in the sequence in a multi-processing
             fashion. Only useful if the cube is significantly large (frame size
             and number of frames).
+        border_mode : str, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            function.
+        mask_val : float, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            function.
+        edge_blend : str, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            function.
+        interp_zeros : str, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            function.
+        ker: int, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            function.
         """
         if self.angles is None:
             raise ValueError('Parallactic angles vector has not been set')
 
         self.cube = cube_derotate(self.cube, self.angles, imlib,
-                                  interpolation, cxy, nproc)
+                                  interpolation, cxy, nproc, border_mode, 
+                                  mask_val, edge_blend, interp_zeros, ker)
         print('Cube successfully derotated')
 
-    def drop_frames(self, n, m):
-        """ Slicing the cube using the `n` (initial) and `m` (final) indices in
-        a 1-indexed fashion.
-
-        # TODO: support 4d case, documentation
+    def drop_frames(self, n, m, verbose=True):
         """
-        self.cube = cube_drop_frames(self.cube, n, m, self.angles)
+        Slice the cube so that all frames between ``n``and ``m`` are kept.
+
+        The indices ``n`` and ``m`` are included and 1-based.
+
+        Examples
+        --------
+        For a cube which has 5 frames numbered ``1, 2, 3, 4, 5``, calling
+        ``ds.drop_frames(2, 4)`` would result in the frames ``2, 3, 4`` to be
+        kept, so the first and the last frame would be discarded.
+
+        """
+        res = cube_drop_frames(self.cube, n, m, self.angles, verbose=verbose)
+        if self.angles:
+            self.cube, self.angles = res
+        else:
+            self.cube = res
 
     def filter(self, method, mode, median_size=5, kernel_size=5, fwhm_size=5,
                btw_cutoff=0.2, btw_order=2, gauss_mode='conv', verbose=True):
         """ High/low pass filtering the frames of the cube.
-
-        # TODO: support 4d case, documentation
 
         Parameters
         ----------
@@ -691,7 +598,6 @@ class HCIDataset(Saveable):
             Whether to plot the distances or not.
 
         """
-        # TODO: support 4d case.
         _ = cube_distance(self.cube, frame, region, dist, inner_radius, width,
                           plot)
 
@@ -731,7 +637,7 @@ class HCIDataset(Saveable):
                                  False)
 
     def inject_companions(self, flux, rad_dists, n_branches=1, theta=0,
-                          imlib='opencv', interpolation='lanczos4',
+                          imlib='vip-fft', interpolation='lanczos4',
                           full_output=False, verbose=True):
         """ Injection of fake companions in 3d or 4d cubes.
 
@@ -747,7 +653,7 @@ class HCIDataset(Saveable):
             Angle in degrees for rotating the position of the first branch that
             by default is located at zero degrees. Theta counts
             counterclockwise from the positive x axis.
-        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt
             Library or method used for performing the image shift.
             'ndimage-fourier', does a fourier shift operation and preserves
             better the pixel values (therefore the flux and photometry).
@@ -772,13 +678,12 @@ class HCIDataset(Saveable):
         Returns
         -------
         yx : list of tuple(y,x)
-            [if full_output] Pixel coordinates of the injections in the first
-            frame (and first wavelength for 4D cubes).
+            [full_output=True] Pixel coordinates of the injections in the first
+            frame (and first wavelength for 4D cubes). These are only the new
+            injections - all injections (from multiple calls to this function)
+            are stored in ``self.injections_yx``.
 
         """
-        # TODO: support the injection of a Gaussian/Moffat kernel.
-        # TODO: return array/HCIDataset object instead?
-
         if self.angles is None:
             raise ValueError('The PA angles have not been set')
         if self.psfn is None:
@@ -789,15 +694,110 @@ class HCIDataset(Saveable):
             if self.wavelengths is None:
                 raise ValueError('The wavelengths vector has not been set')
 
-        self.cube, yx = cube_inject_companions(self.cube, self.psfn,
-                                               self.angles, flux, self.px_scale,
-                                               rad_dists, n_branches, theta,
-                                               imlib, interpolation,
-                                               full_output=True,
-                                               verbose=verbose)
+        self.cube, yx = cube_inject_companions(
+            self.cube, self.psfn, self.angles, flux, self.px_scale,
+            rad_dists, n_branches, theta, imlib, interpolation,
+            full_output=True, verbose=verbose
+        )
+
+        if self.injections_yx is None:
+            self.injections_yx = []
+
+        self.injections_yx += yx
+
+        if verbose:
+            print("Coordinates of the injections stored in self.injections_yx")
 
         if full_output:
             return yx
+
+    def generate_copies_with_injections(self, n_copies, inrad=8, outrad=12,
+                                        dist_flux=("uniform", 2, 500)):
+        """
+        Create copies of this dataset, containing different random injections.
+
+        Parameters
+        ----------
+        n_copies : int
+            This is the number of 'cube copies' returned.
+        inrad,outrad : float
+            Inner and outer radius of the injections. The actual injection
+            position is chosen randomly.
+        dist_flux : tuple('method', *params)
+            Tuple describing the flux selection. Method can be a function, the
+            ``*params`` are passed to it. Method can also be a string, for a
+            pre-defined random function:
+
+                ``('skewnormal', skew, mean, var)``
+                    uses scipy.stats.skewnorm.rvs
+                ``('uniform', low, high)``
+                    uses np.random.uniform
+                ``('normal', loc, scale)``
+                    uses np.random.normal
+
+        Yields
+        -------
+        fake_dataset : Dataset
+            Copy of the original Dataset, with injected companions.
+
+        """
+
+        for data in generate_cube_copies_with_injections(
+            self.cube, self.psf, self.angles, self.px_scale, n_copies=n_copies,
+            inrad=inrad, outrad=outrad, dist_flux=dist_flux
+        ):
+
+            dsi = self.copy()
+            dsi.cube = data["cube"]
+            dsi.injections_yx = data["positions"]
+            # data["dist"], data["theta"], data["flux"] are not used.
+
+            yield dsi
+
+    def get_nbytes(self):
+        """
+        Return the total number of bytes the Dataset consumes.
+        """
+        return sum(arr.nbytes for arr in [self.cube, self.cuberef, self.angles,
+                                          self.wavelengths, self.psf, self.psfn]
+                   if arr is not None)
+
+    def copy(self, deep=True, check_mem=True):
+        """
+        Create an in-memory copy of this Dataset.
+
+        This is especially useful for keeping a backup copy of the original
+        dataset before modifying if (e.g. with injections).
+
+        Parameters
+        ----------
+        deep : bool, optional
+            By default, a deep copy is created. That means every (sub)attribute
+            is copied in memory. While this requires more memory, one can safely
+            modify the attributes without touching the original Dataset. When
+            ``deep=False``, a shallow copy of the Dataset is returned
+            instead. That means all attributes (e.g. ``self.cube``) point back
+            to the original object's attributes. Pay attention when modifying
+            such a shallow copy!
+        check_mem : bool, optional
+            [deep=True] If True, verifies that the system has enough memory to
+            store the result.
+
+        Returns
+        -------
+        new_dataset : Dataset
+            (deep) copy of this Dataset.
+
+        """
+        if deep:
+            if check_mem and not check_enough_memory(self.get_nbytes(), 1.5,
+                                                     verbose=False):
+                raise RuntimeError("copy would require more memory than "
+                                   "available.")
+
+            return copy.deepcopy(self)
+        else:
+            return copy.copy(self)
 
     def load_angles(self, angles, hdu=0):
         """ Loads the PA vector from a FITS file. It is possible to specify the
@@ -805,7 +805,7 @@ class HCIDataset(Saveable):
 
         Parameters
         ----------
-        angles : str or 1d numpy.ndarray
+        angles : str or 1d numpy ndarray
             List or vector with the parallactic angles.
         hdu : int, optional
             If ``angles`` is a String, ``hdu`` indicates the HDU from the FITS
@@ -825,7 +825,7 @@ class HCIDataset(Saveable):
 
         Parameters
         ----------
-        wavelengths : str or 1d numpy.ndarray
+        wavelengths : str or 1d numpy ndarray
             List or vector with the wavelengths.
         hdu : int, optional
             If ``wavelengths`` is a String, ``hdu`` indicates the HDU from the
@@ -858,7 +858,7 @@ class HCIDataset(Saveable):
         self.cube = mask_circle(self.cube, radius, fillwith, mode)
 
     def normalize_psf(self, fit_fwhm=True, size=None, threshold=None,
-                      mask_core=None, model='gauss', imlib='opencv',
+                      mask_core=None, model='gauss', imlib='vip-fft',
                       interpolation='lanczos4', force_odd=True, verbose=True):
         """ Normalizes a PSF (2d or 3d array), to have the flux in a 1xFWHM
         aperture equal to one. It also allows to crop the array and center the
@@ -877,7 +877,7 @@ class HCIDataset(Saveable):
         mask_core : None of float, optional
             Sets the radius of a circular aperture for the core of the PSF,
             everything else will be set to zero.
-        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt
             Library or method used for performing the image shift.
             'ndimage-fourier', does a fourier shift operation and preserves
             better the pixel values (therefore the flux and photometry).
@@ -918,89 +918,19 @@ class HCIDataset(Saveable):
         print("`fwhm` attribute set to")
         print_precision(self.fwhm)
 
-    def plot(self, wavelength=0, **kwargs):
-        """ Plotting the frames of a 3D or 4d cube (``wavelength``).
+    def plot(self, **kwargs):
+        """ Plotting the frames of a 3D or 4d cube.
 
         Parameters
         ----------
-        wavelength : int, optional
-            Index of the wavelength to be analyzed in the case of a 4d cube.
-        angscale : bool
-            If True, the axes are displayed in angular scale (arcsecs).
-        angticksep : int
-            Separation for the ticks when using axis in angular scale.
-        arrow : bool
-            To show an arrow pointing to input px coordinates.
-        arrowalpha : float
-            Alpha transparency for the arrow.
-        arrowlength : int
-            Length of the arrow, 20 px by default.
-        arrowshiftx : int
-            Shift in x of the arrow pointing position, 5 px by default.
-        axis : bool
-            Show the axis, on by default.
-        circle : list of tuples
-            To show a circle at given px coordinates, list of tuples.
-        circlerad : int
-            Radius of the circle, 6 px by default.
-        cmap : str
-            Colormap to be used, 'viridis' by default.
-        colorb : bool
-            To attach a colorbar, on by default.
-        cross : tuple of float
-            If provided, a crosshair is displayed at given px coordinates.
-        crossalpha : float
-            Alpha transparency of thr crosshair.
-        dpi : int
-            Dots per inch, for plot quality.
-        getfig : bool
-            Returns the matplotlib figure.
-        grid : bool
-            If True, a grid is displayed over the image, off by default.
-        gridalpha : float
-            Alpha transparency of the grid.
-        gridcolor : str
-            Color of the grid lines.
-        gridspacing : int
-            Separation of the grid lines in pixels.
-        horsp : float
-            Horizontal gap between subplots.
-        label : str or list of str
-            Text for annotating on subplots.
-        labelpad : int
-            Padding of the label from the left bottom corner.
-        labelsize : int
-            Size of the labels.
-        log : bool
-            Log colorscale.
-        maxplots : int
-            When the input (``*args``) is a 3d array, maxplots sets the number
-            of cube slices to be displayed.
-        pxscale : float
-            Pixel scale in arcseconds/px. Default 0.01 for Keck/NIRC2.
-        rows : int
-            How many rows (subplots in a grid).
-        save : str
-            If a string is provided the plot is saved using this as the path.
-        showcent : bool
-            To show a big crosshair at the center of the frame.
-        title : str
-            Title of the plot(s), None by default.
-        vmax : int
-            For stretching the displayed pixels values.
-        vmin : int
-            For stretching the displayed pixels values.
-        versp : float
-            Vertical gap between subplots.
+        **kwargs : dict, optional
+            Parameters passed to the function ``plot_cubes`` of the package
+            ``HCIplot``.
         """
-        if self.cube.ndim == 3:
-            pp_subplots(self.cube, **kwargs)
-        elif self.cube.ndim == 4:
-            tits = 'Wavelength '+str(wavelength + 1)
-            pp_subplots(self.cube[wavelength], title=tits, **kwargs)
+        hp.plot_cubes(self.cube, **kwargs)
 
     def recenter(self, method='2dfit', xy=None, subi_size=5, model='gauss',
-                 nproc=1, imlib='opencv', interpolation='lanczos4',
+                 nproc=1, imlib='vip-fft', interpolation='lanczos4',
                  offset=None, negative=False, threshold=False,
                  save_shifts=False, cy_1=None, cx_1=None, upsample_factor=100,
                  alignment_iter=5, gamma=1, min_spat_freq=0.5, max_spat_freq=3,
@@ -1030,7 +960,7 @@ class HCIDataset(Saveable):
             Number of processes (>1) for parallel computing. If 1 then it runs
             in serial. If None the number of processes will be set to
             (cpu_count()/2).
-        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp'}, string optional
+        imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt
             Library or method used for performing the image shift.
             'ndimage-fourier', does a fourier shift operation and preserves
             better the pixel values (therefore the flux and photometry).
@@ -1155,37 +1085,102 @@ class HCIDataset(Saveable):
     def remove_badframes(self, method='corr', frame_ref=None, crop_size=30,
                          dist='pearson', percentile=20, stat_region='annulus',
                          inner_radius=10, width=10, top_sigma=1.0,
-                         low_sigma=1.0, window=None, plot=True, verbose=True):
-        """ Finding outlying/bad frames and slicing the cube accordingly.
+                         low_sigma=1.0, window=None, roundlo=-0.2, roundhi=0.2,
+                         lambda_ref=0, plot=True, verbose=True):
+        """
+        Find outlying/bad frames and slice the cube accordingly.
+
+        Besides modifying ``self.cube`` and ``self.angles``, also sets a
+        ``self.good_indices`` which contain the indices of the angles which were
+        kept.
 
         Parameters
         ----------
-        method : {'corr', 'pxstats'}, str optional
+        method : {'corr', 'pxstats', 'ellip'}, optional
+            Method which is used to determine bad frames. Refer to the
+            ``preproc.badframes`` submodule for explanation of the different
+            methods.
+        frame_ref : int, 2d array or None, optional
+            [method=corr] Index of the frame that will be used as a reference or
+            2d reference array.
+        crop_size : int, optional
+            [method=corr] Size in pixels of the square subframe to be analyzed.
+        dist : {'sad','euclidean','mse','pearson','spearman'}, optional
+            [method=corr] One of the similarity or dissimilarity measures from
+            function vip_hci.stats.distances.cube_distance().
+        percentile : float, optional
+            [method=corr] The percentage of frames that will be discarded
+            [0..100].
+        stat_region : {'annulus', 'circle'}, optional
+            [method=pxstats] Whether to take the statistics from a circle or an
+            annulus.
+        inner_radius : int, optional
+            [method=pxstats] If stat_region is 'annulus' then 'in_radius' is the
+            inner radius of the annular region. If stat_region is 'circle' then
+            'in_radius' is the radius of the aperture.
+        width : int, optional
+            [method=pxstats] Size of the annulus. Ignored if mode is 'circle'.
+        top_sigma : int, optional
+            [method=pxstats] Top boundary for rejection.
+        low_sigma : int, optional
+            [method=pxstats] Lower boundary for rejection.
+        window : int, optional
+            [method=pxstats] Window for smoothing the median and getting the
+            rejection statistic.
+        roundlo,roundhi : float, optional
+            [method=ellip] : Lower and higher bounds for the ellipticipy.
+        lambda_ref : int, optional
+            [4D cube] Which wavelength to consider when determining bad frames
+            on a 4D cube.
+        plot : bool, optional
+            If true it plots the mean fluctuation as a function of the frames
+            and the boundaries.
+        verbose : bool, optional
+            Show debug output.
 
         """
+        if self.cube.ndim == 4:
+            tcube = self.cube[lambda_ref]
+        else:
+            tcube = self.cube
+
         if method == 'corr':
             if frame_ref is None:
                 print("Correlation method selected but `frame_ref` is missing")
                 print("Setting the 1st frame as the reference")
                 frame_ref = 0
 
-            self.good_indices, _ = cube_detect_badfr_correlation(self.cube,
-                                            frame_ref, crop_size, dist,
-                                            percentile, plot, verbose)
+            self.good_indices, _ = cube_detect_badfr_correlation(tcube,
+                                        frame_ref, crop_size, dist, percentile,
+                                        plot, verbose)
         elif method == 'pxstats':
-            self.good_indices, _ = cube_detect_badfr_pxstats(self.cube,
-                                            stat_region, inner_radius, width,
-                                            top_sigma, low_sigma, window, plot,
-                                            verbose)
+            self.good_indices, _ = cube_detect_badfr_pxstats(tcube, stat_region,
+                                        inner_radius, width, top_sigma,
+                                        low_sigma, window, plot, verbose)
+        elif method == 'ellip':
+            if self.cube.ndim == 4:
+                fwhm = self.fwhm[lambda_ref]
+            else:
+                fwhm = self.fwhm
+            self.good_indices, _ = cube_detect_badfr_ellipticity(tcube, fwhm,
+                                        crop_size, roundlo, roundhi, plot,
+                                        verbose)
         else:
             raise ValueError('Bad frames detection method not recognized')
 
-        self.cube = self.cube[self.good_indices]
-        print("New cube shape: {}".format(self.cube.shape))
+        if self.cube.ndim == 4:
+            self.cube = self.cube[:, self.good_indices]
+        else:
+            self.cube = self.cube[self.good_indices]
+
+        if verbose:
+            print("New cube shape: {}".format(self.cube.shape))
+
         if self.angles is not None:
             self.angles = self.angles[self.good_indices]
-            msg = "New parallactic angles vector shape: {}"
-            print(msg.format(self.angles.shape))
+            if verbose:
+                msg = "New parallactic angles vector shape: {}"
+                print(msg.format(self.angles.shape))
 
     def rescale(self, scale, imlib='ndimage', interpolation='bicubic',
                 verbose=True):
@@ -1196,7 +1191,7 @@ class HCIDataset(Saveable):
         scale : int, float or tuple
             Scale factor for upsampling or downsampling the frames in the cube.
             If a tuple it corresponds to the scale along x and y.
-        imlib : {'ndimage', 'opencv'}, str optional
+        imlib : {'ndimage', 'opencv', 'vip-fft'}, str optional
             Library used for image transformations. ndimage is the default.
         interpolation : str, optional
             For 'ndimage' library: 'nearneig', bilinear', 'bicuadratic',

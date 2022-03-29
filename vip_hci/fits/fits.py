@@ -3,7 +3,7 @@
 """
 Module with various fits handling functions.
 """
-from __future__ import division, print_function
+
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['open_fits',
@@ -19,7 +19,8 @@ from astropy.io import fits as ap_fits
 
 
 def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
-              precision=np.float32, verbose=True):
+              precision=np.float32, return_memmap=False, verbose=True, 
+              **kwargs):
     """
     Load a fits file into a memory as numpy array.
 
@@ -27,31 +28,46 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     ----------
     fitsfilename : string or pathlib.Path
         Name of the fits file or ``pathlib.Path`` object
-    n : int
+    n : int, optional
         It chooses which HDU to open. Default is the first one.
     header : bool, optional
         Whether to return the header along with the data or not.
-    precision : numpy dtype
+    precision : numpy dtype, optional
         Float precision, by default np.float32 or single precision float.
-    ignore_missing_end : {False, True}, bool optional
+    ignore_missing_end : bool optional
         Allows to open fits files with a header missing END card.
+    return_memmap : bool, optional
+        If True, the function returns the handle to the FITS file opened by
+        mmap. With the hdulist, array data of each HDU to be accessed with mmap,
+        rather than being read into memory all at once. This is particularly
+        useful for working with very large arrays that cannot fit entirely into
+        physical memory.
     verbose : bool, optional
         If True prints message of completion.
-
+    **kwargs: optional
+        Optional arguments to the astropy.io.fits.open() function. E.g. 
+        "output_verify" can be set to ignore, in case of non-standard header.
+        
     Returns
     -------
-    data : array_like
-        Array containing the frames of the fits-cube.
+    hdulist : hdulist
+        [memmap=True] FITS file ``n`` hdulist.
+    data : numpy ndarray
+        [memmap=False] Array containing the frames of the fits-cube.
     header : dict
-        [header=True] Dictionary containing the fits header.
+        [memmap=False, header=True] Dictionary containing the fits header.
 
     """
     fitsfilename = str(fitsfilename)
     if not os.path.isfile(fitsfilename):
         fitsfilename += '.fits'
 
-    with ap_fits.open(fitsfilename, memmap=True,
-                      ignore_missing_end=ignore_missing_end) as hdulist:
+    hdulist = ap_fits.open(fitsfilename, ignore_missing_end=ignore_missing_end,
+                           memmap=True, **kwargs)
+
+    if return_memmap:
+        return hdulist[n]
+    else:
         data = hdulist[n].data
         data = np.array(data, dtype=precision)
 
@@ -83,12 +99,12 @@ def byteswap_array(array):
 
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         2d input array.
 
     Returns
     -------
-    array_out : array_like
+    array_out : numpy ndarray
         2d resulting array after the byteswap operation.
 
     Notes
@@ -100,7 +116,7 @@ def byteswap_array(array):
     return array_out
 
 
-def info_fits(fitsfilename):
+def info_fits(fitsfilename, **kwargs):
     """
     Print the information about a fits file.
 
@@ -108,9 +124,12 @@ def info_fits(fitsfilename):
     ----------
     fitsfilename : str
         Path to the fits file.
-
+    **kwargs: optional
+        Optional arguments to the astropy.io.fits.open() function. E.g. 
+        "output_verify" can be set to ignore, in case of non-standard header.
+        
     """
-    with ap_fits.open(fitsfilename, memmap=True) as hdulist:
+    with ap_fits.open(fitsfilename, memmap=True, **kwargs) as hdulist:
         hdulist.info()
 
 
@@ -133,8 +152,8 @@ def verify_fits(fitsfilename):
             f.verify()
 
 
-def write_fits(fitsfilename, array, header=None, precision=np.float32,
-               verbose=True):
+def write_fits(fitsfilename, array, header=None, output_verify='exception',
+               precision=np.float32, verbose=True):
     """
     Write array and header into FTIS file.
 
@@ -144,23 +163,50 @@ def write_fits(fitsfilename, array, header=None, precision=np.float32,
     ----------
     fitsfilename : string
         Full path of the fits file to be written.
-    array : array_like
-        Array to be written into a fits file.
-    header : array_like, optional
-        Array with header.
+    array : numpy ndarray or tuple of numpy ndarray
+        Array(s) to be written into a fits file. If a tuple of several arrays,
+        the fits fille will be written as a multiple extension fits file
+    header : numpy ndarray, or tuple of headers, optional
+        Header dictionary, or tuple of headers for a multiple extension fits
+        file.
+    output_verify : str, optional
+        {"fix", "silentfix", "ignore", "warn", "exception"} 
+        Verification options:
+        https://docs.astropy.org/en/stable/io/fits/api/verification.html
     precision : numpy dtype, optional
         Float precision, by default np.float32 or single precision float.
     verbose : bool, optional
         If True prints message.
 
     """
-    array = array.astype(precision, copy=False)
+    
+    if not fitsfilename.endswith('.fits'):
+        fitsfilename += '.fits'
+
+    res = "saved"
     if os.path.exists(fitsfilename):
         os.remove(fitsfilename)
-        ap_fits.writeto(fitsfilename, array, header)
-        if verbose:
-            print("Fits file successfully overwritten")
+        res = 'overwritten'
+    
+    if isinstance(array, tuple):
+        new_hdul = ap_fits.HDUList()
+        if header is None:
+            header = [None]*len(array)
+        elif not isinstance(header, tuple):
+            header = [header]*len(array)
+        elif len(header) != len(array):
+            msg = "If input header is a tuple, it should have the same length "
+            msg+= "as tuple of arrays."
+            raise ValueError(msg)
+            
+        for i in range(len(array)):
+            array_tmp = array[i].astype(precision, copy=False)
+            new_hdul.append(ap_fits.ImageHDU(array_tmp, header=header[i]))
+            
+        new_hdul.writeto(fitsfilename, output_verify=output_verify)
     else:
-        ap_fits.writeto(fitsfilename, array, header)
-        if verbose:
-            print("Fits file successfully saved")
+        array = array.astype(precision, copy=False)
+        ap_fits.writeto(fitsfilename, array, header, output_verify)
+        
+    if verbose:
+        print("Fits file successfully {}".format(res))

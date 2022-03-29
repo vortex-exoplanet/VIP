@@ -1,5 +1,6 @@
 -r requirements.txt
-sphinx <= 1.5.6
+sphinx
+pandoc
 pytest
 pytest-cov ~=2.6.0
 codecov ~=2.0.15

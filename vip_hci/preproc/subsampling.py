@@ -4,9 +4,7 @@
 Module with pixel and frame subsampling functions.
 """
 
-from __future__ import division, print_function
-
-__author__ = 'Carlos Alberto Gomez Gonzalez'
+__author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
 __all__ = ['cube_collapse',
            'cube_subsample',
            'cube_subsample_trimmean']
@@ -14,50 +12,63 @@ __all__ = ['cube_collapse',
 import numpy as np
 
 
-def cube_collapse(cube, mode='median', n=50):
+def cube_collapse(cube, mode='median', n=50, w=None):
     """ Collapses a cube into a frame (3D array -> 2D array) depending on the
     parameter ``mode``. It's possible to perform a trimmed mean combination of
     the frames based on description in Brandt+ 2012.
     
     Parameters
     ----------
-    cube : array_like
+    cube : numpy ndarray
         Cube.
-    mode : {'median', 'mean', 'sum', 'trimmean', 'max'}, str optional
+    mode : {'median', 'mean', 'sum', 'trimmean', 'max', 'wmean'}, str optional
         Sets the way of collapsing the images in the cube.
+        'wmean' stands for weighted mean and requires weights w to be provided.
     n : int, optional
         Sets the discarded values at high and low ends. When n = N is the same
         as taking the mean, when n = 1 is like taking the median.
+    w: 1d numpy array or list, optional
+        Weights to be applied for a weighted mean. Need to be provided if 
+        collapse mode is 'wmean'.
         
     Returns
     -------
-    frame : array_like
+    frame : numpy ndarray
         Output array, cube combined. 
     """
     arr = cube
     if arr.ndim != 3:
         raise TypeError('The input array is not a cube or 3d array.')
     
+    if mode == 'wmean':
+        if w is None:
+            raise ValueError("Weights have to be provided for weighted mean mode")
+        if len(w) != cube.shape[0]:
+            raise TypeError("Weights need same length as cube")
+        if isinstance(w,list):
+            w = np.array(w)
+    
     if mode == 'mean':
-        frame = np.mean(arr, axis=0)
+        frame = np.nanmean(arr, axis=0)
     elif mode == 'median':
-        frame = np.median(arr, axis=0)
+        frame = np.nanmedian(arr, axis=0)
     elif mode == 'sum':
-        frame = np.sum(arr, axis=0)
+        frame = np.nansum(arr, axis=0)
     elif mode == 'max':
-        frame = np.max(arr, axis=0)
+        frame = np.nanmax(arr, axis=0)
     elif mode == 'trimmean':
         N = arr.shape[0]
-        if N % 2 == 0:
-            k = (N - n)//2
-        else:
-            k = (N - n)/2                                                               
-        
+        k = (N - n)//2                                                          
+        if N%2 != n%2:
+            n+=1
         frame = np.empty_like(arr[0])                                    
         for index, _ in np.ndenumerate(arr[0]):
             sort = np.sort(arr[:, index[0], index[1]])
-            frame[index] = np.mean(sort[k:N-k])
-            
+            frame[index] = np.nanmean(sort[k:k+n])
+    elif mode == 'wmean':
+        arr[np.where(np.isnan(arr))]=0 # to avoid product with nan
+        frame = np.inner(w, np.moveaxis(arr,0,-1))
+        
     return frame
 
 
@@ -66,19 +77,19 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
     
     Parameters
     ----------
-    array : array_like
+    array : numpy ndarray
         Input 3d array, cube.
     n : int
         Window for mean/median.
     mode : {'mean','median'}, optional
         Switch for choosing mean or median.
-    parallactic : array_like, optional
+    parallactic : numpy ndarray, optional
         List of corresponding parallactic angles.
     verbose : bool optional
         
     Returns
     -------
-    arr_view : array_like
+    arr_view : numpy ndarray
         Resulting array.
     If ``parallactic`` is provided the the new cube and angles are returned.
     """
@@ -142,7 +153,7 @@ def cube_subsample_trimmean(arr, n, m):
     
     Parameters
     ----------
-    arr : array_like
+    arr : numpy ndarray
         Cube.
     n : int
         Sets the discarded values at high and low ends. When n = N is the same
@@ -152,7 +163,7 @@ def cube_subsample_trimmean(arr, n, m):
         
     Returns
     -------
-    arr_view : array_like
+    arr_view : numpy ndarray
         Output array, cube combined. 
     """    
     if arr.ndim != 3:
@@ -172,5 +183,3 @@ def cube_subsample_trimmean(arr, n, m):
     msg += "frames"
     print(msg.format(m))
     return arr_view
-
-

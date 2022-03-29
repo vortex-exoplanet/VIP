@@ -1,3 +1,6 @@
+# macOS stuff
+.DS_Store
+
 # optimized python files
 *.py[cod]
 _pycache__/
@@ -13,8 +16,10 @@ docs/time
 
 # unit test / coverage reports
 .coverage
+coverage.xml
 .cache
 .pytest_cache/
+htmlcov/
 
 # editors / IDEs
 .idea/
@@ -24,7 +29,8 @@ docs/time
 .pydevproject
 .settings
 .project
+.vscode/
 
 # scripts
-submit_pypi.sh
-update_sphinx.sh
+_pypi.sh
+_sphinx.sh

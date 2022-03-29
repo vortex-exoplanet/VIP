@@ -4,8 +4,6 @@
 Module with sky subtraction function.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['cube_subtract_sky_pca']
 
@@ -13,29 +11,43 @@ import numpy as np
 from ..var import prepare_matrix
 
 
-def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
-    """ PCA based sky subtraction.
+def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2,
+                          full_output=False):
+    """ PCA-based sky subtraction.
 
     Parameters
     ----------
-    sci_cube : array_like
+    sci_cube : numpy ndarray
         3d array of science frames.
-    sky_cube : array_like
+    sky_cube : numpy ndarray
         3d array of sky frames.
-    mask : array_like
+    mask : numpy ndarray
         Mask indicating the region for the analysis. Can be created with the
         function vip_hci.var.create_ringed_spider_mask.
-    ref_cube : array_like or None
+    ref_cube : numpy ndarray or None, opt
         Reference cube.
-    ncomp : int
+    ncomp : int, opt
         Sets the number of PCs you want to use in the sky subtraction.
+    full_output: bool, opt
+        Whether to also output pcs, reconstructed cube, residuals cube and 
+        derotated residual cube.        
 
     Returns
     -------
-    Sky subtracted cube.
+    Sky-subtracted science cube. 
+    If ref_cube is not None, also returns sky-subtracted reference cube.
+    If full_ouput, returns (in the following order):
+         - sky-subtracted science cube, 
+         - sky-subtracted reference cube (if any provided),
+         - principal components (non-masked),
+         - principal components (masked), and 
+         - reconstructed cube.
 
     """
-    from ..pca import svd_wrapper
+    try:
+        from ..psfsub.svd import svd_wrapper
+    except:
+        from ..pca.svd import svd_wrapper
 
     if sci_cube.shape[1] != sky_cube.shape[1] or sci_cube.shape[2] != \
             sky_cube.shape[2]:
@@ -47,9 +59,9 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
 
     # Getting the EVs from the sky cube
     Msky = prepare_matrix(sky_cube, scaling=None, verbose=False)
-    sky_pcs = svd_wrapper(Msky, 'lapack', sky_cube.shape[0], False, False)
+    sky_pcs = svd_wrapper(Msky, 'lapack', sky_cube.shape[0], False)
     sky_pcs_cube = sky_pcs.reshape(sky_cube.shape[0], sky_cube.shape[1],
-                                   sky_cube.shape[1])
+                                   sky_cube.shape[2])
 
     # Masking the science cube
     sci_cube_masked = np.zeros_like(sci_cube)
@@ -79,10 +91,11 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
 
     # Obtaining the optimized sky and subtraction
     sci_cube_skysub = np.zeros_like(sci_cube)
+    sky_opt = sci_cube.copy()
     for i in range(Msci_masked.shape[0]):
-        sky_opt = np.array([np.sum(
+        sky_opt[i] = np.array([np.sum(
             transf_sci_scaled[j, i] * sky_pcs_cube[j] for j in range(ncomp))])
-        sci_cube_skysub[i] = sci_cube[i] - sky_opt
+        sci_cube_skysub[i] = sci_cube[i] - sky_opt[i]
 
     # Processing the reference cube (if any)
     if ref_cube is not None:
@@ -92,7 +105,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
             masked_image[ind_masked] = 0
             ref_cube_masked[i] = masked_image
         Mref_masked = prepare_matrix(ref_cube_masked, scaling=None,
-                                             verbose=False)
+                                     verbose=False)
         transf_ref = np.zeros((sky_cube.shape[0], Mref_masked.shape[0]))
         for i in range(Mref_masked.shape[0]):
             transf_ref[:, i] = np.inner(sky_pcs, Mref_masked[i].T)
@@ -104,7 +117,14 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2):
             sky_opt = np.array([np.sum(transf_ref_scaled[j, i] * sky_pcs_cube[j]
                                        for j in range(ncomp))])
             ref_cube_skysub[i] = ref_cube[i] - sky_opt
-
-        return sci_cube_skysub, ref_cube_skysub
+        
+        if full_output:
+            return (sci_cube_skysub, ref_cube_skysub, sky_pcs_cube, 
+                    sky_pcs_cube_masked, sky_opt)
+        else:
+            return sci_cube_skysub, ref_cube_skysub
     else:
-        return sci_cube_skysub
+        if full_output:
+            return (sci_cube_skysub, sky_pcs_cube, sky_pcs_cube_masked, sky_opt)
+        else:
+            return sci_cube_skysub

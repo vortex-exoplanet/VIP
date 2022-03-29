@@ -1,18 +1,11 @@
-from __future__ import (absolute_import)
+__version__ = "1.1.3"
 
-__version__ = "0.9.8"
-
-from . import andromeda
 from . import preproc
-from . import conf
+from . import config
 from . import fits
-from . import frdiff
-from . import leastsq
-from . import llsg
-from . import medsub
-from . import negfc
-from . import nmf
-from . import pca
+from . import invprob
+from . import psfsub
+from . import fm
 from . import metrics
 from . import stats
 from . import var

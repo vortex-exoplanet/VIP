@@ -4,8 +4,6 @@
 Module for image statistics.
 """
 
-from __future__ import division, print_function
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['frame_histo_stats',
            'frame_average_radprofile']
@@ -14,7 +12,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from ..var import frame_center
-from ..conf.utils_conf import check_array, vip_figsize
+from ..config.utils_conf import check_array, vip_figsize
 
 
 def frame_average_radprofile(frame, sep=1, init_rad=None, plot=True):
@@ -22,7 +20,7 @@ def frame_average_radprofile(frame, sep=1, init_rad=None, plot=True):
 
     Parameters
     ----------
-    frame : array_like
+    frame : numpy ndarray
         Input image or 2d array.
     sep : int, optional
         The average radial profile is recorded every ``sep`` pixels.
@@ -77,7 +75,7 @@ def frame_histo_stats(image_array, plot=True):
     
     Parameters
     ----------
-    image_array : array_like
+    image_array : numpy ndarray
         The input frame.  
     plot : bool, optional
         If True plots the frame and the histogram with the values.

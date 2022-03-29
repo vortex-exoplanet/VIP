@@ -239,12 +239,12 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
             raise ValueError('Skimage `border_mode` not recognized.')
 
         # for a non-constant image, normalize manually
-        min_val = np.min(array_prep)
-        max_val = np.max(array_prep)
+        min_val = np.nanmin(array_prep)
+        max_val = np.nanmax(array_prep)
         if min_val != max_val:
             norm=True
             im_temp = array_prep - min_val
-            max_val = np.max(im_temp)
+            max_val = np.nanmax(im_temp)
             im_temp /= max_val
         else:
             norm=False

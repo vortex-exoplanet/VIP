@@ -61,8 +61,10 @@ sure there is a Fortran compiler in your system. A workaround is to install
 .. rubric:: Why do I get and error related to importing ``cv2`` package when importing ``VIP``?
 
 ``cv2`` is the name of ``Opencv`` bindings for python. This library is needed for
-fast image transformations, it is the default library used although it is optional.
-You can install it with conda:
+fast image transformations, it was the default library before v1.0.0 (although it was optional).
+Starting from v1.1.0 the opencv library should be installed upon installation of VIP, although the
+Default 
+For old VIP versions, you can install opencv manually with conda:
 
 .. code-block:: bash
 

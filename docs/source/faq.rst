@@ -61,8 +61,10 @@ sure there is a Fortran compiler in your system. A workaround is to install
 .. rubric:: Why do I get and error related to importing ``cv2`` package when importing ``VIP``?
 
 ``cv2`` is the name of ``Opencv`` bindings for python. This library is needed for
-fast image transformations, it is the default library used although it is optional.
-You can install it with conda:
+fast image transformations, it was the default library before v1.0.0 (although it was optional).
+Starting from v1.1.0 the opencv library should be installed upon installation of VIP, although the
+default image library became 'vip-fft'.
+For old VIP versions, you can install opencv manually with conda:
 
 .. code-block:: bash
 
@@ -106,4 +108,4 @@ your ``~/.bash_profile``:
 
 .. rubric:: Where is the ``specfit`` module?
 
-Up to version 1.0.3, ``specfit`` was a module of VIP offering atmosphere retrieval and spectral characterisation of directly imaged companions. Given the divergence with the original purpose of VIP, starting from version 1.1.0, it has been renamed, expanded, moved to a separate `GitHub repository <https://github.com/VChristiaens/special>`_ and converted into its own `package <https://pypi.org/project/special/>`_ (called ``special``).
+From versions 1.0.0 to 1.0.3, ``specfit`` was a module of VIP offering atmosphere retrieval and spectral characterisation of directly imaged companions. Given the divergence with the original purpose of VIP, starting from version 1.1.0, it has been renamed, expanded, moved to a separate `GitHub repository <https://github.com/VChristiaens/special>`_ and converted into its own `package <https://pypi.org/project/special/>`_ (called ``special``).

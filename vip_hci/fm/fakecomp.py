@@ -89,8 +89,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     positions : list of tuple(y, x)
         [full_output] Coordinates of the injections in the first frame (and
         first wavelength for 4D cubes).
-    psf_trans: array with injected psf affected by transmission (only returned
-        if transmission is not None)
+    psf_trans: numpy ndarray 
+        [full_output & transmission != None] Array with injected psf affected 
+        by transmission (serves to check radial transmission)
         
 
     """

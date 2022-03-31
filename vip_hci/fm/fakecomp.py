@@ -40,13 +40,14 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     array : 3d/4d numpy ndarray
         Input cube. This is copied before the injections take place, so
         ``array`` is never modified.
-    psf_template : numpy ndarray
-        2d array with the normalized PSF template, with an odd or even shape.
-        The PSF image must be centered wrt to the array! Therefore, it is
-        recommended to run the function ``normalize_psf`` to generate a centered
-        and flux-normalized PSF template. 
+    psf_template : 2d/3d numpy ndarray
+        [for a 3D input array] 2d array with the normalized PSF template, with 
+        an odd or even shape. The PSF image must be centered wrt to the array. 
+        Therefore, it is recommended to run the function ``normalize_psf`` to 
+        generate a centered and flux-normalized PSF template. 
         It can also be a 3D array, but length should match ADI cube.
-        In the ADI+mSDI (4D input cube) case it must be a 3d array.
+        [for a 4D input array] In the ADI+mSDI case, it must be a 3d array 
+        (matching spectral dimensions).
     angle_list : 1d numpy ndarray
         List of parallactic angles, in degrees.
     flevel : float or list/1d array

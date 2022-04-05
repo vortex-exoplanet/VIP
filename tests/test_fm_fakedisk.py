@@ -72,10 +72,10 @@ def test_cube_inject_trace(dataset):
     rads = [3,4,5]
     thetas = [90,180,270]
     
-    cube = cube_inject_trace(cube, psf, angles, flevel=1, 
-                             rad_dists=rads, theta=thetas, 
-                             plsc=0.01225, n_branches=1, imlib='vip-fft', 
-                             interpolation='lanczos4', verbose=True)
+    cube = cube_inject_trace(cube, psf, angles, flevel=1, rad_dists=rads, 
+                             theta=thetas, plsc=0.01225, n_branches=1, 
+                             imlib='vip-fft', interpolation='lanczos4', 
+                             verbose=True)
     
     for i in range(cube.shape[0]):
         # find coords of trace in each image of the cube
@@ -87,7 +87,9 @@ def test_cube_inject_trace(dataset):
             coords_tmp = np.unravel_index(max_idx, frame_tmp.shape)
             coords.append(coords_tmp)
             frame_tmp[coords_tmp]=0
-            
+        idx_order = np.argsort(np.sum(coords,axis=1))
+        coords_sort = [coords[i] for i in idx_order]
+        
         yx_expected = _expected(angles[i])
     
-        aarc(coords, yx_expected)
+        aarc(coords_sort, yx_expected)

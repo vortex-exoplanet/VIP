@@ -280,7 +280,7 @@ def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
 
 
 def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
-                          imlib='vip-fft', interpolation='lanczos4',
+                          imlib='vip-fft', interpolation='lanczos4', 
                           fit_type='moff', border_mode='reflect', debug=False, 
                           verbose=True):
     """ Finds the center of a frame with waffle/satellite spots (e.g. for

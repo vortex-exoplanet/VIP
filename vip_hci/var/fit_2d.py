@@ -148,7 +148,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     array : numpy ndarray
         Input frame with a single PSF.
     crop : bool, optional
-        If True an square sub image will be cropped.
+        If True a square sub image will be cropped equal to cropsize.
     cent : tuple of int, optional
         X,Y integer position of source in the array for extracting the subimage.
         If None the center of the frame is used for cropping the subframe (the
@@ -293,7 +293,7 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
     array : numpy ndarray
         Input frame with a single PSF.
     crop : bool, optional
-        If True an square sub image will be cropped.
+        If True a square sub image will be cropped equal to cropsize.
     cent : tuple of int, optional
         X,Y integer position of source in the array for extracting the subimage.
         If None the center of the frame is used for cropping the subframe (the
@@ -424,7 +424,7 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     array : numpy ndarray
         Input frame with a single PSF.
     crop : bool, optional
-        If True an square sub image will be cropped.
+        If True a square sub image will be cropped equal to cropsize.
     cent : tuple of int, optional
         X,Y integer position of source in the array for extracting the subimage.
         If None the center of the frame is used for cropping the subframe (the
@@ -554,7 +554,7 @@ def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4,
     array : numpy ndarray
         Input frame with a single PSF.
     crop : bool, optional
-        If True an square sub image will be cropped.
+        If True a square sub image will be cropped equal to cropsize.
     cent : tuple of float, optional
         X,Y position of the source in the array for extracting the 
         subimage. If None the center of the frame is used for cropping the 

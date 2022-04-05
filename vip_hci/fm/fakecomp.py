@@ -124,7 +124,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         else:
             for fr in range(nframes):
                 fc_fr[fr] = psf_template[fr]
-
+                
+        psf_trans = None
         array_out = array.copy()
 
         for branch in range(n_branches):

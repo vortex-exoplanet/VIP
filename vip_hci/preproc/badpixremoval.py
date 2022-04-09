@@ -856,7 +856,7 @@ def cube_fix_badpix_with_kernel(array, bpm_mask, mode='gauss', fwhm=4.,
     if np.sum(bpm_mask) == 0:
         msg = "Warning: no bad pixel found in bad pixel map. "
         msg += "Returning input array as is."
-        print("msg")
+        print(msg)
         return obj_tmp
         
     ny, nx = obj_tmp.shape[-2:]

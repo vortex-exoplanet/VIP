@@ -21,7 +21,7 @@ VLT_SPHERE_IFS = {
     'latitude': -24.627,
     'longitude': -70.404,
     'plsc':  0.0074,                       # plate scale [arcsec]/px for IFS
-    'diam': 8.0,                            # telescope diameter [m]
+    'diam': 8.2,                            # telescope diameter [m]
     }
 
 VLT_SPHERE_IRDIS = {
@@ -56,6 +56,13 @@ VLT_SINFONI = {
     'kw_type': 'HIERARCH ESO DPR TYPE'      # header keyword for frame type: 'FLAT,SKY' / 'DARK' / 'OBJECT' / 'SKY'
     }
 
+GPI_IFS = {
+    'latitude': -30.2417,
+    'longitude': -70.747,
+    'plsc':  0.014166,                       # plate scale [arcsec]/px for IFS
+    'diam': 8.1,                            # telescope diameter [m]
+    }
+
 LBT = {
     'latitude': 32.70131,                   # LBT's latitude in degrees
     'longitude': -109.889064,               # LBT's longitude in degrees
@@ -78,7 +85,7 @@ KECK_NIRC2 = {
     'plsc_narrow': 0.009942,               # plate scale [arcsec]/px, narrow camera
     'plsc_medium': 0.019829,               # plate scale [arcsec]/px, medium camera
     'plsc_wide': 0.039686,                 # plate scale [arcsec]/px, wide camera
-    'diam': 8.4,                            # telescope diameter [m]
+    'diam': 10.,                           # telescope diameter [m]
     # header keywords
     'camera_name': 'CAMNAME'               # camera name bwt narrow, medium and wide
     }

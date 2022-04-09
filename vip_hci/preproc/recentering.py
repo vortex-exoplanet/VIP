@@ -78,13 +78,16 @@ def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
         'lanczos4' the slowest and accurate. 'lanczos4' is the default for
         Opencv and 'biquartic' for Scipy.ndimage.
     border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
-        Points outside the boundaries of the input are filled accordingly.
+        For 'opencv' and 'ndimage-interp', points outside the boundaries of the 
+        input are filled according to tge value of this parameter.
         With 'reflect', the input is extended by reflecting about the edge of
         the last pixel. With 'nearest', the input is extended by replicating the
         last pixel. With 'constant', the input is extended by filling all values
         beyond the edge with zeros. With 'mirror', the input is extended by
         reflecting about the center of the last pixel. With 'wrap', the input is
         extended by wrapping around to the opposite edge. Default is 'reflect'.
+        Note: for 'ndimage-fourier' default is 'wrap' (impossible to change), 
+        while border_mode is 'constant' (zeros) for 'vip-fft'.
 
     Returns
     -------
@@ -95,11 +98,81 @@ def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
     check_array(array, dim=2)
     image = array.copy()
 
-    if imlib == 'ndimage-fourier' or imlib == 'vip-fft':
+    if imlib == 'ndimage-fourier':
+        # Warning: default border mode is 'wrap' (cannot be changed)
         shift_val = (shift_y, shift_x)
         array_shifted = fourier_shift(np.fft.fftn(image), shift_val)
         array_shifted = np.fft.ifftn(array_shifted)
         array_shifted = array_shifted.real
+        
+    elif imlib == 'vip-fft':
+        ny_ori, nx_ori = image.shape
+            
+        # First pad to avoid 'wrapping' values at the edges
+        npad = int(np.ceil(np.amax(np.abs([shift_y,shift_x]))))
+        cy_ori, cx_ori = frame_center(array)
+        new_y = int(ny_ori+2*npad)
+        new_x = int(nx_ori+2*npad)
+        new_image = np.zeros([new_y,new_x], dtype=array.dtype)
+        cy, cx = frame_center(new_image)
+        y0 = int(cy-cy_ori)
+        y1 = int(cy+cy_ori)
+        if new_y%2:
+            y1+=1
+        x0 = int(cx-cx_ori)
+        x1 = int(cx+cx_ori)
+        if new_x%2:
+            x1+=1
+        new_image[y0:y1,x0:x1] = array.copy()
+        p_y0 = npad
+        p_x0 = npad
+        npix = new_y
+
+        # If non-square, add extra pad to make it square
+        if new_y != new_x:
+            if new_y > new_x:
+                npix = new_y
+                image = np.zeros([npix, npix])
+                x0 = int(cy-cx)
+                x1 = x0+new_x
+                image[:,x0:x1] = new_image.copy()
+                p_x0 += x0
+            else:
+                npix = new_x
+                image = np.zeros([npix, npix])
+                y0 = int(cx-cy)
+                y1 = y0+new_y
+                image[y0:y1] = new_image.copy()
+                p_y0 += y0
+            new_image = image.copy()
+                
+        # If odd, add an extra pad layer to make it even
+        if npix%2:
+            npix+=1
+            image = np.zeros([npix,npix])
+            if shift_x>0:
+                x0=0
+            else:
+                x0=1
+                p_x0+=1
+            if shift_y>0:
+                y0=0
+            else:
+                y0=1
+                p_y0+=1
+            image[y0:y0+npix-1,x0:x0+npix-1] = new_image.copy()
+            new_image = image.copy()
+    
+        # actual FT-based shift
+        ramp = np.outer(np.ones(npix), np.arange(npix) - npix/2)
+        tilt = (-2*np.pi / npix) * (shift_x*ramp + shift_y*ramp.T)
+        fact = np.fft.fftshift(np.cos(tilt) + 1j*np.sin(tilt))
+    
+        image_ft = np.fft.fft2(new_image)  # no np.fft.fftshift applied!
+        array_shifted = np.fft.ifft2(image_ft * fact).real
+        
+        # final crop to compensate padding
+        array_shifted = array_shifted[p_y0:p_y0+ny_ori, p_x0:p_x0+nx_ori]
 
     elif imlib == 'ndimage-interp':
         if interpolation == 'nearneig':
@@ -207,7 +280,7 @@ def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
 
 
 def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
-                          imlib='vip-fft', interpolation='lanczos4',
+                          imlib='vip-fft', interpolation='lanczos4', 
                           fit_type='moff', border_mode='reflect', debug=False, 
                           verbose=True):
     """ Finds the center of a frame with waffle/satellite spots (e.g. for

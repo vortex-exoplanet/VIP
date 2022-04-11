@@ -568,10 +568,10 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         print("Final xy positions for sat spots:", final_xy)
         print('Looping through the frames, fitting the intersections:')
     for i in Progressbar(range(n_frames), verbose=verbose):
-        res = frame_center_satspots(array[i], final_xy[i], debug=debug, shift=True,
-                                    subi_size=subi_size, sigfactor=sigfactor,
-                                    fit_type=fit_type, verbose=False,
-                                    border_mode=border_mode)
+        res = frame_center_satspots(array[i], final_xy[i], debug=debug, 
+                                    shift=True, subi_size=subi_size, 
+                                    sigfactor=sigfactor, fit_type=fit_type, 
+                                    verbose=False, border_mode=border_mode)
         array_rec.append(res[0])
         shift_y[i] = res[1]
         shift_x[i] = res[2]

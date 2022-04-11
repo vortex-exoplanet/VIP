@@ -24,7 +24,7 @@ from skimage.draw import disk
 from ..var import get_annulus_segments, frame_center
 from ..preproc import frame_crop,cube_crop_frames,cube_derotate
 from ..config.utils_conf import pool_map, iterable
-from ..metrics import cube_inject_companions
+from ..fm import cube_inject_companions
 from ..preproc.derotation import _find_indices_adi
 
 def fmmf(cube, pa, psf, fwhm, min_r=None,max_r=None, model='KLIP',var='FR',

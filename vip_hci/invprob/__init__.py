@@ -5,3 +5,4 @@ et al. 2015).
 """
 
 from .andromeda import *
+from .fmmf import *

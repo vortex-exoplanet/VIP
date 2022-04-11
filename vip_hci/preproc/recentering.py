@@ -1515,7 +1515,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     plot : bool, optional
         If True, the shifts are plotted.
     full_ouput: bool, optional
-        Whether to return more varibales, useful for debugging.
+        Whether to return more variables, useful for debugging.
 
     Returns
     -------

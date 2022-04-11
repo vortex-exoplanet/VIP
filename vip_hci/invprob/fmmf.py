@@ -23,7 +23,7 @@ import numpy.linalg as la
 from skimage.draw import disk 
 from ..var import get_annulus_segments, frame_center
 from ..preproc import frame_crop,cube_crop_frames,cube_derotate
-from ..conf.utils_conf import pool_map, iterable
+from ..config.utils_conf import pool_map, iterable
 from ..metrics import cube_inject_companions
 from ..preproc.derotation import _find_indices_adi
 

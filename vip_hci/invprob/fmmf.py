@@ -119,9 +119,6 @@ def fmmf(cube, pa, psf, fwhm, min_r=None,max_r=None, model='KLIP',var='FR',
         the estimated standard deviation of the contrast).
         
     """
-    
-    if cube.shape[-1]%2==0:
-        raise ValueError("Frames should have an odd size")
         
     if crop>=2*round(fwhm)+1:
         raise ValueError("Maximum cropsize should be lower or equal to two"+
@@ -411,7 +408,7 @@ def snr_contrast_esti(ann_center,cube, pa, psf, fwhm, model,var,param, crop
             prob_esti[i]=sum(num)/sum(denom)
             
         if verbose==True:
-            print("Radial distance: "+"{}".format(ann_center)+" done") 
+            print("Radial distance "+"{}".format(ann_center)+" done!") 
             
         return prob_esti,flux_esti,ann_center
 

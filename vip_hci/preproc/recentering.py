@@ -1514,7 +1514,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         extended by wrapping around to the opposite edge. Default is 'reflect'.
     plot : bool, optional
         If True, the shifts are plotted.
-    full_ouput: bool, optional
+    full_output: bool, optional
         Whether to return more variables, useful for debugging.
 
     Returns

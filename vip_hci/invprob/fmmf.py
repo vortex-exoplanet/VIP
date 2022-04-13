@@ -136,6 +136,7 @@ def fmmf(cube, pa, psf, fwhm, min_r=None,max_r=None, model='KLIP',var='FR',
     snr_matrix=np.zeros((cube.shape[1],cube.shape[2]))
         
     for res_temp in res_full:
+        
         indices=get_annulus_segments(cube[0], res_temp[2],1)
         flux_matrix[indices[0][0],indices[0][1]]=res_temp[0]
         snr_matrix[indices[0][0],indices[0][1]]=res_temp[1]

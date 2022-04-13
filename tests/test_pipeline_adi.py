@@ -100,15 +100,15 @@ def algo_andromeda_fast(ds):
 
 def algo_fmmf_klip(ds):
     res = vip.invprob.fmmf(ds.cube[:,:-1,:-1],
-                          ds.angles, ds.psf,ds.fwhm,min_r=20,
-                max_r=40, model='KLIP')
+                          ds.angles, ds.psf,ds.fwhm,min_r=25,
+                max_r=35, model='KLIP')
     flux_m, snr_n = res
     return snr_n
 
 def algo_fmmf_loci(ds):
     res = vip.invprob.fmmf(ds.cube[:,:-1,:-1],
-                          ds.angles, ds.psf,ds.fwhm,min_r=20,
-                max_r=40, model='LOCI')
+                          ds.angles, ds.psf,ds.fwhm,min_r=25,
+                max_r=35, model='LOCI')
     flux_m, snr_n = res
     return snr_n
 

@@ -686,7 +686,7 @@ def check_scal_vector(scal_vec):
 
     # checking if min factor is 1:
     if scal_vec.min() != 1:
-        scal_vec /= scal_vec.min()
+        scal_vec = scal_vec/scal_vec.min()
 
     return scal_vec
 

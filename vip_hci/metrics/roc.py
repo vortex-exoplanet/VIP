@@ -84,8 +84,6 @@ class EvalRoc(object):
 
         starttime = time_ini()
 
-        frsize = self.dataset.cube.shape[1]
-
         # ===== number of PCs for PCA / rank for LLSG
         if cevr is not None:
             svdecomp = SVDecomposer(self.dataset.cube, mode=expvar_mode,

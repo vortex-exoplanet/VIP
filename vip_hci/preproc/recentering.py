@@ -280,7 +280,7 @@ def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
 
 
 def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
-                          imlib='vip-fft', interpolation='lanczos4',
+                          imlib='vip-fft', interpolation='lanczos4', 
                           fit_type='moff', border_mode='reflect', debug=False, 
                           verbose=True):
     """ Finds the center of a frame with waffle/satellite spots (e.g. for
@@ -568,10 +568,10 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         print("Final xy positions for sat spots:", final_xy)
         print('Looping through the frames, fitting the intersections:')
     for i in Progressbar(range(n_frames), verbose=verbose):
-        res = frame_center_satspots(array[i], final_xy[i], debug=debug, shift=True,
-                                    subi_size=subi_size, sigfactor=sigfactor,
-                                    fit_type=fit_type, verbose=False,
-                                    border_mode=border_mode)
+        res = frame_center_satspots(array[i], final_xy[i], debug=debug, 
+                                    shift=True, subi_size=subi_size, 
+                                    sigfactor=sigfactor, fit_type=fit_type, 
+                                    verbose=False, border_mode=border_mode)
         array_rec.append(res[0])
         shift_y[i] = res[1]
         shift_x[i] = res[2]
@@ -1514,8 +1514,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         extended by wrapping around to the opposite edge. Default is 'reflect'.
     plot : bool, optional
         If True, the shifts are plotted.
-    full_ouput: bool, optional
-        Whether to return more varibales, useful for debugging.
+    full_output: bool, optional
+        Whether to return more variables, useful for debugging.
 
     Returns
     -------

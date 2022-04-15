@@ -663,10 +663,9 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='vip-fft',
 
 def check_scal_vector(scal_vec):
     """
-    Turn wavelengths (IFS data) into a scaling factor list.
-
-    It checks that it has the right format: all scaling factors should be >= 1
-    (i.e. the scaling should be done wrt the longest wavelength of the cube).
+    Checks that the scaling factor list has the right format (i.e. all factors 
+    >= 1). If not, it returns the vector after normalization by the minimum 
+    value.
 
     Parameters
     ----------
@@ -687,8 +686,7 @@ def check_scal_vector(scal_vec):
 
     # checking if min factor is 1:
     if scal_vec.min() != 1:
-        scal_vec = 1 / scal_vec
-        scal_vec /= scal_vec.min()
+        scal_vec = scal_vec/scal_vec.min()
 
     return scal_vec
 
@@ -775,7 +773,7 @@ def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev",
     return scal_vec, flux_vec
 
 
-def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
+def _find_indices_sdi(scal, dist, index_ref, fwhm, delta_sep=1, nframes=None,
                       debug=False):
     """
     Find optimal wavelengths which minimize self-subtraction in model PSF
@@ -783,12 +781,13 @@ def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
 
     Parameters
     ----------
-    wl : numpy ndarray or list
+    scal : numpy ndarray or list
         Vector with the scaling factors.
     dist : float
         Separation or distance (in pixels) from the center of the array.
     index_ref : int
-        The `wl` index for which we are finding the pairs.
+        The spectral channel index for which we are finding the indices of 
+        suitable spectral channels for the model PSF.
     fwhm : float
         Mean FWHM of all the wavelengths (in pixels).
     delta_sep : float, optional
@@ -805,10 +804,10 @@ def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
         List of good indices.
 
     """
-    wl = np.asarray(wl)
-    wl_ref = wl[index_ref]
-    sep_lft = (wl_ref - wl) / wl_ref * ((dist + fwhm * delta_sep) / fwhm)
-    sep_rgt = (wl - wl_ref) / wl_ref * ((dist - fwhm * delta_sep) / fwhm)
+    scal = np.asarray(scal)
+    scal_ref = scal[index_ref]
+    sep_lft = (scal_ref - scal) / scal_ref * ((dist + fwhm * delta_sep) / fwhm)
+    sep_rgt = (scal - scal_ref) / scal_ref * ((dist - fwhm * delta_sep) / fwhm)
     map_lft = sep_lft >= delta_sep
     map_rgt = sep_rgt >= delta_sep
     indices = np.nonzero(map_lft | map_rgt)[0]
@@ -830,7 +829,7 @@ def _find_indices_sdi(wl, dist, index_ref, fwhm, delta_sep=1, nframes=None,
         if i1 - window < 0 or i1 + window > indices[-1]:
             window = nframes
         ind1 = max(0, i1 - window)
-        ind2 = min(wl.size, i1 + window)
+        ind2 = min(scal.size, i1 + window)
         indices = indices[ind1: ind2]
 
         if indices.size < 2:

@@ -32,7 +32,8 @@ from ..config.utils_conf import print_precision, check_array
 def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                            rad_dists, n_branches=1, theta=0, imlib='vip-fft',
                            interpolation='lanczos4', transmission=None, 
-                           full_output=False, verbose=True):
+                           radial_gradient=False, full_output=False, 
+                           verbose=True):
     """ Injects fake companions in branches, at given radial distances.
 
     Parameters
@@ -81,6 +82,12 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         radial separation in pixels, while the other column(s) are the
         corresponding off-axis transmission (between 0 and 1), for either all,
         or each spectral channel (only relevant for a 4D input cube).
+    radial_gradient: bool, optional
+        Whether to apply a radial gradient to the psf image at the moment of 
+        injection. By default False, i.e. the flux of the psf image is scaled 
+        only considering the value of tramnsmission at the exact radius the 
+        companion is injected. Setting it to False may better represent the 
+        transmission at the very edge of a physical mask though.
     full_output : bool, optional
         Returns the ``x`` and ``y`` coordinates of the injections, additionally
         to the new array.
@@ -103,7 +110,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     def _cube_inject_adi(array, psf_template, angle_list, flevel, plsc, 
                          rad_dists, n_branches=1, theta=0, imlib='vip-fft',
                          interpolation='lanczos4', transmission=None, 
-                         verbose=True):
+                         radial_gradient=False, verbose=True):
         
         if transmission is not None:  
             ## last radial separation should be beyond the edge of frame
@@ -124,7 +131,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         else:
             for fr in range(nframes):
                 fc_fr[fr] = psf_template[fr]
-
+                
+        psf_trans = None
         array_out = array.copy()
 
         for branch in range(n_branches):
@@ -134,38 +142,40 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                 print('Branch {}:'.format(branch+1))                
 
             for rad in rad_dists:
+                fc_fr_rad = fc_fr.copy()
                 if transmission is not None:
-                    fc_fr_rad = fc_fr.copy()
-                    y_star = pceny
-                    x_star = pcenx - rad
-                    d = dist_matrix(size_fc, x_star, y_star)
-                    for i in range(d.shape[0]):
-                        fc_fr_rad[:,i] = interp_trans(d[i])*fc_fr[:,i]
+                    if radial_gradient:
+                        y_star = pceny
+                        x_star = pcenx - rad
+                        d = dist_matrix(size_fc, x_star, y_star)
+                        for i in range(d.shape[0]):
+                            fc_fr_rad[:,i] = interp_trans(d[i])*fc_fr[:,i]
+                            
+                        # check the effect of transmission on a single PSF tmp
+                        psf_trans = frame_rotate(fc_fr_rad[0],
+                                                 -(ang*180/np.pi-angle_list[0]),
+                                                 imlib=imlib_rot,
+                                                 interpolation=interpolation)
                         
-                    # check the effect of transmission on a single PSF tmp
-                    psf_trans = frame_rotate(fc_fr_rad[0],
-                                             -(ang*180/np.pi-angle_list[0]),
-                                             imlib=imlib_rot,
-                                             interpolation=interpolation)
-                    
-                    shift_y = rad * np.sin(ang - np.deg2rad(angle_list[0]))
-                    shift_x = rad * np.cos(ang - np.deg2rad(angle_list[0]))
-                    dsy = shift_y-int(shift_y)
-                    dsx = shift_x-int(shift_x)
-                    fc_fr_ang = frame_shift(psf_trans, dsy, dsx, imlib_sh, 
-                                            interpolation, 
-                                            border_mode='constant')
-                    
+                        shift_y = rad * np.sin(ang - np.deg2rad(angle_list[0]))
+                        shift_x = rad * np.cos(ang - np.deg2rad(angle_list[0]))
+                        dsy = shift_y-int(shift_y)
+                        dsx = shift_x-int(shift_x)
+                        fc_fr_ang = frame_shift(psf_trans, dsy, dsx, imlib_sh, 
+                                                interpolation, 
+                                                border_mode='constant')
+                    else:
+                        fc_fr_rad = interp_trans(rad)*fc_fr
                 for fr in range(nframes):
                     shift_y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
                     shift_x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
-                    if transmission is not None:                       
+                    if transmission is not None and radial_gradient:                       
                         fc_fr_ang = frame_rotate(fc_fr_rad[fr], 
                                                  -(ang*180/np.pi-angle_list[fr]),
                                                  imlib=imlib_rot,
                                                  interpolation=interpolation)
                     else:
-                        fc_fr_ang = fc_fr[fr]
+                        fc_fr_ang = fc_fr_rad[fr]
                         
                     if np.isscalar(flevel):
                         fac = flevel
@@ -288,7 +298,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     if array.ndim == 3:
         res = _cube_inject_adi(array, psf_template, angle_list, flevel, plsc, 
                                rad_dists, n_branches, theta, imlib, 
-                               interpolation, transmission, verbose)
+                               interpolation, transmission, radial_gradient, 
+                               verbose)
         array_out, positions, psf_trans = res
 
     # ADI+mSDI (IFS) case
@@ -320,7 +331,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
             res = _cube_inject_adi(array[i], psf_template[i], angle_list, 
                                    flevel_all[i], plsc, rad_dists, n_branches, 
                                    theta, imlib, interpolation, trans, 
-                                   verbose=i==0)
+                                   radial_gradient, verbose=i==0)
             array_out[i], positions, psf_trans = res
 
     if full_output:

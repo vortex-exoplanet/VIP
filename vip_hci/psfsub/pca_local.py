@@ -5,7 +5,7 @@ Module with local/smart PCA (annulus or patch-wise in a multi-processing
 fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
+__author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
 __all__ = ['pca_annular']
 
 import numpy as np
@@ -21,10 +21,10 @@ from ..var import get_annulus_segments, matrix_scaling
 from ..stats import descriptive_stats
 from .svd import get_eigenvectors
 
-def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
-                fwhm=4, asize=4, n_segments=1, delta_rot=(0.1, 1),
-                delta_sep=(0.1, 1), ncomp=1, svd_mode='lapack', nproc=1,
-                min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
+def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0, 
+                fwhm=4, asize=4, n_segments=1, delta_rot=(0.1, 1), 
+                delta_sep=(0.1, 1), ncomp=1, svd_mode='lapack', nproc=1, 
+                min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None, 
                 imlib='vip-fft', interpolation='lanczos4', collapse='median',
                 collapse_ifs='mean', ifs_collapse_range='all', 
                 full_output=False, verbose=True, weights=None, cube_sig=None, 
@@ -341,14 +341,14 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
 ################################################################################
 
 
-def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep, ncomp, 
-                svd_mode, tol, scaling, imlib, interpolation, collapse,
+def _pca_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep, ncomp, 
+                svd_mode, tol, scaling, imlib, interpolation, collapse, 
                 ifs_collapse_range):
     """ Optimized PCA subtraction on a multi-spectral frame (IFS data).
     """
     z, n, y_in, x_in = ARRAY.shape
 
-    scale_list = check_scal_vector(wl)
+    scale_list = check_scal_vector(scal)
     # rescaled cube, aligning speckles
     multispec_fr = scwave(ARRAY[:, fr, :, :], scale_list,
                           imlib=imlib, interpolation=interpolation)[0]
@@ -393,7 +393,7 @@ def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
             matrix = matrix_scaling(matrix, scaling)
 
             for j in range(z):
-                indices_left = _find_indices_sdi(wl, ann_center, j,
+                indices_left = _find_indices_sdi(scal, ann_center, j,
                                                  fwhm, delta_sep_vec[ann])
                 matrix_ref = matrix[indices_left]
                 curr_frame = matrix[j]  # current frame
@@ -412,6 +412,7 @@ def _pca_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
     else:
         idx_ini = ifs_collapse_range[0]
         idx_fin = ifs_collapse_range[1]
+        
     frame_desc = scwave(cube_res[idx_ini:idx_fin], scale_list[idx_ini:idx_fin],
                         full_output=False, inverse=True,
                         y_in=y_in, x_in=x_in, imlib=imlib,

@@ -376,6 +376,17 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     See description of ``mu_sigma`` and ``sigma`` for more details on 
     :math:`\sigma`.
     
+    *Speed tricks*:
+        - crop your input cube to a size such as to just include the annulus on\
+        which the PCA is performed;
+        - set `imlib='opencv'` (much faster image rotations, BUT at the expense\
+        of flux conservation);
+        - increase `nproc` (if your machine allows);
+        - reduce `ac_c` (or increase `rhat_threshold` if `conv_test='gb'`) for\
+        a faster convergence);
+        - reduce `niteration_limit` to force the sampler to stop even if it has\
+        not reached convergence.
+    
     Parameters
     ----------
     cube: numpy.array

@@ -104,10 +104,9 @@ class SVDecomposer:
         ``spat-standard``: spatial mean centering plus scaling pixel values
         to unit variance.
 
-    wavelengths : numpy ndarray, optional
-        Wavelengths in case of a 4d HCI cube. These are used to compute
-        scaling factors for re-scaling the spectral channels and aligning
-        the speckles.
+    scale_list : numpy ndarray, optional
+        Scaling factors to be used for re-scaling the spectral channels and
+        aligning the speckles in the case of 4D HCI cubes.
 
     verbose : bool, optional
         If True intermediate messages and timing are printed.
@@ -118,7 +117,7 @@ class SVDecomposer:
     https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/decomposition/pca.py
     """
     def __init__(self, data, mode='fullfr', inrad=None, outrad=None,
-                 svd_mode='lapack', scaling='temp-standard', wavelengths=None,
+                 svd_mode='lapack', scaling='temp-standard', scale_list=None,
                  verbose=True):
         """
         """
@@ -129,7 +128,7 @@ class SVDecomposer:
         self.inrad = inrad
         self.outrad = outrad
         self.scaling = scaling
-        self.wavelengths = wavelengths
+        self.scale_list = scale_list
         self.verbose = verbose
 
         if self.mode == 'annular':
@@ -157,13 +156,13 @@ class SVDecomposer:
                 cube_ = self.data
 
             elif self.data.ndim == 4:
-                if self.wavelengths is None:
-                    raise ValueError("`wavelengths` must be provided when "
+                if self.scale_list is None:
+                    raise ValueError("`scale_list` must be provided when "
                                      "`data` is a 4D array")
                 z, n_frames, y_in, x_in = self.data.shape
-                scale_list = check_scal_vector(self.wavelengths)
+                scale_list = check_scal_vector(self.scale_list)
                 if not scale_list.shape[0] == z:
-                    raise ValueError("`wavelengths` length is {} instead of "
+                    raise ValueError("`scale_list` length is {} instead of "
                                      "{}".format(scale_list.shape[0], z))
                 big_cube = []
                 # Rescaling the spectral channels to align the speckles

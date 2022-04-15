@@ -577,8 +577,9 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         automatically.
     cy,cx : float or 1D array. opt
         Vector with approximate y and x coordinates of the star for each channel
-        (cube_like), or single 2-elements vector (frame_like). Should be 
-        provided if bpix_map is None and protect_psf set to True.
+        (cube_like), or single 2-elements vector (frame_like). These will be 
+        used if bpix_map is None and protect_mask set to True. If left to None,
+        default values will correspond to the central pixel coordinates.
     fwhm: float or 1D array, opt
         Vector containing the full width half maximum of the PSF in pixels, for
         each channel (cube_like); or single value (frame_like). Shouod be 
@@ -739,9 +740,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
     if ndims == 2:
         if bpm_mask is None:
             if (cy is None or cx is None) and protect_mask:
-                cen = approx_stellar_position([obj_tmp], fwhm)
-                cy = cen[0,0]
-                cx = cen[0,1]
+                cy, cx = frame_center(array)
             obj_tmp, bpix_map_cumul = bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, 
                                                     protect_mask, min_thr, 
                                                     half_res_y, mad, verbose)
@@ -758,9 +757,9 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         n_z = obj_tmp.shape[0]
         if bpm_mask is None:
             if cy is None or cx is None:
-                cen = approx_stellar_position(obj_tmp, fwhm)
-                cy = cen[:,0]
-                cx = cen[:,1]
+                cy, cx = frame_center(array)
+                cy = [cy]*n_z
+                cx = [cx]*n_z
             elif isinstance(cy, (float,int)) and isinstance(cx, (float,int)): 
                 cy = [cy]*n_z
                 cx = [cx]*n_z

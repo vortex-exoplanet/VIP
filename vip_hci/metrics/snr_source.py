@@ -408,7 +408,8 @@ def significance(snr, rad, fwhm, student_to_gauss=True):
         sigma = norm.ppf(t.cdf(snr,(rad/fwhm)*2*np.pi-2))
         if t.cdf(snr,(rad/fwhm)*2*np.pi-2)==1.0:
             print("Warning high S/N! cdf>0.9999999999999999 is rounded to 1")
-            print(r"Returning 8.2 instead of inf. Quote detection>8.2 $\sigma$")
+            msg = "Returning 8.2 sigma, but quote significance > 8.2 sigma."
+            print(msg)
             return 8.2
     else:
         sigma = t.ppf(norm.cdf(snr), (rad/fwhm)*2*np.pi-2)

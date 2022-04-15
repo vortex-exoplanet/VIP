@@ -39,6 +39,13 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
         Input cube.
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
+    scale_list : numpy ndarray, 1d, optional
+        If provided, triggers mSDI reduction. These should be the scaling 
+        factors used to re-scale the spectral channels and align the speckles
+        in case of IFS data (ADI+mSDI cube). Usually, these can be approximated 
+        by the last channel wavelength divided by the other wavelengths in the 
+        cube (more thorough approaches can be used to get the scaling factors,
+        e.g. with ``vip_hci.preproc.find_scal_vector``). 
     fwhm : float, optional
         Size of the FHWM in pixels. Default is 4.
     metric : str, optional

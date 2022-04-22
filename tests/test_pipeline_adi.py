@@ -98,6 +98,19 @@ def algo_andromeda_fast(ds):
     contrast, snr, snr_n, stdcontrast, stdcontrast_n, likelihood, r = res
     return snr_n
 
+def algo_fmmf_klip(ds):
+    res = vip.invprob.fmmf(ds.cube[:,:-1,:-1],
+                          ds.angles, ds.psf,ds.fwhm,min_r=25,
+                max_r=35, model='KLIP')
+    flux_m, snr_n = res
+    return snr_n
+
+def algo_fmmf_loci(ds):
+    res = vip.invprob.fmmf(ds.cube[:,:-1,:-1],
+                          ds.angles, ds.psf,ds.fwhm,min_r=25,
+                max_r=35, model='LOCI')
+    flux_m, snr_n = res
+    return snr_n
 
 
 
@@ -162,7 +175,8 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
         (algo_pca_annular, snrmap_fast),
         (algo_andromeda, None),
         (algo_andromeda_fast, None),
-
+        (algo_fmmf_klip, None),
+        (algo_fmmf_loci, None),
     ],
     ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
 def test_algos(injected_cube_position, algo, make_detmap):

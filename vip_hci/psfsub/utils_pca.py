@@ -28,7 +28,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
              collapse='median', ifs_collapse_range='all', verbose=True, 
              full_output=False, debug=False, plot=True, save_plot=None, 
              start_time=None, scale_list=None, initial_4dshape=None, 
-             weights=None, **rot_options):
+             weights=None, exclude_negative_lobes=False, **rot_options):
     """
     Compute a grid, depending on ``range_pcs``, of residual PCA frames out of a
     3d ADI cube (or a reference cube). If ``source_xy`` is provided, the number
@@ -155,6 +155,9 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
     weights: 1d numpy array or list, optional
         Weights to be applied for a weighted mean. Need to be provided if 
         collapse mode is 'wmean'.
+    exclude_negative_lobes : bool, opt
+        Whether to include the adjacent aperture lobes to the tested location 
+        or not. Can be set to True if the image shows significant neg lobes.
     rot_options: dictionary, optional
         Dictionary with optional keyword values for "nproc", "imlib", 
         "interpolation", "border_mode", "mask_val",  "edge_blend", 
@@ -236,6 +239,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         if fmerit == 'max':
             yy, xx = disk((y, x), fwhm / 2.)
             res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
+                       exclude_negative_lobes=exclude_negative_lobes, 
                        full_output=True)
                    for y_, x_ in zip(yy, xx)]
             snr_pixels = np.array(res, dtype=object)[:, -1]
@@ -246,6 +250,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
 
         elif fmerit == 'px':
             res = snr(frame, (x, y), fwhm, plot=False, verbose=False,
+                      exclude_negative_lobes=exclude_negative_lobes, 
                       full_output=True)
             snrpx = res[-1]
             fluxpx = np.array(res, dtype=object)[2]
@@ -255,6 +260,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         elif fmerit == 'mean':
             yy, xx = disk((y, x), fwhm / 2.)
             res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
+                       exclude_negative_lobes=exclude_negative_lobes, 
                        full_output=True) for y_, x_
                    in zip(yy, xx)]
             snr_pixels = np.array(res, dtype=object)[:, -1]
@@ -694,13 +700,27 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         if cube_ref is not None:
             if cube_ref.ndim == 3:
                 cube_ref = [cube_ref]*nch
+        if not isinstance(ncomp, list):
+            ncomp = [ncomp]*nch
+        elif isinstance(ncomp, list) and len(ncomp) != nch:
+            msg = "If ncomp is a list, in the case of a 4d input cube without "
+            msg+= "input scale_list, it should have the same length as the "
+            msg+= "first dimension of the cube."
+            raise TypeError()
         if collapse is None:
             raise ValueError("mode not supported. Provide value for collapse")
         ifs_res = np.zeros([nch,cube.shape[2], cube.shape[3]])
         for ch in range(nch):
-            ifs_res[ch] = _pca_annulus_3d(cube[ch], angs, ncomp, annulus_width, 
-                                          r_guess, cube_ref[ch], svd_mode, 
-                                          scaling, collapse, weights, 
+            if cube_ref is not None:
+                if cube_ref[ch].ndim != 3:
+                    msg="Ref cube has wrong format for 4d input cube"
+                    raise TypeError(msg)
+                cube_ref_tmp=cube_ref[ch]
+            else:
+                cube_ref_tmp = cube_ref
+            ifs_res[ch] = _pca_annulus_3d(cube[ch], angs, ncomp[ch], 
+                                          annulus_width, r_guess, cube_ref_tmp, 
+                                          svd_mode, scaling, collapse, weights, 
                                           **rot_options)
         return cube_collapse(ifs_res, mode=collapse_ifs)
     

@@ -38,7 +38,6 @@ else:
     from skimage.registration import phase_cross_correlation as cc_center
 from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
-from . import frame_crop
 from ..config import time_ini, timing, Progressbar
 from ..config.utils_conf import vip_figsize, check_array
 from ..config.utils_conf import pool_map, iterable
@@ -46,7 +45,7 @@ from ..stats import frame_basic_stats
 from ..var import (get_square, frame_center, get_annulus_segments,
                    fit_2dmoffat, fit_2dgaussian, fit_2dairydisk,
                    fit_2d2gaussian, cube_filter_lowpass, cube_filter_highpass)
-from ..preproc import cube_crop_frames
+from .cosmetics import cube_crop_frames, frame_crop
 
 
 def frame_shift(array, shift_y, shift_x, imlib='vip-fft',

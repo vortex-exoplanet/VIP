@@ -730,8 +730,7 @@ def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev",
     scal_vec: numpy ndarray, 1d
         Vector containing the scaling factors (after correction to comply with
         the condition >= 1).
-    if nfp==2, also returns:
-    flux_vec: numpy ndarray, 1d
+    flux_vec: numpy ndarray, 1d [only returned if nfp==2]
         Vector containing the associated flux factors.
     """
 

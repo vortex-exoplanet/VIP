@@ -6,11 +6,12 @@ Module with functions for correcting bad pixels in cubes.
 
 
 
-__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens'
+__author__ = 'V. Christiaens, Carlos Alberto Gomez Gonzalez'
 __all__ = ['frame_fix_badpix_isolated',
            'cube_fix_badpix_isolated',
            'cube_fix_badpix_annuli',
            'cube_fix_badpix_clump',
+           'cube_fix_badpix_ifs',
            'cube_fix_badpix_with_kernel']
 
 import numpy as np
@@ -21,7 +22,7 @@ from ..stats import sigma_filter
 from ..var import frame_center, get_annulus_segments, frame_filter_lowpass
 from ..stats import clip_array
 from ..config import timing, time_ini, Progressbar
-from .cosmetics import approx_stellar_position
+from .rescaling import find_scal_vector, frame_rescaling
 
 import warnings
 try:
@@ -190,7 +191,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     ------
     array_out : numpy ndarray
         Cube with bad pixels corrected.
-    bpm_mask: 2d or 3d array
+    bpm_mask: 2d or 3d array [if full_output is True]
         The bad pixel map or the cube of bpix maps
     """
     if array.ndim != 3:
@@ -233,8 +234,16 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
         if np.isscalar(cx):
             cx = [cx]*nz
             cy = [cy]*nz
+        if bpm_mask is not None:
+            if bpm_mask.ndim == 2:
+                bpm_mask = [bpm_mask]*n_frames
+                bpm_mask = np.array(bpm_mask)
         for i in Progressbar(range(n_frames), desc="processing frames"):
-            res = frame_fix_badpix_isolated(array[i], bpm_mask=bpm_mask, 
+            if bpm_mask is not None:
+                bpm_mask_tmp = bpm_mask[i]
+            else:
+                bpm_mask_tmp = None
+            res = frame_fix_badpix_isolated(array[i], bpm_mask=bpm_mask_tmp, 
                                             sigma_clip=sigma_clip,
                                             num_neig=num_neig, size=size, 
                                             protect_mask=protect_mask, 
@@ -257,13 +266,18 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
                 cir = disk((cy, cx), protect_mask, shape=final_bpm.shape)
                 final_bpm[cir] = 0
             final_bpm = final_bpm.astype('bool')
+        else:
+            if bpm_mask.ndim == 3:
+                final_bpm = np.median(bpm_mask, axis=0)
+            else:
+                final_bpm = bpm_mask.copy()
     
         for i in Progressbar(range(n_frames), desc="processing frames"):
             frame = array_out[i]
             smoothed = median_filter(frame, size, mode='mirror')
             frame[np.where(final_bpm)] = smoothed[np.where(final_bpm)]
             if verbose: 
-                count_bp+=np.sum(final_bpm)  
+                count_bp += np.sum(final_bpm)
             
     if verbose: 
         msg = "Done replacing {:.0f} bad pixels using the median of neighbors"
@@ -280,7 +294,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
 
 
 def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., 
-                           protect_mask=0, r_in_std=10, r_out_std=None,
+                           protect_mask=0, r_in_std=50, r_out_std=None,
                            verbose=True, half_res_y=False, min_thr=None, 
                            max_thr=None, full_output=False):
     """
@@ -314,15 +328,16 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
         If larger than 0, radius of a circular aperture (at the center of the 
         frames) in which no bad pixels will be identified. This can be useful 
         to protect the star and vicinity.
-    r_in_std: float, optional
-        Inner radius in fwhm for the calculation of the standard 
-        deviation of the background - used for min threshold 
-        to consider bad pixels. Default: 10 FWHM.
+    r_in_std: float or None, optional
+        Inner radius (in pixels) of the annulus used for the calculation of the
+        standard deviation of the background noise - used as a min threshold 
+        when identifying bad pixels. Default: 50.
     r_out_std: float or None, optional
-        Outer radius in fwhm for the calculation of the standard 
-        deviation of the background - used for min threshold 
-        to consider bad pixels. If set to None, the default will be to 
-        consider the largest annulus that fits within the frame.
+        Outer radius in pixels of the annulus used for the calculation of the 
+        standard deviation of the background noise - used as a min threshold 
+        when identifying bad pixels. If set to None, the default will be to 
+        consider the largest annulus starting at r_in_std which fits within the 
+        frame.
     verbose: bool, {False, True}, optional
         Whether to print out the number of bad pixels in each frame. 
     half_res_y: bool, {True,False}, optional
@@ -459,8 +474,7 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
                     n_rm += 1
                 else:
                     max_neigh = np.amax(neigh)
-                    if reject_outliers(neigh, max_neigh, m=5, 
-                                            stddev=stddev):
+                    if reject_outliers(neigh, max_neigh, m=5, stddev=stddev):
                         max_idx = np.argmax(neigh)
                         neigh = np.delete(neigh,max_idx)
                         n_rm += 1
@@ -515,12 +529,9 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
         return obj_tmp_corr, bpix_map, ann_frame_cumul
 
 
-
+    if cy is None or cx is None:
+        cy, cx = frame_center(obj_tmp)
     if ndims == 2:
-        if cy is None or cx is None:
-            cen = approx_stellar_position([obj_tmp], fwhm)
-            cy = cen[0,0]
-            cx = cen[0,1]
         obj_tmp, bpix_map, ann_frame_cumul = bp_removal_2d(obj_tmp, cy, cx, 
                                                            fwhm, sig, 
                                                            protect_mask, 
@@ -532,11 +543,7 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
         ann_frame_cumul = np.zeros_like(obj_tmp)
         if isinstance(fwhm, (int,float)):
             fwhm = [fwhm]*n_z
-        if cy is None or cx is None:
-            cen = approx_stellar_position(obj_tmp, fwhm)
-            cy = cen[:,0]
-            cx = cen[:,1]
-        elif isinstance(cy, (float,int)) and isinstance(cx, (float,int)): 
+        if isinstance(cy, (float,int)) and isinstance(cx, (float,int)): 
             cy = [cy]*n_z
             cx = [cx]*n_z
         for i in range(n_z):
@@ -668,8 +675,9 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
             if half_res_y: 
                 circl_new = ellipse(int(cy/2), cx, r_radius=0.5*protect_mask, 
                                     c_radius=protect_mask, shape=(n_y, n_x))
-            else: circl_new = disk((cy, cx), radius=protect_mask, 
-                                   shape=(n_y, n_x))
+            else:
+                circl_new = disk((cy, cx), radius=protect_mask, 
+                                 shape=(n_y, n_x))
         else: circl_new = []
     
 
@@ -796,6 +804,213 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         return obj_tmp, bpix_map_cumul
     else:
         return obj_tmp
+    
+    
+def cube_fix_badpix_ifs(array, lbdas, fluxes=None, mask=None, cy=None, cx=None, 
+                        clumps=True, sigma_clip=3, num_neig=5, size=5, 
+                        protect_mask=0, mad=False, fwhm=4, min_thr=None, 
+                        max_nit=15, imlib='vip-fft', interpolation='lanczos4', 
+                        ignore_nan=True, verbose=True, full_output=False):
+    """
+    Function to identify and correct bad pixels in an IFS cube, leveraging on 
+    the radial expansion of the PSF with wavelength.
+    Bad pixel identification is done with either the `cube_fix_badpix_isolated` 
+    or the `cube_fix_badpix_clump` function in PSF subtracted frames (through SDI).
+    
+    Parameters
+    ----------
+    array : 3D or 4D array 
+        Input 3d cube or 2d image.
+    lbdas: 1d array or list
+        Vector with the wavelengths, used for first guess on scaling factor.
+    fluxes: 1d array or list, optional
+        Vector with the (unsaturated) fluxes at the different wavelengths, 
+        used for first guess on flux factor.
+    mask: 2D-array, opt
+        Binary mask, with ones where the residual intensities should be 
+        evaluated. If None is provided, the whole field is used.
+    cy, cx : None, float or 1D array, optional
+        If None: will use the barycentre of the image found by 
+        photutils.centroid_com()
+        If floats: coordinates of the center, assumed to be the same in all 
+        frames if the input is a cube.
+        If 1D arrays: they must be the same length as the 0th dimension of the
+        input cube.
+    clumps: bool, optional
+        Whether to use `cube_fix_badpix_clump` (True) or 
+        `cube_fix_badpix_isolated` (False) in the SDI residual cube.
+    sigma_clip : int, optional
+        In case no bad pixel mask is provided all the pixels above and below
+        sigma_clip*STDDEV will be marked as bad. 
+    num_neig : int, optional
+        The side of the square window around each pixel where the sigma clipped
+        statistics are calculated (STDDEV and MEDIAN). If the value is equal to
+        0 then the statistics are computed in the whole frame.
+    size : odd int, optional
+        The size the box (size x size) of adjacent pixels for the median filter.
+    protect_mask : int or float, optional
+        If larger than 0, radius of a circular aperture (at the center of the 
+        frames) in which no bad pixels will be identified. This can be useful 
+        to protect the star and vicinity.
+    mad : {False, True}, bool optional
+        If True, the median absolute deviation will be used instead of the 
+        standard deviation.  
+    fwhm: float or 1D array, opt
+        Vector containing the full width half maximum of the PSF in pixels, for
+        each channel (cube_like); or single value (frame_like). Shouod be 
+        provided if bpix map is None.
+    min_thr: float, tuple or None, opt
+        If a float is provided, corresponds to a minimum absolute threshold 
+        below which pixels are not considered bad in the residua images (can be 
+        used to avoid the identification of bad pixels within noise).
+        If a tuple of 2 values, corresponds to the range of values within which 
+        not to consider a pixel as bad, in the residual images (e.g. (-1, 5)).
+    max_nit: float, optional
+        Maximum number of iterations on a frame to correct bpix. Typically, it 
+        should be set to less than ny/2 or nx/2. This is a mean of precaution in
+        case the algorithm gets stuck with 2 neighbouring pixels considered bpix
+        alternately on two consecutively iterations hence leading to an infinite
+        loop (very very rare case).
+        
+    ignore_nan: bool, optional
+        Whether to not consider NaN values as bad pixels. If False, will also 
+        correct them.
+    verbose : bool, optional
+        If True additional information will be printed.
+    full_output: bool, {False,True}, optional
+        Whether to return as well the cube of bad pixel maps and the cube of 
+        defined annuli.
+        
+    Return
+    ------
+    array_out : numpy ndarray
+        Cube with bad pixels corrected.
+    bpm_mask: 2d or 3d array [if full_output is True]
+        The bad pixel map or the cube of bpix maps
+    array_res: 2d or 3d array [if full_output is True]
+        SDI-residual cube in which bad pixels are identified   
+    """
+
+    def _res_scaled_images(array, lbdas, fluxes, mask, cy, cx):
+        if fluxes is None:
+            fluxes = [1]*len(lbdas)
+        if cx is None or cy is None:
+            ref_xy = None
+        else:
+            ref_xy = (cx, cy)
+        scal_vec, flux_vec = find_scal_vector(array, lbdas, fluxes, mask=mask, 
+                                              nfp=2, fm="sum")
+        res_array = np.zeros_like(array)
+        for z in range(array.shape[0]):
+            other_ch = [i for i in range(array.shape[0]) if i!= z]
+            res_arr_tmp = []
+            for zp in other_ch:
+                flux_scal = flux_vec[zp]/flux_vec[z]
+                resc_fr = frame_rescaling(flux_scal*array[zp], ref_xy=ref_xy, 
+                                          scale=scal_vec[zp]/scal_vec[z], 
+                                          imlib=imlib, 
+                                          interpolation=interpolation)
+                res_arr_tmp.append(array[z]-resc_fr)
+            res_arr_tmp = np.array(res_arr_tmp)
+            res_array[z] = np.median(res_arr_tmp, axis=0)
+            
+        return res_array
+    
+    cube = array.copy()
+    ndims = cube.ndim
+    
+    if cy is None or cx is None:
+        cxy = None
+    else:
+        cy, cx = frame_center(cube)
+        cxy = (cx, cy)
+
+    if ndims == 3:
+        array_res = _res_scaled_images(cube, lbdas, fluxes, mask, cy, cx)
+        # bad pixel identification in residual cube
+        if clumps:
+            _, final_bpm = cube_fix_badpix_clump(array_res, bpm_mask=None, 
+                                                 cy=cy, cx=cx, fwhm=fwhm, 
+                                                 sig=sigma_clip, 
+                                                 protect_mask=protect_mask, 
+                                                 verbose=verbose, 
+                                                 min_thr=min_thr, 
+                                                 max_nit=max_nit, mad=mad,
+                                                 full_output=True)
+        else:
+            _, final_bpm = cube_fix_badpix_isolated(array_res, bpm_mask=None, 
+                                                    sigma_clip=sigma_clip, 
+                                                    num_neig=num_neig, 
+                                                    size=size, 
+                                                    frame_by_frame=True, 
+                                                    protect_mask=protect_mask, 
+                                                    cxy=cxy, mad=mad, 
+                                                    ignore_nan=ignore_nan, 
+                                                    verbose=verbose, 
+                                                    full_output=True)
+        final_bpm[np.where(final_bpm>1)]=1
+        # bad pixel correction in original cube
+        array_out = cube_fix_badpix_isolated(cube, bpm_mask=final_bpm, 
+                                             sigma_clip=sigma_clip, 
+                                             num_neig=num_neig, size=size, 
+                                             frame_by_frame=True, 
+                                             protect_mask=protect_mask, 
+                                             cxy=cxy, mad=mad, 
+                                             ignore_nan=ignore_nan, 
+                                             verbose=verbose, full_output=False)
+            
+    elif ndims == 4:
+        n_z = cube.shape[1]
+        array_out = np.zeros_like(cube)
+        array_res = np.zeros_like(cube)
+        final_bpm = np.zeros_like(cube)
+        if isinstance(cy, (float,int)) and isinstance(cx, (float,int)): 
+            cy = [cy]*n_z
+            cx = [cx]*n_z
+        for i in range(n_z):
+            if verbose:
+                print('************ Cube #{}/{} *************'.format(i+1, n_z))
+            array_res[:,i] = _res_scaled_images(cube[:,i], lbdas, fluxes, mask, 
+                                                cy, cx)
+
+            # bad pixel identification in residual cube
+            if clumps:
+                res = cube_fix_badpix_clump(array_res[:, i], bpm_mask=None, 
+                                            cy=cy, cx=cx, fwhm=fwhm, 
+                                            sig=sigma_clip, 
+                                            protect_mask=protect_mask, 
+                                            verbose=verbose, min_thr=min_thr, 
+                                            max_nit=max_nit, mad=mad,
+                                            full_output=True)
+            else:
+                res = cube_fix_badpix_isolated(array_res[:, i], bpm_mask=None, 
+                                               sigma_clip=sigma_clip, 
+                                               num_neig=num_neig, size=size, 
+                                               frame_by_frame=True, 
+                                               protect_mask=protect_mask, 
+                                               cxy=cxy, mad=mad, 
+                                               ignore_nan=ignore_nan, 
+                                               verbose=verbose, full_output=True)
+            _, final_bpm[:,i] = res
+            final_bpm[np.where(final_bpm>1)]=1
+            # bad pixel correction in original cube
+            array_out[:,i] = cube_fix_badpix_isolated(cube[:,i], final_bpm[:,i], 
+                                                      sigma_clip, num_neig, 
+                                                      size, True,
+                                                      protect_mask=protect_mask, 
+                                                      cxy=cxy, mad=mad, 
+                                                      ignore_nan=ignore_nan, 
+                                                      verbose=verbose, 
+                                                      full_output=False)
+                
+    else:
+        raise TypeError("Input cube should be 3d or 4d")
+        
+        
+    if full_output:
+        return array_out, final_bpm, array_res
+    else:
+        return array_out
     
     
 def cube_fix_badpix_with_kernel(array, bpm_mask, mode='gauss', fwhm=4., 

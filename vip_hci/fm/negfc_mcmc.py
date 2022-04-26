@@ -119,7 +119,7 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, ncomp,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
-    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
+    collapse : {'median', 'mean', 'sum', 'trimmean', 'wmean'}, str, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
@@ -281,7 +281,7 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
         scaling, imlib, interpolation or collapse can also be included in this
         dict (the latter are also kept as function arguments for consistency
         with older versions of vip). 
-    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
+    collapse : {'median', 'mean', 'sum', 'trimmean', 'wmean'}, str, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
@@ -376,6 +376,17 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     See description of ``mu_sigma`` and ``sigma`` for more details on 
     :math:`\sigma`.
     
+    *Speed tricks*:
+        - crop your input cube to a size such as to just include the annulus on\
+        which the PCA is performed;
+        - set `imlib='opencv'` (much faster image rotations, BUT at the expense\
+        of flux conservation);
+        - increase `nproc` (if your machine allows);
+        - reduce `ac_c` (or increase `rhat_threshold` if `conv_test='gb'`) for\
+        a faster convergence);
+        - reduce `niteration_limit` to force the sampler to stop even if it has\
+        not reached convergence.
+    
     Parameters
     ----------
     cube: numpy.array
@@ -432,7 +443,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         ``vip_hci.preproc.frame_rotate`` function. Note that the interpolation 
         options are identical for rotation and shift within each of the 3 imlib 
         cases above.
-    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
+    collapse : {'median', 'mean', 'sum', 'trimmean', 'wmean'}, str, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).

@@ -38,7 +38,6 @@ else:
     from skimage.registration import phase_cross_correlation as cc_center
 from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
-from . import frame_crop
 from ..config import time_ini, timing, Progressbar
 from ..config.utils_conf import vip_figsize, check_array
 from ..config.utils_conf import pool_map, iterable
@@ -46,7 +45,7 @@ from ..stats import frame_basic_stats
 from ..var import (get_square, frame_center, get_annulus_segments,
                    fit_2dmoffat, fit_2dgaussian, fit_2dairydisk,
                    fit_2d2gaussian, cube_filter_lowpass, cube_filter_highpass)
-from ..preproc import cube_crop_frames
+from .cosmetics import cube_crop_frames, frame_crop
 
 
 def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
@@ -568,10 +567,10 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         print("Final xy positions for sat spots:", final_xy)
         print('Looping through the frames, fitting the intersections:')
     for i in Progressbar(range(n_frames), verbose=verbose):
-        res = frame_center_satspots(array[i], final_xy[i], debug=debug, shift=True,
-                                    subi_size=subi_size, sigfactor=sigfactor,
-                                    fit_type=fit_type, verbose=False,
-                                    border_mode=border_mode)
+        res = frame_center_satspots(array[i], final_xy[i], debug=debug, 
+                                    shift=True, subi_size=subi_size, 
+                                    sigfactor=sigfactor, fit_type=fit_type, 
+                                    verbose=False, border_mode=border_mode)
         array_rec.append(res[0])
         shift_y[i] = res[1]
         shift_x[i] = res[2]

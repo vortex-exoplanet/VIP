@@ -112,7 +112,7 @@ def test_check_scal_vector():
     # === basic function ===
 
     res = check_scal_vector(scal_vec)
-    truth = np.array([4, 1, 2])
+    truth = np.array([1, 4, 2])
 
     aarc(res, truth)
 

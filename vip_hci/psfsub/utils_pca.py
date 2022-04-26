@@ -28,7 +28,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
              collapse='median', ifs_collapse_range='all', verbose=True, 
              full_output=False, debug=False, plot=True, save_plot=None, 
              start_time=None, scale_list=None, initial_4dshape=None, 
-             weights=None, **rot_options):
+             weights=None, exclude_negative_lobes=False, **rot_options):
     """
     Compute a grid, depending on ``range_pcs``, of residual PCA frames out of a
     3d ADI cube (or a reference cube). If ``source_xy`` is provided, the number
@@ -155,6 +155,9 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
     weights: 1d numpy array or list, optional
         Weights to be applied for a weighted mean. Need to be provided if 
         collapse mode is 'wmean'.
+    exclude_negative_lobes : bool, opt
+        Whether to include the adjacent aperture lobes to the tested location 
+        or not. Can be set to True if the image shows significant neg lobes.
     rot_options: dictionary, optional
         Dictionary with optional keyword values for "nproc", "imlib", 
         "interpolation", "border_mode", "mask_val",  "edge_blend", 
@@ -236,6 +239,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         if fmerit == 'max':
             yy, xx = disk((y, x), fwhm / 2.)
             res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
+                       exclude_negative_lobes=exclude_negative_lobes, 
                        full_output=True)
                    for y_, x_ in zip(yy, xx)]
             snr_pixels = np.array(res, dtype=object)[:, -1]
@@ -246,6 +250,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
 
         elif fmerit == 'px':
             res = snr(frame, (x, y), fwhm, plot=False, verbose=False,
+                      exclude_negative_lobes=exclude_negative_lobes, 
                       full_output=True)
             snrpx = res[-1]
             fluxpx = np.array(res, dtype=object)[2]
@@ -255,6 +260,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         elif fmerit == 'mean':
             yy, xx = disk((y, x), fwhm / 2.)
             res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
+                       exclude_negative_lobes=exclude_negative_lobes, 
                        full_output=True) for y_, x_
                    in zip(yy, xx)]
             snr_pixels = np.array(res, dtype=object)[:, -1]
@@ -596,26 +602,26 @@ def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, collapse='median',
 
 def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
                 svd_mode='lapack', scaling=None, collapse='median', 
-                weights=None, **rot_options):
+                weights=None, collapse_ifs='mean', **rot_options):
     """
-    PCA process the cube only for an annulus of a given width and at a given
-    radial distance to the frame center. It returns a PCA processed frame with 
-    only non-zero values at the positions of the annulus.
+    PCA-ADI or PCA-RDI processed only for an annulus of the cube, with a given 
+    width and at a given radial distance to the frame center. It returns a 
+    processed frame with non-zero values only at the location of the annulus.
     
     Parameters
     ----------
-    cube : numpy ndarray
-        The cube of fits images expressed as a numpy.array.
+    cube : 3d or 4d numpy ndarray
+        Input data cube to be processed by PCA.
     angs : numpy ndarray
         The parallactic angles expressed as a numpy.array.
-    ncomp : int
+    ncomp : int or 1d numpy array of int
         The number of principal component.
     annulus_width : float
         The annulus width in pixel on which the PCA is performed.
     r_guess : float
         Radius of the annulus in pixels.
-    cube_ref : numpy ndarray, 3d, optional
-        Reference library cube. For Reference Star Differential Imaging.
+    cube_ref : 3d or 4d numpy ndarray, or list of 3d numpy ndarray, optional
+        Reference library cube for Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
@@ -625,12 +631,15 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         temporal mean centering plus scaling to unit variance is done and with
         "spat-standard" spatial mean centering plus scaling to unit variance is
         performed.
-    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
-        Sets the way of collapsing the frames for producing a final image. If
-        None then the cube of residuals is returned.
+    collapse : {'median', 'mean', 'sum', 'wmean'}, str or None, optional
+        Sets the way of collapsing the residual frames to produce a final image. 
+        If None then the cube of residuals is returned.
     weights: 1d numpy array or list, optional
         Weights to be applied for a weighted mean. Need to be provided if 
-        collapse mode is 'wmean'.
+        collapse mode is 'wmean' for collapse.
+    collapse_ifs : {'median', 'mean', 'sum', 'wmean'}, str or None, optional
+        Sets the way of collapsing the spectral frames for producing a final 
+        image (in the case of a 4D input cube).
     rot_options: dictionary, optional
         Dictionary with optional keyword values for "nproc", "imlib", 
         "interpolation, "border_mode", "mask_val",  "edge_blend", 
@@ -643,42 +652,78 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     residuals is returned.
     """
     
-    inrad = int(r_guess - annulus_width / 2.)
-    outrad = int(r_guess + annulus_width / 2.)
-    data, ind = prepare_matrix(cube, scaling, mode='annular', verbose=False,
-                               inner_radius=inrad, outer_radius=outrad)
-    yy, xx = ind
-
-    if cube_ref is not None:
-        data_svd, _ = prepare_matrix(cube_ref, scaling, mode='annular',
-                                     verbose=False, inner_radius=inrad,
-                                     outer_radius=outrad)
-    else:
-        data_svd = data
-        
-    V = svd_wrapper(data_svd, svd_mode, ncomp, verbose=False)
-        
-    transformed = np.dot(data, V.T)
-    reconstructed = np.dot(transformed, V)                           
-    residuals = data - reconstructed
-    cube_zeros = np.zeros_like(cube)
-    cube_zeros[:, yy, xx] = residuals
-
-    if angs is not None:
-        cube_res_der = cube_derotate(cube_zeros, angs, **rot_options)
-        if collapse is not None:
-            pca_frame = cube_collapse(cube_res_der, mode=collapse, w=weights)
-            return pca_frame
+    def _pca_annulus_3d(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
+                        svd_mode, scaling, collapse, weights,  **rot_options): 
+        inrad = int(r_guess - annulus_width / 2.)
+        outrad = int(r_guess + annulus_width / 2.)
+        data, ind = prepare_matrix(cube, scaling, mode='annular', verbose=False,
+                                   inner_radius=inrad, outer_radius=outrad)
+        yy, xx = ind
+    
+        if cube_ref is not None:
+            data_svd, _ = prepare_matrix(cube_ref, scaling, mode='annular',
+                                         verbose=False, inner_radius=inrad,
+                                         outer_radius=outrad)
         else:
-            return cube_res_der
-
-    else:
-        if collapse is not None:
-            pca_frame = cube_collapse(cube_zeros, mode=collapse, w=weights)
-            return pca_frame
-        else:
-            return cube_zeros
+            data_svd = data
             
+        V = svd_wrapper(data_svd, svd_mode, ncomp, verbose=False)
+            
+        transformed = np.dot(data, V.T)
+        reconstructed = np.dot(transformed, V)                           
+        residuals = data - reconstructed
+        cube_zeros = np.zeros_like(cube)
+        cube_zeros[:, yy, xx] = residuals
+    
+        if angs is not None:
+            cube_res_der = cube_derotate(cube_zeros, angs, **rot_options)
+            if collapse is not None:
+                pca_frame = cube_collapse(cube_res_der, mode=collapse, 
+                                          w=weights)
+                return pca_frame
+            else:
+                return cube_res_der
+    
+        else:
+            if collapse is not None:
+                pca_frame = cube_collapse(cube_zeros, mode=collapse, w=weights)
+                return pca_frame
+            else:
+                return cube_zeros
+            
+    if cube.ndim == 3:
+        return _pca_annulus_3d(cube, angs, ncomp, annulus_width, r_guess, 
+                               cube_ref, svd_mode, scaling, collapse, weights,  
+                               **rot_options)
+    elif cube.ndim == 4:
+        nch = cube.shape[0]
+        if cube_ref is not None:
+            if cube_ref.ndim == 3:
+                cube_ref = [cube_ref]*nch
+        if not isinstance(ncomp, list):
+            ncomp = [ncomp]*nch
+        elif isinstance(ncomp, list) and len(ncomp) != nch:
+            msg = "If ncomp is a list, in the case of a 4d input cube without "
+            msg+= "input scale_list, it should have the same length as the "
+            msg+= "first dimension of the cube."
+            raise TypeError()
+        if collapse is None:
+            raise ValueError("mode not supported. Provide value for collapse")
+        ifs_res = np.zeros([nch,cube.shape[2], cube.shape[3]])
+        for ch in range(nch):
+            if cube_ref is not None:
+                if cube_ref[ch].ndim != 3:
+                    msg="Ref cube has wrong format for 4d input cube"
+                    raise TypeError(msg)
+                cube_ref_tmp=cube_ref[ch]
+            else:
+                cube_ref_tmp = cube_ref
+            ifs_res[ch] = _pca_annulus_3d(cube[ch], angs, ncomp[ch], 
+                                          annulus_width, r_guess, cube_ref_tmp, 
+                                          svd_mode, scaling, collapse, weights, 
+                                          **rot_options)
+        return cube_collapse(ifs_res, mode=collapse_ifs)
+    
             
 def _compute_stim_map(cube_der):
     """

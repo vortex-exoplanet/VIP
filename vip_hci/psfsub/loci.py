@@ -39,6 +39,23 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
         Input cube.
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
+<<<<<<< HEAD
+    scale_list : numpy ndarray, 1d, optional
+        If provided, triggers mSDI reduction. These should be the scaling 
+        factors used to re-scale the spectral channels and align the speckles
+        in case of IFS data (ADI+mSDI cube). Usually, these can be approximated 
+        by the last channel wavelength divided by the other wavelengths in the 
+        cube (more thorough approaches can be used to get the scaling factors,
+        e.g. with ``vip_hci.preproc.find_scal_vector``). 
+=======
+    scale_list : numpy ndarray, 1d
+        In case of IFS data (ADI+SDI), this is the list of scaling factors used 
+        to re-scale the spectral channels and align the speckles. The scaling
+        factors should roughly be equal to the last channel wavelength divided 
+        by the other wavelengths in the spectral cube (more thorough approaches 
+        can be used to get the scaling factors, e.g. using 
+        `preproc.find_scal_vector`). 
+>>>>>>> master
     fwhm : float, optional
         Size of the FHWM in pixels. Default is 4.
     metric : str, optional
@@ -399,7 +416,7 @@ def _leastsq_patch(ayxyx,  pa_thresholds, angles, metric, dist_threshold,
     return matrix_res, yy, xx
 
 
-def _leastsq_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
+def _leastsq_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep,
                     tol, optim_scale_fact, metric, dist_threshold, solver,
                     imlib, interpolation, collapse):
     """ Optimized least-squares based subtraction on a multi-spectral frame
@@ -407,7 +424,7 @@ def _leastsq_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
     """
     z, n, y_in, x_in = ARRAY.shape
 
-    scale_list = check_scal_vector(wl)
+    scale_list = check_scal_vector(scal)
     # rescaled cube, aligning speckles
     global MULTISPEC_FR
     MULTISPEC_FR = scwave(ARRAY[:, fr, :, :], scale_list, imlib=imlib,
@@ -454,7 +471,7 @@ def _leastsq_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
         for seg in range(n_segments[ann]):
             yy = indices[seg][0]
             xx = indices[seg][1]
-            segm_res = _leastsq_patch_ifs(seg, indices, ind_opt, wl, ann_center,
+            segm_res = _leastsq_patch_ifs(seg, indices, ind_opt, scal, ann_center,
                                           fwhm, delta_sep_vec[ann], metric,
                                           dist_threshold, solver, tol)
             cube_res[:, yy, xx] = segm_res
@@ -465,7 +482,7 @@ def _leastsq_sdi_fr(fr, wl, radius_int, fwhm, asize, n_segments, delta_sep,
     return frame_desc
 
 
-def _leastsq_patch_ifs(nseg, indices, indices_opt, wl, ann_center, fwhm,
+def _leastsq_patch_ifs(nseg, indices, indices_opt, scal, ann_center, fwhm,
                        delta_sep, metric, dist_threshold, solver, tol):
     """ Helper function.
     """
@@ -487,7 +504,7 @@ def _leastsq_patch_ifs(nseg, indices, indices_opt, wl, ann_center, fwhm,
     if delta_sep > 0:
         mat_dists_ann = np.zeros_like(mat_dists_ann_full)
         for z in range(n_wls):
-            ind_fr_i = _find_indices_sdi(wl, ann_center, z, fwhm, delta_sep)
+            ind_fr_i = _find_indices_sdi(scal, ann_center, z, fwhm, delta_sep)
             mat_dists_ann[z][ind_fr_i] = mat_dists_ann_full[z][ind_fr_i]
     else:
         mat_dists_ann = mat_dists_ann_full

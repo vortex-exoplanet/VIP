@@ -1,4 +1,3 @@
-hciplot>=0.2.1
 numpy
 scipy
 astropy
@@ -15,3 +14,4 @@ pyprind
 munch
 nbsphinx
 opencv-python
+hciplot>=0.2.1

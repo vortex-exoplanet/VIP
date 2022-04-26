@@ -39,15 +39,9 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         svd_mode='lapack', scaling=None, mask_center_px=None, source_xy=None, 
         delta_rot=1, fwhm=4, adimsdi='single', crop_ifs=True, imlib='vip-fft', 
         imlib2='vip-fft', interpolation='lanczos4', collapse='median', 
-<<<<<<< HEAD
         collapse_ifs='mean', ifs_collapse_range='all', mask_rdi=None, 
         check_memory=True, batch=None, nproc=1, full_output=False, verbose=True, 
         weights=None, conv=False, cube_sig=None, **rot_options):
-=======
-        ifs_collapse_range='all', mask_rdi=None, check_memory=True, batch=None, 
-        nproc=1, full_output=False, verbose=True, weights=None, conv=False, 
-        cube_sig=None, **rot_options):
->>>>>>> master
     """ Algorithm where the reference PSF and the quasi-static speckle pattern
     are modeled using Principal Component Analysis. Depending on the input
     parameters this PCA function can work in ADI, RDI or mSDI (IFS data) mode.
@@ -817,19 +811,11 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, fwhm, source_xy,
                         "single-pass PCA")
 
 
-<<<<<<< HEAD
 def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
                        mask_center_px, svd_mode, imlib, imlib2, interpolation,
                        collapse, collapse_ifs, ifs_collapse_range, verbose, 
                        start_time, nproc, weights=None, fwhm=4, conv=False, 
                        mask_rdi=None, cube_sig=None, **rot_options):
-=======
-def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling, 
-                       mask_center_px, svd_mode, imlib, imlib2, interpolation, 
-                       collapse, ifs_collapse_range, verbose, start_time, nproc, 
-                       weights=None, fwhm=4, conv=False, mask_rdi=None, 
-                       cube_sig=None, **rot_options):
->>>>>>> master
     """
     Handle the full-frame ADI+mSDI double PCA post-processing.
 
@@ -874,11 +860,7 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
 
     res = pool_map(nproc, _adimsdi_doublepca_ifs, iterable(range(n)), ncomp_ifs,
                    scale_list, scaling, mask_center_px, svd_mode, imlib2, 
-<<<<<<< HEAD
                    interpolation, collapse_ifs, ifs_collapse_range, fwhm, conv,
-=======
-                   interpolation, collapse, ifs_collapse_range, fwhm, conv, 
->>>>>>> master
                    mask_rdi)
     residuals_cube_channels = np.array(res)
 

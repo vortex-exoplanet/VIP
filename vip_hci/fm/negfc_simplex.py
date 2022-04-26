@@ -286,7 +286,7 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
     return solu
     
 
-def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4, 
+def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, plsc=0.1, fwhm=4, 
                annulus_width=4, aperture_radius=1, cube_ref=None, 
                svd_mode='lapack', scaling=None, fmerit='sum', imlib='vip-fft',
                interpolation='lanczos4', collapse='median', algo=pca_annulus,
@@ -321,10 +321,10 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
         PSF 2d-array.
     ncomp: int
         The number of principal components.         
-    plsc: float
-        The platescale, in arcsec per pixel.  
     planets_xy_coord: array or list
         The list of (x,y) positions of the planets.
+    plsc: float, optional
+        The platescale, in arcsec per pixel.  
     fwhm : float, optional
         The FHWM in pixels.
     annulus_width: int, optional

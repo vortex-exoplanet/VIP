@@ -377,9 +377,9 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
     elif cube.ndim == 4:
         nch, nz, ny, nx = cube.shape
         ifs_adi_frames = np.zeros([nch, ny, nx])
-        if not np.isinstance(list):
+        if not isinstance(list):
             ncomp = [ncomp]*nch
-        elif np.isinstance(list) and len(ncomp) != nch:
+        elif isinstance(list) and len(ncomp) != nch:
             msg = "If ncomp is a list, in the case of a 4d input cube without "
             msg+= "input scale_list, it should have the same length as the "
             msg+= "first dimension of the cube."

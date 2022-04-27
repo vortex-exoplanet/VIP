@@ -13,11 +13,16 @@ authors:
   - name: Carlos Gomez Gonzalez
     orcid: TO BE FILLED
     affiliation: 2
+  - name: friends
+    orcid: TO BE FILLED
+    affiliation: 3
 affiliations:
  - name: Space sciences, Technologies & Astrophysics Research (STAR) Institute, Université de Liège, Belgium
    index: 1
  - name: TO BE FILLED
    index: 2
+ - name: More top-notch institutes
+   index: 3
 date: 4 May 2022
 bibliography: paper.bib
 ---

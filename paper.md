@@ -11,13 +11,13 @@ authors:
     orcid: 0000-0002-0101-8814
     affiliation: 1
   - name: Carlos Gomez Gonzalez
-    orcid: ***TO BE FILLED
+    orcid: TO BE FILLED
     affiliation: 2
 affiliations:
- - name: Space sciences, Technologies & Astrophysics Research (STAR) Institute, 
- Universite de Li\ège, Allée du Six Août 19c, B-4000 Sart Tilman, Belgium
+ - name: Space sciences, Technologies \& Astrophysics Research (STAR) Institute, 
+ Universit\'e de Li\`ege, All\'ee du Six Ao\^ut 19c, B-4000 Sart Tilman, Belgium
    index: 1
- - name: ***TO BE FILLED
+ - name: TO BE FILLED
    index: 2
 date: 4 May 2022
 bibliography: paper.bib
@@ -38,7 +38,7 @@ circumstellar disks.
 # Statement of need
 
 ``VIP`` stands for Vortex Image Processing``. It is a collaborative project 
-which started within the Vortex group at the University of Liège, and aiming to 
+which started within the Vortex group at the University of Li\`ege, and aiming to 
 integrate open-source, efficient, easy-to-use and well-documented 
 implementations of state-of-the-art algorithms used in the context of 
 high-contrast imaging. The package follows a modular architecture, such that its 

@@ -47,22 +47,23 @@ implementations of state-of-the-art algorithms used in the context of
 high-contrast imaging. The package follows a modular architecture, such that its 
 routines cover a wide diversity of tasks, including:
 
-* image pre-processing, such as sky subtraction, bad pixel correction or bad 
-frames removal (`preproc` module); 
+* image pre-processing, such as sky subtraction, bad pixel correction, bad 
+frames removal, or image alignment and star centering (`preproc` module); 
 
 * modeling and subtracting the stellar PSF using state-of-the-art algorithms 
-leveraging a range of observing strategies such as angular differential imaging
-[ADI; -@Marois:2006], reference star differential imaging [RDI; -@Racine:1999], 
-or spectral differential imaging [SDI; -@Sparks:2002; `psfsub` module]; 
-
-* detecting (and characterizing) point sources through inverse approaches 
-(`invprob` module);
+leveraging angular differential imaging (ADI), reference star differential 
+imaging (RDI), or spectral differential imaging (SDI) observing strategies 
+[@Racine:1999; @Sparks:2002; @Marois:2006] for diversity between speckle and 
+authentic circumstellar signals (`psfsub` module); 
 
 * characterizing either point sources or extended circumstellar signals through
 forward modeling (`fm` module);
 
-* assessing either the achieved contrast in PSF-subtracted images or the 
-significance of any detected point sources (`metrics` module).
+* detecting and characterizing point sources through inverse approaches 
+(`invprob` module);
+
+* assessing the achieved contrast in PSF-subtracted images, automatically 
+detecting point sources, and estimating their significance (`metrics` module).
 
 The features implemented in ``VIP`` as of 2017 are described in [@Gomez:2017]. 
 Since then, the package has been widely used by the high-contrast imaging 
@@ -76,18 +77,18 @@ development of new high-contrast imaging algorithms
 given the steady expansion of ``VIP``, a new publication is in order to 
 summarize all novelties that were brought to the package over the past 5 years.
 
-The following paragraphs summarize all major changes since v0.7.0 [@Gomez:2017], 
-included in the latest release of ``VIP`` (v1.3.0). At a structural level, 
-``VIP`` underwent a major change since version v1.1.0, which aimed to migrate 
-towards a more streamlined and easy-to-use architecture. The package now 
-revolves around five major modules (`fm`, `invprob`, `metrics`, `preproc` and 
-`psfsub`, described above), and complemented by four additional modules 
-containing different kinds of utility functions (`config`, `fits`, `stats` and 
-`var`). New `Dataset` and `Frame` classes have also been implemented, enabling 
-an object-oriented approach for processing high-contrast imaging datasets and 
-analyzing final images, respectively. Similarly, a `HCIPostProcAlgo` class and 
-different subclasses inheriting from it have beend defined to facilitate an 
-object-oriented use of ``VIP`` routines.
+The rest of this manuscript summarizes all major changes since v0.7.0 
+[@Gomez:2017], that are included in the latest release of ``VIP`` (v1.3.0). At 
+a structural level, ``VIP`` underwent a major change since version v1.1.0, which 
+aimed to migrate towards a more streamlined and easy-to-use architecture. The 
+package now revolves around five major modules (`fm`, `invprob`, `metrics`, 
+`preproc` and `psfsub`, as described above) complemented by four additional 
+modules containing different kinds of utility functions (`config`, `fits`, 
+`stats` and `var`). New `Dataset` and `Frame` classes have also been 
+implemented, enabling an object-oriented approach for processing high-contrast 
+imaging datasets and analyzing final images, respectively. Similarly, a 
+`HCIPostProcAlgo` class and different subclasses inheriting from it have been 
+defined to facilitate an object-oriented use of ``VIP`` routines.
 
 Some of the major changes in each module of ``VIP`` are summarized below:
 
@@ -110,17 +111,6 @@ Some of the major changes in each module of ``VIP`` are summarized below:
 * `metrics`: 
     - calculation of standardized trajectory maps (STIM) is now available 
     [@Pairet:2019];
-
-* `psfsub`: 
-    - all principal component analysis (PCA) based routines 
-    [@Amara:2012; @Soummer:2012] have been re-written for improved efficiency, 
-    and are now also compatible with 4D IFS+ADI input cubes to apply SDI-based 
-    PSF modeling and subtraction algorithms;
-    - an implementation of the Locally Optimal Combination of Images 
-    [@Lafreniere:2007] was added;
-    - an annular version of the non-negative matrix factorization algorithm 
-    is now available [@Lee:1999; @Gomez:2017];
-    - besides median-ADI, the `medsub` routine now also support median-SDI. 
   
 * `preproc`:
     - the module now boasts several new algorithms for (i) the identification 
@@ -133,6 +123,17 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     - a new algorithm was added for the recentering of coronagraphic image cubes 
     based on the cross-correlation of the speckle pattern, after appropriate 
     filtering and log-scaling of pixel intensities **Gary: which paper should I cite?**
+    
+* `psfsub`: 
+    - all principal component analysis (PCA) based routines 
+    [@Amara:2012; @Soummer:2012] have been re-written for improved efficiency, 
+    and are now also compatible with 4D IFS+ADI input cubes to apply SDI-based 
+    PSF modeling and subtraction algorithms;
+    - an implementation of the Locally Optimal Combination of Images 
+    [@Lafreniere:2007] was added;
+    - an annular version of the non-negative matrix factorization algorithm 
+    is now available [@Lee:1999; @Gomez:2017];
+    - besides median-ADI, the `medsub` routine now also support median-SDI. 
 
 We refer the interested reader to release descriptions and announcements in the 
 Discussion section of the GitHub for a more complete list of all
@@ -140,16 +141,16 @@ changes, including improvements not mentioned in the above summary.
 
 Two major convention updates are also to be noted in ``VIP``. All image 
 operations (rotation, scaling, resampling and sub-pixel shifts) are now 
-performed using Fourier-Transform (FT) based methods by default (which are also
-implemneted as new low-level routines in `preproc`). FT-based methods 
+performed using Fourier-Transform (FT) based methods by default. These have 
+been implemented as low-level routines in the `preproc` module. FT-based methods 
 significantly outperform interpolation-based methods in terms of flux 
 conservation [@Larkin:1997]. However, given the order of magnitude slower 
 computation of FT-based image rotations, the option to use interpolation-based 
 methods is still available in all relevant ``VIP`` functions. The second change 
 of convention concerns the assumed center for even-size images, which is now 
-defined as the top-right one of these 4 central pixels - a change motivated by 
-the new default FT-based methods for image operations. The center convention is 
-unchanged for odd-size images (central pixel).
+defined as the top-right pixel among the four central pixels of the image - a 
+change motivated by the new default FT-based methods for image operations. The 
+center convention is unchanged for odd-size images (central pixel).
 
 Finally, a total of nine jupyter notebook tutorials covering most of the 
 available features in VIP were implemented. These tutorials illustrate (i) how 

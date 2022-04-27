@@ -49,7 +49,7 @@ frames removal (`preproc` module);
 leveraging on a range of observing strategies such as angular differential 
 imaging (ADI), reference star differential imaging (RDI) or spectral 
 differential imaging (SDI; `psfsub` module) 
-[@Racine:1999, @SparksFord:2002, @Marois:2006]; 
+[@Racine:1999, @Sparks:2002, @Marois:2006]; 
 * detecting (and characterizing) point sources through inverse approaches 
 (`invprob` module);
 * characterizing either point sources or extended circumstellar signals through
@@ -58,21 +58,21 @@ forward modeling (`fm` module);
 significance of any detected point sources (`metrics` module).
 
 The features implemented in the package as of 2017 are described in 
-[@GomezGonzalez:2017]. Since then, the package has been widely used by the 
+[@Gomez:2017]. Since then, the package has been widely used by the 
 high-contrast imaging community, for the discovery of low-mass companions 
-[@Milli:2017, @Hirsch:2019, @Ubeira-Gabellini:2020], their refined 
+[@Milli:2017, @Hirsch:2019, @Ubeira:2020], their refined 
 characterization 
 [@Wertz:2017, @Delorme:2017, @Christiaens:2018, @Christiaens:2019], the study 
 of planet formation [@Ruane:2017, @Reggiani:2018, @Mauco:2020, @Toci:2020], the 
 study of high-mass star formation [@Rainot:2020, @Rainot:2022], or the 
 development of new high-contrast imaging algorithms and reduction pipelines 
-[@GomezGonzalez:2018, @Dahlqvist:2020, @Pairet:2021, @Dahlqvist:2021]. 
+[@Gomez:2018, @Dahlqvist:2020, @Pairet:2021, @Dahlqvist:2021]. 
 Nonetheless, given the steady expansion of ``VIP``, a new publication is in 
 order to summarize all novelties that were brought to the package over the past 
 5 years.
 
 The following paragraphs summarize all major changes since v0.7.0 
-[@GomezGonzalez:2017], and included in the latest release of ``VIP`` (v1.3.0). 
+[@Gomez:2017], and included in the latest release of ``VIP`` (v1.3.0). 
 At a structural level, ``VIP`` underwent a major change since version v1.1.0, 
 which aimed to migrate towards a more streamlined and easy-to-use architecture.
 The package now revolves on five major modules (`fm`, `invprob`, `metrics`, 
@@ -112,7 +112,7 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     - an implementation of the Locally Optimal Combination of Images 
     [@Lafreniere:2007] was added;
     - an annular version of the non-negative matrix factorization algorithm 
-    is now available [@Lee:1999, @GomezGonzalez:2017];
+    is now available [@Lee:1999, @Gomez:2017];
     - besides median-ADI, the `medsub` routine now also support median-SDI. 
   
 * `preproc`:

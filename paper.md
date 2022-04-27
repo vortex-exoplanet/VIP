@@ -14,7 +14,7 @@ authors:
     orcid: TO BE FILLED
     affiliation: 2
 affiliations:
- - name: Space sciences, Technologies & Astrophysics Research (STAR) Institute, \latexcode{Universit\'{e} de Li\`{e}ge}, Belgium
+ - name: Space sciences, Technologies & Astrophysics Research (STAR) Institute, Université de Liège, Belgium
    index: 1
  - name: TO BE FILLED
    index: 2
@@ -37,8 +37,8 @@ circumstellar disks.
 # Statement of need
 
 ``VIP`` stands for Vortex Image Processing``. It is a collaborative project 
-which started within the Vortex group at the University of \latexcode{Li\`{e}ge}, 
-and aiming to integrate open-source, efficient, easy-to-use and well-documented 
+which started within the Vortex group at the University of Liège, and aiming to 
+integrate open-source, efficient, easy-to-use and well-documented 
 implementations of state-of-the-art algorithms used in the context of 
 high-contrast imaging. The package follows a modular architecture, such that its 
 routines cover a wide diversity of tasks, including:

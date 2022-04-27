@@ -36,7 +36,7 @@ circumstellar disks.
 
 # Statement of need
 
-``VIP`` stands for Vortex Image Processing``. It is a collaborative project 
+``VIP`` stands for Vortex Image Processing. It is a collaborative project 
 which started within the Vortex group at the University of Liège, and aiming to 
 integrate open-source, efficient, easy-to-use and well-documented 
 implementations of state-of-the-art algorithms used in the context of 

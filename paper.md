@@ -51,10 +51,9 @@ routines cover a wide diversity of tasks, including:
 frames removal (`preproc` module); 
 
 * modeling and subtracting the stellar PSF using state-of-the-art algorithms 
-leveraging on a range of observing strategies such as angular differential 
-imaging (ADI), reference star differential imaging (RDI) or spectral 
-differential imaging (SDI; `psfsub` module) 
-[@Racine:1999, @Sparks:2002, @Marois:2006]; 
+leveraging a range of observing strategies such as angular differential imaging
+[ADI; -@Marois:2006], reference star differential imaging [RDI; -@Racine:1999], 
+or spectral differential imaging [SDI; -@Sparks:2002; `psfsub` module]; 
 
 * detecting (and characterizing) point sources through inverse approaches 
 (`invprob` module);
@@ -113,14 +112,14 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     [@Pairet:2019];
 
 * `psfsub`: 
-    - all principal component analysis (PCA) based routines [@Amara:2012], 
-    [@Soummer:2012] have been re-written for improved efficiency, and are now 
-    also compatible with 4D IFS+ADI input cubes to apply SDI-based PSF modeling
-    and subtraction algorithms;
+    - all principal component analysis (PCA) based routines 
+    [@Amara:2012; @Soummer:2012] have been re-written for improved efficiency, 
+    and are now also compatible with 4D IFS+ADI input cubes to apply SDI-based 
+    PSF modeling and subtraction algorithms;
     - an implementation of the Locally Optimal Combination of Images 
     [@Lafreniere:2007] was added;
     - an annular version of the non-negative matrix factorization algorithm 
-    is now available [@Lee:1999, @Gomez:2017];
+    is now available [@Lee:1999; @Gomez:2017];
     - besides median-ADI, the `medsub` routine now also support median-SDI. 
   
 * `preproc`:
@@ -133,8 +132,7 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     interpolation (`cube_fix_badpix_with_kernel`);
     - a new algorithm was added for the recentering of coronagraphic image cubes 
     based on the cross-correlation of the speckle pattern, after appropriate 
-    filtering and log-scaling of pixel intensities ***Gary: which reference 
-    should I cite?.
+    filtering and log-scaling of pixel intensities **Gary: which paper should I cite?**
 
 We refer the interested reader to release descriptions and announcements in the 
 Discussion section of the GitHub for a more complete list of all

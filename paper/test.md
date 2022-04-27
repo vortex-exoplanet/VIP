@@ -11,8 +11,7 @@ authors:
     orcid: 0000-0002-0101-8814
     affiliation: 1
 affiliations:
- - name: Space sciences, Technologies & Astrophysics Research (STAR) Institute, 
- Université de Liège, Allée du Six Août 19c, B-4000 Sart Tilman, Belgium
+ - name: Space sciences, Technologies
    index: 1
 date: 4 May 2022
 bibliography: paper.bib

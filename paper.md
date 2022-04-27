@@ -14,8 +14,8 @@ authors:
     orcid: TO BE FILLED
     affiliation: 2
 affiliations:
- - name: Space sciences, Technologies \& Astrophysics Research (STAR) Institute, 
- Universit\'e de Li\`ege, All\'ee du Six Ao\^ut 19c, B-4000 Sart Tilman, Belgium
+ - name: Space sciences, Technologies & Astrophysics Research (STAR) Institute, 
+ Université de Liège, Allée du Six Août 19c, B-4000 Sart Tilman, Belgium
    index: 1
  - name: TO BE FILLED
    index: 2

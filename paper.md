@@ -59,13 +59,13 @@ significance of any detected point sources (`metrics` module).
 The features implemented in the package as of 2017 are described in 
 [@Gomez:2017]. Since then, the package has been widely used by the 
 high-contrast imaging community, for the discovery of low-mass companions 
-[@Milli:2017, @Hirsch:2019, @Ubeira:2020], their refined 
+[@Milli:2017;  @Hirsch:2019;  @Ubeira:2020], their refined 
 characterization 
-[@Wertz:2017, @Delorme:2017, @Christiaens:2018, @Christiaens:2019], the study 
-of planet formation [@Ruane:2017, @Reggiani:2018, @Mauco:2020, @Toci:2020], the 
-study of high-mass star formation [@Rainot:2020, @Rainot:2022], or the 
+[@Wertz:2017;  @Delorme:2017;  @Christiaens:2018;  @Christiaens:2019], the study 
+of planet formation [@Ruane:2017;  @Reggiani:2018;  @Mauco:2020;  @Toci:2020], the 
+study of high-mass star formation [@Rainot:2020;  @Rainot:2022], or the 
 development of new high-contrast imaging algorithms and reduction pipelines 
-[@Gomez:2018, @Dahlqvist:2020, @Pairet:2021, @Dahlqvist:2021]. 
+[@Gomez:2018;  @Dahlqvist:2020;  @Pairet:2021;  @Dahlqvist:2021]. 
 Nonetheless, given the steady expansion of ``VIP``, a new publication is in 
 order to summarize all novelties that were brought to the package over the past 
 5 years.
@@ -86,7 +86,7 @@ Some of the major changes in each module of ``VIP`` are summarized below:
 * `fm`: 
     - new routines were added to create parametrizable scattered-light disk 
     models and extended signals in ADI cubes, in order to forward-model the 
-    effect of ADI post-processing [@Milli:2012, @Christiaens:2019];
+    effect of ADI post-processing [@Milli:2012; @Christiaens:2019];
     - the log-likelihood expression used in the negative fake companion (NEGFC)
     technique was updated, as well as the default convergence criterion for the 
     NEGFC-MCMC method - it is now based on auto-correlation [@Christiaens:2021];

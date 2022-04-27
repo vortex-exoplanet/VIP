@@ -51,9 +51,10 @@ routines cover a wide diversity of tasks, including:
 frames removal (`preproc` module); 
 
 * modeling and subtracting the stellar PSF using state-of-the-art algorithms 
-leveraging a range of observing strategies such as angular differential imaging
-[ADI; -@Marois:2006], reference star differential imaging [RDI; -@Racine:1999], 
-or spectral differential imaging [SDI; -@Sparks:2002; `psfsub` module]; 
+leveraging angular differential imaging (ADI), reference star differential 
+imaging (RDI), or spectral differential imaging (SDI) observing strategies 
+[@Racine:1999; @Sparks:2002; @Marois:2006] for diversity between speckle and 
+authentic circumstellar signals (`psfsub` module); 
 
 * detecting (and characterizing) point sources through inverse approaches 
 (`invprob` module);

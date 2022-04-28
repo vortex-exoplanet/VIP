@@ -118,7 +118,7 @@ Some of the major changes in each module of ``VIP`` are summarized below:
 
 * `invprob`: 
     - a Python implementation of the ANDROMEDA algorithm [@Cantalloube:2015] is 
-    now available as part of ``VIP`` ;
+    now available as part of ``VIP``;
     - the FMMF algorithm [@Pueyo:2016] is now also available in the `invprob` 
     module.
 
@@ -147,7 +147,7 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     [@Lafreniere:2007] was added;
     - an annular version of the non-negative matrix factorization algorithm 
     is now available [@Lee:1999; @Gomez:2017];
-    - besides median-ADI, the `medsub` routine now also support median-SDI. 
+    - besides median-ADI, the `medsub` routine now also supports median-SDI. 
 
 We refer the interested reader to release descriptions and GitHub 
 [announcements](https://github.com/vortex-exoplanet/VIP/discussions/categories/announcements) 
@@ -172,7 +172,7 @@ available features in VIP were implemented. These tutorials illustrate (i) how
 to load and post-process an ADI dataset (quick-start tutorial); (ii) how to 
 pre-process ADI and IFS datasets; (iii) how to model and subtract the stellar 
 halo with ADI-based algorithms; (iv) how to calculate metrics such as the S/N 
-ratio [@Mawet:2014], STIM map [@Pairet:2019] and contrast curves; (v) how to 
+ratio [@Mawet:2014], STIM maps [@Pairet:2019] and contrast curves; (v) how to 
 find the radial separation, azimuth and flux of a point source; (vi) how to 
 create and forward model scattered-light disk models; (vii) how to post-process 
 IFS data and infer the exact astro- and photometry of a given point source; 

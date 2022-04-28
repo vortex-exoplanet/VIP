@@ -636,7 +636,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 for i in range(radvec.shape[0]):
                     flux = fc_snr * noise_noscal[irad + i * fc_rad_sep]
                     cube_fc = cube_inject_companions(cube_fc, psf_template,
-                                                     parangles, flux, pxscale,
+                                                     parangles, flux,
                                                      rad_dists=[radvec[i]],
                                                      theta=br*angle_branch +
                                                            theta,
@@ -722,7 +722,7 @@ def throughput(cube, angle_list, psf_template, fwhm, pxscale, algo, nbranch=1,
                 for i in range(radvec.shape[0]):
                     flux = fc_snr * noise_noscal[irad + i * fc_rad_sep]
                     cube_fc = cube_inject_companions(cube_fc, psf_template,
-                                                     parangles, flux, pxscale,
+                                                     parangles, flux,
                                                      rad_dists=[radvec[i]],
                                                      theta=thetavec[i],
                                                      verbose=False,

@@ -331,8 +331,9 @@ def snr_contrast_esti(ann_center,cube, pa, psf, fwhm, model,var,param, crop
             theta = np.degrees(np.arctan2(poscenty-ceny, poscentx-cenx))  
                              
             model_matrix=cube_inject_companions(np.zeros_like(cube), psf, pa,
-                                                flevel=1, plsc=0.1, 
-                     rad_dists=an_dist, theta=theta, n_branches=1,verbose=False)
+                                                flevel=1, rad_dists=an_dist, 
+                                                theta=theta, n_branches=1,
+                                                verbose=False)
             
             #PSF forward model computation for KLIP
 
@@ -428,7 +429,7 @@ def perturb(frame,model_matrix,numbasis,evals_matrix, evecs_matrix,
     or Ruffio, J.-B., Macintosh, B., Wang, J. J., & Pueyo, L. 2017, ApJ, 842)
     """
     
-    #Selection of the reference library based on the given parralactic angle threshold
+    #Selection of the reference library based on the given parallactic angle threshold
 
     if pa_threshold != 0:
         indices_left = _find_indices_adi(angle_list, frame,
@@ -452,40 +453,49 @@ def perturb(frame,model_matrix,numbasis,evals_matrix, evecs_matrix,
     max_basis = KL_basis.shape[0]
     N_pix = KL_basis.shape[1]
 
-    models_mean_sub = models_ref - np.nanmean(models_ref, axis=1)[:,None] 
-    models_mean_sub[np.where(np.isnan(models_mean_sub))] = 0
+    models_msub = models_ref - np.nanmean(models_ref, axis=1)[:,None] 
+    models_msub[np.where(np.isnan(models_msub))] = 0
     
-    model_sci_mean_sub = model_sci- np.nanmean(model_sci)
-    model_sci_mean_sub[np.where(np.isnan(model_sci_mean_sub))] = 0
-    model_sci_mean_sub_rows = np.reshape(model_sci_mean_sub,(1,N_pix))
+    model_sci_msub = model_sci- np.nanmean(model_sci)
+    model_sci_msub[np.where(np.isnan(model_sci_msub))] = 0
+    model_sci_msub_rows = np.reshape(model_sci_msub,(1,N_pix))
     sci_mean_sub_rows = np.reshape(sci_mean_sub,(1,N_pix))
     
     delta_KL = np.zeros([max_basis, N_pix])
 
-    models_mean_sub_X_refs_mean_sub_T = models_mean_sub.dot(refs_mean_sub.transpose())
+    proj_models_T = models_msub.dot(refs_mean_sub.transpose())
 
     for k in range(max_basis):
         Zk = np.reshape(KL_basis[k,:],(1,KL_basis[k,:].size))
         Vk = (evecs[:,k])[:,None]
-
-
-        diagVk_X_models_mean_sub_X_refs_mean_sub_T = (Vk.T).dot(models_mean_sub_X_refs_mean_sub_T)
-        models_mean_sub_X_refs_mean_sub_T_X_Vk = models_mean_sub_X_refs_mean_sub_T.dot(Vk)
-        DeltaZk = -(1/(2*np.sqrt(evals[k])))*(diagVk_X_models_mean_sub_X_refs_mean_sub_T.dot(Vk) + ((Vk.T).dot(models_mean_sub_X_refs_mean_sub_T_X_Vk))).dot(Zk)+(Vk.T).dot(models_mean_sub)
+        
+        diagVk_T = (Vk.T).dot(proj_models_T)
+        proj_models_Vk = proj_models_T.dot(Vk)
+        
+        fac = -(1/(2*np.sqrt(evals[k])))
+        term1 = (diagVk_T.dot(Vk)+ ((Vk.T).dot(proj_models_Vk))).dot(Zk)
+        term2 = (Vk.T).dot(models_msub)
+        DeltaZk = fac*term1+ term2
 
 
         for j in range(k):
             Zj = KL_basis[j, :][None,:]
             Vj = evecs[:, j][:,None]
-            DeltaZk += np.sqrt(evals[j])/(evals[k]-evals[j])*(diagVk_X_models_mean_sub_X_refs_mean_sub_T.dot(Vj) + ((Vj.T).dot(models_mean_sub_X_refs_mean_sub_T_X_Vk))).dot(Zj)
+            fac = np.sqrt(evals[j])/(evals[k]-evals[j])
+            t1 = diagVk_T.dot(Vj)
+            t2 = (Vj.T).dot(proj_models_Vk)
+            DeltaZk += fac*(t1 + t2).dot(Zj)
         for j in range(k+1, max_basis):
             Zj = KL_basis[j, :][None,:]
             Vj = evecs[:, j][:,None]
-            DeltaZk += np.sqrt(evals[j])/(evals[k]-evals[j])*(diagVk_X_models_mean_sub_X_refs_mean_sub_T.dot(Vj) + ((Vj.T).dot(models_mean_sub_X_refs_mean_sub_T_X_Vk))).dot(Zj)
+            fac = np.sqrt(evals[j])/(evals[k]-evals[j])
+            t1 = diagVk_T.dot(Vj)
+            t2 = (Vj.T).dot(proj_models_Vk)
+            DeltaZk += fac*(t1+ t2).dot(Zj)
 
         delta_KL[k] = DeltaZk/np.sqrt(evals[k])
         
-    oversubtraction_inner_products = np.dot(model_sci_mean_sub_rows, KL_basis.T)  
+    oversubtraction_inner_products = np.dot(model_sci_msub_rows, KL_basis.T)  
     
     selfsubtraction_1_inner_products = np.dot(sci_mean_sub_rows, delta_KL.T)
     selfsubtraction_2_inner_products = np.dot(sci_mean_sub_rows, KL_basis.T)
@@ -570,7 +580,8 @@ def KLIP_patch(frame, matrix, numbasis, angle_list, fwhm, pa_threshold,
     
     sub_img_rows = sci_rows - klip_reconstruction 
 
-    return evals,evecs,KL_basis,np.reshape(sub_img_rows, (N_pix)),refs_mean_sub,sci_mean_sub
+    return (evals, evecs, KL_basis, np.reshape(sub_img_rows, (N_pix)), 
+            refs_mean_sub, sci_mean_sub)
 
 
 def LOCI_FM(cube, psf, ann_center, angle_list, asize,fwhm, Tol,delta_rot,

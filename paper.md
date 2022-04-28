@@ -16,6 +16,9 @@ authors:
   - name: friends
     orcid: TO BE FILLED
     affiliation: 3
+  - name: Ralf Farkas
+    orcid: 0000-0002-7647-1429
+    affiliation: 5
 affiliations:
  - name: Space sciences, Technologies & Astrophysics Research (STAR) Institute, Université de Liège, Belgium
    index: 1
@@ -23,6 +26,8 @@ affiliations:
    index: 2
  - name: More top-notch institutes
    index: 3
+ - name: Rheinische Friedrich-Wilhelms-Universität Bonn, Germany
+   index: 5
 date: 4 May 2022
 bibliography: paper.bib
 ---

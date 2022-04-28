@@ -695,8 +695,8 @@ class Dataset(Saveable):
                 raise ValueError('The wavelengths vector has not been set')
 
         self.cube, yx = cube_inject_companions(
-            self.cube, self.psfn, self.angles, flux, self.px_scale,
-            rad_dists, n_branches, theta, imlib, interpolation,
+            self.cube, self.psfn, self.angles, flux, rad_dists, self.px_scale,
+            n_branches, theta, imlib, interpolation,
             full_output=True, verbose=verbose
         )
 

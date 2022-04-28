@@ -18,6 +18,9 @@ authors:
     affiliation: 3
   - name: Ralf Farkas
     orcid: 0000-0002-7647-1429
+    affiliation: 4
+  - name: Arthur Vigan
+    orcid: 0000-0002-5902-7828
     affiliation: 5
 affiliations:
  - name: Space sciences, Technologies & Astrophysics Research (STAR) Institute, Université de Liège, Belgium
@@ -27,6 +30,8 @@ affiliations:
  - name: More top-notch institutes
    index: 3
  - name: Rheinische Friedrich-Wilhelms-Universität Bonn, Germany
+   index: 4
+ - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
    index: 5
 date: 4 May 2022
 bibliography: paper.bib
@@ -41,7 +46,8 @@ adaptive optics, coronagraphy, and a relevant combination of observing strategy
 and post-processing algorithms to model and subtract residual starlight. In this 
 context, ``VIP`` is a Python package providing the tools to reduce, 
 post-process and analyze high-contrast imaging datasets, enabling the detection 
-and characterization of directly imaged exoplanets and circumstellar disks.
+and characterization of directly imaged exoplanets, **circumstellar disks, and 
+stellar environments***
 
 # Statement of need
 
@@ -59,7 +65,7 @@ frames removal, or image alignment and star centering (`preproc` module);
 leveraging angular differential imaging (ADI), reference star differential 
 imaging (RDI), or spectral differential imaging (SDI) observing strategies 
 [@Racine:1999; @Sparks:2002; @Marois:2006] for diversity between speckle and 
-authentic circumstellar signals (`psfsub` module); 
+authentic ~~circumstellar~~ **astrophysical** signals (`psfsub` module); 
 
 * characterizing either point sources or extended circumstellar signals through
 forward modeling (`fm` module);
@@ -118,7 +124,7 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     [@Pairet:2019];
   
 * `preproc`:
-    - the module now boasts several new algorithms for (i) the identification 
+    - the module now boasts **(not sure "boast" is the right verb here)** several new algorithms for (i) the identification 
     of either isolated bad pixels or clumps of bad pixels, leveraging on 
     iterative sigma filtering (`cube_fix_badpix_clump`), the circular symmetry 
     of the PSF (`cube_fix_badpix_annuli`), or the radial expansion of the PSF 

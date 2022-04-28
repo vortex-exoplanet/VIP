@@ -28,11 +28,12 @@ from ..config.utils_conf import sep
 from ..psfsub import pca_annulus
 from .negfc_fmerit import get_values_optimize, get_mu_and_sigma
 from .utils_mcmc import gelman_rubin, autocorr_test
+from .utils_negfc import find_nearest
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 from ..fits import write_fits
 
-def lnprior(param, bounds):
+def lnprior(param, bounds, force_rPA=False):
     """ Define the prior log-function.
     
     Parameters
@@ -42,6 +43,8 @@ def lnprior(param, bounds):
     bounds: list
         The bounds for each model parameter.
         Ex: bounds = [(10,20),(0,360),(0,5000)]
+    force_rPA: bool, optional
+        Whether to only search for optimal flux, provided (r,PA).
     
     Returns
     -------
@@ -50,42 +53,52 @@ def lnprior(param, bounds):
         -np.inf if at least one model parameters is out of bounds.
     """
     
-    try:
-        r, theta, flux = param
-    except TypeError:
-        print('param must be a tuple, {} given'.format(type(param)))
+    if not force_rPA:
+        try:
+            _ = param[0]
+            _ = param[1]
+            _ = param[2:]
+        except TypeError:
+            print('param must be a tuple, {} given'.format(type(param)))
 
-    try:
-        r_bounds, theta_bounds, flux_bounds = bounds
-    except TypeError:
-        print('bounds must be a list of tuple, {} given'.format(type(bounds)))
+    if not force_rPA:
+        try:
+            _ = bounds[0]
+            _ = bounds[1]
+            _ = bounds[2:]
+        except TypeError:
+            msg='bounds must be a list of tuple, {} given'.format(type(bounds))
+            print(msg)
         
-    if r_bounds[0] <= r <= r_bounds[1] and \
-       theta_bounds[0] <= theta <= theta_bounds[1] and \
-       flux_bounds[0] <= flux <= flux_bounds[1]:
+    cond = True
+    for i in range(len(param)):
+       if bounds[i][0] <= param[i] <= bounds[i][1]:
+           pass
+       else:
+           cond = False
+           
+    if cond:
         return 0.0
     else:
         return -np.inf
 
 
-def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, ncomp, 
+def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp, 
            aperture_radius, initial_state, cube_ref=None, svd_mode='lapack', 
            scaling='temp-mean', algo=pca_annulus, delta_rot=1, fmerit='sum', 
            imlib='vip-fft', interpolation='lanczos4', collapse='median', 
            algo_options={}, weights=None, transmission=None, mu_sigma=True, 
-           sigma='spe+pho', debug=False):
+           sigma='spe+pho', force_rPA=False, debug=False):
     """ Define the likelihood log-function.
     
     Parameters
     ----------
     param: tuple
         The model parameters, typically (r, theta, flux).
-    cube: numpy.array
-        The cube of fits images expressed as a numpy.array.
+    cube: 3d or 4d numpy ndarray
+        Input ADI or ADI+IFS cube.
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array.
-    plsc: float
-        The platescale, in arcsec per pixel.
     psf_norm: numpy.array
         The scaled psf expressed as a numpy.array.
     annulus_width: float
@@ -98,8 +111,10 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, ncomp,
         The radius of the circular aperture in terms of the FWHM.
     initial_state: numpy.array
         The initial guess for the position and the flux of the planet.
-    cube_ref: numpy ndarray, 3d, optional
-        Reference library cube. For Reference Star Differential Imaging.
+    cube_ref : 3d or 4d numpy ndarray, or list of 3d ndarray, optional
+        Reference library cube for Reference Star Differential Imaging. Should 
+        be 3d, except if the input cube is 4d, in which case it can either be a 
+        4d array or a list of 3d ndarray (reference cube for each wavelength).
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     scaling : {'temp-mean', 'temp-standard'} or None, optional
@@ -136,10 +151,11 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, ncomp,
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
     transmission: numpy array, optional
-        Radial transmission of the coronagraph, if any. Array with 2 columns.
-        First column is the radial separation in pixels. Second column is the
-        off-axis transmission (between 0 and 1) at the radial separation given
-        in column 1.
+        Radial transmission of the coronagraph, if any. Array with either 
+        2 x n_rad, 1+n_ch x n_rad columns. The first column should contain the 
+        radial separation in pixels, while the other column(s) are the
+        corresponding off-axis transmission (between 0 and 1), for either all,
+        or each spectral channel (only relevant for a 4D input cube).
     mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the 
         algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
@@ -150,6 +166,8 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, ncomp,
         Sets the type of noise to be included as sigma^2 in the log-probability 
         expression. Choice between 'pho' for photon (Poisson) noise, 'spe' for 
         residual (mostly whitened) speckle noise, or 'spe+pho' for both.
+    force_rPA: bool, optional
+        Whether to only search for optimal flux, provided (r,PA).
     debug: boolean
         If True, the cube is returned along with the likelihood log-function.
         
@@ -172,17 +190,35 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, ncomp,
     else:
         raise TypeError("Interpolation not recognized.")
     
-    # Create the cube with the negative fake companion injected
-    if weights is None:   
-        flux = -param[2]
-        norm_weights=weights
+    if force_rPA:
+        r0 = initial_state[0]
+        theta0 = initial_state[1]
+        if len(param)>1:
+            flux = -np.array(param)
+        else:
+            flux = -param[0]
     else:
-        flux = -param[2]*weights
-        norm_weights = weights/np.sum(weights)
+        r0 = param[0]
+        theta0 = param[1]
+        if len(param)>3:
+            flux = -np.array(param[2:])
+        else:
+            flux = -param[2]
+    
+    # Apply weights if any
+    #if weights is None:
+    norm_weights=None #weights
+    if weights is not None:
+        #norm_weights = weights/np.sum(weights)
+        if np.isscalar(flux):
+            flux = flux*weights
+        else:
+            flux = np.outer(flux, weights)
+        
+    # Create the cube with the negative fake companion injected
     cube_negfc = cube_inject_companions(cube, psf_norm, angs, flevel=flux,
-                                        plsc=plsc, rad_dists=[param[0]],
-                                        n_branches=1, theta=param[1],
-                                        imlib=imlib_sh, 
+                                        rad_dists=[r0], n_branches=1, 
+                                        theta=theta0, imlib=imlib_sh, 
                                         interpolation=interpolation,
                                         transmission=transmission,
                                         verbose=False)                        
@@ -223,12 +259,12 @@ def lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, ncomp,
         return lnlikelihood
 
 
-def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
-           annulus_width, ncomp, aperture_radius, initial_state, cube_ref=None,
-           svd_mode='lapack', scaling='temp-mean', algo=pca_annulus,
-           delta_rot=1, fmerit='sum', imlib='vip-fft', interpolation='lanczos4', 
-           collapse='median', algo_options={}, weights=None, transmission=None, 
-           mu_sigma=True, sigma='spe+pho', display=False):
+def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp, 
+           aperture_radius, initial_state, cube_ref=None, svd_mode='lapack', 
+           scaling='temp-mean', algo=pca_annulus, delta_rot=1, fmerit='sum', 
+           imlib='vip-fft', interpolation='lanczos4', collapse='median', 
+           algo_options={}, weights=None, transmission=None, mu_sigma=True, 
+           sigma='spe+pho', force_rPA=False, display=False):
     """ Define the probability log-function as the sum between the prior and
     likelihood log-funtions.
     
@@ -239,14 +275,19 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
     bounds: list
         The bounds for each model parameter.
         Ex: bounds = [(10,20),(0,360),(0,5000)]
-    cube: numpy.array
-        The cube of fits images expressed as a numpy.array.
+    cube: 3d or 4d numpy ndarray
+        Input ADI or ADI+IFS cube.
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array.
-    plsc: float
-        The platescale, in arcsec per pixel.
-    psf_norm: numpy.array
-        The scaled psf expressed as a numpy.array.
+    psfn: numpy 2D or 3D array
+        Normalised PSF template used for negative fake companion injection. 
+        The PSF must be centered and the flux in a 1xFWHM aperture must equal 1 
+        (use ``vip_hci.metrics.normalize_psf``).
+        If the input cube is 3D and a 3D array is provided, the first dimension
+        must match for both cubes. This can be useful if the star was 
+        unsaturated and conditions were variable.
+        If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
+        the first dimension(s) must match those of the input cube.
     fwhm : float
         The FHWM in pixels.
     annulus_width: float
@@ -257,8 +298,10 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
         The radius of the circular aperture in FWHM.
     initial_state: numpy.array
         The initial guess for the position and the flux of the planet.
-    cube_ref : numpy ndarray, 3d, optional
-        Reference library cube. For Reference Star Differential Imaging.
+    cube_ref : 3d or 4d numpy ndarray, or list of 3d ndarray, optional
+        Reference library cube for Reference Star Differential Imaging. Should 
+        be 3d, except if the input cube is 4d, in which case it can either be a 
+        4d array or a list of 3d ndarray (reference cube for each wavelength).
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     scaling : {'temp-mean', 'temp-standard'} or None, optional
@@ -290,10 +333,11 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
     transmission: numpy array, optional
-        Radial transmission of the coronagraph, if any. Array with 2 columns.
-        First column is the radial separation in pixels. Second column is the
-        off-axis transmission (between 0 and 1) at the radial separation given
-        in column 1.
+        Radial transmission of the coronagraph, if any. Array with either 
+        2 x n_rad, 1+n_ch x n_rad columns. The first column should contain the 
+        radial separation in pixels, while the other column(s) are the
+        corresponding off-axis transmission (between 0 and 1), for either all,
+        or each spectral channel (only relevant for a 4D input cube).
     mu_sigma: tuple of 2 floats or None, opt
         If set to None: not used, and falls back to original version of the 
         algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
@@ -304,6 +348,8 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
         Sets the type of noise to be included as sigma^2 in the log-probability 
         expression. Choice between 'pho' for photon (Poisson) noise, 'spe' for 
         residual (mostly whitened) speckle noise, or 'spe+pho' for both.
+    force_rPA: bool, optional
+        Whether to only search for optimal flux, provided (r,PA).
     display: boolean
         If True, the cube is displayed with ds9.
         
@@ -316,27 +362,27 @@ def lnprob(param,bounds, cube, angs, plsc, psf_norm, fwhm,
     if initial_state is None:
         initial_state = param
     
-    lp = lnprior(param, bounds)
+    lp = lnprior(param, bounds, force_rPA)
     
     if np.isinf(lp):
         return -np.inf
     
-    return lp + lnlike(param, cube, angs, plsc, psf_norm, fwhm, annulus_width, 
+    return lp + lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, 
                        ncomp, aperture_radius, initial_state, cube_ref, 
                        svd_mode, scaling, algo, delta_rot, fmerit, imlib,
                        interpolation, collapse, algo_options, weights, 
-                       transmission, mu_sigma, sigma)
+                       transmission, mu_sigma, sigma, force_rPA)
 
 
-def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
-                        annulus_width=8, aperture_radius=1, cube_ref=None,
-                        svd_mode='lapack', scaling=None, algo=pca_annulus, 
-                        delta_rot=1, fmerit='sum', imlib='vip-fft', 
-                        interpolation='lanczos4', collapse='median', 
+def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus, 
+                        ncomp=1, annulus_width=8, aperture_radius=1, fwhm=4, 
+                        mu_sigma=True, sigma='spe+pho', force_rPA=False,
+                        fmerit='sum', cube_ref=None, svd_mode='lapack', 
+                        scaling=None, delta_rot=1, imlib='vip-fft', 
+                        interpolation='lanczos4', collapse='median',
                         algo_options={}, wedge=None, weights=None, 
-                        transmission=None, mu_sigma=True, sigma='spe+pho',
-                        nwalkers=100, bounds=None, a=2.0, burnin=0.3, 
-                        rhat_threshold=1.01, rhat_count_threshold=1, 
+                        transmission=None, nwalkers=100, bounds=None, a=2.0, 
+                        burnin=0.3, rhat_threshold=1.01, rhat_count_threshold=1, 
                         niteration_min=10, niteration_limit=10000, 
                         niteration_supp=0, check_maxgap=20, conv_test='ac', 
                         ac_c=50, ac_count_thr=3, nproc=1, output_dir='results/', 
@@ -389,47 +435,69 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     
     Parameters
     ----------
-    cube: numpy.array
-        ADI fits cube.
+    cube: 3d or 4d numpy ndarray
+        Input ADI or ADI+IFS cube.
     angs: numpy.array
         The parallactic angle vector.
     psfn: numpy 2D or 3D array
         Normalised PSF template used for negative fake companion injection. 
         The PSF must be centered and the flux in a 1xFWHM aperture must equal 1 
         (use ``vip_hci.metrics.normalize_psf``).
-        If a 3D array is provided, it must match the number of frames of ADI 
-        cube. This can be useful if the cube was unsaturated and conditions 
-        were variable.
-    ncomp: int or None
+        If the input cube is 3D and a 3D array is provided, the first dimension
+        must match for both cubes. This can be useful if the star was 
+        unsaturated and conditions were variable.
+        If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
+        the first dimension(s) must match those of the input cube.
+    initial_state: tuple or 1d numpy ndarray
+        The first guess for the position and flux(es) of the planet, in that 
+        order. In the case of a 3D input cube, it should have a length of 3,
+        while in the case of a 4D input cube, the length should be 2 + number 
+        of spectral channels (one flux estimate per wavelength). Each walker 
+        will start in a small ball around this preferred position.
+    algo : python routine, optional
+        Post-processing algorithm used to model and subtract the star. First
+        2 arguments must be input cube and derotation angles. Must return a
+        post-processed 2d frame.
+    ncomp: int or None, optional
         The number of principal components for PCA-based algorithms.
-    plsc: float
-        The platescale, in arcsec per pixel.
     annulus_width: float, optional
         The width in pixels of the annulus on which the PCA is performed.
     aperture_radius: float, optional
         The radius in FWHM of the circular aperture.
-    nwalkers: int optional
-        The number of Goodman & Weare 'walkers'.
-    initial_state: numpy.array
-        The first guess for the position and flux of the planet, respectively.
-        Each walker will start in a small ball around this preferred position.
-    cube_ref : numpy ndarray, 3d, optional
-        Reference library cube. For Reference Star Differential Imaging.
+    fwhm : float
+        The FHWM in pixels.
+    mu_sigma: tuple of 2 floats or bool, opt
+        If set to None: not used, and falls back to original version of the 
+        algorithm, using fmerit (Wertz et al. 2017).
+        If a tuple of 2 elements: should be the mean and standard deviation of 
+        pixel intensities in an annulus centered on the location of the
+        companion candidate, excluding the area directly adjacent to the CC.
+        If set to anything else, but None/False/tuple: will compute said mean 
+        and standard deviation automatically.
+        These values will then be used in the log-probability of the MCMC.
+    sigma: str, opt
+        Sets the type of noise to be included as sigma^2 in the log-probability 
+        expression. Choice between 'pho' for photon (Poisson) noise, 'spe' for 
+        residual (mostly whitened) speckle noise, or 'spe+pho' for both.
+    force_rPA: bool, optional
+        Whether to only search for optimal flux, provided (r,PA).
+    fmerit : {'sum', 'stddev'}, string optional
+        If mu_sigma is not provided nor set to True, this parameter determines
+        which figure of merit to be used among the 2 possibilities implemented
+        in Wertz et al. (2017). 'stddev' may work well for point like sources
+        surrounded by extended signals.
+    cube_ref : 3d or 4d numpy ndarray, or list of 3d ndarray, optional
+        Reference library cube for Reference Star Differential Imaging. Should 
+        be 3d, except if the input cube is 4d, in which case it can either be a 
+        4d array or a list of 3d ndarray (reference cube for each wavelength).
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
         'randsvd' is not recommended for the negative fake companion technique.
-    algo : python routine
-        Post-processing algorithm used to model and subtract the star. First
-        2 arguments must be input cube and derotation angles. Must return a
-        post-processed 2d frame.
     scaling : {'temp-mean', 'temp-standard'} or None, optional
         With None, no scaling is performed on the input data before SVD. With
         "temp-mean" then temporal px-wise mean subtraction is done and with
         "temp-standard" temporal mean centering plus scaling to unit variance
         is done.
-    fmerit : {'sum', 'stddev'}, string optional
-        Chooses the figure of merit to be used. stddev works better for 
-        close-in companions sitting on top of speckle noise.
     imlib : str, optional
         Imlib used for both image rotation and sub-px shift:
         - "opencv": will use it for both;
@@ -437,7 +505,6 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         scipy.ndimage for rotation and shift resp.;
         - "ndimage-fourier" or "vip-fft" will use Fourier transform based \
         methods for both.
-        
     interpolation : str, optional
         Interpolation order. See the documentation of the 
         ``vip_hci.preproc.frame_rotate`` function. Note that the interpolation 
@@ -458,33 +525,23 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     wedge: tuple, opt
         Range in theta where the mean and standard deviation are computed in an 
         annulus defined in the PCA image. If None, it will be calculated 
-        automatically based on initial guess and derotation angles to avoid.
-        If some disc signal is present elsewhere in the annulus, it is 
-        recommended to provide wedge manually. The provided range should be 
-        continuous and >0. E.g. provide (270, 370) to consider a PA range 
-        between [-90,+10].
+        automatically based on initial guess and derotation angles to avoid
+        negative ADI side lobes. If some disc signal is present elsewhere in 
+        the annulus, it is recommended to provide wedge manually. The provided 
+        range should be continuous and >0. E.g. provide (270, 370) to consider 
+        a PA range between [-90,+10].
     weights : 1d array, optional
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in 
         the observing conditions throughout the sequence.
     transmission: numpy array, optional
-        Radial transmission of the coronagraph, if any. Array with 2 columns.
-        First column is the radial separation in pixels. Second column is the
-        off-axis transmission (between 0 and 1) at the radial separation given
-        in column 1.
-    mu_sigma: tuple of 2 floats or bool, opt
-        If set to None: not used, and falls back to original version of the 
-        algorithm, using fmerit (Wertz et al. 2017).
-        If a tuple of 2 elements: should be the mean and standard deviation of 
-        pixel intensities in an annulus centered on the location of the
-        companion candidate, excluding the area directly adjacent to the CC.
-        If set to anything else, but None/False/tuple: will compute said mean 
-        and standard deviation automatically.
-        These values will then be used in the log-probability of the MCMC.
-    sigma: str, opt
-        Sets the type of noise to be included as sigma^2 in the log-probability 
-        expression. Choice between 'pho' for photon (Poisson) noise, 'spe' for 
-        residual (mostly whitened) speckle noise, or 'spe+pho' for both.
+        Radial transmission of the coronagraph, if any. Array with either 
+        2 x n_rad, 1+n_ch x n_rad columns. The first column should contain the 
+        radial separation in pixels, while the other column(s) are the
+        corresponding off-axis transmission (between 0 and 1), for either all,
+        or each spectral channel (only relevant for a 4D input cube).
+    nwalkers: int optional
+        The number of Goodman & Weare 'walkers'.
     bounds: numpy.array or list, default=None, optional
         The prior knowledge on the model parameters. If None, large bounds will
         be automatically estimated from the initial state.
@@ -577,22 +634,29 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
             else:
                 raise
 
-    if not isinstance(cube, np.ndarray) or cube.ndim != 3:
-        raise ValueError('`cube` must be a 3D numpy array')
+    if cube.ndim != 4 and cube.ndim != 3:
+        raise ValueError('`cube` must be a 3D or 4D numpy array')
 
     if cube_ref is not None:
-        if not isinstance(cube_ref, np.ndarray) or cube_ref.ndim != 3:
-            raise ValueError('`cube_ref` must be a 3D numpy array')
+        if cube.ndim == 3:
+            if cube_ref.ndim != 3:
+                raise ValueError('`cube_ref` must be a 3D numpy array')
+        elif cube.ndim == 4:
+            if cube_ref[0].ndim != 3:
+                msg='`cube_ref` must be a 4D array or a list of 3D arrays'
+                raise ValueError(msg)
     if weights is not None:
-        if not len(weights)==cube.shape[0]:
-            raise TypeError("Weights should have same length as cube axis 0")
-        norm_weights = weights/np.sum(weights)
+        if not len(weights)==cube.shape[-3]:
+            msg = "Weights should have same length as temporal cube axis"
+            raise TypeError(msg)
+        norm_weights = None# weights/np.sum(weights)
     else:
         norm_weights=weights
         
-    if psfn.ndim==3:
+    if psfn.ndim>2:
         if psfn.shape[0] != cube.shape[0]:
-            msg = "If PSF is 3D, number of frames must match cube length"
+            msg = "If PSF is 3D or 4D, first dimension should match that of "
+            msg += "input cube"
             raise TypeError(msg)
             
     if 'spe' not in sigma and 'pho' not in sigma:
@@ -614,20 +678,22 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     # #########################################################################
     # Initialization of the variables
     # #########################################################################
-    dim = 3  # There are 3 model parameters: rad, theta, flux
+    dim = len(initial_state)
+    if force_rPA:
+        dim -=2
     itermin = niteration_min
     limit = niteration_limit
     supp = niteration_supp
     maxgap = check_maxgap
     initial_state = np.array(initial_state)
 
-    mu_sig = get_mu_and_sigma(cube, angs, ncomp, annulus_width,
-                              aperture_radius, fwhm, initial_state[0], 
-                              initial_state[1], cube_ref=cube_ref, wedge=wedge, 
-                              svd_mode=svd_mode, scaling=scaling, algo=algo, 
-                              delta_rot=delta_rot, imlib=imlib_rot,
-                              interpolation=interpolation, collapse=collapse, 
-                              weights=norm_weights, algo_options=algo_options)
+    mu_sig = get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, 
+                              fwhm, initial_state[0], initial_state[1], 
+                              cube_ref=cube_ref, wedge=wedge, svd_mode=svd_mode, 
+                              scaling=scaling, algo=algo, delta_rot=delta_rot, 
+                              imlib=imlib_rot, interpolation=interpolation, 
+                              collapse=collapse, weights=norm_weights, 
+                              algo_options=algo_options)
 
     # Measure mu and sigma once in the annulus (instead of each MCMC step)
     if isinstance(mu_sigma, tuple):
@@ -659,33 +725,54 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
     stop = np.inf
 
     if bounds is None:
-        # angle subtended by aperture_radius/2 or fwhm at r=initial_state[0]
-        drot = 360/(2*np.pi*initial_state[0]/(aperture_radius*fwhm/2))
-        bounds = [(initial_state[0] - annulus_width/2.,
-                   initial_state[0] + annulus_width/2.),  # radius
-                  (initial_state[1] - drot, initial_state[1] + drot),   # angle
-                  (0.1* initial_state[2], 2 * initial_state[2])]   # flux
+        bounds = []
+        d0 = 0
+        if not force_rPA:
+            # angle subtended by aperture_radius/2 or fwhm at r=initial_state[0]
+            dr = min(annulus_width/2, aperture_radius*fwhm/2)
+            dth = 360./(2*np.pi*initial_state[0]/(aperture_radius*fwhm/2))
+            bounds = [(initial_state[0] - dr, initial_state[0] + dr), # radius
+                      (initial_state[1] - dth, initial_state[1] + dth)] # angle
+            d0 = 2
+        for i in range(dim-d0):
+            bounds.append((0.1* initial_state[d0+i], 2 * initial_state[d0+i]))   # flux
     # size of ball of parameters for MCMC initialization
     scal = abs(bounds[0][0]-initial_state[0])/initial_state[0]
-    for i in range(3):
+    for i in range(dim):
         for j in range(2):
             test_scal = abs(bounds[i][j]-initial_state[i])/initial_state[i]
             if test_scal < scal:
                 scal= test_scal
-    pos = initial_state*(1+np.random.normal(0, scal/7., (nwalkers, 3)))
+    if force_rPA:
+        init = initial_state[2:]
+        if len(init)>1:
+            labels = []
+            for i in range(len(init)):
+                labels.append(r"$f{:.0f}$".format(i))
+        else:
+            labels = [r"$f$"]
+    else:
+        init = initial_state
+        if len(init)>3:
+            labels = ["$r$", r"$\theta$"]
+            for i in range(len(init)-2):
+                labels.append(r"$f{:.0f}$".format(i))
+        else:
+            labels = ["$r$", r"$\theta$", "$f$"]
+    pos = init*(1+np.random.normal(0, scal/50., (nwalkers, dim)))
     # divided by 7 to not have any walker initialized out of bounds
     
     if verbosity > 0:
         print('Beginning emcee Ensemble sampler...')
     sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a=a,
-                                    args=([bounds, cube, angs, plsc, psfn,
+                                    args=([bounds, cube, angs, psfn,
                                            fwhm, annulus_width, ncomp,
                                            aperture_radius, initial_state,
                                            cube_ref, svd_mode, scaling, algo,
                                            delta_rot, fmerit, imlib, 
                                            interpolation, collapse, 
                                            algo_options, weights, transmission, 
-                                           mu_sigma, sigma]),
+                                           mu_sigma, sigma, force_rPA]),
                                     threads=nproc)
 
     if verbosity > 0:
@@ -727,7 +814,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
         # If k meets the criterion, one tests the non-convergence.
         # ---------------------------------------------------------------------
         criterion = int(np.amin([np.ceil(itermin*(1+fraction)**geom),
-                             lastcheck+np.floor(maxgap)]))
+                                 lastcheck+np.floor(maxgap)]))
         if k == criterion:
             if verbosity > 1:
                 print('\n {} convergence test in progress...'.format(conv_test))
@@ -735,10 +822,11 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
             geom += 1
             lastcheck = k
             if display:
-                show_walk_plot(chain)
+                show_walk_plot(chain, labels=labels)
                 
             if save and verbosity == 3:
-                fname = '{d}/{f}_temp_k{k}'.format(d=output_dir,f=output_file_tmp, k=k)
+                fname = '{d}/{f}_temp_k{k}'.format(d=output_dir,
+                                                   f=output_file_tmp, k=k)
                 data = {'chain': sampler.chain,
                         'lnprob': sampler.lnprobability,
                          'AR': sampler.acceptance_fraction}
@@ -768,7 +856,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                         if rhat_count < rhat_count_threshold:
                             if verbosity > 0:
                                 msg = "Gelman-Rubin test OK {}/{}"
-                                print(msg.format(rhat_count, rhat_count_threshold))
+                                print(msg.format(rhat_count, 
+                                                 rhat_count_threshold))
                         elif rhat_count >= rhat_count_threshold:
                             if verbosity > 0 :
                                 print('... ==> convergence reached')
@@ -779,7 +868,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, ncomp, plsc, initial_state, fwhm=4,
                 elif conv_test == 'ac':
                     # We calculate the auto-corr test for each model parameter.
                     if save:
-                        write_fits(output_dir+"/TMP_test_chain{:.0f}.fits".format(k),chain[:,:k])
+                        chain_name = "TMP_test_chain{:.0f}.fits".format(k)
+                        write_fits(output_dir+'/'+chain_name, chain[:,:k])
                     for j in range(dim):
                         rhat[j] = autocorr_test(chain[:,:k,j])
                     thr = 1./ac_c
@@ -890,16 +980,28 @@ def show_walk_plot(chain, save=False, output_dir='', **kwargs):
         chain = chain[:, :temp[0], :]
 
     labels = kwargs.pop('labels', ["$r$", r"$\theta$", "$f$"])
-    fig, axes = plt.subplots(3, 1, sharex=True,
-                             figsize=kwargs.pop('figsize', (8, 6)))
-    axes[2].set_xlabel(kwargs.pop('xlabel', 'step number'))
-    axes[2].set_xlim(kwargs.pop('xlim', [0, chain.shape[1]]))
-    color = kwargs.pop('color', 'k')
-    alpha = kwargs.pop('alpha', 0.4)
-    for j in range(3):
-        axes[j].plot(chain[:, :, j].T, color=color, alpha=alpha, **kwargs)
-        axes[j].yaxis.set_major_locator(MaxNLocator(5))
-        axes[j].set_ylabel(labels[j])
+    npar = len(labels)
+    y = 2*npar
+    if npar>1:
+        fig, axes = plt.subplots(npar, 1, sharex=True,
+                                 figsize=kwargs.pop('figsize', (8, y)))
+        axes[-1].set_xlabel(kwargs.pop('xlabel', 'step number'))
+        axes[-1].set_xlim(kwargs.pop('xlim', [0, chain.shape[1]]))
+        color = kwargs.pop('color', 'k')
+        alpha = kwargs.pop('alpha', 0.4)
+        for j in range(npar):
+            axes[j].plot(chain[:, :, j].T, color=color, alpha=alpha, **kwargs)
+            axes[j].yaxis.set_major_locator(MaxNLocator(5))
+            axes[j].set_ylabel(labels[j])
+    else:
+        fig = plt.figure(figsize=kwargs.pop('figsize', (8, y)))
+        plt.xlabel(kwargs.pop('xlabel', 'step number'))
+        plt.xlim(kwargs.pop('xlim', [0, chain.shape[1]]))
+        color = kwargs.pop('color', 'k')
+        alpha = kwargs.pop('alpha', 0.4)
+        plt.plot(chain[:, :, 0].T, color=color, alpha=alpha, **kwargs)
+        plt.locator_params(axis='y', tight=True, nbins=5)
+        plt.ylabel(labels[0])
     fig.tight_layout(h_pad=0)
     if save:
         plt.savefig(output_dir+'walk_plot.pdf')
@@ -938,21 +1040,25 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
     ImportError
     
     """
+    if chain.shape[0] == 0:
+        msg = "It seems the chain is empty. Have you already run the MCMC?"
+        raise ValueError(msg)
+
+    labels = kwargs.pop('labels', ["$r$", r"$\theta$", "$f$"])
+        
     try:
+        npar = len(labels)
         temp = np.where(chain[0, :, 0] == 0.0)[0]
         if len(temp) != 0:
             chain = chain[:, :temp[0], :]
         length = chain.shape[1]
         indburn = int(np.floor(burnin*(length-1)))
-        chain = chain[:, indburn:length, :].reshape((-1, 3))
+        chain = chain[:, indburn:length, :].reshape((-1, npar))
     except IndexError:
         pass
 
-    if chain.shape[0] == 0:
-        print("It seems the chain is empty. Have you already run the MCMC?")
-    else:
-        labels = kwargs.pop('labels', ["$r$", r"$\theta$", "$f$"])
-        fig = corner.corner(chain, labels=labels, **kwargs)
+    fig = corner.corner(chain, labels=labels, **kwargs)
+
     if save:
         plt.savefig(output_dir+'corner_plot.pdf')
         plt.close(fig)
@@ -962,7 +1068,8 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
 
 def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                verbose=True, save=False, output_dir='', force=False, 
-               output_file='confidence.txt', title=None, plsc=None, **kwargs):
+               output_file='confidence.txt', title=None, ndig=1, plsc=None, 
+               labels = ['r', 'theta', 'f'], gt=None, **kwargs):
     r"""
     Determine the highly probable value for each model parameter, as well as
     the 1-sigma confidence interval.
@@ -993,15 +1100,26 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         many samples fall in a single bin (unreliable CI estimates). If False, 
         an error message is raised if the percentile of samples falling in a 
         single bin is larger than cfd, suggesting to increase number of bins.
-    output_file: str, opt
+    output_file: str, optional
         If save is True, name of the text file in which the results are saved.
-    title: bool or str, opt
+    title: bool or str, optional
         If not None, will print labels and parameter values on top of each
         plot. If a string, will print that label in front of the parameter
         values.
-    plsc: float, opt
+    ndig: int or list of int, optional
+        If title is not None, this sets the number of significant digits to be 
+        used when printing the best estimate for each parameter. If int, the 
+        same number of digits is used for all parameters. If a list of int, the
+        length should match the number of parameters.
+    plsc: float, optional
         If save is True, this is used to convert pixels to arcsec when writing
         results for r.
+    labels: list of strings, optional
+        Labels to be used for both plots and dictionaries. Length should match 
+        the number of free parameters.
+    gt: list or 1d numpy array, optional
+        Ground truth values (when known). If provided, will also be plotted for 
+        reference.
         
     Returns
     -------
@@ -1020,20 +1138,26 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         l = isamples.shape[1]
         if l == 1:
             isamples = isamples[:,0]
-            pKey = ['f']
-            label_file = ['flux']
-            label = [r'$\Delta f$']
-        elif l == 3:
-            pKey = ['r', 'theta', 'f']
-            label_file = ['r', r'$\theta$', 'flux']
-            label = [r'$r$', r'$\theta$', r'$f$']
-        else:
-            raise TypeError("input shape of isamples not recognized")
     except:
         l = 1
-        pKey = ['f']
-        label_file = ['flux']
-        label = [r'$\Delta f$']
+    
+    if not l == len(labels):
+        raise ValueError("Length of labels different to number of parameters")
+     
+    if gt is not None:
+        if len(gt) != l:
+            msg = "If provided, the length of ground truth values should match"
+            msg += " number of parameters"
+            raise TypeError(msg)
+    if np.isscalar(ndig):
+        ndig = [ndig]*l
+    else:
+        if len(ndig) != l:
+            msg = "Length of ndig list different to number of parameters"
+            raise ValueError(msg)
+    
+    pKey = labels
+    label_file = labels
      
     confidenceInterval = {}
     val_max = {}
@@ -1050,30 +1174,43 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
         sigma = np.zeros_like(mu)
     
     if gaussian_fit:
-        fig, ax = plt.subplots(2, l, figsize=(int(l*4),8))
+        nrows = 2*max(int(np.ceil(l/4)),1)
+        fig, ax = plt.subplots(nrows, min(4,l), figsize=(12, 4*nrows))
     else:
-        fig, ax = plt.subplots(1, l, figsize=(int(l*4),4))
+        nrows = max(int(np.ceil(l/4)),1)
+        fig, ax = plt.subplots(nrows, min(4,l), figsize=(12, 4*nrows))
     
     for j in range(l):
+        if nrows > 1:
+            ax0_tmp = ax[j//4][j%4]
+            if gaussian_fit:
+                ax1_tmp = ax[nrows//2+j//4][j%4]
+        elif l>1 and not gaussian_fit:
+            ax0_tmp = ax[j]
+        elif l == 1 and gaussian_fit:
+            ax0_tmp = ax[0]
+            ax1_tmp = ax[1]
+        else:
+            ax0_tmp = ax
         if l>1:
             if gaussian_fit:
-                n, bin_vertices, _ = ax[0][j].hist(isamples[:,j], bins=bins,
+                n, bin_vertices, _ = ax0_tmp.hist(isamples[:,j], bins=bins,
                                                    weights=weights, 
                                                    histtype='step',
                                                    edgecolor='gray')
             else:
-                n, bin_vertices, _ = ax[j].hist(isamples[:,j], bins=bins,
+                n, bin_vertices, _ = ax0_tmp.hist(isamples[:,j], bins=bins,
                                                 weights=weights, 
                                                 histtype='step',
                                                 edgecolor='gray')
         else:
             if gaussian_fit:
-                n, bin_vertices, _ = ax[0].hist(isamples[:], bins=bins,
+                n, bin_vertices, _ = ax0_tmp.hist(isamples[:], bins=bins,
                                                 weights=weights, 
                                                 histtype='step',
                                                 edgecolor='gray')
             else:
-                n, bin_vertices, _ = ax.hist(isamples[:], bins=bins,
+                n, bin_vertices, _ = ax0_tmp.hist(isamples[:], bins=bins,
                                              weights=weights, 
                                              histtype='step',
                                              edgecolor='gray')                
@@ -1121,139 +1258,213 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             arg = (isamples[:, j] >= bin_vertices[n_arg_min - 1]) * \
                   (isamples[:, j] <= bin_vertices[n_arg_max + 1])            
             if gaussian_fit:
-                ax[0][j].hist(isamples[arg,j], bins=bin_vertices,
+                ax0_tmp.hist(isamples[arg,j], bins=bin_vertices,
                               facecolor='gray', edgecolor='darkgray',
                               histtype='stepfilled', alpha=0.5)
-                ax[0][j].vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
-                                linestyles='dashed', color='red')
-                ax[0][j].set_xlabel(label[j])
+                ax0_tmp.set_xlabel(labels[j])
                 if j == 0:
-                    ax[0][j].set_ylabel('Counts')
+                    ax0_tmp.set_ylabel('Counts')
                 if title is not None:
-                    msg = r"{}: {:.3f} {:.3f} +{:.3f}"
-                    ax[0][j].set_title(msg.format(lab, val_max[pKey[j]], 
-                                               confidenceInterval[pKey[j]][0], 
-                                               confidenceInterval[pKey[j]][1]),
-                                       fontsize=10)
+                    fmt = "{{:.{0}f}}".format(ndig[j]).format
+                    msg = r"${{{0}}}_{{{1}}}^{{+{2}}}$"
+                    tit = msg.format(fmt(val_max[pKey[j]]), 
+                                     fmt(confidenceInterval[pKey[j]][0]), 
+                                     fmt(confidenceInterval[pKey[j]][1]))
+                    if gt is not None:
+                        tit += r" (gt: ${{{0}}}$)".format(fmt(gt[j]))
+                    ax0_tmp.set_title("{0}: {1}".format(lab, tit), fontsize=10)
+                if gt is not None:
+                    x_close = find_nearest(bin_vertices, gt[j])
+                    ax0_tmp.vlines(gt[j], 0, n[x_close], label='gt',
+                                   linestyles='dashed', color='blue')
+                    label = 'estimate'
+                else:
+                    label = None
+                ax0_tmp.vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
+                               linestyles='dashed', color='red', label=label)
+                        
                     
                 mu[j], sigma[j] = norm.fit(isamples[:, j])
                 n_fit, bins_fit = np.histogram(isamples[:, j], bins, density=1,
                                                weights=weights)
-                ax[1][j].hist(isamples[:, j], bins, density=1, weights=weights,
-                              facecolor='gray', edgecolor='darkgray',
-                              histtype='step')
+                ax1_tmp.hist(isamples[:, j], bins, density=1, weights=weights,
+                             facecolor='gray', edgecolor='darkgray',
+                             histtype='step')
                 y = norm.pdf(bins_fit, mu[j], sigma[j])
-                ax[1][j].plot(bins_fit, y, 'r--', linewidth=2, alpha=0.7)
+                ax1_tmp.plot(bins_fit, y, 'g-', linewidth=2, alpha=0.7)
     
-                ax[1][j].set_xlabel(label[j])
+                ax1_tmp.set_xlabel(labels[j])
                 if j == 0:
-                    ax[1][j].set_ylabel('Counts')
+                    ax1_tmp.set_ylabel('Counts')
     
                 if title is not None:
-                    msg = r"{}:  $\mu$ = {:.4f}, $\sigma$ = {:.4f}"
-                    ax[1][j].set_title(msg.format(lab, mu[j], sigma[j]),
-                                       fontsize=10)
+                    fmt = "{{:.{0}f}}".format(ndig[j]).format
+                    msg = r"$\mu$ = {0}, $\sigma$ = {1}"
+                    tit = msg.format(fmt(mu[j]), fmt(sigma[j]))
+                    if gt is not None:
+                        tit += r" (gt: ${{{0}}}$)".format(fmt(gt[j]))
+                    ax1_tmp.set_title("{0}: {1}".format(lab, tit), 
+                                      fontsize=10)
+                if gt is not None:
+                    x_close = find_nearest(bins_fit, gt[j])
+                    ax1_tmp.vlines(gt[j], 0, y[x_close], linestyles='dashed', 
+                                   color='blue', label='gt')
+                    label = r'estimate ($\mu$)'
+                else:
+                    label = None                    
+                
+                ax1_tmp.vlines(mu[j], 0, np.amax(y), linestyles='dashed', 
+                               color='green', label=label)
+                if gt is not None:
+                    ax0_tmp.legend()
+                    ax1_tmp.legend()
     
             else:            
-                ax[j].hist(isamples[arg,j], bins=bin_vertices, facecolor='gray',
-                           edgecolor='darkgray', histtype='stepfilled',
-                           alpha=0.5)
-                ax[j].vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
+                ax0_tmp.hist(isamples[arg,j], bins=bin_vertices, 
+                             facecolor='gray', edgecolor='darkgray', 
+                             histtype='stepfilled', alpha=0.5)
+                ax0_tmp.vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
                              linestyles='dashed', color='red')
-                ax[j].set_xlabel(label[j])
+                ax0_tmp.set_xlabel(labels[j])
                 if j == 0:
-                    ax[j].set_ylabel('Counts')
+                    ax0_tmp.set_ylabel('Counts')
     
                 if title is not None:
-                    msg = r"{}: {:.3f} {:.3f} +{:.3f}"
-                    ax[1].set_title(msg.format(lab, val_max[pKey[j]], 
-                                               confidenceInterval[pKey[j]][0], 
-                                               confidenceInterval[pKey[j]][1]),
-                                    fontsize=10)
+                    fmt = "{{:.{0}f}}".format(ndig[j]).format
+                    msg = r"${{{0}}}_{{{1}}}^{{+{2}}}$"
+                    tit = msg.format(fmt(val_max[pKey[j]]), 
+                                       fmt(confidenceInterval[pKey[j]][0]), 
+                                       fmt(confidenceInterval[pKey[j]][1]))
+                    if gt is not None:
+                        tit += r" (gt: ${{{0}}}$)".format(fmt(gt[j]))
+                    ax0_tmp.set_title("{0}: {1}".format(lab, tit), fontsize=10)
+                if gt is not None:
+                    x_close = find_nearest(bin_vertices, gt[j])
+                    ax0_tmp.vlines(gt[j], 0, n[x_close], label='gt',
+                                   linestyles='dashed', color='blue')
+                    label = 'estimate'
+                else:
+                    label = None
+                ax0_tmp.vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
+                               linestyles='dashed', color='red', label=label)
+                if gt is not None:
+                    ax0_tmp.legend()
+                    
         else:
             arg = (isamples[:] >= bin_vertices[n_arg_min - 1]) * \
                       (isamples[:] <= bin_vertices[n_arg_max + 1])
             if gaussian_fit:
-                ax[0].hist(isamples[arg], bins=bin_vertices,
-                              facecolor='gray', edgecolor='darkgray',
-                              histtype='stepfilled', alpha=0.5)
-                ax[0].vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
-                                linestyles='dashed', color='red')
-                ax[0].set_xlabel(label[j])
+                ax0_tmp.hist(isamples[arg], bins=bin_vertices,
+                             facecolor='gray', edgecolor='darkgray',
+                             histtype='stepfilled', alpha=0.5)
+
+                ax0_tmp.set_xlabel(labels[j])
                 if j == 0:
-                    ax[0].set_ylabel('Counts')
+                    ax0_tmp.set_ylabel('Counts')
+                    
+                if gt is not None:
+                    x_close = find_nearest(bin_vertices, gt[j])
+                    ax0_tmp.vlines(gt[j], 0, n[x_close], label='gt',
+                                   linestyles='dashed', color='blue')
+                    label = 'estimate'
+                else:
+                    label = None
+                ax0_tmp.vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
+                               linestyles='dashed', color='red', label=label)
                     
                 if title is not None:
-                    msg = r"{}: {:.3f} {:.3f} +{:.3f}"
-                    ax[0].set_title(msg.format(lab, val_max[pKey[j]], 
-                                               confidenceInterval[pKey[j]][0], 
-                                               confidenceInterval[pKey[j]][1]),
-                                    fontsize=10)   
+                    fmt = "{{:.{0}f}}".format(ndig[j]).format
+                    msg = r"${{{0}}}_{{{1}}}^{{+{2}}}$"
+                    tit = msg.format(fmt(val_max[pKey[j]]), 
+                                       fmt(confidenceInterval[pKey[j]][0]), 
+                                       fmt(confidenceInterval[pKey[j]][1]))
+                    if gt is not None:
+                        tit += r" (gt: ${{{0}}}$)".format(fmt(gt[j]))
+                    ax0_tmp.set_title("{0}: {1}".format(lab, tit), fontsize=10)
                     
                 mu[j], sigma[j] = norm.fit(isamples[:])
                 n_fit, bins_fit = np.histogram(isamples[:], bins, density=1,
                                                weights=weights)
-                ax[1].hist(isamples[:], bins, density=1, weights=weights,
+                ax1_tmp.hist(isamples[:], bins, density=1, weights=weights,
                               facecolor='gray', edgecolor='darkgray',
                               histtype='step')
                 y = norm.pdf(bins_fit, mu[j], sigma[j])
-                ax[1].plot(bins_fit, y, 'r--', linewidth=2, alpha=0.7)
-    
-                ax[1].set_xlabel(label[j])
+                ax1_tmp.plot(bins_fit, y, 'g-', linewidth=2, alpha=0.7)
+
+                ax1_tmp.set_xlabel(labels[j])
                 if j == 0:
-                    ax[1].set_ylabel('Counts')
-    
+                    ax1_tmp.set_ylabel('Counts')
+                    
                 if title is not None:
-                    msg = r"{}: $\mu$ = {:.4f}, $\sigma$ = {:.4f}"
-                    ax[1].set_title(msg.format(lab, mu[j], sigma[j]),
-                                       fontsize=10)
+                    fmt = "{{:.{0}f}}".format(ndig[j]).format
+                    msg = r"$\mu$ = {{{0}}}, $\sigma$ = {{{1}}}"
+                    tit = msg.format(fmt(mu[j]), fmt(sigma[j]))
+                    if gt is not None:
+                        tit += r" (gt: ${{{0}}}$)".format(fmt(gt[j]))
+                    ax1_tmp.set_title("{0}: {1}".format(lab, tit), 
+                                      fontsize=10)
+            
+                if gt is not None:
+                    x_close = find_nearest(bins_fit, gt[j])
+                    ax1_tmp.vlines(gt[j], 0, y[x_close], label='gt',
+                                   linestyles='dashed', color='blue')     
+                    label = r'estimate ($\mu$)'
+                else:
+                    label = None
+                ax1_tmp.vlines(mu[j], 0, np.amax(y), linestyles='dashed', 
+                               color='green', label=label)
+                if gt is not None:
+                    ax0_tmp.legend()
+                    ax1_tmp.legend()
     
             else:
-                ax.hist(isamples[arg],bins=bin_vertices, facecolor='gray',
-                           edgecolor='darkgray', histtype='stepfilled',
-                           alpha=0.5)
-                ax.vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
-                             linestyles='dashed', color='red')
-                ax.set_xlabel(label[j])
+                ax0_tmp.hist(isamples[arg],bins=bin_vertices, facecolor='gray',
+                             edgecolor='darkgray', histtype='stepfilled',
+                             alpha=0.5)
+                ax0_tmp.set_xlabel(labels[j])
                 if j == 0:
-                    ax.set_ylabel('Counts')
+                    ax0_tmp.set_ylabel('Counts')
     
                 if title is not None:
-                    msg = r"{}: {:.3f} {:.3f} +{:.3f}"
-                    ax.set_title(msg.format(lab, val_max[pKey[j]], 
-                                            confidenceInterval[pKey[j]][0], 
-                                            confidenceInterval[pKey[j]][1]),
-                                 fontsize=10)            
+                    fmt = "{{:.{0}f}}".format(ndig[j]).format
+                    msg = r"${{{0}}}_{{{1}}}^{{+{2}}}$"
+                    tit = msg.format(fmt(val_max[pKey[j]]), 
+                                       fmt(confidenceInterval[pKey[j]][0]), 
+                                       fmt(confidenceInterval[pKey[j]][1]))
+                    if gt is not None:
+                        tit += r" (gt: ${{{0}}}$)".format(fmt(gt[j]))
+                    ax0_tmp.set_title("{0}: {1}".format(lab, tit), fontsize=10)
+                if gt is not None:
+                    x_close = find_nearest(bin_vertices, gt[j])
+                    ax0_tmp.vlines(gt[j], 0, n[x_close], label='gt',
+                                   linestyles='dashed', color='blue')   
+                    label = 'estimate'
+                else:
+                    label = None
+                ax0_tmp.vlines(val_max[pKey[j]], 0, n[int(n_arg_sort[0])],
+                               linestyles='dashed', color='red', label=label)
+                if gt is not None:
+                    ax0_tmp.legend()
 
         plt.tight_layout(w_pad=0.1)
 
     if save:
         if gaussian_fit:
-            plt.savefig(output_dir+'confi_hist_flux_r_theta_gaussfit.pdf')
+            plt.savefig(output_dir+'confi_hist_gaussfit.pdf')
         else:
-            plt.savefig(output_dir+'confi_hist_flux_r_theta.pdf')
+            plt.savefig(output_dir+'confi_hist.pdf')
 
     if verbose:
         print('\n\nConfidence intervals:')
-        if l>1:
-            print('r: {} [{},{}]'.format(val_max['r'],
-                                         confidenceInterval['r'][0],
-                                         confidenceInterval['r'][1]))
-            print('theta: {} [{},{}]'.format(val_max['theta'],
-                                             confidenceInterval['theta'][0],
-                                             confidenceInterval['theta'][1]))
-        print('flux: {} [{},{}]'.format(val_max['f'],
-                                        confidenceInterval['f'][0],
-                                        confidenceInterval['f'][1]))
+        for i, lab in enumerate(labels):
+            print('{}: {} [{},{}]'.format(lab, val_max[lab],
+                                          confidenceInterval[lab][0],
+                                          confidenceInterval[lab][1]))
         if gaussian_fit:
             print()
             print('Gaussian fit results:')
-            if l>1:
-                print('r: {} +-{}'.format(mu[0], sigma[0]))
-                print('theta: {} +-{}'.format(mu[1], sigma[1]))
-                print('f: {} +-{}'.format(mu[2], sigma[2]))
-            else:
-                print('f: {} +-{}'.format(mu[0], sigma[0]))
+            for i, lab in enumerate(labels):
+                print('{}: {} +-{}'.format(lab, mu[i], sigma[i]))
                 
     ##############################################
     ##  Write inference results in a text file  ##
@@ -1281,7 +1492,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                     
                 f.write(text.format(pKey[i], val_max[pKey[i]],
                                     confidenceMin, confidenceMax))
-            if l>1 and plsc is not None:
+            if l>1 and plsc is not None and 'r' in labels:
                 f.write(' ')
                 f.write('Platescale = {} mas\n'.format(plsc*1000))
                 f.write('r (mas): \t\t{:.2f} \t\t-{:.2f} \t\t+{:.2f}\n'.format(

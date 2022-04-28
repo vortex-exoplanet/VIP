@@ -17,29 +17,31 @@ from ..psfsub import pca_annulus, pca_annular, pca
 from ..preproc import cube_crop_frames
 from ..config import check_array
 
-def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,  
+def chisquare(modelParameters, cube, angs, psfs_norm, fwhm, annulus_width,  
               aperture_radius, initialState, ncomp, cube_ref=None, 
               svd_mode='lapack', scaling=None, fmerit='sum', collapse='median',
               algo=pca_annulus, delta_rot=1, imlib='vip-fft', 
               interpolation='lanczos4', algo_options={}, transmission=None, 
-              mu_sigma=None, weights=None, force_rPA=False, debug=False):
+              mu_sigma=(0,1), weights=None, force_rPA=False, debug=False):
     r"""
     Calculate the reduced :math:`\chi^2`:
-    .. math:: \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
+    .. math:: \chi^2_r = \frac{1}{N-Npar}\sum_{j=1}^{N} \frac{(I_j-\mu)^2}{\sigma^2}
+    (mu_sigma is a tuple) or:
+    .. math:: \chi^2_r = \frac{1}{N-Npar}\sum_{j=1}^{N} |I_j| (mu_sigma=None),
     where N is the number of pixels within a circular aperture centered on the 
-    first estimate of the planet position, and :math:`I_j` the j-th pixel 
-    intensity.
+    first estimate of the planet position, Npar the number of parameters to be 
+    fitted (3 for a 3D input cube, 2+n_ch for a 4D input cube), and :math:`I_j` 
+    the j-th pixel intensity.
     
     Parameters
     ----------    
     modelParameters: tuple
-        The model parameters, typically (r, theta, flux).
-    cube: numpy.array
-        The cube of fits images expressed as a numpy.array.
+        The model parameters, typically (r, theta, flux). Where flux can be a 
+        1d array if cube is 4d.
+    cube: 3d or 4d numpy ndarray
+        Input ADI or ADI+IFS cube.
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array. 
-    plsc: float
-        The platescale, in arcsec per pixel.
     psfs_norm: numpy.array
         The scaled psf expressed as a numpy.array.    
     fwhm : float
@@ -113,15 +115,28 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
         The reduced chi squared.
         
     """
-    if force_rPA:
-        r, theta = initialState
-        flux_tmp = modelParameters[0]
+    if cube.ndim == 3:
+        if force_rPA:
+            r, theta = initialState
+            flux_tmp = modelParameters[0]
+        else:
+            try:
+                r, theta, flux_tmp = modelParameters
+            except TypeError:
+                msg = 'modelParameters must be a tuple, {} was given'
+                print(msg.format(type(modelParameters)))
     else:
-        try:
-            r, theta, flux_tmp = modelParameters
-        except TypeError:
-            msg = 'modelParameters must be a tuple, {} was given'
-            print(msg.format(type(modelParameters)))
+        if force_rPA:
+            r, theta = initialState
+            flux_tmp = np.array(modelParameters)
+        else:
+            try:
+                r = modelParameters[0]
+                theta = modelParameters[1]
+                flux_tmp = np.array(modelParameters[2:])
+            except TypeError:
+                msg = 'modelParameters must be a tuple, {} was given'
+                print(msg.format(type(modelParameters)))        
 
     ## set imlib for rotation and shift
     if imlib == 'opencv':
@@ -136,20 +151,27 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     else:
         raise TypeError("Interpolation not recognized.")
 
+    norm_weights = None
     if weights is None:   
         flux = -flux_tmp
-        norm_weights=weights
-    else:
+        #norm_weights=weights
+    elif np.isscalar(flux_tmp):
         flux = -flux_tmp*weights
-        norm_weights = weights/np.sum(weights)
+        #norm_weights=weights
+        #norm_weights = weights/np.sum(weights)
+    else:
+        flux = -np.outer(flux_tmp, weights)
+        #norm_weights=weights
+        #norm_weights = weights/np.sum(weights)
+        
 
     # Create the cube with the negative fake companion injected
     cube_negfc = cube_inject_companions(cube, psfs_norm, angs, flevel=flux,
-                                        plsc=plsc, rad_dists=[r], n_branches=1,
+                                        rad_dists=[r], n_branches=1, 
                                         theta=theta, imlib=imlib_sh, 
-                                        verbose=False, 
                                         interpolation=interpolation, 
-                                        transmission=transmission)
+                                        transmission=transmission, 
+                                        verbose=False)
                                       
     # Perform PCA and extract the zone of interest
     res = get_values_optimize(cube_negfc, angs, ncomp, annulus_width,
@@ -171,17 +193,19 @@ def chisquare(modelParameters, cube, angs, plsc, psfs_norm, fwhm, annulus_width,
     if mu_sigma is None:
         # old version - delete?
         if fmerit == 'sum':
-            chi = np.sum(np.abs(values))
+            chi = np.sum(np.abs(values))/(values.size-len(modelParameters))
         elif fmerit == 'stddev':
             values = values[values != 0]
-            chi = np.std(values)*values.size # TODO: test std**2
+            ddf = values.size-len(modelParameters)
+            chi = np.std(values)*values.size/ddf # TODO: test std**2
         else:
             raise RuntimeError('fmerit choice not recognized.')
     else:
         # true expression of a gaussian log probability
         mu = mu_sigma[0]
         sigma = mu_sigma[1]
-        chi = np.sum(np.power(mu-values,2)/sigma**2)   
+        ddf = values.size-len(modelParameters)
+        chi = np.sum(np.power(mu-values,2)/sigma**2)/ddf
         
     return chi
 
@@ -197,8 +221,8 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     
     Parameters
     ----------
-    cube: numpy.array
-        The cube of fits images expressed as a numpy.array.
+    cube: 3d or 4d numpy ndarray
+        Input ADI or ADI+IFS cube.
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array.
     ncomp: int or None
@@ -283,13 +307,14 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     imlib = algo_options.get('imlib', imlib)
     interpolation = algo_options.get('interpolation', interpolation)
     collapse = algo_options.get('collapse', collapse)
+    collapse_ifs = algo_options.get('collapse_ifs', 'absmean')
 
 
     if algo == pca_annulus:
-        pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, 
-                              cube_ref, svd_mode, scaling, imlib=imlib,
-                              interpolation=interpolation, collapse=collapse,
-                              weights=weights)
+        res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref, 
+                          svd_mode, scaling, imlib=imlib, 
+                          interpolation=interpolation, collapse=collapse,
+                          collapse_ifs=collapse_ifs, weights=weights)
         
     elif algo == pca_annular:
                 
@@ -309,41 +334,40 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
             crop_cube = cube
 
 
-        pca_res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int, 
-                                  fwhm=fwhm, asize=annulus_width, 
-                                  delta_rot=delta_rot, ncomp=ncomp, 
-                                  svd_mode=svd_mode, scaling=scaling, 
-                                  imlib=imlib, interpolation=interpolation,
-                                  collapse=collapse, weights=weights, tol=tol, 
-                                  min_frames_lib=min_frames_lib, 
-                                  max_frames_lib=max_frames_lib, 
-                                  full_output=False, verbose=False)
+        res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int, fwhm=fwhm, 
+                              asize=annulus_width, delta_rot=delta_rot, 
+                              ncomp=ncomp, svd_mode=svd_mode, scaling=scaling, 
+                              imlib=imlib, interpolation=interpolation,
+                              collapse=collapse, collapse_ifs=collapse_ifs, 
+                              weights=weights, tol=tol,
+                              min_frames_lib=min_frames_lib, 
+                              max_frames_lib=max_frames_lib, full_output=False, 
+                              verbose=False)
         # pad again now                      
-        pca_res = np.pad(pca_res_tmp,pad,mode='constant',constant_values=0)
+        res = np.pad(res_tmp, pad, mode='constant', constant_values=0)
         
     elif algo == pca: 
         scale_list = algo_options.get('scale_list',None)
         ifs_collapse_range = algo_options.get('ifs_collapse_range','all')
         nproc = algo_options.get('nproc','all')
-        pca_res = pca(cube, angs, cube_ref, scale_list, ncomp, 
-                      svd_mode=svd_mode, scaling=scaling, imlib=imlib,
-                      interpolation=interpolation, collapse=collapse,
-                      ifs_collapse_range=ifs_collapse_range, nproc=nproc,
-                      weights=weights, verbose=False)
+        res = pca(cube, angs, cube_ref, scale_list, ncomp, svd_mode=svd_mode, 
+                  scaling=scaling, imlib=imlib, interpolation=interpolation, 
+                  collapse=collapse, collapse_ifs=collapse_ifs, 
+                  ifs_collapse_range=ifs_collapse_range, nproc=nproc, 
+                  weights=weights, verbose=False)
     else:
-        algo_args = algo_options
-        pca_res = algo(cube, angs, **algo_args)
+        res = algo(cube, angs, **algo_options)
                                   
     indices = disk((posy, posx), radius=aperture_radius*fwhm)
     yy, xx = indices
 
     if collapse is None:
-        values = pca_res[:, yy, xx].ravel()
+        values = res[:, yy, xx].ravel()
     else:
-        values = pca_res[yy, xx].ravel()
+        values = res[yy, xx].ravel()
 
     if debug and collapse is not None:
-        return values, pca_res
+        return values, res
     else:
         return values
 

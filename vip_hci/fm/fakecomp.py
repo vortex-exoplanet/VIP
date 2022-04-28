@@ -29,11 +29,11 @@ from ..var import (frame_center, fit_2dgaussian, fit_2dairydisk, fit_2dmoffat,
 from ..config.utils_conf import print_precision, check_array
 
 
-def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
-                           rad_dists, n_branches=1, theta=0, imlib='vip-fft',
+def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists, 
+                           plsc=None, n_branches=1, theta=0, imlib='vip-fft',
                            interpolation='lanczos4', transmission=None, 
                            radial_gradient=False, full_output=False, 
-                           verbose=True):
+                           verbose=False):
     """ Injects fake companions in branches, at given radial distances.
 
     Parameters
@@ -46,7 +46,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         an odd or even shape. The PSF image must be centered wrt to the array. 
         Therefore, it is recommended to run the function ``normalize_psf`` to 
         generate a centered and flux-normalized PSF template. 
-        It can also be a 3D array, but length should match ADI cube.
+        It can also be a 3D array, but length should match that of ADI cube.
         [for a 4D input array] In the ADI+mSDI case, it must be a 3d array 
         (matching spectral dimensions).
     angle_list : 1d numpy ndarray
@@ -61,7 +61,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
         length as the number of spectral channels (i.e. provide a spectrum). If
         a 2d array, it should be n_wavelength x n_frames (can e.g. be used to 
         inject a spectrum in varying conditions).
-    plsc : float
+    plsc : float or None
         Value of the plsc in arcsec/px. Only used for printing debug output when
         ``verbose=True``.
     rad_dists : float, list or array 1d
@@ -110,7 +110,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     def _cube_inject_adi(array, psf_template, angle_list, flevel, plsc, 
                          rad_dists, n_branches=1, theta=0, imlib='vip-fft',
                          interpolation='lanczos4', transmission=None, 
-                         radial_gradient=False, verbose=True):
+                         radial_gradient=False, verbose=False):
         
         if transmission is not None:  
             ## last radial separation should be beyond the edge of frame
@@ -214,11 +214,11 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
                            
                 pos_y = rad * np.sin(ang) + ceny
                 pos_x = rad * np.cos(ang) + cenx
-                rad_arcs = rad * plsc
 
                 positions.append((pos_y, pos_x))
 
                 if verbose:
+                    rad_arcs = rad * plsc
                     print('\t(X,Y)=({:.2f}, {:.2f}) at {:.2f} arcsec '
                           '({:.2f} pxs from center)'.format(pos_x, pos_y,
                                                             rad_arcs, rad))
@@ -239,7 +239,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
     if array.ndim == 4 and psf_template.ndim != 3:
         raise ValueError('`psf_template` must be a 3d array')
 
-    if not np.isscalar(plsc):
+    if verbose and not np.isscalar(plsc):
         raise TypeError("`plsc` must be a scalar")
     if not np.isscalar(flevel):
         if len(flevel) != array.shape[0]:
@@ -331,7 +331,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, plsc,
             res = _cube_inject_adi(array[i], psf_template[i], angle_list, 
                                    flevel_all[i], plsc, rad_dists, n_branches, 
                                    theta, imlib, interpolation, trans, 
-                                   radial_gradient, verbose=i==0)
+                                   radial_gradient, 
+                                   verbose=(i==0 & verbose is True))
             array_out[i], positions, psf_trans = res
 
     if full_output:

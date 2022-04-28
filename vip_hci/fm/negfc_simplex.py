@@ -20,13 +20,13 @@ __author__ = 'O. Wertz, C. A. Gomez Gonzalez, V. Christiaens'
 __all__ = ['firstguess']
 
 
-def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
-                          annulus_width, aperture_radius, ncomp, cube_ref=None,
+def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width, 
+                          aperture_radius, ncomp, cube_ref=None, 
                           svd_mode='lapack', scaling=None, fmerit='sum',
                           imlib='vip-fft', interpolation='lanczos4',
                           collapse='median', algo=pca_annulus, delta_rot=1, 
                           algo_options={}, f_range=None, transmission=None, 
-                          mu_sigma=None, weights=None, plot=False, 
+                          mu_sigma=(0,1), weights=None, plot=False, 
                           verbose=True, save=False, debug=False):
     """ Determine a first guess for the flux of a companion at a given position
     in the cube by doing a simple grid search evaluating the reduced chi2.
@@ -37,14 +37,19 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
         The (x,y) position of the planet in the pca processed cube.
     center: numpy.array
         The (x,y) position of the cube center.
-    cube: numpy.array
-        The cube of fits images expressed as a numpy.array. 
+    cube: 3d or 4d numpy ndarray
+        Input ADI or ADI+IFS cube.
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array.         
-    PLSC: float
-        The platescale, in arcsec per pixel.
-    psf: numpy.array
-        The scaled psf expressed as a numpy.array. 
+    psfn: numpy 2D or 3D array
+        Normalised PSF template used for negative fake companion injection. 
+        The PSF must be centered and the flux in a 1xFWHM aperture must equal 1 
+        (use ``vip_hci.metrics.normalize_psf``).
+        If the input cube is 3D and a 3D array is provided, the first dimension
+        must match for both cubes. This can be useful if the star was 
+        unsaturated and conditions were variable.
+        If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
+        the first dimension(s) must match those of the input cube.
     fwhm : float
         The FHWM in pixels.           
     annulus_width: int, optional
@@ -111,66 +116,155 @@ def firstguess_from_coord(planet, center, cube, angs, PLSC, psf, fwhm,
         
     Returns
     -------
-    out : numpy.array
-        The radial coordinates and the flux of the companion.
+    res : tuple
+        The polar coordinates and the flux(es) of the companion.
                 
     """  
+    def _grid_search_f(r0, theta0, ch, cube, angs, psfn, fwhm, annulus_width, 
+                       aperture_radius, ncomp, cube_ref=None, svd_mode='lapack', 
+                       scaling=None, fmerit='sum', imlib='vip-fft', 
+                       interpolation='lanczos4', collapse='median', 
+                       algo=pca_annulus, delta_rot=1, algo_options={}, 
+                       f_range=np.geomspace(1e-1, 1e4, 30), transmission=None, 
+                       mu_sigma=None, weights=None, verbose=True, debug=False):
+        
+        chi2r = []
+        if verbose:
+            print('Step | flux    | chi2r')
+          
+        counter = 0
+        for j, f_guess in enumerate(f_range):
+            if cube.ndim==3:
+                params = (r0, theta0, f_guess)
+            elif ch is not None and cube.ndim==4:
+                params = [r0, theta0]
+                fluxes = [0]*cube.shape[0]
+                fluxes[ch] = f_guess
+                params = tuple(params+fluxes)
+            else:
+                raise TypeError("If cube is 4d, channel index must be provided")
+            chi2r.append(chisquare(params, cube, angs, psfn, fwhm, annulus_width, 
+                                   aperture_radius, (r0, theta0), ncomp, 
+                                   cube_ref, svd_mode, scaling, fmerit, collapse, 
+                                   algo, delta_rot, imlib, interpolation, 
+                                   algo_options, transmission, mu_sigma, weights, 
+                                   debug))
+            if chi2r[j] > chi2r[j-1]:
+                counter += 1
+            if counter == 4:
+                break
+            if verbose:
+                print('{}/{}   {:.3f}   {:.3f}'.format(j+1, n, f_guess, chi2r[j]))
+                 
+        return chi2r
+
+
     xy = planet-center
     r0 = np.sqrt(xy[0]**2 + xy[1]**2)
-    theta0 = np.mod(np.arctan2(xy[1], xy[0]) / np.pi*180, 360)
-
+    theta0 = np.mod(np.arctan2(xy[1], xy[0]) / np.pi*180, 360)              
+    
     if f_range is not None:    
         n = f_range.shape[0]
     else:
         n = 30
         f_range = np.geomspace(1e-1, 1e4, n)
-    
-    chi2r = []
-    if verbose:
-        print('Step | flux    | chi2r')
         
-    counter = 0
-    for j, f_guess in enumerate(f_range):
-        chi2r.append(chisquare((r0, theta0, f_guess), cube, angs, PLSC, psf,
-                               fwhm, annulus_width, aperture_radius,
-                               (r0, theta0), ncomp, cube_ref, svd_mode,
-                               scaling, fmerit, collapse, algo, delta_rot,
-                               imlib, interpolation, algo_options, transmission, 
-                               mu_sigma, weights, debug))
-        if chi2r[j] > chi2r[j-1]:
-            counter += 1
-        if counter == 4:
-            break
-        if verbose:
-            print('{}/{}   {:.3f}   {:.3f}'.format(j+1, n, f_guess, chi2r[j]))
+    if cube.ndim == 3:
+        chi2r = _grid_search_f(r0, theta0, None, cube, angs, psfn, fwhm, 
+                               annulus_width, aperture_radius, ncomp, 
+                               cube_ref=cube_ref, svd_mode=svd_mode, 
+                               scaling=scaling, fmerit=fmerit, imlib=imlib, 
+                               interpolation=interpolation, collapse=collapse, 
+                               algo=algo, delta_rot=delta_rot, 
+                               algo_options=algo_options, f_range=f_range, 
+                               transmission=transmission, mu_sigma=mu_sigma, 
+                               weights=weights, verbose=verbose, debug=debug)
+        chi2r = np.array(chi2r)
+        f0 = f_range[chi2r.argmin()]
 
-    chi2r = np.array(chi2r)
-    f0 = f_range[chi2r.argmin()]  
+        if plot:
+            plt.figure(figsize=(8, 4))
+            plt.title('$\chi^2_{r}$ vs flux')
+            plt.xlim(f_range[0], f_range[:chi2r.shape[0]].max())
+            plt.ylim(chi2r.min()*0.9, chi2r.max()*1.1)
+            plt.plot(f_range[:chi2r.shape[0]], chi2r, linestyle='-', color='gray',
+                     marker='.', markerfacecolor='r', markeredgecolor='r')
+            plt.xlabel('flux')
+            plt.ylabel(r'$\chi^2_r$')
+            plt.grid('on')
+        if save and plot:
+            plt.savefig('chi2rVSflux.pdf')
+        if plot:
+            plt.show()
+        
+        res = (r0, theta0, f0)
+        
+    else:
+        f0 = []
+        if plot:
+            plt.figure(figsize=(8, 4))
+            plt.title('$\chi^2_{r}$ vs flux')
+            plt.xlabel('flux')
+            plt.ylabel(r'$\chi^2_{r}$')
+            plt.grid('on')
+                
+        for i in range(cube.shape[0]):
+            if verbose:
+                print('Processing spectral channel {}...'.format(i))
+            chi2r = _grid_search_f(r0, theta0, i, cube, angs, psfn, 
+                                   fwhm, annulus_width, aperture_radius, 
+                                   ncomp, cube_ref=cube_ref, svd_mode=svd_mode, 
+                                   scaling=scaling, fmerit=fmerit, 
+                                   imlib=imlib, interpolation=interpolation,
+                                   collapse=collapse, algo=algo, 
+                                   delta_rot=delta_rot, 
+                                   algo_options=algo_options, f_range=f_range, 
+                                   transmission=transmission, 
+                                   mu_sigma=mu_sigma, weights=weights, 
+                                   verbose=False, debug=False)
+            chi2r = np.array(chi2r)
+            f0.append(f_range[chi2r.argmin()])
+            if verbose:
+                msg = r'... optimal grid flux: {:.3f} ($\chi^2_r$ = {:.1f})'
+                print(msg.format(f0[i], np.amin(chi2r)))
 
-    if plot:
-        plt.figure(figsize=(8, 4))
-        plt.title('$\chi^2_{r}$ vs flux')
-        plt.xlim(f_range[0], f_range[:chi2r.shape[0]].max())
-        plt.ylim(chi2r.min()*0.9, chi2r.max()*1.1)
-        plt.plot(f_range[:chi2r.shape[0]], chi2r, linestyle='-', color='gray',
-                 marker='.', markerfacecolor='r', markeredgecolor='r')
-        plt.xlabel('flux')
-        plt.ylabel(r'$\chi^2_{r}$')
-        plt.grid('on')
-    if save:
-        plt.savefig('chi2rVSflux.pdf')
-    if plot:
-        plt.show()
+            if i == 0:
+                min_chi2r = chi2r.min()
+                max_chi2r = chi2r.max()
+                fmax = f0[i]
+            else:
+                if min_chi2r > chi2r.min():
+                    min_chi2r = chi2r.min()
+                if max_chi2r < chi2r.max():
+                    max_chi2r = chi2r.max()
+                if fmax < f0[i]:
+                    fmax = f0[i]
 
-    return r0, theta0, f0
+            if plot:        
+                plt.plot(f_range[:chi2r.shape[0]], chi2r, linestyle='-', 
+                         marker='.', markerfacecolor='r', markeredgecolor='r',
+                         label='ch. {}'.format(i))
+
+        if plot:
+            plt.xlim(f_range[0], f_range[:chi2r.shape[0]].max())
+            plt.ylim(min_chi2r*0.9, max_chi2r*1.1)
+            plt.legend()
+        if save and plot:
+            plt.savefig('chi2rVSflux.pdf')
+        if plot:
+            plt.show()
+
+        res = tuple([r0, theta0]+f0)
+
+    return res
 
 
-def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width, 
+def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width, 
                        aperture_radius, cube_ref=None, svd_mode='lapack', 
                        scaling=None, fmerit='sum', imlib='vip-fft',
                        interpolation='lanczos4', collapse='median', 
                        algo=pca_annulus, delta_rot=1, algo_options={}, 
-                       p_ini=None, transmission=None, mu_sigma=None, 
+                       p_ini=None, transmission=None, mu_sigma=(0,1), 
                        weights=None, force_rPA=False, options=None, 
                        verbose=False, **kwargs):
     """
@@ -182,14 +276,19 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
     
     p : np.array
         Estimate of the candidate position.
-    cube: numpy.array
-        The cube of fits images expressed as a numpy.array. 
+    cube: 3d or 4d numpy ndarray
+        Input ADI or ADI+IFS cube.
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array. 
-    psf: numpy.array
-        The scaled psf expressed as a numpy.array.        
-    plsc: float
-        The platescale, in arcsec per pixel.
+    psfn: numpy 2D or 3D array
+        Normalised PSF template used for negative fake companion injection. 
+        The PSF must be centered and the flux in a 1xFWHM aperture must equal 1 
+        (use ``vip_hci.metrics.normalize_psf``).
+        If the input cube is 3D and a 3D array is provided, the first dimension
+        must match for both cubes. This can be useful if the star was 
+        unsaturated and conditions were variable.
+        If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
+        the first dimension(s) must match those of the input cube.     
     ncomp: int or None
         The number of principal components.  
     fwhm : float
@@ -257,7 +356,7 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
         
     Returns
     -------
-    out : scipy.optimize.minimize solution object
+    solu : scipy.optimize.minimize solution object
         The solution of the minimization algorithm.
         
     """    
@@ -268,15 +367,15 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
         p_ini = p
 
     if force_rPA:
-        p_t = (p[-1],)
+        p_t = p[2:]
         p_ini = (p[0],p[1])
     else:
         p_t = p
-    solu = minimize(chisquare, p_t, args=(cube, angs, plsc, psf, fwhm,
-                                          annulus_width, aperture_radius, p_ini,
-                                          ncomp, cube_ref, svd_mode, scaling,
-                                          fmerit, collapse, algo, delta_rot, 
-                                          imlib, interpolation, algo_options, 
+    solu = minimize(chisquare, p_t, args=(cube, angs, psfn, fwhm, annulus_width, 
+                                          aperture_radius, p_ini, ncomp, 
+                                          cube_ref, svd_mode, scaling, fmerit, 
+                                          collapse, algo, delta_rot, imlib, 
+                                          interpolation, algo_options, 
                                           transmission, mu_sigma, weights, 
                                           force_rPA),
                     method='Nelder-Mead', options=options, **kwargs)
@@ -286,12 +385,12 @@ def firstguess_simplex(p, cube, angs, psf, plsc, ncomp, fwhm, annulus_width,
     return solu
     
 
-def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4, 
+def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4, 
                annulus_width=4, aperture_radius=1, cube_ref=None, 
                svd_mode='lapack', scaling=None, fmerit='sum', imlib='vip-fft',
                interpolation='lanczos4', collapse='median', algo=pca_annulus,
                delta_rot=1, p_ini=None, f_range=None, transmission=None, 
-               mu_sigma=None, wedge=None, weights=None, force_rPA= False, 
+               mu_sigma=True, wedge=None, weights=None, force_rPA= False, 
                algo_options={}, simplex=True, simplex_options=None, plot=False, 
                verbose=True, save=False):
     """ Determines a first guess for the position and the flux of a planet.
@@ -312,17 +411,22 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
            
     Parameters
     ----------
-    cube: numpy.array
-        The cube of fits images expressed as a numpy.array. 
+    cube: 3d or 4d numpy ndarray
+        Input ADI or ADI+IFS cube.
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array.  
-    psfn: numpy.array
-        The centered and normalized (flux in a 1*FWHM aperture must equal 1) 
-        PSF 2d-array.
-    ncomp: int
-        The number of principal components.         
-    plsc: float
-        The platescale, in arcsec per pixel.  
+    psfn: numpy 2D or 3D array
+        Normalised PSF template used for negative fake companion injection. 
+        The PSF must be centered and the flux in a 1xFWHM aperture must equal 1 
+        (use ``vip_hci.metrics.normalize_psf``).
+        If the input cube is 3D and a 3D array is provided, the first dimension
+        must match for both cubes. This can be useful if the star was 
+        unsaturated and conditions were variable.
+        If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
+        the first dimension(s) must match those of the input cube.
+    ncomp : int or 1d numpy array of int
+        The number of principal components. If cube is a 4D cube, ncomp can be a
+        list of integers, with length matching the first dimension of the cube.     
     planets_xy_coord: array or list
         The list of (x,y) positions of the planets.
     fwhm : float, optional
@@ -358,7 +462,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
     p_ini: numpy.array
-        Position (r, theta) of the circular aperture center.            
+        Position (r, theta) of the circular aperture center.        
     f_range: numpy.array, optional
         The range of flux tested values. If None, 20 values between 0 and 5000
         are tested.
@@ -408,12 +512,17 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
 
     Returns
     -------
-    out : The radial coordinates and the flux of the companion.
+    out : tuple of 3+ elements
+        The polar coordinates and the flux(es) of the companion.
 
     Notes
     -----
     Polar angle is not the conventional NORTH-TO-EAST P.A.
     """
+    
+    if cube.ndim != 3 and cube.ndim != 4:
+        raise TypeError("Input cube is not 3D nor 4D")
+    
     if verbose:
         start_time = time_ini()
         
@@ -423,7 +532,13 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
 
     r_0 = np.zeros(n_planet)
     theta_0 = np.zeros_like(r_0)
-    f_0 = np.zeros_like(r_0)
+    if cube.ndim == 3:
+        f_0 = np.zeros_like(r_0)
+    else:
+        if psfn.ndim < 3:
+            msg = "The normalized PSF should be 3D for a 4D input cube"
+            raise TypeError(msg)
+        f_0 = np.zeros([n_planet, cube.shape[0]])
 
     if weights is not None:
         if not len(weights)==cube.shape[0]:
@@ -460,7 +575,7 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                         algo_options=algo_options)
         
         res_init = firstguess_from_coord(planets_xy_coord[index_planet],
-                                         center_xy_coord, cube, angs, plsc,
+                                         center_xy_coord, cube, angs,
                                          psfn, fwhm, annulus_width,
                                          aperture_radius, ncomp,
                                          f_range=f_range, cube_ref=cube_ref,
@@ -473,12 +588,21 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                                          transmission=transmission, 
                                          mu_sigma=mu_sigma, weights=weights,
                                          plot=plot, verbose=verbose, save=save)
-        r_pre, theta_pre, f_pre = res_init
+        r_pre = res_init[0] 
+        theta_pre = res_init[1]
+        f_pre = res_init[2:]
 
         if verbose:
-            msg3 = 'Planet {}: preliminary guess: (r, theta, f)=({:.1f}, '
-            msg3 += '{:.1f}, {:.1f})'
-            print(msg3.format(index_planet,r_pre, theta_pre, f_pre))
+            msg3a = 'Planet {}: preliminary position guess: (r, theta)=({:.1f}, '
+            msg3a += '{:.1f})'
+            print(msg3a.format(index_planet,r_pre, theta_pre))
+            msg3b = 'Planet {}: preliminary flux guess: '.format(index_planet)
+            for z in range(len(f_pre)):
+                msg3b += '{:.1f}'.format(f_pre[z])
+                if z<len(f_pre)-1:
+                    msg3b += ', '
+            print(msg3b)
+        
         
         if simplex or force_rPA:
             if verbose:
@@ -490,15 +614,15 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                 simplex_options = {'xatol': 1e-6, 'fatol': 1e-6, 'maxiter': 800,
                                    'maxfev': 2000}
                                                          
-            res = firstguess_simplex((r_pre, theta_pre, f_pre), cube, angs,
-                                     psfn, plsc, ncomp, fwhm, annulus_width,
-                                     aperture_radius, cube_ref=cube_ref, 
-                                     svd_mode=svd_mode, scaling=scaling,
-                                     fmerit=fmerit, imlib=imlib,
-                                     interpolation=interpolation,
+            res = firstguess_simplex(res_init, cube, angs, psfn, ncomp, fwhm, 
+                                     annulus_width, aperture_radius, 
+                                     cube_ref=cube_ref, svd_mode=svd_mode, 
+                                     scaling=scaling, fmerit=fmerit, 
+                                     imlib=imlib, interpolation=interpolation,
                                      collapse=collapse, algo=algo, 
-                                     delta_rot=delta_rot, algo_options=algo_options, 
-                                     p_ini=p_ini, transmission=transmission,
+                                     delta_rot=delta_rot, 
+                                     algo_options=algo_options, p_ini=p_ini, 
+                                     transmission=transmission, 
                                      mu_sigma=mu_sigma, weights=weights, 
                                      force_rPA=force_rPA, 
                                      options=simplex_options, verbose=False)
@@ -506,7 +630,12 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
                 r_0[index_planet], theta_0[index_planet] = (r_pre, theta_pre)
                 f_0[index_planet], = res.x
             else:
-                r_0[index_planet], theta_0[index_planet], f_0[index_planet] = res.x
+                r_0[index_planet] = res.x[0] 
+                theta_0[index_planet] = res.x[1]
+                if cube.ndim == 3:
+                    f_0[index_planet] = res.x[2]
+                else:
+                    f_0[index_planet] = res.x[2:]
             if verbose:
                 msg5 = 'Planet {}: Success: {}, nit: {}, nfev: {}, chi2r: {}'
                 print(msg5.format(index_planet, res.success, res.nit, res.nfev,
@@ -525,11 +654,25 @@ def firstguess(cube, angs, psfn, ncomp, plsc, planets_xy_coord, fwhm=4,
             centy, centx = frame_center(cube[0])
             posy = r_0 * np.sin(np.deg2rad(theta_0[index_planet])) + centy
             posx = r_0 * np.cos(np.deg2rad(theta_0[index_planet])) + centx
-            msg6 = 'Planet {}: simplex result: (r, theta, f)=({:.3f}, {:.3f}'
-            msg6 += ', {:.3f}) at \n          (X,Y)=({:.2f}, {:.2f})'
-            print(msg6.format(index_planet, r_0[index_planet],
-                              theta_0[index_planet], f_0[index_planet],
-                              posx[0], posy[0]))
+            msg6 = 'Planet {}: simplex result: (r, theta, '.format(index_planet)
+            if cube.ndim == 3:
+                msg6 += 'f)=({:.3f}, {:.3f}, {:.3f})'.format(r_0[index_planet],
+                                                            theta_0[index_planet], 
+                                                            f_0[index_planet])
+            else:
+                msg6b = '('
+                for z in range(cube.shape[0]):
+                    msg6 += 'f{}'.format(z)
+                    msg6b += '{:.3f}'.format(f_0[index_planet,z])
+                    if z <cube.shape[0]-1:
+                        msg6 += ', '
+                        msg6b += ', '
+                msg6 += ')='
+                msg6b +=')'
+                msg6+=msg6b
+            msg6 += ' at \n          (X,Y)=({:.2f}, {:.2f})'.format(posx[0], 
+                                                                    posy[0])
+            print(msg6)
     
     if verbose:
         print('\n', sep, '\nDONE !\n', sep)

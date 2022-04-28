@@ -17,9 +17,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 from ..config import time_ini, timing
 from .negfc_mcmc import lnlike, confidence, show_walk_plot
+from .negfc_fmerit import get_mu_and_sigma
 from ..psfsub import pca_annulus
 
-def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
+def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True, 
+                          sigma='spe+pho', fmerit='sum', annulus_width=8,
                           aperture_radius=1, ncomp=10, scaling=None,
                           svd_mode='lapack', cube_ref=None, collapse='median', 
                           algo=pca_annulus, delta_rot=1, algo_options={}, 
@@ -39,17 +41,41 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
         The first guess for the position and flux of the planet, respectively.
         It serves for generating the bounds of the log prior function (uniform
         in a bounded interval).
-    cube: numpy ndarray
-        Frame sequence of cube.
-    angs: numpy ndarray
-        The relative path to the parallactic angle fits image or the angs itself.
-    plsc: float
-        The platescale, in arcsec per pixel.
-    psf: numpy ndarray
-        The PSF template. It must be centered and the flux in a 1*FWHM aperture
-        must equal 1.
+    cube: 3d or 4d numpy ndarray
+        Input ADI or ADI+IFS cube.
+    angs: numpy.array
+        The parallactic angle vector.
+    psfn: numpy 2D or 3D array
+        Normalised PSF template used for negative fake companion injection. 
+        The PSF must be centered and the flux in a 1xFWHM aperture must equal 1 
+        (use ``vip_hci.metrics.normalize_psf``).
+        If the input cube is 3D and a 3D array is provided, the first dimension
+        must match for both cubes. This can be useful if the star was 
+        unsaturated and conditions were variable.
+        If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
+        the first dimension(s) must match those of the input cube.
     fwhm : float
         The FHWM in pixels.
+    mu_sigma: tuple of 2 floats or bool, opt
+        If set to None: not used, and falls back to original version of the 
+        algorithm, using fmerit (Wertz et al. 2017).
+        If a tuple of 2 elements: should be the mean and standard deviation of 
+        pixel intensities in an annulus centered on the location of the
+        companion candidate, excluding the area directly adjacent to the CC.
+        If set to anything else, but None/False/tuple: will compute said mean 
+        and standard deviation automatically.
+        These values will then be used in the log-probability of the MCMC.
+    sigma: str, opt
+        Sets the type of noise to be included as sigma^2 in the log-probability 
+        expression. Choice between 'pho' for photon (Poisson) noise, 'spe' for 
+        residual (mostly whitened) speckle noise, or 'spe+pho' for both.
+    force_rPA: bool, optional
+        Whether to only search for optimal flux, provided (r,PA).
+    fmerit : {'sum', 'stddev'}, string optional
+        If mu_sigma is not provided nor set to True, this parameter determines
+        which figure of merit to be used among the 2 possibilities implemented
+        in Wertz et al. (2017). 'stddev' may work well for point like sources
+        surrounded by extended signals.
     annulus_width: float, optional
         The width in pixel of the annulus on which the PCA is performed.
     aperture_radius: float, optional
@@ -65,7 +91,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
         Switch for different ways of computing the SVD and selected PCs.
     cube_ref: numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
-    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
+    collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, opt
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
         merit (instead of a single final frame).
@@ -140,7 +166,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
     probability from the parameter space with likelihood greater than the
     current likelihood constraint. The different methods all use the
     current set of active points as an indicator of where the target
-    parameter space lies, but differ in how they select new points from  it.
+    parameter space lies, but differ in how they select new points from it.
     "classic" is close to the method described in Skilling (2004).
     "single", Mukherjee, Parkinson & Liddle (2006), Determines a single
     ellipsoid that bounds all active points,
@@ -169,6 +195,28 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
     decrease is significant.
 
     """
+
+    # calculate mu_sigma
+    mu_sig = get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, 
+                              fwhm, init[0], init[1], cube_ref=cube_ref, 
+                              svd_mode=svd_mode, scaling=scaling, algo=algo, 
+                              delta_rot=delta_rot, collapse=collapse,
+                              algo_options=algo_options)
+    # Measure mu and sigma once in the annulus (instead of each MCMC step)
+    if isinstance(mu_sigma, tuple):
+        if len(mu_sigma) != 2:
+            raise TypeError("if a tuple, mu_sigma should have 2 elements")
+
+    elif mu_sigma:
+        mu_sigma = mu_sig
+        if verbose:
+            msg = "The mean and stddev in the annulus at the radius of the "
+            msg+= "companion (excluding the PA area directly adjacent to it)"
+            msg+=" are {:.2f} and {:.2f} respectively."
+            print(msg.format(mu_sigma[0],mu_sigma[1]))
+    else:
+        mu_sigma = mu_sig[0] # just take mean
+        
 
     def prior_transform(x):
         """
@@ -215,11 +263,12 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
         return np.array([r, t, f])
 
     def f(param):
-        return lnlike(param=param, cube=cube, angs=angs, plsc=plsc,
-                      psf_norm=psf, fwhm=fwhm, annulus_width=annulus_width,
+        return lnlike(param=param, cube=cube, angs=angs, psf_norm=psfn, 
+                      fwhm=fwhm, annulus_width=annulus_width,
                       aperture_radius=aperture_radius, initial_state=init,
                       cube_ref=cube_ref, svd_mode=svd_mode, scaling=scaling,
-                      algo=algo, delta_rot=delta_rot, fmerit='sum', ncomp=ncomp, 
+                      algo=algo, delta_rot=delta_rot, fmerit=fmerit, 
+                      mu_sigma=mu_sigma, sigma=sigma, ncomp=ncomp, 
                       collapse=collapse, algo_options=algo_options, 
                       weights=weights)
 
@@ -233,7 +282,7 @@ def nested_negfc_sampling(init, cube, angs, plsc, psf, fwhm, annulus_width=8,
         print('Flux [{},{}]'.format(init[2] - w[2], init[2] + w[2]))
         print('\nUsing {} active points'.format(npoints))
 
-    res = nestle.sample(f, prior_transform, ndim=3, method=method,
+    res = nestle.sample(f, prior_transform, ndim=3, method=method, 
                         npoints=npoints, rstate=rstate, dlogz=dlogz,
                         decline_factor=decline_factor)
 

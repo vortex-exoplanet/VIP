@@ -22,7 +22,7 @@ from .negfc_mcmc import confidence
 
 
 def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo, 
-                              psfn, plsc, fwhm, aperture_radius, opp_ang=False,
+                              psfn, fwhm, aperture_radius, opp_ang=False,
                               indep_ap=False, cube_ref=None, fmerit='sum', 
                               algo_options={}, transmission=None, mu_sigma=None, 
                               wedge=None, weights=None, force_rPA=False, 
@@ -73,9 +73,6 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         centered wrt to the array. Therefore, it is recommended to run the 
         function ``metrics/normalize_psf()`` to generate a centered and 
         flux-normalized PSF template. 
-    plsc : float
-        Value of the plsc in arcsec/px. Only used for printing debug output when
-        ``verbose=True``.
     fwhm: float
         FWHM of the PSF in pixels.
     aperture_radius: float
@@ -179,7 +176,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     
     # FIRST SUBTRACT THE TRUE COMPANION CANDIDATE
     planet_parameter = np.array([[r_true, theta_true, f_true]])
-    cube_pf = cube_planet_free(planet_parameter, cube, derot_angles, psfn, plsc, 
+    cube_pf = cube_planet_free(planet_parameter, cube, derot_angles, psfn, 
                                imlib=imlib, interpolation=interpolation,
                                transmission=transmission)
 
@@ -203,7 +200,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                                     algo_options=algo_options)
       
     res = pool_map(nproc, _estimate_speckle_one_angle, iterable(angle_range), 
-                   cube_pf, psfn, derot_angles, r_true, f_true, plsc, fwhm,
+                   cube_pf, psfn, derot_angles, r_true, f_true, fwhm,
                    aperture_radius, cube_ref, fmerit, algo, algo_options, 
                    transmission, mu_sigma, weights, force_rPA, simplex_options, 
                    imlib, interpolation, verbose=verbose)
@@ -212,10 +209,10 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     if opp_ang: # do opposite angles
         res = pool_map(nproc, _estimate_speckle_one_angle, 
                        iterable(angle_range), cube_pf, psfn, -derot_angles, 
-                       r_true, f_true, plsc, fwhm, aperture_radius, cube_ref, 
-                       fmerit, algo, algo_options, transmission, mu_sigma, 
-                       weights, force_rPA, simplex_options, imlib, 
-                       interpolation, verbose=verbose)
+                       r_true, f_true, fwhm, aperture_radius, cube_ref, fmerit, 
+                       algo, algo_options, transmission, mu_sigma, weights, 
+                       force_rPA, simplex_options, imlib, interpolation, 
+                       verbose=verbose)
         residuals2 = np.array(res)
         residuals = np.concatenate((residuals,residuals2))
         
@@ -273,25 +270,25 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
 
 
 def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true, 
-                                plsc, fwhm, aperture_radius, cube_ref, fmerit, 
-                                algo, algo_options, transmission, mu_sigma, 
-                                weights, force_rPA, simplex_options, imlib,
+                                fwhm, aperture_radius, cube_ref, fmerit, algo, 
+                                algo_options, transmission, mu_sigma, weights, 
+                                force_rPA, simplex_options, imlib, 
                                 interpolation, verbose=True):
                          
     if verbose:
         print('Process is running for angle: {:.2f}'.format(angle))
 
     cube_fc = cube_inject_companions(cube_pf, psfn, angs, flevel=f_true, 
-                                     plsc=plsc, rad_dists=[r_true], 
-                                     n_branches=1, theta=angle, 
-                                     transmission=transmission, imlib=imlib,
-                                     interpolation=interpolation, verbose=False)
+                                     rad_dists=[r_true], n_branches=1,
+                                     theta=angle, transmission=transmission, 
+                                     imlib=imlib, interpolation=interpolation, 
+                                     verbose=False)
     
     ncomp = algo_options.get('ncomp', None)
     annulus_width = algo_options.get('annulus_width', int(fwhm))
     
     res_simplex = firstguess_simplex((r_true,angle,f_true), cube_fc, angs, psfn, 
-                                     plsc, ncomp, fwhm, annulus_width, 
+                                     ncomp, fwhm, annulus_width, 
                                      aperture_radius, cube_ref=cube_ref,
                                      fmerit=fmerit, algo=algo, 
                                      algo_options=algo_options, imlib=imlib,

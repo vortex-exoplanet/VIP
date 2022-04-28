@@ -21,9 +21,11 @@ def cube_collapse(cube, mode='median', n=50, w=None):
     ----------
     cube : numpy ndarray
         Cube.
-    mode : {'median', 'mean', 'sum', 'trimmean', 'max', 'wmean'}, str optional
+    mode : {'median', 'mean', 'sum', 'max', 'trimmean', 'absmean', 'wmean'}, str, optional
         Sets the way of collapsing the images in the cube.
         'wmean' stands for weighted mean and requires weights w to be provided.
+        'absmean' stands for the mean of absolute values (potentially useful 
+        for negfc).
     n : int, optional
         Sets the discarded values at high and low ends. When n = N is the same
         as taking the mean, when n = 1 is like taking the median.
@@ -68,6 +70,10 @@ def cube_collapse(cube, mode='median', n=50, w=None):
     elif mode == 'wmean':
         arr[np.where(np.isnan(arr))]=0 # to avoid product with nan
         frame = np.inner(w, np.moveaxis(arr,0,-1))
+    elif mode == 'absmean':
+        frame = np.mean(np.abs(arr), axis=0)
+    else:
+        raise TypeError("mode not recognized")
         
     return frame
 

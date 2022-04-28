@@ -226,9 +226,9 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
     elif cube.ndim == 4 and scale_list is None:
         nch, nz, ny, nx = cube.shape
         ifs_adi_frames = np.zeros([nch, ny, nx])
-        if not np.isinstance(list):
+        if not isinstance(ncomp, list):
             ncomp = [ncomp]*nch
-        elif np.isinstance(list) and len(ncomp) != nch:
+        elif isinstance(ncomp, list) and len(ncomp) != nch:
             msg = "If ncomp is a list, in the case of a 4d input cube without "
             msg+= "input scale_list, it should have the same length as the "
             msg+= "first dimension of the cube."
@@ -238,15 +238,22 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
 
         cube_out = []
         cube_der = []
-        
         # ADI or RDI in each channel
         for ch in range(nch):
+            if cube_ref is not None:
+                if cube_ref[ch].ndim != 3:
+                    msg="Ref cube has wrong format for 4d input cube"
+                    raise TypeError(msg)
+                cube_ref_tmp=cube_ref[ch]
+            else:
+                cube_ref_tmp = cube_ref
             res_pca = _pca_adi_rdi(cube[ch], angle_list, radius_int, fwhm[ch], 
                                    asize, n_segments, delta_rot, ncomp[ch], 
                                    svd_mode, nproc, min_frames_lib,
                                    max_frames_lib, tol, scaling, imlib,
                                    interpolation, collapse, True, verbose, 
-                                   cube_ref, weights, cube_sig, **rot_options)
+                                   cube_ref_tmp, weights, cube_sig, 
+                                   **rot_options)
             cube_out.append(res_pca[0])
             cube_der.append(res_pca[1])
             ifs_adi_frames[ch] = res_pca[-1]

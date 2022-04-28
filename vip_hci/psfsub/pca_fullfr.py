@@ -38,16 +38,10 @@ from ..stats import descriptive_stats
 def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1, 
         svd_mode='lapack', scaling=None, mask_center_px=None, source_xy=None, 
         delta_rot=1, fwhm=4, adimsdi='single', crop_ifs=True, imlib='vip-fft', 
-        imlib2='vip-fft', interpolation='lanczos4', collapse='median', 
-<<<<<<< HEAD
+        imlib2='vip-fft', interpolation='lanczos4', collapse='median',
         collapse_ifs='mean', ifs_collapse_range='all', mask_rdi=None, 
         check_memory=True, batch=None, nproc=1, full_output=False, verbose=True, 
         weights=None, conv=False, cube_sig=None, **rot_options):
-=======
-        ifs_collapse_range='all', mask_rdi=None, check_memory=True, batch=None, 
-        nproc=1, full_output=False, verbose=True, weights=None, conv=False, 
-        cube_sig=None, **rot_options):
->>>>>>> master
     """ Algorithm where the reference PSF and the quasi-static speckle pattern
     are modeled using Principal Component Analysis. Depending on the input
     parameters this PCA function can work in ADI, RDI or mSDI (IFS data) mode.
@@ -77,7 +71,6 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         only). 
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
-<<<<<<< HEAD
     cube_ref : 3d or 4d numpy ndarray, or list of 3D numpy ndarray, optional
         Reference library cube for Reference Star Differential Imaging. Should
         be 3D, except if input cube is 4D and no scale_list is provided, 
@@ -92,26 +85,6 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         to get the scaling factors, e.g. with 
         ``vip_hci.preproc.find_scal_vector``). 
     ncomp : int, float or tuple of int/None, or list, optional
-=======
-    cube_ref : numpy ndarray, 3d, optional
-        Reference library cube. For Reference Star Differential Imaging.
-    scale_list : numpy ndarray, 1d
-        In case of IFS data (ADI+SDI), this is the list of scaling factors used 
-        to re-scale the spectral channels and align the speckles. The scaling
-        factors should roughly be equal to the last channel wavelength divided 
-        by the other wavelengths in the spectral cube (more thorough approaches 
-        can be used to get the scaling factors, e.g. using 
-        `preproc.find_scal_vector`). 
-    flux_sc_list : numpy ndarray, 1d
-        In the case of IFS data (ADI+SDI), this is the list of flux scaling 
-        factors applied to each spectral frame after geometrical rescaling.
-        These should be set to either the ratio of stellar fluxes between the 
-        last spectral channel and the other channels, or to the second output 
-        of `preproc.find_scal_vector` (when using 2 free parameters). If not 
-        provided, the algorithm will still work, but with a lower efficiency 
-        at subtracting the stellar halo.
-    ncomp : int, float or tuple of int/None, optional
->>>>>>> master
         How many PCs are used as a lower-dimensional subspace to project the
         target frames.
 
@@ -383,9 +356,9 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
     elif cube.ndim == 4:
         nch, nz, ny, nx = cube.shape
         ifs_adi_frames = np.zeros([nch, ny, nx])
-        if not np.isinstance(list):
+        if not isinstance(ncomp, list):
             ncomp = [ncomp]*nch
-        elif np.isinstance(list) and len(ncomp) != nch:
+        elif isinstance(ncomp, list) and len(ncomp) != nch:
             msg = "If ncomp is a list, in the case of a 4d input cube without "
             msg+= "input scale_list, it should have the same length as the "
             msg+= "first dimension of the cube."
@@ -401,6 +374,9 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         # (ADI+)RDI
         if cube_ref is not None:
             for ch in range(nch):
+                if cube_ref[ch].ndim != 3:
+                    msg="Ref cube has wrong format for 4d input cube"
+                    raise TypeError(msg)
                 res_pca = _adi_rdi_pca(cube[ch], cube_ref[ch], angle_list, 
                                        ncomp[ch], scaling, mask_center_px, 
                                        svd_mode, imlib, interpolation, collapse, 
@@ -421,7 +397,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
             pclist = []
             medians = []
             for ch in range(nch):
-                res_pca = _adi_pca(cube[ch], angle_list, ncomp, batch, 
+                res_pca = _adi_pca(cube[ch], angle_list, ncomp[ch], batch, 
                                    source_xy, delta_rot, fwhm[ch], scaling, 
                                    mask_center_px, svd_mode, imlib, 
                                    interpolation, collapse, verbose, start_time, 
@@ -430,7 +406,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
                 if batch is None:
                     if source_xy is not None:
                         # PCA grid, computing S/Ns
-                        if isinstance(ncomp, tuple):
+                        if isinstance(ncomp[ch], tuple):
                             final_residuals_cube.append(res_pca[0])
                             ifs_adi_frames[ch] = res_pca[1]
                             table.append(res_pca[2])
@@ -442,7 +418,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
                             ifs_adi_frames[ch] = res_pca[-1]
                     else:
                         # PCA grid
-                        if isinstance(ncomp, tuple):
+                        if isinstance(ncomp[ch], tuple):
                             final_residuals_cube.append(res_pca[0])
                             pclist.append(res_pca[1])
                         # full-frame standard PCA
@@ -817,19 +793,12 @@ def _adimsdi_singlepca(cube, angle_list, scale_list, ncomp, fwhm, source_xy,
                         "single-pass PCA")
 
 
-<<<<<<< HEAD
 def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
                        mask_center_px, svd_mode, imlib, imlib2, interpolation,
                        collapse, collapse_ifs, ifs_collapse_range, verbose, 
                        start_time, nproc, weights=None, fwhm=4, conv=False, 
                        mask_rdi=None, cube_sig=None, **rot_options):
-=======
-def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling, 
-                       mask_center_px, svd_mode, imlib, imlib2, interpolation, 
-                       collapse, ifs_collapse_range, verbose, start_time, nproc, 
-                       weights=None, fwhm=4, conv=False, mask_rdi=None, 
-                       cube_sig=None, **rot_options):
->>>>>>> master
+
     """
     Handle the full-frame ADI+mSDI double PCA post-processing.
 
@@ -874,11 +843,7 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
 
     res = pool_map(nproc, _adimsdi_doublepca_ifs, iterable(range(n)), ncomp_ifs,
                    scale_list, scaling, mask_center_px, svd_mode, imlib2, 
-<<<<<<< HEAD
                    interpolation, collapse_ifs, ifs_collapse_range, fwhm, conv,
-=======
-                   interpolation, collapse, ifs_collapse_range, fwhm, conv, 
->>>>>>> master
                    mask_rdi)
     residuals_cube_channels = np.array(res)
 

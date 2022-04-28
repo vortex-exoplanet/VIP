@@ -798,7 +798,6 @@ def _adimsdi_doublepca(cube, angle_list, scale_list, ncomp, scaling,
                        collapse, collapse_ifs, ifs_collapse_range, verbose, 
                        start_time, nproc, weights=None, fwhm=4, conv=False, 
                        mask_rdi=None, cube_sig=None, **rot_options):
-
     """
     Handle the full-frame ADI+mSDI double PCA post-processing.
 

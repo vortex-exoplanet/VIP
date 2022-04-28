@@ -323,6 +323,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         max_frames_lib=algo_options.get('max_frames_lib',200)
         radius_int = max(1,int(np.floor(r_guess-annulus_width/2)))
         radius_int = algo_options.get('radius_int', radius_int)
+        nproc = algo_options.get('nproc',1)
         # crop cube to just be larger than annulus => FASTER PCA
         crop_sz = int(2*np.ceil(radius_int+annulus_width+1))
         if not crop_sz %2:
@@ -339,7 +340,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
                               ncomp=ncomp, svd_mode=svd_mode, scaling=scaling, 
                               imlib=imlib, interpolation=interpolation,
                               collapse=collapse, collapse_ifs=collapse_ifs, 
-                              weights=weights, tol=tol,
+                              weights=weights, tol=tol, nproc=nproc,
                               min_frames_lib=min_frames_lib, 
                               max_frames_lib=max_frames_lib, full_output=False, 
                               verbose=False)
@@ -349,7 +350,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     elif algo == pca: 
         scale_list = algo_options.get('scale_list',None)
         ifs_collapse_range = algo_options.get('ifs_collapse_range','all')
-        nproc = algo_options.get('nproc','all')
+        nproc = algo_options.get('nproc',1)
         res = pca(cube, angs, cube_ref, scale_list, ncomp, svd_mode=svd_mode, 
                   scaling=scaling, imlib=imlib, interpolation=interpolation, 
                   collapse=collapse, collapse_ifs=collapse_ifs, 
@@ -502,7 +503,8 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
     elif algo == pca_annular:                
         tol = algo_options.get('tol',1e-1)
         min_frames_lib=algo_options.get('min_frames_lib',2)
-        max_frames_lib=algo_options.get('max_frames_lib',200)       
+        max_frames_lib=algo_options.get('max_frames_lib',200)     
+        nproc = algo_options.get('nproc',1)  
         # crop cube to just be larger than annulus => FASTER PCA
         crop_sz = int(2*np.ceil(radius_int+annulus_width+1))
         if not crop_sz %2:
@@ -518,7 +520,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                                   delta_rot=delta_rot, ncomp=ncomp, 
                                   svd_mode=svd_mode, scaling=scaling, 
                                   imlib=imlib, interpolation=interpolation,
-                                  collapse=collapse, tol=tol, 
+                                  collapse=collapse, tol=tol, nproc=nproc,
                                   min_frames_lib=min_frames_lib, 
                                   max_frames_lib=max_frames_lib, 
                                   full_output=False, verbose=False, 
@@ -528,7 +530,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                                   delta_rot=delta_rot, ncomp=ncomp, 
                                   svd_mode=svd_mode, scaling=scaling, 
                                   imlib=imlib, interpolation=interpolation,
-                                  collapse=collapse, tol=tol, 
+                                  collapse=collapse, tol=tol, nproc=nproc,
                                   min_frames_lib=min_frames_lib, 
                                   max_frames_lib=max_frames_lib, 
                                   full_output=False, verbose=False, 
@@ -541,7 +543,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
     elif algo == pca:
         scale_list = algo_options.get('scale_list',None)
         ifs_collapse_range = algo_options.get('ifs_collapse_range','all')
-        nproc = algo_options.get('nproc','all')
+        nproc = algo_options.get('nproc',1)
         
         pca_res = pca(cube, angs, cube_ref, scale_list, ncomp, 
                       svd_mode=svd_mode, scaling=scaling, imlib=imlib,
@@ -557,7 +559,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
     else:
         algo_args = algo_options
         pca_res = algo(cube, angs, **algo_args)
-        #pca_res_inv = algo(cube, -angs, **algo_args)
+        pca_res_inv = algo(cube, -angs, **algo_args)
         
     if wedge is None:
         delta_theta = np.amax(angs)-np.amin(angs)

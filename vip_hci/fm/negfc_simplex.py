@@ -650,7 +650,10 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
                 print(msg4bis.format(index_planet))            
             r_0[index_planet] = r_pre
             theta_0[index_planet] = theta_pre
-            f_0[index_planet] = f_pre                               
+            if cube.ndim == 3:
+                f_0[index_planet] = f_pre[0]
+            else:
+                f_0[index_planet] = f_pre                           
 
         if verbose:            
             centy, centx = frame_center(cube[0])

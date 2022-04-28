@@ -50,11 +50,12 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
     nch = ds.cube.shape[0]
     
     # run firstguess with simplex only if followed by mcmc or nested sampling
+    fwhm_m = np.mean(ds.fwhm)
     res0 = firstguess(ds.cube, ds.angles, ds.psf, ncomp=ncomp, 
-                      planets_xy_coord=np.array([[yx[1],yx[0]]]), fwhm=ds.fwhm,
+                      planets_xy_coord=np.array([[yx[1],yx[0]]]), fwhm=fwhm_m,
                       simplex=negfc_algo==firstguess, algo=pca_algo, fmerit=fm, 
                       mu_sigma=mu_sigma, imlib='opencv', aperture_radius=2, 
-                      annulus_width=4*ds.fwhm)
+                      annulus_width=4*fwhm_m)
     res = (res0[0][0], res0[1][0], res0[2][0])
     init = [res0[0][0], res0[1][0]]
     for i in range(nch):

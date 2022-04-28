@@ -66,13 +66,20 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
         # use injection of 180 companions in empty cube to estimate error bars
         cube_emp = cube_planet_free(res, ds.cube, ds.angles, ds.psf, 
                                     imlib='opencv')
+        algo_options={'imlib':'opencv'}
+        if pca_algo != median_sub:
+            algo_options['ncomp']=ncomp
+        if pca_algo == pca_annular:
+            algo_options['radius_int'] = res0[0][0]-2*ds.fwhm
+            algo_options['asize'] = 4*ds.fwhm
+            algo_options['delta_rot'] = 1
         sp_unc = speckle_noise_uncertainty(cube_emp, res, np.arange(0,360,2), 
                                            ds.angles, algo=pca_algo, 
                                            psfn=ds.psf, fwhm=ds.fwhm, 
                                            aperture_radius=2, fmerit=fm, 
                                            mu_sigma=mu_sigma, verbose=False, 
                                            full_output=False, 
-                                           algo_options={'imlib':'opencv'})
+                                           algo_options=algo_options)
         # compare results
         for i in range(3):
             aarc(res[i], gt[i], rtol=1e-1, atol=sp_unc[i])

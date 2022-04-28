@@ -45,13 +45,13 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
     """
     cpf = np.zeros_like(cube)
 
+
     # unify planet_parameter format
-    if not isinstance(planet_parameter, np.ndarray):
-        planet_parameter = np.array(planet_parameter)
-    if cube.ndim == 4 and planet_parameter.ndim < 3:
-        planet_parameter = np.array(planet_parameter)
-    elif cube.ndim == 3 and planet_parameter.ndim < 2:
-        planet_parameter = np.array(planet_parameter)
+    planet_parameter = np.array(planet_parameter)
+    cond1 = cube.ndim == 3 and planet_parameter.ndim < 2
+    cond2 = cube.ndim == 4 and planet_parameter.ndim < 3
+    if cond1 or cond2:
+        planet_parameter = planet_parameter[np.newaxis, :]
         
     if cube.ndim == 4:
         if planet_parameter.shape[3] != cube.shape[0]:

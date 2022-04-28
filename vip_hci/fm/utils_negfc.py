@@ -45,9 +45,14 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
     """
     cpf = np.zeros_like(cube)
 
+    # unify planet_parameter format
     if not isinstance(planet_parameter, np.ndarray):
         planet_parameter = np.array(planet_parameter)
-
+    if cube.ndim == 4 and planet_parameter.ndim < 3:
+        planet_parameter = np.array(planet_parameter)
+    elif cube.ndim == 3 and planet_parameter.ndim < 2:
+        planet_parameter = np.array(planet_parameter)
+        
     if cube.ndim == 4:
         if planet_parameter.shape[3] != cube.shape[0]:
             raise TypeError("Input planet parameter with wrong dimensions.")

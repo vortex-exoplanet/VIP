@@ -25,6 +25,9 @@ authors:
   - name: Arthur Vigan
     orcid: 0000-0002-5902-7828
     affiliation: 5
+  - name: Henry Ngo
+    orcid: 0000-0001-5172-4859
+    affiliation: 6
 affiliations:
  - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
    index: 1
@@ -36,6 +39,8 @@ affiliations:
    index: 4
  - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
    index: 5
+ - name: NRC Herzberg Astronomy and Astrophysics, Victoria, BC, Canada
+   index: 6
 date: 4 May 2022
 bibliography: paper.bib
 ---

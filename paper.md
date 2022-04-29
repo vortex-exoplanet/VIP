@@ -25,9 +25,12 @@ authors:
   - name: Arthur Vigan
     orcid: 0000-0002-5902-7828
     affiliation: 5
+  - name: Henry Ngo
+    orcid: 0000-0001-5172-4859
+    affiliation: 6
   - name: Iain Hammond
     orcid: 0000-0003-1502-4315
-    affiliation: 6
+    affiliation: 7
 affiliations:
   - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
     index: 1
@@ -39,8 +42,10 @@ affiliations:
     index: 4
   - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
     index: 5
-  - name: School of Physics and Astronomy, Monash University, Vic 3800, Australia
+ - name: NRC Herzberg Astronomy and Astrophysics, Victoria, BC, Canada
     index: 6
+  - name: School of Physics and Astronomy, Monash University, Vic 3800, Australia
+    index: 7
 date: 4 May 2022
 bibliography: paper.bib
 ---
@@ -74,7 +79,7 @@ spectral differential imaging (SDI) or reference star differential imaging
 [@Racine:1999; @Sparks:2002; @Marois:2006], which induce diversity between 
 speckle and authentic astrophysical signals (`psfsub` module);
 
-* characterizing point sources or extended circumstellar signals through
+* characterizing point sources and extended circumstellar signals through
 forward modeling (`fm` module);
 
 * detecting and characterizing point sources through inverse approaches 
@@ -135,7 +140,7 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     of either isolated bad pixels or clumps of bad pixels, leveraging on 
     iterative sigma filtering (`cube_fix_badpix_clump`), the circular symmetry 
     of the PSF (`cube_fix_badpix_annuli`), or the radial expansion of the PSF 
-    with changing wavelength (`cube_fix_badpix_ifs`), and (ii) the correction of bad 
+    with increasing wavelength (`cube_fix_badpix_ifs`), and (ii) the correction of bad 
     pixels based on either median replacement (default) or Gaussian kernel 
     interpolation (`cube_fix_badpix_with_kernel`);
     - a new algorithm was added for the recentering of coronagraphic image cubes 
@@ -151,7 +156,7 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     [@Lafreniere:2007] was added;
     - an annular version of the non-negative matrix factorization algorithm 
     is now available [@Lee:1999; @Gomez:2017];
-    - the `medsub` routine now also supports median-SDI. 
+    - besides median-ADI, the `medsub` routine now also supports median-SDI. 
 
 We refer the interested reader to release descriptions and GitHub 
 [announcements](https://github.com/vortex-exoplanet/VIP/discussions/categories/announcements) 
@@ -171,7 +176,7 @@ defined as the top-right pixel among the four central pixels of the image - a
 change motivated by the new default FT-based methods for image operations. The 
 center convention is unchanged for odd-size images (central pixel).
 
-Finally, a total of eight jupyter notebook tutorials covering most of the 
+Finally, a total of nine jupyter notebook tutorials covering most of the 
 available features in VIP were implemented. These tutorials illustrate how to (i) 
 load and post-process an ADI dataset (quick-start tutorial); (ii) pre-process ADI 
 and IFS datasets; (iii) model and subtract the stellar halo with ADI-based 

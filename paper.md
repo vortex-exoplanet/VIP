@@ -16,11 +16,14 @@ authors:
   - name: Ralf Farkas
     orcid: 0000-0002-7647-1429
     affiliation: 3
-  - name: Alan Rainot
-    orcid: 0000-0001-9904-0624
-    affiliation: 4
+  - name: Carl-Henrik Dahlqvist
+    orcid: 0000-0003-4994-9244
+    affiliation: 1
   - name: Henry Ngo
     orcid: 0000-0001-5172-4859
+    affiliation: 4
+  - name: Alan Rainot
+    orcid: 0000-0001-9904-0624
     affiliation: 5
   - name: Olivier Absil
     orcid: 0000-0002-4006-6237
@@ -30,14 +33,7 @@ authors:
     affiliation: 6
   - name: Arthur Vigan
     orcid: 0000-0002-5902-7828
-<<<<<<< HEAD
-    affiliation: 5
-  - name: Carl-Henrik Dahlqvist
-    orcid: 0000-0003-4994-9244
-    affiliation: 1
-=======
     affiliation: 7
->>>>>>> f230c16fa4d823eeec21a067f483773aefa2da03
 affiliations:
   - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
     index: 1
@@ -45,9 +41,9 @@ affiliations:
     index: 2
   - name: Rheinische Friedrich-Wilhelms-Universität Bonn, Germany
     index: 3
-  - name: Institute of Astronomy, KU Leuven, Belgium
-    index: 4
   - name: NRC Herzberg Astronomy and Astrophysics, Victoria, BC, Canada
+    index: 4
+  - name: Institute of Astronomy, KU Leuven, Belgium
     index: 5
   - name: School of Physics and Astronomy, Monash University, Vic 3800, Australia
     index: 6

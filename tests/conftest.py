@@ -102,6 +102,59 @@ def example_dataset_ifs():
 
 
 @pytest.fixture(scope="session")
+def example_dataset_ifs_crop():
+    """
+    Download example FITS cube from github + prepare HCIDataset object, after
+    cropping to only 3 sp. channels (faster NEGFC test).
+
+    Returns
+    -------
+    dataset : HCIDataset
+
+    Notes
+    -----
+    Astropy's ``download_file`` uses caching, so the file is downloaded at most
+    once per test run.
+
+    """
+    print("downloading data...")
+
+    url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
+
+    f1 = download_file("{}/sphere_v471tau_cube.fits".format(url_prefix),
+                       cache=True)
+    f2 = download_file("{}/sphere_v471tau_psf.fits".format(url_prefix),
+                       cache=True)
+    f3 = download_file("{}/sphere_v471tau_pa.fits".format(url_prefix),
+                       cache=True)
+    f4 = download_file("{}/sphere_v471tau_wl.fits".format(url_prefix),
+                       cache=True)
+
+    # load fits
+    cube = vip.fits.open_fits(f1)
+    cube = cube[-3:]
+    angles = vip.fits.open_fits(f3).flatten()
+    psf = vip.fits.open_fits(f2)
+    psf =psf[-3:]
+    wl = vip.fits.open_fits(f4)
+    wl = wl[-3:]
+
+    # create dataset object
+    dataset = vip.Dataset(cube, angles=angles, psf=psf,
+                          px_scale=vip.config.VLT_SPHERE_IFS['plsc'],
+                          wavelengths=wl)
+
+    # crop
+    dataset.crop_frames(size=100, force=True)
+    dataset.normalize_psf(size=None, force_odd=False)
+
+    # overwrite PSF for easy access
+    dataset.psf = dataset.psfn
+
+    return dataset
+
+
+@pytest.fixture(scope="session")
 def example_dataset_rdi():
     """
     Download example FITS cube from github + prepare HCIDataset object.

@@ -739,10 +739,11 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     # size of ball of parameters for MCMC initialization
     scal = abs(bounds[0][0]-initial_state[0])/initial_state[0]
     for i in range(dim):
-        for j in range(2):
-            test_scal = abs(bounds[i][j]-initial_state[i])/initial_state[i]
-            if test_scal < scal:
-                scal= test_scal
+        if initial_state[i]!=0:
+            for j in range(2):
+                test_scal = abs(bounds[i][j]-initial_state[i])/initial_state[i]
+                if test_scal < scal:
+                    scal= test_scal
     if force_rPA:
         init = initial_state[2:]
         if len(init)>1:

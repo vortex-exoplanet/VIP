@@ -12,13 +12,13 @@ from vip_hci.psfsub import pca_annulus
 
 # ====== utility function for injection
 @fixture(scope="module")
-def injected_cube_position(example_dataset_ifs):
+def injected_cube_position(example_dataset_ifs_crop):
     """
     Inject a fake companion into an example cube.
 
     Parameters
     ----------
-    example_dataset_ifs : fixture
+    example_dataset_ifs_crop : fixture
         Taken automatically from ``conftest.py``.
 
     Returns
@@ -27,7 +27,7 @@ def injected_cube_position(example_dataset_ifs):
     injected_position_yx : tuple(y, x)
 
     """
-    dsi = copy.copy(example_dataset_ifs)
+    dsi = copy.copy(example_dataset_ifs_crop)
     # we chose a shallow copy, as we will not use any in-place operations
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
@@ -47,7 +47,6 @@ def injected_cube_position(example_dataset_ifs):
 def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma, 
                fm):
     ds, yx, gt = injected_cube_position
-    nch = ds.cube.shape[0]
     
     # run firstguess with simplex only if followed by mcmc or nested sampling
     fwhm_m = np.mean(ds.fwhm)
@@ -56,10 +55,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                       simplex=negfc_algo==firstguess, algo=pca_algo, fmerit=fm, 
                       mu_sigma=mu_sigma, imlib='opencv', aperture_radius=2, 
                       annulus_width=4*fwhm_m)
-    res = (res0[0][0], res0[1][0], res0[2][0])
-    init = [res0[0][0], res0[1][0]]
-    for i in range(nch):
-        init.append(res0[i+2][0])
+    res = (res0[0][0], res0[1][0], np.mean(res0[2][0]))
     
     # compare results
     aarc(res, gt, rtol=1e-1, atol=2) # diff within 2 +- 10% gt (for all 3)

@@ -7,7 +7,8 @@ import copy
 from .helpers import aarc, np, parametrize, fixture
 from vip_hci.fm import (confidence, firstguess, mcmc_negfc_sampling, 
                         nested_negfc_sampling, nested_sampling_results,
-                        speckle_noise_uncertainty, cube_planet_free)
+                        speckle_noise_uncertainty, cube_planet_free,
+                        show_walk_plot, show_corner_plot)
 from vip_hci.psfsub import median_sub, pca, pca_annular, pca_annulus
 
 
@@ -43,22 +44,26 @@ def injected_cube_position(example_dataset_adi):
 # ====== Actual negfc tests for different parameters
 @parametrize("pca_algo, negfc_algo, ncomp, mu_sigma, fm",
     [
-        (pca_annular, firstguess, 2, False, 'sum'),
-        (pca, firstguess, 2, False, 'stddev'),
-        (median_sub, firstguess, None, True, None),
-        (pca_annulus, mcmc_negfc_sampling, 1, False, 'sum'),
-        (pca_annulus, nested_negfc_sampling, 1, True, None)
+        (pca_annular, firstguess, 2, False, 'stddev', False),
+        (pca, firstguess, 3, True, None, False),
+        (median_sub, firstguess, None, False, 'sum', False),
+        (pca_annulus, mcmc_negfc_sampling, 2, False, 'stddev', False),
+        (pca_annulus, mcmc_negfc_sampling, 2, True, None, True),
+        (pca_annulus, nested_negfc_sampling, 2, False, 'sum', False)
     ])
 def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma, 
-               fm):
+               fm, force_rPA):
     ds, yx, gt = injected_cube_position
     
     # run firstguess with simplex only if followed by mcmc or nested sampling
+    if pca_algo == median_sub:
+        algo_options={'imlib':'opencv', 'verbose':False}
     res0 = firstguess(ds.cube, ds.angles, ds.psf, ncomp=ncomp, 
                       planets_xy_coord=np.array([[yx[1],yx[0]]]), fwhm=ds.fwhm,
                       simplex=negfc_algo==firstguess, algo=pca_algo, fmerit=fm, 
-                      mu_sigma=mu_sigma, imlib='opencv', aperture_radius=2, 
-                      annulus_width=4*ds.fwhm)
+                      mu_sigma=mu_sigma, force_rPA=force_rPA, imlib='opencv', 
+                      aperture_radius=2, annulus_width=4*ds.fwhm, 
+                      algo_options=algo_options)
     res = (res0[0][0], res0[1][0], res0[2][0])
     init = np.array(res)
     
@@ -73,29 +78,38 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
             algo_options['radius_int'] = res0[0][0]-2*ds.fwhm
             algo_options['asize'] = 4*ds.fwhm
             algo_options['delta_rot'] = 1
-        sp_unc = speckle_noise_uncertainty(cube_emp, res, np.arange(0,360,2), 
-                                           ds.angles, algo=pca_algo, 
-                                           psfn=ds.psf, fwhm=ds.fwhm, 
-                                           aperture_radius=2, fmerit=fm, 
-                                           mu_sigma=mu_sigma, verbose=False, 
-                                           full_output=False, 
-                                           algo_options=algo_options)
+        if pca_algo == pca:
+            # just test it once because very slow
+            sp_unc = speckle_noise_uncertainty(cube_emp, res, 
+                                               np.arange(0,360,2), ds.angles, 
+                                               algo=pca_algo, psfn=ds.psf, 
+                                               fwhm=ds.fwhm, aperture_radius=2, 
+                                               fmerit=fm, mu_sigma=mu_sigma, 
+                                               verbose=False, full_output=False, 
+                                               algo_options=algo_options)
+        else:
+            sp_unc = (2, 2, 0.2*gt[2])
         # compare results
         for i in range(3):
             aarc(res[i], gt[i], rtol=1e-1, atol=sp_unc[i])
     elif negfc_algo == mcmc_negfc_sampling:
         # run MCMC
-        
         res = negfc_algo(ds.cube, ds.angles, ds.psf, initial_state=init, 
                          algo=pca_algo, ncomp=ncomp, annulus_width=4*ds.fwhm, 
                          aperture_radius=2, fwhm=ds.fwhm, mu_sigma=mu_sigma, 
                          sigma='spe', fmerit=fm, imlib='opencv', nwalkers=100, 
-                         niteration_limit=500, conv_test='ac')
+                         niteration_limit=200, conv_test='ac', 
+                         force_rPA=force_rPA)
+        if force_rPA:
+            labels = ['f']
+        else:
+            labels =['r', 'theta', 'f']
+        show_walk_plot(res, save=True, labels=labels)
         burnin = 0.3
+        show_corner_plot(res, burnin=burnin, save=True, labels=labels)
         isamples = res[:, int(res.shape[1]//(1/burnin)):, :].reshape((-1,3))
         # infer most likely values + confidence intervals
-        labels =['r', 'theta', 'f']
-        val_max, ci = confidence(isamples, cfd=68.27, gaussian_fit=True, 
+        val_max, ci = confidence(isamples, cfd=68.27, gaussian_fit=False, 
                                  verbose=False, save=False, labels=labels)
         # compare results for each param
         for i, lab in enumerate(labels):
@@ -105,7 +119,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
         mu, sigma = confidence(isamples, cfd=68.27, bins=100, gaussian_fit=True, 
                                verbose=False, save=False, labels=labels)
         # compare results for each param
-        for i in range(3):
+        for i in range(len(labels)):
             aarc(mu[i], gt[i], atol=sigma[i]) #diff within 1 sigma
     else:
         # run nested sampling

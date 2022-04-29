@@ -19,17 +19,17 @@ authors:
   - name: Alan Rainot
     orcid: 0000-0001-9904-0624
     affiliation: 4
+  - name: Henry Ngo
+    orcid: 0000-0001-5172-4859
+    affiliation: 5
   - name: Olivier Absil
     orcid: 0000-0002-4006-6237
     affiliation: 1
-  - name: Arthur Vigan
-    orcid: 0000-0002-5902-7828
-    affiliation: 5
-  - name: Henry Ngo
-    orcid: 0000-0001-5172-4859
-    affiliation: 6
   - name: Iain Hammond
     orcid: 0000-0003-1502-4315
+    affiliation: 6
+  - name: Arthur Vigan
+    orcid: 0000-0002-5902-7828
     affiliation: 7
 affiliations:
   - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
@@ -40,11 +40,11 @@ affiliations:
     index: 3
   - name: Institute of Astronomy, KU Leuven, Belgium
     index: 4
-  - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
+  - name: NRC Herzberg Astronomy and Astrophysics, Victoria, BC, Canada
     index: 5
- - name: NRC Herzberg Astronomy and Astrophysics, Victoria, BC, Canada
-    index: 6
   - name: School of Physics and Astronomy, Monash University, Vic 3800, Australia
+    index: 6
+  - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
     index: 7
 date: 4 May 2022
 bibliography: paper.bib
@@ -74,10 +74,12 @@ including:
 * image pre-processing, such as sky subtraction, bad pixel correction, bad 
 frame removal, or image alignment and star centering (`preproc` module); 
 
-* modeling and subtracting the stellar point spread function (PSF) using state-of-the-art algorithms that leverage observing strategies such as angular differential imaging (ADI), 
-spectral differential imaging (SDI) or reference star differential imaging 
-[@Racine:1999; @Sparks:2002; @Marois:2006], which induce diversity between 
-speckle and authentic astrophysical signals (`psfsub` module);
+* modeling and subtracting the stellar point spread function (PSF) using 
+state-of-the-art algorithms that leverage observing strategies such as angular 
+differential imaging (ADI), spectral differential imaging (SDI) or reference 
+star differential imaging [@Racine:1999; @Sparks:2002; @Marois:2006], which 
+induce diversity between speckle and authentic astrophysical signals (`psfsub` 
+module);
 
 * characterizing point sources and extended circumstellar signals through
 forward modeling (`fm` module);
@@ -140,9 +142,9 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     of either isolated bad pixels or clumps of bad pixels, leveraging on 
     iterative sigma filtering (`cube_fix_badpix_clump`), the circular symmetry 
     of the PSF (`cube_fix_badpix_annuli`), or the radial expansion of the PSF 
-    with increasing wavelength (`cube_fix_badpix_ifs`), and (ii) the correction of bad 
-    pixels based on either median replacement (default) or Gaussian kernel 
-    interpolation (`cube_fix_badpix_with_kernel`);
+    with increasing wavelength (`cube_fix_badpix_ifs`), and (ii) the correction 
+    of bad pixels based on either median replacement (default) or Gaussian 
+    kernel interpolation (`cube_fix_badpix_with_kernel`);
     - a new algorithm was added for the recentering of coronagraphic image cubes 
     based on the cross-correlation of the speckle pattern, after appropriate 
     filtering and log-scaling of pixel intensities [@Ruane:2019].
@@ -177,22 +179,27 @@ change motivated by the new default FT-based methods for image operations. The
 center convention is unchanged for odd-size images (central pixel).
 
 Finally, a total of nine jupyter notebook tutorials covering most of the 
-available features in VIP were implemented. These tutorials illustrate how to (i) 
-load and post-process an ADI dataset (quick-start tutorial); (ii) pre-process ADI 
-and IFS datasets; (iii) model and subtract the stellar halo with ADI-based 
-algorithms; (iv) calculate metrics such as the S/N ratio [@Mawet:2014], STIM maps
-[@Pairet:2019] and contrast curves; (v) find the radial separation, azimuth and 
-flux of a point source; (vi) create and forward model scattered-light disk models; 
-(vii) post-process IFS data and infer the exact astro- and photometry of a given point 
-source; (viii) use FT-based and interpolation-based methods for different image 
-operations, and assess their respective performance; and (ix) use the 
-new object-oriented framework for ``VIP``.
+available features in VIP were implemented. These tutorials illustrate how to 
+(i) load and post-process an ADI dataset (quick-start tutorial); (ii) 
+pre-process ADI and IFS datasets; (iii) model and subtract the stellar halo with 
+ADI-based algorithms; (iv) calculate metrics such as the S/N ratio 
+[@Mawet:2014], STIM maps [@Pairet:2019] and contrast curves; (v) find the radial 
+separation, azimuth and flux of a point source; (vi) create and forward model 
+scattered-light disk models; (vii) post-process IFS data and infer the exact 
+astro- and photometry of a given point source; (viii) use FT-based and 
+interpolation-based methods for different image operations, and assess their 
+respective performance; and (ix) use the new object-oriented framework for 
+``VIP``.
 
 
 # Acknowledgements
 
 An up-to-date list of contributors to VIP is available 
 [here](https://github.com/vortex-exoplanet/VIP/graphs/contributors?from=2015-07-26&to=2022-04-27&type=a).
-VC acknowledges financial support from the Belgian F.R.S.-FNRS.
+VC acknowledges financial support from the Belgian F.R.S.-FNRS. This project 
+has received funding from the European Research Council (ERC) under the 
+European Union’s FP7 and Horizon 2020 research and innovation programmes (grant 
+agreements No 337569 and 819155), and from the Wallonia-Brussels Federation 
+(grant for Concerted Research Actions).
 
 # References

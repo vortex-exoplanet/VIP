@@ -32,7 +32,7 @@ def test_completeness_curve(get_cube):
     
     ds = get_cube
     
-    excpected_res=np.array([500])
+    excpected_res=np.array([1200])
     cen=ds.psf.shape[-1]//2
     psf=frame_crop(ds.psf,10,cenxy=[cen,cen])
     an_dist,comp_curve = completeness_curve(ds.cube,ds.angles,psf,    

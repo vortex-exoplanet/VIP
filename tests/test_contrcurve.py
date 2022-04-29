@@ -6,6 +6,7 @@ import copy
 from .helpers import fixture, np
 from vip_hci.psfsub.pca_local import pca_annular
 from vip_hci.metrics import completeness_curve,completeness_map
+from vip_hci.preproc import frame_crop
 
 @fixture(scope="module")
 
@@ -31,13 +32,14 @@ def test_completeness_curve(get_cube):
     
     ds = get_cube
     
-    excpected_res=np.array([700,30])
+    excpected_res=np.array([[500]])
+    cen=ds.psf.shape[-1]//2
+    psf=frame_crop(ds.psf,10,cenxy=[cen,cen])
+    an_dist,comp_curve = completeness_curve(ds.cube,ds.angles,psf,    
+                                    ds.fwhm,pca_annular,an_dist=[20],
+                                    ini_contrast=excpected_res,plot=False)
     
-    an_dist,comp_curve = completeness_curve(ds.cube,ds.angles,ds.psf,    
-                                    ds.fwhm,pca_annular,[10,40],
-                                    excpected_res,plot=False)
-    
-    if np.allclose(comp_curve/excpected_res, [1,1], atol=0.5):
+    if np.allclose(comp_curve/excpected_res, [1], atol=0.5):
         check=True
     else:
         print(comp_curve)
@@ -50,14 +52,14 @@ def test_completeness_map(get_cube):
     
     ds = get_cube
     
-    excpected_res=np.array([700,30])
+    excpected_res=np.array([[1200]])
+    cen=ds.psf.shape[-1]//2
+    psf=frame_crop(ds.psf,10,cenxy=[cen,cen])
+    an_dist,comp_map = completeness_map(ds.cube,ds.angles,psf,    
+                                    ds.fwhm,pca_annular,an_dist=[20],
+                                    ini_contrast=excpected_res)
     
-    an_dist,comp_map = completeness_map(ds.cube,ds.angles,ds.psf,    
-                                    ds.fwhm,pca_annular,[10,40],
-                                    excpected_res,plot=False)
-    return comp_map[:,-2]
-
-    if np.allclose(comp_map[:,-2]/excpected_res, [1,1], atol=0.5):
+    if np.allclose(comp_map[:,-2]/excpected_res, [1], atol=0.5):
         check=True
     else:
         print(comp_map[:,-2])

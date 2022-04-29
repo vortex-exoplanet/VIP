@@ -25,6 +25,9 @@ authors:
   - name: Arthur Vigan
     orcid: 0000-0002-5902-7828
     affiliation: 5
+  - name: Carl-Henrik Dahlqvist
+    orcid: 0000-0003-4994-9244
+    affiliation: 1
 affiliations:
  - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
    index: 1

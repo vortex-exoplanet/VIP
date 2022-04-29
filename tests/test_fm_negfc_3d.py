@@ -42,7 +42,7 @@ def injected_cube_position(example_dataset_adi):
 
 
 # ====== Actual negfc tests for different parameters
-@parametrize("pca_algo, negfc_algo, ncomp, mu_sigma, fm",
+@parametrize("pca_algo, negfc_algo, ncomp, mu_sigma, fm, force_rPA"
     [
         (pca_annular, firstguess, 2, False, 'stddev', False),
         (pca, firstguess, 3, True, None, False),

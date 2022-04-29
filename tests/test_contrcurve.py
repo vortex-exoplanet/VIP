@@ -34,7 +34,7 @@ def test_completeness_curve(get_cube):
     excpected_res=np.array([700,30])
     
     an_dist,comp_curve = completeness_curve(ds.cube,ds.angles,ds.psf,    
-                                    ds.fwh,pca_annular,[10,40],
+                                    ds.fwhm,pca_annular,[10,40],
                                     excpected_res,plot=False)
     
     if np.allclose(comp_curve/excpected_res, [1,1], atol=0.5):
@@ -53,7 +53,7 @@ def test_completeness_map(get_cube):
     excpected_res=np.array([700,30])
     
     an_dist,comp_map = completeness_map(ds.cube,ds.angles,ds.psf,    
-                                    ds.fwh,pca_annular,[10,40],
+                                    ds.fwhm,pca_annular,[10,40],
                                     excpected_res,plot=False)
     return comp_map[:,-2]
 

@@ -42,7 +42,7 @@ def injected_cube_position(example_dataset_adi):
 
 
 # ====== Actual negfc tests for different parameters
-@parametrize("pca_algo, negfc_algo, ncomp, mu_sigma, fm, force_rPA"
+@parametrize("pca_algo, negfc_algo, ncomp, mu_sigma, fm, force_rpa"
     [
         (pca_annular, firstguess, 2, False, 'stddev', False),
         (pca, firstguess, 3, True, None, False),
@@ -52,7 +52,7 @@ def injected_cube_position(example_dataset_adi):
         (pca_annulus, nested_negfc_sampling, 2, False, 'sum', False)
     ])
 def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma, 
-               fm, force_rPA):
+               fm, force_rpa):
     ds, yx, gt = injected_cube_position
     
     # run firstguess with simplex only if followed by mcmc or nested sampling
@@ -61,7 +61,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
     res0 = firstguess(ds.cube, ds.angles, ds.psf, ncomp=ncomp, 
                       planets_xy_coord=np.array([[yx[1],yx[0]]]), fwhm=ds.fwhm,
                       simplex=negfc_algo==firstguess, algo=pca_algo, fmerit=fm, 
-                      mu_sigma=mu_sigma, force_rPA=force_rPA, imlib='opencv', 
+                      mu_sigma=mu_sigma, force_rPA=force_rpa, imlib='opencv', 
                       aperture_radius=2, annulus_width=4*ds.fwhm, 
                       algo_options=algo_options)
     res = (res0[0][0], res0[1][0], res0[2][0])
@@ -99,8 +99,8 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                          aperture_radius=2, fwhm=ds.fwhm, mu_sigma=mu_sigma, 
                          sigma='spe', fmerit=fm, imlib='opencv', nwalkers=100, 
                          niteration_limit=200, conv_test='ac', 
-                         force_rPA=force_rPA)
-        if force_rPA:
+                         force_rPA=force_rpa)
+        if force_rpa:
             labels = ['f']
         else:
             labels =['r', 'theta', 'f']

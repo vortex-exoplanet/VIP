@@ -93,7 +93,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
             sp_unc = (2, 2, 0.1*gt[2])
         # compare results
         for i in range(3):
-            aarc(res[i], gt[i], rtol=1e-1, atol=3*sp_unc[i])
+            aarc(res[i], gt[i], rtol=1e-1, atol=2*sp_unc[i])
     elif negfc_algo == mcmc_negfc_sampling:
         # run MCMC
         res = negfc_algo(ds.cube, ds.angles, ds.psf, initial_state=init, 
@@ -114,16 +114,27 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
         # infer most likely values + confidence intervals
         val_max, ci = confidence(isamples, cfd=68.27, gaussian_fit=False, 
                                  verbose=False, save=False, labels=labels)
-        # compare results for each param
-        for i, lab in enumerate(labels):
-            ci_max = np.amax(np.abs(ci[lab]))
-            aarc(val_max[lab], gt[i], atol=3*ci_max) #diff within 3 sigma
         # infer mu and sigma from gaussian fit
         mu, sigma = confidence(isamples, cfd=68.27, bins=100, gaussian_fit=True, 
                                verbose=False, save=False, labels=labels)
+        # make sure it is between 0 and 360 for theta for both mu and gt
+        if not force_rpa:
+            if val_max['theta']-gt[1]>180:
+                val_max['theta']-=360
+            elif val_max['theta']-gt[1]<-180:
+                val_max['theta']+=360 
+            if mu[1]-gt[1]>180:
+                mu[1]-=360
+            elif mu[1]-gt[1]<-180:
+                mu[1]+=360 
         # compare results for each param
-        for i in range(len(labels)):
-            aarc(mu[i], gt[i], atol=3*sigma[i]) #diff within 3 sigma
+        for i, lab in enumerate(labels):
+            ci_max = np.amax(np.abs(ci[lab]))
+            aarc(val_max[lab], gt[i], atol=2*ci_max) #diff within 2 sigma
+            if force_rpa:
+                aarc(mu[i], gt[2], atol=2*sigma[i]) #diff within 2 sigma
+            else:
+                aarc(mu[i], gt[i], atol=2*sigma[i]) #diff within 2 sigma
     else:
         # run nested sampling
         res = negfc_algo(init, ds.cube, ds.angles, ds.psf, ds.fwhm, 
@@ -137,5 +148,5 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
         mu_sig = nested_sampling_results(res, burnin=0.3, bins=None, save=False)
         # compare results for each param
         for i in range(3):
-            aarc(mu_sig[i,0], gt[i], atol=3*mu_sig[i,1]) #diff within 3 sigma
+            aarc(mu_sig[i,0], gt[i], atol=2*mu_sig[i,1]) #diff within 2 sigma
 

@@ -58,10 +58,12 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
     # run firstguess with simplex only if followed by mcmc or nested sampling
     if pca_algo == median_sub:
         algo_options={'imlib':'opencv', 'verbose':False}
+    else:
+        algo_options={'imlib':'opencv'}
     res0 = firstguess(ds.cube, ds.angles, ds.psf, ncomp=ncomp, 
                       planets_xy_coord=np.array([[yx[1],yx[0]]]), fwhm=ds.fwhm,
                       simplex=negfc_algo==firstguess, algo=pca_algo, fmerit=fm, 
-                      mu_sigma=mu_sigma, force_rPA=force_rpa, imlib='opencv', 
+                      mu_sigma=mu_sigma, force_rPA=force_rpa, 
                       aperture_radius=2, annulus_width=4*ds.fwhm, 
                       algo_options=algo_options)
     res = (res0[0][0], res0[1][0], res0[2][0])

@@ -42,7 +42,7 @@ def injected_cube_position(example_dataset_ifs_crop):
 @parametrize("pca_algo, negfc_algo, ncomp, mu_sigma, fm",
     [
         (pca_annulus, firstguess, 4, True, None),
-        (pca_annulus, firstguess, 2, False, 'stddev')
+        (pca_annulus, firstguess, 2, False, 'sum')
     ])
 def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma, 
                fm):

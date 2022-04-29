@@ -25,17 +25,22 @@ authors:
   - name: Arthur Vigan
     orcid: 0000-0002-5902-7828
     affiliation: 5
+  - name: Iain Hammond
+    orcid: 0000-0003-1502-4315
+    affiliation: 6
 affiliations:
- - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
-   index: 1
- - name: TO BE FILLED
-   index: 2
- - name: Rheinische Friedrich-Wilhelms-Universität Bonn, Germany
-   index: 3
- - name: Institute of Astronomy, KU Leuven, Belgium
-   index: 4
- - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
-   index: 5
+  - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
+    index: 1
+  - name: TO BE FILLED
+    index: 2
+  - name: Rheinische Friedrich-Wilhelms-Universität Bonn, Germany
+    index: 3
+  - name: Institute of Astronomy, KU Leuven, Belgium
+    index: 4
+  - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
+    index: 5
+  - name: School of Physics and Astronomy, Monash University, Vic 3800, Australia
+    index: 6
 date: 4 May 2022
 bibliography: paper.bib
 ---
@@ -44,8 +49,8 @@ bibliography: paper.bib
 
 Direct imaging of exoplanets and circumstellar disks at optical and infrared 
 wavelengths requires reaching high contrasts at short angular separations. This
-can only be achieved through the synergy of different techniques, such as 
-adaptive optics, coronagraphy, and a relevant combination of observing strategy 
+can only be achieved through the synergy of advanced instrumentation, such as 
+adaptive optics and coronagraphy, with a relevant combination of observing strategy 
 and post-processing algorithms to model and subtract residual starlight. In this 
 context, ``VIP`` is a Python package providing the tools to reduce, 
 post-process and analyze high-contrast imaging datasets, enabling the detection 
@@ -55,22 +60,21 @@ stellar environments.
 # Statement of need
 
 ``VIP`` stands for Vortex Image Processing. It is a collaborative project 
-which started at the University of Liège, and aiming to integrate open-source, 
+which started at the University of Liège, aiming to integrate open-source, 
 efficient, easy-to-use and well-documented implementations of state-of-the-art 
 algorithms used in the context of high-contrast imaging. The package follows a 
 modular architecture, such that its routines cover a wide diversity of tasks, 
 including:
 
 * image pre-processing, such as sky subtraction, bad pixel correction, bad 
-frames removal, or image alignment and star centering (`preproc` module); 
+frame removal, or image alignment and star centering (`preproc` module); 
 
-* modeling and subtracting the stellar PSF using state-of-the-art algorithms 
-leveraging observing strategies such as angular differential imaging (ADI), 
+* modeling and subtracting the stellar point spread function (PSF) using state-of-the-art algorithms that leverage observing strategies such as angular differential imaging (ADI), 
 spectral differential imaging (SDI) or reference star differential imaging 
 [@Racine:1999; @Sparks:2002; @Marois:2006], which induce diversity between 
 speckle and authentic astrophysical signals (`psfsub` module);
 
-* characterizing either point sources or extended circumstellar signals through
+* characterizing point sources or extended circumstellar signals through
 forward modeling (`fm` module);
 
 * detecting and characterizing point sources through inverse approaches 
@@ -81,7 +85,7 @@ detecting point sources, and estimating their significance (`metrics` module).
 
 The features implemented in ``VIP`` as of 2017 are described in @Gomez:2017. 
 Since then, the package has been widely used by the high-contrast imaging 
-community, for the discovery of low-mass companions 
+community for the discovery of low-mass companions 
 [@Milli:2017;  @Hirsch:2019;  @Ubeira:2020], their characterization 
 [@Wertz:2017;  @Delorme:2017;  @Christiaens:2018;  @Christiaens:2019], the study 
 of planet formation [@Ruane:2017;  @Reggiani:2018;  @Mauco:2020;  @Toci:2020], 
@@ -89,7 +93,7 @@ the study of high-mass star formation [@Rainot:2020;  @Rainot:2022], or the
 development of new high-contrast imaging algorithms
 [@Gomez:2018;  @Dahlqvist:2020;  @Pairet:2021;  @Dahlqvist:2021]. Given the 
 rapid expansion of ``VIP``, we summarize here all novelties that were brought 
-to the package over the past 5 years.
+to the package over the past five years.
 
 The rest of this manuscript summarizes all major changes since v0.7.0 
 [@Gomez:2017], that are included in the latest release of ``VIP`` (v1.3.0). At 
@@ -97,7 +101,7 @@ a structural level, ``VIP`` underwent a major change since version v1.1.0, which
 aimed to migrate towards a more streamlined and easy-to-use architecture. The 
 package now revolves around five major modules (`fm`, `invprob`, `metrics`, 
 `preproc` and `psfsub`, as described above) complemented by four additional 
-modules containing different kinds of utility functions (`config`, `fits`, 
+modules containing various utility functions (`config`, `fits`, 
 `stats` and `var`). New `Dataset` and `Frame` classes have also been 
 implemented, enabling an object-oriented approach for processing high-contrast 
 imaging datasets and analyzing final images, respectively. Similarly, a 
@@ -111,8 +115,8 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     models and extended signals in ADI cubes, in order to forward-model the 
     effect of ADI post-processing [@Milli:2012; @Christiaens:2019];
     - the log-likelihood expression used in the negative fake companion (NEGFC)
-    technique was updated, as well as the default convergence criterion for the 
-    NEGFC-MCMC method - it is now based on auto-correlation [@Christiaens:2021];
+    technique was updated, and the default convergence criterion for the 
+    NEGFC-MCMC method is now based on auto-correlation [@Christiaens:2021];
     - the NEGFC methods are now fully compatible with integral field 
     spectrograph (IFS) input datacubes.
 
@@ -131,7 +135,7 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     of either isolated bad pixels or clumps of bad pixels, leveraging on 
     iterative sigma filtering (`cube_fix_badpix_clump`), the circular symmetry 
     of the PSF (`cube_fix_badpix_annuli`), or the radial expansion of the PSF 
-    with wavelength (`cube_fix_badpix_ifs`), and (ii) the correction of bad 
+    with changing wavelength (`cube_fix_badpix_ifs`), and (ii) the correction of bad 
     pixels based on either median replacement (default) or Gaussian kernel 
     interpolation (`cube_fix_badpix_with_kernel`);
     - a new algorithm was added for the recentering of coronagraphic image cubes 
@@ -147,7 +151,7 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     [@Lafreniere:2007] was added;
     - an annular version of the non-negative matrix factorization algorithm 
     is now available [@Lee:1999; @Gomez:2017];
-    - besides median-ADI, the `medsub` routine now also supports median-SDI. 
+    - the `medsub` routine now also supports median-SDI. 
 
 We refer the interested reader to release descriptions and GitHub 
 [announcements](https://github.com/vortex-exoplanet/VIP/discussions/categories/announcements) 
@@ -167,17 +171,16 @@ defined as the top-right pixel among the four central pixels of the image - a
 change motivated by the new default FT-based methods for image operations. The 
 center convention is unchanged for odd-size images (central pixel).
 
-Finally, a total of nine jupyter notebook tutorials covering most of the 
-available features in VIP were implemented. These tutorials illustrate (i) how 
-to load and post-process an ADI dataset (quick-start tutorial); (ii) how to 
-pre-process ADI and IFS datasets; (iii) how to model and subtract the stellar 
-halo with ADI-based algorithms; (iv) how to calculate metrics such as the S/N 
-ratio [@Mawet:2014], STIM maps [@Pairet:2019] and contrast curves; (v) how to 
-find the radial separation, azimuth and flux of a point source; (vi) how to 
-create and forward model scattered-light disk models; (vii) how to post-process 
-IFS data and infer the exact astro- and photometry of a given point source; 
-(viii) how to use FT-based and interpolation-based methods for different image 
-operations, and assess their respective performance; and (ix) how to use the 
+Finally, a total of eight jupyter notebook tutorials covering most of the 
+available features in VIP were implemented. These tutorials illustrate how to (i) 
+load and post-process an ADI dataset (quick-start tutorial); (ii) pre-process ADI 
+and IFS datasets; (iii) model and subtract the stellar halo with ADI-based 
+algorithms; (iv) calculate metrics such as the S/N ratio [@Mawet:2014], STIM maps
+[@Pairet:2019] and contrast curves; (v) find the radial separation, azimuth and 
+flux of a point source; (vi) create and forward model scattered-light disk models; 
+(vii) post-process IFS data and infer the exact astro- and photometry of a given point 
+source; (viii) use FT-based and interpolation-based methods for different image 
+operations, and assess their respective performance; and (ix) use the 
 new object-oriented framework for ``VIP``.
 
 

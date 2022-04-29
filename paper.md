@@ -183,7 +183,7 @@ available features in VIP were implemented. These tutorials illustrate how to
 (i) load and post-process an ADI dataset (quick-start tutorial); (ii) 
 pre-process ADI and IFS datasets; (iii) model and subtract the stellar halo with 
 ADI-based algorithms; (iv) calculate metrics such as the S/N ratio 
-[@Mawet:2014], STIM maps[@Pairet:2019] and contrast curves; (v) find the radial 
+[@Mawet:2014], STIM maps [@Pairet:2019] and contrast curves; (v) find the radial 
 separation, azimuth and flux of a point source; (vi) create and forward model 
 scattered-light disk models; (vii) post-process IFS data and infer the exact 
 astro- and photometry of a given point source; (viii) use FT-based and 

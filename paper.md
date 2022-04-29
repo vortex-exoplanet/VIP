@@ -185,6 +185,10 @@ new object-oriented framework for ``VIP``.
 
 An up-to-date list of contributors to VIP is available 
 [here](https://github.com/vortex-exoplanet/VIP/graphs/contributors?from=2015-07-26&to=2022-04-27&type=a).
-VC acknowledges financial support from the Belgian F.R.S.-FNRS.
+VC acknowledges financial support from the Belgian F.R.S.-FNRS. This project 
+has received funding from the European Research Council (ERC) under the 
+European Union’s FP7 and Horizon 2020 research and innovation programmes (grant 
+agreements No 337569 and 819155), and from the Wallonia-Brussels Federation 
+(grant for Concerted Research Actions).
 
 # References

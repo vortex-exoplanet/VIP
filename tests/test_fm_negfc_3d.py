@@ -44,12 +44,12 @@ def injected_cube_position(example_dataset_adi):
 # ====== Actual negfc tests for different parameters
 @parametrize("pca_algo, negfc_algo, ncomp, mu_sigma, fm, force_rpa",
     [
-        (pca_annular, firstguess, 2, False, 'stddev', False),
+        (pca_annular, firstguess, 3, False, 'stddev', False),
         (pca, firstguess, 3, True, None, False),
         (median_sub, firstguess, None, False, 'sum', False),
-        (pca_annulus, mcmc_negfc_sampling, 2, False, 'stddev', False),
-        (pca_annulus, mcmc_negfc_sampling, 2, True, None, True),
-        (pca_annulus, nested_negfc_sampling, 2, False, 'sum', False)
+        (pca_annulus, mcmc_negfc_sampling, 3, False, 'stddev', False),
+        (pca_annulus, mcmc_negfc_sampling, 3, True, None, True),
+        (pca_annulus, nested_negfc_sampling, 3, False, 'sum', False)
     ])
 def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma, 
                fm, force_rpa):
@@ -93,7 +93,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
             sp_unc = (2, 2, 0.1*gt[2])
         # compare results
         for i in range(3):
-            aarc(res[i], gt[i], rtol=1e-1, atol=2*sp_unc[i])
+            aarc(res[i], gt[i], rtol=1e-1, atol=3*sp_unc[i])
     elif negfc_algo == mcmc_negfc_sampling:
         # run MCMC
         res = negfc_algo(ds.cube, ds.angles, ds.psf, initial_state=init, 
@@ -130,11 +130,11 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
         # compare results for each param
         for i, lab in enumerate(labels):
             ci_max = np.amax(np.abs(ci[lab]))
-            aarc(val_max[lab], gt[i], atol=2*ci_max) #diff within 2 sigma
+            aarc(val_max[lab], gt[i], atol=3*ci_max) #diff within 3 sigma
             if force_rpa:
-                aarc(mu[i], gt[2], atol=2*sigma[i]) #diff within 2 sigma
+                aarc(mu[i], gt[2], atol=3*sigma[i]) #diff within 3 sigma
             else:
-                aarc(mu[i], gt[i], atol=2*sigma[i]) #diff within 2 sigma
+                aarc(mu[i], gt[i], atol=3*sigma[i]) #diff within 3 sigma
     else:
         # run nested sampling
         res = negfc_algo(init, ds.cube, ds.angles, ds.psf, ds.fwhm, 
@@ -148,5 +148,5 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
         mu_sig = nested_sampling_results(res, burnin=0.3, bins=None, save=False)
         # compare results for each param
         for i in range(3):
-            aarc(mu_sig[i,0], gt[i], atol=2*mu_sig[i,1]) #diff within 2 sigma
+            aarc(mu_sig[i,0], gt[i], atol=3*mu_sig[i,1]) #diff within 3 sigma
 

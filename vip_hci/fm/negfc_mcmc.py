@@ -1184,14 +1184,16 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     
     for j in range(l):
         if nrows > 1:
-            ax0_tmp = ax[j//4][j%4]
-            if gaussian_fit:
-                ax1_tmp = ax[nrows//2+j//4][j%4]
+            if l>1:
+                ax0_tmp = ax[j//4][j%4]
+                if gaussian_fit:
+                    ax1_tmp = ax[nrows//2+j//4][j%4]
+            else:            
+                ax0_tmp = ax[j//4]
+                if gaussian_fit:
+                    ax1_tmp = ax[nrows//2+j//4]
         elif l>1 and not gaussian_fit:
             ax0_tmp = ax[j]
-        elif l == 1 and gaussian_fit:
-            ax0_tmp = ax[0]
-            ax1_tmp = ax[1]
         else:
             ax0_tmp = ax
         if l>1:

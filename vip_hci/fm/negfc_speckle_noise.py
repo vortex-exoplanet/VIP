@@ -28,7 +28,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                               wedge=None, weights=None, force_rPA=False, 
                               nproc=None, simplex_options=None, bins=None, 
                               save=False, output=None, verbose=True, 
-                              full_output=True, plot=False):
+                              full_output=True, plot=False, trim_outliers=True):
     """
     Step-by-step procedure used to determine the speckle noise uncertainty 
     associated to the parameters of a companion candidate.
@@ -122,6 +122,9 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     plot: bool, optional
         Whether to plot the gaussian fit to the distributions of parameter 
         deviations (between retrieved and injected).
+    trim_outliers: bool, opt
+        Whether to trim outliers when considering a Gaussian fit to the 
+        histogram of residual deviations.
      
     Returns:
     --------
@@ -255,8 +258,17 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     if force_rPA:
         offset = offset[:,2]
         print(offset.shape)
+    if trim_outliers:
+        std = np.std(offset, axis=0)
+        trim_offset = []
+        for i in range(offset.shape[0]):
+            if np.all(np.abs(offset[i])<5*std):
+                trim_offset.append(offset[i])
+        offset=np.array(trim_offset)
+        
     if bins is None:
         bins = int(offset.shape[0]/10)
+        
     mean_dev, sp_unc = confidence(offset, cfd=68.27, bins=bins, 
                                   gaussian_fit=True, verbose=True, save=False, 
                                   output_dir='', force=True)

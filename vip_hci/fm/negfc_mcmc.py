@@ -686,6 +686,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     supp = niteration_supp
     maxgap = check_maxgap
     initial_state = np.array(initial_state)
+    if initial_state[1] == 0:
+        initial_state[1] = 360 # for appropriate scaling of initial ball
 
     mu_sig = get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, 
                               fwhm, initial_state[0], initial_state[1], 
@@ -735,15 +737,14 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
                       (initial_state[1] - dth, initial_state[1] + dth)] # angle
             d0 = 2
         for i in range(dim-d0):
-            bounds.append((0.1* initial_state[d0+i], 2 * initial_state[d0+i]))   # flux
+            bounds.append((0.1* initial_state[d0+i], 2 * initial_state[d0+i])) # flux
     # size of ball of parameters for MCMC initialization
     scal = abs(bounds[0][0]-initial_state[0])/initial_state[0]
     for i in range(dim):
-        if initial_state[i]!=0:
-            for j in range(2):
-                test_scal = abs(bounds[i][j]-initial_state[i])/initial_state[i]
-                if test_scal < scal:
-                    scal= test_scal
+        for j in range(2):
+            test_scal = abs(bounds[i][j]-initial_state[i])/initial_state[i]
+            if test_scal < scal:
+                scal= test_scal
     if force_rPA:
         init = initial_state[2:]
         if len(init)>1:

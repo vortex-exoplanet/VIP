@@ -83,17 +83,17 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
         if pca_algo == pca:
             # just test it once because very slow
             sp_unc = speckle_noise_uncertainty(cube_emp, res, 
-                                               np.arange(0,360,2), ds.angles, 
+                                               np.arange(0,360,3), ds.angles, 
                                                algo=pca_algo, psfn=ds.psf, 
                                                fwhm=ds.fwhm, aperture_radius=2, 
                                                fmerit=fm, mu_sigma=mu_sigma, 
                                                verbose=False, full_output=False, 
                                                algo_options=algo_options)
         else:
-            sp_unc = (2, 2, 0.2*gt[2])
+            sp_unc = (2, 2, 0.1*gt[2])
         # compare results
         for i in range(3):
-            aarc(res[i], gt[i], rtol=1e-1, atol=sp_unc[i])
+            aarc(res[i], gt[i], rtol=1e-1, atol=3*sp_unc[i])
     elif negfc_algo == mcmc_negfc_sampling:
         # run MCMC
         res = negfc_algo(ds.cube, ds.angles, ds.psf, initial_state=init, 
@@ -102,27 +102,28 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                          sigma='spe', fmerit=fm, imlib='opencv', nwalkers=100, 
                          niteration_limit=200, conv_test='ac', 
                          force_rPA=force_rpa)
+        burnin = 0.3
         if force_rpa:
             labels = ['f']
+            isamples = res[:, int(res.shape[1]//(1/burnin)):, :].reshape((-1,1))
         else:
             labels =['r', 'theta', 'f']
+            isamples = res[:, int(res.shape[1]//(1/burnin)):, :].reshape((-1,3))
         show_walk_plot(res, save=True, labels=labels)
-        burnin = 0.3
         show_corner_plot(res, burnin=burnin, save=True, labels=labels)
-        isamples = res[:, int(res.shape[1]//(1/burnin)):, :].reshape((-1,3))
         # infer most likely values + confidence intervals
         val_max, ci = confidence(isamples, cfd=68.27, gaussian_fit=False, 
                                  verbose=False, save=False, labels=labels)
         # compare results for each param
         for i, lab in enumerate(labels):
             ci_max = np.amax(np.abs(ci[lab]))
-            aarc(val_max[lab], gt[i], atol=ci_max) #diff within 1 sigma
+            aarc(val_max[lab], gt[i], atol=3*ci_max) #diff within 3 sigma
         # infer mu and sigma from gaussian fit
         mu, sigma = confidence(isamples, cfd=68.27, bins=100, gaussian_fit=True, 
                                verbose=False, save=False, labels=labels)
         # compare results for each param
         for i in range(len(labels)):
-            aarc(mu[i], gt[i], atol=sigma[i]) #diff within 1 sigma
+            aarc(mu[i], gt[i], atol=3*sigma[i]) #diff within 3 sigma
     else:
         # run nested sampling
         res = negfc_algo(init, ds.cube, ds.angles, ds.psf, ds.fwhm, 
@@ -136,5 +137,5 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
         mu_sig = nested_sampling_results(res, burnin=0.3, bins=None, save=False)
         # compare results for each param
         for i in range(3):
-            aarc(mu_sig[i,0], gt[i], atol=mu_sig[i,1]) #diff within 1 sigma
+            aarc(mu_sig[i,0], gt[i], atol=3*mu_sig[i,1]) #diff within 3 sigma
 

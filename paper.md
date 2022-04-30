@@ -139,6 +139,8 @@ Some of the major changes in each module of ``VIP`` are summarized below:
 * `metrics`: 
     - calculation of standardized trajectory maps (STIM) is now available 
     [@Pairet:2019];
+    - functions to calculate performance maps and completeness-based contrast 
+    curves have also been added to the `metrics` module [@JensenClem:2019].
   
 * `preproc`:
     - the module now boasts several new algorithms for (i) the identification 

@@ -1088,17 +1088,17 @@ cc_SPHERE=np.array([0,0,0,0,0,2.09750151e-03, 1.56692211e-03,
        2.06690302e-06, 1.92841676e-06, 1.78207927e-06, 1.63086729e-06,
        1.47821920e-06, 1.32764891e-06, 1.18236117e-06])
                         
-def completeness_curve(cube,angle_list,psf,fwhm,algo,an_dist=None,ini_contrast=None,
-                            starphot=1,pxscale=1.0,n_fc=20,completeness=0.95,
-                            snr_approximation=True,nproc=1,
-                            algo_dict={'ncomp':20}, plot=True, dpi=100, 
-                            save_plot=None, object_name=None,
-                            fix_y_lim=(),figsize=(8, 4)):
+def completeness_curve(cube, angle_list, psf, fwhm, algo,an_dist=None,
+                       ini_contrast=None, starphot=1, pxscale=1.0, n_fc=20,
+                       completeness=0.95, snr_approximation=True, nproc=1,
+                       algo_dict={'ncomp':20}, plot=True, dpi=100, 
+                       save_plot=None, object_name=None, fix_y_lim=(),
+                       figsize=(8, 4)):
         
     """
     Function allowing the computation of contrast curves with all the psf-
-    subtraction algorithms provided by VIP, inspired bythe framework developped
-    by Jenssen Clemm et al. (2017), the code relies on the approach proposed by
+    subtraction algorithms provided by VIP, inspired by the framework developed
+    by Jensen-Clem et al. (2017), the code relies on the approach proposed by
     Dahlqvist et al. (2021) which relies on the computation of the contrast 
     associated to a completeness level achieved at a level defined as the first
     false positive in the original SNR map (brightest speckle observed in the 

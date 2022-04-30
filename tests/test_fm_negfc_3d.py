@@ -129,12 +129,13 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                 mu[1]+=360 
         # compare results for each param
         for i, lab in enumerate(labels):
-            ci_max = np.amax(np.abs(ci[lab]))
-            aarc(val_max[lab], gt[i], atol=3*ci_max) #diff within 3 sigma
             if force_rpa:
-                aarc(mu[i], gt[2], atol=3*sigma[i]) #diff within 3 sigma
+                j = i+2
             else:
-                aarc(mu[i], gt[i], atol=3*sigma[i]) #diff within 3 sigma
+                j=i
+            ci_max = np.amax(np.abs(ci[lab]))
+            aarc(val_max[lab], gt[j], atol=3*ci_max) #diff within 3 sigma
+            aarc(mu[i], gt[j], atol=3*sigma[i]) #diff within 3 sigma
     else:
         # run nested sampling
         res = negfc_algo(init, ds.cube, ds.angles, ds.psf, ds.fwhm, 

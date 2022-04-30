@@ -48,7 +48,7 @@ def injected_cube_position(example_dataset_adi):
         (pca, firstguess, 3, True, None, False),
         (median_sub, firstguess, None, False, 'sum', False),
         (pca_annulus, mcmc_negfc_sampling, 3, False, 'stddev', False),
-        (pca_annulus, mcmc_negfc_sampling, 3, True, None, True),
+        (pca_annulus, mcmc_negfc_sampling, 2, True, None, True),
         (pca_annulus, nested_negfc_sampling, 3, False, 'sum', False)
     ])
 def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma, 

@@ -5,8 +5,10 @@ Tests for the bad pixel detection and correction routines.
 
 import numpy as np
 from vip_hci.preproc import (cube_fix_badpix_isolated, cube_fix_badpix_clump, 
-                             cube_fix_badpix_annuli, cube_fix_badpix_ifs)
-from vip_hci.var import create_synth_psf
+                             cube_fix_badpix_annuli, cube_fix_badpix_ifs, 
+                             cube_fix_badpix_kernel)
+from vip_hci.var import (create_synth_psf, dist, get_annulus_segments, 
+                         frame_center)
 
 
 # isolated bad pixel correction
@@ -155,6 +157,20 @@ def test_badpix_ann():
     assert bpm[1, idx1, idx1] == 1
     assert bpm[1, idx1+1, idx1] == 1
 
+    # test kernel correction
+    cy, cx = frame_center(cube)
+    cube_c = cube_fix_badpix_kernel(cube, bpm, fwhm=1)
+    
+    r0 = dist(cy, cx, idx0, idx0)
+    ann = get_annulus_segments(cube_c[0], r0-1, 3, mode='val')
+    med_val_ann = np.median(ann)
+    assert (cube_c[0, idx0, idx0]-med_val_ann) < 3*s0
+    
+    r1 = dist(cy, cx, idx1, idx1)
+    ann = get_annulus_segments(cube_c[1], r1-1, 3, mode='val')
+    med_val_ann = np.median(ann)
+    assert (cube_c[1, idx1, idx1]-med_val_ann) < 3*s0
+    
 
 def test_badpix_ifs():
     n_ch = 5

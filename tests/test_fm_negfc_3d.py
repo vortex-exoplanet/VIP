@@ -87,7 +87,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                                                algo=pca_algo, psfn=ds.psf, 
                                                fwhm=ds.fwhm, aperture_radius=2, 
                                                fmerit=fm, mu_sigma=mu_sigma, 
-                                               verbose=False, full_output=False, 
+                                               verbose=True, full_output=False, 
                                                algo_options=algo_options)
         else:
             sp_unc = (2, 2, 0.1*gt[2])
@@ -101,7 +101,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                          aperture_radius=2, fwhm=ds.fwhm, mu_sigma=mu_sigma, 
                          sigma='spe', fmerit=fm, imlib='opencv', nwalkers=100, 
                          niteration_limit=200, conv_test='ac', 
-                         force_rPA=force_rpa)
+                         force_rPA=force_rpa, verbosity=2)
         burnin = 0.3
         if force_rpa:
             labels = ['f']
@@ -113,10 +113,10 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
         show_corner_plot(res, burnin=burnin, save=True, labels=labels)
         # infer most likely values + confidence intervals
         val_max, ci = confidence(isamples, cfd=68.27, gaussian_fit=False, 
-                                 verbose=False, save=False, labels=labels)
+                                 verbose=True, save=False, labels=labels)
         # infer mu and sigma from gaussian fit
         mu, sigma = confidence(isamples, cfd=68.27, bins=100, gaussian_fit=True, 
-                               verbose=False, save=False, labels=labels)
+                               verbose=True, save=False, labels=labels)
         # make sure it is between 0 and 360 for theta for both mu and gt
         if not force_rpa:
             if val_max['theta']-gt[1]>180:
@@ -143,7 +143,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                          annulus_width=4*ds.fwhm, aperture_radius=2, 
                          ncomp=ncomp, algo=pca_algo, w=(5, 5, 200), 
                          method='single', npoints=100, dlogz=0.1, 
-                         decline_factor=None, rstate=None, verbose=False,
+                         decline_factor=None, rstate=None, verbose=True,
                          algo_options={'imlib':'opencv'})
         # infer mu, sigma from nested sampling result
         mu_sig = nested_sampling_results(res, burnin=0.3, bins=None, save=False)

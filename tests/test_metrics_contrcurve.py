@@ -42,7 +42,7 @@ def test_contrast_curve(get_cube):
     plsc = VLT_NACO['plsc']
     cc = contrast_curve(ds.cube, ds.angles, psf, ds.fwhm, pxscale=plsc, 
                         starphot=starphot, algo=pca_annular, nbranch=3,
-                        plot=False, debug=True)
+                        plot=True, debug=True)
     
     rad = np.array(cc['distance'])
     gauss_cc = np.array(cc['sensitivity_gaussian'])

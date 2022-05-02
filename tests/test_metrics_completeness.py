@@ -39,7 +39,7 @@ def test_completeness_curve(get_cube):
     an_dist, comp_curve = completeness_curve(ds.cube, ds.angles, psf,    
                                              ds.fwhm, pca_annular, an_dist=[20],
                                              ini_contrast=None, #expected_res,
-                                             starphot=starphot, plot=False)
+                                             starphot=starphot, plot=True)
     
     if np.allclose(comp_curve/expected_res, [1], atol=0.5):
         check=True

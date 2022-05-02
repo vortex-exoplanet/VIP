@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt
 from ..fm import cube_inject_companions, normalize_psf
 from ..config.utils_conf import pool_map, iterable, vip_figsize, vip_figdpi
 from ..var import get_annulus_segments, frame_center
-from ..negfc.utils_negfc import find_nearest
+from ..fm.utils_negfc import find_nearest
 from ..preproc import cube_crop_frames
 from .snr_source import snrmap, _snr_approx, snr
 from .contrcurve import contrast_curve

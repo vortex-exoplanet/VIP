@@ -8,7 +8,7 @@ from vip_hci.config import VLT_NACO
 from vip_hci.psfsub.pca_local import pca_annular
 from vip_hci.metrics import contrast_curve
 from vip_hci.preproc import frame_crop
-from vip_hci.negfc.utils_negfc import find_nearest
+from vip_hci.fm.utils_negfc import find_nearest
 
 @fixture(scope="module")
 def get_cube(example_dataset_adi):

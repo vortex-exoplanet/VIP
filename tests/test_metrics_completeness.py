@@ -9,7 +9,6 @@ from vip_hci.metrics import completeness_curve, completeness_map
 from vip_hci.preproc import frame_crop
 
 @fixture(scope="module")
-
 def get_cube(example_dataset_adi):
     """
     Get the ADI sequence from conftest.py.
@@ -71,9 +70,3 @@ def test_completeness_map(get_cube):
         
     msg = "Issue with completeness map estimation"
     assert check, msg
-
-
-
-    
-    
-    

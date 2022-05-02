@@ -134,15 +134,15 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     - a Python implementation of the ANDROMEDA algorithm [@Cantalloube:2015] is 
     now available as part of ``VIP``;
     - the KLIP-FMMF and LOCI-FMMF algorithms
-    [@Pueyo:2016, @Ruffio:2017, @Dahlqvist:2021] are now also available in the 
+    [@Pueyo:2016; @Ruffio:2017; @Dahlqvist:2021] are now also available in the 
     `invprob` module.
 
 * `metrics`: 
     - calculation of standardized trajectory maps (STIM) is now available 
     [@Pairet:2019];
     - functions to calculate completeness-based contrast curves and completeness 
-    maps, inspired by the framework in [@JensenClem:2018] and implemented as in 
-    [@Dahlqvist:2021], have now been added to the `metrics` module.
+    maps, inspired by the framework in @JensenClem:2018 and implemented as in 
+    @Dahlqvist:2021, have now been added to the `metrics` module.
   
 * `preproc`:
     - the module now boasts several new algorithms for (i) the identification 
@@ -161,7 +161,7 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     [@Amara:2012; @Soummer:2012] have been re-written for improved efficiency, 
     and are now also compatible with 4D IFS+ADI input cubes to apply SDI-based 
     PSF modeling and subtraction algorithms;
-    - an implementation of the Locally Optimal Combination of Images 
+    - an implementation of the Locally Optimal Combination of Images algorithm
     [@Lafreniere:2007] was added;
     - an annular version of the non-negative matrix factorization algorithm 
     is now available [@Lee:1999; @Gomez:2017];

@@ -34,6 +34,9 @@ authors:
   - name: Arthur Vigan
     orcid: 0000-0002-5902-7828
     affiliation: 7
+  - name: Carles Cantero
+    orcid: 0000-0003-2073-782X
+    affiliation: 1,8
 affiliations:
   - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
     index: 1
@@ -49,6 +52,8 @@ affiliations:
     index: 6
   - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
     index: 7
+  - name: Montefiore Institute, Université de Liège, 4000 Liège, Belgium
+    index: 8
 date: 4 May 2022
 bibliography: paper.bib
 ---

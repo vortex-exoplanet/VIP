@@ -15,15 +15,18 @@ __all__ = ['get_square',
            'create_ringed_spider_mask',
            'matrix_scaling',
            'prepare_matrix',
-           'reshape_matrix']
+           'reshape_matrix',
+           'mask_roi']
 
 import numpy as np
 from skimage.draw import polygon
 from skimage.draw import disk
 from sklearn.preprocessing import scale
+from hciplot import plot_frames
 
-from .coords import frame_center
+from .coords import frame_center, dist
 from ..config.utils_conf import frame_or_shape
+
 
 
 def mask_circle(array, radius, fillwith=0, mode='in'):
@@ -293,6 +296,8 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
         return array * circle_mask
     elif mode == "val":
         return array[circle_mask]
+    elif mode=="ind":
+        return np.where(circle_mask)
     else:
         raise ValueError("mode '{}' unknown!".format(mode))
 
@@ -784,3 +789,98 @@ def reshape_matrix(array, y, x):
 
     """
     return array.reshape(array.shape[0], y, x)
+
+
+
+def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8, mode='val', plot=False):
+    """
+    Return a mask corresponding to the region of interest for a test point source as 
+    defined in Gebhard et al.(2020). 
+    
+    Given a frame and a location of interest on it with coordinates xy=(cx,cy), 
+    the mask consists of all pixels from three different regions with respect to xy:
+    
+        (r1) Exclusion region: Pixels from the region of interest. These are excluded 
+                               in the final mask.
+        (r2) Local region: Pixels around xy in a circular fashion.
+        (r3) Symmetric local region: Pixels around the (anti)symmetric xy with respect 
+                                   to the star location. It is also defined in a 
+                                   circular fashion with same radius than "local region."
+        (r4) Annulus region: Pixels from annulus where xy is located. 
+        
+    The goal of this mask is to disentangle the expected structure of the speckle pattern. 
+    Gebhard et al.(2021) comments that "r2 is chosen to capture any "local" 
+    effects around xy due to the instrument. r3 is chosen symmetrically 
+    opposite of xy because if there is an speckle at xy, there should also be an 
+    (anti-)speckle at r2. r4 is used because we know that the systematic 
+    noise significantly depends on tha radial variable."
+    
+    Parameters
+    ----------
+    array: 2d numpy ndarray
+        Input 2d array (image) ot tuple with its shape.
+    cx, cy: int
+        Pixel coordinates of the location of interest.
+    exc_radius : float
+        Known size of the FHWM in pixels to be used. Default is 4.
+    ann_width: int
+        Width (in pxs) of the annulus (region 3 on description).
+    inc_radius: int
+        Radius (in pxs) of the circular regions r2 and r3 on description.
+        Default is 8.
+    mode : {'bool', 'val', 'mask', 'ind'}, optional
+        Controls what is returned: array with the mask applied, values
+        of the pixels in the mask region or indices of selected pixels of the mask.
+        Default is 'mask'.
+    
+    Returns
+    -------
+    bool_mask : numpy ndarray
+        [mode="bool"] Input array with the circular mask applied.
+    values : numpy ndarray
+        [mode="val"] 1d array with the values of the pixels in the circular
+        region.
+    masked : numpy ndarray
+        [mode="mask"] Input array with the circular mask applied.
+    indices : tuple(y, x)
+        [mode='ind'] Coordinates of the mask.
+    """
+    
+    if exc_radius>=inc_radius:
+        print('Warning: The excluded region is bigger than the included region') 
+    
+    frsize   = array.shape[0]
+    cx, cy   = source_xy
+    yc,xc    = frame_center(array)
+    distance = dist(yc, xc, cy,cx)
+    
+    lim = (frsize/2)-(inc_radius/2)
+    if distance<lim:
+        if ann_width/2+distance<=frsize/2:
+            xr1, yr1  = get_circle(array, radius=exc_radius, cy=cy, cx=cx, mode='ind')
+            r2  = get_circle(array, radius=inc_radius, cy=cy, cx=cx, mode='mask')
+            r3  = get_circle(array, radius=inc_radius, cy=2*yc-cy, cx=2*xc-cx, mode='mask')
+            r4  = get_annulus_segments(data=array, inner_radius=distance-ann_width/2, width=ann_width, mode='mask')[0]
+
+            r2[xr1,yr1]=0
+            r4[xr1,yr1]=0
+            mask = r2+r3+r4
+            mask = (mask !=0)
+            
+            if plot:
+                plot_frames(mask, colorbar=False, show_center=True, dpi=100)
+            
+            if mode=='bool':
+                return mask
+            elif mode=='val':
+                return array[mask]
+            elif mode=='mask':
+                return array*mask
+            elif mode=='ind':
+                return np.where(mask==True)
+            else:
+                raise ValueError("mode '{}' unknown!".format(mode))
+        else:
+            raise TypeError('Annulus is out of the field. Try changing coordinates or the annulus width')            
+    else:
+        raise TypeError('Circles are out of the field. Try changing coordinates or the circles radius')

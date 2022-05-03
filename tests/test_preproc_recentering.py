@@ -1,12 +1,13 @@
-
-import numpy as np
+from .helpers import fixture, np
+import copy
 import matplotlib as mpl
 mpl.use('Agg')
 from astropy.modeling import models
 import hciplot
 import vip_hci as vip
 from vip_hci.preproc import (cube_recenter_2dfit, cube_recenter_dft_upsampling,
-                             cube_recenter_satspots, frame_shift)
+                             cube_recenter_satspots, cube_recenter_via_speckles, 
+                             frame_shift)
 from sklearn.metrics import mean_squared_error
 
 try:
@@ -44,6 +45,24 @@ def resource(*args):
     except Exception:  # __file__ is not available
         return os.path.join(*args)
 
+@fixture(scope="module")
+def get_cube(example_dataset_adi):
+    """
+    Get the ADI sequence from conftest.py.
+
+    Parameters
+    ----------
+    example_dataset_adi : fixture
+        Taken automatically from ``conftest.py``.
+
+    Returns
+    -------
+    dsi : VIP Dataset
+
+    """
+    dsi = copy.copy(example_dataset_adi)
+
+    return dsi
 
 def shift_cube(cube, randax, randay):
     return np.array([frame_shift(cube[i], randay[i], randax[i])
@@ -115,8 +134,12 @@ def do_recenter(method, cube, shiftx, shifty, errormsg, mse=1e-2,
     rec_res = method(shifted_cube, debug=debug, **kwargs)
     
     recentered_cube= rec_res[0]
-    unshifty= rec_res[1]
-    unshiftx= rec_res[2]
+    if method == cube_recenter_via_speckles:
+        unshifty= rec_res[-1]
+        unshiftx= rec_res[-2]
+    else:
+        unshifty= rec_res[1]
+        unshiftx= rec_res[2]
 
     if debug:
         hciplot.plot_frames(cube, title="input cube")
@@ -373,3 +396,27 @@ def test_satspots(debug=False):
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 **method_args)
 
+
+
+def test_speckle_recentering(debug=False):
+    global seed
+    if debug:
+        html("<h2>===== test_satspots =====</h2>")
+
+    method = cube_recenter_via_speckles
+    errormsg = 'Error when recentering via speckles'
+
+    #===== datacube
+    ds = get_cube
+    n_frames = ds.cube.shape[0]
+
+    #===== shift
+    randax = np.ones(n_frames)
+    randay = np.ones(n_frames)
+
+    #===== recenter
+    method_args = dict(plot=False, full_output=True, verbose=False, fwhm=4.2, 
+                       recenter_median=True, subframesize=15, imlib='opencv', 
+                       interpolation='lanczos4')
+    do_recenter(method, ds.cube, randax, randay, errormsg=errormsg, debug=debug,
+                mse=0.2*n_frames, **method_args)

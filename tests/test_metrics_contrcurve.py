@@ -36,7 +36,6 @@ def test_contrast_curve(get_cube):
     
     ds, starphot = get_cube
     
-    expected_res = np.array([1200/starphot])
     psf = frame_crop(ds.psf, 11)
     plsc = VLT_NACO['plsc']
     cc = contrast_curve(ds.cube, ds.angles, psf, ds.fwhm, pxscale=plsc, 
@@ -47,13 +46,6 @@ def test_contrast_curve(get_cube):
     gauss_cc = np.array(cc['sensitivity_gaussian'])
     student_cc = np.array(cc['sensitivity_student'])
     sigma_corr = np.array(cc['sigma corr'])
-
-    
-    if np.allclose(cc/expected_res, [1], atol=0.5):
-        check=True
-    else:
-        print(cc)
-        check=False
         
     # check that at 0.2'' 5-sigma cc < 4e-4 (Absil+2013) - Gaussian statistics
     idx_r = find_nearest(rad/plsc, 0.2)

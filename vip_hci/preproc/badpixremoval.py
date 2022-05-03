@@ -815,7 +815,8 @@ def cube_fix_badpix_ifs(array, lbdas, fluxes=None, mask=None, cy=None, cx=None,
     Function to identify and correct bad pixels in an IFS cube, leveraging on 
     the radial expansion of the PSF with wavelength.
     Bad pixel identification is done with either the `cube_fix_badpix_isolated` 
-    or the `cube_fix_badpix_clump` function in PSF subtracted frames (through SDI).
+    or the `cube_fix_badpix_clump` function in PSF subtracted frames (through 
+    SDI).
     
     Parameters
     ----------
@@ -990,7 +991,8 @@ def cube_fix_badpix_ifs(array, lbdas, fluxes=None, mask=None, cy=None, cx=None,
                                                protect_mask=protect_mask, 
                                                cxy=cxy, mad=mad, 
                                                ignore_nan=ignore_nan, 
-                                               verbose=verbose, full_output=True)
+                                               verbose=verbose, 
+                                               full_output=True)
             _, final_bpm[:,i] = res
             final_bpm[np.where(final_bpm>1)]=1
             # bad pixel correction in original cube

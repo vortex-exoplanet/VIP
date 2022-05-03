@@ -23,8 +23,8 @@ def test_badpix_iso():
     
     im1 = np.random.normal(loc=m0, scale=s0, size=sz)
     im2 = im1 = np.random.normal(loc=m1, scale=s1, size=sz)
-    im1[idx0,idx0] = 15
-    im2[idx1,idx1] = -8
+    im1[idx0,idx0] = 35
+    im2[idx1,idx1] = -24
     cube = np.array([im1, im2])
     cube_c, bpix_map = cube_fix_badpix_isolated(cube, sigma_clip=5,
                                                 frame_by_frame=True,
@@ -61,13 +61,13 @@ def test_badpix_clump():
     
     im1 = np.random.normal(loc=m0, scale=s0, size=sz)
     im2 = im1 = np.random.normal(loc=m1, scale=s1, size=sz)
-    im1[idx0,idx0] = 10
-    im1[idx0+1,idx0] = 12
-    im1[idx0+1,idx0+1] = 14
-    im2[idx1,idx1] = -20
-    im2[idx1+1,idx1] = 20
-    im2[idx1,idx1+1] = -50
-    im2[idx1+1,idx1+1] = -50
+    im1[idx0,idx0] = 30
+    im1[idx0+1,idx0] = 42
+    im1[idx0+1,idx0+1] = 54
+    im2[idx1,idx1] = -50
+    im2[idx1+1,idx1] = -50
+    im2[idx1,idx1+1] = -60
+    im2[idx1+1,idx1+1] = -60
     
     cube = np.array([im1, im2])
     cube_c, bpix_map = cube_fix_badpix_clump(cube, sig=5, fwhm=6, 
@@ -105,17 +105,17 @@ def test_badpix_clump():
     assert bpix_map[1, idx1+1, idx1+1] == 1
     
     # Test 2d input
-    cube_c, bpix_map = cube_fix_badpix_isolated(cube[0], sig=5, fwhm=6, 
-                                                full_output=True)
+    cube_c, bpix_map = cube_fix_badpix_clump(cube[0], sig=5, fwhm=6, 
+                                             full_output=True)
     assert bpix_map[idx0, idx0] == 0
     assert bpix_map[idx0+1, idx0] == 0
     assert bpix_map[idx0+1, idx0+1] == 0
     
     # Test half res y option
-    cube_c, bpix_map = cube_fix_badpix_isolated(cube[1], sig=5, fwhm=6, 
-                                                half_res_y = True,
-                                                protect_mask = 5, mad = True,
-                                                full_output = True)
+    cube_c, bpix_map = cube_fix_badpix_clump(cube[1], sig=5, fwhm=6, 
+                                             half_res_y = True,
+                                             protect_mask = 5, mad = True,
+                                             full_output = True)
     assert bpix_map[idx0, idx0] == 1
     assert bpix_map[idx0+1, idx0] == 1
     assert bpix_map[idx0, idx0+1] == 1
@@ -123,7 +123,7 @@ def test_badpix_clump():
     
 
 def test_badpix_ann():
-    sz = (25,25)
+    sz = (24,24)
     idx0 = 10
     idx1 = 20
     m0 = 0
@@ -133,10 +133,10 @@ def test_badpix_ann():
     im1 += np.random.normal(loc=m0, scale=s0, size=sz)
     im2 = 3e4*create_synth_psf(shape=sz, model='airy', fwhm=4.5)
     im2 += np.random.normal(loc=m0, scale=s0, size=sz)
-    im1[idx0, idx0] = -100
-    im1[idx0+1,idx1] = -100
-    im2[idx1,idx1] = -200
-    im2[idx1+1,idx1] = -200
+    im1[idx0, idx0] = -300
+    im1[idx0+1,idx1] = -300
+    im2[idx1,idx1] = -500
+    im2[idx1+1,idx1] = -500
     
     cube = np.array([im1, im2])
     cube_c, bpm, _ = cube_fix_badpix_annuli(cube, fwhm=[4, 4.5], sig=5., 
@@ -188,15 +188,15 @@ def test_badpix_ifs():
         cube[i] = fluxes[i]*create_synth_psf(shape=(sz, sz), model='moff', 
                                              fwhm=fwhms[i])
         cube[i] += np.random.normal(loc=m0, scale=s0, size=(sz,sz))
-        cube[i, idx0, idx0] = -100
-        cube[i, idx1, idx1] = -500
-        cube[i, idx1+1, idx1] = -200
-        cube[i, idx1+1, idx1+1] = -400
+        cube[i, idx0, idx0] = -800
+        cube[i, idx1, idx1] = -900
+        cube[i, idx1+1, idx1] = -700
+        cube[i, idx1+1, idx1+1] = -600
 
 
     # identify bad pixels
     cube_c, bpm, _ = cube_fix_badpix_ifs(cube, lbdas=fwhms/2., clumps=False, 
-                                         sigma_clip=5., full_output=True,
+                                         sigma_clip=4., full_output=True,
                                          max_nit=5)
     assert np.allclose(bpm[:, idx0, idx0], np.ones(n_ch))
     assert np.allclose(bpm[:, idx1, idx1], np.ones(n_ch))

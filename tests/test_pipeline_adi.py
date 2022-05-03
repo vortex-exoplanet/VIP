@@ -87,14 +87,14 @@ def algo_pca_annular(ds):
 
 def algo_andromeda(ds):
     res = vip.invprob.andromeda(ds.cube[:,:-1,:-1], oversampling_fact=1.8,
-                                  angles=ds.angles, psf=ds.psf)
+                                  angles=ds.angles, psf=ds.psf, iwa=0.5)
     contrast, snr, snr_n, stdcontrast, stdcontrast_n, likelihood, r = res
     return snr_n
 
 
 def algo_andromeda_fast(ds):
     res = vip.invprob.andromeda(ds.cube[:,:-1,:-1], oversampling_fact=0.5,
-                                  fast=10, angles=ds.angles, psf=ds.psf)
+                                fast=10, angles=ds.angles, psf=ds.psf, iwa=0.5)
     contrast, snr, snr_n, stdcontrast, stdcontrast_n, likelihood, r = res
     return snr_n
 

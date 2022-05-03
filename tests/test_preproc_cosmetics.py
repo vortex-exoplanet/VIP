@@ -9,7 +9,7 @@ from vip_hci.preproc import cube_correct_nan
 
 # NaN correction
 def test_nan_corr():
-    sz = (25,25)
+    sz = (24,24)
     idx0 = 10
     idx1 = 20
     m0 = 0

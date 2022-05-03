@@ -99,12 +99,20 @@ def algo_andromeda_fast(ds):
     return snr_n
 
 def algo_fast_paco(ds):
-    fp = vip.invprob.paco.FastPACO(cube = ds.cube, angles = ds.angles, psf = ds.psf, pixscale = ds.px_scale, fwhm = ds.fwhm)
+    fp = vip.invprob.paco.FastPACO(cube = ds.cube,
+                                   angles = ds.angles,
+                                   psf = ds.psf,
+                                   pixscale = ds.px_scale,
+                                   fwhm = ds.fwhm*ds.px_scale)
     snr, flux = fp.run(cpu=1)
     return snr
 
 def algo_fast_paco_parallel(ds):
-    fp = vip.invprob.paco.FastPACO(cube = ds.cube, angles = ds.angles, psf = ds.psf, pixscale = ds.px_scale, fwhm = ds.fwhm)
+    fp = vip.invprob.paco.FastPACO(cube = ds.cube,
+                                   angles = ds.angles,
+                                   psf = ds.psf,
+                                   pixscale = ds.px_scale,
+                                   fwhm = ds.fwhm*ds.px_scale)
     snr, flux = fp.run(cpu=2)
     return snr
 

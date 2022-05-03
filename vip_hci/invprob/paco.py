@@ -6,6 +6,9 @@ Variable naming is based on the notation of Flasseur+ 2018,
 see table 1 in the paper for a description.
 
 Last updated 2022-05-03 by Evert Nasedkin (nasedkinevert@gmail.com).
+
+TODO : Improve PSF model - currently centers the pixel on each patch,
+when in reality the PSF should be off center, and sampled by the patch.
 """
 
 import sys
@@ -275,12 +278,6 @@ class PACO:
         """
         self.psf = psf
 
-        # Probably don't want the patches to be determined by the
-        # size of the input PSF.
-        #self.patch_width = self.psf.shape[0]
-        #mask = create_boolean_circular_mask(self.psf.shape, self.fwhm)
-        #self.patch_area_pixels = len(mask[mask])
-
     # Set parallactic angles
     def set_angles(self, angles : np.ndarray) -> None:
         """
@@ -294,7 +291,10 @@ class PACO:
 
         self.angles = angles
 
-    def get_patch(self, px : Tuple[int, int], width : Optional[int] = None) -> np.ndarray:
+    def get_patch(self,
+                  px : Tuple[int, int],
+                  width : Optional[int] = None,
+                  mask : Optional[np.ndarray] = None) -> np.ndarray:
         """
         Gets patch at given pixel px with size k for the current img sequenc
 
@@ -309,14 +309,15 @@ class PACO:
         -------
         patch : numpy.ndarray
             A PACO "patch". This is a column through the time dimension of the
-            unrotated frames, used to build the background statistics.
+            unrotated frames, used to build the background statistics at the
+            location of a given pixel.
         """
         if width is None:
             width = self.patch_width
-
-        mask = create_boolean_circular_mask(self.cube[0].shape,
-                                  radius = self.fwhm,
-                                  center = px)
+        if mask is None:
+            mask = create_boolean_circular_mask(self.cube[0].shape,
+                                    radius = self.fwhm,
+                                    center = px)
         k = int(width/2)
         if width%2 != 0:
             k2 = k+1
@@ -533,58 +534,65 @@ class PACO:
         ests : list
             List of a-hat values for each detected source in the SNR map. This is the unbiased
             estimate of the flux at that location. Practically, this is similar to negative PSF
-            injection.
+            injection. If the PSF is correctly normalized, this should be in contrast units.
+        stds : list
+            List of the estimated standard deviation on the flux estimates in contrast units.
         """
 
         if self.verbose:
-            print("Estimating the flux")
+            print("Computing unbiased flux estimate...")
             print(phi0s)
             print(initial_est)
-        print("Computing unbiased flux estimate...")
 
+        dim = self.width/2
         # Create arrays needed for storage
         # Store for each image pixel, for each temporal frame an image
         # for patches: for each time, we need to store a column of patches
-        mask = create_boolean_circular_mask((self.patch_width, self.patch_width), radius=self.fwhm)
         psf_mask = create_boolean_circular_mask(self.psf.shape, radius=self.fwhm)
-        h = np.zeros((self.num_frames, self.patch_area_pixels)) # The off axis PSF at each point
-
+        hoff = np.zeros((self.num_frames,self.num_frames, self.patch_area_pixels)) # The off axis PSF at each point
+        hon = np.zeros((self.num_frames, self.patch_area_pixels))
         # Create arrays needed for storage
         # Store for each image pixel, for each temporal frame an image
         # for patches: for each time, we need to store a column of patches
         # 2d selection of pixels around a given point
-        patch = np.zeros((self.num_frames, self.num_frames, self.patch_area_pixels))
-        x, y = np.meshgrid(np.arange(0, int(self.height)),
-                           np.arange(0, int(self.width)))
+        x, y = np.meshgrid(np.arange(-dim, dim), np.arange(-dim, dim))
+
         ests = []
+        stds = []
+        norm = np.nanmax(self.psf)
         for i, p0 in enumerate(phi0s):
             angles_px = get_rotated_pixel_coords(x, y, p0, self.angles)
-
             # Fill patches and signal template
+            patch = []
             for l, ang in enumerate(angles_px):
                 # Get the column of patches at this point
-                patch[l] = self.get_patch(ang, self.patch_width, mask)
-                h[l] = self.psf[psf_mask]
-
+                patch.append(self.get_patch((int(ang[0]),int(ang[1]))))
+                hoff[l,l] = self.psf[psf_mask]
+                hon[l] = self.psf[psf_mask]
+            patch = np.array(patch)
+            planet_patches = np.array([patch[l,l] for l in range(self.num_frames)])
             # the mean of a temporal column of patches at each pixel
             m = np.zeros((self.num_frames, self.patch_area_pixels))
             # the inverse covariance matrix at each point
             Cinv = np.zeros((self.num_frames, self.patch_area_pixels, self.patch_area_pixels))
 
             # Unbiased flux estimation
-            ahat = initial_est[i]/2.0
-            aprev = np.inf # Arbitrary large value so that the loop will run
+            ahat = initial_est[i]
+            aprev = 1e10 # Arbitrary large value so that the loop will run
             while np.abs(ahat - aprev) > (ahat * eps):
                 a = 0.0
                 b = 0.0
                 for l in range(self.num_frames):
-                    m[l], Cinv[l] = self.iterate_flux_calc(ahat, patch[l], h[l])
-                a = self.al(h, Cinv)
-                b = self.bl(h, Cinv, patch, m)
+                    m[l], Cinv[l] = self.iterate_flux_calc(ahat, patch[l], hoff[l])
+                print(np.nanmean(m),np.nanmean(planet_patches))
+                a = self.al(ahat*hon, Cinv)
+                b = self.bl(ahat*hon, Cinv, planet_patches, m)
                 aprev = ahat
                 ahat = max(b, 0.0)/a
-            ests.append(ahat)
-        return ests
+                print(a,b,ahat)
+            ests.append(ahat/norm)
+            stds.append(1/np.sqrt(a)/norm)
+        return ests, stds, norm
 
     def iterate_flux_calc(self, est : float, patch : np.ndarray, model : np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -611,7 +619,7 @@ class PACO:
             return None, None
         T = patch.shape[0]
 
-        unbiased = np.array([apatch - est*model for apatch in patch])
+        unbiased = np.array([apatch - est*model[l] for l,apatch in enumerate(patch)])
         m = np.mean(unbiased, axis=0)
         S = sample_covariance(unbiased, m, T)
         rho = shrinkage_factor(S, T)
@@ -640,7 +648,6 @@ class PACO:
 
         data_max = filters.maximum_filter(snr_map, size=self.fwhm)
         maxima = (snr_map == data_max)
-        #data_min = filters.minimum_filter(snr_map,self.fwhm)
         diff = (data_max > threshold)
         maxima[diff == 0] = 0
 
@@ -695,9 +702,6 @@ class FastPACO(PACO):
 
         a = np.zeros(npx) # Setup output arrays
         b = np.zeros(npx)
-        #mask = create_boolean_circular_mask(self.cube[0].shape,
-        #                           radius = self.fwhm)
-        #self.patch_area_pixels = self.cube[0][mask].ravel().shape[0]
 
         if cpu == 1:
             Cinv, m, h, patches = self.compute_statistics(phi0s)
@@ -718,7 +722,6 @@ class FastPACO(PACO):
         for i, p0 in enumerate(phi0s):
             # Get Angles
             angles_px = get_rotated_pixel_coords(x, y, p0, self.angles)
-
             # Ensure within image bounds
             if(int(np.max(angles_px.flatten())) >= self.width or \
                int(np.min(angles_px.flatten())) < 0):

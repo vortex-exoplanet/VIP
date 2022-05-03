@@ -26,9 +26,11 @@ from typing import Tuple, Union, Optional, Callable
 import numpy as np
 from scipy import ndimage
 from scipy.ndimage import filters
+from skimage.feature import peak_local_max
 
 from ..preproc.rescaling import frame_px_resampling,cube_px_resampling
 from ..var.coords import cart_to_pol, pol_to_cart
+from ..metrics.detection import detection
 
 __author__ = "Evert Nasedkin"
 __all__ = ['FastPACO',
@@ -605,7 +607,7 @@ class PACO:
             stds.append(1/np.sqrt(a)/norm)
         print(f"Extracted contrasts: ")
         for i in range(len(phi0s)):
-            print(f"x: {phi0s[i][0]}, y: {phi0s[i][1]}, contrast: {ests[i]}$\pm${stds[i]}")
+            print(f"x: {phi0s[i][0]}, y: {phi0s[i][1]}, contrast: {ests[i]}±{stds[i]}")
         return ests, stds, norm
 
     def iterate_flux_calc(self, est : float, patch : np.ndarray, model : np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -642,7 +644,69 @@ class PACO:
         Cinv = np.linalg.inv(C)
         return m, Cinv
 
-    def threshold_detection(self, snr_map : np.ndarray, threshold : float) -> np.ndarray:
+    def subpixel_threshold_detect(self,snr_map : np.ndarray,
+                                  threshold : float,
+                                  mode : Optional[str] = 'lpeaks',
+                                  bkg_sigma : Optional[float] = 5.0,
+                                  matched_filter : Optional[bool] = False,
+                                  mask : Optional[bool] = True,
+                                  full_output : Optional[bool] = False,
+                                  cpu : Optional[int] = 1) -> np.ndarray:
+        """ Wraps VIP.metrics.detection.detection, see that function for further documentation.
+        Note that the output convention here is different - this function returns xx,yy.
+
+        Finds blobs in a 2d array. The algorithm is designed for automatically
+        finding planets in post-processed high contrast final frames. Blob can be
+        defined as a region of an image in which some properties are constant or
+        vary within a prescribed range of values. See ``Notes`` below to read about
+        the algorithm details.
+        Parameters
+        ----------
+        snr_map : numpy ndarray, 2d
+            Input frame.
+        threshold : float
+            S/N threshold for deciding whether the blob is a detection or not. Used
+            to threshold the S/N map when ``mode`` is set to 'snrmap' or 'snrmapf'.
+        mode : {'lpeaks', 'log', 'dog', 'snrmap', 'snrmapf'}, optional
+            Sets with algorithm to use. Each algorithm yields different results. See
+            notes for the details of each method.
+        bkg_sigma : int or float, optional
+            The number standard deviations above the clipped median for setting the
+            background level. Used when ``mode`` is either 'lpeaks', 'dog' or 'log'.
+        matched_filter : bool, optional
+            Whether to correlate with the psf of not. Used when ``mode`` is either
+            'lpeaks', 'dog' or 'log'.
+        mask : bool, optional
+            If True the central region (circular aperture of 2*FWHM radius) of the
+            image will be masked out.
+        full_output : bool, optional
+            Whether to output just the coordinates of blobs that fulfill the SNR
+            constraint or a table with all the blobs and the peak pixels and SNR.
+        cpu : None or int, optional
+            The number of processes for running the ``snrmap`` function.
+        verbose : bool, optional
+            Whether to print to stdout information about found blobs.
+        Returns
+        -------
+        peaks : np.ndarray
+            xx,yy values of the centers of local maxima above the provided threshold
+        """
+        peaks = detection(snr_map,
+                          fwhm=self.fwhm,
+                          psf=self.psf/np.nanmax(self.psf),
+                          mode=mode,
+                          bkg_sigma=bkg_sigma,
+                          matched_filter=matched_filter,
+                          mask=mask,
+                          snr_thresh=threshold,
+                          nproc=cpu,
+                          plot=False,
+                          debug=False,
+                          full_output=full_output,
+                          verbose=self.verbose)
+        return peaks.T
+
+    def pixel_threshold_detection(self, snr_map : np.ndarray, threshold : float) -> np.ndarray:
         """
         Returns a list of the pixel coordinates of center of signals above a given threshold
 

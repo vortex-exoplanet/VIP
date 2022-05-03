@@ -454,6 +454,11 @@ def pool_map(nproc, fkt, *args, **kwargs):
         if not _generator:
             res = list(res)
     else:
+        # deactivate multithreading 
+        os.environ["MKL_NUM_THREADS"] = "1"
+        os.environ["NUMEXPR_NUM_THREADS"] = "1"
+        os.environ["OMP_NUM_THREADS"] = "1"
+        
         if verbose and msg is not None:
             print("{} with {} processes".format(msg, nproc))
         pool = Pool(processes=nproc)
@@ -463,7 +468,13 @@ def pool_map(nproc, fkt, *args, **kwargs):
             res = pool.map(eval_func_tuple, z)
         pool.close()
         pool.join()
-
+        
+        # reactivate multithreading 
+        ncpus = multiprocessing.cpu_count()
+        os.environ["MKL_NUM_THREADS"] = str(ncpus)
+        os.environ["NUMEXPR_NUM_THREADS"] = str(ncpus)
+        os.environ["OMP_NUM_THREADS"] = str(ncpus)
+        
     return res
 
 

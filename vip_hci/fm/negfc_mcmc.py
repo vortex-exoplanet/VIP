@@ -766,6 +766,12 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     
     if verbosity > 0:
         print('Beginning emcee Ensemble sampler...')
+        
+    # deactivate multithreading 
+    os.environ["MKL_NUM_THREADS"] = "1"
+    os.environ["NUMEXPR_NUM_THREADS"] = "1"
+    os.environ["OMP_NUM_THREADS"] = "1"
+        
     sampler = emcee.EnsembleSampler(nwalkers, dim, lnprob, a=a,
                                     args=([bounds, cube, angs, psfn,
                                            fwhm, annulus_width, ncomp,
@@ -926,6 +932,12 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
 
     if verbosity > 0:
         timing(start_time)
+              
+    # reactivate multithreading 
+    ncpus = cpu_count()
+    os.environ["MKL_NUM_THREADS"] = str(ncpus)
+    os.environ["NUMEXPR_NUM_THREADS"] = str(ncpus)
+    os.environ["OMP_NUM_THREADS"] = str(ncpus)
                                     
     return chain_zero_truncated(chain)
 

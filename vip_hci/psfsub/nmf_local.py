@@ -150,7 +150,7 @@ def nmf_annular(cube, angle_list, cube_ref=None, radius_int=0, fwhm=4, asize=4,
     if verbose:
         msg = 'N annuli = {}, FWHM = {:.3f}'
         print(msg.format(n_annuli, fwhm))
-        print('PCA per annulus (or annular sectors):')
+        print('NMF per annulus (or annular sectors):')
 
     if nproc is None:   # Hyper-threading "duplicates" the cores -> cpu_count/2
         nproc = cpu_count() // 2

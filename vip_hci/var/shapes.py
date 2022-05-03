@@ -296,6 +296,8 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
         return array * circle_mask
     elif mode == "val":
         return array[circle_mask]
+    elif mode=="ind":
+        return np.where(circle_mask)
     else:
         raise ValueError("mode '{}' unknown!".format(mode))
 

@@ -19,21 +19,24 @@ authors:
   - name: Carl-Henrik Dahlqvist
     orcid: 0000-0003-4994-9244
     affiliation: 1
+  - name: Julien Milli
+    orcid: TO BE FILLED
+    affiliation: 4
   - name: Henry Ngo
     orcid: 0000-0001-5172-4859
-    affiliation: 4
+    affiliation: 5
   - name: Alan Rainot
     orcid: 0000-0001-9904-0624
-    affiliation: 5
+    affiliation: 6
   - name: Olivier Absil
     orcid: 0000-0002-4006-6237
     affiliation: 1
   - name: Iain Hammond
     orcid: 0000-0003-1502-4315
-    affiliation: 6
+    affiliation: 7
   - name: Arthur Vigan
     orcid: 0000-0002-5902-7828
-    affiliation: 7
+    affiliation: 8
 affiliations:
   - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
     index: 1
@@ -41,14 +44,16 @@ affiliations:
     index: 2
   - name: Rheinische Friedrich-Wilhelms-Universität Bonn, Germany
     index: 3
-  - name: NRC Herzberg Astronomy and Astrophysics, Victoria, BC, Canada
+  - name: Rheinische Friedrich-Wilhelms-Universität Bonn, Germany
     index: 4
-  - name: Institute of Astronomy, KU Leuven, Belgium
+  - name: NRC Herzberg Astronomy and Astrophysics, Victoria, BC, Canada
     index: 5
-  - name: School of Physics and Astronomy, Monash University, Vic 3800, Australia
+  - name: Institute of Astronomy, KU Leuven, Belgium
     index: 6
-  - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
+  - name: School of Physics and Astronomy, Monash University, Vic 3800, Australia
     index: 7
+  - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
+    index: 8
 date: 4 May 2022
 bibliography: paper.bib
 ---
@@ -79,8 +84,8 @@ frame removal, or image alignment and star centering (`preproc` module);
 
 * modeling and subtracting the stellar point spread function (PSF) using 
 state-of-the-art algorithms that leverage observing strategies such as angular 
-differential imaging (ADI), spectral differential imaging (SDI) or reference 
-star differential imaging [@Racine:1999; @Sparks:2002; @Marois:2006], which 
+differential imaging  (ADI), spectral differential imaging (SDI) or reference 
+star differential imaging [@Marois:2006; @Sparks:2002; @Ruane:2019], which 
 induce diversity between speckle and authentic astrophysical signals (`psfsub` 
 module);
 
@@ -99,8 +104,9 @@ community for the discovery of low-mass companions
 [@Milli:2017;  @Hirsch:2019;  @Ubeira:2020], their characterization 
 [@Wertz:2017;  @Delorme:2017;  @Christiaens:2018;  @Christiaens:2019], the study 
 of planet formation [@Ruane:2017;  @Reggiani:2018;  @Mauco:2020;  @Toci:2020], 
-the study of high-mass star formation [@Rainot:2020;  @Rainot:2022], or the 
-development of new high-contrast imaging algorithms
+the study of high-mass star formation [@Rainot:2020;  @Rainot:2022] ,the study 
+of debris disks [@Milli:2017b; @Milli:2019], or the development of new 
+high-contrast imaging algorithms 
 [@Gomez:2018;  @Dahlqvist:2020;  @Pairet:2021;  @Dahlqvist:2021]. Given the 
 rapid expansion of ``VIP``, we summarize here all novelties that were brought 
 to the package over the past five years.

@@ -600,12 +600,12 @@ class PACO:
                 aprev = ahat
                 ahat = max(b, 0.0)/a
                 if self.verbose:
-                    print(f"Contrast estimate: {ahat}")
+                    print(f"Contrast estimate: {ahat/norm}")
             ests.append(ahat/norm)
             stds.append(1/np.sqrt(a)/norm)
         print(f"Extracted contrasts: ")
         for i in range(len(phi0s)):
-            print(f"x: {phi0[i][0]}, y: {phi0s[i][1]}, contrast: {ests[i]}$\pm${stds[i]}")
+            print(f"x: {phi0s[i][0]}, y: {phi0s[i][1]}, contrast: {ests[i]}$\pm${stds[i]}")
         return ests, stds, norm
 
     def iterate_flux_calc(self, est : float, patch : np.ndarray, model : np.ndarray) -> Tuple[np.ndarray, np.ndarray]:

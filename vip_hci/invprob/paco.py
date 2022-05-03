@@ -604,7 +604,7 @@ class PACO:
             ests.append(ahat/norm)
             stds.append(1/np.sqrt(a)/norm)
         print(f"Extracted contrasts: ")
-        for i in len(phi0s):
+        for i in range(len(phi0s)):
             print(f"x: {phi0[0]}, y: {phi0[1]}, contrast: {ests[i]}$\pm${stds[i]}")
         return ests, stds, norm
 

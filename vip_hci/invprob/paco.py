@@ -605,7 +605,7 @@ class PACO:
             stds.append(1/np.sqrt(a)/norm)
         print(f"Extracted contrasts: ")
         for i in range(len(phi0s)):
-            print(f"x: {phi0[0]}, y: {phi0[1]}, contrast: {ests[i]}$\pm${stds[i]}")
+            print(f"x: {phi0[i][0]}, y: {phi0s[i][1]}, contrast: {ests[i]}$\pm${stds[i]}")
         return ests, stds, norm
 
     def iterate_flux_calc(self, est : float, patch : np.ndarray, model : np.ndarray) -> Tuple[np.ndarray, np.ndarray]:

@@ -584,7 +584,6 @@ class PACO:
                 b = 0.0
                 for l in range(self.num_frames):
                     m[l], Cinv[l] = self.iterate_flux_calc(ahat, patch[l], hoff[l])
-                print(np.nanmean(m),np.nanmean(planet_patches))
                 a = self.al(ahat*hon, Cinv)
                 b = self.bl(ahat*hon, Cinv, planet_patches, m)
                 aprev = ahat

@@ -15,13 +15,6 @@ import numpy as np
                 param(65)
              ])
 
-@parametrize("i",
-             [
-                param(0),
-                param(30),
-                param(60)
-             ])
-
 def test_dust_distribution(r):
     """
     Verify dust density at different radii, for a distribution centered at a=60
@@ -43,7 +36,14 @@ def test_dust_distribution(r):
     t = test.density_cylindrical(r, costheta, z)
     
     aarc(t, t_expected(r))
-    
+
+@parametrize("i",
+             [
+                param(0),
+                param(30),
+                param(60)
+             ])
+
 def test_scattered_light_disk(i):
     """
     Verify that the scattered light image is normalized to a maximum value of 1

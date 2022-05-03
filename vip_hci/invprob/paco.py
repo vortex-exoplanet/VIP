@@ -26,7 +26,6 @@ from typing import Tuple, Union, Optional, Callable
 import numpy as np
 from scipy import ndimage
 from scipy.ndimage import filters
-from skimage.feature import peak_local_max
 
 from ..preproc.rescaling import frame_px_resampling,cube_px_resampling
 from ..var.coords import cart_to_pol, pol_to_cart

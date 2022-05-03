@@ -108,10 +108,10 @@ def algo_fast_paco_parallel(ds):
     snr, flux = fp.run(cpu=2)
     return snr
 
-def algo_full_paco(ds):
-    fp = vip.invprob.paco.FullPACO(cube = ds.cube, angles = ds.angles, psf = ds.psf, pixscale = ds.px_scale, fwhm = ds.fwhm)
-    snr, flux = fp.run(cpu=1)
-    return snr
+#def algo_full_paco(ds):
+#    fp = vip.invprob.paco.FullPACO(cube = ds.cube, angles = ds.angles, psf = ds.psf, pixscale = ds.px_scale, fwhm = ds.fwhm)
+#    snr, flux = fp.run(cpu=1)
+#    return snr
 
 def algo_fmmf_klip(ds):
     res = vip.invprob.fmmf(ds.cube[:,:-1,:-1],
@@ -192,7 +192,6 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
         (algo_andromeda_fast, None),
         (algo_fast_paco, None),
         (algo_fast_paco_parallel, None),
-        (algo_full_paco, None),
         (algo_fmmf_klip, None),
         (algo_fmmf_loci, None),
     ],

@@ -233,9 +233,8 @@ class PACO:
         a, b = self.PACOCalc(np.array(phi0s), cpu=cpu)
 
         # Reshape into a 2D image, with the same dimensions as the input images
-        a = np.fliplr(np.flipud(np.reshape(a, (self.height, self.width))).T)
-        b = np.fliplr(np.flipud(np.reshape(b, (self.height, self.width))).T)
-
+        a = np.flipud(np.fliplr(np.reshape(a, (self.height, self.width))))
+        b = np.flipud(np.fliplr(np.reshape(b, (self.height, self.width))))
         # Output arrays
         snr = b/np.sqrt(a)
         flux = b/a

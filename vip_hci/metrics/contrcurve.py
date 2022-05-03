@@ -39,12 +39,12 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
     Parameters
     ----------
-    cube : numpy ndarray
+    cube : 3d or 4d numpy ndarray
         The input cube, 3d (ADI data) or 4d array (IFS data), without fake
         companions.
-    angle_list : numpy ndarray
-        Vector with the derotation angles (i.e. minus parallactic angles)
-    psf_template : numpy ndarray
+    angle_list : 1d numpy ndarray
+        Vector with parallactic angles.
+    psf_template : 2d or 3d numpy ndarray
         Frame with the psf template for the fake companion(s).
         PSF must be centered in array. Normalization is done internally.
     fwhm: int or float or 1d array, optional
@@ -431,12 +431,12 @@ def throughput(cube, angle_list, psf_template, fwhm, algo, nbranch=1, theta=0,
 
     Parameters
     ---------_
-    cube : numpy ndarray
+    cube : 3d or 4d numpy ndarray
         The input cube, 3d (ADI data) or 4d array (IFS data), without fake
         companions.
-    angle_list : numpy ndarray
-        Vector with the derotation angles (i.e. minus parallactic angles)
-    psf_template : numpy ndarray
+    angle_list : 1d numpy ndarray
+        Vector with parallactic angles.
+    psf_template : 2d or 3d numpy ndarray
         Frame with the psf template for the fake companion(s).
         PSF must be centered in array. Normalization is done internally.
     fwhm: int or float or 1d array, optional

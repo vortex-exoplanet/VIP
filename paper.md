@@ -36,7 +36,11 @@ authors:
     affiliation: 7
   - name: Evert Nasedkin
     orcid: 0000-0002-9792-3121
-    affiliation: 8
+    affiliation: 9
+  - name: Carles Cantero
+    orcid: 0000-0003-2073-782X
+    affiliation: 1,8
+
 affiliations:
   - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
     index: 1
@@ -52,8 +56,10 @@ affiliations:
     index: 6
   - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
     index: 7
-  - name: Max-Planck-Institut für Astronomie, Heidelberg, Germany
+  - name: Montefiore Institute, Université de Liège, 4000 Liège, Belgium
     index: 8
+  - name: Max-Planck-Institut für Astronomie, Heidelberg, Germany
+    index: 9
 date: 4 May 2022
 bibliography: paper.bib
 ---

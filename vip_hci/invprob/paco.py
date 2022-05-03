@@ -589,7 +589,6 @@ class PACO:
                 b = self.bl(ahat*hon, Cinv, planet_patches, m)
                 aprev = ahat
                 ahat = max(b, 0.0)/a
-                print(a,b,ahat)
             ests.append(ahat/norm)
             stds.append(1/np.sqrt(a)/norm)
         return ests, stds, norm

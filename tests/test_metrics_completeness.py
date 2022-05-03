@@ -32,9 +32,8 @@ def test_completeness_curve(get_cube):
     
     ds, starphot = get_cube
     
-    expected_res=np.array([1200/starphot])
-    cen=ds.psf.shape[-1]//2
-    psf=frame_crop(ds.psf,10,cenxy=[cen,cen])
+    expected_res = np.array([1200/starphot])
+    psf = frame_crop(ds.psf, 11)
     # Note: setting ini_contrast to None calls the contrast_curve function
     an_dist, comp_curve = completeness_curve(ds.cube, ds.angles, psf,    
                                              ds.fwhm, pca_annular, an_dist=[20],
@@ -55,8 +54,7 @@ def test_completeness_map(get_cube):
     ds, starphot = get_cube
     
     expected_res = np.array([1200/starphot])
-    cen = ds.psf.shape[-1]//2
-    psf = frame_crop(ds.psf, 10, cenxy=[cen,cen])
+    psf = frame_crop(ds.psf, 11)
     an_dist, comp_map = completeness_map(ds.cube, ds.angles, psf, ds.fwhm,
                                          pca_annular, an_dist=[20],
                                          ini_contrast=expected_res, 

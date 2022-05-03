@@ -37,8 +37,7 @@ def test_contrast_curve(get_cube):
     ds, starphot = get_cube
     
     expected_res = np.array([1200/starphot])
-    cen = ds.psf.shape[-1]//2
-    psf = frame_crop(ds.psf,10,cenxy=[cen,cen])
+    psf = frame_crop(ds.psf, 11)
     plsc = VLT_NACO['plsc']
     cc = contrast_curve(ds.cube, ds.angles, psf, ds.fwhm, pxscale=plsc, 
                         starphot=starphot, algo=pca_annular, nbranch=3,

@@ -21,8 +21,8 @@ def test_badpix_iso():
     s0 = 1
     s1 = 1
     
-    im1 = np.random.normal(loc=m0, scal=s0, size=sz)
-    im2 = im1 = np.random.normal(loc=m1, scal=s1, size=sz)
+    im1 = np.random.normal(loc=m0, scale=s0, size=sz)
+    im2 = im1 = np.random.normal(loc=m1, scale=s1, size=sz)
     im1[idx0,idx0] = 10
     im2[idx1,idx1] = -5
     cube = np.array([im1, im2])
@@ -59,8 +59,8 @@ def test_badpix_clump():
     s0 = 1
     s1 = 1
     
-    im1 = np.random.normal(loc=m0, scal=s0, size=sz)
-    im2 = im1 = np.random.normal(loc=m1, scal=s1, size=sz)
+    im1 = np.random.normal(loc=m0, scale=s0, size=sz)
+    im2 = im1 = np.random.normal(loc=m1, scale=s1, size=sz)
     im1[idx0,idx0] = 10
     im1[idx0+1,idx0] = 12
     im1[idx0+1,idx0+1] = 14
@@ -130,9 +130,9 @@ def test_badpix_ann():
     s0 = 1
     
     im1 = 2e4*create_synth_psf(shape=sz, model='airy', fwhm=4)
-    im1 += np.random.normal(loc=m0, scal=s0, size=sz)
+    im1 += np.random.normal(loc=m0, scale=s0, size=sz)
     im2 = 3e4*create_synth_psf(shape=sz, model='airy', fwhm=4.5)
-    im2 += np.random.normal(loc=m0, scal=s0, size=sz)
+    im2 += np.random.normal(loc=m0, scale=s0, size=sz)
     im1[idx0,idx0] = -10
     im1[idx0+1,idx1] = -10
     im2[idx1,idx1] = -20
@@ -185,9 +185,9 @@ def test_badpix_ifs():
 
     
     for i in range(n_ch):
-        cube[i] = fluxes[i]*create_synth_psf(shape=(sz, sz), model='moffat', 
+        cube[i] = fluxes[i]*create_synth_psf(shape=(sz, sz), model='moff', 
                                              fwhm=fwhms[i])
-        cube[i] += np.random.normal(loc=m0, scal=s0, size=(sz,sz))
+        cube[i] += np.random.normal(loc=m0, scale=s0, size=(sz,sz))
         cube[i, idx0, idx0] = -10
         cube[i, idx1, idx1] = -50
         cube[i, idx1+1, idx1] = -20

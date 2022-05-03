@@ -398,7 +398,7 @@ def test_satspots(debug=False):
 
 
 
-def test_speckle_recentering(debug=False):
+def test_speckle_recentering(get_cube, debug=False):
     global seed
     if debug:
         html("<h2>===== test_satspots =====</h2>")

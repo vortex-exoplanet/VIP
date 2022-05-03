@@ -107,9 +107,9 @@ def test_badpix_clump():
     # Test 2d input
     cube_c, bpix_map = cube_fix_badpix_clump(cube[0], sig=5, fwhm=6, 
                                              full_output=True)
-    assert bpix_map[idx0, idx0] == 0
-    assert bpix_map[idx0+1, idx0] == 0
-    assert bpix_map[idx0+1, idx0+1] == 0
+    assert bpix_map[idx0, idx0] == 1
+    assert bpix_map[idx0+1, idx0] == 1
+    assert bpix_map[idx0+1, idx0+1] == 1
     
     # Test half res y option
     cube_c, bpix_map = cube_fix_badpix_clump(cube[1], sig=5, fwhm=6, 
@@ -133,10 +133,10 @@ def test_badpix_ann():
     im1 += np.random.normal(loc=m0, scale=s0, size=sz)
     im2 = 3e4*create_synth_psf(shape=sz, model='airy', fwhm=4.5)
     im2 += np.random.normal(loc=m0, scale=s0, size=sz)
-    im1[idx0, idx0] = -300
-    im1[idx0+1,idx1] = -300
-    im2[idx1,idx1] = -500
-    im2[idx1+1,idx1] = -500
+    im1[idx0, idx0] = -3000
+    im1[idx0+1,idx1] = -3000
+    im2[idx1,idx1] = -5000
+    im2[idx1+1,idx1] = -5000
     
     cube = np.array([im1, im2])
     cube_c, bpm, _ = cube_fix_badpix_annuli(cube, fwhm=[4, 4.5], sig=5., 
@@ -188,10 +188,10 @@ def test_badpix_ifs():
         cube[i] = fluxes[i]*create_synth_psf(shape=(sz, sz), model='moff', 
                                              fwhm=fwhms[i])
         cube[i] += np.random.normal(loc=m0, scale=s0, size=(sz,sz))
-        cube[i, idx0, idx0] = -800
-        cube[i, idx1, idx1] = -900
-        cube[i, idx1+1, idx1] = -700
-        cube[i, idx1+1, idx1+1] = -600
+        cube[i, idx0, idx0] = -2000
+        cube[i, idx1, idx1] = -3000
+        cube[i, idx1+1, idx1] = -1500
+        cube[i, idx1+1, idx1+1] = -2600
 
 
     # identify bad pixels

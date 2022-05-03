@@ -33,7 +33,7 @@ def test_completeness_curve(get_cube):
     ds, starphot = get_cube
     
     expected_res = np.array([1200/starphot])
-    psf = frame_crop(ds.psf, 11)
+    psf = frame_crop(ds.psf[1:,1:], 11)
     # Note: setting ini_contrast to None calls the contrast_curve function
     an_dist, comp_curve = completeness_curve(ds.cube, ds.angles, psf,    
                                              ds.fwhm, pca_annular, an_dist=[20],

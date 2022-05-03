@@ -44,7 +44,7 @@ def example_dataset_adi():
     dataset = vip.Dataset(cube, angles=angles, psf=psf,
                           px_scale=vip.config.VLT_NACO['plsc'])
 
-    dataset.normalize_psf(size=20, force_odd=False)
+    dataset.normalize_psf(size=21, force_odd=False)
 
     # overwrite PSF for easy access
     dataset.psf = dataset.psfn

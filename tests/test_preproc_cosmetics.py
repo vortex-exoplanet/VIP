@@ -17,8 +17,8 @@ def test_nan_corr():
     s0 = 1
     s1 = 1
     
-    im1 = np.random.normal(loc=m0, scal=s0, size=sz)
-    im2 = im1 = np.random.normal(loc=m1, scal=s1, size=sz)
+    im1 = np.random.normal(loc=m0, scale=s0, size=sz)
+    im2 = im1 = np.random.normal(loc=m1, scale=s1, size=sz)
     im1[idx0,idx0] = np.nan
     im1[idx0+1,idx0] = np.nan
     im2[idx1,idx1] = np.nan

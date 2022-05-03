@@ -54,7 +54,7 @@ def test_completeness_map(get_cube):
     ds, starphot = get_cube
     
     expected_res = np.array([1200/starphot])
-    psf = frame_crop(ds.psf, 11)
+    psf = frame_crop(ds.psf, 11, force=True)
     an_dist, comp_map = completeness_map(ds.cube, ds.angles, psf, ds.fwhm,
                                          pca_annular, an_dist=[20],
                                          ini_contrast=expected_res, 

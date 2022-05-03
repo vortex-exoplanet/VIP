@@ -7,8 +7,10 @@ see table 1 in the paper for a description.
 
 Last updated 2022-05-03 by Evert Nasedkin (nasedkinevert@gmail.com).
 
-TODO : Improve PSF model - currently centers the pixel on each patch,
+TODO: Improve PSF model - currently centers the pixel on each patch,
 when in reality the PSF should be off center, and sampled by the patch.
+
+TODO: Implement sub-pixel astrometry for PSF positioning.
 """
 
 import sys
@@ -518,16 +520,19 @@ class PACO:
         """
         Unbiased estimate of the flux of a source located at p0
         The estimate of the flux is given by ahat * h, where h is the PSF template.
-        This implements algorithm 3 from Flasseur+ 2018
+        This implements algorithm 3 from Flasseur+ 2018.
+        TODO: Further testing to ensure that the extracted contrast is actually unbiased.
+        Don't trust this estimate without checking!
 
         Parameters
         ----------
         phi0s : numpy.ndarray
-            List of locations of sources to compute unbiased flux estimate
+            List of locations of sources to compute unbiased flux estimate in pixel units.
+            Origin is at the bottom left.
         eps : float
             Precision requirement for iteration (0,1)
         initial_est : float
-            Initial estimate of the flux at p0
+            Initial estimate of the flux at p0 in contrast units
 
         Returns
         -------
@@ -537,12 +542,15 @@ class PACO:
             injection. If the PSF is correctly normalized, this should be in contrast units.
         stds : list
             List of the estimated standard deviation on the flux estimates in contrast units.
+        norm : float
+            np.nanmax(psf) - Scaling factor for flux estimate and standard deviations.
         """
+        print("Computing unbiased flux estimate...")
 
         if self.verbose:
-            print("Computing unbiased flux estimate...")
-            print(phi0s)
-            print(initial_est)
+            print("Initial guesses:")
+            print("Positions: ", phi0s)
+            print("Contrasts: ", initial_est)
 
         dim = self.width/2
         # Create arrays needed for storage
@@ -579,17 +587,25 @@ class PACO:
             # Unbiased flux estimation
             ahat = initial_est[i]
             aprev = 1e10 # Arbitrary large value so that the loop will run
-            while np.abs(ahat - aprev) > (ahat * eps):
+            while np.abs(ahat/norm - aprev/norm) > (ahat/norm * eps):
                 a = 0.0
                 b = 0.0
+                # Patches here are columns in time
                 for l in range(self.num_frames):
                     m[l], Cinv[l] = self.iterate_flux_calc(ahat, patch[l], hoff[l])
+
+                # Patches here are where the planet is expected to be
                 a = self.al(ahat*hon, Cinv)
                 b = self.bl(ahat*hon, Cinv, planet_patches, m)
                 aprev = ahat
                 ahat = max(b, 0.0)/a
+                if self.verbose:
+                    print(f"Contrast estimate: {ahat}")
             ests.append(ahat/norm)
             stds.append(1/np.sqrt(a)/norm)
+        print(f"Extracted contrasts: ")
+        for i in len(phi0s):
+            print(f"x: {phi0[0]}, y: {phi0[1]}, contrast: {ests[i]}$\pm${stds[i]}")
         return ests, stds, norm
 
     def iterate_flux_calc(self, est : float, patch : np.ndarray, model : np.ndarray) -> Tuple[np.ndarray, np.ndarray]:

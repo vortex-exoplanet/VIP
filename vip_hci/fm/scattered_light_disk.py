@@ -1029,11 +1029,6 @@ class Interpolated_SPF(object):
                                                spf_dico['spf'],kind=kind,\
                                                bounds_error=False,
                                                fill_value=np.nan)
-        # commented on 2022-02-16
-        # self.interpolation_function = interp1d(np.cos(np.deg2rad(spf_dico['phi'])),\
-        #                                        spf_dico['spf'],kind=kind,\
-        #                                        bounds_error=False,
-        #                                        fill_value=np.nan)
 
     def compute_phase_function_from_cosphi(self, cos_phi):
         """

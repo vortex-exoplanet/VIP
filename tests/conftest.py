@@ -7,6 +7,7 @@ import pytest
 from astropy.utils.data import download_file
 import vip_hci as vip
 import numpy as np
+import time
 
 
 @pytest.fixture(scope="session")
@@ -214,3 +215,21 @@ def example_dataset_rdi():
     dataset.psf = dataset.psfn
 
     return dataset
+
+
+@pytest.fixture(autouse=True)
+def time_test():
+    """ Time a test and print out how long it took """
+    before = time.time()
+    yield
+    after = time.time()
+    print(f"Test took {after - before:.02f} seconds!")
+
+
+@pytest.fixture(autouse=True, scope="session")
+def time_all_tests():
+    """ Time a test and print out how long it took """
+    before = time.time()
+    yield
+    after = time.time()
+    print(f"Total test time: {after - before:.02f} seconds!")

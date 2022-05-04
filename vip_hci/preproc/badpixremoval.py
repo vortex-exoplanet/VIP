@@ -900,7 +900,8 @@ def cube_fix_badpix_ifs(array, lbdas, fluxes=None, mask=None, cy=None, cx=None,
         else:
             ref_xy = (cx, cy)
         scal_vec, flux_vec = find_scal_vector(array, lbdas, fluxes, mask=mask, 
-                                              nfp=2, fm="sum")
+                                              nfp=2, fm="sum", imlib=imlib,
+                                              interpolation=interpolation)
         res_array = np.zeros_like(array)
         for z in range(array.shape[0]):
             other_ch = [i for i in range(array.shape[0]) if i!= z]

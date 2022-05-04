@@ -692,7 +692,8 @@ def check_scal_vector(scal_vec):
 
 
 def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev", 
-                     simplex_options=None, debug=False, **kwargs):
+                     simplex_options=None, debug=False, imlib='vip-fft',
+                     interpolation='lanczos4', **kwargs):
     """
     Find the optimal scaling factor for the channels of an IFS cube (or of 
     dual-band pairs of images).
@@ -751,16 +752,20 @@ def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev",
         if nfp==1:
             p_ini = (scal_vec_ini[z],)
             solu = minimize(_chisquare_scal, p_ini, args=(cube_tmp, flux_scal, 
-                                                          mask, fm),
-                            method='Nelder-Mead', options=simplex_options, 
+                                                          mask, fm, imlib, 
+                                                          interpolation),
+                            method='Nelder-Mead', bounds=((1e-1,None),), 
+                            options=simplex_options, 
                             **kwargs)
             scal_fac, =  solu.x
             flux_fac = flux_scal
         else:
             p_ini = (scal_vec_ini[z],flux_scal)
-            solu = minimize(_chisquare_scal_2fp, p_ini, args=(cube_tmp,mask,fm),
-                            method='Nelder-Mead', options=simplex_options, 
-                            **kwargs)      
+            solu = minimize(_chisquare_scal_2fp, p_ini, args=(cube_tmp, mask, 
+                                                              fm, imlib, 
+                                                              interpolation),
+                            method='Nelder-Mead', options=simplex_options,
+                            bounds=((1e-1,None), (1e-2,None)),  **kwargs)      
             scal_fac, flux_fac =  solu.x
         if debug:
             print("channel {:.0f}:".format(z), solu.x)
@@ -842,7 +847,8 @@ def _find_indices_sdi(scal, dist, index_ref, fwhm, delta_sep=1, nframes=None,
     return indices
 
 
-def _chisquare_scal(modelParameters, cube, flux_fac=1, mask=None, fm='sum'):
+def _chisquare_scal(modelParameters, cube, flux_fac=1, mask=None, fm='sum',
+                    imlib='vip-fft', interpolation='lanczos4'):
     r"""
     Calculate the reduced math:`\chi^2`:
     .. math:: \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -878,7 +884,8 @@ def _chisquare_scal(modelParameters, cube, flux_fac=1, mask=None, fm='sum'):
     scale_fac, = modelParameters
     array[0]*=flux_fac
     scaling_list = np.array([scale_fac,1])
-    array = _cube_resc_wave(array, scaling_list)
+    array = _cube_resc_wave(array, scaling_list, imlib=imlib, 
+                            interpolation=interpolation)
 
     frame = array[1]-array[0]
     if mask is None:
@@ -896,7 +903,9 @@ def _chisquare_scal(modelParameters, cube, flux_fac=1, mask=None, fm='sum'):
         
     return chi
 
-def _chisquare_scal_2fp(modelParameters, cube, mask=None, fm='sum'):
+
+def _chisquare_scal_2fp(modelParameters, cube, mask=None, fm='sum',
+                        imlib='vip-fft', interpolation='lanczos4'):
     r"""
     Calculate the reduced :math:`\chi^2`:
     .. math:: \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -928,7 +937,8 @@ def _chisquare_scal_2fp(modelParameters, cube, mask=None, fm='sum'):
     scale_fac, flux_fac = modelParameters
     array[0]*=flux_fac
     scaling_list = np.array([scale_fac,1])
-    array = _cube_resc_wave(array, scaling_list)
+    array = _cube_resc_wave(array, scaling_list, imlib=imlib, 
+                            interpolation=interpolation)
 
     frame = array[1]-array[0]
     if mask is None:

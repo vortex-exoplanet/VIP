@@ -5,10 +5,10 @@ Tests for metrics/contrcurve.py
 import copy
 from .helpers import fixture, np
 from vip_hci.config import VLT_NACO
-from vip_hci.psfsub.pca_local import pca_annular
+from vip_hci.psfsub.pca_local import pca
 from vip_hci.metrics import contrast_curve
 from vip_hci.preproc import frame_crop
-from vip_hci.fm.utils_negfc import find_nearest
+from vip_hci.fm.utils_negfc import find_nearest, cube_planet_free
 
 @fixture(scope="module")
 def get_cube(example_dataset_adi):
@@ -36,10 +36,14 @@ def test_contrast_curve(get_cube):
     
     ds, starphot = get_cube
     
+    # first empty the cube from planet b
+    pl_par = [(16.583, 149.111, 700)]
+    cube = cube_planet_free(pl_par, ds.cube, ds.angles, ds.psf)
+    
     psf = frame_crop(ds.psf[1:,1:], 11)
     plsc = VLT_NACO['plsc']
-    cc = contrast_curve(ds.cube, ds.angles, psf, ds.fwhm, pxscale=plsc, 
-                        starphot=starphot, algo=pca_annular, nbranch=3,
+    cc = contrast_curve(cube, ds.angles, psf, ds.fwhm, pxscale=plsc, 
+                        starphot=starphot, algo=pca, nbranch=3,
                         plot=True, debug=True)
     
     rad = np.array(cc['distance'])
@@ -47,46 +51,49 @@ def test_contrast_curve(get_cube):
     student_cc = np.array(cc['sensitivity_student'])
     sigma_corr = np.array(cc['sigma corr'])
         
-    # check that at 0.2'' 5-sigma cc < 5e-4 (Absil+2013) - Gaussian statistics
+    # check that at 0.2'' 5-sigma cc < 4e-3 - Gaussian statistics
     idx_r = find_nearest(rad*plsc, 0.2)
     cc_gau = gauss_cc[idx_r]
-    if cc_gau < 5e-4:
+    corr_r = sigma_corr[idx_r]
+    if cc_gau < 4e-3:
         check = True
     else:
         check = False
-    msg = "Contrast too shallow compared to expectations: {} < {}"
-    assert check, msg.format(cc_gau, 5e-4)       
+    msg = "Contrast too shallow compared to expectations: {} > {}"
+    assert check, msg.format(cc_gau, 4e-3)       
      
     # check that at 0.2'' 5-sigma cc: Student statistics > Gaussian statistics
     cc_stu = student_cc[idx_r]
-    if cc_stu < 5e-4*sigma_corr and cc_stu>cc_gau:
+    if cc_stu < 4e-3*sigma_corr and cc_stu>cc_gau:
         check = True
-    elif cc_stu < 5e-4*sigma_corr:
+    elif cc_stu < 4e-3*sigma_corr:
         check = False
         msg = "Student-statistics cc smaller than Gaussian statistics cc"
     else:
         check = False
-    msg = "Contrast too shallow compared to expectations: {} < {}"
-    assert check, msg.format(cc_stu, 5e-4*sigma_corr)    
+    msg = "Contrast too shallow compared to expectations: {} > {}"
+    assert check, msg.format(cc_stu, 4e-3*corr_r)    
     
-    # check that at 0.4'' 5-sigma cc < 1e-4 (Absil+2013)
+    # check that at 0.4'' 5-sigma cc < 3e-4
     idx_r = find_nearest(rad*plsc, 0.4)
     cc_gau = gauss_cc[idx_r]
-    if cc_gau < 1e-4:
+    corr_r = sigma_corr[idx_r]
+    
+    if cc_gau < 3e-4:
         check = True
     else:
         check = False
-    msg = "Contrast too shallow compared to expectations: {} < {}"
-    assert check, msg.format(cc_gau, 1e-4) 
+    msg = "Contrast too shallow compared to expectations: {} > {}"
+    assert check, msg.format(cc_gau, 3e-4) 
       
     # check that at 0.4'' 5-sigma cc: Student statistics > Gaussian statistics
     cc_stu = student_cc[idx_r]
-    if cc_stu < 1e-4*sigma_corr and cc_stu>cc_gau:
+    if cc_stu < 3e-4*sigma_corr and cc_stu>cc_gau:
         check = True
-    elif cc_stu < 1e-4*sigma_corr:
+    elif cc_stu < 3e-4*sigma_corr:
         check = False
         msg = "Student-statistics cc smaller than Gaussian statistics cc"
     else:
         check = False
-        msg = "Contrast too shallow compared to expectations"
-    assert check, msg
+        msg = "Contrast too shallow compared to expectations: {} > {}"
+    assert check, msg.format(cc_stu, 3e-4*corr_r) 

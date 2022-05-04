@@ -876,9 +876,9 @@ class FastPACO(PACO):
         # i is the same as theta_k in the PACO paper
         for p0 in phi0s:
             apatch = self.get_patch(p0)
-            m[p0[0]][p0[1]], Cinv[p0[0]][p0[1]] = compute_statistics_at_pixel(apatch)
-            h[p0[0]][p0[1]] = normalised_psf[psf_mask]
-            patch[p0[0]][p0[1]] = apatch
+            m[p0[1]][p0[0]], Cinv[p0[1]][p0[0]] = compute_statistics_at_pixel(apatch)
+            h[p0[1]][p0[0]] = normalised_psf[psf_mask]
+            patch[p0[1]][p0[0]] = apatch
         return Cinv, m, h, patch
 
     def compute_statistics_parallel(self,

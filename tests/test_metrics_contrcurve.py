@@ -5,7 +5,7 @@ Tests for metrics/contrcurve.py
 import copy
 from .helpers import fixture, np
 from vip_hci.config import VLT_NACO
-from vip_hci.psfsub.pca_local import pca
+from vip_hci.psfsub import pca
 from vip_hci.metrics import contrast_curve
 from vip_hci.preproc import frame_crop
 from vip_hci.fm.utils_negfc import find_nearest, cube_planet_free

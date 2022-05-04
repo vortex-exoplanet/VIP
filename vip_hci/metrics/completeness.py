@@ -240,18 +240,24 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
     if cube.ndim == 4 and psf.ndim != 3:
         raise TypeError('Template PSF is not a cube (for ADI+IFS case)')
         
+    if isinstance(fwhm, (np.ndarray,list)):
+        fwhm_med = np.median(fwhm)
+    else:
+        fwhm_med = fwhm
+        
     if an_dist is None:
-        an_dist=np.array(range(2*round(fwhm),
-                               cube.shape[-1]//2-psf.shape[-1]//2-1,5))
-    elif an_dist[-1]>cube.shape[-1]//2-psf.shape[-1]//2-1:
+        an_dist = np.array(range(2*round(fwhm_med), 
+                                 int(cube.shape[-1]//2-2*fwhm_med), 5))
+        print("an_dist not provided, the following list will be used:", an_dist)
+    elif an_dist[-1] > cube.shape[-1]//2-2*fwhm_med:
         raise TypeError('Please decrease the maximum annular distance')
         
     if ini_contrast is None:
         print("Contrast curve not provided => will be computed first...")
-        ini_cc = contrast_curve(cube, angle_list, psf, fwhm, pxscale, starphot, 
-                                algo, sigma=3, nbranch=1, theta=0, inner_rad=1, 
-                                wedge=(0,360), fc_snr=100, plot=False, 
-                                **algo_dict)
+        ini_cc = contrast_curve(cube, angle_list, psf, fwhm_med, pxscale, 
+                                starphot, algo, sigma=3, nbranch=1, theta=0, 
+                                inner_rad=1, wedge=(0,360), fc_snr=100, 
+                                plot=False, **algo_dict)
         ini_rads = np.array(ini_cc['distance'])
         ini_cc = np.array(ini_cc['sensitivity_student'])
         
@@ -265,12 +271,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
         for aa, ad in enumerate(an_dist):
             idx = find_nearest(ini_rads, ad)
             ini_contrast.append(ini_cc[idx])
-            
     
-    if isinstance(fwhm, (np.ndarray,list)):
-        fwhm_med = np.median(fwhm)
-    else:
-        fwhm_med = fwhm
        
     argl = inspect.getargspec(algo).args
     if 'cube' in argl and 'angle_list' in argl and 'verbose' in argl:
@@ -297,7 +298,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
     psf = normalize_psf(psf, fwhm=fwhm, verbose=False,  size=min(new_psf_size, 
                                                                  psf.shape[1]))
     
-    for k in range(0,len(an_dist)):
+    for k in range(0, len(an_dist)):
     
         a=an_dist[k]
         level=ini_contrast[k]
@@ -603,16 +604,21 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
     if cube.ndim == 4 and psf.ndim != 3:
         raise TypeError('Template PSF is not a cube (for ADI+IFS case)')
 
+    if isinstance(fwhm, (np.ndarray,list)):
+        fwhm_med = np.median(fwhm)
+    else:
+        fwhm_med = fwhm
+        
     if an_dist is None:
         an_dist=np.array(range(2*round(fwhm),
-                               cube.shape[-1]//2-psf.shape[-1]//2-1,5))
-    elif an_dist[-1]>cube.shape[-1]//2-psf.shape[-1]//2-1:
+                               cube.shape[-1]//2-2*fwhm_med,5))
+    elif an_dist[-1] > cube.shape[-1]//2-2*fwhm_med:
         raise TypeError('Please decrease the maximum annular distance')
         
     if ini_contrast is None:
         print("Contrast curve not provided => will be computed first...")
         # pxscale unused if plot=False
-        ini_cc = contrast_curve(cube, angle_list, psf, fwhm, pxscale=0.1, 
+        ini_cc = contrast_curve(cube, angle_list, psf, fwhm_med, pxscale=0.1, 
                                 starphot=starphot, algo=algo, sigma=3, 
                                 plot=False, **algo_dict)
         ini_rads = np.array(ini_cc['distance'])
@@ -628,11 +634,6 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
         for aa, ad in enumerate(an_dist):
             idx = find_nearest(ini_rads, ad)
             ini_contrast.append(ini_cc[idx])
-
-    if isinstance(fwhm, (np.ndarray,list)):
-        fwhm_med = np.median(fwhm)
-    else:
-        fwhm_med = fwhm
         
     argl = inspect.getargspec(algo).args
     if 'cube' in argl and 'angle_list' in argl and 'verbose' in argl:
@@ -643,7 +644,7 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
             frame_fin = algo(cube, angle_list=angle_list, verbose=False,
                              **algo_dict)
     
-    snrmap_empty=snrmap(frame_fin, fwhm, approximated=snr_approximation,
+    snrmap_empty=snrmap(frame_fin, fwhm_med, approximated=snr_approximation,
                         plot=False, known_sources=None, nproc=nproc,
                         array2=None, use2alone=False, 
                         exclude_negative_lobes=False, verbose=False)

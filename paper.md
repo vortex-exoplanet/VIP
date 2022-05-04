@@ -154,10 +154,9 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     - the KLIP-FMMF and LOCI-FMMF algorithms
     [@Pueyo:2016; @Ruffio:2017; @Dahlqvist:2021] are now also available in the 
     `invprob` module.
-    - a Python impleementation of the PACO algorithm [@Flasseur:2018] is now
-    implemented as part of ``VIP``. This includes both the planet detection
-    and flux estimation algorithms.
-
+    - a Python implementation of the PACO algorithm [@Flasseur:2018] is now
+    also available, including both the planet detection and flux estimation 
+    algorithms.
 
 * `metrics`:
     - calculation of standardized trajectory maps (STIM) is now available

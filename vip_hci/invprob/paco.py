@@ -14,20 +14,21 @@ TODO: Implement sub-pixel astrometry for PSF positioning.
 """
 
 import sys
-import os
+#import os
 from abc import abstractmethod
 # Required so numpy parallelization doesn't conflict with multiprocessing
-os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["NUMEXPR_NUM_THREADS"] = "1"
-os.environ["OMP_NUM_THREADS"] = "1"
+# os.environ["MKL_NUM_THREADS"] = "1"
+# os.environ["NUMEXPR_NUM_THREADS"] = "1"
+# os.environ["OMP_NUM_THREADS"] = "1"
 
-from multiprocessing import Pool
+#from multiprocessing import Pool
 from typing import Tuple, Union, Optional, Callable
 import numpy as np
 from scipy import ndimage
 from scipy.ndimage import filters
 
-from ..preproc.rescaling import frame_px_resampling,cube_px_resampling
+from ..config.utils_conf import pool_map, iterable
+from ..preproc.rescaling import frame_px_resampling, cube_px_resampling
 from ..var.coords import cart_to_pol, pol_to_cart
 from ..metrics.detection import detection
 
@@ -157,13 +158,14 @@ class PACO:
                  phi0s : np.ndarray,
                  cpu : Optional[int] = 1) -> None:
         """
-        This function is algorithm dependant, and sets up the actual calculation process.
+        This function is algorithm dependant, and sets up the actual 
+        calculation process.
 
         Parameters
         ----------
         phi0s : numpy.ndarray
-            Array of pixel coordinates to try to search for the planet signal. Typically a grid
-            created using numpy.meshgrid.
+            Array of pixel coordinates to try to search for the planet signal. 
+            Typically a grid created using numpy.meshgrid.
         cpu : int, optional
             Number of cpus to use for parallelization.
 
@@ -260,9 +262,10 @@ class PACO:
         ----------
         cube : numpy.ndarray
             3D science frames taken in pupil tracking/ADI mode.
-            Dimensions should be (time, x, y), and units should be detector units (ie output
-            of SPHERE or GPI reduction pipelines). The data should be centered, and have
-            pre-processing already applied (e.g. bad pixel correction).
+            Dimensions should be (time, x, y), and units should be detector 
+            units (ie output of SPHERE or GPI reduction pipelines). The data 
+            should be centered, and have pre-processing already applied (e.g. 
+            bad pixel correction).
         """
         self.cube = np.array(cube)
         self.num_frames = self.cube.shape[0]
@@ -340,8 +343,8 @@ class PACO:
         Parameters
         ----------
         scale : float
-            Scaling factor. Greater than one will result in an upsampled image, less than one
-            will result in a downsampled image.
+            Scaling factor. Greater than one will result in an upsampled image, 
+            less than one will result in a downsampled image.
         """
 
         self.rescaling_factor = scale
@@ -355,7 +358,7 @@ class PACO:
         set during initialization or with set_scale. A scale factor of greater
         than one will upsample the image, a factor of less than one will downsample
         the image. This function wraps the VIP scaling function, and uses the same
-        arguments to chose libraries and interpolation methods.
+        arguments to choose libraries and interpolation methods.
 
         Parameters
         ----------
@@ -916,7 +919,7 @@ class FastPACO(PACO):
 
         if self.verbose:
             print("Precomputing Statistics using %d Processes..."%cpu)
-        npx = len(phi0s) # Number of pixels in an image
+        #npx = len(phi0s) # Number of pixels in an image
         #mask = create_boolean_circular_mask((self.patch_width, self.patch_width), radius=self.fwhm)
         psf_mask = create_boolean_circular_mask(self.psf.shape, radius=self.fwhm)
         normalised_psf = self.psf/np.nanmax(self.psf)
@@ -932,20 +935,24 @@ class FastPACO(PACO):
             h[p0[0]][p0[1]] = normalised_psf[psf_mask]
 
         # *** Parallel Processing ***
-        p_pool = Pool(processes=cpu)
-        p_data = p_pool.map(self.get_patch, phi0s, chunksize=int(npx/cpu))
-        p_pool.close()
-        p_pool.join()
+        p_data = pool_map(cpu, self.get_patch, phi0s)
         patches = [p for p in p_data]
-        p = Pool(processes=cpu)
-        data = p.map(compute_statistics_at_pixel, patches, chunksize=int(npx/cpu))
-        p.close()
-        p.join()
+        data = pool_map(cpu, compute_statistics_at_pixel, iterable(patches))
+        # p_pool = Pool(processes=cpu)
+        #p_data = p_pool.map(self.get_patch, phi0s, chunksize=int(npx/cpu))
+        # p_pool.close()
+        # p_pool.join()
+        # patches = [p for p in p_data]
+        # p = Pool(processes=cpu)
+        # data = p.map(compute_statistics_at_pixel, patches, chunksize=int(npx/cpu))
+        # p.close()
+        # p.join()
         ms, cs = [], []
         for d in data:
             if d[0] is None or d[1] is None:
                 ms.append(np.full(self.patch_area_pixels, np.nan))
-                cs.append(np.full((self.patch_area_pixels, self.patch_area_pixels), np.nan))
+                cs.append(np.full((self.patch_area_pixels, 
+                                   self.patch_area_pixels), np.nan))
             else:
                 ms.append(d[0])
                 cs.append(d[1])

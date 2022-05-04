@@ -582,8 +582,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         Number of iterations to run after having "reached the convergence".
     check_maxgap: int, optional
         Maximum number of steps per walker between two Gelman-Rubin test.
-    nproc: int, optional
-        The number of processes to use for parallelization.
+    nproc: int or None, optional
+        The number of processes to use for parallelization. If None, will be set 
+        automatically to half the number of CPUs available.
     output_dir: str, optional
         The name of the output directory which contains the output files in the 
         case  ``save`` is True.        

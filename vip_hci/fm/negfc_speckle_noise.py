@@ -103,6 +103,9 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         and standard deviation automatically.
     force_rPA: bool, optional
         Whether to only search for optimal flux, provided (r,PA).
+    nproc: int or None, optional
+        The number of processes to use for parallelization. If None, will be set 
+        automatically to half the number of CPUs available.
     fmerit: None
         Figure of merit to use, if mu_sigma is None.
     simplex_options: dict
@@ -148,7 +151,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     """    
     
     if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
-        nproc = (cpu_count()/2)
+        nproc = int(cpu_count()/2)
     
     if verbose:
         print('')

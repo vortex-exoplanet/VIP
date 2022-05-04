@@ -18,6 +18,7 @@ Gaussian maximum likelihood approach.
 __author__ = 'Carl-Henrik Dahlqvist'
 __all__ = ['fmmf']
 
+from multiprocessing import cpu_count
 import numpy as np
 import numpy.linalg as la
 from skimage.draw import disk 
@@ -27,10 +28,10 @@ from ..config.utils_conf import pool_map, iterable
 from ..fm import cube_inject_companions
 from ..preproc.derotation import _find_indices_adi
 
+
 def fmmf(cube, pa, psf, fwhm, min_r=None,max_r=None, model='KLIP',var='FR',
          param={'ncomp': 20, 'tolerance': 5e-3, 'delta_rot':0.5}, crop=5, 
-         imlib='opencv', interpolation='lanczos4',ncore=1,verbose=True):
-
+         imlib='vip-fft', interpolation='lanczos4', nproc=1, verbose=True):
     """
     Forward model matched filter generating SNR map and contrast map, using 
     either KLIP or LOCI as PSF subtraction techniques.
@@ -103,9 +104,10 @@ def fmmf(cube, pa, psf, fwhm, min_r=None,max_r=None, model='KLIP',var='FR',
     interpolation : str, optional
             Parameter used for the derotation of the residual cube. See the 
             documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    ncore : int, optional
-            Number of processes for parallel computing. By default ('ncore=1') 
-            the algorithm works in single-process mode. 
+    nproc : int or None, optional
+            Number of processes for parallel computing. By default ('nproc=1') 
+            the algorithm works in single-process mode. If set to None, nproc
+            is automatically set to half the number of available CPUs.
     verbose: bool, optional
             If True provide a message each time an annulus has been treated.
             Default True.
@@ -127,10 +129,12 @@ def fmmf(cube, pa, psf, fwhm, min_r=None,max_r=None, model='KLIP',var='FR',
         min_r=int(round(fwhm))    
     if max_r is None:
         max_r= cube.shape[-1]//2-(crop//2+1)
+    if nproc is None:
+        nproc = cpu_count()//2
                     
-    res_full = pool_map(ncore, snr_contrast_esti, iterable(range(min_r,max_r)),
-                        cube, pa, psf, fwhm, model,var,param, crop, imlib, 
-                        interpolation,verbose)
+    res_full = pool_map(nproc, _snr_contrast_esti, iterable(range(min_r,max_r)),
+                        cube, pa, psf, fwhm, model, var, param, crop, imlib, 
+                        interpolation, verbose)
 
     flux_matrix=np.zeros((cube.shape[1],cube.shape[2]))
     snr_matrix=np.zeros((cube.shape[1],cube.shape[2]))
@@ -142,10 +146,194 @@ def fmmf(cube, pa, psf, fwhm, min_r=None,max_r=None, model='KLIP',var='FR',
         snr_matrix[indices[0][0],indices[0][1]]=res_temp[1]
                         
 
-    return flux_matrix,snr_matrix
+    return flux_matrix, snr_matrix
         
 
-def var_esti(mcube,pa,var,crop,ann_center):
+
+def _snr_contrast_esti(ann_center,cube, pa, psf, fwhm, model, var, param, crop, 
+                       imlib, interpolation, verbose):     
+    """ 
+    Computation of the SNR and contrast associated to the pixels contained 
+    in a given annulus via the foward model matched filter
+    """
+    
+    n, y, x = cube.shape
+    
+    evals_matrix=[]
+    evecs_matrix=[]
+    KL_basis_matrix=[]
+    refs_mean_sub_matrix=[]
+    sci_mean_sub_matrix=[]
+    resicube_klip=None
+    
+    ind_ref_list=None
+    coef_list=None
+    
+    ncomp=param['ncomp']
+    tolerance=param['tolerance']
+    delta_rot=param['delta_rot']
+    
+    # Computation of the reference PSF, and the matrices
+    # required for the computation of the PSF forward models
+    
+    pa_threshold = np.rad2deg(2 * np.arctan(delta_rot * fwhm / (2 * (ann_center))))
+    mid_range = np.abs(np.amax(pa) - np.amin(pa)) / 2
+    if pa_threshold >= mid_range - mid_range * 0.1:
+        pa_threshold = float(mid_range - mid_range * 0.1)
+        
+    if model=='KLIP':
+                   
+        resicube_klip=np.zeros_like(cube)
+        
+
+        
+        indices = get_annulus_segments(cube[0],
+                    ann_center-int(round(fwhm)/2),int(round(fwhm)),1)
+        
+        for k in range(0,cube.shape[0]):
+
+            res_temp=KLIP_patch(k,cube[:, indices[0][0], indices[0][1]],
+                      ncomp,pa, int(round(fwhm)), pa_threshold, ann_center)
+            evals_temp=res_temp[0]
+            evecs_temp=res_temp[1]
+            KL_basis_temp=res_temp[2]
+            sub_img_rows_temp=res_temp[3]
+            refs_mean_sub_temp=res_temp[4]
+            sci_mean_sub_temp=res_temp[5] 
+            resicube_klip[k,indices[0][0], indices[0][1]] = sub_img_rows_temp
+
+            evals_matrix.append(evals_temp)
+            evecs_matrix.append(evecs_temp)
+            KL_basis_matrix.append(KL_basis_temp)
+            refs_mean_sub_matrix.append(refs_mean_sub_temp)
+            sci_mean_sub_matrix.append(sci_mean_sub_temp)
+
+        mcube=cube_derotate(resicube_klip,pa,imlib=imlib,
+                            interpolation=interpolation)
+
+
+    elif model=='LOCI':
+        
+        
+        resicube, ind_ref_list,coef_list=LOCI_FM(cube, psf, ann_center, pa,
+                int(round(fwhm)), fwhm, tolerance,delta_rot,pa_threshold)
+        mcube=cube_derotate(resicube,pa,imlib=imlib,
+                            interpolation=interpolation)
+        
+
+    ceny, cenx = frame_center(cube[0])
+    indices=get_annulus_segments(mcube[0], ann_center,1,1)
+    indicesy=indices[0][0]
+    indicesx=indices[0][1]
+    
+    flux_esti=np.zeros_like(indicesy)
+    prob_esti=np.zeros_like(indicesy)
+        
+    var_f=_var_esti(mcube,pa,var,crop,ann_center)
+    
+    
+    for i in range(0,len(indicesy)):
+
+        psfm_temp=None
+        poscenty=indicesy[i]
+        poscentx=indicesx[i]
+        
+        indices = get_annulus_segments(cube[0],
+                ann_center-int(round(fwhm)/2),int(round(fwhm)),1)
+        
+        an_dist = np.sqrt((poscenty-ceny)**2 + (poscentx-cenx)**2)
+        theta = np.degrees(np.arctan2(poscenty-ceny, poscentx-cenx))  
+                         
+        model_matrix=cube_inject_companions(np.zeros_like(cube), psf, pa,
+                                            flevel=1, rad_dists=an_dist, 
+                                            theta=theta, n_branches=1,
+                                            verbose=False)
+        
+        #PSF forward model computation for KLIP
+
+        if model=='KLIP':
+            
+            psf_map=np.zeros_like(model_matrix)
+            
+            for b in range(0,n):
+                psf_map_temp = _perturb(b, 
+                                        model_matrix[:, indices[0][0], 
+                                                     indices[0][1]],
+                                        ncomp, evals_matrix, evecs_matrix,
+                                        KL_basis_matrix, 
+                                        sci_mean_sub_matrix, 
+                                        refs_mean_sub_matrix, pa, fwhm,
+                                        pa_threshold, ann_center)
+                
+                psf_map[b,indices[0][0], indices[0][1]]=psf_map_temp
+                psf_map[b,indices[0][0], indices[0][1]]-=np.mean(psf_map_temp)
+
+            psf_map_der = cube_derotate(psf_map, pa, imlib=imlib,
+                                        interpolation=interpolation)
+            psfm_temp=cube_crop_frames(psf_map_der,int(2*round(fwhm)+1),
+                                     xy=(poscentx,poscenty),verbose=False)
+                    
+                  
+        #PSF forward model computation for LOCI
+                    
+        if model=='LOCI':
+                    
+            values_fc = model_matrix[:, indices[0][0], indices[0][1]]
+
+            cube_res_fc=np.zeros_like(model_matrix)
+        
+            matrix_res_fc = np.zeros((values_fc.shape[0],
+                                      indices[0][0].shape[0]))
+        
+            for e in range(values_fc.shape[0]):
+            
+                recon_fc = np.dot(coef_list[e], values_fc[ind_ref_list[e]])
+                matrix_res_fc[e] = values_fc[e] - recon_fc
+
+            cube_res_fc[:, indices[0][0], indices[0][1]] = matrix_res_fc
+            cube_der_fc = cube_derotate(cube_res_fc-np.mean(cube_res_fc),
+                            pa, imlib=imlib, interpolation=interpolation)
+            psfm_temp=cube_crop_frames(cube_der_fc,int(2*round(fwhm)+1),
+                                      xy=(poscentx,poscenty),verbose=False)
+            
+        num=[]
+        denom=[]
+        
+        # Matched Filter
+    
+        for j in range(n): 
+            
+            if var=='FR':
+                svar=var_f[j]
+
+            elif var=='FM' :
+                svar=var_f[i,j]
+                    
+            elif var=='TE':
+                svar=var_f[i,j]
+
+            if psfm_temp.shape[1]==crop:
+                psfm=psfm_temp[j]
+            else:
+                psfm=frame_crop(psfm_temp[j],
+                     crop,cenxy=[int(psfm_temp.shape[-1]/2),
+                                 int(psfm_temp.shape[-1]/2)],verbose=False)
+
+            num.append(np.multiply(frame_crop(mcube[j],crop,
+                cenxy=[poscentx,poscenty],verbose=False),psfm).sum()/svar)
+            denom.append(np.multiply(psfm,psfm).sum()/svar)
+        
+        flux_esti[i]=sum(num)/np.sqrt(sum(denom))
+        prob_esti[i]=sum(num)/sum(denom)
+        
+    if verbose==True:
+        print("Radial distance "+"{}".format(ann_center)+" done!") 
+        
+    return prob_esti, flux_esti, ann_center
+
+
+
+def _var_esti(mcube,pa,var,crop,ann_center):
     
     """ 
     Computation of the residual noise variance
@@ -235,191 +423,11 @@ def var_esti(mcube,pa,var,crop,ann_center):
             
     return var_f
 
-def snr_contrast_esti(ann_center,cube, pa, psf, fwhm, model,var,param, crop
-                      , imlib, interpolation,verbose):
-        
-        """ 
-        Computation of the SNR and contrast associated to the pixels contained 
-        in a given annulus via the foward model matched filter
-        """
-        
-        n,y,x=cube.shape
-        
-        evals_matrix=[]
-        evecs_matrix=[]
-        KL_basis_matrix=[]
-        refs_mean_sub_matrix=[]
-        sci_mean_sub_matrix=[]
-        resicube_klip=None
-        
-        ind_ref_list=None
-        coef_list=None
-        
-        ncomp=param['ncomp']
-        tolerance=param['tolerance']
-        delta_rot=param['delta_rot']
-        
-        # Computation of the reference PSF, and the matrices
-        # required for the computation of the PSF forward models
-        
-        pa_threshold = np.rad2deg(2 * np.arctan(delta_rot * fwhm / (2 * (ann_center))))
-        mid_range = np.abs(np.amax(pa) - np.amin(pa)) / 2
-        if pa_threshold >= mid_range - mid_range * 0.1:
-            pa_threshold = float(mid_range - mid_range * 0.1)
-            
-        if model=='KLIP':
-                       
-            resicube_klip=np.zeros_like(cube)
-            
-
-            
-            indices = get_annulus_segments(cube[0],
-                        ann_center-int(round(fwhm)/2),int(round(fwhm)),1)
-            
-            for k in range(0,cube.shape[0]):
-
-                res_temp=KLIP_patch(k,cube[:, indices[0][0], indices[0][1]],
-                          ncomp,pa, int(round(fwhm)), pa_threshold, ann_center)
-                evals_temp=res_temp[0]
-                evecs_temp=res_temp[1]
-                KL_basis_temp=res_temp[2]
-                sub_img_rows_temp=res_temp[3]
-                refs_mean_sub_temp=res_temp[4]
-                sci_mean_sub_temp=res_temp[5] 
-                resicube_klip[k,indices[0][0], indices[0][1]] = sub_img_rows_temp
-
-                evals_matrix.append(evals_temp)
-                evecs_matrix.append(evecs_temp)
-                KL_basis_matrix.append(KL_basis_temp)
-                refs_mean_sub_matrix.append(refs_mean_sub_temp)
-                sci_mean_sub_matrix.append(sci_mean_sub_temp)
-
-            mcube=cube_derotate(resicube_klip,pa,imlib=imlib,
-                                interpolation=interpolation)
 
 
-        elif model=='LOCI':
-            
-            
-            resicube, ind_ref_list,coef_list=LOCI_FM(cube, psf, ann_center, pa,
-                    int(round(fwhm)), fwhm, tolerance,delta_rot,pa_threshold)
-            mcube=cube_derotate(resicube,pa,imlib=imlib,
-                                interpolation=interpolation)
-            
-
-        ceny, cenx = frame_center(cube[0])
-        indices=get_annulus_segments(mcube[0], ann_center,1,1)
-        indicesy=indices[0][0]
-        indicesx=indices[0][1]
-        
-        flux_esti=np.zeros_like(indicesy)
-        prob_esti=np.zeros_like(indicesy)
-            
-        var_f=var_esti(mcube,pa,var,crop,ann_center)
-        
-        
-        for i in range(0,len(indicesy)):
-
-            psfm_temp=None
-            poscenty=indicesy[i]
-            poscentx=indicesx[i]
-            
-            indices = get_annulus_segments(cube[0],
-                    ann_center-int(round(fwhm)/2),int(round(fwhm)),1)
-            
-            an_dist = np.sqrt((poscenty-ceny)**2 + (poscentx-cenx)**2)
-            theta = np.degrees(np.arctan2(poscenty-ceny, poscentx-cenx))  
-                             
-            model_matrix=cube_inject_companions(np.zeros_like(cube), psf, pa,
-                                                flevel=1, rad_dists=an_dist, 
-                                                theta=theta, n_branches=1,
-                                                verbose=False)
-            
-            #PSF forward model computation for KLIP
-
-            if model=='KLIP':
-                
-                psf_map=np.zeros_like(model_matrix)
-                
-                for b in range(0,n):
-                    psf_map_temp = perturb(b,
-                        model_matrix[:, indices[0][0], indices[0][1]],
-                        ncomp,evals_matrix, evecs_matrix,KL_basis_matrix,
-                        sci_mean_sub_matrix,refs_mean_sub_matrix, pa, fwhm,
-                        pa_threshold, ann_center)
-                    
-                    psf_map[b,indices[0][0], indices[0][1]]=psf_map_temp
-                    psf_map[b,indices[0][0], indices[0][1]]-=np.mean(psf_map_temp)
-
-                psf_map_der = cube_derotate(psf_map, pa, imlib=imlib,
-                                            interpolation=interpolation)
-                psfm_temp=cube_crop_frames(psf_map_der,int(2*round(fwhm)+1),
-                                         xy=(poscentx,poscenty),verbose=False)
-                        
-                      
-            #PSF forward model computation for LOCI
-                        
-            if model=='LOCI':
-                        
-                values_fc = model_matrix[:, indices[0][0], indices[0][1]]
-
-                cube_res_fc=np.zeros_like(model_matrix)
-            
-                matrix_res_fc = np.zeros((values_fc.shape[0],
-                                          indices[0][0].shape[0]))
-            
-                for e in range(values_fc.shape[0]):
-                
-                    recon_fc = np.dot(coef_list[e], values_fc[ind_ref_list[e]])
-                    matrix_res_fc[e] = values_fc[e] - recon_fc
-
-                cube_res_fc[:, indices[0][0], indices[0][1]] = matrix_res_fc
-                cube_der_fc = cube_derotate(cube_res_fc-np.mean(cube_res_fc),
-                                pa, imlib=imlib, interpolation=interpolation)
-                psfm_temp=cube_crop_frames(cube_der_fc,int(2*round(fwhm)+1),
-                                          xy=(poscentx,poscenty),verbose=False)
-                
-            num=[]
-            denom=[]
-            
-            # Matched Filter
-        
-            for j in range(n): 
-                
-                if var=='FR':
-                    svar=var_f[j]
-
-                elif var=='FM' :
-                    svar=var_f[i,j]
-                        
-                elif var=='TE':
-                    svar=var_f[i,j]
-
-                if psfm_temp.shape[1]==crop:
-                    psfm=psfm_temp[j]
-                else:
-                    psfm=frame_crop(psfm_temp[j],
-                         crop,cenxy=[int(psfm_temp.shape[-1]/2),
-                                     int(psfm_temp.shape[-1]/2)],verbose=False)
-
-                num.append(np.multiply(frame_crop(mcube[j],crop,
-                    cenxy=[poscentx,poscenty],verbose=False),psfm).sum()/svar)
-                denom.append(np.multiply(psfm,psfm).sum()/svar)
-            
-            flux_esti[i]=sum(num)/np.sqrt(sum(denom))
-            prob_esti[i]=sum(num)/sum(denom)
-            
-        if verbose==True:
-            print("Radial distance "+"{}".format(ann_center)+" done!") 
-            
-        return prob_esti,flux_esti,ann_center
-
-
-def perturb(frame,model_matrix,numbasis,evals_matrix, evecs_matrix,
-            KL_basis_matrix,sci_mean_sub_matrix,refs_mean_sub_matrix,
-            angle_list, fwhm, pa_threshold, ann_center):
-    
-
+def _perturb(frame,model_matrix,numbasis,evals_matrix, evecs_matrix,
+             KL_basis_matrix,sci_mean_sub_matrix,refs_mean_sub_matrix,
+             angle_list, fwhm, pa_threshold, ann_center):
     """
     Function allowing the estimation of the PSF forward model when relying on 
     KLIP for the computation of the speckle field. The code is based on the 
@@ -513,7 +521,6 @@ def perturb(frame,model_matrix,numbasis,evals_matrix, evecs_matrix,
     
 def KLIP_patch(frame, matrix, numbasis, angle_list, fwhm, pa_threshold,
                 ann_center,nframes=None):
-
     """          
     Function allowing the computation of the reference PSF via KLIP for a 
     given sub-region of the original ADI sequence. Code inspired by the

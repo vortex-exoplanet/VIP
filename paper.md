@@ -10,8 +10,8 @@ authors:
   - name: Valentin Christiaens
     orcid: 0000-0002-0101-8814
     affiliation: 1
-  - name: Carlos Gomez Gonzalez
-    orcid: TO BE FILLED
+  - name: Carlos Alberto Gómez Gonzalez
+    orcid: 0000-0003-2050-1710
     affiliation: 2
   - name: Ralf Farkas
     orcid: 0000-0002-7647-1429
@@ -23,7 +23,7 @@ authors:
     orcid: 0000-0002-9792-3121
     affiliation: 4
   - name: Julien Milli
-    orcid: TO BE FILLED
+    orcid: 0000-0001-9325-2511
     affiliation: 5
   - name: Henry Ngo
     orcid: 0000-0001-5172-4859
@@ -47,7 +47,7 @@ authors:
 affiliations:
   - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
     index: 1
-  - name: TO BE FILLED
+  - name: Barcelona Supercomputing Center, Barcelona, Spain
     index: 2
   - name: Rheinische Friedrich-Wilhelms-Universität Bonn, Germany
     index: 3

@@ -43,7 +43,7 @@ def test_contrast_curve(get_cube):
     psf = frame_crop(ds.psf[1:,1:], 11)
     plsc = VLT_NACO['plsc']
     cc = contrast_curve(cube, ds.angles, psf, ds.fwhm, pxscale=plsc, 
-                        starphot=starphot, algo=pca, nbranch=3,
+                        starphot=starphot, algo=pca, nbranch=3, ncomp=10,
                         plot=True, debug=True)
     
     rad = np.array(cc['distance'])

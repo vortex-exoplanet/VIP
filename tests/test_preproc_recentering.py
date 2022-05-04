@@ -416,7 +416,7 @@ def test_speckle_recentering(get_cube, debug=False):
 
     #===== recenter
     method_args = dict(plot=False, full_output=True, fwhm=4.2, 
-                       recenter_median=True, subframesize=81, imlib='opencv', 
+                       recenter_median=True, subframesize=49, imlib='opencv', 
                        interpolation='lanczos4')
     do_recenter(method, ds.cube, randax, randay, errormsg=errormsg, debug=debug,
                 mse=0.2*n_frames, **method_args)

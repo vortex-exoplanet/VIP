@@ -70,7 +70,8 @@ def _estimate_snr_fc(a, b, level, n_fc, cube, psf, angle_list, fwhm, algo,
                                  verbose=False, **algo_dict)
                 frame_fin=np.zeros((cube.shape[-2],cube.shape[-1]))
                 indices=get_annulus_segments(frame_fin, 0,
-                                radius_int+n_annuli*annulus_width,1)
+                                             radius_int+n_annuli*annulus_width,
+                                             1)
                 sub=(frame_fin.shape[0]-frame_temp.shape[0])//2
                 frame_fin[indices[0][0],
                           indices[0][1]]=frame_temp[indices[0][0]-sub,
@@ -556,7 +557,7 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
         step of 5 pixels
     ini_contrast: list or ndarray
         Initial contrast for the range of angular separations included in 
-        an_dist.The number of initial contrasts shoul be equivalent to the 
+        an_dist. The number of initial contrasts shoul be equivalent to the 
         number of angular separations. Default is None which corresponds to the
         mean contrast achieved with the RSM approach (Dahlqvist et al. 2020)
         applied to the SHARDS survey (using the VLT/SPHERE instrument). One 

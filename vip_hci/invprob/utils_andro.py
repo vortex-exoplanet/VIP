@@ -332,4 +332,3 @@ def subpixel_shift(image, xshift, yshift):
     shifted_image = np.fft.ifft2(image_ft * fact).real
 
     return shifted_image
-

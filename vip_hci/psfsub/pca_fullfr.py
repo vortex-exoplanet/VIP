@@ -90,12 +90,12 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
 
         * ADI (``cube`` is a 3d array): if an int is provided, ``ncomp`` is the
           number of PCs extracted from ``cube`` itself. If ``ncomp`` is a float
-          in the interval (0, 1] then it corresponds to the desired cumulative
+          in the interval [0, 1] then it corresponds to the desired cumulative
           explained variance ratio (the corresponding number of components is
           estimated). If ``ncomp`` is a tuple of two integers, then it
           corresponds to an interval of PCs in which final residual frames are
           computed (optionally, if a tuple of 3 integers is passed, the third
-          value is the step). When``source_xy`` is not None, then the S/Ns
+          value is the step). When ``source_xy`` is not None, then the S/Ns
           (mean value in a 1xFWHM circular aperture) of the given
           (X,Y) coordinates are computed.
 
@@ -136,34 +136,34 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
         Switch for the SVD method/library to be used.
 
-        ``lapack``: uses the LAPACK linear algebra library through Numpy
+        * ``lapack``: uses the LAPACK linear algebra library through Numpy
         and it is the most conventional way of computing the SVD
         (deterministic result computed on CPU).
 
-        ``arpack``: uses the ARPACK Fortran libraries accessible through
+        * ``arpack``: uses the ARPACK Fortran libraries accessible through
         Scipy (computation on CPU).
 
-        ``eigen``: computes the singular vectors through the
+        * ``eigen``: computes the singular vectors through the
         eigendecomposition of the covariance M.M' (computation on CPU).
 
-        ``randsvd``: uses the randomized_svd algorithm implemented in
+        * ``randsvd``: uses the randomized_svd algorithm implemented in
         Sklearn (computation on CPU).
 
-        ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+        * ``cupy``: uses the Cupy library for GPU computation of the SVD as in
         the LAPACK version. `
 
-        `eigencupy``: offers the same method as with the ``eigen`` option
+        * ``eigencupy``: offers the same method as with the ``eigen`` option
         but on GPU (through Cupy).
 
-        ``randcupy``: is an adaptation of the randomized_svd algorithm,
+        * ``randcupy``: is an adaptation of the randomized_svd algorithm,
         where all the computations are done on a GPU (through Cupy). `
 
-        `pytorch``: uses the Pytorch library for GPU computation of the SVD.
+        * ``pytorch``: uses the Pytorch library for GPU computation of the SVD.
 
-        ``eigenpytorch``: offers the same method as with the ``eigen``
+        * ``eigenpytorch``: offers the same method as with the ``eigen``
         option but on GPU (through Pytorch).
 
-        ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+        * ``randpytorch``: is an adaptation of the randomized_svd algorithm,
         where all the linear algebra computations are done on a GPU
         (through Pytorch).
 
@@ -172,14 +172,14 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
         function. If set to None, the input matrix is left untouched. Otherwise:
 
-        ``temp-mean``: temporal px-wise mean is subtracted.
+        * ``temp-mean``: temporal px-wise mean is subtracted.
 
-        ``spat-mean``: spatial mean is subtracted.
+        * ``spat-mean``: spatial mean is subtracted.
 
-        ``temp-standard``: temporal mean centering plus scaling pixel values
+        * ``temp-standard``: temporal mean centering plus scaling pixel values
         to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES!
 
-        ``spat-standard``: spatial mean centering plus scaling pixel values
+        * ``spat-standard``: spatial mean centering plus scaling pixel values
         to unit variance.
 
     mask_center_px : None or int
@@ -201,12 +201,12 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         Changes the way the 4d cubes (ADI+mSDI) are processed. Basically it
         determines whether a single or double pass PCA is going to be computed.
 
-        ``single``: the multi-spectral frames are rescaled wrt the largest
+        * ``single``: the multi-spectral frames are rescaled wrt the largest
         wavelength to align the speckles and all the frames (n_channels *
         n_adiframes) are processed with a single PCA low-rank approximation.
 
-        ``double``: a first stage is run on the rescaled spectral frames, and a
-        second PCA frame is run on the residuals in an ADI fashion.
+        * ``double``: a first stage is run on the rescaled spectral frames, and 
+        a second PCA frame is run on the residuals in an ADI fashion.
 
     crop_ifs: bool, optional
         [adimsdi='single'] If True cube is cropped at the moment of frame

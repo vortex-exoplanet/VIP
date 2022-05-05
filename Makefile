@@ -30,6 +30,10 @@ coverage:
 test:
 	pytest --cov=vip_hci/ --cov-report=xml
 
+pep8-format:
+	autopep8 --in-place --aggressive vip_hci/*.py
+	autopep8 --in-place --aggressive tests/*.py
+
 clean:
 	find . -name '*.pyc' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -rf {} +

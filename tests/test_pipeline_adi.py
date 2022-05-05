@@ -4,6 +4,7 @@ Tests for the post-processing pipeline, using the functional API.
 """
 
 import copy
+from multiprocessing import cpu_count
 import vip_hci as vip
 from .helpers import np, parametrize, fixture
 
@@ -119,11 +120,13 @@ def algo_fast_paco_parallel(ds):
                                    psf=ds.psf,
                                    pixscale=ds.px_scale,
                                    fwhm=ds.fwhm*ds.px_scale)
-    snr, flux = fp.run(cpu=2)
+    snr, flux = fp.run(cpu=cpu_count()//2)
     return snr
 
 # def algo_full_paco(ds):
-#    fp = vip.invprob.paco.FullPACO(cube = ds.cube, angles = ds.angles, psf = ds.psf, pixscale = ds.px_scale, fwhm = ds.fwhm)
+#    fp = vip.invprob.paco.FullPACO(cube = ds.cube, angles = ds.angles, 
+#                                   psf = ds.psf, pixscale = ds.px_scale, 
+#                                   fwhm = ds.fwhm)
 #    snr, flux = fp.run(cpu=1)
 #    return snr
 
@@ -131,7 +134,7 @@ def algo_fast_paco_parallel(ds):
 def algo_fmmf_klip(ds):
     res = vip.invprob.fmmf(ds.cube[:, :-1, :-1],
                            ds.angles, ds.psf, ds.fwhm, min_r=25,
-                           max_r=35, model='KLIP')
+                           max_r=35, model='KLIP', nproc=None)
     flux_m, snr_n = res
     return snr_n
 
@@ -139,7 +142,7 @@ def algo_fmmf_klip(ds):
 def algo_fmmf_loci(ds):
     res = vip.invprob.fmmf(ds.cube[:, :-1, :-1],
                            ds.angles, ds.psf, ds.fwhm, min_r=25,
-                           max_r=35, model='LOCI')
+                           max_r=35, model='LOCI', nproc=None)
     flux_m, snr_n = res
     return snr_n
 

@@ -123,7 +123,7 @@ def test_badpix_clump():
 
 def test_badpix_ann():
     sz = (24, 24)
-    idx0 = 10
+    idx0 = 8
     idx1 = 20
     m0 = 0
     s0 = 1
@@ -148,7 +148,7 @@ def test_badpix_ann():
 
     # protect mask+half_res_y
     cube_c, bpm, _ = cube_fix_badpix_annuli(cube, fwhm=[4, 4.5], sig=5.,
-                                            protect_mask=5, half_res_y=True,
+                                            protect_mask=7, half_res_y=True,
                                             full_output=True)
 
     assert bpm[0, idx0, idx0] == 0
@@ -185,17 +185,27 @@ def test_badpix_ifs():
     for i in range(n_ch):
         cube[i] = fluxes[i]*create_synth_psf(shape=(sz, sz), model='moff',
                                              fwhm=fwhms[i])
+        cube[i] += np.random.normal(loc=m0, scale=s0, size=(sz,sz))
+        cube[i, idx0, idx0] = -1200
+        cube[i, idx1, idx1] = -1800
+        cube[i, idx1+1, idx1] = -1959
+        cube[i, idx1+1, idx1+1] = -1960
+
+    # identify bad pixels
+    cube_c, bpm, _ = cube_fix_badpix_ifs(cube, lbdas=fwhms/2., clumps=False,
+                                         sigma_clip=5., num_neig=9, 
+                                         full_output=True)
+    assert np.allclose(bpm[:, idx0, idx0], np.ones(n_ch))
+    assert np.allclose(bpm[:, idx1, idx1], np.ones(n_ch))
+
+    for i in range(n_ch):
+        cube[i] = fluxes[i]*create_synth_psf(shape=(sz, sz), model='moff',
+                                             fwhm=fwhms[i])
         cube[i] += np.random.normal(loc=m0, scale=s0, size=(sz, sz))
         cube[i, idx0, idx0] = -600
         cube[i, idx1, idx1] = -700
         cube[i, idx1+1, idx1] = -559
         cube[i, idx1+1, idx1+1] = -660
-
-    # identify bad pixels
-    cube_c, bpm, _ = cube_fix_badpix_ifs(cube, lbdas=fwhms/2., clumps=False,
-                                         sigma_clip=5., full_output=True)
-    assert np.allclose(bpm[:, idx0, idx0], np.ones(n_ch))
-    assert np.allclose(bpm[:, idx1, idx1], np.ones(n_ch))
 
     # protect mask + clumps
     cube_c, bpm, _ = cube_fix_badpix_ifs(cube, lbdas=fwhms/2., clumps=True,

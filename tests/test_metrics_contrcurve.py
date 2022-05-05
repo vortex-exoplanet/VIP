@@ -65,9 +65,9 @@ def test_contrast_curve(get_cube):
 
     # check that at 0.2'' 5-sigma cc: Student statistics > Gaussian statistics
     cc_stu = student_cc[idx_r]
-    if cc_stu < 4e-3*sigma_corr and cc_stu > cc_gau:
+    if cc_stu < 4e-3*corr_r and cc_stu > cc_gau:
         check = True
-    elif cc_stu < 4e-3*sigma_corr:
+    elif cc_stu < 4e-3*corr_r:
         check = False
         msg = "Student-statistics cc smaller than Gaussian statistics cc"
     else:
@@ -89,9 +89,9 @@ def test_contrast_curve(get_cube):
 
     # check that at 0.4'' 5-sigma cc: Student statistics > Gaussian statistics
     cc_stu = student_cc[idx_r]
-    if cc_stu < 3e-4*sigma_corr and cc_stu > cc_gau:
+    if cc_stu < 3e-4*corr_r and cc_stu > cc_gau:
         check = True
-    elif cc_stu < 3e-4*sigma_corr:
+    elif cc_stu < 3e-4*corr_r:
         check = False
         msg = "Student-statistics cc smaller than Gaussian statistics cc"
     else:

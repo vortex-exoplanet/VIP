@@ -32,6 +32,7 @@ test:
 
 pep8-format:
 	autopep8 --in-place --aggressive vip_hci/*.py
+	autopep8 --in-place --aggressive vip_hci/*/*.py
 	autopep8 --in-place --aggressive tests/*.py
 
 clean:

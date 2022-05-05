@@ -21,8 +21,8 @@ functionalities:
 - sky subtraction (PCA method).
 
 Astronomical calibration functionalities like flat-fielding and dark-sky
-subtraction, in spite of their simplicity were not included in VIP because of 
-the heterogeneity of the datasets coming from different observatories (each 
+subtraction, in spite of their simplicity were not included in VIP because of
+the heterogeneity of the datasets coming from different observatories (each
 having different data storage and headers). You can perform this in python in
 procedures of a few lines or using dedicated instrument pipelines such as
 esorex (ESO instruments)."""

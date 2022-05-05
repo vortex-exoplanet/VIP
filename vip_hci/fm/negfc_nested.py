@@ -6,7 +6,6 @@ nested sampling (``nestle``).
 """
 
 
-
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens',
 __all__ = ['nested_negfc_sampling',
            'nested_sampling_results']
@@ -20,13 +19,14 @@ from .negfc_mcmc import lnlike, confidence, show_walk_plot
 from .negfc_fmerit import get_mu_and_sigma
 from ..psfsub import pca_annulus
 
-def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True, 
+
+def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
                           sigma='spe+pho', fmerit='sum', annulus_width=8,
                           aperture_radius=1, ncomp=10, scaling=None,
-                          svd_mode='lapack', cube_ref=None, collapse='median', 
-                          algo=pca_annulus, delta_rot=1, algo_options={}, 
-                          weights=None, w=(5, 5, 200), method='single', 
-                          npoints=100, dlogz=0.1, decline_factor=None, 
+                          svd_mode='lapack', cube_ref=None, collapse='median',
+                          algo=pca_annulus, delta_rot=1, algo_options={},
+                          weights=None, w=(5, 5, 200), method='single',
+                          npoints=100, dlogz=0.1, decline_factor=None,
                           rstate=None, verbose=True):
     """ Runs a nested sampling algorithm in order to determine the position and
     the flux of the planet using the 'Negative Fake Companion' technique. The
@@ -46,28 +46,28 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
     angs: numpy.array
         The parallactic angle vector.
     psfn: numpy 2D or 3D array
-        Normalised PSF template used for negative fake companion injection. 
-        The PSF must be centered and the flux in a 1xFWHM aperture must equal 1 
+        Normalised PSF template used for negative fake companion injection.
+        The PSF must be centered and the flux in a 1xFWHM aperture must equal 1
         (use ``vip_hci.metrics.normalize_psf``).
         If the input cube is 3D and a 3D array is provided, the first dimension
-        must match for both cubes. This can be useful if the star was 
+        must match for both cubes. This can be useful if the star was
         unsaturated and conditions were variable.
         If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
         the first dimension(s) must match those of the input cube.
     fwhm : float
         The FHWM in pixels.
     mu_sigma: tuple of 2 floats or bool, opt
-        If set to None: not used, and falls back to original version of the 
+        If set to None: not used, and falls back to original version of the
         algorithm, using fmerit (Wertz et al. 2017).
-        If a tuple of 2 elements: should be the mean and standard deviation of 
+        If a tuple of 2 elements: should be the mean and standard deviation of
         pixel intensities in an annulus centered on the location of the
         companion candidate, excluding the area directly adjacent to the CC.
-        If set to anything else, but None/False/tuple: will compute said mean 
+        If set to anything else, but None/False/tuple: will compute said mean
         and standard deviation automatically.
         These values will then be used in the log-probability of the MCMC.
     sigma: str, opt
-        Sets the type of noise to be included as sigma^2 in the log-probability 
-        expression. Choice between 'pho' for photon (Poisson) noise, 'spe' for 
+        Sets the type of noise to be included as sigma^2 in the log-probability
+        expression. Choice between 'pho' for photon (Poisson) noise, 'spe' for
         residual (mostly whitened) speckle noise, or 'spe+pho' for both.
     force_rPA: bool, optional
         Whether to only search for optimal flux, provided (r,PA).
@@ -97,10 +97,10 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
         merit (instead of a single final frame).
     algo_options: dict, opt
         Dictionary with additional parameters for the algorithm (e.g. tol,
-        min_frames_lib, max_frames_lib)    
+        min_frames_lib, max_frames_lib)
     weights : 1d array, optional
         If provided, the negative fake companion fluxes will be scaled according
-        to these weights before injection in the cube. Can reflect changes in 
+        to these weights before injection in the cube. Can reflect changes in
         the observing conditions throughout the sequence.
     w : tuple of length 3
         The size of the bounds (around the initial state ``init``) for each
@@ -197,9 +197,9 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
     """
 
     # calculate mu_sigma
-    mu_sig = get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, 
-                              fwhm, init[0], init[1], cube_ref=cube_ref, 
-                              svd_mode=svd_mode, scaling=scaling, algo=algo, 
+    mu_sig = get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
+                              fwhm, init[0], init[1], cube_ref=cube_ref,
+                              svd_mode=svd_mode, scaling=scaling, algo=algo,
                               delta_rot=delta_rot, collapse=collapse,
                               algo_options=algo_options)
     # Measure mu and sigma once in the annulus (instead of each MCMC step)
@@ -211,40 +211,39 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
         mu_sigma = mu_sig
         if verbose:
             msg = "The mean and stddev in the annulus at the radius of the "
-            msg+= "companion (excluding the PA area directly adjacent to it)"
-            msg+=" are {:.2f} and {:.2f} respectively."
-            print(msg.format(mu_sigma[0],mu_sigma[1]))
+            msg += "companion (excluding the PA area directly adjacent to it)"
+            msg += " are {:.2f} and {:.2f} respectively."
+            print(msg.format(mu_sigma[0], mu_sigma[1]))
     else:
-        mu_sigma = mu_sig[0] # just take mean
-        
+        mu_sigma = mu_sig[0]  # just take mean
 
     def prior_transform(x):
         """
-        Computes the transformation from the unit distribution `[0, 1]` to 
+        Computes the transformation from the unit distribution `[0, 1]` to
         parameter space.
-        
+
         The default prior bounds are
             radius: (r - w[0], r + w[0])
             theta: (theta - w[1], theta + w[1])
             flux: (f - w[2], f + w[3])
         The default distributions used are
         radius: Uniform distribution transformed into polar coordinates
-            This distribution assumes uniform distribution for the (x,y) 
+            This distribution assumes uniform distribution for the (x,y)
             coordinates transformed to polar coordinates.
         theta: Uniform distribution
-            This distribution is derived the same as the radial distribution, 
-            but there is no change on the prior for theta after the 
+            This distribution is derived the same as the radial distribution,
+            but there is no change on the prior for theta after the
             change-of-variables transformation.
         flux: Poisson-invariant scale distribution
             This distribution is the Jeffrey's prior for Poisson data
         Notes
         -----
-        The prior transform function is used to specify the Bayesian prior for 
-        the problem, in a round-about way. It is a transformation from a space 
-        where variables are independently and uniformly distributed between 0 
-        and 1 to the parameter space of interest. For independent parameters, 
-        this would be the product of the inverse cumulative distribution 
-        function (also known as the percent point function or quantile function) 
+        The prior transform function is used to specify the Bayesian prior for
+        the problem, in a round-about way. It is a transformation from a space
+        where variables are independently and uniformly distributed between 0
+        and 1 to the parameter space of interest. For independent parameters,
+        this would be the product of the inverse cumulative distribution
+        function (also known as the percent point function or quantile function)
         for each parameter.
         http://kbarbary.github.io/nestle/prior.html
         """
@@ -263,17 +262,18 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
         return np.array([r, t, f])
 
     def f(param):
-        return lnlike(param=param, cube=cube, angs=angs, psf_norm=psfn, 
+        return lnlike(param=param, cube=cube, angs=angs, psf_norm=psfn,
                       fwhm=fwhm, annulus_width=annulus_width,
                       aperture_radius=aperture_radius, initial_state=init,
                       cube_ref=cube_ref, svd_mode=svd_mode, scaling=scaling,
-                      algo=algo, delta_rot=delta_rot, fmerit=fmerit, 
-                      mu_sigma=mu_sigma, sigma=sigma, ncomp=ncomp, 
-                      collapse=collapse, algo_options=algo_options, 
+                      algo=algo, delta_rot=delta_rot, fmerit=fmerit,
+                      mu_sigma=mu_sigma, sigma=sigma, ncomp=ncomp,
+                      collapse=collapse, algo_options=algo_options,
                       weights=weights)
 
     # -------------------------------------------------------------------------
-    if verbose:  start = time_ini()
+    if verbose:
+        start = time_ini()
 
     if verbose:
         print('Prior bounds on parameters:')
@@ -282,7 +282,7 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
         print('Flux [{},{}]'.format(init[2] - w[2], init[2] + w[2]))
         print('\nUsing {} active points'.format(npoints))
 
-    res = nestle.sample(f, prior_transform, ndim=3, method=method, 
+    res = nestle.sample(f, prior_transform, ndim=3, method=method,
                         npoints=npoints, rstate=rstate, dlogz=dlogz,
                         decline_factor=decline_factor)
 
@@ -295,9 +295,9 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
 
 def nested_sampling_results(ns_object, burnin=0.4, bins=None, cfd=68.27,
                             save=False, output_dir='/', plot=False):
-    """ Shows the results of the Nested Sampling, summary, parameters with 
+    """ Shows the results of the Nested Sampling, summary, parameters with
     errors, walk and corner plots.
-    
+
     Parameters
     ----------
     ns_object: numpy.array
@@ -311,17 +311,17 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, cfd=68.27,
     save: boolean, default: False
         If True, a pdf file is created.
     output_dir: str, optional
-        The name of the output directory which contains the output files in the 
-        case  ``save`` is True. 
+        The name of the output directory which contains the output files in the
+        case  ``save`` is True.
     plot: bool, optional
         Whether to show the plots (instead of saving them).
-                    
+
     Returns
     -------
     final_res: numpy ndarray
          Best-fit parameters and uncertainties (corresponding to 68% confidence
          interval). Dimensions: nparams x 2.
-         
+
     """
     res = ns_object
     nsamples = res.samples.shape[0]
@@ -347,16 +347,16 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, cfd=68.27,
                    linestyles='dotted')
         if plot:
             plt.show()
-    
+
         plt.savefig(output_dir+'Nested_results.pdf')
-            
+
         print("\nWalk plots before the burnin")
         show_walk_plot(np.expand_dims(res.samples, axis=0))
         if burnin > 0:
             print("\nWalk plots after the burnin")
             show_walk_plot(np.expand_dims(res.samples[indburnin:], axis=0))
         plt.savefig(output_dir+'Nested_walk_plots.pdf')
-        
+
     mean, cov = nestle.mean_and_cov(res.samples[indburnin:],
                                     res.weights[indburnin:])
     print("\nWeighted mean +- sqrt(covariance)")
@@ -374,14 +374,17 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, cfd=68.27,
             f.write('----------------------------------\n ')
             f.write(' \n')
             f.write("\nWeighted mean +- sqrt(covariance)\n")
-            f.write("Radius = {:.3f} +/- {:.3f}\n".format(mean[0], np.sqrt(cov[0, 0])))
-            f.write("Theta = {:.3f} +/- {:.3f}\n".format(mean[1], np.sqrt(cov[1, 1])))
-            f.write("Flux = {:.3f} +/- {:.3f}\n".format(mean[2], np.sqrt(cov[2, 2])))
-                        
+            f.write(
+                "Radius = {:.3f} +/- {:.3f}\n".format(mean[0], np.sqrt(cov[0, 0])))
+            f.write(
+                "Theta = {:.3f} +/- {:.3f}\n".format(mean[1], np.sqrt(cov[1, 1])))
+            f.write(
+                "Flux = {:.3f} +/- {:.3f}\n".format(mean[2], np.sqrt(cov[2, 2])))
+
     if bins is None:
         bins = int(np.sqrt(res.samples[indburnin:].shape[0]))
         print("\nHist bins =", bins)
-    
+
     if save or plot:
         ranges = None
         fig = corner.corner(res.samples[indburnin:], bins=bins,
@@ -391,13 +394,13 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, cfd=68.27,
         fig.set_size_inches(8, 8)
     if save:
         plt.savefig(output_dir+'Nested_corner.pdf')
-            
+
     print('\nConfidence intervals')
     if save or plot:
         _ = confidence(res.samples[indburnin:], cfd=68, bins=bins,
                        weights=res.weights[indburnin:],
                        gaussian_fit=True, verbose=True, save=False)
-                   
+
     if save:
         plt.savefig(output_dir+'Nested_confi_hist_flux_r_theta_gaussfit.pdf')
 

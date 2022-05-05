@@ -40,12 +40,12 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
     scale_list : numpy ndarray, 1d, optional
-        If provided, triggers mSDI reduction. These should be the scaling 
+        If provided, triggers mSDI reduction. These should be the scaling
         factors used to re-scale the spectral channels and align the speckles
-        in case of IFS data (ADI+mSDI cube). Usually, these can be approximated 
-        by the last channel wavelength divided by the other wavelengths in the 
+        in case of IFS data (ADI+mSDI cube). Usually, these can be approximated
+        by the last channel wavelength divided by the other wavelengths in the
         cube (more thorough approaches can be used to get the scaling factors,
-        e.g. with ``vip_hci.preproc.find_scal_vector``). 
+        e.g. with ``vip_hci.preproc.find_scal_vector``).
     fwhm : float, optional
         Size of the FHWM in pixels. Default is 4.
     metric : str, optional
@@ -118,8 +118,8 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
         Whether to return the final median combined image only or with other
         intermediate arrays.
     rot_options: dictionary, optional
-        Dictionary with optional keyword values for "border_mode", "mask_val",  
-        "edge_blend", "interp_zeros", "ker" (see documentation of 
+        Dictionary with optional keyword values for "border_mode", "mask_val",
+        "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
 
     Returns
@@ -214,8 +214,8 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
                     print('{} ADI frames'.format(n))
                     timing(start_time)
 
-                cube_der = cube_derotate(cube_out, angle_list, imlib=imlib, 
-                                         interpolation=interpolation, 
+                cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
+                                         interpolation=interpolation,
                                          nproc=nproc, **rot_options)
                 frame = cube_collapse(cube_der, mode=collapse)
 
@@ -232,7 +232,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
                                    dist_threshold, delta_rot, radius_int, asize,
                                    n_segments, nproc, solver, tol,
                                    optim_scale_fact, imlib, interpolation,
-                                   collapse, verbose, full_output, 
+                                   collapse, verbose, full_output,
                                    **rot_options)
                 if full_output:
                     cube_out, cube_der, frame = res
@@ -339,7 +339,7 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
         return frame_der_median
 
 
-def _leastsq_patch(ayxyx,  pa_thresholds, angles, metric, dist_threshold,
+def _leastsq_patch(ayxyx, pa_thresholds, angles, metric, dist_threshold,
                    solver, tol):
     """ Helper function for _leastsq_ann.
 
@@ -348,15 +348,15 @@ def _leastsq_patch(ayxyx,  pa_thresholds, angles, metric, dist_threshold,
     axyxy : tuple
         This tuple contains all per-segment data.
     pa_thresholds : list of list
-        This is a per-annulus list of thresholds. 
+        This is a per-annulus list of thresholds.
     angles, metric, dist_threshold, solver, tol
         These parameters are the same for each annulus or segment.
     """
     iann, yy, xx, yy_opt, xx_opt = ayxyx
     pa_threshold = pa_thresholds[iann]
-    
+
     values = ARRAY[:, yy, xx]  # n_frames x n_pxs_segment
-   
+
     values_opt = ARRAY[:, yy_opt, xx_opt]
 
     n_frames = ARRAY.shape[0]
@@ -373,7 +373,7 @@ def _leastsq_patch(ayxyx,  pa_thresholds, angles, metric, dist_threshold,
             mat_dists_ann[i][ind_fr_i] = mat_dists_ann_full[i][ind_fr_i]
     else:
         mat_dists_ann = mat_dists_ann_full
-        
+
     threshold = np.percentile(mat_dists_ann[mat_dists_ann != 0], dist_threshold)
     mat_dists_ann[mat_dists_ann > threshold] = np.nan
     mat_dists_ann[mat_dists_ann == 0] = np.nan
@@ -482,7 +482,7 @@ def _leastsq_patch_ifs(nseg, indices, indices_opt, scal, ann_center, fwhm,
 
     yy_opt = indices_opt[nseg][0]
     xx_opt = indices_opt[nseg][0]
-    values_opt = MULTISPEC_FR[:,  yy_opt, xx_opt]
+    values_opt = MULTISPEC_FR[:, yy_opt, xx_opt]
 
     n_wls = ARRAY.shape[0]
 
@@ -531,4 +531,3 @@ def _leastsq_patch_ifs(nseg, indices, indices_opt, scal, ann_center, fwhm,
         matrix_res[z] = values[z] - recon
 
     return matrix_res
-

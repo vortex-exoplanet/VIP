@@ -44,7 +44,7 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
         Value to put instead of the masked out pixels.
     mode : {'in', 'out'}, optional
         When set to 'in' then the pixels inside the radius are set to
-        ``fillwith``. When set to 'out' the pixels outside the circular mask 
+        ``fillwith``. When set to 'out' the pixels outside the circular mask
         are set to ``fillwith``.
 
     Returns
@@ -793,27 +793,27 @@ def reshape_matrix(array, y, x):
 def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
              mode='val', plot=False):
     """
-    Return a mask corresponding to the region of interest for a test point 
-    source as defined in Gebhardt et al. (2021). 
+    Return a mask corresponding to the region of interest for a test point
+    source as defined in Gebhardt et al. (2021).
 
-    Given a frame and a location of interest with coordinates xy=(cx,cy), 
-    the mask consists of all pixels from three different regions with respect 
+    Given a frame and a location of interest with coordinates xy=(cx,cy),
+    the mask consists of all pixels from three different regions with respect
     to xy:
 
-        (r1) Exclusion region: Pixels from the region of interest. These are 
+        (r1) Exclusion region: Pixels from the region of interest. These are
                                excluded in the final mask.
         (r2) Local region: Pixels around xy in a circular fashion.
-        (r3) Symmetric local region: Pixels around the (anti)symmetric xy with 
-                                     respect to the star location. It is also 
-                                     defined in a circular fashion with same 
+        (r3) Symmetric local region: Pixels around the (anti)symmetric xy with
+                                     respect to the star location. It is also
+                                     defined in a circular fashion with same
                                      radius as "local region."
-        (r4) Annulus region: Pixels from the annulus where xy is located. 
+        (r4) Annulus region: Pixels from the annulus where xy is located.
 
-    The goal of this mask is to disentangle the expected structure of the 
+    The goal of this mask is to disentangle the expected structure of the
     speckle pattern. Gebhardt et al.(2021) comment that "r2 is chosen to
-    capture any "local" effects around xy due to the instrument. r3 is chosen 
-    symmetrically opposite of xy because if there is a speckle at xy, there 
-    should also be an (anti-)speckle at r2. r4 is used because we know that the 
+    capture any "local" effects around xy due to the instrument. r3 is chosen
+    symmetrically opposite of xy because if there is a speckle at xy, there
+    should also be an (anti-)speckle at r2. r4 is used because we know that the
     systematic noise significantly depends on the radial variable."
 
     Parameters
@@ -830,7 +830,7 @@ def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
         Radius (in pxs) of the circular regions r2 and r3 on description.
         Default is 8.
     mode : {'bool', 'val', 'mask', 'ind'}, optional
-        Controls what is returned: array with the mask applied, values of the 
+        Controls what is returned: array with the mask applied, values of the
         pixels in the mask region or indices of selected pixels of the mask.
         Default is 'mask'.
     plot: bool, optional

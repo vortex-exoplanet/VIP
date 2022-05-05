@@ -54,20 +54,20 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         the filter and the Shannon wavelength). Note that in ANDROMEDA everything
         is coded in lambda/D unit so this is an important parameter.
         For instance, it is computed as (value above 1 and usually below 3):
-            
+
         lambda = 3.8e-6  : Imaging wavelength [m]
-        
+
         diam_tel = 8.0   : Telescope diameter [m]
-        
+
         pixscale = 12.25 : Plate scale [mas/px]
-        
-        PIXSCALE_NYQ = (0.5*lambda/diam_tel)/pi*180*3600*1e3 : Nyquist plate 
+
+        PIXSCALE_NYQ = (0.5*lambda/diam_tel)/pi*180*3600*1e3 : Nyquist plate
         scale [mas/px]
-        
+
         oversampling = PIXSCALE_NYQUIST / PIXSCALE : Oversampling factor
-        
+
         IDL parameter: ``OVERSAMPLING_1_INPUT``
-        
+
     angles : numpy ndarray
         List of parallactic angles associated with each frame in ``cube``. Note
         that, compared to the IDL version, the PA convention is different: If

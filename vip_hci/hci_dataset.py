@@ -46,6 +46,7 @@ class Frame(object):
         The FWHM associated with this dataset (instrument dependent). Required
         for several methods (operations on the cube).
     """
+
     def __init__(self, data, hdu=0, fwhm=None):
         """ Frame object initialization. """
         if isinstance(data, str):
@@ -222,7 +223,8 @@ class Frame(object):
         self.data = frame_rotate(self.data, angle, imlib, interpolation, cxy)
         print('Image successfully rotated')
 
-    def shift(self, shift_y, shift_x, imlib='vip-fft', interpolation='lanczos4'):
+    def shift(self, shift_y, shift_x, imlib='vip-fft',
+              interpolation='lanczos4'):
         """ Shifting the image.
 
         Parameters
@@ -514,26 +516,26 @@ class Dataset(Saveable):
             fashion. Only useful if the cube is significantly large (frame size
             and number of frames).
         border_mode : str, optional
-            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            See the documentation of the ``vip_hci.preproc.frame_rotate``
             function.
         mask_val : float, optional
-            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            See the documentation of the ``vip_hci.preproc.frame_rotate``
             function.
         edge_blend : str, optional
-            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            See the documentation of the ``vip_hci.preproc.frame_rotate``
             function.
         interp_zeros : str, optional
-            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            See the documentation of the ``vip_hci.preproc.frame_rotate``
             function.
         ker: int, optional
-            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            See the documentation of the ``vip_hci.preproc.frame_rotate``
             function.
         """
         if self.angles is None:
             raise ValueError('Parallactic angles vector has not been set')
 
         self.cube = cube_derotate(self.cube, self.angles, imlib,
-                                  interpolation, cxy, nproc, border_mode, 
+                                  interpolation, cxy, nproc, border_mode,
                                   mask_val, edge_blend, interp_zeros, ker)
         print('Cube successfully derotated')
 
@@ -569,11 +571,11 @@ class Dataset(Saveable):
         """
         if method == 'hp':
             self.cube = cube_filter_highpass(self.cube, mode, median_size,
-                                              kernel_size, fwhm_size,
-                                              btw_cutoff, btw_order, verbose)
+                                             kernel_size, fwhm_size,
+                                             btw_cutoff, btw_order, verbose)
         elif method == 'lp':
             self.cube = cube_filter_lowpass(self.cube, mode, median_size,
-                                             fwhm_size, gauss_mode, verbose)
+                                            fwhm_size, gauss_mode, verbose)
         else:
             raise ValueError('Filtering mode not recognized')
 
@@ -1151,20 +1153,20 @@ class Dataset(Saveable):
                 frame_ref = 0
 
             self.good_indices, _ = cube_detect_badfr_correlation(tcube,
-                                        frame_ref, crop_size, dist, percentile,
-                                        plot, verbose)
+                                                                 frame_ref, crop_size, dist, percentile,
+                                                                 plot, verbose)
         elif method == 'pxstats':
             self.good_indices, _ = cube_detect_badfr_pxstats(tcube, stat_region,
-                                        inner_radius, width, top_sigma,
-                                        low_sigma, window, plot, verbose)
+                                                             inner_radius, width, top_sigma,
+                                                             low_sigma, window, plot, verbose)
         elif method == 'ellip':
             if self.cube.ndim == 4:
                 fwhm = self.fwhm[lambda_ref]
             else:
                 fwhm = self.fwhm
             self.good_indices, _ = cube_detect_badfr_ellipticity(tcube, fwhm,
-                                        crop_size, roundlo, roundhi, plot,
-                                        verbose)
+                                                                 crop_size, roundlo, roundhi, plot,
+                                                                 verbose)
         else:
             raise ValueError('Bad frames detection method not recognized')
 

@@ -41,6 +41,6 @@ def test_badfr_pxstat():
     gind, bind = vip.preproc.cube_detect_badfr_pxstats(cube, in_radius=3,
                                                        width=3, window=None,
                                                        plot=False)
-    assert np.array_equal(gind, np.array([0,  1,  2,  3,  4,  5,  6,  9, 10,
+    assert np.array_equal(gind, np.array([0, 1, 2, 3, 4, 5, 6, 9, 10,
                                           11, 12, 13, 14, 15]))
     assert np.array_equal(bind, np.array([7, 8]))

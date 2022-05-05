@@ -136,7 +136,7 @@ def example_dataset_ifs_crop():
     cube = cube[-3:]
     angles = vip.fits.open_fits(f3).flatten()
     psf = vip.fits.open_fits(f2)
-    psf =psf[-3:]
+    psf = psf[-3:]
     wl = vip.fits.open_fits(f4)
     wl = wl[-3:]
 
@@ -187,9 +187,9 @@ def example_dataset_rdi():
     psf = vip.fits.open_fits(f2)
     # creating a variable flux screen
     scr = vip.var.create_synth_psf('moff', (101, 101), fwhm=50)
-    scrcu = np.array([scr * i for i in np.linspace(-1e2, 1e2, num=31)], 
+    scrcu = np.array([scr * i for i in np.linspace(-1e2, 1e2, num=31)],
                      dtype=np.float32)
-    
+
     # OLD: scaling ?!
     # upscaling (1.2) and taking half of the frames, reversing order
     #cube_upsc = cube_px_resampling(cube[::-1], 1.2, verbose=False)[::2]
@@ -201,9 +201,9 @@ def example_dataset_rdi():
     cube_rot = cube_rot[::2]
     cube_rot = np.flip(cube_rot, axis=1)
     cube_rot = np.flip(cube_rot, axis=2)
-    
+
     # cropping and adding the flux screen
-    cube_ref = cube_rot + scrcu    
+    cube_ref = cube_rot + scrcu
 
     # create dataset object
     dataset = vip.Dataset(cube, angles=angles, psf=psf, cuberef=cube_ref,

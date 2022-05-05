@@ -21,7 +21,7 @@ except ImportError:
     warnings.warn("Opencv python bindings are missing.", ImportWarning)
     no_opencv = True
 
-from scipy.ndimage.interpolation import geometric_transform, zoom
+from scipy.ndimage import geometric_transform, zoom
 from scipy.optimize import minimize
 from ..var import frame_center, get_square
 from .subsampling import cube_collapse
@@ -1015,7 +1015,7 @@ def scale_fft(array, scale, ori_dim=False):
     dim_pp = int(dim + 2*kf_io)
 
     if dim_pp > dim_p:
-        tmp = np.zeros((dim_pp, dim_pp), dtype=np.complex)
+        tmp = np.zeros((dim_pp, dim_pp), dtype=complex)
         tmp[(dim_pp-dim_p)//2:(dim_pp+dim_p)//2,
             (dim_pp-dim_p)//2:(dim_pp+dim_p)//2] = array_f
     else:

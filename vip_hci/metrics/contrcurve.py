@@ -13,7 +13,7 @@ __all__ = ['contrast_curve',
 import numpy as np
 import pandas as pd
 import photutils
-import inspect
+from inspect import getfullargspec
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy import stats
 from scipy.signal import savgol_filter
@@ -565,7 +565,7 @@ def throughput(cube, angle_list, psf_template, fwhm, algo, nbranch=1, theta=0,
         start_time = time_ini()
     # ***************************************************************************
     # Compute noise in concentric annuli on the "empty frame"
-    argl = inspect.getargspec(algo).args
+    argl = getfullargspec(algo).args
     if 'cube' in argl and 'angle_list' in argl and 'verbose' in argl:
         if 'fwhm' in argl:
             frame_nofc = algo(cube=array, angle_list=parangles, fwhm=fwhm_med,
@@ -664,7 +664,7 @@ def throughput(cube, angle_list, psf_template, fwhm, algo, nbranch=1, theta=0,
                     timing(start_time)
 
                 # ***************************************************************
-                arg = inspect.getargspec(algo).args
+                arg = getfullargspec(algo).args
                 if 'cube' in arg and 'angle_list' in arg and 'verbose' in arg:
                     if 'fwhm' in arg:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,
@@ -749,7 +749,7 @@ def throughput(cube, angle_list, psf_template, fwhm, algo, nbranch=1, theta=0,
                     timing(start_time)
 
                 # **************************************************************
-                arg = inspect.getargspec(algo).args
+                arg = getfullargspec(algo).args
                 if 'cube' in arg and 'angle_list' in arg and 'verbose' in arg:
                     if 'fwhm' in arg:
                         frame_fc = algo(cube=cube_fc, angle_list=parangles,

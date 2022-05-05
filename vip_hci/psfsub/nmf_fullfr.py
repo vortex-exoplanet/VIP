@@ -255,7 +255,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
 def _project_subtract(matrix, matrix_ref, ncomp, scaling, mask_center_px,
                       verbose, full_output, indices=None, frame=None,
                       matrix_sig=None, max_iter=100, random_state=None,
-                      init_svd='nndsvd', **kwargs):
+                      init_svd='nndsvda', **kwargs):
     """
     PCA projection and model PSF subtraction. Used as a helping function by
     each of the PCA modes (ADI, ADI+RDI, ADI+mSDI).

@@ -11,7 +11,7 @@ __all__ = ['clip_array',
 
 import numpy as np
 
-from scipy.ndimage.filters import generic_filter
+from scipy.ndimage import generic_filter
 from astropy.stats import median_absolute_deviation
 import warnings
 try:

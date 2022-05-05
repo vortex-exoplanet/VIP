@@ -10,7 +10,7 @@ __all__ = ['completeness_curve',
 
 from multiprocessing import cpu_count
 import numpy as np
-import inspect
+from inspect import getfullargspec
 from skimage.draw import disk
 from matplotlib import pyplot as plt
 from ..fm import cube_inject_companions, normalize_psf
@@ -41,7 +41,7 @@ def _estimate_snr_fc(a, b, level, n_fc, cube, psf, angle_list, fwhm, algo,
     else:
         cy, cx = frame_center(cube[0])
 
-    argl = inspect.getargspec(algo).args
+    argl = getfullargspec(algo).args
     if 'cube' in argl and 'angle_list' in argl and 'verbose' in argl:
         if 'fwhm' in argl:
             if 'radius_int' in argl:
@@ -277,7 +277,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
             idx = find_nearest(ini_rads, ad)
             ini_contrast.append(ini_cc[idx])
 
-    argl = inspect.getargspec(algo).args
+    argl = getfullargspec(algo).args
     if 'cube' in argl and 'angle_list' in argl and 'verbose' in argl:
         if 'fwhm' in argl:
             frame_fin = algo(cube=cube, angle_list=angle_list, fwhm=fwhm_med,
@@ -638,7 +638,7 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
             idx = find_nearest(ini_rads, ad)
             ini_contrast.append(ini_cc[idx])
 
-    argl = inspect.getargspec(algo).args
+    argl = getfullargspec(algo).args
     if 'cube' in argl and 'angle_list' in argl and 'verbose' in argl:
         if 'fwhm' in argl:
             frame_fin = algo(cube=cube, angle_list=angle_list, fwhm=fwhm_med,

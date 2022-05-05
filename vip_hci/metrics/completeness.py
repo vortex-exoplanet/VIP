@@ -87,7 +87,8 @@ def _estimate_snr_fc(a, b, level, n_fc, cube, psf, angle_list, fwhm, algo,
 
     cy, cx = frame_center(frame_fin)
       
-    mask = get_annulus_segments(frame_fin, a-(fwhm//2), fwhm+1, mode="mask")[0]
+    mask = get_annulus_segments(frame_fin, a-(fwhm_med//2), fwhm_med+1, 
+                                mode="mask")[0]
     mask = np.ma.make_mask(mask)
     yy, xx = np.where(mask)
             
@@ -298,7 +299,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
     psf = normalize_psf(psf, fwhm=fwhm, verbose=False,  size=min(new_psf_size, 
                                                                  psf.shape[1]))
     
-    for k in range(0, len(an_dist)):
+    for k in range(len(an_dist)):
     
         a=an_dist[k]
         level=ini_contrast[k]
@@ -482,10 +483,10 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
         
         plt.legend(lege, label, fancybox=True, fontsize='medium')
         plt.xlabel('Angular separation [arcsec]')
-        plt.ylabel(str(int(completeness*10))+' percent completeness contrast')
+        plt.ylabel(str(int(completeness*100))+'% completeness contrast')
         plt.grid('on', which='both', alpha=0.2, linestyle='solid')
         ax1.set_yscale('log')
-        ax1.set_xlim(0, np.max(an_dist_arcsec)+20)
+        ax1.set_xlim(0, 1.1*np.max(an_dist_arcsec))
 
         # Give a title to the contrast curve plot
         if object_name is not None:

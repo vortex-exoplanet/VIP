@@ -49,7 +49,6 @@ def test_completeness_curve(get_cube):
     msg = "Issue with completeness curve estimation"
     assert check, msg
 
-
 def test_completeness_map(get_cube):
     
     ds, starphot = get_cube

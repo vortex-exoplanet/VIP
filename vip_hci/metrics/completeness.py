@@ -517,12 +517,12 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
                      starphot=1, n_fc=20, snr_approximation=True, nproc=1,
                      algo_dict={'ncomp': 20}, verbose=True):
     """
-    Function allowing the computation of two dimensional (radius and azimuth)
-    completeness-basedcontrast with any psf-subtraction algorithm provided by
-    VIP. The code
-    relies on the approach proposed by Dahlqvist et al. (2021), itself inspired
-    by the framework developped by Jensen-Clem et al. (2018). It relies on the
-    computation of the contrast associated to a completeness level achieved at
+    Function allowing the computation of two dimensional (radius and 
+    completeness) contrast curves with any psf-subtraction algorithm provided by
+    VIP. The code relies on the approach proposed by Dahlqvist et al. (2021), 
+    itself inspired by the framework developped by Jensen-Clem et al. (2018). 
+    It relies on the computation of the contrast associated to a completeness 
+    level achieved at
     a level defined as the first false positive in the original SNR map
     (brightest speckle observed in the empty map). The computation of the
     completeness level associated to a contrast is done via the sequential
@@ -532,7 +532,7 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
     of three dimensional completeness map, with contrasts computed for multiple
     completeness level, allowing the reconstruction of the
     contrast/completeness distribution for every considered angular
-    separations.(for more details see Dahlqvist et al. 2021)
+    separations (for more details see Dahlqvist et al. 2021).
 
     Parameters
     ----------

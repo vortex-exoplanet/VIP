@@ -8,6 +8,7 @@ __author__ = 'C.H. Dahlqvist'
 __all__ = ['completeness_curve',
            'completeness_map']
 
+from multiprocessing import cpu_count
 import numpy as np
 import inspect
 from skimage.draw import disk
@@ -241,6 +242,8 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
         raise TypeError('Template PSF is not a frame (for ADI case)')
     if cube.ndim == 4 and psf.ndim != 3:
         raise TypeError('Template PSF is not a cube (for ADI+IFS case)')
+    if nproc is None:
+        nproc = cpu_count()//2
 
     if isinstance(fwhm, (np.ndarray, list)):
         fwhm_med = np.median(fwhm)
@@ -601,7 +604,9 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
         raise TypeError('Template PSF is not a frame (for ADI case)')
     if cube.ndim == 4 and psf.ndim != 3:
         raise TypeError('Template PSF is not a cube (for ADI+IFS case)')
-
+    if nproc is None:
+        nproc = cpu_count()//2
+        
     if isinstance(fwhm, (np.ndarray, list)):
         fwhm_med = np.median(fwhm)
     else:

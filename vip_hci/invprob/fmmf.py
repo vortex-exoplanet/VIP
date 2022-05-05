@@ -25,6 +25,7 @@ from skimage.draw import disk
 from ..var import get_annulus_segments, frame_center
 from ..preproc import frame_crop, cube_crop_frames, cube_derotate
 from ..config.utils_conf import pool_map, iterable
+from ..config import time_ini, timing
 from ..fm import cube_inject_companions
 from ..preproc.derotation import _find_indices_adi
 
@@ -124,7 +125,8 @@ def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
         the estimated standard deviation of the contrast).
 
     """
-
+    start_time = time_ini(verbose)
+    
     if crop >= 2*round(fwhm)+1:
         raise ValueError("Maximum cropsize should be lower or equal to two" +
                          " FWHM,please change accordingly the value of 'crop'")
@@ -147,6 +149,9 @@ def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
         indices = get_annulus_segments(cube[0], res_temp[2], 1)
         flux_matrix[indices[0][0], indices[0][1]] = res_temp[0]
         snr_matrix[indices[0][0], indices[0][1]] = res_temp[1]
+
+    if verbose:
+        timing(start_time)
 
     return flux_matrix, snr_matrix
 

@@ -1,5 +1,5 @@
 """
-Implementation the PACO algorithm implementaion for VIP
+Implementation the PACO algorithm implementation for VIP
 Based on Flasseur+ 2018 https://ui.adsabs.harvard.edu/abs/2018A%26A...618A.138F/abstract
 
 Variable naming is based on the notation of Flasseur+ 2018,
@@ -40,16 +40,16 @@ __all__ = ['FastPACO',
 class PACO:
     """
     This class implements the bulk of the PACO algorithm as described by
-    Flasseur et al 2018.
-    In general, the idea is to take in an ADI stack of images and statistically
-    determine if there is a signal above the background in each 'patch' of the image.
-    This is done by tracing the ark of the hypothesized planet through the stack,
-    and comparing this set of patches to a set consisting of background only.
-    This is done for each pixel (or sub-pixel) location in.
+    Flasseur et al (2018). In general, the idea is to take in an ADI stack of 
+    images and statistically determine if there is a signal above the 
+    background in each 'patch' of the image. This is done by tracing the ark of
+    the hypothesized planet through the stack, and comparing this set of patches 
+    to a set consisting of background only. This is done for each pixel (or 
+    sub-pixel) location in.
     The output is a signal-to-noise and/or a flux map over the field of view.
     The user can choose to use FullPACO or FastPACO, which are described by
     algorithms 1 and 2 of Flasseur+ 2018. FastPACO has been parallelized,
-    and is the recommended useage.
+    and is the recommended usage.
 
     This output can then be used to compute an unbiased estimate of the flux
     of point sources detected in the image above some user-supplied detection

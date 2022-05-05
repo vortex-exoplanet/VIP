@@ -373,7 +373,7 @@ def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,
     inrad,outrad : float
         Inner and outer radius of the injections. The actual injection position
         is chosen randomly.
-    dist_flux : tuple('method', *params)
+    dist_flux : tuple('method', params)
         Tuple describing the flux selection. Method can be a function, the
         ``*params`` are passed to it. Method can also be a string, for a
         pre-defined random function:
@@ -385,8 +385,8 @@ def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,
             ``('normal', loc, scale)``
                 uses np.random.normal
 
-    Yields
-    ------
+    Returns
+    -------
     fake_data : dict
         Represents a copy of the original ``array``, with fake injections. The
         dictionary keys are:

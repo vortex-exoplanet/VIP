@@ -800,14 +800,13 @@ def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
     the mask consists of all pixels from three different regions with respect
     to xy:
 
-        (r1) Exclusion region: Pixels from the region of interest. These are
-                               excluded in the final mask.
-        (r2) Local region: Pixels around xy in a circular fashion.
-        (r3) Symmetric local region: Pixels around the (anti)symmetric xy with
-                                     respect to the star location. It is also
-                                     defined in a circular fashion with same
-                                     radius as "local region."
-        (r4) Annulus region: Pixels from the annulus where xy is located.
+        * (r1) Exclusion region: Pixels from the region of interest. These are
+          excluded in the final mask.
+        * (r2) Local region: Pixels around xy in a circular fashion.
+        * (r3) Symmetric local region: Pixels around the (anti)symmetric xy with
+          respect to the star location. It is also defined in a circular fashion 
+          with same radius as "local region."
+        * (r4) Annulus region: Pixels from the annulus where xy is located.
 
     The goal of this mask is to disentangle the expected structure of the
     speckle pattern. Gebhardt et al.(2021) comment that "r2 is chosen to

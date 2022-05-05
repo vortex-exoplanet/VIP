@@ -407,11 +407,14 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     parameters are defined by the emcee Affine Invariant algorithm.
 
     There are different possibilities for the figure of merit (step 4):
+        
         - mu_sigma=None; fmerit='sum' (as in Wertz et al. 2017):\
         :math:`\chi^2 = \sum(\|I_j\|)`
+        
         - mu_sigma=None; fmerit='stddev' (likely more appropriate when speckle\
         noise still significant): \
         :math:`\chi^2 = N \sigma_{I_j}(values,ddof=1)*`values.size
+        
         - mu_sigma=True or a tuple (as in Christiaens et al. 2021, new default):\
         :math:`\chi^2 = \sum\frac{(I_j- mu)^2}{\sigma^2}`
 
@@ -425,13 +428,18 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     :math:`\sigma`.
 
     *Speed tricks*:
+        
         - crop your input cube to a size such as to just include the annulus on\
         which the PCA is performed;
+        
         - set `imlib='opencv'` (much faster image rotations, BUT at the expense\
         of flux conservation);
+            
         - increase `nproc` (if your machine allows);
+        
         - reduce `ac_c` (or increase `rhat_threshold` if `conv_test='gb'`) for\
         a faster convergence);
+    
         - reduce `niteration_limit` to force the sampler to stop even if it has\
         not reached convergence.
 

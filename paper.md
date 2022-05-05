@@ -53,7 +53,7 @@ affiliations:
     index: 3
   - name: Max-Planck-Institut für Astronomie, Heidelberg, Germany
     index: 4
-  - name: IPAG, Université de Grenoble Alpes, France
+  - name: Univ. Grenoble Alpes, CNRS, IPAG, F-38000 Grenoble, France
     index: 5
   - name: NRC Herzberg Astronomy and Astrophysics, Victoria, BC, Canada
     index: 6

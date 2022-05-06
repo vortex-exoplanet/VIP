@@ -25,6 +25,9 @@ authors:
   - name: Julien Milli
     orcid: 0000-0001-9325-2511
     affiliation: 5
+  - name: Olivier Absil
+    orcid: 0000-0002-4006-6237
+    affiliation: 1
   - name: Henry Ngo
     orcid: 0000-0001-5172-4859
     affiliation: 6
@@ -34,9 +37,6 @@ authors:
   - name: Alan Rainot
     orcid: 0000-0001-9904-0624
     affiliation: 8
-  - name: Olivier Absil
-    orcid: 0000-0002-4006-6237
-    affiliation: 1
   - name: Iain Hammond
     orcid: 0000-0003-1502-4315
     affiliation: 9

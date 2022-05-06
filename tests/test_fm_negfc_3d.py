@@ -81,7 +81,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
             algo_options['delta_rot'] = 1
         if pca_algo == pca:
             # just test it once because very slow
-            sp_unc = speckle_noise_uncertainty(cube_emp, res,
+            sp_unc = speckle_noise_uncertainty(cube_emp, res, 
                                                np.arange(0, 360, 3), ds.angles,
                                                algo=pca_algo, psfn=ds.psf,
                                                fwhm=ds.fwhm, aperture_radius=2,
@@ -99,15 +99,15 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                          algo=pca_algo, ncomp=ncomp, annulus_width=4*ds.fwhm,
                          aperture_radius=2, fwhm=ds.fwhm, mu_sigma=mu_sigma,
                          sigma='spe', fmerit=fm, imlib='opencv', nwalkers=100,
-                         niteration_limit=200, conv_test='ac',
-                         force_rPA=force_rpa, verbosity=2)
+                         niteration_limit=200, conv_test='ac', 
+                         nproc=None, force_rPA=force_rpa, verbosity=2)
         burnin = 0.3
         if force_rpa:
             labels = ['f']
-            isamples = res[:, int(res.shape[1]//(1/burnin))                           :, :].reshape((-1, 1))
+            isamples = res[:, int(res.shape[1]//(1/burnin)):, :].reshape((-1, 1))
         else:
             labels = ['r', 'theta', 'f']
-            isamples = res[:, int(res.shape[1]//(1/burnin))                           :, :].reshape((-1, 3))
+            isamples = res[:, int(res.shape[1]//(1/burnin)):, :].reshape((-1, 3))
         show_walk_plot(res, save=True, labels=labels)
         show_corner_plot(res, burnin=burnin, save=True, labels=labels)
         # infer most likely values + confidence intervals

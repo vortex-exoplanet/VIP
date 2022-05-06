@@ -1,5 +1,6 @@
 """
-Tests for the post-processing pipeline, using the functional API.
+Tests for the inverse-problem approach based ADI post-processing algorithms, 
+using the functional API.
 
 """
 
@@ -35,58 +36,18 @@ def injected_cube_position(example_dataset_adi):
 
 
 # ====== algos
-def algo_medsub(ds):
-    return vip.psfsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
-                                 mode="fullfr")
+def algo_fmmf_klip(ds):
+    res = vip.invprob.fmmf(ds.cube, ds.angles, ds.psf, ds.fwhm, min_r=26,
+                           max_r=34, model='KLIP', nproc=None)
+    flux_m, snr_n = res
+    return snr_n
 
 
-def algo_medsub_annular(ds):
-    return vip.psfsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
-                                 mode="annular")
-
-
-def algo_xloci(ds):
-    return vip.psfsub.xloci(ds.cube, ds.angles, fwhm=ds.fwhm,
-                            radius_int=20)  # <- speed up
-
-
-def algo_frdiff(ds):
-    return vip.psfsub.frame_diff(ds.cube, ds.angles)
-
-
-def algo_frdiff4(ds):
-    return vip.psfsub.frame_diff(ds.cube, ds.angles, n_similar=4)
-
-
-def algo_llsg(ds):
-    return vip.psfsub.llsg(ds.cube, ds.angles, ds.fwhm, rank=2)
-
-
-def algo_nmf(ds):
-    return vip.psfsub.nmf(ds.cube, ds.angles)
-
-
-def algo_nmf_annular(ds):
-    return vip.psfsub.nmf_annular(ds.cube, ds.angles)
-
-
-def algo_pca(ds):
-    return vip.psfsub.pca(ds.cube, ds.angles)
-
-
-def algo_pca_grid(ds):
-    """ PCA grid, obtaining the optimal residual for given location
-    """
-    return vip.psfsub.pca(ds.cube, ds.angles, ncomp=(1, 2),
-                          source_xy=ds.injections_yx[0][::-1])
-
-
-def algo_pca_incremental(ds):
-    return vip.psfsub.pca(ds.cube, ds.angles, batch=int(ds.cube.shape[0]/2))
-
-
-def algo_pca_annular(ds):
-    return vip.psfsub.pca_annular(ds.cube, ds.angles, fwhm=ds.fwhm)
+def algo_fmmf_loci(ds):
+    res = vip.invprob.fmmf(ds.cube, ds.angles, ds.psf, ds.fwhm, min_r=26,
+                           max_r=34, model='LOCI', nproc=None)
+    flux_m, snr_n = res
+    return snr_n
 
 
 # ====== SNR map
@@ -135,19 +96,8 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
 
 @parametrize("algo, make_detmap",
              [
-                 (algo_medsub, snrmap_fast),
-                 (algo_medsub, snrmap),
-                 (algo_medsub_annular, snrmap_fast),
-                 (algo_xloci, snrmap_fast),
-                 (algo_nmf, snrmap_fast),
-                 (algo_nmf_annular, snrmap_fast),
-                 (algo_llsg, snrmap_fast),
-                 (algo_frdiff, snrmap_fast),
-                 (algo_frdiff4, snrmap_fast),
-                 (algo_pca, snrmap_fast),
-                 (algo_pca_grid, snrmap_fast),
-                 (algo_pca_incremental, snrmap_fast),
-                 (algo_pca_annular, snrmap_fast),
+                 (algo_fmmf_klip, None),
+                 (algo_fmmf_loci, None)
                  ],
              ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
 def test_algos(injected_cube_position, algo, make_detmap):

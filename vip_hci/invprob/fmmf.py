@@ -99,7 +99,7 @@ def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
         side of the considered frame).
 
     crop: int, optional
-        Part of the PSF tempalte considered is the estimation of the FMMF
+        Part of the PSF template considered in the estimation of the FMMF
         detection map. Default is 5.
     imlib : str, optional
         Parameter used for the derotation of the residual cube. See the

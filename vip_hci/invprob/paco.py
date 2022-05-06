@@ -807,8 +807,8 @@ class FastPACO(PACO):
         if cpu == 1:
             Cinv, m, h, patches = self.compute_statistics(phi0s)
         else:
-            Cinv, m, h, patches = self.compute_statistics_parallel(
-                phi0s, cpu=cpu)
+            Cinv, m, h, patches = self.compute_statistics_parallel(phi0s, 
+                                                                   cpu=cpu)
 
         # Create arrays needed for storage
         # Store for each image pixel, for each temporal frame an image

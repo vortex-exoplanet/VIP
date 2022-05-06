@@ -171,7 +171,7 @@ def test_badpix_ann():
     assert (cube_c[1, idx1, idx1]-med_val_ann) < 3*s0
 
 
-def test_badpix_ifs():
+def test_badpix_ifs1():
     n_ch = 15
     sz = 55
     idx0 = 25
@@ -196,7 +196,18 @@ def test_badpix_ifs():
                                          sigma_clip=5., num_neig=9, 
                                          full_output=True)
     assert np.allclose(bpm[:, idx0, idx0], np.ones(n_ch))
-    assert np.allclose(bpm[:, idx1, idx1], np.ones(n_ch))
+    
+    
+def test_badpix_ifs2():
+    n_ch = 15
+    sz = 55
+    idx0 = 25
+    idx1 = 40
+    m0 = 0
+    s0 = 1
+    fwhms = np.linspace(4, 8, n_ch, endpoint=True)
+    fluxes = np.linspace(1, 10, n_ch)*1e4
+    cube = np.zeros([n_ch, sz, sz])
 
     for i in range(n_ch):
         cube[i] = fluxes[i]*create_synth_psf(shape=(sz, sz), model='moff',

@@ -174,7 +174,7 @@ def test_badpix_ann():
 def test_badpix_ifs():
     n_ch = 15
     sz = 55
-    idx0 = 20
+    idx0 = 25
     idx1 = 40
     m0 = 0
     s0 = 1
@@ -212,7 +212,7 @@ def test_badpix_ifs():
                                          sigma_clip=4., protect_mask=5,
                                          full_output=True, max_nit=5)
 
-    assert np.allclose(bpm[:, idx0, idx0], np.ones(n_ch))
+    assert np.allclose(bpm[:, idx0, idx0], np.zeros(n_ch))
     assert np.allclose(bpm[:, idx1, idx1], np.ones(n_ch))
     assert np.allclose(bpm[:, idx1+1, idx1], np.ones(n_ch))
     assert np.allclose(bpm[:, idx1+1, idx1+1], np.ones(n_ch))

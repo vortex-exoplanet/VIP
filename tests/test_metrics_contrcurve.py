@@ -38,13 +38,16 @@ def test_contrast_curve(get_cube):
     ds, starphot = get_cube
 
     # first empty the cube from planet b
-    pl_par = [(16.583, 149.111, 700)]
+    r_b =  0.452/ds.px_scale # Absil+2013
+    theta_b = 211.+90+104.84-0.45 # # Absil+2013
+    flux_b = 550.2
+    pl_par = [(r_b, theta_b, flux_b)]
     cube = cube_planet_free(pl_par, ds.cube, ds.angles, ds.psf)
 
     psf = frame_crop(ds.psf[1:, 1:], 11)
     plsc = VLT_NACO['plsc']
     cc = contrast_curve(cube, ds.angles, psf, ds.fwhm, pxscale=plsc,
-                        starphot=starphot, algo=pca, nbranch=3, ncomp=10,
+                        starphot=starphot, algo=pca, nbranch=3, ncomp=9,
                         plot=True, debug=True)
 
     rad = np.array(cc['distance'])
@@ -75,26 +78,26 @@ def test_contrast_curve(get_cube):
     msg = "Contrast too shallow compared to expectations: {} > {}"
     assert check, msg.format(cc_stu, 4e-3*corr_r)
 
-    # check that at 0.4'' 5-sigma cc < 3e-4
+    # check that at 0.4'' 5-sigma cc < 4e-4
     idx_r = find_nearest(rad*plsc, 0.4)
     cc_gau = gauss_cc[idx_r]
     corr_r = sigma_corr[idx_r]
 
-    if cc_gau < 3e-4:
+    if cc_gau < 4e-4:
         check = True
     else:
         check = False
     msg = "Contrast too shallow compared to expectations: {} > {}"
-    assert check, msg.format(cc_gau, 3e-4)
+    assert check, msg.format(cc_gau, 4e-4)
 
     # check that at 0.4'' 5-sigma cc: Student statistics > Gaussian statistics
     cc_stu = student_cc[idx_r]
-    if cc_stu < 3e-4*corr_r and cc_stu > cc_gau:
+    if cc_stu < 4e-4*corr_r and cc_stu > cc_gau:
         check = True
-    elif cc_stu < 3e-4*corr_r:
+    elif cc_stu < 4e-4*corr_r:
         check = False
         msg = "Student-statistics cc smaller than Gaussian statistics cc"
     else:
         check = False
         msg = "Contrast too shallow compared to expectations: {} > {}"
-    assert check, msg.format(cc_stu, 3e-4*corr_r)
+    assert check, msg.format(cc_stu, 4e-4*corr_r)

@@ -87,7 +87,8 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                                                fwhm=ds.fwhm, aperture_radius=2,
                                                fmerit=fm, mu_sigma=mu_sigma,
                                                verbose=True, full_output=False,
-                                               algo_options=algo_options)
+                                               algo_options=algo_options,
+                                               nproc=1)
         else:
             sp_unc = (2, 2, 0.1*gt[2])
         # compare results
@@ -99,8 +100,8 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                          algo=pca_algo, ncomp=ncomp, annulus_width=4*ds.fwhm,
                          aperture_radius=2, fwhm=ds.fwhm, mu_sigma=mu_sigma,
                          sigma='spe', fmerit=fm, imlib='opencv', nwalkers=100,
-                         niteration_limit=200, conv_test='ac', 
-                         nproc=None, force_rPA=force_rpa, verbosity=2)
+                         niteration_limit=200, conv_test='ac', nproc=1,
+                         force_rPA=force_rpa, verbosity=2)
         burnin = 0.3
         if force_rpa:
             labels = ['f']

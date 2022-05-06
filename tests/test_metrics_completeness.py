@@ -40,7 +40,8 @@ def test_completeness_curve(get_cube):
     an_dist, comp_curve = completeness_curve(ds.cube, ds.angles, psf,
                                              ds.fwhm, pca_annular, an_dist=[20],
                                              ini_contrast=None,  # expected_res,
-                                             starphot=starphot, plot=True)
+                                             starphot=starphot, plot=True, 
+                                             algo_dict={'imlib':'opencv'})
 
     if np.allclose(comp_curve/expected_res, [1], atol=0.5):
         check = True
@@ -61,7 +62,8 @@ def test_completeness_map(get_cube):
     an_dist, comp_map = completeness_map(ds.cube, ds.angles, psf, ds.fwhm,
                                          pca_annular, an_dist=[20],
                                          ini_contrast=expected_res,
-                                         starphot=starphot)
+                                         starphot=starphot,
+                                         algo_dict={'imlib':'opencv'})
 
     if np.allclose(comp_map[:, -2]/expected_res, [1], atol=0.5):
         check = True

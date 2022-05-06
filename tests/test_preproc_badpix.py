@@ -23,8 +23,8 @@ def test_badpix_iso():
 
     im1 = np.random.normal(loc=m0, scale=s0, size=sz)
     im2 = im1 = np.random.normal(loc=m1, scale=s1, size=sz)
-    im1[idx0, idx0] = 35
-    im2[idx1, idx1] = -42
+    im1[idx0, idx0] = 350
+    im2[idx1, idx1] = -420
     cube = np.array([im1, im2])
     cube_c, bpix_map = cube_fix_badpix_isolated(cube, sigma_clip=5,
                                                 frame_by_frame=True,
@@ -186,10 +186,10 @@ def test_badpix_ifs():
         cube[i] = fluxes[i]*create_synth_psf(shape=(sz, sz), model='moff',
                                              fwhm=fwhms[i])
         cube[i] += np.random.normal(loc=m0, scale=s0, size=(sz,sz))
-        cube[i, idx0, idx0] = -1200
-        cube[i, idx1, idx1] = -1800
-        cube[i, idx1+1, idx1] = -1959
-        cube[i, idx1+1, idx1+1] = -1960
+        cube[i, idx0, idx0] = -2200
+        cube[i, idx1, idx1] = -2400
+        cube[i, idx1+1, idx1] = -2959
+        cube[i, idx1+1, idx1+1] = -2960
 
     # identify bad pixels
     cube_c, bpm, _ = cube_fix_badpix_ifs(cube, lbdas=fwhms/2., clumps=False,
@@ -210,7 +210,8 @@ def test_badpix_ifs():
     # protect mask + clumps
     cube_c, bpm, _ = cube_fix_badpix_ifs(cube, lbdas=fwhms/2., clumps=True,
                                          sigma_clip=4., protect_mask=5,
-                                         full_output=True, max_nit=5)
+                                         full_output=True, num_neig=9,
+                                         max_nit=5)
 
     assert np.allclose(bpm[:, idx0, idx0], np.zeros(n_ch))
     assert np.allclose(bpm[:, idx1, idx1], np.ones(n_ch))

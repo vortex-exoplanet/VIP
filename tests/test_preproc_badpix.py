@@ -215,7 +215,6 @@ def test_badpix_ifs2():
         cube2[i] += np.random.normal(loc=m0, scale=s0, size=(sz, sz))
         cube2[i, idx0, idx0] = -600
         cube2[i, idx1, idx1] = -700
-        cube2[i, idx1+1, idx1] = -559
         cube2[i, idx1+1, idx1+1] = -660
 
     # protect mask + clumps
@@ -226,5 +225,4 @@ def test_badpix_ifs2():
 
     assert np.allclose(bpm2[:, idx0, idx0], np.zeros(n_ch))
     assert np.allclose(bpm2[:, idx1, idx1], np.ones(n_ch))
-    assert np.allclose(bpm2[:, idx1+1, idx1], np.ones(n_ch))
     assert np.allclose(bpm2[:, idx1+1, idx1+1], np.ones(n_ch))

@@ -4,7 +4,7 @@ Tests for metrics/completeness.py
 """
 import copy
 from .helpers import fixture, np
-from vip_hci.psfsub.pca_local import pca_annular
+from vip_hci.psfsub.pca_local import pca
 from vip_hci.metrics import completeness_curve, completeness_map
 from vip_hci.preproc import frame_crop
 
@@ -38,7 +38,7 @@ def test_completeness_curve(get_cube):
     psf = frame_crop(ds.psf[1:, 1:], 11)
     # Note: setting ini_contrast to None calls the contrast_curve function
     an_dist, comp_curve = completeness_curve(ds.cube, ds.angles, psf,
-                                             ds.fwhm, pca_annular, an_dist=[20],
+                                             ds.fwhm, pca, an_dist=[20],
                                              ini_contrast=None,  # expected_res,
                                              starphot=starphot, plot=True, 
                                              algo_dict={'imlib':'opencv'})
@@ -57,10 +57,10 @@ def test_completeness_map(get_cube):
 
     ds, starphot = get_cube
 
-    expected_res = np.array([1200/starphot])
+    expected_res = np.array([0.00042915])
     psf = frame_crop(ds.psf, 11, force=True)
-    an_dist, comp_map = completeness_map(ds.cube, ds.angles, psf, ds.fwhm,
-                                         pca_annular, an_dist=[20],
+    an_dist, comp_map = completeness_map(ds.cube, ds.angles, psf, ds.fwhm, pca, 
+                                         an_dist=[20], 
                                          ini_contrast=expected_res,
                                          starphot=starphot,
                                          algo_dict={'imlib':'opencv'})

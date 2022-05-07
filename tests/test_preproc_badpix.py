@@ -207,24 +207,24 @@ def test_badpix_ifs2():
     s0 = 1
     fwhms = np.linspace(4, 8, n_ch, endpoint=True)
     fluxes = np.linspace(1, 10, n_ch)*1e4
-    cube = np.zeros([n_ch, sz, sz])
+    cube2 = np.zeros([n_ch, sz, sz])
 
     for i in range(n_ch):
-        cube[i] = fluxes[i]*create_synth_psf(shape=(sz, sz), model='moff',
+        cube2[i] = fluxes[i]*create_synth_psf(shape=(sz, sz), model='moff',
                                              fwhm=fwhms[i])
-        cube[i] += np.random.normal(loc=m0, scale=s0, size=(sz, sz))
-        cube[i, idx0, idx0] = -600
-        cube[i, idx1, idx1] = -700
-        cube[i, idx1+1, idx1] = -559
-        cube[i, idx1+1, idx1+1] = -660
+        cube2[i] += np.random.normal(loc=m0, scale=s0, size=(sz, sz))
+        cube2[i, idx0, idx0] = -600
+        cube2[i, idx1, idx1] = -700
+        cube2[i, idx1+1, idx1] = -559
+        cube2[i, idx1+1, idx1+1] = -660
 
     # protect mask + clumps
-    cube_c, bpm, _ = cube_fix_badpix_ifs(cube, lbdas=fwhms/2., clumps=True,
-                                         sigma_clip=4., protect_mask=5,
-                                         full_output=True, num_neig=9,
-                                         max_nit=5)
+    cube_c2, bpm2, _ = cube_fix_badpix_ifs(cube2, lbdas=fwhms/2., clumps=True,
+                                           sigma_clip=4., protect_mask=5,
+                                           full_output=True, num_neig=9,
+                                           max_nit=5)
 
-    assert np.allclose(bpm[:, idx0, idx0], np.zeros(n_ch))
-    assert np.allclose(bpm[:, idx1, idx1], np.ones(n_ch))
-    assert np.allclose(bpm[:, idx1+1, idx1], np.ones(n_ch))
-    assert np.allclose(bpm[:, idx1+1, idx1+1], np.ones(n_ch))
+    assert np.allclose(bpm2[:, idx0, idx0], np.zeros(n_ch))
+    assert np.allclose(bpm2[:, idx1, idx1], np.ones(n_ch))
+    assert np.allclose(bpm2[:, idx1+1, idx1], np.ones(n_ch))
+    assert np.allclose(bpm2[:, idx1+1, idx1+1], np.ones(n_ch))

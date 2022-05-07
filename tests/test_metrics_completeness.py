@@ -4,7 +4,7 @@ Tests for metrics/completeness.py
 """
 import copy
 from .helpers import fixture, np
-from vip_hci.psfsub.pca_local import pca
+from vip_hci.psfsub import pca
 from vip_hci.metrics import completeness_curve, completeness_map
 from vip_hci.preproc import frame_crop
 

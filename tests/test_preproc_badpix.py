@@ -213,14 +213,14 @@ def test_badpix_ifs2():
         cube2[i] = fluxes[i]*create_synth_psf(shape=(sz, sz), model='moff',
                                              fwhm=fwhms[i])
         cube2[i] += np.random.normal(loc=m0, scale=s0, size=(sz, sz))
-        cube2[i, idx0, idx0] = -6000
-        cube2[i, idx1, idx1] = -7000
-        cube2[i, idx1+1, idx1+1] = -6600
+        cube2[i, idx0, idx0] = -600
+        cube2[i, idx1, idx1] = -700
+        cube2[i, idx1+1, idx1+1] = -660
 
     # protect mask + clumps
     cube_c2, bpm2, _ = cube_fix_badpix_ifs(cube2, lbdas=fwhms/2., clumps=True,
                                            sigma_clip=4., protect_mask=5,
-                                           full_output=True, num_neig=9,
+                                           full_output=True, num_neig=11,
                                            max_nit=5)
 
     assert np.allclose(bpm2[:, idx0, idx0], np.zeros(n_ch))

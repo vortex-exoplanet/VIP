@@ -41,17 +41,17 @@ def injected_cube_position(example_dataset_adi):
 
 
 # ====== Actual negfc tests for different parameters
-@parametrize("pca_algo, negfc_algo, ncomp, mu_sigma, fm, force_rpa",
+@parametrize("pca_algo, negfc_algo, ncomp, mu_sigma, fm, force_rpa, conv_test",
              [
-                 (pca_annular, firstguess, 3, False, 'stddev', False),
-                 (pca, firstguess, 3, True, None, False),
-                 (median_sub, firstguess, None, False, 'sum', False),
-                 (pca_annulus, mcmc_negfc_sampling, 3, False, 'stddev', False),
-                 (pca_annulus, mcmc_negfc_sampling, 2, True, None, True),
-                 (pca_annulus, nested_negfc_sampling, 3, False, 'sum', False)
+                 (pca_annular, firstguess, 3, False, 'stddev', False, None),
+                 (pca, firstguess, 3, True, None, False, None),
+                 (median_sub, firstguess, None, False, 'sum', False, None),
+                 (pca_annulus, mcmc_negfc_sampling, 3, False, 'stddev', False, 'gb'),
+                 (pca_annulus, mcmc_negfc_sampling, 2, True, None, True, 'ac'),
+                 (pca_annulus, nested_negfc_sampling, 3, False, 'sum', False, None)
                  ])
 def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
-               fm, force_rpa):
+               fm, force_rpa, conv_test):
     ds, yx, gt = injected_cube_position
 
     # run firstguess with simplex only if followed by mcmc or nested sampling
@@ -95,13 +95,18 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
         for i in range(3):
             aarc(res[i], gt[i], rtol=1e-1, atol=3*sp_unc[i])
     elif negfc_algo == mcmc_negfc_sampling:
+        # define fake unit transmission (to test that branch of the algo)
+        trans = np.zeros([2,10])
+        trans[0] = np.linspace(0, ds.cube.shape[-1], 10, endpoint=True)
+        trans[1,:] = 1
         # run MCMC
         res = negfc_algo(ds.cube, ds.angles, ds.psf, initial_state=init,
                          algo=pca_algo, ncomp=ncomp, annulus_width=4*ds.fwhm,
                          aperture_radius=2, fwhm=ds.fwhm, mu_sigma=mu_sigma,
                          sigma='spe', fmerit=fm, imlib='opencv', nwalkers=100,
-                         niteration_limit=150, conv_test='ac', nproc=1,
-                         force_rPA=force_rpa, verbosity=2)
+                         niteration_limit=150, conv_test=conv_test, nproc=1, 
+                         save=True, transmission=trans, force_rPA=force_rpa, 
+                         verbosity=2)
         burnin = 0.3
         if force_rpa:
             labels = ['f']
@@ -113,10 +118,10 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
         show_corner_plot(res, burnin=burnin, save=True, labels=labels)
         # infer most likely values + confidence intervals
         val_max, ci = confidence(isamples, cfd=68.27, gaussian_fit=False,
-                                 verbose=True, save=False, labels=labels)
+                                 verbose=True, save=True, labels=labels)
         # infer mu and sigma from gaussian fit
         mu, sigma = confidence(isamples, cfd=68.27, bins=100, gaussian_fit=True,
-                               verbose=True, save=False, labels=labels)
+                               verbose=True, save=True, labels=labels)
         # make sure it is between 0 and 360 for theta for both mu and gt
         if not force_rpa:
             if val_max['theta']-gt[1] > 180:
@@ -146,7 +151,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                          decline_factor=None, rstate=None, verbose=True,
                          algo_options={'imlib': 'opencv'})
         # infer mu, sigma from nested sampling result
-        mu_sig = nested_sampling_results(res, burnin=0.3, bins=None, save=False)
+        mu_sig = nested_sampling_results(res, burnin=0.3, bins=None, save=True)
         # compare results for each param
         for i in range(3):
             # diff within 3 sigma

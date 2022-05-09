@@ -11,11 +11,9 @@ import numpy as np
 from hciplot import plot_frames
 from skimage.draw import disk
 from ..fm import cube_inject_companions
-from ..var import (frame_center, get_annular_wedge, cube_filter_highpass, dist,
-                   get_circle)
+from ..var import (frame_center, get_annular_wedge, cube_filter_highpass)
 from ..psfsub import pca_annulus, pca_annular, pca
 from ..preproc import cube_crop_frames
-from ..config import check_array
 
 
 def chisquare(modelParameters, cube, angs, psfs_norm, fwhm, annulus_width,
@@ -589,94 +587,3 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
     sigma = np.std(all_res, ddof=ddof)
 
     return mu, sigma
-
-
-def get_sigma(array, source_xy, fwhm, aperture, full_output=False,
-              exclude_negative_lobes=False, verbose=False):
-    """
-    Estimate the average standard deviation in apertures similar as the one
-    used for NEGFC minimization. This is done through the mean of as many
-    independent apertures of the same size at the same radius.
-
-    Parameters
-    ----------
-    array : numpy ndarray, 2d
-        Post-processed frame where we want to measure S/N.
-    source_xy : tuple of floats
-        X and Y coordinates of the planet or test speckle.
-    fwhm : float
-        Size in pixels of the FWHM.
-    aperture: float
-        Size of aperture in FWHM.
-    full_output : bool, optional
-        If True returns back the S/N value, the y, x input coordinates, noise
-        and flux.
-    exclude_negative_lobes : bool, opt
-        Whether to include the adjacent aperture lobes to the tested location
-        or not. Can be set to True if the image shows significant neg lobes.
-    verbose: bool, optional
-        Chooses whether to print some output or not.
-
-    Returns
-    -------
-    [if full_output=True:]
-    sourcey : numpy ndarray
-        [full_output=True] Input coordinates (``source_xy``) in Y.
-    sourcex : numpy ndarray
-        [full_output=True] Input coordinates (``source_xy``) in X.
-    f_source : float
-        [full_output=True] Flux in test elemnt.
-    fluxes : numpy ndarray
-        [full_output=True] Background apertures fluxes.
-    [always:]
-    snr_vale : float
-        Value of the S/N for the given test resolution element.
-    """
-    check_array(array, dim=2, msg='array')
-    if not isinstance(source_xy, tuple):
-        raise TypeError("`source_xy` must be a tuple of floats")
-
-    sourcex, sourcey = source_xy
-    centery, centerx = frame_center(array)
-    sep = dist(centery, centerx, float(sourcey), float(sourcex))
-
-    if not sep > (aperture*fwhm)+1:
-        raise RuntimeError('`source_xy` is too close to the frame center')
-
-    sens = 'clock'  # counterclock
-
-    angle = np.arcsin(aperture*fwhm/sep)*2
-    number_apertures = int(np.floor(2*np.pi/angle))
-    yy = np.zeros((number_apertures))
-    xx = np.zeros((number_apertures))
-    cosangle = np.cos(angle)
-    sinangle = np.sin(angle)
-    xx[0] = sourcex - centerx
-    yy[0] = sourcey - centery
-    for i in range(number_apertures-1):
-        if sens == 'clock':
-            xx[i+1] = cosangle*xx[i] + sinangle*yy[i]
-            yy[i+1] = cosangle*yy[i] - sinangle*xx[i]
-        elif sens == 'counterclock':
-            xx[i+1] = cosangle*xx[i] - sinangle*yy[i]
-            yy[i+1] = cosangle*yy[i] + sinangle*xx[i]
-
-    xx += centerx
-    yy += centery
-    rad = aperture*fwhm
-    if exclude_negative_lobes:
-        xx = np.concatenate(([xx[0]], xx[2:-1]))
-        yy = np.concatenate(([yy[0]], yy[2:-1]))
-
-    sigmas = np.zeros_like(yy)
-    for i in range(1, len(sigmas)):
-        sigmas[i] = np.std(get_circle(array, rad, cy=yy[i], cx=xx[i],
-                                      mode="val"), ddof=1)
-
-    sigmas = sigmas[1:]  # do not consider companion itself
-    sigma = np.mean(sigmas)
-
-    if full_output:
-        return sigmas, sigma
-    else:
-        return sigma

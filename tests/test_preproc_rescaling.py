@@ -31,12 +31,12 @@ def test_cube_px_resampling(imlib):
     assert res.shape == (10, 50, 50)
 
 
-@parametrize("imlib,keep_center", 
+@parametrize("imlib,keep_center",
              [("vip-fft", False),
-              ("ndimage", False), 
+              ("ndimage", False),
               ("opencv", False),
               ("vip-fft", True),
-              ("ndimage", True), 
+              ("ndimage", True),
               ("opencv", True)])
 def test_frame_px_resampling(imlib, keep_center):
     """
@@ -50,31 +50,30 @@ def test_frame_px_resampling(imlib, keep_center):
 
     # === enlargen ===
     frame_star = FRAME.copy()
-    frame_star[48:53,48:53] = 2
-    frame_star[49:52,49:52] = 4
-    frame_star[50,50] = 8
-    res = frame_px_resampling(frame_star, scale=2, imlib=imlib, 
+    frame_star[48:53, 48:53] = 2
+    frame_star[49:52, 49:52] = 4
+    frame_star[50, 50] = 8
+    res = frame_px_resampling(frame_star, scale=2, imlib=imlib,
                               keep_center=keep_center, verbose=True)
     assert res.shape == (200, 200)
 
     if keep_center:
         # further check whether max pixel (star proxy) is still centered
         max_idx = np.argmax(res)
-        max_coords = np.unravel_index(max_idx,res.shape)
-        assert max_coords == (100,100)
+        max_coords = np.unravel_index(max_idx, res.shape)
+        assert max_coords == (100, 100)
 
     # === enlargen with mask ===
-    res = frame_px_resampling(mask_circle(FRAME, 4, np.nan), scale=2, 
+    res = frame_px_resampling(mask_circle(FRAME, 4, np.nan), scale=2,
                               imlib=imlib, keep_center=keep_center,
                               verbose=True)
     assert res.shape == (200, 200)
 
     # === shrink ===
-    res = frame_px_resampling(FRAME, scale=0.5, imlib=imlib, 
+    res = frame_px_resampling(FRAME, scale=0.5, imlib=imlib,
                               keep_center=keep_center, verbose=True)
     assert res.shape == (50, 50)
 
-    
 
 @parametrize("imlib,interpolation",
              [

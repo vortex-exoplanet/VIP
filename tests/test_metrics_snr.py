@@ -65,7 +65,7 @@ def test_snrmap_fast(get_frame):
     y1, x1 = np.where(snmap == snmap.max())
     assert np.allclose(x1, x0, atol=atol) and np.allclose(y1, y0, atol=atol)
 
-        
+
 def test_frame_report(get_frame):
     frame, positions = get_frame
     y0, x0 = positions

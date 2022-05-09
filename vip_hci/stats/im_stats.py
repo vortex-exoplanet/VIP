@@ -71,15 +71,15 @@ def frame_average_radprofile(frame, sep=1, init_rad=None, plot=True):
 
 def frame_histo_stats(image_array, plot=True):
     """Plots a frame with a colorbar, its histogram and some statistics: mean,
-    median, maximum, minimum and standard deviation values.  
-    
+    median, maximum, minimum and standard deviation values.
+
     Parameters
     ----------
     image_array : numpy ndarray
-        The input frame.  
+        The input frame.
     plot : bool, optional
         If True plots the frame and the histogram with the values.
-        
+
     Return
     ------
     mean : float
@@ -92,7 +92,7 @@ def frame_histo_stats(image_array, plot=True):
         Maximum value.
     minim : int or float
         Minimum value.
-        
+
     """
     vector = image_array.flatten()
     mean = vector.mean()
@@ -100,7 +100,7 @@ def frame_histo_stats(image_array, plot=True):
     maxim = vector.max()
     minim = vector.min()
     std = vector.std()
-   
+
     if plot:
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 4))
         ax0, ax1 = axes.flat
@@ -111,7 +111,7 @@ def frame_histo_stats(image_array, plot=True):
               'Max = {:.3f}\n'.format(maxim) +\
               'Min = {:.3f}\n\n'.format(minim)
 
-        ax0.imshow(image_array, interpolation="nearest", origin ="lower",
+        ax0.imshow(image_array, interpolation="nearest", origin="lower",
                    cmap='viridis')
         ax0.set_title('Frame')
         ax0.grid('off')
@@ -122,6 +122,5 @@ def frame_histo_stats(image_array, plot=True):
         ax1.text(0.98, 0.98, txt, transform=ax1.transAxes, fontsize=12,
                  verticalalignment='top', horizontalalignment='right')
         plt.show()
-        
-    return mean, median, std, maxim, minim
 
+    return mean, median, std, maxim, minim

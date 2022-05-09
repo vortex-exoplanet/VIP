@@ -75,7 +75,7 @@ class Saveable(object):
     def load(cls, filename):
         try:
             data = np.load(filename, allow_pickle=True)
-        except:
+        except BaseException:
             data = np.load(filename + ".npz", allow_pickle=True)
 
         if "_vip_object" not in data:
@@ -162,7 +162,7 @@ class Progressbar(object):
             return tqdm(iterable=iterable, desc=desc, total=total, leave=leave,
                         ascii=True, ncols=80, file=sys.stdout,
                         bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed"
-                                   "}<{remaining}{postfix}]") # remove rate_fmt
+                                   "}<{remaining}{postfix}]")  # remove rate_fmt
         elif backend == "tqdm_notebook":
             from tqdm import tqdm_notebook
             return tqdm_notebook(iterable=iterable, desc=desc, total=total,
@@ -188,6 +188,7 @@ class NoProgressbar(object):
     """ Wraps an ``iterable`` to behave like ``Progressbar``, but without
     producing output.
     """
+
     def __init__(self, iterable=None):
         self.iterable = iterable
 
@@ -207,9 +208,9 @@ class NoProgressbar(object):
 def algo_calculates_decorator(*calculated_attributes):
     """
     Decorator for HCIPostProcAlgo methods, describe what they calculate.
-    
+
     There are three benefits from decorating a method:
-    
+
     - if ``verbose=True``, prints a message about the calculated attributes and
       the ones which can be calculated next.
     - the attributes which *can* be calculated by this method are tracked, so
@@ -222,10 +223,10 @@ def algo_calculates_decorator(*calculated_attributes):
     ----------
     *calculated_attributes : list of strings
         Strings denominating the attributes the decorated function calculates.
-    
+
     Examples
     --------
-    
+
     .. code:: python
 
         from .conf import algo_calculates_decorator as calculates
@@ -233,11 +234,11 @@ def algo_calculates_decorator(*calculated_attributes):
         class HCIMyAlgo(HCIPostPRocAlgo):
             def __init__(self, my_algo_param):
                 self.store_args(locals())
-            
+
             @calculates("final_frame", "snr_map")
             def run(dataset=None, verbose=True):
                 frame, snr = my_heavy_calculation()
-                
+
                 self.final_frame = frame
                 self.snr_map = snr
 
@@ -253,7 +254,7 @@ def algo_calculates_decorator(*calculated_attributes):
             a = getargspec(fkt)
             all_kwargs = dict(zip(a.args[-len(a.defaults):], a.defaults))
             all_kwargs.update(kwargs)
-            
+
             if not hasattr(self, "_called_calculators"):
                 self._called_calculators = []
             self._called_calculators.append(fkt.__name__)
@@ -298,7 +299,7 @@ def check_array(input_array, dim, msg=None):
         if dim < 1 or dim > 4:
             raise ValueError(error_msg)
     elif isinstance(dim, tuple):
-        if dim not in ((1,2), (2,3), (3,4), (2,3,4)):
+        if dim not in ((1, 2), (2, 3), (3, 4), (2, 3, 4)):
             raise ValueError(error_msg)
 
     msg2 = ' must be a '
@@ -454,6 +455,11 @@ def pool_map(nproc, fkt, *args, **kwargs):
         if not _generator:
             res = list(res)
     else:
+        # deactivate multithreading
+        os.environ["MKL_NUM_THREADS"] = "1"
+        os.environ["NUMEXPR_NUM_THREADS"] = "1"
+        os.environ["OMP_NUM_THREADS"] = "1"
+
         if verbose and msg is not None:
             print("{} with {} processes".format(msg, nproc))
         pool = Pool(processes=nproc)
@@ -463,6 +469,12 @@ def pool_map(nproc, fkt, *args, **kwargs):
             res = pool.map(eval_func_tuple, z)
         pool.close()
         pool.join()
+
+        # reactivate multithreading
+        ncpus = multiprocessing.cpu_count()
+        os.environ["MKL_NUM_THREADS"] = str(ncpus)
+        os.environ["NUMEXPR_NUM_THREADS"] = str(ncpus)
+        os.environ["OMP_NUM_THREADS"] = str(ncpus)
 
     return res
 
@@ -553,6 +565,7 @@ def make_chunks(l, n):
 
 class redirect_output(object):
     """ Context manager for redirecting stdout/err to files"""
+
     def __init__(self, stdout='', stderr=''):
         self.stdout = stdout
         self.stderr = stderr

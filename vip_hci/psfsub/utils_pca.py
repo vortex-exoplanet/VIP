@@ -24,10 +24,10 @@ from ..var import frame_center, dist, prepare_matrix, reshape_matrix, get_circle
 
 def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
              cube_ref=None, mode='fullfr', annulus_width=20, svd_mode='lapack',
-             scaling=None, mask_center_px=None, fmerit='mean', 
-             collapse='median', ifs_collapse_range='all', verbose=True, 
-             full_output=False, debug=False, plot=True, save_plot=None, 
-             start_time=None, scale_list=None, initial_4dshape=None, 
+             scaling=None, mask_center_px=None, fmerit='mean',
+             collapse='median', ifs_collapse_range='all', verbose=True,
+             full_output=False, debug=False, plot=True, save_plot=None,
+             start_time=None, scale_list=None, initial_4dshape=None,
              weights=None, exclude_negative_lobes=False, **rot_options):
     """
     Compute a grid, depending on ``range_pcs``, of residual PCA frames out of a
@@ -127,7 +127,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     ifs_collapse_range: str 'all' or tuple of 2 int
-        If a tuple, it should contain the first and last channels where the mSDI 
+        If a tuple, it should contain the first and last channels where the mSDI
         residual channels will be collapsed (by default collapses all channels).
     verbose : bool, optional
         If True prints intermediate info and timing.
@@ -153,17 +153,17 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
     initial_4dshape : None or tuple, optional
         Shape of the initial ADI+mSDI cube.
     weights: 1d numpy array or list, optional
-        Weights to be applied for a weighted mean. Need to be provided if 
+        Weights to be applied for a weighted mean. Need to be provided if
         collapse mode is 'wmean'.
     exclude_negative_lobes : bool, opt
-        Whether to include the adjacent aperture lobes to the tested location 
+        Whether to include the adjacent aperture lobes to the tested location
         or not. Can be set to True if the image shows significant neg lobes.
     rot_options: dictionary, optional
-        Dictionary with optional keyword values for "nproc", "imlib", 
-        "interpolation", "border_mode", "mask_val",  "edge_blend", 
-        "interp_zeros", "ker" (see documentation of 
+        Dictionary with optional keyword values for "nproc", "imlib",
+        "interpolation", "border_mode", "mask_val",  "edge_blend",
+        "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
-        
+
     Returns
     -------
     cubeout : numpy ndarray
@@ -208,14 +208,14 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
 
             for i in range(n_adi):
                 frame_i = scwave(residuals_res[i*z+idx_ini:i*z+idx_fin, :, :],
-                                 scale_list[idx_ini:idx_fin], full_output=False, 
-                                 inverse=True, y_in=y_in, x_in=x_in, 
+                                 scale_list[idx_ini:idx_fin], full_output=False,
+                                 inverse=True, y_in=y_in, x_in=x_in,
                                  collapse=collapse)
                 residuals_reshaped[i] = frame_i
         else:
             residuals_reshaped = residuals_res
 
-        residuals_res_der = cube_derotate(residuals_reshaped, angle_list, 
+        residuals_res_der = cube_derotate(residuals_reshaped, angle_list,
                                           **rot_options)
         res_frame = cube_collapse(residuals_res_der, mode=collapse, w=weights)
         return res_frame
@@ -228,7 +228,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         residuals_ann = matrix - reconstructed
         residuals_res = np.zeros_like(cube)
         residuals_res[:, indices[0], indices[1]] = residuals_ann
-        residuals_res_der = cube_derotate(residuals_res, angle_list, 
+        residuals_res_der = cube_derotate(residuals_res, angle_list,
                                           **rot_options)
         res_frame = cube_collapse(residuals_res_der, mode=collapse, w=weights)
         return res_frame
@@ -239,7 +239,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         if fmerit == 'max':
             yy, xx = disk((y, x), fwhm / 2.)
             res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
-                       exclude_negative_lobes=exclude_negative_lobes, 
+                       exclude_negative_lobes=exclude_negative_lobes,
                        full_output=True)
                    for y_, x_ in zip(yy, xx)]
             snr_pixels = np.array(res, dtype=object)[:, -1]
@@ -250,7 +250,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
 
         elif fmerit == 'px':
             res = snr(frame, (x, y), fwhm, plot=False, verbose=False,
-                      exclude_negative_lobes=exclude_negative_lobes, 
+                      exclude_negative_lobes=exclude_negative_lobes,
                       full_output=True)
             snrpx = res[-1]
             fluxpx = np.array(res, dtype=object)[2]
@@ -260,7 +260,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         elif fmerit == 'mean':
             yy, xx = disk((y, x), fwhm / 2.)
             res = [snr(frame, (x_, y_), fwhm, plot=False, verbose=False,
-                       exclude_negative_lobes=exclude_negative_lobes, 
+                       exclude_negative_lobes=exclude_negative_lobes,
                        full_output=True) for y_, x_
                    in zip(yy, xx)]
             snr_pixels = np.array(res, dtype=object)[:, -1]
@@ -414,8 +414,8 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         return cubeout
 
 
-def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, collapse='median', 
-                    verbose=True, full_output=False, return_residuals=False, 
+def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, collapse='median',
+                    verbose=True, full_output=False, return_residuals=False,
                     start_time=None, weights=None, **rot_options):
     """ Computes the full-frame PCA-ADI algorithm in batches, for processing
     fits files larger than the available system memory. It uses the incremental
@@ -440,9 +440,9 @@ def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, collapse='median',
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
     rot_options: dictionary, optional
-        Dictionary with optional keyword values for "nproc", "imlib", 
-        "interpolation, "border_mode", "mask_val",  "edge_blend", 
-        "interp_zeros", "ker" (see documentation of 
+        Dictionary with optional keyword values for "nproc", "imlib",
+        "interpolation, "border_mode", "mask_val",  "edge_blend",
+        "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
     verbose : {True, False}, bool optional
         If True prints intermediate info and timing.
@@ -456,9 +456,9 @@ def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, collapse='median',
         object datetime.datetime is the global starting time. If None, it
         initiates its own counter.
     weights: 1d numpy array or list, optional
-        Weights to be applied for a weighted mean. Need to be provided if 
+        Weights to be applied for a weighted mean. Need to be provided if
         collapse mode is 'wmean'.
-        
+
     Returns
     -------
     frame : numpy ndarray
@@ -578,7 +578,7 @@ def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, collapse='median',
         else:
             resid_der = cube_derotate(resid_reshaped, angle_list[intini:intfin],
                                       **rot_options)
-            medians.append(cube_collapse(resid_der, mode=collapse,w=weights))
+            medians.append(cube_collapse(resid_der, mode=collapse, w=weights))
 
     del matrix
     del batch
@@ -601,13 +601,13 @@ def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, collapse='median',
 
 
 def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
-                svd_mode='lapack', scaling=None, collapse='median', 
+                svd_mode='lapack', scaling=None, collapse='median',
                 weights=None, collapse_ifs='mean', **rot_options):
     """
-    PCA-ADI or PCA-RDI processed only for an annulus of the cube, with a given 
-    width and at a given radial distance to the frame center. It returns a 
+    PCA-ADI or PCA-RDI processed only for an annulus of the cube, with a given
+    width and at a given radial distance to the frame center. It returns a
     processed frame with non-zero values only at the location of the annulus.
-    
+
     Parameters
     ----------
     cube : 3d or 4d numpy ndarray
@@ -632,68 +632,68 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         "spat-standard" spatial mean centering plus scaling to unit variance is
         performed.
     collapse : {'median', 'mean', 'sum', 'wmean'}, str or None, optional
-        Sets the way of collapsing the residual frames to produce a final image. 
+        Sets the way of collapsing the residual frames to produce a final image.
         If None then the cube of residuals is returned.
     weights: 1d numpy array or list, optional
-        Weights to be applied for a weighted mean. Need to be provided if 
+        Weights to be applied for a weighted mean. Need to be provided if
         collapse mode is 'wmean' for collapse.
     collapse_ifs : {'median', 'mean', 'sum', 'wmean'}, str or None, optional
-        Sets the way of collapsing the spectral frames for producing a final 
+        Sets the way of collapsing the spectral frames for producing a final
         image (in the case of a 4D input cube).
     rot_options: dictionary, optional
-        Dictionary with optional keyword values for "nproc", "imlib", 
-        "interpolation, "border_mode", "mask_val",  "edge_blend", 
-        "interp_zeros", "ker" (see documentation of 
+        Dictionary with optional keyword values for "nproc", "imlib",
+        "interpolation, "border_mode", "mask_val",  "edge_blend",
+        "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
-        
+
     Returns
     -------
     Depending on ``collapse`` parameter a final collapsed frame or the cube of
     residuals is returned.
     """
-    
+
     def _pca_annulus_3d(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
-                        svd_mode, scaling, collapse, weights,  **rot_options): 
+                        svd_mode, scaling, collapse, weights, **rot_options):
         inrad = int(r_guess - annulus_width / 2.)
         outrad = int(r_guess + annulus_width / 2.)
         data, ind = prepare_matrix(cube, scaling, mode='annular', verbose=False,
                                    inner_radius=inrad, outer_radius=outrad)
         yy, xx = ind
-    
+
         if cube_ref is not None:
             data_svd, _ = prepare_matrix(cube_ref, scaling, mode='annular',
                                          verbose=False, inner_radius=inrad,
                                          outer_radius=outrad)
         else:
             data_svd = data
-            
+
         V = svd_wrapper(data_svd, svd_mode, ncomp, verbose=False)
-            
+
         transformed = np.dot(data, V.T)
-        reconstructed = np.dot(transformed, V)                           
+        reconstructed = np.dot(transformed, V)
         residuals = data - reconstructed
         cube_zeros = np.zeros_like(cube)
         cube_zeros[:, yy, xx] = residuals
-    
+
         if angs is not None:
             cube_res_der = cube_derotate(cube_zeros, angs, **rot_options)
             if collapse is not None:
-                pca_frame = cube_collapse(cube_res_der, mode=collapse, 
+                pca_frame = cube_collapse(cube_res_der, mode=collapse,
                                           w=weights)
                 return pca_frame
             else:
                 return cube_res_der
-    
+
         else:
             if collapse is not None:
                 pca_frame = cube_collapse(cube_zeros, mode=collapse, w=weights)
                 return pca_frame
             else:
                 return cube_zeros
-            
+
     if cube.ndim == 3:
-        return _pca_annulus_3d(cube, angs, ncomp, annulus_width, r_guess, 
-                               cube_ref, svd_mode, scaling, collapse, weights,  
+        return _pca_annulus_3d(cube, angs, ncomp, annulus_width, r_guess,
+                               cube_ref, svd_mode, scaling, collapse, weights,
                                **rot_options)
     elif cube.ndim == 4:
         nch = cube.shape[0]
@@ -704,32 +704,32 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
             ncomp = [ncomp]*nch
         elif isinstance(ncomp, list) and len(ncomp) != nch:
             msg = "If ncomp is a list, in the case of a 4d input cube without "
-            msg+= "input scale_list, it should have the same length as the "
-            msg+= "first dimension of the cube."
+            msg += "input scale_list, it should have the same length as the "
+            msg += "first dimension of the cube."
             raise TypeError()
         if collapse is None:
             raise ValueError("mode not supported. Provide value for collapse")
-        ifs_res = np.zeros([nch,cube.shape[2], cube.shape[3]])
+        ifs_res = np.zeros([nch, cube.shape[2], cube.shape[3]])
         for ch in range(nch):
             if cube_ref is not None:
                 if cube_ref[ch].ndim != 3:
-                    msg="Ref cube has wrong format for 4d input cube"
+                    msg = "Ref cube has wrong format for 4d input cube"
                     raise TypeError(msg)
-                cube_ref_tmp=cube_ref[ch]
+                cube_ref_tmp = cube_ref[ch]
             else:
                 cube_ref_tmp = cube_ref
-            ifs_res[ch] = _pca_annulus_3d(cube[ch], angs, ncomp[ch], 
-                                          annulus_width, r_guess, cube_ref_tmp, 
-                                          svd_mode, scaling, collapse, weights, 
+            ifs_res[ch] = _pca_annulus_3d(cube[ch], angs, ncomp[ch],
+                                          annulus_width, r_guess, cube_ref_tmp,
+                                          svd_mode, scaling, collapse, weights,
                                           **rot_options)
         return cube_collapse(ifs_res, mode=collapse_ifs)
-    
-            
+
+
 def _compute_stim_map(cube_der):
     """
-    Computes the STIM detection map. 
-    
-    Note: this is a duplicate of the STIM map routine in the metrics module 
+    Computes the STIM detection map.
+
+    Note: this is a duplicate of the STIM map routine in the metrics module
     that is necessary to avoid circular imports (used in iterative PCA function)
 
     Parameters
@@ -753,10 +753,10 @@ def _compute_stim_map(cube_der):
 
 def _compute_inverse_stim_map(cube, angle_list, **rot_options):
     """
-    Computes the inverse STIM detection map, i.e. obtained with opposite 
+    Computes the inverse STIM detection map, i.e. obtained with opposite
     derotation angles.
-    
-    Note: this is a duplicate of the STIM map routine in the metrics module 
+
+    Note: this is a duplicate of the STIM map routine in the metrics module
     that is necessary to avoid circular imports (used in iterative PCA function)
 
     Parameters
@@ -765,13 +765,13 @@ def _compute_inverse_stim_map(cube, angle_list, **rot_options):
         Non de-rotated residuals from reduction algorithm, eg. output residuals
         from ``vip_hci.pca.pca``.
     angle_list : numpy ndarray, 1d
-        Corresponding parallactic angle for each frame.   
+        Corresponding parallactic angle for each frame.
     rot_options: dictionary, optional
-        Dictionary with optional keyword values for "nproc", "imlib", 
-        "interpolation, "border_mode", "mask_val",  "edge_blend", 
-        "interp_zeros", "ker" (see documentation of 
+        Dictionary with optional keyword values for "nproc", "imlib",
+        "interpolation, "border_mode", "mask_val",  "edge_blend",
+        "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
-        
+
     Returns
     -------
     inverse_stim_map : 2d ndarray

@@ -1,5 +1,5 @@
 """
-Code with the Isotropic Undecimated Wavelet Transform, taken (Aug 24, 2015) from 
+Code with the Isotropic Undecimated Wavelet Transform, taken (Aug 24, 2015) from
 https://github.com/ratt-ru/PyMORESANE/
 Credits to J. S. Kenyon
 """
@@ -10,7 +10,8 @@ import multiprocessing as mp
 import ctypes
 
 
-def iuwt_decomposition(in1, scale_count, scale_adjust=0, mode='ser', core_count=2, store_smoothed=False):
+def iuwt_decomposition(in1, scale_count, scale_adjust=0,
+                       mode='ser', core_count=2, store_smoothed=False):
     """
     This function serves as a handler for the different implementations of the IUWT decomposition. It allows the
     different methods to be used almost interchangeably.
@@ -27,13 +28,16 @@ def iuwt_decomposition(in1, scale_count, scale_adjust=0, mode='ser', core_count=
     Returns the decomposition with the additional smoothed coefficients if specified.
     """
 
-    if mode=='ser':
-        return ser_iuwt_decomposition(in1, scale_count, scale_adjust, store_smoothed)
-    elif mode=='mp':
-        return mp_iuwt_decomposition(in1, scale_count, scale_adjust, store_smoothed, core_count)
+    if mode == 'ser':
+        return ser_iuwt_decomposition(
+            in1, scale_count, scale_adjust, store_smoothed)
+    elif mode == 'mp':
+        return mp_iuwt_decomposition(
+            in1, scale_count, scale_adjust, store_smoothed, core_count)
 
 
-def iuwt_recomposition(in1, scale_adjust=0, mode='ser', core_count=1, store_on_gpu=False, smoothed_array=None):
+def iuwt_recomposition(in1, scale_adjust=0, mode='ser',
+                       core_count=1, store_on_gpu=False, smoothed_array=None):
     """
     This function serves as a handler for the different implementations of the IUWT recomposition. It allows the
     different methods to be used almost interchangeably.
@@ -49,10 +53,11 @@ def iuwt_recomposition(in1, scale_adjust=0, mode='ser', core_count=1, store_on_g
     Returns the recomposition.
     """
 
-    if mode=='ser':
+    if mode == 'ser':
         return ser_iuwt_recomposition(in1, scale_adjust, smoothed_array)
-    elif mode=='mp':
-        return mp_iuwt_recomposition(in1, scale_adjust, core_count, smoothed_array)
+    elif mode == 'mp':
+        return mp_iuwt_recomposition(
+            in1, scale_adjust, core_count, smoothed_array)
 
 
 def ser_iuwt_decomposition(in1, scale_count, scale_adjust, store_smoothed):
@@ -71,11 +76,13 @@ def ser_iuwt_decomposition(in1, scale_count, scale_adjust, store_smoothed):
     C0                  (optional):     Array containing the smoothest version of the input.
     """
 
-    wavelet_filter = (1./16)*np.array([1,4,6,4,1])      # Filter-bank for use in the a trous algorithm.
+    # Filter-bank for use in the a trous algorithm.
+    wavelet_filter = (1./16)*np.array([1, 4, 6, 4, 1])
 
     # Initialises an empty array to store the coefficients.
 
-    detail_coeffs = np.empty([scale_count-scale_adjust, in1.shape[0], in1.shape[1]])
+    detail_coeffs = np.empty(
+        [scale_count-scale_adjust, in1.shape[0], in1.shape[1]])
 
     C0 = in1    # Sets the initial value to be the input array.
 
@@ -83,7 +90,7 @@ def ser_iuwt_decomposition(in1, scale_count, scale_adjust, store_smoothed):
     # considered insignificant. This is important as each set of wavelet coefficients depends on the last smoothed
     # version of the input.
 
-    if scale_adjust>0:
+    if scale_adjust > 0:
         for i in range(0, scale_adjust):
             C0 = ser_a_trous(C0, wavelet_filter, i)
 
@@ -91,16 +98,20 @@ def ser_iuwt_decomposition(in1, scale_count, scale_adjust, store_smoothed):
     # the detail coefficients. C0 is reassigned the value of C on each loop - C0 is always the smoothest version of the
     # input image.
 
-    for i in range(scale_adjust,scale_count):
-        C = ser_a_trous(C0, wavelet_filter, i)                                  # Approximation coefficients.
-        C1 = ser_a_trous(C, wavelet_filter, i)                                  # Approximation coefficients.
-        detail_coeffs[i-scale_adjust,:,:] = C0 - C1                             # Detail coefficients.
+    for i in range(scale_adjust, scale_count):
+        # Approximation coefficients.
+        C = ser_a_trous(C0, wavelet_filter, i)
+        # Approximation coefficients.
+        C1 = ser_a_trous(C, wavelet_filter, i)
+        # Detail coefficients.
+        detail_coeffs[i-scale_adjust, :, :] = C0 - C1
         C0 = C
 
     if store_smoothed:
         return detail_coeffs, C0
     else:
         return detail_coeffs
+
 
 def ser_iuwt_recomposition(in1, scale_adjust, smoothed_array):
     """
@@ -116,9 +127,11 @@ def ser_iuwt_recomposition(in1, scale_adjust, smoothed_array):
     recomposition                   Array containing the reconstructed image.
     """
 
-    wavelet_filter = (1./16)*np.array([1,4,6,4,1])      # Filter-bank for use in the a trous algorithm.
+    # Filter-bank for use in the a trous algorithm.
+    wavelet_filter = (1./16)*np.array([1, 4, 6, 4, 1])
 
-    # Determines scale with adjustment and creates a zero array to store the output, unless smoothed_array is given.
+    # Determines scale with adjustment and creates a zero array to store the
+    # output, unless smoothed_array is given.
 
     max_scale = in1.shape[0] + scale_adjust
 
@@ -132,13 +145,15 @@ def ser_iuwt_recomposition(in1, scale_adjust, smoothed_array):
     # on the scales less than scale_adjust.
 
     for i in range(max_scale-1, scale_adjust-1, -1):
-        recomposition = ser_a_trous(recomposition, wavelet_filter, i) + in1[i-scale_adjust,:,:]
+        recomposition = ser_a_trous(
+            recomposition, wavelet_filter, i) + in1[i-scale_adjust, :, :]
 
-    if scale_adjust>0:
+    if scale_adjust > 0:
         for i in range(scale_adjust-1, -1, -1):
             recomposition = ser_a_trous(recomposition, wavelet_filter, i)
 
     return recomposition
+
 
 def ser_a_trous(C0, filter, scale):
     """
@@ -154,35 +169,37 @@ def ser_a_trous(C0, filter, scale):
     """
     tmp = filter[2]*C0
 
-    tmp[(2**(scale+1)):,:] += filter[0]*C0[:-(2**(scale+1)),:]
-    tmp[:(2**(scale+1)),:] += filter[0]*C0[(2**(scale+1))-1::-1,:]
+    tmp[(2**(scale+1)):, :] += filter[0]*C0[:-(2**(scale+1)), :]
+    tmp[:(2**(scale+1)), :] += filter[0]*C0[(2**(scale+1))-1::-1, :]
 
-    tmp[(2**scale):,:] += filter[1]*C0[:-(2**scale),:]
-    tmp[:(2**scale),:] += filter[1]*C0[(2**scale)-1::-1,:]
+    tmp[(2**scale):, :] += filter[1]*C0[:-(2**scale), :]
+    tmp[:(2**scale), :] += filter[1]*C0[(2**scale)-1::-1, :]
 
-    tmp[:-(2**scale),:] += filter[3]*C0[(2**scale):,:]
-    tmp[-(2**scale):,:] += filter[3]*C0[:-(2**scale)-1:-1,:]
+    tmp[:-(2**scale), :] += filter[3]*C0[(2**scale):, :]
+    tmp[-(2**scale):, :] += filter[3]*C0[:-(2**scale)-1:-1, :]
 
-    tmp[:-(2**(scale+1)),:] += filter[4]*C0[(2**(scale+1)):,:]
-    tmp[-(2**(scale+1)):,:] += filter[4]*C0[:-(2**(scale+1))-1:-1,:]
+    tmp[:-(2**(scale+1)), :] += filter[4]*C0[(2**(scale+1)):, :]
+    tmp[-(2**(scale+1)):, :] += filter[4]*C0[:-(2**(scale+1))-1:-1, :]
 
     C1 = filter[2]*tmp
 
-    C1[:,(2**(scale+1)):] += filter[0]*tmp[:,:-(2**(scale+1))]
-    C1[:,:(2**(scale+1))] += filter[0]*tmp[:,(2**(scale+1))-1::-1]
+    C1[:, (2**(scale+1)):] += filter[0]*tmp[:, :-(2**(scale+1))]
+    C1[:, :(2**(scale+1))] += filter[0]*tmp[:, (2**(scale+1))-1::-1]
 
-    C1[:,(2**scale):] += filter[1]*tmp[:,:-(2**scale)]
-    C1[:,:(2**scale)] += filter[1]*tmp[:,(2**scale)-1::-1]
+    C1[:, (2**scale):] += filter[1]*tmp[:, :-(2**scale)]
+    C1[:, :(2**scale)] += filter[1]*tmp[:, (2**scale)-1::-1]
 
-    C1[:,:-(2**scale)] += filter[3]*tmp[:,(2**scale):]
-    C1[:,-(2**scale):] += filter[3]*tmp[:,:-(2**scale)-1:-1]
+    C1[:, :-(2**scale)] += filter[3]*tmp[:, (2**scale):]
+    C1[:, -(2**scale):] += filter[3]*tmp[:, :-(2**scale)-1:-1]
 
-    C1[:,:-(2**(scale+1))] += filter[4]*tmp[:,(2**(scale+1)):]
-    C1[:,-(2**(scale+1)):] += filter[4]*tmp[:,:-(2**(scale+1))-1:-1]
+    C1[:, :-(2**(scale+1))] += filter[4]*tmp[:, (2**(scale+1)):]
+    C1[:, -(2**(scale+1)):] += filter[4]*tmp[:, :-(2**(scale+1))-1:-1]
 
     return C1
 
-def mp_iuwt_decomposition(in1, scale_count, scale_adjust, store_smoothed, core_count):
+
+def mp_iuwt_decomposition(in1, scale_count, scale_adjust,
+                          store_smoothed, core_count):
     """
     This function calls the a trous algorithm code to decompose the input into its wavelet coefficients. This is
     the isotropic undecimated wavelet transform implemented for multiple CPU cores. NOTE: Python is not well suited
@@ -200,19 +217,22 @@ def mp_iuwt_decomposition(in1, scale_count, scale_adjust, store_smoothed, core_c
     C0                  (optional):     Array containing the smoothest version of the input.
     """
 
-    wavelet_filter = (1./16)*np.array([1,4,6,4,1])      # Filter-bank for use in the a trous algorithm.
+    # Filter-bank for use in the a trous algorithm.
+    wavelet_filter = (1./16)*np.array([1, 4, 6, 4, 1])
 
-    C0 = in1                                            # Sets the initial value to be the input array.
+    # Sets the initial value to be the input array.
+    C0 = in1
 
     # Initialises a zero array to store the coefficients.
 
-    detail_coeffs = np.empty([scale_count-scale_adjust, in1.shape[0], in1.shape[1]])
+    detail_coeffs = np.empty(
+        [scale_count-scale_adjust, in1.shape[0], in1.shape[1]])
 
     # The following loop, which iterates up to scale_adjust, applies the a trous algorithm to the scales which are
     # considered insignificant. This is important as each set of wavelet coefficients depends on the last smoothed
     # version of the input.
 
-    if scale_adjust>0:
+    if scale_adjust > 0:
         for i in range(0, scale_adjust):
             C0 = mp_a_trous(C0, wavelet_filter, i, core_count)
 
@@ -220,16 +240,20 @@ def mp_iuwt_decomposition(in1, scale_count, scale_adjust, store_smoothed, core_c
     # the detail coefficients. C0 is reassigned the value of C on each loop - C0 is always the smoothest version of the
     # input image.
 
-    for i in range(scale_adjust,scale_count):
-        C = mp_a_trous(C0, wavelet_filter, i, core_count)                   # Approximation coefficients.
-        C1 = mp_a_trous(C, wavelet_filter, i, core_count)                   # Approximation coefficients.
-        detail_coeffs[i-scale_adjust,:,:] = C0 - C1                         # Detail coefficients.
+    for i in range(scale_adjust, scale_count):
+        # Approximation coefficients.
+        C = mp_a_trous(C0, wavelet_filter, i, core_count)
+        # Approximation coefficients.
+        C1 = mp_a_trous(C, wavelet_filter, i, core_count)
+        # Detail coefficients.
+        detail_coeffs[i-scale_adjust, :, :] = C0 - C1
         C0 = C
 
     if store_smoothed:
         return detail_coeffs, C0
     else:
         return detail_coeffs
+
 
 def mp_iuwt_recomposition(in1, scale_adjust, core_count, smoothed_array):
     """
@@ -246,9 +270,11 @@ def mp_iuwt_recomposition(in1, scale_adjust, core_count, smoothed_array):
     recomposiiton                   Array containing the reconstructed image.
     """
 
-    wavelet_filter = (1./16)*np.array([1,4,6,4,1])      # Filter-bank for use in the a trous algorithm.
+    # Filter-bank for use in the a trous algorithm.
+    wavelet_filter = (1./16)*np.array([1, 4, 6, 4, 1])
 
-    # Determines scale with adjustment and creates a zero array to store the output, unless smoothed_array is given.
+    # Determines scale with adjustment and creates a zero array to store the
+    # output, unless smoothed_array is given.
 
     max_scale = in1.shape[0] + scale_adjust
 
@@ -262,13 +288,16 @@ def mp_iuwt_recomposition(in1, scale_adjust, core_count, smoothed_array):
     # on the scales less than scale_adjust.
 
     for i in range(max_scale-1, scale_adjust-1, -1):
-        recomposition = mp_a_trous(recomposition, wavelet_filter, i, core_count) + in1[i-scale_adjust,:,:]
+        recomposition = mp_a_trous(
+            recomposition, wavelet_filter, i, core_count) + in1[i-scale_adjust, :, :]
 
-    if scale_adjust>0:
+    if scale_adjust > 0:
         for i in range(scale_adjust-1, -1, -1):
-            recomposition = mp_a_trous(recomposition, wavelet_filter, i, core_count)
+            recomposition = mp_a_trous(
+                recomposition, wavelet_filter, i, core_count)
 
     return recomposition
+
 
 def mp_a_trous(C0, wavelet_filter, scale, core_count):
     """
@@ -291,15 +320,15 @@ def mp_a_trous(C0, wavelet_filter, scale, core_count):
     shared_array_base = mp.Array(ctypes.c_float, C0.shape[0]**2, lock=False)
     shared_array = np.frombuffer(shared_array_base, dtype=ctypes.c_float)
     shared_array = shared_array.reshape(C0.shape)
-    shared_array[:,:] = C0
+    shared_array[:, :] = C0
 
     # Division of the problem and allocation of processes to cores.
 
     processes = []
 
     for i in range(core_count):
-        process = mp.Process(target = mp_a_trous_kernel, args = (shared_array, wavelet_filter, scale, i,
-                                                     C0.shape[0]//core_count, 'row',))
+        process = mp.Process(target=mp_a_trous_kernel, args=(shared_array, wavelet_filter, scale, i,
+                                                             C0.shape[0]//core_count, 'row',))
         process.start()
         processes.append(process)
 
@@ -309,8 +338,8 @@ def mp_a_trous(C0, wavelet_filter, scale, core_count):
     processes = []
 
     for i in range(core_count):
-        process = mp.Process(target = mp_a_trous_kernel, args = (shared_array, wavelet_filter, scale, i,
-                                                     C0.shape[1]//core_count, 'col',))
+        process = mp.Process(target=mp_a_trous_kernel, args=(shared_array, wavelet_filter, scale, i,
+                                                             C0.shape[1]//core_count, 'col',))
         process.start()
         processes.append(process)
 
@@ -319,7 +348,9 @@ def mp_a_trous(C0, wavelet_filter, scale, core_count):
 
     return shared_array
 
-def mp_a_trous_kernel(C0, wavelet_filter, scale, slice_ind, slice_width, r_or_c="row"):
+
+def mp_a_trous_kernel(C0, wavelet_filter, scale,
+                      slice_ind, slice_width, r_or_c="row"):
     """
     This is the convolution step of the a trous algorithm.
 
@@ -340,36 +371,51 @@ def mp_a_trous_kernel(C0, wavelet_filter, scale, slice_ind, slice_width, r_or_c=
     upper_bound = (slice_ind+1)*slice_width
 
     if r_or_c == "row":
-        row_conv = wavelet_filter[2]*C0[:,lower_bound:upper_bound]
+        row_conv = wavelet_filter[2]*C0[:, lower_bound:upper_bound]
 
-        row_conv[(2**(scale+1)):,:] += wavelet_filter[0]*C0[:-(2**(scale+1)),lower_bound:upper_bound]
-        row_conv[:(2**(scale+1)),:] += wavelet_filter[0]*C0[(2**(scale+1))-1::-1,lower_bound:upper_bound]
+        row_conv[(2**(scale+1)):, :] += wavelet_filter[0] * \
+            C0[:-(2**(scale+1)), lower_bound:upper_bound]
+        row_conv[:(2**(scale+1)), :] += wavelet_filter[0] * \
+            C0[(2**(scale+1))-1::-1, lower_bound:upper_bound]
 
-        row_conv[(2**scale):,:] += wavelet_filter[1]*C0[:-(2**scale),lower_bound:upper_bound]
-        row_conv[:(2**scale),:] += wavelet_filter[1]*C0[(2**scale)-1::-1,lower_bound:upper_bound]
+        row_conv[(2**scale):, :] += wavelet_filter[1] * \
+            C0[:-(2**scale), lower_bound:upper_bound]
+        row_conv[:(2**scale), :] += wavelet_filter[1] * \
+            C0[(2**scale)-1::-1, lower_bound:upper_bound]
 
-        row_conv[:-(2**scale),:] += wavelet_filter[3]*C0[(2**scale):,lower_bound:upper_bound]
-        row_conv[-(2**scale):,:] += wavelet_filter[3]*C0[:-(2**scale)-1:-1,lower_bound:upper_bound]
+        row_conv[:-(2**scale), :] += wavelet_filter[3] * \
+            C0[(2**scale):, lower_bound:upper_bound]
+        row_conv[-(2**scale):, :] += wavelet_filter[3] * \
+            C0[:-(2**scale)-1:-1, lower_bound:upper_bound]
 
-        row_conv[:-(2**(scale+1)),:] += wavelet_filter[4]*C0[(2**(scale+1)):,lower_bound:upper_bound]
-        row_conv[-(2**(scale+1)):,:] += wavelet_filter[4]*C0[:-(2**(scale+1))-1:-1,lower_bound:upper_bound]
+        row_conv[:-(2**(scale+1)), :] += wavelet_filter[4] * \
+            C0[(2**(scale+1)):, lower_bound:upper_bound]
+        row_conv[-(2**(scale+1)):, :] += wavelet_filter[4] * \
+            C0[:-(2**(scale+1))-1:-1, lower_bound:upper_bound]
 
-        C0[:,lower_bound:upper_bound] = row_conv
+        C0[:, lower_bound:upper_bound] = row_conv
 
     elif r_or_c == "col":
-        col_conv = wavelet_filter[2]*C0[lower_bound:upper_bound,:]
+        col_conv = wavelet_filter[2]*C0[lower_bound:upper_bound, :]
 
-        col_conv[:,(2**(scale+1)):] += wavelet_filter[0]*C0[lower_bound:upper_bound,:-(2**(scale+1))]
-        col_conv[:,:(2**(scale+1))] += wavelet_filter[0]*C0[lower_bound:upper_bound,(2**(scale+1))-1::-1]
+        col_conv[:, (2**(scale+1)):] += wavelet_filter[0] * \
+            C0[lower_bound:upper_bound, :-(2**(scale+1))]
+        col_conv[:, :(2**(scale+1))] += wavelet_filter[0] * \
+            C0[lower_bound:upper_bound, (2**(scale+1))-1::-1]
 
-        col_conv[:,(2**scale):] += wavelet_filter[1]*C0[lower_bound:upper_bound,:-(2**scale)]
-        col_conv[:,:(2**scale)] += wavelet_filter[1]*C0[lower_bound:upper_bound,(2**scale)-1::-1]
+        col_conv[:, (2**scale):] += wavelet_filter[1] * \
+            C0[lower_bound:upper_bound, :-(2**scale)]
+        col_conv[:, :(2**scale)] += wavelet_filter[1] * \
+            C0[lower_bound:upper_bound, (2**scale)-1::-1]
 
-        col_conv[:,:-(2**scale)] += wavelet_filter[3]*C0[lower_bound:upper_bound,(2**scale):]
-        col_conv[:,-(2**scale):] += wavelet_filter[3]*C0[lower_bound:upper_bound,:-(2**scale)-1:-1]
+        col_conv[:, :-(2**scale)] += wavelet_filter[3] * \
+            C0[lower_bound:upper_bound, (2**scale):]
+        col_conv[:, -(2**scale):] += wavelet_filter[3] * \
+            C0[lower_bound:upper_bound, :-(2**scale)-1:-1]
 
-        col_conv[:,:-(2**(scale+1))] += wavelet_filter[4]*C0[lower_bound:upper_bound,(2**(scale+1)):]
-        col_conv[:,-(2**(scale+1)):] += wavelet_filter[4]*C0[lower_bound:upper_bound,:-(2**(scale+1))-1:-1]
+        col_conv[:, :-(2**(scale+1))] += wavelet_filter[4] * \
+            C0[lower_bound:upper_bound, (2**(scale+1)):]
+        col_conv[:, -(2**(scale+1)):] += wavelet_filter[4] * \
+            C0[lower_bound:upper_bound, :-(2**(scale+1))-1:-1]
 
-        C0[lower_bound:upper_bound,:] = col_conv
-
+        C0[lower_bound:upper_bound, :] = col_conv

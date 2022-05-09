@@ -233,93 +233,6 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
 
     """
 
-    if not no_numba:
-        @njit
-        def _clip_array_numba(array, lower_sigma, upper_sigma, out_good=False,
-                              neighbor=False, num_neighbor=3, mad=False,
-                              half_res_y=False):
-            if array.ndim != 2:
-                raise TypeError("Input array is not two dimensional (frame)\n")
-
-            ny, nx = array.shape
-            bpm = array.copy()
-            gpm = array.copy()
-
-            if neighbor and num_neighbor:
-                for y in range(ny):
-                    for x in range(nx):
-                        # 0/ Determine the box around each pixel
-                        # 0/ Determine the box around each pixel
-                        half_box_x = int(np.floor(num_neighbor/2.))
-                        if half_res_y:
-                            half_box_y = max(1, int(half_box_x/2))
-                        else:
-                            half_box_y = half_box_x
-                        # half size of the box at the
-                        hbox_b = min(half_box_y, y)
-                        # bottom of the pixel
-                        # half size of the box at the
-                        hbox_t = min(half_box_y, ny-1-y)
-                        # top of the pixel
-                        # half size of the box to the
-                        hbox_l = min(half_box_x, x)
-                        # left of the pixel
-                        # half size of the box to the
-                        hbox_r = min(half_box_x, nx-1-x)
-                        # right of the pixel
-                        # in case we are close to an edge, we want to extend the box
-                        # in the direction opposite to the edge:
-                        if hbox_b < hbox_t:
-                            hbox_t += half_box_y-hbox_b
-                        elif hbox_t < hbox_b:
-                            hbox_b += half_box_y-hbox_t
-                        if hbox_l < hbox_r:
-                            hbox_r += half_box_x-hbox_l
-                        elif hbox_r < hbox_l:
-                            hbox_l += half_box_x-hbox_r
-
-                        sub_arr = array[y-hbox_b:y+hbox_t+1,
-                                        x-hbox_l:x+hbox_r+1]
-                        neighbours = sub_arr.flatten()
-                        neigh_list = []
-                        remove_itself = True
-                        for i in range(neighbours.shape[0]):
-                            if neighbours[i] == array[y, x] and remove_itself:
-                                remove_itself = False
-                            else:
-                                neigh_list.append(neighbours[i])
-
-                        neigh_arr = np.array(neigh_list)
-                        median = np.median(neigh_arr)
-                        if mad:
-                            abs_diff = []
-                            for i in range(len(neigh_list)):#num_neighbor*num_neighbor-1):
-                                abs_diff.append(np.absolute(median-neigh_arr[i]))
-                            sigma = np.median(np.array(abs_diff))
-                        else:
-                            sigma = np.std(neigh_arr)
-                        bad1 = array[y, x] < (median - lower_sigma * sigma)
-                        bad2 = array[y, x] > (median + upper_sigma * sigma)
-                        bpm[y, x] = bad1 | bad2
-                        gpm[y, x] = 1.-bpm[y, x]
-            else:
-                median = np.median(array)
-                sigma = np.std(array)
-                for y in range(ny):
-                    for x in range(nx):
-                        bad1 = array[y, x] < (median - lower_sigma * sigma)
-                        bad2 = array[y, x] > (median + upper_sigma * sigma)
-                        bpm[y, x] = bad1 | bad2
-                        gpm[y, x] = 1.-bpm[y, x]
-
-            if out_good:
-                good = np.where(gpm)
-                return good
-            else:
-                bad = np.where(bpm)
-                return bad
-
-    # TODO: If possible, replace this function using astropy.stats.sigma_clip
     def _clip_array(array, lower_sigma, upper_sigma, out_good=False,
                     neighbor=False, num_neighbor=3, mad=False,
                     half_res_y=False):
@@ -438,6 +351,14 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
         else:
             bad = np.where(bpm)
             return bad
+
+    if not no_numba:
+        @njit
+        def _clip_array_numba(array, lower_sigma, upper_sigma, out_good=False,
+                              neighbor=False, num_neighbor=3, mad=False,
+                              half_res_y=False):
+            return _clip_array(array, lower_sigma, upper_sigma, out_good,
+                               neighbor, num_neighbor, mad, half_res_y)
 
     if no_numba:
         return _clip_array(array, lower_sigma, upper_sigma, out_good=out_good,

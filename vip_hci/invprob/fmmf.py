@@ -251,7 +251,8 @@ def _snr_contrast_esti(ann_center, cube, pa, psf, fwhm, model, var, param, crop,
         model_matrix = cube_inject_companions(np.zeros_like(cube), psf, pa,
                                               flevel=1, rad_dists=an_dist,
                                               theta=theta, n_branches=1,
-                                              verbose=False)
+                                              verbose=False, imlib=imlib,
+                                              interpolation=interpolation)
 
         # PSF forward model computation for KLIP
 

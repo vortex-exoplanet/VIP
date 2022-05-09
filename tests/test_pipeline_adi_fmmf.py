@@ -38,14 +38,14 @@ def injected_cube_position(example_dataset_adi):
 # ====== algos
 def algo_fmmf_klip(ds):
     res = vip.invprob.fmmf(ds.cube, ds.angles, ds.psf, ds.fwhm, min_r=26,
-                           max_r=34, model='KLIP', nproc=1, imlib='opencv')
+                           max_r=34, model='KLIP', nproc=None, imlib='opencv')
     flux_m, snr_n = res
     return snr_n
 
 
 def algo_fmmf_loci(ds):
     res = vip.invprob.fmmf(ds.cube, ds.angles, ds.psf, ds.fwhm, min_r=26,
-                           max_r=34, model='LOCI', nproc=1, imlib='opencv')
+                           max_r=34, model='LOCI', nproc=None, imlib='opencv')
     flux_m, snr_n = res
     return snr_n
 

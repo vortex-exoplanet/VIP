@@ -31,10 +31,10 @@ from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
 
 
-def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4, 
-               radius_int=0, asize=4, delta_rot=1, delta_sep=(0.1, 1), 
-               mode='fullfr', nframes=4, sdi_only=False, imlib='vip-fft', 
-               interpolation='lanczos4', collapse='median', nproc=1, 
+def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
+               radius_int=0, asize=4, delta_rot=1, delta_sep=(0.1, 1),
+               mode='fullfr', nframes=4, sdi_only=False, imlib='vip-fft',
+               interpolation='lanczos4', collapse='median', nproc=1,
                full_output=False, verbose=True, **rot_options):
     """ Implementation of a median subtraction algorithm for model PSF
     subtraction in high-contrast imaging sequences. In the case of ADI, the
@@ -48,19 +48,19 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
     scale_list : numpy ndarray, 1d, optional
-        If provided, triggers mSDI reduction. These should be the scaling 
+        If provided, triggers mSDI reduction. These should be the scaling
         factors used to re-scale the spectral channels and align the speckles
-        in case of IFS data (ADI+mSDI cube). Usually, these can be approximated 
-        by the last channel wavelength divided by the other wavelengths in the 
+        in case of IFS data (ADI+mSDI cube). Usually, these can be approximated
+        by the last channel wavelength divided by the other wavelengths in the
         cube (more thorough approaches can be used to get the scaling factors,
-        e.g. with ``vip_hci.preproc.find_scal_vector``). 
+        e.g. with ``vip_hci.preproc.find_scal_vector``).
     flux_sc_list : numpy ndarray, 1d
-        In the case of IFS data (ADI+SDI), this is the list of flux scaling 
+        In the case of IFS data (ADI+SDI), this is the list of flux scaling
         factors applied to each spectral frame after geometrical rescaling.
-        These should be set to either the ratio of stellar fluxes between the 
-        last spectral channel and the other channels, or to the second output 
-        of `preproc.find_scal_vector` (when using 2 free parameters). If not 
-        provided, the algorithm will still work, but with a lower efficiency 
+        These should be set to either the ratio of stellar fluxes between the
+        last spectral channel and the other channels, or to the second output
+        of `preproc.find_scal_vector` (when using 2 free parameters). If not
+        provided, the algorithm will still work, but with a lower efficiency
         at subtracting the stellar halo.
     fwhm : float or 1d numpy array
         Known size of the FHWM in pixels to be used. Default is 4.
@@ -105,8 +105,8 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
     verbose : bool, optional
         If True prints to stdout intermediate info.
     rot_options: dictionary, optional
-        Dictionary with optional keyword values for "border_mode", "mask_val",  
-        "edge_blend", "interp_zeros", "ker" (see documentation of 
+        Dictionary with optional keyword values for "border_mode", "mask_val",
+        "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
 
     Returns
@@ -202,7 +202,7 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
                 raise ValueError('Scaling factors vector is not 1d')
             if not scale_list.shape[0] == z:
                 raise ValueError('Scaling factors vector has wrong length')
-                
+
         if flux_sc_list is not None:
             if np.array(flux_sc_list).ndim > 1:
                 raise ValueError('Scaling factors vector is not 1d')
@@ -225,8 +225,8 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
                                                                  fwhm))
 
         res = pool_map(nproc, _median_subt_fr_sdi, iterable(range(n)),
-                       scale_list, flux_sc_list, n_annuli, fwhm, radius_int, 
-                       asize, delta_sep, nframes, imlib, interpolation, 
+                       scale_list, flux_sc_list, n_annuli, fwhm, radius_int,
+                       asize, delta_sep, nframes, imlib, interpolation,
                        collapse, mode)
         residuals_cube_channels = np.array(res)
 
@@ -235,24 +235,23 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
             print('{} ADI frames'.format(n))
             print('Median subtraction in the ADI fashion')
 
-
         if sdi_only:
             cube_out = residuals_cube_channels
         else:
             if mode == 'fullfr':
                 median_frame = np.nanmedian(residuals_cube_channels, axis=0)
                 cube_out = residuals_cube_channels - median_frame
-    
+
             elif mode == 'annular':
                 if verbose:
                     print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli,
                                                                      fwhm))
                 ARRAY = residuals_cube_channels
-                
-                res = pool_map(nproc, _median_subt_ann_adi, 
-                               iterable(range(n_annuli)), angle_list, n_annuli, 
+
+                res = pool_map(nproc, _median_subt_ann_adi,
+                               iterable(range(n_annuli)), angle_list, n_annuli,
                                fwhm, radius_int, asize, delta_rot, nframes)
-    
+
                 res = np.array(res, dtype=object)
                 mres = res[:, 0]
                 yy = res[:, 1]
@@ -261,12 +260,12 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
                 if verbose:
                     print('PA thresholds: ')
                     print_precision(pa_thrs)
-    
+
                 cube_out = np.zeros_like(ARRAY)
                 cube_out[:] = np.nan
                 for ann in range(n_annuli):
                     cube_out[:, yy[ann], xx[ann]] = mres[ann]
-    
+
             else:
                 raise RuntimeError('Mode not recognized')
 
@@ -276,7 +275,7 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
         if radius_int:
             cube_der = mask_circle(cube_der, radius_int)
         frame = cube_collapse(cube_der, mode=collapse)
-            
+
     if verbose:
         print('Done derotating and combining')
         timing(start_time)
@@ -286,8 +285,8 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
         return frame
 
 
-def _median_subt_fr_sdi(fr, scal, flux_scal, n_annuli, fwhm, radius_int, 
-                        annulus_width, delta_sep, nframes, imlib, interpolation, 
+def _median_subt_fr_sdi(fr, scal, flux_scal, n_annuli, fwhm, radius_int,
+                        annulus_width, delta_sep, nframes, imlib, interpolation,
                         collapse, mode):
     """ Optimized median subtraction on a multi-spectral frame (IFS data).
     """
@@ -383,5 +382,3 @@ def _median_subt_ann_adi(ann, angle_list, n_annuli, fwhm, radius_int,
         matrix_res[frame] = subtracted
 
     return matrix_res, yy, xx, pa_thr
-
-

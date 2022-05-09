@@ -21,13 +21,14 @@ from ..var import get_annulus_segments, matrix_scaling
 from ..stats import descriptive_stats
 from .svd import get_eigenvectors
 
-def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0, 
-                fwhm=4, asize=4, n_segments=1, delta_rot=(0.1, 1), 
-                delta_sep=(0.1, 1), ncomp=1, svd_mode='lapack', nproc=1, 
-                min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None, 
+
+def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
+                fwhm=4, asize=4, n_segments=1, delta_rot=(0.1, 1),
+                delta_sep=(0.1, 1), ncomp=1, svd_mode='lapack', nproc=1,
+                min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
                 imlib='vip-fft', interpolation='lanczos4', collapse='median',
-                collapse_ifs='mean', ifs_collapse_range='all', 
-                full_output=False, verbose=True, weights=None, cube_sig=None, 
+                collapse_ifs='mean', ifs_collapse_range='all',
+                full_output=False, verbose=True, weights=None, cube_sig=None,
                 **rot_options):
     """ PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data. The
     PCA model is computed locally in each annulus (or annular sectors according
@@ -49,12 +50,12 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
     cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     scale_list : numpy ndarray, 1d, optional
-        If provided, triggers mSDI reduction. These should be the scaling 
+        If provided, triggers mSDI reduction. These should be the scaling
         factors used to re-scale the spectral channels and align the speckles
-        in case of IFS data (ADI+mSDI cube). Usually, these can be approximated 
-        by the last channel wavelength divided by the other wavelengths in the 
+        in case of IFS data (ADI+mSDI cube). Usually, these can be approximated
+        by the last channel wavelength divided by the other wavelengths in the
         cube (more thorough approaches can be used to get the scaling factors,
-        e.g. with ``vip_hci.preproc.find_scal_vector``). 
+        e.g. with ``vip_hci.preproc.find_scal_vector``).
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the
         central circular region is discarded.
@@ -81,16 +82,16 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         How many PCs are used as a lower-dimensional subspace to project the
         target (sectors of) frames. Depends on the dimensionality of `cube`.
 
-        * ADI and ADI+RDI (``cube`` is a 3d array): if a single integer is 
-          provided, then the same number of PCs will be subtracted at each 
-          separation (annulus). If a tuple is provided, then a different number 
-          of PCs will be used for each annulus (starting with the innermost 
-          one). If ``ncomp`` is set to ``auto`` then the number of PCs are 
+        * ADI and ADI+RDI (``cube`` is a 3d array): if a single integer is
+          provided, then the same number of PCs will be subtracted at each
+          separation (annulus). If a tuple is provided, then a different number
+          of PCs will be used for each annulus (starting with the innermost
+          one). If ``ncomp`` is set to ``auto`` then the number of PCs are
           calculated for each region/patch automatically.
-          
-        * ADI or ADI+RDI (``cube`` is a 4d array): same input format allowed as 
-          above. If ncomp is a list with the same length as the number of 
-          channels, each element of the list will be used as ``ncomp`` value 
+
+        * ADI or ADI+RDI (``cube`` is a 4d array): same input format allowed as
+          above. If ncomp is a list with the same length as the number of
+          channels, each element of the list will be used as ``ncomp`` value
           (whether int, float or tuple) for each spectral channel.
 
         * ADI+mSDI case: ``ncomp`` must be a tuple (two integers) with the
@@ -141,7 +142,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
     min_frames_lib : int, optional
         Minimum number of frames in the PCA reference library.
     max_frames_lib : int, optional
-        Maximum number of frames in the PCA reference library. The more 
+        Maximum number of frames in the PCA reference library. The more
         distant/decorrelated frames are removed from the library.
     tol : float, optional
         Stopping criterion for choosing the number of PCs when ``ncomp``
@@ -186,10 +187,10 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         Cube with estimate of significant authentic signals. If provided, this
         will be subtracted before projecting cube onto reference cube.
     rot_options: dictionary, optional
-        Dictionary with optional keyword values for "border_mode", "mask_val",  
-        "edge_blend", "interp_zeros", "ker" (see documentation of 
+        Dictionary with optional keyword values for "border_mode", "mask_val",
+        "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
-        
+
     Returns
     -------
     - If full_output is False:
@@ -221,32 +222,38 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         else:
             return frame
 
-
     # 4D cube, but no mSDI desired
     elif cube.ndim == 4 and scale_list is None:
         nch, nz, ny, nx = cube.shape
         ifs_adi_frames = np.zeros([nch, ny, nx])
-        if not np.isinstance(list):
+        if not isinstance(ncomp, list):
             ncomp = [ncomp]*nch
-        elif np.isinstance(list) and len(ncomp) != nch:
+        elif isinstance(ncomp, list) and len(ncomp) != nch:
             msg = "If ncomp is a list, in the case of a 4d input cube without "
-            msg+= "input scale_list, it should have the same length as the "
-            msg+= "first dimension of the cube."
+            msg += "input scale_list, it should have the same length as the "
+            msg += "first dimension of the cube."
             raise TypeError()
         if np.isscalar(fwhm):
             fwhm = [fwhm]*nch
 
         cube_out = []
         cube_der = []
-        
         # ADI or RDI in each channel
         for ch in range(nch):
-            res_pca = _pca_adi_rdi(cube[ch], angle_list, radius_int, fwhm[ch], 
-                                   asize, n_segments, delta_rot, ncomp[ch], 
+            if cube_ref is not None:
+                if cube_ref[ch].ndim != 3:
+                    msg = "Ref cube has wrong format for 4d input cube"
+                    raise TypeError(msg)
+                cube_ref_tmp = cube_ref[ch]
+            else:
+                cube_ref_tmp = cube_ref
+            res_pca = _pca_adi_rdi(cube[ch], angle_list, radius_int, fwhm[ch],
+                                   asize, n_segments, delta_rot, ncomp[ch],
                                    svd_mode, nproc, min_frames_lib,
                                    max_frames_lib, tol, scaling, imlib,
-                                   interpolation, collapse, True, verbose, 
-                                   cube_ref, weights, cube_sig, **rot_options)
+                                   interpolation, collapse, True, verbose,
+                                   cube_ref_tmp, weights, cube_sig,
+                                   **rot_options)
             cube_out.append(res_pca[0])
             cube_der.append(res_pca[1])
             ifs_adi_frames[ch] = res_pca[-1]
@@ -292,7 +299,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
 
         res = pool_map(nproc, _pca_sdi_fr, iterable(range(n)), scale_list,
                        radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
-                       svd_mode, tol, scaling, imlib, interpolation, 
+                       svd_mode, tol, scaling, imlib, interpolation,
                        collapse_ifs, ifs_collapse_range, verbose=verbose)
         residuals_cube_channels = np.array(res)
 
@@ -307,7 +314,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
 
             cube_out = residuals_cube_channels
             cube_der = cube_derotate(cube_out, angle_list, nproc=nproc,
-                                     imlib=imlib, interpolation=interpolation, 
+                                     imlib=imlib, interpolation=interpolation,
                                      **rot_options)
             frame = cube_collapse(cube_der, mode=collapse, w=weights)
 
@@ -341,8 +348,8 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
 ################################################################################
 
 
-def _pca_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep, ncomp, 
-                svd_mode, tol, scaling, imlib, interpolation, collapse, 
+def _pca_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
+                svd_mode, tol, scaling, imlib, interpolation, collapse,
                 ifs_collapse_range):
     """ Optimized PCA subtraction on a multi-spectral frame (IFS data).
     """
@@ -398,7 +405,7 @@ def _pca_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
                 matrix_ref = matrix[indices_left]
                 curr_frame = matrix[j]  # current frame
                 V = get_eigenvectors(ncomp, matrix_ref, svd_mode,
-                                     noise_error=tol, debug=False, 
+                                     noise_error=tol, debug=False,
                                      scaling=scaling)
                 transformed = np.dot(curr_frame, V.T)
                 reconstructed = np.dot(transformed.T, V)
@@ -412,7 +419,7 @@ def _pca_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
     else:
         idx_ini = ifs_collapse_range[0]
         idx_fin = ifs_collapse_range[1]
-        
+
     frame_desc = scwave(cube_res[idx_ini:idx_fin], scale_list[idx_ini:idx_fin],
                         full_output=False, inverse=True,
                         y_in=y_in, x_in=x_in, imlib=imlib,
@@ -549,8 +556,8 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
 
     if pa_threshold != 0:
         # if ann_center > fwhm*10:
-        indices_left = _find_indices_adi(angle_list, frame, pa_threshold, 
-                                         truncate=True, 
+        indices_left = _find_indices_adi(angle_list, frame, pa_threshold,
+                                         truncate=True,
                                          max_frames=max_frames_lib)
         # else:
         #    indices_left = _find_indices_adi(angle_list, frame,
@@ -572,7 +579,7 @@ def do_pca_patch(matrix, frame, angle_list, fwhm, pa_threshold, ann_center,
             raise RuntimeError(msg.format(len(indices_left), min_frames_lib))
     if matrix_ref is not None:
         #data_ref = None
-    #if matrix_ref is not None:
+        # if matrix_ref is not None:
         # Stacking the ref and the target ref (pa thresh) libraries
         if data_ref is not None:
             data_ref = np.vstack((matrix_ref, data_ref))

@@ -10,8 +10,8 @@ authors:
   - name: Valentin Christiaens
     orcid: 0000-0002-0101-8814
     affiliation: 1
-  - name: Carlos Gomez Gonzalez
-    orcid: TO BE FILLED
+  - name: Carlos Alberto Gómez Gonzalez
+    orcid: 0000-0003-2050-1710
     affiliation: 2
   - name: Ralf Farkas
     orcid: 0000-0002-7647-1429
@@ -19,47 +19,53 @@ authors:
   - name: Carl-Henrik Dahlqvist
     orcid: 0000-0003-4994-9244
     affiliation: 1
-  - name: Henry Ngo
-    orcid: 0000-0001-5172-4859
+  - name: Evert Nasedkin
+    orcid: 0000-0002-9792-3121
     affiliation: 4
-  - name: Alan Rainot
-    orcid: 0000-0001-9904-0624
+  - name: Julien Milli
+    orcid: 0000-0001-9325-2511
     affiliation: 5
   - name: Olivier Absil
     orcid: 0000-0002-4006-6237
     affiliation: 1
-  - name: Iain Hammond
-    orcid: 0000-0003-1502-4315
+  - name: Henry Ngo
+    orcid: 0000-0001-5172-4859
     affiliation: 6
-  - name: Arthur Vigan
-    orcid: 0000-0002-5902-7828
-    affiliation: 7
-  - name: Evert Nasedkin
-    orcid: 0000-0002-9792-3121
-    affiliation: 9
   - name: Carles Cantero
     orcid: 0000-0003-2073-782X
-    affiliation: 1,8
+    affiliation: 1,7
+  - name: Alan Rainot
+    orcid: 0000-0001-9904-0624
+    affiliation: 8
+  - name: Iain Hammond
+    orcid: 0000-0003-1502-4315
+    affiliation: 9
+  - name: Arthur Vigan
+    orcid: 0000-0002-5902-7828
+    affiliation: 10
 
 affiliations:
   - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
     index: 1
-  - name: TO BE FILLED
+  - name: Barcelona Supercomputing Center, Barcelona, Spain
     index: 2
   - name: Rheinische Friedrich-Wilhelms-Universität Bonn, Germany
     index: 3
-  - name: NRC Herzberg Astronomy and Astrophysics, Victoria, BC, Canada
-    index: 4
-  - name: Institute of Astronomy, KU Leuven, Belgium
-    index: 5
-  - name: School of Physics and Astronomy, Monash University, Vic 3800, Australia
-    index: 6
-  - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
-    index: 7
-  - name: Montefiore Institute, Université de Liège, 4000 Liège, Belgium
-    index: 8
   - name: Max-Planck-Institut für Astronomie, Heidelberg, Germany
+    index: 4
+  - name: Univ. Grenoble Alpes, CNRS, IPAG, F-38000 Grenoble, France
+    index: 5
+  - name: NRC Herzberg Astronomy and Astrophysics, Victoria, BC, Canada
+    index: 6
+  - name: Montefiore Institute, Université de Liège, 4000 Liège, Belgium
+    index: 7
+  - name: Institute of Astronomy, KU Leuven, Belgium
+    index: 8
+  - name: School of Physics and Astronomy, Monash University, Vic 3800, Australia
     index: 9
+  - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
+    index: 10
+
 date: 4 May 2022
 bibliography: paper.bib
 ---
@@ -88,11 +94,11 @@ including:
 * image pre-processing, such as sky subtraction, bad pixel correction, bad
 frame removal, or image alignment and star centering (`preproc` module);
 
-* modeling and subtracting the stellar point spread function (PSF) using
-state-of-the-art algorithms that leverage observing strategies such as angular
-differential imaging (ADI), spectral differential imaging (SDI) or reference
-star differential imaging [@Racine:1999; @Sparks:2002; @Marois:2006], which
-induce diversity between speckle and authentic astrophysical signals (`psfsub`
+* modeling and subtracting the stellar point spread function (PSF) using 
+state-of-the-art algorithms that leverage observing strategies such as angular 
+differential imaging  (ADI), spectral differential imaging (SDI) or reference 
+star differential imaging [@Marois:2006; @Sparks:2002; @Ruane:2019], which 
+induce diversity between speckle and authentic astrophysical signals (`psfsub` 
 module);
 
 * characterizing point sources and extended circumstellar signals through
@@ -104,16 +110,17 @@ forward modeling (`fm` module);
 * assessing the achieved contrast in PSF-subtracted images, automatically
 detecting point sources, and estimating their significance (`metrics` module).
 
-The features implemented in ``VIP`` as of 2017 are described in @Gomez:2017.
-Since then, the package has been widely used by the high-contrast imaging
-community for the discovery of low-mass companions
-[@Milli:2017;  @Hirsch:2019;  @Ubeira:2020], their characterization
-[@Wertz:2017;  @Delorme:2017;  @Christiaens:2018;  @Christiaens:2019], the study
-of planet formation [@Ruane:2017;  @Reggiani:2018;  @Mauco:2020;  @Toci:2020],
-the study of high-mass star formation [@Rainot:2020;  @Rainot:2022], or the
-development of new high-contrast imaging algorithms
-[@Gomez:2018;  @Dahlqvist:2020;  @Pairet:2021;  @Dahlqvist:2021]. Given the
-rapid expansion of ``VIP``, we summarize here all novelties that were brought
+The features implemented in ``VIP`` as of 2017 are described in @Gomez:2017. 
+Since then, the package has been widely used by the high-contrast imaging 
+community for the discovery of low-mass companions 
+[@Milli:2017;  @Hirsch:2019;  @Ubeira:2020], their characterization 
+[@Wertz:2017;  @Delorme:2017;  @Christiaens:2018;  @Christiaens:2019], the study 
+of planet formation [@Ruane:2017;  @Reggiani:2018;  @Mauco:2020;  @Toci:2020], 
+the study of high-mass star formation [@Rainot:2020;  @Rainot:2022] ,the study 
+of debris disks [@Milli:2017b; @Milli:2019], or the development of new 
+high-contrast imaging algorithms 
+[@Gomez:2018;  @Dahlqvist:2020;  @Pairet:2021;  @Dahlqvist:2021]. Given the 
+rapid expansion of ``VIP``, we summarize here all novelties that were brought 
 to the package over the past five years.
 
 The rest of this manuscript summarizes all major changes since v0.7.0
@@ -144,15 +151,19 @@ Some of the major changes in each module of ``VIP`` are summarized below:
 * `invprob`:
     - a Python implementation of the ANDROMEDA algorithm [@Cantalloube:2015] is
     now available as part of ``VIP``;
-    - the FMMF algorithm [@Pueyo:2016] is now also available in the `invprob`
-    module.
-    - a Python impleementation of the PACO algorithm [@Flasseur:2018] is now
-    implemented as part of ``VIP``. This includes both the planet detection
-    and flux estimation algorithms.
+    - the KLIP-FMMF and LOCI-FMMF algorithms
+    [@Pueyo:2016; @Ruffio:2017; @Dahlqvist:2021] are now also available in the 
+    `invprob` module.
+    - a Python implementation of the PACO algorithm [@Flasseur:2018] is now
+    also available, including both the planet detection and flux estimation 
+    algorithms.
 
 * `metrics`:
     - calculation of standardized trajectory maps (STIM) is now available
     [@Pairet:2019];
+    - functions to calculate completeness-based contrast curves and completeness 
+    maps, inspired by the framework in @JensenClem:2018 and implemented as in 
+    @Dahlqvist:2021, have now been added to the `metrics` module.
 
 * `preproc`:
     - the module now boasts several new algorithms for (i) the identification
@@ -171,7 +182,7 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     [@Amara:2012; @Soummer:2012] have been re-written for improved efficiency,
     and are now also compatible with 4D IFS+ADI input cubes to apply SDI-based
     PSF modeling and subtraction algorithms;
-    - an implementation of the Locally Optimal Combination of Images
+    - an implementation of the Locally Optimal Combination of Images algorithm
     [@Lafreniere:2007] was added;
     - an annular version of the non-negative matrix factorization algorithm
     is now available [@Lee:1999; @Gomez:2017];
@@ -207,7 +218,6 @@ astro- and photometry of a given point source; (viii) use FT-based and
 interpolation-based methods for different image operations, and assess their
 respective performance; and (ix) use the new object-oriented framework for
 ``VIP``.
-
 
 # Acknowledgements
 

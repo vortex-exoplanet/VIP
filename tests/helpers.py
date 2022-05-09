@@ -4,7 +4,6 @@ Helper functions for tests
 
 __author__ = "Ralf Farkas"
 
-import numpy as np
 import pytest
 from pytest import mark, param, raises, fixture
 import vip_hci as vip

@@ -29,7 +29,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     ``metric``), using separately the pixels from different annuli of ``asize``
     width, to create pairs of most similar images. Then it performs pair-wise
     subtraction and combines the residuals.
-    
+
     Parameters
     ----------
     cube : numpy ndarray, 3d
@@ -69,7 +69,7 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     interpolation : str, opt
         See description in vip.preproc.frame_rotate()
     collapse: str, opt
-        What to do with derotated residual cube? See options of 
+        What to do with derotated residual cube? See options of
         vip.preproc.cube_collapse()
     verbose: bool, optional
         If True prints info to stdout.
@@ -77,10 +77,10 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         If True the distance matrices will be plotted and additional information
         will be given.
     rot_options: dictionary, optional
-        Dictionary with optional keyword values for "border_mode", "edge_blend", 
-        "interp_zeros", "ker" (see documentation of 
+        Dictionary with optional keyword values for "border_mode", "edge_blend",
+        "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
-        
+
     Returns
     -------
     final_frame : numpy ndarray, 2d
@@ -114,13 +114,13 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     #border_mode = rot_options.get('border_mode','constant')
     #edge_blend = rot_options.get('edge_blend',None)
     #interp_zeros = rot_options.get('interp_zeros',False)
-    #ker = rot_options.get('ker',1)    
+    #ker = rot_options.get('ker',1)
 
-    res = pool_map(nproc, _pairwise_ann, iterable(range(n_annuli)), n_annuli, 
+    res = pool_map(nproc, _pairwise_ann, iterable(range(n_annuli)), n_annuli,
                    fwhm, angle_list, delta_rot, metric, dist_threshold,
-                   n_similar, radius_int, asize, ncomp, imlib, interpolation, 
-                   collapse, verbose, debug, **rot_options) #border_mode, edge_blend, 
-                   #interp_zeros, ker)
+                   n_similar, radius_int, asize, ncomp, imlib, interpolation,
+                   collapse, verbose, debug, **rot_options)  # border_mode, edge_blend,
+    # interp_zeros, ker)
 
     final_frame = np.sum(res, axis=0)
 
@@ -131,8 +131,8 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
     return final_frame
 
 
-def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric, 
-                  dist_threshold, n_similar, radius_int, asize, ncomp, imlib, 
+def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
+                  dist_threshold, n_similar, radius_int, asize, ncomp, imlib,
                   interpolation, collapse, verbose, debug=False, **rot_options):
     """
     Helper functions for pair-wise subtraction for a single annulus.
@@ -230,7 +230,8 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
         size = indices.shape[0]
         angles_list = np.zeros((size))
         for i in range(size):
-            angles_list[i] = angles[indices[i][0]] # filter of the angles vector
+            # filter of the angles vector
+            angles_list[i] = angles[indices[i][0]]
 
         cube_res = np.zeros((size, yy.shape[0]))
         # pair-wise subtraction
@@ -241,12 +242,10 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     cube_out = np.zeros((cube_res.shape[0], array.shape[1], array.shape[2]))
     for i in range(cube_res.shape[0]):
         cube_out[i, yy, xx] = cube_res[i]
-        
-    cube_der = cube_derotate(cube_out, angles_list, imlib=imlib, 
+
+    cube_der = cube_derotate(cube_out, angles_list, imlib=imlib,
                              interpolation=interpolation, mask_val=0,
                              **rot_options)
     frame_collapse = cube_collapse(cube_der, collapse)
 
     return frame_collapse
-
-

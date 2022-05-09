@@ -78,4 +78,3 @@ def test_check_array():
         check_array([2, 3], dim=2)
     except TypeError:
         pass
-

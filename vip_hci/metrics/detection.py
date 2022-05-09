@@ -260,7 +260,7 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
         pad = 10
         array_padded = np.lib.pad(array, pad, 'constant', constant_values=0)
     else:
-        pad=0
+        pad = 0
 
     if mode in ('lpeaks', 'snrmap', 'snrmapf'):
         if mode == 'lpeaks':
@@ -423,7 +423,7 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
 
     if approx_peak is not None:
         assert len(approx_peak) == 2, "Approx peak is not two dimensional"
-        if isinstance(search_box,float) or isinstance(search_box,int):
+        if isinstance(search_box, float) or isinstance(search_box, int):
             sbox_y = search_box
             sbox_x = search_box
         elif len(search_box) == 2:
@@ -434,17 +434,17 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
             raise ValueError(msg)
         if ndims == 3:
             n_z = obj_tmp.shape[0]
-            sbox = np.zeros([n_z,2*sbox_y+1,2*sbox_x+1])
+            sbox = np.zeros([n_z, 2*sbox_y+1, 2*sbox_x+1])
 
     if ndims == 2:
-        med_filt_tmp = frame_filter_lowpass(obj_tmp, 'median', 
+        med_filt_tmp = frame_filter_lowpass(obj_tmp, 'median',
                                             median_size=int(fwhm))
         if approx_peak is None:
             ind_max = np.unravel_index(med_filt_tmp.argmax(),
                                        med_filt_tmp.shape)
         else:
             sbox = med_filt_tmp[approx_peak[0]-sbox_y:approx_peak[0]+sbox_y+1,
-                                  approx_peak[1]-sbox_x:approx_peak[1]+sbox_x+1]
+                                approx_peak[1]-sbox_x:approx_peak[1]+sbox_x+1]
             ind_max_sbox = np.unravel_index(sbox.argmax(), sbox.shape)
             ind_max = (approx_peak[0]-sbox_y+ind_max_sbox[0],
                        approx_peak[1]-sbox_x+ind_max_sbox[1])
@@ -454,21 +454,21 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
     if ndims == 3:
         n_z = obj_tmp.shape[0]
         med_filt_tmp = np.zeros_like(obj_tmp)
-        ind_ch_max = np.zeros([n_z,2])
+        ind_ch_max = np.zeros([n_z, 2])
         if isinstance(fwhm, float) or isinstance(fwhm, int):
             fwhm = [fwhm]*n_z
 
         for zz in range(n_z):
-            med_filt_tmp[zz] = frame_filter_lowpass(obj_tmp[zz], 'median', 
+            med_filt_tmp[zz] = frame_filter_lowpass(obj_tmp[zz], 'median',
                                                     median_size=int(fwhm[zz]))
             if approx_peak is None:
                 ind_ch_max[zz] = np.unravel_index(med_filt_tmp[zz].argmax(),
                                                   med_filt_tmp[zz].shape)
             else:
-                sbox[zz] = med_filt_tmp[zz, approx_peak[0]-sbox_y:\
-                                          approx_peak[0]+sbox_y+1,
-                                          approx_peak[1]-sbox_x:\
-                                          approx_peak[1]+sbox_x+1]
+                sbox[zz] = med_filt_tmp[zz, approx_peak[0]-sbox_y:
+                                        approx_peak[0]+sbox_y+1,
+                                        approx_peak[1]-sbox_x:
+                                        approx_peak[1]+sbox_x+1]
                 ind_max_sbox = np.unravel_index(sbox[zz].argmax(),
                                                 sbox[zz].shape)
                 ind_ch_max[zz] = (approx_peak[0]-sbox_y+ind_max_sbox[0],
@@ -526,10 +526,9 @@ def mask_source_centers(array, fwhm, y=None, x=None):
     return mask
 
 
-
 def mask_sources(mask, ap_rad):
     """ Given an input mask with zeros only at the *center* of source locations
-    (ones elsewhere), returns a mask with zeros within a radius ap_rad of all 
+    (ones elsewhere), returns a mask with zeros within a radius ap_rad of all
     sources.
 
     Parameters
@@ -537,7 +536,7 @@ def mask_sources(mask, ap_rad):
     mask : numpy ndarray
         Input mask with zeros at sources center. Mask has to be square.
     ap_rad : float
-        Size in pixels of the apertures that should be filled with zeros 
+        Size in pixels of the apertures that should be filled with zeros
         around each source in the mask.
 
     Returns
@@ -548,18 +547,18 @@ def mask_sources(mask, ap_rad):
     """
     if mask.ndim != 2:
         raise TypeError('Wrong input array shape.')
-    mask[np.where(mask>1)] = 1
+    mask[np.where(mask > 1)] = 1
 
     ny, nx = mask.shape
     n_s = int(ny*nx - np.sum(mask))
-    mask_out = np.ones([ny,nx])
-    
+    mask_out = np.ones([ny, nx])
+
     if n_s == 0:
         return mask_out
     else:
-        s_coords = np.where(mask==0)
+        s_coords = np.where(mask == 0)
         for s in range(n_s):
-            rad_arr = dist_matrix(ny, cx=s_coords[1][s], cy=s_coords[0][s]) 
-            mask_out[np.where(rad_arr<ap_rad)] = 0
+            rad_arr = dist_matrix(ny, cx=s_coords[1][s], cy=s_coords[0][s])
+            mask_out[np.where(rad_arr < ap_rad)] = 0
 
         return mask_out

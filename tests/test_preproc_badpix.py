@@ -67,7 +67,7 @@ def test_badpix_iso2():
                                                 full_output=True)
 
     # check bad pixels were correctly identified
-    assert bpix_map[0, idx0, idx0] == 1
+    assert bpix_map[idx0, idx0] == 1
 
 # clumpy bad pixel correction
 def test_badpix_clump():

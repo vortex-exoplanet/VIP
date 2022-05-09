@@ -151,7 +151,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                          decline_factor=None, rstate=None, verbose=True,
                          algo_options={'imlib': 'opencv'})
         # infer mu, sigma from nested sampling result
-        mu_sig = nested_sampling_results(res, burnin=0.3, bins=None, save=True)
+        mu_sig = nested_sampling_results(res, burnin=0.3, bins=None, save=False)
         # compare results for each param
         for i in range(3):
             # diff within 3 sigma

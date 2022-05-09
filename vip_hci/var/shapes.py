@@ -4,7 +4,7 @@
 Module with various functions to create shapes, annuli and segments.
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
+__author__ = 'Carlos Alberto Gomez Gonzalez, Carles Cantero'
 __all__ = ['get_square',
            'get_circle',
            'get_ellipse',
@@ -28,7 +28,6 @@ from .coords import frame_center, dist
 from ..config.utils_conf import frame_or_shape
 
 
-
 def mask_circle(array, radius, fillwith=0, mode='in'):
     """
     Mask the pixels inside/outside of a centered circle with ``fillwith``.
@@ -45,8 +44,8 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
         Value to put instead of the masked out pixels.
     mode : {'in', 'out'}, optional
         When set to 'in' then the pixels inside the radius are set to
-        ``fillwith``. When set to 'out' the pixels outside the circular mask are
-        set to ``fillwith``.
+        ``fillwith``. When set to 'out' the pixels outside the circular mask
+        are set to ``fillwith``.
 
     Returns
     -------
@@ -59,7 +58,7 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
 
     cy, cx = frame_center(array)
 
-    shape = (array.shape[-2],array.shape[-1])
+    shape = (array.shape[-2], array.shape[-1])
     ind = disk((cy, cx), radius, shape=shape)
 
     if mode == 'in':
@@ -120,22 +119,22 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
     cy, cx = frame_center(mask)
     rr0, cc0 = disk((cy, cx), ann_out)
     # check that all indices are within frame dimensions
-    cond1 = rr0>=0
-    cond2 = rr0<s[0]
-    cond3 = cc0>=0
-    cond4 = cc0<s[1]
+    cond1 = rr0 >= 0
+    cond2 = rr0 < s[0]
+    cond3 = cc0 >= 0
+    cond4 = cc0 < s[1]
     all_cond = cond1 & cond2 & cond3 & cond4
     rr0 = rr0[np.where(all_cond)]
     cc0 = cc0[np.where(all_cond)]
     mask[rr0, cc0] = 1
 
     t0 = np.array([theta, np.pi-theta, np.pi+theta, np.pi*2 - theta])
-    if isinstance(sp_angle, (list,np.ndarray)):
+    if isinstance(sp_angle, (list, np.ndarray)):
         dtheta = [sp_angle[i]-sp_angle[0] for i in range(nbranch)]
     else:
         sp_angle = [sp_angle]
         dtheta = [i*180./nbranch for i in range(nbranch)]
-    tn = np.zeros([nbranch,4])
+    tn = np.zeros([nbranch, 4])
     xn = np.zeros_like(tn)
     yn = np.zeros_like(tn)
     for i in range(nbranch):
@@ -146,7 +145,7 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
         mask[rrn, ccn] = 0
     rr4, cc4 = disk((cy, cx), ann_in)
     mask[rr4, cc4] = 0
-    
+
     return mask
 
 
@@ -187,8 +186,8 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
     """
     size_init_y = array.shape[0]
     size_init_x = array.shape[1]
-    size_init = array.shape[0] # "force" cases assume square input frame
-    
+    size_init = array.shape[0]  # "force" cases assume square input frame
+
     if array.ndim != 2:
         raise TypeError('Input array is not a 2d array.')
     if not isinstance(size, int):
@@ -232,7 +231,7 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
     wing = (size - 1) / 2
 
     y0 = int(y - wing)
-    y1 = int(y + wing + 1) # +1 cause endpoint is excluded when slicing
+    y1 = int(y + wing + 1)  # +1 cause endpoint is excluded when slicing
     x0 = int(x - wing)
     x1 = int(x + wing + 1)
 
@@ -296,7 +295,7 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
         return array * circle_mask
     elif mode == "val":
         return array[circle_mask]
-    elif mode=="ind":
+    elif mode == "ind":
         return np.where(circle_mask)
     else:
         raise ValueError("mode '{}' unknown!".format(mode))
@@ -474,7 +473,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
         raise ValueError("mode '{}' unknown!".format(mode))
 
 
-def get_annular_wedge(data, inner_radius, width, wedge=(0,360), mode="ind"):
+def get_annular_wedge(data, inner_radius, width, wedge=(0, 360), mode="ind"):
     """
     Return indices or values in segments of a centered annulus.
 
@@ -547,16 +546,16 @@ def get_annular_wedge(data, inner_radius, width, wedge=(0,360), mode="ind"):
 
     if phi_start < twopi and phi_end > twopi:
         mask = ((rad >= inner_radius) & (rad < outer_radius) &
-                     (phirot >= phi_start) & (phirot <= twopi) |
-                     (rad >= inner_radius) & (rad < outer_radius) &
-                     (phirot >= 0) & (phirot < phi_end - twopi))
+                (phirot >= phi_start) & (phirot <= twopi) |
+                (rad >= inner_radius) & (rad < outer_radius) &
+                (phirot >= 0) & (phirot < phi_end - twopi))
     elif phi_start >= twopi and phi_end > twopi:
         mask = ((rad >= inner_radius) & (rad < outer_radius) &
-                     (phirot >= phi_start - twopi) &
-                     (phirot < phi_end - twopi))
+                (phirot >= phi_start - twopi) &
+                (phirot < phi_end - twopi))
     else:
         mask = ((rad >= inner_radius) & (rad < outer_radius) &
-                     (phirot >= phi_start) & (phirot < phi_end))
+                (phirot >= phi_start) & (phirot < phi_end))
 
     if mode == "ind":
         return np.where(mask)
@@ -566,7 +565,7 @@ def get_annular_wedge(data, inner_radius, width, wedge=(0,360), mode="ind"):
         return array*mask
     else:
         raise ValueError("mode '{}' unknown!".format(mode))
-        
+
 
 def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):
     """
@@ -791,35 +790,36 @@ def reshape_matrix(array, y, x):
     return array.reshape(array.shape[0], y, x)
 
 
-
-def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8, mode='val', plot=False):
+def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
+             mode='val', plot=False):
     """
-    Return a mask corresponding to the region of interest for a test point source as 
-    defined in Gebhard et al.(2020). 
-    
-    Given a frame and a location of interest on it with coordinates xy=(cx,cy), 
-    the mask consists of all pixels from three different regions with respect to xy:
-    
-        (r1) Exclusion region: Pixels from the region of interest. These are excluded 
-                               in the final mask.
-        (r2) Local region: Pixels around xy in a circular fashion.
-        (r3) Symmetric local region: Pixels around the (anti)symmetric xy with respect 
-                                   to the star location. It is also defined in a 
-                                   circular fashion with same radius than "local region."
-        (r4) Annulus region: Pixels from annulus where xy is located. 
-        
-    The goal of this mask is to disentangle the expected structure of the speckle pattern. 
-    Gebhard et al.(2021) comments that "r2 is chosen to capture any "local" 
-    effects around xy due to the instrument. r3 is chosen symmetrically 
-    opposite of xy because if there is an speckle at xy, there should also be an 
-    (anti-)speckle at r2. r4 is used because we know that the systematic 
-    noise significantly depends on tha radial variable."
-    
+    Return a mask corresponding to the region of interest for a test point
+    source as defined in Gebhardt et al. (2021).
+
+    Given a frame and a location of interest with coordinates xy=(cx,cy),
+    the mask consists of all pixels from three different regions with respect
+    to xy:
+
+        * (r1) Exclusion region: Pixels from the region of interest. These are
+          excluded in the final mask.
+        * (r2) Local region: Pixels around xy in a circular fashion.
+        * (r3) Symmetric local region: Pixels around the (anti)symmetric xy with
+          respect to the star location. It is also defined in a circular fashion 
+          with same radius as "local region."
+        * (r4) Annulus region: Pixels from the annulus where xy is located.
+
+    The goal of this mask is to disentangle the expected structure of the
+    speckle pattern. Gebhardt et al.(2021) comment that "r2 is chosen to
+    capture any "local" effects around xy due to the instrument. r3 is chosen
+    symmetrically opposite of xy because if there is a speckle at xy, there
+    should also be an (anti-)speckle at r2. r4 is used because we know that the
+    systematic noise significantly depends on the radial variable."
+
     Parameters
     ----------
     array: 2d numpy ndarray
         Input 2d array (image) ot tuple with its shape.
-    cx, cy: int
+    source_xy: tuple of 2 int
         Pixel coordinates of the location of interest.
     exc_radius : float
         Known size of the FHWM in pixels to be used. Default is 4.
@@ -829,10 +829,12 @@ def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8, mode='va
         Radius (in pxs) of the circular regions r2 and r3 on description.
         Default is 8.
     mode : {'bool', 'val', 'mask', 'ind'}, optional
-        Controls what is returned: array with the mask applied, values
-        of the pixels in the mask region or indices of selected pixels of the mask.
+        Controls what is returned: array with the mask applied, values of the
+        pixels in the mask region or indices of selected pixels of the mask.
         Default is 'mask'.
-    
+    plot: bool, optional
+        Whether to display a plot showing the defined mask.
+
     Returns
     -------
     bool_mask : numpy ndarray
@@ -845,42 +847,52 @@ def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8, mode='va
     indices : tuple(y, x)
         [mode='ind'] Coordinates of the mask.
     """
-    
-    if exc_radius>=inc_radius:
-        print('Warning: The excluded region is bigger than the included region') 
-    
-    frsize   = array.shape[0]
-    cx, cy   = source_xy
-    yc,xc    = frame_center(array)
-    distance = dist(yc, xc, cy,cx)
-    
-    lim = (frsize/2)-(inc_radius/2)
-    if distance<lim:
-        if ann_width/2+distance<=frsize/2:
-            xr1, yr1  = get_circle(array, radius=exc_radius, cy=cy, cx=cx, mode='ind')
-            r2  = get_circle(array, radius=inc_radius, cy=cy, cx=cx, mode='mask')
-            r3  = get_circle(array, radius=inc_radius, cy=2*yc-cy, cx=2*xc-cx, mode='mask')
-            r4  = get_annulus_segments(data=array, inner_radius=distance-ann_width/2, width=ann_width, mode='mask')[0]
 
-            r2[xr1,yr1]=0
-            r4[xr1,yr1]=0
+    if exc_radius >= inc_radius:
+        print('Warning: The excluded region is bigger than the included region')
+
+    frsize = array.shape[0]
+    cx, cy = source_xy
+    yc, xc = frame_center(array)
+    distance = dist(yc, xc, cy, cx)
+
+    lim = (frsize/2)-(inc_radius/2)
+    if distance < lim:
+        if ann_width/2+distance <= frsize/2:
+            xr1, yr1 = get_circle(array, radius=exc_radius, cy=cy, cx=cx,
+                                  mode='ind')
+            r2 = get_circle(array, radius=inc_radius, cy=cy, cx=cx,
+                            mode='mask')
+            r3 = get_circle(array, radius=inc_radius, cy=2*yc-cy, cx=2*xc-cx,
+                            mode='mask')
+            r4 = get_annulus_segments(data=array,
+                                      inner_radius=distance-ann_width/2,
+                                      width=ann_width, mode='mask')[0]
+
+            r2[xr1, yr1] = 0
+            r4[xr1, yr1] = 0
             mask = r2+r3+r4
-            mask = (mask !=0)
-            
+            mask = (mask != 0)
+
             if plot:
                 plot_frames(mask, colorbar=False, show_center=True, dpi=100)
-            
-            if mode=='bool':
+
+            if mode == 'bool':
                 return mask
-            elif mode=='val':
+            elif mode == 'val':
                 return array[mask]
-            elif mode=='mask':
+            elif mode == 'mask':
                 return array*mask
-            elif mode=='ind':
-                return np.where(mask==True)
+            elif mode == 'ind':
+                return np.where(mask == True)
             else:
                 raise ValueError("mode '{}' unknown!".format(mode))
         else:
-            raise TypeError('Annulus is out of the field. Try changing coordinates or the annulus width')            
+
+            msg = 'Annulus is out of the field. Try changing coordinates or '
+            msg += 'the annulus width'
+            raise TypeError(msg)
     else:
-        raise TypeError('Circles are out of the field. Try changing coordinates or the circles radius')
+        msg = 'Circles are out of the field. Try changing coordinates or the '
+        msg += 'circles radius'
+        raise TypeError(msg)

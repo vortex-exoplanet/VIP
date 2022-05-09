@@ -323,6 +323,7 @@ class HCIMedianSub(HCIPostProcAlgo):
     - output cube and frames as HCIDataset and HCIFrame objects?
 
     """
+
     def __init__(self, dataset=None, mode='fullfr', radius_int=0, asize=1,
                  delta_rot=1, delta_sep=(0.2, 1), nframes=4, imlib='vip-fft',
                  interpolation='lanczos4', collapse='median',
@@ -443,6 +444,7 @@ class HCIPca(HCIPostProcAlgo):
         If True, it check that the input cube(s) are smaller than the available
         system memory.
     """
+
     def __init__(self, dataset=None, ncomp=1, ncomp2=1, svd_mode='lapack', scaling=None,
                  adimsdi='double', mask_center_px=None, source_xy=None,
                  delta_rot=1, imlib='vip-fft', interpolation='lanczos4',
@@ -450,7 +452,8 @@ class HCIPca(HCIPostProcAlgo):
 
         super(HCIPca, self).__init__(locals())
 
-        # TODO: order/names of parameters are not consistent with ``pca`` core function
+        # TODO: order/names of parameters are not consistent with ``pca`` core
+        # function
 
     @calculates("frame_final",
                 "cube_reconstructed", "cube_residuals", "cube_residuals_der",
@@ -648,7 +651,7 @@ class HCIAndromeda(HCIPostProcAlgo):
         flux.
     iwa : float, optional
         Inner working angle / inner radius of the first annulus taken into
-        account, expressed in $\lambda/D$.
+        account, expressed in $\\lambda/D$.
     precision : int, optional
         Number of shifts applied to the PSF. Passed to
         ``calc_psf_shift_subpix`` , which then creates a 4D cube with shape

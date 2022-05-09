@@ -1,5 +1,5 @@
 """
-Implementation the PACO algorithm implementaion for VIP
+Implementation the PACO algorithm implementation for VIP
 Based on Flasseur+ 2018 https://ui.adsabs.harvard.edu/abs/2018A%26A...618A.138F/abstract
 
 Variable naming is based on the notation of Flasseur+ 2018,
@@ -9,20 +9,21 @@ Last updated 2022-05-09 by Evert Nasedkin (nasedkinevert@gmail.com).
 """
 
 import sys
-import os
+#import os
 from abc import abstractmethod
 # Required so numpy parallelization doesn't conflict with multiprocessing
-os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["NUMEXPR_NUM_THREADS"] = "1"
-os.environ["OMP_NUM_THREADS"] = "1"
+# os.environ["MKL_NUM_THREADS"] = "1"
+# os.environ["NUMEXPR_NUM_THREADS"] = "1"
+# os.environ["OMP_NUM_THREADS"] = "1"
 
-from multiprocessing import Pool
+#from multiprocessing import Pool
 from typing import Tuple, Union, Optional, Callable
 import numpy as np
 from scipy import ndimage
 from scipy.ndimage import filters
 
-from ..preproc import frame_px_resampling, cube_px_resampling, frame_shift
+from ..config.utils_conf import pool_map, iterable
+from ..preproc.rescaling import frame_px_resampling, cube_px_resampling, frame_shift
 from ..var.coords import cart_to_pol, pol_to_cart
 from ..metrics.detection import detection
 from ..fm import normalize_psf
@@ -30,19 +31,20 @@ __author__ = "Evert Nasedkin"
 __all__ = ['FastPACO',
            'FullPACO']
 
+
 class PACO:
     """
     This class implements the bulk of the PACO algorithm as described by
-    Flasseur et al 2018.
-    In general, the idea is to take in an ADI stack of images and statistically
-    determine if there is a signal above the background in each 'patch' of the image.
-    This is done by tracing the ark of the hypothesized planet through the stack,
-    and comparing this set of patches to a set consisting of background only.
-    This is done for each pixel (or sub-pixel) location in.
+    Flasseur et al (2018). In general, the idea is to take in an ADI stack of
+    images and statistically determine if there is a signal above the
+    background in each 'patch' of the image. This is done by tracing the ark of
+    the hypothesized planet through the stack, and comparing this set of patches
+    to a set consisting of background only. This is done for each pixel (or
+    sub-pixel) location in.
     The output is a signal-to-noise and/or a flux map over the field of view.
     The user can choose to use FullPACO or FastPACO, which are described by
     algorithms 1 and 2 of Flasseur+ 2018. FastPACO has been parallelized,
-    and is the recommended useage.
+    and is the recommended usage.
 
     This output can then be used to compute an unbiased estimate of the flux
     of point sources detected in the image above some user-supplied detection
@@ -82,21 +84,21 @@ class PACO:
     """
 
     def __init__(self,
-                 cube : np.ndarray,
+                 cube: np.ndarray,
                  angles: np.ndarray,
                  psf: np.ndarray,
-                 dit_psf : Optional[float] = 1.0,
-                 dit_science : Optional[float] = 1.0,
-                 nd_transmission : Optional[float] = 1.0,
-                 fwhm : Optional[float] = 4.0,
-                 pixscale : Optional[float] = 1.0,
-                 rescaling_factor : Optional[float] = 1.0,
-                 verbose : Optional[bool] = False) -> None:
+                 dit_psf: Optional[float] = 1.0,
+                 dit_science: Optional[float] = 1.0,
+                 nd_transmission: Optional[float] = 1.0,
+                 fwhm: Optional[float] = 4.0,
+                 pixscale: Optional[float] = 1.0,
+                 rescaling_factor: Optional[float] = 1.0,
+                 verbose: Optional[bool] = False) -> None:
 
         # Science image setup
         try:
             self.cube = cube
-        except:
+        except BaseException:
             raise ValueError("You must provide a 3D cube of science data!")
 
         self.num_frames = self.cube.shape[0]
@@ -106,7 +108,7 @@ class PACO:
         # Parallactic angles
         try:
             self.angles = angles
-        except:
+        except BaseException:
             raise ValueError("You must provide an array of parallactic angles!")
 
         # Pixel scaling
@@ -119,15 +121,15 @@ class PACO:
             # How do we want to deal with stacks of psfs? Median? Just take the first one?
             # Ideally if nPSFs = nImages, use each for each. Need to update!
             if len(psf.shape) > 2:
-                psf = np.nanmedian(psf,axis=0)
+                psf = np.nanmedian(psf, axis=0)
             self.psf = psf * dit_science/dit_psf/nd_transmission
             self.dit_science = dit_science
-            self.dit_psf= dit_psf
+            self.dit_psf = dit_psf
 
             mask = create_boolean_circular_mask(self.cube[0].shape,
-                                      radius = self.fwhm)
+                                                radius=self.fwhm)
             self.patch_area_pixels = self.cube[0][mask].ravel().shape[0]
-        except:
+        except BaseException:
             raise ValueError("You must provide an unsaturated PSF image!")
 
         self.patch_width = 2*int(self.fwhm) + 3
@@ -145,7 +147,7 @@ class PACO:
             print(f"Image Cube shape = {self.cube.shape}")
             print(f"PIXSCALE = {self.pixscale:06}")
             print("PSF |  Area  |  Rad   |  Width | ")
-            print(f"    |   {self.patch_area_pixels:01}   |"\
+            print(f"    |   {self.patch_area_pixels:01}   |"
                   + f"  {self.fwhm:02}    |  {self.psf.shape[0]:03}   | ")
             print(f"Patch width: {self.patch_width}")
             print("---------------------- \n")
@@ -157,7 +159,8 @@ class PACO:
                  use_subpixel_psf_astrometry : Optional[bool] = True,
                  cpu : Optional[int] = 1) -> None:
         """
-        This function is algorithm dependant, and sets up the actual calculation process.
+        This function is algorithm dependant, and sets up the actual
+        calculation process.
 
         Parameters
         ----------
@@ -227,17 +230,17 @@ class PACO:
         """
 
         if self.rescaling_factor != 1:
-            self.rescale_cube_and_psf(imlib = imlib,
-                                      interpolation = interpolation,
-                                      keep_center = keep_center,
-                                      verbose = self.verbose)
+            self.rescale_cube_and_psf(imlib=imlib,
+                                      interpolation=interpolation,
+                                      keep_center=keep_center,
+                                      verbose=self.verbose)
             if self.verbose:
                 print("---------------------- ")
                 print(f"Using {cpu} processor(s).")
                 print(f"Rescaled Image Cube shape: {self.cube.shape}")
                 print("Rescaled PSF:")
                 print("PSF |  Area  |  Rad   |  Width | ")
-                print(f"    |   {self.patch_area_pixels:01}   |"\
+                print(f"    |   {self.patch_area_pixels:01}   |"
                       + f"  {self.fwhm:02}    |  {self.psf.shape[0]:03}   | ")
                 print("---------------------- \n")
 
@@ -260,12 +263,12 @@ class PACO:
         self.std = 1/np.sqrt(a)
         return snr, flux
 
-
     """
     Utility Functions
     """
     # Set the image stack to be processed
-    def set_cube(self, cube : np.ndarray) -> None:
+
+    def set_cube(self, cube: np.ndarray) -> None:
         """
         Provide a 3D image array to process. This updates
         the science cube, and the associated dimensions.
@@ -274,9 +277,10 @@ class PACO:
         ----------
         cube : numpy.ndarray
             3D science frames taken in pupil tracking/ADI mode.
-            Dimensions should be (time, x, y), and units should be detector units (ie output
-            of SPHERE or GPI reduction pipelines). The data should be centered, and have
-            pre-processing already applied (e.g. bad pixel correction).
+            Dimensions should be (time, x, y), and units should be detector
+            units (ie output of SPHERE or GPI reduction pipelines). The data
+            should be centered, and have pre-processing already applied (e.g.
+            bad pixel correction).
         """
         self.cube = np.array(cube)
         self.num_frames = self.cube.shape[0]
@@ -284,7 +288,7 @@ class PACO:
         self.height = self.cube.shape[1]
 
     # Set the template PSF
-    def set_psf(self, psf : np.ndarray) -> None:
+    def set_psf(self, psf: np.ndarray) -> None:
         """
         Read in the PSF template
 
@@ -296,7 +300,7 @@ class PACO:
         self.psf = psf
 
     # Set parallactic angles
-    def set_angles(self, angles : np.ndarray) -> None:
+    def set_angles(self, angles: np.ndarray) -> None:
         """
         Set the rotation angle for each frame
 
@@ -309,9 +313,9 @@ class PACO:
         self.angles = angles
 
     def get_patch(self,
-                  px : Tuple[int, int],
-                  width : Optional[int] = None,
-                  mask : Optional[np.ndarray] = None) -> np.ndarray:
+                  px: Tuple[int, int],
+                  width: Optional[int] = None,
+                  mask: Optional[np.ndarray] = None) -> np.ndarray:
         """
         Gets patch at given pixel px with size k for the current img sequenc
 
@@ -333,43 +337,43 @@ class PACO:
             width = self.patch_width
         if mask is None:
             mask = create_boolean_circular_mask(self.cube[0].shape,
-                                    radius = self.fwhm,
-                                    center = px)
+                                                radius=self.fwhm,
+                                                center=px)
         k = int(width/2)
-        if width%2 != 0:
+        if width % 2 != 0:
             k2 = k+1
         else:
             k2 = k
         nx, ny = np.shape(self.cube[0])[:2]
         if px[0]+k2 > nx or px[0]-k < 0 or px[1]+k2 > ny or px[1]-k < 0:
-            return np.ones((self.num_frames,self.patch_area_pixels))*np.nan
-        patch = self.cube[np.broadcast_to(mask,self.cube.shape)]\
-                                .reshape(self.num_frames,self.patch_area_pixels)
+            return np.ones((self.num_frames, self.patch_area_pixels))*np.nan
+        patch = self.cube[np.broadcast_to(mask, self.cube.shape)]\
+            .reshape(self.num_frames, self.patch_area_pixels)
         return patch
 
-    def set_scale(self, scale : float) -> None:
+    def set_scale(self, scale: float) -> None:
         """
         Set subpixel scaling factor
 
         Parameters
         ----------
         scale : float
-            Scaling factor. Greater than one will result in an upsampled image, less than one
-            will result in a downsampled image.
+            Scaling factor. Greater than one will result in an upsampled image,
+            less than one will result in a downsampled image.
         """
 
         self.rescaling_factor = scale
 
     def rescale_cube_and_psf(self,
-                             imlib : Optional[str] = 'vip-fft',
-                             interpolation : Optional[str] = 'lanczos4',
-                             keep_center : Optional[bool] = True) -> None:
+                             imlib: Optional[str] = 'vip-fft',
+                             interpolation: Optional[str] = 'lanczos4',
+                             keep_center: Optional[bool] = True) -> None:
         """
         Rescale each image in the stack by the class level scaling factor
         set during initialization or with set_scale. A scale factor of greater
         than one will upsample the image, a factor of less than one will downsample
         the image. This function wraps the VIP scaling function, and uses the same
-        arguments to chose libraries and interpolation methods.
+        arguments to choose libraries and interpolation methods.
 
         Parameters
         ----------
@@ -395,9 +399,9 @@ class PACO:
         cube_px_resampling(self.cube,
                            self.rescaling_factor,
                            imlib=imlib,
-                           interpolation = interpolation,
+                           interpolation=interpolation,
                            keep_center=keep_center,
-                           verbose = False)
+                           verbose=False)
 
         self.pixscale = self.pixscale/self.rescaling_factor
         self.fwhm = int(self.fwhm*self.rescaling_factor)
@@ -405,11 +409,11 @@ class PACO:
         # Resample the PSF
         if self.psf is not None:
             self.psf = frame_px_resampling(self.psf,
-                                             self.rescaling_factor,
-                                             imlib=imlib,
-                                             interpolation = interpolation,
-                                             keep_center=keep_center,
-                                             verbose = False)
+                                           self.rescaling_factor,
+                                           imlib=imlib,
+                                           interpolation=interpolation,
+                                           keep_center=keep_center,
+                                           verbose=False)
         mask = create_boolean_circular_mask(self.psf.shape, self.fwhm)
         self.patch_area_pixels = self.psf[mask].shape[0]
         self.patch_width = 2*int(self.fwhm) + 3
@@ -417,7 +421,9 @@ class PACO:
     """
     Math Functions
     """
-    def psf_model_function(self, mean : float, model : Callable, params : dict) -> np.ndarray:
+
+    def psf_model_function(self, mean: float, model: Callable,
+                           params: dict) -> np.ndarray:
         """
         This function is deprecated in favour of directly supplying
         a PSF. In principle, an analytic model (ie a gaussian or moffat PSF)
@@ -454,9 +460,9 @@ class PACO:
             return self.psf
 
     def al(self,
-           hfl : Union[list,np.ndarray],
-           Cfl_inv : Union[list,np.ndarray],
-           method : Optional[str] = "") -> np.ndarray:
+           hfl: Union[list, np.ndarray],
+           Cfl_inv: Union[list, np.ndarray],
+           method: Optional[str] = "") -> np.ndarray:
         """
         a_l
         The sum of a_l is the inverse of the variance of the background at the given pixel.
@@ -479,18 +485,18 @@ class PACO:
             a_l from equation 15 of Flasseur 2018.
         """
         if method == "einsum":
-            d1 =  np.einsum('ijk,gj',Cfl_inv,hfl)
-            return np.einsum('ml,ml',hfl,np.diagonal(d1).T)
+            d1 = np.einsum('ijk,gj', Cfl_inv, hfl)
+            return np.einsum('ml,ml', hfl, np.diagonal(d1).T)
 
-        a = np.sum(np.array([np.dot(hfl[i], np.dot(Cfl_inv[i], hfl[i]).T) \
+        a = np.sum(np.array([np.dot(hfl[i], np.dot(Cfl_inv[i], hfl[i]).T)
                              for i in range(len(hfl))]), axis=0)
         return a
 
-    def bl(self, hfl : Union[list,np.ndarray],
-           Cfl_inv : Union[list,np.ndarray],
-           r_fl : Union[list,np.ndarray],
-           m_fl : Union[list,np.ndarray],
-           method : Optional[str] = "") -> np.ndarray:
+    def bl(self, hfl: Union[list, np.ndarray],
+           Cfl_inv: Union[list, np.ndarray],
+           r_fl: Union[list, np.ndarray],
+           m_fl: Union[list, np.ndarray],
+           method: Optional[str] = "") -> np.ndarray:
         """
         b_l
         The sum of b_l is the flux estimate at the given pixel.
@@ -518,20 +524,21 @@ class PACO:
 
         """
         if method == "einsum":
-            d1 =  np.einsum('ijk,gj',Cfl_inv,r_fl-m_fl)
-            return np.einsum('ml,ml',hfl,np.diagonal(d1).T)
+            d1 = np.einsum('ijk,gj', Cfl_inv, r_fl-m_fl)
+            return np.einsum('ml,ml', hfl, np.diagonal(d1).T)
 
-        b = np.sum(np.array([np.dot(np.dot(Cfl_inv[i], hfl[i]).T, (r_fl[i]-m_fl[i]))\
+        b = np.sum(np.array([np.dot(np.dot(Cfl_inv[i], hfl[i]).T, (r_fl[i]-m_fl[i]))
                              for i in range(len(hfl))]), axis=0)
         return b
 
     """
     FluxPACO
     """
+
     def flux_estimate(self,
-                     phi0s : np.ndarray,
-                     eps : Optional[float] = 0.1,
-                     initial_est : Optional[list] = [0.0]) -> list:
+                      phi0s: np.ndarray,
+                      eps: Optional[float] = 0.1,
+                      initial_est: Optional[list] = [0.0]) -> list:
         """
         Unbiased estimate of the flux of a source located at p0
         The estimate of the flux is given by ahat * h, where h is the PSF template.
@@ -653,10 +660,12 @@ class PACO:
         print(f"Extracted contrasts")
         print(f"-------------------")
         for i in range(len(phi0s)):
-            print(f"x: {phi0s[i][0]}, y: {phi0s[i][1]}, contrast: {ests[i]}±{stds[i]}")
+            print(
+                f"x: {phi0s[i][0]}, y: {phi0s[i][1]}, contrast: {ests[i]}±{stds[i]}")
         return ests, stds, norm
 
-    def iterate_flux_calc(self, est : float, patch : np.ndarray, model : np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def iterate_flux_calc(self, est: float, patch: np.ndarray,
+                          model: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Compute the iterative estimates for the mean and inverse covariance.
 
@@ -685,14 +694,14 @@ class PACO:
         m,Cinv = compute_statistics_at_pixel(unbiased)
         return m, Cinv
 
-    def subpixel_threshold_detect(self,snr_map : np.ndarray,
-                                  threshold : float,
-                                  mode : Optional[str] = 'lpeaks',
-                                  bkg_sigma : Optional[float] = 5.0,
-                                  matched_filter : Optional[bool] = False,
-                                  mask : Optional[bool] = True,
-                                  full_output : Optional[bool] = False,
-                                  cpu : Optional[int] = 1) -> np.ndarray:
+    def subpixel_threshold_detect(self, snr_map: np.ndarray,
+                                  threshold: float,
+                                  mode: Optional[str] = 'lpeaks',
+                                  bkg_sigma: Optional[float] = 5.0,
+                                  matched_filter: Optional[bool] = False,
+                                  mask: Optional[bool] = True,
+                                  full_output: Optional[bool] = False,
+                                  cpu: Optional[int] = 1) -> np.ndarray:
         """ Wraps VIP.metrics.detection.detection, see that function for further documentation.
         Note that the output convention here is different - this function returns xx,yy.
 
@@ -747,7 +756,8 @@ class PACO:
                           verbose=self.verbose)
         return peaks.T
 
-    def pixel_threshold_detection(self, snr_map : np.ndarray, threshold : float) -> np.ndarray:
+    def pixel_threshold_detection(
+            self, snr_map: np.ndarray, threshold: float) -> np.ndarray:
         """
         Returns a list of the pixel coordinates of center of signals above a given threshold
 
@@ -834,6 +844,8 @@ class PACO:
 *                                                *
 **************************************************
 """
+
+
 class FastPACO(PACO):
     """
     This class implements Algorithm 2 from Flasseur+ 2018.
@@ -873,7 +885,7 @@ class FastPACO(PACO):
         npx = len(phi0s)  # Number of pixels in an image
         dim = self.width/2
 
-        a = np.zeros(npx) # Setup output arrays
+        a = np.zeros(npx)  # Setup output arrays
         b = np.zeros(npx)
 
         if cpu == 1:
@@ -898,7 +910,8 @@ class FastPACO(PACO):
         # Store for each image pixel, for each temporal frame an image
         # for patches: for each time, we need to store a column of patches
 
-        # Currently forcing integer grid, but meshgrid takes floats as arguments...
+        # Currently forcing integer grid, but meshgrid takes floats as
+        # arguments...
         x, y = np.meshgrid(np.arange(-dim, dim), np.arange(-dim, dim))
         if self.verbose:
             print("Running Fast PACO...")
@@ -909,7 +922,7 @@ class FastPACO(PACO):
             # Get Angles
             angles_px = get_rotated_pixel_coords(x, y, p0, self.angles)
             # Ensure within image bounds
-            if(int(np.max(angles_px.flatten())) >= self.width or \
+            if(int(np.max(angles_px.flatten())) >= self.width or
                int(np.min(angles_px.flatten())) < 0):
                 a[i] = np.nan
                 b[i] = np.nan
@@ -943,8 +956,8 @@ class FastPACO(PACO):
         return a, b
 
     def compute_statistics_parallel(self,
-                                    phi0s : np.ndarray,
-                                    cpu : int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+                                    phi0s: np.ndarray,
+                                    cpu: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         This function computes the mean and inverse covariance matrix for
         each patch in the image stack in parallel.
@@ -978,23 +991,30 @@ class FastPACO(PACO):
         # the mean of a temporal column of patches at each pixel
         m = np.zeros((self.height*self.width*self.patch_area_pixels))
         # the inverse covariance matrix at each point
-        Cinv = np.zeros((self.height*self.width*self.patch_area_pixels*self.patch_area_pixels))
+        Cinv = np.zeros((self.height*
+                         self.width*
+                         self.patch_area_pixels*
+                         self.patch_area_pixels))
 
         # *** Parallel Processing ***
-        p_pool = Pool(processes=cpu)
-        p_data = p_pool.map(self.get_patch, phi0s, chunksize=int(npx/cpu))
-        p_pool.close()
-        p_pool.join()
+        p_data = pool_map(cpu, self.get_patch, iterable(phi0s))
         patches = [p for p in p_data]
-        p = Pool(processes=cpu)
-        data = p.map(compute_statistics_at_pixel, patches, chunksize=int(npx/cpu))
-        p.close()
-        p.join()
+        data = pool_map(cpu, compute_statistics_at_pixel, iterable(patches))
+        # p_pool = Pool(processes=cpu)
+        #p_data = p_pool.map(self.get_patch, phi0s, chunksize=int(npx/cpu))
+        # p_pool.close()
+        # p_pool.join()
+        # patches = [p for p in p_data]
+        # p = Pool(processes=cpu)
+        # data = p.map(compute_statistics_at_pixel, patches, chunksize=int(npx/cpu))
+        # p.close()
+        # p.join()
         ms, cs = [], []
         for d in data:
             if d[0] is None or d[1] is None:
                 ms.append(np.full(self.patch_area_pixels, np.nan))
-                cs.append(np.full((self.patch_area_pixels, self.patch_area_pixels), np.nan))
+                cs.append(np.full((self.patch_area_pixels,
+                                   self.patch_area_pixels), np.nan))
             else:
                 ms.append(d[0])
                 cs.append(d[1])
@@ -1016,6 +1036,7 @@ class FastPACO(PACO):
                            self.patch_area_pixels))
         return Cinv, m, patches
 
+
 """
 **************************************************
 *                                                *
@@ -1023,6 +1044,8 @@ class FastPACO(PACO):
 *                                                *
 **************************************************
 """
+
+
 class FullPACO(PACO):
     """
     Implementation of Algorithm 1 from Flasseur+ 2018
@@ -1063,7 +1086,7 @@ class FullPACO(PACO):
         npx = len(phi0s)  # Number of pixels in an image
         dim = self.width/2
 
-        a = np.zeros(npx) # Setup output arrays
+        a = np.zeros(npx)  # Setup output arrays
         b = np.zeros(npx)
         normalised_psf = normalize_psf(self.psf,
                                        fwhm='fit',
@@ -1102,7 +1125,7 @@ class FullPACO(PACO):
             angles_px = get_rotated_pixel_coords(x, y, (p0[0],p0[1]), self.angles)
 
             # Ensure within image bounds
-            if(int(np.max(angles_px.flatten())) >= self.width or \
+            if(int(np.max(angles_px.flatten())) >= self.width or
                int(np.min(angles_px.flatten())) < 0):
                 a[i] = np.nan
                 b[i] = np.nan
@@ -1156,7 +1179,10 @@ class FullPACO(PACO):
 """
 Math functions for computing patch covariance
 """
-def compute_statistics_at_pixel(patch : np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+
+
+def compute_statistics_at_pixel(
+        patch: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculate the mean and inverse covariance within a patch
     Reimplemented in PACO class, can probably be deleted
@@ -1183,7 +1209,8 @@ def compute_statistics_at_pixel(patch : np.ndarray) -> Tuple[np.ndarray, np.ndar
     Cinv = np.linalg.inv(C)
     return m, Cinv
 
-def covariance(rho : np.ndarray, S : np.ndarray, F : np.ndarray) -> np.ndarray:
+
+def covariance(rho: np.ndarray, S: np.ndarray, F: np.ndarray) -> np.ndarray:
     """
     Ĉ: Shrinkage covariance matrix
 
@@ -1210,7 +1237,9 @@ def covariance(rho : np.ndarray, S : np.ndarray, F : np.ndarray) -> np.ndarray:
     C = (1.0-rho)*S + rho*F
     return C
 
-def sample_covariance(r : np.ndarray, m : np.ndarray, T : np.ndarray) -> np.ndarray:
+
+def sample_covariance(r: np.ndarray, m: np.ndarray,
+                      T: np.ndarray) -> np.ndarray:
     """
     Ŝ: Sample covariance matrix
 
@@ -1230,11 +1259,12 @@ def sample_covariance(r : np.ndarray, m : np.ndarray, T : np.ndarray) -> np.ndar
     """
 
     #S = (1.0/T)*np.sum([np.outer((p-m).ravel(),(p-m).ravel().T) for p in r], axis=0)
-    S = (1.0/T)*np.sum([np.cov(np.stack((p, m)),\
+    S = (1.0/T)*np.sum([np.cov(np.stack((p, m)),
                                rowvar=False, bias=False) for p in r], axis=0)
     return S
 
-def diagsample_covariance(S : np.ndarray) -> np.ndarray:
+
+def diagsample_covariance(S: np.ndarray) -> np.ndarray:
     """
     F: Diagonal elements of the sample covariance matrix
 
@@ -1251,7 +1281,8 @@ def diagsample_covariance(S : np.ndarray) -> np.ndarray:
 
     return np.diag(np.diag(S))
 
-def shrinkage_factor(S : np.ndarray, T : np.ndarray) -> float:
+
+def shrinkage_factor(S: np.ndarray, T: np.ndarray) -> float:
     """
     ρ: Shrinkage factor to regularize covariant matrix
 
@@ -1268,18 +1299,19 @@ def shrinkage_factor(S : np.ndarray, T : np.ndarray) -> float:
         Shrinkage factor to regularize covariant matrix
     """
 
-    top = (np.trace(np.dot(S, S)) + np.trace(S)**2 -\
+    top = (np.trace(np.dot(S, S)) + np.trace(S)**2 -
            2.0*np.sum(S**2.0))
-    bot = ((T+1.0)*(np.trace(np.dot(S, S))-\
+    bot = ((T+1.0)*(np.trace(np.dot(S, S)) -
                     np.sum(np.diag(S)**2.0)))
     p = top/bot
     return max(min(p, 1.0), 0.0)
 
-def get_rotated_pixel_coords(x : np.ndarray,
-                             y : np.ndarray,
-                             p0 : Tuple[int, int],
-                             angles : np.ndarray,
-                             astro_convention : Optional[bool] = False) -> np.ndarray:
+
+def get_rotated_pixel_coords(x: np.ndarray,
+                             y: np.ndarray,
+                             p0: Tuple[int, int],
+                             angles: np.ndarray,
+                             astro_convention: Optional[bool] = False) -> np.ndarray:
     """
     For a given pixel, find the new pixel location after a rotation for each angle in angles
 
@@ -1305,26 +1337,29 @@ def get_rotated_pixel_coords(x : np.ndarray,
     phi0 = np.array([x[int(p0[0]), int(p0[1])], y[int(p0[0]), int(p0[1])]])
 
     # Convert to polar coordinates
-    rad,theta = cart_to_pol(phi0[0],phi0[1],astro_convention=astro_convention)
+    rad, theta = cart_to_pol(
+        phi0[0], phi0[1], astro_convention=astro_convention)
 
     # Rotate by parallactic angles
     angles_rad = -1*angles + theta
 
     # Rotate the polar coordinates by each frame angle
-    angles_pol = np.array([rad*np.ones_like(angles_rad),angles_rad])
+    angles_pol = np.array([rad*np.ones_like(angles_rad), angles_rad])
 
     # Find the new pixel coordinates after rotation
-    nx,ny = pol_to_cart(angles_pol[0], angles_pol[1],astro_convention=astro_convention)
+    nx, ny = pol_to_cart(
+        angles_pol[0], angles_pol[1], astro_convention=astro_convention)
 
     # Shift to center coordinates (central pixel is 0)
     # TODO - use vip cx, cy arguments rather than shifting after?
-    nx +=+int(x.shape[0]/2)
+    nx += +int(x.shape[0]/2)
     ny += +int(x.shape[0]/2)
-    return np.array([nx,ny]).T
+    return np.array([nx, ny]).T
 
-def create_boolean_circular_mask(shape : np.ndarray,
-                                 radius : Optional[int] =4,
-                                 center : Optional[Tuple[int, int]]=None) -> np.ndarray:
+
+def create_boolean_circular_mask(shape: np.ndarray,
+                                 radius: Optional[int] = 4,
+                                 center: Optional[Tuple[int, int]] = None) -> np.ndarray:
     """
     Returns a 2D boolean mask given some radius and location
 

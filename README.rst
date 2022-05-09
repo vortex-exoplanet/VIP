@@ -231,7 +231,7 @@ Attribution
 -----------
 
 ``VIP`` started as the effort of `Carlos Alberto Gomez Gonzalez <https://github.com/carlos-gg>`_,
-a former PhD student of the `VORTEX team <http://www.vortex.ulg.ac.be/>`_
+a former PhD student of `PSILab <https://sites.google.com/site/olivierabsil/psilab>`_
 (ULiege, Belgium), who has led the development of VIP from 2015 to 2020.
 Maintenance and current development is now led by `Valentin Christiaens <https://github.com/VChristiaens>`_.
 VIP benefitted from contributions made by collaborators from several teams, including: Ralf Farkas, Julien Milli, Olivier Wertz, Henry Ngo, Alan Rainot, Gary Ruane, Corentin Doco, Miles Lucas, Gilles Orban de Xivry, Lewis Picker, Faustine Cantalloube, Iain Hammond, Christian Delacroix, Arthur Vigan, Dimitri Mawet and Olivier Absil.

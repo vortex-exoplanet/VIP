@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Module with utility functions to the MCMC (``emcee``) sampling for NEGFC 
+Module with utility functions to the MCMC (``emcee``) sampling for NEGFC
 parameter estimation.
 """
 
@@ -21,15 +21,15 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 def gelman_rubin(x):
     r"""
-    Determine the Gelman-Rubin :math:`\hat{R}` statistical test between Markov 
+    Determine the Gelman-Rubin :math:`\hat{R}` statistical test between Markov
     chains.
-    
+
     Parameters
     ----------
     x: numpy.array
         The numpy.array on which the Gelman-Rubin test is applied. This array
         should contain at least 2 set of data, i.e. x.shape >= (2,).
-        
+
     Returns
     -------
     out: float
@@ -44,7 +44,7 @@ def gelman_rubin(x):
     1.0366629898991262
     >>> gelman_rubin(np.vstack((x1,x1)))
     0.99
-        
+
     """
     if np.shape(x) < (2,):
         msg = 'Gelman-Rubin diagnostic requires multiple chains of the same '
@@ -76,23 +76,23 @@ def gelman_rubin(x):
 
 
 def gelman_rubin_from_chain(chain, burnin):
-    r""" Pack the MCMC chain and determine the Gelman-Rubin :math:`\hat{R}` 
-    statistical test. In other words, two sub-sets are extracted from the chain 
-    (burnin parts are taken into account) and the Gelman-Rubin statistical test 
+    r""" Pack the MCMC chain and determine the Gelman-Rubin :math:`\hat{R}`
+    statistical test. In other words, two sub-sets are extracted from the chain
+    (burnin parts are taken into account) and the Gelman-Rubin statistical test
     is performed.
-    
+
     Parameters
     ----------
     chain: numpy.array
         The MCMC chain with the shape walkers x steps x model_parameters
     burnin: float \in [0,1]
         The fraction of a walker which is discarded.
-        
+
     Returns
     -------
     out: float
         The Gelman-Rubin :math:`\hat{R}`.
-        
+
     """
     dim = chain.shape[2]
     k = chain.shape[1]

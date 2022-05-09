@@ -5,12 +5,7 @@ Based on Flasseur+ 2018 https://ui.adsabs.harvard.edu/abs/2018A%26A...618A.138F/
 Variable naming is based on the notation of Flasseur+ 2018,
 see table 1 in the paper for a description.
 
-Last updated 2022-05-03 by Evert Nasedkin (nasedkinevert@gmail.com).
-
-TODO: Improve PSF model - currently centers the pixel on each patch,
-when in reality the PSF should be off center, and sampled by the patch.
-
-TODO: Implement sub-pixel astrometry for PSF positioning.
+Last updated 2022-05-09 by Evert Nasedkin (nasedkinevert@gmail.com).
 """
 
 import sys
@@ -27,10 +22,10 @@ import numpy as np
 from scipy import ndimage
 from scipy.ndimage import filters
 
-from ..preproc.rescaling import frame_px_resampling,cube_px_resampling
+from ..preproc import frame_px_resampling, cube_px_resampling, frame_shift
 from ..var.coords import cart_to_pol, pol_to_cart
 from ..metrics.detection import detection
-
+from ..fm import normalize_psf
 __author__ = "Evert Nasedkin"
 __all__ = ['FastPACO',
            'FullPACO']
@@ -109,7 +104,6 @@ class PACO:
         self.height = self.cube.shape[1]
 
         # Parallactic angles
-        # TODO: Check convention for sign of angles
         try:
             self.angles = angles
         except:
@@ -139,6 +133,11 @@ class PACO:
         self.patch_width = 2*int(self.fwhm) + 3
         self.verbose = verbose
 
+        # These are what we're calculating
+        self.snr = None
+        self.flux = None
+        self.std = None
+
         # Diagnostics
         if self.verbose:
             print("---------------------- ")
@@ -155,6 +154,7 @@ class PACO:
     @abstractmethod
     def PACOCalc(self,
                  phi0s : np.ndarray,
+                 use_subpixel_psf_astrometry : Optional[bool] = True,
                  cpu : Optional[int] = 1) -> None:
         """
         This function is algorithm dependant, and sets up the actual calculation process.
@@ -164,6 +164,12 @@ class PACO:
         phi0s : numpy.ndarray
             Array of pixel coordinates to try to search for the planet signal. Typically a grid
             created using numpy.meshgrid.
+        use_subpixel_psf_astrometry : bool
+            If true, the PSF model for each patch is shifted to the correct
+            location as predicted by the starting location and the parallactic
+            angles, before being resampled for the patch. If false, the PSF
+            model is simply located at the center of each patch. Significantly
+            improves performance if set to False, but the SNR is reduced.
         cpu : int, optional
             Number of cpus to use for parallelization.
 
@@ -179,7 +185,8 @@ class PACO:
             cpu : Optional[int] = 1,
             imlib : Optional[str] = 'vip-fft',
             interpolation : Optional[str]= 'lanczos4',
-            keep_center : Optional[bool] = True) -> Tuple[np.ndarray, np.ndarray]:
+            keep_center : Optional[bool] = True,
+            use_subpixel_psf_astrometry : Optional[bool] = True) -> Tuple[np.ndarray, np.ndarray]:
         """
         Run method of the PACO class. This function wraps up the PACO
         calculation steps, and returns the snr and flux estimates as
@@ -202,6 +209,12 @@ class PACO:
             dim//2, dim//2), whether to keep the star centered after scaling, i.e.
             on (new_dim//2, new_dim//2). For a non-centered input cube, better to
             leave it to False.
+        use_subpixel_psf_astrometry : bool
+            If true, the PSF model for each patch is shifted to the correct
+            location as predicted by the starting location and the parallactic
+            angles, before being resampled for the patch. If false, the PSF
+            model is simply located at the center of each patch. Significantly
+            improves performance if set to False, but the SNR is reduced.
 
         Returns
         -------
@@ -211,8 +224,6 @@ class PACO:
         flux : numpy.ndarray
             2D map of the flux estimate as computed by PACO
             This is b/a, as in eqn 21 of Flasseur 2018.
-            TODO: Need to check if the PSF normalization provides an actual contrast
-            estimate.
         """
 
         if self.rescaling_factor != 1:
@@ -234,16 +245,19 @@ class PACO:
         x, y = np.meshgrid(np.arange(0, self.height),
                            np.arange(0, self.width))
         phi0s = np.column_stack((x.flatten(), y.flatten()))
-
+        print(phi0s)
         # Compute a,b
         a, b = self.PACOCalc(np.array(phi0s), cpu=cpu)
 
         # Reshape into a 2D image, with the same dimensions as the input images
-        a = np.reshape(a, (self.height, self.width)).T
-        b = np.reshape(b, (self.height, self.width)).T
+        a = np.reshape(a, (self.height, self.width))
+        b = np.reshape(b, (self.height, self.width))
         # Output arrays
         snr = b/np.sqrt(a)
         flux = b/a
+        self.snr = snr
+        self.flux = flux
+        self.std = 1/np.sqrt(a)
         return snr, flux
 
 
@@ -557,9 +571,21 @@ class PACO:
         # Create arrays needed for storage
         # Store for each image pixel, for each temporal frame an image
         # for patches: for each time, we need to store a column of patches
-        psf_mask = create_boolean_circular_mask(self.psf.shape, radius=self.fwhm)
+        normalised_psf,norm,fwhm = normalize_psf(self.psf,
+                                            fwhm='fit',
+                                            size=None,
+                                            threshold=None,
+                                            mask_core=None,
+                                            model='airy',
+                                            imlib='vip-fft',
+                                            interpolation='lanczos4',
+                                            force_odd=False,
+                                            full_output=True,
+                                            verbose=self.verbose,
+                                            debug=False)
+
+        psf_mask = create_boolean_circular_mask(normalised_psf.shape, radius=self.fwhm)
         hoff = np.zeros((self.num_frames,self.num_frames, self.patch_area_pixels)) # The off axis PSF at each point
-        hon = np.zeros((self.num_frames, self.patch_area_pixels))
         # Create arrays needed for storage
         # Store for each image pixel, for each temporal frame an image
         # for patches: for each time, we need to store a column of patches
@@ -568,43 +594,64 @@ class PACO:
 
         ests = []
         stds = []
-        norm = np.nanmax(self.psf)
         for i, p0 in enumerate(phi0s):
-            angles_px = get_rotated_pixel_coords(x, y, p0, self.angles)
-            # Fill patches and signal template
-            patch = []
+            angles_px = np.array(get_rotated_pixel_coords(x, y, p0, self.angles))
+            hon = []
             for l, ang in enumerate(angles_px):
                 # Get the column of patches at this point
-                patch.append(self.get_patch((int(ang[0]),int(ang[1]))))
-                hoff[l,l] = self.psf[psf_mask]
-                hon[l] = self.psf[psf_mask]
-            patch = np.array(patch)
-            planet_patches = np.array([patch[l,l] for l in range(self.num_frames)])
-            # the mean of a temporal column of patches at each pixel
-            m = np.zeros((self.num_frames, self.patch_area_pixels))
-            # the inverse covariance matrix at each point
-            Cinv = np.zeros((self.num_frames, self.patch_area_pixels, self.patch_area_pixels))
+                offax = frame_shift(normalised_psf,
+                                    ang[1]-int(ang[1]),
+                                    ang[0]-int(ang[0]),
+                                    imlib='vip-fft',
+                                    interpolation='lanczos4',
+                                    border_mode='reflect')[psf_mask]
+                hoff[l,l] = offax
+                hon.append(offax)
+
+            Cinv, m, patches = self.compute_statistics(np.array(angles_px).astype(int))
+            # Get Angles
+            # Ensure within image bounds
+            # Extract relevant patches and statistics
+            Cinlst = []
+            mlst = []
+            patch = []
+            for l, ang in enumerate(angles_px):
+                Cinlst.append(Cinv[int(ang[0]), int(ang[1])])
+                mlst.append(m[int(ang[0]), int(ang[1])])
+                patch.append(patches[int(ang[0]), int(ang[1]),l])
+            a = self.al(hon,Cinlst)
+            b = self.bl(hon, Cinlst,patch, mlst)
+            print(b/a)
+            # Fill patches and signal template
+
 
             # Unbiased flux estimation
             ahat = initial_est[i]
             aprev = 1e10 # Arbitrary large value so that the loop will run
-            while np.abs(ahat/norm - aprev/norm) > (ahat/norm * eps):
+            while np.abs(ahat - aprev) > np.abs(ahat * eps):
                 a = 0.0
                 b = 0.0
-                # Patches here are columns in time
-                for l in range(self.num_frames):
-                    m[l], Cinv[l] = self.iterate_flux_calc(ahat, patch[l], hoff[l])
+                # the mean of a temporal column of patches at each pixel
+                m = np.zeros((self.num_frames, self.patch_area_pixels))
+                # the inverse covariance matrix at each point
+                Cinv = np.zeros((self.num_frames, self.patch_area_pixels, self.patch_area_pixels))
 
+                planet_patches = []
+                # Patches here are columns in time
+                for l,ang in enumerate(angles_px):
+                    apatch = self.get_patch(ang.astype(int))
+                    m[l], Cinv[l] = self.iterate_flux_calc(ahat, apatch, hoff[l])
                 # Patches here are where the planet is expected to be
-                a = self.al(ahat*hon, Cinv)
-                b = self.bl(ahat*hon, Cinv, planet_patches, m)
+                a = self.al(hon, Cinv)
+                b = self.bl(hon, Cinv, patch, m)
                 aprev = ahat
-                ahat = max(b, 0.0)/a
+                ahat = b/a
                 if self.verbose:
                     print(f"Contrast estimate: {ahat/norm}")
-            ests.append(ahat/norm)
+            ests.append(np.abs(ahat/norm))
             stds.append(1/np.sqrt(a)/norm)
-        print(f"Extracted contrasts: ")
+        print(f"Extracted contrasts")
+        print(f"-------------------")
         for i in range(len(phi0s)):
             print(f"x: {phi0s[i][0]}, y: {phi0s[i][1]}, contrast: {ests[i]}±{stds[i]}")
         return ests, stds, norm
@@ -635,12 +682,7 @@ class PACO:
         T = patch.shape[0]
 
         unbiased = np.array([apatch - est*model[l] for l,apatch in enumerate(patch)])
-        m = np.mean(unbiased, axis=0)
-        S = sample_covariance(unbiased, m, T)
-        rho = shrinkage_factor(S, T)
-        F = diagsample_covariance(S)
-        C = covariance(rho, S, F)
-        Cinv = np.linalg.inv(C)
+        m,Cinv = compute_statistics_at_pixel(unbiased)
         return m, Cinv
 
     def subpixel_threshold_detect(self,snr_map : np.ndarray,
@@ -738,6 +780,53 @@ class PACO:
             y.append(y_center)
         return np.array(list(zip(x, y)))
 
+    def compute_statistics(self, phi0s : np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        This function computes the mean and inverse covariance matrix for
+        each patch in the image stack in Serial. Used by FastPACO and flux
+        estimation.
+
+        Parameters
+        ----------
+        phi0s : numpy.ndarray
+            Array of pixel locations to estimate companion position
+
+        Returns
+        -------
+        Cinv : numpy.ndarray
+            Inverse covariance matrix between the the mean of each of the patches.
+            The patches are a column through the time axis of the unrotated
+            science images. Together with the mean this provides an empirical
+            estimate of the background statistics. An inv covariance matrix is provided
+            for each pixel location in ph0s.
+        m : numpy.ndarray
+            Mean of each of the background patches along the time axis, for each pixel location
+            in phi0s.
+        patch : numpy.ndarray
+            The background column for each test pixel location in phi0s.
+        """
+        if self.verbose:
+            print("Precomputing Statistics...")
+
+        # Store for each image pixel, for each temporal frame an image
+        # for patches: for each time, we need to store a column of patches
+        patch = np.zeros((self.width, self.height, self.num_frames, self.patch_area_pixels))
+
+        # the mean of a temporal column of patches centered at each pixel
+        m = np.zeros((self.height, self.width, self.patch_area_pixels))
+        # the inverse covariance matrix at each point
+        Cinv = np.zeros((self.height, self.width, self.patch_area_pixels, self.patch_area_pixels))
+
+        # *** SERIAL ***
+        # Loop over all pixels
+        # i is the same as theta_k in the PACO paper
+        for p0 in phi0s:
+            apatch = self.get_patch(p0)
+            # For some black magic reason this needs to be inverted here.
+            m[p0[1]][p0[0]], Cinv[p0[1]][p0[0]] = compute_statistics_at_pixel(apatch)
+            patch[p0[1]][p0[0]] = apatch
+        return Cinv, m, patch
+
 """
 **************************************************
 *                                                *
@@ -752,6 +841,7 @@ class FastPACO(PACO):
 
     def PACOCalc(self,
                  phi0s : np.ndarray,
+                 use_subpixel_psf_astrometry : Optional[bool] = True,
                  cpu : Optional[int] = 1) -> None:
         """
         PACOCalc
@@ -764,6 +854,12 @@ class FastPACO(PACO):
         ----------
         phi0s : numpy.ndarray
             Array of (x,y) pixel locations to estimate companion position
+        use_subpixel_psf_astrometry : bool
+            If true, the PSF model for each patch is shifted to the correct
+            location as predicted by the starting location and the parallactic
+            angles, before being resampled for the patch. If false, the PSF
+            model is simply located at the center of each patch. Significantly
+            improves performance if set to False, but the SNR is reduced.
         cpu : int
             Number of cores to use for parallel processing
 
@@ -781,9 +877,22 @@ class FastPACO(PACO):
         b = np.zeros(npx)
 
         if cpu == 1:
-            Cinv, m, h, patches = self.compute_statistics(phi0s)
+            Cinv, m, patches = self.compute_statistics(phi0s)
         else:
-            Cinv, m, h, patches = self.compute_statistics_parallel(phi0s, cpu=cpu)
+            Cinv, m, patches = self.compute_statistics_parallel(phi0s, cpu=cpu)
+        normalised_psf = normalize_psf(self.psf,
+                                       fwhm='fit',
+                                       size=None,
+                                       threshold=None,
+                                       mask_core=None,
+                                       model='airy',
+                                       imlib='vip-fft',
+                                       interpolation='lanczos4',
+                                       force_odd=False,
+                                       full_output=False,
+                                       verbose=self.verbose,
+                                       debug=False)
+        psf_mask = create_boolean_circular_mask(normalised_psf.shape, radius=self.fwhm)
 
         # Create arrays needed for storage
         # Store for each image pixel, for each temporal frame an image
@@ -814,8 +923,17 @@ class FastPACO(PACO):
             for l, ang in enumerate(angles_px):
                 Cinlst.append(Cinv[int(ang[0]), int(ang[1])])
                 mlst.append(m[int(ang[0]), int(ang[1])])
-                hlst.append(h[int(ang[0]), int(ang[1])])
-                patch.append(patches[int(ang[0]), int(ang[1]),l])
+                if use_subpixel_psf_astrometry:
+                    offax = frame_shift(normalised_psf,
+                                        ang[1]-int(ang[1]),
+                                        ang[0]-int(ang[0]),
+                                        imlib='vip-fft',
+                                        interpolation='lanczos4',
+                                        border_mode='reflect')[psf_mask]
+                else:
+                    offax = normalised_psf[psf_mask]
+                hlst.append(offax)
+                patch.append(patches[int(ang[0]), int(ang[1]), l])
 
             # Calculate a and b, matrices
             a[i] = self.al(hlst, Cinlst)
@@ -823,63 +941,6 @@ class FastPACO(PACO):
         if self.verbose:
             print("Done")
         return a, b
-
-    def compute_statistics(self, phi0s : np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """
-        This function computes the mean and inverse covariance matrix for
-        each patch in the image stack in Serial.
-
-        Parameters
-        ----------
-        phi0s : numpy.ndarray
-            Array of pixel locations to estimate companion position
-
-        Returns
-        -------
-        Cinv : numpy.ndarray
-            Inverse covariance matrix between the the mean of each of the patches.
-            The patches are a column through the time axis of the unrotated
-            science images. Together with the mean this provides an empirical
-            estimate of the background statistics. An inv covariance matrix is provided
-            for each pixel location in ph0s.
-        m : numpy.ndarray
-            Mean of each of the background patches along the time axis, for each pixel location
-            in phi0s.
-        h : numpy.ndarray
-            PSF template for each pixel location. In principle could vary across the frame,
-            but this is not implemented.
-        patch : numpy.ndarray
-            The background column for each test pixel location in phi0s.
-        """
-        if self.verbose:
-            print("Precomputing Statistics...")
-
-        #mask = create_boolean_circular_mask((self.patch_width, self.patch_width), radius=self.fwhm)
-        psf_mask = create_boolean_circular_mask(self.psf.shape, radius=self.fwhm)
-        normalised_psf = self.psf/np.nanmax(self.psf)
-
-        # The off axis PSF at each point
-        # all values are the same for now, but could vary with position.
-        h = np.zeros((self.width, self.height, self.patch_area_pixels))
-
-        # Store for each image pixel, for each temporal frame an image
-        # for patches: for each time, we need to store a column of patches
-        patch = np.zeros((self.width, self.height, self.num_frames, self.patch_area_pixels))
-
-        # the mean of a temporal column of patches centered at each pixel
-        m = np.zeros((self.height, self.width, self.patch_area_pixels))
-        # the inverse covariance matrix at each point
-        Cinv = np.zeros((self.height, self.width, self.patch_area_pixels, self.patch_area_pixels))
-
-        # *** SERIAL ***
-        # Loop over all pixels
-        # i is the same as theta_k in the PACO paper
-        for p0 in phi0s:
-            apatch = self.get_patch(p0)
-            m[p0[1]][p0[0]], Cinv[p0[1]][p0[0]] = compute_statistics_at_pixel(apatch)
-            h[p0[1]][p0[0]] = normalised_psf[psf_mask]
-            patch[p0[1]][p0[0]] = apatch
-        return Cinv, m, h, patch
 
     def compute_statistics_parallel(self,
                                     phi0s : np.ndarray,
@@ -906,9 +967,6 @@ class FastPACO(PACO):
         m : numpy.ndarray
             Mean of each of the background patches along the time axis, for each pixel location
             in phi0s.
-        h : numpy.ndarray
-            PSF template for each pixel location. In principle could vary across the frame,
-            but this is not implemented.
         patch : numpy.ndarray
             The background column for each test pixel location in phi0s.
 
@@ -917,19 +975,10 @@ class FastPACO(PACO):
         if self.verbose:
             print("Precomputing Statistics using %d Processes..."%cpu)
         npx = len(phi0s) # Number of pixels in an image
-        #mask = create_boolean_circular_mask((self.patch_width, self.patch_width), radius=self.fwhm)
-        psf_mask = create_boolean_circular_mask(self.psf.shape, radius=self.fwhm)
-        normalised_psf = self.psf/np.nanmax(self.psf)
-
-        # The off axis PSF at each point
-        h = np.zeros((self.width, self.height, self.patch_area_pixels))
-
         # the mean of a temporal column of patches at each pixel
         m = np.zeros((self.height*self.width*self.patch_area_pixels))
         # the inverse covariance matrix at each point
         Cinv = np.zeros((self.height*self.width*self.patch_area_pixels*self.patch_area_pixels))
-        for p0 in phi0s:
-            h[p0[0]][p0[1]] = normalised_psf[psf_mask]
 
         # *** Parallel Processing ***
         p_pool = Pool(processes=cpu)
@@ -965,7 +1014,7 @@ class FastPACO(PACO):
                            self.width,
                            self.patch_area_pixels,
                            self.patch_area_pixels))
-        return Cinv, m, h, patches
+        return Cinv, m, patches
 
 """
 **************************************************
@@ -981,6 +1030,7 @@ class FullPACO(PACO):
 
     def PACOCalc(self,
                  phi0s : np.ndarray,
+                 use_subpixel_psf_astrometry : Optional[bool] = True,
                  cpu : Optional[int] = 1) -> None:
         """
         PACOCalc
@@ -993,6 +1043,12 @@ class FullPACO(PACO):
         ----------
         phi0s : numpy.ndarray
             Array of (x,y) pixel locations to estimate companion position
+        use_subpixel_psf_astrometry : bool
+            If true, the PSF model for each patch is shifted to the correct
+            location as predicted by the starting location and the parallactic
+            angles, before being resampled for the patch. If false, the PSF
+            model is simply located at the center of each patch. Significantly
+            improves performance if set to False, but the SNR is reduced.
         cpu : int
             Number of cores to use for parallel processing. TODO: Not yet implemented.
 
@@ -1009,8 +1065,19 @@ class FullPACO(PACO):
 
         a = np.zeros(npx) # Setup output arrays
         b = np.zeros(npx)
-        mask = create_boolean_circular_mask(self.psf.shape, radius=self.fwhm)
-        normalised_psf = self.psf/np.nanmax(self.psf)
+        normalised_psf = normalize_psf(self.psf,
+                                       fwhm='fit',
+                                       size=None,
+                                       threshold=None,
+                                       mask_core=None,
+                                       model='airy',
+                                       imlib='vip-fft',
+                                       interpolation='lanczos4',
+                                       force_odd=False,
+                                       full_output=False,
+                                       verbose=self.verbose,
+                                       debug=False)
+        psf_mask = create_boolean_circular_mask(normalised_psf.shape, radius=self.fwhm)
 
         if self.verbose:
             print("Running Full PACO...")
@@ -1021,11 +1088,18 @@ class FullPACO(PACO):
         if cpu > 1:
             print("Multiprocessing for full PACO is not yet implemented!")
 
+        # Store intermediate results
+        patch = np.zeros((self.width, self.height, self.num_frames, self.patch_area_pixels))
+        # the mean of a temporal column of patches centered at each pixel
+        m = np.zeros((self.height, self.width, self.patch_area_pixels))
+        # the inverse covariance matrix at each point
+        Cinv = np.zeros((self.height, self.width, self.patch_area_pixels, self.patch_area_pixels))
+
         # Loop over all pixels
         # i is the same as theta_k in the PACO paper
         for i, p0 in enumerate(phi0s):
             # Get list of pixels for each rotation angle
-            angles_px = get_rotated_pixel_coords(x, y, p0, self.angles)
+            angles_px = get_rotated_pixel_coords(x, y, (p0[0],p0[1]), self.angles)
 
             # Ensure within image bounds
             if(int(np.max(angles_px.flatten())) >= self.width or \
@@ -1033,26 +1107,47 @@ class FullPACO(PACO):
                 a[i] = np.nan
                 b[i] = np.nan
                 continue
+
             # Iterate over each temporal frame/each angle
             # Same as iterating over phi_l
-            patch = []
+            current_patch = []
             mlst = []
             h = []
             clst = []
             for l, ang in enumerate(angles_px):
                 # Get the column of patches at this point
-                apatch = self.get_patch(ang, self.patch_width)
+                if np.max(patch[int(ang[0]),int(ang[1])]) == 0:
+                    # For some black magic reason this needs to be inverted here.
+                    apatch = self.get_patch((int(ang[1]),int(ang[0])))
+                    patch[int(ang[0]),int(ang[1])] = apatch
+                    m[int(ang[0]),int(ang[1])], Cinv[int(ang[0]),int(ang[1])] = compute_statistics_at_pixel(apatch)
+                else:
+                    apatch = patch[int(ang[0]),int(ang[1])]
                 if apatch is None:
                     continue
-                patch.append(apatch)
-                m, cinv = compute_statistics_at_pixel(patch[l])
-                mlst.append(m)
-                clst.append(cinv)
-                h.append(normalised_psf[mask])
+                mlst.append(m[int(ang[0]),int(ang[1])])
+                clst.append(Cinv[int(ang[0]),int(ang[1])])
 
+                current_patch.append(apatch)
+                if use_subpixel_psf_astrometry:
+                    offax = frame_shift(normalised_psf,
+                                        ang[1]-int(ang[1]),
+                                        ang[0]-int(ang[0]),
+                                        imlib='vip-fft',
+                                        interpolation='lanczos4',
+                                        border_mode='reflect')[psf_mask]
+                else:
+                    offax = normalised_psf[psf_mask]
+
+                h.append(offax)
+            current_patch = np.array(current_patch)
+            patches = np.array([current_patch[l,l] for l in range(len(angles_px))])
+            h = np.array(h)
+            mlst = np.array(mlst)
+            clst = np.array(clst)
             # Calculate a and b, matrices
             a[i] = self.al(h, clst)
-            b[i] = self.bl(h, clst, patch, mlst)
+            b[i] = self.bl(h, clst, patches, mlst)
         if self.verbose:
             print("Done")
         return a, b

@@ -116,10 +116,14 @@ def algo_fast_paco_parallel(ds):
     snr, flux = fp.run(cpu=2)
     return snr
 
-#def algo_full_paco(ds):
-#    fp = vip.invprob.paco.FullPACO(cube = ds.cube, angles = ds.angles, psf = ds.psf, pixscale = ds.px_scale, fwhm = ds.fwhm)
-#    snr, flux = fp.run(cpu=1)
-#    return snr
+def algo_full_paco(ds):
+    fp = vip.invprob.paco.FullPACO(cube = ds.cube,
+                                   angles = ds.angles,
+                                   psf = ds.psf,
+                                   pixscale = ds.px_scale,
+                                   fwhm = ds.fwhm*ds.px_scale)
+    snr, flux = fp.run(cpu=1)
+    return snr
 
 def algo_fmmf_klip(ds):
     res = vip.invprob.fmmf(ds.cube[:,:-1,:-1],

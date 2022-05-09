@@ -248,7 +248,6 @@ class PACO:
         x, y = np.meshgrid(np.arange(0, self.height),
                            np.arange(0, self.width))
         phi0s = np.column_stack((x.flatten(), y.flatten()))
-        print(phi0s)
         # Compute a,b
         a, b = self.PACOCalc(np.array(phi0s), cpu=cpu)
 
@@ -550,7 +549,8 @@ class PACO:
         ----------
         phi0s : numpy.ndarray
             List of locations of sources to compute unbiased flux estimate in pixel units.
-            Origin is at the bottom left.
+            Origin is at the bottom left. Should be a list of (x,y) tuples, or a 2D numpy
+            array.
         eps : float
             Precision requirement for iteration (0,1)
         initial_est : float
@@ -602,6 +602,7 @@ class PACO:
         ests = []
         stds = []
         for i, p0 in enumerate(phi0s):
+            p0 = (p0[1],p0[0])
             angles_px = np.array(get_rotated_pixel_coords(x, y, p0, self.angles))
             hon = []
             for l, ang in enumerate(angles_px):
@@ -887,6 +888,7 @@ class FastPACO(PACO):
 
         a = np.zeros(npx)  # Setup output arrays
         b = np.zeros(npx)
+        phi0s = np.array([phi0s[:,1],phi0s[:,0]]).T
 
         if cpu == 1:
             Cinv, m, patches = self.compute_statistics(phi0s)
@@ -1034,6 +1036,10 @@ class FastPACO(PACO):
                            self.width,
                            self.patch_area_pixels,
                            self.patch_area_pixels))
+        patches = np.swapaxes(patches,0,1)
+        m = np.swapaxes(m,0,1)
+        Cinv = np.swapaxes(Cinv,0,1)
+
         return Cinv, m, patches
 
 
@@ -1122,7 +1128,7 @@ class FullPACO(PACO):
         # i is the same as theta_k in the PACO paper
         for i, p0 in enumerate(phi0s):
             # Get list of pixels for each rotation angle
-            angles_px = get_rotated_pixel_coords(x, y, (p0[0],p0[1]), self.angles)
+            angles_px = get_rotated_pixel_coords(x, y, (p0[1],p0[0]), self.angles)
 
             # Ensure within image bounds
             if(int(np.max(angles_px.flatten())) >= self.width or
@@ -1140,7 +1146,6 @@ class FullPACO(PACO):
             for l, ang in enumerate(angles_px):
                 # Get the column of patches at this point
                 if np.max(patch[int(ang[0]),int(ang[1])]) == 0:
-                    # For some black magic reason this needs to be inverted here.
                     apatch = self.get_patch((int(ang[1]),int(ang[0])))
                     patch[int(ang[0]),int(ang[1])] = apatch
                     m[int(ang[0]),int(ang[1])], Cinv[int(ang[0]),int(ang[1])] = compute_statistics_at_pixel(apatch)

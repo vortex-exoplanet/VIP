@@ -82,10 +82,12 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         distribution).
     student : bool, optional
         If True uses Student t correction to inject fake companion.
-    transmission : tuple of 2 1d arrays, optional
-        If not None, then the tuple contains a vector with the factors to be
-        applied to the sensitivity and a vector of the radial distances [px]
-        where it is sampled (in this order).
+    transmission: numpy array, optional
+        Radial transmission of the coronagraph, if any. Array with either
+        2 x n_rad, 1+n_ch x n_rad columns. The first column should contain the
+        radial separation in pixels, while the other column(s) are the
+        corresponding off-axis transmission (between 0 and 1), for either all,
+        or each spectral channel (only relevant for a 4D input cube).
     smooth : bool, optional
         If True the radial noise curve is smoothed with a Savitzky-Golay filter
         of order 2.
@@ -203,6 +205,40 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if verbose:
         print('Finished the throughput calculation')
         timing(start_time)
+
+    if transmission is not None:
+        t_nz = transmission.shape[0]
+        if transmission.ndim != 2:
+            raise ValueError("transmission should be a 2D ndarray")
+        elif t_nz != 2 and t_nz != 1+cube.shape[0]:
+            msg = "transmission dimensions should be either (2,N) or (n_wave+1, N)"
+            raise ValueError(msg)
+        # if transmission doesn't have right format for interpolation, adapt it
+        diag = np.sqrt(2)*cube.shape[-1]
+        if transmission[0, 0] != 0 or transmission[0, -1] < diag:
+            trans_rad_list = transmission[0].tolist()
+            for j in range(t_nz-1):
+                trans_list = transmission[j+1].tolist()
+                # should have a zero point
+                if transmission[0, 0] != 0:
+                    if j == 0:
+                        trans_rad_list = [0]+trans_rad_list
+                    trans_list = [0]+trans_list
+                # last point should be max possible distance between fc and star
+                if transmission[0, -1] < np.sqrt(2)*cube.shape[-1]:
+                    if j == 0:
+                        trans_rad_list = trans_rad_list+[diag]
+                    trans_list = trans_list+[1]
+                if j == 0:
+                    ntransmission = np.zeros([t_nz, len(trans_rad_list)])
+                    ntransmission[0] = trans_rad_list
+                ntransmission[j+1] = trans_list
+            transmission = ntransmission.copy()
+        if t_nz>2: #take the mean transmission over all wavelengths
+            ntransmission = np.zeros([2, len(trans_rad_list)])
+            ntransmission[0] = transmission[0]
+            ntransmission[1] = np.mean(transmission[1:], axis=0)
+            transmission = ntransmission.copy()
 
     if interp_order is not None:
         # noise measured in the empty frame with better sampling, every px

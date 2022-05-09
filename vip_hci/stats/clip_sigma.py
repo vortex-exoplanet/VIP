@@ -259,13 +259,13 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
                         hbox_b = min(half_box_y, y)
                         # bottom of the pixel
                         # half size of the box at the
-                        hbox_t = min(half_box_y, ny-y)
+                        hbox_t = min(half_box_y, ny-1-y)
                         # top of the pixel
                         # half size of the box to the
                         hbox_l = min(half_box_x, x)
                         # left of the pixel
                         # half size of the box to the
-                        hbox_r = min(half_box_x, nx-x)
+                        hbox_r = min(half_box_x, nx-1-x)
                         # right of the pixel
                         # in case we are close to an edge, we want to extend the box
                         # in the direction opposite to the edge:
@@ -293,9 +293,8 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
                         median = np.median(neigh_arr)
                         if mad:
                             abs_diff = []
-                            for i in range(num_neighbor*num_neighbor-1):
-                                abs_diff.append(
-                                    np.absolute(median-neigh_arr[i]))
+                            for i in range(len(neigh_list)):#num_neighbor*num_neighbor-1):
+                                abs_diff.append(np.absolute(median-neigh_arr[i]))
                             sigma = np.median(np.array(abs_diff))
                         else:
                             sigma = np.std(neigh_arr)
@@ -371,7 +370,6 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
             for y in range(ny):
                 for x in range(nx):
                     # 0/ Determine the box around each pixel
-                    # 0/ Determine the box around each pixel
                     half_box_x = int(np.floor(num_neighbor/2.))
                     if half_res_y:
                         half_box_y = max(1, int(half_box_x/2))
@@ -381,13 +379,13 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
                     hbox_b = min(half_box_y, y)
                     # bottom of the pixel
                     # half size of the box at the
-                    hbox_t = min(half_box_y, ny-y)
+                    hbox_t = min(half_box_y, ny-1-y)
                     # top of the pixel
                     # half size of the box to the
                     hbox_l = min(half_box_x, x)
                     # left of the pixel
                     # half size of the box to the
-                    hbox_r = min(half_box_x, nx-x)
+                    hbox_r = min(half_box_x, nx-1-x)
                     # right of the pixel
                     # in case we are close to an edge, we want to extend the box
                     # in the direction opposite to the edge:
@@ -415,9 +413,8 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
                     median = np.median(neigh_arr)
                     if mad:
                         abs_diff = []
-                        for i in range(num_neighbor*num_neighbor-1):
-                            abs_diff.append(
-                                np.absolute(median-neigh_arr[i]))
+                        for i in range(len(neigh_list)):#num_neighbor*num_neighbor-1):
+                            abs_diff.append(np.absolute(median-neigh_arr[i]))
                         sigma = np.median(np.array(abs_diff))
                     else:
                         sigma = np.std(neigh_arr)

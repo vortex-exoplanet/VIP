@@ -501,7 +501,6 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
             circl_new = []
 
         # 4/ Loop on all pixels to check bpix
-        bpix_map = np.zeros_like(obj_tmp)
         obj_tmp_corr = obj_tmp.copy()
         obj_tmp_corr, bpix_map = correct_ann_outliers(obj_tmp, ann_width, sig,
                                                       med_neig, std_neig, cy,
@@ -679,7 +678,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                                     c_radius=protect_mask, shape=(n_y, n_x))
             else:
                 circl_new = disk((cy, cx), radius=protect_mask,
-                                 shape=(n_y, n_x))
+                                  shape=(n_y, n_x))
         else:
             circl_new = []
 

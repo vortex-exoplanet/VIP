@@ -42,7 +42,7 @@ def algo_fast_paco(ds):
                                    angles=ds.angles,
                                    psf=ds.psf,
                                    pixscale=ds.px_scale,
-                                   fwhm=ds.fwhm*ds.px_scale)
+                                   fwhm=ds.fwhm*ds.px_scale, verbose=True)
     snr, flux = fp.run(cpu=1)
     return snr
 
@@ -52,7 +52,7 @@ def algo_fast_paco_parallel(ds):
                                    angles=ds.angles,
                                    psf=ds.psf,
                                    pixscale=ds.px_scale,
-                                   fwhm=ds.fwhm*ds.px_scale)
+                                   fwhm=ds.fwhm*ds.px_scale, verbose=True)
     snr, flux = fp.run(cpu=cpu_count()//2)
     return snr
 

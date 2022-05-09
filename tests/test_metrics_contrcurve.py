@@ -46,18 +46,27 @@ def test_contrast_curve(get_cube):
 
     psf = frame_crop(ds.psf[1:, 1:], 11)
     plsc = VLT_NACO['plsc']
-    cc = contrast_curve(cube, ds.angles, psf, ds.fwhm, pxscale=plsc,
-                        starphot=starphot, algo=pca, nbranch=3, ncomp=9,
-                        plot=True, debug=True)
-
-    rad = np.array(cc['distance'])
-    gauss_cc = np.array(cc['sensitivity_gaussian'])
-    student_cc = np.array(cc['sensitivity_student'])
-    sigma_corr = np.array(cc['sigma corr'])
+    trans = np.zeros([2,10])
+    trans[0] = np.linspace(0, cube.shape[-1], 10)
+    trans[1,:] = 1
+    cc1 = contrast_curve(cube, ds.angles, psf, ds.fwhm, pxscale=plsc,
+                         starphot=starphot, algo=pca, nbranch=3, ncomp=9,
+                         transmission=trans, plot=True, debug=True)
+    cc2 = contrast_curve(cube, ds.angles, psf, ds.fwhm, pxscale=plsc,
+                         starphot=starphot, algo=pca, nbranch=3, ncomp=9,
+                         transmission=trans, interp_order=None, plot=True, 
+                         save_plot='test.pdf', debug=True)
+    
+    rad = np.array(cc1['distance'])
+    gauss_cc1 = np.array(cc1['sensitivity_gaussian'])
+    student_cc1 = np.array(cc1['sensitivity_student'])
+    gauss_cc2 = np.array(cc2['sensitivity_gaussian'])
+    student_cc2 = np.array(cc2['sensitivity_student'])
+    sigma_corr = np.array(cc1['sigma corr'])
 
     # check that at 0.2'' 5-sigma cc < 4e-3 - Gaussian statistics
     idx_r = find_nearest(rad*plsc, 0.2)
-    cc_gau = gauss_cc[idx_r]
+    cc_gau = gauss_cc1[idx_r]
     corr_r = sigma_corr[idx_r]
     if cc_gau < 4e-3:
         check = True
@@ -67,7 +76,7 @@ def test_contrast_curve(get_cube):
     assert check, msg.format(cc_gau, 4e-3)
 
     # check that at 0.2'' 5-sigma cc: Student statistics > Gaussian statistics
-    cc_stu = student_cc[idx_r]
+    cc_stu = student_cc1[idx_r]
     if cc_stu < 4e-3*corr_r and cc_stu > cc_gau:
         check = True
     elif cc_stu < 4e-3*corr_r:
@@ -80,7 +89,7 @@ def test_contrast_curve(get_cube):
 
     # check that at 0.4'' 5-sigma cc < 4e-4
     idx_r = find_nearest(rad*plsc, 0.4)
-    cc_gau = gauss_cc[idx_r]
+    cc_gau = gauss_cc2[idx_r]
     corr_r = sigma_corr[idx_r]
 
     if cc_gau < 4e-4:
@@ -91,7 +100,7 @@ def test_contrast_curve(get_cube):
     assert check, msg.format(cc_gau, 4e-4)
 
     # check that at 0.4'' 5-sigma cc: Student statistics > Gaussian statistics
-    cc_stu = student_cc[idx_r]
+    cc_stu = student_cc2[idx_r]
     if cc_stu < 4e-4*corr_r and cc_stu > cc_gau:
         check = True
     elif cc_stu < 4e-4*corr_r:

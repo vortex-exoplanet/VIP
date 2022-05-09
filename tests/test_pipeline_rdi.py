@@ -43,6 +43,11 @@ def algo_pca(ds):
     return vip.psfsub.pca(ds.cube, ds.angles, cube_ref=ds.cuberef, ncomp=30,
                           mask_center_px=15)
 
+def algo_pca_mask(ds):
+    mask_rdi = np.ones([ds.cube.shape[-2], ds.cube.shape[-1]])
+    mask_rdi = vip.var.get_annulus_segments(mask_rdi, 15, 30, mode="mask")[0]
+    return vip.psfsub.pca(ds.cube, ds.angles, cube_ref=ds.cuberef, ncomp=30,
+                          mask_center_px=15, mask_rdi=mask_rdi)
 
 def algo_nmf(ds):
     return vip.psfsub.nmf(ds.cube, ds.angles, cube_ref=ds.cuberef, ncomp=30,

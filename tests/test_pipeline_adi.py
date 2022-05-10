@@ -75,12 +75,13 @@ def algo_nmf_annular(ds):
 
 
 def algo_pca(ds):
-    return vip.psfsub.pca(ds.cube, ds.angles)
+    return vip.psfsub.pca(ds.cube, ds.angles, svd_mode='arpack')
 
 
 def algo_pca_drot(ds):
-    return vip.psfsub.pca(ds.cube, ds.angles, ncomp=2, fwhm=ds.fwhm, 
-                          delta_rot=0.5, source_xy=ds.injections_yx[0][::-1])
+    return vip.psfsub.pca(ds.cube, ds.angles, ncomp=4, fwhm=ds.fwhm, 
+                          svd_mode='randsvd', delta_rot=0.5, 
+                          source_xy=ds.injections_yx[0][::-1])
 
 def algo_pca_cevr(ds):
     return vip.psfsub.pca(ds.cube, ds.angles, ncomp=0.95)    

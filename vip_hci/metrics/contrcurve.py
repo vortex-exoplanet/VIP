@@ -73,7 +73,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         the positive x axis. When working on a wedge, make sure that theta is
         located inside of it.
     inner_rad : int, optional
-        Innermost radial distance to be considered in terms of FWHM.
+        Innermost radial distance to be considered in terms of FWHM. Should be
+        >= 1.
     wedge : tuple of floats, optional
         Initial and Final angles for using a wedge. For example (-90,90) only
         considers the right side of an image.
@@ -268,8 +269,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
         # interpolating the transmission vector, spline order 1
         if transmission is not None:
-            trans = transmission[0]
-            radvec_trans = transmission[1]
+            trans = transmission[1]
+            radvec_trans = transmission[0]
             f2 = InterpolatedUnivariateSpline(radvec_trans, trans, k=1)
             trans_interp = f2(rad_samp)
             thruput_interp *= trans_interp
@@ -279,10 +280,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         res_lev_samp = res_throug[2]
         thruput_interp = thruput_mean
         if transmission is not None:
-            if not transmission[0].shape == thruput_interp.shape[0]:
+            if not transmission[1].shape == thruput_interp.shape[0]:
                 msg = 'Transmiss. and throughput vectors have different length'
                 raise ValueError(msg)
-            thruput_interp *= transmission[0]
+            thruput_interp *= transmission[1]
 
     rad_samp_arcsec = rad_samp * pxscale
 
@@ -499,7 +500,8 @@ def throughput(cube, angle_list, psf_template, fwhm, algo, nbranch=1, theta=0,
         default is located at zero degrees. Theta counts counterclockwise from
         the positive x axis.
     inner_rad : int, optional
-        Innermost radial distance to be considered in terms of FWHM.
+        Innermost radial distance to be considered in terms of FWHM. Should be
+        >= 1.
     fc_rad_sep : int optional
         Radial separation between the injected companions (in each of the
         patterns) in FWHM. Must be large enough to avoid overlapping. With the

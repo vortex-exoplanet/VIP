@@ -644,7 +644,6 @@ class PACO:
                 # the inverse covariance matrix at each point
                 Cinv = np.zeros((self.num_frames, self.patch_area_pixels, self.patch_area_pixels))
 
-                planet_patches = []
                 # Patches here are columns in time
                 for l,ang in enumerate(angles_px):
                     apatch = self.get_patch(ang.astype(int))
@@ -655,14 +654,14 @@ class PACO:
                 aprev = ahat
                 ahat = b/a
                 if self.verbose:
-                    print(f"Contrast estimate: {ahat/norm}")
+                    print(f"Flux estimate: {ahat/norm}")
             ests.append(np.abs(ahat/norm))
             stds.append(1/np.sqrt(a)/norm)
-        print(f"Extracted contrasts")
-        print(f"-------------------")
+        print("Extracted contrasts")
+        print("-------------------")
         for i in range(len(phi0s)):
             print(
-                f"x: {phi0s[i][0]}, y: {phi0s[i][1]}, contrast: {ests[i]}±{stds[i]}")
+                f"x: {phi0s[i][0]}, y: {phi0s[i][1]}, flux: {ests[i]}±{stds[i]}")
         return ests, stds, norm
 
     def iterate_flux_calc(self, est: float, patch: np.ndarray,
@@ -689,7 +688,6 @@ class PACO:
 
         if patch is None:
             return None, None
-        T = patch.shape[0]
 
         unbiased = np.array([apatch - est*model[l] for l,apatch in enumerate(patch)])
         m,Cinv = compute_statistics_at_pixel(unbiased)
@@ -989,7 +987,6 @@ class FastPACO(PACO):
 
         if self.verbose:
             print("Precomputing Statistics using %d Processes..."%cpu)
-        npx = len(phi0s) # Number of pixels in an image
         # the mean of a temporal column of patches at each pixel
         m = np.zeros((self.height*self.width*self.patch_area_pixels))
         # the inverse covariance matrix at each point

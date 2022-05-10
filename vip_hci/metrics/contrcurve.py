@@ -84,7 +84,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         If True uses Student t correction to inject fake companion.
     transmission: numpy array, optional
         Radial transmission of the coronagraph, if any. Array with either
-        2 x n_rad, 1+n_ch x n_rad columns. The first column should contain the
+        2 x n_rad or 1+n_ch x n_rad columns. The first column should contain the
         radial separation in pixels, while the other column(s) are the
         corresponding off-axis transmission (between 0 and 1), for either all,
         or each spectral channel (only relevant for a 4D input cube).
@@ -160,8 +160,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if cube.ndim == 4 and psf_template.ndim != 3:
         raise TypeError('Template PSF is not a cube (for ADI+IFS case)')
     if transmission is not None:
-        if not isinstance(transmission, tuple) or not len(transmission) == 2:
-            raise TypeError('transmission must be a tuple with 2 1d vectors')
+        if len(transmission) != 2 and len(transmission) != cube.shape[0]+1:
+            msg = 'Wrong shape for transmission should be 2xn_rad or (nch+1) '
+            msg +='x n_rad, instead of {}'.format(transmission.shape)
+            raise TypeError(msg)
 
     if isinstance(fwhm, (np.ndarray, list)):
         fwhm_med = np.median(fwhm)

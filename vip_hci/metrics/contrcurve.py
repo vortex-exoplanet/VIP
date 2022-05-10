@@ -227,7 +227,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                         trans_rad_list = [0]+trans_rad_list
                     trans_list = [0]+trans_list
                 # last point should be max possible distance between fc and star
-                if transmission[0, -1] < np.sqrt(2)*cube.shape[-1]:
+                if transmission[0, -1] < np.sqrt(2)*cube.shape[-1]/2.:
                     if j == 0:
                         trans_rad_list = trans_rad_list+[diag]
                     trans_list = trans_list+[1]

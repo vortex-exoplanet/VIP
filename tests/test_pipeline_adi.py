@@ -163,8 +163,14 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
                  (algo_pca_cevr, snrmap_fast),
                  (algo_pca_grid, snrmap_fast),
                  (algo_pca_incremental, snrmap_fast),
+<<<<<<< HEAD
                  (algo_pca_annular, snrmap_fast),
                  (algo_pca_annular_auto, snrmap_fast),
+=======
+                 (algo_fast_paco_parallel, None),
+                 (algo_fast_paco, None),
+                 (algo_full_paco, None),
+>>>>>>> feac2992f35f2ecc04faa518c32ad8bb803fcc3c
                  ],
              ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
 def test_algos(injected_cube_position, algo, make_detmap):

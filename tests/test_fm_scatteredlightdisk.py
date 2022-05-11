@@ -174,11 +174,11 @@ def test_homemade_phase_function(spf_50deg):
         Expected positions.
         """
         if spf_50deg == 20:
-            return 9.533706 #9.540932414446843
+            return 9.540932
         elif spf_50deg == 60:
-            return 18.282674 #18.282673626010236
+            return 18.271285
         elif spf_50deg == 10:
-            return 7.349312 #7.355497111555995
+            return 7.355497
     pixel_scale=0.01225 # pixel scale in arcsec/px
     nx = 100 # number of pixels of your image in X
     ny = 100 # number of pixels of your image in Y
@@ -202,4 +202,5 @@ def test_homemade_phase_function(spf_50deg):
                     spf_dico=spf_dico)
     fake_disk_map = fake_disk.compute_scattered_light()
     fake_disk.phase_function.plot_phase_function()
-    aarc(np.sum(fake_disk_map), t_expected(spf_50deg),rtol=1e-4,atol=1e-4)
+    measured_value = np.sum(fake_disk_map)
+    aarc(measured_value, t_expected(spf_50deg),rtol=1e-3,atol=1e-3)

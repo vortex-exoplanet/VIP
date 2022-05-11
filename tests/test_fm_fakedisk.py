@@ -16,8 +16,8 @@ def dataset(request):
 
     """
     if request.param == "3D":
-        cube = np.zeros((3,25,25))
-        psf = np.ones((1,1))
+        cube = np.zeros((3, 25, 25))
+        psf = np.ones((1, 1))
 
     angles = np.array([0, 90, 180])
 
@@ -35,12 +35,12 @@ def test_cube_inject_fakedisk(dataset):
         return [(15, 12), (12, 9), (9, 12)]
 
     psf = np.zeros((25, 25))
-    psf[15,12] = 1
-    
+    psf[15, 12] = 1
+
     _, _, angles = dataset
-    
+
     cube = cube_inject_fakedisk(psf, angle_list=angles)
-    
+
     # find coords
     coords = []
     for i in range(cube.shape[0]):
@@ -68,15 +68,15 @@ def test_cube_inject_trace(dataset):
             return [(9, 12), (12, 16), (17, 12)]
 
     cube, psf, angles = dataset
-    
-    rads = [3,4,5]
-    thetas = [90,180,270]
-    
-    cube = cube_inject_trace(cube, psf, angles, flevel=1, rad_dists=rads, 
-                             theta=thetas, plsc=0.01225, n_branches=1, 
-                             imlib='vip-fft', interpolation='lanczos4', 
+
+    rads = [3, 4, 5]
+    thetas = [90, 180, 270]
+
+    cube = cube_inject_trace(cube, psf, angles, flevel=1, rad_dists=rads,
+                             theta=thetas, plsc=0.01225, n_branches=1,
+                             imlib='vip-fft', interpolation='lanczos4',
                              verbose=True)
-    
+
     for i in range(cube.shape[0]):
         # find coords of trace in each image of the cube
         coords = []
@@ -86,10 +86,10 @@ def test_cube_inject_trace(dataset):
             max_idx = np.argmax(frame_tmp)
             coords_tmp = np.unravel_index(max_idx, frame_tmp.shape)
             coords.append(coords_tmp)
-            frame_tmp[coords_tmp]=0
-        idx_order = np.argsort(np.sum(coords,axis=1))
+            frame_tmp[coords_tmp] = 0
+        idx_order = np.argsort(np.sum(coords, axis=1))
         coords_sort = [coords[i] for i in idx_order]
-        
+
         yx_expected = _expected(angles[i])
-    
+
         aarc(coords_sort, yx_expected)

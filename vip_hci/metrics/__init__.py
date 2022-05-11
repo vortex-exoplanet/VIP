@@ -8,8 +8,10 @@ Subpackage ``metrics`` includes:
     - fake disks generation and injection,
     - algorithms throughput estimation,
     - contrast curve generation,
+    - completeness curve and map generation,
     - receiver operating characteristic (ROC) curves generation.
 """
+from .completeness import *
 from .contrcurve import *
 from .detection import *
 from .roc import *

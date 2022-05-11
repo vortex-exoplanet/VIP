@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Module containing the Local Low-rank plus Sparse plus Gaussian-noise 
+Module containing the Local Low-rank plus Sparse plus Gaussian-noise
 decomposition algorithm (Gomez Gonzalez et al. 2016) for ADI data.
 """
 
@@ -23,8 +23,8 @@ from ..config.utils_conf import pool_map, iterable
 
 def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
          low_rank_ref=False, low_rank_mode='svd', auto_rank_mode='noise',
-         residuals_tol=1e-1, cevr=0.9, thresh_mode='soft', nproc=1, asize=None, 
-         n_segments=4, azimuth_overlap=None, radius_int=None, random_seed=None, 
+         residuals_tol=1e-1, cevr=0.9, thresh_mode='soft', nproc=1, asize=None,
+         n_segments=4, azimuth_overlap=None, radius_int=None, random_seed=None,
          high_pass=None, collapse='median', full_output=False, verbose=True,
          debug=False, **rot_options):
     """ Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as
@@ -104,7 +104,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         Whether to output some intermediate information.
     rot_options: dictionary, optional
         Dictionary with optional keyword values for "imlib", "interpolation",
-        "border_mode", "mask_val", "edge_blend", "interp_zeros", "ker" (see 
+        "border_mode", "mask_val", "edge_blend", "interp_zeros", "ker" (see
         documentation of ``vip_hci.preproc.frame_rotate``)
 
     Returns
@@ -381,8 +381,8 @@ def _patch_rlrps(array, array_ref, rank, low_rank_ref, low_rank_mode,
         return L, S, G
     else:
         return S
-    
-    
+
+
 def thresholding(array, threshold, mode):
     """ Array thresholding strategies.
     """
@@ -412,5 +412,3 @@ def thresholding(array, threshold, mode):
     else:
         raise RuntimeError('Thresholding mode not recognized')
     return x
-
-

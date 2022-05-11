@@ -27,7 +27,7 @@ except ImportError:
 
 import numpy as np
 from numpy import linalg
-from matplotlib import pyplot as plt 
+from matplotlib import pyplot as plt
 from scipy.sparse.linalg import svds
 from sklearn.decomposition import randomized_svd
 from sklearn.utils import check_random_state
@@ -116,6 +116,7 @@ class SVDecomposer:
     For info on CEVR search: # Get variance explained by singular values in
     https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/decomposition/pca.py
     """
+
     def __init__(self, data, mode='fullfr', inrad=None, outrad=None,
                  svd_mode='lapack', scaling='temp-standard', scale_list=None,
                  verbose=True):
@@ -261,7 +262,7 @@ class SVDecomposer:
         self.table_cevr = df_allks
 
         if plot:
-            lw = 2;
+            lw = 2
             alpha = 0.4
             fig = plt.figure(figsize=vip_figsize, dpi=plot_dpi)
             fig.subplots_adjust(wspace=0.4)
@@ -340,8 +341,8 @@ class SVDecomposer:
 
 def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
                 random_state=None, to_numpy=True):
-    """ Wrapper for different SVD libraries (CPU and GPU). 
-      
+    """ Wrapper for different SVD libraries (CPU and GPU).
+
     Parameters
     ----------
     matrix : numpy ndarray, 2d
@@ -383,7 +384,7 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
 
     ncomp : int
         Number of singular vectors to be obtained. In the cases when the full
-        SVD is computed (LAPACK, ARPACK, EIGEN, CUPY), the matrix of singular 
+        SVD is computed (LAPACK, ARPACK, EIGEN, CUPY), the matrix of singular
         vectors is truncated.
     verbose: bool
         If True intermediate information is printed out.
@@ -406,7 +407,7 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
         True it returns the left and right singular vectors and the singular
         values of the input matrix. If ``mode`` is set to eigen then only S and
         V are returned.
-    
+
     References
     ----------
     * For ``lapack`` SVD mode see:
@@ -444,10 +445,12 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
         # building C as np.dot(matrix.T,matrix) is slower and takes more memory
         C = np.dot(matrix, matrix.T)    # covariance matrix
         e, EV = linalg.eigh(C)          # EVals and EVs
-        pc = np.dot(EV.T, matrix)       # PCs using a compact trick when cov is MM'
+        # PCs using a compact trick when cov is MM'
+        pc = np.dot(EV.T, matrix)
         V = pc[::-1]                    # reverse since we need the last EVs
         S = np.sqrt(np.abs(e))          # SVals = sqrt(EVals)
-        S = S[::-1]                     # reverse since EVals go in increasing order
+        # reverse since EVals go in increasing order
+        S = S[::-1]
         for i in range(V.shape[1]):
             V[:, i] /= S    # scaling EVs by the square root of EVals
         V = V[:ncomp]
@@ -516,7 +519,8 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
         e, EV = cupy.linalg.eigh(C)     # eigenvalues and eigenvectors
         pc = cupy.dot(EV.T, a_gpu)      # using a compact trick when cov is MM'
         V = pc[::-1]                    # reverse to get last eigenvectors
-        S = cupy.sqrt(e)[::-1]          # reverse since EVals go in increasing order
+        # reverse since EVals go in increasing order
+        S = cupy.sqrt(e)[::-1]
         for i in range(V.shape[1]):
             V[:, i] /= S                # scaling by the square root of eigvals
         V = V[:ncomp]
@@ -642,7 +646,8 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
                 px_noise.append(curr_noise)
                 if ncomp > 1:
                     px_noise_decay = px_noise[-2] - curr_noise
-                # print '{} {:.4f} {:.4f}'.format(ncomp, curr_noise, px_noise_decay)
+                # print '{} {:.4f} {:.4f}'.format(ncomp, curr_noise,
+                # px_noise_decay)
             V = V_big[:ncomp]
 
         elif mode == 'cevr':
@@ -736,7 +741,7 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
     if transpose == 'auto':
         transpose = n_samples < n_features
     if transpose:
-        M = M.T # this implementation is a bit faster with smaller shape[1]
+        M = M.T  # this implementation is a bit faster with smaller shape[1]
 
     if lib == 'cupy':
         M = cupy.array(M)
@@ -770,7 +775,7 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
         if transpose:
             # transpose back the results according to the input convention
             return (V[:n_components, :].T, s[:n_components],
-                    U[:,:n_components].T)
+                    U[:, :n_components].T)
         else:
             return U[:, :n_components], s[:n_components], V[:n_components, :]
 
@@ -805,5 +810,3 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
                     torch.transpose(U[:, :n_components], 0, 1))
         else:
             return U[:, :n_components], s[:n_components], V[:n_components, :]
-
-

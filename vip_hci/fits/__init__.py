@@ -9,4 +9,3 @@ Subpackage ``fits`` includes fits handling functions:
 
 
 from .fits import *
-

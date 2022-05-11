@@ -42,12 +42,14 @@ def get_frame(example_dataset_adi):
 atol = 2
 plot = False
 
+
 def test_stimmap(get_frame):
     frame, positions, _, res_der_cube, _ = get_frame
     y0, x0 = positions
     stimap = stim_map(res_der_cube)
     y1, x1 = np.where(stimap == stimap.max())
     assert np.allclose(x1, x0, atol=atol) and np.allclose(y1, y0, atol=atol)
+
 
 def test_normstimmap(get_frame):
     frame, positions, res_cube, res_der_cube, angles = get_frame

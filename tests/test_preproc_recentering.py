@@ -220,7 +220,7 @@ def do_recenter(method, cube, shiftx, shifty, errormsg, mse=1e-2,
 #   d88P"Y88b      Y88b.  Y8b.          X88 Y88b.       X88
 #  dP"     "Yb      "Y888  "Y8888   88888P'  "Y888  88888P'
 
-def test_approx_star(debug=True):
+def test_approx_star(debug=False):
     """
     tests `approx_stellar_position`. The data cube is generated from a 2D 
     gaussian (positive case).
@@ -248,7 +248,7 @@ def test_approx_star(debug=True):
         assert mean_squared_error([cx]*len(estx), estx) < mse, errormsg
         
     
-def test_2d(debug=True):
+def test_2d(debug=False):
     """
     tests `cube_recenter_2dfit`. The data cube is generated from a 2D gaussian
     (positive case) or a 2D "ring" (difference of two 2D gaussians, negative
@@ -305,7 +305,7 @@ def test_2d(debug=True):
                     errormsg=errormsg.format(name), debug=debug, **method_args)
         
         
-def test_dft(debug=True):
+def test_dft(debug=False):
     global seed
     if debug:
         html("<h2>===== test_dft =====</h2>")
@@ -368,7 +368,7 @@ def test_dft(debug=True):
                 mse_skip_first=True, debug=debug, **method_args)
 
 
-def test_dft_image(debug=True):
+def test_dft_image(debug=False):
     """
     notes:
     ======
@@ -400,7 +400,7 @@ def test_dft_image(debug=True):
                 mse_skip_first=True, debug=debug, **method_args)
 
 
-def test_satspots_image(debug=True):
+def test_satspots_image(debug=False):
     global seed
     if debug:
         html("<h2>===== test_satspots_image =====</h2>")
@@ -425,7 +425,7 @@ def test_satspots_image(debug=True):
                 **method_args)
 
 
-def test_satspots(debug=True):
+def test_satspots(debug=False):
     global seed
     if debug:
         html("<h2>===== test_satspots =====</h2>")
@@ -449,7 +449,7 @@ def test_satspots(debug=True):
                 **method_args)
 
 
-def test_radon(debug=True):
+def test_radon(debug=False):
     global seed
     if debug:
         html("<h2>===== test_radon =====</h2>")
@@ -483,7 +483,7 @@ def test_radon(debug=True):
                 mse=0.04, **method_args)
     
 
-def test_speckle_recentering(get_cube, debug=True):
+def test_speckle_recentering(get_cube, debug=False):
     global seed
     if debug:
         html("<h2>===== test_speckle_recentering =====</h2>")

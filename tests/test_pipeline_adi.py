@@ -66,17 +66,27 @@ def algo_nmf(ds):
     return vip.psfsub.nmf(ds.cube, ds.angles)
 
 
+def algo_nmf_drot(ds):
+    return vip.psfsub.nmf(ds.cube, ds.angles, fwhm=ds.fwhm, delta_rot=0.5,
+                          source_xy=ds.injections_yx[0][::-1])
+
 def algo_nmf_annular(ds):
     return vip.psfsub.nmf_annular(ds.cube, ds.angles)
 
 
 def algo_pca(ds):
-    return vip.psfsub.pca(ds.cube, ds.angles)
+    return vip.psfsub.pca(ds.cube, ds.angles, svd_mode='arpack')
 
+
+def algo_pca_drot(ds):
+    return vip.psfsub.pca(ds.cube, ds.angles, ncomp=4, fwhm=ds.fwhm, 
+                          svd_mode='randsvd', delta_rot=0.5, 
+                          source_xy=ds.injections_yx[0][::-1])
+
+def algo_pca_cevr(ds):
+    return vip.psfsub.pca(ds.cube, ds.angles, ncomp=0.95)    
 
 def algo_pca_grid(ds):
-    """ PCA grid, obtaining the optimal residual for given location
-    """
     return vip.psfsub.pca(ds.cube, ds.angles, ncomp=(1, 2),
                           source_xy=ds.injections_yx[0][::-1])
 
@@ -86,63 +96,12 @@ def algo_pca_incremental(ds):
 
 
 def algo_pca_annular(ds):
-    return vip.psfsub.pca_annular(ds.cube, ds.angles, fwhm=ds.fwhm)
+    return vip.psfsub.pca_annular(ds.cube, ds.angles, fwhm=ds.fwhm, 
+                                  n_segments='auto')
 
-
-def algo_andromeda(ds):
-    res = vip.invprob.andromeda(ds.cube[:,:-1,:-1], oversampling_fact=1.8,
-                                  angles=ds.angles, psf=ds.psf)
-    contrast, snr, snr_n, stdcontrast, stdcontrast_n, likelihood, r = res
-    return snr_n
-
-
-def algo_andromeda_fast(ds):
-    res = vip.invprob.andromeda(ds.cube[:,:-1,:-1], oversampling_fact=0.5,
-                                  fast=10, angles=ds.angles, psf=ds.psf)
-    contrast, snr, snr_n, stdcontrast, stdcontrast_n, likelihood, r = res
-    return snr_n
-
-def algo_fast_paco(ds):
-    fp = vip.invprob.paco.FastPACO(cube = ds.cube,
-                                   angles = ds.angles,
-                                   psf = ds.psf,
-                                   pixscale = ds.px_scale,
-                                   fwhm = ds.fwhm*ds.px_scale)
-    snr, flux = fp.run(cpu=1)
-    return snr
-
-def algo_fast_paco_parallel(ds):
-    fp = vip.invprob.paco.FastPACO(cube = ds.cube,
-                                   angles = ds.angles,
-                                   psf = ds.psf,
-                                   pixscale = ds.px_scale,
-                                   fwhm = ds.fwhm*ds.px_scale)
-    snr, flux = fp.run(cpu=2)
-    return snr
-
-def algo_full_paco(ds):
-    fp = vip.invprob.paco.FullPACO(cube = ds.cube,
-                                   angles = ds.angles,
-                                   psf = ds.psf,
-                                   pixscale = ds.px_scale,
-                                   fwhm = ds.fwhm*ds.px_scale)
-    snr, flux = fp.run(cpu=1)
-    return snr
-
-def algo_fmmf_klip(ds):
-    res = vip.invprob.fmmf(ds.cube[:,:-1,:-1],
-                          ds.angles, ds.psf,ds.fwhm,min_r=25,
-                max_r=35, model='KLIP')
-    flux_m, snr_n = res
-    return snr_n
-
-def algo_fmmf_loci(ds):
-    res = vip.invprob.fmmf(ds.cube[:,:-1,:-1],
-                          ds.angles, ds.psf,ds.fwhm,min_r=25,
-                max_r=35, model='LOCI')
-    flux_m, snr_n = res
-    return snr_n
-
+def algo_pca_annular_auto(ds):
+    return vip.psfsub.pca_annular(ds.cube, ds.angles, fwhm=ds.fwhm, 
+                                  ncomp='auto')
 
 
 # ====== SNR map
@@ -201,11 +160,12 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
                  (algo_frdiff, snrmap_fast),
                  (algo_frdiff4, snrmap_fast),
                  (algo_pca, snrmap_fast),
+                 (algo_pca_drot, snrmap_fast),
+                 (algo_pca_cevr, snrmap_fast),
                  (algo_pca_grid, snrmap_fast),
                  (algo_pca_incremental, snrmap_fast),
-                 (algo_fast_paco_parallel, None),
-                 (algo_fast_paco, None),
-                 (algo_full_paco, None),
+                 (algo_pca_annular, snrmap_fast),
+                 (algo_pca_annular_auto, snrmap_fast),
                  ],
              ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
 def test_algos(injected_cube_position, algo, make_detmap):

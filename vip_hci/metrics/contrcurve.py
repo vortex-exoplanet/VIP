@@ -73,7 +73,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         the positive x axis. When working on a wedge, make sure that theta is
         located inside of it.
     inner_rad : int, optional
-        Innermost radial distance to be considered in terms of FWHM.
+        Innermost radial distance to be considered in terms of FWHM. Should be
+        >= 1.
     wedge : tuple of floats, optional
         Initial and Final angles for using a wedge. For example (-90,90) only
         considers the right side of an image.
@@ -82,10 +83,12 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         distribution).
     student : bool, optional
         If True uses Student t correction to inject fake companion.
-    transmission : tuple of 2 1d arrays, optional
-        If not None, then the tuple contains a vector with the factors to be
-        applied to the sensitivity and a vector of the radial distances [px]
-        where it is sampled (in this order).
+    transmission: numpy array, optional
+        Radial transmission of the coronagraph, if any. Array with either
+        2 x n_rad or 1+n_ch x n_rad columns. The first column should contain the
+        radial separation in pixels, while the other column(s) are the
+        corresponding off-axis transmission (between 0 and 1), for either all,
+        or each spectral channel (only relevant for a 4D input cube).
     smooth : bool, optional
         If True the radial noise curve is smoothed with a Savitzky-Golay filter
         of order 2.
@@ -158,8 +161,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if cube.ndim == 4 and psf_template.ndim != 3:
         raise TypeError('Template PSF is not a cube (for ADI+IFS case)')
     if transmission is not None:
-        if not isinstance(transmission, tuple) or not len(transmission) == 2:
-            raise TypeError('transmission must be a tuple with 2 1d vectors')
+        if len(transmission) != 2 and len(transmission) != cube.shape[0]+1:
+            msg = 'Wrong shape for transmission should be 2xn_rad or (nch+1) '
+            msg +='x n_rad, instead of {}'.format(transmission.shape)
+            raise TypeError(msg)
 
     if isinstance(fwhm, (np.ndarray, list)):
         fwhm_med = np.median(fwhm)
@@ -204,6 +209,40 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         print('Finished the throughput calculation')
         timing(start_time)
 
+    if transmission is not None:
+        t_nz = transmission.shape[0]
+        if transmission.ndim != 2:
+            raise ValueError("transmission should be a 2D ndarray")
+        elif t_nz != 2 and t_nz != 1+cube.shape[0]:
+            msg = "transmission dimensions should be either (2,N) or (n_wave+1, N)"
+            raise ValueError(msg)
+        # if transmission doesn't have right format for interpolation, adapt it
+        diag = np.sqrt(2)*cube.shape[-1]
+        if transmission[0, 0] != 0 or transmission[0, -1] < diag:
+            trans_rad_list = transmission[0].tolist()
+            for j in range(t_nz-1):
+                trans_list = transmission[j+1].tolist()
+                # should have a zero point
+                if transmission[0, 0] != 0:
+                    if j == 0:
+                        trans_rad_list = [0]+trans_rad_list
+                    trans_list = [0]+trans_list
+                # last point should be max possible distance between fc and star
+                if transmission[0, -1] < np.sqrt(2)*cube.shape[-1]/2.:
+                    if j == 0:
+                        trans_rad_list = trans_rad_list+[diag]
+                    trans_list = trans_list+[1]
+                if j == 0:
+                    ntransmission = np.zeros([t_nz, len(trans_rad_list)])
+                    ntransmission[0] = trans_rad_list
+                ntransmission[j+1] = trans_list
+            transmission = ntransmission.copy()
+        if t_nz>2: #take the mean transmission over all wavelengths
+            ntransmission = np.zeros([2, len(trans_rad_list)])
+            ntransmission[0] = transmission[0]
+            ntransmission[1] = np.mean(transmission[1:], axis=0)
+            transmission = ntransmission.copy()
+
     if interp_order is not None:
         # noise measured in the empty frame with better sampling, every px
         # starting from 1*FWHM
@@ -230,8 +269,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
 
         # interpolating the transmission vector, spline order 1
         if transmission is not None:
-            trans = transmission[0]
-            radvec_trans = transmission[1]
+            trans = transmission[1]
+            radvec_trans = transmission[0]
             f2 = InterpolatedUnivariateSpline(radvec_trans, trans, k=1)
             trans_interp = f2(rad_samp)
             thruput_interp *= trans_interp
@@ -241,10 +280,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         res_lev_samp = res_throug[2]
         thruput_interp = thruput_mean
         if transmission is not None:
-            if not transmission[0].shape == thruput_interp.shape[0]:
+            if not transmission[1].shape == thruput_interp.shape[0]:
                 msg = 'Transmiss. and throughput vectors have different length'
                 raise ValueError(msg)
-            thruput_interp *= transmission[0]
+            thruput_interp *= transmission[1]
 
     rad_samp_arcsec = rad_samp * pxscale
 
@@ -461,7 +500,8 @@ def throughput(cube, angle_list, psf_template, fwhm, algo, nbranch=1, theta=0,
         default is located at zero degrees. Theta counts counterclockwise from
         the positive x axis.
     inner_rad : int, optional
-        Innermost radial distance to be considered in terms of FWHM.
+        Innermost radial distance to be considered in terms of FWHM. Should be
+        >= 1.
     fc_rad_sep : int optional
         Radial separation between the injected companions (in each of the
         patterns) in FWHM. Must be large enough to avoid overlapping. With the

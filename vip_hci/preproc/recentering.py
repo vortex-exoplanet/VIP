@@ -1551,11 +1551,11 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         ref_star = False
 
     if crop:
-        cube_sci_subframe = cube_crop_frames(cube_sci, subframesize,
+        cube_sci_subframe = cube_crop_frames(cube_sci, subframesize, force=True,
                                              verbose=False)
         if ref_star:
             cube_ref_subframe = cube_crop_frames(cube_ref, subframesize,
-                                                 verbose=False)
+                                                 force=True, verbose=False)
     else:
         subframesize = cube_sci.shape[-1]
         cube_sci_subframe = cube_sci.copy()

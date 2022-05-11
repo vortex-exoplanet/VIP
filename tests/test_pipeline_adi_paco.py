@@ -38,21 +38,23 @@ def injected_cube_position(example_dataset_adi):
 
 # ====== algos
 def algo_fast_paco(ds):
-    fp = vip.invprob.paco.FastPACO(cube=ds.cube,
-                                   angles=ds.angles,
-                                   psf=ds.psf,
-                                   pixscale=ds.px_scale,
-                                   fwhm=ds.fwhm*ds.px_scale)
-    snr, flux = fp.run(cpu=1)
+    fp = vip.invprob.paco.FastPACO(cube = ds.cube, angles = ds.angles,
+                                   psf = ds.psf, pixscale = ds.px_scale,
+                                   fwhm = ds.fwhm*ds.px_scale, verbose=True)
+    snr, flux = fp.run(cpu=cpu_count()//2)
     return snr
 
-
 def algo_fast_paco_parallel(ds):
-    fp = vip.invprob.paco.FastPACO(cube=ds.cube,
-                                   angles=ds.angles,
-                                   psf=ds.psf,
-                                   pixscale=ds.px_scale,
-                                   fwhm=ds.fwhm*ds.px_scale)
+    fp = vip.invprob.paco.FastPACO(cube = ds.cube, angles = ds.angles,
+                                   psf = ds.psf, pixscale = ds.px_scale,
+                                   fwhm = ds.fwhm*ds.px_scale, verbose=True)
+    snr, flux = fp.run(cpu=cpu_count()//2)
+    return snr
+
+def algo_full_paco(ds):
+    fp = vip.invprob.paco.FullPACO(cube = ds.cube, angles = ds.angles,
+                                   psf = ds.psf, pixscale = ds.px_scale,
+                                   fwhm = ds.fwhm*ds.px_scale, verbose=True)
     snr, flux = fp.run(cpu=cpu_count()//2)
     return snr
 
@@ -104,7 +106,8 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
 @parametrize("algo, make_detmap",
              [
                  (algo_fast_paco, None),
-                 (algo_fast_paco_parallel, None)
+                 (algo_fast_paco_parallel, None),
+                 (algo_full_paco, None)
                  ],
              ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
 def test_algos(injected_cube_position, algo, make_detmap):

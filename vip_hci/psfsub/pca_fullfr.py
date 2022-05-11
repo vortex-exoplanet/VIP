@@ -1102,7 +1102,7 @@ def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px,
 
     elif isinstance(ncomp, float):
         if not 1 > ncomp > 0:
-            raise ValueError("when `ncomp` if float, it must lie in the "
+            raise ValueError("when `ncomp` is float, it must lie in the "
                              "interval (0,1]")
 
         svdecomp = SVDecomposer(cube, mode='fullfr', svd_mode=svd_mode,

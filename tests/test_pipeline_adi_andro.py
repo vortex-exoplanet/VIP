@@ -51,40 +51,6 @@ def algo_andromeda_fast(ds):
     return snr_n
 
 
-# def algo_fast_paco(ds):
-#     fp = vip.invprob.paco.FastPACO(cube=ds.cube,
-#                                    angles=ds.angles,
-#                                    psf=ds.psf,
-#                                    pixscale=ds.px_scale,
-#                                    fwhm=ds.fwhm*ds.px_scale)
-#     snr, flux = fp.run(cpu=1)
-#     return snr
-
-
-# def algo_fast_paco_parallel(ds):
-#     fp = vip.invprob.paco.FastPACO(cube=ds.cube,
-#                                    angles=ds.angles,
-#                                    psf=ds.psf,
-#                                    pixscale=ds.px_scale,
-#                                    fwhm=ds.fwhm*ds.px_scale)
-#     snr, flux = fp.run(cpu=cpu_count()//2)
-#     return snr
-
-
-# def algo_fmmf_klip(ds):
-#     res = vip.invprob.fmmf(ds.cube, ds.angles, ds.psf, ds.fwhm, min_r=26,
-#                            max_r=34, model='KLIP', nproc=None)
-#     flux_m, snr_n = res
-#     return snr_n
-
-
-# def algo_fmmf_loci(ds):
-#     res = vip.invprob.fmmf(ds.cube, ds.angles, ds.psf, ds.fwhm, min_r=26,
-#                            max_r=34, model='LOCI', nproc=None)
-#     flux_m, snr_n = res
-#     return snr_n
-
-
 # ====== SNR map
 def snrmap_fast(frame, ds):
     return vip.metrics.snrmap(frame, fwhm=ds.fwhm, approximated=True)

@@ -46,7 +46,28 @@ def test_badpix_iso():
     # check bad pixels were correctly identified (first one within mask)
     assert bpix_map[0, idx0, idx0] == 0
     assert bpix_map[1, idx1, idx1] == 1
+    
+    
+# isolated bad pixel correction
+def test_badpix_iso2():
+    sz = (25, 25)
+    idx0 = 10
+    m0 = 0
+    m1 = 2
+    s0 = 1
+    s1 = 1
 
+    im1 = np.random.normal(loc=m0, scale=s0, size=sz)
+    im2 = im1 = np.random.normal(loc=m1, scale=s1, size=sz)
+    im1[idx0, idx0] = -435
+    im2[idx0, idx0] = -420
+    cube = np.array([im1, im2])
+    cube_c, bpix_map = cube_fix_badpix_isolated(cube, sigma_clip=5,
+                                                frame_by_frame=False,
+                                                full_output=True)
+
+    # check bad pixels were correctly identified
+    assert bpix_map[idx0, idx0] == 1
 
 # clumpy bad pixel correction
 def test_badpix_clump():

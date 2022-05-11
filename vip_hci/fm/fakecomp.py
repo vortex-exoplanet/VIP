@@ -285,7 +285,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
                         trans_rad_list = [0]+trans_rad_list
                     trans_list = [0]+trans_list
                 # last point should be max possible distance between fc and star
-                if transmission[0, -1] < np.sqrt(2)*array.shape[-1]:
+                if transmission[0, -1] < np.sqrt(2)*array.shape[-1]/2:
                     if j == 0:
                         trans_rad_list = trans_rad_list+[diag]
                     trans_list = trans_list+[1]

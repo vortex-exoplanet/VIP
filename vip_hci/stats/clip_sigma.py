@@ -352,19 +352,12 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
             bad = np.where(bpm)
             return bad
 
-    if not no_numba:
-        @njit
-        def _clip_array_numba(array, lower_sigma, upper_sigma, out_good=False,
-                              neighbor=False, num_neighbor=3, mad=False,
-                              half_res_y=False):
-            return _clip_array(array, lower_sigma, upper_sigma, out_good,
-                               neighbor, num_neighbor, mad, half_res_y)
-
     if no_numba:
         return _clip_array(array, lower_sigma, upper_sigma, out_good=out_good,
                            neighbor=neighbor, num_neighbor=num_neighbor,
                            mad=mad, half_res_y=half_res_y)
     else:
+        _clip_array_numba = njit(_clip_array)
         return _clip_array_numba(array, lower_sigma, upper_sigma,
                                  out_good=out_good, neighbor=neighbor,
                                  num_neighbor=num_neighbor, mad=mad,

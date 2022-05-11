@@ -46,10 +46,13 @@ def test_contrast_curve(get_cube):
 
     psf = frame_crop(ds.psf[1:, 1:], 11)
     plsc = VLT_NACO['plsc']
+    trans = np.zeros([2,10])
+    trans[0] = np.linspace(0, cube.shape[-1], 10)
+    trans[1,:] = np.linspace(0.999, 1, 10, endpoint=False)
     cc = contrast_curve(cube, ds.angles, psf, ds.fwhm, pxscale=plsc,
-                        starphot=starphot, algo=pca, nbranch=3, ncomp=9,
-                        plot=True, debug=True)
-
+                         starphot=starphot, algo=pca, nbranch=3, ncomp=9,
+                         transmission=trans, plot=True, debug=True)
+    
     rad = np.array(cc['distance'])
     gauss_cc = np.array(cc['sensitivity_gaussian'])
     student_cc = np.array(cc['sensitivity_student'])

@@ -436,8 +436,6 @@ def pool_map(nproc, fkt, *args, **kwargs):
         A list with the results.
 
     """
-    multiprocessing.set_start_method('fork', force=True)
-    from multiprocessing import Pool
 
     msg = kwargs.get("msg", None)
     verbose = kwargs.get("verbose", True)
@@ -455,6 +453,8 @@ def pool_map(nproc, fkt, *args, **kwargs):
         if not _generator:
             res = list(res)
     else:
+        multiprocessing.set_start_method('fork', force=True)
+        from multiprocessing import Pool
         # deactivate multithreading
         os.environ["MKL_NUM_THREADS"] = "1"
         os.environ["NUMEXPR_NUM_THREADS"] = "1"

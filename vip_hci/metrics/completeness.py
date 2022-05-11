@@ -42,65 +42,59 @@ def _estimate_snr_fc(a, b, level, n_fc, cube, psf, angle_list, fwhm, algo,
         cy, cx = frame_center(cube[0])
 
     argl = getfullargspec(algo).args
-    if 'cube' in argl and 'angle_list' in argl and 'verbose' in argl:
-        if 'fwhm' in argl:
-            if 'radius_int' in argl:
+    if 'verbose' in argl:
+        algo_dict['verbose'] = False
+    if 'fwhm' in argl:
+        algo_dict['fwhm'] = fwhm_med
+    if 'radius_int' in argl:
+        if algo_dict.get('asize') is None:
+            annulus_width = int(np.ceil(fwhm))
+        elif isinstance(algo_dict.get('asize'), (int,float)):
+            annulus_width = algo_dict.get('asize')
 
-                if algo_dict.get('asize') is None:
-                    annulus_width = int(np.ceil(fwhm))
-                elif isinstance(algo_dict.get('asize'), int):
-                    annulus_width = algo_dict.get('asize')
-
-                if a > 2*annulus_width:
-                    n_annuli = 5
-                    radius_int = (a//annulus_width-2)*annulus_width
-                else:
-                    n_annuli = 4
-                    radius_int = (a//annulus_width-1)*annulus_width
-                if 2*(radius_int+n_annuli*annulus_width) < cube.shape[-1]:
-
-                    cubefc_crop = cube_crop_frames(cubefc,
-                                                   int(2*(radius_int +
-                                                       n_annuli*annulus_width)),
-                                                   xy=(cx, cy),
-                                                   verbose=False)
-                else:
-                    cubefc_crop = cubefc
-
-                frame_temp = algo(cube=cubefc_crop, angle_list=angle_list,
-                                  fwhm=fwhm_med, radius_int=radius_int,
-                                  verbose=False, **algo_dict)
-                frame_fin = np.zeros((cube.shape[-2], cube.shape[-1]))
-                indices = get_annulus_segments(frame_fin, 0,
-                                               radius_int+n_annuli*annulus_width,
-                                               1)
-                sub = (frame_fin.shape[0]-frame_temp.shape[0])//2
-                frame_fin[indices[0][0],
-                          indices[0][1]] = frame_temp[indices[0][0]-sub,
-                                                      indices[0][1]-sub]
-
-            else:
-                frame_fin = algo(cube=cubefc, angle_list=angle_list,
-                                 fwhm=fwhm_med, verbose=False, **algo_dict)
+        if a > 2*annulus_width:
+            n_annuli = 5
+            radius_int = (a//annulus_width-2)*annulus_width
         else:
-            frame_fin = algo(cubefc, angle_list=angle_list, verbose=False,
-                             **algo_dict)
+            n_annuli = 4
+            radius_int = (a//annulus_width-1)*annulus_width
+        if 2*(radius_int+n_annuli*annulus_width) < cube.shape[-1]:
+            cubefc_crop = cube_crop_frames(cubefc, 
+                                           int(2*(radius_int +
+                                               n_annuli*annulus_width)),
+                                           xy=(cx, cy), verbose=False)
+        else:
+            cubefc_crop = cubefc
+
+        frame_temp = algo(cube=cubefc_crop, angle_list=angle_list,
+                          radius_int=radius_int, **algo_dict)
+        frame_fin = np.zeros((cube.shape[-2], cube.shape[-1]))
+        indices = get_annulus_segments(frame_fin, 0,
+                                       radius_int+n_annuli*annulus_width, 1)
+        sub = (frame_fin.shape[0]-frame_temp.shape[0])//2
+        frame_fin[indices[0][0], indices[0][1]] = frame_temp[indices[0][0]-sub,
+                                                             indices[0][1]-sub]
+    else:
+        frame_fin = algo(cubefc, angle_list=angle_list, **algo_dict)
 
     snrmap_temp = np.zeros_like(frame_fin)
-
     cy, cx = frame_center(frame_fin)
-
-    mask = get_annulus_segments(frame_fin, a-(fwhm_med//2), fwhm_med+1,
-                                mode="mask")[0]
-    mask = np.ma.make_mask(mask)
-    yy, xx = np.where(mask)
+    if 'radius_int' in argl:
+        mask = get_annulus_segments(frame_fin, a-(fwhm_med//2), fwhm_med+1,
+                                    mode="mask")[0]
+    else:
+        width = min(frame_fin.shape) / 2 - 1.5 * fwhm_med
+        mask = get_annulus_segments(frame_fin, (fwhm_med / 2) + 2, width, 
+                                    mode="mask")[0]
+    bmask = np.ma.make_mask(mask)
+    yy, xx = np.where(bmask)
 
     if approximated:
         coords = [(int(x), int(y)) for (x, y) in zip(xx, yy)]
         tophat_kernel = Tophat2DKernel(fwhm / 2)
         frame_fin = convolve(frame_fin, tophat_kernel)
-        res = pool_map(1, _snr_approx, frame_fin, iterable(coords), fwhm, cy,
-                       cx)
+        res = pool_map(1, _snr_approx, frame_fin, iterable(coords), fwhm_med, 
+                       cy, cx)
         res = np.array(res, dtype=object)
         yy = res[:, 0]
         xx = res[:, 1]
@@ -109,7 +103,8 @@ def _estimate_snr_fc(a, b, level, n_fc, cube, psf, angle_list, fwhm, algo,
 
     else:
         coords = zip(xx, yy)
-        res = pool_map(1, snr, frame_fin, iterable(coords), fwhm, True)
+        res = pool_map(1, snr, frame_fin, iterable(coords), fwhm_med, True, 
+                       None, False, True)
         res = np.array(res, dtype=object)
         yy = res[:, 0]
         xx = res[:, 1]
@@ -134,10 +129,10 @@ def _estimate_snr_fc(a, b, level, n_fc, cube, psf, angle_list, fwhm, algo,
 
 def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
                        ini_contrast=None, starphot=1, pxscale=0.1, n_fc=20,
-                       completeness=0.95, snr_approximation=True, nproc=1,
-                       algo_dict={'ncomp': 20}, plot=True, dpi=vip_figdpi,
-                       save_plot=None, object_name=None, fix_y_lim=(),
-                       figsize=vip_figsize):
+                       completeness=0.95, snr_approximation=True, max_iter=100,
+                       nproc=1, algo_dict={'ncomp': 20}, plot=True, 
+                       dpi=vip_figdpi, save_plot=None, object_name=None, 
+                       fix_y_lim=(), figsize=vip_figsize):
     """
     Function allowing the computation of completeness-based contrast curves with
     any of the psf-subtraction algorithms provided by VIP. The code relies on
@@ -198,9 +193,12 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
         the first false positive (the first false positive is defined as
         the brightest speckle present in the entire detection map).
         Default 95.
-    snr_approximated : bool, optional
+    snr_approximation : bool, optional
         If True, an approximated S/N map is generated. If False the
-        approach of Mawett et al. is used (2014). Default is True
+        approach of Mawet et al. is used (2014). Default is True, for speed.
+    max_iter: int, optional
+        Maximum number of iterations to consider in the search for the contrast  
+        level achieving desired completeness before considering it unachievable. 
     nproc : int or None, optional
         Number of processes for parallel computing.
     algo_dict: dictionary, optional
@@ -278,13 +276,15 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
             ini_contrast.append(ini_cc[idx])
 
     argl = getfullargspec(algo).args
-    if 'cube' in argl and 'angle_list' in argl and 'verbose' in argl:
+    if 'cube' in argl and 'angle_list' in argl:
         if 'fwhm' in argl:
             frame_fin = algo(cube=cube, angle_list=angle_list, fwhm=fwhm_med,
                              verbose=False, **algo_dict)
         else:
             frame_fin = algo(cube, angle_list=angle_list, verbose=False,
                              **algo_dict)
+    else:
+        raise ValueError("'cube' and 'angle_list' must be arguments of algo")
 
     snrmap_empty = snrmap(frame_fin, fwhm, approximated=snr_approximation,
                           plot=False, known_sources=None, nproc=nproc,
@@ -310,8 +310,12 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
 
         detect_bound = [None, None]
         level_bound = [None, None]
-
-        while len(pos_detect) == 0:
+        it = 0
+        err_msg = "Could not converge on a contrast level matching required "
+        err_msg += "completeness within {} iterations. Consider increasing min"
+        err_msg += " radius."
+        
+        while len(pos_detect) == 0 and it < max_iter:
             pos_detect = []
             pos_non_detect = []
             val_detect = []
@@ -332,6 +336,10 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
 
             if len(pos_detect) == 0:
                 level = level*1.5
+            it += 1
+            
+        if it == max_iter:
+            raise ValueError(err_msg.format(max_iter))
 
         if len(pos_detect) > round(completeness*n_fc):
             detect_bound[1] = len(pos_detect)
@@ -347,7 +355,8 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
         cond1 = (detect_bound[0] is None or detect_bound[1] is None)
         cond2 = (len(pos_detect) != round(completeness*n_fc))
 
-        while cond1 and cond2:
+        it = 0
+        while cond1 and cond2 and it<max_iter:
 
             if detect_bound[0] is None:
 
@@ -357,10 +366,10 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
                 val_detect = []
                 val_non_detect = []
 
-                res = pool_map(nproc, _estimate_snr_fc, a, iterable(range(0, n_fc)),
-                               level, n_fc, cube, psf, angle_list, fwhm, algo,
-                               algo_dict, snrmap_empty, starphot,
-                               approximated=True)
+                res = pool_map(nproc, _estimate_snr_fc, a, 
+                               iterable(range(0, n_fc)), level, n_fc, cube, psf, 
+                               angle_list, fwhm, algo, algo_dict, snrmap_empty, 
+                               starphot, approximated=True)
 
                 for res_i in res:
 
@@ -416,6 +425,10 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
 
             cond1 = (detect_bound[0] is None or detect_bound[1] is None)
             cond2 = (len(pos_detect) != comp_temp)
+            it += 1
+            
+        if it == max_iter:
+            raise ValueError(err_msg.format(max_iter))
 
         if len(pos_detect) != round(completeness*n_fc):
 
@@ -424,7 +437,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
             pos_detect = pos_detect_temp.copy()
             val_detect = val_detect_temp.copy()
 
-        while len(pos_detect) != round(completeness*n_fc):
+        while len(pos_detect) != round(completeness*n_fc) and it < max_iter:
             fact = (level_bound[1]-level_bound[0]) / \
                     (detect_bound[1]-detect_bound[0])
             level = level_bound[0]+fact*(completeness*n_fc-detect_bound[0])
@@ -462,11 +475,15 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
                 val_non_detect = val_non_detect_temp.copy()
                 pos_detect = pos_detect_temp.copy()
                 val_detect = val_detect_temp.copy()
+            it += 1
 
         print("Distance: "+"{}".format(a)+" Final contrast " +
               "{}".format(level))
         cont_curve[k] = level
-
+        
+        if it == max_iter:
+            raise ValueError(err_msg.format(max_iter))
+            
     # plotting
     if plot:
         an_dist_arcsec = np.asarray(an_dist)*pxscale

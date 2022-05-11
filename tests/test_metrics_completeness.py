@@ -11,7 +11,7 @@ from vip_hci.fm import cube_planet_free
 
 
 @fixture(scope="module")
-def get_cube_emp(example_dataset_adi):
+def get_cube_empty(example_dataset_adi):
     """
     Get the ADI sequence from conftest.py.
 
@@ -39,9 +39,9 @@ def get_cube_emp(example_dataset_adi):
     return dsi, starphot
 
 
-def test_completeness_curve(get_cube):
+def test_completeness_curve(get_cube_empty):
 
-    ds, starphot = get_cube
+    ds, starphot = get_cube_empty
 
     expected_res = np.array([0.00022622])
     psf = frame_crop(ds.psf[1:, 1:], 11)
@@ -62,9 +62,9 @@ def test_completeness_curve(get_cube):
     assert check, msg
 
 
-def test_completeness_map(get_cube):
+def test_completeness_map(get_cube_empty):
 
-    ds, starphot = get_cube
+    ds, starphot = get_cube_empty
 
     expected_res = np.array([0.00018123])
     psf = frame_crop(ds.psf, 11, force=True)

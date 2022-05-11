@@ -867,7 +867,8 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
     cy, cx = frame_center(array[0])
     array_rec = array.copy()
 
-    for i in Progressbar(range(n_frames), desc="frames", verbose=verbose):
+    for i in Progressbar(range(n_frames), desc="Recentering frames...", 
+                         verbose=verbose):
         y[i], x[i] = frame_center_radon(array[i], verbose=False, plot=False,
                                         **kwargs)
         array_rec[i] = frame_shift(array[i], cy-y[i], cx-x[i], imlib=imlib,
@@ -878,7 +879,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
         timing(start_time)
 
     if full_output:
-        return array_rec, y, x
+        return array_rec, cy-y, cx-x
     else:
         return array_rec
 
@@ -1541,7 +1542,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     if recenter_median and fit_type not in {'gaus', 'ann'}:
         raise TypeError("fit type not recognized. Should be 'ann' or 'gaus'")
 
-    if crop and not subframesize < y/2.:
+    if crop and not subframesize < y:
         raise ValueError('`Subframesize` is too large')
 
     if cube_ref is not None:
@@ -1618,7 +1619,11 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             else:
                 crop_sz = int(6*fwhm)
             if not crop_sz % 2:
-                crop_sz += 1
+                # size should be odd and small, but at least 7 for 2D fit
+                if crop_sz>7:
+                    crop_sz -= 1
+                else:
+                    crop_sz += 1
             sub_image, y1, x1 = get_square(alignment_cube[0], size=crop_sz,
                                            y=ceny, x=cenx, position=True)
 

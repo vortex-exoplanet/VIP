@@ -43,6 +43,13 @@ def algo_andromeda(ds):
     contrast, snr, snr_n, stdcontrast, stdcontrast_n, likelihood, r = res
     return snr_n
 
+def algo_andromeda_l1(ds):
+    res = vip.invprob.andromeda(ds.cube[:, :-1, :-1], oversampling_fact=1.8,
+                                angles=ds.angles, psf=ds.psf, iwa=0.5,
+                                opt_method='l1')
+    contrast, snr, snr_n, stdcontrast, stdcontrast_n, likelihood, r = res
+    return snr_n
+
 
 def algo_andromeda_fast(ds):
     res = vip.invprob.andromeda(ds.cube[:, :-1, :-1], oversampling_fact=0.5,
@@ -98,6 +105,7 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
 @parametrize("algo, make_detmap",
              [
                  (algo_andromeda, None),
+                 (algo_andromeda_l1, None),
                  (algo_andromeda_fast, None)
                  # (algo_fast_paco, None),
                  # (algo_fast_paco_parallel, None),

@@ -1,10 +1,13 @@
 from sklearn.metrics import mean_squared_error
 from vip_hci.preproc import (cube_recenter_2dfit, cube_recenter_dft_upsampling,
                              cube_recenter_satspots, cube_recenter_via_speckles,
-                             frame_shift)
+                             cube_recenter_radon, frame_shift, cube_subsample,
+                             cube_correct_nan, approx_stellar_position)
+from vip_hci.var import frame_center
 import vip_hci as vip
 import hciplot
 from astropy.modeling import models
+from astropy.utils.data import download_file
 from .helpers import fixture, np
 import copy
 import matplotlib as mpl
@@ -63,6 +66,25 @@ def get_cube(example_dataset_adi):
 
     """
     dsi = copy.copy(example_dataset_adi)
+
+    return dsi
+
+@fixture(scope="module")
+def get_ifs_cube(example_dataset_sdi):
+    """
+    Get the ADI+IFS sequence from conftest.py.
+
+    Parameters
+    ----------
+    example_dataset_sdi : fixture
+        Taken automatically from ``conftest.py``.
+
+    Returns
+    -------
+    dsi : VIP Dataset
+
+    """
+    dsi = copy.copy(example_dataset_sdi)
 
     return dsi
 
@@ -198,8 +220,35 @@ def do_recenter(method, cube, shiftx, shifty, errormsg, mse=1e-2,
 #   d88P"Y88b      Y88b.  Y8b.          X88 Y88b.       X88
 #  dP"     "Yb      "Y888  "Y8888   88888P'  "Y888  88888P'
 
+def test_approx_star(debug=True):
+    """
+    tests `approx_stellar_position`. The data cube is generated from a 2D 
+    gaussian (positive case).
+    """
+    global seed
 
-def test_2d(debug=False):
+    if debug:
+        html("<h2>===== test_2d =====</h2>")
+
+    method = approx_stellar_position
+    errormsg = 'Error when recentering with approx. stellar position method'
+    n_frames = 6
+
+
+    for model, name in {"gauss": "Gaussian"}.items():
+
+        # ===== odd
+        cube = create_cube_with_gauss2d(shape=(n_frames, 9, 9), mean=4,
+                                        stddev=1)
+        cube += np.random.normal(0, 0.1, cube.shape)
+        cy, cx = frame_center(cube)
+        esty, estx = method(cube, fwhm=1)
+        mse = 0.02
+        assert mean_squared_error([cy]*len(esty), esty) < mse, errormsg
+        assert mean_squared_error([cx]*len(estx), estx) < mse, errormsg
+        
+    
+def test_2d(debug=True):
     """
     tests `cube_recenter_2dfit`. The data cube is generated from a 2D gaussian
     (positive case) or a 2D "ring" (difference of two 2D gaussians, negative
@@ -223,8 +272,8 @@ def test_2d(debug=False):
         cube = create_cube_with_gauss2d(shape=(n_frames, 9, 9), mean=4,
                                         stddev=1)
 
-        method_args = dict(fwhm=1, subi_size=5, model=model, verbose=False,
-                           negative=False, full_output=True, plot=False)
+        method_args = dict(fwhm=1, subi_size=5, model=model, verbose=True,
+                           negative=False, full_output=True, plot=True)
         do_recenter(method, cube, randax, randay,
                     errormsg=errormsg.format(name), debug=debug, **method_args)
 
@@ -232,8 +281,8 @@ def test_2d(debug=False):
         cube = create_cube_with_gauss2d(shape=(n_frames, 10, 10), mean=5,
                                         stddev=1)
 
-        method_args = dict(fwhm=1, subi_size=6, model=model, verbose=False,
-                           negative=False, full_output=True, plot=False)
+        method_args = dict(fwhm=1, subi_size=6, model=model, verbose=True,
+                           negative=False, full_output=True, plot=True)
         do_recenter(method, cube, randax, randay,
                     errormsg=errormsg.format(name), debug=debug, **method_args)
 
@@ -241,8 +290,8 @@ def test_2d(debug=False):
         cube = create_cube_with_gauss2d_ring(shape=(n_frames, 9, 9), mean=4,
                                              stddev_outer=3, stddev_inner=2)
 
-        method_args = dict(fwhm=1, subi_size=5, model=model, verbose=False,
-                           negative=True, full_output=True, plot=False)
+        method_args = dict(fwhm=1, subi_size=5, model=model, verbose=True,
+                           negative=True, full_output=True, plot=True)
         do_recenter(method, cube, randax, randay,
                     errormsg=errormsg.format(name), debug=debug, **method_args)
 
@@ -250,19 +299,19 @@ def test_2d(debug=False):
         cube = create_cube_with_gauss2d_ring(shape=(n_frames, 10, 10), mean=5,
                                              stddev_outer=3, stddev_inner=2)
 
-        method_args = dict(fwhm=1, subi_size=6, model=model, verbose=False,
-                           negative=True, full_output=True, plot=False)
+        method_args = dict(fwhm=1, subi_size=6, model=model, verbose=True,
+                           negative=True, full_output=True, plot=True)
         do_recenter(method, cube, randax, randay,
                     errormsg=errormsg.format(name), debug=debug, **method_args)
-
-
-def test_dft(debug=False):
+        
+        
+def test_dft(debug=True):
     global seed
     if debug:
         html("<h2>===== test_dft =====</h2>")
 
     method = cube_recenter_dft_upsampling
-    method_args_additional = dict(verbose=True, full_output=True, plot=False)
+    method_args_additional = dict(verbose=True, full_output=True, plot=True)
     errormsg = 'Error when recentering with DFT upsampling method'
     n_frames = 6
 
@@ -319,7 +368,7 @@ def test_dft(debug=False):
                 mse_skip_first=True, debug=debug, **method_args)
 
 
-def test_dft_image(debug=False):
+def test_dft_image(debug=True):
     """
     notes:
     ======
@@ -346,12 +395,12 @@ def test_dft_image(debug=False):
 
     # ===== recenter
     method_args = dict(center_fr1=(51, 51), subi_size=None, verbose=True,
-                       negative=True, full_output=True, plot=False)
+                       negative=True, full_output=True, plot=True)
     do_recenter(method, cube, randax, randay, errormsg=errormsg,
                 mse_skip_first=True, debug=debug, **method_args)
 
 
-def test_satspots_image(debug=False):
+def test_satspots_image(debug=True):
     global seed
     if debug:
         html("<h2>===== test_satspots_image =====</h2>")
@@ -370,13 +419,13 @@ def test_satspots_image(debug=False):
 
     # ===== recenter
     spotcoords = [(41, 109), (109, 109), (41, 41), (109, 41)]  # NW NE SW SE
-    method_args = dict(xy=spotcoords, subi_size=25, plot=False,
-                       full_output=True, verbose=False)
+    method_args = dict(xy=spotcoords, subi_size=25, mask_center=40, 
+                       full_output=True, verbose=True)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 **method_args)
 
 
-def test_satspots(debug=False):
+def test_satspots(debug=True):
     global seed
     if debug:
         html("<h2>===== test_satspots =====</h2>")
@@ -394,16 +443,50 @@ def test_satspots(debug=False):
     randay = seed.uniform(0, shift_magnitude, size=n_frames)
 
     # ===== recenter
-    method_args = dict(xy=spotcoords, subi_size=9, plot=False,
-                       full_output=True, verbose=False)
+    method_args = dict(xy=spotcoords, subi_size=9, plot=True,
+                       full_output=True, verbose=True)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 **method_args)
 
 
-def test_speckle_recentering(get_cube, debug=False):
+def test_radon(debug=True):
     global seed
     if debug:
-        html("<h2>===== test_satspots =====</h2>")
+        html("<h2>===== test_radon =====</h2>")
+
+    method = cube_recenter_radon
+    errormsg = 'Error when recentering with Radon transform'
+    n_frames = 2
+
+    # ===== datacube
+    url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
+
+    f1 = download_file("{}/sphere_ifs_PDS70_cen.fits".format(url_prefix),
+                       cache=True)
+
+    # load fits
+    cube = vip.fits.open_fits(f1)
+
+    # subsample and correct for NaNs
+    cube = cube_subsample(cube, 19)
+    cube = cube_correct_nan(cube)
+
+    # ===== shift
+    shift_magnitude = 1
+    randax = seed.uniform(-shift_magnitude, 0, size=n_frames)
+    randay = seed.uniform(0, shift_magnitude, size=n_frames)
+
+    # ===== recenter
+    method_args = dict(hsize=1.0, step=0.1, plot=True, full_output=True, 
+                       verbose=True)
+    do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
+                mse=0.04, **method_args)
+    
+
+def test_speckle_recentering(get_cube, debug=True):
+    global seed
+    if debug:
+        html("<h2>===== test_speckle_recentering =====</h2>")
 
     method = cube_recenter_via_speckles
     errormsg = 'Error when recentering via speckles'
@@ -417,8 +500,11 @@ def test_speckle_recentering(get_cube, debug=False):
     randay = np.ones(n_frames)
 
     # ===== recenter
-    method_args = dict(plot=False, full_output=True, fwhm=4.2,
-                       recenter_median=True, subframesize=49, imlib='opencv',
-                       interpolation='lanczos4')
-    do_recenter(method, ds.cube, randax, randay, errormsg=errormsg, debug=debug,
-                mse=0.2*n_frames, **method_args)
+    types = ['gaus', 'ann']
+    
+    for ty in types:
+        method_args = dict(plot=False, full_output=True, fwhm=4.2, fit_type=ty,
+                           recenter_median=True, subframesize=49, imlib='opencv',
+                           interpolation='lanczos4')
+        do_recenter(method, ds.cube, randax, randay, errormsg=errormsg, 
+                    debug=debug, mse=0.04, **method_args)

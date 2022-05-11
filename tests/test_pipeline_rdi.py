@@ -121,6 +121,7 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
 
 @parametrize("algo, make_detmap", [
     (algo_pca, snrmap_fast),
+    (algo_pca_mask, snrmap_fast),
     (algo_pca_annular_ardi, snrmap_fast),
     (algo_pca_annular_rdi, snrmap_fast),
     (algo_nmf, snrmap_fast),

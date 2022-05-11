@@ -77,6 +77,8 @@ def algo_nmf_annular(ds):
 def algo_pca(ds):
     return vip.psfsub.pca(ds.cube, ds.angles, svd_mode='arpack')
 
+def algo_pca_linalg(ds):
+    return vip.psfsub.pca(ds.cube, ds.angles, svd_mode='eigen')
 
 def algo_pca_drot(ds):
     return vip.psfsub.pca(ds.cube, ds.angles, ncomp=4, fwhm=ds.fwhm, 
@@ -155,11 +157,13 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
                  (algo_medsub_annular, snrmap_fast),
                  (algo_xloci, snrmap_fast),
                  (algo_nmf, snrmap_fast),
+                 (algo_nmf_drot, snrmap_fast),
                  (algo_nmf_annular, snrmap_fast),
                  (algo_llsg, snrmap_fast),
                  (algo_frdiff, snrmap_fast),
                  (algo_frdiff4, snrmap_fast),
                  (algo_pca, snrmap_fast),
+                 (algo_pca_linalg, snrmap_fast),
                  (algo_pca_drot, snrmap_fast),
                  (algo_pca_cevr, snrmap_fast),
                  (algo_pca_grid, snrmap_fast),

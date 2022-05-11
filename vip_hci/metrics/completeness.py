@@ -129,7 +129,7 @@ def _estimate_snr_fc(a, b, level, n_fc, cube, psf, angle_list, fwhm, algo,
 
 def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
                        ini_contrast=None, starphot=1, pxscale=0.1, n_fc=20,
-                       completeness=0.95, snr_approximation=True, max_iter=100,
+                       completeness=0.95, snr_approximation=True, max_iter=50,
                        nproc=1, algo_dict={'ncomp': 20}, plot=True, 
                        dpi=vip_figdpi, save_plot=None, object_name=None, 
                        fix_y_lim=(), figsize=vip_figsize):
@@ -312,8 +312,8 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
         level_bound = [None, None]
         it = 0
         err_msg = "Could not converge on a contrast level matching required "
-        err_msg += "completeness within {} iterations. Consider increasing min"
-        err_msg += " radius."
+        err_msg += "completeness within {} iterations. Tested level: {}. "
+        err_msg += "Consider increasing min radius."
         
         while len(pos_detect) == 0 and it < max_iter:
             pos_detect = []
@@ -339,7 +339,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
             it += 1
             
         if it == max_iter:
-            raise ValueError(err_msg.format(max_iter))
+            raise ValueError(err_msg.format(max_iter, level))
 
         if len(pos_detect) > round(completeness*n_fc):
             detect_bound[1] = len(pos_detect)
@@ -428,7 +428,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
             it += 1
             
         if it == max_iter:
-            raise ValueError(err_msg.format(max_iter))
+            raise ValueError(err_msg.format(max_iter, level))
 
         if len(pos_detect) != round(completeness*n_fc):
 
@@ -437,6 +437,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
             pos_detect = pos_detect_temp.copy()
             val_detect = val_detect_temp.copy()
 
+        it = 0
         while len(pos_detect) != round(completeness*n_fc) and it < max_iter:
             fact = (level_bound[1]-level_bound[0]) / \
                     (detect_bound[1]-detect_bound[0])
@@ -477,12 +478,12 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
                 val_detect = val_detect_temp.copy()
             it += 1
 
+        if it == max_iter:
+            raise ValueError(err_msg.format(max_iter, level))
+            
         print("Distance: "+"{}".format(a)+" Final contrast " +
               "{}".format(level))
-        cont_curve[k] = level
-        
-        if it == max_iter:
-            raise ValueError(err_msg.format(max_iter))
+        cont_curve[k] = level   
             
     # plotting
     if plot:

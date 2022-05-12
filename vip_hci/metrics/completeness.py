@@ -750,7 +750,7 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
                                                   list(pos_non_detect.copy())]
 
         if verbose:
-            print("Lower boundary ({:.0f}%) found: {}".format(100/n_fc, level))
+            print("Lower bound ({:.0f}%) found: {}".format(100/n_fc, level))
 
         level = contrast_matrix[k, np.where(contrast_matrix[k, :] > 0)[0][-1]]
 
@@ -780,8 +780,8 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
                                                   list(pos_non_detect.copy())]
 
         if verbose:
-            print("Upper boundary ({:.0f}%) found: {}".format(100*(n_fc-1)/n_fc, 
-                                                              level))
+            print("Upper bound ({:.0f}%) found: {}".format(100*(n_fc-1)/n_fc, 
+                                                           level))
 
         missing = np.where(contrast_matrix[k, :] == 0)[0]
         computed = np.where(contrast_matrix[k, :] > 0)[0]

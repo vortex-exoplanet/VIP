@@ -868,4 +868,4 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
 
     comp_levels = np.linspace(1/n_fc, 1-1/n_fc, n_fc-1, endpoint=True)
 
-    return an_dist, comp_levels, contrast_matrix[1:-1]
+    return an_dist, comp_levels, contrast_matrix[:, 1:-1]

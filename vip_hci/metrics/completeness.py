@@ -4,7 +4,7 @@
 Module with completeness curve and map generation function.
 """
 
-__author__ = 'C.H. Dahlqvist'
+__author__ = 'C.H. Dahlqvist, V. Christiaens'
 __all__ = ['completeness_curve',
            'completeness_map']
 
@@ -124,13 +124,17 @@ def _estimate_snr_fc(a, b, level, n_fc, cube, psf, angle_list, fwhm, algo,
     snrmap_fin[indc[0], indc[1]] = 0
     max_map = np.nan_to_num(snrmap_fin).max()
 
+    if b==2 and max_target-max_map<0:
+        from hciplot import plot_frames 
+        plot_frames((snrmap_empty, snrmap_temp, snrmap_fin))
+
     return max_target-max_map, b
 
 
 def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
                        ini_contrast=None, starphot=1, pxscale=0.1, n_fc=20,
                        completeness=0.95, snr_approximation=True, max_iter=50,
-                       nproc=1, algo_dict={'ncomp': 20}, plot=True, 
+                       nproc=1, algo_dict={}, verbose=True, plot=True, 
                        dpi=vip_figdpi, save_plot=None, object_name=None, 
                        fix_y_lim=(), figsize=vip_figsize):
     """
@@ -204,6 +208,8 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
     algo_dict: dictionary, optional
         Any other valid parameter of the post-processing algorithms can be
         passed here, including e.g. imlib and interpolation.
+    verbose : bool, optional
+        Whether to print more info while running the algorithm. Default: True.
     plot : bool, optional
         Whether to plot the final contrast curve or not. True by default.
     dpi : int optional
@@ -275,6 +281,8 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
             idx = find_nearest(ini_rads, ad)
             ini_contrast.append(ini_cc[idx])
 
+    if verbose:
+        print("Calculating initial SNR map with no injected companion...")
     argl = getfullargspec(algo).args
     if 'cube' in argl and 'angle_list' in argl:
         if 'fwhm' in argl:
@@ -303,19 +311,22 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
                                                                 psf.shape[1]))
 
     for k in range(len(an_dist)):
-
         a = an_dist[k]
         level = ini_contrast[k]
         pos_detect = []
 
+        if verbose:
+            print("*** Calculating contrast at r = {} ***".format(a))
+
         detect_bound = [None, None]
         level_bound = [None, None]
-        it = 0
+        ii = 0
         err_msg = "Could not converge on a contrast level matching required "
         err_msg += "completeness within {} iterations. Tested level: {}. "
-        err_msg += "Consider increasing min radius."
+        err_msg += "Is there too much self-subtraction? Consider decreasing "
+        err_msg += "ncomp if using PCA, or increasing minimum requested radius."
         
-        while len(pos_detect) == 0 and it < max_iter:
+        while len(pos_detect) == 0 and ii < max_iter:
             pos_detect = []
             pos_non_detect = []
             val_detect = []
@@ -323,7 +334,8 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
 
             res = pool_map(nproc, _estimate_snr_fc, a, iterable(range(0, n_fc)),
                            level, n_fc, cube, psf, angle_list, fwhm, algo,
-                           algo_dict, snrmap_empty, starphot, approximated=True)
+                           algo_dict, snrmap_empty, starphot, 
+                           approximated=snr_approximation)
 
             for res_i in res:
 
@@ -336,9 +348,13 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
 
             if len(pos_detect) == 0:
                 level = level*1.5
-            it += 1
+            ii += 1
             
-        if it == max_iter:
+        if verbose:
+            msg = "Found contrast level for first TP detection: {}"
+            print(msg.format(level))
+            
+        if ii == max_iter:
             raise ValueError(err_msg.format(max_iter, level))
 
         if len(pos_detect) > round(completeness*n_fc):
@@ -355,8 +371,8 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
         cond1 = (detect_bound[0] is None or detect_bound[1] is None)
         cond2 = (len(pos_detect) != round(completeness*n_fc))
 
-        it = 0
-        while cond1 and cond2 and it<max_iter:
+        ii = 0
+        while cond1 and cond2 and ii<max_iter:
 
             if detect_bound[0] is None:
 
@@ -369,7 +385,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
                 res = pool_map(nproc, _estimate_snr_fc, a, 
                                iterable(range(0, n_fc)), level, n_fc, cube, psf, 
                                angle_list, fwhm, algo, algo_dict, snrmap_empty, 
-                               starphot, approximated=True)
+                               starphot, approximated=snr_approximation)
 
                 for res_i in res:
 
@@ -399,11 +415,10 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
                                iterable(-np.sort(-np.array(pos_non_detect))),
                                level, n_fc, cube, psf, angle_list, fwhm, algo,
                                algo_dict, snrmap_empty, starphot,
-                               approximated=True)
+                               approximated=snr_approximation)
 
                 it = len(pos_non_detect)-1
                 for res_i in res:
-
                     if res_i[0] > 0:
                         pos_detect.append(res_i[1])
                         val_detect.append(res_i[0])
@@ -425,9 +440,13 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
 
             cond1 = (detect_bound[0] is None or detect_bound[1] is None)
             cond2 = (len(pos_detect) != comp_temp)
-            it += 1
+            ii += 1
+        
+        if verbose:
+            msg = "Found lower and upper bounds of sought contrast: {}"
+            print(msg.format(level_bound))
             
-        if it == max_iter:
+        if ii == max_iter:
             raise ValueError(err_msg.format(max_iter, level))
 
         if len(pos_detect) != round(completeness*n_fc):
@@ -437,8 +456,8 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
             pos_detect = pos_detect_temp.copy()
             val_detect = val_detect_temp.copy()
 
-        it = 0
-        while len(pos_detect) != round(completeness*n_fc) and it < max_iter:
+        ii = 0
+        while len(pos_detect) != round(completeness*n_fc) and ii < max_iter:
             fact = (level_bound[1]-level_bound[0]) / \
                     (detect_bound[1]-detect_bound[0])
             level = level_bound[0]+fact*(completeness*n_fc-detect_bound[0])
@@ -446,7 +465,8 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
             res = pool_map(nproc, _estimate_snr_fc, a,
                            iterable(-np.sort(-np.array(pos_non_detect))),
                            level, n_fc, cube, psf, angle_list, fwhm, algo,
-                           algo_dict, snrmap_empty, starphot, approximated=True)
+                           algo_dict, snrmap_empty, starphot, 
+                           approximated=snr_approximation)
 
             it = len(pos_non_detect)-1
             for res_i in res:
@@ -476,13 +496,14 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
                 val_non_detect = val_non_detect_temp.copy()
                 pos_detect = pos_detect_temp.copy()
                 val_detect = val_detect_temp.copy()
-            it += 1
+            ii += 1
 
-        if it == max_iter:
+        if ii == max_iter:
             raise ValueError(err_msg.format(max_iter, level))
-            
-        print("Distance: "+"{}".format(a)+" Final contrast " +
-              "{}".format(level))
+        
+        if verbose:
+            msg = "=> found final contrast for {}% completeness: {}" 
+            print(msg.format(completeness*100, level))
         cont_curve[k] = level   
             
     # plotting
@@ -533,7 +554,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
 
 def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
                      starphot=1, n_fc=20, snr_approximation=True, nproc=1,
-                     algo_dict={'ncomp': 20}, verbose=True):
+                     algo_dict={}, verbose=True):
     """
     Function allowing the computation of two dimensional (radius and 
     completeness) contrast curves with any psf-subtraction algorithm provided by
@@ -592,7 +613,7 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
         as 1/n_fc and the maximum is 1-1/n_fc). Default 20.
     snr_approximated : bool, optional
         If True, an approximated S/N map is generated. If False the
-        approach of Mawett et al. is used (2014). Default is True
+        approach of Mawet et al. is used (2014). Default is True
     nproc : int or None
         Number of processes for parallel computing.
     algo_dict
@@ -606,9 +627,12 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
     -------
     an_dist: 1d numpy ndarray
         Radial distances where the contrasts are calculated
+    comp_levels: 1d numpy ndarray
+        Completeness levels for which the contrasts are calculated
     cont_curve: 2d numpy ndarray
         Contrast matrix, with the first axis associated to the radial distances
-        and the second axis associated to the completeness level.
+        and the second axis associated to the completeness level, calculated 
+        from 1/n_fc to (n_fc-1)/n_fc.
 
     """
 
@@ -688,7 +712,8 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
             pos_non_detect = []
             res = pool_map(nproc, _estimate_snr_fc, a, iterable(range(0, n_fc)),
                            level, n_fc, cube, psf, angle_list, fwhm, algo,
-                           algo_dict, snrmap_empty, starphot, approximated=True)
+                           algo_dict, snrmap_empty, starphot, 
+                           approximated=snr_approximation)
 
             for res_i in res:
 
@@ -709,7 +734,8 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
             res = pool_map(nproc, _estimate_snr_fc, a,
                            iterable(-np.sort(-np.array(pos_detect))), level,
                            n_fc, cube, psf, angle_list, fwhm, algo, algo_dict,
-                           snrmap_empty, starphot, approximated=True)
+                           snrmap_empty, starphot, 
+                           approximated=snr_approximation)
 
             it = len(pos_detect)-1
             for res_i in res:
@@ -724,7 +750,7 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
                                                   list(pos_non_detect.copy())]
 
         if verbose:
-            print("Lower boundary found")
+            print("Lower boundary ({:.0f}%) found: {}".format(100/n_fc, level))
 
         level = contrast_matrix[k, np.where(contrast_matrix[k, :] > 0)[0][-1]]
 
@@ -738,7 +764,8 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
             res = pool_map(nproc, _estimate_snr_fc, a,
                            iterable(-np.sort(-np.array(pos_non_detect))),
                            level, n_fc, cube, psf, angle_list, fwhm, algo,
-                           algo_dict, snrmap_empty, starphot, approximated=True)
+                           algo_dict, snrmap_empty, starphot, 
+                           approximated=snr_approximation)
 
             it = len(pos_non_detect)-1
             for res_i in res:
@@ -753,7 +780,8 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
                                                   list(pos_non_detect.copy())]
 
         if verbose:
-            print("Upper boundary found")
+            print("Upper boundary ({:.0f}%) found: {}".format(100*(n_fc-1)/n_fc, 
+                                                              level))
 
         missing = np.where(contrast_matrix[k, :] == 0)[0]
         computed = np.where(contrast_matrix[k, :] > 0)[0]
@@ -784,7 +812,7 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
                                    iterable(-np.sort(-np.array(pos_detect))),
                                    level, n_fc, cube, psf, angle_list, fwhm, algo,
                                    algo_dict, snrmap_empty, starphot,
-                                   approximated=True)
+                                   approximated=snr_approximation)
 
                     it = len(pos_detect)-1
                     for res_i in res:
@@ -808,7 +836,7 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
                                    iterable(-np.sort(-np.array(pos_non_detect))),
                                    level, n_fc, cube, psf, angle_list, fwhm, algo,
                                    algo_dict, snrmap_empty, starphot,
-                                   approximated=True)
+                                   approximated=snr_approximation)
 
                     it = len(pos_non_detect)-1
                     for res_i in res:
@@ -838,4 +866,6 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
             computed = np.where(contrast_matrix[k, :] > 0)[0]
             missing = np.where(contrast_matrix[k, :] == 0)[0]
 
-    return an_dist, contrast_matrix
+    comp_levels = np.linspace(1/n_fc, 1-1/n_fc, n_fc-1, endpoint=True)
+
+    return an_dist, comp_levels, contrast_matrix[1:-1]

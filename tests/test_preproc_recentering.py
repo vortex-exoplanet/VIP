@@ -242,7 +242,9 @@ def test_approx_star(debug=False):
                                         stddev=1)
         cube += np.random.normal(0, 0.1, cube.shape)
         cy, cx = frame_center(cube)
-        esty, estx = method(cube, fwhm=1)
+        est_yx = method(cube, fwhm=1)
+        esty = est_yx[:,0]
+        estx = est_yx[:,1]
         mse = 0.02
         assert mean_squared_error([cy]*len(esty), esty) < mse, errormsg
         assert mean_squared_error([cx]*len(estx), estx) < mse, errormsg
@@ -419,7 +421,7 @@ def test_satspots_image(debug=False):
 
     # ===== recenter
     spotcoords = [(41, 109), (109, 109), (41, 41), (109, 41)]  # NW NE SW SE
-    method_args = dict(xy=spotcoords, subi_size=25, mask_center=40, 
+    method_args = dict(xy=spotcoords, subi_size=25,
                        full_output=True, verbose=True)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 **method_args)
@@ -477,7 +479,7 @@ def test_radon(debug=False):
     randay = seed.uniform(0, shift_magnitude, size=n_frames)
 
     # ===== recenter
-    method_args = dict(hsize=1.0, step=0.1, plot=True, full_output=True, 
+    method_args = dict(hsize=1.0, step=0.1, full_output=True, mask_center=40, 
                        verbose=True)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 mse=0.04, **method_args)

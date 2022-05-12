@@ -68,16 +68,16 @@ def test_completeness_map(get_cube_empty):
 
     expected_res = np.array([0.00048027])
     psf = frame_crop(ds.psf, 11, force=True)
-    an_dist, comp_map = completeness_map(ds.cube, ds.angles, psf, ds.fwhm, pca, 
-                                         an_dist=[20], 
-                                         ini_contrast=expected_res,
-                                         starphot=starphot,
-                                         algo_dict={'imlib':'opencv'})
+    an_dist, comp_lvls, contrasts = completeness_map(ds.cube, ds.angles, psf, 
+                                                     ds.fwhm, pca, an_dist=[20], 
+                                                     ini_contrast=expected_res,
+                                                     starphot=starphot,
+                                                     algo_dict={'imlib':'opencv'})
 
-    if np.allclose(comp_map[:, -2]/expected_res, [1], atol=0.5):
+    if np.allclose(contrasts[:, -2]/expected_res, [1], atol=0.5):
         check = True
     else:
-        print(comp_map[:, -2])
+        print(contrasts[:, -2])
         check = False
 
     msg = "Issue with completeness map estimation"

@@ -479,10 +479,10 @@ def test_radon(debug=False):
     randay = seed.uniform(0, shift_magnitude, size=n_frames)
 
     # ===== recenter
-    method_args = dict(hsize=1.0, step=0.1, full_output=True, mask_center=40, 
+    method_args = dict(hsize=1.0, step=0.1, full_output=True, mask_center=40,
                        verbose=True)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
-                mse=0.04, **method_args)
+                mse=0.1, **method_args)
     
 
 def test_speckle_recentering(get_cube, debug=False):

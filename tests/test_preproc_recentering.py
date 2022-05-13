@@ -200,8 +200,8 @@ def do_recenter(method, cube, shiftx, shifty, errormsg, mse=1e-2,
             print(" " * 18, unshifty)
             print("\033[33moriginal shifts\033[0m:  ", -shiftx)
             print(" " * 18, -shifty)
-        print("\033[33merrors:\033[0m", mean_squared_error(
-            shiftx, -unshiftx), mean_squared_error(shifty, -unshifty))
+        print("\033[33merrors:\033[0m", mean_squared_error(shiftx, -unshiftx), 
+              mean_squared_error(shifty, -unshifty))
 
     # ===== verify error
     assert mean_squared_error(shiftx, -unshiftx) < mse, errormsg
@@ -470,7 +470,7 @@ def test_radon(debug=False):
     cube = vip.fits.open_fits(f1)
 
     # subsample and correct for NaNs
-    cube = cube_subsample(cube, 19)
+    cube = cube_subsample(cube, 20) #discard last channels with BKG star bias
     cube = cube_correct_nan(cube)
 
     # ===== shift
@@ -479,10 +479,10 @@ def test_radon(debug=False):
     randay = seed.uniform(0, shift_magnitude, size=n_frames)
 
     # ===== recenter
-    method_args = dict(hsize=1.0, step=0.1, full_output=True, mask_center=40,
-                       verbose=True)
+    method_args = dict(hsize=1.5, step=0.1, cropsize=131, full_output=True, 
+                       mask_center=30, verbose=True)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
-                mse=0.1, **method_args)
+                mse=0.6, **method_args)
     
 
 def test_speckle_recentering(get_cube, debug=False):

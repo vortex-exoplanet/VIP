@@ -616,8 +616,9 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
 
 
 def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
-                       mask_center=None, nproc=None, satspots_cfg=None,
-                       full_output=False, verbose=True, plot=True, debug=False):
+                       mask_center=None, nproc=None, satspots_cfg=None, 
+                       theta_0=0, delta_theta=5, full_output=False, 
+                       verbose=True, plot=True, debug=False):
     """ Finding the center of a broadband (co-added) frame with speckles and
     satellite spots elongated towards the star (center). We use the radon
     transform implementation from scikit-image.
@@ -641,12 +642,20 @@ def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
     nproc : int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to cpu_count()/2.
-    satspots_cfg: None or str ('x' or '+'), opt
+    satspots_cfg: None or str ('x', '+' or 'custom'), opt
         If satellite spots are present, provide a string corresponding to the
-        configuration of the satellite spots: either as a cross ('x') or as a
-        plus sign ('+'). Leave to None if no satellite spots present. Usually
-        the Radon transform centering works better if bright satellite spots
-        are present.
+        configuration of the satellite spots: as a cross ('x'), as a
+        plus sign ('+') or 'custom' (provide theta_0). Leave to None if no 
+        satellite spots present. Usually the Radon transform centering works 
+        better if bright satellite spots are present.
+    theta_0: float, optional
+        Azimuth of the first satellite spot. Only considered if satspots_cfg is
+        set to 'custom'.
+    delta_theta: float, optional
+        Azimuthal half-width in degrees of the slices considered along a '+' or
+        'x' pattern to calculate the Radon transform. E.g. if set to 5 for 'x'
+        configuration, it will consider slices from 40 to 50 deg in each 
+        quadrant.
     verbose : bool optional
         Whether to print to stdout some messages and info.
     plot : bool, optional
@@ -698,23 +707,44 @@ def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
         if satspots_cfg is not None:
             samples = 10
             if satspots_cfg == 'x':
-                theta = np.hstack((np.linspace(start=40, stop=50, num=samples,
+                theta = np.hstack((np.linspace(start=45-delta_theta, 
+                                               stop=45+delta_theta, num=samples,
                                                endpoint=False),
-                                   np.linspace(start=130, stop=140, num=samples,
+                                   np.linspace(start=135-delta_theta, 
+                                               stop=135+delta_theta, num=samples,
                                                endpoint=False),
-                                   np.linspace(start=220, stop=230, num=samples,
+                                   np.linspace(start=225-delta_theta, 
+                                               stop=225+delta_theta, num=samples,
                                                endpoint=False),
-                                   np.linspace(start=310, stop=320, num=samples,
+                                   np.linspace(start=315-delta_theta, 
+                                               stop=315+delta_theta, num=samples,
                                                endpoint=False)))
             elif satspots_cfg == '+':
-                theta = np.hstack((np.linspace(start=-5, stop=5, num=samples,
-                                   endpoint=False),
-                                   np.linspace(start=85, stop=95, num=samples,
-                                   endpoint=False),
-                                   np.linspace(start=175, stop=185, num=samples,
-                                   endpoint=False),
-                                   np.linspace(start=265, stop=275, num=samples,
-                                   endpoint=False)))
+                theta = np.hstack((np.linspace(start=-delta_theta, 
+                                               stop=delta_theta, num=samples,
+                                               endpoint=False),
+                                   np.linspace(start=90-delta_theta, 
+                                               stop=90+delta_theta, num=samples,
+                                               endpoint=False),
+                                   np.linspace(start=180-delta_theta, 
+                                               stop=180+delta_theta, num=samples,
+                                               endpoint=False),
+                                   np.linspace(start=270-delta_theta, 
+                                               stop=270+delta_theta, num=samples,
+                                               endpoint=False)))
+            elif satspots_cfg == 'custom':
+                theta = np.hstack((np.linspace(start=theta_0-delta_theta, 
+                                               stop=theta_0+delta_theta, 
+                                               num=samples, endpoint=False),
+                                   np.linspace(start=theta_0+90-delta_theta, 
+                                               stop=theta_0+90+delta_theta, 
+                                               num=samples, endpoint=False),
+                                   np.linspace(start=theta_0+180-delta_theta, 
+                                               stop=theta_0+180+delta_theta, 
+                                               num=samples, endpoint=False),
+                                   np.linspace(start=theta_0+270-delta_theta, 
+                                               stop=theta_0+270+delta_theta, 
+                                               num=samples, endpoint=False)))                
             else:
                 msg = "If not None, satspots_cfg can only be 'x' or '+'."
                 raise ValueError(msg)
@@ -734,12 +764,13 @@ def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
     if nproc == 1:
         costf = []
         for coord in coords:
-            res = _radon_costf(frame, cent, radint, coord, satspots_cfg)
+            res = _radon_costf(frame, cent, radint, coord, satspots_cfg, 
+                               theta_0, delta_theta)
             costf.append(res)
         costf = np.array(costf)
     elif nproc > 1:
         res = pool_map(nproc, _radon_costf, frame, cent, radint,
-                       iterable(coords), satspots_cfg)
+                       iterable(coords), satspots_cfg, theta_0, delta_theta)
         costf = np.array(res)
 
     if verbose:
@@ -781,7 +812,8 @@ def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
         return optimy, optimx
 
 
-def _radon_costf(frame, cent, radint, coords, satspots_cfg=None):
+def _radon_costf(frame, cent, radint, coords, satspots_cfg=None, theta_0=0, 
+                 delta_theta=5):
     """ Radon cost function used in frame_center_radon().
     """
     frame_shifted = frame_shift(frame, coords[0], coords[1])
@@ -791,26 +823,47 @@ def _radon_costf(frame, cent, radint, coords, satspots_cfg=None):
     if satspots_cfg is None:
         theta = np.linspace(start=0, stop=360, num=frame_shifted_ann.shape[0],
                             endpoint=False)
+    elif satspots_cfg == '+':
+        samples = 10
+        theta = np.hstack((np.linspace(start=-delta_theta, stop=delta_theta, 
+                                       num=samples, endpoint=False),
+                           np.linspace(start=90-delta_theta, 
+                                       stop=90+delta_theta, num=samples,
+                                       endpoint=False),
+                           np.linspace(start=180-delta_theta, 
+                                       stop=180+delta_theta, num=samples,
+                                       endpoint=False),
+                           np.linspace(start=270-delta_theta, 
+                                       stop=270+delta_theta, num=samples,
+                                       endpoint=False)))
     elif satspots_cfg == 'x':
         samples = 10
-        theta = np.hstack((np.linspace(start=40, stop=50, num=samples,
+        theta = np.hstack((np.linspace(start=45-delta_theta, 
+                                       stop=45+delta_theta, num=samples,
                                        endpoint=False),
-                           np.linspace(start=130, stop=140, num=samples,
+                           np.linspace(start=135-delta_theta, 
+                                       stop=135+delta_theta, num=samples,
                                        endpoint=False),
-                           np.linspace(start=220, stop=230, num=samples,
+                           np.linspace(start=225-delta_theta, 
+                                       stop=225+delta_theta, num=samples,
                                        endpoint=False),
-                           np.linspace(start=310, stop=320, num=samples,
+                           np.linspace(start=315-delta_theta, 
+                                       stop=315+delta_theta, num=samples,
                                        endpoint=False)))
-    else:
+    elif satspots_cfg == 'custom':
         samples = 10
-        theta = np.hstack((np.linspace(start=-5, stop=5, num=samples,
-                                       endpoint=False),
-                           np.linspace(start=85, stop=95, num=samples,
-                                       endpoint=False),
-                           np.linspace(start=175, stop=185, num=samples,
-                                       endpoint=False),
-                           np.linspace(start=265, stop=275, num=samples,
-                                       endpoint=False)))
+        theta = np.hstack((np.linspace(start=theta_0-delta_theta, 
+                                       stop=theta_0+delta_theta, 
+                                       num=samples, endpoint=False),
+                           np.linspace(start=theta_0+90-delta_theta, 
+                                       stop=theta_0+90+delta_theta, 
+                                       num=samples, endpoint=False),
+                           np.linspace(start=theta_0+180-delta_theta, 
+                                       stop=theta_0+180+delta_theta, 
+                                       num=samples, endpoint=False),
+                           np.linspace(start=theta_0+270-delta_theta, 
+                                       stop=theta_0+270+delta_theta, 
+                                       num=samples, endpoint=False)))     
     sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
     costf = np.sum(np.abs(sinogram[int(cent), :]))
     return costf
@@ -867,7 +920,8 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
     cy, cx = frame_center(array[0])
     array_rec = array.copy()
 
-    for i in Progressbar(range(n_frames), desc="frames", verbose=verbose):
+    for i in Progressbar(range(n_frames), desc="Recentering frames...", 
+                         verbose=verbose):
         y[i], x[i] = frame_center_radon(array[i], verbose=False, plot=False,
                                         **kwargs)
         array_rec[i] = frame_shift(array[i], cy-y[i], cx-x[i], imlib=imlib,
@@ -878,7 +932,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
         timing(start_time)
 
     if full_output:
-        return array_rec, y, x
+        return array_rec, cy-y, cx-x
     else:
         return array_rec
 
@@ -1541,7 +1595,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     if recenter_median and fit_type not in {'gaus', 'ann'}:
         raise TypeError("fit type not recognized. Should be 'ann' or 'gaus'")
 
-    if crop and not subframesize < y/2.:
+    if crop and not subframesize < y:
         raise ValueError('`Subframesize` is too large')
 
     if cube_ref is not None:
@@ -1618,7 +1672,11 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             else:
                 crop_sz = int(6*fwhm)
             if not crop_sz % 2:
-                crop_sz += 1
+                # size should be odd and small, but at least 7 for 2D fit
+                if crop_sz>7:
+                    crop_sz -= 1
+                else:
+                    crop_sz += 1
             sub_image, y1, x1 = get_square(alignment_cube[0], size=crop_sz,
                                            y=ceny, x=cenx, position=True)
 

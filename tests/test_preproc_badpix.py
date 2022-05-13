@@ -103,13 +103,13 @@ def test_badpix_clump():
     assert bpix_map[1, idx1+1, idx1+1] == 1
 
     # check they were appropriately corrected
-    assert np.abs(cube_c[0, idx0, idx0]-m0) < 3*s0
-    assert np.abs(cube_c[0, idx0+1, idx0]-m0) < 3*s0
-    assert np.abs(cube_c[0, idx0+1, idx0+1]-m0) < 3*s0
-    assert np.abs(cube_c[1, idx1, idx1]-m1) < 3*s1
-    assert np.abs(cube_c[1, idx1+1, idx1]-m1) < 3*s1
-    assert np.abs(cube_c[1, idx1, idx1+1]-m1) < 3*s1
-    assert np.abs(cube_c[1, idx1+1, idx1+1]-m1) < 3*s1
+    assert np.abs(cube_c[0, idx0, idx0]-m0) < 4*s0
+    assert np.abs(cube_c[0, idx0+1, idx0]-m0) < 4*s0
+    assert np.abs(cube_c[0, idx0+1, idx0+1]-m0) < 4*s0
+    assert np.abs(cube_c[1, idx1, idx1]-m1) < 4*s1
+    assert np.abs(cube_c[1, idx1+1, idx1]-m1) < 4*s1
+    assert np.abs(cube_c[1, idx1, idx1+1]-m1) < 4*s1
+    assert np.abs(cube_c[1, idx1+1, idx1+1]-m1) < 4*s1
 
     # Test protect mask + mad
     cube_c, bpix_map = cube_fix_badpix_clump(cube, sig=5, fwhm=6,
@@ -184,12 +184,12 @@ def test_badpix_ann():
     r0 = dist(cy, cx, idx0, idx0)
     ann = get_annulus_segments(cube_c[0], r0-1, 3, mode='val')
     med_val_ann = np.median(ann)
-    assert (cube_c[0, idx0, idx0]-med_val_ann) < 3*s0
+    assert (cube_c[0, idx0, idx0]-med_val_ann) < 4*s0
 
     r1 = dist(cy, cx, idx1, idx1)
     ann = get_annulus_segments(cube_c[1], r1-1, 3, mode='val')
     med_val_ann = np.median(ann)
-    assert (cube_c[1, idx1, idx1]-med_val_ann) < 3*s0
+    assert (cube_c[1, idx1, idx1]-med_val_ann) < 4*s0
 
 
 def test_badpix_ifs1():

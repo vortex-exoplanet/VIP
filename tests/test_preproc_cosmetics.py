@@ -27,10 +27,10 @@ def test_nan_corr():
     cube_c = cube_correct_nan(cube, verbose=True)
 
     # check NaNs were appropriately corrected
-    assert np.abs(cube_c[0, idx0, idx0]-m0) < 3*s0
-    assert np.abs(cube_c[1, idx1, idx1]-m1) < 3*s1
+    assert np.abs(cube_c[0, idx0, idx0]-m0) < 4*s0
+    assert np.abs(cube_c[1, idx1, idx1]-m1) < 4*s1
 
     # Test half res y
     cube_c = cube_correct_nan(cube, nproc=2, half_res_y=True, verbose=True)
-    assert np.abs(cube_c[0, idx0, idx0]-m0) < 3*s0
-    assert np.abs(cube_c[1, idx1, idx1]-m1) < 3*s1
+    assert np.abs(cube_c[0, idx0, idx0]-m0) < 4*s0
+    assert np.abs(cube_c[1, idx1, idx1]-m1) < 4*s1

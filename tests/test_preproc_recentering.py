@@ -458,7 +458,7 @@ def test_radon(debug=False):
 
     method = cube_recenter_radon
     errormsg = 'Error when recentering with Radon transform'
-    n_frames = 2
+    n_frames = 1
 
     # ===== datacube
     url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
@@ -482,7 +482,7 @@ def test_radon(debug=False):
     method_args = dict(hsize=1.5, step=0.1, cropsize=131, full_output=True, 
                        mask_center=30, verbose=True)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
-                mse=0.6, **method_args)
+                mse=0.8, **method_args)
     
 
 def test_speckle_recentering(get_cube, debug=False):

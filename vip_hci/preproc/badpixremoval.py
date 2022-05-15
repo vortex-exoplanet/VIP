@@ -803,6 +803,9 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
                                           nneig, half_res_y, verbose)
             bpix_map_cumul = bpm_mask
 
+    # make it a binary map
+    bpix_map_cumul[np.where(bpix_map_cumul>1)] = 1
+
     if full_output:
         return obj_tmp, bpix_map_cumul
     else:

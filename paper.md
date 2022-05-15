@@ -33,7 +33,7 @@ authors:
     affiliation: 6
   - name: Carles Cantero
     orcid: 0000-0003-2073-782X
-    affiliation: 1,7
+    affiliation: "1,7"
   - name: Alan Rainot
     orcid: 0000-0001-9904-0624
     affiliation: 8

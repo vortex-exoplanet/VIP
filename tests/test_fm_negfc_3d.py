@@ -103,8 +103,8 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
         res = negfc_algo(ds.cube, ds.angles, ds.psf, initial_state=init,
                          algo=pca_algo, ncomp=ncomp, annulus_width=4*ds.fwhm,
                          aperture_radius=2, fwhm=ds.fwhm, mu_sigma=mu_sigma,
-                         sigma='spe', fmerit=fm, imlib='opencv', nwalkers=100,
-                         niteration_min=100, niteration_limit=200, 
+                         sigma='spe+pho', fmerit=fm, imlib='opencv', 
+                         nwalkers=100, niteration_min=100, niteration_limit=200, 
                          conv_test=conv_test, nproc=1, save=True, 
                          transmission=trans, force_rPA=force_rpa, verbosity=2)
         burnin = 0.3

@@ -317,7 +317,8 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
         print(msg.format(max_neigh))
 
     if ndims == 2:
-        obj_tmp, nnanpix = nan_corr_2d(obj_tmp)
+        obj_tmp, nnanpix = nan_corr_2d(obj_tmp, neighbor_box, min_neighbors, 
+                                       half_res_y, verbose, True)
         if verbose:
             print("{} NaN pixels were corrected".format(nnanpix))
 

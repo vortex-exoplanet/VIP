@@ -617,7 +617,8 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
 
 def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
                        mask_center=None, nproc=None, satspots_cfg=None, 
-                       theta_0=0, delta_theta=5, full_output=False, 
+                       theta_0=0, delta_theta=5, imlib='vip-fft', 
+                       interpolation='lanczos4', full_output=False, 
                        verbose=True, plot=True, debug=False):
     """ Finding the center of a broadband (co-added) frame with speckles and
     satellite spots elongated towards the star (center). We use the radon
@@ -656,6 +657,12 @@ def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
         'x' pattern to calculate the Radon transform. E.g. if set to 5 for 'x'
         configuration, it will consider slices from 40 to 50 deg in each 
         quadrant.
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    full_output: bool, optional
+        Whether to also return the cost map.
     verbose : bool optional
         Whether to print to stdout some messages and info.
     plot : bool, optional
@@ -765,12 +772,13 @@ def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
         costf = []
         for coord in coords:
             res = _radon_costf(frame, cent, radint, coord, satspots_cfg, 
-                               theta_0, delta_theta)
+                               theta_0, delta_theta, imlib, interpolation)
             costf.append(res)
         costf = np.array(costf)
     elif nproc > 1:
-        res = pool_map(nproc, _radon_costf, frame, cent, radint,
-                       iterable(coords), satspots_cfg, theta_0, delta_theta)
+        res = pool_map(nproc, _radon_costf, frame, cent, radint, 
+                       iterable(coords), satspots_cfg, theta_0, delta_theta, 
+                       imlib, interpolation)
         costf = np.array(res)
 
     if verbose:
@@ -796,8 +804,8 @@ def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
     argmx = ind_maximax[int(np.ceil(num_max/2)) - 1]
     y_grid = np.array(coords)[:, 0].reshape(listyx.shape[0], listyx.shape[0])
     x_grid = np.array(coords)[:, 1].reshape(listyx.shape[0], listyx.shape[0])
-    optimy = ori_cent_y+y_grid[argmy, 0]  # +(ori_cent-cent)/2
-    optimx = ori_cent_x+x_grid[0, argmx]  # +(ori_cent-cent)/2
+    optimy = ori_cent_y-y_grid[argmy, 0]  # subtract optimal shift
+    optimx = ori_cent_x-x_grid[0, argmx]  # subtract optimal shift
 
     if verbose:
         print('Cost function max: {}'.format(costf.max()))
@@ -813,10 +821,11 @@ def frame_center_radon(array, cropsize=None, hsize=0.4, step=0.01,
 
 
 def _radon_costf(frame, cent, radint, coords, satspots_cfg=None, theta_0=0, 
-                 delta_theta=5):
+                 delta_theta=5, imlib='vip-fft', interpolation='lanczos4'):
     """ Radon cost function used in frame_center_radon().
     """
-    frame_shifted = frame_shift(frame, coords[0], coords[1])
+    frame_shifted = frame_shift(frame, coords[0], coords[1], imlib=imlib,
+                                interpolation=interpolation)
     frame_shifted_ann = get_annulus_segments(frame_shifted, radint,
                                              cent-radint, mode="mask")[0]
 
@@ -923,6 +932,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
     for i in Progressbar(range(n_frames), desc="Recentering frames...", 
                          verbose=verbose):
         y[i], x[i] = frame_center_radon(array[i], verbose=False, plot=False,
+                                        imlib=imlib, interpolation=interpolation,
                                         **kwargs)
         array_rec[i] = frame_shift(array[i], cy-y[i], cx-x[i], imlib=imlib,
                                    interpolation=interpolation,

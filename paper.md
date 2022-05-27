@@ -40,6 +40,9 @@ authors:
   - name: Iain Hammond
     orcid: 0000-0003-1502-4315
     affiliation: 9
+  - name: Faustine Cantalloube
+    orcid: 0000-0002-3968-3780
+    affiliation: 10
   - name: Arthur Vigan
     orcid: 0000-0002-5902-7828
     affiliation: 10

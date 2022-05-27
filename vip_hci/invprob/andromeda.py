@@ -25,10 +25,10 @@ __all__ = ["andromeda"]
 import numpy as np
 
 from ..var.filters import frame_filter_highpass, cube_filter_highpass
-from ..conf.utils_conf import pool_map, iterable
-from ..var.shapes import dist_matrix
+from ..config.utils_conf import pool_map, iterable
+from ..var import dist_matrix
 
-from .utils_andro import (calc_psf_shift_subpix, fitaffine, idl_round, 
+from .utils_andro import (calc_psf_shift_subpix, fitaffine, idl_round,
                           idl_where, robust_std, subpixel_shift)
 
 
@@ -37,7 +37,7 @@ global CUBE
 
 def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
               min_sep=.5, annuli_width=1., roa=2, opt_method='lsq',
-              nsmooth_snr=18, iwa=None, owa=None, precision=50, fast=False, 
+              nsmooth_snr=18, iwa=None, owa=None, precision=50, fast=False,
               homogeneous_variance=True, ditimg=1.0, ditpsf=None, tnd=1.0,
               total=False, multiply_gamma=True, nproc=1, verbose=False):
     """
@@ -52,14 +52,22 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         Oversampling factor for the wavelength corresponding to the filter used
         for obtaining ``cube`` (defined as the ratio between the wavelength of
         the filter and the Shannon wavelength). Note that in ANDROMEDA everything
-        is coded in lambda/D unit so this is an important parameter. 
-        For instance, it is computed as (its value is above 1 and usually below 3): 
-        lambda = 3.8e-6                                            ; Imaging wavelength [m]
-        diam_tel = 8.0                                             ; Telescope diameter [m]
-        pixscale = 12.25                                           ; Pixscale [mas/px]
-        PIXSCALE_NYQUIST = (1/2.*lambda/diam_tel)/!pi*180*3600*1e3 ; Pixscale at Shannon [mas/px]
-        oversampling = PIXSCALE_NYQUIST / PIXSCALE                 ; Oversampling factor [1]
+        is coded in lambda/D unit so this is an important parameter.
+        For instance, it is computed as (value above 1 and usually below 3):
+
+        lambda = 3.8e-6  : Imaging wavelength [m]
+
+        diam_tel = 8.0   : Telescope diameter [m]
+
+        pixscale = 12.25 : Plate scale [mas/px]
+
+        PIXSCALE_NYQ = (0.5*lambda/diam_tel)/pi*180*3600*1e3 : Nyquist plate
+        scale [mas/px]
+
+        oversampling = PIXSCALE_NYQUIST / PIXSCALE : Oversampling factor
+
         IDL parameter: ``OVERSAMPLING_1_INPUT``
+
     angles : numpy ndarray
         List of parallactic angles associated with each frame in ``cube``. Note
         that, compared to the IDL version, the PA convention is different: If
@@ -223,29 +231,29 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     # VIP. This normalizes the API:
     angles = -angles
 
-    frames, npix, _ = cube.shape
-    npixpsf, _ = psf.shape
-
-    if npix % 2 == 1:
+    if cube.shape[-1] % 2 == 1:
         # shift and crop
         for cc in range(cube.shape[0]):
-            cube[cc] = subpixel_shift(cube[cc],0.5,0.5)
-        cube = cube[:,1:,1:]
+            cube[cc] = subpixel_shift(cube[cc], 0.5, 0.5)
+        cube = cube[:, 1:, 1:]
     else:
-        # shifting due to new VIP convention for even-sized images        
+        # shifting due to new VIP convention for even-sized images
         for cc in range(cube.shape[0]):
-            cube[cc] = subpixel_shift(cube[cc],-0.5,-0.5)
+            cube[cc] = subpixel_shift(cube[cc], -0.5, -0.5)
 
-    if npixpsf % 2 == 1:
+    if psf.shape[0] % 2 == 1:
         # shift and crop
-        psf = subpixel_shift(psf,0.5,0.5)
-        psf = psf[1:,1:]
+        psf = subpixel_shift(psf, 0.5, 0.5)
+        psf = psf[1:, 1:]
     else:
-        # shifting due to new VIP convention for even-sized images        
-        psf = subpixel_shift(psf,-0.5,-0.5)
-        
+        # shifting due to new VIP convention for even-sized images
+        psf = subpixel_shift(psf, -0.5, -0.5)
+
     if filtering_fraction > 1 or filtering_fraction < 0:
         raise ValueError("``filtering_fraction`` must be between 0 and 1")
+
+    frames, npix, _ = cube.shape
+    npixpsf, _ = psf.shape
 
     # ===== set default parameters:
 
@@ -361,10 +369,10 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     dmax = owa  # size of the greatest annuli, in lambda/D
     if fast:
         first_distarray = dmin + np.arange(
-            np.int(np.round(np.abs(dmean-dmin-1)) / annuli_width + 1),
+            int(np.round(np.abs(dmean-dmin-1)) / annuli_width + 1),
             dtype=float) * annuli_width
         second_distarray = dmean + dmin - 1 + np.arange(
-            np.int(np.round(dmax-dmean) / (4*annuli_width) + 1),
+            int(np.round(dmax-dmean) / (4*annuli_width) + 1),
             dtype=float) * 4*annuli_width
         distarray_lambdaonD = np.hstack([first_distarray, second_distarray])
         if iwa > fast:
@@ -460,6 +468,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
                 stdflux * flux_factor,  # IDL stddevcontrast_norm_output
                 likelihood,  # IDL likelihood_output
                 ext_radius)  # IDL ext_radius_output [lambda/D]
+
 
 def _process_annulus(i, annuli_limits, roa, min_sep, oversampling_fact, angles,
                      opt_method, multiply_gamma, psf_cube,

@@ -1,5 +1,5 @@
 """
-The subpackage ``calib`` contains some useful cosmetics and pre-processing
+The subpackage ``preproc`` contains some useful cosmetics and pre-processing
 functionalities:
 
 - resizing frames and cubes : upscaling/pixel binning,
@@ -20,10 +20,10 @@ functionalities:
     - using satellite/waffle spots (fitting plus intersection).
 - sky subtraction (PCA method).
 
-Astronomical calibration functionality like flat fielding and dark-sky
-subtraction, in spite of its simplicity was not included in VIP because of the
-heterogeneity of the datasets coming from different observatories (each having
-different data storage and headers). You can perform this in python in
+Astronomical calibration functionalities like flat-fielding and dark-sky
+subtraction, in spite of their simplicity were not included in VIP because of
+the heterogeneity of the datasets coming from different observatories (each
+having different data storage and headers). You can perform this in python in
 procedures of a few lines or using dedicated instrument pipelines such as
 esorex (ESO instruments)."""
 

@@ -29,22 +29,25 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2,
     ncomp : int, opt
         Sets the number of PCs you want to use in the sky subtraction.
     full_output: bool, opt
-        Whether to also output pcs, reconstructed cube, residuals cube and 
-        derotated residual cube.        
+        Whether to also output pcs, reconstructed cube, residuals cube and
+        derotated residual cube.
 
     Returns
     -------
-    Sky-subtracted science cube. 
+    Sky-subtracted science cube.
     If ref_cube is not None, also returns sky-subtracted reference cube.
     If full_ouput, returns (in the following order):
-         - sky-subtracted science cube, 
+         - sky-subtracted science cube,
          - sky-subtracted reference cube (if any provided),
          - principal components (non-masked),
-         - principal components (masked), and 
+         - principal components (masked), and
          - reconstructed cube.
 
     """
-    from ..pca.svd import svd_wrapper
+    try:
+        from ..psfsub.svd import svd_wrapper
+    except BaseException:
+        from ..pca.svd import svd_wrapper
 
     if sci_cube.shape[1] != sky_cube.shape[1] or sci_cube.shape[2] != \
             sky_cube.shape[2]:
@@ -114,9 +117,9 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2,
             sky_opt = np.array([np.sum(transf_ref_scaled[j, i] * sky_pcs_cube[j]
                                        for j in range(ncomp))])
             ref_cube_skysub[i] = ref_cube[i] - sky_opt
-        
+
         if full_output:
-            return (sci_cube_skysub, ref_cube_skysub, sky_pcs_cube, 
+            return (sci_cube_skysub, ref_cube_skysub, sky_pcs_cube,
                     sky_pcs_cube_masked, sky_opt)
         else:
             return sci_cube_skysub, ref_cube_skysub

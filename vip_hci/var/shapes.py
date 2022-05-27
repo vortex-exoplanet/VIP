@@ -4,11 +4,8 @@
 Module with various functions to create shapes, annuli and segments.
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['dist',
-           'dist_matrix',
-           'frame_center',
-           'get_square',
+__author__ = 'Carlos Alberto Gomez Gonzalez, Carles Cantero'
+__all__ = ['get_square',
            'get_circle',
            'get_ellipse',
            'get_annulus_segments',
@@ -19,15 +16,16 @@ __all__ = ['dist',
            'matrix_scaling',
            'prepare_matrix',
            'reshape_matrix',
-           'cart_to_pol',
-           'pol_to_cart']
+           'mask_roi']
 
 import numpy as np
 from skimage.draw import polygon
 from skimage.draw import disk
 from sklearn.preprocessing import scale
+from hciplot import plot_frames
 
-from ..conf.utils_conf import frame_or_shape
+from .coords import frame_center, dist
+from ..config.utils_conf import frame_or_shape
 
 
 def mask_circle(array, radius, fillwith=0, mode='in'):
@@ -46,8 +44,8 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
         Value to put instead of the masked out pixels.
     mode : {'in', 'out'}, optional
         When set to 'in' then the pixels inside the radius are set to
-        ``fillwith``. When set to 'out' the pixels outside the circular mask are
-        set to ``fillwith``.
+        ``fillwith``. When set to 'out' the pixels outside the circular mask
+        are set to ``fillwith``.
 
     Returns
     -------
@@ -60,7 +58,7 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
 
     cy, cx = frame_center(array)
 
-    shape = (array.shape[-2],array.shape[-1])
+    shape = (array.shape[-2], array.shape[-1])
     ind = disk((cy, cx), radius, shape=shape)
 
     if mode == 'in':
@@ -121,22 +119,22 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
     cy, cx = frame_center(mask)
     rr0, cc0 = disk((cy, cx), ann_out)
     # check that all indices are within frame dimensions
-    cond1 = rr0>=0
-    cond2 = rr0<s[0]
-    cond3 = cc0>=0
-    cond4 = cc0<s[1]
+    cond1 = rr0 >= 0
+    cond2 = rr0 < s[0]
+    cond3 = cc0 >= 0
+    cond4 = cc0 < s[1]
     all_cond = cond1 & cond2 & cond3 & cond4
     rr0 = rr0[np.where(all_cond)]
     cc0 = cc0[np.where(all_cond)]
     mask[rr0, cc0] = 1
 
     t0 = np.array([theta, np.pi-theta, np.pi+theta, np.pi*2 - theta])
-    if isinstance(sp_angle, (list,np.ndarray)):
+    if isinstance(sp_angle, (list, np.ndarray)):
         dtheta = [sp_angle[i]-sp_angle[0] for i in range(nbranch)]
     else:
         sp_angle = [sp_angle]
         dtheta = [i*180./nbranch for i in range(nbranch)]
-    tn = np.zeros([nbranch,4])
+    tn = np.zeros([nbranch, 4])
     xn = np.zeros_like(tn)
     yn = np.zeros_like(tn)
     for i in range(nbranch):
@@ -147,87 +145,8 @@ def create_ringed_spider_mask(im_shape, ann_out, ann_in=0, sp_width=10,
         mask[rrn, ccn] = 0
     rr4, cc4 = disk((cy, cx), ann_in)
     mask[rr4, cc4] = 0
-    
+
     return mask
-
-
-def dist(yc, xc, y1, x1):
-    """
-    Return the Euclidean distance between two points, or between an array 
-    of positions and a point.
-    """
-    return np.sqrt(np.power(yc-y1,2) + np.power(xc-x1,2))
-
-
-def dist_matrix(n, cx=None, cy=None):
-    """
-    Create matrix with euclidian distances from a reference point (cx, cy).
-
-    Parameters
-    ----------
-    n : int
-        output image shape is (n, n)
-    cx,cy : float
-        reference point. Defaults to the center.
-
-    Returns
-    -------
-    im : ndarray with shape (n, n)
-
-    Notes
-    -----
-    This is a replacement for ANDROMEDA's DISTC.
-
-    """
-    if cx is None:
-        cx = (n - 1) / 2
-    if cy is None:
-        cy = (n - 1) / 2
-
-    yy, xx = np.ogrid[:n, :n]
-    return np.sqrt((yy-cy)**2 + (xx-cx)**2)
-
-
-def frame_center(array, verbose=False):
-    """
-    Return the coordinates y,x of the frame(s) center.
-    If odd: dim/2-0.5
-    If even: dim/2
-
-    Parameters
-    ----------
-    array : 2d/3d/4d numpy ndarray
-        Frame or cube.
-    verbose : bool optional
-        If True the center coordinates are printed out.
-
-    Returns
-    -------
-    cy, cx : int
-        Coordinates of the center.
-
-    """
-    if array.ndim == 2:
-        shape = array.shape
-    elif array.ndim == 3:
-        shape = array[0].shape
-    elif array.ndim == 4:
-        shape = array[0, 0].shape
-    else:
-        raise ValueError('`array` is not a 2d, 3d or 4d array')
-
-    cy = shape[0] / 2
-    cx = shape[1] / 2
-
-    if shape[0]%2:
-        cy-=0.5
-    if shape[1]%2:
-        cx-=0.5        
-
-    if verbose:
-        print('Center px coordinates at x,y = ({}, {})'.format(cx, cy))  
-    
-    return int(cy), int(cx)
 
 
 def get_square(array, size, y, x, position=False, force=False, verbose=True):
@@ -250,7 +169,10 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
         If set to True return also the coordinates of the bottom-left vertex.
     force : bool, optional
         Size and the size of the 2d array must be both even or odd. With
-        ``force`` set to True this condition can be avoided.
+        ``force`` set to False, the requested size is flexible (i.e. +1 can be
+        applied to requested crop size for its parity to match the input size).
+        If ``force`` set to True, the requested crop size is enforced, even if
+        parities do not match (warnings are raised!).
     verbose : bool optional
         If True, warning messages might be shown.
 
@@ -264,8 +186,8 @@ def get_square(array, size, y, x, position=False, force=False, verbose=True):
     """
     size_init_y = array.shape[0]
     size_init_x = array.shape[1]
-    size_init = array.shape[0] # "force" cases assume square input frame
-    
+    size_init = array.shape[0]  # "force" cases assume square input frame
+
     if array.ndim != 2:
         raise TypeError('Input array is not a 2d array.')
     if not isinstance(size, int):
@@ -354,8 +276,8 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
     Notes
     -----
     An alternative implementation would use ``skimage.draw.disk``. ``disk``
-    performs better on large ``array``s (e.g. 1000px, 10.000px), while the
-    current implementation is faster for small ``array``s (e.g. 100px). See
+    performs better on large arrays (e.g. 1000px, 10.000px), while the
+    current implementation is faster for small arrays (e.g. 100px). See
     `test_shapes.py` for benchmark details.
 
     """
@@ -373,6 +295,8 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
         return array * circle_mask
     elif mode == "val":
         return array[circle_mask]
+    elif mode == "ind":
+        return np.where(circle_mask)
     else:
         raise ValueError("mode '{}' unknown!".format(mode))
 
@@ -549,7 +473,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
         raise ValueError("mode '{}' unknown!".format(mode))
 
 
-def get_annular_wedge(data, inner_radius, width, wedge=(0,360), mode="ind"):
+def get_annular_wedge(data, inner_radius, width, wedge=(0, 360), mode="ind"):
     """
     Return indices or values in segments of a centered annulus.
 
@@ -622,16 +546,16 @@ def get_annular_wedge(data, inner_radius, width, wedge=(0,360), mode="ind"):
 
     if phi_start < twopi and phi_end > twopi:
         mask = ((rad >= inner_radius) & (rad < outer_radius) &
-                     (phirot >= phi_start) & (phirot <= twopi) |
-                     (rad >= inner_radius) & (rad < outer_radius) &
-                     (phirot >= 0) & (phirot < phi_end - twopi))
+                (phirot >= phi_start) & (phirot <= twopi) |
+                (rad >= inner_radius) & (rad < outer_radius) &
+                (phirot >= 0) & (phirot < phi_end - twopi))
     elif phi_start >= twopi and phi_end > twopi:
         mask = ((rad >= inner_radius) & (rad < outer_radius) &
-                     (phirot >= phi_start - twopi) &
-                     (phirot < phi_end - twopi))
+                (phirot >= phi_start - twopi) &
+                (phirot < phi_end - twopi))
     else:
         mask = ((rad >= inner_radius) & (rad < outer_radius) &
-                     (phirot >= phi_start) & (phirot < phi_end))
+                (phirot >= phi_start) & (phirot < phi_end))
 
     if mode == "ind":
         return np.where(mask)
@@ -641,7 +565,7 @@ def get_annular_wedge(data, inner_radius, width, wedge=(0,360), mode="ind"):
         return array*mask
     else:
         raise ValueError("mode '{}' unknown!".format(mode))
-        
+
 
 def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):
     """
@@ -866,51 +790,109 @@ def reshape_matrix(array, y, x):
     return array.reshape(array.shape[0], y, x)
 
 
-def cart_to_pol(x, y, cx=0, cy=0):
+def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
+             mode='val', plot=False):
     """
-    Returns polar coordinates for input cartesian coordinates
-    
+    Return a mask corresponding to the region of interest for a test point
+    source as defined in Gebhardt et al. (2021).
+
+    Given a frame and a location of interest with coordinates xy=(cx,cy),
+    the mask consists of all pixels from three different regions with respect
+    to xy:
+
+        * (r1) Exclusion region: Pixels from the region of interest. These are
+          excluded in the final mask.
+        * (r2) Local region: Pixels around xy in a circular fashion.
+        * (r3) Symmetric local region: Pixels around the (anti)symmetric xy with
+          respect to the star location. It is also defined in a circular fashion 
+          with same radius as "local region."
+        * (r4) Annulus region: Pixels from the annulus where xy is located.
+
+    The goal of this mask is to disentangle the expected structure of the
+    speckle pattern. Gebhardt et al.(2021) comment that "r2 is chosen to
+    capture any "local" effects around xy due to the instrument. r3 is chosen
+    symmetrically opposite of xy because if there is a speckle at xy, there
+    should also be an (anti-)speckle at r2. r4 is used because we know that the
+    systematic noise significantly depends on the radial variable."
+
     Parameters
     ----------
-    x : float or numpy ndarray
-        x coordinates with respect to the center
-    y : float or numpy ndarray
-        y coordinates with respect to the center
+    array: 2d numpy ndarray
+        Input 2d array (image) ot tuple with its shape.
+    source_xy: tuple of 2 int
+        Pixel coordinates of the location of interest.
+    exc_radius : float
+        Known size of the FHWM in pixels to be used. Default is 4.
+    ann_width: int
+        Width (in pxs) of the annulus (region 3 on description).
+    inc_radius: int
+        Radius (in pxs) of the circular regions r2 and r3 on description.
+        Default is 8.
+    mode : {'bool', 'val', 'mask', 'ind'}, optional
+        Controls what is returned: array with the mask applied, values of the
+        pixels in the mask region or indices of selected pixels of the mask.
+        Default is 'mask'.
+    plot: bool, optional
+        Whether to display a plot showing the defined mask.
 
     Returns
     -------
-    r, theta: floats or numpy ndarrays
-        radii and polar angles (trigonometric) corresponding to the input
-        x and y.
+    bool_mask : numpy ndarray
+        [mode="bool"] Input array with the circular mask applied.
+    values : numpy ndarray
+        [mode="val"] 1d array with the values of the pixels in the circular
+        region.
+    masked : numpy ndarray
+        [mode="mask"] Input array with the circular mask applied.
+    indices : tuple(y, x)
+        [mode='ind'] Coordinates of the mask.
     """
-    
-    r = dist(cy,cx,y,x)
-    theta = np.rad2deg(np.arctan2(y-cy,x-cx))
-    
-    return r, theta
 
+    if exc_radius >= inc_radius:
+        print('Warning: The excluded region is bigger than the included region')
 
-def pol_to_cart(r, theta, cx=0, cy=0):
-    """
-    Returns cartesian coordinates for input polar coordinates
-    
-    Parameters
-    ----------
-    r, theta : float or numpy ndarray
-        radii and polar angles (trigonometric) corresponding to the input
-        x and y.
-    cx, cy : float or numpy ndarray
-        x, y coordinates of the center of the image to be considered for 
-        conversion to cartesian coordinates.
+    frsize = array.shape[0]
+    cx, cy = source_xy
+    yc, xc = frame_center(array)
+    distance = dist(yc, xc, cy, cx)
 
-    Returns
-    -------
-    x, y: floats or numpy ndarrays
-        x, y coordinates corresponding to input radii and polar (trigonotetric)
-        angles.
-    """
-    
-    x = cx+r*np.cos(np.deg2rad(theta))
-    y = cy+r*np.sin(np.deg2rad(theta))
-    
-    return x, y
+    lim = (frsize/2)-(inc_radius/2)
+    if distance < lim:
+        if ann_width/2+distance <= frsize/2:
+            xr1, yr1 = get_circle(array, radius=exc_radius, cy=cy, cx=cx,
+                                  mode='ind')
+            r2 = get_circle(array, radius=inc_radius, cy=cy, cx=cx,
+                            mode='mask')
+            r3 = get_circle(array, radius=inc_radius, cy=2*yc-cy, cx=2*xc-cx,
+                            mode='mask')
+            r4 = get_annulus_segments(data=array,
+                                      inner_radius=distance-ann_width/2,
+                                      width=ann_width, mode='mask')[0]
+
+            r2[xr1, yr1] = 0
+            r4[xr1, yr1] = 0
+            mask = r2+r3+r4
+            mask = (mask != 0)
+
+            if plot:
+                plot_frames(mask, colorbar=False, show_center=True, dpi=100)
+
+            if mode == 'bool':
+                return mask
+            elif mode == 'val':
+                return array[mask]
+            elif mode == 'mask':
+                return array*mask
+            elif mode == 'ind':
+                return np.where(mask == True)
+            else:
+                raise ValueError("mode '{}' unknown!".format(mode))
+        else:
+
+            msg = 'Annulus is out of the field. Try changing coordinates or '
+            msg += 'the annulus width'
+            raise TypeError(msg)
+    else:
+        msg = 'Circles are out of the field. Try changing coordinates or the '
+        msg += 'circles radius'
+        raise TypeError(msg)

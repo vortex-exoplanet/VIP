@@ -36,67 +36,74 @@ def injected_cube_position(example_dataset_adi):
 
 # ====== algos
 def algo_medsub(ds):
-    return vip.medsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
+    return vip.psfsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
                                  mode="fullfr")
 
 
 def algo_medsub_annular(ds):
-    return vip.medsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
+    return vip.psfsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
                                  mode="annular")
 
 
 def algo_xloci(ds):
-    return vip.leastsq.xloci(ds.cube, ds.angles, fwhm=ds.fwhm,
-                             radius_int=20)  # <- speed up
+    return vip.psfsub.xloci(ds.cube, ds.angles, fwhm=ds.fwhm,
+                            radius_int=20)  # <- speed up
 
 
 def algo_frdiff(ds):
-    return vip.frdiff.frame_diff(ds.cube, ds.angles)
+    return vip.psfsub.frame_diff(ds.cube, ds.angles)
+
 
 def algo_frdiff4(ds):
-    return vip.frdiff.frame_diff(ds.cube, ds.angles, n_similar=4)
+    return vip.psfsub.frame_diff(ds.cube, ds.angles, n_similar=4)
+
 
 def algo_llsg(ds):
-    return vip.llsg.llsg(ds.cube, ds.angles, ds.fwhm, rank=2)
+    return vip.psfsub.llsg(ds.cube, ds.angles, ds.fwhm, rank=2)
 
 
 def algo_nmf(ds):
-    return vip.nmf.nmf(ds.cube, ds.angles)
+    return vip.psfsub.nmf(ds.cube, ds.angles)
+
+
+def algo_nmf_drot(ds):
+    return vip.psfsub.nmf(ds.cube, ds.angles, fwhm=ds.fwhm, delta_rot=0.5,
+                          source_xy=ds.injections_yx[0][::-1])
 
 def algo_nmf_annular(ds):
-    return vip.nmf.nmf_annular(ds.cube, ds.angles)
+    return vip.psfsub.nmf_annular(ds.cube, ds.angles)
+
 
 def algo_pca(ds):
-    return vip.pca.pca(ds.cube, ds.angles)
+    return vip.psfsub.pca(ds.cube, ds.angles, svd_mode='arpack')
 
+def algo_pca_linalg(ds):
+    return vip.psfsub.pca(ds.cube, ds.angles, svd_mode='eigen')
+
+def algo_pca_drot(ds):
+    return vip.psfsub.pca(ds.cube, ds.angles, ncomp=4, fwhm=ds.fwhm, 
+                          svd_mode='randsvd', delta_rot=0.5, 
+                          source_xy=ds.injections_yx[0][::-1])
+
+def algo_pca_cevr(ds):
+    return vip.psfsub.pca(ds.cube, ds.angles, ncomp=0.95)    
 
 def algo_pca_grid(ds):
-    """ PCA grid, obtaining the optimal residual for given location
-    """
-    return vip.pca.pca(ds.cube, ds.angles, ncomp=(1, 2),
-                       source_xy=ds.injections_yx[0][::-1])
+    return vip.psfsub.pca(ds.cube, ds.angles, ncomp=(1, 2),
+                          source_xy=ds.injections_yx[0][::-1])
 
 
 def algo_pca_incremental(ds):
-    return vip.pca.pca(ds.cube, ds.angles, batch=int(ds.cube.shape[0]/2))
+    return vip.psfsub.pca(ds.cube, ds.angles, batch=int(ds.cube.shape[0]/2))
 
 
 def algo_pca_annular(ds):
-    return vip.pca.pca_annular(ds.cube, ds.angles, fwhm=ds.fwhm)
+    return vip.psfsub.pca_annular(ds.cube, ds.angles, fwhm=ds.fwhm, 
+                                  n_segments='auto')
 
-
-def algo_andromeda(ds):
-    res = vip.andromeda.andromeda(ds.cube[:,:-1,:-1], oversampling_fact=1.8,
-                                  angles=ds.angles, psf=ds.psf)
-    contrast, snr, snr_n, stdcontrast, stdcontrast_n, likelihood, r = res
-    return snr_n
-
-
-def algo_andromeda_fast(ds):
-    res = vip.andromeda.andromeda(ds.cube[:,:-1,:-1], oversampling_fact=0.5,
-                                  fast=10, angles=ds.angles, psf=ds.psf)
-    contrast, snr, snr_n, stdcontrast, stdcontrast_n, likelihood, r = res
-    return snr_n
+def algo_pca_annular_auto(ds):
+    return vip.psfsub.pca_annular(ds.cube, ds.angles, fwhm=ds.fwhm, 
+                                  ncomp='auto')
 
 
 # ====== SNR map
@@ -144,24 +151,27 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
 
 
 @parametrize("algo, make_detmap",
-    [
-        (algo_medsub, snrmap_fast),
-        (algo_medsub, snrmap),
-        (algo_medsub_annular, snrmap_fast),
-        (algo_xloci, snrmap_fast),
-        (algo_nmf, snrmap_fast),
-        (algo_nmf_annular, snrmap_fast),
-        (algo_llsg, snrmap_fast),
-        (algo_frdiff, snrmap_fast),
-        (algo_frdiff4, snrmap_fast),
-        (algo_pca, snrmap_fast),
-        (algo_pca_grid, snrmap_fast),
-        (algo_pca_incremental, snrmap_fast),
-        (algo_pca_annular, snrmap_fast),
-        (algo_andromeda, None),
-        (algo_andromeda_fast, None),
-    ],
-    ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
+             [
+                 (algo_medsub, snrmap_fast),
+                 (algo_medsub, snrmap),
+                 (algo_medsub_annular, snrmap_fast),
+                 (algo_xloci, snrmap_fast),
+                 (algo_nmf, snrmap_fast),
+                 (algo_nmf_drot, snrmap_fast),
+                 (algo_nmf_annular, snrmap_fast),
+                 (algo_llsg, snrmap_fast),
+                 (algo_frdiff, snrmap_fast),
+                 (algo_frdiff4, snrmap_fast),
+                 (algo_pca, snrmap_fast),
+                 (algo_pca_linalg, snrmap_fast),
+                 (algo_pca_drot, snrmap_fast),
+                 (algo_pca_cevr, snrmap_fast),
+                 (algo_pca_grid, snrmap_fast),
+                 (algo_pca_incremental, snrmap_fast),
+                 (algo_pca_annular, snrmap_fast),
+                 (algo_pca_annular_auto, snrmap_fast),
+                 ],
+             ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
 def test_algos(injected_cube_position, algo, make_detmap):
     ds, position = injected_cube_position
     frame = algo(ds)

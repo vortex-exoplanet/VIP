@@ -40,15 +40,42 @@ def injected_cube_position(example_dataset_rdi):
 
 # ====== algos
 def algo_pca(ds):
-    return vip.pca.pca(ds.cube, ds.angles, cube_ref=ds.cuberef, ncomp=30)
+    return vip.psfsub.pca(ds.cube, ds.angles, cube_ref=ds.cuberef, ncomp=30,
+                          mask_center_px=15)
+
+def algo_pca_mask(ds):
+    mask_rdi = np.ones([ds.cube.shape[-2], ds.cube.shape[-1]])
+    mask_rdi = vip.var.get_annulus_segments(mask_rdi, 15, 30, mode="mask")[0]
+    return vip.psfsub.pca(ds.cube, ds.angles, cube_ref=ds.cuberef, ncomp=30,
+                          mask_center_px=15, mask_rdi=mask_rdi)
+
+def algo_nmf(ds):
+    return vip.psfsub.nmf(ds.cube, ds.angles, cube_ref=ds.cuberef, ncomp=30,
+                          mask_center_px=15)
 
 
-def algo_pca_annular(ds):
-    return vip.pca.pca_annular(ds.cube, ds.angles, cube_ref=ds.cuberef, 
-                               ncomp=10)
+def algo_pca_annular_ardi(ds):
+    return vip.psfsub.pca_annular(ds.cube, ds.angles, cube_ref=ds.cuberef,
+                                  ncomp=10)
 
+
+def algo_pca_annular_rdi(ds):
+    return vip.psfsub.pca_annular(ds.cube, ds.angles, cube_ref=ds.cuberef,
+                                  ncomp=30, delta_rot=100)
+
+
+def algo_nmf_annular_ardi(ds):
+    return vip.psfsub.nmf_annular(ds.cube, ds.angles, cube_ref=ds.cuberef,
+                                  ncomp=10)
+
+
+def algo_nmf_annular_rdi(ds):
+    return vip.psfsub.nmf_annular(ds.cube, ds.angles, cube_ref=ds.cuberef,
+                                  ncomp=30, delta_rot=100)
 
 # ====== SNR map
+
+
 def snrmap_fast(frame, ds):
     return vip.metrics.snrmap(frame, fwhm=ds.fwhm, approximated=True)
 
@@ -94,9 +121,14 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
 
 @parametrize("algo, make_detmap", [
     (algo_pca, snrmap_fast),
-    (algo_pca_annular, snrmap_fast)],
+    (algo_pca_mask, snrmap_fast),
+    (algo_pca_annular_ardi, snrmap_fast),
+    (algo_pca_annular_rdi, snrmap_fast),
+    (algo_nmf, snrmap_fast),
+    (algo_nmf_annular_ardi, snrmap_fast),
+    (algo_nmf_annular_rdi, snrmap_fast)],
              ids=lambda x: (x.__name__.replace("algo_", "") if
-             callable(x) else x))
+                            callable(x) else x))
 def test_algos(injected_cube_position, algo, make_detmap):
     ds, position = injected_cube_position
     frame = algo(ds)

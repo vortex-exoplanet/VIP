@@ -6,10 +6,9 @@ Tests for var/shapes.py
 __author__ = "Ralf Farkas"
 
 from .helpers import aarc, np
-from vip_hci.var.shapes import (frame_center, mask_circle, get_square, 
-                                get_circle, get_annulus_segments, dist,
-                                matrix_scaling, reshape_matrix, get_ell_annulus,
-                                get_ellipse)
+from vip_hci.var import (frame_center, mask_circle, get_square, get_circle,
+                         get_annulus_segments, dist, matrix_scaling,
+                         reshape_matrix, get_ell_annulus, get_ellipse, mask_roi)
 
 
 PRETTY_ODD = np.array([
@@ -34,7 +33,7 @@ def test_frame_center():
     frames = 39
     nlambda = 2
 
-    res44 = (2.0, 2.0) # replaced (1.5, 1.5) considering new convention
+    res44 = (2.0, 2.0)  # replaced (1.5, 1.5) considering new convention
     res55 = (2.0, 2.0)
 
     # 2D
@@ -112,17 +111,17 @@ def test_get_circle():
                    [0, 0, 1, 1, 1, 1, 1, 1, 1, 0],
                    [0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]))
-         # OLD CONVENTION:    
-         # np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-         #           [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
-         #           [0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
-         #           [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-         #           [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-         #           [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-         #           [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-         #           [0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
-         #           [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
-         #           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]))
+    # OLD CONVENTION:
+    # np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    #           [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+    #           [0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+    #           [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    #           [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    #           [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    #           [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    #           [0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+    #           [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+    #           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]))
 
     aarc(get_circle(PRETTY_ODD, radius=4, mode="val"),
          np.array([1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 2, 3, 2, 1, 1, 2, 2,
@@ -270,17 +269,17 @@ def test_matrix_scaling():
     aarc(res, truth)
 
     res = matrix_scaling(m, "temp-mean")
-    truth = np.array([[ 3,  6,  3],
+    truth = np.array([[3, 6, 3],
                       [-3, -6, -3]])
     aarc(res, truth)
 
     res = matrix_scaling(m, "spat-mean")
-    truth = np.array([[-6,  0,  6],
-                      [-4, -4,  8]])
+    truth = np.array([[-6, 0, 6],
+                      [-4, -4, 8]])
     aarc(res, truth)
 
     res = matrix_scaling(m, "temp-standard")
-    truth = np.array([[ 1,  1,  1],
+    truth = np.array([[1, 1, 1],
                       [-1, -1, -1]])
     aarc(res, truth)
 
@@ -288,3 +287,83 @@ def test_matrix_scaling():
     truth = np.array([[-np.sqrt(3/2), 0, np.sqrt(3/2)],
                       [-np.sqrt(1/2), -np.sqrt(1/2), np.sqrt(2)]])
     aarc(res, truth)
+
+
+def test_mask_roi():
+    truth_even = np.array([
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+        [0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0],
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
+        [0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
+        [0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0],
+        [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+        [0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0],
+        [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0],
+        [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0]])
+
+    truth_odd = np.array([
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+       [0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+       [0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+       [0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+       [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+       [0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+       [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
+       [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+       [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+       [0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+       [0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+       [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+       [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+
+    frame_even = np.ones((20, 20), dtype=float)
+    frame_odd = np.ones((19, 19), dtype=float)
+
+    mask_even = mask_roi(
+        frame_even,
+        source_xy=(
+            5,
+            5),
+        exc_radius=2,
+        ann_width=2,
+        inc_radius=5,
+        mode='bool',
+        plot=False)
+    mask_odd = mask_roi(
+        frame_odd,
+        source_xy=(
+            5,
+            5),
+        exc_radius=2,
+        ann_width=2,
+        inc_radius=5,
+        mode='bool',
+        plot=False)
+
+    computed_mask_even = np.where(mask_even == False, 0, mask_even)
+    computed_mask_even = np.where(
+        computed_mask_even == True, 1, computed_mask_even)
+
+    computed_mask_odd = np.where(mask_odd == False, 0, mask_odd)
+    computed_mask_odd = np.where(
+        computed_mask_odd == True, 1, computed_mask_odd)
+
+    aarc(computed_mask_even, truth_even, rtol=1e-5, atol=1e-6)
+    aarc(computed_mask_odd, truth_odd, rtol=1e-5, atol=1e-6)

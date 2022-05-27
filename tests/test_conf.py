@@ -3,8 +3,8 @@ Tests for the conf submodule.
 """
 
 import numpy as np
-from vip_hci.conf.mem import check_enough_memory
-from vip_hci.conf.utils_conf import check_array
+from vip_hci.config.mem import check_enough_memory
+from vip_hci.config.utils_conf import check_array
 
 
 def test_check_enough_memory():
@@ -78,4 +78,3 @@ def test_check_array():
         check_array([2, 3], dim=2)
     except TypeError:
         pass
-

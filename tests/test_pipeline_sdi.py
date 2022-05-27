@@ -37,6 +37,7 @@ def injected_cube_position(example_dataset_ifs):
 
     return dsi, dsi.injections_yx[0]
 
+
 @fixture(scope="module")
 def estimated_scal_factor(example_dataset_ifs):
     """
@@ -60,41 +61,48 @@ def estimated_scal_factor(example_dataset_ifs):
 
     dsi_flux = np.ones_like(dsi.wavelengths)
     scal_fac_ori = dsi.wavelengths[-1]/dsi.wavelengths
-    scal_fac, _ = vip.preproc.find_scal_vector(dsi.psf, dsi.wavelengths, 
+    scal_fac, _ = vip.preproc.find_scal_vector(dsi.psf, dsi.wavelengths,
                                                dsi_flux, nfp=2, fm="stddev")
 
     return scal_fac_ori, scal_fac
 
 # ====== algos
+
+
 def algo_medsub(ds, sc):
-    return vip.medsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
+    return vip.psfsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
                                  scale_list=sc)
 
 
 def algo_medsub_annular(ds, sc):
-    return vip.medsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
+    return vip.psfsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
                                  scale_list=sc, mode='annular',
-                                 radius_int=20)
+                                 radius_int=10)
 
 
 def algo_xloci(ds, sc):
-    return vip.leastsq.xloci(ds.cube, ds.angles, fwhm=ds.fwhm,
-                             scale_list=sc, radius_int=20)
+    return vip.psfsub.xloci(ds.cube, ds.angles, fwhm=ds.fwhm, scale_list=sc,
+                            asize=12)
+
+
+def algo_xloci_double(ds, sc):
+    return vip.psfsub.xloci(ds.cube, ds.angles, fwhm=ds.fwhm, scale_list=sc,
+                            adimsdi='double', asize=12)
 
 
 def algo_pca_single(ds, sc):
-    return vip.pca.pca(ds.cube, ds.angles, scale_list=sc,
-                       adimsdi='single', ncomp=10)
+    return vip.psfsub.pca(ds.cube, ds.angles, scale_list=sc,
+                          adimsdi='single', ncomp=10)
 
 
 def algo_pca_double(ds, sc):
-    return vip.pca.pca(ds.cube, ds.angles, scale_list=sc,
-                       adimsdi='double', ncomp=(1, 5))
+    return vip.psfsub.pca(ds.cube, ds.angles, scale_list=sc,
+                          adimsdi='double', ncomp=(1, 2))
 
 
 def algo_pca_annular(ds, sc):
-    return vip.pca.pca_annular(ds.cube, ds.angles, scale_list=sc,
-                               radius_int=20, ncomp=(1, 1), delta_sep=0.1)
+    return vip.psfsub.pca_annular(ds.cube, ds.angles, scale_list=sc,
+                                  radius_int=10, ncomp=(1, 1), delta_sep=0.1)
 
 
 # ====== SNR map
@@ -142,16 +150,18 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
 
 
 @parametrize("algo, make_detmap",
-    [
-        (algo_medsub, None),
-        (algo_medsub_annular, None),
-        (algo_xloci, snrmap_fast),
-        (algo_pca_single, snrmap_fast),
-        (algo_pca_double, snrmap_fast),
-        (algo_pca_annular, None),
-    ],
-    ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
-def test_algos(injected_cube_position, estimated_scal_factor, algo, make_detmap):
+             [
+                 (algo_medsub, None),
+                 (algo_medsub_annular, None),
+                 (algo_xloci, snrmap_fast),
+                 (algo_xloci_double, snrmap_fast),
+                 (algo_pca_single, snrmap_fast),
+                 (algo_pca_double, snrmap_fast),
+                 (algo_pca_annular, None),
+                 ],
+             ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
+def test_algos(injected_cube_position,
+               estimated_scal_factor, algo, make_detmap):
     ds, position = injected_cube_position
     sc, scal_fac = estimated_scal_factor
     frame = algo(ds, sc)

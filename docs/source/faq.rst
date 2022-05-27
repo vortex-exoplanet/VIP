@@ -1,7 +1,7 @@
+Frequently asked questions
+--------------------------
 
-FAQ
-----
-First things first. Please make sure you have the latest version of ``VIP``.
+Before skimming this list, please make sure you have the latest version of ``VIP``.
 Please go and check the repository now. Alternatively, you can run:
 
 .. code-block:: bash
@@ -61,8 +61,10 @@ sure there is a Fortran compiler in your system. A workaround is to install
 .. rubric:: Why do I get and error related to importing ``cv2`` package when importing ``VIP``?
 
 ``cv2`` is the name of ``Opencv`` bindings for python. This library is needed for
-fast image transformations, it is the default library used although it is optional.
-You can install it with conda:
+fast image transformations, it was the default library before v1.0.0 (although it was optional).
+Starting from v1.1.0 the opencv library should be installed upon installation of VIP, although the
+default image library became 'vip-fft'.
+For old VIP versions, you can install opencv manually with conda:
 
 .. code-block:: bash
 
@@ -75,7 +77,7 @@ Please make sure you have ``DS9`` and ``XPA`` in your system path. Try installin
 them using your system's package management tool.
 
 
-.. rubric:: Why does Python crash when using some of the parallel functions, e.g. ``pca_adi_annular`` and ``run_mcmc_strometry``?
+.. rubric:: Why does Python crash when using some of the parallel functions, e.g. ``pca_annular`` and ``mcmc_negfc_sampling``?
 
 
 These functions require running SVD on several processes and this can be
@@ -104,4 +106,6 @@ your ``~/.bash_profile``:
   export LC_ALL=en_US.UTF-8
   export LANG=en_US.UTF-8
 
+.. rubric:: Where is the ``specfit`` module?
 
+From versions 1.0.0 to 1.0.3, ``specfit`` was a module of VIP offering atmosphere retrieval and spectral characterisation of directly imaged companions. Given the divergence with the original purpose of VIP, starting from version 1.1.0, it has been renamed, expanded, moved to a separate `GitHub repository <https://github.com/VChristiaens/special>`_ and converted into its own `package <https://pypi.org/project/special/>`_ (called ``special``).

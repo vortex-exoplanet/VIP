@@ -11,14 +11,14 @@ from hciplot import plot_frames
 from scipy import stats
 from photutils import detect_sources
 from munch import Munch
-from ..pca.svd import SVDecomposer
-from ..var import frame_center, get_annulus_segments
-from ..conf import time_ini, timing, Progressbar
-from ..var import get_circle
-from .fakecomp import cube_inject_companions
-
+from ..config import time_ini, timing, Progressbar
+from ..fm import cube_inject_companions
+from ..psfsub.svd import SVDecomposer
+from ..var import frame_center, get_annulus_segments, get_circle
 
 # TODO: remove the munch dependency
+
+
 class EvalRoc(object):
     """
     Class for the generation of receiver operating characteristic (ROC) curves.
@@ -85,8 +85,6 @@ class EvalRoc(object):
         from .. import hci_postproc
 
         starttime = time_ini()
-
-        frsize = self.dataset.cube.shape[1]
 
         # ===== number of PCs for PCA / rank for LLSG
         if cevr is not None:
@@ -327,7 +325,7 @@ class EvalRoc(object):
         if verbose:
             print('{} injections'.format(self.n_injections))
             # print('Flux distro : {} [{}:{}]'.format(roc_injections.flux_distribution,
-            #                                         roc_injections.fluxp1, roc_injections.fluxp2))
+            # roc_injections.fluxp1, roc_injections.fluxp2))
             print('Annulus from {} to {} pixels'.format(self.inrad,
                                                         self.outrad))
 
@@ -379,7 +377,8 @@ class EvalRoc(object):
                     labels.append(ax.annotate('{:.2f}'.format(thr[i]),
                                   xy=xy, xycoords='data', color=m.color,
                                               **labelskw))
-                    # TODO: reverse order of `self.methods` for better annot. z-index?
+                    # TODO: reverse order of `self.methods` for better annot.
+                    # z-index?
 
         plt.legend(loc=legend_loc, prop={'size': legend_size})
         if xlog:

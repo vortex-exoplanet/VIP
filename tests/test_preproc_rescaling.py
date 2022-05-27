@@ -11,13 +11,13 @@ from vip_hci.preproc.rescaling import (cube_px_resampling,
                                        cube_rescaling_wavelengths,
                                        check_scal_vector,
                                        _find_indices_sdi)
-
+from vip_hci.var import mask_circle
 
 CUBE = np.ones((10, 100, 100))
-FRAME = np.zeros((100, 100))
+FRAME = np.ones((100, 100))
 
 
-@parametrize("imlib", ["ndimage", "opencv"])
+@parametrize("imlib", ["vip-fft", "ndimage", "opencv"])
 def test_cube_px_resampling(imlib):
 
     # === enlargen ===
@@ -31,8 +31,14 @@ def test_cube_px_resampling(imlib):
     assert res.shape == (10, 50, 50)
 
 
-@parametrize("imlib", ["ndimage", "opencv"])
-def test_frame_px_resampling(imlib):
+@parametrize("imlib,keep_center",
+             [("vip-fft", False),
+              ("ndimage", False),
+              ("opencv", False),
+              ("vip-fft", True),
+              ("ndimage", True),
+              ("opencv", True)])
+def test_frame_px_resampling(imlib, keep_center):
     """
 
     Notes
@@ -43,16 +49,35 @@ def test_frame_px_resampling(imlib):
     """
 
     # === enlargen ===
-    res = frame_px_resampling(FRAME, scale=2, imlib=imlib, verbose=True)
+    frame_star = FRAME.copy()
+    frame_star[48:53, 48:53] = 2
+    frame_star[49:52, 49:52] = 4
+    frame_star[50, 50] = 8
+    res = frame_px_resampling(frame_star, scale=2, imlib=imlib,
+                              keep_center=keep_center, verbose=True)
+    assert res.shape == (200, 200)
+
+    if keep_center:
+        # further check whether max pixel (star proxy) is still centered
+        max_idx = np.argmax(res)
+        max_coords = np.unravel_index(max_idx, res.shape)
+        assert max_coords == (100, 100)
+
+    # === enlargen with mask ===
+    res = frame_px_resampling(mask_circle(FRAME, 4, np.nan), scale=2,
+                              imlib=imlib, keep_center=keep_center,
+                              verbose=True)
     assert res.shape == (200, 200)
 
     # === shrink ===
-    res = frame_px_resampling(FRAME, scale=0.5, imlib=imlib, verbose=True)
+    res = frame_px_resampling(FRAME, scale=0.5, imlib=imlib,
+                              keep_center=keep_center, verbose=True)
     assert res.shape == (50, 50)
 
 
 @parametrize("imlib,interpolation",
              [
+                 ("vip-fft", None),
                  ("opencv", "lanczos4"),
                  ("ndimage", "bicubic"),
              ])
@@ -77,7 +102,7 @@ def test_cube_rescaling_wavelengths(imlib, interpolation):
                                       inverse=True, x_in=100, y_in=100)
     cube2, med2, y2, x2, cy2, cx2 = res2
 
-    aarc(cube2, CUBE)
+    aarc(cube2, CUBE, 1e-2, 1e-2)
 
 
 def test_check_scal_vector():
@@ -86,7 +111,7 @@ def test_check_scal_vector():
     # === basic function ===
 
     res = check_scal_vector(scal_vec)
-    truth = np.array([4, 1, 2])
+    truth = np.array([1, 4, 2])
 
     aarc(res, truth)
 

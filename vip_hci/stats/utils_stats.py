@@ -5,7 +5,6 @@ Various stat functions.
 """
 
 
-
 __author__ = 'Carlos Alberto Gomez Gonzalez'
 __all__ = ['descriptive_stats',
            'frame_basic_stats',
@@ -15,7 +14,7 @@ import numpy as np
 from matplotlib.pyplot import boxplot
 from matplotlib import pyplot as plt
 from ..var import get_annulus_segments, get_circle
-from ..conf.utils_conf import vip_figsize
+from ..config.utils_conf import vip_figsize
 
 
 def descriptive_stats(array, verbose=True, label='', mean=False, plot=False):
@@ -28,7 +27,7 @@ def descriptive_stats(array, verbose=True, label='', mean=False, plot=False):
     maxi = np.max(array)
     first_qu = np.percentile(array, 25)
     third_qu = np.percentile(array, 75)
-    
+
     if verbose:
         if mean:
             label += 'min={:.1f} / 1st QU={:.1f} / ave={:.1f} / med={:.1f} / '
@@ -38,10 +37,10 @@ def descriptive_stats(array, verbose=True, label='', mean=False, plot=False):
             label += 'min={:.1f} / 1st QU={:.1f} / med={:.1f} / 3rd QU={:.1f} '
             label += '/ max={:.1f}'
             print(label.format(mini, first_qu, median, third_qu, maxi))
-    
+
     if plot:
         boxplot(array, vert=False, meanline=mean, showfliers=True, sym='.')
-    
+
     if mean:
         return mini, first_qu, mean_, median, third_qu, maxi
     else:
@@ -185,7 +184,8 @@ def cube_basic_stats(arr, region='circle', radius=5, xy=None, inner_radius=0,
         if region == 'circle':
             temp = get_circle(arr[0], radius, cy=y, cx=x)
         elif region == 'annulus':
-            temp = get_annulus_segments(arr[0], inner_radius, size, mode="mask")[0]
+            temp = get_annulus_segments(
+                arr[0], inner_radius, size, mode="mask")[0]
         else:
             raise ValueError('Region not recognized')
         temp[temp == 0] = np.nan

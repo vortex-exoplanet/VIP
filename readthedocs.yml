@@ -1,5 +1,8 @@
 # .readthedocs.yml
 
+sphinx:
+  configuration: docs/source/conf.py
+
 build:
   image: latest
 

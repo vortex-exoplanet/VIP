@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Module with HCIDataset and HCIFrame classes.
+Module with Dataset and Frame classes.
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
@@ -12,6 +12,8 @@ import numpy as np
 import copy
 import hciplot as hp
 from .fits import open_fits
+from .fm import (cube_inject_companions, generate_cube_copies_with_injections,
+                 normalize_psf)
 from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
                       frame_shift, frame_center_satspots, frame_center_radon)
 from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
@@ -24,12 +26,10 @@ from .var import (frame_filter_lowpass, frame_filter_highpass, frame_center,
                   cube_filter_highpass, cube_filter_lowpass, mask_circle)
 from .stats import (frame_basic_stats, frame_histo_stats,
                     frame_average_radprofile, cube_basic_stats, cube_distance)
-from .metrics import (frame_report, cube_inject_companions,
-                      generate_cube_copies_with_injections, snr,
-                      snrmap, detection, normalize_psf)
+from .metrics import (frame_report, snr, snrmap, detection)
 
-from .conf.utils_conf import check_array, Saveable, print_precision
-from .conf.mem import check_enough_memory
+from .config.utils_conf import check_array, Saveable, print_precision
+from .config.mem import check_enough_memory
 
 
 class Frame(object):
@@ -46,8 +46,9 @@ class Frame(object):
         The FWHM associated with this dataset (instrument dependent). Required
         for several methods (operations on the cube).
     """
+
     def __init__(self, data, hdu=0, fwhm=None):
-        """ HCIFrame object initialization. """
+        """ Frame object initialization. """
         if isinstance(data, str):
             self.data = open_fits(data, hdu, verbose=False)
         else:
@@ -222,7 +223,8 @@ class Frame(object):
         self.data = frame_rotate(self.data, angle, imlib, interpolation, cxy)
         print('Image successfully rotated')
 
-    def shift(self, shift_y, shift_x, imlib='vip-fft', interpolation='lanczos4'):
+    def shift(self, shift_y, shift_x, imlib='vip-fft',
+              interpolation='lanczos4'):
         """ Shifting the image.
 
         Parameters
@@ -359,7 +361,7 @@ class Dataset(Saveable):
 
     def __init__(self, cube, hdu=0, angles=None, wavelengths=None, fwhm=None,
                  px_scale=None, psf=None, psfn=None, cuberef=None):
-        """ Initialization of the HCIDataset object.
+        """ Initialization of the Dataset object.
         """
         # Loading the 3d/4d cube or image sequence
         if isinstance(cube, str):
@@ -514,26 +516,26 @@ class Dataset(Saveable):
             fashion. Only useful if the cube is significantly large (frame size
             and number of frames).
         border_mode : str, optional
-            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            See the documentation of the ``vip_hci.preproc.frame_rotate``
             function.
         mask_val : float, optional
-            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            See the documentation of the ``vip_hci.preproc.frame_rotate``
             function.
         edge_blend : str, optional
-            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            See the documentation of the ``vip_hci.preproc.frame_rotate``
             function.
         interp_zeros : str, optional
-            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            See the documentation of the ``vip_hci.preproc.frame_rotate``
             function.
         ker: int, optional
-            See the documentation of the ``vip_hci.preproc.frame_rotate`` 
+            See the documentation of the ``vip_hci.preproc.frame_rotate``
             function.
         """
         if self.angles is None:
             raise ValueError('Parallactic angles vector has not been set')
 
         self.cube = cube_derotate(self.cube, self.angles, imlib,
-                                  interpolation, cxy, nproc, border_mode, 
+                                  interpolation, cxy, nproc, border_mode,
                                   mask_val, edge_blend, interp_zeros, ker)
         print('Cube successfully derotated')
 
@@ -569,11 +571,11 @@ class Dataset(Saveable):
         """
         if method == 'hp':
             self.cube = cube_filter_highpass(self.cube, mode, median_size,
-                                              kernel_size, fwhm_size,
-                                              btw_cutoff, btw_order, verbose)
+                                             kernel_size, fwhm_size,
+                                             btw_cutoff, btw_order, verbose)
         elif method == 'lp':
             self.cube = cube_filter_lowpass(self.cube, mode, median_size,
-                                             fwhm_size, gauss_mode, verbose)
+                                            fwhm_size, gauss_mode, verbose)
         else:
             raise ValueError('Filtering mode not recognized')
 
@@ -695,8 +697,8 @@ class Dataset(Saveable):
                 raise ValueError('The wavelengths vector has not been set')
 
         self.cube, yx = cube_inject_companions(
-            self.cube, self.psfn, self.angles, flux, self.px_scale,
-            rad_dists, n_branches, theta, imlib, interpolation,
+            self.cube, self.psfn, self.angles, flux, rad_dists, self.px_scale,
+            n_branches, theta, imlib, interpolation,
             full_output=True, verbose=verbose
         )
 
@@ -728,17 +730,17 @@ class Dataset(Saveable):
             ``*params`` are passed to it. Method can also be a string, for a
             pre-defined random function:
 
-                ``("skewnormal", skew, mean, var)``
+                ``('skewnormal', skew, mean, var)``
                     uses scipy.stats.skewnorm.rvs
-                ``("uniform", low, high)``
+                ``('uniform', low, high)``
                     uses np.random.uniform
-                ``("normal", loc, scale)``
+                ``('normal', loc, scale)``
                     uses np.random.normal
 
         Yields
         -------
-        fake_dataset : HCIDataset
-            Copy of the original HCIDataset, with injected companions.
+        fake_dataset : Dataset
+            Copy of the original Dataset, with injected companions.
 
         """
 
@@ -756,7 +758,7 @@ class Dataset(Saveable):
 
     def get_nbytes(self):
         """
-        Return the total number of bytes the HCIDataset consumes.
+        Return the total number of bytes the Dataset consumes.
         """
         return sum(arr.nbytes for arr in [self.cube, self.cuberef, self.angles,
                                           self.wavelengths, self.psf, self.psfn]
@@ -764,7 +766,7 @@ class Dataset(Saveable):
 
     def copy(self, deep=True, check_mem=True):
         """
-        Create an in-memory copy of this HCIDataset.
+        Create an in-memory copy of this Dataset.
 
         This is especially useful for keeping a backup copy of the original
         dataset before modifying if (e.g. with injections).
@@ -774,8 +776,8 @@ class Dataset(Saveable):
         deep : bool, optional
             By default, a deep copy is created. That means every (sub)attribute
             is copied in memory. While this requires more memory, one can safely
-            modify the attributes without touching the original HCIDataset. When
-            ``deep=False``, a shallow copy of the HCIDataset is returned
+            modify the attributes without touching the original Dataset. When
+            ``deep=False``, a shallow copy of the Dataset is returned
             instead. That means all attributes (e.g. ``self.cube``) point back
             to the original object's attributes. Pay attention when modifying
             such a shallow copy!
@@ -786,7 +788,7 @@ class Dataset(Saveable):
         Returns
         -------
         new_dataset : Dataset
-            (deep) copy of this HCIDataset.
+            (deep) copy of this Dataset.
 
         """
         if deep:
@@ -1151,20 +1153,20 @@ class Dataset(Saveable):
                 frame_ref = 0
 
             self.good_indices, _ = cube_detect_badfr_correlation(tcube,
-                                        frame_ref, crop_size, dist, percentile,
-                                        plot, verbose)
+                                                                 frame_ref, crop_size, dist, percentile,
+                                                                 plot, verbose)
         elif method == 'pxstats':
             self.good_indices, _ = cube_detect_badfr_pxstats(tcube, stat_region,
-                                        inner_radius, width, top_sigma,
-                                        low_sigma, window, plot, verbose)
+                                                             inner_radius, width, top_sigma,
+                                                             low_sigma, window, plot, verbose)
         elif method == 'ellip':
             if self.cube.ndim == 4:
                 fwhm = self.fwhm[lambda_ref]
             else:
                 fwhm = self.fwhm
             self.good_indices, _ = cube_detect_badfr_ellipticity(tcube, fwhm,
-                                        crop_size, roundlo, roundhi, plot,
-                                        verbose)
+                                                                 crop_size, roundlo, roundhi, plot,
+                                                                 verbose)
         else:
             raise ValueError('Bad frames detection method not recognized')
 

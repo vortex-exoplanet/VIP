@@ -664,6 +664,8 @@ def _adi_pca(cube, angle_list, ncomp, batch, source_xy, delta_rot, fwhm,
                                             nproc=nproc, imlib=imlib,
                                             interpolation=interpolation,
                                             **rot_options)
+            if mask_center_px:
+                residuals_cube_ = mask_circle(residuals_cube_, mask_center_px)
             frame = cube_collapse(residuals_cube_, mode=collapse, w=weights)
             if verbose:
                 print('Done de-rotating and combining')

@@ -85,8 +85,6 @@ def nmf_annular(cube, angle_list, cube_ref=None, radius_int=0, fwhm=4, asize=4,
     delta_rot : int, optional
         Factor for tunning the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1xFHWM on each side of the considered frame).
-    fwhm : float, optional
-        Known size of the FHWM in pixels to be used. Default value is 4.
     init_svd: str, optional {'nnsvd','nnsvda','random'}
         Method used to initialize the iterative procedure to find H and W.
         'nndsvd': non-negative double SVD recommended for sparseness

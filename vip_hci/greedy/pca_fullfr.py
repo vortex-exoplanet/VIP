@@ -14,8 +14,7 @@ from ..config import time_ini, timing
 from ..fm import cube_inject_companions, frame_inject_companion
 from ..psfsub import nmf, pca
 from ..preproc import cube_derotate, cube_collapse
-from ..metrics import (throughput, compute_stim_map, mask_sources,
-                       compute_inverse_stim_map)
+from ..metrics import throughput, stim_map, mask_sources, inverse_stim_map
 from ..var import (prepare_matrix, mask_circle, cart_to_pol, frame_center,
                    frame_filter_lowpass)
 
@@ -241,8 +240,8 @@ def pca_it(cube, angle_list, cube_ref=None, algo=pca, mode=None, ncomp=1,
     def _find_significant_signals(residuals_cube, residuals_cube_, angle_list, 
                                   thr, mask=0):
         # Identifies significant signals with STIM map (outside mask)
-        stim = compute_stim_map(residuals_cube_)
-        inv_stim = compute_inverse_stim_map(residuals_cube, angle_list)
+        stim = stim_map(residuals_cube_)
+        inv_stim = inverse_stim_map(residuals_cube, angle_list)
         if mask:
             #stim = mask_circle(stim, mask) # done outside the function
             inv_stim = mask_circle(inv_stim, mask)

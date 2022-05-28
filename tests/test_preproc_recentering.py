@@ -479,7 +479,7 @@ def test_radon(debug=False):
     randay = seed.uniform(0, shift_magnitude, size=n_frames)
 
     # ===== recenter
-    method_args = dict(hsize=1.5, step=0.1, cropsize=131, full_output=True, 
+    method_args = dict(hsize_ini=1.5, step_ini=0.1, cropsize=131, full_output=True, 
                        mask_center=30, verbose=True)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 mse=0.8, **method_args)

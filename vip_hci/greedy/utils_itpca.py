@@ -9,8 +9,7 @@ __author__ = 'Valentin Christiaens'
 __all__ = ['pca_1rho_it',
            'pca_1zone_it',
            'pca_2zones_it',
-           'make_optimal_image_cc',
-           'make_optimal_image_stim']
+           'make_optimal_image_cc']
 
 import inspect
 import numpy as np
@@ -19,15 +18,14 @@ import os
 from os.path import isdir, isfile
 from .pca_local import pca_annular_it, _prepare_matrix_ann
 from .pca_fullfr import pca_it
-from ..conf import time_ini, timing
-from ..conf.utils_conf import pool_map, iterable
+from ..config import time_ini, timing
+from ..config.utils_conf import pool_map, iterable
 from ..fits import write_fits, open_fits
-from ..nmf import nmf
+from ..fm import cube_inject_companions, frame_inject_companion
+from ..psfsub import nmf, pca, pca_annular
 from ..preproc import cube_derotate, cube_crop_frames
-from ..pca import pca, pca_annular
-from ..metrics import (cube_inject_companions, frame_inject_companion, 
-                       contrast_curve)
-from ..specfit import find_nearest
+from ..metrics import contrast_curve
+from ..fm.utils_negfc import find_nearest
 from ..var import (prepare_matrix, cart_to_pol, frame_center, 
                    get_annulus_segments)
 
@@ -2071,121 +2069,6 @@ def make_optimal_image_cc(cube_list, cc_list, rad_list=None, lab_list=None,
     
     for cc, cube in enumerate(cube_list):
         nframes = cube.shape[0]
-        for nf in range(nframes):
-            rad_tmp = rad_list[cc][nf]
-            cn_list_tmp = list(range(ncubes))
-            cn_list_tmp.remove(cc)
-            cond=True
-            for cn in cn_list_tmp:
-                idx_r = find_nearest(rad_list[cn], rad_tmp)
-                if rad_list[cn][idx_r] == rad_tmp:
-                    if cc_list[cn][idx_r] < cc_list[cc][nf]:
-                        cond=False
-                        break
-                elif np.amin(rad_list[cn]) > rad_tmp:
-                    continue
-                elif np.amax(rad_list[cn]) < rad_tmp:
-                    continue
-                else:
-                    idx_r0 = find_nearest(rad_list[cn], rad_tmp,
-                                          constraint='floor')
-                    idx_r1 = find_nearest(rad_list[cn], rad_tmp, 
-                                          constraint='ceil')
-                    r0 = rad_list[cn][idx_r0]
-                    r1 = rad_list[cn][idx_r1]
-                    cc0 = cc_list[cn][idx_r0]
-                    cc1 = cc_list[cn][idx_r1]
-                    coeff = (rad_tmp-r0)/(r1-r0)
-                    interp_cc = cc0 + coeff*(cc1-cc0)
-                    if interp_cc < cc_list[cc][nf]:
-                        cond=False
-                        break
-            if cond:
-                hc_images.append(cube_list[cc][nf])
-                best_cc.append(cc_list[cc][nf])
-                best_rad.append(rad_list[cc][nf])
-                best_lab.append(lab_list[cc])
-
-    # reorder with increasing radii
-    rad_idx = np.argsort(best_rad)
-    best_imgs = hc_images[rad_idx]
-    best_cc = best_cc[rad_idx]
-    best_lab = best_lab[rad_idx]
-    best_rad = best_rad[rad_idx]
-
-    final_cube = np.array(best_imgs)
-    final_cc = np.array([best_rad,best_cc])
-    
-    if collapse == "median":
-        final_image = np.nanmedian(final_cube, axis=0)
-    elif collapse == "mean":
-        final_image = np.nanmean(final_cube, axis=0)
-    
-    if full_output:
-        return final_image, final_cube, final_cc, best_lab
-    else:
-        return final_image
-    
-
-def make_optimal_image_stim(cube_list, stim_list, lab_list=None, nfrac=6,
-                            collapse="median", full_output=False):
-    """
-    Combine concentric annuli from different images of different cubes, 
-    obtained e.g. with different strategies or reduction parameters, 
-    considering the ones achieving the highest normalized STIM map in each
-    region of the image.
-    
-    Parameters
-    ----------
-    cube_list : list of 3d numpy arrays
-        Cubes of images (e.g. 'master_cube' output from pca_1zone_it or 
-        pca_2zones_it). All images must have same dimensions.
-    stim_list : list of 2d numpy arrays
-        List of STIM maps (2d) associated to each image of each cube.
-    lab_list : list of str, opt
-        List of labels corresponding to each input cube/contrast curve (e.g.
-        ['PCA-ADI 2zones', 'PCA-RDI 1 zone'])
-    nfrac: int, opt {1...6}
-        Fractionation level used to build the final image, i.e. a higher
-        fractionation will check the median of the STIM in smaller areas, and
-        make a composite image from more annular segments. The fractionation 
-        follows the same pattern at the default fractionation of the feves
-        algorithm. '1' consider the median STIM in the whole image, while 
-        '6' considers 6 annular segments in 1-FWHM wide annuli.
-    collapse: str, opt, {"median, mean"}
-        How the final cube is stacked.
-        
-        
-    Returns
-    -------
-    final_image : 2d numpy array
-        Combined image achieving highest contrast
-    if full_output is True, also returns:
-    final_cube : 3d numpy array
-        Cube containing only the images from each input cube achieving the 
-        highest contrast at each radius.
-    final_cc: 2d numpy array
-        Final combined contrast curve (2,n_rad). First column: radius. Second 
-        column: corresponding contrast.
-    final_labs: 
-        Final list of labels, corresponding to the method achieving the highest 
-        contrast at each radius. 
-        
-    """    
-    ncubes = len(cube_list)
-    hc_images = []
-    best_cc = []
-    best_rad = []
-    best_lab=[]
-    if ncubes < 2:
-        raise ValueError("There is no point using this function for <2 cubes")
-    if full_output and lab_list is None:
-        raise ValueError("Input label list required if full output requested")
-    
-    for cc, cube in enumerate(cube_list):
-        nframes = cube.shape[0]
-        # adapt below for median stim value in each section.
-        # use nfrac!
         for nf in range(nframes):
             rad_tmp = rad_list[cc][nf]
             cn_list_tmp = list(range(ncubes))

@@ -12,14 +12,12 @@ __all__ = ['pca_annular_it',
 from multiprocessing import cpu_count
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
-from ..conf.utils_conf import pool_map, iterable
+from ..config.utils_conf import pool_map, iterable
 from .pca_fullfr import _interp2d_rad
 from ..preproc import cube_derotate, cube_shift, cube_collapse
 from ..preproc.derotation import _define_annuli
-from ..nmf import nmf_annular
-from ..pca import pca_annular
-from ..metrics import (throughput, compute_stim_map, mask_sources,
-                       compute_inverse_stim_map)
+from ..psfsub import nmf_annular, pca_annular
+from ..metrics import throughput, stim_map, mask_sources, inverse_stim_map
 from ..var import (get_annulus_segments, matrix_scaling, mask_circle,
                    frame_filter_lowpass, frame_center)
 
@@ -234,8 +232,8 @@ def pca_annular_it(cube, angle_list, cube_ref=None, ncomp=1, n_it=10, thr=1.,
     def _find_significant_signals(residuals_cube, residuals_cube_, angle_list, 
                                   thr, mask=0, thr_per_ann=True, asize=4):
         # Identifies significant signals with STIM map (outside mask)
-        stim = compute_stim_map(residuals_cube_)
-        inv_stim = compute_inverse_stim_map(residuals_cube, angle_list)
+        stim = stim_map(residuals_cube_)
+        inv_stim = inverse_stim_map(residuals_cube, angle_list)
         if mask is None:
             mask = 0
         if mask:
@@ -1307,8 +1305,8 @@ def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann,
 def _find_significant_signals(residuals_cube, residuals_cube_, angle_list, 
                               thr, mask=0, thr_per_ann=True, asize=4):
     # Identifies significant signals with STIM map (outside mask)
-    stim = compute_stim_map(residuals_cube_)
-    inv_stim = compute_inverse_stim_map(residuals_cube, angle_list)
+    stim = stim_map(residuals_cube_)
+    inv_stim = inverse_stim_map(residuals_cube, angle_list)
     if mask is not None:
         stim = mask_circle(stim, mask)
         inv_stim = mask_circle(inv_stim, mask)

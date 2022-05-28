@@ -365,13 +365,8 @@ def cube_derotate(array, angle_list, imlib='vip-fft', interpolation='lanczos4',
                                         interp_zeros=interp_zeros, ker=ker)
     elif nproc > 1:
 
-<<<<<<< HEAD
-        res = pool_map(nproc, _frame_rotate_mp, iterable(array), 
-                       iterable(-angle_list), imlib, interpolation, cxy, 
-=======
         res = pool_map(nproc, _frame_rotate_mp, iterable(array),
                        iterable(-angle_list), imlib, interpolation, cxy,
->>>>>>> master
                        border_mode, mask_val, edge_blend, interp_zeros, ker)
         array_der = np.array(res)
 

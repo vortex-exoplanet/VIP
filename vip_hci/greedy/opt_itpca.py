@@ -21,12 +21,11 @@ import os
 from os.path import isdir, isfile
 from .pca_local import feves
 from .pca_fullfr import pca_it
-from ..conf.utils_conf import pool_map, iterable
+from ..config.utils_conf import pool_map, iterable
 from ..fits import write_fits, open_fits
 from ..preproc import cube_crop_frames, frame_crop
 from ..preproc.derotation import _define_annuli
-from ..nmf import nmf_annular, nmf
-from ..pca import pca_annular, pca
+from ..psfsub import nmf_annular, nmf, pca_annular, pca
 from ..var import frame_center, get_annulus_segments
 
 

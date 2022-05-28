@@ -10,13 +10,12 @@ __all__ = ['pca_it']
 import inspect
 import numpy as np
 from scipy.interpolate import interp2d, InterpolatedUnivariateSpline
-from ..conf import time_ini, timing
-from ..nmf import nmf
+from ..config import time_ini, timing
+from ..fm import cube_inject_companions, frame_inject_companion
+from ..psfsub import nmf, pca
 from ..preproc import cube_derotate, cube_collapse
-from ..pca import pca
 from ..metrics import (throughput, compute_stim_map, mask_sources,
-                       compute_inverse_stim_map, cube_inject_companions, 
-                       frame_inject_companion)
+                       compute_inverse_stim_map)
 from ..var import (prepare_matrix, mask_circle, cart_to_pol, frame_center,
                    frame_filter_lowpass)
 

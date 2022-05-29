@@ -474,15 +474,15 @@ def test_radon(debug=False):
     cube = cube_correct_nan(cube)
 
     # ===== shift
-    shift_magnitude = 1
+    shift_magnitude = 2
     randax = seed.uniform(-shift_magnitude, 0, size=n_frames)
     randay = seed.uniform(0, shift_magnitude, size=n_frames)
 
     # ===== recenter
-    method_args = dict(hsize_ini=1.5, step_ini=0.1, cropsize=131, full_output=True, 
-                       mask_center=30, verbose=True)
+    method_args = dict(hsize_ini=2.0, step_ini=0.1, cropsize=131, 
+                       full_output=True, mask_center=30, verbose=True)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
-                mse=0.8, **method_args)
+                mse=0.5, **method_args)
     
 
 def test_speckle_recentering(get_cube, debug=False):

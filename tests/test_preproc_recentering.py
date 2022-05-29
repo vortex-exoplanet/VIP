@@ -472,15 +472,18 @@ def test_radon(debug=False):
     # subsample and correct for NaNs
     cube = cube_subsample(cube, 20) #discard last channels with BKG star bias
     cube = cube_correct_nan(cube)
-    mean_fr = np.mean(cube, axis=0)
-    cube = np.array([mean_fr])
+    
+    method_args = dict(hsize_ini=2.0, step_ini=0.1, cropsize=131, 
+                       full_output=True, mask_center=30, verbose=True)
+    # first recenter with Radon to make sure it is well recentered
+    cube = cube_recenter_radon(cube, **method_args)
 
     # ===== shift
     shift_magnitude = 2
     randax = seed.uniform(-shift_magnitude, 0, size=n_frames)
     randay = seed.uniform(0, shift_magnitude, size=n_frames)
 
-    # ===== recenter
+    # ===== recenter again after random shifts
     method_args = dict(hsize_ini=2.0, step_ini=0.1, cropsize=131, 
                        full_output=True, mask_center=30, verbose=True)
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,

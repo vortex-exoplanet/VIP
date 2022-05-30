@@ -474,7 +474,7 @@ def test_radon(debug=False):
     cube = cube_correct_nan(cube)
     
     method_args = dict(hsize_ini=2.0, step_ini=0.1, cropsize=131, 
-                       full_output=True, mask_center=30, verbose=True)
+                       mask_center=30, verbose=True)
     # first recenter with Radon to make sure it is well recentered
     cube = cube_recenter_radon(cube, **method_args)
 
@@ -484,8 +484,7 @@ def test_radon(debug=False):
     randay = seed.uniform(0, shift_magnitude, size=n_frames)
 
     # ===== recenter again after random shifts
-    method_args = dict(hsize_ini=2.0, step_ini=0.1, cropsize=131, 
-                       full_output=True, mask_center=30, verbose=True)
+    method_args['full_output'] = True
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 mse=0.5, **method_args)
     

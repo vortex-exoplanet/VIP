@@ -465,22 +465,54 @@ def test_radon(debug=False):
 
     f1 = download_file("{}/sphere_ifs_PDS70_cen.fits".format(url_prefix),
                        cache=True)
-
+    f2 = download_file("{}/sphere_ifs_PDS70_psf.fits".format(url_prefix),
+                       cache=True)
+    
     # load fits
     cube = vip.fits.open_fits(f1)
+    psfifs = vip.fits.open_fits(f2)
+    norm_psf, flux, fwhm = vip.fm.normalize_psf(psfifs, fwhm='fit', 
+                                                full_output=True, size=15)
+
+    # remove BKG star
+    fit_flux = np.array([22.274, 27.988, 30.231, 32.978, 33.926, 35.492, 
+                         36.131, 35.786, 33.806, 32.51, 33.515, 35.477, 38.082,
+                         40.757, 39.925, 40.084, 42.377, 43.566, 43.317, 43.937,
+                         43.55,  38.84,  30.284, 26.018, 27.192, 30.244, 34.278, 
+                         39.913, 43.786, 46.135, 48.691, 49.838, 51.637, 53.332, 
+                         54.734, 55.714, 56.277, 56.607, 57.52])
+    med_y = 146.99531922145198
+    med_x = 144.27429227212795
+    for z in range(cube.shape[0]):
+        cube[z] = vip.fm.frame_inject_companion(cube[z], norm_psf[z], med_y, 
+                                                med_x,  -fit_flux[z], 
+                                                imlib='vip-fft', 
+                                                interpolation='lanczos4')
 
     # subsample and correct for NaNs
-    cube = cube_subsample(cube, 20) #discard last channels with BKG star bias
+    cube = cube_subsample(cube, 25) #discard last channels with BKG star bias
     cube = cube_correct_nan(cube)
+
+    # high-pass filter
+    cube[0] = vip.var.frame_filter_highpass(cube[0], mode='gauss-subt', 
+                                            fwhm_size=2*np.mean(fwhm))
+    
+    method_args = dict(hsize_ini=2.0, step_ini=0.1, cropsize=131, 
+                       mask_center=40, verbose=True, imlib='opencv', hpf=True, 
+                       filter_fwhm=2*np.mean(fwhm))
+    # # first recenter with Radon to make sure it is well recentered
+    try:
+        cube = cube_recenter_radon(cube, **method_args)
+    except:
+        pass
 
     # ===== shift
     shift_magnitude = 2
     randax = seed.uniform(-shift_magnitude, 0, size=n_frames)
     randay = seed.uniform(0, shift_magnitude, size=n_frames)
 
-    # ===== recenter
-    method_args = dict(hsize_ini=2.0, step_ini=0.1, cropsize=131, 
-                       full_output=True, mask_center=30, verbose=True)
+    # ===== recenter again after random shifts
+    method_args['full_output'] = True
     do_recenter(method, cube, randax, randay, errormsg=errormsg, debug=debug,
                 mse=0.5, **method_args)
     

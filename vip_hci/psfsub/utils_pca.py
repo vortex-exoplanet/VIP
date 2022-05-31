@@ -612,7 +612,7 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     ----------
     cube : 3d or 4d numpy ndarray
         Input data cube to be processed by PCA.
-    angs : numpy ndarray
+    angs : numpy ndarray or None
         The parallactic angles expressed as a numpy.array.
     ncomp : int or 1d numpy array of int
         The number of principal component.
@@ -648,8 +648,11 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
 
     Returns
     -------
-    Depending on ``collapse`` parameter a final collapsed frame or the cube of
-    residuals is returned.
+    pca_res: 2d or 3d ndarray
+        Depending on ``collapse`` and ``angs`` parameters, either a final 
+        collapsed frame (``collapse`` not None) or the cube of residuals 
+        (derotated if angs is not None, non-derotated otherwises).
+        Note: for 4d input cube, collapse must be non-None.
     """
 
     def _pca_annulus_3d(cube, angs, ncomp, annulus_width, r_guess, cube_ref,

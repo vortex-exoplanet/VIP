@@ -44,7 +44,8 @@ from ..config.utils_conf import pool_map, iterable
 from ..stats import frame_basic_stats
 from ..var import (get_square, frame_center, get_annulus_segments,
                    fit_2dmoffat, fit_2dgaussian, fit_2dairydisk,
-                   fit_2d2gaussian, cube_filter_lowpass, cube_filter_highpass)
+                   fit_2d2gaussian, cube_filter_lowpass, cube_filter_highpass,
+                   frame_filter_highpass)
 from .cosmetics import cube_crop_frames, frame_crop
 
 
@@ -618,7 +619,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
 def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1, 
                        n_iter=5, tol=0.05, mask_center=None, nproc=None, 
                        satspots_cfg=None, theta_0=0, delta_theta=5, 
-                       gauss_fit=True, imlib='vip-fft', 
+                       gauss_fit=True, hpf=True, filter_fwhm=8, imlib='vip-fft', 
                        interpolation='lanczos4', full_output=False, 
                        verbose=True, plot=True, debug=False):
     """ Finding the center of a broadband (co-added) frame with speckles and
@@ -669,6 +670,12 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
         'x' pattern to calculate the Radon transform. E.g. if set to 5 for 'x'
         configuration, it will consider slices from 40 to 50 deg in each 
         quadrant.
+    hpf: bool, optional
+        Whether to high-pass filter the images
+    filter_fwhm: float, optional
+        In case of high-pass filtering, this is the FWHM of the low-pass filter
+        used for subtraction to the original image to get the high-pass 
+        filtered image (i.e. should be >~ 2 x FWHM).
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
@@ -735,29 +742,37 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
                 samples = 10
                 if satspots_cfg == 'x':
                     theta = np.hstack((np.linspace(start=45-delta_theta, 
-                                                   stop=45+delta_theta, num=samples,
+                                                   stop=45+delta_theta, 
+                                                   num=samples,
                                                    endpoint=False),
                                        np.linspace(start=135-delta_theta, 
-                                                   stop=135+delta_theta, num=samples,
+                                                   stop=135+delta_theta, 
+                                                   num=samples,
                                                    endpoint=False),
                                        np.linspace(start=225-delta_theta, 
-                                                   stop=225+delta_theta, num=samples,
+                                                   stop=225+delta_theta, 
+                                                   num=samples,
                                                    endpoint=False),
                                        np.linspace(start=315-delta_theta, 
-                                                   stop=315+delta_theta, num=samples,
+                                                   stop=315+delta_theta, 
+                                                   num=samples,
                                                    endpoint=False)))
                 elif satspots_cfg == '+':
                     theta = np.hstack((np.linspace(start=-delta_theta, 
-                                                   stop=delta_theta, num=samples,
+                                                   stop=delta_theta, 
+                                                   num=samples,
                                                    endpoint=False),
                                        np.linspace(start=90-delta_theta, 
-                                                   stop=90+delta_theta, num=samples,
+                                                   stop=90+delta_theta, 
+                                                   num=samples,
                                                    endpoint=False),
                                        np.linspace(start=180-delta_theta, 
-                                                   stop=180+delta_theta, num=samples,
+                                                   stop=180+delta_theta, 
+                                                   num=samples,
                                                    endpoint=False),
                                        np.linspace(start=270-delta_theta, 
-                                                   stop=270+delta_theta, num=samples,
+                                                   stop=270+delta_theta, 
+                                                   num=samples,
                                                    endpoint=False)))
                 elif satspots_cfg == 'custom':
                     theta = np.hstack((np.linspace(start=90-theta_0-delta_theta, 
@@ -843,8 +858,10 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
             ind_maximay, ind_maximax = np.where(cost_bound == cost_bound.max())
             argmy = ind_maximay[int(np.ceil(num_max/2)) - 1]
             argmx = ind_maximax[int(np.ceil(num_max/2)) - 1]
-            y_grid = np.array(coords)[:, 0].reshape(listyx.shape[0], listyx.shape[0])
-            x_grid = np.array(coords)[:, 1].reshape(listyx.shape[0], listyx.shape[0])
+            y_grid = np.array(coords)[:, 0].reshape(listyx.shape[0], 
+                                                    listyx.shape[0])
+            x_grid = np.array(coords)[:, 1].reshape(listyx.shape[0], 
+                                                    listyx.shape[0])
             optimy = ori_cent_y-y_grid[argmy, 0]  # subtract optimal shift
             optimx = ori_cent_x-x_grid[0, argmx]  # subtract optimal shift
     
@@ -857,15 +874,19 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
     
         return optimy, optimx, opt_yshift, opt_xshift, dyx, cost_bound
     
+    # high-pass filtering if requested
+    if hpf:
+        array = frame_filter_highpass(array, mode='gauss-subt', 
+                                      fwhm_size=filter_fwhm)
+    
     ori_cent_y, ori_cent_x = frame_center(array)
+    hsize = hsize_ini
+    step = step_ini
     opt_yshift = 0
     opt_xshift = 0
     for i in range(n_iter):
         if verbose:
             print("*** Iteration {}/{} ***".format(i+1, n_iter))
-        if i == 0:
-            hsize = hsize_ini
-            step = step_ini
         res = _center_radon(array, cropsize=cropsize, hsize=hsize, step=step, 
                             mask_center=mask_center, nproc=nproc, 
                             satspots_cfg=satspots_cfg, theta_0=theta_0, 
@@ -994,7 +1015,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
     kwargs:
         Additional optional parameters from vip_hci.preproc.frame_center_radon
         function, such as cropsize, hsize, step, satspots_cfg, mask_center,
-        nproc or debug.
+        hpf, filter_fwhm, nproc or debug.
 
 
     Returns

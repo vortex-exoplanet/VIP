@@ -127,7 +127,7 @@ rapid expansion of ``VIP``, we summarize here all novelties that were brought
 to the package over the past five years.
 
 The rest of this manuscript summarizes all major changes since v0.7.0
-[@Gomez:2017], that are included in the latest release of ``VIP`` (v1.3.0). At
+[@Gomez:2017], that are included in the latest release of ``VIP`` (v1.3.1). At
 a structural level, ``VIP`` underwent a major change since version v1.1.0, which
 aimed to migrate towards a more streamlined and easy-to-use architecture. The
 package now revolves around five major modules (`fm`, `invprob`, `metrics`,

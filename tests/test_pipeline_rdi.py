@@ -138,4 +138,7 @@ def test_algos(injected_cube_position, algo, make_detmap):
     else:
         detmap = frame
 
+    # since some are run with mask of zeros, detmap may have non-finite values
+    detmap[np.where(np.isinf(detmap))] = 0
+
     check_detection(detmap, position, np.mean(ds.fwhm), snr_thresh=2)

@@ -748,8 +748,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
                       (initial_state[1] - dth, initial_state[1] + dth)]  # angle
             d0 = 2
         for i in range(dim-d0):
-            bounds.append(
-                (0.1 * initial_state[d0+i], 2 * initial_state[d0+i]))  # flux
+            bounds.append((0, 10 * initial_state[d0+i]))  # flux
     # size of ball of parameters for MCMC initialization
     scal = abs(bounds[0][0]-initial_state[0])/initial_state[0]
     for i in range(dim):

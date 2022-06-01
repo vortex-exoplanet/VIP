@@ -47,7 +47,7 @@ def injected_cube_position(example_dataset_adi):
                  (pca, firstguess, 3, True, None, False, None),
                  (median_sub, firstguess, None, False, 'sum', False, None),
                  (pca_annulus, mcmc_negfc_sampling, 3, False, 'stddev', False, 'gb'),
-                 (pca_annulus, mcmc_negfc_sampling, 3, True, None, True, 'ac'),
+                 (pca_annulus, mcmc_negfc_sampling, 5, True, None, True, 'ac'),
                  (pca_annulus, nested_negfc_sampling, 3, False, 'sum', False, None)
                  ])
 def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
@@ -100,13 +100,18 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
         trans[0] = np.linspace(0, ds.cube.shape[-1], 10, endpoint=True)
         trans[1,:] = 1
         # run MCMC
+        if force_rpa:
+            niteration_limit = 400
+        else:
+            niteration_limit = 210
         res = negfc_algo(ds.cube, ds.angles, ds.psf, initial_state=init,
                          algo=pca_algo, ncomp=ncomp, annulus_width=4*ds.fwhm,
                          aperture_radius=2, fwhm=ds.fwhm, mu_sigma=mu_sigma,
                          sigma='spe+pho', fmerit=fm, imlib='opencv', 
-                         nwalkers=100, niteration_min=100, niteration_limit=200, 
-                         conv_test=conv_test, nproc=1, save=True, 
-                         transmission=trans, force_rPA=force_rpa, verbosity=2)
+                         nwalkers=100, niteration_min=200, 
+                         niteration_limit=niteration_limit, conv_test=conv_test, 
+                         nproc=1, save=True, transmission=trans, 
+                         force_rPA=force_rpa, verbosity=2)
         burnin = 0.3
         if force_rpa:
             labels = ['f']

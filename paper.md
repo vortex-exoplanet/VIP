@@ -40,6 +40,9 @@ authors:
   - name: Iain Hammond
     orcid: 0000-0003-1502-4315
     affiliation: 9
+  - name: Faustine Cantalloube
+    orcid: 0000-0002-3968-3780
+    affiliation: 10
   - name: Arthur Vigan
     orcid: 0000-0002-5902-7828
     affiliation: 10
@@ -124,7 +127,7 @@ rapid expansion of ``VIP``, we summarize here all novelties that were brought
 to the package over the past five years.
 
 The rest of this manuscript summarizes all major changes since v0.7.0
-[@Gomez:2017], that are included in the latest release of ``VIP`` (v1.3.0). At
+[@Gomez:2017], that are included in the latest release of ``VIP`` (v1.3.1). At
 a structural level, ``VIP`` underwent a major change since version v1.1.0, which
 aimed to migrate towards a more streamlined and easy-to-use architecture. The
 package now revolves around five major modules (`fm`, `invprob`, `metrics`,

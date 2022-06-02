@@ -827,7 +827,8 @@ def cube_fix_badpix_ifs(array, lbdas, fluxes=None, mask=None, cy=None, cx=None,
     Parameters
     ----------
     array : 3D or 4D array
-        Input 3d cube or 2d image.
+        Input 3D (spectral) or 4D (spectral+temporal) cube. In the latter case,
+        dimensions should be spectral x temporal x vertical x horizontal.
     lbdas: 1d array or list
         Vector with the wavelengths, used for first guess on scaling factor.
     fluxes: 1d array or list, optional
@@ -1045,7 +1046,7 @@ def cube_fix_badpix_with_kernel(array, bpm_mask, mode='gauss', fwhm=4.,
         If mode is 'gauss', the fwhm of the Gaussian.
     kernel_sz: int or None, optional
         Size of the kernel in pixels for 2D Gaussian and Moffat convolutions.
-        If None, astropy.convolution will automatically consider 8*radius
+        If None, astropy.convolution will automatically consider 8*fwhm
         kernel sizes.
     psf: 2D or 3D array, optional
         If mode is 'psf', a normalized PSF array. If a 3D cube is provided

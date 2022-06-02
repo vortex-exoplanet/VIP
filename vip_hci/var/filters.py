@@ -186,7 +186,7 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         Size of the Laplacian kernel used in ``laplacian`` mode. It must be an
         positive odd integer value.
     fwhm_size : float, optional
-        Size of the Gaussian kernel used in ``gaus-subt`` mode.
+        Size of the Gaussian kernel used in ``gauss-subt`` mode.
     btw_cutoff : float, optional
         Frequency cutoff for low-pass 2d Butterworth filter used in
         ``fourier-butter`` mode.

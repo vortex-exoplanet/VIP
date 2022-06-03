@@ -119,25 +119,35 @@ community for the discovery of low-mass companions
 [@Milli:2017;  @Hirsch:2019;  @Ubeira:2020], their characterization 
 [@Wertz:2017;  @Delorme:2017;  @Christiaens:2018;  @Christiaens:2019], the study 
 of planet formation [@Ruane:2017;  @Reggiani:2018;  @Mauco:2020;  @Toci:2020], 
-the study of high-mass star formation [@Rainot:2020;  @Rainot:2022] ,the study 
+the study of high-mass star formation [@Rainot:2020;  @Rainot:2022], the study 
 of debris disks [@Milli:2017b; @Milli:2019], or the development of new 
 high-contrast imaging algorithms 
-[@Gomez:2018;  @Dahlqvist:2020;  @Pairet:2021;  @Dahlqvist:2021]. Given the 
-rapid expansion of ``VIP``, we summarize here all novelties that were brought 
-to the package over the past five years.
+[@Gomez:2018;  @Dahlqvist:2020;  @Pairet:2021;  @Dahlqvist:2021]. 
+Other open-source toolkits for high-contrast imaging include ``pyklip`` and 
+``pynpoint`` [@pyklip; @pynpoint:2015; @pynpoint:2019]. Both of these packages 
+mostly focus on post-processing, contrast evaluation metrics and forward 
+modelling - with the core post-processing method being the KLIP algorithm 
+[@Soummer:2012]. In comparison, ``VIP`` also includes a variety of methods not 
+available in these packages. Examples include ANDROMEDA, LLSG or NMF in terms of 
+post-processing algorithms [@Cantalloube2015; @Gomez:2017; @Gomez:2016]; 
+cross-correlation based bad-frame trimming and IFS-relevant bad pixel correction 
+algorithms in terms of pre-processing; FFT-based rotation, shift and rescaling 
+in terms of low-level image operations [@Larkin:1997].
 
-The rest of this manuscript summarizes all major changes since v0.7.0
-[@Gomez:2017], that are included in the latest release of ``VIP`` (v1.3.1). At
-a structural level, ``VIP`` underwent a major change since version v1.1.0, which
-aimed to migrate towards a more streamlined and easy-to-use architecture. The
-package now revolves around five major modules (`fm`, `invprob`, `metrics`,
-`preproc` and `psfsub`, as described above) complemented by four additional
-modules containing various utility functions (`config`, `fits`,
-`stats` and `var`). New `Dataset` and `Frame` classes have also been
-implemented, enabling an object-oriented approach for processing high-contrast
-imaging datasets and analyzing final images, respectively. Similarly, a
-`HCIPostProcAlgo` class and different subclasses inheriting from it have been
-defined to facilitate an object-oriented use of ``VIP`` routines.
+Given the rapid expansion of ``VIP``, we summarize here all novelties that were 
+brought to the package over the past five years. Specifically, the rest of this 
+manuscript summarizes all major changes since v0.7.0 [@Gomez:2017], that are 
+included in the latest release of ``VIP`` (v1.3.1). At a structural level, 
+``VIP`` underwent a major change since version v1.1.0, which aimed to migrate 
+towards a more streamlined and easy-to-use architecture. The package now 
+revolves around five major modules (`fm`, `invprob`, `metrics`, `preproc` and 
+`psfsub`, as described above) complemented by four additional modules containing 
+various utility functions (`config`, `fits`, `stats` and `var`). New `Dataset` 
+and `Frame` classes have also been implemented, enabling an object-oriented 
+approach for processing high-contrast imaging datasets and analyzing final 
+images, respectively. Similarly, a `HCIPostProcAlgo` class and different 
+subclasses inheriting from it have been defined to facilitate an object-oriented 
+use of ``VIP`` routines.
 
 Some of the major changes in each module of ``VIP`` are summarized below:
 

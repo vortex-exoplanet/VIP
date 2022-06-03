@@ -47,7 +47,7 @@ def feves_opt(cube, angle_list, cube_ref=None, fwhm=4, strategy='ADI',
     This method is relevant for stellar residuals varying temporally and to 
     some extent spatially.
     
-    See complete description of the algorithm in Christiaens et al. (2021b):
+    See complete description of the algorithm in Christiaens et al. (2022b):
     *** INSERT LINK ***    
 
     Note: The feves_opt routine can only be used in ADI or RDI modes.

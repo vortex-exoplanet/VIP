@@ -90,9 +90,35 @@ stellar environments.
 ``VIP`` stands for Vortex Image Processing. It is a collaborative project
 which started at the University of Liège, aiming to integrate open-source,
 efficient, easy-to-use and well-documented implementations of state-of-the-art
-algorithms used in the context of high-contrast imaging. The package follows a
-modular architecture, such that its routines cover a wide diversity of tasks,
-including:
+algorithms used in the context of high-contrast imaging [@Gomez:2017]. A few 
+open-source toolkits for high-contrast imaging have become available in 
+the last few years apart from ``VIP``. Other large packages include ``pyklip`` 
+and ``pynpoint`` [@pyklip; @pynpoint:2015; @pynpoint:2019]. In both of these, 
+the core post-processing method (and only available apart from median-ADI) is 
+the KLIP (or PCA) algorithm [@Soummer:2012]. In contrast, ``VIP`` not only 
+implements the PCA algorithm with a variety of flavours, but it also includes a 
+diversity of other post-processing methods, such as ANDROMEDA, LLSG or NMF 
+[@Cantalloube2015; @Gomez:2017; @Gomez:2016]. As opposed to ``VIP``, ``pyklip`` 
+does not offer preprocessing options such as PCA-based sky subtraction, image 
+centering, bad frame trimming, or bad pixel correction. ``pynpoint`` was 
+originally developed as a PCA-based PSF-subtraction mini-package 
+[@pynpoint:2015], which was later significantly expanded into an end-to-end 
+processing pipeline including similar options as VIP regarding preprocessing 
+[@pynpoint:2019]. Nonetheless, ``VIP`` boasts more options in terms of PCA 
+post-processing, such as the possibility to carry it out in concentric annuli, 
+and considering a parallactic angle threshold when creating the PCA library. 
+Depending on the high-contrast imaging dataset at hand, different 
+post-processing methods and reduction parameters can lead to better speckle 
+suppression, hence help with the detection of fainter companions 
+[@Dahlqvist:2021]. In that regard, ``VIP`` is thus better equipped than other 
+existing toolkits. It is also worth mentioning that FFT-based methods are 
+implemented in ``VIP`` (default option) for all image operations (rotation, 
+shift and rescaling) as these outperform interpolation-based methods in terms of
+flux conservation [@Larkin:1997]. To our knowledge, these algorithms are not 
+available in any other open-source packages.
+
+The ``VIP`` package follows a modular architecture, such that its routines 
+cover a wide diversity of tasks, including:
 
 * image pre-processing, such as sky subtraction, bad pixel correction, bad
 frame removal, or image alignment and star centering (`preproc` module);
@@ -123,16 +149,6 @@ the study of high-mass star formation [@Rainot:2020;  @Rainot:2022], the study
 of debris disks [@Milli:2017b; @Milli:2019], or the development of new 
 high-contrast imaging algorithms 
 [@Gomez:2018;  @Dahlqvist:2020;  @Pairet:2021;  @Dahlqvist:2021]. 
-Other open-source toolkits for high-contrast imaging include ``pyklip`` and 
-``pynpoint`` [@pyklip; @pynpoint:2015; @pynpoint:2019]. Both of these packages 
-mostly focus on post-processing, contrast evaluation metrics and forward 
-modelling - with the core post-processing method being the KLIP algorithm 
-[@Soummer:2012]. In comparison, ``VIP`` also includes a variety of methods not 
-available in these packages. Examples include ANDROMEDA, LLSG or NMF in terms of 
-post-processing algorithms [@Cantalloube2015; @Gomez:2017; @Gomez:2016]; 
-cross-correlation based bad-frame trimming and IFS-relevant bad pixel correction 
-algorithms in terms of pre-processing; FFT-based rotation, shift and rescaling 
-in terms of low-level image operations [@Larkin:1997].
 
 Given the rapid expansion of ``VIP``, we summarize here all novelties that were 
 brought to the package over the past five years. Specifically, the rest of this 

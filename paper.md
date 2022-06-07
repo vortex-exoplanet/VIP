@@ -200,8 +200,8 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     iterative sigma filtering (`cube_fix_badpix_clump`), the circular symmetry
     of the PSF (`cube_fix_badpix_annuli`), or the radial expansion of the PSF
     with increasing wavelength (`cube_fix_badpix_ifs`), and (ii) the correction
-    of bad pixels based on either median replacement (default) or Gaussian
-    kernel interpolation (`cube_fix_badpix_with_kernel`);
+    of bad pixels with iterative spectral deconvolution [@Aach:2001] or 
+    Gaussian kernel interpolation (both through `cube_fix_badpix_interp`);
     - a new algorithm was added for the recentering of coronagraphic image cubes
     based on the cross-correlation of the speckle pattern, after appropriate
     filtering and log-scaling of pixel intensities [@Ruane:2019].

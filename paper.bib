@@ -1,12 +1,31 @@
 %% This BibTeX bibliography file was created using BibDesk.
 %% https://bibdesk.sourceforge.io/
 
-%% Created for Valentin Christiaens at 2022-06-03 17:47:14 +0200 
+%% Created for Valentin Christiaens at 2022-06-07 18:16:14 +0200 
 
 
 %% Saved with string encoding Unicode (UTF-8) 
 
 
+
+@inproceedings{Aach:2001,
+	abstract = {Today's solid state flat panel radiography detectors provide images which contain artifacts caused by lines, columns and clusters of inactive pixels. If not too large, such defects can be filled by interpolation algorithms which usually work in the spatial domain. This paper describes an alternative spectral domain approach to defect interpolation. The acquired radiograph is modeled as the undistorted image multiplied by a known binary defect window. The window effect is then removed by deconvolving the window spectrum from the spectrum of the observed, distorted radiograph. The basic ingredient of our interpolation algorithm is an earlier approach to block transform coding of arbitrarily shaped image segments, that extrapolates the segment internal intensities over a block into which the segment is embedded. For defect interpolation, the arbitrarily shaped segment is formed by a local image region with defects, thus turning extrapolation into defect interpolation. Our algorithm reconstructs both oriented structures and noise- like information in a natural-looking manner, even for large defects. Moreover, our concept can also be applied to non- binary defect windows, e.g. for gain correction.},
+	adsnote = {Provided by the SAO/NASA Astrophysics Data System},
+	adsurl = {https://ui.adsabs.harvard.edu/abs/2001SPIE.4322..824A},
+	author = {{Aach}, Til and {Metzler}, Volker H.},
+	booktitle = {Medical Imaging 2001: Image Processing},
+	date-added = {2022-06-07 18:16:09 +0200},
+	date-modified = {2022-06-07 18:16:14 +0200},
+	doi = {10.1117/12.431161},
+	editor = {{Sonka}, Milan and {Hanson}, Kenneth M.},
+	month = jul,
+	pages = {824-835},
+	series = {Society of Photo-Optical Instrumentation Engineers (SPIE) Conference Series},
+	title = {{Defect interpolation in digital radiography: how object-oriented transform coding helps}},
+	volume = {4322},
+	year = 2001,
+	bdsk-url-1 = {https://doi.org/10.1117/12.431161},
+	bdsk-url-2 = {https://ui.adsabs.harvard.edu/abs/2001SPIE.4322..824A}}
 
 @article{pynpoint:2015,
 	abstract = {We announce the public release of PynPoint, a Python package that we have developed for analysing exoplanet data taken with the angular differential imaging observing technique. In particular, PynPoint is designed to model the point spread function of the central star and to subtract its flux contribution to reveal nearby faint companion planets. The current version of the package does this correction by using a principal component analysis method to build a basis set for modelling the point spread function of the observations. We demonstrate the performance of the package by reanalysing publicly available data on the exoplanet β Pictoris b, which consists of close to 24,000 individual image frames. We show that PynPoint is able to analyse this typical data in roughly 1.5 min on a Mac Pro, when the number of images is reduced by co-adding in sets of 5. The main computational work, the calculation of the Singular-Value-Decomposition, parallelises well as a result of a reliance on the SciPy and NumPy packages. For this calculation the peak memory load is 6 GB, which can be run comfortably on most workstations. A simpler calculation, by co-adding over 50, takes 3 s with a peak memory usage of 600 MB. This can be performed easily on a laptop. In developing the package we have modularised the code so that we will be able to extend functionality in future releases, through the inclusion of more modules, without it affecting the users application programming interface. We distribute the PynPoint package under GPLv3 licence through the central PyPI server, and the documentation is available online (http://pynpoint.ethz.ch).},

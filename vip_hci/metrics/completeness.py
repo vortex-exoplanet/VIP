@@ -2,6 +2,31 @@
 
 """
 Module with completeness curve and map generation function.
+     
+.. [DAH21b]
+   | Dahlqvist et al. 2021b
+   | **Auto-RSM: An automated parameter-selection algorithm for the RSM map 
+     exoplanet detection algorithm**
+   | *Astronomy & Astrophysics, Volume 656, Issue 2, p. 54*
+   | `https://arxiv.org/abs/astro-ph/2109.14318
+     <https://arxiv.org/abs/astro-ph/2109.14318>`_
+     
+.. [JEN18]
+   | Jensen-Clem et al. 2018
+   | **A New Standard for Assessing the Performance of High Contrast Imaging 
+     Systems**
+   | *The Astrophysical Journal, Volume 155, Issue 1, p. 19*
+   | `https://arxiv.org/abs/astro-ph/1711.01215
+     <https://arxiv.org/abs/astro-ph/1711.01215>`_
+     
+.. [MAW14]
+   | Mawet et al. 2014
+   | **Fundamental Limitations of High Contrast Imaging Set by Small Sample 
+     Statistics**
+   | *The Astrophysical Journal, Volume 792, Issue 1, p. 97*
+   | `https://arxiv.org/abs/astro-ph/1407.2247
+     <https://arxiv.org/abs/astro-ph/1407.2247>`_
+     
 """
 
 __author__ = 'C.H. Dahlqvist, V. Christiaens'
@@ -140,18 +165,18 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
     """
     Function allowing the computation of completeness-based contrast curves with
     any of the psf-subtraction algorithms provided by VIP. The code relies on
-    the approach proposed in Dahlqvist et al. (2021), itself inspired by the
-    framework developed in Jensen-Clem et al. (2018). It relies on the
-    computation of the contrast associated to a completeness level achieved at
-    a level defined as the first false positive in the original SNR map
-    (brightest speckle observed in the empty map) instead of the computation of
-    the local noise and throughput (see the `vip_hci.metrics.contrast_curve`
-    function). The computation of the completeness level associated to a
-    contrast is done via the sequential injection of multiple fake companions.
-    The algorithm uses multiple interpolations to find the contrast associated
-    to the selected completeness level (0.95 by default). More information about
-    the algorithm can be found in Dahlqvist et al. (2021).
-
+    the approach proposed in [DAH21b]_, itself inspired by the framework 
+    developed in [JEN18]_. It relies on the computation of the contrast 
+    associated to a completeness level achieved at a level defined as the first 
+    false positive in the original SNR map (brightest speckle observed in the 
+    empty map) instead of the computation o the local noise and throughput (see 
+    the ``vip_hci.metrics.contrast_curve`` function). The computation of the 
+    completeness level associated to a contrast is done via the sequential 
+    injection of multiple fake companions. The algorithm uses multiple 
+    interpolations to find the contrast associated to the selected completeness 
+    level (0.95 by default). More information about the algorithm can be found 
+    in [DAH21b]_.
+    
     Parameters
     ----------
     cube : 3d or 4d numpy ndarray
@@ -166,19 +191,16 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
         The the Full Width Half Maximum in pixels. It can handle a different
         FWHM value for different wavelengths (IFS data).
     algo : callable or function
-        The post-processing algorithm, e.g. vip_hci.pca.pca.
+        The post-processing algorithm, e.g. ``vip_hci.pca.pca``.
     an_dist: list or ndarray, optional
         List of angular separations for which a contrast has to be estimated.
         Default is None which corresponds to a range spanning 2 FWHM to half
         the size of the provided cube - PSF size //2 with a step of 5 pixels
     ini_contrast: list, 1d ndarray or None, optional
         Initial contrast for the range of angular separations included in
-        an_dist. The number of initial contrasts should be equivalent to the
-        number of angular separations. Default is None which corresponds to the
-        mean contrast achieved with the RSM approach (Dahlqvist et al. 2020)
-        applied to the SHARDS survey (using the VLT/SPHERE instrument). One
-        can rely instead on the VIP contrast_curve function to get a first
-        estimate.
+        `an_dist`_. The number of initial contrasts should be equivalent to the
+        number of angular separations. Default is None which corresponds to the 
+        5-sigma contrast_curve obtained with ``vip_hci.metrics.contrast_curve``.
     starphot : int or float or 1d array, optional
         If int or float it corresponds to the aperture photometry of the
         non-coronagraphic PSF which we use to scale the contrast.
@@ -199,7 +221,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
         Default 95.
     snr_approximation : bool, optional
         If True, an approximated S/N map is generated. If False the
-        approach of Mawet et al. is used (2014). Default is True, for speed.
+        approach of [MAW14] is used. Default is True, for speed.
     max_iter: int, optional
         Maximum number of iterations to consider in the search for the contrast  
         level achieving desired completeness before considering it unachievable. 
@@ -558,20 +580,18 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
     """
     Function allowing the computation of two dimensional (radius and 
     completeness) contrast curves with any psf-subtraction algorithm provided by
-    VIP. The code relies on the approach proposed by Dahlqvist et al. (2021), 
-    itself inspired by the framework developped by Jensen-Clem et al. (2018). 
-    It relies on the computation of the contrast associated to a completeness 
-    level achieved at
-    a level defined as the first false positive in the original SNR map
-    (brightest speckle observed in the empty map). The computation of the
-    completeness level associated to a contrast is done via the sequential
-    injection of multiple fake companions. The algorithm uses multiple
-    interpolations to find the contrast associated to the selected
-    completeness level (0.95by default). The function allows the computation
-    of three dimensional completeness map, with contrasts computed for multiple
-    completeness level, allowing the reconstruction of the
-    contrast/completeness distribution for every considered angular
-    separations (for more details see Dahlqvist et al. 2021).
+    VIP. The code relies on the approach proposed by [DAH21b]_, itself inspired 
+    by the framework developped in [JEN18]_. It relies on the computation of 
+    the contrast associated to a completeness level achieved at a level defined 
+    as the first false positive in the original SNR map (brightest speckle 
+    observed in the empty map). The computation of the completeness level 
+    associated to a contrast is done via the sequential injection of multiple 
+    fake companions. The algorithm uses multiple interpolations to find the 
+    contrast associated to the selected completeness level (0.95 by default). 
+    The function allows the computation of three dimensional completeness maps, 
+    with contrasts computed for multiple completeness level, allowing the 
+    reconstruction of the contrast/completeness distribution for every 
+    considered angular separations. For more details see [DAH21b]_.
 
     Parameters
     ----------
@@ -593,14 +613,11 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
         Default is None which corresponds to a range of spanning between 2
         FWHM and half the size of the provided cube - PSF size //2 with a
         step of 5 pixels
-    ini_contrast: list or ndarray
+    ini_contrast: list, 1d ndarray or None, optional
         Initial contrast for the range of angular separations included in
-        an_dist. The number of initial contrasts shoul be equivalent to the
-        number of angular separations. Default is None which corresponds to the
-        mean contrast achieved with the RSM approach (Dahlqvist et al. 2020)
-        applied to the SHARDS survey (using the VLT/SPHERE instrument). One
-        can rely instead on the VIP contrast_curve function to get a first
-        estimate. If ini_contrast=None, starphot should be provided.
+        `an_dist`_. The number of initial contrasts should be equivalent to the
+        number of angular separations. Default is None which corresponds to the 
+        5-sigma contrast_curve obtained with ``vip_hci.metrics.contrast_curve``.
     starphot : int or float or 1d array
         If int or float it corresponds to the aperture photometry of the
         non-coronagraphic PSF which we use to scale the contrast.
@@ -610,10 +627,10 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
         positive rate/completeness, (number of fake companions injected
         separately). The range of achievable completeness depends on the
         number of considered azimuths (the minimum completeness is defined
-        as 1/n_fc and the maximum is 1-1/n_fc). Default 20.
+        as 1/n_fc and the maximum is 1-1/n_fc). Default is 20.
     snr_approximated : bool, optional
         If True, an approximated S/N map is generated. If False the
-        approach of Mawet et al. is used (2014). Default is True
+        approach of [MAW14] is used. Default is True
     nproc : int or None
         Number of processes for parallel computing.
     algo_dict

@@ -1,11 +1,19 @@
 """
-Implementation the PACO algorithm implementation for VIP
-Based on Flasseur+ 2018 https://ui.adsabs.harvard.edu/abs/2018A%26A...618A.138F/abstract
+Implementation of the PACO algorithm for VIP, based on [FLA18]_.
 
-Variable naming is based on the notation of Flasseur+ 2018,
-see table 1 in the paper for a description.
+Variable naming is based on the notation of [FLA18]_, see table 1 in the paper 
+for a description.
 
 Last updated 2022-05-09 by Evert Nasedkin (nasedkinevert@gmail.com).
+
+.. [FLA18]
+   | Flasseur et al. 2018
+   | **Exoplanet detection in angular differential imaging by statistical 
+     learning of the nonstationary patch covariances. The PACO algorithm**
+   | *Astronomy & Astrophysics, Volume 618, p. 138*
+   | `https://ui.adsabs.harvard.edu/abs/2018A%26A...618A.138F/abstract
+     <https://ui.adsabs.harvard.edu/abs/2018A%26A...618A.138F/abstract>`_
+     
 """
 
 import sys
@@ -34,17 +42,16 @@ __all__ = ['FastPACO',
 
 class PACO:
     """
-    This class implements the bulk of the PACO algorithm as described by
-    Flasseur et al (2018). In general, the idea is to take in an ADI stack of
-    images and statistically determine if there is a signal above the
-    background in each 'patch' of the image. This is done by tracing the ark of
-    the hypothesized planet through the stack, and comparing this set of patches
-    to a set consisting of background only. This is done for each pixel (or
-    sub-pixel) location in.
-    The output is a signal-to-noise and/or a flux map over the field of view.
-    The user can choose to use FullPACO or FastPACO, which are described by
-    algorithms 1 and 2 of Flasseur+ 2018. FastPACO has been parallelized,
-    and is the recommended usage.
+    This class implements the bulk of the PACO algorithm as described in 
+    [FLA18]_. In general, the idea is to take in an ADI stack of images and 
+    statistically determine if there is a signal above the background in each 
+    'patch' of the image. This is done by tracing the ark of the hypothesized 
+    planet through the stack, and comparing this set of patches to a set 
+    consisting of background only. This is done for each pixel (or sub-pixel) 
+    location in the image. The output is a signal-to-noise and/or a flux map 
+    over the field of view. The user can choose to use FullPACO or FastPACO, 
+    which are described by algorithms 1 and 2 of [FLA18]_. FastPACO has been 
+    parallelized, and is the recommended usage.
 
     This output can then be used to compute an unbiased estimate of the flux
     of point sources detected in the image above some user-supplied detection
@@ -54,31 +61,33 @@ class PACO:
     ----------
     cube : numpy.ndarray
         3D science frames taken in pupil tracking/ADI mode.
-        Dimensions should be (time, x, y), and units should be detector units (ie output
-        of SPHERE or GPI reduction pipelines). The data should be centered, and have
-        pre-processing already applied (e.g. bad pixel correction).
+        Dimensions should be (time, x, y), and units should be detector units 
+        (ie output of SPHERE or GPI reduction pipelines). The data should be 
+        centered, and have pre-processing already applied (e.g. bad pixel 
+        correction).
     angles : numpy.ndarray
-        List of parallactic angles for each frame in degrees. Length of this array
-        should be the same as the time axis of the science cube. Sign convention
-        is the same as in the rest of VIP.
+        List of parallactic angles for each frame in degrees. Length of this 
+        array should be the same as the time axis of the science cube. 
     psf : numpy.ndarray
-        Unsaturated PSF image. If a cube is provided, the median of the cube will be used.
+        Unsaturated PSF image. If a cube is provided, the median of the cube 
+        will be used.
     dit_psf : float, optional
-        Integration time of the unsaturated PSF in seconds. The PSF is normalised
-        to dit_science/dit_psf/nd_transmission.
+        Integration time of the unsaturated PSF in seconds. The PSF is 
+        normalised to dit_science/dit_psf/nd_transmission.
     dit_science : float, optional
-        Integration time of the science frames in seconds.T he PSF is normalised
+        Integration time of the science frames in seconds. The PSF is normalised
         to dit_science/dit_psf/nd_transmission.
     nd_transmission : float, optional
-        Transmission of an ND filter used to aquire the unsaturated PSF. The PSF is normalised
-        to dit_science/dit_psf/nd_transmission.
+        Transmission of an ND filter used to aquire the unsaturated PSF. The PSF 
+        is normalised to dit_science/dit_psf/nd_transmission.
     fwhm : float, optional
         FWHM of PSF in arcseconds. Default values give 4px radius.
     pixscale : float, optional
-        Detector pixel scale in arcseconds per pixel.  Default values give 4px radius.
+        Detector pixel scale in arcseconds per pixel.  Default values give 4px 
+        radius.
     rescaling_factor : float, optional
-        Scaling for sub/super pixel resolution for PACO. Will rescale both the science
-        cube and the PSF.
+        Scaling for sub/super pixel resolution for PACO. Will rescale both the 
+        science cube and the PSF.
     verbose : bool, optional
         Sets level of printed outputs.
     """
@@ -165,8 +174,8 @@ class PACO:
         Parameters
         ----------
         phi0s : numpy.ndarray
-            Array of pixel coordinates to try to search for the planet signal. Typically a grid
-            created using numpy.meshgrid.
+            Array of pixel coordinates to try to search for the planet signal. 
+            Typically a grid created using numpy.meshgrid.
         use_subpixel_psf_astrometry : bool
             If true, the PSF model for each patch is shifted to the correct
             location as predicted by the starting location and the parallactic

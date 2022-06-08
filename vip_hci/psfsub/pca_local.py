@@ -3,6 +3,30 @@
 """
 Module with local/smart PCA (annulus or patch-wise in a multi-processing
 fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
+
+.. [AMA12]
+   | Amara & Quanz 2012
+   | **PYNPOINT: an image processing package for finding exoplanets**
+   | *MNRAS, Volume 427, Issue 1, pp. 948-955*
+   | `https://arxiv.org/abs/astro-ph/1207.6637
+     <https://arxiv.org/abs/astro-ph/1207.6637>`_
+
+.. [ABS13]
+   | Absil et al. 2013
+   | **Searching for companions down to 2 AU from beta Pictoris using the 
+     L'-band AGPM coronagraph on VLT/NACO**
+   | *Astronomy & Astrophysics, Volume 559, Issue 1, p. 12*
+   | `https://arxiv.org/abs/astro-ph/1311.4298
+     <https://arxiv.org/abs/astro-ph/1311.4298>`_
+     
+.. [CHR19]
+   | Christiaens et al. 2019
+   | **Separating extended disc features from the protoplanet in PDS 70 using 
+     VLT/SINFONI**
+   | *MNRAS, Volume 486, Issue 4, pp. 5819-5837*
+   | `https://arxiv.org/abs/astro-ph/1905.01860
+     <https://arxiv.org/abs/astro-ph/1905.01860>`_
+
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
@@ -40,6 +64,10 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
     library/cube, forcing pixel-wise temporal standardization. The number of
     principal components can be automatically adjusted by the algorithm by
     minimizing the residuals inside each patch/region.
+    
+    References: [AMA12] for PCA-ADI; [ABS13] for PCA-ADI in concentric annuli 
+    considering a parallactic angle threshold; [CHR19] for PCA-ASDI and 
+    PCA-SADI in one or two steps.
 
     Parameters
     ----------

@@ -2,6 +2,15 @@
 
 """
 Distance and correlation between images.
+
+.. [WAN04]
+   | Wang et al. 2004
+   | **Image Quality Assessment: From Error Visibility to Structural 
+     Similarity**
+   | *IEEE Transactions on Image Processing, Volume 13, Issue 4, pp. 600-612*
+   | `http://www.cns.nyu.edu/pub/eero/wang03-reprint.pdf
+     <http://www.cns.nyu.edu/pub/eero/wang03-reprint.pdf>`_
+     
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez; V. Christiaens'
@@ -41,11 +50,10 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
     The Spearman and Pearson correlation coefficients, vary between -1 and +1
     with 0 implying no correlation. Correlations of -1 or +1 imply an exact
     linear relationship.
-    The Structural Similarity Index was proposed by Wang et al. 2004.
-    (http://www.cns.nyu.edu/pub/eero/wang03-reprint.pdf)
-    SSIM varies between -1 and 1, where 1 means perfect similarity. SSIM
-    attempts to model the perceived change in the structural information of the
-    image. The mean SSIM is reported.
+    The Structural Similarity Index was proposed in [WAN04]_. SSIM varies 
+    between -1 and 1, where 1 means perfect similarity. SSIM attempts to model 
+    the perceived change in the structural information of the image. The mean 
+    SSIM is reported.
 
     Parameters
     ----------

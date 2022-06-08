@@ -2,6 +2,15 @@
 
 """
 Module with pixel and frame subsampling functions.
+
+.. [BRA13]
+   | Brandt et al. 2013
+   | **New Techniques for High-contrast Imaging with ADI: The ACORNS-ADI SEEDS 
+     Data Reduction Pipeline**
+   | *The Astrophysical Journal, Volume 764, Issue 2, p. 183*
+   | `https://arxiv.org/abs/astro-ph/1209.3014
+     <https://arxiv.org/abs/astro-ph/1209.3014>`_
+     
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
@@ -15,7 +24,7 @@ import numpy as np
 def cube_collapse(cube, mode='median', n=50, w=None):
     """ Collapses a cube into a frame (3D array -> 2D array) depending on the
     parameter ``mode``. It's possible to perform a trimmed mean combination of
-    the frames based on description in Brandt+ 2012.
+    the frames based on description in [BRA13].
 
     Parameters
     ----------

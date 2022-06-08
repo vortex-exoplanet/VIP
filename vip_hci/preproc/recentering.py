@@ -2,6 +2,22 @@
 
 """
 Module containing functions for cubes frame registration.
+     
+.. [GUI08]
+   | Guizar-Sicairos et al. 2008
+   | **Efficient subpixel image registration algorithms**
+   | *Optics Letters, Volume 33, Issue 2, p. 156*
+   | `https://ui.adsabs.harvard.edu/abs/2008OptL...33..156G
+     <https://ui.adsabs.harvard.edu/abs/2008OptL...33..156G>`_
+     
+.. [PUE15]
+   | Pueyo et al. 2015
+   | **Reconnaissance of the HR 8799 Exosolar System. II. Astrometry and Orbital 
+     Motion**
+   | *The Astrophysical Journal, Volume 803, Issue 1, p. 31*
+   | `https://arxiv.org/abs/astro-ph/1409.6388
+     <https://arxiv.org/abs/astro-ph/1409.6388>`_
+     
 """
 
 __author__ = 'C. A. Gomez Gonzalez, V. Christiaens, G. Ruane, R. Farkas'
@@ -623,8 +639,9 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
                        interpolation='lanczos4', full_output=False, 
                        verbose=True, plot=True, debug=False):
     """ Finding the center of a broadband (co-added) frame with speckles and
-    satellite spots elongated towards the star (center). We use the radon
-    transform implementation from scikit-image.
+    satellite spots elongated towards the star (center). We use the Radon
+    transform implementation from scikit-image, and follow the algorithm 
+    presented in [PUE15]_.
 
     Parameters
     ----------
@@ -990,7 +1007,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
                         interpolation='lanczos4', border_mode='reflect',
                         **kwargs):
     """ Recenters a cube looping through its frames and calling the
-    ``frame_center_radon`` function.
+    ``frame_center_radon`` function, as in [PUE15]_.
 
     Parameters
     ----------
@@ -1067,9 +1084,9 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  mask=None, border_mode='reflect',
                                  full_output=False, verbose=True, nproc=1,
                                  save_shifts=False, debug=False, plot=True):
-    """ Recenters a cube of frames using the DFT upsampling method as
-    proposed in Guizar et al. 2008 and implemented in the
-    ``register_translation`` function from scikit-image.
+    """ Recenters a cube of frames using the DFT upsampling method as proposed 
+    in [GUI08] and implemented in the ``register_translation`` function from 
+    scikit-image.
 
     The algorithm (DFT upsampling) obtains an initial estimate of the
     cross-correlation peak by an FFT and then refines the shift estimation by
@@ -1138,8 +1155,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     Notes
     -----
     Using the implementation from scikit-image of the algorithm described in
-    Guizar-Sicairos et al. "Efficient subpixel image registration algorithms,"
-    Opt. Lett. 33, 156-158 (2008). This algorithm registers two images (2-D
+    [GUI08]_. This algorithm registers two images (2-D
     rigid translation) within a fraction of a pixel specified by the user.
     Instead of computing a zero-padded FFT (fast Fourier transform), this code
     uses selective upsampling by a matrix-multiply DFT (discrete FT) to
@@ -1626,7 +1642,6 @@ def _centroid_2d2g_frame(cube, frnum, size, pos_y, pos_x, debug=False, fwhm=4,
     return y_i, x_i
 
 
-# TODO: make parameter names match the API
 def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                gammaval=1, min_spat_freq=0.5, max_spat_freq=3,
                                fwhm=4, debug=False, recenter_median=False,

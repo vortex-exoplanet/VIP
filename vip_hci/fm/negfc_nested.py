@@ -3,6 +3,14 @@
 """
 Module with functions for posterior sampling of the NEGFC parameters using
 nested sampling (``nestle``).
+
+.. [BAR13]
+   | K. Barbary 2013
+   | **PyMORESANE**
+   | *GitHub repository*
+   | `https://github.com/kbarbary/nestle
+     <https://github.com/kbarbary/nestle>`_
+
 """
 
 
@@ -28,12 +36,13 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
                           weights=None, w=(5, 5, 200), method='single',
                           npoints=100, dlogz=0.1, decline_factor=None,
                           rstate=None, verbose=True):
-    """ Runs a nested sampling algorithm in order to determine the position and
-    the flux of the planet using the 'Negative Fake Companion' technique. The
-    result of this procedure is a a ``nestle`` object containing the samples
-    from the posterior distributions of each of the 3 parameters. It provides
-    pretty good results (value plus error bars) compared to a more CPU intensive
-    Monte Carlo approach with the affine invariant sampler (``emcee``).
+    """ Runs a nested sampling algorithm with ``nestle`` [BAR13] in order to 
+    determine the position and the flux of the planet using the 'Negative Fake 
+    Companion' technique. The result of this procedure is a ``nestle`` object 
+    containing the samples from the posterior distributions of each of the 3 
+    parameters. It provides good results (value plus error bars) compared to a 
+    more CPU intensive Monte Carlo approach with the affine invariant sampler 
+    (``emcee``).
 
     Parameters
     ----------

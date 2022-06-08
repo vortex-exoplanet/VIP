@@ -47,7 +47,7 @@ def injected_cube_position(example_dataset_adi):
                  (pca, firstguess, 3, True, None, False, None),
                  (median_sub, firstguess, None, False, 'sum', False, None),
                  (pca_annulus, mcmc_negfc_sampling, 3, False, 'stddev', False, 'gb'),
-                 (pca_annulus, mcmc_negfc_sampling, 5, True, None, True, 'ac'),
+                 (pca_annulus, mcmc_negfc_sampling, 3, True, None, True, 'ac'),
                  (pca_annulus, nested_negfc_sampling, 3, False, 'sum', False, None)
                  ])
 def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
@@ -145,7 +145,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                 j = i
             ci_max = np.amax(np.abs(ci[lab]))
             aarc(val_max[lab], gt[j], atol=3*ci_max)  # diff within 3 sigma
-            aarc(mu[i], gt[j], atol=3*sigma[i])  # diff within 3 sigma
+            aarc(val_max[lab], gt[j], atol=3*sigma[i])  # diff within 3 sigma
     else:
         # run nested sampling
         res = negfc_algo(init, ds.cube, ds.angles, ds.psf, ds.fwhm,

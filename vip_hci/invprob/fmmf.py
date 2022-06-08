@@ -1,18 +1,58 @@
 #! /usr/bin/env python
 
 """
-Forward model matched filter relying on either KLIP (Soummer et al. 2012;
- Pueyo 2016) and LOCI (Lafreniere et al. 2007b) for the PSF reference
-approximation. The original concept of matched filter applied to KLIP has been
-first proposed in Ruffio et al. (2019) and then adapted in Dahlqvist et al.
-(2021) to use the LOCI framework. For both PSF-subtraction techniques, a
+Forward model matched filter relying on either KLIP [SOU12]_ / [PUE16]_ or LOCI 
+[LAF07] for the PSF reference approximation. The original concept of matched
+ filter applied to KLIP has been first proposed in [RUF17] and then adapted in 
+[DAH21a] to use the LOCI framework. For both PSF-subtraction techniques, a 
 forward model of the PSF is computed for each pixel contained in the field of
 view and each frame to account for the over-subtraction and self-subtraction
-of potential planetary signal due to the reference PSF subtraction. The
+of potential planetary signal due to the reference PSF subtraction. The 
 obtained model is then compared to the pixels intensities within each frame of
 the residual cube. The SNR associated to each pixel contained in the field of
-view, as well as its estimated contrast is thn obtained via a
-Gaussian maximum likelihood approach.
+view, as well as its estimated contrast is then obtained via a Gaussian maximum 
+likelihood approach.
+
+.. [DAH21a]
+   | Dahlqvist et al. 2021a
+   | **Improving the RSM map exoplanet detection algorithm. PSF forward 
+     modelling and optimal selection of PSF subtraction techniques**
+   | *The Astrophysical Journal Letters, Volume 646, p. 49*
+   | `https://arxiv.org/abs/astro-ph/2012.05094
+     <https://arxiv.org/abs/astro-ph/2012.05094>`_    
+
+.. [LAF07]
+   | Lafreniere et al. 2007
+   | **A New Algorithm for Point-Spread Function Subtraction in High-Contrast 
+     Imaging: A Demonstration with Angular Differential Imaging**
+   | *The Astrophysical Journal, Volume 660, Issue 4, pp. 770-780*
+   | `https://arxiv.org/abs/astro-ph/0702697
+     <https://arxiv.org/abs/astro-ph/0702697>`_
+
+.. [PUE16]
+   | Pueyo 2016
+   | **Detection and Characterization of Exoplanets using Projections on 
+     Karhunen Loeve Eigenimages: Forward Modeling**
+   | *The Astrophysical Journal, Volume 824, Issue 2, p. 117*
+   | `https://arxiv.org/abs/astro-ph/1604.06097
+     <https://arxiv.org/abs/astro-ph/1604.06097>`_
+     
+.. [RUF17]
+   | Ruffio et al. 2017
+   | **Improving and Assessing Planet Sensitivity of the GPI Exoplanet Survey 
+     with a Forward Model Matched Filter**
+   | *The Astrophysical Journal, Volume 842, p. 14*
+   | `https://arxiv.org/abs/astro-ph/1705.05477
+     <https://arxiv.org/abs/astro-ph/1705.05477>`_
+     
+.. [SOU12]
+   | Soummer et al. 2012
+   | **Detection and Characterization of Exoplanets and Disks Using Projections 
+     on Karhunen-Loève Eigenimages**
+   | *The Astrophysical Journal Letters, Volume 755, Issue 2, p. 28*
+   | `https://arxiv.org/abs/astro-ph/1207.4197
+     <https://arxiv.org/abs/astro-ph/1207.4197>`_ 
+
 """
 
 __author__ = 'Carl-Henrik Dahlqvist'
@@ -35,7 +75,8 @@ def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
          imlib='vip-fft', interpolation='lanczos4', nproc=1, verbose=True):
     """
     Forward model matched filter generating SNR map and contrast map, using
-    either KLIP or LOCI as PSF subtraction techniques.
+    either KLIP or LOCI as PSF subtraction techniques, as implemented in [RUF17] 
+    and [DAH21a]_.
 
     Parameters
     ----------

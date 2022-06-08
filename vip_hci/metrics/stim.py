@@ -4,10 +4,13 @@
 Implementation of the STIM map from [PAI19]
 
 .. [PAI19]
-   | Pairet et al, 2019
-   | STIM map: detection map for exoplanets imaging beyond asymptotic Gaussian residual speckle noise**
+   | Pairet et al. 2019
+   | **STIM map: detection map for exoplanets imaging beyond asymptotic Gaussian 
+     residual speckle noise**
    | *MNRAS, 487, 2262*
-   | `doi:10.1093/mnras/stz1350 <http://doi.org/10.1093/mnras/stz1350>`_
+   | `http://doi.org/10.1093/mnras/stz1350
+     <http://doi.org/10.1093/mnras/stz1350>`_
+   
 """
 __author__ = 'Benoit Pairet'
 __all__ = ['stim_map',
@@ -19,7 +22,7 @@ from ..var import get_circle
 
 
 def stim_map(cube_der):
-    """ Computes the STIM detection map.
+    """ Computes the STIM detection map as in [PAI19]_.
 
     Parameters
     ----------
@@ -42,7 +45,7 @@ def stim_map(cube_der):
 
 
 def inverse_stim_map(cube, angle_list, **rot_options):
-    """ Computes the inverse STIM detection map.
+    """ Computes the inverse STIM detection map as in [PAI19]_.
 
     Parameters
     ----------

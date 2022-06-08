@@ -87,12 +87,39 @@ stellar environments.
 
 # Statement of need
 
-``VIP`` stands for Vortex Image Processing. It is a collaborative project
-which started at the University of Liège, aiming to integrate open-source,
-efficient, easy-to-use and well-documented implementations of state-of-the-art
-algorithms used in the context of high-contrast imaging. The package follows a
-modular architecture, such that its routines cover a wide diversity of tasks,
-including:
+``VIP`` (Vortex Image Processing) is a collaborative project which started at 
+the University of Liège, aiming to integrate open-source, efficient, easy-to-use 
+and well-documented implementations of state-of-the-art algorithms used in the 
+context of high-contrast imaging [@Gomez:2017]. Two other open-source toolkits 
+for high-contrast imaging with similar purpose and extent as ``VIP`` have 
+become available in the last few years: ``pyklip`` and ``pynpoint`` 
+[@pyklip:2015; @pynpoint:2015; @pynpoint:2019]. In each of these, a core (and only) 
+post-processing method is available: the Karhuenen-Loeve Image Projection (KLIP) 
+algorithm [@Soummer:2012], and the (similar) Principal Component Analysis (PCA) 
+algorithm [@Amara:2012], respectively. In contrast, ``VIP`` not only implements 
+the PCA algorithm with a variety of flavours, but it also includes a diversity 
+of other post-processing methods, such as ANDROMEDA, KLIP-FMMF, LLSG, NMF or 
+PACO [@Cantalloube:2015; @Gomez:2016; @Gomez:2017; @Ruffio:2017; @Flasseur:2018]. 
+Furthermore, as opposed to ``VIP``, ``pyklip`` does not offer any preprocessing 
+options (e.g. PCA-based sky subtraction, image centering or bad frame trimming). 
+``pynpoint`` was originally developed as a PCA-based PSF-subtraction mini-package 
+[@pynpoint:2015], which was later significantly expanded into an end-to-end 
+processing pipeline including similar options as ``VIP`` regarding preprocessing 
+[@pynpoint:2019]. Nonetheless, the PCA implementation in ``VIP`` offers a much
+wider diversity of options, such as the possibility to carry it out in 
+concentric annuli, and considering a parallactic angle threshold when creating 
+the PCA library. Depending on the high-contrast imaging dataset at hand, 
+different post-processing methods and reduction parameters can lead to better 
+speckle suppression, hence help with the detection of fainter companions 
+[@Dahlqvist:2021]. In that regard, ``VIP`` is thus better equipped than other 
+existing toolkits. It is also worth mentioning that FFT-based methods are 
+implemented in ``VIP`` (default option) for all image operations (rotation, 
+shift and rescaling) as these outperform interpolation-based methods in terms of
+flux conservation [@Larkin:1997]. To our knowledge, these FFT-based methods for 
+image operations are not available in other high-contrast imaging packages.
+
+The ``VIP`` package follows a modular architecture, such that its routines 
+cover a wide diversity of tasks, including:
 
 * image pre-processing, such as sky subtraction, bad pixel correction, bad
 frame removal, or image alignment and star centering (`preproc` module);
@@ -119,25 +146,25 @@ community for the discovery of low-mass companions
 [@Milli:2017;  @Hirsch:2019;  @Ubeira:2020], their characterization 
 [@Wertz:2017;  @Delorme:2017;  @Christiaens:2018;  @Christiaens:2019], the study 
 of planet formation [@Ruane:2017;  @Reggiani:2018;  @Mauco:2020;  @Toci:2020], 
-the study of high-mass star formation [@Rainot:2020;  @Rainot:2022] ,the study 
+the study of high-mass star formation [@Rainot:2020;  @Rainot:2022], the study 
 of debris disks [@Milli:2017b; @Milli:2019], or the development of new 
 high-contrast imaging algorithms 
-[@Gomez:2018;  @Dahlqvist:2020;  @Pairet:2021;  @Dahlqvist:2021]. Given the 
-rapid expansion of ``VIP``, we summarize here all novelties that were brought 
-to the package over the past five years.
+[@Gomez:2018;  @Dahlqvist:2020;  @Pairet:2021;  @Dahlqvist:2021]. 
 
-The rest of this manuscript summarizes all major changes since v0.7.0
-[@Gomez:2017], that are included in the latest release of ``VIP`` (v1.3.1). At
-a structural level, ``VIP`` underwent a major change since version v1.1.0, which
-aimed to migrate towards a more streamlined and easy-to-use architecture. The
-package now revolves around five major modules (`fm`, `invprob`, `metrics`,
-`preproc` and `psfsub`, as described above) complemented by four additional
-modules containing various utility functions (`config`, `fits`,
-`stats` and `var`). New `Dataset` and `Frame` classes have also been
-implemented, enabling an object-oriented approach for processing high-contrast
-imaging datasets and analyzing final images, respectively. Similarly, a
-`HCIPostProcAlgo` class and different subclasses inheriting from it have been
-defined to facilitate an object-oriented use of ``VIP`` routines.
+Given the rapid expansion of ``VIP``, we summarize here all novelties that were 
+brought to the package over the past five years. Specifically, the rest of this 
+manuscript summarizes all major changes since v0.7.0 [@Gomez:2017], that are 
+included in the latest release of ``VIP`` (v1.3.1). At a structural level, 
+``VIP`` underwent a major change since version v1.1.0, which aimed to migrate 
+towards a more streamlined and easy-to-use architecture. The package now 
+revolves around five major modules (`fm`, `invprob`, `metrics`, `preproc` and 
+`psfsub`, as described above) complemented by four additional modules containing 
+various utility functions (`config`, `fits`, `stats` and `var`). New `Dataset` 
+and `Frame` classes have also been implemented, enabling an object-oriented 
+approach for processing high-contrast imaging datasets and analyzing final 
+images, respectively. Similarly, a `HCIPostProcAlgo` class and different 
+subclasses inheriting from it have been defined to facilitate an object-oriented 
+use of ``VIP`` routines.
 
 Some of the major changes in each module of ``VIP`` are summarized below:
 
@@ -174,8 +201,8 @@ Some of the major changes in each module of ``VIP`` are summarized below:
     iterative sigma filtering (`cube_fix_badpix_clump`), the circular symmetry
     of the PSF (`cube_fix_badpix_annuli`), or the radial expansion of the PSF
     with increasing wavelength (`cube_fix_badpix_ifs`), and (ii) the correction
-    of bad pixels based on either median replacement (default) or Gaussian
-    kernel interpolation (`cube_fix_badpix_with_kernel`);
+    of bad pixels with iterative spectral deconvolution [@Aach:2001] or 
+    Gaussian kernel interpolation (both through `cube_fix_badpix_interp`);
     - a new algorithm was added for the recentering of coronagraphic image cubes
     based on the cross-correlation of the speckle pattern, after appropriate
     filtering and log-scaling of pixel intensities [@Ruane:2019].

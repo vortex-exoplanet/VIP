@@ -2,6 +2,30 @@
 
 """
 Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
+
+.. [CHR21]
+   | Christiaens et al. 2021
+   | **A faint companion around CrA-9: protoplanet or obscured binary?**
+   | *MNRAS, Volume 502, Issue 4, pp. 6117-6139*
+   | `https://arxiv.org/abs/astro-ph/2102.10288
+     <https://arxiv.org/abs/astro-ph/2102.10288>`_
+     
+.. [FOR13]
+   | Foreman-Mackey et al. 2013
+   | **emcee: The MCMC Hammer**
+   | *PASP, Volume 125, Issue 925, p. 306*
+   | `https://arxiv.org/abs/astro-ph/1202.3665
+     <https://arxiv.org/abs/astro-ph/1202.3665>`_
+     
+.. [WER17]
+   | Wertz et al. 2017
+   | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond-level 
+     accuracy. Orbital architecture analysis with PyAstrOFit**
+   | *Astronomy & Astrophysics, Volume 598, Issue 1, p. 83*
+   | `https://arxiv.org/abs/astro-ph/1610.04014
+     <https://arxiv.org/abs/astro-ph/1610.04014>`_
+
+
 """
 
 
@@ -404,18 +428,18 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     circular aperture centered on the initial guess.
     4) We calculate a function of merit :math:`\chi^2` (see below).
     The steps 1) to 4) are then looped. At each iteration, the candidate model
-    parameters are defined by the emcee Affine Invariant algorithm.
+    parameters are defined by the ``emcee`` Affine Invariant algorithm [FOR13]_.
 
     There are different possibilities for the figure of merit (step 4):
         
-        - mu_sigma=None; fmerit='sum' (as in Wertz et al. 2017):\
+        - mu_sigma=None; fmerit='sum' (as in [WER17]_):\
         :math:`\chi^2 = \sum(\|I_j\|)`
         
         - mu_sigma=None; fmerit='stddev' (likely more appropriate when speckle\
         noise still significant): \
         :math:`\chi^2 = N \sigma_{I_j}(values,ddof=1)*`values.size
         
-        - mu_sigma=True or a tuple (as in Christiaens et al. 2021, new default):\
+        - mu_sigma=True or a tuple (as in [CHR21]_, new default):\
         :math:`\chi^2 = \sum\frac{(I_j- mu)^2}{\sigma^2}`
 
     where :math:`j \in {1,...,N}` with N the total number of pixels
@@ -478,7 +502,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         The FHWM in pixels.
     mu_sigma: tuple of 2 floats or bool, opt
         If set to None: not used, and falls back to original version of the
-        algorithm, using fmerit (Wertz et al. 2017).
+        algorithm, using ``fmerit`` [WER17]_.
         If a tuple of 2 elements: should be the mean and standard deviation of
         pixel intensities in an annulus centered on the location of the
         companion candidate, excluding the area directly adjacent to the CC.
@@ -494,8 +518,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     fmerit : {'sum', 'stddev'}, string optional
         If mu_sigma is not provided nor set to True, this parameter determines
         which figure of merit to be used among the 2 possibilities implemented
-        in Wertz et al. (2017). 'stddev' may work well for point like sources
-        surrounded by extended signals.
+        in [WER17]_. 'stddev' may work well for point like sources surrounded by 
+        extended signals.
     cube_ref : 3d or 4d numpy ndarray, or list of 3d ndarray, optional
         Reference library cube for Reference Star Differential Imaging. Should
         be 3d, except if the input cube is 4d, in which case it can either be a

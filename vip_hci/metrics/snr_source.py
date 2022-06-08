@@ -2,8 +2,18 @@
 
 """
 Module with S/N calculation functions.
-We strongly recommend users to read Mawet et al. (2014) before using routines
-of this module: https://ui.adsabs.harvard.edu/abs/2014ApJ...792...97M/abstract
+
+.. [MAW14]
+   | Mawet et al. 2014
+   | **Fundamental Limitations of High Contrast Imaging Set by Small Sample 
+     Statistics**
+   | *The Astrophysical Journal, Volume 792, Issue 1, p. 97*
+   | `https://arxiv.org/abs/astro-ph/1407.2247
+     <https://arxiv.org/abs/astro-ph/1407.2247>`_
+
+We strongly recommend users to read [MAW14] before using routines of this 
+module.
+
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, O. Absil @ ULg, V. Christiaens'
@@ -32,8 +42,7 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
     """Parallel implementation of the S/N map generation function. Applies the
     S/N function (small samples penalty) at each pixel.
 
-    The S/N is computed as in Mawet et al. (2014) for each radial separation.
-    https://ui.adsabs.harvard.edu/abs/2014ApJ...792...97M/abstract
+    The S/N is computed as in [MAW14] for each radial separation.
 
     *** DISCLAIMER ***
     Signal-to-noise ratio is not significance! For a conversion from snr to
@@ -223,10 +232,9 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
     """
     Calculate the S/N (signal to noise ratio) of a test resolution element
     in a residual frame (e.g. post-processed with LOCI, PCA, etc). Implements
-    the approach described in Mawet et al. 2014 on small sample statistics,
+    the approach described in [MAW14] on small sample statistics,
     where a student t-test (eq. 9) can be used to determine S/N (and contrast)
-    in high contrast imaging. 3 extra possibilities compared to Mawet et al.
-    2014 (https://ui.adsabs.harvard.edu/abs/2014ApJ...792...97M/abstract):
+    in high contrast imaging. 3 extra possibilities compared to [MAW14]_:
 
         * possibility to provide a second array (e.g. obtained with opposite \
         derotation angles) to have more apertures for noise estimation;
@@ -378,7 +386,7 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
 
 
 def significance(snr, rad, fwhm, student_to_gauss=True):
-    """ Converts a S/N ratio (measured as in Mawet et al. 2014) into the
+    """ Converts a S/N ratio (measured as in [MAW14]_) into the
     equivalent gaussian significance, i.e. the n-sigma with the same confidence
     level as the S/N at the given separation.
 

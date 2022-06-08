@@ -3,6 +3,15 @@
 """
 Module with simplex (Nelder-Mead) optimization for defining the flux and
 position of a companion using the Negative Fake Companion.
+
+.. [WER17]
+   | Wertz et al. 2017
+   | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond-level 
+     accuracy. Orbital architecture analysis with PyAstrOFit**
+   | *Astronomy & Astrophysics, Volume 598, Issue 1, p. 83*
+   | `https://arxiv.org/abs/astro-ph/1610.04014
+     <https://arxiv.org/abs/astro-ph/1610.04014>`_
+     
 """
 
 
@@ -393,7 +402,8 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
                mu_sigma=True, wedge=None, weights=None, force_rPA=False,
                algo_options={}, simplex=True, simplex_options=None, plot=False,
                verbose=True, save=False):
-    """ Determines a first guess for the position and the flux of a planet.
+    """ Determines a first guess for the position and the flux of a planet, as
+    explained in [WER17]_.
 
     We process the cube without injecting any negative fake companion.
     This leads to the visual detection of the planet(s). For each of them,

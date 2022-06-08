@@ -9,9 +9,47 @@ Full-frame PCA algorithm for ADI, (ADI+)RDI and (ADI+)mSDI (IFS data) cubes:
   is the number of frames and P the number of pixels in a frame is created. Then
   PCA is done through eigen-decomposition of the covariance matrix (~$DD^T$) or
   the SVD of the data matrix. SVD can be calculated using different libraries
-  including the fast randomized SVD (Halko et al. 2009).
+  including the fast randomized SVD.
 
 - *Full-frame incremental PCA* for big (larger than available memory) cubes.
+
+.. [AMA12]
+   | Amara & Quanz 2012
+   | **PYNPOINT: an image processing package for finding exoplanets**
+   | *MNRAS, Volume 427, Issue 1, pp. 948-955*
+   | `https://arxiv.org/abs/astro-ph/1207.6637
+     <https://arxiv.org/abs/astro-ph/1207.6637>`_
+     
+.. [CHR19]
+   | Christiaens et al. 2019
+   | **Separating extended disc features from the protoplanet in PDS 70 using 
+     VLT/SINFONI**
+   | *MNRAS, Volume 486, Issue 4, pp. 5819-5837*
+   | `https://arxiv.org/abs/astro-ph/1905.01860
+     <https://arxiv.org/abs/astro-ph/1905.01860>`_
+     
+.. [GOM17]
+   | Gomez-Gonzalez et al. 2017
+   | **VIP: Vortex Image Processing Package for High-contrast Direct Imaging**
+   | *The Astronomical Journal, Volume 154, p. 7*
+   | `https://arxiv.org/abs/astro-ph/1705.06184
+     <https://arxiv.org/abs/astro-ph/1705.06184>`_
+     
+.. [HAL09]
+   | Halko et al. 2009
+   | **Finding structure with randomness: Probabilistic algorithms for 
+     constructing approximate matrix decompositions**
+   | *arXiv e-prints*
+   | `https://arxiv.org/abs/astro-ph/0909.4061
+     <https://arxiv.org/abs/astro-ph/0909.4061>`_
+     
+.. [SOU12]
+   | Soummer et al. 2012
+   | **Detection and Characterization of Exoplanets and Disks Using Projections 
+     on Karhunen-Loève Eigenimages**
+   | *The Astrophysical Journal Letters, Volume 755, Issue 2, p. 28*
+   | `https://arxiv.org/abs/astro-ph/1207.4197
+     <https://arxiv.org/abs/astro-ph/1207.4197>`_
 
 """
 
@@ -49,18 +87,17 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
     ADI: the target ``cube`` itself is used to learn the PCs and to obtain a
     low-rank approximation model PSF (star + speckles). Both `cube_ref`` and
     ``scale_list`` must be None. The full-frame ADI-PCA implementation is based
-    on Soummer et al. 2012 (http://arxiv.org/abs/1207.4197) and Amara & Quanz
-    2012 (http://arxiv.org/abs/1207.6637). If ``batch`` is provided then the
-    cube if processed with incremental PCA as described in Gomez Gonzalez et al.
-    2017 (https://arxiv.org/abs/1705.06184).
+    on [AMA12] and [SOU12]_. If ``batch`` is provided then the cube is processed 
+    with incremental PCA as described in [GOM17]_.
 
     (ADI+)RDI: if a reference cube is provided (``cube_ref``), its PCs are used
     to reconstruct the target frames to obtain the model PSF (star + speckles).
 
     (ADI+)mSDI (IFS data): if a scaling vector is provided (``scale_list``) and
-    the cube is a 4d array [# channels, # adi-frames, Y, X], its assumed it
+    the cube is a 4d array [# channels, # adi-frames, Y, X], it's assumed it
     contains several multi-spectral frames acquired in pupil-stabilized mode.
-    A single or two stages PCA can be performed, depending on ``adimsdi``.
+    A single or two stages PCA can be performed, depending on ``adimsdi``, as 
+    explained in [CHR19]_.
 
     Parameters
     ----------
@@ -147,7 +184,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
           eigendecomposition of the covariance M.M' (computation on CPU).
 
         * ``randsvd``: uses the randomized_svd algorithm implemented in
-          Sklearn (computation on CPU).
+          Sklearn (computation on CPU), proposed in [HAL09]_.
 
         * ``cupy``: uses the Cupy library for GPU computation of the SVD as in
           the LAPACK version. `

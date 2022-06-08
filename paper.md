@@ -87,35 +87,36 @@ stellar environments.
 
 # Statement of need
 
-``VIP`` stands for Vortex Image Processing. It is a collaborative project
-which started at the University of Liège, aiming to integrate open-source,
-efficient, easy-to-use and well-documented implementations of state-of-the-art
-algorithms used in the context of high-contrast imaging [@Gomez:2017]. A few 
-open-source toolkits for high-contrast imaging have become available in 
-the last few years apart from ``VIP``. Other large packages include ``pyklip`` 
-and ``pynpoint`` [@pyklip; @pynpoint:2015; @pynpoint:2019]. In both of these, 
-the core post-processing method (and only available apart from median-ADI) is 
-the KLIP (or PCA) algorithm [@Soummer:2012]. In contrast, ``VIP`` not only 
-implements the PCA algorithm with a variety of flavours, but it also includes a 
-diversity of other post-processing methods, such as ANDROMEDA, LLSG or NMF 
-[@Cantalloube2015; @Gomez:2017; @Gomez:2016]. As opposed to ``VIP``, ``pyklip`` 
-does not offer preprocessing options such as PCA-based sky subtraction, image 
-centering, bad frame trimming, or bad pixel correction. ``pynpoint`` was 
+``VIP`` (Vortex Image Processing) is a collaborative project which started at 
+the University of Liège, aiming to integrate open-source, efficient, easy-to-use 
+and well-documented implementations of state-of-the-art algorithms used in the 
+context of high-contrast imaging [@Gomez:2017]. Two other open-source toolkits 
+for high-contrast imaging with similar purpose and extent as ``VIP`` have 
+become available in the last few years: ``pyklip`` and ``pynpoint`` 
+[@pyklip; @pynpoint:2015; @pynpoint:2019]. In each of these, a core (and only) 
+post-processing method is available: the Karhuenen-Loeve Image Projection (KLIP) 
+algorithm [@Soummer:2012], and the (similar) Principal Component Analysis (PCA) 
+algorithm [@Amara:2012], respectively. In contrast, ``VIP`` not only implements 
+the PCA algorithm with a variety of flavours, but it also includes a diversity 
+of other post-processing methods, such as ANDROMEDA, LLSG or NMF 
+[@Cantalloube2015; @Gomez:2017; @Gomez:2016]. Furthermore, as opposed to 
+``VIP``, ``pyklip`` does not offer any preprocessing options (e.g. PCA-based 
+sky subtraction, image centering or bad frame trimming). ``pynpoint`` was 
 originally developed as a PCA-based PSF-subtraction mini-package 
 [@pynpoint:2015], which was later significantly expanded into an end-to-end 
 processing pipeline including similar options as VIP regarding preprocessing 
-[@pynpoint:2019]. Nonetheless, ``VIP`` boasts more options in terms of PCA 
-post-processing, such as the possibility to carry it out in concentric annuli, 
-and considering a parallactic angle threshold when creating the PCA library. 
-Depending on the high-contrast imaging dataset at hand, different 
-post-processing methods and reduction parameters can lead to better speckle 
-suppression, hence help with the detection of fainter companions 
+[@pynpoint:2019]. Nonetheless, the PCA implementation in ``VIP`` offers a much
+wider diversity of options, such as the possibility to carry it out in 
+concentric annuli, and considering a parallactic angle threshold when creating 
+the PCA library. Depending on the high-contrast imaging dataset at hand, 
+different post-processing methods and reduction parameters can lead to better 
+speckle suppression, hence help with the detection of fainter companions 
 [@Dahlqvist:2021]. In that regard, ``VIP`` is thus better equipped than other 
 existing toolkits. It is also worth mentioning that FFT-based methods are 
 implemented in ``VIP`` (default option) for all image operations (rotation, 
 shift and rescaling) as these outperform interpolation-based methods in terms of
-flux conservation [@Larkin:1997]. To our knowledge, these algorithms are not 
-available in any other open-source packages.
+flux conservation [@Larkin:1997]. To our knowledge, FFT-based image operations 
+are not available in any other open-source packages.
 
 The ``VIP`` package follows a modular architecture, such that its routines 
 cover a wide diversity of tasks, including:

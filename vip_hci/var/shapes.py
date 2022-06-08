@@ -1,7 +1,16 @@
 #! /usr/bin/env python
 
 """
-Module with various functions to create shapes, annuli and segments.
+Module with various functions to create shapes, annuli and segments.     
+
+.. [GEB20]
+   | Gebhard et al. 2020
+   | **Physically constrained causal noise models for high-contrast imaging of 
+     exoplanets**
+   | *arXiv e-prints7*
+   | `https://arxiv.org/abs/astro-ph/2010.05591
+     <https://arxiv.org/abs/astro-ph/2010.05591>`_
+     
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, Carles Cantero'
@@ -794,7 +803,7 @@ def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
              mode='val', plot=False):
     """
     Return a mask corresponding to the region of interest for a test point
-    source as defined in Gebhardt et al. (2021).
+    source as defined in [GEB20].
 
     Given a frame and a location of interest with coordinates xy=(cx,cy),
     the mask consists of all pixels from three different regions with respect
@@ -809,11 +818,11 @@ def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
         * (r4) Annulus region: Pixels from the annulus where xy is located.
 
     The goal of this mask is to disentangle the expected structure of the
-    speckle pattern. Gebhardt et al.(2021) comment that "r2 is chosen to
-    capture any "local" effects around xy due to the instrument. r3 is chosen
-    symmetrically opposite of xy because if there is a speckle at xy, there
-    should also be an (anti-)speckle at r2. r4 is used because we know that the
-    systematic noise significantly depends on the radial variable."
+    speckle pattern. [GEB20] comment that 'r2 is chosen to capture any local 
+    effects around xy due to the instrument. r3 is chosen symmetrically opposite 
+    of xy because if there is a speckle at xy, there should also be an 
+    (anti-)speckle at r2. r4 is used because we know that the systematic noise 
+    significantly depends on the radial variable.'
 
     Parameters
     ----------

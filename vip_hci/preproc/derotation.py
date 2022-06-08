@@ -2,6 +2,14 @@
 
 """
 Module with frame de-rotation routine for ADI.
+
+.. [LAR97]
+   | Larkin et al. 1997
+   | **Fast Fourier method for the accurate rotation of sampled images**
+   | *Optics Communications, Volume 154, Issue 1-3, pp. 99-106*
+   | `https://ui.adsabs.harvard.edu/abs/1997OptCo.139...99L
+     <https://ui.adsabs.harvard.edu/abs/1997OptCo.139...99L>`_
+
 """
 
 
@@ -45,7 +53,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
     imlib : {'opencv', 'skimage', 'vip-fft'}, str optional
         Library used for image transformations. Opencv is faster than
         Skimage or scipy.ndimage. 'vip-fft' corresponds to the FFT-based
-        rotation described in Larkin et al. (1997), and implemented in this
+        rotation method described in [LAR97]_, and implemented in this
         module. Best results are obtained with images without any sharp
         intensity change (i.e. no numerical mask). Edge-blending and/or
         zero-interpolation may help if sharp transitions are unavoidable.

@@ -5,11 +5,12 @@ Module with functions for correcting bad pixels in cubes.
 
 .. [AAC01]
    | Aach & Metzler 2001
-   | **Defect interpolation in digital radiography how
-object-oriented transform coding helps**
+   | **Defect interpolation in digital radiography how object-oriented 
+     transform coding helps**
    | *SPIE, Proceedings Volume 4322, Medical Imaging 2001: Image Processing*
    | `https://doi.org/10.1117/12.431161
      <https://doi.org/10.1117/12.431161>`_
+
 """
 
 

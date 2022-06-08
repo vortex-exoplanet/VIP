@@ -2,6 +2,37 @@
 
 """
 Module with frame/cube filtering functionalities.
+     
+.. [DAB15]
+   | Dabbech et al. 2015
+   | **MORESANE: MOdel REconstruction by Synthesis-ANalysis Estimators. A sparse 
+     deconvolution algorithm for radio interferometric imaging**
+   | *The Astrophysical Journal, Volume 641, Issue 1, pp. 556-564*
+   | `https://arxiv.org/abs/astro-ph/0512335
+     <https://arxiv.org/abs/astro-ph/0512335>`_
+     
+.. [KEN15]
+   | J. S. Kenyon 2015
+   | **PyMORESANE**
+   | *GitHub repository*
+   | `https://github.com/ratt-ru/PyMORESANE
+     <https://github.com/ratt-ru/PyMORESANE>`_
+     
+.. [LUC74]
+   | L. Lucy 1974
+   | **An iterative technique for the rectification of observed distributions**
+   | *The Astronomical Journal, Volume 79, p. 745*
+   | `https://ui.adsabs.harvard.edu/abs/1974AJ.....79..745L/abstract
+     <https://ui.adsabs.harvard.edu/abs/1974AJ.....79..745L/abstract>`_
+     
+.. [RIC72]
+   | W. H. Richardson 1972
+   | **Bayesian-Based Iterative Method of
+   Image Restoration**
+   | *J. Opt. Soc. Am., Volume 27, pp. 1593-1607 *
+   | `https://opg.optica.org/josa/abstract.cfm?uri=josa-62-1-55
+     <https://opg.optica.org/josa/abstract.cfm?uri=josa-62-1-55>`_
+
 """
 
 
@@ -33,7 +64,8 @@ from ..config import Progressbar
 
 def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
     """
-    Isotropic Undecimated Wavelet Transform filtering.
+    Isotropic Undecimated Wavelet Transform filtering, as implemented in [KEN15] 
+    and detailed in [DAB15]_.
 
     Parameters
     ----------
@@ -573,19 +605,12 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
 def frame_deconvolution(array, psf, n_it=30):
     """
     Iterative image deconvolution following the scikit-image implementation
-    of the Richardson-Lucy algorithm.
+    of the Richardson-Lucy algorithm, described in [RIC72] and [LUC74].
 
     Considering an image that has been convolved by the point spread function
     of an instrument, the algorithm will sharpen the blurred
     image through a user-defined number of iterations, which changes the
     regularisation.
-
-    Reference: William Hadley Richardson, “Bayesian-Based Iterative Method of
-    Image Restoration”, J. Opt. Soc. Am. A 27, 1593-1607 (1972),
-    DOI:10.1364/JOSA.62.000055
-
-    See also description at:
-    https://en.wikipedia.org/wiki/Richardson%E2%80%93Lucy_deconvolution
 
 
     Parameters

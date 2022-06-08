@@ -41,7 +41,9 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
               homogeneous_variance=True, ditimg=1.0, ditpsf=None, tnd=1.0,
               total=False, multiply_gamma=True, nproc=1, verbose=False):
     """
-    Exoplanet detection in ADI sequences by maximum-likelihood approach.
+    Exoplanet detection in ADI sequences by maximum-likelihood approach, as 
+    implemented in [CAN15]_, itself inspired by the framework presented in 
+    [MUG09]_.
 
     Parameters
     ----------

@@ -98,11 +98,11 @@ post-processing method is available: the Karhuenen-Loeve Image Projection (KLIP)
 algorithm [@Soummer:2012], and the (similar) Principal Component Analysis (PCA) 
 algorithm [@Amara:2012], respectively. In contrast, ``VIP`` not only implements 
 the PCA algorithm with a variety of flavours, but it also includes a diversity 
-of other post-processing methods, such as ANDROMEDA, LLSG or NMF 
-[@Cantalloube:2015; @Gomez:2016; @Gomez:2017]. Furthermore, as opposed to 
-``VIP``, ``pyklip`` does not offer any preprocessing options (e.g. PCA-based 
-sky subtraction, image centering or bad frame trimming). ``pynpoint`` was 
-originally developed as a PCA-based PSF-subtraction mini-package 
+of other post-processing methods, such as ANDROMEDA, KLIP-FMMF, LLSG, NMF or 
+PACO [@Cantalloube:2015; @Gomez:2016; @Gomez:2017; @Ruffio:2017; @Flasseur:2018]. 
+Furthermore, as opposed to ``VIP``, ``pyklip`` does not offer any preprocessing 
+options (e.g. PCA-based sky subtraction, image centering or bad frame trimming). 
+``pynpoint`` was originally developed as a PCA-based PSF-subtraction mini-package 
 [@pynpoint:2015], which was later significantly expanded into an end-to-end 
 processing pipeline including similar options as ``VIP`` regarding preprocessing 
 [@pynpoint:2019]. Nonetheless, the PCA implementation in ``VIP`` offers a much

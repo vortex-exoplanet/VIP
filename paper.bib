@@ -1,12 +1,30 @@
 %% This BibTeX bibliography file was created using BibDesk.
 %% https://bibdesk.sourceforge.io/
 
-%% Created for Valentin Christiaens at 2022-06-07 18:16:14 +0200 
+%% Created for Valentin Christiaens at 2022-06-08 18:05:35 +0200 
 
 
 %% Saved with string encoding Unicode (UTF-8) 
 
 
+
+@misc{pyklip:2015,
+	abstract = {pyKLIP subtracts out the stellar PSF to search for directly-imaged exoplanets and disks using a Python implementation of the Karhunen-Lo{\`e}ve Image Projection (KLIP) algorithm. pyKLIP supports ADI, SDI, and ADI+SDI to model the stellar PSF and offers a large array of PSF subtraction parameters to optimize the reduction. pyKLIP relies on a minimal amount of dependencies (numpy, scipy, and astropy) and parallelizes the KLIP algorithm to speed up the reduction. pyKLIP supports GPI and P1640 data and can interface with other data sources with the addition of new modules. It also can inject simulated planets and disks as well as automatically search for point sources in PSF-subtracted data.},
+	adsnote = {Provided by the SAO/NASA Astrophysics Data System},
+	adsurl = {https://ui.adsabs.harvard.edu/abs/2015ascl.soft06001W},
+	archiveprefix = {ascl},
+	author = {{Wang}, Jason J. and {Ruffio}, Jean-Baptise and {De Rosa}, Robert J. and {Aguilar}, Jonathan and {Wolff}, Schuyler G. and {Pueyo}, Laurent},
+	date-added = {2022-06-08 18:04:30 +0200},
+	date-modified = {2022-06-08 18:04:37 +0200},
+	eid = {ascl:1506.001},
+	eprint = {1506.001},
+	howpublished = {Astrophysics Source Code Library, record ascl:1506.001},
+	keywords = {Software},
+	month = jun,
+	pages = {ascl:1506.001},
+	title = {{pyKLIP: PSF Subtraction for Exoplanets and Disks}},
+	year = 2015,
+	bdsk-url-1 = {https://ui.adsabs.harvard.edu/abs/2015ascl.soft06001W}}
 
 @inproceedings{Aach:2001,
 	abstract = {Today's solid state flat panel radiography detectors provide images which contain artifacts caused by lines, columns and clusters of inactive pixels. If not too large, such defects can be filled by interpolation algorithms which usually work in the spatial domain. This paper describes an alternative spectral domain approach to defect interpolation. The acquired radiograph is modeled as the undistorted image multiplied by a known binary defect window. The window effect is then removed by deconvolving the window spectrum from the spectrum of the observed, distorted radiograph. The basic ingredient of our interpolation algorithm is an earlier approach to block transform coding of arbitrarily shaped image segments, that extrapolates the segment internal intensities over a block into which the segment is embedded. For defect interpolation, the arbitrarily shaped segment is formed by a local image region with defects, thus turning extrapolation into defect interpolation. Our algorithm reconstructs both oriented structures and noise- like information in a natural-looking manner, even for large defects. Moreover, our concept can also be applied to non- binary defect windows, e.g. for gain correction.},
@@ -74,14 +92,14 @@
 	bdsk-url-2 = {https://ui.adsabs.harvard.edu/abs/2019A&A...621A..59S},
 	bdsk-url-3 = {https://ui.adsabs.harvard.edu/link_gateway/2019A&A...621A..59S/EPRINT_HTML}}
 
-@article{Gomez2016,
+@article{Gomez:2016,
 	abstract = {Context. Data processing constitutes a critical component of high-contrast exoplanet imaging. Its role is almost as important as the choice of a coronagraph or a wavefront control system, and it is intertwined with the chosen observing strategy. Among the data processing techniques for angular differential imaging (ADI), the most recent is the family of principal component analysis (PCA) based algorithms. It is a widely used statistical tool developed during the first half of the past century. PCA serves, in this case, as a subspace projection technique for constructing a reference point spread function (PSF) that can be subtracted from the science data for boosting the detectability of potential companions present in the data. Unfortunately, when building this reference PSF from the science data itself, PCA comes with certain limitations such as the sensitivity of the lower dimensional orthogonal subspace to non-Gaussian noise. <BR /> Aims: Inspired by recent advances in machine learning algorithms such as robust PCA, we aim to propose a localized subspace projection technique that surpasses current PCA-based post-processing algorithms in terms of the detectability of companions at near real-time speed, a quality that will be useful for future direct imaging surveys. <BR /> Methods: We used randomized low-rank approximation methods recently proposed in the machine learning literature, coupled with entry-wise thresholding to decompose an ADI image sequence locally into low-rank, sparse, and Gaussian noise components (LLSG). This local three-term decomposition separates the starlight and the associated speckle noise from the planetary signal, which mostly remains in the sparse term. We tested the performance of our new algorithm on a long ADI sequence obtained on β Pictoris with VLT/NACO. <BR /> Results: Compared to a standard PCA approach, LLSG decomposition reaches a higher signal-to-noise ratio and has an overall better performance in the receiver operating characteristic space. This three-term decomposition brings a detectability boost compared to the full-frame standard PCA approach, especially in the small inner working angle region where complex speckle noise prevents PCA from discerning true companions from noise.},
 	adsnote = {Provided by the SAO/NASA Astrophysics Data System},
 	adsurl = {https://ui.adsabs.harvard.edu/abs/2016A&A...589A..54G},
 	archiveprefix = {arXiv},
 	author = {{Gomez Gonzalez}, C.~A. and {Absil}, O. and {Absil}, P. -A. and {Van Droogenbroeck}, M. and {Mawet}, D. and {Surdej}, J.},
 	date-added = {2022-06-03 17:32:26 +0200},
-	date-modified = {2022-06-03 17:32:36 +0200},
+	date-modified = {2022-06-08 18:05:34 +0200},
 	doi = {10.1051/0004-6361/201527387},
 	eid = {A54},
 	eprint = {1602.08381},

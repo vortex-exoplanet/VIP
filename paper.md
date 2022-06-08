@@ -93,18 +93,18 @@ and well-documented implementations of state-of-the-art algorithms used in the
 context of high-contrast imaging [@Gomez:2017]. Two other open-source toolkits 
 for high-contrast imaging with similar purpose and extent as ``VIP`` have 
 become available in the last few years: ``pyklip`` and ``pynpoint`` 
-[@pyklip; @pynpoint:2015; @pynpoint:2019]. In each of these, a core (and only) 
+[@pyklip:2015; @pynpoint:2015; @pynpoint:2019]. In each of these, a core (and only) 
 post-processing method is available: the Karhuenen-Loeve Image Projection (KLIP) 
 algorithm [@Soummer:2012], and the (similar) Principal Component Analysis (PCA) 
 algorithm [@Amara:2012], respectively. In contrast, ``VIP`` not only implements 
 the PCA algorithm with a variety of flavours, but it also includes a diversity 
 of other post-processing methods, such as ANDROMEDA, LLSG or NMF 
-[@Cantalloube2015; @Gomez:2017; @Gomez:2016]. Furthermore, as opposed to 
+[@Cantalloube:2015; @Gomez:2016; @Gomez:2017]. Furthermore, as opposed to 
 ``VIP``, ``pyklip`` does not offer any preprocessing options (e.g. PCA-based 
 sky subtraction, image centering or bad frame trimming). ``pynpoint`` was 
 originally developed as a PCA-based PSF-subtraction mini-package 
 [@pynpoint:2015], which was later significantly expanded into an end-to-end 
-processing pipeline including similar options as VIP regarding preprocessing 
+processing pipeline including similar options as ``VIP`` regarding preprocessing 
 [@pynpoint:2019]. Nonetheless, the PCA implementation in ``VIP`` offers a much
 wider diversity of options, such as the possibility to carry it out in 
 concentric annuli, and considering a parallactic angle threshold when creating 
@@ -115,8 +115,8 @@ speckle suppression, hence help with the detection of fainter companions
 existing toolkits. It is also worth mentioning that FFT-based methods are 
 implemented in ``VIP`` (default option) for all image operations (rotation, 
 shift and rescaling) as these outperform interpolation-based methods in terms of
-flux conservation [@Larkin:1997]. To our knowledge, FFT-based image operations 
-are not available in any other open-source packages.
+flux conservation [@Larkin:1997]. To our knowledge, these FFT-based methods for 
+image operations are not available in other high-contrast imaging packages.
 
 The ``VIP`` package follows a modular architecture, such that its routines 
 cover a wide diversity of tasks, including:

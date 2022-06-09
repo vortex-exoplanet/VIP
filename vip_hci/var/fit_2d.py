@@ -262,12 +262,13 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
                 fwhm_y_e, fwhm_x_e = np.nan, np.nan
                 amplitude_e, theta_e = np.nan, np.nan
     else:
-        # this also means the fit failed
-        mean_y, mean_x = np.nan, np.nan
-        fwhm_y, fwhm_x = np.nan, np.nan
-        amplitude, theta = np.nan, np.nan
         amplitude_e, theta_e, mean_x_e = np.nan, np.nan, np.nan
         mean_y_e, fwhm_x_e, fwhm_y_e = np.nan, np.nan, np.nan
+        # the following also means the fit failed
+        if fwhm_y == fwhmy and fwhm_x == fwhmx and amplitude == init_amplitude:
+            mean_y, mean_x = np.nan, np.nan
+            fwhm_y, fwhm_x = np.nan, np.nan
+            amplitude, theta = np.nan, np.nan            
 
     if debug:
         if threshold:

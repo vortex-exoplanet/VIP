@@ -155,7 +155,7 @@ def verify_fits(fitsfilename):
 def write_fits(fitsfilename, array, header=None, output_verify='exception',
                precision=np.float32, verbose=True):
     """
-    Write array and header into FTIS file.
+    Write array and header into FITS file.
 
     If there is a previous file with the same filename then it's replaced.
 
@@ -165,7 +165,7 @@ def write_fits(fitsfilename, array, header=None, output_verify='exception',
         Full path of the fits file to be written.
     array : numpy ndarray or tuple of numpy ndarray
         Array(s) to be written into a fits file. If a tuple of several arrays,
-        the fits fille will be written as a multiple extension fits file
+        the fits file will be written as a multiple extension fits file
     header : numpy ndarray, or tuple of headers, optional
         Header dictionary, or tuple of headers for a multiple extension fits
         file.

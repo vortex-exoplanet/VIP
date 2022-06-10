@@ -156,8 +156,8 @@ def cube_detect_badfr_ellipticity(array, fwhm, crop_size=30, roundlo=-0.2,
     bad_index_list : numpy ndarray
         1d array of bad frames indices.
 
-    Notes
-    -----
+    Note
+    ----
     From photutils.DAOStarFinder documentation:
     DAOFIND calculates the object roundness using two methods. The 'roundlo'
     and 'roundhi' bounds are applied to both measures of roundness. The first
@@ -258,7 +258,7 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
         Size in pixels of the square subframe to be analyzed.
     dist : {'sad','euclidean','mse','pearson','spearman','ssim'}, str optional
         One of the similarity or dissimilarity measures from function
-        ``vip_hci.stats.distances.cube_distance``_.
+        ``vip_hci.stats.distances.cube_distance``.
     percentile : int, optional
         The percentage of frames that will be discarded, if threshold is not
         provided.

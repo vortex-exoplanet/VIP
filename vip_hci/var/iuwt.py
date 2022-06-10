@@ -8,8 +8,8 @@ Credits to J. S. Kenyon
    | **MORESANE: MOdel REconstruction by Synthesis-ANalysis Estimators. A sparse 
      deconvolution algorithm for radio interferometric imaging**
    | *The Astrophysical Journal, Volume 641, Issue 1, pp. 556-564*
-   | `https://arxiv.org/abs/astro-ph/0512335
-     <https://arxiv.org/abs/astro-ph/0512335>`_
+   | `https://arxiv.org/abs/1412.5387
+     <https://arxiv.org/abs/1412.5387>`_
      
 .. [KEN15]
    | J. S. Kenyon 2015

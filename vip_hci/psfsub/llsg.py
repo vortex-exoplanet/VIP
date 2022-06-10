@@ -9,8 +9,8 @@ decomposition algorithm for ADI data.
    | **Low-rank plus sparse decomposition for exoplanet detection in 
      direct-imaging ADI sequences. The LLSG algorithm**
    | *Astronomy & Astrophysics, Volume 589, Issue 1, p. 54*
-   | `https://arxiv.org/abs/astro-ph/1602.08381
-     <https://arxiv.org/abs/astro-ph/1602.08381>`_
+   | `https://arxiv.org/abs/1602.08381
+     <https://arxiv.org/abs/1602.08381>`_
      
 """
 

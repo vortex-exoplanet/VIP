@@ -15,8 +15,8 @@ Module containing functions for cubes frame registration.
    | **Reconnaissance of the HR 8799 Exosolar System. II. Astrometry and Orbital 
      Motion**
    | *The Astrophysical Journal, Volume 803, Issue 1, p. 31*
-   | `https://arxiv.org/abs/astro-ph/1409.6388
-     <https://arxiv.org/abs/astro-ph/1409.6388>`_
+   | `https://arxiv.org/abs/1409.6388
+     <https://arxiv.org/abs/1409.6388>`_
      
 """
 
@@ -352,8 +352,8 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     shifty, shiftx
         Shift Y,X to get to the true center.
 
-    Notes
-    -----
+    Note
+    ----
     linear system:
 
     .. code-block: none
@@ -715,9 +715,6 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
         [full_output=True] Uncertainty on center in pixels.
     cost_bound : floats
         [full_output=True] Radon cost function surface.
-    Notes
-    -----
-    Based on Pueyo et al. 2014: http://arxiv.org/abs/1409.6388
 
     """
     from .cosmetics import frame_crop
@@ -1152,8 +1149,8 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     x : numpy ndarray
         [full_output=True] 1d array with the shifts in x.
 
-    Notes
-    -----
+    Note
+    ----
     Using the implementation from scikit-image of the algorithm described in
     [GUI08]_. This algorithm registers two images (2-D
     rigid translation) within a fraction of a pixel specified by the user.

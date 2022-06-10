@@ -42,8 +42,8 @@ def dist_matrix(n, cx=None, cy=None):
     -------
     im : ndarray with shape (n, n)
 
-    Notes
-    -----
+    Note
+    ----
     This is a replacement for ANDROMEDA's DISTC.
 
     """

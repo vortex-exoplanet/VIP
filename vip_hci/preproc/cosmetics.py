@@ -419,8 +419,8 @@ def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
     verbose: bool, optional
         Chooses whether to print some additional information.
 
-    Returns:
-    --------
+    Returns
+    -------
     Array of y and x approx coordinates of the star in each channel of the cube
     if return_test: it also returns the test result vector
     """

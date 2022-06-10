@@ -15,8 +15,8 @@ for ADI and RDI data, in full frames.
    | Gomez-Gonzalez et al. 2017
    | **VIP: Vortex Image Processing Package for High-contrast Direct Imaging**
    | *The Astronomical Journal, Volume 154, p. 7*
-   | `https://arxiv.org/abs/astro-ph/1705.06184
-     <https://arxiv.org/abs/astro-ph/1705.06184>`_
+   | `https://arxiv.org/abs/1705.06184
+     <https://arxiv.org/abs/1705.06184>`_
      
 """
 
@@ -37,7 +37,7 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
         fwhm=4, init_svd='nndsvd', collapse='median', full_output=False,
         verbose=True, cube_sig=None, handle_neg='mask', nmf_args={},
         **rot_options):
-    """ Non Negative Matrix Factorization [LEE99] for ADI sequences [GOM17]_. 
+    """ Non Negative Matrix Factorization [LEE99]_ for ADI sequences [GOM17]_. 
     Alternative to the full-frame ADI-PCA processing that does not rely on SVD 
     or ED for obtaining a low-rank approximation of the datacube. This function 
     embeds the scikit-learn NMF algorithm solved through either the coordinate 

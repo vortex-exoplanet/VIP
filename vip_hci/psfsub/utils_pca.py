@@ -614,7 +614,7 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         Input data cube to be processed by PCA.
     angs : numpy ndarray or None
         The parallactic angles expressed as a numpy.array.
-    ncomp : int or 1d numpy array of int
+    ncomp : int or list/1d numpy array of int
         The number of principal component.
     annulus_width : float
         The annulus width in pixel on which the PCA is performed.
@@ -703,7 +703,7 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         if cube_ref is not None:
             if cube_ref.ndim == 3:
                 cube_ref = [cube_ref]*nch
-        if not isinstance(ncomp, list):
+        if np.isscalar(ncomp):
             ncomp = [ncomp]*nch
         elif isinstance(ncomp, list) and len(ncomp) != nch:
             msg = "If ncomp is a list, in the case of a 4d input cube without "

@@ -80,11 +80,12 @@ def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
     im : numpy ndarray
         2d array with given ``shape`` and containing the synthetic PSF.
 
-    Notes
-    -----
-    http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Gaussian2D.html
-    http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Moffat2D.html
-    http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.AiryDisk2D.html
+    Note
+    ----
+    More information can be found a the following links: 
+        http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Gaussian2D.html
+        http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Moffat2D.html
+        http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.AiryDisk2D.html
 
     https://www.gnu.org/software/gnuastro/manual/html_node/PSF.html
     web.ipac.caltech.edu/staff/fmasci/home/astro_refs/PSFtheory.pdf

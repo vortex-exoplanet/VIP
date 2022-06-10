@@ -188,9 +188,9 @@ class PACO:
         Returns
         -------
         a : numpy.ndarray
-            a_l from Equation 15 of Flasseur+ 2018
+            a_l from Equation 15 of [FLA18]_
         b : numpy.ndarray
-            b_l from Equation 16 of Flasseur+ 2018
+            b_l from Equation 16 of [FLA18]_
         """
 
     def run(self,
@@ -232,10 +232,10 @@ class PACO:
         -------
         snr : numpy.ndarray
             2D map of the signal-to-noise estimate as computed by PACO.
-            This is b/sqrt(a), as in eqn 24 of Flasseur 2018.
+            This is b/sqrt(a), as in eqn 24 of [FLA18]_.
         flux : numpy.ndarray
             2D map of the flux estimate as computed by PACO
-            This is b/a, as in eqn 21 of Flasseur 2018.
+            This is b/a, as in eqn 21 of [FLA18]_.
         """
 
         if self.rescaling_factor != 1:
@@ -490,7 +490,7 @@ class PACO:
         Returns
         -------
         a : numpy.ndarray
-            a_l from equation 15 of Flasseur 2018.
+            a_l from equation 15 of [FLA18]_.
         """
         if method == "einsum":
             d1 = np.einsum('ijk,gj', Cfl_inv, hfl)
@@ -528,7 +528,7 @@ class PACO:
         Returns
         -------
         b : numpy.ndarray
-            b_l from equation 16 of Flasseur 2018.
+            b_l from equation 16 of [FLA18]_.
 
         """
         if method == "einsum":
@@ -550,7 +550,7 @@ class PACO:
         """
         Unbiased estimate of the flux of a source located at p0
         The estimate of the flux is given by ahat * h, where h is the PSF template.
-        This implements algorithm 3 from Flasseur+ 2018.
+        This implements algorithm 3 from [FLA18]_.
         TODO: Further testing to ensure that the extracted contrast is actually unbiased.
         Don't trust this estimate without checking!
 
@@ -710,14 +710,16 @@ class PACO:
                                   mask: Optional[bool] = True,
                                   full_output: Optional[bool] = False,
                                   cpu: Optional[int] = 1) -> np.ndarray:
-        """ Wraps VIP.metrics.detection.detection, see that function for further documentation.
-        Note that the output convention here is different - this function returns xx,yy.
+        """ Wraps VIP.metrics.detection.detection, see that function for further 
+        documentation. Note that the output convention here is different - this 
+        function returns xx,yy.
 
         Finds blobs in a 2d array. The algorithm is designed for automatically
-        finding planets in post-processed high contrast final frames. Blob can be
-        defined as a region of an image in which some properties are constant or
-        vary within a prescribed range of values. See ``Notes`` below to read about
-        the algorithm details.
+        finding planets in post-processed high contrast final frames. Blob can 
+        be defined as a region of an image in which some properties are constant 
+        or vary within a prescribed range of values. See ``Notes`` below to read 
+        about the algorithm details.
+        
         Parameters
         ----------
         snr_map : numpy ndarray, 2d
@@ -744,10 +746,12 @@ class PACO:
             The number of processes for running the ``snrmap`` function.
         verbose : bool, optional
             Whether to print to stdout information about found blobs.
+            
         Returns
         -------
         peaks : np.ndarray
-            xx,yy values of the centers of local maxima above the provided threshold
+            xx,yy values of the centers of local maxima above the provided 
+            threshold
         """
         peaks = detection(snr_map,
                           fwhm=self.fwhm,
@@ -856,7 +860,7 @@ class PACO:
 
 class FastPACO(PACO):
     """
-    This class implements Algorithm 2 from Flasseur+ 2018.
+    This class implements Algorithm 2 from [FLA18]_.
     """
 
     def PACOCalc(self,
@@ -886,9 +890,9 @@ class FastPACO(PACO):
         Returns
         -------
         a : numpy.ndarray
-            a_l from Equation 15 of Flasseur+ 2018
+            a_l from Equation 15 of [FLA18]_
         b : numpy.ndarray
-            b_l from Equation 16 of Flasseur+ 2018
+            b_l from Equation 16 of [FLA18]_
         """
         npx = len(phi0s)  # Number of pixels in an image
         dim = self.width/2
@@ -1060,7 +1064,7 @@ class FastPACO(PACO):
 
 class FullPACO(PACO):
     """
-    Implementation of Algorithm 1 from Flasseur+ 2018
+    Implementation of Algorithm 1 from [FLA18]_
     """
 
     def PACOCalc(self,
@@ -1090,9 +1094,9 @@ class FullPACO(PACO):
         Returns
         -------
         a : numpy.ndarray
-            a_l from Equation 15 of Flasseur+ 2018
+            a_l from Equation 15 of [FLA18]_
         b : numpy.ndarray
-            b_l from Equation 16 of Flasseur+ 2018
+            b_l from Equation 16 of [FLA18]_
         """
 
         npx = len(phi0s)  # Number of pixels in an image

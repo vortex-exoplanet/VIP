@@ -17,8 +17,8 @@ Module with a frame differencing algorithm for ADI and ADI+mSDI post-processing.
      the Spectral Characterization of Faint Companions Using an Integral Field 
      Spectrograph**
    | *The Astrophysical Journal Supplements, Volume 199, p. 6*
-   | `https://arxiv.org/abs/astro-ph/1111.6102
-     <https://arxiv.org/abs/astro-ph/1111.6102>`_
+   | `https://arxiv.org/abs/1111.6102
+     <https://arxiv.org/abs/1111.6102>`_
           
 """
 

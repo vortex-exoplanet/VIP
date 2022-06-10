@@ -8,24 +8,24 @@ fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
    | Amara & Quanz 2012
    | **PYNPOINT: an image processing package for finding exoplanets**
    | *MNRAS, Volume 427, Issue 1, pp. 948-955*
-   | `https://arxiv.org/abs/astro-ph/1207.6637
-     <https://arxiv.org/abs/astro-ph/1207.6637>`_
+   | `https://arxiv.org/abs/1207.6637
+     <https://arxiv.org/abs/1207.6637>`_
 
 .. [ABS13]
    | Absil et al. 2013
    | **Searching for companions down to 2 AU from beta Pictoris using the 
      L'-band AGPM coronagraph on VLT/NACO**
    | *Astronomy & Astrophysics, Volume 559, Issue 1, p. 12*
-   | `https://arxiv.org/abs/astro-ph/1311.4298
-     <https://arxiv.org/abs/astro-ph/1311.4298>`_
+   | `https://arxiv.org/abs/1311.4298
+     <https://arxiv.org/abs/1311.4298>`_
      
 .. [CHR19]
    | Christiaens et al. 2019
    | **Separating extended disc features from the protoplanet in PDS 70 using 
      VLT/SINFONI**
    | *MNRAS, Volume 486, Issue 4, pp. 5819-5837*
-   | `https://arxiv.org/abs/astro-ph/1905.01860
-     <https://arxiv.org/abs/astro-ph/1905.01860>`_
+   | `https://arxiv.org/abs/1905.01860
+     <https://arxiv.org/abs/1905.01860>`_
 
 """
 

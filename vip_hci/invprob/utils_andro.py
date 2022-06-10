@@ -27,8 +27,8 @@ def robust_std(x):
     std : np.float64
         robust standard deviation of the point set
 
-    Notes
-    -----
+    Note
+    ----
     based on ``LibAndromeda/robust_stddev.pro`` v1.1 2016/02/16
 
     """
@@ -50,8 +50,8 @@ def idl_round(x):
     r_rounded : array-like
         note that the returned values are floats
 
-    Notes
-    -----
+    Note
+    ----
     IDL ``ROUND`` rounds to the *nearest* integer (commercial rounding),
     unlike numpy's round/rint, which round to the nearest *even*
     value (half-to-even, financial rounding) as defined in IEEE-754
@@ -78,8 +78,8 @@ def idl_where(array_expression):
         list of 'good' indices
 
 
-    Notes
-    -----
+    Note
+    ----
     - The IDL version returns ``[-1]`` when no match was found, this function
       returns ``[]``, which is more "pythonic".
 
@@ -112,8 +112,8 @@ def fitaffine(x, y, debug=False):
         parameters which satisfy ``y = bx + a``.
         ``b`` corresponds to ``gamma`` in ANDROMEDA, ``a`` is ``gamma_prime``.
 
-    Notes
-    -----
+    Note
+    ----
     - ported and adapted from ``LibAndromeda/fitaffine.pro`` v1.1 2016/02/16
     - IDL version adapted from "Numerical Recipies (3rd, 2007)", p.818
     - the ``abdev`` return value was removed, as not used in ANDROMEDA.
@@ -221,8 +221,8 @@ def rofunc(x, y, b):
     a : float
         The computed value of ``a``
 
-    Notes
-    -----
+    Note
+    ----
     - ported from LibAndromeda/rofunc.pro v1.1 2016/02/18
     - removed ``abdev`` variable, which is not useful here.
     - IDL version adapted from Numerical Recipies 3rd edition (2007) - p.818
@@ -271,8 +271,8 @@ def calc_psf_shift_subpix(psf, precision):
         corresponds to ``psf`` shifted by ``i/precision`` in x and
         ``j/precision`` in y.
 
-    Notes
-    -----
+    Note
+    ----
     The IDL implementation has an inversed shape of
     (n, n, precision+1, precision+1), and indexing works like
     ``psf_cube[*, *, i, j]``, where ``i`` is the column and ``j`` the row.
@@ -314,8 +314,8 @@ def subpixel_shift(image, xshift, yshift):
     shifted_image : 2d ndarray
         Input ``image`` shifted by ``xshift`` and ``yshift``.
 
-    Notes
-    -----
+    Note
+    ----
     based on ``LibAndromeda/oneralib/subpixel_shift.pro``, v1.3 2009/05/28
 
     """

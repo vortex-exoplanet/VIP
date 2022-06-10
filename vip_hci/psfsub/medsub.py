@@ -23,8 +23,7 @@ multi-spectral cubes.
      
 .. [THA07]
    | Thatte et al. 2007
-   | **Very high contrast integral field spectroscopy of AB Doradus C: 9-mag 
-   contrast at 0.2arcsec without a coronagraph using spectral deconvolution**
+   | **Very high contrast integral field spectroscopy of AB Doradus C: 9-mag contrast at 0.2arcsec without a coronagraph using spectral deconvolution**
    | *MNRAS, Volume 378, Issue 4, pp. 1229-1236*
    | `https://arxiv.org/abs/astro-ph/0703565
      <https://arxiv.org/abs/astro-ph/0703565>`_
@@ -57,7 +56,7 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
     algorithm is based on [MAR06]_. The ADI+IFS method is an extension of this
     basic idea to multi-spectral cubes.
         
-    References: [MAR06] for median-ADI; [SPA02] and [THA07] for SDI.
+    References: [MAR06]_ for median-ADI; [SPA02]_ and [THA07]_ for SDI.
 
     Parameters
     ----------

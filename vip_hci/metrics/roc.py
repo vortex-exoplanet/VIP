@@ -24,20 +24,20 @@ class EvalRoc(object):
     Class for the generation of receiver operating characteristic (ROC) curves.
     """
 
-    COLOR_1 = "#d62728"  # CADI
-    COLOR_2 = "#ff7f0e"  # PCA
-    COLOR_3 = "#2ca02c"  # LLSG
-    COLOR_4 = "#9467bd"  # SODIRF
-    COLOR_5 = "#1f77b4"  # SODINN
-    SYMBOL_1 = "^"  # CADI
-    SYMBOL_2 = "X"  # PCA
-    SYMBOL_3 = "P"  # LLSG
-    SYMBOL_4 = "s"  # SODIRF
-    SYMBOL_5 = "p"  # SODINN
-    # For model PSF subtraction algos that rely on a S/N map
-    THRESHOLDS_05_5 = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
-    # For algos that output a likelihood or probability map
-    THRESHOLDS_01_099 = np.linspace(0.1, 0.99, 10).tolist()
+    # COLOR_1 = "#d62728"  # CADI
+    # COLOR_2 = "#ff7f0e"  # PCA
+    # COLOR_3 = "#2ca02c"  # LLSG
+    # COLOR_4 = "#9467bd"  # SODIRF
+    # COLOR_5 = "#1f77b4"  # SODINN
+    # SYMBOL_1 = "^"  # CADI
+    # SYMBOL_2 = "X"  # PCA
+    # SYMBOL_3 = "P"  # LLSG
+    # SYMBOL_4 = "s"  # SODIRF
+    # SYMBOL_5 = "p"  # SODINN
+    # # For model PSF subtraction algos that rely on a S/N map
+    # THRESHOLDS_05_5 = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
+    # # For algos that output a likelihood or probability map
+    # THRESHOLDS_01_099 = np.linspace(0.1, 0.99, 10).tolist()
 
     def __init__(self, dataset, plsc=0.0272, n_injections=100, inrad=8,
                  outrad=12, dist_flux=("uniform", 2, 500), mask=None):
@@ -73,15 +73,15 @@ class EvalRoc(object):
 
     def inject_and_postprocess(self, patch_size, cevr=0.9,
                                expvar_mode='annular', nproc=1):
-        """
+        # """
 
-        Notes
-        -----
-        # TODO `methods` are not returned inside `results` and are *not* saved!
-        # TODO order of parameters for `skewnormal` `dist_flux` changed! (was [3], [1], [2])
-        # TODO `save` not implemented
+        # Notes
+        # -----
+        # # TODO `methods` are not returned inside `results` and are *not* saved!
+        # # TODO order of parameters for `skewnormal` `dist_flux` changed! (was [3], [1], [2])
+        # # TODO `save` not implemented
 
-        """
+        # """
         from .. import hci_postproc
 
         starttime = time_ini()
@@ -296,23 +296,23 @@ class EvalRoc(object):
                         show_data_labels=True, hide_overlap_label=True,
                         label_gap=(0, -0.028), save_plot=False, label_params={},
                         line_params={}, marker_params={}, verbose=True):
-        """
-        Parameters
-        ----------
+        # """
+        # Parameters
+        # ----------
 
 
-        Returns
-        -------
-        None, but modifies `methods`: adds .tpr and .mean_fps attributes
+        # Returns
+        # -------
+        # None, but modifies `methods`: adds .tpr and .mean_fps attributes
 
-        Notes
-        -----
-        # TODO: load `roc_injections` and `roc_tprfps` from file (`load_res`)
-        # TODO: print flux distro information (is it actually stored in inj?
-        What to do with functions, do they pickle?)
-        # TODO: hardcoded `methodconf`?
+        # Notes
+        # -----
+        # # TODO: load `roc_injections` and `roc_tprfps` from file (`load_res`)
+        # # TODO: print flux distro information (is it actually stored in inj?
+        # What to do with functions, do they pickle?)
+        # # TODO: hardcoded `methodconf`?
 
-        """
+        # """
         labelskw = dict(alpha=1, fontsize=5.5, weight="bold", rotation=0,
                         annotation_clip=True)
         linekw = dict(alpha=0.2)

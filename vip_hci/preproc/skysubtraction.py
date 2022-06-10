@@ -7,16 +7,16 @@ Module with sky subtraction function.
    | Gomez-Gonzalez et al. 2017
    | **VIP: Vortex Image Processing Package for High-contrast Direct Imaging**
    | *The Astronomical Journal, Volume 154, p. 7*
-   | `https://arxiv.org/abs/astro-ph/1705.06184
-     <https://arxiv.org/abs/astro-ph/1705.06184>`_
+   | `https://arxiv.org/abs/1705.06184
+     <https://arxiv.org/abs/1705.06184>`_
      
 .. [HUN18]
    | Hunziker et al. 2018
    | **PCA-based approach for subtracting thermal background emission in 
      high-contrast imaging data**
    | *Astronomy & Astrophysics, Volume 611, p. 23*
-   | `https://arxiv.org/abs/astro-ph/1706.10069
-     <https://arxiv.org/abs/astro-ph/1706.10069>`_
+   | `https://arxiv.org/abs/1706.10069
+     <https://arxiv.org/abs/1706.10069>`_
      
 """
 

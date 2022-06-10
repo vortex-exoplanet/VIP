@@ -6,11 +6,10 @@ position of a companion using the Negative Fake Companion.
 
 .. [WER17]
    | Wertz et al. 2017
-   | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond-level 
-     accuracy. Orbital architecture analysis with PyAstrOFit**
+   | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond-level accuracy. Orbital architecture analysis with PyAstrOFit**
    | *Astronomy & Astrophysics, Volume 598, Issue 1, p. 83*
-   | `https://arxiv.org/abs/astro-ph/1610.04014
-     <https://arxiv.org/abs/astro-ph/1610.04014>`_
+   | `https://arxiv.org/abs/1610.04014
+     <https://arxiv.org/abs/1610.04014>`_
      
 """
 
@@ -527,9 +526,10 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
     out : tuple of 3+ elements
         The polar coordinates and the flux(es) of the companion.
 
-    Notes
-    -----
-    Polar angle is not the conventional NORTH-TO-EAST P.A.
+    Note
+    ----
+    Polar angle is not the conventional NORTH-TO-EAST P.A., but the 
+    counter-clockwise angle measured from the positive x axis.
     """
 
     if cube.ndim != 3 and cube.ndim != 4:
@@ -553,8 +553,9 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
         f_0 = np.zeros([n_planet, cube.shape[0]])
 
     if weights is not None:
-        if not len(weights) == cube.shape[0]:
-            raise TypeError("Weights should have same length as cube axis 0")
+        if not len(weights) == cube.shape[-3]:
+            msg = "Weights should have same length as temporal cube axis"
+            raise TypeError(msg)
         norm_weights = weights/np.sum(weights)
     else:
         norm_weights = weights

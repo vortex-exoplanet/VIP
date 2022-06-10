@@ -313,12 +313,12 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
     """
     Function to correct the bad pixels annulus per annulus (centered on the
     provided location of the star), in an input frame or cube.
-    This function is faster than bp_clump_removal; hence to be prefered in all
-    cases where there is only one bright source with circularly symmetric PSF.
-    The bad pixel values are replaced by: ann_median + ann_stddev*random_gauss;
-    where ann_median is the median of the annulus, ann_stddev is the standard
-    deviation in the annulus, and random_gauss is a random factor picked from a
-    gaussian distribution centered on 0 and with variance 1.
+    This function is faster than ``cube_fix_badpix_clump``; hence to be 
+    preferred in all cases where there is only one bright source with circularly 
+    symmetric PSF. The bad pixel values are replaced by: 
+        ann_median + random_poisson;
+    where ann_median is the median of the annulus, and random_poisson is 
+    random noise picked from a Poisson distribution centered on ann_median.
 
     Parameters
     ----------
@@ -365,15 +365,14 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
         Whether to return as well the cube of bad pixel maps and the cube of
         defined annuli.
 
-    Returns:
-    --------
+    Returns
+    -------
     obj_tmp: 2d or 3d array
         The bad pixel corrected frame/cube.
-    If full_output is set to True, it returns as well:
     bpix_map: 2d or 3d array
-        The bad pixel map or the cube of bpix maps
+        [full_output=True] The bad pixel map or the cube of bpix maps
     ann_frame_cumul: 2 or 3d array
-        The cube of defined annuli
+        [full_output=True] The cube of defined annuli
     """
 
     obj_tmp = array.copy()
@@ -641,13 +640,12 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         Whether to return as well the cube of bad pixel maps and the cube of
         defined annuli.
 
-    Returns:
-    --------
+    Returns
+    -------
     obj_tmp: 2d or 3d array
-        the bad pixel corrected frame/cube.
-    If full_output is set to True, it returns as well:
+        The bad pixel corrected frame/cube.
     bpix_map: 2d or 3d array
-        the bad pixel map or the cube of bpix maps
+        [full_output=True] The bad pixel map or the cube of bpix maps
     """
 
     obj_tmp = array.copy()
@@ -1040,7 +1038,7 @@ def cube_fix_badpix_interp(array, bpm_mask, mode='fft', fwhm=4., kernel_sz=None,
     """
     Function to correct clumps of bad pixels by interpolation with either a
     user-defined kernel (through astropy.convolution) or through the FFT-based
-    algorithm described in [AAC01]. A bad pixel map must be
+    algorithm described in [AAC01]_. A bad pixel map must be
     provided (e.g. found with function `cube_fix_badpix_clump`).
 
 
@@ -1076,7 +1074,7 @@ def cube_fix_badpix_interp(array, bpm_mask, mode='fft', fwhm=4., kernel_sz=None,
     nit: int, optional
         For FFT-based iterative interpolation, the number of iterations to use.
     tol: float
-        Tolerance in terms of E_g (see [AAC01]). The iterative process is 
+        Tolerance in terms of E_g (see [AAC01]_). The iterative process is 
         stopped if the error E_g gets lower than this tolerance.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
@@ -1086,8 +1084,8 @@ def cube_fix_badpix_interp(array, bpm_mask, mode='fft', fwhm=4., kernel_sz=None,
         Passed through to the astropy.convolution.convolve or convolve_fft
         function.
 
-    Returns:
-    --------
+    Returns
+    -------
     obj_tmp: 2d or 3d array; the bad pixel corrected frame/cube.
     """
 
@@ -1377,8 +1375,8 @@ def reject_outliers(data, test_value, m=5., stddev=None, debug=False):
         pixel. If stddev is not provided, the stddev of data is used (not
         recommended).
 
-    Returns:
-    --------
+    Returns
+    -------
     test_result: 0 or 1
         0 if test_value is not an outlier. 1 otherwise.
     """
@@ -1479,8 +1477,8 @@ def correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, cy, cx,
         compared to horizontally (e.g. SINFONI data).
         The algorithm will then correct the bad pixels every other row.
 
-    Returns:
-    --------
+    Returns
+    -------
     obj_tmp_corr: np.array
         Array with corrected outliers.
     bpix_map: np.array
@@ -1567,7 +1565,7 @@ def correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, cy, cx,
 def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, verbose=True, 
                          full_output=False):
     """
-    Function to interpolate bad pixels with the FFT-based algorithm in [AAC01].
+    Function to interpolate bad pixels with the FFT-based algorithm in [AAC01]_.
     
     Parameters
     ----------
@@ -1578,7 +1576,7 @@ def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, verbose=True,
     nit : int
         Number of iterations.
     tol: float
-        Tolerance in terms of E_g (see [AAC01]). The iterative process is 
+        Tolerance in terms of E_g (see [AAC01]_). The iterative process is 
         stopped if the error E_g gets lower than this tolerance.
     verbose: bool
         Whether to print additional information during processing
@@ -1591,7 +1589,7 @@ def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, verbose=True,
     bpix_corr: 2D ndarray
         Image in which the bad pixels have been interpolated.
     f_est: 2D ndarray
-        [full_output=True] Reconstructed estimate (f_hat in [AAC01]) of the 
+        [full_output=True] Reconstructed estimate (f_hat in [AAC01]_) of the 
         input array
     """
 

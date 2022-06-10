@@ -8,8 +8,8 @@ Module with various functions to create shapes, annuli and segments.
    | **Physically constrained causal noise models for high-contrast imaging of 
      exoplanets**
    | *arXiv e-prints7*
-   | `https://arxiv.org/abs/astro-ph/2010.05591
-     <https://arxiv.org/abs/astro-ph/2010.05591>`_
+   | `https://arxiv.org/abs/2010.05591
+     <https://arxiv.org/abs/2010.05591>`_
      
 """
 
@@ -282,8 +282,8 @@ def get_circle(array, radius, cy=None, cx=None, mode="mask"):
         [mode="val"] 1d array with the values of the pixels in the circular
         region.
 
-    Notes
-    -----
+    Note
+    ----
     An alternative implementation would use ``skimage.draw.disk``. ``disk``
     performs better on large arrays (e.g. 1000px, 10.000px), while the
     current implementation is faster for small arrays (e.g. 100px). See
@@ -413,8 +413,8 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
     masked : list of ndarrays
         [mode='mask'] Copy of ``data`` with masked out regions.
 
-    Notes
-    -----
+    Note
+    ----
     Moving from ``get_annulus`` to ``get_annulus_segments``:
 
     .. code::python
@@ -512,8 +512,8 @@ def get_annular_wedge(data, inner_radius, width, wedge=(0, 360), mode="ind"):
     masked : list of ndarrays
         [mode='mask'] Copy of ``data`` with masked out regions.
 
-    Notes
-    -----
+    Note
+    ----
     Moving from ``get_annulus`` to ``get_annulus_segments``:
 
     .. code::python

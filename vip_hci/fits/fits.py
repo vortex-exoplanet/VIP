@@ -95,7 +95,7 @@ def byteswap_array(array):
     such arrays, numpy uses an intermediate buffer to byteswap the array behind
     the scenes and returns the result as a native byte order array. Some
     operations require the data to be byteswaped before and will complain about
-    it. This function will help in this cases.
+    it. This function will help in those cases.
 
     Parameters
     ----------
@@ -107,8 +107,9 @@ def byteswap_array(array):
     array_out : numpy ndarray
         2d resulting array after the byteswap operation.
 
-    Notes
-    -----
+    Note
+    ----
+    More info about byteswapping here:
     http://docs.scipy.org/doc/numpy-1.10.1/user/basics.byteswapping.html
 
     """

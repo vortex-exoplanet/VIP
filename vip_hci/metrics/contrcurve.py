@@ -2,6 +2,15 @@
 
 """
 Module with contrast curve generation function.
+
+.. [MAW14]
+   | Mawet et al. 2014
+   | **Fundamental Limitations of High Contrast Imaging Set by Small Sample 
+     Statistics**
+   | *The Astrophysical Journal, Volume 792, Issue 1, p. 97*
+   | `https://arxiv.org/abs/1407.2247
+     <https://arxiv.org/abs/1407.2247>`_
+     
 """
 
 __author__ = 'C. Gomez, O. Absil @ ULg'
@@ -33,10 +42,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                    debug=False, verbose=True, full_output=False, save_plot=None,
                    object_name=None, frame_size=None, fix_y_lim=(),
                    figsize=vip_figsize, **algo_dict):
-    """ Computes the contrast curve at a given SIGMA (``sigma``) level for an
-    ADI cube or ADI+IFS cube. The contrast is calculated as
+    """ Computes the contrast curve at a given confidence (``sigma``) level for 
+    an ADI cube or ADI+IFS cube. The contrast is calculated as
     sigma*noise/throughput. This implementation takes into account the small
-    sample statistics correction proposed in Mawet et al. 2014.
+    sample statistics correction proposed in [MAW14]_.
 
     Parameters
     ----------
@@ -836,8 +845,8 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
     and mean, respectively, of apertures defined in each annulus with a given
     separation.
 
-    The annuli start at init_rad (== fwhm by default) and stop 2*separation
-    before the edge of the frame.
+    The annuli start at init_rad (= fwhm by default if not provided) and stop 
+    2*separation before the edge of the frame.
 
     Parameters
     ----------

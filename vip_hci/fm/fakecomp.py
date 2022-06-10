@@ -444,9 +444,10 @@ def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,
 
 def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
                            imlib='vip-fft', interpolation='lanczos4'):
-    """ Injects a fake companion in a single frame (it could be a single
-     multi-wavelength frame) at given coordinates, or in a cube (at the same
-     coordinates, flux and with same fake companion image throughout the cube).
+    """ 
+    Injects a fake companion in a single frame (it could be a single
+    multi-wavelength frame) at given coordinates, or in a cube (at the same
+    coordinates, flux and with same fake companion image throughout the cube).
 
     Parameters
     ----------

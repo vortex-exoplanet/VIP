@@ -111,8 +111,8 @@ class SVDecomposer:
     verbose : bool, optional
         If True intermediate messages and timing are printed.
 
-    Notes
-    -----
+    Note
+    ----
     For info on CEVR search: # Get variance explained by singular values in
     https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/decomposition/pca.py
     """
@@ -710,8 +710,8 @@ def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
     lib : {'cupy', 'pytorch'}, str optional
         Chooses the GPU library to be used.
 
-    Notes
-    -----
+    Note
+    ----
     This algorithm finds a (usually very good) approximate truncated
     singular value decomposition using randomization to speed up the
     computations. It is particularly fast on large matrices on which

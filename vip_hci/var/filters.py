@@ -8,8 +8,8 @@ Module with frame/cube filtering functionalities.
    | **MORESANE: MOdel REconstruction by Synthesis-ANalysis Estimators. A sparse 
      deconvolution algorithm for radio interferometric imaging**
    | *The Astrophysical Journal, Volume 641, Issue 1, pp. 556-564*
-   | `https://arxiv.org/abs/astro-ph/0512335
-     <https://arxiv.org/abs/astro-ph/0512335>`_
+   | `https://arxiv.org/abs/1412.5387
+     <https://arxiv.org/abs/1412.5387>`_
      
 .. [KEN15]
    | J. S. Kenyon 2015
@@ -168,8 +168,8 @@ def ifft(array):
     This produces an array of complex numbers whose real values correspond to
     the image in the original space (decentering).
 
-    Notes
-    -----
+    Note
+    ----
     A real function corresponds to a symmetric function in fourier space. As
     long as the operations we apply in the fourier space do not break this
     symmetry, the data returned by ``ifft`` should not containy any imaginary
@@ -295,8 +295,8 @@ def frame_filter_highpass(array, mode, median_size=5, kernel_size=5,
         -------
         r_rounded : array-like (float)
 
-        Notes
-        -----
+        Note
+        ----
         IDL ``ROUND`` rounds to the *nearest* integer (commercial rounding),
         unlike numpy's round/rint, which round to the nearest *even*
         value (half-to-even, financial rounding) as defined in IEEE-754

@@ -6,11 +6,43 @@ nested sampling (``nestle``).
 
 .. [BAR13]
    | K. Barbary 2013
-   | **PyMORESANE**
+   | **nestle**
    | *GitHub repository*
    | `https://github.com/kbarbary/nestle
      <https://github.com/kbarbary/nestle>`_
 
+.. [FER09]
+   | Feroz et al. 2009
+   | **MULTINEST: an efficient and robust Bayesian inference tool for cosmology 
+     and particle physics**
+   | *MNRAS, Volume 398, Issue 4, pp. 1601-1614*
+   | `https://arxiv.org/abs/0809.3437
+     <https://arxiv.org/abs/0809.3437>`_
+     
+.. [MUK06]
+   | Mukherjee et al. 2006
+   | **A Nested Sampling Algorithm for Cosmological Model Selection**
+   | *ApJL, Volume 638, Issue 2, pp. 51-54*
+   | `https://arxiv.org/abs/astro-ph/0508461
+     <https://arxiv.org/abs/astro-ph/0508461>`_
+     
+.. [SKI04]
+   | Skilling 2004
+   | **Bayesian Inference and Maximum Entropy Methods in Science and Engineering: 
+     24th International Workshop on Bayesian Inference and Maximum Entropy 
+     Methods in Science and Engineering**
+   | *American Institute of Physics Conference Series, Volume 735, pp. 395-405*
+   | `https://ui.adsabs.harvard.edu/abs/2004AIPC..735..395S
+     <https://ui.adsabs.harvard.edu/abs/2004AIPC..735..395S>`_
+
+.. [WER17]
+   | Wertz et al. 2017
+   | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond-level 
+     accuracy. Orbital architecture analysis with PyAstrOFit**
+   | *Astronomy & Astrophysics, Volume 598, Issue 1, p. 83*
+   | `https://arxiv.org/abs/1610.04014
+     <https://arxiv.org/abs/1610.04014>`_
+     
 """
 
 
@@ -36,7 +68,7 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
                           weights=None, w=(5, 5, 200), method='single',
                           npoints=100, dlogz=0.1, decline_factor=None,
                           rstate=None, verbose=True):
-    """ Runs a nested sampling algorithm with ``nestle`` [BAR13] in order to 
+    """ Runs a nested sampling algorithm with ``nestle`` [BAR13]_ in order to 
     determine the position and the flux of the planet using the 'Negative Fake 
     Companion' technique. The result of this procedure is a ``nestle`` object 
     containing the samples from the posterior distributions of each of the 3 
@@ -67,7 +99,7 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
         The FHWM in pixels.
     mu_sigma: tuple of 2 floats or bool, opt
         If set to None: not used, and falls back to original version of the
-        algorithm, using fmerit (Wertz et al. 2017).
+        algorithm, using fmerit [WER17]_.
         If a tuple of 2 elements: should be the mean and standard deviation of
         pixel intensities in an annulus centered on the location of the
         companion candidate, excluding the area directly adjacent to the CC.
@@ -83,7 +115,7 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
     fmerit : {'sum', 'stddev'}, string optional
         If mu_sigma is not provided nor set to True, this parameter determines
         which figure of merit to be used among the 2 possibilities implemented
-        in Wertz et al. (2017). 'stddev' may work well for point like sources
+        in [WER17]_. 'stddev' may work well for point like sources
         surrounded by extended signals.
     annulus_width: float, optional
         The width in pixel of the annulus on which the PCA is performed.
@@ -144,8 +176,8 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
         ``Nestle`` object with the nested sampling results, including the
         posterior samples.
 
-    Notes
-    -----
+    Note
+    ----
     Nested Sampling is a computational approach for integrating posterior
     probability in order to compare models in Bayesian statistics. It is similar
     to Markov Chain Monte Carlo (MCMC) in that it generates samples that can be
@@ -157,7 +189,7 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
     Nestle documentation:
     http://kbarbary.github.io/nestle/
 
-    Convergence:
+    **Convergence**:
     http://kbarbary.github.io/nestle/stopping.html
     Nested sampling has no well-defined stopping point. As iterations continue,
     the active points sample a smaller and smaller region of prior space.
@@ -169,39 +201,36 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
     converged to the highest-likelihood regions such that the likelihood is
     relatively flat within the remaining prior volume.
 
-    Method:
+    **Method**:
     The trick in nested sampling is to, at each step in the algorithm,
     efficiently choose a new point in parameter space drawn with uniform
     probability from the parameter space with likelihood greater than the
     current likelihood constraint. The different methods all use the
     current set of active points as an indicator of where the target
     parameter space lies, but differ in how they select new points from it.
-    "classic" is close to the method described in Skilling (2004).
-    "single", Mukherjee, Parkinson & Liddle (2006), Determines a single
-    ellipsoid that bounds all active points,
-    enlarges the ellipsoid by a user-settable factor, and selects a new point
-    at random from within the ellipsoid.
-    "multiple", Shaw, Bridges & Hobson (2007) and Feroz, Hobson & Bridges 2009
-    (Multinest). In cases where the posterior is multi-modal,
-    the single-ellipsoid method can be extremely inefficient: In such
-    situations, there are clusters of active points on separate
-    high-likelihood regions separated by regions of lower likelihood.
-    Bounding all points in a single ellipsoid means that the ellipsoid
-    includes the lower-likelihood regions we wish to avoid
-    sampling from.
-    The solution is to detect these clusters and bound them in separate
-    ellipsoids. For this, we use a recursive process where we perform
-    K-means clustering with K=2. If the resulting two ellipsoids have a
-    significantly lower total volume than the parent ellipsoid (less than half),
-    we accept the split and repeat the clustering and volume test on each of
-    the two subset of points. This process continues recursively.
-    Alternatively, if the total ellipse volume is significantly greater
-    than expected (based on the expected density of points) this indicates
-    that there may be more than two clusters and that K=2 was not an
-    appropriate cluster division.
-    We therefore still try to subdivide the clusters recursively. However,
-    we still only accept the final split into N clusters if the total volume
-    decrease is significant.
+        "classic" is close to the method described in [SKI04]_.
+        "single", [MUK06]_, Determines a single ellipsoid that bounds all 
+            active points, enlarges the ellipsoid by a user-settable factor, 
+            and selects a new point at random from within the ellipsoid.
+        "multiple", [FER09]_ (Multinest). In cases where the posterior is 
+            multi-modal, the single-ellipsoid method can be extremely 
+            inefficient. In such situations, there are clusters of active 
+            points on separate high-likelihood regions separated by regions of 
+            lower likelihood. Bounding all points in a single ellipsoid means 
+            that the ellipsoid includes the lower-likelihood regions we wish to 
+            avoid sampling from. The solution is to detect these clusters and 
+            bound them in separate ellipsoids. For this, we use a recursive 
+            process where we perform K-means clustering with K=2. If the 
+            resulting two ellipsoids have a significantly lower total volume 
+            than the parent ellipsoid (less than half), we accept the split and 
+            repeat the clustering and volume test on each of the two subset of 
+            points. This process continues recursively. Alternatively, if the 
+            total ellipse volume is significantly greater than expected (based 
+            on the expected density of points) this indicates that there may be 
+            more than two clusters and that K=2 was not an appropriate cluster 
+            division. We therefore still try to subdivide the clusters 
+            recursively. However, we still only accept the final split into N 
+            clusters if the total volume decrease is significant.
 
     """
 
@@ -245,8 +274,9 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
             change-of-variables transformation.
         flux: Poisson-invariant scale distribution
             This distribution is the Jeffrey's prior for Poisson data
-        Notes
-        -----
+            
+        Note
+        ----
         The prior transform function is used to specify the Bayesian prior for
         the problem, in a round-about way. It is a transformation from a space
         where variables are independently and uniformly distributed between 0

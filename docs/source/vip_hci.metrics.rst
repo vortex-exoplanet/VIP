@@ -1,6 +1,16 @@
 vip\_hci.metrics package
 ========================
 
+Submodules
+----------
+
+vip\_hci.metrics.completeness module
+------------------------------------
+
+.. automodule:: vip_hci.metrics.completeness
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 vip\_hci.metrics.contrcurve module
 ----------------------------------

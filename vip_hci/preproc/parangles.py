@@ -3,6 +3,14 @@
 """
 Module with frame parallactica angles calculations and de-rotation routines for
 ADI.
+
+.. [MEE98]
+   | J. Meeus 1998
+   | **Astronomical Algorithms**
+   | *Book*
+   | `https://ui.adsabs.harvard.edu/abs/1998aalg.book.....M/abstract
+     <https://ui.adsabs.harvard.edu/abs/1998aalg.book.....M/abstract>`_
+     
 """
 
 
@@ -30,7 +38,7 @@ def compute_paral_angles(header, latitude, ra_key, dec_key, lst_key,
 
     The coordinates in the header are assumed to be J2000 FK5 coordinates.
     The spherical trigonometry formula for calculating the parallactic angle
-    is taken from Astronomical Algorithms (Meeus, 1998).
+    is taken from [MEE98]_.
 
     Parameters
     ----------
@@ -38,7 +46,7 @@ def compute_paral_angles(header, latitude, ra_key, dec_key, lst_key,
         Header of current frame.
     latitude : float
         Latitude of the observatory in degrees. The dictionaries in
-        vip_hci/conf/param.py can be used like: latitude=LBT['latitude'].
+        ``vip_hci.conf.param`` can be used like: latitude=LBT['latitude'].
     ra_key, dec_key, lst_key, acqtime_key, date_key : strings
         Keywords where the values are stored in the header.
 
@@ -103,8 +111,8 @@ def compute_derot_angles_pa(objname_tmp_A, digit_format=3, objname_tmp_B='',
     1. all angles of the output are in degrees
     2. all angles of the ouput  are positive
     3. there is no jump of more than 180 deg between consecutive values (e.g. no
-       jump like [350deg,355deg,0deg,5deg] => replaced by
-       [350deg,355deg,360deg,365deg])
+     jump like [350deg,355deg,0deg,5deg] => replaced by
+     [350deg,355deg,360deg,365deg])
 
     Parameters
     ----------

@@ -33,16 +33,17 @@ class ScatteredLightDisk(object):
     def __init__(self, nx=200, ny=200, distance=50., itilt=60., omega=0.,
                  pxInArcsec=0.01225, pa=0., flux_max=None,
                  density_dico={'name': '2PowerLaws', 'ain': 5, 'aout': -5,
-                               'a': 40, 'e': 0, 'ksi0': 1., 'gamma': 2., 'beta': 1.,
-                               'dens_at_r0': 1.},
-                 spf_dico={'name': 'HG', 'g': 0., 'polar': False}, xdo=0., ydo=0.):
+                               'a': 40, 'e': 0, 'ksi0': 1., 'gamma': 2., 
+                               'beta': 1., 'dens_at_r0': 1.},
+                 spf_dico={'name': 'HG', 'g': 0., 'polar': False}, xdo=0., 
+                 ydo=0.):
         """
         Constructor of the Scattered_light_disk object, taking in input the
         geometric parameters of the disk, the radial density distribution
         and the scattering phase function.
         So far, only one radial distribution is implemented: a smoothed
-        2-power-law distribution, but more complex radial profiles can be implemented
-        on demand.
+        2-power-law distribution, but more complex radial profiles can be 
+        implemented on demand.
         The star is assumed to be centered at the frame center as defined in
         the vip_hci.var.frame_center function (geometric center of the image,
         e.g. either in the middle of the central pixel for odd-size images or
@@ -198,22 +199,22 @@ class ScatteredLightDisk(object):
             linear flaring. This dictionary should at least contain the key
             "name". For a to-power law distribution, you can set it with
             name:'2PowerLaws' and with the following parameters:
-            - a : float.
-            Reference radius in au (default 60)
-            - ksi0 : float.
-            Scale height in au at the reference radius (default 1 a.u.)
-            - gamma : float.
-            Exponent (2=gaussian,1=exponential profile, default 2)
-            - beta : float.
-            Flaring index (0=no flaring, 1=linear flaring, default 1)
-            - ain : float.
-            Slope of the power-low distribution in the inner disk. It
-            must be positive (default 5)
-            - aout : float.
-            Slope of the power-low distribution in the outer disk. It
-            must be negative (default -5)
-            - e : float.
-            Eccentricity (default 0)
+                - a : float.
+                    Reference radius in au (default 60)
+                - ksi0 : float.
+                    Scale height in au at the reference radius (default 1 a.u.)
+                - gamma : float.
+                    Exponent (2=gaussian,1=exponential profile, default 2)
+                - beta : float.
+                    Flaring index (0=no flaring, 1=linear flaring, default 1)
+                - ain : float.
+                    Slope of the power-low distribution in the inner disk. It
+                    must be positive (default 5)
+                - aout : float.
+                    Slope of the power-low distribution in the outer disk. It
+                    must be negative (default -5)
+                - e : float.
+                    Eccentricity (default 0)
         """
         self.dust_density.set_density_distribution(density_dico)
 

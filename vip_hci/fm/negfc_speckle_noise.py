@@ -129,25 +129,24 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         Whether to trim outliers when considering a Gaussian fit to the
         histogram of residual deviations.
 
-    Returns:
-    --------
+    Returns
+    -------
     sp_unc: numpy ndarray of 3 elements
         Uncertainties on the radius, position angle and flux of the companion,
         respectively, associated to residual speckle noise. Only 1 element if
         force_rPA is set to True.
-    If full_output, also returns:
-        mean_dev: numpy ndarray of 3 elements
-            Mean deviation for each of the 3 parameters
-        p_simplex: numpy ndarray n_fc x 3
-            Parameters retrieved by the simplex for the injected fake
-            companions; n_fc is the number of injected
-        offset: numpy ndarray n_fc x 3
-            Deviations with respect to the values used for injection of the
-            fake companions.
-        chi2, nit, success: numpy ndarray of length n_fc
-            Outputs from the simplex function for the retrieval of the
-            parameters of each injected companion: chi square value, number of
-            iterations and whether the simplex converged, respectively.
+    mean_dev: numpy ndarray of 3 elements
+        [full_output = True] Mean deviation for each of the 3 parameters
+    p_simplex: numpy ndarray n_fc x 3
+        [full_output = True] Parameters retrieved by the simplex for the 
+        injected fake companions; n_fc is the number of injected
+    offset: numpy ndarray n_fc x 3
+        [full_output = True] Deviations with respect to the values used for 
+        injection of the fake companions.
+    chi2, nit, success: numpy ndarray of length n_fc
+        [full_output = True] Outputs from the simplex function for the retrieval 
+        of the parameters of each injected companion: chi square value, number 
+        of iterations and whether the simplex converged, respectively.
     """
 
     if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2

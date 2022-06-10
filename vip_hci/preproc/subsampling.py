@@ -8,8 +8,8 @@ Module with pixel and frame subsampling functions.
    | **New Techniques for High-contrast Imaging with ADI: The ACORNS-ADI SEEDS 
      Data Reduction Pipeline**
    | *The Astrophysical Journal, Volume 764, Issue 2, p. 183*
-   | `https://arxiv.org/abs/astro-ph/1209.3014
-     <https://arxiv.org/abs/astro-ph/1209.3014>`_
+   | `https://arxiv.org/abs/1209.3014
+     <https://arxiv.org/abs/1209.3014>`_
      
 """
 

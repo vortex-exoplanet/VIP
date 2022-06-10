@@ -53,7 +53,7 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
         planet_parameter = planet_parameter[np.newaxis, :]
 
     if cube.ndim == 4:
-        if planet_parameter.shape[3] != cube.shape[0]:
+        if planet_parameter.shape[2] != cube.shape[0]:
             raise TypeError("Input planet parameter with wrong dimensions.")
 
     for i in range(planet_parameter.shape[0]):

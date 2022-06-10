@@ -5,7 +5,7 @@ Tests for fm/fakecomp.py
 
 from .helpers import aarc, np, param, parametrize, fixture, filterwarnings
 from vip_hci.fm import cube_inject_companions, normalize_psf
-
+from vip_hci.var import create_synth_psf
 
 # ===== utility functions
 
@@ -67,19 +67,24 @@ def test_normalize_psf_shapes():
     Test if normalize_psf produces the expected shapes.
     """
     # `Force_odd` is True therefore `size` was set to 19
-    res_even = normalize_psf(np.ones((20, 20)), size=18)
-    res_odd = normalize_psf(np.ones((21, 21)), size=18)
+    even_psf = create_synth_psf(model='gauss', shape=(20,20), amplitude=3)
+    odd_psf = create_synth_psf(model='gauss', shape=(21,21), amplitude=5)
+    even_psf += np.random.normal(loc=0, scal=0.1, size=even_psf.shape)
+    odd_psf += np.random.normal(loc=0, scal=0.1, size=odd_psf.shape)
+    
+    res_even = normalize_psf(even_psf, size=18)
+    res_odd = normalize_psf(odd_psf, size=18)
     assert res_even.shape == res_odd.shape == (19, 19)
 
-    res_even = normalize_psf(np.ones((20, 20)), size=18, force_odd=False)
-    res_odd = normalize_psf(np.ones((21, 21)), size=18, force_odd=False)
+    res_even = normalize_psf(even_psf, size=18, force_odd=False)
+    res_odd = normalize_psf(odd_psf, size=18, force_odd=False)
     assert res_even.shape == res_odd.shape == (18, 18)
 
     # set to odd size
-    res_even = normalize_psf(np.ones((20, 20)), size=19)
-    res_odd = normalize_psf(np.ones((21, 21)), size=19)
+    res_even = normalize_psf(even_psf, size=19)
+    res_odd = normalize_psf(odd_psf, size=19)
     assert res_even.shape == res_odd.shape == (19, 19)
 
-    res_even = normalize_psf(np.ones((20, 20)), size=19, force_odd=False)
-    res_odd = normalize_psf(np.ones((21, 21)), size=19, force_odd=False)
+    res_even = normalize_psf(even_psf, size=19, force_odd=False)
+    res_odd = normalize_psf(odd_psf, size=19, force_odd=False)
     assert res_even.shape == res_odd.shape == (19, 19)

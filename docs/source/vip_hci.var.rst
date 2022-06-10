@@ -1,6 +1,8 @@
 vip\_hci.var package
 ====================
 
+Submodules
+----------
 
 vip\_hci.var.coords module
 --------------------------

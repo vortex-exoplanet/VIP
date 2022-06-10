@@ -315,8 +315,8 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
     provided location of the star), in an input frame or cube.
     This function is faster than ``cube_fix_badpix_clump``; hence to be 
     preferred in all cases where there is only one bright source with circularly 
-    symmetric PSF. The bad pixel values are replaced by: 
-        ann_median + random_poisson;
+    symmetric PSF. The bad pixel values are replaced by:\ 
+    ann_median + random_poisson;\
     where ann_median is the median of the annulus, and random_poisson is 
     random noise picked from a Poisson distribution centered on ann_median.
 

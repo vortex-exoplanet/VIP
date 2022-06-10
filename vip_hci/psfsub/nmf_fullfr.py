@@ -11,13 +11,6 @@ for ADI and RDI data, in full frames.
    | `https://ui.adsabs.harvard.edu/abs/1999Natur.401..788L
      <https://ui.adsabs.harvard.edu/abs/1999Natur.401..788L>`_
      
-.. [GOM17]
-   | Gomez-Gonzalez et al. 2017
-   | **VIP: Vortex Image Processing Package for High-contrast Direct Imaging**
-   | *The Astronomical Journal, Volume 154, p. 7*
-   | `https://arxiv.org/abs/1705.06184
-     <https://arxiv.org/abs/1705.06184>`_
-     
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'

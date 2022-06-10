@@ -436,41 +436,32 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     parameters are defined by the ``emcee`` Affine Invariant algorithm [FOR13]_.
 
     There are different possibilities for the figure of merit (step 4):
-        
         - ``mu_sigma=None``; ``fmerit='sum'`` (as in [WER17]_):\
-        :math:`\chi^2 = \sum(\|I_j\|)`
-        
+          :math:`\chi^2 = \sum(\|I_j\|)`
         - ``mu_sigma=None``; ``fmerit='stddev'`` (likely more appropriate than
-        'sum' when residual speckle noise is still significant):\
-        :math:`\chi^2 = N \sigma_{I_j}(values,ddof=1)*values.size`
-        
+          'sum' when residual speckle noise is still significant):\
+          :math:`\chi^2 = N \sigma_{I_j}(values,ddof=1)*values.size`
         - ``mu_sigma=True`` or a tuple (as in [CHR21]_, new default):\
-        :math:`\chi^2 = \sum\frac{(I_j- mu)^2}{\sigma^2}`
+          :math:`\chi^2 = \sum\frac{(I_j- mu)^2}{\sigma^2}`
 
     where :math:`j \in {1,...,N}` with N the total number of pixels
     contained in the circular aperture, :math:`\sigma_{I_j}` is the standard
     deviation of :math:`I_j` values, and :math:`\mu` is the mean pixel
     intensity in a truncated annulus at the radius of the companion candidate
     (i.e. excluding the cc region).
-
     See description of ``mu_sigma`` and ``sigma`` for more details on
-    :math:`\sigma`.
+    :math:`\sigma` considered in the last equation.
 
-    *Speed tricks*:
-        
+    Speed tricks:
         - crop your input cube to a size such as to just include the annulus on
-        which the PCA is performed;
-        
+          which the PCA is performed;
         - set ``imlib='opencv'`` (much faster image rotations, BUT at the expense
-        of flux conservation);
-            
+          of flux conservation);
         - increase ``nproc`` (if your machine allows);
-        
         - reduce ``ac_c`` (or increase ``rhat_threshold`` if ``conv_test='gb'``) 
-        for a faster convergence);
-    
+          for a faster convergence);
         - reduce ``niteration_limit`` to force the sampler to stop even if it 
-        has not reached convergence.
+          has not reached convergence.
 
     Parameters
     ----------
@@ -541,9 +532,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         Imlib used for both image rotation and sub-px shift:
             - "opencv": will use it for both;
             - "skimage" or "ndimage-interp" will use scikit-image and
-                scipy.ndimage for rotation and shift resp.;
+              scipy.ndimage for rotation and shift resp.;
             - "ndimage-fourier" or "vip-fft" will use Fourier transform based
-                methods for both.
+              methods for both.
     interpolation : str, optional
         Interpolation order. See the documentation of the
         ``vip_hci.preproc.frame_rotate`` function. Note that the interpolation
@@ -587,7 +578,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     a: float, default=2.0
         The proposal scale parameter. See Note.
     burnin: float, default=0.3
-        The fraction of a walker chain which is discarded. NOTE: only used for
+        The fraction of a walker chain which is discarded. Note: only used for
         Gelman-Rubin convergence test - the chains are returned full.
     rhat_threshold: float, default=0.01
         The Gelman-Rubin threshold used for the test for nonconvergence.
@@ -651,7 +642,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     The parameter ``a`` must be > 1. For more theoretical information
     concerning this parameter, see [GOO10]_.
 
-    The parameter 'rhat_threshold' can be a numpy.array with individual
+    The parameter ``rhat_threshold`` can be a numpy.array with individual
     threshold value for each model parameter.
     """
     if verbosity > 0:

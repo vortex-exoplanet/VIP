@@ -2,14 +2,6 @@
 
 """
 Module with contrast curve generation function.
-
-.. [MAW14]
-   | Mawet et al. 2014
-   | **Fundamental Limitations of High Contrast Imaging Set by Small Sample 
-     Statistics**
-   | *The Astrophysical Journal, Volume 792, Issue 1, p. 97*
-   | `https://arxiv.org/abs/1407.2247
-     <https://arxiv.org/abs/1407.2247>`_
      
 """
 

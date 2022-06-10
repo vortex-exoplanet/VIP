@@ -89,9 +89,11 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         with a gaussian filter. Slower but can significantly reduce ringing
         artefacts from Gibbs phenomenon, in particular if several consecutive
         rotations are involved in your image processing.
-        'noise': pad with small amplitude noise inferred from neighbours
-        'interp': interpolated from neighbouring pixels using Gaussian kernel.
-        'noise+interp': sum both components above at masked locations.
+        
+        - 'noise': pad with small amplitude noise inferred from neighbours
+        - 'interp': interpolated from neighbouring pixels using Gaussian kernel.
+        - 'noise+interp': sum both components above at masked locations.
+        
         Original mask will be placed back after rotation.
     interp_zeros: bool, opt
         [only used if edge_blend is not None]

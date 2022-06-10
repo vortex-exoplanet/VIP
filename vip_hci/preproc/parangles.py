@@ -111,8 +111,8 @@ def compute_derot_angles_pa(objname_tmp_A, digit_format=3, objname_tmp_B='',
     1. all angles of the output are in degrees
     2. all angles of the ouput  are positive
     3. there is no jump of more than 180 deg between consecutive values (e.g. no
-     jump like [350deg,355deg,0deg,5deg] => replaced by
-     [350deg,355deg,360deg,365deg])
+       jump like [350deg,355deg,0deg,5deg] => replaced by
+       [350deg,355deg,360deg,365deg])
 
     Parameters
     ----------
@@ -146,7 +146,7 @@ def compute_derot_angles_pa(objname_tmp_A, digit_format=3, objname_tmp_B='',
     If your cubes are: ``/home/foo/out_cube_obj_HK_025_000_sorted.fits``,
     ``/home/foo/out_cube_obj_HK_025_001_sorted.fits``,
     ``/home/foo/out_cube_obj_HK_025_002_sorted.fits``, etc,
-    the first arguments should be:
+    the arguments should be:
 
     .. code-block:: python
 
@@ -275,7 +275,7 @@ def compute_derot_angles_cd(objname_tmp_A, digit_format=3, objname_tmp_B='',
     If your cubes are: ``/home/foo/out_cube_obj_HK_025_000_sorted.fits``,
     ``/home/foo/out_cube_obj_HK_025_001_sorted.fits``,
     ``/home/foo/out_cube_obj_HK_025_002_sorted.fits``, etc,
-    the first arguments should be:
+    the arguments should be:
 
     .. code:: python
 
@@ -384,8 +384,8 @@ def check_pa_vector(angle_list, unit='deg'):
     1. angles are expressed in degree
     2. the angles are positive
     3. there is no jump of more than 180 deg between consecutive values (e.g.
-        no jump like [350deg,355deg,0deg,5deg] => replaced by
-        [350deg,355deg,360deg,365deg])
+       no jump like [350deg,355deg,0deg,5deg] => replaced by
+       [350deg,355deg,360deg,365deg])
 
     Parameters
     ----------

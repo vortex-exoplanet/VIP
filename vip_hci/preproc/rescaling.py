@@ -372,13 +372,14 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
     Returns
     -------
     frame: 2d array
-        The median of the rescaled cube.
+        [full_output=False] The median of the rescaled cube.
     cube : 3d array
-        [full_output] rescaled cube
+        [full_output=True] Rescaled cube
     frame : 2d array
-        [full_output] median of the rescaled cube
-    y,x,cy,cx : float
-        [full_output] New y and x shapes of the cube, and the new centers cy and
+        [full_output=True] Median of the rescaled cube -- note it is in 2nd 
+        position if full_output is set to True.
+    y,x,cy,cx : floats
+        [full_output=True] New y and x shapes of the cube, and the new centers cy and
         cx of the frames
 
     """

@@ -693,8 +693,7 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
     ----------
     array : 3d numpy ndarray
         Input cube.
-    scaling : {None, "temp-mean", spat-mean", "temp-standard", "spat-standard"},
-        None or str optional
+    scaling : {None, "temp-mean", spat-mean", "temp-standard", "spat-standard"}, None or str optional
         Pixel-wise scaling mode using ``sklearn.preprocessing.scale`` function.
         If set to None, the input matrix is left untouched. Otherwise:
 
@@ -803,7 +802,7 @@ def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
              mode='val', plot=False):
     """
     Return a mask corresponding to the region of interest for a test point
-    source as defined in [GEB20].
+    source as defined in [GEB20]_.
 
     Given a frame and a location of interest with coordinates xy=(cx,cy),
     the mask consists of all pixels from three different regions with respect
@@ -818,7 +817,7 @@ def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
         * (r4) Annulus region: Pixels from the annulus where xy is located.
 
     The goal of this mask is to disentangle the expected structure of the
-    speckle pattern. [GEB20] comment that 'r2 is chosen to capture any local 
+    speckle pattern. [GEB20]_ comment that 'r2 is chosen to capture any local 
     effects around xy due to the instrument. r3 is chosen symmetrically opposite 
     of xy because if there is a speckle at xy, there should also be an 
     (anti-)speckle at r2. r4 is used because we know that the systematic noise 

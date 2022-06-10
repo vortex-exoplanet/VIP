@@ -26,7 +26,6 @@ from hciplot import plot_frames
 from astropy.modeling import models, fitting
 from astropy.stats import (gaussian_sigma_to_fwhm, gaussian_fwhm_to_sigma,
                            sigma_clipped_stats)
-import warnings
 from .coords import frame_center
 from .shapes import get_square
 from ..config import check_array

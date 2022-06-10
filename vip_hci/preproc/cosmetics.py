@@ -211,7 +211,7 @@ def frame_pad(array, fac, fillwith=0, loc=0, scale=1, keep_parity=True,
 
 def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
     """
-    Slice the cube so that all frames between ``n``and ``m`` are kept.
+    Slice the cube so that all frames between ``n`` and ``m`` are kept.
 
     Operates on axis 0 for 3D cubes, and on axis 1 for 4D cubes. This returns a
     modified *copy* of ``array``. The indices ``n`` and ``m`` are included and
@@ -421,8 +421,11 @@ def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
 
     Returns
     -------
-    Array of y and x approx coordinates of the star in each channel of the cube
-    if return_test: it also returns the test result vector
+    star_approx_idx: 2d numpy array
+        Array of y and x approx coordinates of the star in each channel of the 
+        cube.
+    test_result: 1d numpy array
+        [return_test=True] It also returns the test result vector.
     """
     from ..metrics import peak_coordinates
 

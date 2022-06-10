@@ -27,9 +27,8 @@ Module with frame/cube filtering functionalities.
      
 .. [RIC72]
    | W. H. Richardson 1972
-   | **Bayesian-Based Iterative Method of
-   Image Restoration**
-   | *J. Opt. Soc. Am., Volume 27, pp. 1593-1607 *
+   | **Bayesian-Based Iterative Method of Image Restoration**
+   | *J. Opt. Soc. Am., Volume 27, pp. 1593-1607*
    | `https://opg.optica.org/josa/abstract.cfm?uri=josa-62-1-55
      <https://opg.optica.org/josa/abstract.cfm?uri=josa-62-1-55>`_
 
@@ -64,8 +63,8 @@ from ..config import Progressbar
 
 def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
     """
-    Isotropic Undecimated Wavelet Transform filtering, as implemented in [KEN15] 
-    and detailed in [DAB15]_.
+    Isotropic Undecimated Wavelet Transform filtering, as implemented in 
+    [KEN15]_ and detailed in [DAB15]_.
 
     Parameters
     ----------
@@ -605,7 +604,7 @@ def cube_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
 def frame_deconvolution(array, psf, n_it=30):
     """
     Iterative image deconvolution following the scikit-image implementation
-    of the Richardson-Lucy algorithm, described in [RIC72] and [LUC74].
+    of the Richardson-Lucy algorithm, described in [RIC72]_ and [LUC74]_.
 
     Considering an image that has been convolved by the point spread function
     of an instrument, the algorithm will sharpen the blurred

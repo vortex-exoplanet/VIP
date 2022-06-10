@@ -1,18 +1,8 @@
 #! /usr/bin/env python
 
 """
-Module with S/N calculation functions.
-
-.. [MAW14]
-   | Mawet et al. 2014
-   | **Fundamental Limitations of High Contrast Imaging Set by Small Sample 
-     Statistics**
-   | *The Astrophysical Journal, Volume 792, Issue 1, p. 97*
-   | `https://arxiv.org/abs/1407.2247
-     <https://arxiv.org/abs/1407.2247>`_
-
-We strongly recommend users to read [MAW14]_ before using routines of this 
-module.
+Module with S/N calculation functions. We strongly recommend users to read 
+[MAW14]_ before using routines of this module.
 
 """
 

@@ -29,7 +29,7 @@ from ..var import prepare_matrix
 
 def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2,
                           full_output=False):
-    """ PCA-based sky subtraction as explained in [GOM17] and [HUN18]_.
+    """ PCA-based sky subtraction as explained in [GOM17]_ and [HUN18]_.
 
     Parameters
     ----------
@@ -50,9 +50,11 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, mask, ref_cube=None, ncomp=2,
 
     Returns
     -------
-    Sky-subtracted science cube.
-    If ref_cube is not None, also returns sky-subtracted reference cube.
-    If full_ouput, returns (in the following order):
+    sci_cube_skysub : numpy ndarray 
+        Sky-subtracted science cube
+    ref_cube_skysub : numpy ndarray  
+        [If ref_cube is not None] Also returns sky-subtracted reference cube.
+    If full_output is set to True, returns (in the following order):
          - sky-subtracted science cube,
          - sky-subtracted reference cube (if any provided),
          - principal components (non-masked),

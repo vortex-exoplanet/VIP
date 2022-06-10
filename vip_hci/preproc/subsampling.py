@@ -24,7 +24,7 @@ import numpy as np
 def cube_collapse(cube, mode='median', n=50, w=None):
     """ Collapses a cube into a frame (3D array -> 2D array) depending on the
     parameter ``mode``. It's possible to perform a trimmed mean combination of
-    the frames based on description in [BRA13].
+    the frames based on description in [BRA13]_.
 
     Parameters
     ----------

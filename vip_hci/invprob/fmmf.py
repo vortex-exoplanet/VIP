@@ -109,36 +109,30 @@ def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
     var: str, optional
         Model used for the residual noise variance estimation used in the
         matched filtering (maximum likelihood estimation of the flux and SNR).
-        Three different approaches are proposed: 'FR', 'FM', and 'TE'.
-
+        Three different approaches are proposed: 'FR', 'FM', and 'TE':
+            
         * 'FR': consider the pixels in the selected annulus with a width equal
-        to asize but separately for every frame.
-
+          to asize but separately for every frame.
         * 'FM': consider the pixels in the selected annulus with a width
-        equal to asize but separately for every frame. Apply a mask one FWHM
-        on the selected pixel and its surrounding.
-
+          equal to asize but separately for every frame. Apply a mask one FWHM
+          on the selected pixel and its surrounding.
         * 'TE': rely on the method developped in PACO to estimate the
-        residual noise variance (take the pixels in a region of one FWHM
-        arround the selected pixel, considering every frame in the
-        derotated cube of residuals except for the selected frame)
-
+          residual noise variance (take the pixels in a region of one FWHM
+          arround the selected pixel, considering every frame in the
+          derotated cube of residuals except for the selected frame)
     param: dict, optional
         Dictionnary regrouping the parameters used by the KLIP (ncomp and
         delta_rot) or LOCI (tolerance and delta_rot) PSF-subtraction
-        technique.
-
+        technique:
+            
         * ncomp : int, optional. Number of components used for the low-rank
-        approximation of the speckle field. Default is 20.
-
+          approximation of the speckle field. Default is 20.
         * tolerance: float, optional. Tolerance level for the approximation of
-        the speckle field via a linear combination of the reference images in
-        the LOCI algorithm. Default is 5e-3.
-
+          the speckle field via a linear combination of the reference images in
+          the LOCI algorithm. Default is 5e-3.
         * delta_rot : float, optional. Factor for tunning the parallactic angle
-        threshold, expressed in FWHM. Default is 0.5 (excludes 0.5xFHWM on each
-        side of the considered frame).
-
+          threshold, expressed in FWHM. Default is 0.5 (excludes 0.5xFHWM on each
+          side of the considered frame).
     crop: int, optional
         Part of the PSF template considered in the estimation of the FMMF
         detection map. Default is 5.

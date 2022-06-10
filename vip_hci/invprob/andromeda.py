@@ -51,16 +51,10 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         IDL parameter: ``IMAGES_1_INPUT``
     oversampling_fact : float
         Oversampling factor for the wavelength corresponding to the filter used
-        for obtaining ``cube`` (defined as the ratio between the wavelength of
-        the filter and the Shannon wavelength). Note that in ANDROMEDA everything
-        is coded in lambda/D unit so this is an important parameter.
-        For instance, it is computed as (value above 1 and usually below 3):
-            lambda = 3.8e-6  : Imaging wavelength [m]
-            diam_tel = 8.0   : Telescope diameter [m]
-            PIXSCALE = 12.25 : Plate scale [mas/px]
-            PIXSCALE_NYQ = (0.5*lambda/diam_tel)/pi*180*3600*1e3 : Nyquist plate
-                scale [mas/px]
-            oversampling = PIXSCALE_NYQ / PIXSCALE : Oversampling factor
+        to obtain ``cube`` (defined as the ratio between the wavelength of
+        the filter and the Shannon wavelength). Usually above 1 and below 3. 
+        Note that in ANDROMEDA everything is coded in lambda/D unit so this is 
+        an important parameter. See Note for example calculation.
         IDL parameter: ``OVERSAMPLING_1_INPUT``
     angles : numpy ndarray
         List of parallactic angles associated with each frame in ``cube``. Note
@@ -147,7 +141,6 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         Print some parameter values for control.
         IDL parameter: ``VERBOSE``
 
-
     Returns
     -------
     contrast : 2d ndarray
@@ -164,6 +157,8 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         IDL parameter: `STDDEVCONTRAST_OUTPUT`` (previously
         ``STDEVFLUX_OUTPUT``)
     stdcontrast_norm : 2d ndarray
+        Map of the estimated normalized standard deviation of the contrast.
+        IDL parameter: ``STDDEVCONTRAST_NORM_OUTPUT``
     likelihood : 2d ndarray
         likelihood
         IDL parameter: ``LIKELIHOOD_OUTPUT``
@@ -184,6 +179,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     - STDDEVCONTRAST_NORM_OUTPUT
 
     The following IDL parameters were not implemented:
+        
         - SDI-related parameters
             - IMAGES_2_INPUT
             - OVERSAMPLING_2_INPUT
@@ -207,6 +203,16 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
             - VARIANCE_2_RESCALED_OUTPUT
             - GAMMA_INFO_OUTPUT
         - variances (VARIANCE_1_INPUT, VARIANCE_2_INPUT)
+
+    Note
+    ----
+    The oversampling factor can be computed as:\
+    :math:`oversampling = plsc_{NYQ} / plsc`
+    , where:\
+        :math:`plsc = 12.25` [mas/px] for SPHERE/IRDIS\
+        :math:`plsc_{NYQ} = (0.5*lambda/diam_tel)/pi*180*3600*1e3` [mas/px]\
+        lambda = 3.8e-6  : Imaging wavelength [m]\
+        diam_tel = 8.0   : Telescope diameter [m]
 
     """
     def info(msg, *fmt, **kwfmt):

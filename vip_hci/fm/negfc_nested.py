@@ -34,14 +34,6 @@ nested sampling (``nestle``).
    | *American Institute of Physics Conference Series, Volume 735, pp. 395-405*
    | `https://ui.adsabs.harvard.edu/abs/2004AIPC..735..395S
      <https://ui.adsabs.harvard.edu/abs/2004AIPC..735..395S>`_
-
-.. [WER17]
-   | Wertz et al. 2017
-   | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond-level 
-     accuracy. Orbital architecture analysis with PyAstrOFit**
-   | *Astronomy & Astrophysics, Volume 598, Issue 1, p. 83*
-   | `https://arxiv.org/abs/1610.04014
-     <https://arxiv.org/abs/1610.04014>`_
      
 """
 
@@ -207,30 +199,31 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
     probability from the parameter space with likelihood greater than the
     current likelihood constraint. The different methods all use the
     current set of active points as an indicator of where the target
-    parameter space lies, but differ in how they select new points from it.
-        "classic" is close to the method described in [SKI04]_.
-        "single", [MUK06]_, Determines a single ellipsoid that bounds all 
-            active points, enlarges the ellipsoid by a user-settable factor, 
-            and selects a new point at random from within the ellipsoid.
-        "multiple", [FER09]_ (Multinest). In cases where the posterior is 
-            multi-modal, the single-ellipsoid method can be extremely 
-            inefficient. In such situations, there are clusters of active 
-            points on separate high-likelihood regions separated by regions of 
-            lower likelihood. Bounding all points in a single ellipsoid means 
-            that the ellipsoid includes the lower-likelihood regions we wish to 
-            avoid sampling from. The solution is to detect these clusters and 
-            bound them in separate ellipsoids. For this, we use a recursive 
-            process where we perform K-means clustering with K=2. If the 
-            resulting two ellipsoids have a significantly lower total volume 
-            than the parent ellipsoid (less than half), we accept the split and 
-            repeat the clustering and volume test on each of the two subset of 
-            points. This process continues recursively. Alternatively, if the 
-            total ellipse volume is significantly greater than expected (based 
-            on the expected density of points) this indicates that there may be 
-            more than two clusters and that K=2 was not an appropriate cluster 
-            division. We therefore still try to subdivide the clusters 
-            recursively. However, we still only accept the final split into N 
-            clusters if the total volume decrease is significant.
+    parameter space lies, but differ in how they select new points from it:
+        
+        - "classic" is close to the method described in [SKI04]_.
+        - "single", [MUK06]_, Determines a single ellipsoid that bounds all 
+          active points, enlarges the ellipsoid by a user-settable factor, 
+          and selects a new point at random from within the ellipsoid.
+        - "multiple", [FER09]_ (Multinest). In cases where the posterior is 
+          multi-modal, the single-ellipsoid method can be extremely 
+          inefficient. In such situations, there are clusters of active 
+          points on separate high-likelihood regions separated by regions of 
+          lower likelihood. Bounding all points in a single ellipsoid means 
+          that the ellipsoid includes the lower-likelihood regions we wish to 
+          avoid sampling from. The solution is to detect these clusters and 
+          bound them in separate ellipsoids. For this, we use a recursive 
+          process where we perform K-means clustering with K=2. If the 
+          resulting two ellipsoids have a significantly lower total volume 
+          than the parent ellipsoid (less than half), we accept the split and 
+          repeat the clustering and volume test on each of the two subset of 
+          points. This process continues recursively. Alternatively, if the 
+          total ellipse volume is significantly greater than expected (based 
+          on the expected density of points) this indicates that there may be 
+          more than two clusters and that K=2 was not an appropriate cluster 
+          division. We therefore still try to subdivide the clusters 
+          recursively. However, we still only accept the final split into N 
+          clusters if the total volume decrease is significant.
 
     """
 

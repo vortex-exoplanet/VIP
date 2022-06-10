@@ -198,7 +198,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
         the size of the provided cube - PSF size //2 with a step of 5 pixels
     ini_contrast: list, 1d ndarray or None, optional
         Initial contrast for the range of angular separations included in
-        `an_dist`_. The number of initial contrasts should be equivalent to the
+        `an_dist`. The number of initial contrasts should be equivalent to the
         number of angular separations. Default is None which corresponds to the 
         5-sigma contrast_curve obtained with ``vip_hci.metrics.contrast_curve``.
     starphot : int or float or 1d array, optional
@@ -615,7 +615,7 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
         step of 5 pixels
     ini_contrast: list, 1d ndarray or None, optional
         Initial contrast for the range of angular separations included in
-        `an_dist`_. The number of initial contrasts should be equivalent to the
+        `an_dist`. The number of initial contrasts should be equivalent to the
         number of angular separations. Default is None which corresponds to the 
         5-sigma contrast_curve obtained with ``vip_hci.metrics.contrast_curve``.
     starphot : int or float or 1d array

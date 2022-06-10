@@ -4,13 +4,6 @@
 Module with local/smart PCA (annulus or patch-wise in a multi-processing
 fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
 
-.. [AMA12]
-   | Amara & Quanz 2012
-   | **PYNPOINT: an image processing package for finding exoplanets**
-   | *MNRAS, Volume 427, Issue 1, pp. 948-955*
-   | `https://arxiv.org/abs/1207.6637
-     <https://arxiv.org/abs/1207.6637>`_
-
 .. [ABS13]
    | Absil et al. 2013
    | **Searching for companions down to 2 AU from beta Pictoris using the 
@@ -18,14 +11,6 @@ fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
    | *Astronomy & Astrophysics, Volume 559, Issue 1, p. 12*
    | `https://arxiv.org/abs/1311.4298
      <https://arxiv.org/abs/1311.4298>`_
-     
-.. [CHR19]
-   | Christiaens et al. 2019
-   | **Separating extended disc features from the protoplanet in PDS 70 using 
-     VLT/SINFONI**
-   | *MNRAS, Volume 486, Issue 4, pp. 5819-5837*
-   | `https://arxiv.org/abs/1905.01860
-     <https://arxiv.org/abs/1905.01860>`_
 
 """
 
@@ -65,8 +50,8 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
     principal components can be automatically adjusted by the algorithm by
     minimizing the residuals inside each patch/region.
     
-    References: [AMA12] for PCA-ADI; [ABS13] for PCA-ADI in concentric annuli 
-    considering a parallactic angle threshold; [CHR19] for PCA-ASDI and 
+    References: [AMA12]_ for PCA-ADI; [ABS13]_ for PCA-ADI in concentric annuli 
+    considering a parallactic angle threshold; [CHR19]_ for PCA-ASDI and 
     PCA-SADI in one or two steps.
 
     Parameters
@@ -133,36 +118,36 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
         Switch for the SVD method/library to be used.
 
-        ``lapack``: uses the LAPACK linear algebra library through Numpy
-        and it is the most conventional way of computing the SVD
-        (deterministic result computed on CPU).
+        * ``lapack``: uses the LAPACK linear algebra library through Numpy
+          and it is the most conventional way of computing the SVD
+          (deterministic result computed on CPU).
 
-        ``arpack``: uses the ARPACK Fortran libraries accessible through
-        Scipy (computation on CPU).
+        * ``arpack``: uses the ARPACK Fortran libraries accessible through
+          Scipy (computation on CPU).
 
-        ``eigen``: computes the singular vectors through the
-        eigendecomposition of the covariance M.M' (computation on CPU).
+        * ``eigen``: computes the singular vectors through the
+          eigendecomposition of the covariance M.M' (computation on CPU).
 
-        ``randsvd``: uses the randomized_svd algorithm implemented in
-        Sklearn (computation on CPU).
+        * ``randsvd``: uses the randomized_svd algorithm implemented in
+          Sklearn (computation on CPU), proposed in [HAL09]_.
 
-        ``cupy``: uses the Cupy library for GPU computation of the SVD as in
-        the LAPACK version. `
+        * ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+          the LAPACK version. `
 
-        `eigencupy``: offers the same method as with the ``eigen`` option
-        but on GPU (through Cupy).
+        * ``eigencupy``: offers the same method as with the ``eigen`` option
+          but on GPU (through Cupy).
 
-        ``randcupy``: is an adaptation of the randomized_svd algorithm,
-        where all the computations are done on a GPU (through Cupy). `
+        * ``randcupy``: is an adaptation of the randomized_svd algorithm,
+          where all the computations are done on a GPU (through Cupy). `
 
-        `pytorch``: uses the Pytorch library for GPU computation of the SVD.
+        * ``pytorch``: uses the Pytorch library for GPU computation of the SVD.
 
-        ``eigenpytorch``: offers the same method as with the ``eigen``
-        option but on GPU (through Pytorch).
+        * ``eigenpytorch``: offers the same method as with the ``eigen``
+          option but on GPU (through Pytorch).
 
-        ``randpytorch``: is an adaptation of the randomized_svd algorithm,
-        where all the linear algebra computations are done on a GPU
-        (through Pytorch).
+        * ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+          where all the linear algebra computations are done on a GPU
+          (through Pytorch).
 
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
@@ -180,15 +165,15 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
         function. If set to None, the input matrix is left untouched. Otherwise:
 
-        ``temp-mean``: temporal px-wise mean is subtracted.
+        * ``temp-mean``: temporal px-wise mean is subtracted.
 
-        ``spat-mean``: spatial mean is subtracted.
+        * ``spat-mean``: spatial mean is subtracted.
 
-        ``temp-standard``: temporal mean centering plus scaling pixel values
-        to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES.
+        * ``temp-standard``: temporal mean centering plus scaling pixel values
+          to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES!
 
-        ``spat-standard``: spatial mean centering plus scaling pixel values
-        to unit variance.
+        * ``spat-standard``: spatial mean centering plus scaling pixel values
+          to unit variance.
 
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
@@ -221,16 +206,14 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
 
     Returns
     -------
-    - If full_output is False:
     frame : numpy ndarray, 2d
-        Median combination of the de-rotated cube.
-    - If full_output is True:
+        [full_output=False] Median combination of the de-rotated cube.
     array_out : numpy ndarray, 3d or 4d
-        Cube of residuals.
+        [full_output=True] Cube of residuals.
     array_der : numpy ndarray, 3d or 4d
-        Cube residuals after de-rotation.
+        [full_output=True] Cube residuals after de-rotation.
     frame : numpy ndarray, 2d
-        Median combination of the de-rotated cube.
+        [full_output=True] Median combination of the de-rotated cube.
     """
     if verbose:
         global start_time

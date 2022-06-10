@@ -3,13 +3,6 @@
 """
 Module with simplex (Nelder-Mead) optimization for defining the flux and
 position of a companion using the Negative Fake Companion.
-
-.. [WER17]
-   | Wertz et al. 2017
-   | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond-level accuracy. Orbital architecture analysis with PyAstrOFit**
-   | *Astronomy & Astrophysics, Volume 598, Issue 1, p. 83*
-   | `https://arxiv.org/abs/1610.04014
-     <https://arxiv.org/abs/1610.04014>`_
      
 """
 

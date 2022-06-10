@@ -199,21 +199,22 @@ class ScatteredLightDisk(object):
             linear flaring. This dictionary should at least contain the key
             "name". For a to-power law distribution, you can set it with
             name:'2PowerLaws' and with the following parameters:
-                - a : float.
+                
+                - a : float
                     Reference radius in au (default 60)
-                - ksi0 : float.
+                - ksi0 : float
                     Scale height in au at the reference radius (default 1 a.u.)
-                - gamma : float.
+                - gamma : float
                     Exponent (2=gaussian,1=exponential profile, default 2)
-                - beta : float.
+                - beta : float
                     Flaring index (0=no flaring, 1=linear flaring, default 1)
-                - ain : float.
+                - ain : float
                     Slope of the power-low distribution in the inner disk. It
                     must be positive (default 5)
-                - aout : float.
+                - aout : float
                     Slope of the power-low distribution in the outer disk. It
                     must be negative (default -5)
-                - e : float.
+                - e : float
                     Eccentricity (default 0)
         """
         self.dust_density.set_density_distribution(density_dico)

@@ -71,51 +71,51 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
         Switch for the SVD method/library to be used.
 
-        ``lapack``: uses the LAPACK linear algebra library through Numpy
-        and it is the most conventional way of computing the SVD
-        (deterministic result computed on CPU).
+        * ``lapack``: uses the LAPACK linear algebra library through Numpy
+          and it is the most conventional way of computing the SVD
+          (deterministic result computed on CPU).
 
-        ``arpack``: uses the ARPACK Fortran libraries accessible through
-        Scipy (computation on CPU).
+        * ``arpack``: uses the ARPACK Fortran libraries accessible through
+          Scipy (computation on CPU).
 
-        ``eigen``: computes the singular vectors through the
-        eigendecomposition of the covariance M.M' (computation on CPU).
+        * ``eigen``: computes the singular vectors through the
+          eigendecomposition of the covariance M.M' (computation on CPU).
 
-        ``randsvd``: uses the randomized_svd algorithm implemented in
-        Sklearn (computation on CPU).
+        * ``randsvd``: uses the randomized_svd algorithm implemented in
+          Sklearn (computation on CPU), proposed in [HAL09]_.
 
-        ``cupy``: uses the Cupy library for GPU computation of the SVD as in
-        the LAPACK version. `
+        * ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+          the LAPACK version. `
 
-        `eigencupy``: offers the same method as with the ``eigen`` option
-        but on GPU (through Cupy).
+        * ``eigencupy``: offers the same method as with the ``eigen`` option
+          but on GPU (through Cupy).
 
-        ``randcupy``: is an adaptation of the randomized_svd algorithm,
-        where all the computations are done on a GPU (through Cupy). `
+        * ``randcupy``: is an adaptation of the randomized_svd algorithm,
+          where all the computations are done on a GPU (through Cupy). `
 
-        `pytorch``: uses the Pytorch library for GPU computation of the SVD.
+        * ``pytorch``: uses the Pytorch library for GPU computation of the SVD.
 
-        ``eigenpytorch``: offers the same method as with the ``eigen``
-        option but on GPU (through Pytorch).
+        * ``eigenpytorch``: offers the same method as with the ``eigen``
+          option but on GPU (through Pytorch).
 
-        ``randpytorch``: is an adaptation of the randomized_svd algorithm,
-        where all the linear algebra computations are done on a GPU
-        (through Pytorch).
+        * ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+          where all the linear algebra computations are done on a GPU
+          (through Pytorch).
 
     scaling : {None, "temp-mean", spat-mean", "temp-standard",
         "spat-standard"}, None or str optional
         Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
         function. If set to None, the input matrix is left untouched. Otherwise:
 
-        ``temp-mean``: temporal px-wise mean is subtracted.
+        * ``temp-mean``: temporal px-wise mean is subtracted.
 
-        ``spat-mean``: spatial mean is subtracted.
+        * ``spat-mean``: spatial mean is subtracted.
 
-        ``temp-standard``: temporal mean centering plus scaling pixel values
-        to unit variance.
+        * ``temp-standard``: temporal mean centering plus scaling pixel values
+          to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES!
 
-        ``spat-standard``: spatial mean centering plus scaling pixel values
-        to unit variance.
+        * ``spat-standard``: spatial mean centering plus scaling pixel values
+          to unit variance.
 
     mask_center_px : None or int, optional
         If None, no masking is done. If an integer > 1 then this value is the

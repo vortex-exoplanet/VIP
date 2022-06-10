@@ -3,21 +3,6 @@ Code with the Isotropic Undecimated Wavelet Transform, taken (Aug 24, 2015) from
 https://github.com/ratt-ru/PyMORESANE/
 Credits to J. S. Kenyon
 
-.. [DAB15]
-   | Dabbech et al. 2015
-   | **MORESANE: MOdel REconstruction by Synthesis-ANalysis Estimators. A sparse 
-     deconvolution algorithm for radio interferometric imaging**
-   | *The Astrophysical Journal, Volume 641, Issue 1, pp. 556-564*
-   | `https://arxiv.org/abs/1412.5387
-     <https://arxiv.org/abs/1412.5387>`_
-     
-.. [KEN15]
-   | J. S. Kenyon 2015
-   | **PyMORESANE**
-   | *GitHub repository*
-   | `https://github.com/ratt-ru/PyMORESANE
-     <https://github.com/ratt-ru/PyMORESANE>`_
-
 """
 
 
@@ -33,7 +18,7 @@ def iuwt_decomposition(in1, scale_count, scale_adjust=0,
     IUWT decomposition. It allows the different methods to be used almost 
     interchangeably.
     
-    The code was taken from [KEN15] and is detailed in [DAB15]_.
+    The code was taken from [KEN15]_ and is detailed in [DAB15]_.
 
     INPUTS:
     in1                 (no default):       Array on which the decomposition is to be performed.

@@ -28,13 +28,6 @@ Full-frame PCA algorithm for ADI, (ADI+)RDI and (ADI+)mSDI (IFS data) cubes:
    | `https://arxiv.org/abs/1905.01860
      <https://arxiv.org/abs/1905.01860>`_
      
-.. [GOM17]
-   | Gomez-Gonzalez et al. 2017
-   | **VIP: Vortex Image Processing Package for High-contrast Direct Imaging**
-   | *The Astronomical Journal, Volume 154, p. 7*
-   | `https://arxiv.org/abs/1705.06184
-     <https://arxiv.org/abs/1705.06184>`_
-     
 .. [HAL09]
    | Halko et al. 2009
    | **Finding structure with randomness: Probabilistic algorithms for 
@@ -42,14 +35,6 @@ Full-frame PCA algorithm for ADI, (ADI+)RDI and (ADI+)mSDI (IFS data) cubes:
    | *arXiv e-prints*
    | `https://arxiv.org/abs/0909.4061
      <https://arxiv.org/abs/0909.4061>`_
-     
-.. [SOU12]
-   | Soummer et al. 2012
-   | **Detection and Characterization of Exoplanets and Disks Using Projections 
-     on Karhunen-Loève Eigenimages**
-   | *The Astrophysical Journal Letters, Volume 755, Issue 2, p. 28*
-   | `https://arxiv.org/abs/1207.4197
-     <https://arxiv.org/abs/1207.4197>`_
 
 """
 

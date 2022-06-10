@@ -89,20 +89,56 @@ class Frame(object):
                                            save_plot, plot_title, angscale)
 
     def filter(self, method, mode, median_size=5, kernel_size=5, fwhm_size=5,
-               btw_cutoff=0.2, btw_order=2, gauss_mode='conv'):
+               btw_cutoff=0.2, btw_order=2, hann_cutoff=5, gauss_mode='conv'):
         """ High/low pass filtering the frames of the image.
 
         Parameters
         ----------
         method : {'lp', 'hp'}
-
-        mode : {'median', 'gauss'}
-        {'laplacian', 'laplacian-conv', 'median-subt', 'gauss-subt', 'fourier-butter'}
+            Low-pass or high-pass filtering.
+        mode : str
+            Type of low/high-pass filtering.
+            ``median``
+                [lp] applies a median low-pass filter to the image.
+            ``gauss``
+                [lp] applies a Gaussian low-pass filter to the image.
+            ``laplacian``
+                [hp] applies a Laplacian filter with kernel size defined by
+                ``kernel_size`` using the Opencv library.
+            ``laplacian-conv``
+                [hp] applies a Laplacian high-pass filter by defining a kernel (with
+                ``kernel_size``) and using the ``convolve_fft`` Astropy function.
+            ``median-subt``
+                [hp] subtracts a median low-pass filtered version of the image.
+            ``gauss-subt``
+                [hp] subtracts a Gaussian low-pass filtered version of the image.
+            ``fourier-butter``
+                [hp] applies a high-pass 2D Butterworth filter in Fourier domain.
+            ``hann``
+                [hp] uses a Hann window.
+        median_size : int, optional
+            Size of the median box for the ``median`` or ``median-subt`` filter.
+        kernel_size : int, optional
+            Size of the Laplacian kernel used in ``laplacian`` mode. It must be 
+            a positive odd integer value.
+        fwhm_size : float, optional
+            Size of the Gaussian kernel used in ``gauss`` or ``gauss-subt`` mode.
+        btw_cutoff : float, optional
+            Frequency cutoff for low-pass 2d Butterworth filter used in
+            ``fourier-butter`` mode.
+        btw_order : int, optional
+            Order of low-pass 2d Butterworth filter used in ``fourier-butter`` mode.
+        hann_cutoff : float
+            Frequency cutoff for the ``hann`` mode.
+        gauss_mode : {'conv', 'convfft'}, str optional
+            'conv' uses the multidimensional gaussian filter from scipy.ndimage and
+            'convfft' uses the fft convolution with a 2d Gaussian kernel.
         """
         if method == 'hp':
             self.data = frame_filter_highpass(self.data, mode, median_size,
                                               kernel_size, fwhm_size,
-                                              btw_cutoff, btw_order)
+                                              btw_cutoff, btw_order, hann_cutoff,
+                                              conv_mode=gauss_mode)
         elif method == 'lp':
             self.data = frame_filter_lowpass(self.data, mode, median_size,
                                              fwhm_size, gauss_mode)
@@ -559,20 +595,62 @@ class Dataset(Saveable):
             self.cube = res
 
     def filter(self, method, mode, median_size=5, kernel_size=5, fwhm_size=5,
-               btw_cutoff=0.2, btw_order=2, gauss_mode='conv', verbose=True):
+               btw_cutoff=0.2, btw_order=2, hann_cutoff=5, gauss_mode='conv', 
+               verbose=True):
         """ High/low pass filtering the frames of the cube.
 
         Parameters
         ----------
         method : {'lp', 'hp'}
-
-        mode : {'median', 'gauss'}
-        {'laplacian', 'laplacian-conv', 'median-subt', 'gauss-subt', 'fourier-butter'}
+            Low-pass or high-pass filtering.
+        mode : str
+            Type of low/high-pass filtering.
+            ``median``
+                [lp] applies a median low-pass filter to the image.
+            ``gauss``
+                [lp] applies a Gaussian low-pass filter to the image.
+            ``laplacian``
+                [hp] applies a Laplacian filter with kernel size defined by
+                ``kernel_size`` using the Opencv library.
+            ``laplacian-conv``
+                [hp] applies a Laplacian high-pass filter by defining a kernel (with
+                ``kernel_size``) and using the ``convolve_fft`` Astropy function.
+            ``median-subt``
+                [hp] subtracts a median low-pass filtered version of the image.
+            ``gauss-subt``
+                [hp] subtracts a Gaussian low-pass filtered version of the image.
+            ``fourier-butter``
+                [hp] applies a high-pass 2D Butterworth filter in Fourier domain.
+            ``hann``
+                [hp] uses a Hann window.
+        median_size : int, optional
+            Size of the median box for the ``median`` or ``median-subt`` filter.
+        kernel_size : int, optional
+            Size of the Laplacian kernel used in ``laplacian`` mode. It must be 
+            a positive odd integer value.
+        fwhm_size : float, optional
+            Size of the Gaussian kernel used in ``gauss`` or ``gauss-subt`` mode.
+        btw_cutoff : float, optional
+            Frequency cutoff for low-pass 2d Butterworth filter used in
+            ``fourier-butter`` mode.
+        btw_order : int, optional
+            Order of low-pass 2d Butterworth filter used in ``fourier-butter`` mode.
+        hann_cutoff : float
+            Frequency cutoff for the ``hann`` mode.
+        gauss_mode : {'conv', 'convfft'}, str optional
+            'conv' uses the multidimensional gaussian filter from scipy.ndimage and
+            'convfft' uses the fft convolution with a 2d Gaussian kernel.
         """
         if method == 'hp':
-            self.cube = cube_filter_highpass(self.cube, mode, median_size,
-                                             kernel_size, fwhm_size,
-                                             btw_cutoff, btw_order, verbose)
+            self.cube = cube_filter_highpass(self.cube, mode, 
+                                             median_size=median_size,
+                                             kernel_size=kernel_size, 
+                                             fwhm_size=fwhm_size,
+                                             btw_cutoff=btw_cutoff, 
+                                             btw_order=btw_order, 
+                                             hann_cutoff=hann_cutoff, 
+                                             verbose=verbose, 
+                                             conv_mode=gauss_mode)
         elif method == 'lp':
             self.cube = cube_filter_lowpass(self.cube, mode, median_size,
                                             fwhm_size, gauss_mode, verbose)

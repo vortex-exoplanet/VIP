@@ -5,7 +5,7 @@ Module with the function of merit definitions for the NEGFC optimization.
 """
 
 __author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
-__all__ = []
+__all__ = ['get_mu_and_sigma']
 
 import numpy as np
 from hciplot import plot_frames

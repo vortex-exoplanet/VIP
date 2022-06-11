@@ -63,7 +63,7 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
             cube_temp = cpf
 
         if cube.ndim == 4:
-            for j in cube.shape[0]:
+            for j in range(cube.shape[0]):
                 flevel = -planet_parameter[i, 2, j]
                 r = planet_parameter[i, 0, j]
                 theta = planet_parameter[i, 1, j]

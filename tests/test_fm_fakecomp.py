@@ -69,8 +69,8 @@ def test_normalize_psf_shapes():
     # `Force_odd` is True therefore `size` was set to 19
     even_psf = create_synth_psf(model='gauss', shape=(20,20), amplitude=3)
     odd_psf = create_synth_psf(model='gauss', shape=(21,21), amplitude=5)
-    even_psf += np.random.normal(loc=0, scal=0.1, size=even_psf.shape)
-    odd_psf += np.random.normal(loc=0, scal=0.1, size=odd_psf.shape)
+    even_psf += np.random.normal(loc=0, scale=0.1, size=even_psf.shape)
+    odd_psf += np.random.normal(loc=0, scale=0.1, size=odd_psf.shape)
     
     res_even = normalize_psf(even_psf, size=18)
     res_odd = normalize_psf(odd_psf, size=18)

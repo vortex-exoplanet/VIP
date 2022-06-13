@@ -145,7 +145,6 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
                 j = i
             ci_max = np.amax(np.abs(ci[lab]))
             aarc(val_max[lab], gt[j], atol=3*ci_max)  # diff within 3 sigma
-            aarc(val_max[lab], gt[j], atol=3*sigma[i])  # diff within 3 sigma
     else:
         # run nested sampling
         res = negfc_algo(init, ds.cube, ds.angles, ds.psf, ds.fwhm,

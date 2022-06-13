@@ -4,7 +4,7 @@
 Module with fake disk injection functions.
 """
 
-__author__ = 'Julien Milli @ ESO, Valentin Christiaens @ ULg/UChile'
+__author__ = 'Julien Milli, Valentin Christiaens'
 __all__ = ['cube_inject_fakedisk',
            'cube_inject_trace']
 
@@ -16,9 +16,8 @@ from ..var import frame_center
 
 def cube_inject_fakedisk(fakedisk, angle_list, psf=None, **rot_options):
     """
-    Rotates an ADI cube to a common north given a vector with the corresponding
-    parallactic angles for each frame of the sequence. By default bicubic
-    interpolation is used (opencv).
+    Creates an ADI cube with a rotated synthetic disk image injected following
+    input angle list.
 
     Parameters
     ----------
@@ -58,8 +57,8 @@ def cube_inject_fakedisk(fakedisk, angle_list, psf=None, **rot_options):
         Resulting cube with the fake disc inserted at the correct angles and
         convolved with the psf if a psf was provided.
 
-    Notes
-    -----
+    Example
+    -------
     .. code-block:: python
 
         import numpy as np

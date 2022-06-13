@@ -444,9 +444,10 @@ def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,
 
 def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
                            imlib='vip-fft', interpolation='lanczos4'):
-    """ Injects a fake companion in a single frame (it could be a single
-     multi-wavelength frame) at given coordinates, or in a cube (at the same
-     coordinates, flux and with same fake companion image throughout the cube).
+    """ 
+    Injects a fake companion in a single frame (it could be a single
+    multi-wavelength frame) at given coordinates, or in a cube (at the same
+    coordinates, flux and with same fake companion image throughout the cube).
 
     Parameters
     ----------
@@ -546,7 +547,8 @@ def collapse_psf_cube(array, size, fwhm=4, verbose=True, collapse='mean'):
 
 def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                   model='gauss', imlib='vip-fft', interpolation='lanczos4',
-                  force_odd=True, full_output=False, verbose=True, debug=False):
+                  force_odd=True, correct_outliers=True, full_output=False, 
+                  verbose=True, debug=False):
     """ Normalizes a PSF (2d or 3d array), to have the flux in a 1xFWHM
     aperture equal to one. It also allows to crop the array and center the PSF
     at the center of the array(s).
@@ -581,6 +583,10 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         If True the resulting array will have odd size (and the PSF will be
         placed at its center). If False, and the frame size is even, then the
         PSF will be put at the center of an even-sized frame.
+    correct_outliers: bool, optional
+        For an input 3D cube (IFS) of PSFs, if the 2D fit fails for one of the
+        channels, whether to interpolate fwhm value from surrounding channels,
+        and recalculate flux and normalization.
     full_output : bool, optional
         If True the flux in a FWHM aperture is returned along with the
         normalized PSF.
@@ -613,16 +619,19 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                 np.allclose(cx, xcom, atol=1e-2)):
             # first we find the centroid and put it in the center of the array
             centry, centrx = fit_2d(psf, full_output=False, debug=False)
-            shiftx, shifty = centrx - cx, centry - cy
-            psf = frame_shift(psf, -shifty, -shiftx, imlib=imlib,
-                              interpolation=interpolation)
-
-            for _ in range(2):
-                centry, centrx = fit_2d(psf, full_output=False, debug=False)
-                cy, cx = frame_center(psf, verbose=False)
+            if not np.isnan(centry) and not np.isnan(centrx):
                 shiftx, shifty = centrx - cx, centry - cy
                 psf = frame_shift(psf, -shifty, -shiftx, imlib=imlib,
                                   interpolation=interpolation)
+    
+                for _ in range(2):
+                    centry, centrx = fit_2d(psf, full_output=False, debug=False)
+                    if np.isnan(centry) or np.isnan(centrx):
+                        break
+                    cy, cx = frame_center(psf, verbose=False)
+                    shiftx, shifty = centrx - cx, centry - cy
+                    psf = frame_shift(psf, -shifty, -shiftx, imlib=imlib,
+                                      interpolation=interpolation)
 
         # we check whether the flux is normalized and fix it if needed
         fwhm_aper = photutils.CircularAperture((cx, cy), fwhm/2)
@@ -735,7 +744,17 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                 if verbose:
                     print("FWHM per channel:")
                     print_precision(fwhm)
-
+            # Replace outliers if needed
+            if correct_outliers:
+                if np.sum(np.isnan(fwhm))>0:
+                    for f in range(n):
+                        if np.isnan(fwhm[f]) and f!=0 and f!=n-1:
+                            fwhm[f] = np.nanmean(np.array([fwhm[f-1],
+                                                           fwhm[f+1]]))
+                        elif np.isnan(fwhm[f]):
+                            msg = "2D fit failed for first or last channel. "
+                            msg += "Try other parameters?"
+                            raise ValueError(msg)
         array_out = []
         fwhm_flux = np.zeros(n)
 

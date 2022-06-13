@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-Module with post-processing related functions called from within the NFC
+Module with post-processing related functions called from within the NEGFC
 algorithm.
 """
 
@@ -53,7 +53,7 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
         planet_parameter = planet_parameter[np.newaxis, :]
 
     if cube.ndim == 4:
-        if planet_parameter.shape[3] != cube.shape[0]:
+        if planet_parameter.shape[2] != cube.shape[0]:
             raise TypeError("Input planet parameter with wrong dimensions.")
 
     for i in range(planet_parameter.shape[0]):
@@ -63,7 +63,7 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
             cube_temp = cpf
 
         if cube.ndim == 4:
-            for j in cube.shape[0]:
+            for j in range(cube.shape[0]):
                 flevel = -planet_parameter[i, 2, j]
                 r = planet_parameter[i, 0, j]
                 theta = planet_parameter[i, 1, j]
@@ -91,7 +91,11 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
     """
     Function to find the indices, and optionally the values, of an array's n
     closest elements to a certain value.
+    By default, only returns the index/indices.
 
+    Possible constraints: 'ceil', 'floor', None ("ceil" will return the closest
+    element with a value greater than 'value', "floor" the opposite).
+    
     Parameters
     ----------
     array: 1d numpy array or list
@@ -110,14 +114,10 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
 
     Returns
     -------
-    Either:
-        (output='index'): index/indices of the closest n value(s) in the array;
-        (output='value'): the closest n value(s) in the array,
-        (output='both'): closest value(s) and index/-ices, respectively.
-    By default, only returns the index/indices.
+    [output='index']: index/indices of the closest n value(s) in the array;
+    [output='value']: the closest n value(s) in the array,
+    [output='both']: closest value(s) and index/-ices, respectively.
 
-    Possible constraints: 'ceil', 'floor', None ("ceil" will return the closest
-    element with a value greater than 'value', "floor" the opposite)
     """
     if isinstance(array, np.ndarray):
         pass

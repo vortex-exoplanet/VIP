@@ -1,6 +1,9 @@
 vip\_hci.fits package
 =====================
 
+Submodules
+----------
+
 vip\_hci.fits.fits module
 -------------------------
 

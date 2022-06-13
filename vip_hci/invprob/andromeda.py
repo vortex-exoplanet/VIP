@@ -13,9 +13,9 @@ Based on ANDROMEDA v3.1 from 28/06/2018.
    | Cantalloube et al, 2015
    | **Direct exoplanet detection and characterization using the ANDROMEDA
      method: Performance on VLT/NaCo data**
-   | *A&A, 582*
-   | `doi:10.1051/0004-6361/201425571 <http://doi.org/10.1051/0004-6361/20142557
-     1>`_, `arXiv:1508.06406 <http://arxiv.org/abs/1508.06406>`_
+   | *A&A, Volume 582, p. 89*
+   | `https://arxiv.org/abs/1508.06406
+     <https://arxiv.org/abs/1508.06406>`_
 
 """
 
@@ -30,7 +30,6 @@ from ..var import dist_matrix
 
 from .utils_andro import (calc_psf_shift_subpix, fitaffine, idl_round,
                           idl_where, robust_std, subpixel_shift)
-
 
 global CUBE
 
@@ -52,24 +51,11 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         IDL parameter: ``IMAGES_1_INPUT``
     oversampling_fact : float
         Oversampling factor for the wavelength corresponding to the filter used
-        for obtaining ``cube`` (defined as the ratio between the wavelength of
-        the filter and the Shannon wavelength). Note that in ANDROMEDA everything
-        is coded in lambda/D unit so this is an important parameter.
-        For instance, it is computed as (value above 1 and usually below 3):
-
-        lambda = 3.8e-6  : Imaging wavelength [m]
-
-        diam_tel = 8.0   : Telescope diameter [m]
-
-        pixscale = 12.25 : Plate scale [mas/px]
-
-        PIXSCALE_NYQ = (0.5*lambda/diam_tel)/pi*180*3600*1e3 : Nyquist plate
-        scale [mas/px]
-
-        oversampling = PIXSCALE_NYQUIST / PIXSCALE : Oversampling factor
-
+        to obtain ``cube`` (defined as the ratio between the wavelength of
+        the filter and the Shannon wavelength). Usually above 1 and below 3. 
+        Note that in ANDROMEDA everything is coded in lambda/D unit so this is 
+        an important parameter. See Note for example calculation.
         IDL parameter: ``OVERSAMPLING_1_INPUT``
-
     angles : numpy ndarray
         List of parallactic angles associated with each frame in ``cube``. Note
         that, compared to the IDL version, the PA convention is different: If
@@ -155,7 +141,6 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         Print some parameter values for control.
         IDL parameter: ``VERBOSE``
 
-
     Returns
     -------
     contrast : 2d ndarray
@@ -172,6 +157,8 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
         IDL parameter: `STDDEVCONTRAST_OUTPUT`` (previously
         ``STDEVFLUX_OUTPUT``)
     stdcontrast_norm : 2d ndarray
+        Map of the estimated normalized standard deviation of the contrast.
+        IDL parameter: ``STDDEVCONTRAST_NORM_OUTPUT``
     likelihood : 2d ndarray
         likelihood
         IDL parameter: ``LIKELIHOOD_OUTPUT``
@@ -192,6 +179,7 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
     - STDDEVCONTRAST_NORM_OUTPUT
 
     The following IDL parameters were not implemented:
+        
         - SDI-related parameters
             - IMAGES_2_INPUT
             - OVERSAMPLING_2_INPUT
@@ -215,6 +203,16 @@ def andromeda(cube, oversampling_fact, angles, psf, filtering_fraction=.25,
             - VARIANCE_2_RESCALED_OUTPUT
             - GAMMA_INFO_OUTPUT
         - variances (VARIANCE_1_INPUT, VARIANCE_2_INPUT)
+
+    Note
+    ----
+    The oversampling factor can be computed as:\
+    :math:`oversampling = plsc_{NYQ} / plsc`
+    , where:\
+        :math:`plsc = 12.25` [mas/px] for SPHERE/IRDIS\
+        :math:`plsc_{NYQ} = (0.5*lambda/diam_tel)/pi*180*3600*1e3` [mas/px]\
+        lambda = 3.8e-6  : Imaging wavelength [m]\
+        diam_tel = 8.0   : Telescope diameter [m]
 
     """
     def info(msg, *fmt, **kwfmt):
@@ -924,8 +922,8 @@ def diff_images(cube_pos, cube_neg, rint, rext, opt_method="lsq",
         be used to compute the correct planet signatures used by the ANDROMEDA
         algorithm.
 
-    Notes
-    -----
+    Note
+    ----
     - ``GN_NO`` and ``GAIN`` keywords were never used in the IDL version, so
       they were not implemented.
     - VARIANCE_POS_INPUT, VARIANCE_NEG_INPUT, VARIANCE_TOT_OUTPUT,
@@ -1036,8 +1034,8 @@ def normalize_snr(snr, nsmooth_snr=1, iwa=None, owa=None, oversampling=None,
         2D map of the SNR radial robust standard deviation,
         this variable records it.
 
-    Notes
-    -----
+    Note
+    ----
     - in IDL ANDROMEDA, ``/FIT`` is disabled by default, so it was not (yet)
       implemented.
 
@@ -1193,8 +1191,8 @@ def couronne_img(image, xcen, ycen=None, lieu=None, step=0.5, rmax=None,
         Mean intensity per annulus. The only parameter needed for
         ``normalize_snr``.
 
-    Notes
-    -----
+    Note
+    ----
     **Differences from the IDL version**
 
     - All output variables except ``intenmoy_output`` are not implemented, as

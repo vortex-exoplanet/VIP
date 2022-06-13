@@ -1,18 +1,8 @@
 #! /usr/bin/env python
 
 """
-Module with S/N calculation functions.
-
-.. [MAW14]
-   | Mawet et al. 2014
-   | **Fundamental Limitations of High Contrast Imaging Set by Small Sample 
-     Statistics**
-   | *The Astrophysical Journal, Volume 792, Issue 1, p. 97*
-   | `https://arxiv.org/abs/astro-ph/1407.2247
-     <https://arxiv.org/abs/astro-ph/1407.2247>`_
-
-We strongly recommend users to read [MAW14] before using routines of this 
-module.
+Module with S/N calculation functions. We strongly recommend users to read 
+[MAW14]_ before using routines of this module.
 
 """
 
@@ -42,12 +32,12 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
     """Parallel implementation of the S/N map generation function. Applies the
     S/N function (small samples penalty) at each pixel.
 
-    The S/N is computed as in [MAW14] for each radial separation.
+    The S/N is computed as in [MAW14]_ for each radial separation.
 
-    *** DISCLAIMER ***
-    Signal-to-noise ratio is not significance! For a conversion from snr to
+    **DISCLAIMER**:
+    Signal-to-noise ratio is not significance! For a conversion from SNR to
     n-sigma (i.e. the equivalent confidence level of a Gaussian n-sigma), use
-    the significance() function.
+    the ``significance`` function.
 
 
     Parameters
@@ -232,7 +222,7 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
     """
     Calculate the S/N (signal to noise ratio) of a test resolution element
     in a residual frame (e.g. post-processed with LOCI, PCA, etc). Implements
-    the approach described in [MAW14] on small sample statistics,
+    the approach described in [MAW14]_ on small sample statistics,
     where a student t-test (eq. 9) can be used to determine S/N (and contrast)
     in high contrast imaging. 3 extra possibilities compared to [MAW14]_:
 

@@ -1,10 +1,29 @@
 vip\_hci.invprob package
 ========================
 
+Submodules
+----------
+
 vip\_hci.invprob.andromeda module
 ---------------------------------
 
 .. automodule:: vip_hci.invprob.andromeda
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+vip\_hci.invprob.fmmf module
+----------------------------
+
+.. automodule:: vip_hci.invprob.fmmf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+vip\_hci.invprob.paco module
+----------------------------
+
+.. automodule:: vip_hci.invprob.paco
    :members:
    :undoc-members:
    :show-inheritance:
@@ -17,13 +36,6 @@ vip\_hci.invprob.utils\_andro module
    :undoc-members:
    :show-inheritance:
 
-vip\_hci.invprob.paco module
----------------------------------
-
-.. automodule:: vip_hci.invprob.paco
-   :members:
-   :undoc-members:
-   :show-inheritance:
 Module contents
 ---------------
 

@@ -2,14 +2,6 @@
 
 """
 Module with a frame differencing algorithm for ADI and ADI+mSDI post-processing.
-
-.. [LAF07]
-   | Lafreniere et al. 2007
-   | **A New Algorithm for Point-Spread Function Subtraction in High-Contrast 
-     Imaging: A Demonstration with Angular Differential Imaging**
-   | *The Astrophysical Journal, Volume 660, Issue 4, pp. 770-780*
-   | `https://arxiv.org/abs/astro-ph/0702697
-     <https://arxiv.org/abs/astro-ph/0702697>`_
      
 .. [PUE12]
    | Pueyo et al. 2012
@@ -17,8 +9,8 @@ Module with a frame differencing algorithm for ADI and ADI+mSDI post-processing.
      the Spectral Characterization of Faint Companions Using an Integral Field 
      Spectrograph**
    | *The Astrophysical Journal Supplements, Volume 199, p. 6*
-   | `https://arxiv.org/abs/astro-ph/1111.6102
-     <https://arxiv.org/abs/astro-ph/1111.6102>`_
+   | `https://arxiv.org/abs/1111.6102
+     <https://arxiv.org/abs/1111.6102>`_
           
 """
 
@@ -52,7 +44,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
     x of coefficients that minimizes the Euclidean 2-norm || b - a x ||^2).
     
     This algorithm is also compatible with IFS data to perform LOCI-SDI, in a
-    similar fashion as suggested in [PUE12] (albeit without dampening zones).
+    similar fashion as suggested in [PUE12]_ (albeit without dampening zones).
 
     Parameters
     ----------

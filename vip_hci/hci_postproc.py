@@ -232,8 +232,8 @@ class HCIPostProcAlgo(BaseEstimator):
         verbose: bool, optional
             Whether to print timing or not.
 
-        Notes
-        -----
+        Note
+        ----
         This is needed for "classic" algorithms that produce a final residual
         image in their ``.run()`` method. To obtain a "detection map", which can
         be used for counting true/false positives, a SNR map has to be created.
@@ -266,8 +266,8 @@ class HCIPostProcAlgo(BaseEstimator):
         """
         Run the algorithm. Should at least set `` self.frame_final``.
 
-        Notes
-        -----
+        Note
+        ----
         This is the required signature of the ``run`` call. Child classes can
         add their own keyword arguments if needed.
         """
@@ -316,11 +316,6 @@ class HCIMedianSub(HCIPostProcAlgo):
         Sets the way of collapsing the frames for producing a final image.
     verbose : bool, optional
         Show more output.
-
-    Notes
-    -----
-    TODO:
-    - output cube and frames as HCIDataset and HCIFrame objects?
 
     """
 
@@ -464,8 +459,8 @@ class HCIPca(HCIPostProcAlgo):
         """
         Run the HCI PCA algorithm for model PSF subtraction.
 
-        Notes
-        -----
+        Note
+        ----
         creates/sets the ``self.frame_final`` attribute, and depending on the
         input parameters:
 
@@ -728,8 +723,8 @@ class HCIAndromeda(HCIPostProcAlgo):
         """
         Does nothing. For Andromeda, ``snr_map`` is calculated by ``run()``.
 
-        Notes
-        -----
+        Note
+        ----
         The ``@calculates`` decorator is not present in this function
         definition, so ``self._get_calculations`` does not mark ``snr_map`` as
         created by this function.

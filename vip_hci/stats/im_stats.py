@@ -32,8 +32,8 @@ def frame_average_radprofile(frame, sep=1, init_rad=None, plot=True):
     df : dataframe
         Pandas dataframe with the radial profile and distances.
 
-    Notes
-    -----
+    Note
+    ----
     https://stackoverflow.com/questions/21242011/most-efficient-way-to-calculate-radial-profile
     https://stackoverflow.com/questions/48842320/what-is-the-best-way-to-calculate-radial-average-of-the-image-with-python
     https://github.com/keflavich/image_tools/blob/master/image_tools/radialprofile.py

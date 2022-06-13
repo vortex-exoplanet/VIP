@@ -8,11 +8,7 @@ parameter estimation.
 
 __author__ = 'V. Christiaens, O. Wertz, Carlos Alberto Gomez Gonzalez'
 __all__ = ['gelman_rubin',
-           'gelman_rubin_from_chain',
-           'autocorr_func_1d',
-           'auto_window',
-           'autocorr',
-           'autocorr_test']
+           'gelman_rubin_from_chain']
 
 import numpy as np
 import warnings

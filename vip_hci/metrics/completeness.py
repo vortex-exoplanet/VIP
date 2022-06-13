@@ -8,24 +8,24 @@ Module with completeness curve and map generation function.
    | **Auto-RSM: An automated parameter-selection algorithm for the RSM map 
      exoplanet detection algorithm**
    | *Astronomy & Astrophysics, Volume 656, Issue 2, p. 54*
-   | `https://arxiv.org/abs/astro-ph/2109.14318
-     <https://arxiv.org/abs/astro-ph/2109.14318>`_
+   | `https://arxiv.org/abs/2109.14318
+     <https://arxiv.org/abs/2109.14318>`_
      
 .. [JEN18]
    | Jensen-Clem et al. 2018
    | **A New Standard for Assessing the Performance of High Contrast Imaging 
      Systems**
    | *The Astrophysical Journal, Volume 155, Issue 1, p. 19*
-   | `https://arxiv.org/abs/astro-ph/1711.01215
-     <https://arxiv.org/abs/astro-ph/1711.01215>`_
+   | `https://arxiv.org/abs/1711.01215
+     <https://arxiv.org/abs/1711.01215>`_
      
 .. [MAW14]
    | Mawet et al. 2014
    | **Fundamental Limitations of High Contrast Imaging Set by Small Sample 
      Statistics**
    | *The Astrophysical Journal, Volume 792, Issue 1, p. 97*
-   | `https://arxiv.org/abs/astro-ph/1407.2247
-     <https://arxiv.org/abs/astro-ph/1407.2247>`_
+   | `https://arxiv.org/abs/1407.2247
+     <https://arxiv.org/abs/1407.2247>`_
      
 """
 
@@ -198,7 +198,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
         the size of the provided cube - PSF size //2 with a step of 5 pixels
     ini_contrast: list, 1d ndarray or None, optional
         Initial contrast for the range of angular separations included in
-        `an_dist`_. The number of initial contrasts should be equivalent to the
+        `an_dist`. The number of initial contrasts should be equivalent to the
         number of angular separations. Default is None which corresponds to the 
         5-sigma contrast_curve obtained with ``vip_hci.metrics.contrast_curve``.
     starphot : int or float or 1d array, optional
@@ -221,7 +221,7 @@ def completeness_curve(cube, angle_list, psf, fwhm, algo, an_dist=None,
         Default 95.
     snr_approximation : bool, optional
         If True, an approximated S/N map is generated. If False the
-        approach of [MAW14] is used. Default is True, for speed.
+        approach of [MAW14]_ is used. Default is True, for speed.
     max_iter: int, optional
         Maximum number of iterations to consider in the search for the contrast  
         level achieving desired completeness before considering it unachievable. 
@@ -615,7 +615,7 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
         step of 5 pixels
     ini_contrast: list, 1d ndarray or None, optional
         Initial contrast for the range of angular separations included in
-        `an_dist`_. The number of initial contrasts should be equivalent to the
+        `an_dist`. The number of initial contrasts should be equivalent to the
         number of angular separations. Default is None which corresponds to the 
         5-sigma contrast_curve obtained with ``vip_hci.metrics.contrast_curve``.
     starphot : int or float or 1d array
@@ -630,7 +630,7 @@ def completeness_map(cube, angle_list, psf, fwhm, algo, an_dist, ini_contrast,
         as 1/n_fc and the maximum is 1-1/n_fc). Default is 20.
     snr_approximated : bool, optional
         If True, an approximated S/N map is generated. If False the
-        approach of [MAW14] is used. Default is True
+        approach of [MAW14]_ is used. Default is True
     nproc : int or None
         Number of processes for parallel computing.
     algo_dict

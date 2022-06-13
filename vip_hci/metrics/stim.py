@@ -5,8 +5,7 @@ Implementation of the STIM map from [PAI19]
 
 .. [PAI19]
    | Pairet et al. 2019
-   | **STIM map: detection map for exoplanets imaging beyond asymptotic Gaussian 
-     residual speckle noise**
+   | **STIM map: detection map for exoplanets imaging beyond asymptotic Gaussian residual speckle noise**
    | *MNRAS, 487, 2262*
    | `http://doi.org/10.1093/mnras/stz1350
      <http://doi.org/10.1093/mnras/stz1350>`_

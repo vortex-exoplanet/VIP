@@ -3,14 +3,6 @@
 """
 Module with simplex (Nelder-Mead) optimization for defining the flux and
 position of a companion using the Negative Fake Companion.
-
-.. [WER17]
-   | Wertz et al. 2017
-   | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond-level 
-     accuracy. Orbital architecture analysis with PyAstrOFit**
-   | *Astronomy & Astrophysics, Volume 598, Issue 1, p. 83*
-   | `https://arxiv.org/abs/astro-ph/1610.04014
-     <https://arxiv.org/abs/astro-ph/1610.04014>`_
      
 """
 
@@ -26,7 +18,8 @@ from ..config.utils_conf import sep
 
 
 __author__ = 'O. Wertz, C. A. Gomez Gonzalez, V. Christiaens'
-__all__ = ['firstguess']
+__all__ = ['firstguess',
+           'firstguess_from_coord']
 
 
 def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
@@ -36,7 +29,8 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                           collapse='median', algo=pca_annulus, delta_rot=1,
                           algo_options={}, f_range=None, transmission=None,
                           mu_sigma=(0, 1), weights=None, plot=False,
-                          verbose=True, save=False, debug=False):
+                          verbose=True, save=False, debug=False, 
+                          full_output=False):
     """ Determine a first guess for the flux of a companion at a given position
     in the cube by doing a simple grid search evaluating the reduced chi2.
 
@@ -100,7 +94,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         dict (the latter are also kept as function arguments for compatibility
         with older versions of vip).
     f_range: numpy.array, optional
-        The range of flux tested values. If None, 20 values between 0 and 5000
+        The range of tested flux values. If None, 20 values between 0 and 5000
         are tested.
     transmission: numpy array, optional
         Array with 2 columns. First column is the radial separation in pixels.
@@ -122,12 +116,20 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         If True, display intermediate info in the shell.
     save: boolean, optional
         If True, the figure chi2 vs. flux is saved as .pdf if plot is also True
+    debug: bool, optional
+        Whether to print details of the grid search
+    full_output : bool, optional
+        Whether to also return the range of fluxes tested and their chi2r 
+        values.
 
     Returns
     -------
     res : tuple
         The polar coordinates and the flux(es) of the companion.
-
+    f_range: 1d numpy.array
+        [full_output=True] The range of tested flux values. 
+    chi2r: 1d numpy.array
+        [full_output=True] The chi2r values corresponding to tested flux values. 
     """
     def _grid_search_f(r0, theta0, ch, cube, angs, psfn, fwhm, annulus_width,
                        aperture_radius, ncomp, cube_ref=None, svd_mode='lapack',
@@ -210,6 +212,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
 
     else:
         f0 = []
+        chi2r = []
         if plot:
             plt.figure(figsize=(8, 4))
             plt.title('$\\chi^2_{r}$ vs flux')
@@ -220,7 +223,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         for i in range(cube.shape[0]):
             if verbose:
                 print('Processing spectral channel {}...'.format(i))
-            chi2r = _grid_search_f(r0, theta0, i, cube, angs, psfn,
+            chi2r_tmp = _grid_search_f(r0, theta0, i, cube, angs, psfn,
                                    fwhm, annulus_width, aperture_radius,
                                    ncomp, cube_ref=cube_ref, svd_mode=svd_mode,
                                    scaling=scaling, fmerit=fmerit,
@@ -231,31 +234,32 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                                    transmission=transmission,
                                    mu_sigma=mu_sigma, weights=weights,
                                    verbose=False, debug=False)
-            chi2r = np.array(chi2r)
-            f0.append(f_range[chi2r.argmin()])
+            chi2r.append(chi2r_tmp)
+            chi2r_tmp = np.array(chi2r_tmp)
+            f0.append(f_range[chi2r_tmp.argmin()])
             if verbose:
                 msg = r'... optimal grid flux: {:.3f} ($\chi^2_r$ = {:.1f})'
-                print(msg.format(f0[i], np.amin(chi2r)))
+                print(msg.format(f0[i], np.amin(chi2r_tmp)))
 
             if i == 0:
-                min_chi2r = chi2r.min()
-                max_chi2r = chi2r.max()
+                min_chi2r = chi2r_tmp.min()
+                max_chi2r = chi2r_tmp.max()
                 fmax = f0[i]
             else:
-                if min_chi2r > chi2r.min():
-                    min_chi2r = chi2r.min()
-                if max_chi2r < chi2r.max():
-                    max_chi2r = chi2r.max()
+                if min_chi2r > chi2r_tmp.min():
+                    min_chi2r = chi2r_tmp.min()
+                if max_chi2r < chi2r_tmp.max():
+                    max_chi2r = chi2r_tmp.max()
                 if fmax < f0[i]:
                     fmax = f0[i]
 
             if plot:
-                plt.plot(f_range[:chi2r.shape[0]], chi2r, linestyle='-',
+                plt.plot(f_range[:chi2r_tmp.shape[0]], chi2r_tmp, linestyle='-',
                          marker='.', markerfacecolor='r', markeredgecolor='r',
                          label='ch. {}'.format(i))
 
         if plot:
-            plt.xlim(f_range[0], f_range[:chi2r.shape[0]].max())
+            plt.xlim(f_range[0], f_range[:chi2r_tmp.shape[0]].max())
             plt.ylim(min_chi2r*0.9, max_chi2r*1.1)
             plt.legend()
         if save and plot:
@@ -265,7 +269,10 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
 
         res = tuple([r0, theta0]+f0)
 
-    return res
+    if full_output:
+        return res, f_range, chi2r
+    else:
+        return res
 
 
 def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
@@ -527,9 +534,10 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
     out : tuple of 3+ elements
         The polar coordinates and the flux(es) of the companion.
 
-    Notes
-    -----
-    Polar angle is not the conventional NORTH-TO-EAST P.A.
+    Note
+    ----
+    Polar angle is not the conventional NORTH-TO-EAST P.A., but the 
+    counter-clockwise angle measured from the positive x axis.
     """
 
     if cube.ndim != 3 and cube.ndim != 4:
@@ -553,8 +561,9 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
         f_0 = np.zeros([n_planet, cube.shape[0]])
 
     if weights is not None:
-        if not len(weights) == cube.shape[0]:
-            raise TypeError("Weights should have same length as cube axis 0")
+        if not len(weights) == cube.shape[-3]:
+            msg = "Weights should have same length as temporal cube axis"
+            raise TypeError(msg)
         norm_weights = weights/np.sum(weights)
     else:
         norm_weights = weights

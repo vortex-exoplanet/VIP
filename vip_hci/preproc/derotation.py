@@ -89,9 +89,11 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         with a gaussian filter. Slower but can significantly reduce ringing
         artefacts from Gibbs phenomenon, in particular if several consecutive
         rotations are involved in your image processing.
-        'noise': pad with small amplitude noise inferred from neighbours
-        'interp': interpolated from neighbouring pixels using Gaussian kernel.
-        'noise+interp': sum both components above at masked locations.
+        
+        - 'noise': pad with small amplitude noise inferred from neighbours
+        - 'interp': interpolated from neighbouring pixels using Gaussian kernel.
+        - 'noise+interp': sum both components above at masked locations.
+        
         Original mask will be placed back after rotation.
     interp_zeros: bool, opt
         [only used if edge_blend is not None]
@@ -521,19 +523,9 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
 
 
 def rotate_fft(array, angle):
-    """ Rotates a frame or 2D array using Fourier transform phases:
-        Rotation = 3 consecutive lin. shears = 3 consecutive FFT phase shifts
-        See details in Larkin et al. (1997) and Hagelberg et al. (2016).
-        Note: this is significantly slower than interpolation methods
-        (e.g. opencv/lanczos4 or ndimage), but preserves the flux better
-        (by construction it preserves the total power). It is more prone to
-        large-scale Gibbs artefacts, so make sure no sharp edge is present in
-        the image to be rotated.
-
-        ! Warning: if input frame has even dimensions, the center of rotation
-        will NOT be between the 4 central pixels, instead it will be on the top
-        right of those 4 pixels. Make sure your images are centered with
-        respect to that pixel before rotation.
+    """ Rotates a frame or 2D array using Fourier transform phases.
+    Rotation is equivalent to 3 consecutive linear shears, or 3 consecutive 
+    FFT phase shifts. See details in [LAR97]_. 
 
     Parameters
     ----------
@@ -546,6 +538,20 @@ def rotate_fft(array, angle):
     -------
     array_out : numpy ndarray
         Resulting frame.
+        
+    Note
+    ----
+    This method is slower than interpolation methods (e.g. opencv/lanczos4 or 
+    ndimage), but preserves the flux better (by construction it preserves the 
+    total power). It is more prone to large-scale Gibbs artefacts, so make sure 
+    no sharp edge nor bad pixels are present in the image to be rotated.
+    
+    Note
+    ----
+    Warning: if input frame has even dimensions, the center of rotation
+    will NOT be between the 4 central pixels, instead it will be on the top
+    right of those 4 pixels. Make sure your images are centered with
+    respect to that pixel before rotation.
 
     """
     y_ori, x_ori = array.shape

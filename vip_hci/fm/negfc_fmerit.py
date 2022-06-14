@@ -5,7 +5,7 @@ Module with the function of merit definitions for the NEGFC optimization.
 """
 
 __author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
-__all__ = []
+__all__ = ['get_mu_and_sigma']
 
 import numpy as np
 from hciplot import plot_frames
@@ -306,12 +306,14 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     interpolation = algo_options.get('interpolation', interpolation)
     collapse = algo_options.get('collapse', collapse)
     collapse_ifs = algo_options.get('collapse_ifs', 'absmean')
+    nproc = algo_options.get('nproc', 1)
 
     if algo == pca_annulus:
         res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
                           svd_mode, scaling, imlib=imlib,
                           interpolation=interpolation, collapse=collapse,
-                          collapse_ifs=collapse_ifs, weights=weights)
+                          collapse_ifs=collapse_ifs, weights=weights, 
+                          nproc=nproc)
 
     elif algo == pca_annular:
 
@@ -320,7 +322,6 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         max_frames_lib = algo_options.get('max_frames_lib', 200)
         radius_int = max(1, int(np.floor(r_guess-annulus_width/2)))
         radius_int = algo_options.get('radius_int', radius_int)
-        nproc = algo_options.get('nproc', 1)
         # crop cube to just be larger than annulus => FASTER PCA
         crop_sz = int(2*np.ceil(radius_int+annulus_width+1))
         if not crop_sz % 2:
@@ -346,7 +347,6 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     elif algo == pca:
         scale_list = algo_options.get('scale_list', None)
         ifs_collapse_range = algo_options.get('ifs_collapse_range', 'all')
-        nproc = algo_options.get('nproc', 1)
         res = pca(cube, angs, cube_ref, scale_list, ncomp, svd_mode=svd_mode,
                   scaling=scaling, imlib=imlib, interpolation=interpolation,
                   collapse=collapse, collapse_ifs=collapse_ifs,

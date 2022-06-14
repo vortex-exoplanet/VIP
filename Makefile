@@ -18,6 +18,19 @@ pypi-test:
 
 docs:
 	rm -rf docs/api
+	rm -f docs/source/vip_hci.config.rst
+	rm -f docs/source/vip_hci.fits.rst
+	rm -f docs/source/vip_hci.fm.rst
+	rm -f docs/source/vip_hci.hci_dataset.rst
+	rm -f docs/source/vip_hci.hci_postproc.rst
+	rm -f docs/source/vip_hci.invprob.rst
+	rm -f docs/source/vip_hci.metrics.rst
+	rm -f docs/source/vip_hci.preproc.rst
+	rm -f docs/source/vip_hci.psfsub.rst
+	rm -f docs/source/vip_hci.rst
+	rm -f docs/source/vip_hci.stats.rst
+	rm -f docs/source/vip_hci.var.rst
+	rm -f docs/source/vip_hci.vip_ds9.rst
 	sphinx-apidoc -o docs/source vip_hci
 	cd docs/source/
 	$(MAKE) -C docs clean

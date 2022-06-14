@@ -2,7 +2,16 @@
 
 """
 Module containing the Local Low-rank plus Sparse plus Gaussian-noise
-decomposition algorithm (Gomez Gonzalez et al. 2016) for ADI data.
+decomposition algorithm for ADI data.
+
+.. [GOM16]
+   | Gomez-Gonzalez et al. 2016
+   | **Low-rank plus sparse decomposition for exoplanet detection in 
+     direct-imaging ADI sequences. The LLSG algorithm**
+   | *Astronomy & Astrophysics, Volume 589, Issue 1, p. 54*
+   | `https://arxiv.org/abs/1602.08381
+     <https://arxiv.org/abs/1602.08381>`_
+     
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
@@ -28,10 +37,10 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
          high_pass=None, collapse='median', full_output=False, verbose=True,
          debug=False, **rot_options):
     """ Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as
-    described in Gomez Gonzalez et al. 2016. This first version of our algorithm
-    aims at decomposing ADI cubes into three terms L+S+G (low-rank, sparse and
-    Gaussian noise). Separating the noise from the S component (where the moving
-    planet should stay) allow us to increase the SNR of potential planets.
+    described in [GOM16]_. This first version of our algorithm aims at 
+    decomposing ADI cubes into three terms L+S+G (low-rank, sparse and Gaussian 
+    noise). Separating the noise from the S component (where the moving planet 
+    should stay) allow us to increase the SNR of potential planets.
 
     The three tunable parameters are the *rank* or expected rank of the L
     component, the ``thresh`` or threshold for encouraging sparsity in the S

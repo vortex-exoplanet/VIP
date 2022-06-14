@@ -3,6 +3,14 @@
 """
 Module with PSF reference approximation using Non-negative matrix factorization
 for ADI and RDI data, in full frames.
+
+.. [LEE99]
+   | Lee & Seung 1999
+   | **Learning the parts of objects by non-negative matrix factorization**
+   | *Nature, Volume 401, Issue 6755, pp. 788-791*
+   | `https://ui.adsabs.harvard.edu/abs/1999Natur.401..788L
+     <https://ui.adsabs.harvard.edu/abs/1999Natur.401..788L>`_
+     
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
@@ -22,11 +30,11 @@ def nmf(cube, angle_list, cube_ref=None, ncomp=1, scaling=None, max_iter=10000,
         fwhm=4, init_svd='nndsvd', collapse='median', full_output=False,
         verbose=True, cube_sig=None, handle_neg='mask', nmf_args={},
         **rot_options):
-    """ Non Negative Matrix Factorization for ADI sequences. Alternative to the
-    full-frame ADI-PCA processing that does not rely on SVD or ED for obtaining
-    a low-rank approximation of the datacube. This function embeds the
-    scikit-learn NMF algorithm solved through either the coordinate descent or
-    the multiplicative update method.
+    """ Non Negative Matrix Factorization [LEE99]_ for ADI sequences [GOM17]_. 
+    Alternative to the full-frame ADI-PCA processing that does not rely on SVD 
+    or ED for obtaining a low-rank approximation of the datacube. This function 
+    embeds the scikit-learn NMF algorithm solved through either the coordinate 
+    descent or the multiplicative update method.
 
     Parameters
     ----------

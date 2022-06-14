@@ -129,7 +129,8 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
     return array_view
 
 
-def frame_pad(array, fac, fillwith=0, loc=0, scale=1, full_output=False):
+def frame_pad(array, fac, fillwith=0, loc=0, scale=1, keep_parity=True, 
+              full_output=False):
     """ Pads a frame (2d array) equally on each sides, where the final frame
     size is set by a multiplicative factor applied to the original size. The
     padding is set by fillwith, which can be either a fixed value or white
@@ -140,8 +141,9 @@ def frame_pad(array, fac, fillwith=0, loc=0, scale=1, full_output=False):
     ----------
     array : numpy ndarray
         Input frame.
-    fac : float > 1.
-        Ratio of the size between padded and input frame.
+    fac : float > 1 or tuple of 2 floats > 1.
+        Ratio of the size between padded and input frame. If a tuple, 
+        corresponds to padding factors along the y and x dimensions resp.
     fillwith : float or str, optional
         If a float or np.nan: value used for padding.
         If str, must be 'noise', which will inject white noise, using loc and
@@ -150,6 +152,8 @@ def frame_pad(array, fac, fillwith=0, loc=0, scale=1, full_output=False):
         If padding noise, mean of the white noise.
     scale : float, optional
         If padding noise, standard deviation of the white noise.
+    keep_parity : bool, optional
+        Whether keep parity of dimensions after padding.
     full_output : bool, optional
         Whether to also return the indices of input frame within the padded
         frame (in addition to padded frame).
@@ -170,11 +174,13 @@ def frame_pad(array, fac, fillwith=0, loc=0, scale=1, full_output=False):
 
     y, x = array.shape
     cy_ori, cx_ori = frame_center(array)
-    new_y = int(y*fac)
-    new_x = int(x*fac)
-    if new_y % 2 != y % 2:
+    if np.isscalar(fac):
+        fac = [fac, fac]
+    new_y = int(y*fac[0])
+    new_x = int(x*fac[1])
+    if new_y % 2 != y % 2 and keep_parity:
         new_y -= 1
-    if new_x % 2 != x % 2:
+    if new_x % 2 != x % 2 and keep_parity:
         new_x -= 1
     if fillwith == 'noise':
         array_out = np.random.normal(loc=loc, scale=scale, size=(new_y, new_x))
@@ -184,12 +190,16 @@ def frame_pad(array, fac, fillwith=0, loc=0, scale=1, full_output=False):
     cy, cx = frame_center(array_out)
     y0 = int(cy-cy_ori)
     y1 = int(cy+cy_ori)
-    if new_y % 2:
+    if y1-y0 < y:
         y1 += 1
+    elif y1-y0 > y:
+        y1 -= 1
     x0 = int(cx-cx_ori)
     x1 = int(cx+cx_ori)
-    if new_x % 2:
+    if x1-x0 < x:
         x1 += 1
+    elif x1-x0 > x:
+        x1 -= 1
     array_out[y0:y1, x0:x1] = array.copy()
     ori_indices = (y0, y1, x0, x1)
 
@@ -201,7 +211,7 @@ def frame_pad(array, fac, fillwith=0, loc=0, scale=1, full_output=False):
 
 def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
     """
-    Slice the cube so that all frames between ``n``and ``m`` are kept.
+    Slice the cube so that all frames between ``n`` and ``m`` are kept.
 
     Operates on axis 0 for 3D cubes, and on axis 1 for 4D cubes. This returns a
     modified *copy* of ``array``. The indices ``n`` and ``m`` are included and
@@ -409,10 +419,13 @@ def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
     verbose: bool, optional
         Chooses whether to print some additional information.
 
-    Returns:
-    --------
-    Array of y and x approx coordinates of the star in each channel of the cube
-    if return_test: it also returns the test result vector
+    Returns
+    -------
+    star_approx_idx: 2d numpy array
+        Array of y and x approx coordinates of the star in each channel of the 
+        cube.
+    test_result: 1d numpy array
+        [return_test=True] It also returns the test result vector.
     """
     from ..metrics import peak_coordinates
 

@@ -54,8 +54,8 @@ class Ds9Window(object):
         value : str, optional
             Value to be passed to the cmap command.
 
-        Notes
-        -----
+        Note
+        ----
         syntax:
 
         .. code-block:: none
@@ -216,8 +216,8 @@ class Ds9Window(object):
         value : str, optional
             Controls the scaling.
 
-        Notes
-        -----
+        Note
+        ----
         Syntax:
 
         .. code-block:: none
@@ -255,8 +255,8 @@ class Ds9Window(object):
         mode : str, optional
             The mode used for tiling the frames.
 
-        Notes
-        -----
+        Note
+        ----
         Syntax:
 
         .. code-block:: none
@@ -300,8 +300,8 @@ class Ds9Window(object):
         value : str or int
             Parameters of the zoom command.
 
-        Notes
-        -----
+        Note
+        ----
         syntax:
 
         .. code-block:: none

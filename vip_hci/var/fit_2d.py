@@ -79,11 +79,12 @@ def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
     im : numpy ndarray
         2d array with given ``shape`` and containing the synthetic PSF.
 
-    Notes
-    -----
-    http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Gaussian2D.html
-    http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Moffat2D.html
-    http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.AiryDisk2D.html
+    Note
+    ----
+    More information can be found a the following links: 
+        http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Gaussian2D.html
+        http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Moffat2D.html
+        http://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.AiryDisk2D.html
 
     https://www.gnu.org/software/gnuastro/manual/html_node/PSF.html
     web.ipac.caltech.edu/staff/fmasci/home/astro_refs/PSFtheory.pdf
@@ -246,13 +247,28 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
 
     # compute uncertainties
     if fitter.fit_info['param_cov'] is not None:
-        perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
-        amplitude_e, mean_x_e, mean_y_e, fwhm_x_e, fwhm_y_e, theta_e = perr
-        fwhm_x_e /= gaussian_fwhm_to_sigma
-        fwhm_y_e /= gaussian_fwhm_to_sigma
+        with np.errstate(invalid='raise'):
+            try:
+                perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
+                amplitude_e, mean_x_e, mean_y_e, fwhm_x_e, fwhm_y_e, theta_e = perr
+                fwhm_x_e /= gaussian_fwhm_to_sigma
+                fwhm_y_e /= gaussian_fwhm_to_sigma
+            except:
+                # this means the fit failed
+                mean_y, mean_x = np.nan, np.nan
+                fwhm_y, fwhm_x = np.nan, np.nan
+                amplitude, theta = np.nan, np.nan
+                mean_y_e, mean_x_e = np.nan, np.nan
+                fwhm_y_e, fwhm_x_e = np.nan, np.nan
+                amplitude_e, theta_e = np.nan, np.nan
     else:
-        amplitude_e, theta_e, mean_x_e = None, None, None
-        mean_y_e, fwhm_x_e, fwhm_y_e = None, None, None
+        amplitude_e, theta_e, mean_x_e = np.nan, np.nan, np.nan
+        mean_y_e, fwhm_x_e, fwhm_y_e = np.nan, np.nan, np.nan
+        # the following also means the fit failed
+        if fwhm_y == fwhmy and fwhm_x == fwhmx and amplitude == init_amplitude:
+            mean_y, mean_x = np.nan, np.nan
+            fwhm_y, fwhm_x = np.nan, np.nan
+            amplitude, theta = np.nan, np.nan            
 
     if debug:
         if threshold:
@@ -395,21 +411,28 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
 
     # compute uncertainties
     if fitter.fit_info['param_cov'] is not None:
-        perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
-        amplitude_err, mean_x_err, mean_y_err, gamma_err, alpha_err = perr
-        fwhm_err = 2*gamma_err
+        with np.errstate(invalid='raise'):
+            try:
+                perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
+                amplitude_e, mean_x_e, mean_y_e, gamma_e, alpha_e = perr
+                fwhm_e = 2*gamma_e
+            except:
+                # this means the fit failed
+                mean_y, mean_x, fwhm = np.nan, np.nan, np.nan
+                amplitude, alpha, gamma = np.nan, np.nan, np.nan
+                mean_y_e, mean_x_e, fwhm_e = np.nan, np.nan, np.nan
+                amplitude_e, alpha_e, gamma_e = np.nan, np.nan, np.nan
     else:
-        amplitude_err, mean_x_err, mean_y_err = None, None, None
-        gamma_err, alpha_err, fwhm_err = None, None, None
+        amplitude_e, mean_x_e, mean_y_e = None, None, None
+        gamma_e, alpha_e, fwhm_e = None, None, None
 
     if full_output:
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm': fwhm, 'alpha': alpha, 'gamma': gamma,
-                             'amplitude': amplitude, 'centroid_y_err': mean_y_err,
-                             'centroid_x_err': mean_x_err,
-                             'fwhm_err': fwhm_err, 'alpha_err': alpha_err,
-                             'gamma_err': gamma_err,
-                             'amplitude_err': amplitude_err}, index=[0],
+                             'amplitude': amplitude, 'centroid_y_err': mean_y_e,
+                             'centroid_x_err': mean_x_e, 'fwhm_err': fwhm_e, 
+                             'alpha_err': alpha_e, 'gamma_err': gamma_e,
+                             'amplitude_err': amplitude_e}, index=[0],
                             dtype=np.float64)
     else:
         return mean_y, mean_x
@@ -508,9 +531,18 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
 
     # compute uncertainties
     if fitter.fit_info['param_cov'] is not None:
-        perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
-        amplitude_err, mean_x_err, mean_y_err, radius_err = perr
-        fwhm_err = ((radius_err * 1.028) / 2.44) * 2
+        with np.errstate(invalid='raise'):
+            try:
+                perr = np.sqrt(np.diag(fitter.fit_info['param_cov']))
+                amplitude_err, mean_x_err, mean_y_err, radius_err = perr
+                fwhm_err = ((radius_err * 1.028) / 2.44) * 2
+            except:
+                # this means the fit failed
+                mean_y, mean_x, fwhm = np.nan, np.nan, np.nan
+                amplitude, radius = np.nan, np.nan
+                mean_y_err, mean_x_err, fwhm_err = np.nan, np.nan, np.nan
+                amplitude_err, radius_err = np.nan, np.nan
+
     else:
         amplitude_err, mean_x_err, mean_y_err = None, None, None
         radius_err, fwhm_err = None, None

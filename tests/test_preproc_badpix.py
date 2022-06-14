@@ -6,7 +6,7 @@ Tests for the bad pixel detection and correction routines.
 import numpy as np
 from vip_hci.preproc import (cube_fix_badpix_isolated, cube_fix_badpix_clump,
                              cube_fix_badpix_annuli, cube_fix_badpix_ifs,
-                             cube_fix_badpix_with_kernel)
+                             cube_fix_badpix_interp)
 from vip_hci.var import (create_synth_psf, dist, get_annulus_segments,
                          frame_center)
 
@@ -179,17 +179,19 @@ def test_badpix_ann():
 
     # test kernel correction
     cy, cx = frame_center(cube)
-    cube_c = cube_fix_badpix_with_kernel(cube, bpm, fwhm=1)
+    cube_c_gau = cube_fix_badpix_interp(cube, bpm, mode='gauss', fwhm=1)
+    cube_c_fft = cube_fix_badpix_interp(cube, bpm, mode='fft', nit=50)
 
     r0 = dist(cy, cx, idx0, idx0)
     ann = get_annulus_segments(cube_c[0], r0-1, 3, mode='val')
     med_val_ann = np.median(ann)
-    assert (cube_c[0, idx0, idx0]-med_val_ann) < 4*s0
+    assert (cube_c_gau[0, idx0, idx0]-med_val_ann) < 4*s0
+    assert (cube_c_fft[0, idx0, idx0]-med_val_ann) < 4*s0
 
     r1 = dist(cy, cx, idx1, idx1)
     ann = get_annulus_segments(cube_c[1], r1-1, 3, mode='val')
     med_val_ann = np.median(ann)
-    assert (cube_c[1, idx1, idx1]-med_val_ann) < 4*s0
+    assert (cube_c_gau[1, idx1, idx1]-med_val_ann) < 4*s0
 
 
 def test_badpix_ifs1():

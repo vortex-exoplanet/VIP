@@ -3,7 +3,7 @@
 """
 Implementation of a median subtraction algorithm for model PSF subtraction in
 high-contrast imaging sequences. In the case of ADI, the algorithm is based on
-[MAR06]_. The ADI+IFS method, is an extension of this basic idea to
+[MAR06]_. The ADI+IFS method, is an extension of this basic idea to 
 multi-spectral cubes.
 
 .. [MAR06]
@@ -13,6 +13,21 @@ multi-spectral cubes.
    | *The Astrophysical Journal, Volume 641, Issue 1, pp. 556-564*
    | `https://arxiv.org/abs/astro-ph/0512335
      <https://arxiv.org/abs/astro-ph/0512335>`_
+
+.. [SPA02]
+   | Sparks & Ford 2002
+   | **Imaging Spectroscopy for Extrasolar Planet Detection**
+   | *The Astrophysical Journal, Volume 578, Issue 1, pp. 543-564*
+   | `https://arxiv.org/abs/astro-ph/0209078
+     <https://arxiv.org/abs/astro-ph/0209078>`_
+     
+.. [THA07]
+   | Thatte et al. 2007
+   | **Very high contrast integral field spectroscopy of AB Doradus C: 9-mag contrast at 0.2arcsec without a coronagraph using spectral deconvolution**
+   | *MNRAS, Volume 378, Issue 4, pp. 1229-1236*
+   | `https://arxiv.org/abs/astro-ph/0703565
+     <https://arxiv.org/abs/astro-ph/0703565>`_
+
 
 """
 
@@ -40,6 +55,8 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
     subtraction in high-contrast imaging sequences. In the case of ADI, the
     algorithm is based on [MAR06]_. The ADI+IFS method is an extension of this
     basic idea to multi-spectral cubes.
+        
+    References: [MAR06]_ for median-ADI; [SPA02]_ and [THA07]_ for SDI.
 
     Parameters
     ----------

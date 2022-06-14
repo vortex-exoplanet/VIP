@@ -2,6 +2,15 @@
 
 """
 Module with functions for correcting bad pixels in cubes.
+
+.. [AAC01]
+   | Aach & Metzler 2001
+   | **Defect interpolation in digital radiography how object-oriented 
+     transform coding helps**
+   | *SPIE, Proceedings Volume 4322, Medical Imaging 2001: Image Processing*
+   | `https://doi.org/10.1117/12.431161
+     <https://doi.org/10.1117/12.431161>`_
+
 """
 
 
@@ -11,17 +20,20 @@ __all__ = ['frame_fix_badpix_isolated',
            'cube_fix_badpix_annuli',
            'cube_fix_badpix_clump',
            'cube_fix_badpix_ifs',
-           'cube_fix_badpix_with_kernel']
+           'cube_fix_badpix_interp',
+           'frame_fix_badpix_fft']
 
 import numpy as np
 from skimage.draw import disk, ellipse
 from scipy.ndimage import median_filter
 from astropy.stats import sigma_clipped_stats
-from ..stats import sigma_filter
+from multiprocessing import cpu_count
+from ..stats import clip_array, sigma_filter
 from ..var import frame_center, get_annulus_segments, frame_filter_lowpass
-from ..stats import clip_array
 from ..config import timing, time_ini, Progressbar
+from ..config.utils_conf import pool_map, iterable
 from .rescaling import find_scal_vector, frame_rescaling
+from .cosmetics import frame_pad
 
 import warnings
 try:
@@ -127,7 +139,7 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
     count_bp = np.sum(bpm_mask)
 
     if verbose:
-        msg = "/nDone replacing {} bad pixels using the median of neighbors"
+        msg = "Done replacing {} bad pixels using the median of neighbors"
         print(msg.format(count_bp))
         timing(start)
 
@@ -301,12 +313,12 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
     """
     Function to correct the bad pixels annulus per annulus (centered on the
     provided location of the star), in an input frame or cube.
-    This function is faster than bp_clump_removal; hence to be prefered in all
-    cases where there is only one bright source with circularly symmetric PSF.
-    The bad pixel values are replaced by: ann_median + ann_stddev*random_gauss;
-    where ann_median is the median of the annulus, ann_stddev is the standard
-    deviation in the annulus, and random_gauss is a random factor picked from a
-    gaussian distribution centered on 0 and with variance 1.
+    This function is faster than ``cube_fix_badpix_clump``; hence to be 
+    preferred in all cases where there is only one bright source with circularly 
+    symmetric PSF. The bad pixel values are replaced by:\ 
+    ann_median + random_poisson;\
+    where ann_median is the median of the annulus, and random_poisson is 
+    random noise picked from a Poisson distribution centered on ann_median.
 
     Parameters
     ----------
@@ -353,15 +365,14 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
         Whether to return as well the cube of bad pixel maps and the cube of
         defined annuli.
 
-    Returns:
-    --------
+    Returns
+    -------
     obj_tmp: 2d or 3d array
         The bad pixel corrected frame/cube.
-    If full_output is set to True, it returns as well:
     bpix_map: 2d or 3d array
-        The bad pixel map or the cube of bpix maps
+        [full_output=True] The bad pixel map or the cube of bpix maps
     ann_frame_cumul: 2 or 3d array
-        The cube of defined annuli
+        [full_output=True] The cube of defined annuli
     """
 
     obj_tmp = array.copy()
@@ -629,13 +640,12 @@ def cube_fix_badpix_clump(array, bpm_mask=None, cy=None, cx=None, fwhm=4.,
         Whether to return as well the cube of bad pixel maps and the cube of
         defined annuli.
 
-    Returns:
-    --------
+    Returns
+    -------
     obj_tmp: 2d or 3d array
-        the bad pixel corrected frame/cube.
-    If full_output is set to True, it returns as well:
+        The bad pixel corrected frame/cube.
     bpix_map: 2d or 3d array
-        the bad pixel map or the cube of bpix maps
+        [full_output=True] The bad pixel map or the cube of bpix maps
     """
 
     obj_tmp = array.copy()
@@ -1022,12 +1032,13 @@ def cube_fix_badpix_ifs(array, lbdas, fluxes=None, mask=None, cy=None, cx=None,
         return array_out
 
 
-def cube_fix_badpix_with_kernel(array, bpm_mask, mode='gauss', fwhm=4.,
-                                kernel_sz=None, psf=None, half_res_y=False,
-                                **kwargs):
+def cube_fix_badpix_interp(array, bpm_mask, mode='fft', fwhm=4., kernel_sz=None, 
+                           psf=None, half_res_y=False, nit=500, tol=1, nproc=1, 
+                           **kwargs):
     """
-    Function to correct clumps of bad pixels by interpolation with a
-    user-defined kernel (through astropy.convolution). A bad pixel map must be
+    Function to correct clumps of bad pixels by interpolation with either a
+    user-defined kernel (through astropy.convolution) or through the FFT-based
+    algorithm described in [AAC01]_. A bad pixel map must be
     provided (e.g. found with function `cube_fix_badpix_clump`).
 
 
@@ -1039,7 +1050,7 @@ def cube_fix_badpix_with_kernel(array, bpm_mask, mode='gauss', fwhm=4.,
         Input bad pixel array. Should have same x,y dimenstions as array.
         If 2D, but input array is 3D, the same bpix_map will be assumed for all
         frames.
-    mode: str, optional {'gauss', 'psf'}
+    mode: str, optional {'fft', 'gauss', 'psf'}
         Can be either a 2D Gaussian ('gauss') or an input normalized PSF
         ('psf').
     fwhm: float or 1D array, opt
@@ -1060,12 +1071,21 @@ def cube_fix_badpix_with_kernel(array, bpm_mask, mode='gauss', fwhm=4.,
         there are always 2 rows of pixels with exactly the same values.
         If so, the Gaussian kernel will also be squashed vertically by a
         factor 2.
+    nit: int, optional
+        For FFT-based iterative interpolation, the number of iterations to use.
+    tol: float
+        Tolerance in terms of E_g (see [AAC01]_). The iterative process is 
+        stopped if the error E_g gets lower than this tolerance.
+    nproc : None or int, optional
+        Number of processes for parallel computing. If None the number of
+        processes will be set to (cpu_count()/2). Note: only used for input
+        3D cube and 'fft' mode.
     **kwargs : dict
         Passed through to the astropy.convolution.convolve or convolve_fft
         function.
 
-    Returns:
-    --------
+    Returns
+    -------
     obj_tmp: 2d or 3d array; the bad pixel corrected frame/cube.
     """
 
@@ -1120,34 +1140,54 @@ def cube_fix_badpix_with_kernel(array, bpm_mask, mode='gauss', fwhm=4.,
             obj_tmp = np.array(new_obj_tmp)
             bpm_mask = np.array(new_bpm_mask)
 
-    if ndims == 2:
-        obj_tmp_corr = frame_filter_lowpass(obj_tmp, mode=mode, fwhm_size=fwhm,
-                                            conv_mode='convfft',
-                                            kernel_sz=kernel_sz, psf=psf,
-                                            mask=bpm_mask, iterate=True,
-                                            half_res_y=half_res_y, **kwargs)
+    if mode != 'fft':
+        if ndims == 2:
+            obj_tmp_corr = frame_filter_lowpass(obj_tmp, mode=mode, 
+                                                fwhm_size=fwhm,
+                                                conv_mode='convfft',
+                                                kernel_sz=kernel_sz, psf=psf,
+                                                mask=bpm_mask, iterate=True,
+                                                half_res_y=half_res_y, **kwargs)
+        else:
+            obj_tmp_corr = obj_tmp.copy()
+            if np.isscalar(fwhm):
+                fwhm = [fwhm]*nz
+            if psf is None:
+                psf = [psf]*nz
+            elif psf.ndim == 2:
+                psf = [psf]*nz
+            elif psf.shape[0] != nz:
+                raise ValueError("input psf must have same z dimension as array")
+            for z in range(nz):
+                obj_tmp_corr[z] = frame_filter_lowpass(obj_tmp[z], mode=mode,
+                                                       fwhm_size=fwhm[z],
+                                                       conv_mode='convfft',
+                                                       kernel_sz=kernel_sz,
+                                                       psf=psf[z], 
+                                                       mask=bpm_mask[z],
+                                                       iterate=True,
+                                                       half_res_y=half_res_y,
+                                                       **kwargs)
+    
+        # replace only the bad pixels (obj_tmp_corr is low-pass filtered)
+        obj_tmp[np.where(bpm_mask)] = obj_tmp_corr[np.where(bpm_mask)]
+        
     else:
-        obj_tmp_corr = obj_tmp.copy()
-        if np.isscalar(fwhm):
-            fwhm = [fwhm]*nz
-        if psf is None:
-            psf = [psf]*nz
-        elif psf.ndim == 2:
-            psf = [psf]*nz
-        elif psf.shape[0] != nz:
-            raise ValueError("input psf must have same z dimension as array")
-        for z in range(nz):
-            obj_tmp_corr[z] = frame_filter_lowpass(obj_tmp[z], mode=mode,
-                                                   fwhm_size=fwhm[z],
-                                                   conv_mode='convfft',
-                                                   kernel_sz=kernel_sz,
-                                                   psf=psf[z], mask=bpm_mask[z],
-                                                   iterate=True,
-                                                   half_res_y=half_res_y,
-                                                   **kwargs)
-
-    # replace only the bad pixels (obj_tmp_corr is low-pass filtered)
-    obj_tmp[np.where(bpm_mask)] = obj_tmp_corr[np.where(bpm_mask)]
+        if ndims == 2:
+            obj_tmp = frame_fix_badpix_fft(obj_tmp, bpm_mask, nit=nit, tol=tol)
+        else:
+            if bpm_mask.ndim==2:
+                bpm_mask = [bpm_mask]*nz
+            if nproc is None:
+                nproc = cpu_count()//2
+            if nproc > 1:
+                res = pool_map(nproc, frame_fix_badpix_fft, iterable(obj_tmp), 
+                               iterable(bpm_mask), nit, tol, False, False)
+                obj_tmp = np.array(res, dtype=np.float64)
+            else:
+                for z in Progressbar(range(nz), desc="Correcting bad pixels"):
+                    obj_tmp[z] = frame_fix_badpix_fft(obj_tmp[z], bpm_mask[z], 
+                                                      nit=nit, tol=tol)
 
     if half_res_y:
         # unsquash vertically
@@ -1335,8 +1375,8 @@ def reject_outliers(data, test_value, m=5., stddev=None, debug=False):
         pixel. If stddev is not provided, the stddev of data is used (not
         recommended).
 
-    Returns:
-    --------
+    Returns
+    -------
     test_result: 0 or 1
         0 if test_value is not an outlier. 1 otherwise.
     """
@@ -1437,15 +1477,15 @@ def correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, cy, cx,
         compared to horizontally (e.g. SINFONI data).
         The algorithm will then correct the bad pixels every other row.
 
-    Returns:
-    --------
+    Returns
+    -------
     obj_tmp_corr: np.array
         Array with corrected outliers.
     bpix_map: np.array
         Boolean array with location of outliers.
     """
 
-    if True:  # no_numba:
+    if no_numba:
         def _correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig,
                                   cy, cx, min_thr, max_thr, rand_arr, stddev,
                                   half_res_y=False):
@@ -1520,3 +1560,169 @@ def correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, cy, cx,
     return _correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig,
                                  cy, cx, min_thr, max_thr, rand_arr, stddev,
                                  half_res_y=False)
+
+
+def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, verbose=True, 
+                         full_output=False):
+    """
+    Function to interpolate bad pixels with the FFT-based algorithm in [AAC01]_.
+    
+    Parameters
+    ----------
+    array : 2D ndarray
+        Input image.
+    bpm_mask : 2D ndarray
+        Bad pixel map.
+    nit : int
+        Number of iterations.
+    tol: float
+        Tolerance in terms of E_g (see [AAC01]_). The iterative process is 
+        stopped if the error E_g gets lower than this tolerance.
+    verbose: bool
+        Whether to print additional information during processing
+    full_output: bool
+        Whether to also return the reconstructed estimate f_hat of the input 
+        array. 
+        
+    Returns
+    -------
+    bpix_corr: 2D ndarray
+        Image in which the bad pixels have been interpolated.
+    f_est: 2D ndarray
+        [full_output=True] Reconstructed estimate (f_hat in [AAC01]_) of the 
+        input array
+    """
+
+    if array.ndim != 2:
+        raise TypeError("Input array should be 2D")
+    if array.shape != bpm_mask.shape:
+        raise TypeError("Input bad pixel map should have same shape as array")
+
+    # Pad zeros for better results
+    ini_y, ini_x = array.shape
+    pad_fac = (int(2*ini_x/ini_y), 2)
+    g = frame_pad(array, pad_fac, keep_parity=False, fillwith=0)
+    w = frame_pad(1-bpm_mask, pad_fac, keep_parity=False, fillwith=0)
+
+    # Following AAC01 notations:
+    g *= w
+    G_i = np.fft.fft2(g)
+    W = np.fft.fft2(w)
+
+    # Initialisation
+    dims = g.shape
+    ny, nx = dims
+    npix = float(ny * nx)
+    F_est = np.zeros(dims, dtype=complex)
+    it = 0
+    Eg = tol + 1
+
+    while it < nit and Eg > tol:
+        # 1. select line as max(G_i) and infer conjugate coordinates
+        ind = np.unravel_index(np.argmax(np.abs(G_i.real[:, 0: nx // 2])),
+                               (ny, nx // 2))
+
+        ind_conj = (np.mod(ny - ind[0], ny), 
+                    np.mod(nx - ind[1], nx))
+
+        # 2. compute the new F_i
+        
+        ## handle cases with no conjugate:
+        cond1 = (ind[0] == 0) and (ind[1] == 0)
+        cond2 = (ind[0] == ny / 2) and (ind[1] == 0)
+        cond3 = (ind[0] == 0) and (ind[1] == nx / 2)
+        cond4 = (ind[0] == ny / 2) and (ind[1] == nx / 2)
+        if cond1 or cond2 or cond3 or cond4:
+            F_i = npix * G_i[ind] / W[(0, 0)]
+
+            # 3a. update F_est
+            F_est[ind] += F_i
+
+        # handle cases where conjugate indices exist
+        else:
+            a = np.power(np.abs(W[(0, 0)]), 2)
+            b = np.power(np.abs(W[(2 * ind[0]) % ny, 
+                                  (2 * ind[1]) % nx]), 2)
+
+            Wmin = np.amin(np.abs(W))
+            if a == b:
+                # avoid later division by 0
+                W[(2 * ind[0]) % ny, (2 * ind[1]) % nx] += Wmin*1e-11
+
+            a = np.power(np.abs(W[(0, 0)]), 2)
+            b = np.power(np.abs(W[(2 * ind[0]) % ny, 
+                                  (2 * ind[1]) % nx]), 2)
+            c = a - b
+
+            F_i = (npix/c) * (G_i[ind] * W[(0, 0)] - np.conj(G_i[ind]) *
+                              W[(2 * ind[0]) % ny, (2 * ind[1]) % nx])
+
+            # 3b. update F_est
+            F_est[ind] += F_i
+            F_est[ind_conj] += np.conj(F_i)
+
+        # 4. get the new error spectrum
+        G_i = get_err_spec(F_i, W, ind, npix, G_i, dims)
+        
+        # 5. Calculate new error - to check if still larger than tolerance
+        Eg = np.sum(np.power(np.abs(G_i.flatten()), 2))/npix
+
+        it += 1
+        
+    if verbose:
+        msg = "FFT-interpolation terminated after {} iterations (Eg={})"
+        print(msg.format(it, Eg))
+        
+    bpix_corr = g + np.fft.ifft2(F_est).real * (1-w)
+
+    # crop zeros to return to initial size
+    cy, cx = frame_center(bpix_corr)
+    wy = (ini_y-1)/2
+    wx = (ini_x-1)/2
+    y0 = int(cy - wy)
+    y1 = int(cy + wy + 1)  # +1 cause endpoint is excluded when slicing
+    x0 = int(cx - wx)
+    x1 = int(cx + wx + 1)
+    bpix_corr = bpix_corr[y0:y1, x0:x1]
+    
+    # Calculate reconstructed image
+    f_est = np.fft.ifft2(F_est).real 
+    f_est = f_est[y0:y1, x0:x1]
+
+    if full_output:
+        return bpix_corr, f_est
+    else:
+        return bpix_corr
+
+
+def get_err_spec(F_i, W, ind, npix, G_i, dims):
+
+    def _err_spec(F_i, W, ind, npix, G_i, dims):
+        ny, nx = dims
+        conv = np.zeros(dims, dtype=np.complex64)
+    
+        cond1 = (ind[0] == 0) and (ind[1] == 0)
+        cond2 = (ind[0] == ny / 2) and (ind[1] == 0)
+        cond3 = (ind[0] == 0) and (ind[1] == nx / 2)
+        cond4 = (ind[0] == ny / 2) and (ind[1] == nx / 2)
+        # cases with no conjugate:
+        if cond1 or cond2 or cond3 or cond4:
+            for y in range(ny):
+                for x in range(nx):
+                    conv[y, x] = F_i * W[y - ind[0], x - ind[1]]
+    
+        else:
+            for y in range(ny):
+                for x in range(nx):
+                    conv[y, x] = (F_i * W[y - ind[0], x - ind[1]] + 
+                                  np.conj(F_i) * W[(y + ind[0]) % ny, 
+                                                   (x + ind[1]) % nx])
+    
+        return G_i - conv/float(npix)
+    
+
+    if not no_numba:
+        _err_spec_numba = njit(_err_spec)
+        return _err_spec_numba(F_i, W, ind, npix, G_i, dims)
+    else:
+        return _err_spec(F_i, W, ind, npix, G_i, dims)

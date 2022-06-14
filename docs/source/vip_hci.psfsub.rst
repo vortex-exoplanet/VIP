@@ -1,6 +1,9 @@
 vip\_hci.psfsub package
 =======================
 
+Submodules
+----------
+
 vip\_hci.psfsub.framediff module
 --------------------------------
 

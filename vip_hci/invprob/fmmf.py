@@ -1,18 +1,58 @@
 #! /usr/bin/env python
 
 """
-Forward model matched filter relying on either KLIP (Soummer et al. 2012;
- Pueyo 2016) and LOCI (Lafreniere et al. 2007b) for the PSF reference
-approximation. The original concept of matched filter applied to KLIP has been
-first proposed in Ruffio et al. (2019) and then adapted in Dahlqvist et al.
-(2021) to use the LOCI framework. For both PSF-subtraction techniques, a
+Forward model matched filter relying on either KLIP [SOU12]_ / [PUE16]_ or LOCI 
+[LAF07]_ for the PSF reference approximation. The original concept of matched
+filter applied to KLIP has been first proposed in [RUF17]_ and then adapted in 
+[DAH21a]_ to use the LOCI framework. For both PSF-subtraction techniques, a 
 forward model of the PSF is computed for each pixel contained in the field of
 view and each frame to account for the over-subtraction and self-subtraction
-of potential planetary signal due to the reference PSF subtraction. The
+of potential planetary signal due to the reference PSF subtraction. The 
 obtained model is then compared to the pixels intensities within each frame of
 the residual cube. The SNR associated to each pixel contained in the field of
-view, as well as its estimated contrast is thn obtained via a
-Gaussian maximum likelihood approach.
+view, as well as its estimated contrast is then obtained via a Gaussian maximum 
+likelihood approach.
+
+.. [DAH21a]
+   | Dahlqvist et al. 2021a
+   | **Improving the RSM map exoplanet detection algorithm. PSF forward 
+     modelling and optimal selection of PSF subtraction techniques**
+   | *The Astrophysical Journal Letters, Volume 646, p. 49*
+   | `https://arxiv.org/abs/2012.05094
+     <https://arxiv.org/abs/2012.05094>`_    
+
+.. [LAF07]
+   | Lafreniere et al. 2007
+   | **A New Algorithm for Point-Spread Function Subtraction in High-Contrast 
+     Imaging: A Demonstration with Angular Differential Imaging**
+   | *The Astrophysical Journal, Volume 660, Issue 4, pp. 770-780*
+   | `https://arxiv.org/abs/astro-ph/0702697
+     <https://arxiv.org/abs/astro-ph/0702697>`_
+
+.. [PUE16]
+   | Pueyo 2016
+   | **Detection and Characterization of Exoplanets using Projections on 
+     Karhunen Loeve Eigenimages: Forward Modeling**
+   | *The Astrophysical Journal, Volume 824, Issue 2, p. 117*
+   | `https://arxiv.org/abs/1604.06097
+     <https://arxiv.org/abs/1604.06097>`_
+     
+.. [RUF17]
+   | Ruffio et al. 2017
+   | **Improving and Assessing Planet Sensitivity of the GPI Exoplanet Survey 
+     with a Forward Model Matched Filter**
+   | *The Astrophysical Journal, Volume 842, p. 14*
+   | `https://arxiv.org/abs/1705.05477
+     <https://arxiv.org/abs/1705.05477>`_
+     
+.. [SOU12]
+   | Soummer et al. 2012
+   | **Detection and Characterization of Exoplanets and Disks Using Projections 
+     on Karhunen-Loève Eigenimages**
+   | *The Astrophysical Journal Letters, Volume 755, Issue 2, p. 28*
+   | `https://arxiv.org/abs/1207.4197
+     <https://arxiv.org/abs/1207.4197>`_ 
+
 """
 
 __author__ = 'Carl-Henrik Dahlqvist'
@@ -35,7 +75,8 @@ def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
          imlib='vip-fft', interpolation='lanczos4', nproc=1, verbose=True):
     """
     Forward model matched filter generating SNR map and contrast map, using
-    either KLIP or LOCI as PSF subtraction techniques.
+    either KLIP or LOCI as PSF subtraction techniques, as implemented in 
+    [RUF17]_ and [DAH21a]_.
 
     Parameters
     ----------
@@ -68,36 +109,30 @@ def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
     var: str, optional
         Model used for the residual noise variance estimation used in the
         matched filtering (maximum likelihood estimation of the flux and SNR).
-        Three different approaches are proposed: 'FR', 'FM', and 'TE'.
-
+        Three different approaches are proposed: 'FR', 'FM', and 'TE':
+            
         * 'FR': consider the pixels in the selected annulus with a width equal
-        to asize but separately for every frame.
-
+          to asize but separately for every frame.
         * 'FM': consider the pixels in the selected annulus with a width
-        equal to asize but separately for every frame. Apply a mask one FWHM
-        on the selected pixel and its surrounding.
-
+          equal to asize but separately for every frame. Apply a mask one FWHM
+          on the selected pixel and its surrounding.
         * 'TE': rely on the method developped in PACO to estimate the
-        residual noise variance (take the pixels in a region of one FWHM
-        arround the selected pixel, considering every frame in the
-        derotated cube of residuals except for the selected frame)
-
+          residual noise variance (take the pixels in a region of one FWHM
+          arround the selected pixel, considering every frame in the
+          derotated cube of residuals except for the selected frame)
     param: dict, optional
         Dictionnary regrouping the parameters used by the KLIP (ncomp and
         delta_rot) or LOCI (tolerance and delta_rot) PSF-subtraction
-        technique.
-
+        technique:
+            
         * ncomp : int, optional. Number of components used for the low-rank
-        approximation of the speckle field. Default is 20.
-
+          approximation of the speckle field. Default is 20.
         * tolerance: float, optional. Tolerance level for the approximation of
-        the speckle field via a linear combination of the reference images in
-        the LOCI algorithm. Default is 5e-3.
-
+          the speckle field via a linear combination of the reference images in
+          the LOCI algorithm. Default is 5e-3.
         * delta_rot : float, optional. Factor for tunning the parallactic angle
-        threshold, expressed in FWHM. Default is 0.5 (excludes 0.5xFHWM on each
-        side of the considered frame).
-
+          threshold, expressed in FWHM. Default is 0.5 (excludes 0.5xFHWM on each
+          side of the considered frame).
     crop: int, optional
         Part of the PSF template considered in the estimation of the FMMF
         detection map. Default is 5.

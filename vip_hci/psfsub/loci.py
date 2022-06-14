@@ -2,6 +2,16 @@
 
 """
 Module with a frame differencing algorithm for ADI and ADI+mSDI post-processing.
+     
+.. [PUE12]
+   | Pueyo et al. 2012
+   | **Application of a Damped Locally Optimized Combination of Images Method to
+     the Spectral Characterization of Faint Companions Using an Integral Field 
+     Spectrograph**
+   | *The Astrophysical Journal Supplements, Volume 199, p. 6*
+   | `https://arxiv.org/abs/1111.6102
+     <https://arxiv.org/abs/1111.6102>`_
+          
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez'
@@ -28,10 +38,13 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
           tol=1e-2, optim_scale_fact=2, adimsdi='skipadi', imlib='vip-fft',
           interpolation='lanczos4', collapse='median', verbose=True,
           full_output=False, **rot_options):
-    """ LOCI style algorithm that models a PSF (for ADI and ADI+mSDI) with a
-    least-square combination of neighbouring frames (solving the equation
-    a x = b by computing a vector x of coefficients that minimizes the
-    Euclidean 2-norm || b - a x ||^2).
+    """ Locally Optimized Combination of Images (LOCI) algorithm as in [LAF07]_.
+    The PSF is modeled (for ADI and ADI+mSDI) with a least-square combination 
+    of neighbouring frames (solving the equation a x = b by computing a vector 
+    x of coefficients that minimizes the Euclidean 2-norm || b - a x ||^2).
+    
+    This algorithm is also compatible with IFS data to perform LOCI-SDI, in a
+    similar fashion as suggested in [PUE12]_ (albeit without dampening zones).
 
     Parameters
     ----------

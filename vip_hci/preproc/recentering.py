@@ -2,6 +2,22 @@
 
 """
 Module containing functions for cubes frame registration.
+     
+.. [GUI08]
+   | Guizar-Sicairos et al. 2008
+   | **Efficient subpixel image registration algorithms**
+   | *Optics Letters, Volume 33, Issue 2, p. 156*
+   | `https://ui.adsabs.harvard.edu/abs/2008OptL...33..156G
+     <https://ui.adsabs.harvard.edu/abs/2008OptL...33..156G>`_
+     
+.. [PUE15]
+   | Pueyo et al. 2015
+   | **Reconnaissance of the HR 8799 Exosolar System. II. Astrometry and Orbital 
+     Motion**
+   | *The Astrophysical Journal, Volume 803, Issue 1, p. 31*
+   | `https://arxiv.org/abs/1409.6388
+     <https://arxiv.org/abs/1409.6388>`_
+     
 """
 
 __author__ = 'C. A. Gomez Gonzalez, V. Christiaens, G. Ruane, R. Farkas'
@@ -331,44 +347,47 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
     Returns
     -------
-    array_rec
+    array_rec : 2d numpy array
         Shifted images. *Only returned if ``shift=True``.*
-    shifty, shiftx
+    shifty, shiftx : floats
         Shift Y,X to get to the true center.
+    ceny, cenx : floats
+        Center Y,X coordinates of the true center. *Only returned if 
+        ``shift=True``.*
+        
+    Note
+    ----
+    We are solving a linear system:
 
-    Notes
-    -----
-    linear system:
-
-    .. code-block: none
+    .. code-block:: python
 
         A1 * x + B1 * y = C1
         A2 * x + B2 * y = C2
 
     Cramer's rule - solution can be found in determinants:
 
-    .. code-block: none
+    .. code-block:: python
 
         x = Dx/D
         y = Dy/D
 
     where D is main determinant of the system:
 
-    .. code-block: none
+    .. code-block:: python
 
         A1 B1
         A2 B2
 
     and Dx and Dy can be found from matrices:
 
-    .. code-block: none
+    .. code-block:: python
 
         C1 B1
         C2 B2
 
     and
 
-    .. code-block: none
+    .. code-block:: python
 
         A1 C1
         A2 C2
@@ -377,7 +396,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
     L stores our coefs A, B, C of the line equations.
 
-    .. code-block: none
+    .. code-block:: python
 
         For D: L1[0] L1[1]   for Dx: L1[2] L1[1]   for Dy: L1[0] L1[2]
                L2[0] L2[1]           L2[2] L2[1]           L2[0] L2[2]
@@ -623,8 +642,9 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
                        interpolation='lanczos4', full_output=False, 
                        verbose=True, plot=True, debug=False):
     """ Finding the center of a broadband (co-added) frame with speckles and
-    satellite spots elongated towards the star (center). We use the radon
-    transform implementation from scikit-image.
+    satellite spots elongated towards the star (center). We use the Radon
+    transform implementation from scikit-image, and follow the algorithm 
+    presented in [PUE15]_.
 
     Parameters
     ----------
@@ -691,16 +711,13 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
 
     Returns
     -------
-    optimy, optimx : float
+    optimy, optimx : floats
         Values of the Y, X coordinates of the center of the frame based on the
         radon optimization. (always returned)
     dxy : float
         [full_output=True] Uncertainty on center in pixels.
-    cost_bound : floats
+    cost_bound : 2d numpy array
         [full_output=True] Radon cost function surface.
-    Notes
-    -----
-    Based on Pueyo et al. 2014: http://arxiv.org/abs/1409.6388
 
     """
     from .cosmetics import frame_crop
@@ -990,7 +1007,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
                         interpolation='lanczos4', border_mode='reflect',
                         **kwargs):
     """ Recenters a cube looping through its frames and calling the
-    ``frame_center_radon`` function.
+    ``frame_center_radon`` function, as in [PUE15]_.
 
     Parameters
     ----------
@@ -1013,7 +1030,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
         reflecting about the center of the last pixel. With 'wrap', the input is
         extended by wrapping around to the opposite edge. Default is 'reflect'.
     kwargs:
-        Additional optional parameters from vip_hci.preproc.frame_center_radon
+        Additional optional parameters for ``vip_hci.preproc.frame_center_radon``
         function, such as cropsize, hsize, step, satspots_cfg, mask_center,
         hpf, filter_fwhm, nproc or debug.
 
@@ -1067,9 +1084,9 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  mask=None, border_mode='reflect',
                                  full_output=False, verbose=True, nproc=1,
                                  save_shifts=False, debug=False, plot=True):
-    """ Recenters a cube of frames using the DFT upsampling method as
-    proposed in Guizar et al. 2008 and implemented in the
-    ``register_translation`` function from scikit-image.
+    """ Recenters a cube of frames using the DFT upsampling method as proposed 
+    in [GUI08]_ and implemented in the ``register_translation`` function from 
+    scikit-image.
 
     The algorithm (DFT upsampling) obtains an initial estimate of the
     cross-correlation peak by an FFT and then refines the shift estimation by
@@ -1135,13 +1152,12 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     x : numpy ndarray
         [full_output=True] 1d array with the shifts in x.
 
-    Notes
-    -----
-    Using the implementation from scikit-image of the algorithm described in
-    Guizar-Sicairos et al. "Efficient subpixel image registration algorithms,"
-    Opt. Lett. 33, 156-158 (2008). This algorithm registers two images (2-D
-    rigid translation) within a fraction of a pixel specified by the user.
-    Instead of computing a zero-padded FFT (fast Fourier transform), this code
+    Note
+    ----
+    This function uses the implementation from scikit-image of the algorithm 
+    described in [GUI08]_. This algorithm registers two images (2-D rigid 
+    translation) within a fraction of a pixel specified by the user. Instead of 
+    computing a zero-padded FFT (fast Fourier transform), this code
     uses selective upsampling by a matrix-multiply DFT (discrete FT) to
     dramatically reduce computation time and memory without sacrificing
     accuracy. With this procedure all the image points are used to compute the
@@ -1342,11 +1358,14 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         guess parameters for the double gaussian. E.g.:
         params_2g = {'fwhm_neg': 3.5, 'fwhm_pos': (3.5,4.2), 'theta_neg': 48.,
         'theta_pos':145., 'neg_amp': 0.5}
-        fwhm_neg: float or tuple with fwhm of neg gaussian
-        fwhm_pos: can be a tuple for x and y axes of pos gaussian (replaces fwhm)
-        theta_neg: trigonometric angle of the x axis of the neg gaussian (deg)
-        theta_pos: trigonometric angle of the x axis of the pos gaussian (deg)
-        neg_amp: amplitude of the neg gaussian wrt the amp of the positive one
+        
+        - fwhm_neg: float or tuple with fwhm of neg gaussian
+        - fwhm_pos: can be a tuple for x and y axes of pos gaussian (replaces
+          fwhm)
+        - theta_neg: trigonometric angle of the x axis of the neg gaussian (deg)
+        - theta_pos: trigonometric angle of the x axis of the pos gaussian (deg)
+        - neg_amp: amplitude of the neg gaussian wrt the amp of the positive one
+        
         Note: it is always recommended to provide theta_pos and theta_neg for a
         better fit.
     threshold : bool, optional
@@ -1626,7 +1645,6 @@ def _centroid_2d2g_frame(cube, frnum, size, pos_y, pos_x, debug=False, fwhm=4,
     return y_i, x_i
 
 
-# TODO: make parameter names match the API
 def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                gammaval=1, min_spat_freq=0.5, max_spat_freq=3,
                                fwhm=4, debug=False, recenter_median=False,
@@ -1694,24 +1712,22 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
 
     Returns
     -------
-    if full_output is False, returns:
-        cube_reg_sci: Registered science cube (numpy 3d ndarray)
-
-        If cube_ref is not None, also returns:
-
-        cube_reg_ref: Ref. cube registered to science frames (np 3d ndarray)
-
-    If full_output is True, returns in addition to the above:
-        cube_sci_lpf: Low+high-pass filtered science cube (np 3d ndarray)
-        cube_stret: Cube with stretched values used for cross-corr (np 3d ndarray)
-        cum_x_shifts_sci: Vector of x shifts for science frames (np 1d array)
-        cum_y_shifts_sci: Vector of y shifts for science frames (np 1d array)
-
-        And if cube_ref is not None, also returns:
-        cum_x_shifts_ref: Vector of x shifts for ref. frames.
-        cum_y_shifts_ref: Vector of y shifts for ref. frames.
-
-
+    cube_reg_sci : numpy 3d ndarray
+        Registered science cube 
+    cube_reg_ref : numpy 3d ndarray
+        [cube_ref!=None] Cube registered to science frames
+    cube_sci_lpf : numpy 3d ndarray
+        [full_output=True] Low+high-pass filtered science cube 
+    cube_stret : numpy 3d ndarray
+        [full_output=True] cube_stret with stretched values used for cross-corr
+    cum_x_shifts_sci: numpy 1d array
+        [full_output=True] Vector of x shifts for science frames 
+    cum_y_shifts_sci: numpy 1d array
+        [full_output=True] Vector of x shifts for science frames 
+    cum_x_shifts_ref: numpy 1d array
+        [full_output=True & cube_ref!=None] Vector of x shifts for ref frames 
+    cum_y_shifts_ref: numpy 1d array
+        [full_output=True & cube_ref!=None] Vector of y shifts for ref frames
     """
     n, y, x = cube_sci.shape
     check_array(cube_sci, dim=3)

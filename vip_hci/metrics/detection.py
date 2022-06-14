@@ -82,8 +82,8 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
     If full_output is True then a table with all the candidates that passed the
     2d Gaussian fit constrains and their S/N is returned.
 
-    Notes
-    -----
+    Note
+    ----
     When ``mode`` is either 'lpeaks', 'dog' or 'log', the detection might happen
     in the input frame or in a match-filtered version of it (by setting
     ``matched_filter`` to True and providing a PSF template, to run a
@@ -94,28 +94,28 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
 
     When ``mode`` is set to:
         'lpeaks' (Local maxima): The local peaks above the background (computed
-        using sigma clipped statistics) on the (correlated) frame are detected.
-        A maximum filter is used for finding local maxima. This operation
-        dilates the original image and merges neighboring local maxima closer
-        than the size of the dilation. Locations where the original image is
-        equal to the dilated image are returned as local maxima. The minimum
-        separation between the peaks is 1*FWHM.
+         using sigma clipped statistics) on the (correlated) frame are detected.
+         A maximum filter is used for finding local maxima. This operation
+         dilates the original image and merges neighboring local maxima closer
+         than the size of the dilation. Locations where the original image is
+         equal to the dilated image are returned as local maxima. The minimum
+         separation between the peaks is 1*FWHM.
 
         'log' (Laplacian of Gaussian): It computes the Laplacian of Gaussian
-        images with successively increasing standard deviation and stacks them
-        up in a cube. Blobs are local maximas in this cube. LOG assumes that the
-        blobs are again assumed to be bright on dark.
+         images with successively increasing standard deviation and stacks them
+         up in a cube. Blobs are local maximas in this cube. LOG assumes that the
+         blobs are again assumed to be bright on dark.
 
         'dog' (Difference of Gaussians): This is a faster approximation of the
-        Laplacian of Gaussian approach. In this case the image is blurred with
-        increasing standard deviations and the difference between two
-        successively blurred images are stacked up in a cube. DOG assumes that
-        the blobs are again assumed to be bright on dark.
+         Laplacian of Gaussian approach. In this case the image is blurred with
+         increasing standard deviations and the difference between two
+         successively blurred images are stacked up in a cube. DOG assumes that
+         the blobs are again assumed to be bright on dark.
 
         'snrmap' or 'snrmapf': A threshold is applied to the S/N map, computed
-        with the ``snrmap`` function (``snrmapf`` calls ``snrmap`` with
-        ``approximated`` set to True). The threshold is given by ``snr_thresh``
-        and local maxima are found as in the case of 'lpeaks'.
+         with the ``snrmap`` function (``snrmapf`` calls ``snrmap`` with
+         ``approximated`` set to True). The threshold is given by ``snr_thresh``
+         and local maxima are found as in the case of 'lpeaks'.
 
     Finally, a 2d Gaussian fit is done on each of the potential blobs
     constraining the position on a cropped sub-image and the sigma of the fit

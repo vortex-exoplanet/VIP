@@ -2,6 +2,35 @@
 
 """
 Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
+
+.. [CHR21]
+   | Christiaens et al. 2021
+   | **A faint companion around CrA-9: protoplanet or obscured binary?**
+   | *MNRAS, Volume 502, Issue 4, pp. 6117-6139*
+   | `https://arxiv.org/abs/2102.10288
+     <https://arxiv.org/abs/2102.10288>`_
+     
+.. [FOR13]
+   | Foreman-Mackey et al. 2013
+   | **emcee: The MCMC Hammer**
+   | *PASP, Volume 125, Issue 925, p. 306*
+   | `https://arxiv.org/abs/1202.3665
+     <https://arxiv.org/abs/1202.3665>`_
+     
+.. [WER17]
+   | Wertz et al. 2017
+   | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond-level accuracy. Orbital architecture analysis with PyAstrOFit**
+   | *Astronomy & Astrophysics, Volume 598, p. 83*
+   | `https://arxiv.org/abs/1610.04014
+     <https://arxiv.org/abs/1610.04014>`_
+
+.. [GOO10]
+   | Goodman & Weare 2010
+   | **Ensemble samplers with affine invariance**
+   | *Comm. App. Math. Comp. Sci., Vol. 5, Issue 1, pp. 65-80.*
+   | `https://ui.adsabs.harvard.edu/abs/2010CAMCS...5...65G
+     <https://ui.adsabs.harvard.edu/abs/2010CAMCS...5...65G>`_
+     
 """
 
 
@@ -404,44 +433,35 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     circular aperture centered on the initial guess.
     4) We calculate a function of merit :math:`\chi^2` (see below).
     The steps 1) to 4) are then looped. At each iteration, the candidate model
-    parameters are defined by the emcee Affine Invariant algorithm.
+    parameters are defined by the ``emcee`` Affine Invariant algorithm [FOR13]_.
 
     There are different possibilities for the figure of merit (step 4):
-        
-        - mu_sigma=None; fmerit='sum' (as in Wertz et al. 2017):\
-        :math:`\chi^2 = \sum(\|I_j\|)`
-        
-        - mu_sigma=None; fmerit='stddev' (likely more appropriate when speckle\
-        noise still significant): \
-        :math:`\chi^2 = N \sigma_{I_j}(values,ddof=1)*`values.size
-        
-        - mu_sigma=True or a tuple (as in Christiaens et al. 2021, new default):\
-        :math:`\chi^2 = \sum\frac{(I_j- mu)^2}{\sigma^2}`
+        - ``mu_sigma=None``; ``fmerit='sum'`` (as in [WER17]_):\
+          :math:`\chi^2 = \sum(\|I_j\|)`
+        - ``mu_sigma=None``; ``fmerit='stddev'`` (likely more appropriate than
+          'sum' when residual speckle noise is still significant):\
+          :math:`\chi^2 = N \sigma_{I_j}(values,ddof=1)*values.size`
+        - ``mu_sigma=True`` or a tuple (as in [CHR21]_, new default):\
+          :math:`\chi^2 = \sum\frac{(I_j- mu)^2}{\sigma^2}`
 
     where :math:`j \in {1,...,N}` with N the total number of pixels
     contained in the circular aperture, :math:`\sigma_{I_j}` is the standard
     deviation of :math:`I_j` values, and :math:`\mu` is the mean pixel
     intensity in a truncated annulus at the radius of the companion candidate
     (i.e. excluding the cc region).
-
     See description of ``mu_sigma`` and ``sigma`` for more details on
-    :math:`\sigma`.
+    :math:`\sigma` considered in the last equation.
 
-    *Speed tricks*:
-        
-        - crop your input cube to a size such as to just include the annulus on\
-        which the PCA is performed;
-        
-        - set `imlib='opencv'` (much faster image rotations, BUT at the expense\
-        of flux conservation);
-            
-        - increase `nproc` (if your machine allows);
-        
-        - reduce `ac_c` (or increase `rhat_threshold` if `conv_test='gb'`) for\
-        a faster convergence);
-    
-        - reduce `niteration_limit` to force the sampler to stop even if it has\
-        not reached convergence.
+    Speed tricks:
+        - crop your input cube to a size such as to just include the annulus on
+          which the PCA is performed;
+        - set ``imlib='opencv'`` (much faster image rotations, BUT at the expense
+          of flux conservation);
+        - increase ``nproc`` (if your machine allows);
+        - reduce ``ac_c`` (or increase ``rhat_threshold`` if ``conv_test='gb'``) 
+          for a faster convergence);
+        - reduce ``niteration_limit`` to force the sampler to stop even if it 
+          has not reached convergence.
 
     Parameters
     ----------
@@ -478,7 +498,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         The FHWM in pixels.
     mu_sigma: tuple of 2 floats or bool, opt
         If set to None: not used, and falls back to original version of the
-        algorithm, using fmerit (Wertz et al. 2017).
+        algorithm, using ``fmerit`` [WER17]_.
         If a tuple of 2 elements: should be the mean and standard deviation of
         pixel intensities in an annulus centered on the location of the
         companion candidate, excluding the area directly adjacent to the CC.
@@ -494,8 +514,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     fmerit : {'sum', 'stddev'}, string optional
         If mu_sigma is not provided nor set to True, this parameter determines
         which figure of merit to be used among the 2 possibilities implemented
-        in Wertz et al. (2017). 'stddev' may work well for point like sources
-        surrounded by extended signals.
+        in [WER17]_. 'stddev' may work well for point like sources surrounded by 
+        extended signals.
     cube_ref : 3d or 4d numpy ndarray, or list of 3d ndarray, optional
         Reference library cube for Reference Star Differential Imaging. Should
         be 3d, except if the input cube is 4d, in which case it can either be a
@@ -510,11 +530,11 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         is done.
     imlib : str, optional
         Imlib used for both image rotation and sub-px shift:
-        - "opencv": will use it for both;
-        - "skimage" or "ndimage-interp" will use scikit-image and \
-        scipy.ndimage for rotation and shift resp.;
-        - "ndimage-fourier" or "vip-fft" will use Fourier transform based \
-        methods for both.
+            - "opencv": will use it for both;
+            - "skimage" or "ndimage-interp" will use scikit-image and
+              scipy.ndimage for rotation and shift resp.;
+            - "ndimage-fourier" or "vip-fft" will use Fourier transform based
+              methods for both.
     interpolation : str, optional
         Interpolation order. See the documentation of the
         ``vip_hci.preproc.frame_rotate`` function. Note that the interpolation
@@ -551,14 +571,14 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         corresponding off-axis transmission (between 0 and 1), for either all,
         or each spectral channel (only relevant for a 4D input cube).
     nwalkers: int optional
-        The number of Goodman & Weare 'walkers'.
+        The number of [GOO10]_ 'walkers'.
     bounds: numpy.array or list, default=None, optional
         The prior knowledge on the model parameters. If None, large bounds will
         be automatically estimated from the initial state.
     a: float, default=2.0
-        The proposal scale parameter. See notes.
+        The proposal scale parameter. See Note.
     burnin: float, default=0.3
-        The fraction of a walker chain which is discarded. NOTE: only used for
+        The fraction of a walker chain which is discarded. Note: only used for
         Gelman-Rubin convergence test - the chains are returned full.
     rhat_threshold: float, default=0.01
         The Gelman-Rubin threshold used for the test for nonconvergence.
@@ -567,10 +587,10 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         a row before claiming that the chain has converged.
     conv_test: str, optional {'gb','ac'}
         Method to check for convergence:
-        - 'gb' for gelman-rubin test
-        (http://digitalassets.lib.berkeley.edu/sdtr/ucb/text/305.pdf)
-        - 'ac' for autocorrelation analysis
-        (https://emcee.readthedocs.io/en/stable/tutorials/autocorr/)
+            - 'gb' for gelman-rubin test
+                (http://digitalassets.lib.berkeley.edu/sdtr/ucb/text/305.pdf)
+            - 'ac' for autocorrelation analysis
+                (https://emcee.readthedocs.io/en/stable/tutorials/autocorr/)
     ac_c: float, optional
         If the convergence test is made using the auto-correlation, this is the
         value of C such that tau/N < 1/C is the condition required for tau to be
@@ -617,13 +637,12 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     out : numpy.array
         The MCMC chain.
 
-    Notes
-    -----
+    Note
+    ----
     The parameter ``a`` must be > 1. For more theoretical information
-    concerning this parameter, see Goodman & Weare, 2010, Comm. App. Math.
-    Comp. Sci., 5, 65, Eq. [9] p70.
+    concerning this parameter, see [GOO10]_.
 
-    The parameter 'rhat_threshold' can be a numpy.array with individual
+    The parameter ``rhat_threshold`` can be a numpy.array with individual
     threshold value for each model parameter.
     """
     if verbosity > 0:
@@ -745,11 +764,10 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
             dr = min(annulus_width/2, aperture_radius*fwhm/2)
             dth = 360./(2*np.pi*initial_state[0]/(aperture_radius*fwhm/2))
             bounds = [(initial_state[0] - dr, initial_state[0] + dr),  # radius
-                      (initial_state[1] - dth, initial_state[1] + dth)]  # angle
+                      (initial_state[1] - dth, initial_state[1] + dth)] # angle
             d0 = 2
         for i in range(dim-d0):
-            bounds.append(
-                (0.1 * initial_state[d0+i], 2 * initial_state[d0+i]))  # flux
+            bounds.append((0, 5 * initial_state[d0+i]))  # flux
     # size of ball of parameters for MCMC initialization
     scal = abs(bounds[0][0]-initial_state[0])/initial_state[0]
     for i in range(dim):
@@ -991,7 +1009,7 @@ def show_walk_plot(chain, save=False, output_dir='', **kwargs):
         If True, a pdf file is created.
     output_dir: str, optional
         The name of the output directory which contains the output files in the
-        case  ``save`` is True.
+        case ``save`` is True.
     kwargs:
         Additional attributes are passed to the matplotlib plot method.
 
@@ -1052,14 +1070,15 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
         If True, a pdf file is created.
     output_dir: str, optional
         The name of the output directory which contains the output files in the
-        case  ``save`` is True.
-     kwargs:
-        Additional attributes are passed to the corner.corner() method.
+        case ``save`` is True.
+    kwargs:
+        Additional attributes passed to the corner.corner() method.
 
     Returns
     -------
-    Display the figure or create a pdf file named walk_plot.pdf in the working
-    directory.
+    None 
+        (Displays the figure or create a pdf file named walk_plot.pdf in the 
+        working directory).
 
     Raises
     ------
@@ -1149,13 +1168,12 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
 
     Returns
     -------
-    out: tuple
-        A 2 elements tuple with either:
-            [gaussian_fit=False] a) the highly probable solutions (dictionary),
-                                 b) the respective confidence interval (dict.);
-            [gaussian_fit=True] a) the center of the best-fit 1d Gaussian
-                                distributions (tuple of 3 floats), and
-                                b) their standard deviation, for each parameter
+    out: A 2 elements tuple with either:
+        [gaussian_fit=False] i) the highly probable solutions (dictionary), 
+            ii) the respective confidence interval (dict.);
+        [gaussian_fit=True] i) the center of the best-fit 1d Gaussian 
+            distributions (tuple of 3 floats), and ii) their standard deviation, 
+            for each parameter
 
     """
 

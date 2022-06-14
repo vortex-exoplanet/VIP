@@ -141,13 +141,9 @@ class Progressbar(object):
         # or locally using the ``verbose`` keyword:
         Progressbar(iterable, verbose=False)
 
-    Notes
-    -----
-    - `leave` keyword is natively supported by tqdm, support could be added to
-      other backends too?
-
     """
-    backend = "pyprind"
+    
+    backend = 'pyprind'
 
     def __new__(cls, iterable=None, desc=None, total=None, leave=True,
                 backend=None, verbose=True):

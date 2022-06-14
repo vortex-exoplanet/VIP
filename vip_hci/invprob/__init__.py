@@ -1,4 +1,3 @@
-=======
 """
 Subpackage ``invprob`` aims to contain post-processing algorithms based on an
 inverse problem approach, such as ANDROMEDA [MUG09]_ / [CAN15]_, Foward Model 

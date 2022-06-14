@@ -7,7 +7,8 @@ fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
 
 __author__ = 'Valentin Christiaens'
 __all__ = ['pca_annular_it',
-           'feves']
+           'feves',
+           'feves_auto']
 
 from multiprocessing import cpu_count
 import numpy as np
@@ -942,7 +943,386 @@ def feves(cube, angle_list, cube_ref=None, ncomp=1, algo=pca_annular, n_it=2,
                 master_res_cube_, master_it_cube_nd, master_stim_cube, 
                 master_stim_ori_cube, master_stim_inv_cube, master_cube)
     else:
-        return master_frame    
+        return master_frame  
+    
+
+def feves_auto(cube, angle_list, cube_ref=None, ncomp=1, algo=pca_annular, 
+               n_it='auto', blur=True, fwhm=4, buff=1, thr=1, thr_per_ann=False, 
+               n_frac=6, asizes=None, n_segments=None,  n_neigh=0, strategy='ADI', 
+               n_br=6, radius_int=0, delta_rot=(0.1, 1),
+          svd_mode='lapack', init_svd='nndsvda', nproc=1, min_frames_lib=2, 
+          max_frames_lib=200, tol=1e-1, scaling=None, imlib='opencv', 
+          interpolation='lanczos4', collapse='median', full_output=False, 
+          verbose=True, weights=None, interp_order=2, rtol=1e-2, 
+          atol=1,  **rot_options):
+    """
+    Fractionation for Embedded Very young Exoplanet Search algorithm: Iterative
+    PCA or NMF applied in progressively more fractionated image sections.
+
+    The algorithm finds significant disc or planet signal in the final PCA
+    image, then subtracts it from the input cube (after rotation) just before
+    (and only for) projection onto the principal components. This is repeated
+    n_it times, which progressively reduces geometric biases in the image
+    (e.g. negative side lobes for ADI, radial negative signatures for SDI).
+    This is similar to the algorithm presented in Pairet et al. (2020).
+
+    The same parameters as pca_annular() can be provided. There are two
+    additional parameters related to the iterative algorithm: the number of
+    iterations (n_it) and the threshold (thr) used for the identification of
+    significant signals.
+
+    Parameters
+    ----------
+    cube : numpy ndarray, 3d or 4d
+        Input cube.
+    angle_list : numpy ndarray, 1d
+        Corresponding parallactic angle for each frame.
+    cube_ref : numpy ndarray, 3d, optional
+        Reference library cube. For Reference Star Differential Imaging.
+    ncomp : int or list of int or list of lists of int, optional
+        How many PCs are used as a lower-dimensional subspace to project the
+        target (sectors of) frames. Depends on the dimensionality of `cube`.
+        If int: same ncomp used at all iterations.
+        If a list: should have either the length of asizes (if the 
+        latter is provided) or a length equal to n_frac (otherwise).
+            - if its elements are int: ncomp used for each fractionation level
+            - if its elements are lists: additional iterations with different
+            ncomp will be done for each fractionation level.
+    algo: function, opt, {vip_hci.pca.pca_annular, vip_hci.nmf.nmf_annular}
+        Either PCA or NMF in concentric annuli, used iteratively.
+    n_it: int, opt
+        Number of iterations at each fractionation level.
+    buff: float, opt
+        Radial buffer expressed in fwhm, used to smooth final image. The feves 
+        algorithm will be repeated int(buff*fwhm), with radial increments of 
+        one pixel for the inner mask size. The final results are then the 
+        median of each of the int(buff*fwhm) results.
+        If buff is set to 0, the feves algorithm is performed only once.
+    thr: float, opt
+        Threshold used to identify significant signals in the final PCA image,
+        iterartively. This threshold corresponds to the minimum intensity in
+        the STIM map computed from PCA residuals (Pairet et al. 2019), as
+        expressed in units of maximum intensity obtained in the inverse STIM
+        map (i.e. obtained from using opposite derotation angles).
+    thr_per_ann: bool, opt
+        Whether the threshold should be calculated annulus per annulus
+        (recommended).
+    n_frac: int, opt (between 1 and 7)
+        Fractionation level. If asizes and n_elements are not provided 
+        manually, the algorithm will consider the following automatic scheme,
+        capped to the n_frac first elements:
+            asizes =    [16,8,4,2,2,1,1] # in FWHM
+            n_segments = [1,1,1,1,3,3,6] # azimuthal bins
+        Note: if input cube is small (<35 FWHM in x and y), max n_frac will be
+        smaller than 7, and the first entry(-ies) of the list will be skipped 
+        until the annulus size fits the frames.
+    blur: bool, opt
+        Whether to convolve the map of significant signals with a Gaussian 
+        kernel of fwhm/2 - this may help in the recovery of faint signals and 
+        avoid getting sharp edges.
+    n_br: int, opt
+        Number of branches on which the fake planets are injected to compute 
+        the throughput.
+    radius_int : int, optional
+        The radius of the innermost annulus. By default is 0, if >0 then the
+        central circular region is discarded.
+    fwhm : float, optional
+        Size of the FHWM in pixels. Default is 4.
+    asizes : list, optional
+        The size of the annuli at each round of fractionation, expressed in FWHM.
+    n_segments : list, optional
+        The number of segments for each annulus, at each round of fractionation.
+    delta_rot : float or tuple of floats, optional
+        Factor for adjusting the parallactic angle threshold, expressed in
+        FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
+        frame). If a tuple of two floats is provided, they are used as the lower
+        and upper intervals for the threshold (grows linearly as a function of
+        the separation).
+    delta_sep : float or tuple of floats, optional
+        The threshold separation in terms of the mean FWHM (for ADI+mSDI data).
+        If a tuple of two values is provided, they are used as the lower and
+        upper intervals for the threshold (grows as a function of the
+        separation).
+    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
+        'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+        Switch for the SVD method/library to be used (only used if the algo
+        is set to pca_annular)
+
+        ``lapack``: uses the LAPACK linear algebra library through Numpy
+        and it is the most conventional way of computing the SVD
+        (deterministic result computed on CPU).
+
+        ``arpack``: uses the ARPACK Fortran libraries accessible through
+        Scipy (computation on CPU).
+
+        ``eigen``: computes the singular vectors through the
+        eigendecomposition of the covariance M.M' (computation on CPU).
+
+        ``randsvd``: uses the randomized_svd algorithm implemented in
+        Sklearn (computation on CPU).
+
+        ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+        the LAPACK version. `
+
+        `eigencupy``: offers the same method as with the ``eigen`` option
+        but on GPU (through Cupy).
+
+        ``randcupy``: is an adaptation of the randomized_svd algorithm,
+        where all the computations are done on a GPU (through Cupy). `
+
+        `pytorch``: uses the Pytorch library for GPU computation of the SVD.
+
+        ``eigenpytorch``: offers the same method as with the ``eigen``
+        option but on GPU (through Pytorch).
+
+        ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+        where all the linear algebra computations are done on a GPU
+        (through Pytorch).
+    init_svd: str, optional {'nnsvd','nnsvda','random'}
+        Method used to initialize the iterative procedure to find H and W
+        (only used if algo is set to nmf_annular).
+        'nndsvd': non-negative double SVD recommended for sparseness
+        'nndsvda': NNDSVD where zeros are filled with the average of cube; 
+        recommended when sparsity is not desired
+        'random': random initial non-negative matrix
+    nproc : None or int, optional 
+        Number of processes for parallel computing. If None the number of
+        processes will be set to (cpu_count()/2).
+    min_frames_lib : int, optional
+        Minimum number of frames in the PCA reference library.
+    max_frames_lib : int, optional
+        Maximum number of frames in the PCA reference library for annuli beyond
+        10*FWHM. The more distant/decorrelated frames are removed from the
+        library.
+    tol : float, optional
+        Stopping criterion for choosing the number of PCs when ``ncomp``
+        is None. Lower values will lead to smaller residuals and more PCs.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        ``temp-mean``: temporal px-wise mean is subtracted.
+
+        ``spat-mean``: spatial mean is subtracted.
+
+        ``temp-standard``: temporal mean centering plus scaling pixel values
+        to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES.
+
+        ``spat-standard``: spatial mean centering plus scaling pixel values
+        to unit variance.
+
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+        Sets the way of collapsing the frames for producing a final image.
+    ifs_collapse_range: str 'all' or tuple of 2 int
+        If a tuple, it should contain the first and last channels where the mSDI
+        residual channels will be collapsed (by default collapses all channels).
+    full_output: boolean, optional
+        Whether to return the final median combined image only or with other
+        intermediate arrays.
+    verbose : bool, optional
+        If True prints to stdout intermediate info.
+    weights: 1d numpy array or list, optional
+        Weights to be applied for a weighted mean. Need to be provided if
+        collapse mode is 'wmean'.
+    interp_order: int, opt
+        Interpolation order for throughput vector. Only used if thru_corr set 
+        to True.
+    rtol: float, optional
+        Relative tolerance threshold element-wise in the significant signal 
+        image compared to the same image obtained either 1 or 2 iterations
+        before, to consider convergence [more details in np.allclose].
+    atol: float, optional
+        Absolute tolerance threshold element-wise in the significant signal 
+        image compared to the same image obtained either 1 or 2 iterations
+        before, to consider convergence [more details in np.allclose].
+
+    Returns
+    -------
+    frame : numpy ndarray
+        2D array, median combination of the de-rotated/re-scaled residuals cube.
+        Always returned. This is the final image obtained at the last iteration.
+    it_cube: numpy ndarray
+        [full_output=True] 3D array with final image from each iteration.
+    pcs : numpy ndarray
+        [full_output=True] Principal components from the last iteration
+    residuals_cube : numpy ndarray
+        [full_output=True] Residuals cube from the last iteration.
+    residuals_cube_ : numpy ndarray
+        [full_output=True] Derotated residuals cube from the last iteration.
+    """
+
+    # if imlib=='vip-fft' and cube.shape[-1]%2: # convert to even-size for FFT-based rotation
+    #     cube = cube_shift(cube, 0.5, 0.5)
+    #     if cube.ndim == 3:
+    #         cube = cube[:, 1:, 1:]
+    #     elif cube.ndim == 4:
+    #         cube = cube[:, :, 1:, 1:]
+    # if cube_ref is not None:
+    #     if imlib == 'vip-fft' and cube_ref.shape[-1]%2:    
+    #         cube_ref = cube_shift(cube_ref, 0.5, 0.5)#, imlib='ndimage-fourier')        
+    #         cube_ref = cube_ref[:,1:,1:]    
+
+    if thru_corr and psfn is None:
+        msg = "psf should be provided for throughput correction or convolution"
+        raise TypeError(msg)
+    
+    if not buff:
+        buffer = 1
+    else:
+        buffer = max(int(buff*fwhm),1)
+        
+    if nproc is None:
+        nproc = int(cpu_count()/2)
+        
+    # select when to do mp depending on buffer
+    if buffer < nproc:
+        nproc_tmp = nproc
+        nproc = 1
+    else:
+        nproc_tmp=1
+    
+    if strategy == 'ADI':
+        ref_cube = None
+    elif strategy == 'RDI' or strategy == 'RADI' or strategy=='ARDI':
+        if cube_ref is None:
+            raise ValueError("cube_ref should be provided for RDI, RADI or ARDI")
+        ref_cube = cube_ref.copy() 
+        if strategy=='RDI':
+            delta_rot=cube.shape[1]*3/fwhm # forces doing RDI instead of ARDI
+    else:
+        raise ValueError("strategy not recognized: not ADI, RDI, RADI or ARDI")
+
+    if asizes is not None and n_segments is not None:
+        asz_def = asizes
+        nsegm_def = n_segments
+        n_frac = len(asizes)
+        if n_frac != len(n_segments):
+            raise ValueError("asizes and nsegments should have same lengths")
+    else:
+        msg = "asizes/nsegments not provided => auto-fractionation level {:.0f}"
+        print(msg.format(n_frac))
+        asz_def = [16,8,4,2,2,1,1]
+        nsegm_def = [1,1,1,1,3,3,6]
+        
+    # adapt lists based on cube xy sizes
+    cy, cx = frame_center(cube)
+    asz_max = int((cy-radius_int-buffer)/fwhm)
+    asizes = [a for a in asz_def if a < asz_max]
+    n_segments = [n for i, n in enumerate(nsegm_def) if asz_def[i]<asz_max]
+    if n_frac < 1 or n_frac > len(asizes):
+        msg="set n_frac to a value between 1 and {:.0f}"
+        raise ValueError(msg.format(len(asizes)))
+    elif n_frac < len(asizes):
+        asizes = asizes[:n_frac]
+        n_segments = n_segments[:n_frac]
+    
+    # convert asizes to FWHM
+    asizes = [int(a*fwhm) for a in asizes]
+    
+    # convert ncomp to a list of lists
+    if isinstance(ncomp,int):
+        ncomp = [[ncomp]]*len(asizes)
+    elif isinstance(ncomp,list):
+        if len(ncomp) != len(asizes):
+            raise ValueError("ncomp should have same length as asizes")
+        elif isinstance(ncomp[0],int):
+            ncomp = [[ncomp[i]] for i in range(asizes)]
+        elif not isinstance(ncomp[0],list):
+            msg = "if ncomp is a list, its elements must be int or list of int"
+            raise TypeError(msg)
+    else:
+        raise TypeError("ncomp can only be integer or list of int")
+    
+    # define empty lists
+    master_cube = []
+    master_sig_cube = []
+    master_it_cube = []
+    master_res_cube = []
+    master_res_cube_ = []
+    master_it_cube_nd = []
+    master_stim_cube = []
+    master_stim_ori_cube = []
+    master_stim_inv_cube = []
+    # 0. start the loop on the buffers (can be done in mp)
+    if nproc>1:
+        res = pool_map(nproc, _do_one_buff, iterable(range(buffer)), cube, 
+                       angle_list, ref_cube, algo, n_it, thr, thr_per_ann, 
+                       radius_int, fwhm, asizes, n_segments, n_neigh,
+                       False, None, n_br, interp_order, strategy, delta_rot, 
+                       ncomp, svd_mode, init_svd, min_frames_lib, 
+                       max_frames_lib, tol, scaling, imlib, interpolation, 
+                       collapse, atol, rtol, nproc_tmp, True, verbose, weights,
+                       smooth, **rot_options)
+        for bb in range(buffer):
+            master_cube.append(res[bb][0])
+            master_it_cube.append(res[bb][1])
+            master_sig_cube.append(res[bb][2])
+            master_res_cube.append(res[bb][3])
+            master_res_cube_.append(res[bb][4])
+            master_it_cube_nd.append(res[bb][6])
+            master_stim_cube.append(res[bb][7])
+            master_stim_ori_cube.append(res[bb][8])
+            master_stim_inv_cube.append(res[bb][9])
+
+    else:
+        for bb in range(buffer):
+            res = _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, 
+                               thr_per_ann, radius_int, fwhm, asizes, 
+                               n_segments, n_neigh, False, None,
+                               n_br, interp_order, strategy, delta_rot, ncomp, 
+                               svd_mode, init_svd, min_frames_lib,
+                               max_frames_lib, tol, scaling, imlib, 
+                               interpolation, collapse, atol, rtol, nproc_tmp, 
+                               True, verbose, weights, smooth, **rot_options)
+            master_cube.append(res[0])
+            master_it_cube.append(res[1])
+            master_sig_cube.append(res[2])
+            master_res_cube.append(res[3])
+            master_res_cube_.append(res[4])
+            master_it_cube_nd.append(res[6])
+            master_stim_cube.append(res[7])
+            master_stim_ori_cube.append(res[8])
+            master_stim_inv_cube.append(res[9])
+    master_cube = np.array(master_cube)
+    master_sig_cube = np.array(master_sig_cube)
+    master_it_cube = np.array(master_it_cube)
+    master_res_cube = np.array(master_res_cube)
+    master_res_cube_ = np.array(master_res_cube_)
+    master_it_cube_nd = np.array(master_it_cube_nd)
+    master_stim_cube = np.array(master_stim_cube)
+    master_stim_ori_cube = np.array(master_stim_ori_cube)
+    master_stim_inv_cube = np.array(master_stim_inv_cube)
+    
+    master_frame = np.nanmedian(master_cube, axis=0)
+    master_sig_cube = np.nanmedian(master_sig_cube, axis=0)
+    master_it_cube = np.nanmedian(master_it_cube, axis=0)
+    master_res_cube = np.nanmedian(master_res_cube, axis=0)
+    master_res_cube_ = np.nanmedian(master_res_cube_, axis=0)
+    master_it_cube_nd = np.nanmedian(master_it_cube_nd, axis=0)
+    master_stim_cube = np.nanmedian(master_stim_cube, axis=0)
+    master_stim_ori_cube = np.nanmedian(master_stim_ori_cube, axis=0)
+    master_stim_inv_cube = np.nanmedian(master_stim_inv_cube, axis=0)
+
+    # mask everything at the end
+    if radius_int:
+        master_frame = mask_circle(master_frame, radius_int, np.nan)
+        master_cube = mask_circle(master_cube, radius_int, np.nan)
+        master_it_cube = mask_circle(master_it_cube, radius_int, np.nan)
+        master_res_cube = mask_circle(master_res_cube, radius_int, np.nan)
+        master_res_cube_ = mask_circle(master_res_cube_, radius_int, np.nan)
+        master_it_cube_nd = mask_circle(master_it_cube_nd, radius_int, np.nan)
+    
+    if full_output:
+        return (master_frame, master_it_cube, master_sig_cube, master_res_cube, 
+                master_res_cube_, master_it_cube_nd, master_stim_cube, 
+                master_stim_ori_cube, master_stim_inv_cube, master_cube)
+    else:
+        return master_frame  
     
     
 def _do_one_buff(bb, cube, angle_list, ref_cube, algo, n_it, thr, thr_per_ann, 

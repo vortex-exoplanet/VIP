@@ -52,13 +52,15 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
 
     Parameters
     ----------
-    cube: numpy array
-        The original ADI cube.
-    p_true: tuple or numpy array with 3 elements
+    cube: 3d or 4d numpy array
+        The original ADI or ADI+IFS cube.
+    p_true: tuple or numpy array with 3 (or more) elements
         The radial separation, position angle (from x=0 axis) and flux
         associated to a given companion candidate for which the speckle
-        uncertainty is to be evaluated. The planet will first
-        be subtracted from the cube, then used for test injections.
+        uncertainty is to be evaluated. The planet will first be subtracted 
+        from the cube, then used for test injections. For a 4D input cube, the 
+        length of ``p_true`` should be equal to 2 (for r, theta) + the number 
+        of spectral channels (flux at each wavelength).
     angle_range: 1d numpy array
         Range of angles (counted from x=0 axis, counter-clockwise) at which the
         fake companions will be injected, in [0,360[.
@@ -159,7 +161,17 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         print('#######################################################')
         print('')
 
-    r_true, theta_true, f_true = p_true
+    if len(p_true) == 3:
+        r_true, theta_true, f_true = p_true
+        nch = 1 
+    elif len(p_true) > 3 and cube.ndim == 4 and cube.shape[0] == len(p_true)-2:
+        r_true = p_true[0]
+        theta_true = p_true[1]
+        f_true = np.array(p_true[2:])
+        nch = cube.shape[0]
+    else:
+        msg = "cube ndim ({}) and parameter length ({}) combination not accepted"
+        raise TypeError(msg.format(cube.ndim, len(p_true)))
 
     if indep_ap:
         angle_span = angle_range[-1]-angle_range[0]
@@ -180,7 +192,13 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     interpolation = algo_options.get('interpolation', 'lanczos4')
 
     # FIRST SUBTRACT THE TRUE COMPANION CANDIDATE
-    planet_parameter = np.array([[r_true, theta_true, f_true]])
+    if len(p_true) == 3:
+        planet_parameter = np.array([[r_true, theta_true, f_true]])
+    else:
+        planet_parameter = np.zeros([1,3,nch])
+        planet_parameter[0,0,:] = r_true
+        planet_parameter[0,1,:] = theta_true
+        planet_parameter[0,2] = f_true
     cube_pf = cube_planet_free(planet_parameter, cube, derot_angles, psfn,
                                imlib=imlib, interpolation=interpolation,
                                transmission=transmission)
@@ -223,17 +241,21 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         residuals = np.concatenate((residuals, residuals2))
 
     if verbose:
-        print("residuals (offsets): ", residuals[:, 3], residuals[:, 4],
-              residuals[:, 5])
+        print("residuals (offsets): ", residuals[:, nch+2], residuals[:, nch+3],
+              residuals[:, nch+4])
 
-    p_simplex = np.transpose(np.vstack((residuals[:, 0], residuals[:, 1],
-                                        residuals[:, 2])))
-    offset = np.transpose(np.vstack((residuals[:, 3], residuals[:, 4],
-                                     residuals[:, 5])))
+    p_simp_stack = [residuals[:, 0], residuals[:, 1]]
+    for ch in range(nch):
+        p_simp_stack.append(residuals[:, 2+ch])
+    p_simplex = np.transpose(np.vstack(p_simp_stack))
+    p_off_stack = [residuals[:, nch+2], residuals[:, nch+3]]
+    for ch in range(nch):
+        p_off_stack.append(residuals[:, nch+4+ch])
+    offset = np.transpose(np.vstack(p_off_stack))
     print(offset)
-    chi2 = residuals[:, 6]
-    nit = residuals[:, 7]
-    success = residuals[:, 8]
+    chi2 = residuals[:, int(2*nch)+4]
+    nit = residuals[:, int(2*nch)+5]
+    success = residuals[:, int(2*nch)+6]
 
     if save:
         speckles = {'r_true': r_true,
@@ -241,7 +263,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                     'f_true': f_true,
                     'r_simplex': residuals[:, 0],
                     'theta_simplex': residuals[:, 1],
-                    'f_simplex': residuals[:, 2],
+                    'f_simplex': residuals[:, 2:2+nch],
                     'offset': offset,
                     'chi2': chi2,
                     'nit': nit,
@@ -271,9 +293,16 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     if bins is None:
         bins = int(offset.shape[0]/10)
 
-    mean_dev, sp_unc = confidence(offset, cfd=68.27, bins=bins,
+    if cube.ndim == 3:
+        labels=['r', 'theta', 'f']
+    else:
+        labels=['r', 'theta']
+        for ch in range(nch):
+            labels.append('f{}'.append(ch))
+
+    mean_dev, sp_unc = confidence(offset, cfd=68.27, bins=bins, 
                                   gaussian_fit=True, verbose=True, save=False,
-                                  output_dir='', force=True)
+                                  output_dir='', labels=labels, force=True)
     if plot:
         plt.show()
 
@@ -301,8 +330,16 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
     ncomp = algo_options.get('ncomp', None)
     annulus_width = algo_options.get('annulus_width', int(fwhm))
 
-    res_simplex = firstguess_simplex((r_true, angle, f_true), cube_fc, angs, psfn,
-                                     ncomp, fwhm, annulus_width,
+    if cube_pf.ndim == 4:
+        p_ini = [r_true, angle]
+        for f in f_true:
+            p_ini.append(f)
+            p_ini = tuple(p_ini)
+    else:
+        p_ini = (r_true, angle, f_true)
+
+    res_simplex = firstguess_simplex(p_ini, cube_fc, angs, 
+                                     psfn, ncomp, fwhm, annulus_width,
                                      aperture_radius, cube_ref=cube_ref,
                                      fmerit=fmerit, algo=algo,
                                      algo_options=algo_options, imlib=imlib,
@@ -312,18 +349,51 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
                                      force_rPA=force_rPA,
                                      options=simplex_options,
                                      verbose=False)
-
-    if force_rPA:
-        simplex_res_f, = res_simplex.x
-        simplex_res_r, simplex_res_PA = r_true, angle
+    res = []
+    if cube_pf.ndim == 3:
+        if force_rPA:
+            simplex_res_f, = res_simplex.x
+            simplex_res_r, simplex_res_PA = r_true, angle
+        else:
+            simplex_res_r, simplex_res_PA, simplex_res_f = res_simplex.x
+        res.append(simplex_res_r)
+        res.append(simplex_res_PA)
+        res.append(simplex_res_f)
+        offset_r = simplex_res_r - r_true
+        offset_PA = simplex_res_PA - angle
+        offset_f = simplex_res_f - f_true
+        res.append(offset_r)
+        res.append(offset_PA)
+        res.append(offset_f)
     else:
-        simplex_res_r, simplex_res_PA, simplex_res_f = res_simplex.x
-    offset_r = simplex_res_r - r_true
-    offset_PA = simplex_res_PA - angle
-    offset_f = simplex_res_f - f_true
+        if force_rPA:
+            simplex_res_f = np.array(res_simplex.x)
+            simplex_res_r, simplex_res_PA = r_true, angle
+        else:
+            simplex_res = res_simplex.x  
+            simplex_res_r = simplex_res[0]
+            simplex_res_PA = simplex_res[1]
+            simplex_res_f = np.array(simplex_res[2:])
+        res.append(simplex_res_r)
+        res.append(simplex_res_PA)
+        offset_r = simplex_res_r - r_true
+        offset_PA = simplex_res_PA - angle
+        offset_f = simplex_res_f - f_true
+        for f in simplex_res_f:
+            res.append(f)
+        res.append(offset_r)
+        res.append(offset_PA)
+        for f in offset_f:
+            res.append(f)
+
     chi2 = res_simplex.fun
     nit = res_simplex.nit
     success = res_simplex.success
 
-    return (simplex_res_r, simplex_res_PA, simplex_res_f, offset_r, offset_PA,
-            offset_f, chi2, nit, success)
+    res.append(chi2)
+    res.append(nit)
+    res.append(success)
+    
+    res = tuple(res)
+
+    return res

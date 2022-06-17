@@ -558,11 +558,11 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
 
     if wedge is None:
         delta_theta = np.amax(angs)-np.amin(angs)
-        if delta_theta > 150:
-            delta_theta = 150  # if too much rotation, be less conservative
+        if delta_theta > 120:
+            delta_theta = 120  # if too much rotation, be less conservative
 
         theta_ini = (theta_guess+delta_theta) % 360
-        theta_fin = theta_ini+delta_theta
+        theta_fin = theta_ini+(360-2*delta_theta)
         wedge = (theta_ini, theta_fin)
     elif len(wedge) == 2:
         if wedge[0] > wedge[1]:

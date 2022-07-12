@@ -72,7 +72,7 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         data = np.array(data, dtype=precision)
 
         if header:
-            header = hdulist[0].header
+            header = hdulist[n].header
             if verbose:
                 print("Fits HDU-{} data and header successfully loaded. "
                       "Data shape: {}".format(n, data.shape))

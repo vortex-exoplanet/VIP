@@ -289,6 +289,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, sigma_clip=3, num_neig=5,
             frame = array_out[i]
             smoothed = median_filter(frame, size, mode='mirror')
             frame[np.where(final_bpm)] = smoothed[np.where(final_bpm)]
+            array_out[i] = frame
             if verbose:
                 count_bp += np.sum(final_bpm)
 

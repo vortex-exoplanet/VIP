@@ -28,7 +28,7 @@ from ..var import frame_center, dist
 
 
 def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
-                   algo, sigma=5, nbranch=1, theta=0, inner_rad=1,
+                   algo, sigma=5, nbranch=1, theta=0, inner_rad=1, fc_rad_sep=3,
                    wedge=(0, 360), fc_snr=100, student=True, transmission=None,
                    smooth=True, interp_order=2, plot=True, dpi=vip_figdpi,
                    debug=False, verbose=True, full_output=False, save_plot=None,
@@ -76,6 +76,12 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     inner_rad : int, optional
         Innermost radial distance to be considered in terms of FWHM. Should be
         >= 1.
+    fc_rad_sep : int optional
+        Radial separation between the injected companions (in each of the
+        patterns) in FWHM. Must be large enough to avoid overlapping. With the
+        maximum possible value, a single fake companion will be injected per
+        cube and algorithm post-processing (which greatly affects computation
+        time).
     wedge : tuple of floats, optional
         Initial and Final angles for using a wedge. For example (-90,90) only
         considers the right side of an image.
@@ -195,8 +201,8 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         verbose_thru = True
     res_throug = throughput(cube, angle_list, psf_template, fwhm, algo=algo,
                             nbranch=nbranch, theta=theta, inner_rad=inner_rad,
-                            wedge=wedge, fc_snr=fc_snr, full_output=True,
-                            verbose=verbose_thru, **algo_dict)
+                            fc_rad_sep=fc_rad_sep, wedge=wedge, fc_snr=fc_snr, 
+                            full_output=True, verbose=verbose_thru, **algo_dict)
     vector_radd = res_throug[3]
     if res_throug[0].shape[0] > 1:
         thruput_mean = np.nanmean(res_throug[0], axis=0)

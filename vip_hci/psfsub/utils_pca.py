@@ -709,7 +709,7 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
             msg = "If ncomp is a list, in the case of a 4d input cube without "
             msg += "input scale_list, it should have the same length as the "
             msg += "first dimension of the cube."
-            raise TypeError()
+            raise TypeError(msg)
         if collapse is None:
             raise ValueError("mode not supported. Provide value for collapse")
         ifs_res = np.zeros([nch, cube.shape[2], cube.shape[3]])

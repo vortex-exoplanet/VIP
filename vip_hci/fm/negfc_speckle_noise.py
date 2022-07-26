@@ -334,7 +334,7 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
         p_ini = [r_true, angle]
         for f in f_true:
             p_ini.append(f)
-            p_ini = tuple(p_ini)
+        p_ini = tuple(p_ini)
     else:
         p_ini = (r_true, angle, f_true)
 

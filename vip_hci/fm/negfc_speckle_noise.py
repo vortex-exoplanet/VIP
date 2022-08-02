@@ -280,7 +280,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     # Calculate 1 sigma of distribution of deviations
     print(offset.shape)
     if force_rPA:
-        offset = offset[:, 2]
+        offset = offset[:, 2:]
         print(offset.shape)
     if trim_outliers:
         std = np.std(offset, axis=0)

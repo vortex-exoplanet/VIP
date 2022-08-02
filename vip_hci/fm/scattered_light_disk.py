@@ -571,7 +571,7 @@ class DustEllipticalDistribution2PowerLaws:
             # maximum distance of integration, AU
             self.rmax = self.a*self.accuracy**(1/self.aout)
             if self.ain != self.aout:
-                self.apeak = self.a * np.power(-self.ain/self.aout,
+                self.apeak = self.a * np.power(-self.aout/self.ain,
                                                1./(2.*(self.ain-self.aout)))
                 Gamma_in = self.ain+self.beta
                 Gamma_out = self.aout+self.beta

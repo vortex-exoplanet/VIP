@@ -139,7 +139,7 @@ def frame_pad(array, fac, fillwith=0, loc=0, scale=1, keep_parity=True,
 
     Parameters
     ----------
-    array : numpy ndarray
+    array : 2D numpy ndarray
         Input frame.
     fac : float > 1 or tuple of 2 floats > 1.
         Ratio of the size between padded and input frame. If a tuple, 

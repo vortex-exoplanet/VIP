@@ -136,7 +136,7 @@ def cube_filter_highpass(array, mode='laplacian', verbose=True, **kwargs):
     elif array.ndim == 4:
         for i in Progressbar(range(array.shape[1]), verbose=verbose):
             for lam in range(array.shape[0]):
-                array_out[lam][i] = frame_filter_highpass(array[lam][i],
+                array_out[lam][i] = frame_filter_highpass(array[lam][i], 
                                                           mode=mode, **kwargs)
     else:
         raise TypeError('Input array is not a 3d or 4d cube')

@@ -556,6 +556,7 @@ def throughput(cube, angle_list, psf_template, fwhm, algo, nbranch=1, theta=0,
     parangles = angle_list
     imlib = algo_dict.get('imlib', 'vip-fft')
     interpolation = algo_dict.get('interpolation', 'lanczos4')
+    scaling = algo_dict.get('scaling', None)
 
     if array.ndim != 3 and array.ndim != 4:
         raise TypeError('The input array is not a 3d or 4d cube')
@@ -645,9 +646,13 @@ def throughput(cube, angle_list, psf_template, fwhm, algo, nbranch=1, theta=0,
                                                       separation=fwhm_med,
                                                       fwhm=fwhm_med,
                                                       wedge=wedge)
-    noise_noscal, _, _ = noise_per_annulus(frame_nofc_noscal,
-                                           separation=fwhm_med, fwhm=fwhm_med,
-                                           wedge=wedge)
+    if scaling is not None:
+        noise_noscal, _, _ = noise_per_annulus(frame_nofc_noscal,
+                                               separation=fwhm_med, 
+                                               fwhm=fwhm_med, wedge=wedge)
+    else:
+        noise_noscal = noise.copy()
+        
     vector_radd = vector_radd[inner_rad-1:]
     noise = noise[inner_rad-1:]
     res_level = res_level[inner_rad-1:]

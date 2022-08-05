@@ -422,8 +422,8 @@ def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
     Returns
     -------
     star_approx_idx: 2d numpy array
-        Array of y and x approx coordinates of the star in each channel of the 
-        cube.
+        Array of y and x approximate coordinates of the star in each channel of 
+        the cube. Dimensions are nz x 2.
     test_result: 1d numpy array
         [return_test=True] It also returns the test result vector.
     """

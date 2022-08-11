@@ -29,11 +29,11 @@ from ..var import frame_center, dist
 
 def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                    algo, sigma=5, nbranch=1, theta=0, inner_rad=1, fc_rad_sep=3,
-                   wedge=(0, 360), fc_snr=100, student=True, transmission=None,
-                   smooth=True, interp_order=2, plot=True, dpi=vip_figdpi,
-                   debug=False, verbose=True, full_output=False, save_plot=None,
-                   object_name=None, frame_size=None, fix_y_lim=(),
-                   figsize=vip_figsize, **algo_dict):
+                   noise_sep=1, wedge=(0, 360), fc_snr=100, student=True, 
+                   transmission=None, smooth=True, interp_order=2, plot=True, 
+                   dpi=vip_figdpi, debug=False, verbose=True, full_output=False, 
+                   save_plot=None, object_name=None, frame_size=None, 
+                   fix_y_lim=(), figsize=vip_figsize, **algo_dict):
     """ Computes the contrast curve at a given confidence (``sigma``) level for 
     an ADI cube or ADI+IFS cube. The contrast is calculated as
     sigma*noise/throughput. This implementation takes into account the small
@@ -82,6 +82,10 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         maximum possible value, a single fake companion will be injected per
         cube and algorithm post-processing (which greatly affects computation
         time).
+    noise_sep: int or None, optional
+        Radial sampling of the noise level. By default it is performed with a
+        radial step of 1 pixel. If set to None, it will be automatically set to 
+        be sampled every fwhm pixels radially.
     wedge : tuple of floats, optional
         Initial and Final angles for using a wedge. For example (-90,90) only
         considers the right side of an image.
@@ -193,7 +197,6 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         else:
             msg0 = 'ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {}'
             print(msg0.format(algo.__name__, fwhm_med, nbranch, sigma))
-        print(sep)
 
     # throughput
     verbose_thru = False
@@ -250,14 +253,19 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
             ntransmission[1] = np.mean(transmission[1:], axis=0)
             transmission = ntransmission.copy()
 
-    if interp_order is not None:
-        # noise measured in the empty frame with better sampling, every px
-        # starting from 1*FWHM
-        noise_samp, res_lev_samp, rad_samp = noise_per_annulus(frame_nofc,
-                                                               separation=1,
-                                                               fwhm=fwhm_med,
-                                                               init_rad=fwhm_med,
-                                                               wedge=wedge)
+    if interp_order is not None or noise_sep != None:
+        # noise measured in the empty frame with nosie_sep sampling
+        if noise_sep is None:
+            rad_samp = vector_radd
+            noise_samp = res_throug[1]
+            res_lev_samp = res_throug[2]
+        else:
+            # starting from 1*FWHM
+            noise_samp, res_lev_samp, rad_samp = noise_per_annulus(frame_nofc,
+                                                                   separation=noise_sep,
+                                                                   fwhm=fwhm_med,
+                                                                   init_rad=fwhm_med,
+                                                                   wedge=wedge)
         radmin = vector_radd.astype(int).min()
         cutin1 = np.where(rad_samp.astype(int) == radmin)[0][0]
         noise_samp = noise_samp[cutin1:]

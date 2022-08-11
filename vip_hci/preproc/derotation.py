@@ -134,6 +134,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
             _, med, stddev = sigma_clipped_stats(array_nan, sigma=1.5,
                                                  cenfunc=np.nanmedian,
                                                  stdfunc=np.nanstd)
+
         # pad and interpolate, about 1.2x original size
         if imlib == 'vip-fft':
             fac = 1.5
@@ -524,7 +525,7 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
 
 def rotate_fft(array, angle):
     """ Rotates a frame or 2D array using Fourier transform phases.
-    Rotation is equivalent to 3 consecutive linear shears, or 3 consecutive 
+    Rotation is equivalent to 3 consecutive linear shears, or 3 consecutive 1D
     FFT phase shifts. See details in [LAR97]_. 
 
     Parameters
@@ -590,7 +591,7 @@ def rotate_fft(array, angle):
     arr_y = arr_xy[0]-cy
     arr_x = arr_xy[1]-cx
 
-    # TODO: FFT padding not currently working properly. Only option '0' works.
+    # TODO: make FFT padding work for other option than '0'.
     s_x = _fft_shear(array_in, arr_x, a, ax=1, pad=0)
     s_xy = _fft_shear(s_x, arr_y, b, ax=0, pad=0)
     s_xyx = _fft_shear(s_xy, arr_x, a, ax=1, pad=0)

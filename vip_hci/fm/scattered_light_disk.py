@@ -587,6 +587,7 @@ class DustEllipticalDistribution2PowerLaws:
                 Gamma_out = self.aout+self.beta
                 self.apeak_surface_density = self.a * np.power(-Gamma_in/Gamma_out,
                                                                1./(2.*(Gamma_in-Gamma_out)))
+                # the above formula comes from Augereau et al. 1999.
             else:
                 self.apeak = self.a
                 self.apeak_surface_density = self.a
@@ -668,6 +669,11 @@ class DustEllipticalDistribution2PowerLaws:
                     a_plus_hwhm,
                     a_plus_hwhm -
                     a_minus_hwhm))
+            msg4 = 'Semi-major axis at maximum dust surface density: {0:.1f}au ' \
+                   '(same as ref sma if ain=-aout)'
+            print(
+                msg4.format(
+                    self.apeak_surface_density))
             print('Ellipse p parameter: {0:.1f}au'.format(self.p))
         print('Ellipticity: {0:.3f}'.format(self.e))
         print('Inner slope: {0:.2f}'.format(self.ain))

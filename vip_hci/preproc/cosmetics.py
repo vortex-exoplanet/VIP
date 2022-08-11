@@ -139,7 +139,7 @@ def frame_pad(array, fac, fillwith=0, loc=0, scale=1, keep_parity=True,
 
     Parameters
     ----------
-    array : numpy ndarray
+    array : 2D numpy ndarray
         Input frame.
     fac : float > 1 or tuple of 2 floats > 1.
         Ratio of the size between padded and input frame. If a tuple, 
@@ -422,8 +422,8 @@ def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
     Returns
     -------
     star_approx_idx: 2d numpy array
-        Array of y and x approx coordinates of the star in each channel of the 
-        cube.
+        Array of y and x approximate coordinates of the star in each channel of 
+        the cube. Dimensions are nz x 2.
     test_result: 1d numpy array
         [return_test=True] It also returns the test result vector.
     """

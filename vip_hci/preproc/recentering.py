@@ -1330,7 +1330,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         FWHM size in pixels, either one value (float) that will be the same for
         the whole cube, or an array of floats with the same dimension as the
         0th dim of array, containing the fwhm for each channel (e.g. in the case
-        of an ifs cube, where the fwhm varies with wavelength)
+        of an IFS cube, where the FWHM varies with wavelength).
     subi_size : int, optional
         Size of the square subimage sides in pixels.
     model : str, optional

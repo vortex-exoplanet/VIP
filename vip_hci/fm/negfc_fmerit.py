@@ -11,7 +11,8 @@ import numpy as np
 from hciplot import plot_frames
 from skimage.draw import disk
 from ..fm import cube_inject_companions
-from ..var import (frame_center, get_annular_wedge, cube_filter_highpass)
+from ..var import (frame_center, get_annular_wedge, cube_filter_highpass,
+                   get_annulus_segments)
 from ..psfsub import pca_annulus, pca_annular, pca
 from ..preproc import cube_crop_frames
 
@@ -357,7 +358,25 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
 
     indices = disk((posy, posx), radius=aperture_radius*fwhm)
     yy, xx = indices
-
+    
+    # also consider indices of the annulus for pca_annulus
+    if algo == pca_annulus:
+        fr_size = res.shape[-1]
+        inner_rad = r_guess-annulus_width/2
+        yy_a, xx_a = get_annulus_segments((fr_size, fr_size), inner_rad,
+                                          annulus_width, nsegm=1)[0]
+        ## only consider overlapping indices
+        yy_f = []
+        xx_f = []
+        for i in range(len(yy)):
+            ind_y = np.where(yy_a==yy[i])
+            for j in ind_y[0]:
+                if xx[i]==xx_a[j]:
+                    yy_f.append(yy[i])
+                    xx_f.append(xx[i])
+        yy = np.array(yy_f, dtype=int)
+        xx = np.array(xx_f, dtype=int)
+        
     if collapse is None:
         values = res[:, yy, xx].ravel()
     else:

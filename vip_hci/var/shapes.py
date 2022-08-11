@@ -37,7 +37,7 @@ from .coords import frame_center, dist
 from ..config.utils_conf import frame_or_shape
 
 
-def mask_circle(array, radius, fillwith=0, mode='in'):
+def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None):
     """
     Mask the pixels inside/outside of a centered circle with ``fillwith``.
 
@@ -55,6 +55,9 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
         When set to 'in' then the pixels inside the radius are set to
         ``fillwith``. When set to 'out' the pixels outside the circular mask
         are set to ``fillwith``.
+    cy, cx : floats, opt
+        XY coordinates of thenter of the mask. By default, it considers the 
+        center of the image.
 
     Returns
     -------
@@ -65,7 +68,8 @@ def mask_circle(array, radius, fillwith=0, mode='in'):
     if not isinstance(fillwith, (int, float)):
         raise ValueError('`fillwith` must be integer, float or np.nan')
 
-    cy, cx = frame_center(array)
+    if cy is None or cx is None:
+        cy, cx = frame_center(array)
 
     shape = (array.shape[-2], array.shape[-1])
     ind = disk((cy, cx), radius, shape=shape)

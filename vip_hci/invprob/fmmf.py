@@ -470,7 +470,7 @@ def _perturb(frame, model_matrix, numbasis, evals_matrix, evecs_matrix,
     """
     Function allowing the estimation of the PSF forward model when relying on
     KLIP for the computation of the speckle field. The code is based on the
-    PyKLIP library considering only the ADI case with a singlle number of
+    PyKLIP library considering only the ADI case with a single number of
     principal components considered. For more details about the code, consider
     the PyKLIP library or the original articles (Pueyo, L. 2016, ApJ, 824, 117
     or Ruffio, J.-B., Macintosh, B., Wang, J. J., & Pueyo, L. 2017, ApJ, 842)

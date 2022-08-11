@@ -208,7 +208,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         if len(mu_sigma) != 2:
             raise TypeError("If a tuple, mu_sigma must have 2 elements")
     elif mu_sigma is not None:
-        ncomp = algo_options.get('ncomp', None)
+        ncomp = algo_options.get('ncomp', 1)
         annulus_width = algo_options.get('annulus_width', int(fwhm))
         if weights is not None:
             if not len(weights) == cube.shape[0]:
@@ -280,7 +280,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     # Calculate 1 sigma of distribution of deviations
     print(offset.shape)
     if force_rPA:
-        offset = offset[:, 2]
+        offset = offset[:, 2:]
         print(offset.shape)
     if trim_outliers:
         std = np.std(offset, axis=0)
@@ -293,12 +293,16 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     if bins is None:
         bins = int(offset.shape[0]/10)
 
-    if cube.ndim == 3:
-        labels=['r', 'theta', 'f']
+    if force_rPA:
+        labels = []
     else:
-        labels=['r', 'theta']
+        labels = ['r', 'theta']
+
+    if cube.ndim == 3:
+        labels.append('f')
+    else:
         for ch in range(nch):
-            labels.append('f{}'.append(ch))
+            labels.append('f{}'.format(ch))
 
     mean_dev, sp_unc = confidence(offset, cfd=68.27, bins=bins, 
                                   gaussian_fit=True, verbose=True, save=False,
@@ -327,14 +331,14 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
                                      imlib=imlib, interpolation=interpolation,
                                      verbose=False)
 
-    ncomp = algo_options.get('ncomp', None)
+    ncomp = algo_options.get('ncomp', 1)
     annulus_width = algo_options.get('annulus_width', int(fwhm))
 
     if cube_pf.ndim == 4:
         p_ini = [r_true, angle]
         for f in f_true:
             p_ini.append(f)
-            p_ini = tuple(p_ini)
+        p_ini = tuple(p_ini)
     else:
         p_ini = (r_true, angle, f_true)
 

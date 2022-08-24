@@ -11,6 +11,7 @@ __all__ = ['collapse_psf_cube',
            'generate_cube_copies_with_injections',
            'frame_inject_companion']
 
+from multiprocessing import cpu_count
 import numpy as np
 from scipy import stats
 from scipy.interpolate import interp1d
@@ -109,7 +110,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
         by transmission (serves to check radial transmission)
 
     """
-
+    if nproc is None:
+        nproc = cpu_count()//2
+        
     def _cube_inject_adi(array, psf_template, angle_list, flevel, plsc,
                          rad_dists, n_branches=1, theta=0, imlib='vip-fft',
                          interpolation='lanczos4', transmission=None,
@@ -155,10 +158,10 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
                             fc_fr_rad[:, i] = interp_trans(d[i])*fc_fr[:, i]
 
                         # check the effect of transmission on a single PSF tmp
-                        # psf_trans = frame_rotate(fc_fr_rad[0],
-                        #                          -(ang*180/np.pi-angle_list[0]),
-                        #                          imlib=imlib_rot,
-                        #                          interpolation=interpolation)
+                        psf_trans = frame_rotate(fc_fr_rad[0],
+                                                  -(ang*180/np.pi-angle_list[0]),
+                                                  imlib=imlib_rot,
+                                                  interpolation=interpolation)
 
                         # shift_y = rad * np.sin(ang - np.deg2rad(angle_list[0]))
                         # shift_x = rad * np.cos(ang - np.deg2rad(angle_list[0]))
@@ -171,21 +174,21 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
                         fc_fr_rad = interp_trans(rad)*fc_fr
                 if nproc == 1:
                     for fr in range(nframes):
-                        array_out[fr] = _frame_shift_fcp(fc_fr_rad[fr], 
-                                                         array[fr], rad, ang, 
-                                                         angle_list[fr], 
-                                                         flevel[fr], size_fc, 
-                                                         imlib_sh, imlib_rot, 
-                                                         interpolation,
-                                                         transmission, 
-                                                         radial_gradient)
+                        array_out[fr] += _frame_shift_fcp(fc_fr_rad[fr], 
+                                                          array[fr], rad, ang, 
+                                                          angle_list[fr], 
+                                                          flevel[fr], size_fc, 
+                                                          imlib_sh, imlib_rot, 
+                                                          interpolation,
+                                                          transmission, 
+                                                          radial_gradient)
                 else:
                     res = pool_map(nproc, _frame_shift_fcp, iterable(fc_fr_rad),
                                    iterable(array), rad, ang, 
                                    iterable(angle_list), iterable(flevel), 
                                    size_fc, imlib_sh, imlib_rot, interpolation, 
                                    transmission, radial_gradient)
-                    array_out = np.array(res)
+                    array_out += np.array(res)
 
                 pos_y = rad * np.sin(ang) + ceny
                 pos_x = rad * np.cos(ang) + cenx
@@ -340,7 +343,7 @@ def _frame_shift_fcp(fc_fr_rad, array, rad, ang, derot_ang, flevel, size_fc,
         fc_fr_ang = frame_rotate(fc_fr_rad, -(ang*180/np.pi -derot_ang),
                                  imlib=imlib_rot, interpolation=interpolation)
     else:
-        fc_fr_ang = fc_fr_rad
+        fc_fr_ang = fc_fr_rad.copy()
 
     
     # sub-px shift (within PSF template frame)
@@ -370,7 +373,7 @@ def _frame_shift_fcp(fc_fr_rad, array, rad, ang, derot_ang, flevel, size_fc,
         p_xN -= xN-sizex
         xN = sizex
         
-    array_sh[y0:yN, x0:xN] += flevel*fc_fr_ang[p_y0:p_yN, p_x0:p_xN]
+    array_sh[y0:yN, x0:xN] = flevel*fc_fr_ang[p_y0:p_yN, p_x0:p_xN]
     
     return array_sh
 

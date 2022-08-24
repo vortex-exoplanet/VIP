@@ -256,8 +256,8 @@ def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
     return array_shifted
 
 
-def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
-               interpolation='lanczos4', border_mode='reflect'):
+def cube_shift(cube, shift_y, shift_x, imlib='vip-fft', 
+               interpolation='lanczos4', border_mode='reflect', nproc=1):
     """ Shifts the X-Y coordinates of a cube or 3D array by x and y values.
 
     Parameters
@@ -283,15 +283,21 @@ def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
     check_array(cube, dim=3)
 
     nfr = cube.shape[0]
-    cube_out = np.zeros_like(cube)
-    if isinstance(shift_x, (int, float)):
+    if np.isscalar(shift_x):
         shift_x = np.ones((nfr)) * shift_x
     if isinstance(shift_y, (int, float)):
         shift_y = np.ones((nfr)) * shift_y
 
-    for i in range(cube.shape[0]):
-        cube_out[i] = frame_shift(cube[i], shift_y[i], shift_x[i], imlib,
-                                  interpolation, border_mode)
+    if nproc == 1:
+        cube_out = np.zeros_like(cube)
+        for i in range(cube.shape[0]):
+            cube_out[i] = frame_shift(cube[i], shift_y[i], shift_x[i], imlib,
+                                      interpolation, border_mode)
+    elif nproc > 1:
+        res = pool_map(nproc, frame_shift, iterable(cube), iterable(shift_y),
+                       iterable(shift_x), imlib, interpolation, border_mode)
+        cube_out = np.array(res)
+
     return cube_out
 
 

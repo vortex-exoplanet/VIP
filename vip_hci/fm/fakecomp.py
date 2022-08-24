@@ -30,10 +30,10 @@ from ..config.utils_conf import print_precision, check_array, pool_map, iterable
 
 
 def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
-                           plsc=None, n_branches=1, theta=0, nproc=1, 
-                           imlib='vip-fft', interpolation='lanczos4', 
-                           transmission=None, radial_gradient=False, 
-                           full_output=False, verbose=False):
+                           plsc=None, n_branches=1, theta=0, imlib='vip-fft',
+                           interpolation='lanczos4', transmission=None, 
+                           radial_gradient=False, full_output=False, 
+                           verbose=False, nproc=1):
     """ Injects fake companions in branches, at given radial distances.
 
     Parameters
@@ -72,9 +72,6 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
         Angle in degrees for rotating the position of the first branch that by
         default is located at zero degrees. Theta counts counterclockwise from
         the positive x axis.
-    nproc: int or None, optional
-        Number of CPUs to use for multiprocessing. If None, will be 
-        automatically set to half the number of available CPUs.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
@@ -96,6 +93,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
         to the new array.
     verbose : bool, optional
         If True prints out additional information.
+    nproc: int or None, optional
+        Number of CPUs to use for multiprocessing. If None, will be 
+        automatically set to half the number of available CPUs.
 
     Returns
     -------

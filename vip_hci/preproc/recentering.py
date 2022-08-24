@@ -273,6 +273,9 @@ def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     border_mode : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    nproc: int or None, optional
+        Number of CPUs to use for multiprocessing. If None, will be 
+        automatically set to half the number of available CPUs.
 
     Returns
     -------
@@ -284,10 +287,13 @@ def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
 
     nfr = cube.shape[0]
     if np.isscalar(shift_x):
-        shift_x = np.ones((nfr)) * shift_x
-    if isinstance(shift_y, (int, float)):
-        shift_y = np.ones((nfr)) * shift_y
+        shift_x = np.ones([nfr]) * shift_x
+    if np.isscalar(shift_y):
+        shift_y = np.ones([nfr]) * shift_y
 
+    if nproc is None:
+        nproc = cpu_count()//2
+        
     if nproc == 1:
         cube_out = np.zeros_like(cube)
         for i in range(cube.shape[0]):

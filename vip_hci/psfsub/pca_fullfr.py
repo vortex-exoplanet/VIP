@@ -1071,7 +1071,7 @@ def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px, svd_mode,
         vectors of the input matrix, as returned by ``svd/svd_wrapper()``
     """
     _, y, x = cube.shape
-    if isinstance(ncomp, int):
+    if isinstance(ncomp, (int, np.integer)):
         # if cube_sig is not None:
         #     cube_emp = cube-cube_sig
         # else:
@@ -1124,7 +1124,7 @@ def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px, svd_mode,
             else:
                 return residuals_res
 
-    elif isinstance(ncomp, float):
+    elif isinstance(ncomp, (float, np.float)):
         if not 1 > ncomp > 0:
             raise ValueError("when `ncomp` is float, it must lie in the "
                              "interval (0,1]")
@@ -1148,3 +1148,5 @@ def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px, svd_mode,
             return residuals_res, reconstructed, V
         else:
             return residuals_res
+    else:
+        raise TypeError("Type not recognized for ncomp, should be int or float")

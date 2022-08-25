@@ -534,8 +534,8 @@ def throughput(cube, angle_list, psf_template, fwhm, algo, nbranch=1, theta=0,
     verbose : bool, optional
         If True prints out timing and information.
     **algo_dict
-        Parameters of the post-processing algorithms must be passed here,
-        including imlib and interpolation.
+        Parameters of the post-processing algorithms can be passed here,
+        including e.g. ``imlib``, ``interpolation`` or ``nproc``.
 
     Returns
     -------
@@ -562,6 +562,7 @@ def throughput(cube, angle_list, psf_template, fwhm, algo, nbranch=1, theta=0,
     """
     array = cube
     parangles = angle_list
+    nproc = algo_dict.get('nproc', 1)
     imlib = algo_dict.get('imlib', 'vip-fft')
     interpolation = algo_dict.get('interpolation', 'lanczos4')
     scaling = algo_dict.get('scaling', None)
@@ -706,8 +707,9 @@ def throughput(cube, angle_list, psf_template, fwhm, algo, nbranch=1, theta=0,
                                                      rad_dists=[radvec[i]],
                                                      theta=br*angle_branch +
                                                            theta,
-                                                     imlib=imlib, verbose=False,
-                                                     interpolation=interpolation)
+                                                     nproc=nproc, imlib=imlib, 
+                                                     interpolation=interpolation,
+                                                     verbose=False)
                     y = cy + radvec[i] * np.sin(np.deg2rad(br * angle_branch +
                                                            theta))
                     x = cx + radvec[i] * np.cos(np.deg2rad(br * angle_branch +

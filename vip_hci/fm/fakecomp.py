@@ -11,6 +11,7 @@ __all__ = ['collapse_psf_cube',
            'generate_cube_copies_with_injections',
            'frame_inject_companion']
 
+from multiprocessing import cpu_count
 import numpy as np
 from scipy import stats
 from scipy.interpolate import interp1d
@@ -26,14 +27,14 @@ from ..preproc import (cube_crop_frames, frame_shift, frame_crop, cube_shift,
                        frame_rotate)
 from ..var import (frame_center, fit_2dgaussian, fit_2dairydisk, fit_2dmoffat,
                    get_circle, get_annulus_segments, dist_matrix)
-from ..config.utils_conf import print_precision, check_array
+from ..config.utils_conf import print_precision, check_array, pool_map, iterable
 
 
 def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
                            plsc=None, n_branches=1, theta=0, imlib='vip-fft',
-                           interpolation='lanczos4', transmission=None,
-                           radial_gradient=False, full_output=False,
-                           verbose=False):
+                           interpolation='lanczos4', transmission=None, 
+                           radial_gradient=False, full_output=False, 
+                           verbose=False, nproc=1):
     """ Injects fake companions in branches, at given radial distances.
 
     Parameters
@@ -93,6 +94,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
         to the new array.
     verbose : bool, optional
         If True prints out additional information.
+    nproc: int or None, optional
+        Number of CPUs to use for multiprocessing. If None, will be 
+        automatically set to half the number of available CPUs.
 
     Returns
     -------
@@ -105,24 +109,26 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
         [full_output & transmission != None] Array with injected psf affected
         by transmission (serves to check radial transmission)
 
-
     """
+    if nproc is None:
+        nproc = cpu_count()//2
+        
     def _cube_inject_adi(array, psf_template, angle_list, flevel, plsc,
                          rad_dists, n_branches=1, theta=0, imlib='vip-fft',
                          interpolation='lanczos4', transmission=None,
                          radial_gradient=False, verbose=False):
-
+        if np.isscalar(flevel):
+            flevel = np.ones_like(angle_list)*flevel
+            
         if transmission is not None:
             # last radial separation should be beyond the edge of frame
             interp_trans = interp1d(transmission[0], transmission[1])
 
-        positions = []
-        w = int(np.ceil(size_fc/2))
-        if size_fc % 2:  # new convention
-            w -= 1
-        sty = int(ceny) - w
-        stx = int(cenx) - w
+        ceny, cenx = frame_center(array[0])
+        nframes = array.shape[-3]
+        size_fc = psf_template.shape[-1]
 
+        positions = []
         # fake companion cube
         fc_fr = np.zeros([nframes, size_fc, size_fc])
         if psf_template.ndim == 2:
@@ -153,65 +159,36 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
 
                         # check the effect of transmission on a single PSF tmp
                         psf_trans = frame_rotate(fc_fr_rad[0],
-                                                 -(ang*180/np.pi-angle_list[0]),
-                                                 imlib=imlib_rot,
-                                                 interpolation=interpolation)
+                                                  -(ang*180/np.pi-angle_list[0]),
+                                                  imlib=imlib_rot,
+                                                  interpolation=interpolation)
 
-                        shift_y = rad * np.sin(ang - np.deg2rad(angle_list[0]))
-                        shift_x = rad * np.cos(ang - np.deg2rad(angle_list[0]))
-                        dsy = shift_y-int(shift_y)
-                        dsx = shift_x-int(shift_x)
-                        fc_fr_ang = frame_shift(psf_trans, dsy, dsx, imlib_sh,
-                                                interpolation,
-                                                border_mode='constant')
+                        # shift_y = rad * np.sin(ang - np.deg2rad(angle_list[0]))
+                        # shift_x = rad * np.cos(ang - np.deg2rad(angle_list[0]))
+                        # dsy = shift_y-int(shift_y)
+                        # dsx = shift_x-int(shift_x)
+                        # fc_fr_ang = frame_shift(psf_trans, dsy, dsx, imlib_sh,
+                        #                         interpolation,
+                        #                         border_mode='constant')
                     else:
                         fc_fr_rad = interp_trans(rad)*fc_fr
-                for fr in range(nframes):
-                    shift_y = rad * np.sin(ang - np.deg2rad(angle_list[fr]))
-                    shift_x = rad * np.cos(ang - np.deg2rad(angle_list[fr]))
-                    if transmission is not None and radial_gradient:
-                        fc_fr_ang = frame_rotate(fc_fr_rad[fr],
-                                                 -(ang*180/np.pi -
-                                                   angle_list[fr]),
-                                                 imlib=imlib_rot,
-                                                 interpolation=interpolation)
-                    else:
-                        fc_fr_ang = fc_fr_rad[fr]
-
-                    if np.isscalar(flevel):
-                        fac = flevel
-                    else:
-                        fac = flevel[fr]
-
-                    # sub-px shift (within PSF template frame)
-                    dsy = shift_y-int(shift_y)
-                    dsx = shift_x-int(shift_x)
-                    fc_fr_ang = frame_shift(fc_fr_ang, dsy, dsx, imlib_sh,
-                                            interpolation,
-                                            border_mode='constant')
-                    # integer shift (in final cube)
-                    y0 = sty+int(shift_y)
-                    x0 = stx+int(shift_x)
-                    yN = y0+size_fc
-                    xN = x0+size_fc
-                    p_y0 = 0
-                    p_x0 = 0
-                    p_yN = size_fc
-                    p_xN = size_fc
-                    if y0 < 0:
-                        p_y0 = -y0
-                        y0 = 0
-                    if x0 < 0:
-                        p_x0 = -x0
-                        x0 = 0
-                    if yN > sizey:
-                        p_yN -= yN-sizey
-                        yN = sizey
-                    if xN > sizex:
-                        p_xN -= xN-sizex
-                        xN = sizex
-                    array_out[fr, y0:yN, x0:xN] += fac*fc_fr_ang[p_y0:p_yN,
-                                                                 p_x0:p_xN]
+                if nproc == 1:
+                    for fr in range(nframes):
+                        array_out[fr] += _frame_shift_fcp(fc_fr_rad[fr], 
+                                                          array[fr], rad, ang, 
+                                                          angle_list[fr], 
+                                                          flevel[fr], size_fc, 
+                                                          imlib_sh, imlib_rot, 
+                                                          interpolation,
+                                                          transmission, 
+                                                          radial_gradient)
+                else:
+                    res = pool_map(nproc, _frame_shift_fcp, iterable(fc_fr_rad),
+                                   iterable(array), rad, ang, 
+                                   iterable(angle_list), iterable(flevel), 
+                                   size_fc, imlib_sh, imlib_rot, interpolation, 
+                                   transmission, radial_gradient)
+                    array_out += np.array(res)
 
                 pos_y = rad * np.sin(ang) + ceny
                 pos_x = rad * np.cos(ang) + cenx
@@ -230,11 +207,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
     check_array(psf_template, dim=(2, 3), msg="psf_template")
 
     nframes = array.shape[-3]
-    sizey = array.shape[-2]
-    sizex = array.shape[-1]
-    ceny, cenx = frame_center(array)
 
-    size_fc = psf_template.shape[-1]
     pceny, pcenx = frame_center(psf_template)
 
     if array.ndim == 4 and psf_template.ndim != 3:
@@ -343,6 +316,66 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
             return array_out, positions
     else:
         return array_out
+
+
+def _frame_shift_fcp(fc_fr_rad, array, rad, ang, derot_ang, flevel, size_fc, 
+                     imlib_sh, imlib_rot, interpolation, transmission, 
+                     radial_gradient):
+    """
+    Specific cube shift algorithm for injection of fake companions
+    """
+    
+    ceny, cenx = frame_center(array)
+    sizey = array.shape[-2]
+    sizex = array.shape[-1]
+    
+    array_sh = np.zeros_like(array)
+    
+    w = int(np.ceil(size_fc/2))
+    if size_fc % 2:  # new convention
+        w -= 1
+    sty = int(ceny) - w
+    stx = int(cenx) - w
+    
+    shift_y = rad * np.sin(ang - np.deg2rad(derot_ang))
+    shift_x = rad * np.cos(ang - np.deg2rad(derot_ang))
+    if transmission is not None and radial_gradient:
+        fc_fr_ang = frame_rotate(fc_fr_rad, -(ang*180/np.pi -derot_ang),
+                                 imlib=imlib_rot, interpolation=interpolation)
+    else:
+        fc_fr_ang = fc_fr_rad.copy()
+
+    
+    # sub-px shift (within PSF template frame)
+    dsy = shift_y-int(shift_y)
+    dsx = shift_x-int(shift_x)
+    fc_fr_ang = frame_shift(fc_fr_ang, dsy, dsx, imlib_sh, interpolation,
+                            border_mode='constant')
+    # integer shift (in final cube)
+    y0 = sty+int(shift_y)
+    x0 = stx+int(shift_x)
+    yN = y0+size_fc
+    xN = x0+size_fc
+    p_y0 = 0
+    p_x0 = 0
+    p_yN = size_fc
+    p_xN = size_fc
+    if y0 < 0:
+        p_y0 = -y0
+        y0 = 0
+    if x0 < 0:
+        p_x0 = -x0
+        x0 = 0
+    if yN > sizey:
+        p_yN -= yN-sizey
+        yN = sizey
+    if xN > sizex:
+        p_xN -= xN-sizex
+        xN = sizex
+        
+    array_sh[y0:yN, x0:xN] = flevel*fc_fr_ang[p_y0:p_yN, p_x0:p_xN]
+    
+    return array_sh
 
 
 def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,

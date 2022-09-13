@@ -1618,7 +1618,7 @@ def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, verbose=True,
     it = 0
     Eg = tol + 1
 
-    while it < nit and Eg > tol:
+    for it in Progressbar(range(nit), desc="iterative bad pixel correction"):
         # 1. select line as max(G_i) and infer conjugate coordinates
         ind = np.unravel_index(np.argmax(np.abs(G_i.real[:, 0: nx // 2])),
                                (ny, nx // 2))
@@ -1668,7 +1668,8 @@ def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, verbose=True,
         # 5. Calculate new error - to check if still larger than tolerance
         Eg = np.sum(np.power(np.abs(G_i.flatten()), 2))/npix
 
-        it += 1
+        if Eg < tol:
+            break
         
     if verbose:
         msg = "FFT-interpolation terminated after {} iterations (Eg={})"

@@ -1563,8 +1563,8 @@ def correct_ann_outliers(obj_tmp, ann_width, sig, med_neig, std_neig, cy, cx,
                                  half_res_y=False)
 
 
-def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, verbose=True, 
-                         full_output=False):
+def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, pad_fac=2, 
+                         verbose=True, full_output=False):
     """
     Function to interpolate bad pixels with the FFT-based algorithm in [AAC01]_.
     
@@ -1574,13 +1574,16 @@ def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, verbose=True,
         Input image.
     bpm_mask : 2D ndarray
         Bad pixel map.
-    nit : int
+    nit : int, opt
         Number of iterations.
-    tol: float
+    tol: float, opt
         Tolerance in terms of E_g (see [AAC01]_). The iterative process is 
         stopped if the error E_g gets lower than this tolerance.
+    pad_fac: int or float, opt
+        Padding factor before calculating 2D-FFT.
     verbose: bool
-        Whether to print additional information during processing
+        Whether to print additional information during processing, incl. 
+        progress bar.
     full_output: bool
         Whether to also return the reconstructed estimate f_hat of the input 
         array. 
@@ -1601,13 +1604,19 @@ def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, verbose=True,
 
     # Pad zeros for better results
     ini_y, ini_x = array.shape
-    pad_fac = (int(2*ini_x/ini_y), 2)
+    pad_fac = (int(pad_fac*ini_x/ini_y), pad_fac)
     g = frame_pad(array, pad_fac, keep_parity=False, fillwith=0)
     w = frame_pad(1-bpm_mask, pad_fac, keep_parity=False, fillwith=0)
 
     # Following AAC01 notations:
     g *= w
+    if verbose:
+        print("Calculating 1/4 2D FFT...")
+        start=time_ini()
     G_i = np.fft.fft2(g)
+    if verbose:
+        print("Calculating 2/4 2D FFT...")
+        timing(start)
     W = np.fft.fft2(w)
 
     # Initialisation
@@ -1675,6 +1684,9 @@ def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, verbose=True,
         msg = "FFT-interpolation terminated after {} iterations (Eg={})"
         print(msg.format(it, Eg))
         
+    if verbose:
+        print("Calculating 3/4 2D FFT...")    
+        timing(start)
     bpix_corr = g + np.fft.ifft2(F_est).real * (1-w)
 
     # crop zeros to return to initial size
@@ -1688,6 +1700,9 @@ def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, verbose=True,
     bpix_corr = bpix_corr[y0:y1, x0:x1]
     
     # Calculate reconstructed image
+    if verbose:
+        print("Calculating 4/4 2D FFT...") 
+        timing(start)
     f_est = np.fft.ifft2(F_est).real 
     f_est = f_est[y0:y1, x0:x1]
 

@@ -597,7 +597,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         estimate the FWHM in 2D or 3D PSF arrays.
     size : int or None, optional
         If int it will correspond to the size of the centered sub-image to be
-        cropped form the PSF array. The PSF is assumed to be rougly centered wrt
+        cropped form the PSF array. The PSF is assumed to be roughly centered wrt
         the array.
     threshold : None or float, optional
         Sets to zero values smaller than threshold (in the normalized image).
@@ -612,13 +612,13 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
-    force_odd : str, optional
+    force_odd : bool, optional
         If True the resulting array will have odd size (and the PSF will be
         placed at its center). If False, and the frame size is even, then the
         PSF will be put at the center of an even-sized frame.
     correct_outliers: bool, optional
         For an input 3D cube (IFS) of PSFs, if the 2D fit fails for one of the
-        channels, whether to interpolate fwhm value from surrounding channels,
+        channels, whether to interpolate FWHM value from surrounding channels,
         and recalculate flux and normalization.
     full_output : bool, optional
         If True the flux in a FWHM aperture is returned along with the

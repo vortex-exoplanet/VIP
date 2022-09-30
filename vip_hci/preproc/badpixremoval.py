@@ -1611,14 +1611,10 @@ def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, pad_fac=2,
     # Following AAC01 notations:
     g *= w
     if verbose:
-        print("Calculating 1/4 2D FFT...")
         start=time_ini()
     G_i = np.fft.fft2(g)
-    if verbose:
-        print("Calculating 2/4 2D FFT...")
-        timing(start)
     W = np.fft.fft2(w)
-
+        
     # Initialisation
     dims = g.shape
     ny, nx = dims
@@ -1684,8 +1680,7 @@ def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, pad_fac=2,
         msg = "FFT-interpolation terminated after {} iterations (Eg={})"
         print(msg.format(it, Eg))
         
-    if verbose:
-        print("Calculating 3/4 2D FFT...")    
+    if verbose:  
         timing(start)
     bpix_corr = g + np.fft.ifft2(F_est).real * (1-w)
 
@@ -1700,9 +1695,6 @@ def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, pad_fac=2,
     bpix_corr = bpix_corr[y0:y1, x0:x1]
     
     # Calculate reconstructed image
-    if verbose:
-        print("Calculating 4/4 2D FFT...") 
-        timing(start)
     f_est = np.fft.ifft2(F_est).real 
     f_est = f_est[y0:y1, x0:x1]
 

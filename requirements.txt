@@ -3,7 +3,7 @@ scipy
 astropy
 photutils
 scikit-learn
-scikit-image<=0.18.3
+scikit-image>0.17.0, <=0.18.3
 emcee==2.2.1
 nestle
 corner

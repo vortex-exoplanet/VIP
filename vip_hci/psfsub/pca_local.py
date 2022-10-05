@@ -462,7 +462,7 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
 
     if isinstance(delta_rot, tuple):
         delta_rot = np.linspace(delta_rot[0], delta_rot[1], num=n_annuli)
-    elif isinstance(delta_rot, (int, float)):
+    elif np.isscalar(delta_rot):
         delta_rot = [delta_rot] * n_annuli
 
     if isinstance(n_segments, int):

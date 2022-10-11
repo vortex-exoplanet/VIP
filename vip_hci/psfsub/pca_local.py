@@ -265,7 +265,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                                    svd_mode, nproc, min_frames_lib,
                                    max_frames_lib, tol, scaling, imlib,
                                    interpolation, collapse, True, verbose,
-                                   cube_ref_tmp, weights, cube_sig,
+                                   cube_ref_tmp, theta_init, weights, cube_sig,
                                    **rot_options)
             cube_out.append(res_pca[0])
             cube_der.append(res_pca[1])
@@ -439,7 +439,6 @@ def _pca_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
                         y_in=y_in, x_in=x_in, imlib=imlib,
                         interpolation=interpolation, collapse=collapse)
     return frame_desc
-
 
 def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
                  delta_rot=1, ncomp=1, svd_mode='lapack', nproc=None,

@@ -11,11 +11,12 @@ __all__ = ['frame_histo_stats',
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from ..var import frame_center
+from ..var import frame_center, mask_circle
 from ..config.utils_conf import check_array, vip_figsize
 
 
-def frame_average_radprofile(frame, sep=1, init_rad=None, plot=True):
+def frame_average_radprofile(frame, sep=1, init_rad=None, subtr_profile=False,
+                             plot=True):
     """ Calculates the average radial profile of an image.
 
     Parameters
@@ -24,13 +25,21 @@ def frame_average_radprofile(frame, sep=1, init_rad=None, plot=True):
         Input image or 2d array.
     sep : int, optional
         The average radial profile is recorded every ``sep`` pixels.
+    init_rad : int, optional
+        Initial radius in pixels from the center of the image to begin
+        calculating the average radial profile.
+    subtr_profile : boolean, optional
+        If True, the average radial profile is subtracted from the frame and
+        returned as a second output. Inner mask is applied if init_rad is provided.
     plot : bool, optional
-        If True the profile is plotted.
+        If True, the profile is plotted.
 
     Returns
     -------
     df : dataframe
         Pandas dataframe with the radial profile and distances.
+    subtr_frame : numpy ndarray, 2d
+        [subtr_profile=True] Frame with the radial profile subtracted.
 
     Note
     ----
@@ -44,7 +53,7 @@ def frame_average_radprofile(frame, sep=1, init_rad=None, plot=True):
 
     if init_rad is None:
         init_rad = 1
-    x, y = np.indices((frame.shape))
+    x, y = np.indices(frame.shape)
     r = np.sqrt((x - cx) ** 2 + (y - cy) ** 2)
     r = r.astype(int)
     tbin = np.bincount(r.ravel(), frame.ravel())
@@ -66,7 +75,14 @@ def frame_average_radprofile(frame, sep=1, init_rad=None, plot=True):
         plt.minorticks_on()
         plt.xlim(0)
 
-    return df
+    if subtr_profile:
+        radprofile_img = radprofile[r]
+        subtr_frame = frame - radprofile_img
+        if init_rad > 1:
+            subtr_frame = mask_circle(subtr_frame, radius=init_rad)
+        return df, subtr_frame
+    else:
+        return df
 
 
 def frame_histo_stats(image_array, plot=True):

@@ -1250,7 +1250,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         x[:] += cx - x1
         y[:] += cy - y1
         array_rec = cube_shift(array, shift_y=y, shift_x=x, imlib=imlib,
-                               interpolation=interpolation)
+                               interpolation=interpolation, nproc=nproc)
         if verbose:
             msg = "Shift for first frame X,Y=({:.3f}, {:.3f})"
             print(msg.format(x[0], y[0]))
@@ -1663,7 +1663,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                fit_type='gaus', negative=True, crop=True,
                                subframesize=21, mask=None, imlib='vip-fft',
                                interpolation='lanczos4', border_mode='reflect',
-                               plot=True, full_output=False):
+                               plot=True, full_output=False, nproc=1):
     """ Registers frames based on the median speckle pattern. Optionally centers
     based on the position of the vortex null in the median frame. Images are
     filtered to isolate speckle spatial frequencies.
@@ -1861,7 +1861,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                            subi_size=None, full_output=True,
                                            verbose=False, plot=False,
                                            mask=mask_tmp, imlib=imlib,
-                                           interpolation=interpolation)
+                                           interpolation=interpolation, nproc=nproc)
         _, y_shift, x_shift = res
         sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
         print('Square sum of shift vecs: ' + str(sqsum_shifts))
@@ -1930,7 +1930,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
 def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15,
                    hole_rad=0.5, sampl_cen=0.1, sampl_rad=None, ann_width=0.5,
                    unc_in=2.):
-    """Finds the center the center of a donut-shape signal (e.g. a coronagraphic
+    """Finds the center of a donut-shape signal (e.g. a coronagraphic
     PSF) by fitting an annulus, using a grid of positions for the center and
     radius of the annulus. The best fit is found by maximizing the mean flux
     measured in the annular mask. Requires the image to be already roughly

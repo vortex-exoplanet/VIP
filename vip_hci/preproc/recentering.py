@@ -257,7 +257,7 @@ def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
 
 
 def cube_shift(cube, shift_y, shift_x, imlib='vip-fft', 
-               interpolation='lanczos4', border_mode='reflect', nproc=1):
+               interpolation='lanczos4', border_mode='reflect', nproc=None):
     """ Shifts the X-Y coordinates of a cube or 3D array by x and y values.
 
     Parameters
@@ -1094,7 +1094,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  fwhm=4, subi_size=None, upsample_factor=100,
                                  imlib='vip-fft', interpolation='lanczos4',
                                  mask=None, border_mode='reflect',
-                                 full_output=False, verbose=True, nproc=1,
+                                 full_output=False, verbose=True, nproc=None,
                                  save_shifts=False, debug=False, plot=True):
     """ Recenters a cube of frames using the DFT upsampling method as proposed 
     in [GUI08]_ and implemented in the ``register_translation`` function from 
@@ -1218,6 +1218,9 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
 
     # Finding the shifts with DFT upsampling of each frame wrt the first
 
+    if nproc is None:
+        nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
+
     if nproc == 1:
         for i in Progressbar(range(1, n_frames),
                              desc="frames", verbose=verbose):
@@ -1250,7 +1253,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         x[:] += cx - x1
         y[:] += cy - y1
         array_rec = cube_shift(array, shift_y=y, shift_x=x, imlib=imlib,
-                               interpolation=interpolation)
+                               interpolation=interpolation, nproc=nproc)
         if verbose:
             msg = "Shift for first frame X,Y=({:.3f}, {:.3f})"
             print(msg.format(x[0], y[0]))
@@ -1317,7 +1320,7 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
 
 
 def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
-                        nproc=1, imlib='vip-fft', interpolation='lanczos4',
+                        nproc=None, imlib='vip-fft', interpolation='lanczos4',
                         offset=None, negative=False, threshold=False,
                         sigfactor=2, fix_neg=False, params_2g=None,
                         border_mode='reflect', save_shifts=False,
@@ -1663,7 +1666,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                fit_type='gaus', negative=True, crop=True,
                                subframesize=21, mask=None, imlib='vip-fft',
                                interpolation='lanczos4', border_mode='reflect',
-                               plot=True, full_output=False):
+                               plot=True, full_output=False, nproc=None):
     """ Registers frames based on the median speckle pattern. Optionally centers
     based on the position of the vortex null in the median frame. Images are
     filtered to isolate speckle spatial frequencies.
@@ -1722,6 +1725,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     full_output: bool, optional
         Whether to return more variables, useful for debugging.
 
+
     Returns
     -------
     cube_reg_sci : numpy 3d ndarray
@@ -1743,6 +1747,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     """
     n, y, x = cube_sci.shape
     check_array(cube_sci, dim=3)
+
+    if nproc is None:
+        nproc = cpu_count()//2
 
     if recenter_median and fit_type not in {'gaus', 'ann'}:
         raise TypeError("fit type not recognized. Should be 'ann' or 'gaus'")
@@ -1861,7 +1868,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                            subi_size=None, full_output=True,
                                            verbose=False, plot=False,
                                            mask=mask_tmp, imlib=imlib,
-                                           interpolation=interpolation)
+                                           interpolation=interpolation, nproc=nproc)
         _, y_shift, x_shift = res
         sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
         print('Square sum of shift vecs: ' + str(sqsum_shifts))
@@ -1930,7 +1937,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
 def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15,
                    hole_rad=0.5, sampl_cen=0.1, sampl_rad=None, ann_width=0.5,
                    unc_in=2.):
-    """Finds the center the center of a donut-shape signal (e.g. a coronagraphic
+    """Finds the center of a donut-shape signal (e.g. a coronagraphic
     PSF) by fitting an annulus, using a grid of positions for the center and
     radius of the annulus. The best fit is found by maximizing the mean flux
     measured in the annular mask. Requires the image to be already roughly

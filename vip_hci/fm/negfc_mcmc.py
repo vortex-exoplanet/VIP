@@ -598,8 +598,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         samples). Recommended: C>50.
         More details here:
         https://emcee.readthedocs.io/en/stable/tutorials/autocorr/
-    ac_c_thr: int, optional
-        The auto-correlation test must be satisfied ac_c_thr times in a row
+    ac_count_thr: int, optional
+        The auto-correlation test must be satisfied ac_count_thr times in a row
         before claiming that the chain has converged.
     niteration_min: int, optional
         Steps per walker lower bound. The simulation will run at least this

@@ -432,7 +432,7 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     mask: numpy ndarray, optional
         Binary mask indicating where the low-pass filtered image should be
         interpolated with astropy.convolution. This option can be useful if the
-        low-pass filtered image is aimed to capture low-spatial frequency sky
+        low-pass filtered image is used to capture low-spatial frequency sky
         signal, while avoiding a stellar halo (set to one in the binary mask).
         Note: only works with Gaussian kernel or PSF convolution.
     iterate: bool, opt

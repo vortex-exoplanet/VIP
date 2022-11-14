@@ -609,6 +609,7 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
                                          transmission=transmission,
                                          mu_sigma=mu_sigma, weights=weights,
                                          plot=plot, verbose=verbose, save=save)
+
         r_pre = res_init[0]
         theta_pre = res_init[1]
         f_pre = res_init[2:]

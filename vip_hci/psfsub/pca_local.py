@@ -181,7 +181,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
-    collapse_ifs : {'median', 'mean', 'sum', 'trimmean'}, str optional
+    collapse_ifs : {'median', 'mean', 'sum', 'trimmean', 'absmean'}, str opt
         Sets how spectral residual frames should be combined to produce an
         mSDI image.
     ifs_collapse_range: str 'all' or tuple of 2 int
@@ -290,13 +290,10 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         fwhm = int(np.round(np.mean(fwhm)))
         n_annuli = int((y_in / 2 - radius_int) / asize)
 
-        if scale_list is None:
-            raise ValueError('Scaling factors vector must be provided')
-        else:
-            if np.array(scale_list).ndim > 1:
-                raise ValueError('Scaling factors vector is not 1d')
-            if not scale_list.shape[0] == z:
-                raise ValueError('Scaling factors vector has wrong length')
+        if np.array(scale_list).ndim > 1:
+            raise ValueError('Scaling factors vector is not 1d')
+        if not scale_list.shape[0] == z:
+            raise ValueError('Scaling factors vector has wrong length')
 
         if not isinstance(ncomp, tuple):
             raise TypeError("`ncomp` must be a tuple of two integers when "

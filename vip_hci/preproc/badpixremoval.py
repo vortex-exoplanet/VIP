@@ -1078,7 +1078,7 @@ def cube_fix_badpix_interp(array, bpm_mask, mode='fft', fwhm=4., kernel_sz=None,
     mode: str, optional {'fft', 'gauss', 'psf'}
         Can be either a 2D Gaussian ('gauss') or an input normalized PSF
         ('psf').
-    fwhm: float or 1D array, opt
+    fwhm: float, 1D array or tuple of 2 floats, opt
         If mode is 'gauss', the fwhm of the Gaussian.
     kernel_sz: int or None, optional
         Size of the kernel in pixels for 2D Gaussian and Moffat convolutions.
@@ -1173,6 +1173,8 @@ def cube_fix_badpix_interp(array, bpm_mask, mode='fft', fwhm=4., kernel_sz=None,
         else:
             obj_tmp_corr = obj_tmp.copy()
             if np.isscalar(fwhm):
+                fwhm = [fwhm]*nz
+            elif len(fwhm) == 2 and len(fwhm) != nz:
                 fwhm = [fwhm]*nz
             if psf is None:
                 psf = [psf]*nz

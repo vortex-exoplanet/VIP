@@ -191,8 +191,9 @@ def sigma_filter(frame_tmp, bpix_map, neighbor_box=3, min_neighbors=3,
                                    min_neighbors=3, verbose=False)
 
 
-def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
-               num_neighbor=3, mad=False, half_res_y=False):
+def clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori=None, 
+               out_good=False, neighbor=False, num_neighbor=3, mad=False, 
+               half_res_y=False):
     """Sigma clipping for detecting outlying values in 2d array. If the
     parameter 'neighbor' is True the clipping can be performed in a local patch
     around each pixel, whose size depends on 'neighbor' parameter.
@@ -205,8 +206,13 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
         Value for sigma, lower boundary.
     upper_sigma : float
         Value for sigma, upper boundary.
+    bpm_mask_ori : 2d numpy ndarray or None
+        Known (static) bad pixels. Additional bad pixels will be identified,
+        on top of those ones. They are not considered as good neighbours during
+        sigma-clipping.
     out_good : bool, optional
-        For choosing different outputs.
+        For choosing different outputs. True to return indices of good pixels, 
+        False for indices of bad pixels.
     neighbor : bool, optional
         For clipping over the median of the contiguous pixels.
     num_neighbor : int, optional
@@ -233,12 +239,12 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
 
     """
 
-    def _clip_array(array, lower_sigma, upper_sigma, out_good=False,
-                    neighbor=False, num_neighbor=3, mad=False,
+    def _clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori, 
+                    out_good=False, neighbor=False, num_neighbor=3, mad=False,
                     half_res_y=False):
         """Sigma clipping for detecting outlying values in 2d array. If the
-        parameter 'neighbor' is True the clipping can be performed in a local patch
-        around each pixel, whose size depends on 'neighbor' parameter.
+        parameter 'neighbor' is True the clipping can be performed in a local 
+        patch around each pixel, whose size depends on 'neighbor' parameter.
 
         Parameters
         ----------
@@ -248,6 +254,10 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
             Value for sigma, lower boundary.
         upper_sigma : float
             Value for sigma, upper boundary.
+        bpm_mask_ori : 2d numpy ndarray or None
+            Known (e.g. static) bad pixel map. Additional bad pixels will be 
+            identified, on top of these ones. They are not considered as good 
+            neighbours during sigma-clipping.
         out_good : bool, optional
             For choosing different outputs.
         neighbor : bool optional
@@ -274,14 +284,20 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
         """
         if array.ndim != 2:
             raise TypeError("Input array is not two dimensional (frame)\n")
-
+        if bpm_mask_ori is None:
+            gpm_ori = np.ones(array.shape)
+        else:
+            gpm_ori = np.ones(array.shape)-bpm_mask_ori
+        
         ny, nx = array.shape
-        bpm = array.copy()
-        gpm = array.copy()
+        bpm = np.ones(array.shape)
+        gpm = np.zeros(array.shape)
 
         if neighbor and num_neighbor:
             for y in range(ny):
                 for x in range(nx):
+                    if not gpm_ori[y,x]:
+                        continue
                     # 0/ Determine the box around each pixel
                     half_box_x = int(np.floor(num_neighbor/2.))
                     if half_res_y:
@@ -313,7 +329,9 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
 
                     sub_arr = array[y-hbox_b:y+hbox_t+1,
                                     x-hbox_l:x+hbox_r+1]
-                    neighbours = sub_arr.flatten()
+                    gp_arr = gpm_ori[y-hbox_b:y+hbox_t+1,
+                                     x-hbox_l:x+hbox_r+1]
+                    neighbours = sub_arr[np.where(gp_arr)].flatten()
                     neigh_list = []
                     remove_itself = True
                     for i in range(neighbours.shape[0]):
@@ -351,14 +369,15 @@ def clip_array(array, lower_sigma, upper_sigma, out_good=False, neighbor=False,
         else:
             bad = np.where(bpm)
             return bad
-
+    
     if no_numba:
-        return _clip_array(array, lower_sigma, upper_sigma, out_good=out_good,
-                           neighbor=neighbor, num_neighbor=num_neighbor,
-                           mad=mad, half_res_y=half_res_y)
+        return _clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori, 
+                           out_good=out_good, neighbor=neighbor, 
+                           num_neighbor=num_neighbor, mad=mad, 
+                           half_res_y=half_res_y)
     else:
         _clip_array_numba = njit(_clip_array)
-        return _clip_array_numba(array, lower_sigma, upper_sigma,
+        return _clip_array_numba(array, lower_sigma, upper_sigma, bpm_mask_ori,
                                  out_good=out_good, neighbor=neighbor,
                                  num_neighbor=num_neighbor, mad=mad,
                                  half_res_y=half_res_y)

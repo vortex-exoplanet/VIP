@@ -181,7 +181,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
         Sets the way of collapsing the frames for producing a final image.
-    collapse_ifs : {'median', 'mean', 'sum', 'trimmean'}, str optional
+    collapse_ifs : {'median', 'mean', 'sum', 'trimmean', 'absmean'}, str opt
         Sets how spectral residual frames should be combined to produce an
         mSDI image.
     ifs_collapse_range: str 'all' or tuple of 2 int
@@ -265,7 +265,7 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                                    svd_mode, nproc, min_frames_lib,
                                    max_frames_lib, tol, scaling, imlib,
                                    interpolation, collapse, True, verbose,
-                                   cube_ref_tmp, weights, cube_sig,
+                                   cube_ref_tmp, theta_init, weights, cube_sig,
                                    **rot_options)
             cube_out.append(res_pca[0])
             cube_der.append(res_pca[1])
@@ -290,13 +290,10 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         fwhm = int(np.round(np.mean(fwhm)))
         n_annuli = int((y_in / 2 - radius_int) / asize)
 
-        if scale_list is None:
-            raise ValueError('Scaling factors vector must be provided')
-        else:
-            if np.array(scale_list).ndim > 1:
-                raise ValueError('Scaling factors vector is not 1d')
-            if not scale_list.shape[0] == z:
-                raise ValueError('Scaling factors vector has wrong length')
+        if np.array(scale_list).ndim > 1:
+            raise ValueError('Scaling factors vector is not 1d')
+        if not scale_list.shape[0] == z:
+            raise ValueError('Scaling factors vector has wrong length')
 
         if not isinstance(ncomp, tuple):
             raise TypeError("`ncomp` must be a tuple of two integers when "
@@ -440,7 +437,6 @@ def _pca_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
                         interpolation=interpolation, collapse=collapse)
     return frame_desc
 
-
 def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
                  delta_rot=1, ncomp=1, svd_mode='lapack', nproc=None,
                  min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
@@ -462,7 +458,7 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
 
     if isinstance(delta_rot, tuple):
         delta_rot = np.linspace(delta_rot[0], delta_rot[1], num=n_annuli)
-    elif isinstance(delta_rot, (int, float)):
+    elif np.isscalar(delta_rot):
         delta_rot = [delta_rot] * n_annuli
 
     if isinstance(n_segments, int):

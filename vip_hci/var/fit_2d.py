@@ -211,7 +211,8 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
 
         imside = array.shape[0]
         psf_subimage, suby, subx = get_square(array, min(cropsize, imside),
-                                              ceny, cenx, position=True)
+                                              ceny, cenx, position=True, 
+                                              verbose=False)
     else:
         psf_subimage = array.copy()
 

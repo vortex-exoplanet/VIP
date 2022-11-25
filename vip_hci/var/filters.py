@@ -417,8 +417,9 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
         Type of low-pass filtering.
     median_size : int, optional
         Size of the median box for filtering the low-pass median filter.
-    fwhm_size : float, optional
-        Size of the Gaussian kernel for the low-pass Gaussian filter.
+    fwhm_size : float or tuple of 2 floats, optional
+        Size of the Gaussian kernel for the low-pass Gaussian filter. If a 
+        tuple is provided, it should correspon
     conv_mode : {'conv', 'convfft'}, str optional
         'conv' uses the multidimensional gaussian filter from scipy.ndimage and
         'convfft' uses the fft convolution with a 2d Gaussian kernel.
@@ -471,16 +472,27 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
         filtered = median_filter(array, median_size, mode='nearest')
     elif mode == 'gauss':
         # 2d Gaussian filter
-        sigma = fwhm_size * gaussian_fwhm_to_sigma
         kernel_sz_y = kernel_sz
-        if half_res_y:
-            sigma_y = max(1, sigma//2)
+        if np.isscalar(fwhm_size):
+            sigma = fwhm_size * gaussian_fwhm_to_sigma
+            sigma_y = sigma
+        else:
+            if len(fwhm_size) != 2:
+                msg = "If not a scalar, fwhm_size must be of length 2"
+                raise TypeError(msg)
+            sigma_y = fwhm_size[0] * gaussian_fwhm_to_sigma
+            sigma = fwhm_size[1] * gaussian_fwhm_to_sigma
             if kernel_sz is not None:
-                kernel_sz_y = kernel_sz//2
+                kernel_sz_y = int(kernel_sz*fwhm_size[0]/fwhm_size[1])
                 if kernel_sz_y % 2 != kernel_sz % 2:
                     kernel_sz_y += 1
-        else:
-            sigma_y = sigma
+            
+        if half_res_y:
+            sigma_y = max(1, sigma_y//2)
+            if kernel_sz_y is not None:
+                kernel_sz_y = kernel_sz_y//2
+                if kernel_sz_y % 2 != kernel_sz % 2:
+                    kernel_sz_y += 1
 
         if conv_mode == 'conv':
             filtered = convolve(array, Gaussian2DKernel(x_stddev=sigma,

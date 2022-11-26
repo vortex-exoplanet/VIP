@@ -528,6 +528,10 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         "temp-mean" then temporal px-wise mean subtraction is done and with
         "temp-standard" temporal mean centering plus scaling to unit variance
         is done.
+    delta_rot: float, optional
+        If algo is set to pca_annular, delta_rot is the angular threshold used
+        to select frames in the PCA library (see description of pca_annular).
+        Increases processing time.
     imlib : str, optional
         Imlib used for both image rotation and sub-px shift:
             - "opencv": will use it for both;
@@ -598,8 +602,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         samples). Recommended: C>50.
         More details here:
         https://emcee.readthedocs.io/en/stable/tutorials/autocorr/
-    ac_c_thr: int, optional
-        The auto-correlation test must be satisfied ac_c_thr times in a row
+    ac_count_thr: int, optional
+        The auto-correlation test must be satisfied ac_count_thr times in a row
         before claiming that the chain has converged.
     niteration_min: int, optional
         Steps per walker lower bound. The simulation will run at least this

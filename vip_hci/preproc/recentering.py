@@ -67,7 +67,7 @@ from .cosmetics import cube_crop_frames, frame_crop
 
 def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
                 interpolation='lanczos4', border_mode='reflect'):
-    """ Shifts a 2D array by shift_y, shift_x. Boundaries are filled with zeros.
+    """ Shifts a 2D array by shift_y, shift_x.
 
     Parameters
     ----------
@@ -95,7 +95,7 @@ def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
         Opencv and 'biquartic' for Scipy.ndimage.
     border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
         For 'opencv' and 'ndimage-interp', points outside the boundaries of the
-        input are filled according to tge value of this parameter.
+        input are filled according to the value of this parameter.
         With 'reflect', the input is extended by reflecting about the edge of
         the last pixel. With 'nearest', the input is extended by replicating the
         last pixel. With 'constant', the input is extended by filling all values

@@ -528,6 +528,10 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         "temp-mean" then temporal px-wise mean subtraction is done and with
         "temp-standard" temporal mean centering plus scaling to unit variance
         is done.
+    delta_rot: float, optional
+        If algo is set to pca_annular, delta_rot is the angular threshold used
+        to select frames in the PCA library (see description of pca_annular).
+        Increases processing time.
     imlib : str, optional
         Imlib used for both image rotation and sub-px shift:
             - "opencv": will use it for both;

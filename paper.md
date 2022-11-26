@@ -116,8 +116,8 @@ existing toolkits. It is also worth mentioning that FFT-based methods are
 implemented in ``VIP`` (default option) for all image operations (rotation, 
 shift and rescaling) as these outperform interpolation-based methods in terms of
 flux conservation [@Larkin:1997]. To our knowledge, these FFT-based methods for 
-image operations are not available in ``pyklip`` nor ``pynpoint``, although are included
-in non-public high-contrast imaging pipeline ``graphic`` [@Hagelberg:2016].
+image operations have only been included in non-public high-contrast 
+imaging pipeline ``graphic`` [@Hagelberg:2016].
 
 The ``VIP`` package follows a modular architecture, such that its routines 
 cover a wide diversity of tasks, including:

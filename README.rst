@@ -69,7 +69,7 @@ Jupyter notebook tutorial
 Tutorials, in the form of Jupyter notebooks, showcasing ``VIP``'s usage and 
 other resources such as test datasets are available in the 
 ``VIP-extras`` `repository <https://github.com/vortex-exoplanet/VIP_extras>`_. 
-**In order to execute the notebook tutorials, you will have to download or clone the ``VIP-extras`` repository, and open each tutorial locally with jupyter notebook.**
+**In order to execute the notebook tutorials, you will have to download or clone the VIP-extras repository, and open each tutorial locally with jupyter notebook.**
 Alternatively, you can execute the notebooks directly on 
 `Binder <https://mybinder.org/v2/gh/vortex-exoplanet/VIP_extras/master>`_ (in 
 the tutorials directory). The first (quick-start) notebook can be visualized 

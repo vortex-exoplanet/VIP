@@ -36,8 +36,8 @@ def chisquare(modelParameters, cube, angs, psfs_norm, fwhm, annulus_width,
     Parameters
     ----------
     modelParameters: tuple
-        The model parameters, typically (r, theta, flux). Where flux can be a
-        1d array if cube is 4d.
+        The model parameters: (r, theta, flux) for a 3D input cube, or
+        (r, theta, f1, ..., fN) for a 4D cube with N spectral channels.
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
     angs: numpy.array
@@ -317,7 +317,7 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
                           nproc=nproc)
 
     elif algo == pca_annular:
-
+        
         tol = algo_options.get('tol', 1e-1)
         min_frames_lib = algo_options.get('min_frames_lib', 2)
         max_frames_lib = algo_options.get('max_frames_lib', 200)
@@ -327,12 +327,12 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         crop_sz = int(2*np.ceil(radius_int+annulus_width+1))
         if not crop_sz % 2:
             crop_sz += 1
-        if crop_sz < cube.shape[1] and crop_sz < cube.shape[2]:
-            pad = int((cube.shape[1]-crop_sz)/2)
+        if crop_sz < cube.shape[-2] and crop_sz < cube.shape[-1]:
+            pad = int((cube.shape[-2]-crop_sz)/2)
             crop_cube = cube_crop_frames(cube, crop_sz, verbose=False)
         else:
             crop_cube = cube
-
+            pad = 0
         res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int, fwhm=fwhm,
                               asize=annulus_width, delta_rot=delta_rot,
                               ncomp=ncomp, svd_mode=svd_mode, scaling=scaling,
@@ -527,6 +527,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
             pad = int((cube.shape[1]-crop_sz)/2)
             crop_cube = cube_crop_frames(cube, crop_sz, verbose=False)
         else:
+            pad=0
             crop_cube = cube
 
         pca_res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int,

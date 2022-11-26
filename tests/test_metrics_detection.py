@@ -36,44 +36,44 @@ def get_frame_snrmap(example_dataset_adi):
 
 def test_detection_log(get_frame_snrmap):
     res_frame, coord, fwhm = get_frame_snrmap
-    table = detection(res_frame, fwhm, psf=None, mode='log', plot=False)
+    y, x = detection(res_frame, fwhm, psf=None, mode='log', plot=False)
     check = False
-    for i in range(len(table.y)):
-        if np.allclose(table.y[i], coord[0], atol=2) and \
-           np.allclose(table.x[i], coord[1], atol=2):
+    for i in range(len(y)):
+        if np.allclose(y[i], coord[0], atol=2) and \
+           np.allclose(x[i], coord[1], atol=2):
             check = True
     assert check
 
 
 def test_detection_dog(get_frame_snrmap):
     res_frame, coord, fwhm = get_frame_snrmap
-    table = detection(res_frame, fwhm, psf=None, mode='dog', plot=False)
+    y, x = detection(res_frame, fwhm, psf=None, mode='dog', plot=False)
     check = False
-    for i in range(len(table.y)):
-        if np.allclose(table.y[i], coord[0], atol=2) and \
-           np.allclose(table.x[i], coord[1], atol=2):
+    for i in range(len(y)):
+        if np.allclose(y[i], coord[0], atol=2) and \
+           np.allclose(x[i], coord[1], atol=2):
             check = True
     assert check
 
 
 def test_detection_lpeaks(get_frame_snrmap):
     res_frame, coord, fwhm = get_frame_snrmap
-    table = detection(res_frame, fwhm, psf=None, mode='lpeaks', plot=False)
+    y, x = detection(res_frame, fwhm, psf=None, mode='lpeaks', plot=False)
     check = False
-    for i in range(len(table.y)):
-        if np.allclose(table.y[i], coord[0], atol=2) and \
-           np.allclose(table.x[i], coord[1], atol=2):
+    for i in range(len(y)):
+        if np.allclose(y[i], coord[0], atol=2) and \
+           np.allclose(x[i], coord[1], atol=2):
             check = True
     assert check
 
 
 def test_detection_snrmap(get_frame_snrmap):
     res_frame, coord, fwhm = get_frame_snrmap
-    table = detection(res_frame, fwhm, psf=None, mode='snrmapf',
+    y, x = detection(res_frame, fwhm, psf=None, mode='snrmapf',
                       plot=False, snr_thresh=5, nproc=2)
     check = False
-    for i in range(len(table.y)):
-        if np.allclose(table.y[i], coord[0], atol=2) and \
-           np.allclose(table.x[i], coord[1], atol=2):
+    for i in range(len(y)):
+        if np.allclose(y[i], coord[0], atol=2) and \
+           np.allclose(x[i], coord[1], atol=2):
             check = True
     assert check

@@ -80,7 +80,7 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
         Two vectors with the y and x coordinates of the centers of the sources
         (potential planets).
     If full_output is True then a table with all the candidates that passed the
-    2d Gaussian fit constrains and their S/N is returned.
+    2d Gaussian fit constrains and the S/N threshold is returned.
 
     Note
     ----
@@ -377,9 +377,9 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
         print(table_full)
 
     if full_output:
-        return table_full
-    else:
         return table
+    else:
+        return yy_final, xx_final
 
 
 def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,

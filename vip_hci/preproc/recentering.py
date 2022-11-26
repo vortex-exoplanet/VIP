@@ -1188,8 +1188,8 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     n_frames, sizey, sizex = array.shape
     if subi_size is not None:
         if center_fr1 is None:
-            print('`cx_1` or `cy_1` not be provided')
-            print('Using the coordinated of the 1st frame center for '
+            print('`cx_1` or `cy_1` not provided')
+            print('Using the coordinates of the 1st frame center for '
                   'the Gaussian 2d fit')
             cy_1, cx_1 = frame_center(array[0])
         else:

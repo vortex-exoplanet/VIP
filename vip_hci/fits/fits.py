@@ -22,7 +22,7 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
               precision=np.float32, return_memmap=False, verbose=True,
               **kwargs):
     """
-    Load a fits file into a memory as numpy array.
+    Load a fits file into memory as numpy array.
 
     Parameters
     ----------

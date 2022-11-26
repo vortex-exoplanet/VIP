@@ -116,7 +116,7 @@ existing toolkits. It is also worth mentioning that FFT-based methods are
 implemented in ``VIP`` (default option) for all image operations (rotation, 
 shift and rescaling) as these outperform interpolation-based methods in terms of
 flux conservation [@Larkin:1997]. To our knowledge, FFT-based methods for 
-image operations have only been included in the non-public high-contrast 
+image operations had only been implemented in the non-public high-contrast 
 imaging pipeline ``graphic`` to date [@Hagelberg:2016].
 
 The ``VIP`` package follows a modular architecture, such that its routines 

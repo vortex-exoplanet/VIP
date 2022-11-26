@@ -66,7 +66,7 @@ def cube_inject_fakedisk(fakedisk, angle_list, psf=None, **rot_options):
         fakedisk = np.zeros((200,200))
         fakedisk[:,99:101] = 1
         angle_list = np.arange(10)
-        c = create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='opencv',
+        c = create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='vip-fft',
                                  interpolation='lanczos4',cxy=None, nproc=1,
                                  border_mode='constant')
 

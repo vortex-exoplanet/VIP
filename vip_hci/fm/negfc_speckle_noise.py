@@ -188,7 +188,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         print('Number of steps: {}'.format(angle_range.shape[0]))
         print('')
 
-    imlib = algo_options.get('imlib', 'opencv')
+    imlib = algo_options.get('imlib', 'vip-fft')
     interpolation = algo_options.get('interpolation', 'lanczos4')
 
     # FIRST SUBTRACT THE TRUE COMPANION CANDIDATE

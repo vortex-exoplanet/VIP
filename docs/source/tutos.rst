@@ -2,8 +2,7 @@ Running the tutorials
 ---------------------
 
 Tutorials in the form of Jupyter notebooks and showcasing ``VIP``'s usage can be visualised within this documentation.
-In order to execute them, you can either download/clone the 
-``VIP-extras`` `repository <https://github.com/vortex-exoplanet/VIP_extras>`_, and open each tutorial locally with jupyter notebook. 
+**In order to execute the notebook tutorials, you will have to download or clone the ``VIP-extras`` `repository <https://github.com/vortex-exoplanet/VIP_extras>`_, and open each tutorial locally with jupyter notebook.**
 Alternatively, you can execute these tutorials on 
 `Binder <https://mybinder.org/v2/gh/vortex-exoplanet/VIP_extras/master>`_. 
 

@@ -1,11 +1,12 @@
 -r requirements.txt
+opencv-python
 sphinx
 pandoc
 pytest
 pytest-cov ~=2.6.0
 codecov ~=2.0.15
-flake8 ~= 3.5.0
-flake8-bandit ~= 1.0.2
-flake8-docstrings ~= 1.3.0
+flake8
+flake8-bandit
+flake8-docstrings
 autopep8
 sphinx-rtd-theme

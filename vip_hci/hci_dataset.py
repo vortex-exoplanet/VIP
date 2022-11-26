@@ -233,7 +233,7 @@ class Frame(object):
         self.data = frame_px_resampling(self.data, scale, imlib, interpolation,
                                         verbose)
 
-    def rotate(self, angle, imlib='opencv', interpolation='lanczos4', cxy=None):
+    def rotate(self, angle, imlib='vip-fft', interpolation='lanczos4', cxy=None):
         """ Rotating the image by a given ``angle``.
 
         Parameters

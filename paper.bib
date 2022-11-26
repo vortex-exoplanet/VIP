@@ -1,12 +1,35 @@
 %% This BibTeX bibliography file was created using BibDesk.
 %% https://bibdesk.sourceforge.io/
 
-%% Created for Valentin Christiaens at 2022-06-08 18:05:35 +0200 
+%% Created for Valentin Christiaens at 2022-11-26 11:24:25 +0100 
 
 
 %% Saved with string encoding Unicode (UTF-8) 
 
 
+
+@article{Hagelberg:2016,
+	abstract = {We present GRAPHIC, a new angular differential imaging reduction pipeline where all geometric image operations are based on Fourier transforms. To achieve this goal the entire pipeline is parallelized making it possible to reduce large amounts of observation data without the need to bin the data. The specific rotation and shift algorithms based on Fourier transforms are described and performance comparison with conventional interpolation algorithm is given. Tests using fake companions injected in real science frames demonstrate the significant gain obtained by using geometric operations based on Fourier transforms compared to conventional interpolation. This also translates in a better point spread function and speckle subtraction with respect to conventional reduction pipelines, achieving detection limits comparable to current best performing pipelines. Flux conservation of the companions is also demonstrated. This pipeline is currently able to reduce science data produced by Very Large Telescope (VLT)/NACO, Gemini/NICI, VLT/SPHERE, and Subaru/SCExAO.},
+	adsnote = {Provided by the SAO/NASA Astrophysics Data System},
+	adsurl = {https://ui.adsabs.harvard.edu/abs/2016MNRAS.455.2178H},
+	archiveprefix = {arXiv},
+	author = {{Hagelberg}, J. and {S{\'e}gransan}, D. and {Udry}, S. and {Wildi}, F.},
+	date-added = {2022-11-26 11:24:18 +0100},
+	date-modified = {2022-11-26 11:24:23 +0100},
+	doi = {10.1093/mnras/stv2398},
+	eprint = {1510.04331},
+	journal = {\mnras},
+	keywords = {methods: data analysis, techniques: high angular resolution, techniques: image processing, planets and satellites: detection, infrared: planetary systems, Astrophysics - Instrumentation and Methods for Astrophysics, Astrophysics - Earth and Planetary Astrophysics},
+	month = jan,
+	number = {2},
+	pages = {2178-2186},
+	primaryclass = {astro-ph.IM},
+	title = {{The Geneva Reduction and Analysis Pipeline for High-contrast Imaging of planetary Companions}},
+	volume = {455},
+	year = 2016,
+	bdsk-file-1 = {YnBsaXN0MDDSAQIDBFxyZWxhdGl2ZVBhdGhZYWxpYXNEYXRhXxCKLi4vLi4vRG9jdW1lbnRzL1JlZmVyZW5jZXMvSGFnZWxiZXJnLTIwMTYtVGhlIEdlbmV2YSBSZWR1Y3Rpb24gYW5kIEFuYWx5c2lzIFBpcGVsaW5lIGZvciBIaWdoLWNvbnRyYXN0IEltYWdpbmcgb2YgcGxhbmV0YXJ5IENvbXBhbmlvbnMucGRmTxEC6AAAAAAC6AACAAAMTWFjaW50b3NoIEhEAAAAAAAAAAAAAAAAAAAAAAAAAEJEAAH/////H0hhZ2VsYmVyZy0yMDE2LVRoZSNGRkZGRkZGRi5wZGYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP////8AAAAAAAAAAAAAAAAAAgADAAAKIGN1AAAAAAAAAAAAAAAAAApSZWZlcmVuY2VzAAIAlS86VXNlcnM6dmFsZW50aW46RG9jdW1lbnRzOlJlZmVyZW5jZXM6SGFnZWxiZXJnLTIwMTYtVGhlIEdlbmV2YSBSZWR1Y3Rpb24gYW5kIEFuYWx5c2lzIFBpcGVsaW5lIGZvciBIaWdoLWNvbnRyYXN0IEltYWdpbmcgb2YgcGxhbmV0YXJ5IENvbXBhbmlvbnMucGRmAAAOAOAAbwBIAGEAZwBlAGwAYgBlAHIAZwAtADIAMAAxADYALQBUAGgAZQAgAEcAZQBuAGUAdgBhACAAUgBlAGQAdQBjAHQAaQBvAG4AIABhAG4AZAAgAEEAbgBhAGwAeQBzAGkAcwAgAFAAaQBwAGUAbABpAG4AZQAgAGYAbwByACAASABpAGcAaAAtAGMAbwBuAHQAcgBhAHMAdAAgAEkAbQBhAGcAaQBuAGcAIABvAGYAIABwAGwAYQBuAGUAdABhAHIAeQAgAEMAbwBtAHAAYQBuAGkAbwBuAHMALgBwAGQAZgAPABoADABNAGEAYwBpAG4AdABvAHMAaAAgAEgARAASAJNVc2Vycy92YWxlbnRpbi9Eb2N1bWVudHMvUmVmZXJlbmNlcy9IYWdlbGJlcmctMjAxNi1UaGUgR2VuZXZhIFJlZHVjdGlvbiBhbmQgQW5hbHlzaXMgUGlwZWxpbmUgZm9yIEhpZ2gtY29udHJhc3QgSW1hZ2luZyBvZiBwbGFuZXRhcnkgQ29tcGFuaW9ucy5wZGYAABMAAS8AABUAAgAP//8AAAAIAA0AGgAkALEAAAAAAAACAQAAAAAAAAAFAAAAAAAAAAAAAAAAAAADnQ==},
+	bdsk-url-1 = {https://doi.org/10.1093/mnras/stv2398},
+	bdsk-url-2 = {https://ui.adsabs.harvard.edu/abs/2016MNRAS.455.2178H}}
 
 @misc{pyklip:2015,
 	abstract = {pyKLIP subtracts out the stellar PSF to search for directly-imaged exoplanets and disks using a Python implementation of the Karhunen-Lo{\`e}ve Image Projection (KLIP) algorithm. pyKLIP supports ADI, SDI, and ADI+SDI to model the stellar PSF and offers a large array of PSF subtraction parameters to optimize the reduction. pyKLIP relies on a minimal amount of dependencies (numpy, scipy, and astropy) and parallelizes the KLIP algorithm to speed up the reduction. pyKLIP supports GPI and P1640 data and can interface with other data sources with the addition of new modules. It also can inject simulated planets and disks as well as automatically search for point sources in PSF-subtracted data.},

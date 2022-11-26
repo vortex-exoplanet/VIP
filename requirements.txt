@@ -13,6 +13,5 @@ psutil
 pyprind
 munch
 nbsphinx
-opencv-python
 hciplot>=0.2.1
 typing

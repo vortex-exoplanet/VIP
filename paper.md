@@ -115,8 +115,9 @@ speckle suppression, hence help with the detection of fainter companions
 existing toolkits. It is also worth mentioning that FFT-based methods are 
 implemented in ``VIP`` (default option) for all image operations (rotation, 
 shift and rescaling) as these outperform interpolation-based methods in terms of
-flux conservation [@Larkin:1997]. To our knowledge, these FFT-based methods for 
-image operations are not available in other high-contrast imaging packages.
+flux conservation [@Larkin:1997]. To our knowledge, FFT-based methods for 
+image operations had only been implemented in the non-public high-contrast 
+imaging pipeline ``graphic`` to date [@Hagelberg:2016].
 
 The ``VIP`` package follows a modular architecture, such that its routines 
 cover a wide diversity of tasks, including:
@@ -154,7 +155,7 @@ high-contrast imaging algorithms
 Given the rapid expansion of ``VIP``, we summarize here all novelties that were 
 brought to the package over the past five years. Specifically, the rest of this 
 manuscript summarizes all major changes since v0.7.0 [@Gomez:2017], that are 
-included in the latest release of ``VIP`` (v1.3.2). At a structural level, 
+included in the latest release of ``VIP`` (v1.3.3). At a structural level, 
 ``VIP`` underwent a major change since version v1.1.0, which aimed to migrate 
 towards a more streamlined and easy-to-use architecture. The package now 
 revolves around five major modules (`fm`, `invprob`, `metrics`, `preproc` and 

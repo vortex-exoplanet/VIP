@@ -218,7 +218,8 @@ def _snr_approx(array, source_xy, fwhm, centery, centerx):
 
 
 def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
-        exclude_negative_lobes=False, plot=False, verbose=False):
+        exclude_negative_lobes=False, exclude_theta_range=None, plot=False, 
+        verbose=False):
     """
     Calculate the S/N (signal to noise ratio) of a test resolution element
     in a residual frame (e.g. post-processed with LOCI, PCA, etc). Implements
@@ -261,6 +262,11 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
     exclude_negative_lobes : bool, opt
         Whether to include the adjacent aperture lobes to the tested location
         or not. Can be set to True if the image shows significant neg lobes.
+    exclude_theta_range : tuple of 2 floats or None, opt
+        If provided, range of trigonometric angles  in deg (measured from 
+        positive x axis), to be avoided for apertures used for noise estimation.
+        WARNING: this is to be used wisely, e.g. only if a known authentic 
+        circumstellar signal is biasing the SNR estimate.
     plot : bool, optional
         Plots the frame and the apertures considered for clarity.
     verbose: bool, optional
@@ -291,27 +297,42 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
     sourcex, sourcey = source_xy
     centery, centerx = frame_center(array)
     sep = dist(centery, centerx, float(sourcey), float(sourcex))
-
+    if exclude_theta_range is not None:
+        theta_0 = np.rad2deg(np.arctan2(sourcey-centery,sourcex-centerx))
+        exc_theta_range = list(exclude_theta_range)
+            
     if not sep > (fwhm/2)+1:
         raise RuntimeError('`source_xy` is too close to the frame center')
 
-    sens = 'clock'  # counterclock
+    #sens = 'clock'  # counterclock
+    # assumes clockwise rotation when building test apertures
+    # change sign and conditions if counterclockwise
+    sign = -1
+    if exclude_theta_range is not None:
+        if theta_0 > exc_theta_range[0] and theta_0 < exc_theta_range[1]:
+            exc_theta_range[0] += 360
+        while theta_0-360<exc_theta_range[1]:
+            theta_0 += 360
 
     angle = np.arcsin(fwhm/2./sep)*2
     number_apertures = int(np.floor(2*np.pi/angle))
-    yy = np.zeros((number_apertures))
-    xx = np.zeros((number_apertures))
+    yy = [] #np.zeros((number_apertures))
+    xx = [] # np.zeros((number_apertures))
     cosangle = np.cos(angle)
     sinangle = np.sin(angle)
-    xx[0] = sourcex - centerx
-    yy[0] = sourcey - centery
+    xx.append(sourcex - centerx)
+    yy.append(sourcey - centery)
     for i in range(number_apertures-1):
-        if sens == 'clock':
-            xx[i+1] = cosangle*xx[i] + sinangle*yy[i]
-            yy[i+1] = cosangle*yy[i] - sinangle*xx[i]
-        elif sens == 'counterclock':
-            xx[i+1] = cosangle*xx[i] - sinangle*yy[i]
-            yy[i+1] = cosangle*yy[i] + sinangle*xx[i]
+        theta = theta_0 + sign*np.rad2deg(angle)
+        if exclude_theta_range is None:
+            xx.append(cosangle*xx[i] - sign*sinangle*yy[i])
+            yy.append(cosangle*yy[i] + sign*sinangle*xx[i])
+        elif theta<exclude_theta_range[0] or theta>exclude_theta_range[1]:
+            xx.append(cosangle*xx[i] - sign*sinangle*yy[i])
+            yy.append(cosangle*yy[i] + sign*sinangle*xx[i])          
+
+    xx=np.array(xx)
+    yy=np.array(yy)
 
     xx += centerx
     yy += centery

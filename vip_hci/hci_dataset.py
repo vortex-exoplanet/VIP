@@ -308,7 +308,7 @@ class Frame(object):
         """
         if self.fwhm is None:
             raise ValueError('FWHM has not been set')
-        return snr(self.data, source_xy, self.fwhm, False, plot, verbose)
+        return snr(self.data, source_xy, self.fwhm, False, None, plot, verbose)
 
     def stats(self, region='circle', radius=5, xy=None, annulus_inner_radius=0,
               annulus_width=5, source_xy=None, verbose=True, plot=True):

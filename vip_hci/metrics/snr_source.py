@@ -322,14 +322,15 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
     sinangle = np.sin(angle)
     xx.append(sourcex - centerx)
     yy.append(sourcey - centery)
-    for i in range(number_apertures-1):
-        theta = theta_0 + sign*np.rad2deg(angle)
+    for i in range(number_apertures-1):    
         if exclude_theta_range is None:
             xx.append(cosangle*xx[i] - sign*sinangle*yy[i])
             yy.append(cosangle*yy[i] + sign*sinangle*xx[i])
-        elif theta<exclude_theta_range[0] or theta>exclude_theta_range[1]:
-            xx.append(cosangle*xx[i] - sign*sinangle*yy[i])
-            yy.append(cosangle*yy[i] + sign*sinangle*xx[i])          
+        else:
+            theta = theta_0 + sign*np.rad2deg(angle)
+            if theta<exclude_theta_range[0] or theta>exclude_theta_range[1]:
+                xx.append(cosangle*xx[i] - sign*sinangle*yy[i])
+                yy.append(cosangle*yy[i] + sign*sinangle*xx[i])          
 
     xx=np.array(xx)
     yy=np.array(yy)

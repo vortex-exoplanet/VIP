@@ -46,6 +46,12 @@ authors:
   - name: Arthur Vigan
     orcid: 0000-0002-5902-7828
     affiliation: 10
+  - name: Vijay Phanindra Srikanth Kompella
+    orcid: 0000-0002-9392-2375
+    affiliation: 11
+  - name: Paul J. Hancock
+    orcid: 0000-0002-4203-2946
+    affiliation: 11
 
 affiliations:
   - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
@@ -68,6 +74,8 @@ affiliations:
     index: 9
   - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
     index: 10
+  - name: Curtin Institute for Computation, Curtin University, Perth, WA, Australia
+    index: 11
 
 date: 4 May 2022
 bibliography: paper.bib

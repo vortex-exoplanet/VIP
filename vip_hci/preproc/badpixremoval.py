@@ -26,7 +26,9 @@ __all__ = ['frame_fix_badpix_isolated',
 import numpy as np
 from skimage.draw import disk, ellipse
 from scipy.ndimage import median_filter
-from astropy.stats import sigma_clipped_stats
+from astropy.convolution import (convolve, Gaussian2DKernel)
+from astropy.convolution import interpolate_replace_nans as interp_nan
+from astropy.stats import sigma_clipped_stats, gaussian_fwhm_to_sigma
 from multiprocessing import cpu_count
 from ..stats import clip_array, sigma_filter
 from ..var import frame_center, get_annulus_segments, frame_filter_lowpass
@@ -1062,8 +1064,6 @@ def cube_fix_badpix_interp(array, bpm_mask, mode='fft', fwhm=4., kernel_sz=None,
     user-defined kernel (through astropy.convolution) or through the FFT-based
     algorithm described in [AAC01]_. A bad pixel map must be
     provided (e.g. found with function `cube_fix_badpix_clump`).
-
-
     Parameters
     ----------
     array : 3D or 2D array
@@ -1105,7 +1105,6 @@ def cube_fix_badpix_interp(array, bpm_mask, mode='fft', fwhm=4., kernel_sz=None,
     **kwargs : dict
         Passed through to the astropy.convolution.convolve or convolve_fft
         function.
-
     Returns
     -------
     obj_tmp: 2d or 3d array; the bad pixel corrected frame/cube.

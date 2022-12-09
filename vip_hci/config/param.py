@@ -20,7 +20,7 @@ Usage
 VLT_SPHERE_IFS = {
     'latitude': -24.627,
     'longitude': -70.404,
-    'plsc': 0.0074,                       # plate scale [arcsec]/px for IFS
+    'plsc': 0.00746,                       # plate scale [arcsec]/px for IFS
     'diam': 8.2,                            # telescope diameter [m]
     }
 

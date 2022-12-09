@@ -621,7 +621,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
         default values will correspond to the central pixel coordinates.
     fwhm: float or 1D array, opt
         Vector containing the full width half maximum of the PSF in pixels, for
-        each channel (cube_like); or single value (frame_like). Shouod be
+        each channel (cube_like); or single value (frame_like). Should be
         provided if bpix map is None.
     sig: float, optional
         Value representing the number of "sigmas" above or below the "median" of

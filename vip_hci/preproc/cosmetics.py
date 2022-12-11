@@ -350,7 +350,7 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
                 print(msg)
             res = pool_map(nproc, nan_corr_2d, iterable(obj_tmp), neighbor_box,
                            min_neighbors, half_res_y, verbose, False)
-            obj_tmp = np.array(res, dtype=object)
+            obj_tmp = np.array(res, dtype=np.float64)
 
     if verbose:
         print('All nan pixels are corrected.')

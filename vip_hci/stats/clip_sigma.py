@@ -376,7 +376,7 @@ def clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori=None,
                            num_neighbor=num_neighbor, mad=mad, 
                            half_res_y=half_res_y)
     else:
-        _clip_array_numba = njit(_clip_array)
+        _clip_array_numba = njit(_clip_array, nopython=True)
         return _clip_array_numba(array, lower_sigma, upper_sigma, bpm_mask_ori,
                                  out_good=out_good, neighbor=neighbor,
                                  num_neighbor=num_neighbor, mad=mad,

@@ -40,18 +40,21 @@ authors:
   - name: Iain Hammond
     orcid: 0000-0003-1502-4315
     affiliation: 9
+  - name: Markus Bonse
+    orcid: 0000-0003-2202-1745
+    affiliation: 10
   - name: Faustine Cantalloube
     orcid: 0000-0002-3968-3780
-    affiliation: 10
+    affiliation: 11
   - name: Arthur Vigan
     orcid: 0000-0002-5902-7828
-    affiliation: 10
+    affiliation: 11
   - name: Vijay Phanindra Srikanth Kompella
     orcid: 0000-0002-9392-2375
-    affiliation: 11
+    affiliation: 12
   - name: Paul J. Hancock
     orcid: 0000-0002-4203-2946
-    affiliation: 11
+    affiliation: 12
 
 affiliations:
   - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
@@ -72,10 +75,12 @@ affiliations:
     index: 8
   - name: School of Physics and Astronomy, Monash University, Vic 3800, Australia
     index: 9
-  - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
+  - name: ETH Zurich, Institute for Particle Physics & Astrophysics, 8093 Zurich, Switzerland 
     index: 10
-  - name: Curtin Institute for Computation, Curtin University, Perth, WA, Australia
+  - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
     index: 11
+  - name: Curtin Institute for Computation, Curtin University, Perth, WA, Australia
+    index: 12
 
 date: 4 May 2022
 bibliography: paper.bib

@@ -34,6 +34,9 @@ from ..config import timing, time_ini, Progressbar
 from ..config.utils_conf import pool_map, iterable
 from .rescaling import find_scal_vector, frame_rescaling
 from .cosmetics import frame_pad
+from multiprocessing import Process
+import multiprocessing
+from multiprocessing import shared_memory, set_start_method
 
 import warnings
 try:
@@ -592,7 +595,7 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
 def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                           cx=None, fwhm=4., sig=4., protect_mask=0,
                           half_res_y=False, min_thr=None, max_nit=15, mad=True,
-                          verbose=True, full_output=False):
+                          verbose=True, full_output=False, nproc=1):
     """
     Function to identify and correct clumps of bad pixels. Very fast when a bad
     pixel map is provided. If a bad pixel map is not provided, the bad pixel
@@ -656,6 +659,10 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
     full_output: bool, {False,True}, optional
         Whether to return as well the cube of bad pixel maps and the cube of
         defined annuli.
+    nproc: int, optional
+        This feature is added following ADACS update. Refers to the number of processors 
+        available for calculations. Choosing a number >1 enables multiprocessing for the 
+        correction of frames.  
 
     Returns
     -------
@@ -806,16 +813,54 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                 cx = [cx]*n_z
             if isinstance(fwhm, (float, int)):
                 fwhm = [fwhm]*n_z
-            bpix_map_cumul = np.zeros_like(obj_tmp)
-            for i in range(n_z):
-                if verbose:
-                    print('************Frame # ', i, ' *************')
-                obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], cy[i],
-                                                              cx[i], fwhm[i],
-                                                              sig, protect_mask,
-                                                              bpm_mask, min_thr,
-                                                              half_res_y, mad,
-                                                              verbose)
+            if nproc==1:
+                bpix_map_cumul = np.zeros_like(obj_tmp)
+                for i in range(n_z):
+                    if verbose:
+                        print('************Frame # ', i, ' *************')
+                    obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], cy[i],
+                                                                cx[i], fwhm[i],
+                                                                sig, protect_mask,
+                                                                bpm_mask, min_thr,
+                                                                half_res_y, mad,
+                                                                verbose)
+            else:
+                msg="Cleaning frames using ADACS' multiprocessing appraoch"
+                print(msg)  
+                #creating shared memory buffer space for the image cube. 
+                shm_clump= shared_memory.SharedMemory(create=True, size=obj_tmp.nbytes)
+                obj_tmp_shared_clump = np.ndarray(obj_tmp.shape, dtype=obj_tmp.dtype, buffer=shm_clump.buf) 
+                #creating shared memory buffer space for the bad pixel cube. 
+                shm_clump_bpix= shared_memory.SharedMemory(create=True, size=obj_tmp.nbytes)
+                #works with dtype=obj_tmp.dtype but not dtype=int
+                bpix_map_cumul_shared= np.ndarray(obj_tmp.shape, dtype=obj_tmp.dtype, buffer=shm_clump_bpix.buf)
+                
+                def mp_clump_slow(j, obj_tmp, cy, cx, fwhm, sig, protect_mask, bpm_mask, min_thr, half_res_y, mad, verbose):
+                    obj_tmp_shared_clump[j], bpix_map_cumul_shared[j] = bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_mask, bpm_mask, min_thr, half_res_y, mad, verbose)
+                
+                global _mp_clump_slow
+                
+                def _mp_clump_slow(args):
+                    mp_clump_slow(*args)
+                
+                context=multiprocessing.get_context('fork')
+                pool=context.Pool(processes=nproc, maxtasksperchild=1)
+                args=[]
+                for i in range(n_z):
+                    args.append([i,obj_tmp[i], cy[i], cx[i], fwhm[i], sig, protect_mask, bpm_mask, min_thr, half_res_y, mad, verbose ])
+                try:
+                    pool.map_async(_mp_clump_slow, args, chunksize=1 ).get(timeout=10_000_000)
+                finally: 
+                    pool.close()
+                    pool.join()
+                    bpix_map_cumul = np.zeros_like(obj_tmp, dtype=obj_tmp.dtype)
+                    bpix_map_cumul[:]=bpix_map_cumul_shared[:]
+                    obj_tmp[:]=obj_tmp_shared_clump[:]
+                    shm_clump.close()
+                    shm_clump.unlink()
+                    shm_clump_bpix.close()
+                    shm_clump_bpix.unlink()
+
         else:
             if isinstance(fwhm, (float, int)):
                 fwhm_round = int(round(fwhm))
@@ -824,15 +869,50 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
             fwhm_round = fwhm_round+1-(fwhm_round % 2)  # make it odd
             neighbor_box = max(3, fwhm_round)  # to not replace a companion
             nneig = sum(np.arange(3, neighbor_box+2, 2))
-            for i in range(n_z):
-                if verbose:
-                    print('************Frame # ', i, ' *************')
-                if bpm_mask.ndim == 3:
-                    bpm = bpm_mask[i]
-                else:
-                    bpm = bpm_mask
-                obj_tmp[i] = sigma_filter(obj_tmp[i], bpm, neighbor_box,
-                                          nneig, half_res_y, verbose)
+
+            if nproc==1:
+                for i in range(n_z):
+                    if verbose:
+                        print('Using serial approach')
+                        print('************Frame # ', i, ' *************')
+                    if bpm_mask.ndim == 3:
+                        bpm = bpm_mask[i]
+                    else:
+                        bpm = bpm_mask
+                    obj_tmp[i] = sigma_filter(obj_tmp[i], bpm, neighbor_box,
+                                            nneig, half_res_y, verbose)
+            else:
+                msg="Cleaning frames using ADACS' multiprocessing appraoch"
+                print(msg)
+                #creating shared memory that each process writes into. 
+                shm_clump = shared_memory.SharedMemory(create=True, size=obj_tmp.nbytes)
+                #creating an array that uses shared memory buffer and has the properties of obj_tmp.
+                obj_tmp_shared_clump = np.ndarray(obj_tmp.shape, dtype=obj_tmp.dtype, buffer=shm_clump.buf)
+                #function that is called repeatedly by each process. 
+                def mp_clean_clump(j, obj_tmp, bpm, neighbor_box, nneig, half_res_y, verbose):
+                    obj_tmp_shared_clump[j] = sigma_filter(obj_tmp, bpm, neighbor_box, nneig, half_res_y, verbose)
+                
+                global _mp_clean_clump
+                #function that converts the args into bite-sized pieces for mp_clean_clump. 
+                def _mp_clean_clump(args):
+                    mp_clean_clump(*args)
+                context=multiprocessing.get_context('fork')
+                pool=context.Pool(processes=nproc, maxtasksperchild=1)
+                args=[]
+                for j in range(n_z):
+                    if bpm_mask.ndim == 3:
+                        bpm = bpm_mask[j]
+                    else:
+                        bpm = bpm_mask
+                    args.append([j,obj_tmp[j], bpm, neighbor_box, nneig, half_res_y, verbose])
+                try:
+                    pool.map_async(_mp_clean_clump, args, chunksize=1 ).get(timeout=10_000_000)
+                finally: 
+                    pool.close()
+                    pool.join()
+                    obj_tmp[:]=obj_tmp_shared_clump[:]
+                    shm_clump.close()
+                    shm_clump.unlink()                
             bpix_map_cumul = bpm_mask
 
     # make it a binary map

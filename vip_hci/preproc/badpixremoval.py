@@ -163,7 +163,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
                              sigma_clip=3, num_neig=5, size=5,
                              frame_by_frame=False, protect_mask=0, cxy=None,
                              mad=False, ignore_nan=True, verbose=True,
-                             full_output=False):
+                             full_output=False, nproc=1):
     """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is
     replaced by the median of the adjacent pixels. This function is very fast
     but works only with isolated (sparse) pixels.
@@ -213,6 +213,10 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
     full_output: bool, {False,True}, optional
         Whether to return as well the cube of bad pixel maps and the cube of
         defined annuli.
+    nproc: int, optional
+        This feature is added following ADACS update. Refers to the number of processors 
+        available for calculations. Choosing a number >1 enables multiprocessing for the 
+        correction of frames. This happens only when frame_by_frame=True.
 
     Return
     ------
@@ -268,20 +272,66 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
             if bpm_mask.ndim == 2:
                 bpm_mask = [bpm_mask]*n_frames
                 bpm_mask = np.array(bpm_mask)
-        for i in Progressbar(range(n_frames), desc="processing frames"):
-            if bpm_mask is not None:
-                bpm_mask_tmp = bpm_mask[i]
-            else:
-                bpm_mask_tmp = None
-            res = frame_fix_badpix_isolated(array[i], bpm_mask=bpm_mask_tmp,
-                                            sigma_clip=sigma_clip,
-                                            num_neig=num_neig, size=size,
-                                            protect_mask=protect_mask,
-                                            verbose=False, cxy=(cx[i], cy[i]),
-                                            ignore_nan=ignore_nan,
-                                            full_output=True)
-            array_out[i] = res[0]
-            final_bpm[i] = res[1]
+        if nproc==1:
+            for i in Progressbar(range(n_frames), desc="processing frames"):
+                if bpm_mask is not None:
+                    bpm_mask_tmp = bpm_mask[i]
+                else:
+                    bpm_mask_tmp = None
+                res = frame_fix_badpix_isolated(array[i], bpm_mask=bpm_mask_tmp,
+                                                sigma_clip=sigma_clip,
+                                                num_neig=num_neig, size=size,
+                                                protect_mask=protect_mask,
+                                                verbose=False, cxy=(cx[i], cy[i]),
+                                                ignore_nan=ignore_nan,
+                                                full_output=True)
+                array_out[i] = res[0]
+                final_bpm[i] = res[1]
+        else:
+            print("Processing using ADACS' multiprocessing approach...")
+            # multiprocessing included only in the frame-by-frame branch of the if statement above. 
+            # creating shared memory buffer for the cube (array)
+            shm_array_out = shared_memory.SharedMemory(create=True, size=array.nbytes)
+            # creating a shared array_out version that is the shm_array_out buffer above. 
+            shared_array_out = np.ndarray(array.shape, dtype=array.dtype, buffer=shm_array_out.buf)
+            # creating shared memory buffer for the final bad pixel mask cube.
+            shm_final_bpm = shared_memory.SharedMemory(create=True, size=final_bpm.nbytes)
+            # creating a shared final_bpm version that is in the shm_final_bpm buffer above.
+            shared_final_bpm = np.ndarray(final_bpm.shape, dtype=final_bpm.dtype, buffer=shm_final_bpm.buf)
+            
+            #function that calls frame_fix_badpix_isolated using the similar arguments as in if nproc==1 branch above. 
+            def mp_clean_isolated (j,frame, bpm_mask=None, sigma_clip=3, num_neig=5, size=5, protect_mask=0, verbose=False, cxy=None, ignore_nan=True, full_output=True):
+                shared_array_out[j], shared_final_bpm[j] = frame_fix_badpix_isolated(frame, bpm_mask=bpm_mask, sigma_clip=sigma_clip, num_neig=num_neig, size=size, protect_mask=protect_mask, verbose=verbose, cxy=cxy, ignore_nan=ignore_nan, full_output=full_output)
+            #function that unwraps the arguments and passes them to mp_clean_isolated. 
+            global _mp_clean_isolated
+            def _mp_clean_isolated (args):
+                pargs=args[0:2]
+                kwargs=args[2]
+                mp_clean_isolated(*pargs, **kwargs)
+            
+            context=multiprocessing.get_context('fork')
+            pool=context.Pool(processes=nproc, maxtasksperchild=1)
+
+            args=[]
+            for j in range(n_frames):
+                if bpm_mask is not None:
+                    bpm_mask_tmp = bpm_mask[j]
+                else:
+                    bpm_mask_tmp = None
+                dict_kwargs={'bpm_mask' : bpm_mask_tmp, 'sigma_clip': sigma_clip, 'num_neig': num_neig, 'size' : size, 'protect_mask': protect_mask, 'cxy' : (cx[j], cy[j]), 'ignore_nan': ignore_nan}
+                args.append([j, array[j], dict_kwargs])
+            
+            try:
+                pool.map_async(_mp_clean_isolated, args, chunksize=1 ).get(timeout=10_000_000)
+            finally:
+                pool.close()
+                pool.join()
+                array_out[:]=shared_array_out[:]
+                final_bpm[:]=shared_final_bpm[:]
+                shm_array_out.close()
+                shm_array_out.unlink()
+                shm_final_bpm.close()
+                shm_final_bpm.unlink()           
         count_bp = np.sum(final_bpm)
     else:
         if bpm_mask is None or not correct_only:

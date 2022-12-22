@@ -322,6 +322,7 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
     yy_out = []
     xx_out = []
     snr_list = []
+    snr_final = []
 
     if mode in ('lpeaks', 'log', 'dog'):
         xx -= pad
@@ -342,6 +343,7 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
                 _ = frame_report(array, fwhm, (x, y), verbose=verbose)
             yy_final.append(y)
             xx_final.append(x)
+            snr_final.append(snr_value)
         else:
             yy_out.append(y)
             xx_out.append(x)
@@ -353,17 +355,18 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
     if verbose:
         print(sep)
 
-    if debug or full_output:
+    if debug:
         table_full = pn.DataFrame({'y': yy.tolist(),
                                    'x': xx.tolist(),
                                    'px_snr': snr_list})
         table_full.sort_values('px_snr')
+        print(table_full)
 
     yy_final = np.array(yy_final)
     xx_final = np.array(xx_final)
     yy_out = np.array(yy_out)
     xx_out = np.array(xx_out)
-    table = pn.DataFrame({'y': yy_final.tolist(), 'x': xx_final.tolist()})
+    table = pn.DataFrame({'y': yy_final.tolist(), 'x': xx_final.tolist(), 'px_snr': snr_final})
 
     if plot:
         coords = tuple(zip(xx_out.tolist() + xx_final.tolist(),
@@ -372,9 +375,6 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
         circlealpha += [1] * len(xx_final)
         plot_frames(array, dpi=120, circle=coords, circle_alpha=circlealpha,
                     circle_label=True, circle_radius=fwhm, **kwargs)
-
-    if debug:
-        print(table_full)
 
     if full_output:
         return table

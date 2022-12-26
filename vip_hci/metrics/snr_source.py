@@ -9,6 +9,7 @@ Module with S/N calculation functions. We strongly recommend users to read
 __author__ = 'Carlos Alberto Gomez Gonzalez, O. Absil @ ULg, V. Christiaens'
 __all__ = ['snr',
            'snrmap',
+           'indep_ap_centers',
            'significance',
            'frame_report']
 
@@ -216,6 +217,65 @@ def _snr_approx(array, source_xy, fwhm, centery, centerx):
     snr_value = signal / noise
     return sourcey, sourcex, snr_value
 
+def indep_ap_centers(array, source_xy, fwhm, exclude_negative_lobes=False,
+                     exclude_theta_range=None):
+
+    sourcex, sourcey = source_xy
+    centery, centerx = frame_center(array)
+    sep = dist(centery, centerx, float(sourcey), float(sourcex))
+    theta_0 = np.rad2deg(np.arctan2(sourcey - centery, sourcex - centerx))
+
+    if exclude_theta_range is not None:
+        exc_theta_range = list(exclude_theta_range)
+
+    if not sep > (fwhm / 2) + 1:
+        raise RuntimeError('`source_xy` is too close to the frame center')
+
+    # sens = 'clock'  # counterclock
+    # assumes clockwise rotation when building test apertures
+    # change sign and conditions if counterclockwise
+    sign = -1
+    if exclude_theta_range is not None:
+        if theta_0 > exc_theta_range[0] and theta_0 < exc_theta_range[1]:
+            exc_theta_range[0] += 360
+        while theta_0 < exc_theta_range[1]:
+            theta_0 += 360
+    theta = theta_0
+
+    angle = np.arcsin(fwhm / 2. / sep) * 2
+    number_apertures = int(np.floor(2 * np.pi / angle))
+    yy = []
+    xx = []
+    yy_all = np.zeros(number_apertures)
+    xx_all = np.zeros(number_apertures)
+    cosangle = np.cos(angle)
+    sinangle = np.sin(angle)
+    xx.append(sourcex - centerx)
+    yy.append(sourcey - centery)
+    xx_all[0] = sourcex - centerx
+    yy_all[0] = sourcey - centery
+
+    for i in range(number_apertures - 1):
+        xx_all[i + 1] = cosangle * xx_all[i] - sign * sinangle * yy_all[i]
+        yy_all[i + 1] = cosangle * yy_all[i] + sign * sinangle * xx_all[i]
+        theta += sign * np.rad2deg(angle)
+        if exclude_negative_lobes and (i == 0 or i == number_apertures - 2):
+            continue
+        if exclude_theta_range is None:
+            xx.append(cosangle * xx_all[i] - sign * sinangle * yy_all[i])
+            yy.append(cosangle * yy_all[i] + sign * sinangle * xx_all[i])
+        else:
+            if theta < exc_theta_range[0] or theta > exc_theta_range[1]:
+                xx.append(cosangle * xx_all[i] - sign * sinangle * yy_all[i])
+                yy.append(cosangle * yy_all[i] + sign * sinangle * xx_all[i])
+
+    xx = np.array(xx)
+    yy = np.array(yy)
+
+    xx += centerx
+    yy += centery
+
+    return yy, xx
 
 def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         exclude_negative_lobes=False, exclude_theta_range=None, plot=False, 
@@ -294,60 +354,9 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         if not array2.shape == array.shape:
             raise TypeError('`array2` has not the same shape as input array')
 
-    sourcex, sourcey = source_xy
-    centery, centerx = frame_center(array)
-    sep = dist(centery, centerx, float(sourcey), float(sourcex))
-    theta_0 = np.rad2deg(np.arctan2(sourcey-centery,sourcex-centerx))
-    
-    if exclude_theta_range is not None:
-        exc_theta_range = list(exclude_theta_range)   
-        
-    if not sep > (fwhm/2)+1:
-        raise RuntimeError('`source_xy` is too close to the frame center')
+    yy, xx = indep_ap_centers(array, source_xy, fwhm, exclude_negative_lobes,
+                              exclude_theta_range)
 
-    #sens = 'clock'  # counterclock
-    # assumes clockwise rotation when building test apertures
-    # change sign and conditions if counterclockwise
-    sign = -1
-    if exclude_theta_range is not None:
-        if theta_0 > exc_theta_range[0] and theta_0 < exc_theta_range[1]:
-            exc_theta_range[0] += 360
-        while theta_0<exc_theta_range[1]:
-            theta_0 += 360
-    theta = theta_0
-
-    angle = np.arcsin(fwhm/2./sep)*2
-    number_apertures = int(np.floor(2*np.pi/angle))
-    yy = []
-    xx = []
-    yy_all = np.zeros(number_apertures)
-    xx_all = np.zeros(number_apertures)
-    cosangle = np.cos(angle)
-    sinangle = np.sin(angle)
-    xx.append(sourcex - centerx)
-    yy.append(sourcey - centery)
-    xx_all[0] = sourcex - centerx
-    yy_all[0] = sourcey - centery
-    
-    for i in range(number_apertures-1):
-        xx_all[i+1]=cosangle*xx_all[i] - sign*sinangle*yy_all[i]
-        yy_all[i+1]=cosangle*yy_all[i] + sign*sinangle*xx_all[i]
-        theta += sign*np.rad2deg(angle)
-        if exclude_negative_lobes and (i==0 or i==number_apertures-2):
-            continue
-        if exclude_theta_range is None:
-            xx.append(cosangle*xx_all[i] - sign*sinangle*yy_all[i])
-            yy.append(cosangle*yy_all[i] + sign*sinangle*xx_all[i])
-        else:
-            if theta<exc_theta_range[0] or theta>exc_theta_range[1]:
-                xx.append(cosangle*xx_all[i] - sign*sinangle*yy_all[i])
-                yy.append(cosangle*yy_all[i] + sign*sinangle*xx_all[i])
-
-    xx=np.array(xx)
-    yy=np.array(yy)
-
-    xx += centerx
-    yy += centery
     rad = fwhm/2.
 
     apertures = photutils.CircularAperture(

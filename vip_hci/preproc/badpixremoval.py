@@ -395,9 +395,9 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
 
     # thresholds
     if min_thr is None:
-        min_thr = np.amin(array_corr)-1
+        min_thr = np.amin(array)-1
     if max_thr is None:
-        max_thr = np.amax(array_corr)-1
+        max_thr = np.amax(array)-1
 
     def bp_removal_2d(array, cy, cx, fwhm, sig, protect_mask, r_in_std,
                       r_out_std, verbose):
@@ -426,7 +426,6 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
             else:
                 r_out_std = min(n_y-(cy+r_in_std), cy-r_in_std,
                                 n_x-(cx+r_in_std), cx-r_in_std)
-            ceny, cenx = frame_center(array)
             width = max(2, r_out_std-r_in_std)
             array_crop = get_annulus_segments(array, r_in_std, width,
                                               mode="val")

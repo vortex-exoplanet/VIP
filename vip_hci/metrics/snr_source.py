@@ -354,6 +354,8 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         if not array2.shape == array.shape:
             raise TypeError('`array2` has not the same shape as input array')
 
+    sourcex, sourcey = source_xy
+
     yy, xx = indep_ap_centers(array, source_xy, fwhm, exclude_negative_lobes,
                               exclude_theta_range)
 

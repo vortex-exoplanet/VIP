@@ -1214,7 +1214,7 @@ def cube_fix_badpix_interp(array, bpm_mask, mode='fft', fwhm=4., kernel_sz=None,
             if nproc is None:
                 nproc = cpu_count()//2
             res = pool_map(nproc, frame_fix_badpix_fft, iterable(array_corr),
-                           iterable(bpm_mask), nit, tol, False, False,
+                           iterable(bpm_mask), nit, tol, 2, False,
                            full_output, msg="Correcting bad pixels")
             if full_output and isinstance(nit, int):
                 array_corr = np.array(res[:, 0], dtype=np.float64)

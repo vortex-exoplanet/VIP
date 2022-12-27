@@ -1476,7 +1476,8 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
 
     if nproc == 1:
         res = []
-        print('2d {}-fitting'.format(model))
+        if verbose:
+            print('2d {}-fitting'.format(model))
         for i in Progressbar(range(n_frames), desc="frames", verbose=verbose):
             if model == "2gauss":
                 args = [array, i, subi_size, pos_y, pos_x, debug, fwhm[i],

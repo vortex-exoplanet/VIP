@@ -287,7 +287,7 @@ def clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori=None,
         if bpm_mask_ori is None:
             gpm_ori = np.ones(array.shape)
         else:
-            gpm_ori = np.ones(array.shape)-bpm_mask_ori
+            gpm_ori = np.ones(array.shape) - bpm_mask_ori
         
         ny, nx = array.shape
         bpm = np.ones(array.shape)
@@ -331,7 +331,11 @@ def clip_array(array, lower_sigma, upper_sigma, bpm_mask_ori=None,
                                     x-hbox_l:x+hbox_r+1]
                     gp_arr = gpm_ori[y-hbox_b:y+hbox_t+1,
                                      x-hbox_l:x+hbox_r+1]
-                    neighbours = sub_arr[np.where(gp_arr)].flatten()
+                    gp_idx = np.nonzero(gp_arr)
+                    neighbours = []
+                    for n, (i, j) in enumerate(zip(gp_idx[0], gp_idx[1])):
+                        neighbours.append(sub_arr[i, j])
+                    neighbours = np.array(neighbours)
                     neigh_list = []
                     remove_itself = True
                     for i in range(neighbours.shape[0]):

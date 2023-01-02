@@ -120,10 +120,10 @@ options (e.g. PCA-based sky subtraction, image centering or bad frame trimming).
 processing pipeline including similar options as ``VIP`` regarding preprocessing 
 [@pynpoint:2019]. Nonetheless, the PCA implementation in ``VIP`` offers a much
 wider diversity of options, such as the possibility to carry it out in 
-concentric annuli, and considering a parallactic angle threshold when creating 
+concentric annuli, and to consider a parallactic angle threshold when creating 
 the PCA library. Depending on the high-contrast imaging dataset at hand, 
 different post-processing methods and reduction parameters can lead to better 
-speckle suppression, hence help with the detection of fainter companions 
+speckle suppression, helping with the detection of fainter companions 
 [@Dahlqvist:2021]. In that regard, ``VIP`` is thus better equipped than other 
 existing toolkits. It is also worth mentioning that FFT-based methods are 
 implemented in ``VIP`` (default option) for all image operations (rotation, 
@@ -165,11 +165,11 @@ of debris disks [@Milli:2017b; @Milli:2019], or the development of new
 high-contrast imaging algorithms 
 [@Gomez:2018;  @Dahlqvist:2020;  @Pairet:2021;  @Dahlqvist:2021]. 
 
-Given the rapid expansion of ``VIP``, we summarize here all novelties that were 
+Given the rapid expansion of ``VIP``, we summarize here all new features that were 
 brought to the package over the past five years. Specifically, the rest of this 
 manuscript summarizes all major changes since v0.7.0 [@Gomez:2017], that are 
-included in the latest release of ``VIP`` (v1.3.4). At a structural level, 
-``VIP`` underwent a major change since version v1.1.0, which aimed to migrate 
+included in the latest release of ``VIP`` (v1.3.5). At a structural level, 
+``VIP`` underwent a major change since version v1.1.0, which migrated it
 towards a more streamlined and easy-to-use architecture. The package now 
 revolves around five major modules (`fm`, `invprob`, `metrics`, `preproc` and 
 `psfsub`, as described above) complemented by four additional modules containing 

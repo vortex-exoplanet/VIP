@@ -23,7 +23,7 @@ except ImportError:
 
 from scipy.ndimage import geometric_transform, zoom
 from scipy.optimize import minimize
-from ..var import frame_center, get_square
+from ..var import frame_center, get_square, cube_filter_highpass
 from .subsampling import cube_collapse
 from .recentering import frame_shift
 from .cosmetics import frame_crop
@@ -693,7 +693,7 @@ def check_scal_vector(scal_vec):
 
 def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev",
                      simplex_options=None, debug=False, imlib='vip-fft',
-                     interpolation='lanczos4', **kwargs):
+                     interpolation='lanczos4', hpf=False, fwhm_max=5, **kwargs):
     """
     Find the optimal scaling factor for the channels of an IFS cube (or of
     dual-band pairs of images).
@@ -723,6 +723,13 @@ def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev",
         pixels.
     options: dict, optional
         The scipy.optimize.minimize options.
+    hpf: bool, optional
+        Whether to high-pass filter images before searching for optimal scaling
+        factors. Can help to not be biased by a diffuse halo, and just leverage
+        speckle expansion.
+    max_fwhm: float, optional
+        Maximum FWHM of the PSF across all wavelengths, in pixels. Only used if
+        hpf is set to True.
     **kwargs: optional
         Optional arguments to the scipy.optimize.minimize function
 
@@ -746,9 +753,16 @@ def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev",
                            'maxfev': 2000}
     scal_vec = np.ones(n_z)
     flux_vec = np.ones(n_z)
+    array = cube.copy()
+    if hpf:
+        med_sz = int(5*fwhm_max)
+        if not med_sz%2:
+            med_sz+=1
+        array = cube_filter_highpass(cube, mode='median-subt',
+                                     median_size=med_sz)
     for z in range(n_z-1):
         flux_scal = fluxes[-1]/fluxes[z]
-        cube_tmp = np.array([cube[z], cube[-1]])
+        cube_tmp = np.array([array[z], array[-1]])
         if nfp == 1:
             p_ini = (scal_vec_ini[z],)
             solu = minimize(_chisquare_scal, p_ini, args=(cube_tmp, flux_scal,

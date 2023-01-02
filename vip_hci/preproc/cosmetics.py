@@ -171,6 +171,12 @@ def frame_pad(array, fac, fillwith=0, loc=0, scale=1, keep_parity=True,
 
     if not array.ndim == 2:
         raise TypeError("The input array must be 2d")
+    if np.isscalar(fac):
+        if fac < 1:
+            raise ValueError("fac should be larger than 1")
+    else:
+        if fac[0] < 1 or fac[-1] < 1:
+            raise ValueError("fac elements should be larger than 1")
 
     y, x = array.shape
     cy_ori, cx_ori = frame_center(array)

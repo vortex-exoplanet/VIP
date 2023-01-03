@@ -22,6 +22,9 @@ VIP - Vortex Image Processing package
 
 .. image:: https://codecov.io/gh/vortex-exoplanet/VIP/branch/master/graph/badge.svg?token=HydCFQqLRf
     :target: https://codecov.io/gh/vortex-exoplanet/VIP
+
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7499314.svg
+   :target: https://doi.org/10.5281/zenodo.7499314
     
 
 ::

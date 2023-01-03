@@ -106,7 +106,7 @@ and well-documented implementations of state-of-the-art algorithms used in the
 context of high-contrast imaging [@Gomez:2017]. Two other open-source toolkits 
 for high-contrast imaging with similar purpose and extent as ``VIP`` have 
 become available in the last few years: ``pyklip`` and ``pynpoint`` 
-[@pyklip:2015; @pynpoint:2015; @pynpoint:2019]. In each of these, a core (and only) 
+[@pyklip:2015; @pynpoint:2015; @pynpoint:2019]. In each of these, a single core 
 post-processing method is available: the Karhuenen-Loeve Image Projection (KLIP) 
 algorithm [@Soummer:2012], and the (similar) Principal Component Analysis (PCA) 
 algorithm [@Amara:2012], respectively. In contrast, ``VIP`` not only implements 

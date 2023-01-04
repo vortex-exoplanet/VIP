@@ -289,6 +289,13 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
                 final_bpm[i] = res[1]
         else:
             print("Processing using ADACS' multiprocessing approach...")
+            #dummy calling the function to create cached version of the code prior to forking
+            if bpm_mask is not None:
+                bpm_mask_dum = bpm_mask[0]
+            else:
+                bpm_mask_dum = None
+            #point of dummy call
+            dummy_call = frame_fix_badpix_isolated(array[0], bpm_mask=bpm_mask_dum, sigma_clip=sigma_clip, num_neig=num_neig, size=size, protect_mask=protect_mask, verbose=False, cxy=(cx[0], cy[0]), ignore_nan=ignore_nan, full_output=False)
             # multiprocessing included only in the frame-by-frame branch of the if statement above. 
             # creating shared memory buffer for the cube (array)
             shm_array_out = shared_memory.SharedMemory(create=True, size=array.nbytes)
@@ -884,7 +891,6 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                 shm_clump_bpix= shared_memory.SharedMemory(create=True, size=obj_tmp.nbytes)
                 #works with dtype=obj_tmp.dtype but not dtype=int
                 bpix_map_cumul_shared= np.ndarray(obj_tmp.shape, dtype=obj_tmp.dtype, buffer=shm_clump_bpix.buf)
-                
                 def mp_clump_slow(j, obj_tmp, cy, cx, fwhm, sig, protect_mask, bpm_mask, min_thr, half_res_y, mad, verbose):
                     obj_tmp_shared_clump[j], bpix_map_cumul_shared[j] = bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_mask, bpm_mask, min_thr, half_res_y, mad, verbose)
                 

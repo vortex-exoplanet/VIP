@@ -348,6 +348,9 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
                     msg = "In channel {}, {} NaN pixels were corrected"
                     print(msg.format(zz, nnanpix))
         else:
+            #dummy calling the function to prevent compiling of the function by individual workers
+            #This should save some time. 
+            dummy_obj = nan_corr_2d(obj_tmp[0], neighbor_box, min_neighbors, half_res_y, verbose, full_output=False)
             if verbose:
                 msg = "Correcting NaNs in multiprocessing using ADACS' approach..."
                 print(msg)

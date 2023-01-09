@@ -778,10 +778,10 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
         if bpm_mask is None or not correct_only:
             if (cy is None or cx is None) and protect_mask:
                 cy, cx = frame_center(array)
-            array_corr, bpix_map_cumul = bp_removal_2d(array_corr, cy, cx, fwhm, sig,
-                                                    protect_mask, bpm_mask,
-                                                    min_thr, half_res_y, mad,
-                                                    verbose)
+            array_corr, bpix_map_cumul = bp_removal_2d(array_corr, cy, cx, fwhm,
+                                                       sig, protect_mask,
+                                                       bpm_mask, min_thr,
+                                                       half_res_y, mad, verbose)
         else:
             fwhm_round = int(round(fwhm))
             fwhm_round = fwhm_round+1-(fwhm_round % 2)  # make it odd
@@ -807,12 +807,14 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
             for i in range(n_z):
                 if verbose:
                     print('************Frame # ', i, ' *************')
-                array_corr[i], bpix_map_cumul[i] = bp_removal_2d(array_corr[i], cy[i],
-                                                              cx[i], fwhm[i],
-                                                              sig, protect_mask,
-                                                              bpm_mask, min_thr,
-                                                              half_res_y, mad,
-                                                              verbose)
+                array_corr[i], bpix_map_cumul[i] = bp_removal_2d(array_corr[i],
+                                                                 cy[i], cx[i],
+                                                                 fwhm[i], sig,
+                                                                 protect_mask,
+                                                                 bpm_mask,
+                                                                 min_thr,
+                                                                 half_res_y, mad,
+                                                                 verbose)
         else:
             if isinstance(fwhm, (float, int)):
                 fwhm_round = int(round(fwhm))

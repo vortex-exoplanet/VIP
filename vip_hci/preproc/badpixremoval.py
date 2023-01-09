@@ -940,6 +940,13 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
             else:
                 msg="Cleaning frames using ADACS' multiprocessing appraoch"
                 print(msg)
+                #dummy calling sigma_filter function to create a cached version of the numba function
+                if bpm_mask.ndim == 3:
+                    dummy_bpm = bpm_mask[i]
+                else: 
+                    dummy_bpm = bpm_mask
+                #Actual dummy call is here. 
+                dummy_obj_tmp = sigma_filter(obj_tmp[0], dummy_bpm, neighbor_box, nneig, half_res_y, verbose)
                 #creating shared memory that each process writes into. 
                 shm_clump = shared_memory.SharedMemory(create=True, size=obj_tmp.nbytes)
                 #creating an array that uses shared memory buffer and has the properties of obj_tmp.

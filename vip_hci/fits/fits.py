@@ -70,7 +70,7 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     else:
         data = hdulist[n].data
         data = np.array(data, dtype=precision)
-
+        hdulist.close()
         if header:
             header = hdulist[n].header
             if verbose:

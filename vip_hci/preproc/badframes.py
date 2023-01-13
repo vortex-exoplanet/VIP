@@ -63,9 +63,14 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     """
     check_array(array, 3, msg='array')
 
-    if in_radius+width > array[0].shape[0]/2:
-        msgve = 'Inner radius and annulus size are too big (out of boundaries)'
-        raise ValueError(msgve)
+    if mode == 'annulus':
+        if in_radius + width > array[0].shape[0] / 2:
+            msgve = 'Inner radius and annulus size are too big (out of boundaries)'
+            raise ValueError(msgve)
+    elif mode == 'circle':
+        if in_radius > array[0].shape[0] / 2:
+            msgve = 'Radius size is too big (out of boundaries)'
+            raise ValueError(msgve)
 
     if verbose:
         start_time = time_ini()

@@ -331,8 +331,7 @@ def cube_derotate(array, angle_list, imlib='vip-fft', interpolation='lanczos4',
                   edge_blend=None, interp_zeros=False, ker=1, **rot_options):
     """ Rotates a cube (3d array or image sequence) providing a vector or
     corresponding angles. Serves for rotating an ADI sequence to a common north
-    given a vector with the corresponding parallactic angles for each frame. By
-    default, bicubic interpolation is used (opencv).
+    given a vector with the corresponding parallactic angles for each frame.
 
     Parameters
     ----------

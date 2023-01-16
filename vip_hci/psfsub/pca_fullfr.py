@@ -1071,7 +1071,7 @@ def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px, svd_mode,
         vectors of the input matrix, as returned by ``svd/svd_wrapper()``
     """
     _, y, x = cube.shape
-    if isinstance(ncomp, (int, np.integer)):
+    if isinstance(ncomp, (int, np.int_)):
         # if cube_sig is not None:
         #     cube_emp = cube-cube_sig
         # else:
@@ -1124,7 +1124,7 @@ def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px, svd_mode,
             else:
                 return residuals_res
 
-    elif isinstance(ncomp, (float, np.float)):
+    elif isinstance(ncomp, (float, np.float16, np.float32, np.float64)):
         if not 1 > ncomp > 0:
             raise ValueError("when `ncomp` is float, it must lie in the "
                              "interval (0,1]")

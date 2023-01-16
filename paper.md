@@ -40,12 +40,21 @@ authors:
   - name: Iain Hammond
     orcid: 0000-0003-1502-4315
     affiliation: 9
+  - name: Markus Bonse
+    orcid: 0000-0003-2202-1745
+    affiliation: 10
   - name: Faustine Cantalloube
     orcid: 0000-0002-3968-3780
-    affiliation: 10
+    affiliation: 11
   - name: Arthur Vigan
     orcid: 0000-0002-5902-7828
-    affiliation: 10
+    affiliation: 11
+  - name: Vijay Phanindra Srikanth Kompella
+    orcid: 0000-0002-9392-2375
+    affiliation: 12
+  - name: Paul J. Hancock
+    orcid: 0000-0002-4203-2946
+    affiliation: 12
 
 affiliations:
   - name: Space sciences, Technologies & Astrophysics Research Institute, Université de Liège, Belgium
@@ -66,8 +75,12 @@ affiliations:
     index: 8
   - name: School of Physics and Astronomy, Monash University, Vic 3800, Australia
     index: 9
-  - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
+  - name: ETH Zurich, Institute for Particle Physics & Astrophysics, 8093 Zurich, Switzerland 
     index: 10
+  - name: Aix Marseille Univ, CNRS, CNES, LAM, Marseille, France
+    index: 11
+  - name: Curtin Institute for Computation, Curtin University, Perth, WA, Australia
+    index: 12
 
 date: 4 May 2022
 bibliography: paper.bib
@@ -93,7 +106,7 @@ and well-documented implementations of state-of-the-art algorithms used in the
 context of high-contrast imaging [@Gomez:2017]. Two other open-source toolkits 
 for high-contrast imaging with similar purpose and extent as ``VIP`` have 
 become available in the last few years: ``pyklip`` and ``pynpoint`` 
-[@pyklip:2015; @pynpoint:2015; @pynpoint:2019]. In each of these, a core (and only) 
+[@pyklip:2015; @pynpoint:2015; @pynpoint:2019]. In each of these, a single core 
 post-processing method is available: the Karhuenen-Loeve Image Projection (KLIP) 
 algorithm [@Soummer:2012], and the (similar) Principal Component Analysis (PCA) 
 algorithm [@Amara:2012], respectively. In contrast, ``VIP`` not only implements 
@@ -107,10 +120,10 @@ options (e.g. PCA-based sky subtraction, image centering or bad frame trimming).
 processing pipeline including similar options as ``VIP`` regarding preprocessing 
 [@pynpoint:2019]. Nonetheless, the PCA implementation in ``VIP`` offers a much
 wider diversity of options, such as the possibility to carry it out in 
-concentric annuli, and considering a parallactic angle threshold when creating 
+concentric annuli, and to consider a parallactic angle threshold when creating 
 the PCA library. Depending on the high-contrast imaging dataset at hand, 
 different post-processing methods and reduction parameters can lead to better 
-speckle suppression, hence help with the detection of fainter companions 
+speckle suppression, helping with the detection of fainter companions 
 [@Dahlqvist:2021]. In that regard, ``VIP`` is thus better equipped than other 
 existing toolkits. It is also worth mentioning that FFT-based methods are 
 implemented in ``VIP`` (default option) for all image operations (rotation, 
@@ -152,11 +165,11 @@ of debris disks [@Milli:2017b; @Milli:2019], or the development of new
 high-contrast imaging algorithms 
 [@Gomez:2018;  @Dahlqvist:2020;  @Pairet:2021;  @Dahlqvist:2021]. 
 
-Given the rapid expansion of ``VIP``, we summarize here all novelties that were 
+Given the rapid expansion of ``VIP``, we summarize here all new features that were 
 brought to the package over the past five years. Specifically, the rest of this 
 manuscript summarizes all major changes since v0.7.0 [@Gomez:2017], that are 
-included in the latest release of ``VIP`` (v1.3.3). At a structural level, 
-``VIP`` underwent a major change since version v1.1.0, which aimed to migrate 
+included in the latest release of ``VIP`` (v1.3.5). At a structural level, 
+``VIP`` underwent a major change since version v1.1.0, which migrated it
 towards a more streamlined and easy-to-use architecture. The package now 
 revolves around five major modules (`fm`, `invprob`, `metrics`, `preproc` and 
 `psfsub`, as described above) complemented by four additional modules containing 

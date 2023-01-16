@@ -22,6 +22,12 @@ VIP - Vortex Image Processing package
 
 .. image:: https://codecov.io/gh/vortex-exoplanet/VIP/branch/master/graph/badge.svg?token=HydCFQqLRf
     :target: https://codecov.io/gh/vortex-exoplanet/VIP
+
+.. image:: https://joss.theoj.org/papers/10.21105/joss.04774/status.svg
+   :target: https://doi.org/10.21105/joss.04774
+
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7499314.svg
+   :target: https://doi.org/10.5281/zenodo.7499314
     
 
 ::
@@ -241,8 +247,6 @@ Maintenance and current development is now led by `Valentin Christiaens <https:/
 VIP benefitted from contributions made by collaborators from several teams, including: Ralf Farkas, Julien Milli, Olivier Wertz, Henry Ngo, Alan Rainot, Gary Ruane, Corentin Doco, Miles Lucas, Gilles Orban de Xivry, Lewis Picker, Faustine Cantalloube, Iain Hammond, Christian Delacroix, Arthur Vigan, Dimitri Mawet and Olivier Absil.
 More details about the respective contributions are available `here <https://github.com/vortex-exoplanet/VIP/graphs/contributors?from=2015-07-26&to=2022-03-29&type=a>`_.
 
-Please cite `Gomez Gonzalez et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017AJ....154....7G/abstract>`_ whenever 
+Please cite `Gomez Gonzalez et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017AJ....154....7G/abstract>`_ and `Christiaens et al. (2023) <https://ui.adsabs.harvard.edu/abs/2023JOSS....8.4774C/abstract>`_ whenever 
 you publish data reduced with ``VIP`` (Astrophysics Source Code Library reference `ascl:1603.003`).
 In addition, please cite the relevant publication(s) for the algorithms you use within VIP (usually mentioned in the documentation, e.g. `Marois et al. 2006 <https://ui.adsabs.harvard.edu/abs/2006ApJ...641..556M/abstract>`_ for median-ADI).
-
-Note: A new JOSS paper led by Valentin Christiaens is in preparation.

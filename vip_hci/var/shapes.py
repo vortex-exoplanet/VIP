@@ -384,7 +384,7 @@ def get_ellipse(data, a, b, pa, cy=None, cx=None, mode="ind"):
 def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
                          optim_scale_fact=1, mode="ind"):
     """
-    Return indices or values in segments of a centerered annulus.
+    Return indices or values in segments of a centered annulus.
 
     The annulus is defined by ``inner_radius <= annulus < inner_radius+width``.
 

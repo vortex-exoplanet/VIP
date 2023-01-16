@@ -637,7 +637,7 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     weights: 1d numpy array or list, optional
         Weights to be applied for a weighted mean. Need to be provided if
         collapse mode is 'wmean' for collapse.
-    collapse_ifs : {'median', 'mean', 'sum', 'wmean'}, str or None, optional
+    collapse_ifs : {'median', 'mean', 'sum', 'wmean', 'absmean'}, str or None, optional
         Sets the way of collapsing the spectral frames for producing a final
         image (in the case of a 4D input cube).
     rot_options: dictionary, optional

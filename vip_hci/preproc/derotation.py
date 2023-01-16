@@ -41,7 +41,7 @@ except ImportError:
 
 def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
                  cxy=None, border_mode='constant', mask_val=np.nan,
-                 edge_blend=None, interp_zeros=False, ker=1, **rot_options):
+                 edge_blend=None, interp_zeros=False, ker=1):
     """ Rotates a frame or 2D array.
 
     Parameters
@@ -102,10 +102,6 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         However, this flag should be false if rotating a binary mask.
     ker: float, optional
         Size of the Gaussian kernel used for interpolation.
-    rot_options: dict, optional
-        Dictionary of all the above options, for the purpose of propagating
-        rotation options through VIP functions. Note any arguments here will
-        override the default parameter.
 
     Returns
     -------
@@ -115,16 +111,6 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
     """
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
-
-    imlib = rot_options.get('imlib', imlib)
-    interpolation = rot_options.get('interpolation', interpolation)
-    cxy = rot_options.get('cxy', cxy)
-    border_mode = rot_options.get('border_mode', border_mode)
-    mask_val = rot_options.get('mask_val', mask_val)
-    edge_blend = rot_options.get('edge_blend', edge_blend)
-    interp_zeros = rot_options.get('interp_zeros', interp_zeros)
-    ker = rot_options.get('ker', ker)
-
     if edge_blend is None:
         edge_blend = ''
 
@@ -328,7 +314,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
 
 def cube_derotate(array, angle_list, imlib='vip-fft', interpolation='lanczos4',
                   cxy=None, nproc=1, border_mode='constant', mask_val=np.nan,
-                  edge_blend=None, interp_zeros=False, ker=1, **rot_options):
+                  edge_blend=None, interp_zeros=False, ker=1):
     """ Rotates a cube (3d array or image sequence) providing a vector or
     corresponding angles. Serves for rotating an ADI sequence to a common north
     given a vector with the corresponding parallactic angles for each frame.
@@ -362,8 +348,6 @@ def cube_derotate(array, angle_list, imlib='vip-fft', interpolation='lanczos4',
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     ker: int, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    rot_options: dict, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     Returns
     -------
     array_der : numpy ndarray
@@ -385,24 +369,22 @@ def cube_derotate(array, angle_list, imlib='vip-fft', interpolation='lanczos4',
                                         border_mode=border_mode,
                                         mask_val=mask_val,
                                         edge_blend=edge_blend,
-                                        interp_zeros=interp_zeros, ker=ker,
-                                        **rot_options)
+                                        interp_zeros=interp_zeros, ker=ker)
     elif nproc > 1:
 
         res = pool_map(nproc, _frame_rotate_mp, iterable(array),
                        iterable(-angle_list), imlib, interpolation, cxy,
-                       border_mode, mask_val, edge_blend, interp_zeros, ker,
-                       **rot_options)
+                       border_mode, mask_val, edge_blend, interp_zeros, ker)
         array_der = np.array(res)
 
     return array_der
 
 
 def _frame_rotate_mp(frame, angle, imlib, interpolation, cxy, border_mode,
-                     mask_val, edge_blend, interp_zeros, ker, **rot_options):
+                     mask_val, edge_blend, interp_zeros, ker):
     framerot = frame_rotate(frame, angle, imlib, interpolation, cxy,
                             border_mode, mask_val, edge_blend, interp_zeros,
-                            ker, **rot_options)
+                            ker)
     return framerot
 
 

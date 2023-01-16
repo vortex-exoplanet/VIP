@@ -295,7 +295,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
             else:
                 bpm_mask_dum = None
             #point of dummy call
-            dummy_call = frame_fix_badpix_isolated(array[0], bpm_mask=bpm_mask_dum, sigma_clip=sigma_clip, num_neig=num_neig, size=size, protect_mask=protect_mask, verbose=False, cxy=(cx[0], cy[0]), ignore_nan=ignore_nan, full_output=False)
+            frame_fix_badpix_isolated(array[0], bpm_mask=bpm_mask_dum, sigma_clip=sigma_clip, num_neig=num_neig, size=size, protect_mask=protect_mask, verbose=False, cxy=(cx[0], cy[0]), ignore_nan=ignore_nan, full_output=False)
             # multiprocessing included only in the frame-by-frame branch of the if statement above. 
             # creating shared memory buffer for the cube (array)
             shm_array_out = shared_memory.SharedMemory(create=True, size=array.nbytes)
@@ -869,11 +869,11 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
             if isinstance(fwhm, (float, int)):
                 fwhm = [fwhm]*n_z
             if nproc==1:
-                bpix_map_cumul = np.zeros_like(obj_tmp)
+                bpix_map_cumul = np.zeros_like(array_corr)
                 for i in range(n_z):
                     if verbose:
                         print('************Frame # ', i, ' *************')
-                    obj_tmp[i], bpix_map_cumul[i] = bp_removal_2d(obj_tmp[i], cy[i],
+                    array_corr[i], bpix_map_cumul[i] = bp_removal_2d(array_corr[i], cy[i],
                                                                 cx[i], fwhm[i],
                                                                 sig, protect_mask,
                                                                 bpm_mask, min_thr,
@@ -883,14 +883,14 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                 msg="Cleaning frames using ADACS' multiprocessing appraoch"
                 print(msg)  
                 #creating shared memory buffer space for the image cube. 
-                shm_clump= shared_memory.SharedMemory(create=True, size=obj_tmp.nbytes)
-                obj_tmp_shared_clump = np.ndarray(obj_tmp.shape, dtype=obj_tmp.dtype, buffer=shm_clump.buf) 
+                shm_clump= shared_memory.SharedMemory(create=True, size=array_corr.nbytes)
+                obj_tmp_shared_clump = np.ndarray(array_corr.shape, dtype=array_corr.dtype, buffer=shm_clump.buf) 
                 #creating shared memory buffer space for the bad pixel cube. 
-                shm_clump_bpix= shared_memory.SharedMemory(create=True, size=obj_tmp.nbytes)
+                shm_clump_bpix= shared_memory.SharedMemory(create=True, size=array_corr.nbytes)
                 #works with dtype=obj_tmp.dtype but not dtype=int
-                bpix_map_cumul_shared= np.ndarray(obj_tmp.shape, dtype=obj_tmp.dtype, buffer=shm_clump_bpix.buf)
-                def mp_clump_slow(j, obj_tmp, cy, cx, fwhm, sig, protect_mask, bpm_mask, min_thr, half_res_y, mad, verbose):
-                    obj_tmp_shared_clump[j], bpix_map_cumul_shared[j] = bp_removal_2d(obj_tmp, cy, cx, fwhm, sig, protect_mask, bpm_mask, min_thr, half_res_y, mad, verbose)
+                bpix_map_cumul_shared= np.ndarray(array_corr.shape, dtype=array_corr.dtype, buffer=shm_clump_bpix.buf)
+                def mp_clump_slow(j, array_corr, cy, cx, fwhm, sig, protect_mask, bpm_mask, min_thr, half_res_y, mad, verbose):
+                    obj_tmp_shared_clump[j], bpix_map_cumul_shared[j] = bp_removal_2d(array_corr, cy, cx, fwhm, sig, protect_mask, bpm_mask, min_thr, half_res_y, mad, verbose)
                 
                 global _mp_clump_slow
                 
@@ -901,15 +901,15 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                 pool=context.Pool(processes=nproc, maxtasksperchild=1)
                 args=[]
                 for i in range(n_z):
-                    args.append([i,obj_tmp[i], cy[i], cx[i], fwhm[i], sig, protect_mask, bpm_mask, min_thr, half_res_y, mad, verbose ])
+                    args.append([i,array_corr[i], cy[i], cx[i], fwhm[i], sig, protect_mask, bpm_mask, min_thr, half_res_y, mad, verbose ])
                 try:
                     pool.map_async(_mp_clump_slow, args, chunksize=1 ).get(timeout=10_000_000)
                 finally: 
                     pool.close()
                     pool.join()
-                    bpix_map_cumul = np.zeros_like(obj_tmp, dtype=obj_tmp.dtype)
+                    bpix_map_cumul = np.zeros_like(array_corr, dtype=array_corr.dtype)
                     bpix_map_cumul[:]=bpix_map_cumul_shared[:]
-                    obj_tmp[:]=obj_tmp_shared_clump[:]
+                    array_corr[:]=obj_tmp_shared_clump[:]
                     shm_clump.close()
                     shm_clump.unlink()
                     shm_clump_bpix.close()
@@ -933,25 +933,25 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                         bpm = bpm_mask[i]
                     else:
                         bpm = bpm_mask
-                    obj_tmp[i] = sigma_filter(obj_tmp[i], bpm, neighbor_box,
+                    array_corr[i] = sigma_filter(array_corr[i], bpm, neighbor_box,
                                             nneig, half_res_y, verbose)
             else:
                 msg="Cleaning frames using ADACS' multiprocessing appraoch"
                 print(msg)
                 #dummy calling sigma_filter function to create a cached version of the numba function
                 if bpm_mask.ndim == 3:
-                    dummy_bpm = bpm_mask[i]
+                    dummy_bpm = bpm_mask[0]
                 else: 
                     dummy_bpm = bpm_mask
                 #Actual dummy call is here. 
-                dummy_obj_tmp = sigma_filter(obj_tmp[0], dummy_bpm, neighbor_box, nneig, half_res_y, verbose)
+                sigma_filter(array_corr[0], dummy_bpm, neighbor_box, nneig, half_res_y, verbose)
                 #creating shared memory that each process writes into. 
-                shm_clump = shared_memory.SharedMemory(create=True, size=obj_tmp.nbytes)
-                #creating an array that uses shared memory buffer and has the properties of obj_tmp.
-                obj_tmp_shared_clump = np.ndarray(obj_tmp.shape, dtype=obj_tmp.dtype, buffer=shm_clump.buf)
+                shm_clump = shared_memory.SharedMemory(create=True, size=array_corr.nbytes)
+                #creating an array that uses shared memory buffer and has the properties of array_corr.
+                obj_tmp_shared_clump = np.ndarray(array_corr.shape, dtype=array_corr.dtype, buffer=shm_clump.buf)
                 #function that is called repeatedly by each process. 
-                def mp_clean_clump(j, obj_tmp, bpm, neighbor_box, nneig, half_res_y, verbose):
-                    obj_tmp_shared_clump[j] = sigma_filter(obj_tmp, bpm, neighbor_box, nneig, half_res_y, verbose)
+                def mp_clean_clump(j, array_corr, bpm, neighbor_box, nneig, half_res_y, verbose):
+                    obj_tmp_shared_clump[j] = sigma_filter(array_corr, bpm, neighbor_box, nneig, half_res_y, verbose)
                 
                 global _mp_clean_clump
                 #function that converts the args into bite-sized pieces for mp_clean_clump. 
@@ -965,13 +965,13 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                         bpm = bpm_mask[j]
                     else:
                         bpm = bpm_mask
-                    args.append([j,obj_tmp[j], bpm, neighbor_box, nneig, half_res_y, verbose])
+                    args.append([j,array_corr[j], bpm, neighbor_box, nneig, half_res_y, verbose])
                 try:
                     pool.map_async(_mp_clean_clump, args, chunksize=1 ).get(timeout=10_000_000)
                 finally: 
                     pool.close()
                     pool.join()
-                    obj_tmp[:]=obj_tmp_shared_clump[:]
+                    array_corr[:]=obj_tmp_shared_clump[:]
                     shm_clump.close()
                     shm_clump.unlink()                
             bpix_map_cumul = bpm_mask

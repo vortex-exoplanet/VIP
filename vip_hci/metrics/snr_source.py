@@ -218,8 +218,38 @@ def _snr_approx(array, source_xy, fwhm, centery, centerx):
     return sourcey, sourcex, snr_value
 
 def indep_ap_centers(array, source_xy, fwhm, exclude_negative_lobes=False,
-                     exclude_theta_range=None):
+                     exclude_theta_range=None, no_gap=False):
+    """
+    Define independent aperture centers at a given radial separation, starting
+    from a test location provided with source_xy.
 
+    Parameters
+    ----------
+    array : numpy ndarray, 2d
+        Frame in which the apertures will be defined (its dimensions are used).
+    source_xy : tuple of floats
+        X and Y coordinates of the planet or test speckle.
+    fwhm : float
+        Size in pixels of the FWHM, corresponding to the diameter of the
+        non-overlapping apertures.
+    exclude_negative_lobes : bool, opt
+        Whether to include the adjacent aperture lobes to the tested location
+        or not. Can be set to True if the image shows significant neg lobes.
+    exclude_theta_range : tuple of 2 floats or None, opt
+        If provided, range of trigonometric angles  in deg (measured from
+        positive x axis), to be avoided for apertures used for noise estimation.
+        WARNING: this is to be used wisely, e.g. only if a known authentic
+        circumstellar signal is biasing the SNR estimate.
+    no_gap: bool, opt
+        Whether an overlapping aperture is defined between the first and last
+        non-overlapping aperture (at the end of making a full circle), in order
+        to leave no gap. False by default.
+
+    Returns
+    -------
+    (yy, xx) : tuple of 2 numpy ndarray
+        Tuple containing y and x coordinates of the apertures
+    """
     sourcex, sourcey = source_xy
     centery, centerx = frame_center(array)
     sep = dist(centery, centerx, float(sourcey), float(sourcex))
@@ -244,6 +274,10 @@ def indep_ap_centers(array, source_xy, fwhm, exclude_negative_lobes=False,
 
     angle = np.arcsin(fwhm / 2. / sep) * 2
     number_apertures = int(np.floor(2 * np.pi / angle))
+    if no_gap:
+        # if requested, add an (overlapping) aperture to avoid a gap
+        number_apertures += 1
+
     yy = []
     xx = []
     yy_all = np.zeros(number_apertures)

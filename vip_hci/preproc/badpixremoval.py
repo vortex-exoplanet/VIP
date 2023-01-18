@@ -740,11 +740,18 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
         while nbpix_tbc > 0 and nit < max_nit:
             nit = nit+1
             if verbose:
-                print("Iteration {}: {} bpix in total, {} to be "
-                      "corrected".format(nit, nbpix_tot, nbpix_tbc))
-            array_corr = sigma_filter(array_corr, bpix_map, neighbor_box=neighbor_box,
-                                   min_neighbors=nneig, half_res_y=half_res_y,
-                                   verbose=verbose)
+                msg = "Iteration {}: {} bad pixels identified".format(nit,
+                                                                      nbpix_tot)
+                if bpm_mask_ori is not None:
+                    nbpix_ori = np.sum(bpm_mask_ori)
+                    msg += " ({} new ones)".format(nbpix_tot-nbpix_ori)
+                if protect_mask:
+                    msg += ", {} to be corrected".format(nbpix_tbc)
+                print(msg)
+            array_corr = sigma_filter(array_corr, bpix_map,
+                                      neighbor_box=neighbor_box,
+                                      min_neighbors=nneig, half_res_y=half_res_y,
+                                      verbose=verbose)
             bp = clip_array(array_corr, sig, sig, bpm_mask_ori, out_good=False,
                             neighbor=True, num_neighbor=neighbor_box, mad=mad,
                             half_res_y=half_res_y)

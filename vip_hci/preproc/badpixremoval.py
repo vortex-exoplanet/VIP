@@ -36,7 +36,18 @@ from .rescaling import find_scal_vector, frame_rescaling
 from .cosmetics import frame_pad
 from multiprocessing import Process
 import multiprocessing
-from multiprocessing import shared_memory, set_start_method
+from multiprocessing import set_start_method
+try:
+   from multiprocessing import shared_memory
+except ImportError:
+   print('Failed to import shared_memory from multiprocessing')
+   try:
+      print('Trying to import shared_memory directly(for python 3.7)')
+      import shared_memory
+   except ModuleNotFoundError:
+       print('Use shared_memory on python 3.7 to activate')
+       print('multiprocessing on badpixels using..')
+       print('pip install shared-memory38')
 
 import warnings
 try:

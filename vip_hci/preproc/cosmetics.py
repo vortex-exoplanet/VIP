@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# check123
+
 """
 Module with cosmetics procedures. Contains the function for bad pixel fixing.
 Also functions for cropping cubes.
@@ -23,7 +23,18 @@ from ..stats import sigma_filter
 from ..var import frame_center, get_square
 from multiprocessing import Process
 import multiprocessing
-from multiprocessing import shared_memory, set_start_method
+from multiprocessing import set_start_method
+try:
+   from multiprocessing import shared_memory
+except ImportError:
+   print('Failed to import shared_memory from multiprocessing')
+   try:
+      print('Trying to import shared_memory directly(for python 3.7)')
+      import shared_memory
+   except ModuleNotFoundError:
+       print('Use shared_memory on python 3.7 to activate')
+       print('multiprocessing on badpixels using..')
+       print('pip install shared-memory38')
 
 
 def cube_crop_frames(array, size, xy=None, force=False, verbose=True,

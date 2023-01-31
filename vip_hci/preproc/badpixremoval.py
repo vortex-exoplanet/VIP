@@ -37,6 +37,7 @@ from .cosmetics import frame_pad
 from multiprocessing import Process
 import multiprocessing
 from multiprocessing import set_start_method
+shared_mem = True
 try:
    from multiprocessing import shared_memory
 except ImportError:
@@ -45,9 +46,9 @@ except ImportError:
       print('Trying to import shared_memory directly(for python 3.7)')
       import shared_memory
    except ModuleNotFoundError:
-       print('Use shared_memory on python 3.7 to activate')
-       print('multiprocessing on badpixels using..')
-       print('pip install shared-memory38')
+       shared_mem = False
+       print("WARNING: multiprocessing unavailable for bad pixel correction.")
+       print('Either pip install shared-memory38, or upgrade to python>=3.8')
 
 import warnings
 try:
@@ -283,7 +284,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
             if bpm_mask.ndim == 2:
                 bpm_mask = [bpm_mask]*n_frames
                 bpm_mask = np.array(bpm_mask)
-        if nproc==1:
+        if nproc==1 or not shared_mem:
             for i in Progressbar(range(n_frames), desc="processing frames"):
                 if bpm_mask is not None:
                     bpm_mask_tmp = bpm_mask[i]
@@ -886,7 +887,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                 cx = [cx]*n_z
             if isinstance(fwhm, (float, int)):
                 fwhm = [fwhm]*n_z
-            if nproc==1:
+            if nproc==1 or not shared_mem:
                 bpix_map_cumul = np.zeros_like(array_corr)
                 for i in range(n_z):
                     if verbose:
@@ -942,7 +943,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
             neighbor_box = max(3, fwhm_round)  # to not replace a companion
             nneig = sum(np.arange(3, neighbor_box+2, 2))
 
-            if nproc==1:
+            if nproc==1 or not shared_mem:
                 for i in range(n_z):
                     if verbose:
                         print('Using serial approach')

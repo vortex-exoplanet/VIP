@@ -426,14 +426,18 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
         count_bp = np.sum(final_bpm)
     else:
         if excl_mask is None:
-            excl_mask = np.zeros(array.shape, dtype=bool)
+            excl_mask = np.zeros(array.shape[-2:], dtype=bool)
+        elif excl_mask.ndim == 3:
+            excl_mask = np.median(excl_mask, axis=0)
         elif excl_mask is None:
-            msg = "Input exclusion mask should have same shape as array\n"
-            assert excl_mask.shape == array.shape, msg
+            msg = "Input exclusion mask should have same last 2 dims as array\n"
+            assert excl_mask.shape == array.shape[-2:], msg
         ind_excl = np.where(excl_mask)
         if bpm_mask is None or not correct_only:
             if bpm_mask is None:
-                bpm_mask = np.zeros(array.shape, dtype=bool)
+                bpm_mask = np.zeros(array.shape[-2:], dtype=bool)
+            elif bpm_mask.ndim == 3:
+                bpm_mask = np.median(bpm_mask, axis=0)
             bpm_mask = bpm_mask+excl_mask
             ori_nan_mask = np.where(np.isnan(np.nanmean(array, axis=0)))
             ind = clip_array(np.nanmean(array, axis=0), sigma_clip, sigma_clip,
@@ -845,7 +849,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                       excl_mask, min_thr, half_res_y, mad, verbose):
 
         msg = "Input exclusion mask should have same shape as array\n"
-        assert excl_mask.shape == array.shape, msg
+        assert excl_mask.shape == array_corr.shape, msg
         ind_excl = np.where(excl_mask)
 
         n_x = array_corr.shape[1]

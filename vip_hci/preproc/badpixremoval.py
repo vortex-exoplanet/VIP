@@ -930,7 +930,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                                       neighbor_box=neighbor_box,
                                       min_neighbors=nneig, half_res_y=half_res_y,
                                       verbose=verbose)
-            bpm_mask += bpix_map_cumul
+            bpm_mask = None  # known bad ones are corrected above +=bpix_map_cumul
             bp = clip_array(array_corr, sig, sig, bpm_mask, out_good=False,
                             neighbor=True, num_neighbor=neighbor_box, mad=mad,
                             half_res_y=half_res_y)
@@ -965,6 +965,8 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
         if bpm_mask is None or not correct_only:
             if (cy is None or cx is None) and protect_mask:
                 cy, cx = frame_center(array)
+            if excl_mask is None:
+                excl_mask = np.zeros(array_corr.shape, dtype=bool)
             array_corr, bpix_map_cumul = bp_removal_2d(array_corr, cy, cx, fwhm,
                                                        sig, protect_mask,
                                                        bpm_mask, excl_mask,

@@ -934,7 +934,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
             bp = clip_array(array_corr, sig, sig, bpm_mask, out_good=False,
                             neighbor=True, num_neighbor=neighbor_box, mad=mad,
                             half_res_y=half_res_y)
-            bpix_map = np.zeros(array_corr, dtype=bool)
+            bpix_map = np.zeros(array_corr.shape, dtype=bool)
             bpix_map[bp] = 1
             if min_thr is not None:
                 cond1 = array_corr > min_thr[0]

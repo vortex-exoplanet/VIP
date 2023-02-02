@@ -17,6 +17,10 @@ from scipy import stats
 from scipy.interpolate import interp1d
 from packaging import version
 import photutils
+try:
+    from photutils.aperture import aperture_photometry, CircularAperture
+except:
+    from photutils import aperture_photometry, CircularAperture
 if version.parse(photutils.__version__) >= version.parse('0.3'):
     # for photutils version >= '0.3' use photutils.centroids.centroid_com
     from photutils.centroids import centroid_com as cen_com
@@ -32,8 +36,8 @@ from ..config.utils_conf import print_precision, check_array, pool_map, iterable
 
 def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
                            plsc=None, n_branches=1, theta=0, imlib='vip-fft',
-                           interpolation='lanczos4', transmission=None, 
-                           radial_gradient=False, full_output=False, 
+                           interpolation='lanczos4', transmission=None,
+                           radial_gradient=False, full_output=False,
                            verbose=False, nproc=1):
     """ Injects fake companions in branches, at given radial distances.
 
@@ -112,14 +116,14 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
     """
     if nproc is None:
         nproc = cpu_count()//2
-        
+
     def _cube_inject_adi(array, psf_template, angle_list, flevel, plsc,
                          rad_dists, n_branches=1, theta=0, imlib='vip-fft',
                          interpolation='lanczos4', transmission=None,
                          radial_gradient=False, verbose=False):
         if np.isscalar(flevel):
             flevel = np.ones_like(angle_list)*flevel
-            
+
         if transmission is not None:
             # last radial separation should be beyond the edge of frame
             interp_trans = interp1d(transmission[0], transmission[1])
@@ -159,9 +163,9 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
 
                         # check the effect of transmission on a single PSF tmp
                         psf_trans = frame_rotate(fc_fr_rad[0],
-                                                  -(ang*180/np.pi-angle_list[0]),
-                                                  imlib=imlib_rot,
-                                                  interpolation=interpolation)
+                                                 -(ang*180/np.pi-angle_list[0]),
+                                                 imlib=imlib_rot,
+                                                 interpolation=interpolation)
 
                         # shift_y = rad * np.sin(ang - np.deg2rad(angle_list[0]))
                         # shift_x = rad * np.cos(ang - np.deg2rad(angle_list[0]))
@@ -174,19 +178,19 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
                         fc_fr_rad = interp_trans(rad)*fc_fr
                 if nproc == 1:
                     for fr in range(nframes):
-                        array_out[fr] += _frame_shift_fcp(fc_fr_rad[fr], 
-                                                          array[fr], rad, ang, 
-                                                          angle_list[fr], 
-                                                          flevel[fr], size_fc, 
-                                                          imlib_sh, imlib_rot, 
+                        array_out[fr] += _frame_shift_fcp(fc_fr_rad[fr],
+                                                          array[fr], rad, ang,
+                                                          angle_list[fr],
+                                                          flevel[fr], size_fc,
+                                                          imlib_sh, imlib_rot,
                                                           interpolation,
-                                                          transmission, 
+                                                          transmission,
                                                           radial_gradient)
                 else:
                     res = pool_map(nproc, _frame_shift_fcp, iterable(fc_fr_rad),
-                                   iterable(array), rad, ang, 
-                                   iterable(angle_list), iterable(flevel), 
-                                   size_fc, imlib_sh, imlib_rot, interpolation, 
+                                   iterable(array), rad, ang,
+                                   iterable(angle_list), iterable(flevel),
+                                   size_fc, imlib_sh, imlib_rot, interpolation,
                                    transmission, radial_gradient)
                     array_out += np.array(res)
 
@@ -318,34 +322,33 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
         return array_out
 
 
-def _frame_shift_fcp(fc_fr_rad, array, rad, ang, derot_ang, flevel, size_fc, 
-                     imlib_sh, imlib_rot, interpolation, transmission, 
+def _frame_shift_fcp(fc_fr_rad, array, rad, ang, derot_ang, flevel, size_fc,
+                     imlib_sh, imlib_rot, interpolation, transmission,
                      radial_gradient):
     """
     Specific cube shift algorithm for injection of fake companions
     """
-    
+
     ceny, cenx = frame_center(array)
     sizey = array.shape[-2]
     sizex = array.shape[-1]
-    
+
     array_sh = np.zeros_like(array)
-    
+
     w = int(np.ceil(size_fc/2))
     if size_fc % 2:  # new convention
         w -= 1
     sty = int(ceny) - w
     stx = int(cenx) - w
-    
+
     shift_y = rad * np.sin(ang - np.deg2rad(derot_ang))
     shift_x = rad * np.cos(ang - np.deg2rad(derot_ang))
     if transmission is not None and radial_gradient:
-        fc_fr_ang = frame_rotate(fc_fr_rad, -(ang*180/np.pi -derot_ang),
+        fc_fr_ang = frame_rotate(fc_fr_rad, -(ang*180/np.pi - derot_ang),
                                  imlib=imlib_rot, interpolation=interpolation)
     else:
         fc_fr_ang = fc_fr_rad.copy()
 
-    
     # sub-px shift (within PSF template frame)
     dsy = shift_y-int(shift_y)
     dsx = shift_x-int(shift_x)
@@ -372,9 +375,9 @@ def _frame_shift_fcp(fc_fr_rad, array, rad, ang, derot_ang, flevel, size_fc,
     if xN > sizex:
         p_xN -= xN-sizex
         xN = sizex
-        
+
     array_sh[y0:yN, x0:xN] = flevel*fc_fr_ang[p_y0:p_yN, p_x0:p_xN]
-    
+
     return array_sh
 
 
@@ -580,7 +583,7 @@ def collapse_psf_cube(array, size, fwhm=4, verbose=True, collapse='mean'):
 
 def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                   model='gauss', imlib='vip-fft', interpolation='lanczos4',
-                  force_odd=True, correct_outliers=True, full_output=False, 
+                  force_odd=True, correct_outliers=True, full_output=False,
                   verbose=True, debug=False):
     """ Normalizes a PSF (2d or 3d array), to have the flux in a 1xFWHM
     aperture equal to one. It also allows to crop the array and center the PSF
@@ -656,7 +659,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                 shiftx, shifty = centrx - cx, centry - cy
                 psf = frame_shift(psf, -shifty, -shiftx, imlib=imlib,
                                   interpolation=interpolation)
-    
+
                 for _ in range(2):
                     centry, centrx = fit_2d(psf, full_output=False, debug=False)
                     if np.isnan(centry) or np.isnan(centrx):
@@ -667,9 +670,9 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                                       interpolation=interpolation)
 
         # we check whether the flux is normalized and fix it if needed
-        fwhm_aper = photutils.CircularAperture((cx, cy), fwhm/2)
-        fwhm_aper_phot = photutils.aperture_photometry(psf, fwhm_aper,
-                                                       method='exact')
+        fwhm_aper = CircularAperture((cx, cy), fwhm/2)
+        fwhm_aper_phot = aperture_photometry(psf, fwhm_aper,
+                                             method='exact')
         fwhm_flux = np.array(fwhm_aper_phot['aperture_sum'])
 
         if fwhm_flux > 1.1 or fwhm_flux < 0.9:
@@ -779,9 +782,9 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
                     print_precision(fwhm)
             # Replace outliers if needed
             if correct_outliers:
-                if np.sum(np.isnan(fwhm))>0:
+                if np.sum(np.isnan(fwhm)) > 0:
                     for f in range(n):
-                        if np.isnan(fwhm[f]) and f!=0 and f!=n-1:
+                        if np.isnan(fwhm[f]) and f != 0 and f != n-1:
                             fwhm[f] = np.nanmean(np.array([fwhm[f-1],
                                                            fwhm[f+1]]))
                         elif np.isnan(fwhm[f]):

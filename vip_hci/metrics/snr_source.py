@@ -14,7 +14,10 @@ __all__ = ['snr',
            'frame_report']
 
 import numpy as np
-import photutils
+try:
+    from photutils.aperture import aperture_photometry, CircularAperture
+except:
+    from photutils import aperture_photometry, CircularAperture
 from scipy.stats import norm, t
 from hciplot import plot_frames
 from skimage.draw import disk, circle_perimeter
@@ -217,6 +220,7 @@ def _snr_approx(array, source_xy, fwhm, centery, centerx):
     snr_value = signal / noise
     return sourcey, sourcex, snr_value
 
+
 def indep_ap_centers(array, source_xy, fwhm, exclude_negative_lobes=False,
                      exclude_theta_range=None, no_gap=False):
     """
@@ -311,8 +315,9 @@ def indep_ap_centers(array, source_xy, fwhm, exclude_negative_lobes=False,
 
     return yy, xx
 
+
 def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
-        exclude_negative_lobes=False, exclude_theta_range=None, plot=False, 
+        exclude_negative_lobes=False, exclude_theta_range=None, plot=False,
         verbose=False):
     """
     Calculate the S/N (signal to noise ratio) of a test resolution element
@@ -395,14 +400,12 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
 
     rad = fwhm/2.
 
-    apertures = photutils.CircularAperture(
-        zip(xx, yy), r=rad)  # Coordinates (X,Y)
-    fluxes = photutils.aperture_photometry(array, apertures, method='exact')
+    apertures = CircularAperture(zip(xx, yy), r=rad)  # Coordinates (X,Y)
+    fluxes = aperture_photometry(array, apertures, method='exact')
     fluxes = np.array(fluxes['aperture_sum'])
 
     if array2 is not None:
-        fluxes2 = photutils.aperture_photometry(array2, apertures,
-                                                method='exact')
+        fluxes2 = aperture_photometry(array2, apertures, method='exact')
         fluxes2 = np.array(fluxes2['aperture_sum'])
         if use2alone:
             fluxes = np.concatenate(([fluxes[0]], fluxes2[:]))
@@ -538,9 +541,8 @@ def frame_report(array, fwhm, source_xy=None, verbose=True):
                 print('Coords of chosen px (X,Y) = {:.1f}, {:.1f}'.format(x, y))
 
             # we get integrated flux on aperture with diameter=1FWHM
-            aper = photutils.CircularAperture((x, y), r=fwhm / 2.)
-            obj_flux_i = photutils.aperture_photometry(array, aper,
-                                                       method='exact')
+            aper = CircularAperture((x, y), r=fwhm / 2.)
+            obj_flux_i = aperture_photometry(array, aper, method='exact')
             obj_flux_i = obj_flux_i['aperture_sum'][0]
 
             # we get the mean and stddev of SNRs on aperture
@@ -578,8 +580,8 @@ def frame_report(array, fwhm, source_xy=None, verbose=True):
             print('Coords of Max px (X,Y) = {:.1f}, {:.1f}'.format(x, y))
 
         # we get integrated flux on aperture with diameter=1FWHM
-        aper = photutils.CircularAperture((x, y), r=fwhm / 2.)
-        obj_flux_i = photutils.aperture_photometry(array, aper, method='exact')
+        aper = CircularAperture((x, y), r=fwhm / 2.)
+        obj_flux_i = aperture_photometry(array, aper, method='exact')
         obj_flux_i = obj_flux_i['aperture_sum'][0]
 
         # we get the mean and stddev of SNRs on aperture

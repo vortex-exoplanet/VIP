@@ -489,8 +489,8 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
     provided location of the star), in an input frame or cube.
     This function is faster than ``cube_fix_badpix_clump``; hence to be 
     preferred in all cases where there is only one bright source with circularly 
-    symmetric PSF. The bad pixel values are replaced by:\ 
-    ann_median + random_poisson;\
+    symmetric PSF. The bad pixel values are replaced by: 
+    ann_median + random_poisson;
     where ann_median is the median of the annulus, and random_poisson is 
     random noise picked from a Poisson distribution centered on ann_median.
 
@@ -887,8 +887,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
             circl_new = []
 
         # 3/ Create a bad pixel map, by detecting them with clip_array
-        bpm_mask = bpm_mask_ori+excl_mask
-        bpm_mask[np.where(bpm_mask > 1)] = 1
+        bpm_mask = bpm_mask_ori.astype(bool)+excl_mask.astype(bool)
         bp = clip_array(array_corr, sig, sig, bpm_mask, out_good=False,
                         neighbor=True, num_neighbor=neighbor_box, mad=mad,
                         half_res_y=half_res_y)
@@ -911,7 +910,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
         bpix_map[circl_new] = 0
         bpix_map[ind_excl] = 0
         nbpix_tbc = int(np.sum(bpix_map))
-        bpix_map_cumul = np.zeros_like(bpix_map)
+        bpix_map_cumul = np.zeros(bpix_map.shape, dtype=bool)
         bpix_map_cumul[:] = bpix_map[:]
         nit = 0
 
@@ -932,11 +931,10 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                                       min_neighbors=nneig, half_res_y=half_res_y,
                                       verbose=verbose)
             bpm_mask += bpix_map_cumul
-            bpm_mask[np.where(bpm_mask > 1)] = 1
             bp = clip_array(array_corr, sig, sig, bpm_mask, out_good=False,
                             neighbor=True, num_neighbor=neighbor_box, mad=mad,
                             half_res_y=half_res_y)
-            bpix_map = np.zeros_like(array_corr)
+            bpix_map = np.zeros(array_corr, dtype=bool)
             bpix_map[bp] = 1
             if min_thr is not None:
                 cond1 = array_corr > min_thr[0]

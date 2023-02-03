@@ -863,8 +863,16 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
             n_y = int(n_y/2)
             frame = array_corr.copy()
             array_corr = np.zeros([n_y, n_x])
+            excl_mask_corr = np.zeros([n_y, n_x])
             for yy in range(n_y):
                 array_corr[yy] = frame[2*yy]
+                excl_mask_corr[yy] = excl_mask[2*yy]
+            excl_mask = excl_mask_corr
+            if bpm_mask_ori is not None:
+                bpm_mask_tmp = np.zeros([n_y, n_x])
+                for yy in range(n_y):
+                    bpm_mask_tmp[yy] = bpm_mask_ori[2*yy]
+                bpm_mask_ori = bpm_mask_tmp
 
         fwhm_round = int(round(fwhm))
         # This should reduce the chance to accidently correct a bright planet:

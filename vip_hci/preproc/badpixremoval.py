@@ -887,7 +887,9 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
             circl_new = []
 
         # 3/ Create a bad pixel map, by detecting them with clip_array
-        bpm_mask = bpm_mask_ori.astype(bool)+excl_mask.astype(bool)
+        bpm_mask = excl_mask.copy()
+        if bpm_mask_ori is not None:
+            bpm_mask += bpm_mask_ori.astype(bool)
         bp = clip_array(array_corr, sig, sig, bpm_mask, out_good=False,
                         neighbor=True, num_neighbor=neighbor_box, mad=mad,
                         half_res_y=half_res_y)

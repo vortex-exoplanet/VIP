@@ -13,7 +13,7 @@ from skimage.draw import disk
 from ..fm import cube_inject_companions
 from ..var import (frame_center, get_annular_wedge, cube_filter_highpass,
                    get_annulus_segments)
-from ..psfsub import pca_annulus, pca_annular, pca
+from ..psfsub import pca_annulus, pca_annular, nmf_annular, pca
 from ..preproc import cube_crop_frames
 
 
@@ -313,11 +313,11 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
                           svd_mode, scaling, imlib=imlib,
                           interpolation=interpolation, collapse=collapse,
-                          collapse_ifs=collapse_ifs, weights=weights, 
+                          collapse_ifs=collapse_ifs, weights=weights,
                           nproc=nproc)
 
-    elif algo == pca_annular:
-        
+    elif algo == pca_annular or algo == nmf_annular:
+
         tol = algo_options.get('tol', 1e-1)
         min_frames_lib = algo_options.get('min_frames_lib', 2)
         max_frames_lib = algo_options.get('max_frames_lib', 200)
@@ -333,15 +333,25 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         else:
             crop_cube = cube
             pad = 0
-        res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int, fwhm=fwhm,
-                              asize=annulus_width, delta_rot=delta_rot,
-                              ncomp=ncomp, svd_mode=svd_mode, scaling=scaling,
-                              imlib=imlib, interpolation=interpolation,
-                              collapse=collapse, collapse_ifs=collapse_ifs,
-                              weights=weights, tol=tol, nproc=nproc,
-                              min_frames_lib=min_frames_lib,
-                              max_frames_lib=max_frames_lib, full_output=False,
-                              verbose=False)
+        if algo == pca_annular:
+            res_tmp = algo(crop_cube, angs, radius_int=radius_int, fwhm=fwhm,
+                           asize=annulus_width, delta_rot=delta_rot,
+                           ncomp=ncomp, svd_mode=svd_mode, scaling=scaling,
+                           imlib=imlib, interpolation=interpolation,
+                           collapse=collapse, collapse_ifs=collapse_ifs,
+                           weights=weights, tol=tol, nproc=nproc,
+                           min_frames_lib=min_frames_lib,
+                           max_frames_lib=max_frames_lib, full_output=False,
+                           verbose=False)
+        else:
+            res_tmp = algo(crop_cube, angs, radius_int=radius_int, fwhm=fwhm,
+                           asize=annulus_width, delta_rot=delta_rot,
+                           ncomp=ncomp, scaling=scaling, imlib=imlib,
+                           interpolation=interpolation, collapse=collapse,
+                           weights=weights, nproc=nproc,
+                           min_frames_lib=min_frames_lib,
+                           max_frames_lib=max_frames_lib, full_output=False,
+                           verbose=False)
         # pad again now
         res = np.pad(res_tmp, pad, mode='constant', constant_values=0)
 
@@ -358,25 +368,25 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
 
     indices = disk((posy, posx), radius=aperture_radius*fwhm)
     yy, xx = indices
-    
+
     # also consider indices of the annulus for pca_annulus
     if algo == pca_annulus:
         fr_size = res.shape[-1]
         inner_rad = r_guess-annulus_width/2
         yy_a, xx_a = get_annulus_segments((fr_size, fr_size), inner_rad,
                                           annulus_width, nsegm=1)[0]
-        ## only consider overlapping indices
+        # only consider overlapping indices
         yy_f = []
         xx_f = []
         for i in range(len(yy)):
-            ind_y = np.where(yy_a==yy[i])
+            ind_y = np.where(yy_a == yy[i])
             for j in ind_y[0]:
-                if xx[i]==xx_a[j]:
+                if xx[i] == xx_a[j]:
                     yy_f.append(yy[i])
                     xx_f.append(xx[i])
         yy = np.array(yy_f, dtype=int)
         xx = np.array(xx_f, dtype=int)
-        
+
     if collapse is None:
         values = res[:, yy, xx].ravel()
     else:
@@ -527,7 +537,7 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
             pad = int((cube.shape[1]-crop_sz)/2)
             crop_cube = cube_crop_frames(cube, crop_sz, verbose=False)
         else:
-            pad=0
+            pad = 0
             crop_cube = cube
 
         pca_res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int,

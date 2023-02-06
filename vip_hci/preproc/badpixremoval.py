@@ -1476,10 +1476,10 @@ def cube_fix_badpix_interp(array, bpm_mask, mode='fft', excl_mask=None, fwhm=4.,
             if ny % 2:
                 raise ValueError("Input array y dimension should be even")
             nny = ny//2
-            new_array_corr = np.zeros([nny, nx])
+            new_array = np.zeros([nny, nx])
             for y in range(nny):
-                new_array_corr[y] = array_corr[int(y*2)]
-            return new_array_corr
+                new_array[y] = array[int(y*2)]
+            return new_array
 
         if ndims == 2:
             array_corr = squash_v(array)

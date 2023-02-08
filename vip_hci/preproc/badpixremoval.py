@@ -480,10 +480,11 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
         return array_out
 
 
-def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
-                           protect_mask=0, r_in_std=50, r_out_std=None,
-                           verbose=True, half_res_y=False, min_thr=None,
-                           max_thr=None, full_output=False):
+def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., bpm_mask=None,
+                           protect_mask=0, excl_mask=None, r_in_std=50,
+                           r_out_std=None, verbose=True, half_res_y=False,
+                           min_thr=None, max_thr=None, bad_values=None,
+                           full_output=False):
     """
     Function to correct the bad pixels annulus per annulus (centered on the
     provided location of the star), in an input frame or cube.
@@ -511,10 +512,20 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
     sig: Float scalar, optional
         Number of stddev above or below the median of the pixels in the same
         annulus, to consider a pixel as bad.
+    bpm_mask: 3D or 2D array, opt
+        Input bad pixel array. If 2D and array is 3D: should have same last 2 
+        dimensions as array. If 3D, should have exact same dimensions as input 
+        array. If not provided, the algorithm will attempt to identify bad pixel 
+        clumps automatically.
     protect_mask : int or float, optional
         If larger than 0, radius of a circular aperture (at the center of the
         frames) in which no bad pixels will be identified. This can be useful
         to protect the star and vicinity.
+    excl_mask : numpy ndarray, optional
+        Binary mask with 1 in areas that should not be considered as good 
+        neighbouring pixels during the identification of bad pixels. These 
+        should not be considered as bad pixels to be corrected neither (i.e. 
+        different to bpm_mask).
     r_in_std: float or None, optional
         Inner radius (in pixels) of the annulus used for the calculation of the
         standard deviation of the background noise - used as a min threshold
@@ -535,6 +546,9 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
         Any pixel whose value is lower (resp. larger) than this threshold will
         be automatically considered bad and hence sigma_filtered. If None, it
         is not used.
+    bad_values: list or None, optional
+        If not None, should correspond to a list of known bad values (e.g. 0).
+        These pixels will be added to the input bad pixel map.
     full_output: bool, {False,True}, optional
         Whether to return as well the cube of bad pixel maps and the cube of
         defined annuli.
@@ -558,9 +572,25 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
     if max_thr is None:
         max_thr = np.amax(array)-1
 
-    def bp_removal_2d(array, cy, cx, fwhm, sig, protect_mask, r_in_std,
-                      r_out_std, verbose):
+    if bpm_mask is not None:
+        msg = "Input bad pixel mask should have same last 2 dims as array\n"
+        assert bpm_mask.shape[-2:] == array.shape[-2:], msg
+        bpm_mask = bpm_mask.astype('bool')
 
+    if bad_values is not None:
+        if bpm_mask is None:
+            bpm_mask = np.zeros(array.shape, dtype=bool)
+        for bad in bad_values:
+            bpm_mask[np.where(array == bad)] = 1
+
+    def bp_removal_2d(array, cy, cx, fwhm, sig, protect_mask, bpm_mask_ori,
+                      excl_mask, r_in_std, r_out_std, verbose):
+
+        msg = "Input exclusion mask should have same shape as array\n"
+        assert excl_mask.shape == array.shape, msg
+        ind_excl = np.where(excl_mask)
+
+        frame = array.copy()
         n_x = array.shape[1]
         n_y = array.shape[0]
 
@@ -572,10 +602,17 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
                 raise ValueError(msg+msg2)
             n_y = int(n_y/2)
             cy = int(cy/2)
-            frame = array.copy()
             array = np.zeros([n_y, n_x])
+            excl_mask_corr = np.zeros([n_y, n_x])
             for yy in range(n_y):
                 array[yy] = frame[2*yy]
+                excl_mask_corr[yy] = excl_mask[2*yy]
+            excl_mask = excl_mask_corr
+            if bpm_mask_ori is not None:
+                bpm_mask_tmp = np.zeros([n_y, n_x])
+                for yy in range(n_y):
+                    bpm_mask_tmp[yy] = bpm_mask_ori[2*yy]
+                bpm_mask_ori = bpm_mask_tmp
 
         # 1/ Stddev of background
         if r_in_std or r_out_std:
@@ -614,6 +651,12 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
         std_neig = np.zeros(nrad)
         neighbours = np.zeros([nrad, n_y*n_x])
 
+        bpm_mask = excl_mask.copy()
+        if bpm_mask_ori is not None:
+            bpm_mask += bpm_mask_ori.astype(bool)
+
+        ind_bad = np.where(bpm_mask)
+
         for rr in range(nrad):
             if rr > int(d_bord_max/ann_width):
                 # just to merge farthest annuli with very few elements
@@ -641,6 +684,7 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
             big_ell_frame[big_ell_idx] = 1
             if rr != 0:
                 sma_ell_frame[small_ell_idx] = 1
+            sma_ell_frame[ind_bad] = 1
             ann_frame = big_ell_frame - sma_ell_frame
             n_neig[rr] = ann_frame[np.where(ann_frame)].shape[0]
             neighbours[rr, :n_neig[rr]] = array[np.where(ann_frame)]
@@ -711,32 +755,50 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
                 bpix_map[yy] = frame_bpix[int(yy/2)]
                 ann_frame_cumul[yy] = ann_frame[int(yy/2)]
 
+        # Excluded pixels should take back their original values
+        array_corr[ind_excl] = frame[ind_excl]
+        bpix_map[ind_excl] = 0
+
         return array_corr, bpix_map, ann_frame_cumul
 
     if cy is None or cx is None:
         cy, cx = frame_center(array)
     if ndims == 2:
+        if excl_mask is None:
+            excl_mask = np.zeros(array.shape, dtype=bool)
         array_corr, bpix_map, ann_frame_cumul = bp_removal_2d(array, cy, cx,
                                                               fwhm, sig,
                                                               protect_mask,
-                                                              r_in_std, r_out_std,
+                                                              bpm_mask,
+                                                              excl_mask,
+                                                              r_in_std,
+                                                              r_out_std,
                                                               verbose)
     if ndims == 3:
         array_corr = array.copy()
         n_z = array.shape[0]
         bpix_map = np.zeros_like(array)
         ann_frame_cumul = np.zeros_like(array)
-        if isinstance(fwhm, (int, float)):
+        if np.isscalar(fwhm):
             fwhm = [fwhm]*n_z
-        if isinstance(cy, (float, int)) and isinstance(cx, (float, int)):
+        if np.isscalar(cx) and np.isscalar(cy):
             cy = [cy]*n_z
             cx = [cx]*n_z
+        if bpm_mask is None:
+            bpm_mask = np.zeros(array_corr.shape, dtype=bool)
+        elif bpm_mask.ndim == 2:
+            bpm_mask = np.array([bpm_mask]*n_z, dtype=bool)
+        if excl_mask is None:
+            excl_mask = np.zeros(array_corr.shape, dtype=bool)
+        elif excl_mask.ndim == 2:
+            excl_mask = np.array([excl_mask]*n_z, dtype=bool)
         for i in range(n_z):
             if verbose:
                 print('************Frame # ', i, ' *************')
                 print('centroid assumed at coords:', cx[i], cy[i])
             res_i = bp_removal_2d(array[i], cy[i], cx[i], fwhm[i], sig,
-                                  protect_mask, r_in_std, r_out_std, verbose)
+                                  protect_mask, bpm_mask[i], excl_mask[i],
+                                  r_in_std, r_out_std, verbose)
             array_corr[i], bpix_map[i], ann_frame_cumul[i] = res_i
 
     if full_output:
@@ -748,8 +810,8 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5.,
 def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                           cx=None, fwhm=4., sig=4., protect_mask=0,
                           excl_mask=None, half_res_y=False, min_thr=None,
-                          max_nit=15, mad=True, verbose=True, full_output=False,
-                          nproc=1):
+                          max_nit=15, mad=True, bad_values=None, verbose=True,
+                          full_output=False, nproc=1):
     """
     Function to identify and correct clumps of bad pixels. Very fast when a bad
     pixel map is provided. If a bad pixel map is not provided, the bad pixel
@@ -813,6 +875,9 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
     mad : {False, True}, bool optional
         If True, the median absolute deviation will be used instead of the
         standard deviation.
+    bad_values: list or None, optional
+        If not None, should correspond to a list of known bad values (e.g. 0).
+        These pixels will be added to the input bad pixel map.
     verbose: bool, {False,True}, optional
         Whether to print the number of bad pixels and number of iterations
         required for each frame.
@@ -820,9 +885,9 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
         Whether to return as well the cube of bad pixel maps and the cube of
         defined annuli.
     nproc: int, optional
-        This feature is added following ADACS update. Refers to the number of processors 
-        available for calculations. Choosing a number >1 enables multiprocessing for the 
-        correction of frames.  
+        This feature is added following ADACS update. Refers to the number of 
+        processors available for calculations. Choosing a number >1 enables 
+        multiprocessing for the correction of frames.  
 
     Returns
     -------
@@ -840,6 +905,12 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
         msg = "Input bad pixel mask should have same last 2 dims as array\n"
         assert bpm_mask.shape[-2:] == array.shape[-2:], msg
         bpm_mask = bpm_mask.astype('bool')
+
+    if bad_values is not None:
+        if bpm_mask is None:
+            bpm_mask = np.zeros(array_corr.shape, dtype=bool)
+        for bad in bad_values:
+            bpm_mask[np.where(array_corr == bad)] = 1
 
     if correct_only and bpm_mask is None:
         msg = "Bad pixel map should be provided if correct_only is True."
@@ -930,9 +1001,9 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
             if verbose:
                 msg = "Iteration {}: {} bad pixels identified".format(nit,
                                                                       nbpix_tot)
-                if bpm_mask_ori is not None:
-                    nbpix_ori = np.sum(bpm_mask_ori)
-                    msg += " ({} new ones)".format(nbpix_tot-nbpix_ori)
+                # if bpm_mask_ori is not None:
+                #     nbpix_ori = np.sum(bpm_mask_ori)
+                #     msg += " ({} new ones)".format(nbpix_tot-nbpix_ori)
                 if protect_mask:
                     msg += ", {} to be corrected".format(nbpix_tbc)
                 print(msg)
@@ -1006,10 +1077,10 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                 cy, cx = frame_center(array)
                 cy = [cy]*n_z
                 cx = [cx]*n_z
-            elif isinstance(cy, (float, int)) and isinstance(cx, (float, int)):
+            elif np.isscalar(cy) and np.isscalar(cx):
                 cy = [cy]*n_z
                 cx = [cx]*n_z
-            if isinstance(fwhm, (float, int)):
+            if np.isscalar(fwhm):
                 fwhm = [fwhm]*n_z
             if nproc == 1 or not shared_mem:
                 bpix_map_cumul = np.zeros_like(array_corr)
@@ -1073,7 +1144,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                     shm_clump_bpix.unlink()
 
         else:
-            if isinstance(fwhm, (float, int)):
+            if np.isscalar(fwhm):
                 fwhm_round = int(round(fwhm))
             else:
                 fwhm_round = int(np.median(fwhm))
@@ -1314,7 +1385,7 @@ def cube_fix_badpix_ifs(array, lbdas, fluxes=None, mask=None, cy=None, cx=None,
         array_out = np.zeros_like(cube)
         array_res = np.zeros_like(cube)
         final_bpm = np.zeros_like(cube)
-        if isinstance(cy, (float, int)) and isinstance(cx, (float, int)):
+        if np.isscalar(cy) and np.isscalar(cx):
             cy = [cy]*n_z
             cx = [cx]*n_z
         for i in range(n_z):

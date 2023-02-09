@@ -13,7 +13,10 @@ __all__ = ['contrast_curve',
 
 import numpy as np
 import pandas as pd
-import photutils
+try:
+    from photutils.aperture import aperture_photometry, CircularAperture
+except:
+    from photutils import aperture_photometry, CircularAperture
 from inspect import getfullargspec
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy import stats
@@ -23,16 +26,16 @@ from matplotlib import pyplot as plt
 from ..fm import (cube_inject_companions, frame_inject_companion,
                   normalize_psf)
 from ..config import time_ini, timing
-from ..config.utils_conf import sep, vip_figsize, vip_figdpi
+from ..config.utils_conf import vip_figsize, vip_figdpi
 from ..var import frame_center, dist
 
 
 def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                    algo, sigma=5, nbranch=1, theta=0, inner_rad=1, fc_rad_sep=3,
-                   noise_sep=1, wedge=(0, 360), fc_snr=100, student=True, 
-                   transmission=None, smooth=True, interp_order=2, plot=True, 
-                   dpi=vip_figdpi, debug=False, verbose=True, full_output=False, 
-                   save_plot=None, object_name=None, frame_size=None, 
+                   noise_sep=1, wedge=(0, 360), fc_snr=100, student=True,
+                   transmission=None, smooth=True, interp_order=2, plot=True,
+                   dpi=vip_figdpi, debug=False, verbose=True, full_output=False,
+                   save_plot=None, object_name=None, frame_size=None,
                    fix_y_lim=(), figsize=vip_figsize, **algo_dict):
     """ Computes the contrast curve at a given confidence (``sigma``) level for 
     an ADI cube or ADI+IFS cube. The contrast is calculated as
@@ -174,7 +177,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
     if transmission is not None:
         if len(transmission) != 2 and len(transmission) != cube.shape[0]+1:
             msg = 'Wrong shape for transmission should be 2xn_rad or (nch+1) '
-            msg +='x n_rad, instead of {}'.format(transmission.shape)
+            msg += 'x n_rad, instead of {}'.format(transmission.shape)
             raise TypeError(msg)
 
     if isinstance(fwhm, (np.ndarray, list)):
@@ -204,7 +207,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
         verbose_thru = True
     res_throug = throughput(cube, angle_list, psf_template, fwhm, algo=algo,
                             nbranch=nbranch, theta=theta, inner_rad=inner_rad,
-                            fc_rad_sep=fc_rad_sep, wedge=wedge, fc_snr=fc_snr, 
+                            fc_rad_sep=fc_rad_sep, wedge=wedge, fc_snr=fc_snr,
                             full_output=True, verbose=verbose_thru, **algo_dict)
     vector_radd = res_throug[3]
     if res_throug[0].shape[0] > 1:
@@ -247,7 +250,7 @@ def contrast_curve(cube, angle_list, psf_template, fwhm, pxscale, starphot,
                     ntransmission[0] = trans_rad_list
                 ntransmission[j+1] = trans_list
             transmission = ntransmission.copy()
-        if t_nz>2: #take the mean transmission over all wavelengths
+        if t_nz > 2:  # take the mean transmission over all wavelengths
             ntransmission = np.zeros([2, len(trans_rad_list)])
             ntransmission[0] = transmission[0]
             ntransmission[1] = np.mean(transmission[1:], axis=0)
@@ -657,11 +660,11 @@ def throughput(cube, angle_list, psf_template, fwhm, algo, nbranch=1, theta=0,
                                                       wedge=wedge)
     if scaling is not None:
         noise_noscal, _, _ = noise_per_annulus(frame_nofc_noscal,
-                                               separation=fwhm_med, 
+                                               separation=fwhm_med,
                                                fwhm=fwhm_med, wedge=wedge)
     else:
         noise_noscal = noise.copy()
-        
+
     vector_radd = vector_radd[inner_rad-1:]
     noise = noise[inner_rad-1:]
     res_level = res_level[inner_rad-1:]
@@ -707,7 +710,7 @@ def throughput(cube, angle_list, psf_template, fwhm, algo, nbranch=1, theta=0,
                                                      rad_dists=[radvec[i]],
                                                      theta=br*angle_branch +
                                                            theta,
-                                                     nproc=nproc, imlib=imlib, 
+                                                     nproc=nproc, imlib=imlib,
                                                      interpolation=interpolation,
                                                      verbose=False)
                     y = cy + radvec[i] * np.sin(np.deg2rad(br * angle_branch +
@@ -936,8 +939,8 @@ def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
         yy += centery
         xx += centerx
 
-        apertures = photutils.CircularAperture(np.array((xx, yy)).T, fwhm/2)
-        fluxes = photutils.aperture_photometry(array, apertures)
+        apertures = CircularAperture(np.array((xx, yy)).T, fwhm/2)
+        fluxes = aperture_photometry(array, apertures)
         fluxes = np.array(fluxes['aperture_sum'])
 
         noise_ann = np.std(fluxes)
@@ -1003,9 +1006,9 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
             values = array[ind]
             obj_flux = np.mean(values)
         else:
-            aper = photutils.CircularAperture((x, y), (ap_factor*fwhm)/2)
-            obj_flux = photutils.aperture_photometry(array, aper,
-                                                     method='exact')
+            aper = CircularAperture((x, y), (ap_factor*fwhm)/2)
+            obj_flux = aperture_photometry(array, aper,
+                                           method='exact')
             obj_flux = np.array(obj_flux['aperture_sum'])
         flux[i] = obj_flux
 

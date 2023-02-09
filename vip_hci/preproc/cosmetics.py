@@ -24,6 +24,7 @@ from ..var import frame_center, get_square
 from multiprocessing import Process
 import multiprocessing
 from multiprocessing import set_start_method
+shared_mem = True
 try:
    from multiprocessing import shared_memory
 except ImportError:
@@ -32,9 +33,9 @@ except ImportError:
       print('Trying to import shared_memory directly(for python 3.7)')
       import shared_memory
    except ModuleNotFoundError:
-       print('Use shared_memory on python 3.7 to activate')
-       print('multiprocessing on badpixels using..')
-       print('pip install shared-memory38')
+       shared_mem = False
+       print("WARNING: multiprocessing unavailable for bad pixel correction.")
+       print('Either pip install shared-memory38, or upgrade to python>=3.8')
 
 
 def cube_crop_frames(array, size, xy=None, force=False, verbose=True,
@@ -356,7 +357,7 @@ def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
         if nproc is None:
             nproc = cpu_count()//2
         n_z = obj_tmp.shape[0]
-        if nproc == 1:
+        if nproc == 1 or not shared_mem:
             for zz in range(n_z):
                 obj_tmp[zz], nnanpix = nan_corr_2d(obj_tmp[zz], neighbor_box,
                                                    min_neighbors, half_res_y,

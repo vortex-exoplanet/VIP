@@ -241,7 +241,7 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         See the documentation of ``vip_hci.preproc.cube_rescaling_wavelengths``.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+    collapse : {'median', 'mean', 'sum', 'trimmean', 'wmean'}, str optional
         Sets how temporal residual frames should be combined to produce an
         ADI image.
     collapse_ifs : {'median', 'mean', 'sum', 'trimmean'}, str optional
@@ -1022,7 +1022,7 @@ def _adi_rdi_pca(cube, cube_ref, angle_list, ncomp, scaling, mask_center_px,
     return pcs, recon, residuals_cube, residuals_cube_, frame
 
 
-def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px, svd_mode, 
+def _project_subtract(cube, cube_ref, ncomp, scaling, mask_center_px, svd_mode,
                       verbose, full_output, indices=None, frame=None,
                       cube_sig=None):
     """

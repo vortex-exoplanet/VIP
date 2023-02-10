@@ -1,39 +1,65 @@
 #! /usr/bin/env python
+"""Module with Dataset and Frame classes."""
 
-"""
-Module with Dataset and Frame classes.
-"""
-
-__author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['Dataset',
-           'Frame']
+__author__ = "Carlos Alberto Gomez Gonzalez"
+__all__ = ["Dataset", "Frame"]
 
 import numpy as np
 import copy
 import hciplot as hp
 from .fits import open_fits
-from .fm import (cube_inject_companions, generate_cube_copies_with_injections,
-                 normalize_psf)
-from .preproc import (frame_crop, frame_px_resampling, frame_rotate,
-                      frame_shift, frame_center_satspots, frame_center_radon)
-from .preproc import (cube_collapse, cube_crop_frames, cube_derotate,
-                      cube_drop_frames, cube_detect_badfr_correlation,
-                      cube_detect_badfr_pxstats, cube_detect_badfr_ellipticity,
-                      cube_px_resampling, cube_subsample, cube_recenter_2dfit,
-                      cube_recenter_satspots, cube_recenter_radon,
-                      cube_recenter_dft_upsampling, cube_recenter_via_speckles)
-from .var import (frame_filter_lowpass, frame_filter_highpass, frame_center,
-                  cube_filter_highpass, cube_filter_lowpass, mask_circle)
-from .stats import (frame_basic_stats, frame_histo_stats,
-                    frame_average_radprofile, cube_basic_stats, cube_distance)
-from .metrics import (frame_report, snr, snrmap, detection)
+from .fm import (
+    cube_inject_companions,
+    generate_cube_copies_with_injections,
+    normalize_psf,
+)
+from .preproc import (
+    frame_crop,
+    frame_px_resampling,
+    frame_rotate,
+    frame_shift,
+    frame_center_satspots,
+    frame_center_radon,
+)
+from .preproc import (
+    cube_collapse,
+    cube_crop_frames,
+    cube_derotate,
+    cube_drop_frames,
+    cube_detect_badfr_correlation,
+    cube_detect_badfr_pxstats,
+    cube_detect_badfr_ellipticity,
+    cube_px_resampling,
+    cube_subsample,
+    cube_recenter_2dfit,
+    cube_recenter_satspots,
+    cube_recenter_radon,
+    cube_recenter_dft_upsampling,
+    cube_recenter_via_speckles,
+)
+from .var import (
+    frame_filter_lowpass,
+    frame_filter_highpass,
+    frame_center,
+    cube_filter_highpass,
+    cube_filter_lowpass,
+    mask_circle,
+)
+from .stats import (
+    frame_basic_stats,
+    frame_histo_stats,
+    frame_average_radprofile,
+    cube_basic_stats,
+    cube_distance,
+)
+from .metrics import frame_report, snr, snrmap, detection
 
 from .config.utils_conf import check_array, Saveable, print_precision
 from .config.mem import check_enough_memory
 
 
 class Frame(object):
-    """ High-contrast imaging frame (2d array).
+    """High-contrast imaging frame (2d array).
 
     Parameters
     ----------
@@ -48,21 +74,21 @@ class Frame(object):
     """
 
     def __init__(self, data, hdu=0, fwhm=None):
-        """ Frame object initialization. """
+        """Frame object initialization."""
         if isinstance(data, str):
             self.data = open_fits(data, hdu, verbose=False)
         else:
             self.data = data
 
-        check_array(self.data, dim=2, msg='Image.data')
-        print('Frame shape: {}'.format(self.data.shape))
+        check_array(self.data, dim=2, msg="Image.data")
+        print("Frame shape: {}".format(self.data.shape))
 
         self.fwhm = fwhm
         if self.fwhm is not None:
-            print('FWHM: {}'.format(self.fwhm))
+            print("FWHM: {}".format(self.fwhm))
 
     def crop(self, size, xy=None, force=False):
-        """ Cropping the frame.
+        """Cropping the frame.
 
         Parameters
         ----------
@@ -77,20 +103,52 @@ class Frame(object):
         """
         self.data = frame_crop(self.data, size, xy, force, verbose=True)
 
-    def detect_blobs(self, psf, bkg_sigma=1, method='lpeaks',
-                     matched_filter=False, mask=True, snr_thresh=5, plot=True,
-                     debug=False, verbose=False, save_plot=None,
-                     plot_title=None, angscale=False):
-        """ Detecting blobs on the 2d array.
-        """
-        self.detection_results = detection(self.data, psf, bkg_sigma, method,
-                                           matched_filter, mask, snr_thresh,
-                                           plot, debug, True, verbose,
-                                           save_plot, plot_title, angscale)
+    def detect_blobs(
+        self,
+        psf,
+        bkg_sigma=1,
+        method="lpeaks",
+        matched_filter=False,
+        mask=True,
+        snr_thresh=5,
+        plot=True,
+        debug=False,
+        verbose=False,
+        save_plot=None,
+        plot_title=None,
+        angscale=False,
+    ):
+        """Detect blobs on the 2d array."""
+        self.detection_results = detection(
+            self.data,
+            psf,
+            bkg_sigma,
+            method,
+            matched_filter,
+            mask,
+            snr_thresh,
+            plot,
+            debug,
+            True,
+            verbose,
+            save_plot,
+            plot_title,
+            angscale,
+        )
 
-    def filter(self, method, mode, median_size=5, kernel_size=5, fwhm_size=5,
-               btw_cutoff=0.2, btw_order=2, hann_cutoff=5, gauss_mode='conv'):
-        """ High/low pass filtering the frames of the image.
+    def filter(
+        self,
+        method,
+        mode,
+        median_size=5,
+        kernel_size=5,
+        fwhm_size=5,
+        btw_cutoff=0.2,
+        btw_order=2,
+        hann_cutoff=5,
+        gauss_mode="conv",
+    ):
+        """High/low pass filtering the frames of the image.
 
         Parameters
         ----------
@@ -119,7 +177,7 @@ class Frame(object):
         median_size : int, optional
             Size of the median box for the ``median`` or ``median-subt`` filter.
         kernel_size : int, optional
-            Size of the Laplacian kernel used in ``laplacian`` mode. It must be 
+            Size of the Laplacian kernel used in ``laplacian`` mode. It must be
             a positive odd integer value.
         fwhm_size : float, optional
             Size of the Gaussian kernel used in ``gauss`` or ``gauss-subt`` mode.
@@ -134,20 +192,28 @@ class Frame(object):
             'conv' uses the multidimensional gaussian filter from scipy.ndimage and
             'convfft' uses the fft convolution with a 2d Gaussian kernel.
         """
-        if method == 'hp':
-            self.data = frame_filter_highpass(self.data, mode, median_size,
-                                              kernel_size, fwhm_size,
-                                              btw_cutoff, btw_order, hann_cutoff,
-                                              conv_mode=gauss_mode)
-        elif method == 'lp':
-            self.data = frame_filter_lowpass(self.data, mode, median_size,
-                                             fwhm_size, gauss_mode)
+        if method == "hp":
+            self.data = frame_filter_highpass(
+                self.data,
+                mode,
+                median_size,
+                kernel_size,
+                fwhm_size,
+                btw_cutoff,
+                btw_order,
+                hann_cutoff,
+                conv_mode=gauss_mode,
+            )
+        elif method == "lp":
+            self.data = frame_filter_lowpass(
+                self.data, mode, median_size, fwhm_size, gauss_mode
+            )
         else:
-            raise ValueError('Filtering mode not recognized')
-        print('Image successfully filtered')
+            raise ValueError("Filtering mode not recognized")
+        print("Image successfully filtered")
 
     def get_center(self, verbose=True):
-        """ Getting the coordinates of the center of the image.
+        """Get the coordinates of the center of the image.
 
         Parameters
         ----------
@@ -157,7 +223,7 @@ class Frame(object):
         return frame_center(self.data, verbose)
 
     def plot(self, **kwargs):
-        """ Plotting the 2d array.
+        """Plot the 2d array.
 
         Parameters
         ----------
@@ -168,7 +234,7 @@ class Frame(object):
         hp.plot_frames(self.data, **kwargs)
 
     def radial_profile(self, sep=1):
-        """ Calculates the average radial profile of an image.
+        """Calculate the average radial profile of an image.
 
         Parameters
         ----------
@@ -178,11 +244,18 @@ class Frame(object):
         radpro = frame_average_radprofile(self.data, sep=sep, plot=True)
         return radpro
 
-    def recenter(self, method='satspots', xy=None, subi_size=19, sigfactor=6,
-                 imlib='vip-fft', interpolation='lanczos4', debug=False,
-                 verbose=True):
-        """ Recentering the frame using the satellite spots or a radon
-        transform.
+    def recenter(
+        self,
+        method="satspots",
+        xy=None,
+        subi_size=19,
+        sigfactor=6,
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        debug=False,
+        verbose=True,
+    ):
+        """Recenter the frame using the satellite spots or a radon transform.
 
         Parameters
         ----------
@@ -195,22 +268,28 @@ class Frame(object):
             + (cross-like) configuration, the order is the following: top,
             right, left, bottom.
         """
-        if method == 'satspots':
+        if method == "satspots":
             if xy is None:
-                raise ValueError('`xy` must be a tuple of 4 tuples')
-            self.data, _, _ = frame_center_satspots(self.data, xy, subi_size,
-                                                    sigfactor, True, imlib,
-                                                    interpolation, debug,
-                                                    verbose)
-        elif method == 'radon':
+                raise ValueError("`xy` must be a tuple of 4 tuples")
+            self.data, _, _ = frame_center_satspots(
+                self.data,
+                xy,
+                subi_size,
+                sigfactor,
+                True,
+                imlib,
+                interpolation,
+                debug,
+                verbose,
+            )
+        elif method == "radon":
             pass
             # self.data = frame_center_radon()
         else:
-            raise ValueError('Recentering method not recognized')
+            raise ValueError("Recentering method not recognized")
 
-    def rescale(self, scale, imlib='vip-fft', interpolation='bicubic',
-                verbose=True):
-        """ Resampling the image (upscaling or downscaling).
+    def rescale(self, scale, imlib="vip-fft", interpolation="bicubic", verbose=True):
+        """Resample the image (upscaling or downscaling).
 
         Parameters
         ----------
@@ -230,11 +309,10 @@ class Frame(object):
         verbose : bool, optional
             Whether to print out additional info such as the new image shape.
         """
-        self.data = frame_px_resampling(self.data, scale, imlib, interpolation,
-                                        verbose)
+        self.data = frame_px_resampling(self.data, scale, imlib, interpolation, verbose)
 
-    def rotate(self, angle, imlib='vip-fft', interpolation='lanczos4', cxy=None):
-        """ Rotating the image by a given ``angle``.
+    def rotate(self, angle, imlib="vip-fft", interpolation="lanczos4", cxy=None):
+        """Rotate the image by a given ``angle``.
 
         Parameters
         ----------
@@ -257,11 +335,10 @@ class Frame(object):
 
         """
         self.data = frame_rotate(self.data, angle, imlib, interpolation, cxy)
-        print('Image successfully rotated')
+        print("Image successfully rotated")
 
-    def shift(self, shift_y, shift_x, imlib='vip-fft',
-              interpolation='lanczos4'):
-        """ Shifting the image.
+    def shift(self, shift_y, shift_x, imlib="vip-fft", interpolation="lanczos4"):
+        """Shift the image.
 
         Parameters
         ----------
@@ -285,12 +362,11 @@ class Frame(object):
             The 'nearneig' interpolation is the fastest and the 'lanczos4' the
             slowest and accurate. 'lanczos4' is the default.
         """
-        self.data = frame_shift(self.data, shift_y, shift_x, imlib,
-                                interpolation)
-        print('Image successfully shifted')
+        self.data = frame_shift(self.data, shift_y, shift_x, imlib, interpolation)
+        print("Image successfully shifted")
 
     def snr(self, source_xy, plot=False, verbose=True):
-        """ Calculating the S/N for a test resolution element ``source_xy``.
+        """Calculate the S/N for a test resolution element ``source_xy``.
 
         Parameters
         ----------
@@ -307,13 +383,23 @@ class Frame(object):
             Value of the S/N for ``source_xy``.
         """
         if self.fwhm is None:
-            raise ValueError('FWHM has not been set')
+            raise ValueError("FWHM has not been set")
         return snr(self.data, source_xy, self.fwhm, False, None, plot, verbose)
 
-    def stats(self, region='circle', radius=5, xy=None, annulus_inner_radius=0,
-              annulus_width=5, source_xy=None, verbose=True, plot=True):
-        """ Calculating statistics on the image, both in the full-frame and in
-        a region (circular aperture or annulus). Also, the S/N of the either
+    def stats(
+        self,
+        region="circle",
+        radius=5,
+        xy=None,
+        annulus_inner_radius=0,
+        annulus_width=5,
+        source_xy=None,
+        verbose=True,
+        plot=True,
+    ):
+        """Calculate statistics on the image, both in the full-frame and in a region.
+
+        The region can be a circular aperture or an annulus. Also, the S/N of the either
         ``source_xy`` or the max pixel is calculated.
 
         Parameters
@@ -337,34 +423,41 @@ class Frame(object):
         plot : bool, optional
             Whether to plot the frame, histograms and region.
         """
-        res_region = frame_basic_stats(self.data, region, radius, xy,
-                                       annulus_inner_radius, annulus_width,
-                                       plot, True)
+        res_region = frame_basic_stats(
+            self.data,
+            region,
+            radius,
+            xy,
+            annulus_inner_radius,
+            annulus_width,
+            plot,
+            True,
+        )
         if verbose:
-            if region == 'circle':
-                msg = 'Stats in circular aperture of radius: {}pxs'
+            if region == "circle":
+                msg = "Stats in circular aperture of radius: {}pxs"
                 print(msg.format(radius))
-            elif region == 'annulus':
-                msg = 'Stats in annulus. Inner_rad: {}pxs, width: {}pxs'
+            elif region == "annulus":
+                msg = "Stats in annulus. Inner_rad: {}pxs, width: {}pxs"
                 print(msg.format(annulus_inner_radius, annulus_width))
             mean, std_dev, median, maxi = res_region
-            msg = 'Mean: {:.3f}, Stddev: {:.3f}, Median: {:.3f}, Max: {:.3f}'
+            msg = "Mean: {:.3f}, Stddev: {:.3f}, Median: {:.3f}, Max: {:.3f}"
             print(msg.format(mean, std_dev, median, maxi))
 
         res_ff = frame_histo_stats(self.data, plot)
         if verbose:
             mean, median, std, maxim, minim = res_ff
-            print('Stats in the whole frame:')
-            msg = 'Mean: {:.3f}, Stddev: {:.3f}, Median: {:.3f}, Max: {:.3f}, '
-            msg += 'Min: {:.3f}'
+            print("Stats in the whole frame:")
+            msg = "Mean: {:.3f}, Stddev: {:.3f}, Median: {:.3f}, Max: {:.3f}, "
+            msg += "Min: {:.3f}"
             print(msg.format(mean, std, median, maxim, minim))
 
-        print('\nS/N info:')
+        print("\nS/N info:")
         _ = frame_report(self.data, self.fwhm, source_xy, verbose)
 
 
 class Dataset(Saveable):
-    """ High-contrast imaging dataset class.
+    """High-contrast imaging dataset class.
 
     Parameters
     ----------
@@ -392,23 +485,41 @@ class Dataset(Saveable):
         3d or 4d high-contrast image sequence. To be used as a reference cube.
     """
 
-    _saved_attributes = ["cube", "psf", "psfn", "angles", "fwhm", "wavelengths",
-                         "px_scale", "cuberef", "injections_yx"]
+    _saved_attributes = [
+        "cube",
+        "psf",
+        "psfn",
+        "angles",
+        "fwhm",
+        "wavelengths",
+        "px_scale",
+        "cuberef",
+        "injections_yx",
+    ]
 
-    def __init__(self, cube, hdu=0, angles=None, wavelengths=None, fwhm=None,
-                 px_scale=None, psf=None, psfn=None, cuberef=None):
-        """ Initialization of the Dataset object.
-        """
+    def __init__(
+        self,
+        cube,
+        hdu=0,
+        angles=None,
+        wavelengths=None,
+        fwhm=None,
+        px_scale=None,
+        psf=None,
+        psfn=None,
+        cuberef=None,
+    ):
+        """Initialize the Dataset object."""
         # Loading the 3d/4d cube or image sequence
         if isinstance(cube, str):
             self.cube = open_fits(cube, hdu, verbose=False)
         elif isinstance(cube, np.ndarray):
             if not (cube.ndim == 3 or cube.ndim == 4):
-                raise ValueError('`Cube` array has wrong dimensions')
+                raise ValueError("`Cube` array has wrong dimensions")
             self.cube = cube
         else:
-            raise TypeError('`Cube` has a wrong type')
-        print('Cube array shape: {}'.format(self.cube.shape))
+            raise TypeError("`Cube` has a wrong type")
+        print("Cube array shape: {}".format(self.cube.shape))
         if self.cube.ndim == 3:
             self.n, self.y, self.x = self.cube.shape
             self.w = 1
@@ -419,14 +530,14 @@ class Dataset(Saveable):
         if isinstance(cuberef, str):
             self.cuberef = open_fits(cuberef, hdu, verbose=False)
         elif isinstance(cuberef, np.ndarray):
-            msg = '`Cuberef` array has wrong dimensions'
+            msg = "`Cuberef` array has wrong dimensions"
             if not cuberef.ndim == 3:
                 raise ValueError(msg)
             if not cuberef.shape[1] == self.y:
                 raise ValueError(msg)
             self.cuberef = cuberef
         elif isinstance(cuberef, Dataset):
-            msg = '`Cuberef` array has wrong dimensions'
+            msg = "`Cuberef` array has wrong dimensions"
             if not cuberef.cube.ndim == 3:
                 raise ValueError(msg)
             if not cuberef.cube.shape[1] == self.y:
@@ -435,7 +546,7 @@ class Dataset(Saveable):
         else:
             self.cuberef = None
         if self.cuberef is not None:
-            print('Cuberef array shape: {}'.format(self.cuberef.shape))
+            print("Cuberef array shape: {}".format(self.cuberef.shape))
 
         # Loading the angles (ADI)
         if isinstance(angles, str):
@@ -443,11 +554,11 @@ class Dataset(Saveable):
         else:
             self.angles = angles
         if self.angles is not None:
-            print('Angles array shape: {}'.format(self.angles.shape))
+            print("Angles array shape: {}".format(self.angles.shape))
             # Checking the shape of the angles vector
-            check_array(self.angles, dim=1, msg='Parallactic angles vector')
+            check_array(self.angles, dim=1, msg="Parallactic angles vector")
             if not self.angles.shape[0] == self.n:
-                raise ValueError('Parallactic angles vector has a wrong shape')
+                raise ValueError("Parallactic angles vector has a wrong shape")
 
         # Loading the scaling factors (mSDI)
         if isinstance(wavelengths, str):
@@ -455,11 +566,11 @@ class Dataset(Saveable):
         else:
             self.wavelengths = wavelengths
         if self.wavelengths is not None:
-            print('Wavelengths array shape: {}'.format(self.wavelengths.shape))
+            print("Wavelengths array shape: {}".format(self.wavelengths.shape))
             # Checking the shape of the scaling vector
-            check_array(self.wavelengths, dim=1, msg='Wavelengths vector')
+            check_array(self.wavelengths, dim=1, msg="Wavelengths vector")
             if not self.wavelengths.shape[0] == self.w:
-                raise ValueError('Wavelengths vector has a wrong shape')
+                raise ValueError("Wavelengths vector has a wrong shape")
 
         # Loading the PSF
         if isinstance(psf, str):
@@ -467,11 +578,11 @@ class Dataset(Saveable):
         else:
             self.psf = psf
         if self.psf is not None:
-            print('PSF array shape: {}'.format(self.psf.shape))
+            print("PSF array shape: {}".format(self.psf.shape))
             # Checking the shape of the PSF array
             if not self.psf.ndim == self.cube.ndim - 1:
-                msg = 'PSF array has a wrong shape. Must have {} dimensions, '
-                msg += 'got {} instead'
+                msg = "PSF array has a wrong shape. Must have {} dimensions, "
+                msg += "got {} instead"
                 raise ValueError(msg.format(self.cube.ndim - 1, self.psf.ndim))
 
         # Loading the normalized PSF
@@ -480,35 +591,33 @@ class Dataset(Saveable):
         else:
             self.psfn = psfn
         if self.psfn is not None:
-            print('Normalized PSF array shape: {}'.format(self.psfn.shape))
+            print("Normalized PSF array shape: {}".format(self.psfn.shape))
             # Checking the shape of the PSF array
             if not self.psfn.ndim == self.cube.ndim - 1:
-                msg = 'Normalized PSF array has a wrong shape. Must have {} '
-                msg += 'dimensions, got {} instead'
+                msg = "Normalized PSF array has a wrong shape. Must have {} "
+                msg += "dimensions, got {} instead"
                 raise ValueError(msg.format(self.cube.ndim - 1, self.psfn.ndim))
 
         self.fwhm = fwhm
         if self.fwhm is not None:
             if self.cube.ndim == 4:
-                check_array(self.fwhm, dim=1, msg='FHWM')
+                check_array(self.fwhm, dim=1, msg="FHWM")
             elif self.cube.ndim == 3:
-                print('FWHM: {}'.format(self.fwhm))
+                print("FWHM: {}".format(self.fwhm))
         self.px_scale = px_scale
         if self.px_scale is not None:
-            print('Pixel/plate scale: {}'.format(self.px_scale))
+            print("Pixel/plate scale: {}".format(self.px_scale))
 
         self.injections_yx = None
 
-    def collapse(self, mode='median', n=50):
-        """ Collapsing the sequence into a 2d array.
-
-        """
+    def collapse(self, mode="median", n=50):
+        """Collapsing the sequence into a 2d array."""
         frame = cube_collapse(self.cube, mode, n)
-        print('Cube successfully collapsed')
+        print("Cube successfully collapsed")
         return Frame(frame)
 
     def crop_frames(self, size, xy=None, force=False):
-        """ Cropping the frames of the sequence (3d or 4d cube).
+        """Crop the frames of the sequence (3d or 4d cube).
 
         Parameters
         ----------
@@ -523,11 +632,19 @@ class Dataset(Saveable):
         """
         self.cube = cube_crop_frames(self.cube, size, xy, force, verbose=True)
 
-    def derotate(self, imlib='vip-fft', interpolation='lanczos4', cxy=None,
-                 nproc=1, border_mode='constant', mask_val=np.nan,
-                 edge_blend=None, interp_zeros=False, ker=1):
-        """ Derotating the frames of the sequence according to the parallactic
-        angles.
+    def derotate(
+        self,
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        cxy=None,
+        nproc=1,
+        border_mode="constant",
+        mask_val=np.nan,
+        edge_blend=None,
+        interp_zeros=False,
+        ker=1,
+    ):
+        """Derotating the frames of the sequence according to the parallactic angles.
 
         Parameters
         ----------
@@ -568,12 +685,22 @@ class Dataset(Saveable):
             function.
         """
         if self.angles is None:
-            raise ValueError('Parallactic angles vector has not been set')
+            raise ValueError("Parallactic angles vector has not been set")
 
-        self.cube = cube_derotate(self.cube, self.angles, imlib,
-                                  interpolation, cxy, nproc, border_mode,
-                                  mask_val, edge_blend, interp_zeros, ker)
-        print('Cube successfully derotated')
+        self.cube = cube_derotate(
+            self.cube,
+            self.angles,
+            imlib,
+            interpolation,
+            cxy,
+            nproc,
+            border_mode,
+            mask_val,
+            edge_blend,
+            interp_zeros,
+            ker,
+        )
+        print("Cube successfully derotated")
 
     def drop_frames(self, n, m, verbose=True):
         """
@@ -594,10 +721,20 @@ class Dataset(Saveable):
         else:
             self.cube = res
 
-    def filter(self, method, mode, median_size=5, kernel_size=5, fwhm_size=5,
-               btw_cutoff=0.2, btw_order=2, hann_cutoff=5, gauss_mode='conv', 
-               verbose=True):
-        """ High/low pass filtering the frames of the cube.
+    def filter(
+        self,
+        method,
+        mode,
+        median_size=5,
+        kernel_size=5,
+        fwhm_size=5,
+        btw_cutoff=0.2,
+        btw_order=2,
+        hann_cutoff=5,
+        gauss_mode="conv",
+        verbose=True,
+    ):
+        """High/low pass filtering the frames of the cube.
 
         Parameters
         ----------
@@ -626,7 +763,7 @@ class Dataset(Saveable):
         median_size : int, optional
             Size of the median box for the ``median`` or ``median-subt`` filter.
         kernel_size : int, optional
-            Size of the Laplacian kernel used in ``laplacian`` mode. It must be 
+            Size of the Laplacian kernel used in ``laplacian`` mode. It must be
             a positive odd integer value.
         fwhm_size : float, optional
             Size of the Gaussian kernel used in ``gauss`` or ``gauss-subt`` mode.
@@ -641,26 +778,30 @@ class Dataset(Saveable):
             'conv' uses the multidimensional gaussian filter from scipy.ndimage and
             'convfft' uses the fft convolution with a 2d Gaussian kernel.
         """
-        if method == 'hp':
-            self.cube = cube_filter_highpass(self.cube, mode, 
-                                             median_size=median_size,
-                                             kernel_size=kernel_size, 
-                                             fwhm_size=fwhm_size,
-                                             btw_cutoff=btw_cutoff, 
-                                             btw_order=btw_order, 
-                                             hann_cutoff=hann_cutoff, 
-                                             verbose=verbose, 
-                                             conv_mode=gauss_mode)
-        elif method == 'lp':
-            self.cube = cube_filter_lowpass(self.cube, mode, median_size,
-                                            fwhm_size, gauss_mode, verbose)
+        if method == "hp":
+            self.cube = cube_filter_highpass(
+                self.cube,
+                mode,
+                median_size=median_size,
+                kernel_size=kernel_size,
+                fwhm_size=fwhm_size,
+                btw_cutoff=btw_cutoff,
+                btw_order=btw_order,
+                hann_cutoff=hann_cutoff,
+                verbose=verbose,
+                conv_mode=gauss_mode,
+            )
+        elif method == "lp":
+            self.cube = cube_filter_lowpass(
+                self.cube, mode, median_size, fwhm_size, gauss_mode, verbose
+            )
         else:
-            raise ValueError('Filtering mode not recognized')
+            raise ValueError("Filtering mode not recognized")
 
-    def frame_distances(self, frame, region='full', dist='sad',
-                        inner_radius=None, width=None, plot=True):
-        """ Calculating the frame distance/correlation with respect to a
-        reference image.
+    def frame_distances(
+        self, frame, region="full", dist="sad", inner_radius=None, width=None, plot=True
+    ):
+        """Calculate the frame distance/correlation with respect to a reference image.
 
         Parameters
         ----------
@@ -678,14 +819,21 @@ class Dataset(Saveable):
             Whether to plot the distances or not.
 
         """
-        _ = cube_distance(self.cube, frame, region, dist, inner_radius, width,
-                          plot)
+        _ = cube_distance(self.cube, frame, region, dist, inner_radius, width, plot)
 
-    def frame_stats(self, region='circle', radius=5, xy=None,
-                    annulus_inner_radius=0, annulus_width=5, wavelength=0,
-                    plot=True):
-        """ Calculating statistics on a ``region`` (circular aperture or
-        annulus) of each image of the sequence.
+    def frame_stats(
+        self,
+        region="circle",
+        radius=5,
+        xy=None,
+        annulus_inner_radius=0,
+        annulus_width=5,
+        wavelength=0,
+        plot=True,
+    ):
+        """Calculate statistics on a ``region`` of each image of the sequence.
+
+        The ``region`` can be a circular aperture or an annulus.
 
         Parameters
         ----------
@@ -707,19 +855,41 @@ class Dataset(Saveable):
 
         """
         if self.cube.ndim == 3:
-            _ = cube_basic_stats(self.cube, region, radius, xy,
-                                 annulus_inner_radius, annulus_width, plot,
-                                 False)
+            _ = cube_basic_stats(
+                self.cube,
+                region,
+                radius,
+                xy,
+                annulus_inner_radius,
+                annulus_width,
+                plot,
+                False,
+            )
         elif self.cube.ndim == 4:
-            print('Stats for wavelength {}'.format(wavelength + 1))
-            _ = cube_basic_stats(self.cube[wavelength], region, radius, xy,
-                                 annulus_inner_radius, annulus_width, plot,
-                                 False)
+            print("Stats for wavelength {}".format(wavelength + 1))
+            _ = cube_basic_stats(
+                self.cube[wavelength],
+                region,
+                radius,
+                xy,
+                annulus_inner_radius,
+                annulus_width,
+                plot,
+                False,
+            )
 
-    def inject_companions(self, flux, rad_dists, n_branches=1, theta=0,
-                          imlib='vip-fft', interpolation='lanczos4',
-                          full_output=False, verbose=True):
-        """ Injection of fake companions in 3d or 4d cubes.
+    def inject_companions(
+        self,
+        flux,
+        rad_dists,
+        n_branches=1,
+        theta=0,
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        full_output=False,
+        verbose=True,
+    ):
+        """Inject fake companions in 3d or 4d cubes.
 
         Parameters
         ----------
@@ -765,19 +935,28 @@ class Dataset(Saveable):
 
         """
         if self.angles is None:
-            raise ValueError('The PA angles have not been set')
+            raise ValueError("The PA angles have not been set")
         if self.psfn is None:
-            raise ValueError('The normalized PSF array cannot be found')
+            raise ValueError("The normalized PSF array cannot be found")
         if self.px_scale is None:
-            raise ValueError('Pixel/plate scale has not been set')
+            raise ValueError("Pixel/plate scale has not been set")
         if self.cube.ndim == 4:
             if self.wavelengths is None:
-                raise ValueError('The wavelengths vector has not been set')
+                raise ValueError("The wavelengths vector has not been set")
 
         self.cube, yx = cube_inject_companions(
-            self.cube, self.psfn, self.angles, flux, rad_dists, self.px_scale,
-            n_branches, theta, imlib, interpolation,
-            full_output=True, verbose=verbose
+            self.cube,
+            self.psfn,
+            self.angles,
+            flux,
+            rad_dists,
+            self.px_scale,
+            n_branches,
+            theta,
+            imlib,
+            interpolation,
+            full_output=True,
+            verbose=verbose,
         )
 
         if self.injections_yx is None:
@@ -791,8 +970,9 @@ class Dataset(Saveable):
         if full_output:
             return yx
 
-    def generate_copies_with_injections(self, n_copies, inrad=8, outrad=12,
-                                        dist_flux=("uniform", 2, 500)):
+    def generate_copies_with_injections(
+        self, n_copies, inrad=8, outrad=12, dist_flux=("uniform", 2, 500)
+    ):
         """
         Create copies of this dataset, containing different random injections.
 
@@ -821,12 +1001,16 @@ class Dataset(Saveable):
             Copy of the original Dataset, with injected companions.
 
         """
-
         for data in generate_cube_copies_with_injections(
-            self.cube, self.psf, self.angles, self.px_scale, n_copies=n_copies,
-            inrad=inrad, outrad=outrad, dist_flux=dist_flux
+            self.cube,
+            self.psf,
+            self.angles,
+            self.px_scale,
+            n_copies=n_copies,
+            inrad=inrad,
+            outrad=outrad,
+            dist_flux=dist_flux,
         ):
-
             dsi = self.copy()
             dsi.cube = data["cube"]
             dsi.injections_yx = data["positions"]
@@ -835,12 +1019,19 @@ class Dataset(Saveable):
             yield dsi
 
     def get_nbytes(self):
-        """
-        Return the total number of bytes the Dataset consumes.
-        """
-        return sum(arr.nbytes for arr in [self.cube, self.cuberef, self.angles,
-                                          self.wavelengths, self.psf, self.psfn]
-                   if arr is not None)
+        """Return the total number of bytes the Dataset consumes."""
+        return sum(
+            arr.nbytes
+            for arr in [
+                self.cube,
+                self.cuberef,
+                self.angles,
+                self.wavelengths,
+                self.psf,
+                self.psfn,
+            ]
+            if arr is not None
+        )
 
     def copy(self, deep=True, check_mem=True):
         """
@@ -870,18 +1061,17 @@ class Dataset(Saveable):
 
         """
         if deep:
-            if check_mem and not check_enough_memory(self.get_nbytes(), 1.5,
-                                                     verbose=False):
-                raise RuntimeError("copy would require more memory than "
-                                   "available.")
+            if check_mem and not check_enough_memory(
+                self.get_nbytes(), 1.5, verbose=False
+            ):
+                raise RuntimeError("copy would require more memory than " "available.")
 
             return copy.deepcopy(self)
         else:
             return copy.copy(self)
 
     def load_angles(self, angles, hdu=0):
-        """ Loads the PA vector from a FITS file. It is possible to specify the
-        HDU.
+        """Load the PA vector from a FITS file. It is possible to specify the HDU.
 
         Parameters
         ----------
@@ -896,12 +1086,13 @@ class Dataset(Saveable):
         elif isinstance(angles, (list, np.ndarray)):
             self.angles = angles
         else:
-            msg = '`Angles` has a wrong type. Must be a list or 1d np.ndarray'
+            msg = "`Angles` has a wrong type. Must be a list or 1d np.ndarray"
             raise ValueError(msg)
 
     def load_wavelengths(self, wavelengths, hdu=0):
-        """ Loads the scaling factors vector from a FITS file. It is possible to
-        specify the HDU.
+        """Load the scaling factors vector from a FITS file.
+
+        It is possible to specify the HDU.
 
         Parameters
         ----------
@@ -917,11 +1108,11 @@ class Dataset(Saveable):
         elif isinstance(wavelengths, (list, np.ndarray)):
             self.wavelengths = wavelengths
         else:
-            msg = '`wavelengths` has a wrong type. Must be a list or np.ndarray'
+            msg = "`wavelengths` has a wrong type. Must be a list or np.ndarray"
             raise ValueError(msg)
 
-    def mask_center(self, radius, fillwith=0, mode='in'):
-        """ Masking the values inside/outside a centered circular aperture.
+    def mask_center(self, radius, fillwith=0, mode="in"):
+        """Mask the values inside/outside a centered circular aperture.
 
         Parameters
         ----------
@@ -937,12 +1128,21 @@ class Dataset(Saveable):
         """
         self.cube = mask_circle(self.cube, radius, fillwith, mode)
 
-    def normalize_psf(self, fit_fwhm=True, size=None, threshold=None,
-                      mask_core=None, model='gauss', imlib='vip-fft',
-                      interpolation='lanczos4', force_odd=True, verbose=True):
-        """ Normalizes a PSF (2d or 3d array), to have the flux in a 1xFWHM
-        aperture equal to one. It also allows to crop the array and center the
-        PSF at the center of the frame(s).
+    def normalize_psf(
+        self,
+        fit_fwhm=True,
+        size=None,
+        threshold=None,
+        mask_core=None,
+        model="gauss",
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        force_odd=True,
+        verbose=True,
+    ):
+        """Normalize a PSF (2d or 3d array), to have the flux in a 1xFWHM aperture = 1.
+
+        Also allows to crop the array and center the PSF at the center of the frame(s).
 
         Parameters
         ----------
@@ -982,24 +1182,35 @@ class Dataset(Saveable):
             If True intermediate results are printed out.
         """
         if not fit_fwhm and self.fwhm is None:
-            raise ValueError('FWHM has not been set')
+            raise ValueError("FWHM has not been set")
         if self.psf is None:
-            raise ValueError('PSF array has not been loaded')
+            raise ValueError("PSF array has not been loaded")
 
         if not fit_fwhm:
             fwhm = self.fwhm
         else:
-            fwhm = 'fit'
-        res = normalize_psf(self.psf, fwhm, size, threshold, mask_core, model,
-                            imlib, interpolation, force_odd, True, verbose)
+            fwhm = "fit"
+        res = normalize_psf(
+            self.psf,
+            fwhm,
+            size,
+            threshold,
+            mask_core,
+            model,
+            imlib,
+            interpolation,
+            force_odd,
+            True,
+            verbose,
+        )
         self.psfn, self.aperture_flux, self.fwhm = res
-        print('Normalized PSF array shape: {}'.format(self.psfn.shape))
-        print('The attribute `psfn` contains the normalized PSF')
+        print("Normalized PSF array shape: {}".format(self.psfn.shape))
+        print("The attribute `psfn` contains the normalized PSF")
         print("`fwhm` attribute set to")
         print_precision(self.fwhm)
 
     def plot(self, **kwargs):
-        """ Plotting the frames of a 3D or 4d cube.
+        """Plot the frames of a 3D or 4d cube.
 
         Parameters
         ----------
@@ -1009,15 +1220,37 @@ class Dataset(Saveable):
         """
         hp.plot_cubes(self.cube, **kwargs)
 
-    def recenter(self, method='2dfit', xy=None, subi_size=5, model='gauss',
-                 nproc=1, imlib='vip-fft', interpolation='lanczos4',
-                 offset=None, negative=False, threshold=False,
-                 save_shifts=False, cy_1=None, cx_1=None, upsample_factor=100,
-                 alignment_iter=5, gamma=1, min_spat_freq=0.5, max_spat_freq=3,
-                 recenter_median=False, sigfactor=6, cropsize=101, hsize=0.4,
-                 step=0.01, mask_center=None, verbose=True, debug=False,
-                 plot=True):
-        """ Frame to frame recentering.
+    def recenter(
+        self,
+        method="2dfit",
+        xy=None,
+        subi_size=5,
+        model="gauss",
+        nproc=1,
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        offset=None,
+        negative=False,
+        threshold=False,
+        save_shifts=False,
+        cy_1=None,
+        cx_1=None,
+        upsample_factor=100,
+        alignment_iter=5,
+        gamma=1,
+        min_spat_freq=0.5,
+        max_spat_freq=3,
+        recenter_median=False,
+        sigfactor=6,
+        cropsize=101,
+        hsize=0.4,
+        step=0.01,
+        mask_center=None,
+        verbose=True,
+        debug=False,
+        plot=True,
+    ):
+        """Recenter frame-to-frame.
 
         Parameters
         ----------
@@ -1119,54 +1352,110 @@ class Dataset(Saveable):
             Whether to plot the shifts.
 
         """
-
-        if method == '2dfit':
+        if method == "2dfit":
             if self.fwhm is None:
-                raise ValueError('FWHM has not been set')
+                raise ValueError("FWHM has not been set")
             self.cube = cube_recenter_2dfit(
-                self.cube, xy, self.fwhm, subi_size, model, nproc, imlib,
-                interpolation, offset, negative, threshold, save_shifts, False,
-                verbose, debug, plot
+                self.cube,
+                xy,
+                self.fwhm,
+                subi_size,
+                model,
+                nproc,
+                imlib,
+                interpolation,
+                offset,
+                negative,
+                threshold,
+                save_shifts,
+                False,
+                verbose,
+                debug,
+                plot,
             )
-        elif method == 'dftups':
+        elif method == "dftups":
             if self.fwhm is None:
-                raise ValueError('FWHM has not been set')
+                raise ValueError("FWHM has not been set")
             self.cube = cube_recenter_dft_upsampling(
-                self.cube, cy_1, cx_1, negative, self.fwhm, subi_size,
-                upsample_factor, imlib, interpolation, False, verbose,
-                save_shifts, debug, plot
+                self.cube,
+                cy_1,
+                cx_1,
+                negative,
+                self.fwhm,
+                subi_size,
+                upsample_factor,
+                imlib,
+                interpolation,
+                False,
+                verbose,
+                save_shifts,
+                debug,
+                plot,
             )
-        elif method == 'dftupspeckles':
+        elif method == "dftupspeckles":
             if self.fwhm is None:
-                raise ValueError('FWHM has not been set')
+                raise ValueError("FWHM has not been set")
             res = cube_recenter_via_speckles(
-                self.cube, self.cuberef, alignment_iter, gamma, min_spat_freq,
-                max_spat_freq, self.fwhm, debug, negative, recenter_median,
-                subi_size, imlib, interpolation, plot
+                self.cube,
+                self.cuberef,
+                alignment_iter,
+                gamma,
+                min_spat_freq,
+                max_spat_freq,
+                self.fwhm,
+                debug,
+                negative,
+                recenter_median,
+                subi_size,
+                imlib,
+                interpolation,
+                plot,
             )
             if self.cuberef is None:
                 self.cube = res[0]
             else:
                 self.cube = res[0]
                 self.cuberef = res[1]
-        elif method == 'satspots':
+        elif method == "satspots":
             self.cube, _, _ = cube_recenter_satspots(
                 self.cube, xy, subi_size, sigfactor, plot, debug, verbose
             )
-        elif method == 'radon':
+        elif method == "radon":
             self.cube = cube_recenter_radon(
-                self.cube, full_output=False, verbose=verbose, imlib=imlib,
-                interpolation=interpolation, cropsize=cropsize, hsize=hsize,
-                step=step, mask_center=mask_center, nproc=nproc, debug=debug
+                self.cube,
+                full_output=False,
+                verbose=verbose,
+                imlib=imlib,
+                interpolation=interpolation,
+                cropsize=cropsize,
+                hsize=hsize,
+                step=step,
+                mask_center=mask_center,
+                nproc=nproc,
+                debug=debug,
             )
         else:
-            raise ValueError('Method not recognized')
+            raise ValueError("Method not recognized")
 
-    def remove_badframes(self, method='corr', frame_ref=None, crop_size=30,
-                         dist='pearson', percentile=20, stat_region='annulus',
-                         inner_radius=10, width=10, top_sigma=1.0,
-                         low_sigma=1.0, window=None, roundlo=-0.2, roundhi=0.2,
-                         lambda_ref=0, plot=True, verbose=True):
+    def remove_badframes(
+        self,
+        method="corr",
+        frame_ref=None,
+        crop_size=30,
+        dist="pearson",
+        percentile=20,
+        stat_region="annulus",
+        inner_radius=10,
+        width=10,
+        top_sigma=1.0,
+        low_sigma=1.0,
+        window=None,
+        roundlo=-0.2,
+        roundhi=0.2,
+        lambda_ref=0,
+        plot=True,
+        verbose=True,
+    ):
         """
         Find outlying/bad frames and slice the cube accordingly.
 
@@ -1224,29 +1513,37 @@ class Dataset(Saveable):
         else:
             tcube = self.cube
 
-        if method == 'corr':
+        if method == "corr":
             if frame_ref is None:
                 print("Correlation method selected but `frame_ref` is missing")
                 print("Setting the 1st frame as the reference")
                 frame_ref = 0
 
-            self.good_indices, _ = cube_detect_badfr_correlation(tcube,
-                                                                 frame_ref, crop_size, dist, percentile,
-                                                                 plot, verbose)
-        elif method == 'pxstats':
-            self.good_indices, _ = cube_detect_badfr_pxstats(tcube, stat_region,
-                                                             inner_radius, width, top_sigma,
-                                                             low_sigma, window, plot, verbose)
-        elif method == 'ellip':
+            self.good_indices, _ = cube_detect_badfr_correlation(
+                tcube, frame_ref, crop_size, dist, percentile, plot, verbose
+            )
+        elif method == "pxstats":
+            self.good_indices, _ = cube_detect_badfr_pxstats(
+                tcube,
+                stat_region,
+                inner_radius,
+                width,
+                top_sigma,
+                low_sigma,
+                window,
+                plot,
+                verbose,
+            )
+        elif method == "ellip":
             if self.cube.ndim == 4:
                 fwhm = self.fwhm[lambda_ref]
             else:
                 fwhm = self.fwhm
-            self.good_indices, _ = cube_detect_badfr_ellipticity(tcube, fwhm,
-                                                                 crop_size, roundlo, roundhi, plot,
-                                                                 verbose)
+            self.good_indices, _ = cube_detect_badfr_ellipticity(
+                tcube, fwhm, crop_size, roundlo, roundhi, plot, verbose
+            )
         else:
-            raise ValueError('Bad frames detection method not recognized')
+            raise ValueError("Bad frames detection method not recognized")
 
         if self.cube.ndim == 4:
             self.cube = self.cube[:, self.good_indices]
@@ -1262,9 +1559,8 @@ class Dataset(Saveable):
                 msg = "New parallactic angles vector shape: {}"
                 print(msg.format(self.angles.shape))
 
-    def rescale(self, scale, imlib='ndimage', interpolation='bicubic',
-                verbose=True):
-        """ Resampling the pixels (upscaling or downscaling the frames).
+    def rescale(self, scale, imlib="ndimage", interpolation="bicubic", verbose=True):
+        """Resample the pixels (upscaling or downscaling the frames).
 
         Parameters
         ----------
@@ -1285,11 +1581,10 @@ class Dataset(Saveable):
             Whether to print out additional info such as the new cube shape.
 
         """
-        self.cube = cube_px_resampling(self.cube, scale, imlib, interpolation,
-                                       verbose)
+        self.cube = cube_px_resampling(self.cube, scale, imlib, interpolation, verbose)
 
-    def subsample(self, window, mode='mean'):
-        """ Temporally sub-sampling the sequence (3d or 4d cube).
+    def subsample(self, window, mode="mean"):
+        """Sumb-sample temporally the sequence (3d or 4d cube).
 
         Parameters
         ----------
@@ -1299,7 +1594,8 @@ class Dataset(Saveable):
             Switch for choosing mean or median.
         """
         if self.angles is not None:
-            self.cube, self.angles = cube_subsample(self.cube, window,
-                                                    mode, self.angles)
+            self.cube, self.angles = cube_subsample(
+                self.cube, window, mode, self.angles
+            )
         else:
             self.cube = cube_subsample(self.cube, window, mode)

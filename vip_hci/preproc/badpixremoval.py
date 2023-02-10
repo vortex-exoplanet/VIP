@@ -728,8 +728,8 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., bpm_mask=None,
             circl_new = []
 
         # 4/ Loop on all pixels to check bpix
-        array_corr, bpix_map = correct_ann_outliers(array, ann_width, sig,
-                                                    med_neig, std_neig, cy,
+        array_corr, bpix_map = correct_ann_outliers(array, bpm_mask, ann_width,
+                                                    sig, med_neig, std_neig, cy,
                                                     cx, min_thr, max_thr,
                                                     stddev, half_res_y)
 
@@ -755,7 +755,7 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., bpm_mask=None,
                 bpix_map[yy] = frame_bpix[int(yy/2)]
                 ann_frame_cumul[yy] = ann_frame[int(yy/2)]
 
-        # Excluded pixels should take back their original values
+        # Include + exclude relevant pixels
         array_corr[ind_excl] = frame[ind_excl]
         bpix_map[ind_excl] = 0
 
@@ -1897,15 +1897,17 @@ def reject_outliers(data, test_value, m=5., stddev=None, debug=False):
         return _reject_outliers(data, test_value, m=m, stddev=stddev)
 
 
-def correct_ann_outliers(array, ann_width, sig, med_neig, std_neig, cy, cx,
-                         min_thr, max_thr, stddev, half_res_y=False):
+def correct_ann_outliers(array, bpix_map, ann_width, sig, med_neig, std_neig,
+                         cy, cx, min_thr, max_thr, stddev, half_res_y=False):
     """ Function to correct outliers in concentric annuli.
 
     Parameters:
     -----------
     array: numpy ndarray
-        Input array with respect to which either a test_value or the central a
+        Input array with respect to which either a test_value or the central 
         value of data is determined to be an outlier or not
+    bpix_map: numpy ndarray or None
+        Input array of known bad pixels.
     ann_width: float
         Width of concenrtric annuli in pixels.
     sig: float
@@ -1940,13 +1942,14 @@ def correct_ann_outliers(array, ann_width, sig, med_neig, std_neig, cy, cx,
     """
 
     if no_numba:
-        def _correct_ann_outliers(array, ann_width, sig, med_neig, std_neig,
-                                  cy, cx, min_thr, max_thr, stddev,
+        def _correct_ann_outliers(array, bpix_map, ann_width, sig, med_neig,
+                                  std_neig, cy, cx, min_thr, max_thr, stddev,
                                   half_res_y=False):
             n_y, n_x = array.shape
             rand_arr = 2*(np.random.rand(n_y, n_x)-0.5)
             array_corr = array.copy()
-            bpix_map = np.zeros([n_y, n_x])
+            if bpix_map is None:
+                bpix_map = np.zeros([n_y, n_x])
             for yy in range(n_y):
                 for xx in range(n_x):
                     if half_res_y:
@@ -1971,18 +1974,22 @@ def correct_ann_outliers(array, ann_width, sig, med_neig, std_neig, cy, cx,
                     elif (array[yy, xx] < med_neig[rr]-sig*dev or
                           array[yy, xx] > med_neig[rr]+sig*dev):
                         bpix_map[yy, xx] = 1
+
+                    if bpix_map[yy, xx]:
                         array_corr[yy, xx] = med_neig[rr] + \
                             np.sqrt(np.abs(med_neig[rr]))*rand_arr[yy, xx]
+
             return array_corr, bpix_map
     else:
         @njit
-        def _correct_ann_outliers(array, ann_width, sig, med_neig, std_neig,
-                                  cy, cx, min_thr, max_thr, stddev,
+        def _correct_ann_outliers(array, bpix_map, ann_width, sig, med_neig,
+                                  std_neig, cy, cx, min_thr, max_thr, stddev,
                                   half_res_y=False):
             n_y, n_x = array.shape
             rand_arr = 2*(np.random.rand(n_y, n_x)-0.5)
             array_corr = array.copy()
-            bpix_map = np.zeros([n_y, n_x])
+            if bpix_map is None:
+                bpix_map = np.zeros([n_y, n_x])
             for yy in range(n_y):
                 for xx in range(n_x):
                     if half_res_y:
@@ -1995,24 +2002,23 @@ def correct_ann_outliers(array, ann_width, sig, med_neig, std_neig, cy, cx,
                     # check min_thr
                     if array[yy, xx] < min_thr:
                         bpix_map[yy, xx] = 1
-                        array_corr[yy, xx] = med_neig[rr] + \
-                            np.sqrt(np.abs(med_neig[rr]))*rand_arr[yy, xx]
 
                     # check max_thr
                     elif array[yy, xx] > max_thr:
                         bpix_map[yy, xx] = 1
-                        array_corr[yy, xx] = med_neig[rr] + \
-                            np.sqrt(np.abs(med_neig[rr]))*rand_arr[yy, xx]
 
                     elif (array[yy, xx] < med_neig[rr]-sig*dev or
                           array[yy, xx] > med_neig[rr]+sig*dev):
                         bpix_map[yy, xx] = 1
+
+                    if bpix_map[yy, xx]:
                         array_corr[yy, xx] = med_neig[rr] + \
                             np.sqrt(np.abs(med_neig[rr]))*rand_arr[yy, xx]
+
             return array_corr, bpix_map
 
-    return _correct_ann_outliers(array, ann_width, sig, med_neig, std_neig,
-                                 cy, cx, min_thr, max_thr, stddev,
+    return _correct_ann_outliers(array, bpix_map, ann_width, sig, med_neig,
+                                 std_neig, cy, cx, min_thr, max_thr, stddev,
                                  half_res_y=half_res_y)
 
 

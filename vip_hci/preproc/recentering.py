@@ -1487,7 +1487,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                         fwhm[i], threshold, sigfactor]
 
             res.append(func(*args))
-        res = np.array(res)
+        res = np.array(res, dtype=object)
     elif nproc > 1:
         if model == "2gauss":
             args = [array, iterable(range(n_frames)), subi_size, pos_y, pos_x,
@@ -1497,7 +1497,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
             args = [array, iterable(range(n_frames)), subi_size, pos_y, pos_x,
                     negative, debug, iterable(fwhm), threshold, sigfactor]
         res = pool_map(nproc, func, *args)
-        res = np.array(res)
+        res = np.array(res, dtype=object)
     y = cy - res[:, 0]
     x = cx - res[:, 1]
 

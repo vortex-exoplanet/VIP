@@ -6,6 +6,7 @@ __all__ = ["PPMedianSub", "PPPca", "PPLoci", "PPLLSG", "PPAndromeda"]
 
 import pickle
 import numpy as np
+import pdb
 from sklearn.base import BaseEstimator
 
 from .dataset import Dataset
@@ -116,6 +117,7 @@ class PostProc(BaseEstimator):
 
         return dataset
 
+    # TODO : identify the problem around the element `_repr_html_`
     def _get_calculations(self):
         """
         Get a list of all attributes which are *calculated*.
@@ -134,11 +136,26 @@ class PostProc(BaseEstimator):
         """
         calculations = {}
         for e in dir(self):
-            try:
-                for k in getattr(getattr(self, e), "_calculates"):
-                    calculations[k] = e
-            except AttributeError:
-                pass
+            """
+            `_repr_html_` is an element of the directory of the PostProc object which
+            causes the search of calculated attributes to overflow, looping indefinitely
+            and never reaching the actual elements containting those said attributes.
+            It will be skipped until the issue has been properly identified and fixed.
+            You can uncomment the block below to observe how the directory loops after
+            reaching that element - acknowledging you are not skipping it.
+            """
+            if e != "_repr_html_":
+                try:
+                    # print(
+                    #     "directory element : ",
+                    #     e,
+                    #     ", calculations list : ",
+                    #     calculations,
+                    # )
+                    for k in getattr(getattr(self, e), "_calculates"):
+                        calculations[k] = e
+                except AttributeError:
+                    pass
 
         return calculations
 
@@ -290,12 +307,12 @@ class PPMedianSub(PostProc):
         flux_sc_list=None,
         dataset=None,
         radius_int=0,
-        asize=1,
+        asize=4,
         delta_rot=1,
-        delta_sep=(0.2, 1),
+        delta_sep=(0.1, 1),
         mode="fullfr",
         nframes=4,
-        sci_only=False,
+        sdi_only=False,
         imlib="vip-fft",
         interpolation="lanczos4",
         collapse="median",
@@ -352,7 +369,7 @@ class PPMedianSub(PostProc):
         super(PPMedianSub, self).__init__(locals())
 
     @calculates("cube_residuals", "cube_residuals_der", "frame_final")
-    def run(self, dataset=None, nproc=1, full_output=True, verbose=True, **rot_options):
+    def run(self, dataset=None, nproc=1, full_output=True, verbose=True):
         """
         Run the post-processing median subtraction algorithm for model PSF subtraction.
 
@@ -429,7 +446,7 @@ class PPPca(PostProc):
         batch=None,
         weights=None,
         conv=False,
-        cub_sig=None,
+        cube_sig=None,
     ):
         """Set up the PCA algorithm parameters.
 
@@ -569,7 +586,7 @@ class PPPca(PostProc):
         "cube_residuals_per_channel_der",
         "cube_residuals_resc",
     )
-    def run(self, dataset=None, nproc=1, verbose=True, full_output=True, **rot_options):
+    def run(self, dataset=None, nproc=1, verbose=True, full_output=True):
         """
         Run the post-processing PCA algorithm for model PSF subtraction.
 
@@ -617,34 +634,34 @@ class PPPca(PostProc):
         # TODO : review the wavelengths attribute to be a scale_list instead
 
         res = pca(
-            dataset.cube,
-            dataset.angles,
-            dataset.cuberef,
-            dataset.wavelengths,
-            self.svd_mode,
-            self.scaling,
-            self.mask_center_px,
-            self.source_xy,
-            self.delta_rot,
-            dataset.fwhm,
-            self.adimsdi,
-            self.crop_ifs,
-            self.imlib,
-            self.imlib2,
-            self.interpolation,
-            self.collapse,
-            self.collapse_ifs,
-            self.ifs_collapse_range,
-            self.mask_rdi,
-            self.check_mem,
-            self.batch,
-            nproc,
-            full_output,
-            verbose,
-            self.weights,
-            self.conv,
-            self.cube_sig,
-            **rot_options
+            cube=dataset.cube,
+            angle_list=dataset.angles,
+            cube_ref=dataset.cuberef,
+            scale_list=dataset.wavelengths,
+            ncomp=self.ncomp,
+            svd_mode=self.svd_mode,
+            scaling=self.scaling,
+            mask_center_px=self.mask_center_px,
+            source_xy=self.source_xy,
+            delta_rot=self.delta_rot,
+            fwhm=dataset.fwhm,
+            adimsdi=self.adimsdi,
+            crop_ifs=self.crop_ifs,
+            imlib=self.imlib,
+            imlib2=self.imlib2,
+            interpolation=self.interpolation,
+            collapse=self.collapse,
+            collapse_ifs=self.collapse_ifs,
+            ifs_collapse_range=self.ifs_collapse_range,
+            mask_rdi=self.mask_rdi,
+            check_memory=self.check_mem,
+            batch=self.batch,
+            nproc=nproc,
+            full_output=full_output,
+            verbose=verbose,
+            weights=self.weights,
+            conv=self.conv,
+            cube_sig=self.cube_sig,
         )
 
         if dataset.cube.ndim == 3:
@@ -771,7 +788,7 @@ class PPLoci(PostProc):
         super(PPLoci, self).__init__(locals())
 
     @calculates("frame_final", "cube_res", "cube_der")
-    def run(self, dataset=None, nproc=1, verbose=True, full_output=True, **rot_options):
+    def run(self, dataset=None, nproc=1, verbose=True, full_output=True):
         """
         Run the post-processing LOCI algorithm for model PSF subtraction.
 
@@ -795,28 +812,27 @@ class PPLoci(PostProc):
         dataset = self._get_dataset(dataset, verbose)
 
         res = xloci(
-            dataset.cube,
-            dataset.angles,
-            dataset.wavelengths,
-            dataset.fwhm,
-            self.metric,
-            self.dist_threshold,
-            self.delta_rot,
-            self.delta_sep,
-            self.radius_int,
-            self.asize,
-            self.n_segments,
-            nproc,
-            self.solver,
-            self.tol,
-            self.optim_scale_fact,
-            self.adimsdi,
-            self.imlib,
-            self.interpolation,
-            self.collapse,
-            verbose,
-            full_output,
-            rot_options,
+            cube=dataset.cube,
+            angle_list=dataset.angles,
+            scale_list=dataset.wavelengths,
+            fwhm=dataset.fwhm,
+            metric=self.metric,
+            dist_threshold=self.dist_threshold,
+            delta_rot=self.delta_rot,
+            delta_sep=self.delta_sep,
+            radius_int=self.radius_int,
+            asize=self.asize,
+            n_segments=self.n_segments,
+            nproc=nproc,
+            solver=self.solver,
+            tol=self.tol,
+            optim_scale_fact=self.optim_scale_fact,
+            admisdi=self.adimsdi,
+            imlib=self.imlib,
+            interpolation=self.interpolation,
+            collapse=self.collapse,
+            verbose=verbose,
+            full_output=full_output,
         )
 
         self.cube_res, self.cube_der, self.frame_final = res
@@ -904,7 +920,7 @@ class PPLLSG(PostProc):
         super(PPLLSG, self).__init__(locals())
 
     @calculates("frame_final", "frame_l", "frame_s", "frame_g")
-    def run(self, dataset=None, nproc=1, verbose=True, full_output=True):
+    def run(self, dataset=None, nproc=1, verbose=True, full_output=True, **rot_options):
         """
         Run the post-processing LLSG algorithm for model PSF subtraction.
 
@@ -925,9 +941,7 @@ class PPLLSG(PostProc):
             ``vip_hci.preproc.frame_rotate``)
 
         """
-
         dataset = self._get_dataset(dataset, verbose)
-
         res = llsg(
             dataset.cube,
             dataset.angles,
@@ -997,44 +1011,84 @@ class PPAndromeda(PostProc):
         ----------
         dataset : Dataset object, optional
             An Dataset object to be processed. Can also be passed to ``.run()``.
-        oversampling_fact : float, optional
+        oversampling_fact : float
             Oversampling factor for the wavelength corresponding to the filter used
-            for obtaining ``cube`` (defined as the ratio between the wavelength of
-            the filter and the Shannon wavelength).
+            to obtain ``cube`` (defined as the ratio between the wavelength of
+            the filter and the Shannon wavelength). Usually above 1 and below 3.
+            Note that in ANDROMEDA everything is coded in lambda/D unit so this is
+            an important parameter. See Note for example calculation.
+            IDL parameter: ``OVERSAMPLING_1_INPUT``
         filtering_fraction : float, optional
             Strength of the high-pass filter. If set to ``1``, no high-pass filter
             is used.
+            IDL parameter: ``FILTERING_FRACTION_INPUT``
         min_sep : float, optional
             Angular separation is assured to be above ``min_sep*lambda/D``.
+            IDL parameter: ``MINIMUM_SEPARATION_INPUT``
         annuli_width : float, optional
             Annuli width on which the subtraction are performed. The same for all
             annuli.
+            IDL parameter: ``ANNULI_WIDTH_INPUT``
         roa : float, optional
             Ratio of the optimization area. The optimization annulus area is defined
             by ``roa * annuli_width``.
+            ``roa`` is forced to ``1`` when ``opt_method="no"`` is chosen.
+            IDL parameter: ``RATIO_OPT_AREA_INPUT``
         opt_method : {'no', 'total', 'lsq', 'robust'}, optional
             Method used to balance for the flux difference that exists between the
             two subtracted annuli in an optimal way during ADI.
+            IDL parameter: ``OPT_METHOD_ANG_INPUT``
         nsmooth_snr : int, optional
             Number of pixels over which the radial robust standard deviation profile
             of the SNR map is smoothed to provide a global trend for the SNR map
             normalization. For ``nsmooth_snr=0`` the SNR map normalization is
-            disabled, and the positivity constraint is applied when calculating the
-            flux.
-        iwa : float, optional
+            disabled.
+            IDL parameter: ``NSMOOTH_SNR_INPUT``
+        iwa : float or None, optional
             Inner working angle / inner radius of the first annulus taken into
-            account, expressed in $\\lambda/D$.
+            account, expressed in ``lambda/D``. If ``None``, it is chosen
+            automatically between the values ``0.5``, ``4`` or ``0.25``.
+            IDL parameter: ``IWA_INPUT``
+        owa : float, optional
+            Outer working angle / **inner** radius of the last annulus, expressed in
+            ``lambda/D``. If ``None``, the value is automatically chosen based on
+            the frame size.
+            IDL parameter: ``OWA_INPUT``
         precision : int, optional
             Number of shifts applied to the PSF. Passed to
             ``calc_psf_shift_subpix`` , which then creates a 4D cube with shape
             (precision+1, precision+1, N, N).
+            IDL parameter: ``PRECISION_INPUT``
+        fast : float or bool, optional
+            Size of the annuli from which the speckle noise should not be dominant
+            anymore, in multiples of ``lambda/D``. If ``True``, a value of
+            ``20 lambda/D`` is used, ``False`` (the default) disables the fast mode
+            entirely. Above this threshold, the annuli width is set to
+            ``4*annuli_width``.
+            IDL parameter: ``FAST``
         homogeneous_variance : bool, optional
             If set, variance is treated as homogeneous and is calculated as a mean
             of variance in each position through time.
+            IDL parameter: ``HOMOGENEOUS_VARIANCE_INPUT``
+        ditimg : float, optional
+            DIT for images (in sec)
+            IDL Parameter: ``DITIMG_INPUT``
+        ditpsf : float or None, optional
+            DIT for PSF (in sec)
+            IDL Parameter: ``DITPSF_INPUT``
+            If set to ``None``, the value of ``ditimg`` is used.
+        tnd : float, optional
+            Neutral Density Transmission.
+            IDL parameter: ``TND_INPUT``
+        total : bool, optional
+            ``total=True`` is the old behaviour (normalizing the PSF to its sum).
+            IDL parameter: ``TOTAL`` (was ``MAX`` in previous releases).
         multiply_gamma : bool, optional
             Use gamma for signature computation too.
+            IDL parameter: ``MULTIPLY_GAMMA_INPUT``
         verbose : bool, optional
             Print some parameter values for control.
+            IDL parameter: ``VERBOSE``
         """
         super(PPAndromeda, self).__init__(locals())
 
@@ -1065,7 +1119,7 @@ class PPAndromeda(PostProc):
 
         """
         dataset = self._get_dataset(dataset, verbose)
-
+        pdb.set_trace()
         res = andromeda(
             cube=dataset.cube,
             oversampling_fact=self.oversampling_fact,

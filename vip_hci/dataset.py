@@ -1128,6 +1128,7 @@ class Dataset(Saveable):
         """
         self.cube = mask_circle(self.cube, radius, fillwith, mode)
 
+    # TODO: change fit_fwhm description (include float support)
     def normalize_psf(
         self,
         fit_fwhm=True,
@@ -1181,12 +1182,14 @@ class Dataset(Saveable):
         verbose : bool, optional
             If True intermediate results are printed out.
         """
-        if not fit_fwhm and self.fwhm is None:
-            raise ValueError("FWHM has not been set")
         if self.psf is None:
             raise ValueError("PSF array has not been loaded")
 
-        if not fit_fwhm:
+        if fit_fwhm is True:
+            fwhm = "fit"
+        elif fit_fwhm:
+            fwhm = fit_fwhm
+        elif self.fwhm:
             fwhm = self.fwhm
         else:
             fwhm = "fit"

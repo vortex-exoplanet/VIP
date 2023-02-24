@@ -6,7 +6,6 @@ __all__ = ["PPMedianSub", "PPPca", "PPLoci", "PPLLSG", "PPAndromeda"]
 
 import pickle
 import numpy as np
-import pdb
 from sklearn.base import BaseEstimator
 
 from .dataset import Dataset
@@ -16,6 +15,8 @@ from .psfsub import pca, llsg, median_sub, xloci
 from .config.utils_conf import algo_calculates_decorator as calculates
 
 # TODO : cross-check every algorithm validity
+
+PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
 
 
 class PostProc(BaseEstimator):
@@ -136,15 +137,16 @@ class PostProc(BaseEstimator):
         """
         calculations = {}
         for e in dir(self):
+            # BLACKMAGIC : _repr_html_ must be skipped
             """
             `_repr_html_` is an element of the directory of the PostProc object which
             causes the search of calculated attributes to overflow, looping indefinitely
-            and never reaching the actual elements containting those said attributes.
+            and never reaching the actual elements containing those said attributes.
             It will be skipped until the issue has been properly identified and fixed.
             You can uncomment the block below to observe how the directory loops after
             reaching that element - acknowledging you are not skipping it.
             """
-            if e != "_repr_html_":
+            if e not in PROBLEMATIC_ATTRIBUTE_NAMES:
                 try:
                     # print(
                     #     "directory element : ",
@@ -369,7 +371,7 @@ class PPMedianSub(PostProc):
         super(PPMedianSub, self).__init__(locals())
 
     @calculates("cube_residuals", "cube_residuals_der", "frame_final")
-    def run(self, dataset=None, nproc=1, full_output=True, verbose=True):
+    def run(self, dataset=None, nproc=1, full_output=True, verbose=True, **rot_options):
         """
         Run the post-processing median subtraction algorithm for model PSF subtraction.
 
@@ -398,24 +400,25 @@ class PPMedianSub(PostProc):
             raise ValueError("`fwhm` has not been set")
 
         res = median_sub(
-            dataset.cube,
-            dataset.angles,
-            dataset.wavelengths,
-            self.flux_sc_list,
-            dataset.fwhm,
-            self.radius_int,
-            self.asize,
-            self.delta_rot,
-            self.delta_sep,
-            self.mode,
-            self.nframes,
-            self.sdi_only,
-            self.imlib,
-            self.interpolation,
-            self.collapse,
-            nproc,
+            cube=dataset.cube,
+            angle_list=dataset.angles,
+            scale_list=dataset.wavelengths,
+            flux_sc_list=self.flux_sc_list,
+            fwhm=dataset.fwhm,
+            radius_int=self.radius_int,
+            asize=self.asize,
+            delta_rot=self.delta_rot,
+            delta_sep=self.delta_sep,
+            mode=self.mode,
+            nframes=self.nframes,
+            sdi_only=self.sdi_only,
+            imlib=self.imlib,
+            interpolation=self.interpolation,
+            collapse=self.collapse,
+            nproc=nproc,
             full_output=True,
             verbose=verbose,
+            **rot_options
         )
 
         self.cube_residuals, self.cube_residuals_der, self.frame_final = res
@@ -666,28 +669,28 @@ class PPPca(PostProc):
 
         if dataset.cube.ndim == 3:
             if self.source_xy is not None:
-                recon_cube, res_cube, cuberesder, frame = res
+                frame, recon_cube, res_cube, res_cube_der = res
                 self.cube_reconstructed = recon_cube
                 self.cube_residuals = res_cube
-                self.cube_residuals_der = cuberesder
+                self.cube_residuals_der = res_cube_der
                 self.frame_final = frame
             else:
-                pcs, recon_cube, res_cube, cuberesder, frame = res
+                frame, pcs, recon_cube, res_cube, res_cube_der = res
                 self.pcs = pcs
                 self.cube_reconstructed = recon_cube
                 self.cube_residuals = res_cube
-                self.cube_residuals_der = cuberesder
+                self.cube_residuals_der = res_cube_der
                 self.frame_final = frame
         elif dataset.cube.ndim == 4:
             if self.adimsdi == "double":
-                cubereschan, cubereschander, frame = res
-                self.cube_residuals_per_channel = cubereschan
-                self.cube_residuals_per_channel_der = cubereschander
+                frame, res_cube_chan, res_cube_chan_der = res
+                self.cube_residuals_per_channel = res_cube_chan
+                self.cube_residuals_per_channel_der = res_cube_chan_der
                 self.frame_final = frame
             elif self.adimsdi == "single":
-                cuberes, cuberesresc, frame = res
-                self.cube_residuals = cuberes
-                self.cube_residuals_resc = cuberesresc
+                frame, cube_allfr_res, cube_adi_res = res
+                self.cube_residuals = cube_allfr_res
+                self.cube_residuals_resc = cube_adi_res
                 self.frame_final = frame
 
 
@@ -943,9 +946,9 @@ class PPLLSG(PostProc):
         """
         dataset = self._get_dataset(dataset, verbose)
         res = llsg(
-            dataset.cube,
-            dataset.angles,
-            dataset.fwhm,
+            cube=dataset.cube,
+            angles=dataset.angles,
+            fwhm=dataset.fwhm,
             rank=self.rank,
             thresh=self.thresh,
             max_iter=self.max_iter,
@@ -966,6 +969,7 @@ class PPLLSG(PostProc):
             full_output=full_output,
             verbose=verbose,
             debug=False,
+            **rot_options
         )
 
         self.list_l_array_der = res[0]
@@ -1119,7 +1123,6 @@ class PPAndromeda(PostProc):
 
         """
         dataset = self._get_dataset(dataset, verbose)
-        pdb.set_trace()
         res = andromeda(
             cube=dataset.cube,
             oversampling_fact=self.oversampling_fact,

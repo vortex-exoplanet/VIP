@@ -29,6 +29,8 @@ VIP - Vortex Image Processing package
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7499314.svg
    :target: https://doi.org/10.5281/zenodo.7499314
     
+.. image:: https://img.shields.io/badge/EMAC-2207--116-blue
+   :target: https://emac.gsfc.nasa.gov/?cid=2207-116
 
 ::
 

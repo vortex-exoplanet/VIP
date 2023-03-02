@@ -12,7 +12,10 @@ __all__ = ['cube_detect_badfr_pxstats',
 import numpy as np
 import pandas as pn
 from matplotlib import pyplot as plt
-from photutils import DAOStarFinder
+try:
+    from photutils.detection import DAOStarFinder
+except:
+    from photutils import DAOStarFinder
 from astropy.stats import sigma_clip
 from ..var import get_annulus_segments
 from ..config import time_ini, timing, check_array

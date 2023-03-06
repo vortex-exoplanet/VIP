@@ -947,7 +947,7 @@ class PPLLSG(PostProc):
         dataset = self._get_dataset(dataset, verbose)
         res = llsg(
             cube=dataset.cube,
-            angles=dataset.angles,
+            angle_list=dataset.angles,
             fwhm=dataset.fwhm,
             rank=self.rank,
             thresh=self.thresh,

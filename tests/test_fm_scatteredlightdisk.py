@@ -4,9 +4,9 @@ Tests for fm/scattered_light_disk.py
 """
 
 from .helpers import aarc, parametrize, param
-    from vip_hci.fm.scattered_light_disk import DustEllipticalDistribution2PowerLaws
-    from vip_hci.fm import ScatteredLightDisk
-    import numpy as np
+from vip_hci.fm.scattered_light_disk import DustEllipticalDistribution2PowerLaws
+from vip_hci.fm import ScatteredLightDisk
+import numpy as np
 
 
 @parametrize("r",

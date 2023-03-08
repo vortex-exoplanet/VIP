@@ -83,11 +83,11 @@ def test_HG_phase_function_and_print(g):
         Expected positions.
         """
         if g == 0:
-            return 0.01451614524684395
+            return 0.20862199217175534
         elif g == 0.4:
-            return 0.012487996770272992
+            return 0.17947400774425482
         elif g == 0.9:
-            return 0.0037231833830253993
+            return 0.05350855350227432
     pixel_scale=0.01225 # pixel scale in arcsec/px
     nx = 121 # number of pixels of your image in X
     ny = 121 # number of pixels of your image in Y
@@ -129,11 +129,11 @@ def test_double_HG_phase_function(g1):
         Expected positions.
         """
         if g1 == 0.2:
-            return 1325.6664013360682
+            return 1325.666401336068
         elif g1 == 0.4:
-            return 1256.5483780548618
+            return 1256.5483780548616
         elif g1 == 0.9:
-            return 1266.6841189508734
+            return 1266.6841189508732
     pixel_scale=0.01225 # pixel scale in arcsec/px
     nx = 99 # number of pixels of your image in X
     ny = 99 # number of pixels of your image in Y
@@ -174,11 +174,11 @@ def test_homemade_phase_function(spf_50deg):
         Expected positions.
         """
         if spf_50deg == 20:
-            return 9.540932
+            return 93.9798010424605
         elif spf_50deg == 60:
-            return 18.271285
+            return 180.0874333094517
         elif spf_50deg == 10:
-            return 7.355497
+            return 72.4528929757127
     pixel_scale=0.01225 # pixel scale in arcsec/px
     nx = 100 # number of pixels of your image in X
     ny = 100 # number of pixels of your image in Y

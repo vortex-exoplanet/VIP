@@ -350,6 +350,7 @@ class ScatteredLightDisk(object):
         for il in range(1, nbSlices):
             self.scattered_light_map += (ll[il]-ll[il-1]) * (limage[il-1, :, :] +
                                                              limage[il, :, :])
+        self.scattered_light_map[validPixel_map] *= dl_map[validPixel_map] / 2. * self.pxInAU**2
         if self.flux_max is not None:
             self.scattered_light_map *= (self.flux_max /
                                          np.nanmax(self.scattered_light_map))

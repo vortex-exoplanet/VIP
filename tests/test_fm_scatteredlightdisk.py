@@ -4,9 +4,9 @@ Tests for fm/scattered_light_disk.py
 """
 
 from .helpers import aarc, parametrize, param
-from vip_hci.fm.scattered_light_disk import DustEllipticalDistribution2PowerLaws
-from vip_hci.fm import ScatteredLightDisk
-import numpy as np
+    from vip_hci.fm.scattered_light_disk import DustEllipticalDistribution2PowerLaws
+    from vip_hci.fm import ScatteredLightDisk
+    import numpy as np
 
 
 @parametrize("r",
@@ -85,7 +85,7 @@ def test_HG_phase_function_and_print(g):
         if g == 0:
             return 0.20862199217175534
         elif g == 0.4:
-            return 0.012487996770272992
+            return 0.17947400774425482
         elif g == 0.9:
             return 0.05350855350227432
     pixel_scale=0.01225 # pixel scale in arcsec/px

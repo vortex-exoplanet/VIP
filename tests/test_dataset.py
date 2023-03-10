@@ -8,7 +8,7 @@ import tempfile
 import os
 from .helpers import aarc, np
 
-from vip_hci.hci_dataset import Dataset
+from vip_hci.dataset import Dataset
 
 
 def test_saveable_dataset():

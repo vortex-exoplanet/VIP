@@ -2,7 +2,7 @@
 """Module with the HCI<post-processing algorithms> classes."""
 
 __author__ = "Carlos Alberto Gomez Gonzalez, Ralf Farkas"
-__all__ = ["PPMedianSub", "PPPca", "PPLoci", "PPLLSG", "PPAndromeda"]
+__all__ = ["PPMedianSub", "PPPcaFF", "PPLoci", "PPLLSG", "PPAndromeda"]
 
 import pickle
 import numpy as np
@@ -11,7 +11,7 @@ from sklearn.base import BaseEstimator
 from .dataset import Dataset
 from .metrics import snrmap
 from .invprob import andromeda
-from .psfsub import pca, llsg, median_sub, xloci
+from .psfsub import pca, llsg, median_sub, xloci, pca_annular
 from .config.utils_conf import algo_calculates_decorator as calculates
 
 # TODO : cross-check every algorithm validity
@@ -424,8 +424,8 @@ class PPMedianSub(PostProc):
         self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 
 
-class PPPca(PostProc):
-    """Post-processing PCA algorithm."""
+class PPPcaFF(PostProc):
+    """Post-processing full-frame PCA algorithm."""
 
     def __init__(
         self,
@@ -451,7 +451,7 @@ class PPPca(PostProc):
         conv=False,
         cube_sig=None,
     ):
-        """Set up the PCA algorithm parameters.
+        """Set up the full-frame PCA algorithm parameters.
 
         Parameters
         ----------
@@ -572,12 +572,8 @@ class PPPca(PostProc):
         cube_sig: numpy ndarray, opt
             Cube with estimate of significant authentic signals. If provided, this
             will subtracted before projecting cube onto reference cube.
-        rot_options: dictionary, optional
-            Dictionary with optional keyword values for "border_mode", "mask_val",
-            "edge_blend", "interp_zeros", "ker" (see documentation of
-            ``vip_hci.preproc.frame_rotate``)
         """
-        super(PPPca, self).__init__(locals())
+        super(PPPcaFF, self).__init__(locals())
 
     @calculates(
         "frame_final",
@@ -589,7 +585,7 @@ class PPPca(PostProc):
         "cube_residuals_per_channel_der",
         "cube_residuals_resc",
     )
-    def run(self, dataset=None, nproc=1, verbose=True, full_output=True):
+    def run(self, dataset=None, nproc=1, verbose=True, full_output=True, **rot_options):
         """
         Run the post-processing PCA algorithm for model PSF subtraction.
 
@@ -665,6 +661,7 @@ class PPPca(PostProc):
             weights=self.weights,
             conv=self.conv,
             cube_sig=self.cube_sig,
+            **rot_options
         )
 
         if dataset.cube.ndim == 3:
@@ -692,6 +689,237 @@ class PPPca(PostProc):
                 self.cube_residuals = cube_allfr_res
                 self.cube_residuals_resc = cube_adi_res
                 self.frame_final = frame
+
+
+class PPPcaAnn(PostProc):
+    """Post-processing local PCA algorithm."""
+
+    def __init__(
+        self,
+        dataset=None,
+        radius_int=0,
+        asize=4,
+        n_segments=1,
+        delta_rot=(0.1, 1),
+        delta_sep=(0.1, 1),
+        ncomp=1,
+        svd_mode="lapack",
+        nproc=1,
+        min_frames_lib=2,
+        max_frames_lib=200,
+        tol=1e-1,
+        scaling=None,
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        collapse="median",
+        collapse_ifs="mean",
+        ifs_collapse_range="all",
+        theta_init=0,
+        weights=None,
+        cube_sig=None,
+    ):
+        """Set up the local/smart PCA algorithm parameters.
+
+        Parameters
+        ----------
+        dataset : Dataset object, optional
+            An Dataset object to be processed. Can also be passed to ``.run()``.
+        radius_int : int, optional
+            The radius of the innermost annulus. By default is 0, if >0 then the
+            central circular region is discarded.
+        asize : float, optional
+            The size of the annuli, in pixels.
+        n_segments : int or list of ints or 'auto', optional
+            The number of segments for each annulus. When a single integer is given
+            it is used for all annuli. When set to 'auto', the number of segments is
+            automatically determined for every annulus, based on the annulus width.
+        delta_rot : float or tuple of floats, optional
+            Factor for adjusting the parallactic angle threshold, expressed in
+            FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
+            frame). If a tuple of two floats is provided, they are used as the lower
+            and upper intervals for the threshold (grows linearly as a function of
+            the separation).
+        delta_sep : float or tuple of floats, optional
+            The threshold separation in terms of the mean FWHM (for ADI+mSDI data).
+            If a tuple of two values is provided, they are used as the lower and
+            upper intervals for the threshold (grows as a function of the
+            separation).
+        ncomp : 'auto', int, tuple, 1d numpy array or tuple, optional
+            How many PCs are used as a lower-dimensional subspace to project the
+            target (sectors of) frames. Depends on the dimensionality of `cube`.
+
+            * ADI and ADI+RDI (``cube`` is a 3d array): if a single integer is
+              provided, then the same number of PCs will be subtracted at each
+              separation (annulus). If a tuple is provided, then a different number
+              of PCs will be used for each annulus (starting with the innermost
+              one). If ``ncomp`` is set to ``auto`` then the number of PCs are
+              calculated for each region/patch automatically.
+
+            * ADI or ADI+RDI (``cube`` is a 4d array): same input format allowed as
+              above. If ncomp is a list with the same length as the number of
+              channels, each element of the list will be used as ``ncomp`` value
+              (whether int, float or tuple) for each spectral channel.
+
+            * ADI+mSDI case: ``ncomp`` must be a tuple (two integers) with the
+              number of PCs obtained from each multi-spectral frame (for each
+              sector) and the number of PCs used in the second PCA stage (ADI
+              fashion, using the residuals of the first stage). If None then the
+              second PCA stage is skipped and the residuals are de-rotated and
+              combined.
+
+        svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
+            'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+            Switch for the SVD method/library to be used.
+
+            * ``lapack``: uses the LAPACK linear algebra library through Numpy
+              and it is the most conventional way of computing the SVD
+              (deterministic result computed on CPU).
+
+            * ``arpack``: uses the ARPACK Fortran libraries accessible through
+              Scipy (computation on CPU).
+
+            * ``eigen``: computes the singular vectors through the
+              eigendecomposition of the covariance M.M' (computation on CPU).
+
+            * ``randsvd``: uses the randomized_svd algorithm implemented in
+              Sklearn (computation on CPU), proposed in [HAL09]_.
+
+            * ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+              the LAPACK version. `
+
+            * ``eigencupy``: offers the same method as with the ``eigen`` option
+              but on GPU (through Cupy).
+
+            * ``randcupy``: is an adaptation of the randomized_svd algorithm,
+              where all the computations are done on a GPU (through Cupy). `
+
+            * ``pytorch``: uses the Pytorch library for GPU computation of the SVD.
+
+            * ``eigenpytorch``: offers the same method as with the ``eigen``
+              option but on GPU (through Pytorch).
+
+            * ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+              where all the linear algebra computations are done on a GPU
+              (through Pytorch).
+
+        nproc : None or int, optional
+            Number of processes for parallel computing. If None the number of
+            processes will be set to (cpu_count()/2).
+        min_frames_lib : int, optional
+            Minimum number of frames in the PCA reference library.
+        max_frames_lib : int, optional
+            Maximum number of frames in the PCA reference library. The more
+            distant/decorrelated frames are removed from the library.
+        tol : float, optional
+            Stopping criterion for choosing the number of PCs when ``ncomp``
+            is None. Lower values will lead to smaller residuals and more PCs.
+        scaling : {None, "temp-mean", spat-mean", "temp-standard",
+            "spat-standard"}, None or str optional
+            Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+            function. If set to None, the input matrix is left untouched. Otherwise:
+
+            * ``temp-mean``: temporal px-wise mean is subtracted.
+
+            * ``spat-mean``: spatial mean is subtracted.
+
+            * ``temp-standard``: temporal mean centering plus scaling pixel values
+              to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES!
+
+            * ``spat-standard``: spatial mean centering plus scaling pixel values
+              to unit variance.
+
+        imlib : str, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+        interpolation : str, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+        collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+            Sets the way of collapsing the frames for producing a final image.
+        collapse_ifs : {'median', 'mean', 'sum', 'trimmean', 'absmean'}, str opt
+            Sets how spectral residual frames should be combined to produce an
+            mSDI image.
+        ifs_collapse_range: str 'all' or tuple of 2 int
+            If a tuple, it should contain the first and last channels where the mSDI
+            residual channels will be collapsed (by default collapses all channels).
+        theta_init : int
+            Initial azimuth [degrees] of the first segment, counting from the
+            positive x-axis counterclockwise (irrelevant if n_segments=1).
+        weights: 1d numpy array or list, optional
+            Weights to be applied for a weighted mean. Need to be provided if
+            collapse mode is 'wmean'.
+        cube_sig: numpy ndarray, opt
+            Cube with estimate of significant authentic signals. If provided, this
+            will be subtracted before projecting cube onto reference cube.
+        """
+        super(PPPcaAnn, self).__init__(locals())
+
+    @calculates("frame_final", "cube_residuals", "cube_residuals_der")
+    def run(self, dataset=None, nproc=1, verbose=True, full_output=True, **rot_options):
+        """
+        Run the post-processing PCA algorithm for model PSF subtraction.
+
+        Parameters
+        ----------
+        dataset : Dataset, optional
+            Dataset to process. If not provided, ``self.dataset`` is used (as
+            set when initializing this object).
+        nproc : int, optional
+        verbose : bool, optional
+            If True prints to stdout intermediate info.
+        full_output: boolean, optional
+            Whether to return the final median combined image only or with
+            other intermediate arrays.
+        rot_options: dictionary, optional
+            Dictionary with optional keyword values for "border_mode", "mask_val",
+            "edge_blend", "interp_zeros", "ker" (see documentation of
+            ``vip_hci.preproc.frame_rotate``)
+
+        """
+        dataset = self._get_dataset(dataset, verbose)
+
+        if dataset.fwhm is None:
+            raise ValueError("`fwhm` has not been set")
+
+        if self.nproc is None:
+            self.nproc = nproc
+
+        # TODO : review the wavelengths attribute to be a scale_list instead
+
+        res = pca_annular(
+            cube=dataset.cube,
+            angle_list=dataset.angles,
+            cube_ref=dataset.cuberef,
+            scale_list=dataset.wavelengths,
+            radius_int=self.radius_int,
+            fwhm=dataset.fwhm,
+            asize=self.asize,
+            n_segments=self.n_segments,
+            delta_rot=self.delta_rot,
+            delta_sep=self.delta_sep,
+            ncomp=self.ncomp,
+            svd_mode=self.svd_mode,
+            nproc=self.nproc,
+            min_frames_lib=self.min_frames_lib,
+            max_frames_lib=self.max_frames_lib,
+            tol=self.tol,
+            scaling=self.scaling,
+            imlib=self.imlib,
+            interpolation=self.interpolation,
+            collapse=self.collapse,
+            collapse_ifs=self.collapse_ifs,
+            ifs_collapse_range=self.ifs_collapse_range,
+            theta_init=self.theta_init,
+            weights=self.weights,
+            cube_sig=self.cube_sig,
+            full_output=full_output,
+            verbose=verbose,
+            **rot_options
+        )
+
+        res_cube, res_cube_der, frame = res
+
+        self.cube_residuals = res_cube
+        self.cube_residuals_der = res_cube_der
+        self.frame_final = frame
 
 
 class PPLoci(PostProc):

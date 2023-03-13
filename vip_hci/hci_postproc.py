@@ -4,12 +4,8 @@
 Module with the HCI<post-processing algorithms> classes.
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez, Ralf Farkas'
-__all__ = ['HCIMedianSub',
-           'HCIPca',
-           'HCILoci',
-           'HCILLSG',
-           'HCIAndromeda']
+__author__ = "Carlos Alberto Gomez Gonzalez, Ralf Farkas"
+__all__ = ["HCIMedianSub", "HCIPca", "HCILoci", "HCILLSG", "HCIAndromeda"]
 
 import pickle
 import numpy as np
@@ -69,7 +65,7 @@ class HCIPostProcAlgo(BaseEstimator):
 
         dataset = locals_dict.get("dataset", None)
         if not isinstance(dataset, (Dataset, type(None))):
-            raise ValueError('`dataset` must be a HCIDataset object or None')
+            raise ValueError("`dataset` must be a HCIDataset object or None")
 
         self._store_args(locals_dict, *skip)
 
@@ -78,8 +74,7 @@ class HCIPostProcAlgo(BaseEstimator):
             self._print_parameters()
 
     def _print_parameters(self):
-        """ Printing out the parameters of the algorithm.
-        """
+        """Printing out the parameters of the algorithm."""
         dicpar = self.get_params()
         for key in dicpar.keys():
             print("{}: {}".format(key, dicpar[key]))
@@ -117,8 +112,10 @@ class HCIPostProcAlgo(BaseEstimator):
                 raise ValueError("no dataset specified!")
         else:
             if self.dataset is not None and verbose:
-                print("a new dataset was provided to run(), all previous "
-                      "results were cleared.")
+                print(
+                    "a new dataset was provided to run(), all previous "
+                    "results were cleared."
+                )
             self.dataset = dataset
             self._reset_results()
 
@@ -176,8 +173,10 @@ class HCIPostProcAlgo(BaseEstimator):
         """
         calculations = self._get_calculations()
         if a in calculations:
-            raise AttributeError("The '{}' was not calculated yet. Call '{}' "
-                                 "first.".format(a, calculations[a]))
+            raise AttributeError(
+                "The '{}' was not calculated yet. Call '{}' "
+                "first.".format(a, calculations[a])
+            )
         else:
             # this raises a regular AttributeError:
             return self.__getattribute__(a)
@@ -202,17 +201,25 @@ class HCIPostProcAlgo(BaseEstimator):
             if hasattr(self, a) and function_name == f:
                 print("\t{}".format(a))
 
-        not_calculated_yet = [(a, f) for a, f in calculations.items()
-                              if (f not in self._called_calculators
-                                  and not hasattr(self, a))]
+        not_calculated_yet = [
+            (a, f)
+            for a, f in calculations.items()
+            if (f not in self._called_calculators and not hasattr(self, a))
+        ]
         if len(not_calculated_yet) > 0:
             print("The following attributes can be calculated now:")
             for a, f in not_calculated_yet:
                 print("\t{}\twith .{}()".format(a, f))
 
     @calculates("snr_map", "detection_map")
-    def make_snrmap(self, approximated=False, plot=False, known_sources=None,
-                    nproc=None, verbose=False):
+    def make_snrmap(
+        self,
+        approximated=False,
+        plot=False,
+        known_sources=None,
+        nproc=None,
+        verbose=False,
+    ):
         """
         Calculate a S/N map from ``self.frame_final``.
 
@@ -246,9 +253,15 @@ class HCIPostProcAlgo(BaseEstimator):
         else:
             fwhm = self.dataset.fwhm
 
-        self.snr_map = snrmap(self.frame_final, fwhm, approximated, plot=plot,
-                              known_sources=known_sources, nproc=nproc,
-                              verbose=verbose)
+        self.snr_map = snrmap(
+            self.frame_final,
+            fwhm,
+            approximated,
+            plot=plot,
+            known_sources=known_sources,
+            nproc=nproc,
+            verbose=verbose,
+        )
 
         self.detection_map = self.snr_map
 
@@ -276,7 +289,7 @@ class HCIPostProcAlgo(BaseEstimator):
 
 
 class HCIMedianSub(HCIPostProcAlgo):
-    """ HCI median subtraction algorithm.
+    """HCI median subtraction algorithm.
 
     Parameters
     ----------
@@ -319,15 +332,25 @@ class HCIMedianSub(HCIPostProcAlgo):
 
     """
 
-    def __init__(self, dataset=None, mode='fullfr', radius_int=0, asize=1,
-                 delta_rot=1, delta_sep=(0.2, 1), nframes=4, imlib='vip-fft',
-                 interpolation='lanczos4', collapse='median',
-                 verbose=True):
+    def __init__(
+        self,
+        dataset=None,
+        mode="fullfr",
+        radius_int=0,
+        asize=1,
+        delta_rot=1,
+        delta_sep=(0.2, 1),
+        nframes=4,
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        collapse="median",
+        verbose=True,
+    ):
         super(HCIMedianSub, self).__init__(locals())
 
     @calculates("cube_residuals", "cube_residuals_der", "frame_final")
     def run(self, dataset=None, nproc=1, verbose=True):
-        """ Running the HCI median subtraction algorithm for model PSF
+        """Running the HCI median subtraction algorithm for model PSF
         subtraction.
 
         Parameters
@@ -347,21 +370,33 @@ class HCIMedianSub(HCIPostProcAlgo):
 
         dataset = self._get_dataset(dataset, verbose)
 
-        if self.mode == 'annular' and dataset.fwhm is None:
-            raise ValueError('`fwhm` has not been set')
+        if self.mode == "annular" and dataset.fwhm is None:
+            raise ValueError("`fwhm` has not been set")
 
-        res = median_sub(dataset.cube, dataset.angles, dataset.wavelengths,
-                         dataset.fwhm, self.radius_int, self.asize,
-                         self.delta_rot, self.delta_sep, self.mode,
-                         self.nframes, self.imlib, self.interpolation,
-                         self.collapse, nproc, full_output=True,
-                         verbose=verbose)
+        res = median_sub(
+            dataset.cube,
+            dataset.angles,
+            dataset.wavelengths,
+            dataset.fwhm,
+            self.radius_int,
+            self.asize,
+            self.delta_rot,
+            self.delta_sep,
+            self.mode,
+            self.nframes,
+            self.imlib,
+            self.interpolation,
+            self.collapse,
+            nproc,
+            full_output=True,
+            verbose=verbose,
+        )
 
         self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 
 
 class HCIPca(HCIPostProcAlgo):
-    """ HCI PCA algorithm.
+    """HCI PCA algorithm.
 
     Parameters
     ----------
@@ -397,13 +432,26 @@ class HCIPca(HCIPostProcAlgo):
         method as with the ``eigen`` option but on GPU (through Cupy).
         ``randcupy`` is an adaptation of the randomized_svd algorithm, where all
         the computations are done on a GPU.
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done, with
-        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
-        temporal mean centering plus scaling to unit variance is done and with
-        "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        * ``temp-mean``: temporal px-wise mean is subtracted.
+
+        * ``spat-mean``: spatial mean is subtracted.
+
+        * ``temp-standard``: temporal mean centering plus scaling pixel values
+          to unit variance (temporally).
+
+        * ``spat-standard``: spatial mean centering plus scaling pixel values
+          to unit variance (spatially).
+
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
+        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     adimsdi : {'double', 'single'}, str optional
         In the case ``cube`` is a 4d array, ``adimsdi`` determines whether a
         single or double pass PCA is going to be computed. In the ``single``
@@ -440,21 +488,27 @@ class HCIPca(HCIPostProcAlgo):
         system memory.
     """
 
-    def __init__(self, dataset=None, ncomp=1, ncomp2=1, svd_mode='lapack', scaling=None,
-                 adimsdi='double', mask_center_px=None, source_xy=None,
-                 delta_rot=1, imlib='vip-fft', interpolation='lanczos4',
-                 collapse='median', check_mem=True, crop_ifs=True, verbose=True):
+    def __init__(self, dataset=None, ncomp=1, ncomp2=1, svd_mode="lapack",
+                 scaling=None, adimsdi="double", mask_center_px=None,
+                 source_xy=None, delta_rot=1, imlib="vip-fft",
+                 interpolation="lanczos4", collapse="median", check_mem=True,
+                 crop_ifs=True, verbose=True):
 
         super(HCIPca, self).__init__(locals())
 
         # TODO: order/names of parameters are not consistent with ``pca`` core
         # function
 
-    @calculates("frame_final",
-                "cube_reconstructed", "cube_residuals", "cube_residuals_der",
-                "pcs",
-                "cube_residuals_per_channel", "cube_residuals_per_channel_der",
-                "cube_residuals_resc")
+    @calculates(
+        "frame_final",
+        "cube_reconstructed",
+        "cube_residuals",
+        "cube_residuals_der",
+        "pcs",
+        "cube_residuals_per_channel",
+        "cube_residuals_per_channel_der",
+        "cube_residuals_resc",
+    )
     def run(self, dataset=None, nproc=1, verbose=True, debug=False):
         """
         Run the HCI PCA algorithm for model PSF subtraction.
@@ -495,7 +549,7 @@ class HCIPca(HCIPostProcAlgo):
         dataset = self._get_dataset(dataset, verbose)
 
         if self.source_xy is not None and dataset.fwhm is None:
-            raise ValueError('`fwhm` has not been set')
+            raise ValueError("`fwhm` has not been set")
 
         res = pca(dataset.cube, dataset.angles, dataset.cuberef,
                   dataset.wavelengths, self.ncomp, self.ncomp2, self.svd_mode,
@@ -520,12 +574,12 @@ class HCIPca(HCIPostProcAlgo):
                 self.cube_residuals_der = cuberesder
                 self.frame_final = frame
         elif dataset.cube.ndim == 4:
-            if self.adimsdi == 'double':
+            if self.adimsdi == "double":
                 cubereschan, cubereschander, frame = res
                 self.cube_residuals_per_channel = cubereschan
                 self.cube_residuals_per_channel_der = cubereschander
                 self.frame_final = frame
-            elif self.adimsdi == 'single':
+            elif self.adimsdi == "single":
                 cuberes, cuberesresc, frame = res
                 self.cube_residuals = cuberes
                 self.cube_residuals_resc = cuberesresc
@@ -539,9 +593,10 @@ class HCILoci(HCIPostProcAlgo):
 
     def __init__(self, dataset=None, scale_list=None, metric="manhattan",
                  dist_threshold=90, delta_rot=0.5, delta_sep=(0.1, 1),
-                 radius_int=0, asize=4, n_segments=4, solver="lstsq", tol=1e-3,
-                 optim_scale_fact=1, adimsdi="skipadi", imlib='vip-fft',
-                 interpolation="lanczos4", collapse="median", verbose=True):
+                 radius_int=0, asize=4, n_segments=4, solver="lstsq",
+                 tol=1e-3, optim_scale_fact=1, adimsdi="skipadi",
+                 imlib="vip-fft", interpolation="lanczos4", collapse="median",
+                 verbose=True):
         super(HCILoci, self).__init__(locals())
 
     @calculates("frame_final", "cube_res", "cube_der")
@@ -555,11 +610,10 @@ class HCILoci(HCIPostProcAlgo):
 
         res = xloci(dataset.cube, dataset.angles, self.scale_list, dataset.fwhm,
                     self.metric, self.dist_threshold, self.delta_rot,
-                    self.delta_sep, self.radius_int, self.asize,
-                    self.n_segments, nproc, self.solver, self.tol,
-                    self.optim_scale_fact, self.adimsdi, self.imlib,
-                    self.interpolation, self.collapse, verbose,
-                    full_output=True)
+                    self.delta_sep, self.radius_int, self.asize, self.n_segments,
+                    nproc, self.solver, self.tol, self.optim_scale_fact,
+                    self.adimsdi, self.imlib, self.interpolation, self.collapse,
+                    verbose, full_output=True)
 
         self.cube_res, self.cube_der, self.frame_final = res
 
@@ -569,12 +623,30 @@ class HCILLSG(HCIPostProcAlgo):
     HCI LLSG algorithm.
     """
 
-    def __init__(self, dataset=None, rank=10, thresh=1, max_iter=10,
-                 low_rank_ref=False, low_rank_mode='svd', auto_rank_mode='noise',
-                 residuals_tol=1e-1, cevr=0.9, thresh_mode='soft', nproc=1,
-                 asize=None, n_segments=4, azimuth_overlap=None, radius_int=None,
-                 random_seed=None, imlib='vip-fft', interpolation='lanczos4',
-                 high_pass=None, collapse='median', verbose=True):
+    def __init__(
+        self,
+        dataset=None,
+        rank=10,
+        thresh=1,
+        max_iter=10,
+        low_rank_ref=False,
+        low_rank_mode="svd",
+        auto_rank_mode="noise",
+        residuals_tol=1e-1,
+        cevr=0.9,
+        thresh_mode="soft",
+        nproc=1,
+        asize=None,
+        n_segments=4,
+        azimuth_overlap=None,
+        radius_int=None,
+        random_seed=None,
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        high_pass=None,
+        collapse="median",
+        verbose=True,
+    ):
         super(HCILLSG, self).__init__(locals())
 
     @calculates("frame_final", "frame_l", "frame_s", "frame_g")
@@ -587,17 +659,31 @@ class HCILLSG(HCIPostProcAlgo):
         dataset = self._get_dataset(dataset, verbose)
 
         res = llsg(
-            dataset.cube, dataset.angles, dataset.fwhm,
-            rank=self.rank, thresh=self.thresh, max_iter=self.max_iter,
-            low_rank_ref=self.low_rank_ref, low_rank_mode=self.low_rank_mode,
+            dataset.cube,
+            dataset.angles,
+            dataset.fwhm,
+            rank=self.rank,
+            thresh=self.thresh,
+            max_iter=self.max_iter,
+            low_rank_ref=self.low_rank_ref,
+            low_rank_mode=self.low_rank_mode,
             auto_rank_mode=self.auto_rank_mode,
-            residuals_tol=self.residuals_tol, cevr=self.cevr,
-            thresh_mode=self.thresh_mode, nproc=nproc, asize=self.asize,
-            n_segments=self.n_segments, azimuth_overlap=self.azimuth_overlap,
-            radius_int=self.radius_int, random_seed=self.random_seed,
-            imlib=self.imlib, interpolation=self.interpolation,
-            high_pass=self.high_pass, collapse=self.collapse, full_output=True,
-            verbose=verbose, debug=False
+            residuals_tol=self.residuals_tol,
+            cevr=self.cevr,
+            thresh_mode=self.thresh_mode,
+            nproc=nproc,
+            asize=self.asize,
+            n_segments=self.n_segments,
+            azimuth_overlap=self.azimuth_overlap,
+            radius_int=self.radius_int,
+            random_seed=self.random_seed,
+            imlib=self.imlib,
+            interpolation=self.interpolation,
+            high_pass=self.high_pass,
+            collapse=self.collapse,
+            full_output=True,
+            verbose=verbose,
+            debug=False,
         )
 
         self.list_l_array_der = res[0]
@@ -660,18 +746,41 @@ class HCIAndromeda(HCIPostProcAlgo):
         Print some parameter values for control.
     """
 
-    def __init__(self, dataset=None, oversampling_fact=0.5,
-                 filtering_fraction=0.25, min_sep=0.5, annuli_width=1., roa=2.,
-                 opt_method='lsq', nsmooth_snr=18, iwa=None, owa=None, precision=50,
-                 fast=False,
-                 homogeneous_variance=True, ditimg=1.0, ditpsf=None, tnd=1.0,
-                 total=False, multiply_gamma=True,
-                 verbose=True):
+    def __init__(
+        self,
+        dataset=None,
+        oversampling_fact=0.5,
+        filtering_fraction=0.25,
+        min_sep=0.5,
+        annuli_width=1.0,
+        roa=2.0,
+        opt_method="lsq",
+        nsmooth_snr=18,
+        iwa=None,
+        owa=None,
+        precision=50,
+        fast=False,
+        homogeneous_variance=True,
+        ditimg=1.0,
+        ditpsf=None,
+        tnd=1.0,
+        total=False,
+        multiply_gamma=True,
+        verbose=True,
+    ):
         super(HCIAndromeda, self).__init__(locals())
 
-    @calculates("frame_final", "contrast_map", "likelihood_map", "snr_map",
-                "stdcontrast_map", "snr_map_notnorm", "stdcontrast_map_notnorm",
-                "ext_radius", "detection_map")
+    @calculates(
+        "frame_final",
+        "contrast_map",
+        "likelihood_map",
+        "snr_map",
+        "stdcontrast_map",
+        "snr_map_notnorm",
+        "stdcontrast_map_notnorm",
+        "ext_radius",
+        "detection_map",
+    )
     def run(self, dataset=None, nproc=1, verbose=True):
         """
         Run the ANDROMEDA algorithm for model PSF subtraction.
@@ -689,20 +798,30 @@ class HCIAndromeda(HCIPostProcAlgo):
         """
         dataset = self._get_dataset(dataset, verbose)
 
-        res = andromeda(cube=dataset.cube,
-                        oversampling_fact=self.oversampling_fact,
-                        angles=dataset.angles, psf=dataset.psf,
-                        filtering_fraction=self.filtering_fraction,
-                        min_sep=self.min_sep, annuli_width=self.annuli_width,
-                        roa=self.roa, opt_method=self.opt_method,
-                        nsmooth_snr=self.nsmooth_snr, iwa=self.iwa,
-                        owa=self.owa,
-                        precision=self.precision, fast=self.fast,
-                        homogeneous_variance=self.homogeneous_variance,
-                        ditimg=self.ditimg, ditpsf=self.ditpsf, tnd=self.tnd,
-                        total=self.total,
-                        multiply_gamma=self.multiply_gamma, nproc=nproc,
-                        verbose=verbose)
+        res = andromeda(
+            cube=dataset.cube,
+            oversampling_fact=self.oversampling_fact,
+            angles=dataset.angles,
+            psf=dataset.psf,
+            filtering_fraction=self.filtering_fraction,
+            min_sep=self.min_sep,
+            annuli_width=self.annuli_width,
+            roa=self.roa,
+            opt_method=self.opt_method,
+            nsmooth_snr=self.nsmooth_snr,
+            iwa=self.iwa,
+            owa=self.owa,
+            precision=self.precision,
+            fast=self.fast,
+            homogeneous_variance=self.homogeneous_variance,
+            ditimg=self.ditimg,
+            ditpsf=self.ditpsf,
+            tnd=self.tnd,
+            total=self.total,
+            multiply_gamma=self.multiply_gamma,
+            nproc=nproc,
+            verbose=verbose,
+        )
 
         self.contrast_map = res[0]
         self.likelihood_map = res[5]

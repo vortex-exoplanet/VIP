@@ -49,15 +49,15 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
     - the Manhattan distance (SAD or sum of absolute differences),
     - the Euclidean distance (square root of the sum of the squared differences),
     - the Mean Squared Error,
-    - the Spearman correlation coefficient,
+    - the Spearman rank correlation coefficient,
     - the Pearson correlation coefficient,
     - the Structural Similarity Index (SSIM).
 
     The SAD, MSE and Ecuclidean criteria are dissimilarity criteria, which
     means that 0 is perfect similarity.
-    The Spearman and Pearson correlation coefficients, vary between -1 and +1
-    with 0 implying no correlation. Correlations of -1 or +1 imply an exact
-    linear relationship.
+    The Pearson (resp. Spearman) coefficients, vary between -1 and +1 with 0 
+    implying no correlation. Correlations of -1 or +1 imply an exact
+    linear (resp. monotonic) relationship.
     The Structural Similarity Index was proposed in [WAN04]_. SSIM varies 
     between -1 and 1, where 1 means perfect similarity. SSIM attempts to model 
     the perceived change in the structural information of the image. The mean 
@@ -173,7 +173,7 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
         elif dist == 'pearson':
             plt.ylabel('Pearson correlation coefficient')
         elif dist == 'spearman':
-            plt.ylabel('Spearman correlation coefficient')
+            plt.ylabel('Spearman rank correlation coefficient')
         elif dist == 'mse':
             plt.ylabel('Mean squared error')
         elif dist == 'ssim':

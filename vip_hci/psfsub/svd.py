@@ -98,10 +98,16 @@ class SVDecomposer:
         * ``spat-mean``: spatial mean is subtracted.
 
         * ``temp-standard``: temporal mean centering plus scaling pixel values
-          to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES!
+          to unit variance (temporally).
 
         * ``spat-standard``: spatial mean centering plus scaling pixel values
-          to unit variance.
+          to unit variance (spatially).
+
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
+        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
 
     scale_list : numpy ndarray, optional
         Scaling factors to be used for re-scaling the spectral channels and
@@ -109,7 +115,7 @@ class SVDecomposer:
 
     verbose : bool, optional
         If True intermediate messages and timing are printed.
-        
+
     """
 
     def __init__(self, data, mode='fullfr', inrad=None, outrad=None,

@@ -199,10 +199,16 @@ def pca(cube, angle_list, cube_ref=None, scale_list=None, ncomp=1,
         * ``spat-mean``: spatial mean is subtracted.
 
         * ``temp-standard``: temporal mean centering plus scaling pixel values
-          to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES!
+          to unit variance (temporally).
 
         * ``spat-standard``: spatial mean centering plus scaling pixel values
-          to unit variance.
+          to unit variance (spatially).
+
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
+        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
 
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the

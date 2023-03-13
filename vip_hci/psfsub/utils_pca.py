@@ -112,11 +112,16 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         * ``spat-mean``: spatial mean is subtracted.
 
         * ``temp-standard``: temporal mean centering plus scaling pixel values
-          to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES!
+          to unit variance (temporally).
 
         * ``spat-standard``: spatial mean centering plus scaling pixel values
-          to unit variance.
+          to unit variance (spatially).
 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
+        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     mask_center_px : None or int, optional
         If None, no masking is done. If an integer > 1 then this value is the
         radius of the circular mask.
@@ -624,13 +629,26 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         Reference library cube for Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
-    scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done, with
-        "spat-mean" then the spatial mean is subtracted, with "temp-standard"
-        temporal mean centering plus scaling to unit variance is done and with
-        "spat-standard" spatial mean centering plus scaling to unit variance is
-        performed.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        * ``temp-mean``: temporal px-wise mean is subtracted.
+
+        * ``spat-mean``: spatial mean is subtracted.
+
+        * ``temp-standard``: temporal mean centering plus scaling pixel values
+          to unit variance (temporally).
+
+        * ``spat-standard``: spatial mean centering plus scaling pixel values
+          to unit variance (spatially).
+
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
+        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     collapse : {'median', 'mean', 'sum', 'wmean'}, str or None, optional
         Sets the way of collapsing the residual frames to produce a final image.
         If None then the cube of residuals is returned.

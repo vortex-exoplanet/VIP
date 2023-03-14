@@ -20,7 +20,16 @@ from sklearn.base import BaseEstimator
 from .dataset import Dataset
 from .metrics import snrmap
 from .invprob import andromeda
-from .psfsub import pca, llsg, median_sub, xloci, pca_annular, frame_diff, nmf
+from .psfsub import (
+    pca,
+    llsg,
+    median_sub,
+    xloci,
+    pca_annular,
+    frame_diff,
+    nmf,
+    nmf_annular,
+)
 from .config.utils_conf import algo_calculates_decorator as calculates
 
 # TODO : cross-check every algorithm validity
@@ -760,6 +769,8 @@ class PPPcaFF(PostProc):
 
         # TODO : review the wavelengths attribute to be a scale_list instead
 
+        # TODO : fuse PPPca and PPPcaAnn into one object
+
         res = pca(
             cube=dataset.cube,
             angle_list=dataset.angles,
@@ -1335,6 +1346,9 @@ class PPLLSG(PostProc):
         self.frame_final = self.frame_s
 
 
+# TODO : update PPNMF doc to include 'nndsvdar' in init_svd section
+
+
 class PPNMF(PostProc):
     """Post-processing full-frame non-negative matrix factorization algorithm."""
 
@@ -1347,7 +1361,7 @@ class PPNMF(PostProc):
         random_state=None,
         mask_center_px=None,
         source_xy=None,
-        delta_rot=1,
+        delta_rot=[1, (0.1, 1)],
         fwhm=4,
         init_svd="nndsvd",
         collapse="median",
@@ -1356,9 +1370,18 @@ class PPNMF(PostProc):
         cube_sig=None,
         handle_neg="mask",
         nmf_args={},
+        radius_int=0,
+        asize=4,
+        n_segments=1,
+        min_frames_lib=2,
+        max_frames_lib=200,
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        theta_init=0,
+        weights=None,
     ):
         """
-        Set up the full frame NMF algorithm parameters.
+        Set up the NMF algorithm parameters (full frame or annular).
 
         Parameters
         ----------
@@ -1387,9 +1410,17 @@ class PPNMF(PostProc):
             the PA criterion is estimated. When ``ncomp`` is a tuple, a PCA grid is
             computed and the S/Ns (mean value in a 1xFWHM circular aperture) of the
             given (X,Y) coordinates are computed.
-        delta_rot : int, optional
+        delta_rot : array  (int and float/tuple of floats), optional
             Factor for tunning the parallactic angle threshold, expressed in FWHM.
-            Default is 1 (excludes 1xFHWM on each side of the considered frame).
+            The int value is used for the full frame case, while the float goes for
+            the annular case. Default is 1 (excludes 1xFHWM on each side of the
+            considered frame). If a tuple of two floats is provided, they are used as
+            the lower and upper intervals for the threshold (grows linearly as a
+            function of the separation). !!! Important: this is used even if a reference
+            cube is provided for RDI. This is to allow ARDI (PCA library built from both
+            science and reference cubes). If you want to do pure RDI, set delta_rot
+            to an arbitrarily high value such that the condition is never fulfilled
+            for science frames to make it in the PCA library.
         fwhm : float, optional
             Known size of the FHWM in pixels to be used. Default value is 4.
         init_svd: str, optional {'nnsvd','nnsvda','random'}
@@ -1425,14 +1456,27 @@ class PPNMF(PostProc):
         "cube_residuals_der",
         "frame_final",
     )
-    def run(self, dataset=None, full_output=True, verbose=True, **rot_options):
+    def run(
+        self,
+        runmode="fullframe",
+        dataset=None,
+        nproc=1,
+        full_output=True,
+        verbose=True,
+        **rot_options
+    ):
         """
-        Run the post-processing median subtraction algorithm for model PSF subtraction.
+        Run the post-processing NMF algorithm for model PSF subtraction.
 
         Parameters
         ----------
+        runmode : {'fullframe', 'annular'}
+            Defines which version of NMF to run between full frame and annular.
         dataset : Dataset object
             An Dataset object to be processed.
+        nproc : None or int, optional
+            Number of processes for parallel computing. If None the number of
+            processes will be set to cpu_count()/2.
         full_output: bool, optional
             Whether to return the final median combined image only or with other
             intermediate arrays.
@@ -1449,35 +1493,74 @@ class PPNMF(PostProc):
         if dataset.fwhm is None:
             raise ValueError("`fwhm` has not been set")
 
-        res = nmf(
-            cube=dataset.cube,
-            angle_list=dataset.angles,
-            cube_ref=dataset.cuberef,
-            ncomp=self.ncomp,
-            scaling=self.scaling,
-            max_iter=self.max_iter,
-            random_state=self.random_state,
-            mask_center_px=self.mask_center_px,
-            source_xy=self.source_xy,
-            delta_rot=self.delta_rot,
-            fwhm=dataset.fwhm,
-            init_svd=self.init_svd,
-            collapse=self.collapse,
-            full_output=True,
-            verbose=verbose,
-            cube_sig=self.cube_sig,
-            handle_neg=self.handle_neg,
-            nmf_args=self.nmf_args,
-            **rot_options
-        )
+        if runmode == "fullframe":
+            res = nmf(
+                cube=dataset.cube,
+                angle_list=dataset.angles,
+                cube_ref=dataset.cuberef,
+                ncomp=self.ncomp,
+                scaling=self.scaling,
+                max_iter=self.max_iter,
+                random_state=self.random_state,
+                mask_center_px=self.mask_center_px,
+                source_xy=self.source_xy,
+                delta_rot=self.delta_rot[0],
+                fwhm=dataset.fwhm,
+                init_svd=self.init_svd,
+                collapse=self.collapse,
+                full_output=True,
+                verbose=verbose,
+                cube_sig=self.cube_sig,
+                handle_neg=self.handle_neg,
+                nmf_args=self.nmf_args,
+                **rot_options
+            )
 
-        (
-            self.nmf_reshaped,
-            self.cube_recon,
-            self.cube_residuals,
-            self.cube_residuals_der,
-            self.frame_final,
-        ) = res
+            (
+                self.nmf_reshaped,
+                self.cube_recon,
+                self.cube_residuals,
+                self.cube_residuals_der,
+                self.frame_final,
+            ) = res
+        else:
+            res = nmf_annular(
+                cube=dataset.cube,
+                angle_list=dataset.angles,
+                cube_ref=dataset.cuberef,
+                radius_int=self.radius_int,
+                fwhm=dataset.fwhm,
+                asize=self.asize,
+                n_segments=self.n_segments,
+                delta_rot=self.delta_rot[1],
+                ncomp=self.ncomp,
+                init_svd=self.init_svd,
+                nproc=nproc,
+                min_frames_lib=self.min_frames_lib,
+                max_frames_lib=self.max_frames_lib,
+                scaling=self.scaling,
+                imlib=self.imlib,
+                interpolation=self.interpolation,
+                collapse=self.collapse,
+                full_output=True,
+                verbose=verbose,
+                theta_init=self.theta_init,
+                weights=self.weights,
+                cube_sig=self.cube_sig,
+                handle_neg=self.handle_neg,
+                max_iter=self.max_iter,
+                random_state=self.random_state,
+                nmf_args=self.nmf_args,
+                **rot_options
+            )
+
+            (
+                self.cube_residuals,
+                self.cube_residuals_der,
+                self.cube_recon,
+                self.nmf_reshaped,
+                self.frame_final,
+            ) = res
 
 
 class PPAndromeda(PostProc):

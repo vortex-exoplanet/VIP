@@ -9,6 +9,7 @@ __all__ = [
     "PPPcaAnn",
     "PPLoci",
     "PPLLSG",
+    "PPNMF",
     "PPAndromeda",
 ]
 
@@ -19,7 +20,7 @@ from sklearn.base import BaseEstimator
 from .dataset import Dataset
 from .metrics import snrmap
 from .invprob import andromeda
-from .psfsub import pca, llsg, median_sub, xloci, pca_annular, frame_diff
+from .psfsub import pca, llsg, median_sub, xloci, pca_annular, frame_diff, nmf
 from .config.utils_conf import algo_calculates_decorator as calculates
 
 # TODO : cross-check every algorithm validity
@@ -1042,11 +1043,7 @@ class PPPcaAnn(PostProc):
             **rot_options
         )
 
-        res_cube, res_cube_der, frame = res
-
-        self.cube_residuals = res_cube
-        self.cube_residuals_der = res_cube_der
-        self.frame_final = frame
+        self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 
 
 class PPLoci(PostProc):
@@ -1336,6 +1333,151 @@ class PPLLSG(PostProc):
         self.frame_g = res[5]
 
         self.frame_final = self.frame_s
+
+
+class PPNMF(PostProc):
+    """Post-processing full-frame non-negative matrix factorization algorithm."""
+
+    def __init__(
+        self,
+        dataset=None,
+        ncomp=1,
+        scaling=None,
+        max_iter=10000,
+        random_state=None,
+        mask_center_px=None,
+        source_xy=None,
+        delta_rot=1,
+        fwhm=4,
+        init_svd="nndsvd",
+        collapse="median",
+        full_output=False,
+        verbose=True,
+        cube_sig=None,
+        handle_neg="mask",
+        nmf_args={},
+    ):
+        """
+        Set up the full frame NMF algorithm parameters.
+
+        Parameters
+        ----------
+        dataset : Dataset object
+            A Dataset object to be processed.
+        ncomp : int, optional
+            How many components are used as for low-rank approximation of the
+            datacube.
+        scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
+            With None, no scaling is performed on the input data before SVD. With
+            "temp-mean" then temporal px-wise mean subtraction is done, with
+            "spat-mean" then the spatial mean is subtracted, with "temp-standard"
+            temporal mean centering plus scaling to unit variance is done and with
+            "spat-standard" spatial mean centering plus scaling to unit variance is
+            performed.
+        max_iter : int optional
+            The number of iterations for the coordinate descent solver.
+        random_state : int or None, optional
+            Controls the seed for the Pseudo Random Number generator.
+        mask_center_px : None or int
+            If None, no masking is done. If an integer > 1 then this value is the
+            radius of the circular mask.
+        source_xy : tuple of int, optional
+            For ADI-PCA, this triggers a frame rejection in the PCA library, with
+            ``source_xy`` as the coordinates X,Y of the center of the annulus where
+            the PA criterion is estimated. When ``ncomp`` is a tuple, a PCA grid is
+            computed and the S/Ns (mean value in a 1xFWHM circular aperture) of the
+            given (X,Y) coordinates are computed.
+        delta_rot : int, optional
+            Factor for tunning the parallactic angle threshold, expressed in FWHM.
+            Default is 1 (excludes 1xFHWM on each side of the considered frame).
+        fwhm : float, optional
+            Known size of the FHWM in pixels to be used. Default value is 4.
+        init_svd: str, optional {'nnsvd','nnsvda','random'}
+            Method used to initialize the iterative procedure to find H and W.
+            'nndsvd': non-negative double SVD recommended for sparseness
+            'nndsvda': NNDSVD where zeros are filled with the average of cube;
+            recommended when sparsity is not desired
+            'random': random initial non-negative matrix
+        collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+            Sets the way of collapsing the frames for producing a final image.
+        full_output: boolean, optional
+            Whether to return the final median combined image only or with other
+            intermediate arrays.
+        verbose : {True, False}, bool optional
+            If True prints intermediate info and timing.
+        handle_neg: str, opt {'subtr_min','mask','null'}
+            Determines how to handle negative values: mask them, set them to zero,
+            or subtract the minimum value in the arrays. Note: 'mask' or 'null'
+            may leave significant artefacts after derotation of residual cube
+            => those options should be used carefully (e.g. with proper treatment
+            of masked values in non-derotated cube of residuals).
+        nmf_args : dictionary, optional
+            Additional arguments for scikit-learn NMF algorithm. See:
+            https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.NMF.html
+
+        """
+        super(PPNMF, self).__init__(locals())
+
+    @calculates(
+        "nmf_reshaped",
+        "cube_recon",
+        "cube_residuals",
+        "cube_residuals_der",
+        "frame_final",
+    )
+    def run(self, dataset=None, full_output=True, verbose=True, **rot_options):
+        """
+        Run the post-processing median subtraction algorithm for model PSF subtraction.
+
+        Parameters
+        ----------
+        dataset : Dataset object
+            An Dataset object to be processed.
+        full_output: bool, optional
+            Whether to return the final median combined image only or with other
+            intermediate arrays.
+        verbose : bool, optional
+            If True prints to stdout intermediate info.
+        rot_options: dictionary, optional
+            Dictionary with optional keyword values for "border_mode", "mask_val",
+            "edge_blend", "interp_zeros", "ker" (see documentation of
+            ``vip_hci.preproc.frame_rotate``).
+
+        """
+        dataset = self._get_dataset(dataset, verbose)
+
+        if dataset.fwhm is None:
+            raise ValueError("`fwhm` has not been set")
+
+        res = nmf(
+            cube=dataset.cube,
+            angle_list=dataset.angles,
+            cube_ref=dataset.cuberef,
+            ncomp=self.ncomp,
+            scaling=self.scaling,
+            max_iter=self.max_iter,
+            random_state=self.random_state,
+            mask_center_px=self.mask_center_px,
+            source_xy=self.source_xy,
+            delta_rot=self.delta_rot,
+            fwhm=dataset.fwhm,
+            init_svd=self.init_svd,
+            collapse=self.collapse,
+            full_output=True,
+            verbose=verbose,
+            cube_sig=self.cube_sig,
+            handle_neg=self.handle_neg,
+            nmf_args=self.nmf_args,
+            **rot_options
+        )
+
+        (
+            self.nmf_reshaped,
+            self.cube_recon,
+            self.cube_residuals,
+            self.cube_residuals_der,
+            self.frame_final,
+        ) = res
 
 
 class PPAndromeda(PostProc):

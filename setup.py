@@ -46,18 +46,13 @@ def resource(*args):
 
 # parse_requirements() returns generator of pip.req.InstallRequirement objects
 reqs = parse_requirements(resource('requirements.txt'), session=PipSession)
-
 try:
     requirements = [str(ir.requirement) for ir in reqs]
 except:
     requirements = [str(ir.req) for ir in reqs]
 
-##requirements = [str(ir.requirement) for ir in reqs]    
-
 reqs_dev = parse_requirements(resource('requirements-dev.txt'), 
                               session=PipSession)
-##requirements_dev = [str(ir.requirement) for ir in reqs_dev]    
-
 try:
     requirements_dev = [str(ir.requirement) for ir in reqs_dev]
 except:

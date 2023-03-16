@@ -1232,7 +1232,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         res = pool_map(nproc, _shift_dft, array_rec, array,
                        iterable(range(1, n_frames)), upsample_factor, mask,
                        interpolation, imlib, border_mode)
-        res = np.array(res)
+        res = np.array(res, dtype=object)
 
         y[1:] = res[:, 0]
         x[1:] = res[:, 1]

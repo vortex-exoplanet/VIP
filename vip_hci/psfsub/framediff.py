@@ -1,11 +1,8 @@
 #! /usr/bin/env python
+"""Module with a frame differencing algorithm for ADI post-processing."""
 
-"""
-Module with a frame differencing algorithm for ADI post-processing.
-"""
-
-__author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['frame_diff']
+__author__ = "Carlos Alberto Gomez Gonzalez"
+__all__ = ["frame_diff"]
 
 import numpy as np
 import pandas as pn
@@ -20,15 +17,31 @@ from .utils_pca import pca_annulus
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 
 
-def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
-               n_similar=None, delta_rot=0.5, radius_int=2, asize=4, ncomp=None,
-               imlib='vip-fft', interpolation='lanczos4', collapse='median',
-               nproc=1, verbose=True, debug=False, full_output=False,
-               **rot_options):
-    """ Frame differencing algorithm. It uses vector distance (depending on
-    ``metric``), using separately the pixels from different annuli of ``asize``
-    width, to create pairs of most similar images. Then it performs pair-wise
-    subtraction and combines the residuals.
+def frame_diff(
+    cube,
+    angle_list,
+    fwhm=4,
+    metric="manhattan",
+    dist_threshold=50,
+    n_similar=None,
+    delta_rot=0.5,
+    radius_int=2,
+    asize=4,
+    ncomp=None,
+    imlib="vip-fft",
+    interpolation="lanczos4",
+    collapse="median",
+    nproc=1,
+    verbose=True,
+    debug=False,
+    full_output=False,
+    **rot_options
+):
+    """Frame differencing algorithm.
+
+    It uses vector distance (depending on ``metric``), using separately the pixels from
+    different annuli of ``asize`` width, to create pairs of most similar images. Then it
+    performs pair-wise subtraction and combines the residuals.
 
     Parameters
     ----------
@@ -111,51 +124,91 @@ def frame_diff(cube, angle_list, fwhm=4, metric='manhattan', dist_threshold=50,
         nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
 
     # rotation options
-    #border_mode = rot_options.get('border_mode','constant')
-    #edge_blend = rot_options.get('edge_blend',None)
-    #interp_zeros = rot_options.get('interp_zeros',False)
-    #ker = rot_options.get('ker',1)
+    # border_mode = rot_options.get('border_mode','constant')
+    # edge_blend = rot_options.get('edge_blend',None)
+    # interp_zeros = rot_options.get('interp_zeros',False)
+    # ker = rot_options.get('ker',1)
 
-    res = pool_map(nproc, _pairwise_ann, iterable(range(n_annuli)), n_annuli,
-                   fwhm, angle_list, delta_rot, metric, dist_threshold,
-                   n_similar, radius_int, asize, ncomp, imlib, interpolation,
-                   collapse, verbose, debug, **rot_options)  # border_mode, edge_blend,
+    res = pool_map(
+        nproc,
+        _pairwise_ann,
+        iterable(range(n_annuli)),
+        n_annuli,
+        fwhm,
+        angle_list,
+        delta_rot,
+        metric,
+        dist_threshold,
+        n_similar,
+        radius_int,
+        asize,
+        ncomp,
+        imlib,
+        interpolation,
+        collapse,
+        verbose,
+        debug,
+        **rot_options
+    )  # border_mode, edge_blend,
     # interp_zeros, ker)
 
     final_frame = np.sum(res, axis=0)
 
     if verbose:
-        print('Done processing annuli')
+        print("Done processing annuli")
         timing(start_time)
 
     return final_frame
 
 
-def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
-                  dist_threshold, n_similar, radius_int, asize, ncomp, imlib,
-                  interpolation, collapse, verbose, debug=False, **rot_options):
-    """
-    Helper functions for pair-wise subtraction for a single annulus.
-    """
+def _pairwise_ann(
+    ann,
+    n_annuli,
+    fwhm,
+    angles,
+    delta_rot,
+    metric,
+    dist_threshold,
+    n_similar,
+    radius_int,
+    asize,
+    ncomp,
+    imlib,
+    interpolation,
+    collapse,
+    verbose,
+    debug=False,
+    **rot_options
+):
+    """Help functions for pair-wise subtraction for a single annulus."""
     start_time = time_ini(False)
 
     n_frames = array.shape[0]
 
-    pa_threshold, in_rad, ann_center = _define_annuli(angles, ann, n_annuli,
-                                                      fwhm, radius_int, asize,
-                                                      delta_rot, 1, verbose)
+    pa_threshold, in_rad, ann_center = _define_annuli(
+        angles, ann, n_annuli, fwhm, radius_int, asize, delta_rot, 1, verbose
+    )
     if ncomp is not None:
-        arrayin = pca_annulus(array, None, ncomp, asize, ann_center,
-                              svd_mode='lapack', scaling=None, collapse=None)
+        arrayin = pca_annulus(
+            array,
+            None,
+            ncomp,
+            asize,
+            ann_center,
+            svd_mode="lapack",
+            scaling=None,
+            collapse=None,
+        )
     else:
         arrayin = array
 
-    yy, xx = get_annulus_segments(array[0], inner_radius=in_rad, width=asize,
-                                  nsegm=1)[0]
+    yy, xx = get_annulus_segments(array[0], inner_radius=in_rad, width=asize, nsegm=1)[
+        0
+    ]
     values = arrayin[:, yy, xx]  # n_frames x n_pxs_annulus
 
     if debug:
-        print('Done taking pixel intensities from annulus.')
+        print("Done taking pixel intensities from annulus.")
         timing(start_time)
 
     mat_dists_ann_full = pairwise_distances(values, metric=metric)
@@ -169,20 +222,19 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
         mat_dists_ann = mat_dists_ann_full
 
     if debug:
-        msg = 'Done calculating the {} distance for annulus {}'
-        print(msg.format(metric, ann+1))
+        msg = "Done calculating the {} distance for annulus {}"
+        print(msg.format(metric, ann + 1))
         timing(start_time)
 
-    threshold = np.percentile(mat_dists_ann[mat_dists_ann != 0],
-                              dist_threshold)
+    threshold = np.percentile(mat_dists_ann[mat_dists_ann != 0], dist_threshold)
     mat_dists_ann[mat_dists_ann > threshold] = np.nan
     mat_dists_ann[mat_dists_ann == 0] = np.nan
     if not mat_dists_ann[~np.isnan(mat_dists_ann)].size > 0:
-        raise RuntimeError('No pairs left. Decrease thresholds')
+        raise RuntimeError("No pairs left. Decrease thresholds")
 
     if debug:
         plot_frames(mat_dists_ann)
-        print('Done thresholding/checking distances.')
+        print("Done thresholding/checking distances.")
         timing(start_time)
 
     # median of n ``n_similar`` most similar patches
@@ -217,12 +269,12 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
                 ind.append((vector.idxmin().tolist()[0], i))
 
         if debug:
-            print('Done finding pairs. Total found: ', len(ind)/2)
+            print("Done finding pairs. Total found: ", len(ind) / 2)
             timing(start_time)
 
         df = pn.DataFrame(ind)  # sorting using pandas dataframe
-        df.columns = ['i', 'j']
-        df = df.sort_values('i')
+        df.columns = ["i", "j"]
+        df = df.sort_values("i")
 
         indices = df.values
         indices = indices.astype(int)  # back to a ndarray int type
@@ -243,9 +295,14 @@ def _pairwise_ann(ann, n_annuli, fwhm, angles, delta_rot, metric,
     for i in range(cube_res.shape[0]):
         cube_out[i, yy, xx] = cube_res[i]
 
-    cube_der = cube_derotate(cube_out, angles_list, imlib=imlib,
-                             interpolation=interpolation, mask_val=0,
-                             **rot_options)
+    cube_der = cube_derotate(
+        cube_out,
+        angles_list,
+        imlib=imlib,
+        interpolation=interpolation,
+        mask_val=0,
+        **rot_options
+    )
     frame_collapse = cube_collapse(cube_der, collapse)
 
     return frame_collapse

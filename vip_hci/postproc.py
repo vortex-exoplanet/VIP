@@ -2,7 +2,17 @@
 """Module with the HCI<post-processing algorithms> classes."""
 
 __author__ = "Carlos Alberto Gomez Gonzalez, Ralf Farkas"
-__all__ = ["PPMedianSub", "PPPca", "PPLoci", "PPLLSG", "PPAndromeda"]
+__all__ = [
+    "PPFrameDiff",
+    "PPMedianSub",
+    "PPPcaFF",
+    "PPPcaAnn",
+    "PPLoci",
+    "PPLLSG",
+    "PPNMF",
+    "PPAndromeda",
+    "PPFMMF",
+]
 
 import pickle
 import numpy as np
@@ -10,8 +20,17 @@ from sklearn.base import BaseEstimator
 
 from .dataset import Dataset
 from .metrics import snrmap
-from .invprob import andromeda
-from .psfsub import pca, llsg, median_sub, xloci
+from .invprob import andromeda, fmmf
+from .psfsub import (
+    pca,
+    llsg,
+    median_sub,
+    xloci,
+    pca_annular,
+    frame_diff,
+    nmf,
+    nmf_annular,
+)
 from .config.utils_conf import algo_calculates_decorator as calculates
 
 # TODO : cross-check every algorithm validity
@@ -301,6 +320,123 @@ class PostProc(BaseEstimator):
         raise NotImplementedError
 
 
+class PPFrameDiff(PostProc):
+    """Post-processing frame differencing algorithm."""
+
+    def __init__(
+        self,
+        dataset=None,
+        metric="manhattan",
+        dist_threshold=50,
+        n_similar=None,
+        delta_rot=0.5,
+        radius_int=2,
+        asize=4,
+        ncomp=None,
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        collapse="median",
+        nproc=1,
+        verbose=True,
+    ):
+        """
+        Set up the frame differencing algorithm parameters.
+
+        Parameters
+        ----------
+        dataset : Dataset object
+            A Dataset object to be processed.
+        metric : str, optional
+            Distance metric to be used ('cityblock', 'cosine', 'euclidean', 'l1',
+            'l2', 'manhattan', 'correlation', etc). It uses the scikit-learn
+            function ``sklearn.metrics.pairwise.pairwise_distances`` (check its
+            documentation).
+        dist_threshold : int
+            Indices with a distance larger than ``dist_threshold`` percentile will
+            initially discarded.
+        n_similar : None or int, optional
+            If a postive integer value is given, then a median combination of
+            ``n_similar`` frames will be used instead of the most similar one.
+        delta_rot : int
+            Minimum parallactic angle distance between the pairs.
+        radius_int : int, optional
+            The radius of the innermost annulus. By default is 0, if >0 then the
+            central circular area is discarded.
+        asize : int, optional
+            The size of the annuli, in pixels.
+        ncomp : None or int, optional
+            If a positive integer value is given, then the annulus-wise PCA low-rank
+            approximation with ``ncomp`` principal components will be subtracted.
+            The pairwise subtraction will be performed on these residuals.
+        nproc : None or int, optional
+            Number of processes for parallel computing. If None the number of
+            processes will be set to cpu_count()/2. By default the algorithm works
+            in single-process mode.
+        imlib : str, opt
+            See description in vip.preproc.frame_rotate()
+        interpolation : str, opt
+            See description in vip.preproc.frame_rotate()
+        collapse: str, opt
+            What to do with derotated residual cube? See options of
+            vip.preproc.cube_collapse()
+        verbose : bool, optional
+            If True prints to stdout intermediate info.
+
+        """
+        super(PPFrameDiff, self).__init__(locals())
+
+    @calculates("frame_final")
+    def run(self, dataset=None, nproc=1, full_output=True, verbose=True, **rot_options):
+        """
+        Run the post-processing median subtraction algorithm for model PSF subtraction.
+
+        Parameters
+        ----------
+        dataset : Dataset object
+            A Dataset object to be processed.
+        nproc : None or int, optional
+            Number of processes for parallel computing. If None the number of
+            processes will be set to cpu_count()/2. By default the algorithm works
+            in single-process mode.
+        full_output: bool, optional
+            Whether to return the final median combined image only or with other
+            intermediate arrays.
+        verbose : bool, optional
+            If True prints to stdout intermediate info.
+        rot_options: dictionary, optional
+            Dictionary with optional keyword values for "border_mode", "mask_val",
+            "edge_blend", "interp_zeros", "ker" (see documentation of
+            ``vip_hci.preproc.frame_rotate``).
+
+        """
+        dataset = self._get_dataset(dataset, verbose)
+
+        if dataset.fwhm is None:
+            raise ValueError("`fwhm` has not been set")
+
+        res = frame_diff(
+            cube=dataset.cube,
+            angle_list=dataset.angles,
+            fwhm=dataset.fwhm,
+            metric=self.metric,
+            dist_threshold=self.dist_threshold,
+            n_similar=self.n_similar,
+            delta_rot=self.delta_rot,
+            radius_int=self.radius_int,
+            asize=self.asize,
+            ncomp=self.ncomp,
+            imlib=self.imlib,
+            interpolation=self.interpolation,
+            collapse=self.collapse,
+            nproc=nproc,
+            full_output=True,
+            verbose=verbose,
+            **rot_options
+        )
+
+        self.frame_final = res
+
+
 class PPMedianSub(PostProc):
     """Post-processing median subtraction algorithm."""
 
@@ -325,6 +461,8 @@ class PPMedianSub(PostProc):
 
         Parameters
         ----------
+        dataset : Dataset object
+            A Dataset object to be processed.
         flux_sc_list : numpy ndarray, 1d
             In the case of IFS data (ADI+SDI), this is the list of flux scaling
             factors applied to each spectral frame after geometrical rescaling.
@@ -424,8 +562,8 @@ class PPMedianSub(PostProc):
         self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 
 
-class PPPca(PostProc):
-    """Post-processing PCA algorithm."""
+class PPPcaFF(PostProc):
+    """Post-processing full-frame PCA algorithm."""
 
     def __init__(
         self,
@@ -451,7 +589,7 @@ class PPPca(PostProc):
         conv=False,
         cube_sig=None,
     ):
-        """Set up the PCA algorithm parameters.
+        """Set up the full-frame PCA algorithm parameters.
 
         Parameters
         ----------
@@ -572,12 +710,8 @@ class PPPca(PostProc):
         cube_sig: numpy ndarray, opt
             Cube with estimate of significant authentic signals. If provided, this
             will subtracted before projecting cube onto reference cube.
-        rot_options: dictionary, optional
-            Dictionary with optional keyword values for "border_mode", "mask_val",
-            "edge_blend", "interp_zeros", "ker" (see documentation of
-            ``vip_hci.preproc.frame_rotate``)
         """
-        super(PPPca, self).__init__(locals())
+        super(PPPcaFF, self).__init__(locals())
 
     @calculates(
         "frame_final",
@@ -589,7 +723,7 @@ class PPPca(PostProc):
         "cube_residuals_per_channel_der",
         "cube_residuals_resc",
     )
-    def run(self, dataset=None, nproc=1, verbose=True, full_output=True):
+    def run(self, dataset=None, nproc=1, verbose=True, full_output=True, **rot_options):
         """
         Run the post-processing PCA algorithm for model PSF subtraction.
 
@@ -636,6 +770,8 @@ class PPPca(PostProc):
 
         # TODO : review the wavelengths attribute to be a scale_list instead
 
+        # TODO : fuse PPPca and PPPcaAnn into one object
+
         res = pca(
             cube=dataset.cube,
             angle_list=dataset.angles,
@@ -665,6 +801,7 @@ class PPPca(PostProc):
             weights=self.weights,
             conv=self.conv,
             cube_sig=self.cube_sig,
+            **rot_options
         )
 
         if dataset.cube.ndim == 3:
@@ -692,6 +829,233 @@ class PPPca(PostProc):
                 self.cube_residuals = cube_allfr_res
                 self.cube_residuals_resc = cube_adi_res
                 self.frame_final = frame
+
+
+class PPPcaAnn(PostProc):
+    """Post-processing local PCA algorithm."""
+
+    def __init__(
+        self,
+        dataset=None,
+        radius_int=0,
+        asize=4,
+        n_segments=1,
+        delta_rot=(0.1, 1),
+        delta_sep=(0.1, 1),
+        ncomp=1,
+        svd_mode="lapack",
+        nproc=1,
+        min_frames_lib=2,
+        max_frames_lib=200,
+        tol=1e-1,
+        scaling=None,
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        collapse="median",
+        collapse_ifs="mean",
+        ifs_collapse_range="all",
+        theta_init=0,
+        weights=None,
+        cube_sig=None,
+    ):
+        """Set up the local/smart PCA algorithm parameters.
+
+        Parameters
+        ----------
+        dataset : Dataset object, optional
+            An Dataset object to be processed. Can also be passed to ``.run()``.
+        radius_int : int, optional
+            The radius of the innermost annulus. By default is 0, if >0 then the
+            central circular region is discarded.
+        asize : float, optional
+            The size of the annuli, in pixels.
+        n_segments : int or list of ints or 'auto', optional
+            The number of segments for each annulus. When a single integer is given
+            it is used for all annuli. When set to 'auto', the number of segments is
+            automatically determined for every annulus, based on the annulus width.
+        delta_rot : float or tuple of floats, optional
+            Factor for adjusting the parallactic angle threshold, expressed in
+            FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
+            frame). If a tuple of two floats is provided, they are used as the lower
+            and upper intervals for the threshold (grows linearly as a function of
+            the separation).
+        delta_sep : float or tuple of floats, optional
+            The threshold separation in terms of the mean FWHM (for ADI+mSDI data).
+            If a tuple of two values is provided, they are used as the lower and
+            upper intervals for the threshold (grows as a function of the
+            separation).
+        ncomp : 'auto', int, tuple, 1d numpy array or tuple, optional
+            How many PCs are used as a lower-dimensional subspace to project the
+            target (sectors of) frames. Depends on the dimensionality of `cube`.
+
+            * ADI and ADI+RDI (``cube`` is a 3d array): if a single integer is
+              provided, then the same number of PCs will be subtracted at each
+              separation (annulus). If a tuple is provided, then a different number
+              of PCs will be used for each annulus (starting with the innermost
+              one). If ``ncomp`` is set to ``auto`` then the number of PCs are
+              calculated for each region/patch automatically.
+
+            * ADI or ADI+RDI (``cube`` is a 4d array): same input format allowed as
+              above. If ncomp is a list with the same length as the number of
+              channels, each element of the list will be used as ``ncomp`` value
+              (whether int, float or tuple) for each spectral channel.
+
+            * ADI+mSDI case: ``ncomp`` must be a tuple (two integers) with the
+              number of PCs obtained from each multi-spectral frame (for each
+              sector) and the number of PCs used in the second PCA stage (ADI
+              fashion, using the residuals of the first stage). If None then the
+              second PCA stage is skipped and the residuals are de-rotated and
+              combined.
+
+        svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
+            'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
+            Switch for the SVD method/library to be used.
+
+            * ``lapack``: uses the LAPACK linear algebra library through Numpy
+              and it is the most conventional way of computing the SVD
+              (deterministic result computed on CPU).
+
+            * ``arpack``: uses the ARPACK Fortran libraries accessible through
+              Scipy (computation on CPU).
+
+            * ``eigen``: computes the singular vectors through the
+              eigendecomposition of the covariance M.M' (computation on CPU).
+
+            * ``randsvd``: uses the randomized_svd algorithm implemented in
+              Sklearn (computation on CPU), proposed in [HAL09]_.
+
+            * ``cupy``: uses the Cupy library for GPU computation of the SVD as in
+              the LAPACK version. `
+
+            * ``eigencupy``: offers the same method as with the ``eigen`` option
+              but on GPU (through Cupy).
+
+            * ``randcupy``: is an adaptation of the randomized_svd algorithm,
+              where all the computations are done on a GPU (through Cupy). `
+
+            * ``pytorch``: uses the Pytorch library for GPU computation of the SVD.
+
+            * ``eigenpytorch``: offers the same method as with the ``eigen``
+              option but on GPU (through Pytorch).
+
+            * ``randpytorch``: is an adaptation of the randomized_svd algorithm,
+              where all the linear algebra computations are done on a GPU
+              (through Pytorch).
+
+        nproc : None or int, optional
+            Number of processes for parallel computing. If None the number of
+            processes will be set to (cpu_count()/2).
+        min_frames_lib : int, optional
+            Minimum number of frames in the PCA reference library.
+        max_frames_lib : int, optional
+            Maximum number of frames in the PCA reference library. The more
+            distant/decorrelated frames are removed from the library.
+        tol : float, optional
+            Stopping criterion for choosing the number of PCs when ``ncomp``
+            is None. Lower values will lead to smaller residuals and more PCs.
+        scaling : {None, "temp-mean", spat-mean", "temp-standard",
+            "spat-standard"}, None or str optional
+            Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+            function. If set to None, the input matrix is left untouched. Otherwise:
+
+            * ``temp-mean``: temporal px-wise mean is subtracted.
+
+            * ``spat-mean``: spatial mean is subtracted.
+
+            * ``temp-standard``: temporal mean centering plus scaling pixel values
+              to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES!
+
+            * ``spat-standard``: spatial mean centering plus scaling pixel values
+              to unit variance.
+
+        imlib : str, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+        interpolation : str, optional
+            See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+        collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+            Sets the way of collapsing the frames for producing a final image.
+        collapse_ifs : {'median', 'mean', 'sum', 'trimmean', 'absmean'}, str opt
+            Sets how spectral residual frames should be combined to produce an
+            mSDI image.
+        ifs_collapse_range: str 'all' or tuple of 2 int
+            If a tuple, it should contain the first and last channels where the mSDI
+            residual channels will be collapsed (by default collapses all channels).
+        theta_init : int
+            Initial azimuth [degrees] of the first segment, counting from the
+            positive x-axis counterclockwise (irrelevant if n_segments=1).
+        weights: 1d numpy array or list, optional
+            Weights to be applied for a weighted mean. Need to be provided if
+            collapse mode is 'wmean'.
+        cube_sig: numpy ndarray, opt
+            Cube with estimate of significant authentic signals. If provided, this
+            will be subtracted before projecting cube onto reference cube.
+        """
+        super(PPPcaAnn, self).__init__(locals())
+
+    @calculates("frame_final", "cube_residuals", "cube_residuals_der")
+    def run(self, dataset=None, nproc=1, verbose=True, full_output=True, **rot_options):
+        """
+        Run the post-processing PCA algorithm for model PSF subtraction.
+
+        Parameters
+        ----------
+        dataset : Dataset, optional
+            Dataset to process. If not provided, ``self.dataset`` is used (as
+            set when initializing this object).
+        nproc : int, optional
+        verbose : bool, optional
+            If True prints to stdout intermediate info.
+        full_output: boolean, optional
+            Whether to return the final median combined image only or with
+            other intermediate arrays.
+        rot_options: dictionary, optional
+            Dictionary with optional keyword values for "border_mode", "mask_val",
+            "edge_blend", "interp_zeros", "ker" (see documentation of
+            ``vip_hci.preproc.frame_rotate``)
+
+        """
+        dataset = self._get_dataset(dataset, verbose)
+
+        if dataset.fwhm is None:
+            raise ValueError("`fwhm` has not been set")
+
+        if self.nproc is None:
+            self.nproc = nproc
+
+        # TODO : review the wavelengths attribute to be a scale_list instead
+
+        res = pca_annular(
+            cube=dataset.cube,
+            angle_list=dataset.angles,
+            cube_ref=dataset.cuberef,
+            scale_list=dataset.wavelengths,
+            radius_int=self.radius_int,
+            fwhm=dataset.fwhm,
+            asize=self.asize,
+            n_segments=self.n_segments,
+            delta_rot=self.delta_rot,
+            delta_sep=self.delta_sep,
+            ncomp=self.ncomp,
+            svd_mode=self.svd_mode,
+            nproc=self.nproc,
+            min_frames_lib=self.min_frames_lib,
+            max_frames_lib=self.max_frames_lib,
+            tol=self.tol,
+            scaling=self.scaling,
+            imlib=self.imlib,
+            interpolation=self.interpolation,
+            collapse=self.collapse,
+            collapse_ifs=self.collapse_ifs,
+            ifs_collapse_range=self.ifs_collapse_range,
+            theta_init=self.theta_init,
+            weights=self.weights,
+            cube_sig=self.cube_sig,
+            full_output=full_output,
+            verbose=verbose,
+            **rot_options
+        )
+
+        self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 
 
 class PPLoci(PostProc):
@@ -983,6 +1347,223 @@ class PPLLSG(PostProc):
         self.frame_final = self.frame_s
 
 
+# TODO : update PPNMF doc to include 'nndsvdar' in init_svd section
+
+
+class PPNMF(PostProc):
+    """Post-processing full-frame non-negative matrix factorization algorithm."""
+
+    def __init__(
+        self,
+        dataset=None,
+        ncomp=1,
+        scaling=None,
+        max_iter=10000,
+        random_state=None,
+        mask_center_px=None,
+        source_xy=None,
+        delta_rot=[1, (0.1, 1)],
+        fwhm=4,
+        init_svd="nndsvd",
+        collapse="median",
+        full_output=False,
+        verbose=True,
+        cube_sig=None,
+        handle_neg="mask",
+        nmf_args={},
+        radius_int=0,
+        asize=4,
+        n_segments=1,
+        min_frames_lib=2,
+        max_frames_lib=200,
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        theta_init=0,
+        weights=None,
+    ):
+        """
+        Set up the NMF algorithm parameters (full frame or annular).
+
+        Parameters
+        ----------
+        dataset : Dataset object
+            A Dataset object to be processed.
+        ncomp : int, optional
+            How many components are used as for low-rank approximation of the
+            datacube.
+        scaling : {None, 'temp-mean', 'spat-mean', 'temp-standard', 'spat-standard'}
+            With None, no scaling is performed on the input data before SVD. With
+            "temp-mean" then temporal px-wise mean subtraction is done, with
+            "spat-mean" then the spatial mean is subtracted, with "temp-standard"
+            temporal mean centering plus scaling to unit variance is done and with
+            "spat-standard" spatial mean centering plus scaling to unit variance is
+            performed.
+        max_iter : int optional
+            The number of iterations for the coordinate descent solver.
+        random_state : int or None, optional
+            Controls the seed for the Pseudo Random Number generator.
+        mask_center_px : None or int
+            If None, no masking is done. If an integer > 1 then this value is the
+            radius of the circular mask.
+        source_xy : tuple of int, optional
+            For ADI-PCA, this triggers a frame rejection in the PCA library, with
+            ``source_xy`` as the coordinates X,Y of the center of the annulus where
+            the PA criterion is estimated. When ``ncomp`` is a tuple, a PCA grid is
+            computed and the S/Ns (mean value in a 1xFWHM circular aperture) of the
+            given (X,Y) coordinates are computed.
+        delta_rot : array  (int and float/tuple of floats), optional
+            Factor for tunning the parallactic angle threshold, expressed in FWHM.
+            The int value is used for the full frame case, while the float goes for
+            the annular case. Default is 1 (excludes 1xFHWM on each side of the
+            considered frame). If a tuple of two floats is provided, they are used as
+            the lower and upper intervals for the threshold (grows linearly as a
+            function of the separation). !!! Important: this is used even if a reference
+            cube is provided for RDI. This is to allow ARDI (PCA library built from both
+            science and reference cubes). If you want to do pure RDI, set delta_rot
+            to an arbitrarily high value such that the condition is never fulfilled
+            for science frames to make it in the PCA library.
+        fwhm : float, optional
+            Known size of the FHWM in pixels to be used. Default value is 4.
+        init_svd: str, optional {'nnsvd','nnsvda','random'}
+            Method used to initialize the iterative procedure to find H and W.
+            'nndsvd': non-negative double SVD recommended for sparseness
+            'nndsvda': NNDSVD where zeros are filled with the average of cube;
+            recommended when sparsity is not desired
+            'random': random initial non-negative matrix
+        collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+            Sets the way of collapsing the frames for producing a final image.
+        full_output: boolean, optional
+            Whether to return the final median combined image only or with other
+            intermediate arrays.
+        verbose : {True, False}, bool optional
+            If True prints intermediate info and timing.
+        handle_neg: str, opt {'subtr_min','mask','null'}
+            Determines how to handle negative values: mask them, set them to zero,
+            or subtract the minimum value in the arrays. Note: 'mask' or 'null'
+            may leave significant artefacts after derotation of residual cube
+            => those options should be used carefully (e.g. with proper treatment
+            of masked values in non-derotated cube of residuals).
+        nmf_args : dictionary, optional
+            Additional arguments for scikit-learn NMF algorithm. See:
+            https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.NMF.html
+
+        """
+        super(PPNMF, self).__init__(locals())
+
+    @calculates(
+        "nmf_reshaped",
+        "cube_recon",
+        "cube_residuals",
+        "cube_residuals_der",
+        "frame_final",
+    )
+    def run(
+        self,
+        runmode="fullframe",
+        dataset=None,
+        nproc=1,
+        full_output=True,
+        verbose=True,
+        **rot_options
+    ):
+        """
+        Run the post-processing NMF algorithm for model PSF subtraction.
+
+        Parameters
+        ----------
+        runmode : {'fullframe', 'annular'}
+            Defines which version of NMF to run between full frame and annular.
+        dataset : Dataset object
+            An Dataset object to be processed.
+        nproc : None or int, optional
+            Number of processes for parallel computing. If None the number of
+            processes will be set to cpu_count()/2.
+        full_output: bool, optional
+            Whether to return the final median combined image only or with other
+            intermediate arrays.
+        verbose : bool, optional
+            If True prints to stdout intermediate info.
+        rot_options: dictionary, optional
+            Dictionary with optional keyword values for "border_mode", "mask_val",
+            "edge_blend", "interp_zeros", "ker" (see documentation of
+            ``vip_hci.preproc.frame_rotate``).
+
+        """
+        dataset = self._get_dataset(dataset, verbose)
+
+        if dataset.fwhm is None:
+            raise ValueError("`fwhm` has not been set")
+
+        if runmode == "fullframe":
+            res = nmf(
+                cube=dataset.cube,
+                angle_list=dataset.angles,
+                cube_ref=dataset.cuberef,
+                ncomp=self.ncomp,
+                scaling=self.scaling,
+                max_iter=self.max_iter,
+                random_state=self.random_state,
+                mask_center_px=self.mask_center_px,
+                source_xy=self.source_xy,
+                delta_rot=self.delta_rot[0],
+                fwhm=dataset.fwhm,
+                init_svd=self.init_svd,
+                collapse=self.collapse,
+                full_output=True,
+                verbose=verbose,
+                cube_sig=self.cube_sig,
+                handle_neg=self.handle_neg,
+                nmf_args=self.nmf_args,
+                **rot_options
+            )
+
+            (
+                self.nmf_reshaped,
+                self.cube_recon,
+                self.cube_residuals,
+                self.cube_residuals_der,
+                self.frame_final,
+            ) = res
+        else:
+            res = nmf_annular(
+                cube=dataset.cube,
+                angle_list=dataset.angles,
+                cube_ref=dataset.cuberef,
+                radius_int=self.radius_int,
+                fwhm=dataset.fwhm,
+                asize=self.asize,
+                n_segments=self.n_segments,
+                delta_rot=self.delta_rot[1],
+                ncomp=self.ncomp,
+                init_svd=self.init_svd,
+                nproc=nproc,
+                min_frames_lib=self.min_frames_lib,
+                max_frames_lib=self.max_frames_lib,
+                scaling=self.scaling,
+                imlib=self.imlib,
+                interpolation=self.interpolation,
+                collapse=self.collapse,
+                full_output=True,
+                verbose=verbose,
+                theta_init=self.theta_init,
+                weights=self.weights,
+                cube_sig=self.cube_sig,
+                handle_neg=self.handle_neg,
+                max_iter=self.max_iter,
+                random_state=self.random_state,
+                nmf_args=self.nmf_args,
+                **rot_options
+            )
+
+            (
+                self.cube_residuals,
+                self.cube_residuals_der,
+                self.cube_recon,
+                self.nmf_reshaped,
+                self.frame_final,
+            ) = res
+
+
 class PPAndromeda(PostProc):
     """Post-processing ANDROMEDA algorithm."""
 
@@ -1175,3 +1756,141 @@ class PPAndromeda(PostProc):
 
         """
         pass
+
+
+class PPFMMF(PostProc):
+    """Post-processing forward model matching filter algorithm."""
+
+    def __init__(
+        self,
+        dataset=None,
+        min_radius=None,
+        max_radius=None,
+        model="KLIP",
+        var="FR",
+        param={"ncomp": 20, "tolerance": 5e-3, "delta_rot": 0.5},
+        crop=5,
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        nproc=1,
+        verbose=True,
+    ):
+        """
+        Set up the FMMF algorithm parameters.
+
+        Parameters
+        ----------
+        dataset : Dataset object
+            A Dataset object to be processed.
+        min_radius : int,optional
+            Center radius of the first annulus considered in the FMMF detection
+            map estimation. The radius should be larger than half
+            the value of the 'crop' parameter . Default is None which
+            corresponds to one FWHM.
+        max_radius : int
+            Center radius of the last annulus considered in the FMMF detection
+            map estimation. The radius should be smaller or equal to half the
+            size of the image minus half the value of the 'crop' parameter.
+            Default is None which corresponds to half the size of the image
+            minus half the value of the 'crop' parameter.
+        model: {'KLIP', 'LOCI'}, optional
+            Selected PSF-subtraction technique for the computation of the FMMF
+            detection map. FMMF work either with KLIP or LOCI. Default is 'KLIP'.
+        var: {'FR', 'FM', 'TE'}, optional
+            Model used for the residual noise variance estimation used in the
+            matched filtering (maximum likelihood estimation of the flux and SNR).
+            Three different approaches are proposed:
+
+            * 'FR': consider the pixels in the selected annulus with a width equal
+              to asize but separately for every frame.
+            * 'FM': consider the pixels in the selected annulus with a width
+              equal to asize but separately for every frame. Apply a mask one FWHM
+              on the selected pixel and its surrounding.
+            * 'TE': rely on the method developped in PACO to estimate the
+              residual noise variance (take the pixels in a region of one FWHM
+              arround the selected pixel, considering every frame in the
+              derotated cube of residuals except for the selected frame)
+        param: dict, optional
+            Dictionnary regrouping the parameters used by the KLIP (ncomp and
+            delta_rot) or LOCI (tolerance and delta_rot) PSF-subtraction
+            technique:
+
+            * ncomp : int, optional. Number of components used for the low-rank
+              approximation of the speckle field. Default is 20.
+            * tolerance: float, optional. Tolerance level for the approximation of
+              the speckle field via a linear combination of the reference images in
+              the LOCI algorithm. Default is 5e-3.
+            * delta_rot : float, optional. Factor for tunning the parallactic angle
+              threshold, expressed in FWHM. Default is 0.5 (excludes 0.5xFHWM on each
+              side of the considered frame).
+        crop: int, optional
+            Part of the PSF template considered in the estimation of the FMMF
+            detection map. Default is 5.
+        imlib : str, optional
+            Parameter used for the derotation of the residual cube. See the
+            documentation of the ``vip_hci.preproc.frame_rotate`` function.
+        interpolation : str, optional
+            Parameter used for the derotation of the residual cube. See the
+            documentation of the ``vip_hci.preproc.frame_rotate`` function.
+        nproc : int or None, optional
+            Number of processes for parallel computing. By default ('nproc=1')
+            the algorithm works in single-process mode. If set to None, nproc
+            is automatically set to half the number of available CPUs.
+        verbose : bool, optional
+            If True prints to stdout intermediate info.
+
+        """
+        super(PPFMMF, self).__init__(locals())
+
+    @calculates("frame_final", "snr_map")
+    def run(
+        self,
+        dataset=None,
+        model="KLIP",
+        nproc=1,
+        verbose=True,
+    ):
+        """
+        Run the post-processing FMMF algorithm for model PSF subtraction.
+
+        Parameters
+        ----------
+        dataset : Dataset object
+            An Dataset object to be processed.
+        model: {'KLIP', 'LOCI'}, optional
+            If you want to change the default model. See documentation above for more
+            information.
+        nproc : None or int, optional
+            Number of processes for parallel computing. If None the number of
+            processes will be set to cpu_count()/2. By default the algorithm works
+            in single-process mode.
+        verbose : bool, optional
+            If True prints to stdout intermediate info.
+
+        """
+        dataset = self._get_dataset(dataset, verbose)
+
+        if dataset.fwhm is None:
+            raise ValueError("`fwhm` has not been set")
+
+        if self.model != model:
+            self.model = model
+
+        res = fmmf(
+            cube=dataset.cube,
+            pa=dataset.angles,
+            psf=dataset.psf,
+            fwhm=dataset.fwhm,
+            min_r=self.min_radius,
+            max_r=self.max_radius,
+            model=self.model,
+            var=self.var,
+            param=self.param,
+            crop=self.crop,
+            imlib=self.imlib,
+            interpolation=self.interpolation,
+            nproc=nproc,
+            verbose=verbose,
+        )
+
+        self.frame_final, self.snr_map = res

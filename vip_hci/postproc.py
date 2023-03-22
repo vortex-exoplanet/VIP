@@ -15,6 +15,7 @@ __all__ = [
 ]
 
 import pickle
+import inspect
 import numpy as np
 from sklearn.base import BaseEstimator
 
@@ -319,6 +320,36 @@ class PostProc(BaseEstimator):
         """
         raise NotImplementedError
 
+    def _setup_parameters(self, fkt, **add_params):
+        """
+        Help creating a dictionnary of parameters for a given function.
+
+        Look for the exact list of parameters needed for the ``fkt` function and takes
+        only the attributes needed from the PostProc project. More parameters can be
+        included with the `**add_pararms` dictionnary.
+
+        Parameters
+        ----------
+        fkt : function
+            The function we want to give parameters to.
+        **add_params : dictionnary, optional
+            Additionnal parameters that may not be included in the PostProc object.
+
+        Returns
+        -------
+        params_dict : dictionnary
+            The dictionnary comprised of parameters needed for the function, selected
+            amongst attributes of PostProc objects and additionnal parameters.
+
+        """
+        wanted_params = inspect.signature(fkt).parameters
+        obj_params = vars(self)
+        all_params = {**obj_params, **add_params}
+        params_dict = {
+            param: all_params[param] for param in all_params if param in wanted_params
+        }
+        return params_dict
+
 
 class PPFrameDiff(PostProc):
     """Post-processing frame differencing algorithm."""
@@ -537,27 +568,18 @@ class PPMedianSub(PostProc):
         if self.mode == "annular" and dataset.fwhm is None:
             raise ValueError("`fwhm` has not been set")
 
-        res = median_sub(
-            cube=dataset.cube,
-            angle_list=dataset.angles,
-            scale_list=dataset.wavelengths,
-            flux_sc_list=self.flux_sc_list,
-            fwhm=dataset.fwhm,
-            radius_int=self.radius_int,
-            asize=self.asize,
-            delta_rot=self.delta_rot,
-            delta_sep=self.delta_sep,
-            mode=self.mode,
-            nframes=self.nframes,
-            sdi_only=self.sdi_only,
-            imlib=self.imlib,
-            interpolation=self.interpolation,
-            collapse=self.collapse,
-            nproc=nproc,
-            full_output=True,
-            verbose=verbose,
-            **rot_options
-        )
+        add_params = {
+            "cube": dataset.cube,
+            "angle_list": dataset.angles,
+            "fwhm": dataset.fwhm,
+            "scale_list": dataset.wavelengths,
+            "nproc": nproc,
+            "full_output": full_output,
+        }
+
+        func_params = self._setup_parameters(fkt=median_sub, **add_params)
+
+        res = median_sub(**func_params, **rot_options)
 
         self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 

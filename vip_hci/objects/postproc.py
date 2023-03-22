@@ -11,7 +11,7 @@ import inspect
 import numpy as np
 from sklearn.base import BaseEstimator
 
-from ..dataset import Dataset
+from .dataset import Dataset
 from ..metrics import snrmap
 from ..config.utils_conf import algo_calculates_decorator as calculates
 

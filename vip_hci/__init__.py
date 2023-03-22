@@ -11,5 +11,4 @@ from . import metrics
 from . import stats
 from . import var
 from .objects import *
-from .dataset import *
 from .vip_ds9 import *

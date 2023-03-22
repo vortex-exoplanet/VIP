@@ -7,13 +7,13 @@ __all__ = ["Dataset", "Frame"]
 import numpy as np
 import copy
 import hciplot as hp
-from .fits import open_fits
-from .fm import (
+from ..fits import open_fits
+from ..fm import (
     cube_inject_companions,
     generate_cube_copies_with_injections,
     normalize_psf,
 )
-from .preproc import (
+from ..preproc import (
     frame_crop,
     frame_px_resampling,
     frame_rotate,
@@ -21,7 +21,7 @@ from .preproc import (
     frame_center_satspots,
     frame_center_radon,
 )
-from .preproc import (
+from ..preproc import (
     cube_collapse,
     cube_crop_frames,
     cube_derotate,
@@ -37,7 +37,7 @@ from .preproc import (
     cube_recenter_dft_upsampling,
     cube_recenter_via_speckles,
 )
-from .var import (
+from ..var import (
     frame_filter_lowpass,
     frame_filter_highpass,
     frame_center,
@@ -45,17 +45,17 @@ from .var import (
     cube_filter_lowpass,
     mask_circle,
 )
-from .stats import (
+from ..stats import (
     frame_basic_stats,
     frame_histo_stats,
     frame_average_radprofile,
     cube_basic_stats,
     cube_distance,
 )
-from .metrics import frame_report, snr, snrmap, detection
+from ..metrics import frame_report, snr, snrmap, detection
 
-from .config.utils_conf import check_array, Saveable, print_precision
-from .config.mem import check_enough_memory
+from ..config.utils_conf import check_array, Saveable, print_precision
+from ..config.mem import check_enough_memory
 
 
 class Frame(object):

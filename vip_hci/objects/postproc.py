@@ -1,15 +1,24 @@
 #! /usr/bin/env python
-"""Module with the HCI<post-processing algorithms> classes."""
+"""
+Module containing basic classes for manipulating post-processing algorithms.
+
+This includes the core PostProc class, parent to every algorithm object implementation,
+but also the PPResult class, a container for the results obtained through those said
+algorithm objects. PPResult is provided with the Session dataclass, which defines the
+type of data stored from the results.
+"""
 
 __author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Ralf Farkas"
 __all__ = ["PostProc", "PPResult", "ALL_SESSIONS", "LAST_SESSION"]
 
 import pickle
 import inspect
+from dataclasses import dataclass
+from typing import List, Tuple, Union, Optional, NoReturn, Callable
+
 import numpy as np
 from hciplot import plot_frames
 from sklearn.base import BaseEstimator
-from dataclasses import dataclass
 
 from .dataset import Dataset
 from ..metrics import snrmap
@@ -21,10 +30,146 @@ LAST_SESSION = -1
 ALL_SESSIONS = -2
 
 
+@dataclass
+class Session:
+    """
+    Dataclass for post-processing information storage.
+
+    Each session of post-processing with one of the PostProc objects has a defined set
+    of parameters, a frame obtained with those parameters and a S/N map generated with
+    that frame. The Session class holds them in case you need to access them later or
+    compare with another session.
+    """
+
+    parameters: dict
+    frame: np.ndarray
+    snr_map: np.ndarray
+
+
+class PPResult(Saveable):
+    """
+    Container for results of post-processing algorithms.
+
+    For each given set of data and parameters, a frame is computed by the PostProc
+    algorithms, as well as a S/N map associated. To keep track of each of them, this
+    object remembers each set of parameters, frame and S/N map as a session. Sessions
+    are numbered in order of creation from 0 to X, and they are displayed to the user
+    as going from 1 to X+1.
+    """
+
+    def __init__(self) -> None:
+        """Set up the results container parameters."""
+        self.sessions = []
+
+    def register_session(
+        self,
+        frame: np.ndarray,
+        params: Optional[dict] = None,
+        snr_map: Optional[np.ndarray] = None,
+    ) -> None:
+        """
+        Register data for a new session or updating data for an existing one.
+
+        Parameters
+        ----------
+        frame : np.ndarray
+            Frame obtained after an iteration of a PostProc object.
+        params : dictionnary, optional
+            Set of parameters used for an iteration of a PostProc object.
+        snr_map : np.ndarray, optional
+            Signal-to-noise ratio map generated through the ``make_snrmap`` method of
+            PostProc. Usually given after generating ``frame``.
+
+        """
+        # If frame is already registered in a session, add the associated snr_map only
+        for session in self.sessions:
+            if (frame == session.frame).all():
+                session.snr_map = snr_map
+                return
+
+        # Otherwise, register a new session
+        filter_params = {
+            key: params[key]
+            for key in params
+            if not isinstance(params[key], np.ndarray)
+        }
+        new_session = Session(parameters=filter_params, frame=frame, snr_map=snr_map)
+        self.sessions.append(new_session)
+
+    def show_session_results(self, session_id: Optional[int] = LAST_SESSION) -> None:
+        """
+        Print the parameters and plot the frame (and S/N map if able) of a session(s).
+
+        Parameters
+        ----------
+        session_id : int, list of int or str, optional
+            The ID of the session(s) to show. It is possible to get several sessions
+            results by giving a list of int or "all" to get all of them. By default,
+            the last session is displayed (index -1).
+
+        """
+        if self.sessions:
+            if isinstance(session_id, list):
+                if all(isinstance(s_id, int) for s_id in session_id):
+                    for s_id in session_id:
+                        self._show_single_session(s_id)
+            elif session_id == ALL_SESSIONS:
+                for s_id, _ in enumerate(self.sessions):
+                    self._show_single_session(s_id)
+            elif session_id > ALL_SESSIONS:
+                self._show_single_session(session_id)
+            else:
+                raise ValueError(
+                    "Given session ID isn't an integer. Please give an integer or a"
+                    "list of integers (includes constant values such as ALL_SESSIONS or"
+                    " LAST_SESSION)."
+                )
+        else:
+            raise AttributeError(
+                "No session was registered yet. Please register"
+                " a session with the function `register_session`."
+            )
+
+    def _show_single_session(self, session_id: Optional[int]) -> None:
+        """
+        Display an individual session.
+
+        Used a sub function to be called by ``show_session_results``.
+
+        Parameters
+        ----------
+        session_id : int
+            Number of the session to be displayed.
+
+        """
+        if session_id == LAST_SESSION:
+            session_label = "last session"
+        else:
+            session_label = "session n°" + str(session_id + 1)
+        print(
+            "Parameters used for the",
+            session_label,
+            " : ",
+            self.sessions[session_id].parameters,
+        )
+        _frame_label = "Frame obtained for the " + session_label
+        if self.sessions[session_id].snr_map is not None:
+            _snr_label = "S/N map obtained for the " + session_label
+            plot_frames(
+                (
+                    self.sessions[session_id].frame,
+                    self.sessions[session_id].snr_map,
+                ),
+                label=(_frame_label, _snr_label),
+            )
+        else:
+            plot_frames(self.sessions[session_id].frame, label=_frame_label)
+
+
 class PostProc(BaseEstimator):
     """Base post-processing algorithm class."""
 
-    def __init__(self, locals_dict, *skip):
+    def __init__(self, locals_dict: dict, *skip: List[str]) -> None:
         """
         Set up the algorithm parameters.
 
@@ -72,20 +217,22 @@ class PostProc(BaseEstimator):
         if verbose:
             self._print_parameters()
 
-    def _print_parameters(self):
+    def _print_parameters(self) -> None:
         """Print out the parameters of the algorithm."""
         dicpar = self.get_params()
-        for key in dicpar.keys():
-            print("{}: {}".format(key, dicpar[key]))
+        for key, value in dicpar:
+            print("{}: {}".format(key, value))
 
-    def _store_args(self, locals_dict, *skip):
+    def _store_args(self, locals_dict: dict, *skip: List[str]) -> None:
         # TODO: this could be integrated with sklearn's BaseEstimator methods
         for k in locals_dict:
             if k == "self" or k in skip:
                 continue
             setattr(self, k, locals_dict[k])
 
-    def _get_dataset(self, dataset=None, verbose=True):
+    def _get_dataset(
+        self, dataset: Optional[Dataset] = None, verbose: Optional[bool] = True
+    ) -> Dataset:
         """
         Handle a dataset passed to ``run()``.
 
@@ -121,7 +268,7 @@ class PostProc(BaseEstimator):
         return dataset
 
     # TODO : identify the problem around the element `_repr_html_`
-    def _get_calculations(self):
+    def _get_calculations(self) -> dict:
         """
         Get a list of all attributes which are *calculated*.
 
@@ -138,7 +285,7 @@ class PostProc(BaseEstimator):
 
         """
         calculations = {}
-        for e in dir(self):
+        for element in dir(self):
             # BLACKMAGIC : _repr_html_ must be skipped
             """
             `_repr_html_` is an element of the directory of the PostProc object which
@@ -148,7 +295,7 @@ class PostProc(BaseEstimator):
             You can uncomment the block below to observe how the directory loops after
             reaching that element - acknowledging you are not skipping it.
             """
-            if e not in PROBLEMATIC_ATTRIBUTE_NAMES:
+            if element not in PROBLEMATIC_ATTRIBUTE_NAMES:
                 try:
                     # print(
                     #     "directory element : ",
@@ -156,14 +303,14 @@ class PostProc(BaseEstimator):
                     #     ", calculations list : ",
                     #     calculations,
                     # )
-                    for k in getattr(getattr(self, e), "_calculates"):
-                        calculations[k] = e
+                    for k in getattr(getattr(self, element), "_calculates"):
+                        calculations[k] = element
                 except AttributeError:
                     pass
 
         return calculations
 
-    def _reset_results(self):
+    def _reset_results(self) -> None:
         """
         Remove all calculated results from the object.
 
@@ -180,7 +327,7 @@ class PostProc(BaseEstimator):
             except AttributeError:
                 pass  # attribute/result was not calculated yet. Skip.
 
-    def __getattr__(self, a):
+    def __getattr__(self, attr: str) -> NoReturn:
         """
         ``__getattr__`` is only called when an attribute does *not* exist.
 
@@ -188,16 +335,15 @@ class PostProc(BaseEstimator):
         attribute was not calculated yet.
         """
         calculations = self._get_calculations()
-        if a in calculations:
+        if attr in calculations:
             raise AttributeError(
                 "The '{}' was not calculated yet. Call '{}' "
-                "first.".format(a, calculations[a])
+                "first.".format(attr, calculations[attr])
             )
-        else:
-            # this raises a regular AttributeError:
-            return self.__getattribute__(a)
+        # this raises a regular AttributeError:
+        return self.__getattribute__(attr)
 
-    def _show_attribute_help(self, function_name):
+    def _show_attribute_help(self, function_name: Callable) -> None:
         """
         Print information about the attributes a method calculated.
 
@@ -213,9 +359,9 @@ class PostProc(BaseEstimator):
         calculations = self._get_calculations()
 
         print("These attributes were just calculated:")
-        for a, f in calculations.items():
-            if hasattr(self, a) and function_name == f:
-                print("\t{}".format(a))
+        for attr, func in calculations.items():
+            if hasattr(self, attr) and function_name == func:
+                print("\t{}".format(attr))
 
         not_calculated_yet = [
             (a, f)
@@ -224,19 +370,19 @@ class PostProc(BaseEstimator):
         ]
         if len(not_calculated_yet) > 0:
             print("The following attributes can be calculated now:")
-            for a, f in not_calculated_yet:
-                print("\t{}\twith .{}()".format(a, f))
+            for attr, func in not_calculated_yet:
+                print("\t{}\twith .{}()".format(attr, func))
 
     @calculates("snr_map", "detection_map")
     def make_snrmap(
         self,
-        results=None,
-        approximated=False,
-        plot=False,
-        known_sources=None,
-        nproc=None,
-        verbose=False,
-    ):
+        results: Optional[PPResult] = None,
+        approximated: Optional[bool] = False,
+        plot: Optional[bool] = False,
+        known_sources: Optional[Union[Tuple, Tuple[Tuple]]] = None,
+        nproc: Optional[int] = None,
+        verbose: Optional[bool] = False,
+    ) -> None:
         """
         Calculate a S/N map from ``self.frame_final``.
 
@@ -288,7 +434,7 @@ class PostProc(BaseEstimator):
         if results is not None:
             results.register_session(frame=self.frame_final, snr_map=self.snr_map)
 
-    def save(self, filename):
+    def save(self, filename: str) -> None:
         """
         Pickle the algo object and save it to disk.
 
@@ -298,7 +444,12 @@ class PostProc(BaseEstimator):
         pickle.dump(self, open(filename, "wb"))
 
     @calculates("frame_final")
-    def run(self, dataset=None, nproc=1, verbose=True):
+    def run(
+        self,
+        dataset: Optional[Dataset] = None,
+        nproc: Optional[int] = 1,
+        verbose: Optional[bool] = True,
+    ) -> None:
         """
         Run the algorithm. Should at least set `` self.frame_final``.
 
@@ -309,7 +460,7 @@ class PostProc(BaseEstimator):
         """
         raise NotImplementedError
 
-    def _setup_parameters(self, fkt, **add_params):
+    def _setup_parameters(self, fkt: Callable, **add_params: dict) -> dict:
         """
         Help creating a dictionnary of parameters for a given function.
 
@@ -338,125 +489,3 @@ class PostProc(BaseEstimator):
             param: all_params[param] for param in all_params if param in wanted_params
         }
         return params_dict
-
-
-@dataclass
-class Session:
-    parameters: dict
-    frame: np.ndarray
-    snr_map: np.ndarray
-
-
-class PPResult(Saveable):
-    """
-    Container for results of post-processing algorithms.
-
-    For each given set of data and parameters, a frame is computed by the PostProc
-    algorithms, as well as a S/N map associated. To keep track of each of them, this
-    object remembers each set of parameters, frame and S/N map as a session. Sessions
-    are numbered in order of creation from 0 to X, and they are displayed to the user
-    as going from 1 to X+1.
-    """
-
-    def __init__(self):
-        """Set up the results container parameters."""
-        self.sessions = []
-
-    def register_session(self, frame, params=None, snr_map=None):
-        """
-        Register data for a new session or updating data for an existing one.
-
-        Parameters
-        ----------
-        frame : np.ndarray
-            Frame obtained after an iteration of a PostProc object.
-        params : dictionnary, optional
-            Set of parameters used for an iteration of a PostProc object.
-        snr_map : np.ndarray, optional
-            Signal-to-noise ratio map generated through the ``make_snrmap`` method of
-            PostProc. Usually given after generating ``frame``.
-
-        """
-        # If frame is already registered in a session, add the associated snr_map only
-        for session in self.sessions:
-            if (frame == session.frame).all():
-                session.snr_map = snr_map
-                return
-
-        # Otherwise, register a new session
-        filter_params = {
-            key: params[key]
-            for key in params
-            if not isinstance(params[key], np.ndarray)
-        }
-        new_session = Session(parameters=filter_params, frame=frame, snr_map=snr_map)
-        self.sessions.append(new_session)
-
-    def show_session_results(self, sessionID=LAST_SESSION):
-        """
-        Print the parameters and plot the frame (and S/N map if able) of a session(s).
-
-        Parameters
-        ----------
-        sessionID : int, list of int or str, optional
-            The ID of the session(s) to show. It is possible to get several sessions
-            results by giving a list of int or "all" to get all of them. By default,
-            the last session is displayed (index -1).
-
-        """
-        if self.sessions != []:
-            if isinstance(sessionID, list):
-                if all(isinstance(s_id, int) for s_id in sessionID):
-                    for s_id in sessionID:
-                        self._show_single_session(s_id)
-            elif sessionID == ALL_SESSIONS:
-                for s_id, _ in enumerate(self.sessions):
-                    self._show_single_session(s_id)
-            elif sessionID > ALL_SESSIONS:
-                self._show_single_session(sessionID)
-            else:
-                raise ValueError(
-                    "Given session ID isn't an integer. Please give an integer or a"
-                    "list of integers (includes constant values such as ALL_SESSIONS or"
-                    " LAST_SESSION)."
-                )
-        else:
-            raise AttributeError(
-                "No session was registered yet. Please register"
-                " a session with the function `register_session`."
-            )
-
-    def _show_single_session(self, sessionID):
-        """
-        Display an individual session.
-
-        Used a sub function to be called by ``show_session_results``.
-
-        Parameters
-        ----------
-        sessionID : int
-            Number of the session to be displayed.
-
-        """
-        if sessionID == LAST_SESSION:
-            session_label = "last session"
-        else:
-            session_label = "session n°" + str(sessionID + 1)
-        print(
-            "Parameters used for the",
-            session_label,
-            " : ",
-            self.sessions[sessionID].parameters,
-        )
-        _frame_label = "Frame obtained for the " + session_label
-        if self.sessions[sessionID].snr_map is not None:
-            _snr_label = "S/N map obtained for the " + session_label
-            plot_frames(
-                (
-                    self.sessions[sessionID].frame,
-                    self.sessions[sessionID].snr_map,
-                ),
-                label=(_frame_label, _snr_label),
-            )
-        else:
-            plot_frames(self.sessions[sessionID].frame, label=_frame_label)

@@ -6,6 +6,12 @@ __all__ = [
     "PPMedianSub",
 ]
 
+from typing import Tuple, Optional
+from dataclasses import dataclass
+
+import numpy as np
+
+from .dataset import Dataset
 from .postproc import PostProc, PPResult
 from ..psfsub import median_sub
 from ..config.utils_conf import algo_calculates_decorator as calculates
@@ -16,20 +22,20 @@ class PPMedianSub(PostProc):
 
     def __init__(
         self,
-        flux_sc_list=None,
-        dataset=None,
-        radius_int=0,
-        asize=4,
-        delta_rot=1,
-        delta_sep=(0.1, 1),
-        mode="fullfr",
-        nframes=4,
-        sdi_only=False,
-        imlib="vip-fft",
-        interpolation="lanczos4",
-        collapse="median",
-        verbose=True,
-    ):
+        dataset: Optional[Dataset] = None,
+        flux_sc_list: Optional[np.ndarray] = None,
+        radius_int: Optional[int] = 0,
+        asize: Optional[int] = 4,
+        delta_rot: Optional[float] = 1,
+        delta_sep: Optional[Tuple[float]] = (0.1, 1),
+        mode: Optional[str] = "fullfr",
+        nframes: Optional[int] = 4,
+        sdi_only: Optional[bool] = False,
+        imlib: Optional[str] = "vip-fft",
+        interpolation: Optional[str] = "lanczos4",
+        collapse: Optional[str] = "median",
+        verbose: Optional[bool] = True,
+    ) -> None:
         """
         Set up the median sub algorithm parameters.
 
@@ -50,7 +56,7 @@ class PPMedianSub(PostProc):
             central circular area is discarded.
         asize : int, optional
             The size of the annuli, in pixels.
-        delta_rot : int, optional
+        delta_rot : float, optional
             Factor for increasing the parallactic angle threshold, expressed in
             FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
             frame).
@@ -80,18 +86,18 @@ class PPMedianSub(PostProc):
             If True prints to stdout intermediate info.
 
         """
-        super(PPMedianSub, self).__init__(locals())
+        super().__init__(locals())
 
     @calculates("cube_residuals", "cube_residuals_der", "frame_final")
     def run(
         self,
-        results=None,
-        dataset=None,
-        nproc=1,
-        full_output=True,
-        verbose=True,
-        **rot_options
-    ):
+        results: Optional[PPResult] = None,
+        dataset: Optional[Dataset] = None,
+        nproc: Optional[int] = 1,
+        full_output: Optional[bool] = True,
+        verbose: Optional[bool] = True,
+        **rot_options: Optional[dict]
+    ) -> None:
         """
         Run the post-processing median subtraction algorithm for model PSF subtraction.
 

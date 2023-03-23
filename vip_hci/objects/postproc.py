@@ -14,7 +14,13 @@ __all__ = ["PostProc", "PPResult", "ALL_SESSIONS", "LAST_SESSION"]
 import pickle
 import inspect
 from dataclasses import dataclass
-from typing import List, Tuple, Union, Optional, NoReturn, Callable
+from typing import (
+    Tuple,
+    Union,
+    Optional,
+    NoReturn,
+    Callable,
+)
 
 import numpy as np
 from hciplot import plot_frames
@@ -28,6 +34,7 @@ from ..config.utils_conf import Saveable
 PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
 LAST_SESSION = -1
 ALL_SESSIONS = -2
+DATASET_PARAM = "dataset"
 
 
 @dataclass
@@ -46,6 +53,7 @@ class Session:
     snr_map: np.ndarray
 
 
+@dataclass
 class PPResult(Saveable):
     """
     Container for results of post-processing algorithms.
@@ -57,9 +65,7 @@ class PPResult(Saveable):
     as going from 1 to X+1.
     """
 
-    def __init__(self) -> None:
-        """Set up the results container parameters."""
-        self.sessions = []
+    sessions: list = []
 
     def register_session(
         self,
@@ -166,73 +172,38 @@ class PPResult(Saveable):
             plot_frames(self.sessions[session_id].frame, label=_frame_label)
 
 
+@dataclass
 class PostProc(BaseEstimator):
-    """Base post-processing algorithm class."""
+    """
+    Base post-processing algorithm class.
 
-    def __init__(self, locals_dict: dict, *skip: List[str]) -> None:
-        """
-        Set up the algorithm parameters.
+    Does not need an ``__init__`` because as a parent class for every algorithm object,
+    there is no reason to create a PostProc object. Inherited classes benefit from the
+    ``dataclass_builder`` support for their initialization and no further methods are
+    needed to create those.
 
-        This does multiple things:
+    The PostProc is still very useful as it provides crucial utility common to all the
+    inherited objects, such as :
+        - establishing a list of attributes which need to be calculated
+        - updating the dataset used for the algorithm if needed
+        - calculating the signal-to-noise ratio map after a corrected frame has been
+        generated
+        - setting up parameters for the algorithm.
 
-        - verify that ``dataset`` is a Dataset object or ``None`` (it could
-          also be provided to ``run``)
-        - store all the keywords (from ``locals_dict``) as object attributes, so
-          they can be accessed e.g. in the ``run()`` method
-        - print out the full algorithm settings (user provided parameters +
-          default ones) if ``verbose=True``
+    """
 
-        Parameters
-        ----------
-        locals_dict : dict
-            This should be ``locals()``. ``locals()`` contains *all* the
-            variables defined in the local scope. Passed to
-            ``self._store_args``.
-        *skip : list of strings
-            Passed on to ``self._store_args``. Refer to its documentation.
+    dataset: Dataset = None
+    verbose: bool = True
+    snr_map: np.ndarray = None
+    detection_map: np.ndarray = None
+    results: PPResult = None
 
-        Examples
-        --------
-        .. code:: python
-
-            # when subclassing PostProc, make sure you call super()
-            # with locals()! This means:
-
-            class MySuperAlgo(PostProc):
-                def __init__(self, algo_param_1=42, cool=True):
-                    super(MySuperAlgo, self).__init__(locals())
-
-                @calculates("frame")
-                def run(self, dataset=None):
-                    self.frame = 2 * self.algo_param_1
-
-        """
-        dataset = locals_dict.get("dataset", None)
-        if not isinstance(dataset, (Dataset, type(None))):
-            raise ValueError("`dataset` must be a Dataset object or None")
-
-        self._store_args(locals_dict, *skip)
-
-        verbose = locals_dict.get("verbose", True)
-        if verbose:
-            self._print_parameters()
-
-    def _print_parameters(self) -> None:
+    def print_parameters(self) -> None:
         """Print out the parameters of the algorithm."""
-        dicpar = self.get_params()
-        for key, value in dicpar:
-            print("{}: {}".format(key, value))
+        for key, value in self.__dict__.items():
+            print(f"{key} : {value}")
 
-    def _store_args(self, locals_dict: dict, *skip: List[str]) -> None:
-        # TODO: this could be integrated with sklearn's BaseEstimator methods
-        for k in locals_dict:
-            if k == "self" or k in skip:
-                continue
-            setattr(self, k, locals_dict[k])
-
-    def _get_dataset(
-        self, dataset: Optional[Dataset] = None, verbose: Optional[bool] = True
-    ) -> Dataset:
+    def _update_dataset(self, dataset: Optional[Dataset] = None) -> None:
         """
         Handle a dataset passed to ``run()``.
 
@@ -243,29 +214,21 @@ class PostProc(BaseEstimator):
         Parameters
         ----------
         dataset : Dataset or None, optional
-        verbose : bool, optional
-            If ``True``, a message is printed out when a previous dataset was
-            overwritten.
-
-        Returns
-        -------
-        dataset : Dataset
 
         """
-        if dataset is None:
-            dataset = self.dataset
-            if self.dataset is None:
-                raise ValueError("no dataset specified!")
-        else:
-            if self.dataset is not None and verbose:
-                print(
-                    "a new dataset was provided to run(), all previous "
-                    "results were cleared."
-                )
+        if dataset is not None:
+            print(
+                "A new dataset was provided to run, all previous results were cleared."
+            )
             self.dataset = dataset
             self._reset_results()
-
-        return dataset
+        elif self.dataset is None:
+            raise AttributeError(
+                "No dataset was specified ! Please give a valid dataset inside the"
+                "builder of the associated algorithm or inside the `run()` function."
+            )
+        else:
+            print("No changes were made to the dataset.")
 
     # TODO : identify the problem around the element `_repr_html_`
     def _get_calculations(self) -> dict:
@@ -337,8 +300,7 @@ class PostProc(BaseEstimator):
         calculations = self._get_calculations()
         if attr in calculations:
             raise AttributeError(
-                "The '{}' was not calculated yet. Call '{}' "
-                "first.".format(attr, calculations[attr])
+                f"The {attr} was not calculated yet. Call {calculations[attr]} first."
             )
         # this raises a regular AttributeError:
         return self.__getattribute__(attr)
@@ -361,7 +323,7 @@ class PostProc(BaseEstimator):
         print("These attributes were just calculated:")
         for attr, func in calculations.items():
             if hasattr(self, attr) and function_name == func:
-                print("\t{}".format(attr))
+                print(f"\t{attr}")
 
         not_calculated_yet = [
             (a, f)
@@ -371,17 +333,15 @@ class PostProc(BaseEstimator):
         if len(not_calculated_yet) > 0:
             print("The following attributes can be calculated now:")
             for attr, func in not_calculated_yet:
-                print("\t{}\twith .{}()".format(attr, func))
+                print(f"\t{attr}\twith .{func}()")
 
     @calculates("snr_map", "detection_map")
     def make_snrmap(
         self,
-        results: Optional[PPResult] = None,
         approximated: Optional[bool] = False,
         plot: Optional[bool] = False,
         known_sources: Optional[Union[Tuple, Tuple[Tuple]]] = None,
         nproc: Optional[int] = None,
-        verbose: Optional[bool] = False,
     ) -> None:
         """
         Calculate a S/N map from ``self.frame_final``.
@@ -426,13 +386,13 @@ class PostProc(BaseEstimator):
             plot=plot,
             known_sources=known_sources,
             nproc=nproc,
-            verbose=verbose,
+            verbose=self.verbose,
         )
 
         self.detection_map = self.snr_map
 
-        if results is not None:
-            results.register_session(frame=self.frame_final, snr_map=self.snr_map)
+        if self.results is not None:
+            self.results.register_session(frame=self.frame_final, snr_map=self.snr_map)
 
     def save(self, filename: str) -> None:
         """
@@ -441,15 +401,11 @@ class PostProc(BaseEstimator):
         Note that this also saves the associated ``self.dataset``, in a
         non-optimal way.
         """
-        pickle.dump(self, open(filename, "wb"))
+        with open(filename, "wb") as file:
+            pickle.dump(self, file)
 
     @calculates("frame_final")
-    def run(
-        self,
-        dataset: Optional[Dataset] = None,
-        nproc: Optional[int] = 1,
-        verbose: Optional[bool] = True,
-    ) -> None:
+    def run(self) -> None:
         """
         Run the algorithm. Should at least set `` self.frame_final``.
 
@@ -488,4 +444,13 @@ class PostProc(BaseEstimator):
         params_dict = {
             param: all_params[param] for param in all_params if param in wanted_params
         }
+        if self.verbose:
+            print(
+                f"The following parameters will be used for the run of {fkt.__name__} :"
+            )
+            for key, value in params_dict.items():
+                if isinstance(value, np.ndarray):
+                    print(f"{key} : np.ndarray (not shown)")
+                else:
+                    print(f"{key} : {value}")
         return params_dict

@@ -6,7 +6,7 @@ __all__ = [
     "PPMedianSub",
 ]
 
-from .postproc import PostProc
+from .postproc import PostProc, PPResult
 from ..psfsub import median_sub
 from ..config.utils_conf import algo_calculates_decorator as calculates
 
@@ -83,13 +83,24 @@ class PPMedianSub(PostProc):
         super(PPMedianSub, self).__init__(locals())
 
     @calculates("cube_residuals", "cube_residuals_der", "frame_final")
-    def run(self, dataset=None, nproc=1, full_output=True, verbose=True, **rot_options):
+    def run(
+        self,
+        results=None,
+        dataset=None,
+        nproc=1,
+        full_output=True,
+        verbose=True,
+        **rot_options
+    ):
         """
         Run the post-processing median subtraction algorithm for model PSF subtraction.
 
         Parameters
         ----------
-        dataset : Dataset object
+        results : PPResult object, optional
+            Container for the results of the algorithm. May hold the parameters used,
+            as well as the ``frame_final`` (and the ``snr_map`` if generated).
+        dataset : Dataset object, optional
             An Dataset object to be processed.
         nproc : None or int, optional
             Number of processes for parallel computing. If None the number of
@@ -125,3 +136,6 @@ class PPMedianSub(PostProc):
         res = median_sub(**func_params, **rot_options)
 
         self.cube_residuals, self.cube_residuals_der, self.frame_final = res
+
+        if results is not None:
+            results.register_session(params=func_params, frame=self.frame_final)

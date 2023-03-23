@@ -2,20 +2,23 @@
 """Module with the HCI<post-processing algorithms> classes."""
 
 __author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Ralf Farkas"
-__all__ = [
-    "PostProc",
-]
+__all__ = ["PostProc", "PPResult", "ALL_SESSIONS", "LAST_SESSION"]
 
 import pickle
 import inspect
 import numpy as np
+from hciplot import plot_frames
 from sklearn.base import BaseEstimator
+from dataclasses import dataclass
 
 from .dataset import Dataset
 from ..metrics import snrmap
 from ..config.utils_conf import algo_calculates_decorator as calculates
+from ..config.utils_conf import Saveable
 
 PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
+LAST_SESSION = -1
+ALL_SESSIONS = -2
 
 
 class PostProc(BaseEstimator):
@@ -227,6 +230,7 @@ class PostProc(BaseEstimator):
     @calculates("snr_map", "detection_map")
     def make_snrmap(
         self,
+        results=None,
         approximated=False,
         plot=False,
         known_sources=None,
@@ -238,6 +242,9 @@ class PostProc(BaseEstimator):
 
         Parameters
         ----------
+        results : PPResult object, optional
+            Container for the results of the algorithm. May hold the parameters used,
+            as well as the ``frame_final`` (and the ``snr_map`` if generated).
         approximated : bool, optional
             If True, a proxy to the S/N calculation will be used. If False, the
             Mawet et al. 2014 definition is used.
@@ -277,6 +284,9 @@ class PostProc(BaseEstimator):
         )
 
         self.detection_map = self.snr_map
+
+        if results is not None:
+            results.register_session(frame=self.frame_final, snr_map=self.snr_map)
 
     def save(self, filename):
         """
@@ -328,3 +338,125 @@ class PostProc(BaseEstimator):
             param: all_params[param] for param in all_params if param in wanted_params
         }
         return params_dict
+
+
+@dataclass
+class Session:
+    parameters: dict
+    frame: np.ndarray
+    snr_map: np.ndarray
+
+
+class PPResult(Saveable):
+    """
+    Container for results of post-processing algorithms.
+
+    For each given set of data and parameters, a frame is computed by the PostProc
+    algorithms, as well as a S/N map associated. To keep track of each of them, this
+    object remembers each set of parameters, frame and S/N map as a session. Sessions
+    are numbered in order of creation from 0 to X, and they are displayed to the user
+    as going from 1 to X+1.
+    """
+
+    def __init__(self):
+        """Set up the results container parameters."""
+        self.sessions = []
+
+    def register_session(self, frame, params=None, snr_map=None):
+        """
+        Register data for a new session or updating data for an existing one.
+
+        Parameters
+        ----------
+        frame : np.ndarray
+            Frame obtained after an iteration of a PostProc object.
+        params : dictionnary, optional
+            Set of parameters used for an iteration of a PostProc object.
+        snr_map : np.ndarray, optional
+            Signal-to-noise ratio map generated through the ``make_snrmap`` method of
+            PostProc. Usually given after generating ``frame``.
+
+        """
+        # If frame is already registered in a session, add the associated snr_map only
+        for session in self.sessions:
+            if (frame == session.frame).all():
+                session.snr_map = snr_map
+                return
+
+        # Otherwise, register a new session
+        filter_params = {
+            key: params[key]
+            for key in params
+            if not isinstance(params[key], np.ndarray)
+        }
+        new_session = Session(parameters=filter_params, frame=frame, snr_map=snr_map)
+        self.sessions.append(new_session)
+
+    def show_session_results(self, sessionID=LAST_SESSION):
+        """
+        Print the parameters and plot the frame (and S/N map if able) of a session(s).
+
+        Parameters
+        ----------
+        sessionID : int, list of int or str, optional
+            The ID of the session(s) to show. It is possible to get several sessions
+            results by giving a list of int or "all" to get all of them. By default,
+            the last session is displayed (index -1).
+
+        """
+        if self.sessions != []:
+            if isinstance(sessionID, list):
+                if all(isinstance(s_id, int) for s_id in sessionID):
+                    for s_id in sessionID:
+                        self._show_single_session(s_id)
+            elif sessionID == ALL_SESSIONS:
+                for s_id, _ in enumerate(self.sessions):
+                    self._show_single_session(s_id)
+            elif sessionID > ALL_SESSIONS:
+                self._show_single_session(sessionID)
+            else:
+                raise ValueError(
+                    "Given session ID isn't an integer. Please give an integer or a"
+                    "list of integers (includes constant values such as ALL_SESSIONS or"
+                    " LAST_SESSION)."
+                )
+        else:
+            raise AttributeError(
+                "No session was registered yet. Please register"
+                " a session with the function `register_session`."
+            )
+
+    def _show_single_session(self, sessionID):
+        """
+        Display an individual session.
+
+        Used a sub function to be called by ``show_session_results``.
+
+        Parameters
+        ----------
+        sessionID : int
+            Number of the session to be displayed.
+
+        """
+        if sessionID == LAST_SESSION:
+            session_label = "last session"
+        else:
+            session_label = "session n°" + str(sessionID + 1)
+        print(
+            "Parameters used for the",
+            session_label,
+            " : ",
+            self.sessions[sessionID].parameters,
+        )
+        _frame_label = "Frame obtained for the " + session_label
+        if self.sessions[sessionID].snr_map is not None:
+            _snr_label = "S/N map obtained for the " + session_label
+            plot_frames(
+                (
+                    self.sessions[sessionID].frame,
+                    self.sessions[sessionID].snr_map,
+                ),
+                label=(_frame_label, _snr_label),
+            )
+        else:
+            plot_frames(self.sessions[sessionID].frame, label=_frame_label)

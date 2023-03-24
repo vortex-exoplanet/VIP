@@ -83,6 +83,7 @@ class PPMedianSub(PostProc):
     cube_residuals: np.ndarray = None
     cube_residuals_der: np.ndarray = None
 
+    # TODO: write test
     @calculates("cube_residuals", "cube_residuals_der", "frame_final")
     def run(
         self,

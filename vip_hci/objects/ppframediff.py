@@ -78,6 +78,7 @@ class PPFrameDiff(PostProc):
     verbose: bool = True
     _algo_name: str = "frame_diff"
 
+    # TODO: write test
     @calculates("frame_final")
     def run(
         self,

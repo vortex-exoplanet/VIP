@@ -69,12 +69,9 @@ class PPResult(Saveable):
     as going from 1 to X+1.
     """
 
-    sessions: List = field(default_factory=[])
+    sessions: List = field(default_factory=lambda: [])
 
-    def __init__(self):
-        """Initialize the results container."""
-        self.sessions = []
-
+    # TODO: write test
     def register_session(
         self,
         frame: np.ndarray,
@@ -102,6 +99,8 @@ class PPResult(Saveable):
                 session.snr_map = snr_map
                 return
 
+        # TODO: review filter_params to only target cube and angles, not all ndarrays
+        # TODO: rename angles-type parameters in all procedural functions
         # Otherwise, register a new session
         filter_params = {
             key: params[key]
@@ -116,6 +115,7 @@ class PPResult(Saveable):
         )
         self.sessions.append(new_session)
 
+    # TODO: write test
     def show_session_results(
         self,
         session_id: Optional[int] = LAST_SESSION,
@@ -237,6 +237,7 @@ class PostProc(BaseEstimator):
         for key, value in self.__dict__.items():
             print(f"{key} : {value}")
 
+    # TODO: write test
     def _update_dataset(self, dataset: Optional[Dataset] = None) -> None:
         """
         Handle a dataset passed to ``run()``.
@@ -264,6 +265,7 @@ class PostProc(BaseEstimator):
         else:
             print("No changes were made to the dataset.")
 
+    # TODO: write test
     def get_params_from_results(self, session_id: int) -> None:
         """
         Copy a previously registered configuration from the results to the object.
@@ -287,7 +289,7 @@ class PostProc(BaseEstimator):
                     f"There are {len(self.results.sessions)} saved now.",
                 )
             else:
-                if self._algo_name != res[session_id].algo_name:
+                if res[session_id].algo_name not in self._algo_name:
                     raise ValueError(
                         "The function used for that session does not match your object."
                         " Please choose a session with a corresponding function."
@@ -484,6 +486,7 @@ class PostProc(BaseEstimator):
         """
         raise NotImplementedError
 
+    # TODO: write test
     def _setup_parameters(self, fkt: Callable, **add_params: dict) -> dict:
         """
         Help creating a dictionnary of parameters for a given function.

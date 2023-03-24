@@ -97,6 +97,7 @@ def pca(
     verbose=True,
     weights=None,
     conv=False,
+    temporal=False,
     cube_sig=None,
     **rot_options
 ):
@@ -312,6 +313,8 @@ def pca(
     weights: 1d numpy array or list, optional
         Weights to be applied for a weighted mean. Need to be provided if
         collapse mode is 'wmean'.
+    temporal : bool, optional
+        Whether to use rather left or right singularvectors
     cube_sig: numpy ndarray, opt
         Cube with estimate of significant authentic signals. If provided, this
         will subtracted before projecting cube onto reference cube.
@@ -320,7 +323,6 @@ def pca(
         "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
 
-    Returns
     -------
     frame : numpy ndarray
         2D array, median combination of the de-rotated/re-scaled residuals cube.
@@ -533,6 +535,7 @@ def pca(
                     nproc,
                     True,
                     weights,
+                    temporal,
                     cube_sig,
                     **rot_options
                 )
@@ -629,6 +632,7 @@ def pca(
             nproc,
             True,
             weights,
+            temporal,
             cube_sig,
             **rot_options
         )
@@ -745,6 +749,7 @@ def _adi_pca(
     nproc,
     full_output,
     weights=None,
+    temporal=False,
     cube_sig=None,
     **rot_options
 ):
@@ -803,6 +808,7 @@ def _adi_pca(
                     verbose,
                     full_output,
                     cube_sig=cube_sig,
+                    temporal=temporal
                 )
                 if verbose:
                     timing(start_time)
@@ -810,7 +816,7 @@ def _adi_pca(
                     residuals_cube = residuals_result[0]
                     reconstructed = residuals_result[1]
                     V = residuals_result[2]
-                    pcs = reshape_matrix(V, y, x)
+                    pcs = reshape_matrix(V, y, x) if not temporal else V
                     recon = reshape_matrix(reconstructed, y, x)
                 else:
                     residuals_cube = residuals_result
@@ -857,6 +863,7 @@ def _adi_pca(
                         ind,
                         frame,
                         cube_sig=cube_sig,
+                        temporal=temporal
                     )
                     if full_output:
                         nfrslib.append(res_result[0])
@@ -944,6 +951,7 @@ def _adimsdi_singlepca(
     batch,
     full_output,
     weights=None,
+    temporal=False,
     **rot_options
 ):
     """Handle the full-frame ADI+mSDI single PCA post-processing."""
@@ -1399,6 +1407,7 @@ def _project_subtract(
     svd_mode,
     verbose,
     full_output,
+    temporal=False,
     indices=None,
     frame=None,
     cube_sig=None,
@@ -1426,6 +1435,8 @@ def _project_subtract(
         Verbosity.
     full_output : bool
         Whether to return intermediate arrays or not.
+    temporal : bool, optional
+        Whether to use rather left or right singularvectors
     indices : list
         Indices to be used to discard frames (a rotation threshold is used).
     frame : int
@@ -1446,8 +1457,9 @@ def _project_subtract(
     reconstructed : numpy ndarray
         [full_output=True] The reconstructed array.
     V : numpy ndarray
-        [full_output=True, indices is None, frame is None] The right singular
-        vectors of the input matrix, as returned by ``svd/svd_wrapper()``
+        [full_output=True, indices is None, frame is None]
+        The right singular vectors of the input matrix, as returned by 
+        ``svd/svd_wrapper()``
     """
     _, y, x = cube.shape
     if isinstance(ncomp, (int, np.int_)):
@@ -1487,7 +1499,7 @@ def _project_subtract(
                 )
             curr_frame = matrix[frame]  # current frame
             curr_frame_emp = matrix_emp[frame]
-            V = svd_wrapper(ref_lib, svd_mode, ncomp, False)
+            V = svd_wrapper(ref_lib, svd_mode, ncomp, False, temporal=temporal)
             transformed = np.dot(curr_frame_emp, V.T)
             reconstructed = np.dot(transformed.T, V)
             residuals = curr_frame - reconstructed
@@ -1498,11 +1510,18 @@ def _project_subtract(
 
         # the whole matrix is processed at once
         else:
-            V = svd_wrapper(ref_lib, svd_mode, ncomp, verbose)
-            transformed = np.dot(V, matrix_emp.T)
-            reconstructed = np.dot(transformed.T, V)
-            residuals = matrix - reconstructed
-            residuals_res = reshape_matrix(residuals, y, x)
+            if temporal :
+                V = svd_wrapper(ref_lib, svd_mode, ncomp, verbose, temporal=temporal)
+                transformed = np.dot(matrix_emp.T, V)
+                reconstructed = np.dot(V, transformed.T)
+                residuals = matrix - reconstructed
+                residuals_res = reshape_matrix(residuals, y, x)
+            else :
+                V = svd_wrapper(ref_lib, svd_mode, ncomp, verbose)
+                transformed = np.dot(V, matrix_emp.T)
+                reconstructed = np.dot(transformed.T, V)
+                residuals = matrix - reconstructed
+                residuals_res = reshape_matrix(residuals, y, x)
             if full_output:
                 return residuals_res, reconstructed, V
             else:

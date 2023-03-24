@@ -335,7 +335,7 @@ class SVDecomposer:
 
 
 def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
-                random_state=None, to_numpy=True):
+                random_state=None, to_numpy=True, temporal=False):
     """ Wrapper for different SVD libraries (CPU and GPU).
 
     Parameters
@@ -392,8 +392,12 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
         If None, the random number generator is the RandomState instance used
         by np.random. Used for ``randsvd`` mode.
     to_numpy : bool, optional
+        Whether to return intermediate arrays or not.
         If True (by default) the arrays computed in GPU are transferred from
         VRAM and converted to numpy ndarrays.
+    temporal : bool, optional
+        Whether to use rather left or right singularvectors
+        
 
     Returns
     -------
@@ -581,6 +585,13 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
             return S, V
         else:
             return U, S, V
+    elif temporal:
+        if mode == 'lapack':
+            return V.T
+        elif mode == 'pytorch':
+            return V
+        else:
+            return U
     else:
         if mode == 'lapack':
             return U.T

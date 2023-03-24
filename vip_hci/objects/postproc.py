@@ -52,7 +52,7 @@ class Session:
     parameters: dict
     frame: np.ndarray
     snr_map: np.ndarray
-    algo_used: str
+    algo_name: str
 
 
 # TODO: find a proper format for results saving (pdf, images, dictionnaries...)
@@ -78,9 +78,9 @@ class PPResult(Saveable):
     def register_session(
         self,
         frame: np.ndarray,
+        algo_name: Optional[dict] = None,
         params: Optional[dict] = None,
         snr_map: Optional[np.ndarray] = None,
-        func_name: Optional[str] = None,
     ) -> None:
         """
         Register data for a new session or updating data for an existing one.
@@ -109,7 +109,10 @@ class PPResult(Saveable):
             if not isinstance(params[key], np.ndarray)
         }
         new_session = Session(
-            parameters=filter_params, frame=frame, snr_map=snr_map, algo_used=func_name
+            parameters=filter_params,
+            frame=frame,
+            snr_map=snr_map,
+            algo_name=algo_name,
         )
         self.sessions.append(new_session)
 
@@ -178,7 +181,7 @@ class PPResult(Saveable):
         print(
             "Parameters used for the",
             session_label,
-            f"(function used : {self.sessions[session_id].algo_used}) : ",
+            f"(function used : {self.sessions[session_id].algo_name}) : ",
         )
         print_algo_params(self.sessions[session_id].parameters)
 
@@ -227,6 +230,7 @@ class PostProc(BaseEstimator):
     dataset: Dataset = None
     verbose: bool = True
     results: PPResult = None
+    frame_final: np.ndarray = None
 
     def print_parameters(self) -> None:
         """Print out the parameters of the algorithm."""
@@ -259,6 +263,40 @@ class PostProc(BaseEstimator):
             )
         else:
             print("No changes were made to the dataset.")
+
+    def get_params_from_results(self, session_id: int) -> None:
+        """
+        Copy a previously registered configuration from the results to the object.
+
+        Parameters
+        ----------
+        session_id : int
+            The ID of the session to load the configuration from.
+
+        """
+        if self.results is None:
+            raise AttributeError(
+                "No results were saved yet ! Please give the object a PPResult instance"
+                " and run the object at least once."
+            )
+        else:
+            res = self.results.sessions
+            if session_id > len(res):
+                raise ValueError(
+                    f"ID is higher than the current number of sessions registered. "
+                    f"There are {len(self.results.sessions)} saved now.",
+                )
+            else:
+                if self._algo_name != res[session_id].algo_name:
+                    raise ValueError(
+                        "The function used for that session does not match your object."
+                        " Please choose a session with a corresponding function."
+                    )
+                else:
+                    for key, value in res[session_id].parameters.items():
+                        setattr(self, key, value)
+                    print("Configuration loaded :")
+                    print_algo_params(res[session_id].parameters)
 
     # TODO : identify the problem around the element `_repr_html_`
     def _get_calculations(self) -> dict:

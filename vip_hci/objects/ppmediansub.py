@@ -11,7 +11,7 @@ import numpy as np
 from dataclass_builder import dataclass_builder
 
 from .dataset import Dataset
-from .postproc import PostProc, PPResult
+from .postproc import PostProc
 from ..psfsub import median_sub
 from ..config.utils_conf import algo_calculates_decorator as calculates
 
@@ -23,8 +23,6 @@ class PPMedianSub(PostProc):
 
     Parameters
     ----------
-    dataset : Dataset object
-        A Dataset object to be processed.
     flux_sc_list : numpy ndarray, 1d
         In the case of IFS data (ADI+SDI), this is the list of flux scaling
         factors applied to each spectral frame after geometrical rescaling.
@@ -69,7 +67,6 @@ class PPMedianSub(PostProc):
 
     """
 
-    dataset: Dataset = None
     flux_sc_list: np.ndarray = None
     radius_int: int = 0
     asize: int = 4
@@ -82,8 +79,7 @@ class PPMedianSub(PostProc):
     interpolation: str = "lanczos4"
     collapse: str = "median"
     verbose: bool = True
-    results: PPResult = None
-    frame_final: np.ndarray = None
+    _algo_name: str = "median_sub"
     cube_residuals: np.ndarray = None
     cube_residuals_der: np.ndarray = None
 
@@ -143,9 +139,7 @@ class PPMedianSub(PostProc):
 
         if self.results is not None:
             self.results.register_session(
-                params=func_params,
-                frame=self.frame_final,
-                func_name=median_sub.__name__,
+                params=func_params, frame=self.frame_final, algo_name=self._algo_name
             )
 
 

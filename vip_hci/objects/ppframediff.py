@@ -64,7 +64,6 @@ class PPFrameDiff(PostProc):
 
     """
 
-    dataset: Dataset = None
     metric: str = "manhattan"
     dist_threshold: int = 50
     n_similar: int = None
@@ -77,6 +76,7 @@ class PPFrameDiff(PostProc):
     collapse: str = "median"
     nproc: int = 1
     verbose: bool = True
+    _algo_name: str = "frame_diff"
 
     @calculates("frame_final")
     def run(
@@ -130,9 +130,7 @@ class PPFrameDiff(PostProc):
 
         if self.results is not None:
             self.results.register_session(
-                params=func_params,
-                frame=self.frame_final,
-                func_name=frame_diff.__name__,
+                params=func_params, frame=self.frame_final, algo_name=self._algo_name
             )
 
 

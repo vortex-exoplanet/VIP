@@ -18,6 +18,7 @@ from ..psfsub import pca, pca_annular
 from ..config.utils_conf import algo_calculates_decorator as calculates
 
 
+# TODO : include pca_grid and pca_annulus
 @dataclass
 class PPPCA(PostProc):
     """

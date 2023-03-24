@@ -281,24 +281,24 @@ class PostProc(BaseEstimator):
                 "No results were saved yet ! Please give the object a PPResult instance"
                 " and run the object at least once."
             )
-        else:
-            res = self.results.sessions
-            if session_id > len(res):
-                raise ValueError(
-                    f"ID is higher than the current number of sessions registered. "
-                    f"There are {len(self.results.sessions)} saved now.",
-                )
-            else:
-                if res[session_id].algo_name not in self._algo_name:
-                    raise ValueError(
-                        "The function used for that session does not match your object."
-                        " Please choose a session with a corresponding function."
-                    )
-                else:
-                    for key, value in res[session_id].parameters.items():
-                        setattr(self, key, value)
-                    print("Configuration loaded :")
-                    print_algo_params(res[session_id].parameters)
+
+        res = self.results.sessions
+        if session_id > len(res):
+            raise ValueError(
+                f"ID is higher than the current number of sessions registered. "
+                f"There are {len(self.results.sessions)} saved now.",
+            )
+
+        if res[session_id].algo_name not in self._algo_name:
+            raise ValueError(
+                "The function used for that session does not match your object."
+                " Please choose a session with a corresponding function."
+            )
+
+        for key, value in res[session_id].parameters.items():
+            setattr(self, key, value)
+        print("Configuration loaded :")
+        print_algo_params(res[session_id].parameters)
 
     # TODO : identify the problem around the element `_repr_html_`
     def _get_calculations(self) -> dict:

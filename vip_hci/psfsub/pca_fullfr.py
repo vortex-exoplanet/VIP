@@ -97,7 +97,7 @@ def pca(
     verbose=True,
     weights=None,
     conv=False,
-    temporal=False,
+    left_eigv=False,
     cube_sig=None,
     **rot_options
 ):
@@ -313,7 +313,7 @@ def pca(
     weights: 1d numpy array or list, optional
         Weights to be applied for a weighted mean. Need to be provided if
         collapse mode is 'wmean'.
-    temporal : bool, optional
+    left_eigv : bool, optional
         Whether to use rather left or right singularvectors
     cube_sig: numpy ndarray, opt
         Cube with estimate of significant authentic signals. If provided, this
@@ -535,8 +535,8 @@ def pca(
                     nproc,
                     True,
                     weights,
-                    temporal,
                     cube_sig,
+                    left_eigv,
                     **rot_options
                 )
                 if batch is None:
@@ -632,8 +632,8 @@ def pca(
             nproc,
             True,
             weights,
-            temporal,
             cube_sig,
+            left_eigv,
             **rot_options
         )
 
@@ -749,8 +749,8 @@ def _adi_pca(
     nproc,
     full_output,
     weights=None,
-    temporal=False,
     cube_sig=None,
+    left_eigv=False,
     **rot_options
 ):
     """Handle the ADI PCA post-processing."""
@@ -808,7 +808,7 @@ def _adi_pca(
                     verbose,
                     full_output,
                     cube_sig=cube_sig,
-                    temporal=temporal
+                    left_eigv=left_eigv,
                 )
                 if verbose:
                     timing(start_time)
@@ -816,7 +816,7 @@ def _adi_pca(
                     residuals_cube = residuals_result[0]
                     reconstructed = residuals_result[1]
                     V = residuals_result[2]
-                    pcs = reshape_matrix(V, y, x) if not temporal else V
+                    pcs = reshape_matrix(V, y, x) if not left_eigv else V
                     recon = reshape_matrix(reconstructed, y, x)
                 else:
                     residuals_cube = residuals_result
@@ -863,7 +863,7 @@ def _adi_pca(
                         ind,
                         frame,
                         cube_sig=cube_sig,
-                        temporal=temporal
+                        left_eigv=left_eigv
                     )
                     if full_output:
                         nfrslib.append(res_result[0])
@@ -951,7 +951,7 @@ def _adimsdi_singlepca(
     batch,
     full_output,
     weights=None,
-    temporal=False,
+    left_eigv=False,
     **rot_options
 ):
     """Handle the full-frame ADI+mSDI single PCA post-processing."""
@@ -1407,10 +1407,10 @@ def _project_subtract(
     svd_mode,
     verbose,
     full_output,
-    temporal=False,
     indices=None,
     frame=None,
     cube_sig=None,
+    left_eigv=False,
 ):
     """
     PCA projection and model PSF subtraction.
@@ -1435,7 +1435,7 @@ def _project_subtract(
         Verbosity.
     full_output : bool
         Whether to return intermediate arrays or not.
-    temporal : bool, optional
+    left_eigv : bool, optional
         Whether to use rather left or right singularvectors
     indices : list
         Indices to be used to discard frames (a rotation threshold is used).
@@ -1499,7 +1499,7 @@ def _project_subtract(
                 )
             curr_frame = matrix[frame]  # current frame
             curr_frame_emp = matrix_emp[frame]
-            V = svd_wrapper(ref_lib, svd_mode, ncomp, False, temporal=temporal)
+            V = svd_wrapper(ref_lib, svd_mode, ncomp, False, left_eigv=left_eigv)
             transformed = np.dot(curr_frame_emp, V.T)
             reconstructed = np.dot(transformed.T, V)
             residuals = curr_frame - reconstructed
@@ -1510,8 +1510,8 @@ def _project_subtract(
 
         # the whole matrix is processed at once
         else:
-            if temporal :
-                V = svd_wrapper(ref_lib, svd_mode, ncomp, verbose, temporal=temporal)
+            if left_eigv :
+                V = svd_wrapper(ref_lib, svd_mode, ncomp, verbose, left_eigv=left_eigv)
                 transformed = np.dot(matrix_emp.T, V)
                 reconstructed = np.dot(V, transformed.T)
                 residuals = matrix - reconstructed

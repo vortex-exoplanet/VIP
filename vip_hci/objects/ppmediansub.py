@@ -2,7 +2,7 @@
 """Module for the post-processing median subtraction algorithm."""
 
 __author__ = "Thomas Bédrine"
-__all__ = ["PPMedianSub", "MedianBuilder"]
+__all__ = ["MedianBuilder"]
 
 from typing import Tuple, Optional
 from dataclasses import dataclass
@@ -93,6 +93,7 @@ class PPMedianSub(PostProc):
         dataset: Optional[Dataset] = None,
         nproc: Optional[int] = 1,
         full_output: Optional[bool] = True,
+        verbose: Optional[bool] = True,
         **rot_options: Optional[dict]
     ) -> None:
         """
@@ -122,7 +123,7 @@ class PPMedianSub(PostProc):
         """
         self._update_dataset(dataset)
 
-        if self.mode == "annular" and dataset.fwhm is None:
+        if self.mode == "annular" and self.dataset.fwhm is None:
             raise ValueError("`fwhm` has not been set")
 
         add_params = {
@@ -141,7 +142,11 @@ class PPMedianSub(PostProc):
         self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 
         if self.results is not None:
-            self.results.register_session(params=func_params, frame=self.frame_final)
+            self.results.register_session(
+                params=func_params,
+                frame=self.frame_final,
+                func_name=median_sub.__name__,
+            )
 
 
 MedianBuilder = dataclass_builder(PPMedianSub)

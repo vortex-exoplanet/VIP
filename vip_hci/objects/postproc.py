@@ -13,13 +13,14 @@ __all__ = ["PostProc", "PPResult", "ALL_SESSIONS", "LAST_SESSION"]
 
 import pickle
 import inspect
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import (
     Tuple,
     Union,
     Optional,
     NoReturn,
     Callable,
+    List,
 )
 
 import numpy as np
@@ -51,8 +52,11 @@ class Session:
     parameters: dict
     frame: np.ndarray
     snr_map: np.ndarray
+    algo_used: str
 
 
+# TODO: find a proper format for results saving (pdf, images, dictionnaries...)
+# TODO: add a way to identify which algorithm was used
 @dataclass
 class PPResult(Saveable):
     """
@@ -65,13 +69,18 @@ class PPResult(Saveable):
     as going from 1 to X+1.
     """
 
-    sessions: list = []
+    sessions: List = field(default_factory=[])
+
+    def __init__(self):
+        """Initialize the results container."""
+        self.sessions = []
 
     def register_session(
         self,
         frame: np.ndarray,
         params: Optional[dict] = None,
         snr_map: Optional[np.ndarray] = None,
+        func_name: Optional[str] = None,
     ) -> None:
         """
         Register data for a new session or updating data for an existing one.
@@ -99,10 +108,16 @@ class PPResult(Saveable):
             for key in params
             if not isinstance(params[key], np.ndarray)
         }
-        new_session = Session(parameters=filter_params, frame=frame, snr_map=snr_map)
+        new_session = Session(
+            parameters=filter_params, frame=frame, snr_map=snr_map, algo_used=func_name
+        )
         self.sessions.append(new_session)
 
-    def show_session_results(self, session_id: Optional[int] = LAST_SESSION) -> None:
+    def show_session_results(
+        self,
+        session_id: Optional[int] = LAST_SESSION,
+        label: Optional[Union[Tuple[str], bool]] = True,
+    ) -> None:
         """
         Print the parameters and plot the frame (and S/N map if able) of a session(s).
 
@@ -118,12 +133,12 @@ class PPResult(Saveable):
             if isinstance(session_id, list):
                 if all(isinstance(s_id, int) for s_id in session_id):
                     for s_id in session_id:
-                        self._show_single_session(s_id)
+                        self._show_single_session(s_id, label)
             elif session_id == ALL_SESSIONS:
                 for s_id, _ in enumerate(self.sessions):
-                    self._show_single_session(s_id)
+                    self._show_single_session(s_id, label)
             elif session_id > ALL_SESSIONS:
-                self._show_single_session(session_id)
+                self._show_single_session(session_id, label)
             else:
                 raise ValueError(
                     "Given session ID isn't an integer. Please give an integer or a"
@@ -136,7 +151,11 @@ class PPResult(Saveable):
                 " a session with the function `register_session`."
             )
 
-    def _show_single_session(self, session_id: Optional[int]) -> None:
+    def _show_single_session(
+        self,
+        session_id: Optional[int],
+        label: Optional[Union[Tuple[str], bool]] = True,
+    ) -> None:
         """
         Display an individual session.
 
@@ -144,8 +163,12 @@ class PPResult(Saveable):
 
         Parameters
         ----------
-        session_id : int
+        session_id : int, optional
             Number of the session to be displayed.
+        label : tuple of str or bool, optional
+            Defines the label given to the frames plotted. If True, prints the default
+            label for each frame, if False, prints nothing. Instead if the label is a
+            tuple of str, sets them as the label for each frame.
 
         """
         if session_id == LAST_SESSION:
@@ -155,12 +178,21 @@ class PPResult(Saveable):
         print(
             "Parameters used for the",
             session_label,
-            " : ",
-            self.sessions[session_id].parameters,
+            f"(function used : {self.sessions[session_id].algo_used}) : ",
         )
-        _frame_label = "Frame obtained for the " + session_label
+        print_algo_params(self.sessions[session_id].parameters)
+
+        if isinstance(label, bool):
+            if label:
+                _frame_label = "Frame obtained for the " + session_label
+                _snr_label = "S/N map obtained for the " + session_label
+            else:
+                _frame_label = ""
+                _snr_label = ""
+        else:
+            _frame_label, _snr_label = label
+
         if self.sessions[session_id].snr_map is not None:
-            _snr_label = "S/N map obtained for the " + session_label
             plot_frames(
                 (
                     self.sessions[session_id].frame,
@@ -194,8 +226,6 @@ class PostProc(BaseEstimator):
 
     dataset: Dataset = None
     verbose: bool = True
-    snr_map: np.ndarray = None
-    detection_map: np.ndarray = None
     results: PPResult = None
 
     def print_parameters(self) -> None:
@@ -448,9 +478,22 @@ class PostProc(BaseEstimator):
             print(
                 f"The following parameters will be used for the run of {fkt.__name__} :"
             )
-            for key, value in params_dict.items():
-                if isinstance(value, np.ndarray):
-                    print(f"{key} : np.ndarray (not shown)")
-                else:
-                    print(f"{key} : {value}")
+            print_algo_params(params_dict)
         return params_dict
+
+
+def print_algo_params(params: dict) -> None:
+    """
+    Print the parameters that will be used for the run of an algorithm.
+
+    Parameters
+    ----------
+    params : dict
+        Dictionnary of the parameters that are sent to the function.
+
+    """
+    for key, value in params.items():
+        if isinstance(value, np.ndarray):
+            print(f"- {key} : np.ndarray (not shown)")
+        else:
+            print(f"- {key} : {value}")

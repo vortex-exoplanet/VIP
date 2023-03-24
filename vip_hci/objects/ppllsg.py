@@ -3,43 +3,28 @@
 
 __author__ = "Thomas Bédrine"
 __all__ = [
-    "PPLLSG",
+    "LLSGBuilder",
 ]
 
+from typing import Optional
+from dataclasses import dataclass
+
+import numpy as np
+from dataclass_builder import dataclass_builder
+
+from .dataset import Dataset
 from .postproc import PostProc
 from ..psfsub import llsg
 from ..config.utils_conf import algo_calculates_decorator as calculates
 
 
+@dataclass
 class PPLLSG(PostProc):
-    """Post-processing LLSG algorithm."""
+    """
+    Post-processing LLSG algorithm.
 
-    def __init__(
-        self,
-        dataset=None,
-        rank=10,
-        thresh=1,
-        max_iter=10,
-        low_rank_ref=False,
-        low_rank_mode="svd",
-        auto_rank_mode="noise",
-        residuals_tol=1e-1,
-        cevr=0.9,
-        thresh_mode="soft",
-        nproc=1,
-        asize=None,
-        n_segments=4,
-        azimuth_overlap=None,
-        radius_int=None,
-        random_seed=None,
-        high_pass=None,
-        collapse="median",
-    ):
-        """
-        Set up the LLSG algorithm parameters.
-
-        Parameters
-        ----------
+    Parameters
+    ----------
         rank : int, optional
             Expected rank of the L component.
         thresh : float, optional
@@ -89,11 +74,39 @@ class PPLLSG(PostProc):
         collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
             Sets the way of collapsing the frames for producing a final image.
 
-        """
-        super(PPLLSG, self).__init__(locals())
+    """
 
+    rank: int = 10
+    thresh: float = 1
+    max_iter: int = 10
+    low_rank_ref: bool = False
+    low_rank_mode: str = "svd"
+    auto_rank_mode: str = "noise"
+    residuals_tol: float = 1e-1
+    cevr: float = 0.9
+    thresh_mode: str = "soft"
+    nproc: int = 1
+    asize: int = None
+    n_segments: int = 4
+    azimuth_overlap: int = None
+    radius_int: int = None
+    random_seed: int = None
+    high_pass: int = None
+    collapse: str = "median"
+    _algo_name: str = "llsg"
+    frame_l: np.ndarray = None
+    frame_s: np.ndarray = None
+    frame_g: np.ndarray = None
+
+    # TODO : write test
     @calculates("frame_final", "frame_l", "frame_s", "frame_g")
-    def run(self, dataset=None, nproc=1, verbose=True, full_output=True, **rot_options):
+    def run(
+        self,
+        dataset: Optional[Dataset] = None,
+        verbose: Optional[bool] = True,
+        full_output: Optional[bool] = True,
+        **rot_options: Optional[dict]
+    ):
         """
         Run the post-processing LLSG algorithm for model PSF subtraction.
 
@@ -114,16 +127,15 @@ class PPLLSG(PostProc):
             ``vip_hci.preproc.frame_rotate``)
 
         """
-        dataset = self._get_dataset(dataset, verbose)
+        self._update_dataset(dataset)
 
-        if dataset.fwhm is None:
+        if self.dataset.fwhm is None:
             raise ValueError("`fwhm` has not been set")
 
         add_params = {
-            "cube": dataset.cube,
-            "angle_list": dataset.angles,
-            "fwhm": dataset.fwhm,
-            "nproc": nproc,
+            "cube": self.dataset.cube,
+            "angle_list": self.dataset.angles,
+            "fwhm": self.dataset.fwhm,
             "full_output": full_output,
             "verbose": verbose,
         }
@@ -131,13 +143,16 @@ class PPLLSG(PostProc):
         func_params = self._setup_parameters(fkt=llsg, **add_params)
 
         res = llsg(**func_params, **rot_options)
-
-        self.list_l_array_der = res[0]
-        self.list_s_array_der = res[1]
-        self.list_g_array_der = res[2]
-
         self.frame_l = res[3]
         self.frame_s = res[4]
         self.frame_g = res[5]
 
         self.frame_final = self.frame_s
+
+        if self.results is not None:
+            self.results.register_session(
+                params=func_params, frame=self.frame_final, algo_name=self._algo_name
+            )
+
+
+LLSGBuilder = dataclass_builder(PPLLSG)

@@ -335,7 +335,7 @@ class SVDecomposer:
 
 
 def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
-                random_state=None, to_numpy=True, temporal=False):
+                random_state=None, to_numpy=True, left_eigv=False):
     """ Wrapper for different SVD libraries (CPU and GPU).
 
     Parameters
@@ -395,7 +395,7 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
         Whether to return intermediate arrays or not.
         If True (by default) the arrays computed in GPU are transferred from
         VRAM and converted to numpy ndarrays.
-    temporal : bool, optional
+    left_eigv : bool, optional
         Whether to use rather left or right singularvectors
         
 
@@ -585,7 +585,7 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
             return S, V
         else:
             return U, S, V
-    elif temporal:
+    elif left_eigv:
         if mode == 'lapack':
             return V.T
         elif mode == 'pytorch':

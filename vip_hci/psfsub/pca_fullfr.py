@@ -315,6 +315,7 @@ def pca(
         collapse mode is 'wmean'.
     left_eigv : bool, optional
         Whether to use rather left or right singularvectors
+        This mode is not compatible with 'mask_rdi' and 'batch'
     cube_sig: numpy ndarray, opt
         Cube with estimate of significant authentic signals. If provided, this
         will subtracted before projecting cube onto reference cube.
@@ -323,6 +324,7 @@ def pca(
         "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
 
+    Return
     -------
     frame : numpy ndarray
         2D array, median combination of the de-rotated/re-scaled residuals cube.
@@ -373,6 +375,12 @@ def pca(
                 "with the full path on disk"
             )
 
+    if left_eigv is not None : 
+        if (batch is not None or mask_rdi is not None or cube_ref is not None):
+            raise NotImplementedError( "left_eigv is not compatible"
+                                      "with 'mask_rdi' nor 'batch'"
+            )
+
     # checking memory (if in-memory numpy array is provided)
     if not isinstance(cube, str):
         input_bytes = cube_ref.nbytes if cube_ref is not None else cube.nbytes
@@ -418,6 +426,7 @@ def pca(
                 conv,
                 mask_rdi,
                 cube_sig,
+                left_eigv,
                 **rot_options
             )
             residuals_cube_channels, residuals_cube_channels_, frame = res_pca
@@ -445,6 +454,7 @@ def pca(
                 batch,
                 full_output=True,
                 weights=weights,
+                left_eigv=left_eigv,
                 **rot_options
             )
             if isinstance(ncomp, (int, float)):
@@ -816,7 +826,7 @@ def _adi_pca(
                     residuals_cube = residuals_result[0]
                     reconstructed = residuals_result[1]
                     V = residuals_result[2]
-                    pcs = reshape_matrix(V, y, x) if not left_eigv else V
+                    pcs = reshape_matrix(V, y, x) if not left_eigv else V.T
                     recon = reshape_matrix(reconstructed, y, x)
                 else:
                     residuals_cube = residuals_result
@@ -1012,8 +1022,8 @@ def _adimsdi_singlepca(
         # When ncomp is a int/float and batch is None, standard ADI-PCA is run
         else:
             res_cube = _project_subtract(
-                big_cube, None, ncomp, scaling, mask_center_px, svd_mode, verbose, False
-            )
+                big_cube, None, ncomp, scaling, mask_center_px, svd_mode, 
+                verbose, False, left_eigv=left_eigv)
 
         if verbose:
             timing(start_time)
@@ -1120,6 +1130,7 @@ def _adimsdi_doublepca(
     conv=False,
     mask_rdi=None,
     cube_sig=None,
+    left_eigv=False,
     **rot_options
 ):
     """Handle the full-frame ADI+mSDI double PCA post-processing."""
@@ -1178,6 +1189,7 @@ def _adimsdi_doublepca(
         fwhm,
         conv,
         mask_rdi,
+        left_eigv,
     )
     residuals_cube_channels = np.array(res)
 
@@ -1220,6 +1232,7 @@ def _adimsdi_doublepca(
             verbose=False,
             full_output=False,
             cube_sig=cube_sig,
+            left_eigv=left_eigv,
         )
         if verbose:
             print("De-rotating and combining residuals")
@@ -1252,6 +1265,8 @@ def _adimsdi_doublepca_ifs(
     fwhm,
     conv,
     mask_rdi=None,
+    left_eigv=False,
+
 ):
     """Call by _adimsdi_doublepca with pool_map."""
     global ARRAY
@@ -1288,6 +1303,7 @@ def _adimsdi_doublepca_ifs(
                 svd_mode,
                 verbose=False,
                 full_output=False,
+                left_eigv=left_eigv,
             )
         else:
             residuals = np.zeros_like(cube_resc)
@@ -1499,10 +1515,17 @@ def _project_subtract(
                 )
             curr_frame = matrix[frame]  # current frame
             curr_frame_emp = matrix_emp[frame]
-            V = svd_wrapper(ref_lib, svd_mode, ncomp, False, left_eigv=left_eigv)
-            transformed = np.dot(curr_frame_emp, V.T)
-            reconstructed = np.dot(transformed.T, V)
+            if left_eigv :
+                V = svd_wrapper(ref_lib, svd_mode, ncomp, False, left_eigv=left_eigv)
+                transformed = np.dot(curr_frame_emp.T, V)
+                reconstructed = np.dot(V, transformed.T)
+            else :
+                V = svd_wrapper(ref_lib, svd_mode, ncomp, False)
+                transformed = np.dot(curr_frame_emp, V.T)
+                reconstructed = np.dot(transformed.T, V)
+            
             residuals = curr_frame - reconstructed
+            
             if full_output:
                 return ref_lib.shape[0], residuals, reconstructed
             else:
@@ -1514,14 +1537,14 @@ def _project_subtract(
                 V = svd_wrapper(ref_lib, svd_mode, ncomp, verbose, left_eigv=left_eigv)
                 transformed = np.dot(matrix_emp.T, V)
                 reconstructed = np.dot(V, transformed.T)
-                residuals = matrix - reconstructed
-                residuals_res = reshape_matrix(residuals, y, x)
             else :
                 V = svd_wrapper(ref_lib, svd_mode, ncomp, verbose)
                 transformed = np.dot(V, matrix_emp.T)
                 reconstructed = np.dot(transformed.T, V)
-                residuals = matrix - reconstructed
-                residuals_res = reshape_matrix(residuals, y, x)
+                
+            residuals = matrix - reconstructed
+            residuals_res = reshape_matrix(residuals, y, x)
+            
             if full_output:
                 return residuals_res, reconstructed, V
             else:

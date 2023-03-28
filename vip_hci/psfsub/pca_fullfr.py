@@ -375,7 +375,7 @@ def pca(
                 "with the full path on disk"
             )
 
-    if left_eigv is not None : 
+    if left_eigv : 
         if (batch is not None or mask_rdi is not None or cube_ref is not None):
             raise NotImplementedError( "left_eigv is not compatible"
                                       "with 'mask_rdi' nor 'batch'"

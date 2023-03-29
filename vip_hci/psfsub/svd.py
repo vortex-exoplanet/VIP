@@ -384,8 +384,7 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
     verbose: bool
         If True intermediate information is printed out.
     full_output : bool optional
-        If True the 3 terms of the SVD factorization are returned. If ``mode``
-        is eigen then only S and V are returned.
+        If True the 3 terms of the SVD factorization are returned. 
     random_state : int, RandomState instance or None, optional
         If int, random_state is the seed used by the random number generator.
         If RandomState instance, random_state is the random number generator.

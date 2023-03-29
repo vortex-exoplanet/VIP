@@ -104,6 +104,10 @@ def algo_pca_annular(ds):
     return vip.psfsub.pca_annular(ds.cube, ds.angles, fwhm=ds.fwhm, 
                                   n_segments='auto')
 
+def algo_pca_annular_left_eigv(ds):
+    return vip.psfsub.pca_annular(ds.cube, ds.angles, fwhm=ds.fwhm, 
+                                  n_segments='auto', left_eigv=True)
+
 def algo_pca_annular_auto(ds):
     return vip.psfsub.pca_annular(ds.cube, ds.angles, fwhm=ds.fwhm, 
                                   ncomp='auto')
@@ -173,6 +177,7 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
                  (algo_pca_grid, snrmap_fast),
                  (algo_pca_incremental, snrmap_fast),
                  (algo_pca_annular, snrmap_fast),
+                 (algo_pca_annular_left_eigv, snrmap_fast),
                  (algo_pca_annular_auto, snrmap_fast),
                  ],
              ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))

@@ -603,7 +603,7 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
 
 def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
                      cevr=0.9, max_evs=None, data_ref=None, debug=False,
-                     collapse=False, scaling=None):
+                     collapse=False, scaling=None, left_eigv=False):
     """ Getting ``ncomp`` eigenvectors. Choosing the size of the PCA truncation
     when ``ncomp`` is set to ``auto``. Used in ``pca_annular`` and ``llsg``.
     """
@@ -675,7 +675,7 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
     else:
         # Performing SVD/PCA according to "svd_mode" flag
         ncomp = min(ncomp, min(data_ref.shape[0], data_ref.shape[1]))
-        V = svd_wrapper(data_ref, svd_mode, ncomp, verbose=False)
+        V = svd_wrapper(data_ref, svd_mode, ncomp, verbose=False, left_eigv=False)
 
     return V
 

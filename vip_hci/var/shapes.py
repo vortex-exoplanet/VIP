@@ -382,7 +382,7 @@ def get_ellipse(data, a, b, pa, cy=None, cx=None, mode="ind"):
 
 
 def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
-                         optim_scale_fact=1, mode="ind"):
+                         optim_scale_fact=1, mode="ind", out=False):
     """
     Return indices or values in segments of a centered annulus.
 
@@ -407,7 +407,8 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
     mode : {'ind', 'val', 'mask'}, optional
         Controls what is returned: indices of selected pixels, values of
         selected pixels, or a boolean mask.
-
+    out : bool; optional
+        Return all indices or values outside the centered annulus.
     Returns
     -------
     indices : list of ndarrays
@@ -475,6 +476,8 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
         else:
             masks.append((rad >= inner_radius) & (rad < outer_radius) &
                          (phirot >= phi_start) & (phirot < phi_end))
+
+    if out: mask = ~np.array(masks)
 
     if mode == "ind":
         return [np.where(mask) for mask in masks]

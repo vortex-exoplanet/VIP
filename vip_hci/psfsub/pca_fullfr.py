@@ -1502,6 +1502,10 @@ def _project_subtract(
             ref_lib = prepare_matrix(
                 cube_ref, scaling, mask_center_px, mode="fullfr", verbose=verbose
             )
+        elif left_eigv:
+            ref_lib = prepare_matrix(cube, scaling, mask_center_px, 
+                      mode="fullfr", verbose=verbose, discard_mask_pix=True
+            )
         else:
             ref_lib = matrix_emp
 

@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-"""Module for the post-processing median subtraction algorithm."""
+"""Module for the post-processing LLSG algorithm."""
 
 __author__ = "Thomas Bédrine"
 __all__ = [

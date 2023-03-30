@@ -77,6 +77,9 @@ def algo_nmf_annular(ds):
 def algo_pca(ds):
     return vip.psfsub.pca(ds.cube, ds.angles, svd_mode='arpack')
 
+def algo_pca_left_eigv(ds):
+    return vip.psfsub.pca(ds.cube, ds.angles, left_eigv=True)
+
 def algo_pca_linalg(ds):
     return vip.psfsub.pca(ds.cube, ds.angles, svd_mode='eigen')
 
@@ -163,6 +166,7 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
                  (algo_frdiff, snrmap_fast),
                  (algo_frdiff4, snrmap_fast),
                  (algo_pca, snrmap_fast),
+                 (algo_pca_left_eigv, snrmap_fast),
                  (algo_pca_linalg, snrmap_fast),
                  (algo_pca_drot, snrmap_fast),
                  (algo_pca_cevr, snrmap_fast),

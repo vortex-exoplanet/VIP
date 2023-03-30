@@ -335,7 +335,7 @@ class SVDecomposer:
 
 
 def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
-                random_state=None, to_numpy=True):
+                random_state=None, to_numpy=True, left_eigv=False):
     """ Wrapper for different SVD libraries (CPU and GPU).
 
     Parameters
@@ -384,16 +384,19 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
     verbose: bool
         If True intermediate information is printed out.
     full_output : bool optional
-        If True the 3 terms of the SVD factorization are returned. If ``mode``
-        is eigen then only S and V are returned.
+        If True the 3 terms of the SVD factorization are returned. 
     random_state : int, RandomState instance or None, optional
         If int, random_state is the seed used by the random number generator.
         If RandomState instance, random_state is the random number generator.
         If None, the random number generator is the RandomState instance used
         by np.random. Used for ``randsvd`` mode.
     to_numpy : bool, optional
+        Whether to return intermediate arrays or not.
         If True (by default) the arrays computed in GPU are transferred from
         VRAM and converted to numpy ndarrays.
+    left_eigv : bool, optional
+        Whether to use rather left or right singularvectors
+        
 
     Returns
     -------
@@ -449,6 +452,9 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
         for i in range(V.shape[1]):
             V[:, i] /= S    # scaling EVs by the square root of EVals
         V = V[:ncomp]
+        if full_output or left_eigv:
+            U = EV/np.sqrt(np.abs(e)) 
+            U = U[:ncomp]
         if verbose:
             print('Done PCA with numpy linalg eigh functions')
 
@@ -521,6 +527,10 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
         V = V[:ncomp]
         if to_numpy:
             V = cupy.asnumpy(V)
+        if full_output or left_eigv:
+            U = EV/np.sqrt(np.abs(e)) 
+            U = U[:ncomp]
+            if to_numpy: U = cupy.asnumpy(U)
         if verbose:
             print('Done PCA with cupy eigh function (GPU)')
 
@@ -552,6 +562,10 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
         V = V[:ncomp]
         if to_numpy:
             V = np.array(V)
+        if full_output or left_eigv:
+            U = EV/np.sqrt(np.abs(e)) 
+            U = U[:ncomp]
+            if to_numpy: U = cupy.asnumpy(U)    
         if verbose:
             print('Done PCA with pytorch eig function')
 
@@ -577,10 +591,15 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
                 return V.T, S, U.T
             else:
                 return torch.transpose(V, 0, 1), S, torch.transpose(U, 0, 1)
-        elif mode in ('eigen', 'eigencupy', 'eigenpytorch'):
-            return S, V
         else:
             return U, S, V
+    elif left_eigv:
+        if mode == 'lapack':
+            return V.T
+        elif mode == 'pytorch':
+            return V
+        else:
+            return U
     else:
         if mode == 'lapack':
             return U.T

@@ -94,11 +94,17 @@ def algo_pca_single(ds, sc):
     return vip.psfsub.pca(ds.cube, ds.angles, scale_list=sc,
                           adimsdi='single', ncomp=10)
 
+def algo_pca_single_left_eigv(ds, sc):
+    return vip.psfsub.pca(ds.cube, ds.angles, scale_list=sc,
+                          adimsdi='single', ncomp=10, left_eigv=True)
 
 def algo_pca_double(ds, sc):
     return vip.psfsub.pca(ds.cube, ds.angles, scale_list=sc,
                           adimsdi='double', ncomp=(1, 2))
 
+def algo_pca_double_left_eigv(ds, sc):
+    return vip.psfsub.pca(ds.cube, ds.angles, scale_list=sc,
+                          adimsdi='double', ncomp=(1, 2), left_eigv=True)
 
 def algo_pca_annular(ds, sc):
     return vip.psfsub.pca_annular(ds.cube, ds.angles, scale_list=sc,
@@ -156,7 +162,9 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
                  (algo_xloci, snrmap_fast),
                  (algo_xloci_double, snrmap_fast),
                  (algo_pca_single, snrmap_fast),
+                 (algo_pca_single_left_eigv, snrmap_fast),
                  (algo_pca_double, snrmap_fast),
+                 (algo_pca_double_left_eigv, snrmap_fast),
                  (algo_pca_annular, None),
                  ],
              ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))

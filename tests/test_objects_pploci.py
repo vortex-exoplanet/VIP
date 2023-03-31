@@ -1,14 +1,16 @@
 """Test for the PostProc object dedicated to LOCI."""
+import copy
+
 import numpy as np
 
-from tests.conftest import fixture
+from .helpers import fixture
 from vip_hci.objects import LOCIBuilder
 from vip_hci.psfsub import xloci
 
 
 @fixture(scope="module")
 def test_loci_object(example_dataset_adi):
-    betapic = example_dataset_adi
+    betapic = copy.copy(example_dataset_adi)
     cube = betapic.cube
     angles = betapic.angles
     fwhm = betapic.fwhm
@@ -50,5 +52,7 @@ def test_loci_object(example_dataset_adi):
         interpolation=interpolation,
         verbose=False,
     ).build()
+
+    loci_obj.run()
 
     assert np.allclose(np.abs(fr_loci), np.abs(loci_obj.frame_final), atol=1.0e-2)

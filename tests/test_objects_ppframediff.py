@@ -1,14 +1,16 @@
 """Test for the PostProc object dedicated to frame differencing."""
+import copy
+
 import numpy as np
 
-from tests.conftest import fixture
+from .helpers import fixture
 from vip_hci.objects import FrameDiffBuilder
 from vip_hci.psfsub import frame_diff
 
 
 @fixture(scope="module")
 def test_frame_diff_object(example_dataset_adi):
-    betapic = example_dataset_adi
+    betapic = copy.copy(example_dataset_adi)
     cube = betapic.cube
     angles = betapic.angles
     fwhm = betapic.fwhm
@@ -42,5 +44,7 @@ def test_frame_diff_object(example_dataset_adi):
         interpolation=interpolation,
         verbose=False,
     ).build()
+
+    framediff_obj.run()
 
     assert np.allclose(np.abs(fr_fdiff), np.abs(framediff_obj.frame_final), atol=1.0e-2)

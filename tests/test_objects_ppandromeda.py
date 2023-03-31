@@ -1,7 +1,9 @@
 """Test for the PostProc object dedicated to ANDROMEDA."""
+import copy
+
 import numpy as np
 
-from tests.conftest import fixture
+from .helpers import fixture
 from vip_hci.config import VLT_NACO
 from vip_hci.invprob import andromeda
 from vip_hci.objects import AndroBuilder
@@ -9,7 +11,7 @@ from vip_hci.objects import AndroBuilder
 
 @fixture(scope="module")
 def test_andromeda_object(example_dataset_adi):
-    betapic = example_dataset_adi
+    betapic = copy.copy(example_dataset_adi)
     cube = betapic.cube
     angles = betapic.angles
     psf = betapic.psf
@@ -69,6 +71,8 @@ def test_andromeda_object(example_dataset_adi):
         nproc=1,
         verbose=False,
     ).build()
+
+    andro_obj.run()
 
     assert np.allclose(np.abs(fr_andro), np.abs(andro_obj.frame_final), atol=1.0e-2)
     assert np.allclose(np.abs(snr_andro), np.abs(andro_obj.snr_map), atol=1.0e-2)

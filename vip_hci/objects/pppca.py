@@ -10,22 +10,30 @@ from typing import Tuple, Optional, Union, List
 from dataclasses import dataclass, field
 
 import numpy as np
+from pandas import DataFrame
 from dataclass_builder import dataclass_builder
 
 from .dataset import Dataset
 from .postproc import PostProc
-from ..psfsub import pca, pca_annular
+from ..psfsub import pca, pca_annular, pca_grid, pca_annulus
 from ..config.utils_conf import algo_calculates_decorator as calculates
 
 
-# TODO : include pca_grid and pca_annulus
+# TODO : separate the various cases of PCA usage (basics, optnpc finding, others ?)
+# TODO : work on a significance computation function (maybe in PostProc)
 @dataclass
 class PPPCA(PostProc):
     """
-    Post-processing PCA algorithm, compatible with full-frame and annular modes.
+    Post-processing PCA algorithm, compatible with various options.
 
     Depending on what mode you need, parameters may vary. Check the list below to
-    ensure which arguments are required.
+    ensure which arguments are required. Currently, four variations of the PCA can be
+    called :
+        - full-frame PCA
+        - annular PCA
+        - grid PCA
+        - single annulus PCA.
+    Some parameters are common to several variations.
 
     Common parameters
     -----------------
@@ -59,6 +67,9 @@ class PPPCA(PostProc):
     ifs_collapse_range: str 'all' or tuple of 2 int
         If a tuple, it should contain the first and last channels where the mSDI
         residual channels will be collapsed (by default collapses all channels).
+    annulus_width : float, optional
+        Width in pixels of the annulus in the case of the "single annulus" or "grid"
+        mode.
     weights: 1d numpy array or list, optional
         Weights to be applied for a weighted mean. Need to be provided if
         collapse mode is 'wmean'.
@@ -141,6 +152,33 @@ class PPPCA(PostProc):
         Initial azimuth [degrees] of the first segment, counting from the
         positive x-axis counterclockwise (irrelevant if n_segments=1).
 
+    Grid parameters
+    ---------------
+    range_pcs : None or tuple, optional
+        The interval of PCs to be tried. Refer to ``vip_hci.psfsub.pca_grid`` for more
+        information.
+    mode : {'fullfr', 'annular'}, optional
+        Mode for PCA processing (full-frame or just in an annulus).
+    fmerit : {'px', 'max', 'mean'}
+        The function of merit to be maximized. 'px' is *source_xy* pixel's SNR,
+        'max' the maximum SNR in a FWHM circular aperture centered on
+        ``source_xy`` and 'mean' is the mean SNR in the same circular aperture.
+    plot : bool, optional
+        Whether to plot the SNR and flux as functions of PCs and final PCA
+        frame or not.
+    save_plot: string
+        If provided, the pc optimization plot will be saved to that path.
+    initial_4dshape : None or tuple, optional
+        Shape of the initial ADI+mSDI cube.
+    exclude_negative_lobes : bool, opt
+        Whether to include the adjacent aperture lobes to the tested location
+        or not. Can be set to True if the image shows significant neg lobes.
+
+    Single annulus parameters
+    -------------------------
+    r_guess : float
+        Radius of the annulus in pixels.
+
     """
 
     # Common parameters
@@ -154,7 +192,15 @@ class PPPCA(PostProc):
     collapse_ifs: str = "mean"
     ifs_collapse_range: str = "all"
     weights: List = None
-    _algo_name: List[str] = field(default_factory=lambda: ["pca", "pca_annular"])
+    annulus_width: int = 20
+    _algo_name: List[str] = field(
+        default_factory=lambda: [
+            "pca",
+            "pca_annular",
+            "pca_grid",
+            "pca_annulus",
+        ]
+    )
     cube_sig: np.ndarray = None
     cube_residuals: np.ndarray = None
     cube_residuals_der: np.ndarray = None
@@ -166,8 +212,8 @@ class PPPCA(PostProc):
     imlib2: str = "vip-fft"
     mask_rdi: np.ndarray = None
     check_mem: bool = True
-    batch: Union[float, int] = None
     conv: bool = False
+    batch: Union[float, int] = None
     cube_reconstructed: np.ndarray = None
     pcs: np.ndarray = None
     cube_residuals_per_channel: np.ndarray = None
@@ -183,6 +229,19 @@ class PPPCA(PostProc):
     max_frames_lib: int = 200
     tol: float = 1e-1
     theta_init: float = 0
+    # Grid parameters
+    range_pcs: Tuple[int] = None
+    mode: str = "fullfr"
+    fmerit: str = "mean"
+    plot: bool = True
+    save_plot: str = None
+    exclude_negative_lobes: bool = False
+    initial_4dshape: Tuple = None
+    dataframe: DataFrame = None
+    pc_list: List = None
+    opt_number_pc: int = None
+    # Single annulus parameters
+    r_guess: float = None
 
     # TODO: write test
     @calculates(
@@ -194,6 +253,9 @@ class PPPCA(PostProc):
         "cube_residuals_per_channel",
         "cube_residuals_per_channel_der",
         "cube_residuals_resc",
+        "dataframe",
+        "pc_list",
+        "opt_number_pc",
     )
     def run(
         self,
@@ -226,6 +288,8 @@ class PPPCA(PostProc):
 
         Parameters
         ----------
+        runmode : {'fullframe', 'annular', 'grid', 'annulus'}, optional
+            Mode of execution for the PCA.
         dataset : Dataset, optional
             Dataset to process. If not provided, ``self.dataset`` is used (as
             set when initializing this object).
@@ -243,6 +307,7 @@ class PPPCA(PostProc):
         """
         self._update_dataset(dataset)
 
+        # Fullframe mode
         if runmode == "fullframe":
             if self.source_xy is not None and self.dataset.fwhm is None:
                 raise ValueError("`fwhm` has not been set")
@@ -294,7 +359,9 @@ class PPPCA(PostProc):
                     frame=self.frame_final,
                     algo_name=self._algo_name[0],
                 )
-        else:
+
+        # Annular mode
+        elif runmode == "annular":
             if self.dataset.fwhm is None:
                 raise ValueError("`fwhm` has not been set")
 
@@ -322,6 +389,64 @@ class PPPCA(PostProc):
                     params=func_params,
                     frame=self.frame_final,
                     algo_name=self._algo_name[1],
+                )
+
+        # Grid mode
+        elif runmode == "grid":
+            if self.dataset.fwhm is None:
+                raise ValueError("`fwhm` has not been set")
+
+            add_params = {
+                "cube": self.dataset.cube,
+                "angle_list": self.dataset.angles,
+                "cube_ref": self.dataset.cuberef,
+                "fwhm": self.dataset.fwhm,
+                "scale_list": self.dataset.wavelengths,
+                "full_output": full_output,
+                "verbose": verbose,
+            }
+
+            func_params = self._setup_parameters(fkt=pca_grid, **add_params)
+
+            res = pca_grid(**func_params, **rot_options)
+
+            (
+                self.cube_residuals,
+                self.pc_list,
+                self.frame_final,
+                self.dataframe,
+                self.opt_number_pc,
+            ) = res
+
+            if self.results is not None:
+                self.results.register_session(
+                    params=func_params,
+                    frame=self.frame_final,
+                    algo_name=self._algo_name[2],
+                )
+
+        # Annulus mode
+        else:
+            if self.dataset.fwhm is None:
+                raise ValueError("`fwhm` has not been set")
+
+            add_params = {
+                "cube": self.dataset.cube,
+                "angs": self.dataset.angles,
+                "cube_ref": self.dataset.cuberef,
+            }
+
+            func_params = self._setup_parameters(fkt=pca_annulus, **add_params)
+
+            res = pca_annulus(**func_params, **rot_options)
+
+            self.frame_final = res
+
+            if self.results is not None:
+                self.results.register_session(
+                    params=func_params,
+                    frame=self.frame_final,
+                    algo_name=self._algo_name[3],
                 )
 
 

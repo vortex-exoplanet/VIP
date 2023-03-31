@@ -71,7 +71,6 @@ class PPResult(Saveable):
 
     sessions: List = field(default_factory=lambda: [])
 
-    # TODO: write test
     def register_session(
         self,
         frame: np.ndarray,
@@ -115,7 +114,6 @@ class PPResult(Saveable):
         )
         self.sessions.append(new_session)
 
-    # TODO: write test
     def show_session_results(
         self,
         session_id: Optional[int] = LAST_SESSION,
@@ -140,7 +138,7 @@ class PPResult(Saveable):
             elif session_id == ALL_SESSIONS:
                 for s_id, _ in enumerate(self.sessions):
                     self._show_single_session(s_id, label)
-            elif session_id > ALL_SESSIONS:
+            elif session_id in range(ALL_SESSIONS + 1, len(self.sessions)):
                 self._show_single_session(session_id, label)
             else:
                 raise ValueError(
@@ -237,7 +235,6 @@ class PostProc(BaseEstimator):
         for key, value in self.__dict__.items():
             print(f"{key} : {value}")
 
-    # TODO: write test
     def _update_dataset(self, dataset: Optional[Dataset] = None) -> None:
         """
         Handle a dataset passed to ``run()``.
@@ -265,7 +262,6 @@ class PostProc(BaseEstimator):
         else:
             print("No changes were made to the dataset.")
 
-    # TODO: write test
     def get_params_from_results(self, session_id: int) -> None:
         """
         Copy a previously registered configuration from the results to the object.
@@ -283,7 +279,7 @@ class PostProc(BaseEstimator):
             )
 
         res = self.results.sessions
-        if session_id > len(res):
+        if session_id > len(res) or res == []:
             raise ValueError(
                 f"ID is higher than the current number of sessions registered. "
                 f"There are {len(self.results.sessions)} saved now.",

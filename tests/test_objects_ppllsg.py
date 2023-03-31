@@ -1,4 +1,7 @@
 """Test for the PostProc object dedicated to LLSG."""
+
+__author__ = "Thomas Bédrine"
+
 import copy
 
 import numpy as np
@@ -9,8 +12,21 @@ from vip_hci.psfsub import llsg
 
 
 @fixture(scope="module")
-def test_llsg_object(example_dataset_adi):
+def setup_dataset(example_dataset_adi):
     betapic = copy.copy(example_dataset_adi)
+
+    return betapic
+
+
+def test_llsg_object(setup_dataset):
+    """
+    Compare frames obtained through procedural and object versions of LLSG.
+
+    Generate a frame with both ``vip_hci.psfsub.llsg`` and ``vip_hci.objects.ppllsg``
+    and ensure they match.
+
+    """
+    betapic = setup_dataset
     cube = betapic.cube
     angles = betapic.angles
     fwhm = betapic.fwhm
@@ -32,7 +48,6 @@ def test_llsg_object(example_dataset_adi):
 
     llsg_obj = LLSGBuilder(
         dataset=betapic,
-        mode="fullfr",
         rank=5,
         thresh=1,
         max_iter=20,

@@ -1,4 +1,7 @@
 """Test for the PostProc object dedicated to FMMF."""
+
+__author__ = "Thomas Bédrine"
+
 import copy
 
 import numpy as np
@@ -9,8 +12,21 @@ from vip_hci.objects import FMMFBuilder
 
 
 @fixture(scope="module")
-def test_fmmf_object(example_dataset_adi):
+def setup_dataset(example_dataset_adi):
     betapic = copy.copy(example_dataset_adi)
+
+    return betapic
+
+
+def test_fmmf_object(setup_dataset):
+    """
+    Compare frames obtained through procedural and object versions of FMMF.
+
+    Generate a frame and a snr_map with both ``vip_hci.invprob.fmmf`` and
+    ``vip_hci.objects.ppfmmf`` and ensure they match.
+
+    """
+    betapic = setup_dataset
     cube = betapic.cube
     angles = betapic.angles
     fwhm = betapic.fwhm

@@ -1,4 +1,7 @@
 """Test for the PostProc object dedicated to median subtraction."""
+
+__author__ = "Thomas Bédrine"
+
 import copy
 
 import numpy as np
@@ -9,8 +12,21 @@ from vip_hci.psfsub import median_sub
 
 
 @fixture(scope="module")
-def test_median_object(example_dataset_adi):
+def setup_dataset(example_dataset_adi):
     betapic = copy.copy(example_dataset_adi)
+
+    return betapic
+
+
+def test_median_object(setup_dataset):
+    """
+    Compare frames obtained through procedural and object versions of median sub.
+
+    Generate a frame with both ``vip_hci.psfsub.median_sub`` and
+    ``vip_hci.objects.ppmediansub`` and ensure they match.
+
+    """
+    betapic = setup_dataset
     cube = betapic.cube
     angles = betapic.angles
     fwhm = betapic.fwhm

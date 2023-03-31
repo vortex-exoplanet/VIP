@@ -37,7 +37,7 @@ from .coords import frame_center, dist
 from ..config.utils_conf import frame_or_shape
 
 
-def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None):
+def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None, output="masked_arr"):
     """
     Mask the pixels inside/outside of a centered circle with ``fillwith``.
 
@@ -58,7 +58,9 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None):
     cy, cx : floats, opt
         XY coordinates of thenter of the mask. By default, it considers the 
         center of the image.
-
+    output : {'masked_arr', 'bool_mask'}, optional
+        Whether to return the masked frame or a bolean mask
+    
     Returns
     -------
     array_masked : numpy ndarray
@@ -73,24 +75,30 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None):
 
     shape = (array.shape[-2], array.shape[-1])
     ind = disk((cy, cx), radius, shape=shape)
+    
+    if output == "bool_mask" : 
+        mask = np.ones(shape, dtype=bool)
+        mask[ind] = False
+        return mask
 
-    if mode == 'in':
-        array_masked = array.copy()
-        if array.ndim == 2:
-            array_masked[ind] = fillwith
-        elif array.ndim == 3:
-            array_masked[:, ind[1], ind[0]] = fillwith
-        elif array.ndim == 4:
-            array_masked[:, :, ind[1], ind[0]] = fillwith
-
-    elif mode == 'out':
-        array_masked = np.full_like(array, fillwith)
-        if array.ndim == 2:
-            array_masked[ind] = array[ind]
-        elif array.ndim == 3:
-            array_masked[:, ind[1], ind[0]] = array[:, ind[1], ind[0]]
-        elif array.ndim == 4:
-            array_masked[:, :, ind[1], ind[0]] = array[:, :, ind[1], ind[0]]
+    elif output == "masked_arr":
+        if mode == 'in':
+            array_masked = array.copy()
+            if array.ndim == 2:
+                array_masked[ind] = fillwith
+            elif array.ndim == 3:
+                array_masked[:, ind[1], ind[0]] = fillwith
+            elif array.ndim == 4:
+                array_masked[:, :, ind[1], ind[0]] = fillwith
+    
+        elif mode == 'out':
+            array_masked = np.full_like(array, fillwith)
+            if array.ndim == 2:
+                array_masked[ind] = array[ind]
+            elif array.ndim == 3:
+                array_masked[:, ind[1], ind[0]] = array[:, ind[1], ind[0]]
+            elif array.ndim == 4:
+                array_masked[:, :, ind[1], ind[0]] = array[:, :, ind[1], ind[0]]
 
     return array_masked
 
@@ -382,7 +390,7 @@ def get_ellipse(data, a, b, pa, cy=None, cx=None, mode="ind"):
 
 
 def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
-                         optim_scale_fact=1, mode="ind"):
+                         optim_scale_fact=1, mode="ind", out=False):
     """
     Return indices or values in segments of a centered annulus.
 
@@ -407,7 +415,8 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
     mode : {'ind', 'val', 'mask'}, optional
         Controls what is returned: indices of selected pixels, values of
         selected pixels, or a boolean mask.
-
+    out : bool; optional
+        Return all indices or values outside the centered annulus.
     Returns
     -------
     indices : list of ndarrays
@@ -475,6 +484,8 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
         else:
             masks.append((rad >= inner_radius) & (rad < outer_radius) &
                          (phirot >= phi_start) & (phirot < phi_end))
+
+    if out: mask = ~np.array(masks)
 
     if mode == "ind":
         return [np.where(mask) for mask in masks]
@@ -687,7 +698,7 @@ def matrix_scaling(matrix, scaling):
 
 
 def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
-                   inner_radius=None, outer_radius=None, verbose=True):
+                   inner_radius=None, outer_radius=None, discard_mask_pix=False, verbose=True):
     """
     Build the matrix for the SVD/PCA and other matrix decompositions.
 
@@ -721,6 +732,8 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
     outer_radius : int or float, optional
         [mode='annular'] Distance in pixels from the center of the frame to the
         outer radius of the annulus.
+    discard_mask_pix : bool, optional
+        [mask_center_px=int ] Exclude masked pixels in the vetorized frames
     verbose : bool, optional
         If True prints intermediate info.
 
@@ -752,7 +765,11 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
 
     elif mode == 'fullfr':
         if mask_center_px:
-            array = mask_circle(array, mask_center_px)
+            if discard_mask_pix:
+                mask = mask_circle(array, mask_center_px, output="bool_mask")
+                array = array[:, mask]
+            else :
+                array = mask_circle(array, mask_center_px)
 
         nfr = array.shape[0]
         matrix = np.reshape(array, (nfr, -1))  # == for i: array[i].flatten()

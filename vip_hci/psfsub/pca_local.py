@@ -31,16 +31,40 @@ from ..stats import descriptive_stats
 from .svd import get_eigenvectors
 
 
-def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
-                fwhm=4, asize=4, n_segments=1, delta_rot=(0.1, 1),
-                delta_sep=(0.1, 1), ncomp=1, svd_mode='lapack', nproc=1,
-                min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
-                imlib='vip-fft', interpolation='lanczos4', collapse='median',
-                collapse_ifs='mean', ifs_collapse_range='all', theta_init=0, 
-                weights=None, cube_sig=None, full_output=False, verbose=True, 
-                **rot_options):
-    """ PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data. The
-    PCA model is computed locally in each annulus (or annular sectors according
+def pca_annular(
+    cube,
+    angle_list,
+    cube_ref=None,
+    scale_list=None,
+    radius_int=0,
+    fwhm=4,
+    asize=4,
+    n_segments=1,
+    delta_rot=(0.1, 1),
+    delta_sep=(0.1, 1),
+    ncomp=1,
+    svd_mode="lapack",
+    nproc=1,
+    min_frames_lib=2,
+    max_frames_lib=200,
+    tol=1e-1,
+    scaling=None,
+    imlib="vip-fft",
+    interpolation="lanczos4",
+    collapse="median",
+    collapse_ifs="mean",
+    ifs_collapse_range="all",
+    theta_init=0,
+    weights=None,
+    cube_sig=None,
+    full_output=False,
+    verbose=True,
+    left_eigv=False,
+    **rot_options
+):
+    """PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data.
+
+    The PCA model is computed locally in each annulus (or annular sectors according
     to ``n_segments``). For each sector we discard reference frames taking into
     account a parallactic angle threshold (``delta_rot``) and optionally a
     radial movement threshold (``delta_sep``) for 4d cubes.
@@ -221,13 +245,41 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
         global start_time
         start_time = time_ini()
 
+    if left_eigv : 
+            if (cube_ref is not None) or (cube_sig is not None) or (ncomp=='auto'):
+                raise NotImplementedError( "left_eigv is not compatible"
+                                          "with 'cube_ref', 'cube_sig', ncomp='auto'"
+                )
+
     # ADI or ADI+RDI data
     if cube.ndim == 3:
-        res = _pca_adi_rdi(cube, angle_list, radius_int, fwhm, asize,
-                           n_segments, delta_rot, ncomp, svd_mode, nproc,
-                           min_frames_lib, max_frames_lib, tol, scaling, imlib,
-                           interpolation, collapse, True, verbose, cube_ref,
-                           theta_init, weights, cube_sig, **rot_options)
+        res = _pca_adi_rdi(
+            cube,
+            angle_list,
+            radius_int,
+            fwhm,
+            asize,
+            n_segments,
+            delta_rot,
+            ncomp,
+            svd_mode,
+            nproc,
+            min_frames_lib,
+            max_frames_lib,
+            tol,
+            scaling,
+            imlib,
+            interpolation,
+            collapse,
+            True,
+            verbose,
+            cube_ref,
+            theta_init,
+            weights,
+            cube_sig,
+            left_eigv,
+            **rot_options
+        )
 
         cube_out, cube_der, frame = res
         if full_output:
@@ -260,13 +312,33 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                 cube_ref_tmp = cube_ref[ch]
             else:
                 cube_ref_tmp = cube_ref
-            res_pca = _pca_adi_rdi(cube[ch], angle_list, radius_int, fwhm[ch],
-                                   asize, n_segments, delta_rot, ncomp[ch],
-                                   svd_mode, nproc, min_frames_lib,
-                                   max_frames_lib, tol, scaling, imlib,
-                                   interpolation, collapse, True, verbose,
-                                   cube_ref_tmp, theta_init, weights, cube_sig,
-                                   **rot_options)
+            res_pca = _pca_adi_rdi(
+                cube[ch],
+                angle_list,
+                radius_int,
+                fwhm[ch],
+                asize,
+                n_segments,
+                delta_rot,
+                ncomp[ch],
+                svd_mode,
+                nproc,
+                min_frames_lib,
+                max_frames_lib,
+                tol,
+                scaling,
+                imlib,
+                interpolation,
+                collapse,
+                True,
+                verbose,
+                cube_ref_tmp,
+                theta_init,
+                weights,
+                cube_sig,
+                left_eigv,
+                **rot_options
+            )
             cube_out.append(res_pca[0])
             cube_der.append(res_pca[1])
             ifs_adi_frames[ch] = res_pca[-1]
@@ -334,12 +406,33 @@ def pca_annular(cube, angle_list, cube_ref=None, scale_list=None, radius_int=0,
                 print('Second PCA subtraction exploiting the angular '
                       'variability')
 
-            res = _pca_adi_rdi(residuals_cube_channels, angle_list, radius_int,
-                               fwhm, asize, n_segments, delta_rot, ncomp2,
-                               svd_mode, nproc, min_frames_lib, max_frames_lib,
-                               tol, scaling, imlib, interpolation, collapse,
-                               full_output, verbose, None, theta_init, weights, 
-                               cube_sig, **rot_options)
+            res = _pca_adi_rdi(
+                residuals_cube_channels,
+                angle_list,
+                radius_int,
+                fwhm,
+                asize,
+                n_segments,
+                delta_rot,
+                ncomp2,
+                svd_mode,
+                nproc,
+                min_frames_lib,
+                max_frames_lib,
+                tol,
+                scaling,
+                imlib,
+                interpolation,
+                collapse,
+                full_output,
+                verbose,
+                None,
+                theta_init,
+                weights,
+                cube_sig,
+                left_eigv=left_eigv,
+                **rot_options
+            )
             if full_output:
                 cube_out, cube_der, frame = res
             else:
@@ -437,21 +530,42 @@ def _pca_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep, ncomp,
                         interpolation=interpolation, collapse=collapse)
     return frame_desc
 
-def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
-                 delta_rot=1, ncomp=1, svd_mode='lapack', nproc=None,
-                 min_frames_lib=2, max_frames_lib=200, tol=1e-1, scaling=None,
-                 imlib='vip-fft', interpolation='lanczos4', collapse='median',
-                 full_output=False, verbose=1, cube_ref=None, theta_init=0, 
-                 weights=None, cube_sig=None, **rot_options):
-    """ PCA exploiting angular variability (ADI fashion).
-    """
+
+def _pca_adi_rdi(
+    cube,
+    angle_list,
+    radius_int=0,
+    fwhm=4,
+    asize=2,
+    n_segments=1,
+    delta_rot=1,
+    ncomp=1,
+    svd_mode="lapack",
+    nproc=None,
+    min_frames_lib=2,
+    max_frames_lib=200,
+    tol=1e-1,
+    scaling=None,
+    imlib="vip-fft",
+    interpolation="lanczos4",
+    collapse="median",
+    full_output=False,
+    verbose=1,
+    cube_ref=None,
+    theta_init=0,
+    weights=None,
+    cube_sig=None,
+    left_eigv=False,
+    **rot_options
+):
+    """PCA exploiting angular variability (ADI fashion)."""
     array = cube
     if array.ndim != 3:
         raise TypeError('Input array is not a cube or 3d array')
     if array.shape[0] != angle_list.shape[0]:
         raise TypeError('Input vector or parallactic angles has wrong length')
 
-    n, y, _ = array.shape
+    n, y, x = array.shape
 
     angle_list = check_pa_vector(angle_list)
     n_annuli = int((y / 2 - radius_int) / asize)
@@ -499,8 +613,16 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
                                      radius_int, asize, delta_rot[ann],
                                      n_segments_ann, verbose, True)
         pa_thr, inner_radius, ann_center = res_ann_par
-        indices = get_annulus_segments(array[0], inner_radius, asize,
-                                       n_segments_ann, theta_init)
+        indices = get_annulus_segments(
+            array[0], inner_radius, asize, n_segments_ann, theta_init
+        )
+        
+        if left_eigv :
+            indices_out = get_annulus_segments(array[0], inner_radius, asize,
+                                               n_segments_ann, theta_init, 
+                                               out=True
+            )
+        
         # Library matrix is created for each segment and scaled if needed
         for j in range(n_segments_ann):
             yy = indices[j][0]
@@ -517,15 +639,44 @@ def _pca_adi_rdi(cube, angle_list, radius_int=0, fwhm=4, asize=2, n_segments=1,
             else:
                 matrix_sig_segm = None
 
-            res = pool_map(nproc, do_pca_patch, matrix_segm, iterable(range(n)),
-                           angle_list, fwhm, pa_thr, ann_center, svd_mode,
-                           ncompann, min_frames_lib, max_frames_lib, tol,
-                           matrix_segm_ref, matrix_sig_segm)
-
-            res = np.array(res, dtype=object)
-            residuals = np.array(res[:, 0])
-            ncomps = res[:, 1]
-            nfrslib = res[:, 2]
+            if not left_eigv:
+                res = pool_map(
+                    nproc,
+                    do_pca_patch,
+                    matrix_segm,
+                    iterable(range(n)),
+                    angle_list,
+                    fwhm,
+                    pa_thr,
+                    ann_center,
+                    svd_mode,
+                    ncompann,
+                    min_frames_lib,
+                    max_frames_lib,
+                    tol,
+                    matrix_segm_ref,
+                    matrix_sig_segm,
+                )
+                
+                res = np.array(res, dtype=object)
+                residuals = np.array(res[:, 0])
+                ncomps = res[:, 1]
+                nfrslib = res[:, 2]
+            else:
+                yy_out = indices_out[j][0]
+                xx_out = indices_out[j][1]
+                matrix_out_segm = array[:, yy_out, xx_out]  # shape [nframes x npx_out_segment]
+                matrix_out_segm = matrix_scaling(matrix_out_segm, scaling)
+                
+                V = get_eigenvectors(
+                    ncomp, matrix_out_segm, svd_mode, noise_error=tol, left_eigv=True
+                    )
+                
+                transformed = np.dot(V, matrix_segm.T)
+                reconstructed = np.dot(transformed.T, V)
+                residuals = matrix_segm - reconstructed
+                nfrslib = matrix_out_segm.shape[0]
+                
             for fr in range(n):
                 cube_out[fr][yy, xx] = residuals[fr]
 

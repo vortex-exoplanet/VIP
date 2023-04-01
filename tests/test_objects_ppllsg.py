@@ -52,11 +52,12 @@ def test_llsg_object(setup_dataset):
         thresh=1,
         max_iter=20,
         random_seed=10,
-        imlib=imlib_rot,
-        interpolation=interpolation,
         verbose=False,
     ).build()
 
-    llsg_obj.run()
+    llsg_obj.run(
+        imlib=imlib_rot,
+        interpolation=interpolation,
+    )
 
     assert np.allclose(np.abs(fr_llsg), np.abs(llsg_obj.frame_final), atol=1.0e-2)

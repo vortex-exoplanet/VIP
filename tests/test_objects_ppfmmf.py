@@ -37,10 +37,10 @@ def test_fmmf_object(setup_dataset):
 
     fr_fmmf, snr_fmmf = fmmf(
         cube=cube,
-        angle_list=angles,
+        pa=angles,
         fwhm=fwhm,
         psf=psf,
-        model="LOCI",
+        model="KLIP",
         var="FR",
         nproc=None,
         min_r=int(2 * fwhm),
@@ -53,7 +53,7 @@ def test_fmmf_object(setup_dataset):
 
     fmmf_obj = FMMFBuilder(
         dataset=betapic,
-        model="LOCI",
+        model="KLIP",
         var="FR",
         nproc=None,
         min_r=int(2 * fwhm),

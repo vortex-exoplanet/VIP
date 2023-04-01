@@ -59,6 +59,7 @@ def pca_annular(
     cube_sig=None,
     full_output=False,
     verbose=True,
+    left_eigv=False,
     **rot_options
 ):
     """PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data.
@@ -244,6 +245,12 @@ def pca_annular(
         global start_time
         start_time = time_ini()
 
+    if left_eigv : 
+            if (cube_ref is not None) or (cube_sig is not None) or (ncomp=='auto'):
+                raise NotImplementedError( "left_eigv is not compatible"
+                                          "with 'cube_ref', 'cube_sig', ncomp='auto'"
+                )
+
     # ADI or ADI+RDI data
     if cube.ndim == 3:
         res = _pca_adi_rdi(
@@ -270,6 +277,7 @@ def pca_annular(
             theta_init,
             weights,
             cube_sig,
+            left_eigv,
             **rot_options
         )
 
@@ -328,6 +336,7 @@ def pca_annular(
                 theta_init,
                 weights,
                 cube_sig,
+                left_eigv,
                 **rot_options
             )
             cube_out.append(res_pca[0])
@@ -442,6 +451,7 @@ def pca_annular(
                 theta_init,
                 weights,
                 cube_sig,
+                left_eigv=left_eigv,
                 **rot_options
             )
             if full_output:
@@ -595,6 +605,7 @@ def _pca_adi_rdi(
     theta_init=0,
     weights=None,
     cube_sig=None,
+    left_eigv=False,
     **rot_options
 ):
     """PCA exploiting angular variability (ADI fashion)."""
@@ -604,7 +615,7 @@ def _pca_adi_rdi(
     if array.shape[0] != angle_list.shape[0]:
         raise TypeError("Input vector or parallactic angles has wrong length")
 
-    n, y, _ = array.shape
+    n, y, x = array.shape
 
     angle_list = check_pa_vector(angle_list)
     n_annuli = int((y / 2 - radius_int) / asize)
@@ -665,6 +676,13 @@ def _pca_adi_rdi(
         indices = get_annulus_segments(
             array[0], inner_radius, asize, n_segments_ann, theta_init
         )
+        
+        if left_eigv :
+            indices_out = get_annulus_segments(array[0], inner_radius, asize,
+                                               n_segments_ann, theta_init, 
+                                               out=True
+            )
+        
         # Library matrix is created for each segment and scaled if needed
         for j in range(n_segments_ann):
             yy = indices[j][0]
@@ -681,28 +699,44 @@ def _pca_adi_rdi(
             else:
                 matrix_sig_segm = None
 
-            res = pool_map(
-                nproc,
-                do_pca_patch,
-                matrix_segm,
-                iterable(range(n)),
-                angle_list,
-                fwhm,
-                pa_thr,
-                ann_center,
-                svd_mode,
-                ncompann,
-                min_frames_lib,
-                max_frames_lib,
-                tol,
-                matrix_segm_ref,
-                matrix_sig_segm,
-            )
-
-            res = np.array(res, dtype=object)
-            residuals = np.array(res[:, 0])
-            ncomps = res[:, 1]
-            nfrslib = res[:, 2]
+            if not left_eigv:
+                res = pool_map(
+                    nproc,
+                    do_pca_patch,
+                    matrix_segm,
+                    iterable(range(n)),
+                    angle_list,
+                    fwhm,
+                    pa_thr,
+                    ann_center,
+                    svd_mode,
+                    ncompann,
+                    min_frames_lib,
+                    max_frames_lib,
+                    tol,
+                    matrix_segm_ref,
+                    matrix_sig_segm,
+                )
+                
+                res = np.array(res, dtype=object)
+                residuals = np.array(res[:, 0])
+                ncomps = res[:, 1]
+                nfrslib = res[:, 2]
+            else:
+                yy_out = indices_out[j][0]
+                xx_out = indices_out[j][1]
+                matrix_out_segm = array[:, yy_out, xx_out]  # shape [nframes x npx_out_segment]
+                matrix_out_segm = matrix_scaling(matrix_out_segm, scaling)
+                
+                V = get_eigenvectors(
+                    ncomp, matrix_out_segm, svd_mode, noise_error=tol, left_eigv=True
+                    )
+                
+                transformed = np.dot(V, matrix_segm.T)
+                reconstructed = np.dot(transformed.T, V)
+                residuals = matrix_segm - reconstructed
+                nfrslib = matrix_out_segm.shape[0]
+                
             for fr in range(n):
                 cube_out[fr][yy, xx] = residuals[fr]
 

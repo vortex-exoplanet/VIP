@@ -8,6 +8,7 @@ import pytest
 from vip_hci.objects import PPResult
 
 
+@pytest.mark.xdist_group(name="group1")
 def test_results_object():
     """Create a PPResult object and test various actions on it."""
     results = PPResult()

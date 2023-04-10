@@ -2,7 +2,9 @@
 Helper functions for tests
 """
 
-__author__ = "Ralf Farkas"
+__author__ = "Thomas Bédrine, Ralf Farkas"
+
+__all__ = ["check_detection"]
 
 import pytest
 from pytest import mark, param, raises, fixture
@@ -31,3 +33,46 @@ def aarc(actual, desired, rtol=1e-5, atol=1e-6):
     """
     __tracebackhide__ = True  # Hide traceback for pytest
     np.testing.assert_allclose(actual, desired, rtol=rtol, atol=atol)
+
+
+def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
+    """
+    Verify if injected companion is recovered.
+
+    Parameters
+    ----------
+    frame : 2d ndarray
+    yx_exp : tuple(y, x)
+        Expected position of the fake companion (= injected position).
+    fwhm : int or float
+        FWHM.
+    snr_thresh : int or float, optional
+        S/N threshold.
+    deltapix : int or float, optional
+        Error margin in pixels, between the expected position and the recovered.
+
+    """
+
+    def verify_expcoord(vectory, vectorx, exp_yx):
+        return any(
+            np.allclose(coor[0], expec[0], atol=deltapix)
+            and np.allclose(coor[1], expec[1], atol=deltapix)
+            for coor in zip(vectory, vectorx)
+            for expec in exp_yx
+        )
+
+    table = vip.metrics.detection(
+        frame,
+        fwhm=fwhm,
+        mode="lpeaks",
+        bkg_sigma=5,
+        matched_filter=False,
+        mask=True,
+        snr_thresh=snr_thresh,
+        plot=False,
+        debug=True,
+        full_output=True,
+        verbose=True,
+    )
+    msg = "Injected companion not recovered"
+    assert verify_expcoord(table.y, table.x, yx_exp), msg

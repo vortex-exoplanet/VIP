@@ -5,43 +5,59 @@ __author__ = "Thomas Bédrine"
 import copy
 
 import numpy as np
+from dataclass_builder import update
 
-from .helpers import fixture
+from .helpers import fixture, check_detection
 from vip_hci.objects import MedianBuilder
-from vip_hci.psfsub import median_sub
+from .snapshots.snapshot_psfsub import PSFADI_PATH
 
 
+# Note : this function comes from the former test for adi psfsub, I did not write it,
+# and I didn't found the author (feel free to add the author if you know them)
 @fixture(scope="module")
-def setup_dataset(example_dataset_adi):
-    betapic = copy.copy(example_dataset_adi)
+def injected_cube_position(example_dataset_adi):
+    """
+    Inject a fake companion into an example cube.
 
-    return betapic
+    Parameters
+    ----------
+    example_dataset_adi : fixture
+        Taken automatically from ``conftest.py``.
+
+    Returns
+    -------
+    dsi : VIP Dataset
+
+    """
+    print("injecting fake planet...")
+    dsi = copy.copy(example_dataset_adi)
+    # we chose a shallow copy, as we will not use any in-place operations
+    # (like +=). Using `deepcopy` would be safer, but consume more memory.
+
+    dsi.inject_companions(300, rad_dists=30)
+
+    return dsi
 
 
-def test_median_object(setup_dataset):
+def test_median_object(injected_cube_position):
     """
     Compare frames obtained through procedural and object versions of median sub.
 
-    Generate a frame with both ``vip_hci.psfsub.median_sub`` and
-    ``vip_hci.objects.ppmediansub`` and ensure they match.
+    Generate a frame with ``vip_hci.objects.ppmediansub`` and ensure they match with
+    their procedural counterpart. This is done by getting the snapshot of the
+    ``vip_hci.psfsub.median_sub`` function, generated preemptively with
+    ``tests.snapshots.snapshot_psfsub``.
 
     """
-    betapic = setup_dataset
-    cube = betapic.cube
-    angles = betapic.angles
-    fwhm = betapic.fwhm
+    betapic = injected_cube_position
 
     imlib_rot = "vip-fft"
     interpolation = None
 
-    fr_adi = median_sub(
-        cube=cube,
-        angle_list=angles,
-        fwhm=fwhm,
-        mode="fullfr",
-        imlib=imlib_rot,
-        interpolation=interpolation,
-    )
+    # Testing the full frame version of median subtraction
+
+    position = np.load(f"{PSFADI_PATH}medsub_adi_detect.npy")
+    exp_frame = np.load(f"{PSFADI_PATH}medsub_adi.npy")
 
     medsub_obj = MedianBuilder(
         dataset=betapic,
@@ -52,5 +68,20 @@ def test_median_object(setup_dataset):
     ).build()
 
     medsub_obj.run()
+    medsub_obj.make_snrmap()
 
-    assert np.allclose(np.abs(fr_adi), np.abs(medsub_obj.frame_final), atol=1.0e-2)
+    check_detection(medsub_obj.snr_map, position, betapic.fwhm, snr_thresh=2)
+    assert np.allclose(np.abs(medsub_obj.frame_final), np.abs(exp_frame), atol=1e-2)
+
+    # Testing the annular version of median subtraction
+
+    position = np.load(f"{PSFADI_PATH}medsub_ann_adi_detect.npy")
+    exp_frame = np.load(f"{PSFADI_PATH}medsub_ann_adi.npy")
+
+    update(medsub_obj, MedianBuilder(mode="annular"))
+
+    medsub_obj.run()
+    medsub_obj.make_snrmap()
+
+    check_detection(medsub_obj.snr_map, position, betapic.fwhm, snr_thresh=2)
+    assert np.allclose(np.abs(medsub_obj.frame_final), np.abs(exp_frame), atol=1e-2)

@@ -101,7 +101,6 @@ class PPFMMF(PostProc):
     def run(
         self,
         dataset: Optional[Dataset] = None,
-        model: Optional[str] = "KLIP",
         verbose: Optional[bool] = True,
     ):
         """
@@ -126,9 +125,6 @@ class PPFMMF(PostProc):
 
         if self.dataset.fwhm is None:
             raise ValueError("`fwhm` has not been set")
-
-        if self.model != model:
-            self.model = model
 
         add_params = {
             "cube": self.dataset.cube,

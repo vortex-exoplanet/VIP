@@ -7,90 +7,59 @@ import copy
 import numpy as np
 from dataclass_builder import update
 
-from .helpers import fixture
+from .helpers import fixture, check_detection
 from vip_hci.objects import NMFBuilder
-from vip_hci.psfsub import nmf
-from vip_hci.psfsub import nmf_annular
-from vip_hci.metrics import detection
+from .snapshots.snapshot_psfsub import PSFADI_PATH
 
 
+# Note : this function comes from the former test for adi psfsub, I did not write it,
+# and I didn't found the author (feel free to add the author if you know them)
 @fixture(scope="module")
-def setup_dataset(example_dataset_adi):
-    betapic = copy.copy(example_dataset_adi)
-
-    return betapic
-
-
-def test_nmf_object(setup_dataset):
+def injected_cube_position(example_dataset_adi):
     """
-    Compare frames obtained through procedural and object versions of NMF.
+    Inject a fake companion into an example cube.
 
-    Generate a frame with both ``vip_hci.psfsub.nmf`` and ``vip_hci.objects.ppnmf`` and
-    ensure they match. Annular case is tested too with ``vip_hci.psfsub.nmf_annular``.
+    Parameters
+    ----------
+    example_dataset_adi : fixture
+        Taken automatically from ``conftest.py``.
 
-    NMF case is quite different from the usual ones, because NMF will generate slightly
-    different frames from an iteration to another. Instead of comparing the ndarrays of
-    the frames, we detect the companion candidate in both frames and ensure their
-    coordinates are close from each other.
+    Returns
+    -------
+    dsi : VIP Dataset
 
     """
+    print("injecting fake planet...")
+    dsi = copy.copy(example_dataset_adi)
+    # we chose a shallow copy, as we will not use any in-place operations
+    # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
-    def verify_expcoord(frame_1, frame_2):
-        deltapix = 3
-        y_1, x_1 = detection(
-            array=frame_1,
-            fwhm=fwhm,
-            mode="lpeaks",
-            bkg_sigma=5,
-            matched_filter=False,
-            mask=True,
-            snr_thresh=2,
-            plot=False,
-            debug=True,
-            full_output=False,
-            verbose=False,
-        )
+    dsi.inject_companions(300, rad_dists=30)
 
-        y_2, x_2 = detection(
-            array=frame_2,
-            fwhm=fwhm,
-            mode="lpeaks",
-            bkg_sigma=5,
-            matched_filter=False,
-            mask=True,
-            snr_thresh=2,
-            plot=False,
-            debug=True,
-            full_output=False,
-            verbose=False,
-        )
+    return dsi
 
-        if np.allclose(y_1[0], y_2[0], atol=deltapix) and np.allclose(
-            x_1[0], x_2[0], atol=deltapix
-        ):
-            return True
-        return False
 
-    betapic = setup_dataset
-    cube = betapic.cube
-    angles = betapic.angles
+def test_nmf_object(injected_cube_position):
+    """
+    Compare detections obtained through procedural and object versions of NMF.
+
+    Generate a frame with ``vip_hci.objects.ppmediansub`` and ensure its detection match
+    with its procedural counterpart. This is done by getting the snapshot of the
+    ``vip_hci.psfsub.nmf`` function, generated preemptively with
+    ``tests.snapshots.save_snapshots_psfsub``. Also done with
+    ``vip_hci.psfsub.nmf_annular`` for the annular version of NMF.
+
+    """
+
+    betapic = injected_cube_position
+
     fwhm = betapic.fwhm
-
     imlib_rot = "vip-fft"
     interpolation = None
 
-    # Test for full-frame NMF
+    # Testing the full frame version of NMF
 
-    fr_nmf = nmf(
-        cube=cube,
-        angle_list=angles,
-        ncomp=14,
-        max_iter=10000,
-        init_svd="nndsvdar",
-        mask_center_px=None,
-        imlib=imlib_rot,
-        interpolation=interpolation,
-    )
+    position = np.load(f"{PSFADI_PATH}nmf_adi_detect.npy")
 
     nmf_obj = NMFBuilder(
         dataset=betapic,
@@ -104,24 +73,11 @@ def test_nmf_object(setup_dataset):
     ).build()
 
     nmf_obj.run()
+    nmf_obj.make_snrmap()
 
-    assert verify_expcoord(fr_nmf, nmf_obj.frame_final)
+    check_detection(nmf_obj.snr_map, position, betapic.fwhm, snr_thresh=2)
 
-    # Test for annular NMF
-
-    fr_nmf_ann = nmf_annular(
-        cube=cube,
-        angle_list=angles,
-        ncomp=9,
-        max_iter=10000,
-        init_svd="nndsvdar",
-        radius_int=0,
-        nproc=None,
-        fwhm=fwhm,
-        asize=fwhm,
-        imlib=imlib_rot,
-        interpolation=interpolation,
-    )
+    # Testing the annular version of NMF
 
     update(
         nmf_obj,
@@ -134,5 +90,6 @@ def test_nmf_object(setup_dataset):
     )
 
     nmf_obj.run()
+    nmf_obj.make_snrmap()
 
-    assert verify_expcoord(fr_nmf_ann, nmf_obj.frame_final)
+    check_detection(nmf_obj.snr_map, position, betapic.fwhm, snr_thresh=2)

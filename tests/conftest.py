@@ -3,6 +3,7 @@ Configuration file for pytest, containing global ("session-level") fixtures.
 
 """
 import time
+import copy
 
 import numpy as np
 import pytest

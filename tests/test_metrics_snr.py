@@ -6,7 +6,7 @@ import copy
 
 from .helpers import fixture
 from .helpers import np
-from vip_hci.dataset import Frame
+from vip_hci.objects.dataset import Frame
 from vip_hci.metrics import frame_report
 from vip_hci.metrics import snrmap
 from vip_hci.psfsub import pca

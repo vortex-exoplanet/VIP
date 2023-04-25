@@ -12,7 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8", "3.9"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        group: [1, 2, 3]
 
     steps:
     - uses: actions/checkout@v3
@@ -33,6 +34,6 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        make test
+        pytest --cov=vip_hci/ --cov-report=xml --splits 3 --group ${{ matrix.group }}
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2

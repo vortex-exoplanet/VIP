@@ -12,6 +12,7 @@ Subpackages
    vip_hci.fm
    vip_hci.invprob
    vip_hci.metrics
+   vip_hci.objects
    vip_hci.preproc
    vip_hci.psfsub
    vip_hci.stats
@@ -19,22 +20,6 @@ Subpackages
 
 Submodules
 ----------
-
-vip\_hci.hci\_dataset module
-----------------------------
-
-.. automodule:: vip_hci.hci_dataset
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-vip\_hci.hci\_postproc module
------------------------------
-
-.. automodule:: vip_hci.hci_postproc
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 vip\_hci.vip\_ds9 module
 ------------------------

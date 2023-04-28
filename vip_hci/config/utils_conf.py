@@ -17,7 +17,7 @@ import sys
 import numpy as np
 
 import itertools as itt
-from inspect import getargspec
+from inspect import getargspec, signature, Parameter
 from functools import wraps
 import multiprocessing
 from vip_hci import __version__
@@ -142,7 +142,6 @@ class Progressbar(object):
         Progressbar(iterable, verbose=False)
 
     """
-    
     backend = 'pyprind'
 
     def __new__(cls, iterable=None, desc=None, total=None, leave=True,
@@ -203,7 +202,7 @@ class NoProgressbar(object):
 
 def algo_calculates_decorator(*calculated_attributes):
     """
-    Decorator for HCIPostProcAlgo methods, describe what they calculate.
+    Decorator for PostProc methods, describe what they calculate.
 
     There are three benefits from decorating a method:
 
@@ -247,8 +246,17 @@ def algo_calculates_decorator(*calculated_attributes):
 
             # get the kwargs the fkt sees. Note that this is a combination of
             # the *default* kwargs and the kwargs *passed* by the user
-            a = getargspec(fkt)
-            all_kwargs = dict(zip(a.args[-len(a.defaults):], a.defaults))
+            """Note : this is deprecated for a while now, and signature should be
+            the only way to do this task. See below."""
+            # a = getargspec(fkt)
+            # all_kwargs = dict(zip(a.args[-len(a.defaults):], a.defaults))
+            # all_kwargs.update(kwargs)
+            sig = signature(fkt)
+            params = sig.parameters
+            all_kwargs = {
+                k: v.default for k,
+                v in params.items() if v.default is not Parameter.empty
+            }
             all_kwargs.update(kwargs)
 
             if not hasattr(self, "_called_calculators"):

@@ -10,6 +10,5 @@ from . import fm
 from . import metrics
 from . import stats
 from . import var
-from .dataset import *
-from .postproc import *
+from .objects import *
 from .vip_ds9 import *

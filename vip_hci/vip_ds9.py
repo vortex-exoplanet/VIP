@@ -5,7 +5,7 @@ Module with a class for creating a DS9 window through pyds9.
 __author__ = "Carlos Alberto Gomez Gonzalez"
 
 import warnings
-from .dataset import Dataset, Frame
+from .objects.dataset import Dataset, Frame
 
 try:
     import pyds9

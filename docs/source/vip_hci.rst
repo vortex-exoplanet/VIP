@@ -12,6 +12,7 @@ Subpackages
    vip_hci.fm
    vip_hci.invprob
    vip_hci.metrics
+   vip_hci.objects
    vip_hci.preproc
    vip_hci.psfsub
    vip_hci.stats

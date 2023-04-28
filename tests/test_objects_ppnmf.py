@@ -43,7 +43,7 @@ def test_nmf_object(injected_cube_position):
     """
     Compare detections obtained through procedural and object versions of NMF.
 
-    Generate a frame with ``vip_hci.objects.ppmediansub`` and ensure its detection match
+    Generate a frame with ``vip_hci.objects.ppnmf`` and ensure its detection match
     with its procedural counterpart. This is done by getting the snapshot of the
     ``vip_hci.psfsub.nmf`` function, generated preemptively with
     ``tests.snapshots.save_snapshots_psfsub``. Also done with

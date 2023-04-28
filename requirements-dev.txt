@@ -4,7 +4,6 @@ sphinx
 pandoc
 pytest
 pytest-cov ~=2.6.0
-codecov ~=2.0.15
 pytest-split
 flake8
 flake8-bandit

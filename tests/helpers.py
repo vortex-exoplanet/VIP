@@ -4,7 +4,7 @@ Helper functions for tests
 
 __author__ = "Thomas Bédrine, Ralf Farkas"
 
-__all__ = ["check_detection, download_resource"]
+__all__ = ["check_detection", "download_resource"]
 
 import pytest
 from pytest import mark, param, raises, fixture

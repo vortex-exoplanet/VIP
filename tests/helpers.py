@@ -4,10 +4,12 @@ Helper functions for tests
 
 __author__ = "Thomas Bédrine, Ralf Farkas"
 
-__all__ = ["check_detection"]
+__all__ = ["check_detection, download_resource"]
 
 import pytest
 from pytest import mark, param, raises, fixture
+from ratelimit import limits, sleep_and_retry
+from astropy.utils.data import download_file
 import vip_hci as vip
 import numpy as np
 
@@ -76,3 +78,9 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
     )
     msg = "Injected companion not recovered"
     assert verify_expcoord(table.y, table.x, yx_exp), msg
+
+
+@sleep_and_retry
+@limits(calls=1, period=1)
+def download_resource(url):
+    return download_file(url, cache=True)

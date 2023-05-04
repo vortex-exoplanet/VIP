@@ -10,3 +10,5 @@ flake8-bandit
 flake8-docstrings
 autopep8
 sphinx-rtd-theme
+StrEnum
+ratelimit

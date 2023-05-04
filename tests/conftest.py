@@ -33,11 +33,9 @@ def example_dataset_adi():
 
     url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_resource(
-        "{}/naco_betapic_cube_cen.fits".format(url_prefix), cache=True
-    )
-    f2 = download_resource("{}/naco_betapic_psf.fits".format(url_prefix), cache=True)
-    f3 = download_resource("{}/naco_betapic_pa.fits".format(url_prefix), cache=True)
+    f1 = download_resource("{}/naco_betapic_cube_cen.fits".format(url_prefix))
+    f2 = download_resource("{}/naco_betapic_psf.fits".format(url_prefix))
+    f3 = download_resource("{}/naco_betapic_pa.fits".format(url_prefix))
 
     # load fits
     cube = vip.fits.open_fits(f1)
@@ -103,10 +101,10 @@ def example_dataset_ifs():
 
     url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_resource("{}/sphere_v471tau_cube.fits".format(url_prefix), cache=True)
-    f2 = download_resource("{}/sphere_v471tau_psf.fits".format(url_prefix), cache=True)
-    f3 = download_resource("{}/sphere_v471tau_pa.fits".format(url_prefix), cache=True)
-    f4 = download_resource("{}/sphere_v471tau_wl.fits".format(url_prefix), cache=True)
+    f1 = download_resource("{}/sphere_v471tau_cube.fits".format(url_prefix))
+    f2 = download_resource("{}/sphere_v471tau_psf.fits".format(url_prefix))
+    f3 = download_resource("{}/sphere_v471tau_pa.fits".format(url_prefix))
+    f4 = download_resource("{}/sphere_v471tau_wl.fits".format(url_prefix))
 
     # load fits
     cube = vip.fits.open_fits(f1)
@@ -155,10 +153,10 @@ def example_dataset_ifs_crop():
 
     url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_resource("{}/sphere_v471tau_cube.fits".format(url_prefix), cache=True)
-    f2 = download_resource("{}/sphere_v471tau_psf.fits".format(url_prefix), cache=True)
-    f3 = download_resource("{}/sphere_v471tau_pa.fits".format(url_prefix), cache=True)
-    f4 = download_resource("{}/sphere_v471tau_wl.fits".format(url_prefix), cache=True)
+    f1 = download_resource("{}/sphere_v471tau_cube.fits".format(url_prefix))
+    f2 = download_resource("{}/sphere_v471tau_psf.fits".format(url_prefix))
+    f3 = download_resource("{}/sphere_v471tau_pa.fits".format(url_prefix))
+    f4 = download_resource("{}/sphere_v471tau_wl.fits".format(url_prefix))
 
     # load fits
     cube = vip.fits.open_fits(f1)
@@ -209,11 +207,9 @@ def example_dataset_rdi():
 
     url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_resource(
-        "{}/naco_betapic_cube_cen.fits".format(url_prefix), cache=True
-    )
-    f2 = download_resource("{}/naco_betapic_psf.fits".format(url_prefix), cache=True)
-    f3 = download_resource("{}/naco_betapic_pa.fits".format(url_prefix), cache=True)
+    f1 = download_resource("{}/naco_betapic_cube_cen.fits".format(url_prefix))
+    f2 = download_resource("{}/naco_betapic_psf.fits".format(url_prefix))
+    f3 = download_resource("{}/naco_betapic_pa.fits".format(url_prefix))
 
     # load fits
     cube = vip.fits.open_fits(f1)

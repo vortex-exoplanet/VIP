@@ -39,9 +39,9 @@ def make_dataset_adi():
 
     url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_resource(f"{url_prefix}/naco_betapic_cube_cen.fits", cache=True)
-    f2 = download_resource(f"{url_prefix}/naco_betapic_psf.fits", cache=True)
-    f3 = download_resource(f"{url_prefix}/naco_betapic_pa.fits", cache=True)
+    f1 = download_resource(f"{url_prefix}/naco_betapic_cube_cen.fits")
+    f2 = download_resource(f"{url_prefix}/naco_betapic_psf.fits")
+    f3 = download_resource(f"{url_prefix}/naco_betapic_pa.fits")
 
     # load fits
     cube = open_fits(f1)

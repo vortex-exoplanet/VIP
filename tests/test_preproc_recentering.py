@@ -614,12 +614,8 @@ def test_radon(debug=False):
     # ===== datacube
     url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_resource(
-        "{}/sphere_ifs_PDS70_cen.fits".format(url_prefix), cache=True
-    )
-    f2 = download_resource(
-        "{}/sphere_ifs_PDS70_psf.fits".format(url_prefix), cache=True
-    )
+    f1 = download_resource("{}/sphere_ifs_PDS70_cen.fits".format(url_prefix))
+    f2 = download_resource("{}/sphere_ifs_PDS70_psf.fits".format(url_prefix))
 
     # load fits
     cube = vip.fits.open_fits(f1)

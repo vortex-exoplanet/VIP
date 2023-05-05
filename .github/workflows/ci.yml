@@ -36,4 +36,4 @@ jobs:
       run: |
         pytest --cov=vip_hci/ --cov-report=xml --splits 3 --group ${{ matrix.group }}
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v3

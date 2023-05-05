@@ -13,6 +13,7 @@ from astropy.utils.data import download_file
 from vip_hci.fits import open_fits
 from vip_hci.objects import Dataset
 from vip_hci.config import VLT_NACO
+from tests.helpers import download_resource
 
 INVADI_PATH = "./tests/snapshots/invprob_adi/"
 DATASET_ELEMENTS = ["cube", "angles", "psf"]
@@ -28,17 +29,19 @@ def make_dataset_adi():
 
     Notes
     -----
-    Astropy's ``download_file`` uses caching, so the file is downloaded at most
-    once per test run.
+    We use the helper function ``download_resource`` which handles the request
+    and puts it to sleep for a defined duration if too many requests are done.
+    They inherently call the Astropy's ``download_file`` function which uses caching,
+    so the file is downloaded at most once per test run.
 
     """
     print("downloading data...")
 
     url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_file(f"{url_prefix}/naco_betapic_cube_cen.fits", cache=True)
-    f2 = download_file(f"{url_prefix}/naco_betapic_psf.fits", cache=True)
-    f3 = download_file(f"{url_prefix}/naco_betapic_pa.fits", cache=True)
+    f1 = download_resource(f"{url_prefix}/naco_betapic_cube_cen.fits")
+    f2 = download_resource(f"{url_prefix}/naco_betapic_psf.fits")
+    f3 = download_resource(f"{url_prefix}/naco_betapic_pa.fits")
 
     # load fits
     cube = open_fits(f1)

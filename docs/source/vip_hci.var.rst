@@ -36,22 +36,6 @@ vip\_hci.var.iuwt module
    :undoc-members:
    :show-inheritance:
 
-vip\_hci.var.object\_utils module
----------------------------------
-
-.. automodule:: vip_hci.var.object_utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-vip\_hci.var.paramenum module
------------------------------
-
-.. automodule:: vip_hci.var.paramenum
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 vip\_hci.var.shapes module
 --------------------------
 

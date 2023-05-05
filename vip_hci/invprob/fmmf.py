@@ -72,7 +72,8 @@ from ..preproc.derotation import _find_indices_adi
 
 def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
          param={'ncomp': 20, 'tolerance': 5e-3, 'delta_rot': 0.5}, crop=5,
-         imlib='vip-fft', interpolation='lanczos4', nproc=1, verbose=True):
+         imlib='vip-fft', interpolation='lanczos4', nproc=1, verbose=True,
+         **rot_options):
     """
     Forward model matched filter generating SNR map and contrast map, using
     either KLIP or LOCI as PSF subtraction techniques, as implemented in 
@@ -110,7 +111,7 @@ def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
         Model used for the residual noise variance estimation used in the
         matched filtering (maximum likelihood estimation of the flux and SNR).
         Three different approaches are proposed: 'FR', 'FM', and 'TE':
-            
+
         * 'FR': consider the pixels in the selected annulus with a width equal
           to asize but separately for every frame.
         * 'FM': consider the pixels in the selected annulus with a width
@@ -124,7 +125,7 @@ def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
         Dictionnary regrouping the parameters used by the KLIP (ncomp and
         delta_rot) or LOCI (tolerance and delta_rot) PSF-subtraction
         technique:
-            
+
         * ncomp : int, optional. Number of components used for the low-rank
           approximation of the speckle field. Default is 20.
         * tolerance: float, optional. Tolerance level for the approximation of
@@ -149,6 +150,10 @@ def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
     verbose: bool, optional
         If True provide a message each time an annulus has been treated.
         Default True.
+    rot_options: dictionary, optional
+        Dictionary with optional keyword values for "imlib", "interpolation,
+        "border_mode", "mask_val",  "edge_blend", "interp_zeros", "ker" (see
+        documentation of ``vip_hci.preproc.frame_rotate``)
 
     Returns
     -------
@@ -161,7 +166,7 @@ def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
 
     """
     start_time = time_ini(verbose)
-    
+
     if crop >= 2*round(fwhm)+1:
         raise ValueError("Maximum cropsize should be lower or equal to two" +
                          " FWHM,please change accordingly the value of 'crop'")
@@ -174,7 +179,7 @@ def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
 
     res_full = pool_map(nproc, _snr_contrast_esti, iterable(range(min_r, max_r)),
                         cube, pa, psf, fwhm, model, var, param, crop, imlib,
-                        interpolation, verbose)
+                        interpolation, verbose, **rot_options)
 
     flux_matrix = np.zeros((cube.shape[1], cube.shape[2]))
     snr_matrix = np.zeros((cube.shape[1], cube.shape[2]))
@@ -192,7 +197,7 @@ def fmmf(cube, pa, psf, fwhm, min_r=None, max_r=None, model='KLIP', var='FR',
 
 
 def _snr_contrast_esti(ann_center, cube, pa, psf, fwhm, model, var, param, crop,
-                       imlib, interpolation, verbose):
+                       imlib, interpolation, verbose, **rot_options):
     """
     Computation of the SNR and contrast associated to the pixels contained
     in a given annulus via the foward model matched filter
@@ -250,7 +255,7 @@ def _snr_contrast_esti(ann_center, cube, pa, psf, fwhm, model, var, param, crop,
             sci_mean_sub_matrix.append(sci_mean_sub_temp)
 
         mcube = cube_derotate(resicube_klip, pa, imlib=imlib,
-                              interpolation=interpolation)
+                              interpolation=interpolation, **rot_options)
 
     elif model == 'LOCI':
 
@@ -259,7 +264,7 @@ def _snr_contrast_esti(ann_center, cube, pa, psf, fwhm, model, var, param, crop,
                                                     tolerance, delta_rot,
                                                     pa_threshold)
         mcube = cube_derotate(resicube, pa, imlib=imlib,
-                              interpolation=interpolation)
+                              interpolation=interpolation, **rot_options)
 
     ceny, cenx = frame_center(cube[0])
     indices = get_annulus_segments(mcube[0], ann_center, 1, 1)
@@ -269,7 +274,8 @@ def _snr_contrast_esti(ann_center, cube, pa, psf, fwhm, model, var, param, crop,
     flux_esti = np.zeros_like(indicesy)
     prob_esti = np.zeros_like(indicesy)
 
-    var_f = _var_esti(mcube, pa, var, crop, ann_center)
+    var_f = _var_esti(mcube, pa, var, crop, ann_center, imlib, interpolation,
+                      **rot_options)
 
     for i in range(0, len(indicesy)):
 
@@ -309,7 +315,8 @@ def _snr_contrast_esti(ann_center, cube, pa, psf, fwhm, model, var, param, crop,
                         [1]] -= np.mean(psf_map_temp)
 
             psf_map_der = cube_derotate(psf_map, pa, imlib=imlib,
-                                        interpolation=interpolation)
+                                        interpolation=interpolation,
+                                        **rot_options)
             psfm_temp = cube_crop_frames(psf_map_der, int(2*round(fwhm)+1),
                                          xy=(poscentx, poscenty), verbose=False)
 
@@ -332,7 +339,8 @@ def _snr_contrast_esti(ann_center, cube, pa, psf, fwhm, model, var, param, crop,
             cube_res_fc[:, indices[0][0], indices[0][1]] = matrix_res_fc
             cube_der_fc = cube_derotate(cube_res_fc-np.mean(cube_res_fc),
                                         pa, imlib=imlib,
-                                        interpolation=interpolation)
+                                        interpolation=interpolation,
+                                        **rot_options)
             psfm_temp = cube_crop_frames(cube_der_fc, int(2*round(fwhm)+1),
                                          xy=(poscentx, poscenty), verbose=False)
 
@@ -374,7 +382,8 @@ def _snr_contrast_esti(ann_center, cube, pa, psf, fwhm, model, var, param, crop,
     return prob_esti, flux_esti, ann_center
 
 
-def _var_esti(mcube, pa, var, crop, ann_center):
+def _var_esti(mcube, pa, var, crop, ann_center, imlib='vip-fft',
+              interpolation='lanczos4', **rot_options):
     """
     Computation of the residual noise variance
     """
@@ -431,7 +440,8 @@ def _var_esti(mcube, pa, var, crop, ann_center):
 
         var_f = np.zeros((len(indicesy), n))
 
-        mcube_derot = cube_derotate(mcube, -pa)
+        mcube_derot = cube_derotate(mcube, -pa, imlib=imlib,
+                                    interpolation=interpolation, **rot_options)
 
         for a in range(0, len(indicesy)):
 

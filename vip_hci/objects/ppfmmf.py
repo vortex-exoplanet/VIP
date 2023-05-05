@@ -134,7 +134,7 @@ class PPFMMF(PostProc):
             "scale_list": self.dataset.wavelengths,
         }
 
-        func_params = self._setup_parameters(fkt=fmmf, **add_params)
+        func_params = setup_parameters(params_obj=self, fkt=fmmf, **add_params)
 
         res = fmmf(**func_params)
 

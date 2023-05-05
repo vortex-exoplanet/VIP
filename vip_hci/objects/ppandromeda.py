@@ -178,7 +178,7 @@ class PPAndromeda(PostProc):
             "nproc": nproc,
         }
 
-        func_params = self._setup_parameters(fkt=andromeda, **add_params)
+        func_params = setup_parameters(params_obj=self, fkt=andromeda, **add_params)
         res = andromeda(**func_params)
 
         self.contrast_map = res[0]

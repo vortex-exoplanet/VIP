@@ -31,6 +31,7 @@ from .dataset import Dataset
 from ..metrics import snrmap
 from ..config.utils_conf import algo_calculates_decorator as calculates
 from ..config.utils_conf import Saveable
+from ..var.object_utils import print_algo_params
 
 PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
 LAST_SESSION = -1
@@ -56,7 +57,6 @@ class Session:
 
 
 # TODO: find a proper format for results saving (pdf, images, dictionnaries...)
-# TODO: add a way to identify which algorithm was used
 @dataclass
 class PPResult(Saveable):
     """
@@ -481,56 +481,3 @@ class PostProc(BaseEstimator):
         add their own keyword arguments if needed.
         """
         raise NotImplementedError
-
-    # TODO: write test
-    def _setup_parameters(self, fkt: Callable, **add_params: dict) -> dict:
-        """
-        Help creating a dictionnary of parameters for a given function.
-
-        Look for the exact list of parameters needed for the ``fkt`` function and takes
-        only the attributes needed from the PostProc project. More parameters can be
-        included with the ``**add_pararms`` dictionnary.
-
-        Parameters
-        ----------
-        fkt : function
-            The function we want to give parameters to.
-        **add_params : dictionnary, optional
-            Additionnal parameters that may not be included in the PostProc object.
-
-        Returns
-        -------
-        params_dict : dictionnary
-            The dictionnary comprised of parameters needed for the function, selected
-            amongst attributes of PostProc objects and additionnal parameters.
-
-        """
-        wanted_params = inspect.signature(fkt).parameters
-        obj_params = vars(self)
-        all_params = {**obj_params, **add_params}
-        params_dict = {
-            param: all_params[param] for param in all_params if param in wanted_params
-        }
-        if self.verbose:
-            print(
-                f"The following parameters will be used for the run of {fkt.__name__} :"
-            )
-            print_algo_params(params_dict)
-        return params_dict
-
-
-def print_algo_params(params: dict) -> None:
-    """
-    Print the parameters that will be used for the run of an algorithm.
-
-    Parameters
-    ----------
-    params : dict
-        Dictionnary of the parameters that are sent to the function.
-
-    """
-    for key, value in params.items():
-        if isinstance(value, np.ndarray):
-            print(f"- {key} : np.ndarray (not shown)")
-        else:
-            print(f"- {key} : {value}")

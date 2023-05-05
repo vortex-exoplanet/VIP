@@ -123,7 +123,7 @@ class PPFrameDiff(PostProc):
             "full_output": full_output,
         }
 
-        func_params = self._setup_parameters(fkt=frame_diff, **add_params)
+        func_params = setup_parameters(params_obj=self, fkt=frame_diff, **add_params)
 
         res = frame_diff(**func_params, **rot_options)
 

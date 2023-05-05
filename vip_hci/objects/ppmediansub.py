@@ -132,7 +132,7 @@ class PPMedianSub(PostProc):
             "full_output": full_output,
         }
 
-        func_params = self._setup_parameters(fkt=median_sub, **add_params)
+        func_params = setup_parameters(params_obj=self, fkt=median_sub, **add_params)
 
         res = median_sub(**func_params, **rot_options)
 

@@ -140,7 +140,7 @@ class PPLLSG(PostProc):
             "verbose": verbose,
         }
 
-        func_params = self._setup_parameters(fkt=llsg, **add_params)
+        func_params = setup_parameters(params_obj=self, fkt=llsg, **add_params)
 
         res = llsg(**func_params, **rot_options)
         self.frame_l = res[3]

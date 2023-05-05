@@ -17,6 +17,7 @@ from .dataset import Dataset
 from .postproc import PostProc
 from ..psfsub import pca, pca_annular, pca_grid, pca_annulus
 from ..config.utils_conf import algo_calculates_decorator as calculates
+from ..var.object_utils import setup_parameters
 
 
 # TODO : separate the various cases of PCA usage (basics, optnpc finding, others ?)
@@ -323,7 +324,7 @@ class PPPCA(PostProc):
                 "full_output": full_output,
             }
 
-            func_params = self._setup_parameters(fkt=pca, **add_params)
+            func_params = setup_parameters(params_obj=self, fkt=pca, **add_params)
 
             res = pca(**func_params, **rot_options)
 
@@ -378,7 +379,9 @@ class PPPCA(PostProc):
                 "verbose": verbose,
             }
 
-            func_params = self._setup_parameters(fkt=pca_annular, **add_params)
+            func_params = setup_parameters(
+                params_obj=self, fkt=pca_annular, **add_params
+            )
 
             res = pca_annular(**func_params, **rot_options)
 
@@ -406,7 +409,7 @@ class PPPCA(PostProc):
                 "verbose": verbose,
             }
 
-            func_params = self._setup_parameters(fkt=pca_grid, **add_params)
+            func_params = setup_parameters(params_obj=self, fkt=pca_grid, **add_params)
 
             res = pca_grid(**func_params, **rot_options)
 
@@ -436,7 +439,9 @@ class PPPCA(PostProc):
                 "cube_ref": self.dataset.cuberef,
             }
 
-            func_params = self._setup_parameters(fkt=pca_annulus, **add_params)
+            func_params = setup_parameters(
+                params_obj=self, fkt=pca_annulus, **add_params
+            )
 
             res = pca_annulus(**func_params, **rot_options)
 

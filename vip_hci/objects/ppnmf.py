@@ -170,7 +170,7 @@ class PPNMF(PostProc):
         }
 
         if runmode == "fullframe":
-            func_params = self._setup_parameters(fkt=nmf, **add_params)
+            func_params = setup_parameters(params_obj=self, fkt=nmf, **add_params)
             res = nmf(**func_params, **rot_options)
 
             (
@@ -188,7 +188,9 @@ class PPNMF(PostProc):
                     algo_name=self._algo_name[0],
                 )
         else:
-            func_params = self._setup_parameters(fkt=nmf_annular, **add_params)
+            func_params = setup_parameters(
+                params_obj=self, fkt=nmf_annular, **add_params
+            )
             res = nmf_annular(**func_params, **rot_options)
 
             (

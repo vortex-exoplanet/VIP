@@ -2,28 +2,13 @@
 
 version: 2
 
-sphinx:
-  configuration: docs/source/conf.py
-
-build:
-  image: latest
-
-python:
-  version: 3.8
-
-# Don't build any extra formats
-formats: []
-
-version: 2
-
 python:
   version: 3.8
   install:
-    - requirements: docs/requirements.txt
+    - requirements: requirements.txt
     - method: pip
       path: .
 
 sphinx:
   configuration: docs/source/conf.py
   fail_on_warning: true
-  builder: dirhtml

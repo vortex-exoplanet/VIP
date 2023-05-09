@@ -1,14 +1,14 @@
 # .readthedocs.yml
 
-sphinx:
-  configuration: docs/source/conf.py
-
-build:
-  image: latest
+version: 2
 
 python:
   version: 3.8
-  setup_py_install: true
+  install:
+    - requirements: requirements.txt
+    - method: pip
+      path: .
 
-# Don't build any extra formats
-formats: []
+sphinx:
+  configuration: docs/source/conf.py
+  fail_on_warning: true

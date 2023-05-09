@@ -16,3 +16,4 @@ nbsphinx
 hciplot>=0.2.1
 typing
 dataclass_builder
+urllib3 < 2.0

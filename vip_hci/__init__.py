@@ -10,5 +10,5 @@ from . import fm
 from . import metrics
 from . import stats
 from . import var
-from .objects import *
+from . import objects
 from .vip_ds9 import *

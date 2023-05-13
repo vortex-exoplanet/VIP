@@ -43,7 +43,7 @@ def example_dataset_adi():
     psf = vip.fits.open_fits(f2)
 
     # create dataset object
-    dataset = vip.Dataset(
+    dataset = vip.objects.Dataset(
         cube, angles=angles, psf=psf, px_scale=vip.config.VLT_NACO["plsc"]
     )
 
@@ -113,7 +113,7 @@ def example_dataset_ifs():
     wl = vip.fits.open_fits(f4)
 
     # create dataset object
-    dataset = vip.Dataset(
+    dataset = vip.objects.Dataset(
         cube,
         angles=angles,
         psf=psf,
@@ -168,7 +168,7 @@ def example_dataset_ifs_crop():
     wl = wl[-3:]
 
     # create dataset object
-    dataset = vip.Dataset(
+    dataset = vip.objects.Dataset(
         cube,
         angles=angles,
         psf=psf,
@@ -237,7 +237,7 @@ def example_dataset_rdi():
     cube_ref = cube_rot + scrcu
 
     # create dataset object
-    dataset = vip.Dataset(
+    dataset = vip.objects.Dataset(
         cube,
         angles=angles,
         psf=psf,

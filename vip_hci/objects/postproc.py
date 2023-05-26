@@ -28,9 +28,10 @@ from hciplot import plot_frames
 from sklearn.base import BaseEstimator
 
 from .dataset import Dataset
-from ..metrics import snrmap
+from ..metrics import snrmap, snr, significance
 from ..config.utils_conf import algo_calculates_decorator as calculates
 from ..config.utils_conf import Saveable
+from ..var import frame_center
 from ..var.object_utils import ParamsUtils
 
 PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
@@ -229,12 +230,33 @@ class PostProc(BaseEstimator):
     verbose: bool = True
     results: PPResult = None
     frame_final: np.ndarray = None
+    signf: float = None
     par_utils: ParamsUtils = None
 
     def print_parameters(self) -> None:
         """Print out the parameters of the algorithm."""
         for key, value in self.__dict__.items():
             print(f"{key} : {value}")
+
+    def compute_significance(self, source_xy: Tuple[float] = None) -> None:
+        """
+        Compute the significance of a detection.
+
+        Parameters
+        ----------
+        source_xy: Tuple of floats
+            Coordinates of the detection.
+        """
+        if self.snr_map is None:
+            self.make_snrmap()
+
+        snr_sig = snr(self.frame_final, source_xy=source_xy, fwhm=self.fwhm)
+        center_y, center_x = frame_center(self.snr_map)
+        radius = np.sqrt(
+            (center_y - source_xy[1]) ** 2 + (center_x - source_xy[0]) ** 2
+        )
+        self.signf = significance(snr_sig, radius, self.fwhm, student_to_gauss=True)
+        print(r"{:.1f} sigma detection".format(self.signf))
 
     def _update_dataset(self, dataset: Optional[Dataset] = None) -> None:
         """

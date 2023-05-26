@@ -167,3 +167,17 @@ class Collapse(LowEnum):
     MEAN = auto()
     SUM = auto()
     TRIMMEAN = auto()
+
+
+class ReturnList(LowEnum):
+    """List of all possible modes of classic PCA."""
+
+    ADIMSDI_DOUBLE = auto()
+    ADIMSDI_SINGLE_NO_GRID = auto()
+    ADIMSDI_SINGLE_GRID_NO_SOURCE = auto()
+    ADIMSDI_SINGLE_GRID_SOURCE = auto()
+    ADI_FULLFRAME_GRID = auto()
+    ADI_FULLFRAME_STANDARD = auto()
+    ADI_INCREMENTAL_BATCH = auto()
+    PCA_GRID_SN = auto()
+    PCA_ROT_THRESH = auto()

@@ -31,7 +31,7 @@ from .dataset import Dataset
 from ..metrics import snrmap
 from ..config.utils_conf import algo_calculates_decorator as calculates
 from ..config.utils_conf import Saveable
-from ..var.object_utils import print_algo_params
+from ..var.object_utils import ParamsUtils
 
 PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
 LAST_SESSION = -1
@@ -181,7 +181,7 @@ class PPResult(Saveable):
             session_label,
             f"(function used : {self.sessions[session_id].algo_name}) : ",
         )
-        print_algo_params(self.sessions[session_id].parameters)
+        self.par_utils.print_algo_params(self.sessions[session_id].parameters)
 
         if isinstance(label, bool):
             if label:
@@ -229,6 +229,7 @@ class PostProc(BaseEstimator):
     verbose: bool = True
     results: PPResult = None
     frame_final: np.ndarray = None
+    par_utils: ParamsUtils = None
 
     def print_parameters(self) -> None:
         """Print out the parameters of the algorithm."""
@@ -294,7 +295,7 @@ class PostProc(BaseEstimator):
         for key, value in res[session_id].parameters.items():
             setattr(self, key, value)
         print("Configuration loaded :")
-        print_algo_params(res[session_id].parameters)
+        self.par_utils.print_algo_params(res[session_id].parameters)
 
     # TODO : identify the problem around the element `_repr_html_`
     def _get_calculations(self) -> dict:

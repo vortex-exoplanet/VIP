@@ -39,18 +39,17 @@ Options :
 
 """
 
-__author__ = "Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
+__author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
 __all__ = ["pca"]
 
 import numpy as np
 from multiprocessing import cpu_count
-from inspect import currentframe
 from typing import Tuple, List
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from strenum import LowercaseStrEnum as LowEnum
 from .svd import svd_wrapper, SVDecomposer
 from .utils_pca import pca_incremental, pca_grid
-from ..var.paramenum import SvdMode, Scaling, Adimsdi, Imlib, Interpolation, Collapse
+from ..var.paramenum import SvdMode, Adimsdi, Interpolation, Imlib, Collapse
 from ..preproc.derotation import _find_indices_adi, _compute_pa_thresh
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc import (
@@ -71,7 +70,7 @@ from ..var import (
     cube_filter_lowpass,
     mask_circle,
 )
-from ..var.object_utils import setup_parameters
+from ..var.object_utils import ParamsUtils
 from ..stats import descriptive_stats
 
 
@@ -261,7 +260,8 @@ class PcaParams:
 
 def pca(
     pca_params: PcaParams,
-    **rot_options,
+    par_utils: ParamsUtils = None,
+    **rot_options: dict,
 ):
     """Full-frame PCA algorithm applied to PSF substraction.
 
@@ -335,6 +335,10 @@ def pca(
     """
     start_time = time_ini(pca_params.verbose)
 
+    # Create a parameters handler if none was provided
+    if par_utils is None:
+        par_utils = ParamsUtils()
+
     if pca_params.batch is None:
         check_array(pca_params.cube, (3, 4), msg="cube")
     else:
@@ -407,7 +411,7 @@ def pca(
     if pca_params.scale_list is not None:
         if pca_params.adimsdi == Adimsdi.DOUBLE:
             add_params = {"start_time": start_time}
-            func_params = setup_parameters(
+            func_params = par_utils.setup_parameters(
                 params_obj=pca_params, fkt=_adimsdi_doublepca, **add_params
             )
             res_pca = _adimsdi_doublepca(
@@ -417,7 +421,7 @@ def pca(
             residuals_cube_channels, residuals_cube_channels_, frame = res_pca
         elif pca_params.adimsdi == Adimsdi.SINGLE:
             add_params = {"start_time": start_time}
-            func_params = setup_parameters(
+            func_params = par_utils.setup_parameters(
                 params_obj=pca_params, fkt=_adimsdi_singlepca, **add_params
             )
             res_pca = _adimsdi_singlepca(
@@ -466,7 +470,7 @@ def pca(
                     "cube_ref": pca_params.cube_ref[ch],
                     "ncomp": pca_params.ncomp[ch],
                 }
-                func_params = setup_parameters(
+                func_params = par_utils.setup_parameters(
                     params_obj=pca_params, fkt=_adi_rdi_pca, **add_params
                 )
                 res_pca = _adi_rdi_pca(
@@ -494,7 +498,7 @@ def pca(
                     "ncomp": pca_params.ncomp[ch],
                     "fwhm": pca_params.fwhm[ch],
                 }
-                func_params = setup_parameters(
+                func_params = par_utils.setup_parameters(
                     params_obj=pca_params, fkt=_adi_pca, **add_params
                 )
                 res_pca = _adi_pca(
@@ -555,7 +559,7 @@ def pca(
         add_params = {
             "start_time": start_time,
         }
-        func_params = setup_parameters(
+        func_params = par_utils.setup_parameters(
             params_obj=pca_params, fkt=_adi_rdi_pca, **add_params
         )
         res_pca = _adi_rdi_pca(
@@ -570,7 +574,7 @@ def pca(
             "start_time": start_time,
             "full_output": True,
         }
-        func_params = setup_parameters(
+        func_params = par_utils.setup_parameters(
             params_obj=pca_params, fkt=_adi_pca, **add_params
         )
 

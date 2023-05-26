@@ -16,8 +16,9 @@ from dataclass_builder import dataclass_builder
 from .dataset import Dataset
 from .postproc import PostProc
 from ..psfsub import pca, pca_annular, pca_grid, pca_annulus
+from ..var.paramenum import Adimsdi, ReturnList
 from ..config.utils_conf import algo_calculates_decorator as calculates
-from ..var.object_utils import setup_parameters
+from ..var.object_utils import ParamsUtils
 
 
 # TODO : separate the various cases of PCA usage (basics, optnpc finding, others ?)
@@ -205,6 +206,7 @@ class PPPCA(PostProc):
     cube_sig: np.ndarray = None
     cube_residuals: np.ndarray = None
     cube_residuals_der: np.ndarray = None
+    full_output = True
     # Full-frame parameters
     mask_center_px: int = None
     source_xy: Tuple[int] = None
@@ -215,11 +217,15 @@ class PPPCA(PostProc):
     check_mem: bool = True
     conv: bool = False
     batch: Union[float, int] = None
+    left_eigv: bool = False
+    check_memory: bool = True
     cube_reconstructed: np.ndarray = None
     pcs: np.ndarray = None
     cube_residuals_per_channel: np.ndarray = None
     cube_residuals_per_channel_der: np.ndarray = None
     cube_residuals_resc: np.ndarray = None
+    final_residuals_cube: np.ndarray = None
+    medians: np.ndarray = None
     # Annular parameters
     radius_int: int = 0
     asize: int = 4
@@ -254,18 +260,20 @@ class PPPCA(PostProc):
         "cube_residuals_per_channel",
         "cube_residuals_per_channel_der",
         "cube_residuals_resc",
+        "final_residuals_cube",
+        "medians",
         "dataframe",
         "pc_list",
         "opt_number_pc",
     )
     def run(
         self,
-        runmode: Optional[str] = "fullframe",
+        runmode: Optional[str] = "classic",
         dataset: Optional[Dataset] = None,
         nproc: Optional[int] = 1,
         verbose: Optional[bool] = True,
         full_output: Optional[bool] = True,
-        **rot_options: Optional[dict]
+        **rot_options: Optional[dict],
     ):
         """
         Run the post-processing PCA algorithm for model PSF subtraction.
@@ -289,7 +297,7 @@ class PPPCA(PostProc):
 
         Parameters
         ----------
-        runmode : {'fullframe', 'annular', 'grid', 'annulus'}, optional
+        runmode : {'classic', 'annular', 'grid', 'annulus'}, optional
             Mode of execution for the PCA.
         dataset : Dataset, optional
             Dataset to process. If not provided, ``self.dataset`` is used (as
@@ -307,56 +315,28 @@ class PPPCA(PostProc):
 
         """
         self._update_dataset(dataset)
+        self.par_utils = ParamsUtils()
 
         # Fullframe mode
-        if runmode == "fullframe":
+        if runmode == "classic":
             if self.source_xy is not None and self.dataset.fwhm is None:
                 raise ValueError("`fwhm` has not been set")
 
             # TODO : review the wavelengths attribute to be a scale_list instead
-            add_params = {
-                "cube": self.dataset.cube,
-                "angle_list": self.dataset.angles,
-                "cube_ref": self.dataset.cuberef,
-                "fwhm": self.dataset.fwhm,
-                "scale_list": self.dataset.wavelengths,
-                "nproc": nproc,
-                "full_output": full_output,
-            }
 
-            func_params = setup_parameters(params_obj=self, fkt=pca, **add_params)
+            self.cube = self.dataset.cube
+            self.angle_list = self.dataset.angles
+            self.cube_ref = self.dataset.cuberef
+            self.fwhm = self.dataset.fwhm
+            self.scale_list = self.dataset.wavelengths
 
-            res = pca(**func_params, **rot_options)
+            res = pca(self, par_utils=self.par_utils, **rot_options)
 
-            if self.dataset.cube.ndim == 3:
-                if self.source_xy is not None:
-                    frame, recon_cube, res_cube, res_cube_der = res
-                    self.cube_reconstructed = recon_cube
-                    self.cube_residuals = res_cube
-                    self.cube_residuals_der = res_cube_der
-                    self.frame_final = frame
-                else:
-                    frame, pcs, recon_cube, res_cube, res_cube_der = res
-                    self.pcs = pcs
-                    self.cube_reconstructed = recon_cube
-                    self.cube_residuals = res_cube
-                    self.cube_residuals_der = res_cube_der
-                    self.frame_final = frame
-            elif self.dataset.cube.ndim == 4:
-                if self.adimsdi == "double":
-                    frame, res_cube_chan, res_cube_chan_der = res
-                    self.cube_residuals_per_channel = res_cube_chan
-                    self.cube_residuals_per_channel_der = res_cube_chan_der
-                    self.frame_final = frame
-                elif self.adimsdi == "single":
-                    frame, cube_allfr_res, cube_adi_res = res
-                    self.cube_residuals = cube_allfr_res
-                    self.cube_residuals_resc = cube_adi_res
-                    self.frame_final = frame
+            self.find_pca_mode(res=res)
 
             if self.results is not None:
                 self.results.register_session(
-                    params=func_params,
+                    params=self.par_utils.function_parameters,
                     frame=self.frame_final,
                     algo_name=self._algo_name[0],
                 )
@@ -379,7 +359,7 @@ class PPPCA(PostProc):
                 "verbose": verbose,
             }
 
-            func_params = setup_parameters(
+            func_params = self.par_utils.setup_parameters(
                 params_obj=self, fkt=pca_annular, **add_params
             )
 
@@ -409,7 +389,9 @@ class PPPCA(PostProc):
                 "verbose": verbose,
             }
 
-            func_params = setup_parameters(params_obj=self, fkt=pca_grid, **add_params)
+            func_params = self.par_utils.setup_parameters(
+                params_obj=self, fkt=pca_grid, **add_params
+            )
 
             res = pca_grid(**func_params, **rot_options)
 
@@ -439,7 +421,7 @@ class PPPCA(PostProc):
                 "cube_ref": self.dataset.cuberef,
             }
 
-            func_params = setup_parameters(
+            func_params = self.par_utils.setup_parameters(
                 params_obj=self, fkt=pca_annulus, **add_params
             )
 
@@ -453,6 +435,139 @@ class PPPCA(PostProc):
                     frame=self.frame_final,
                     algo_name=self._algo_name[3],
                 )
+
+    def find_pca_mode(self, res):
+        """
+        Identify the mode of PCA used and extracts return elements accordingly.
+
+        Nine modes are currently known and each of them looks at specific conditions.
+        Every mode and its set of conditions is verified to be True or not, and
+        associates its return elements via the `match...case` if recognized.
+
+        Parameters
+        ----------
+        res: any
+            The return of the PCA function, can consist of a multitude of items.
+        """
+        conditions = {
+            "cube": isinstance(self.cube, np.ndarray),
+            "scale": self.scale_list is not None,
+            "adimsdidouble": self.adimsdi == Adimsdi.DOUBLE,
+            "adimsdisingle": self.adimsdi == Adimsdi.SINGLE,
+            "ncompunit": isinstance(self.ncomp, (float, int)),
+            "ncomptuple": isinstance(self.ncomp, tuple),
+            "source": self.source_xy is not None,
+            "nosource": self.source_xy is None,
+            "reforsource": self.cube_ref is not None or self.source_xy is None,
+            "nobatch": self.batch is None,
+            "batch": self.batch is not None,
+            "cubeorscale": isinstance(self.cube, str) or self.scale_list is None,
+        }
+
+        pca_modes = {
+            ReturnList.ADIMSDI_DOUBLE: conditions["cube"]
+            and conditions["scale"]
+            and conditions["adimsdidouble"],
+            ReturnList.ADIMSDI_SINGLE_NO_GRID: conditions["cube"]
+            and conditions["scale"]
+            and conditions["adimsdisingle"]
+            and conditions["ncompunit"],
+            ReturnList.ADIMSDI_SINGLE_GRID_NO_SOURCE: conditions["cube"]
+            and conditions["scale"]
+            and conditions["adimsdisingle"]
+            and conditions["ncomptuple"]
+            and conditions["nosource"],
+            ReturnList.ADIMSDI_SINGLE_GRID_SOURCE: conditions["cube"]
+            and conditions["scale"]
+            and conditions["adimsdisingle"]
+            and conditions["ncomptuple"]
+            and conditions["source"],
+            ReturnList.ADI_FULLFRAME_GRID: conditions["cubeorscale"]
+            and conditions["reforsource"]
+            and conditions["nobatch"]
+            and conditions["ncomptuple"],
+            ReturnList.ADI_INCREMENTAL_BATCH: conditions["cubeorscale"]
+            and conditions["reforsource"]
+            and conditions["batch"],
+            ReturnList.ADI_FULLFRAME_STANDARD: conditions["cubeorscale"]
+            and conditions["reforsource"]
+            and conditions["nobatch"]
+            and conditions["ncompunit"],
+            ReturnList.PCA_GRID_SN: conditions["cubeorscale"]
+            and conditions["source"]
+            and conditions["ncomptuple"],
+            ReturnList.PCA_ROT_THRESH: conditions["cubeorscale"]
+            and conditions["source"]
+            and conditions["ncompunit"],
+        }
+
+        pca_mode = None
+
+        for mode, state in pca_modes.items():
+            if state:
+                pca_mode = mode
+                break
+
+        match (pca_mode):
+            case ReturnList.ADIMSDI_DOUBLE:
+                self.frame_final, self.cube_residuals, self.cube_residuals_der = res
+            case ReturnList.ADIMSDI_SINGLE_NO_GRID:
+                self.frame_final, self.cube_residuals, _ = res
+            case ReturnList.ADIMSDI_SINGLE_GRID_NO_SOURCE:
+                self.final_residuals_cube, self.frame_final, _ = res
+            case ReturnList.ADIMSDI_SINGLE_GRID_SOURCE:
+                self.final_residuals_cube, self.pc_list = res
+            case ReturnList.ADI_FULLFRAME_GRID:
+                if self.cube.ndim == 4:
+                    self.final_residuals_cube, self.pc_list, _ = res
+                else:
+                    self.final_residuals_cube, self.pc_list = res
+            case ReturnList.ADI_INCREMENTAL_BATCH:
+                if self.cube.ndim == 4:
+                    self.frame_final, self.pcs, self.medians, _ = res
+                else:
+                    self.frame_final, self.pcs, self.medians = res
+            case ReturnList.ADI_FULLFRAME_STANDARD:
+                if self.cube.ndim == 4:
+                    (
+                        self.frame_final,
+                        self.pcs,
+                        self.cube_reconstructed,
+                        self.cube_residuals,
+                        self.cube_residuals_der,
+                        _,
+                    ) = res
+                else:
+                    (
+                        self.frame_final,
+                        self.pcs,
+                        self.cube_reconstructed,
+                        self.cube_residuals,
+                        self.cube_residuals_der,
+                    ) = res
+            case ReturnList.PCA_GRID_SN:
+                if self.cube.ndim == 4:
+                    self.final_residuals_cube, self.frame_final, _, _ = res
+                else:
+                    self.final_residuals_cube, self.frame_final, _ = res
+            case ReturnList.PCA_ROT_THRESH:
+                if self.cube.ndim == 4:
+                    (
+                        self.frame_final,
+                        self.cube_reconstructed,
+                        self.cube_residuals,
+                        self.cube_residuals_der,
+                        _,
+                    ) = res
+                else:
+                    (
+                        self.frame_final,
+                        self.cube_reconstructed,
+                        self.cube_residuals,
+                        self.cube_residuals_der,
+                    ) = res
+            case _:
+                raise RuntimeError("No PCA mode could be identified.")
 
 
 PCABuilder = dataclass_builder(PPPCA)

@@ -79,9 +79,6 @@ class PcaParams:
     """
     Set of parameters for the PCA module.
 
-    Also includes built-in functions that detect which mode of PCA will be
-    used based on the given parameters.
-
     Parameters
     ----------
     cube : str or numpy ndarray, 3d or 4d
@@ -156,7 +153,7 @@ class PcaParams:
         Switch for the SVD method/library to be used.
     scaling : LowerCaseStrEnum, see `vip_hci.var.paramenum.Scaling`
         Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
-        function. If set to None, the input matrix is left untouched. Otherwise:
+        function. If set to None, the input matrix is left untouched.
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
         radius of the circular mask.
@@ -259,7 +256,7 @@ class PcaParams:
 
 
 def pca(
-    pca_params: PcaParams,
+    algo_params: PcaParams,
     par_utils: ParamsUtils = None,
     **rot_options: dict,
 ):
@@ -286,7 +283,7 @@ def pca(
 
     Parameters
     ----------
-    pca_params: PcaParams
+    algo_params: PcaParams
         Dataclass retaining all the needed parameters for PCA.
     rot_options: dictionary, optional
         Dictionary with optional keyword values for "border_mode", "mask_val",
@@ -333,37 +330,37 @@ def pca(
 
 
     """
-    start_time = time_ini(pca_params.verbose)
+    start_time = time_ini(algo_params.verbose)
 
     # Create a parameters handler if none was provided
     if par_utils is None:
         par_utils = ParamsUtils()
 
-    if pca_params.batch is None:
-        check_array(pca_params.cube, (3, 4), msg="cube")
+    if algo_params.batch is None:
+        check_array(algo_params.cube, (3, 4), msg="cube")
     else:
-        if not isinstance(pca_params.cube, (str, np.ndarray)):
+        if not isinstance(algo_params.cube, (str, np.ndarray)):
             raise TypeError(
                 "`cube` must be a numpy (3d or 4d) array or a str "
                 "with the full path on disk"
             )
 
-    if pca_params.left_eigv:
+    if algo_params.left_eigv:
         if (
-            pca_params.batch is not None
-            or pca_params.mask_rdi is not None
-            or pca_params.cube_ref is not None
+            algo_params.batch is not None
+            or algo_params.mask_rdi is not None
+            or algo_params.cube_ref is not None
         ):
             raise NotImplementedError(
                 "left_eigv is not compatible with 'mask_rdi' nor 'batch'"
             )
 
     # checking memory (if in-memory numpy array is provided)
-    if not isinstance(pca_params.cube, str):
+    if not isinstance(algo_params.cube, str):
         input_bytes = (
-            pca_params.cube_ref.nbytes
-            if pca_params.cube_ref is not None
-            else pca_params.cube.nbytes
+            algo_params.cube_ref.nbytes
+            if algo_params.cube_ref is not None
+            else algo_params.cube.nbytes
         )
         mem_msg = (
             "Set check_memory=False to override this memory check or "
@@ -373,13 +370,13 @@ def pca(
         check_enough_memory(
             input_bytes,
             1.0,
-            raise_error=pca_params.check_memory,
+            raise_error=algo_params.check_memory,
             error_msg=mem_msg,
-            verbose=pca_params.verbose,
+            verbose=algo_params.verbose,
         )
 
-    if pca_params.nproc is None:
-        pca_params.nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
+    if algo_params.nproc is None:
+        algo_params.nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
 
     # All possible outputs for any PCA usage must be pre-declared to None
     # Default possible outputs
@@ -408,30 +405,30 @@ def pca(
 
     # ADI + mSDI. Shape of cube: (n_channels, n_adi_frames, y, x)
     # isinstance(cube, np.ndarray) and cube.ndim == 4:
-    if pca_params.scale_list is not None:
-        if pca_params.adimsdi == Adimsdi.DOUBLE:
+    if algo_params.scale_list is not None:
+        if algo_params.adimsdi == Adimsdi.DOUBLE:
             add_params = {"start_time": start_time}
             func_params = par_utils.setup_parameters(
-                params_obj=pca_params, fkt=_adimsdi_doublepca, **add_params
+                params_obj=algo_params, fkt=_adimsdi_doublepca, **add_params
             )
             res_pca = _adimsdi_doublepca(
                 **func_params,
                 **rot_options,
             )
             residuals_cube_channels, residuals_cube_channels_, frame = res_pca
-        elif pca_params.adimsdi == Adimsdi.SINGLE:
+        elif algo_params.adimsdi == Adimsdi.SINGLE:
             add_params = {"start_time": start_time}
             func_params = par_utils.setup_parameters(
-                params_obj=pca_params, fkt=_adimsdi_singlepca, **add_params
+                params_obj=algo_params, fkt=_adimsdi_singlepca, **add_params
             )
             res_pca = _adimsdi_singlepca(
                 **func_params,
                 **rot_options,
             )
-            if isinstance(pca_params.ncomp, (int, float)):
+            if isinstance(algo_params.ncomp, (int, float)):
                 cube_allfr_residuals, cube_adi_residuals, frame = res_pca
-            elif isinstance(pca_params.ncomp, tuple):
-                if pca_params.source_xy is None:
+            elif isinstance(algo_params.ncomp, tuple):
+                if algo_params.source_xy is None:
                     final_residuals_cube, pclist = res_pca
                 else:
                     final_residuals_cube, frame, table, _ = res_pca
@@ -439,18 +436,18 @@ def pca(
             raise ValueError("`adimsdi` mode not recognized")
 
     # 4D cube, but no mSDI desired
-    elif pca_params.cube.ndim == 4:
-        nch, nz, ny, nx = pca_params.cube.shape
+    elif algo_params.cube.ndim == 4:
+        nch, nz, ny, nx = algo_params.cube.shape
         ifs_adi_frames = np.zeros([nch, ny, nx])
-        if not isinstance(pca_params.ncomp, list):
-            pca_params.ncomp = [pca_params.ncomp] * nch
-        elif isinstance(pca_params.ncomp, list) and len(pca_params.ncomp) != nch:
+        if not isinstance(algo_params.ncomp, list):
+            algo_params.ncomp = [algo_params.ncomp] * nch
+        elif isinstance(algo_params.ncomp, list) and len(algo_params.ncomp) != nch:
             msg = "If ncomp is a list, in the case of a 4d input cube without "
             msg += "input scale_list, it should have the same length as the "
             msg += "first dimension of the cube."
             raise TypeError()
-        if np.isscalar(pca_params.fwhm):
-            pca_params.fwhm = [pca_params.fwhm] * nch
+        if np.isscalar(algo_params.fwhm):
+            algo_params.fwhm = [algo_params.fwhm] * nch
 
         pcs = []
         recon = []
@@ -458,20 +455,20 @@ def pca(
         residuals_cube_ = []
 
         # (ADI+)RDI
-        if pca_params.cube_ref is not None:
+        if algo_params.cube_ref is not None:
             for ch in range(nch):
-                if pca_params.cube_ref[ch].ndim != 3:
+                if algo_params.cube_ref[ch].ndim != 3:
                     msg = "Ref cube has wrong format for 4d input cube"
                     raise TypeError(msg)
 
                 add_params = {
                     "start_time": start_time,
-                    "cube": pca_params.cube[ch],
-                    "cube_ref": pca_params.cube_ref[ch],
-                    "ncomp": pca_params.ncomp[ch],
+                    "cube": algo_params.cube[ch],
+                    "cube_ref": algo_params.cube_ref[ch],
+                    "ncomp": algo_params.ncomp[ch],
                 }
                 func_params = par_utils.setup_parameters(
-                    params_obj=pca_params, fkt=_adi_rdi_pca, **add_params
+                    params_obj=algo_params, fkt=_adi_rdi_pca, **add_params
                 )
                 res_pca = _adi_rdi_pca(
                     **func_params,
@@ -494,21 +491,21 @@ def pca(
             for ch in range(nch):
                 add_params = {
                     "start_time": start_time,
-                    "cube": pca_params.cube[ch],
-                    "ncomp": pca_params.ncomp[ch],
-                    "fwhm": pca_params.fwhm[ch],
+                    "cube": algo_params.cube[ch],
+                    "ncomp": algo_params.ncomp[ch],
+                    "fwhm": algo_params.fwhm[ch],
                 }
                 func_params = par_utils.setup_parameters(
-                    params_obj=pca_params, fkt=_adi_pca, **add_params
+                    params_obj=algo_params, fkt=_adi_pca, **add_params
                 )
                 res_pca = _adi_pca(
                     **func_params,
                     **rot_options,
                 )
-                if pca_params.batch is None:
-                    if pca_params.source_xy is not None:
+                if algo_params.batch is None:
+                    if algo_params.source_xy is not None:
                         # PCA grid, computing S/Ns
-                        if isinstance(pca_params.ncomp[ch], tuple):
+                        if isinstance(algo_params.ncomp[ch], tuple):
                             final_residuals_cube.append(res_pca[0])
                             ifs_adi_frames[ch] = res_pca[1]
                             table.append(res_pca[2])
@@ -520,7 +517,7 @@ def pca(
                             ifs_adi_frames[ch] = res_pca[-1]
                     else:
                         # PCA grid
-                        if isinstance(pca_params.ncomp[ch], tuple):
+                        if isinstance(algo_params.ncomp[ch], tuple):
                             final_residuals_cube.append(res_pca[0])
                             pclist.append(res_pca[1])
                         # full-frame standard PCA
@@ -536,7 +533,7 @@ def pca(
                     pcs.append(res_pca[2])
                     medians.append(res_pca[3])
 
-            frame = cube_collapse(ifs_adi_frames, mode=pca_params.collapse_ifs)
+            frame = cube_collapse(ifs_adi_frames, mode=algo_params.collapse_ifs)
 
         # convert to numpy arrays when relevant
         if len(pcs) > 0:
@@ -555,12 +552,12 @@ def pca(
             medians = np.array(medians)
 
     # ADI + RDI
-    elif pca_params.cube_ref is not None:
+    elif algo_params.cube_ref is not None:
         add_params = {
             "start_time": start_time,
         }
         func_params = par_utils.setup_parameters(
-            params_obj=pca_params, fkt=_adi_rdi_pca, **add_params
+            params_obj=algo_params, fkt=_adi_rdi_pca, **add_params
         )
         res_pca = _adi_rdi_pca(
             **func_params,
@@ -569,13 +566,13 @@ def pca(
         pcs, recon, residuals_cube, residuals_cube_, frame = res_pca
 
     # ADI. Shape of cube: (n_adi_frames, y, x)
-    elif pca_params.cube_ref is None:
+    elif algo_params.cube_ref is None:
         add_params = {
             "start_time": start_time,
             "full_output": True,
         }
         func_params = par_utils.setup_parameters(
-            params_obj=pca_params, fkt=_adi_pca, **add_params
+            params_obj=algo_params, fkt=_adi_pca, **add_params
         )
 
         res_pca = _adi_pca(
@@ -583,11 +580,11 @@ def pca(
             **rot_options,
         )
 
-        if pca_params.batch is None:
-            if pca_params.source_xy is not None:
+        if algo_params.batch is None:
+            if algo_params.source_xy is not None:
                 # PCA grid, computing S/Ns
-                if isinstance(pca_params.ncomp, tuple):
-                    if pca_params.full_output:
+                if isinstance(algo_params.ncomp, tuple):
+                    if algo_params.full_output:
                         final_residuals_cube, frame, table, _ = res_pca
                     else:
                         # returning only the optimal residual
@@ -597,7 +594,7 @@ def pca(
                     recon_cube, residuals_cube, residuals_cube_, frame = res_pca
             else:
                 # PCA grid
-                if isinstance(pca_params.ncomp, tuple):
+                if isinstance(algo_params.ncomp, tuple):
                     final_residuals_cube, pclist = res_pca
                 # full-frame standard PCA
                 else:
@@ -615,40 +612,40 @@ def pca(
     # Returns for each case (ADI, ADI+RDI and ADI+mSDI) and combination of
     # parameters: full_output, source_xy, batch, ncomp
     # --------------------------------------------------------------------------
-    if isinstance(pca_params.cube, np.ndarray) and pca_params.scale_list is not None:
+    if isinstance(algo_params.cube, np.ndarray) and algo_params.scale_list is not None:
         # ADI+mSDI double-pass PCA
-        if pca_params.adimsdi == Adimsdi.DOUBLE:
+        if algo_params.adimsdi == Adimsdi.DOUBLE:
             return (
-                frame if not pca_params.full_output else frame,
+                frame if not algo_params.full_output else frame,
                 residuals_cube_channels,
                 residuals_cube_channels_,
             )
 
-        elif pca_params.adimsdi == Adimsdi.SINGLE:
+        elif algo_params.adimsdi == Adimsdi.SINGLE:
             # ADI+mSDI single-pass PCA
-            if isinstance(pca_params.ncomp, (float, int)):
+            if isinstance(algo_params.ncomp, (float, int)):
                 return (
-                    frame if not pca_params.full_output else frame,
+                    frame if not algo_params.full_output else frame,
                     cube_allfr_residuals,
                     cube_adi_residuals,
                 )
             # ADI+mSDI single-pass PCA grid
-            elif isinstance(pca_params.ncomp, tuple):
-                if pca_params.source_xy is None:
+            elif isinstance(algo_params.ncomp, tuple):
+                if algo_params.source_xy is None:
                     return (
                         final_residuals_cube,
-                        pclist if pca_params.full_output else final_residuals_cube,
+                        pclist if algo_params.full_output else final_residuals_cube,
                     )
                 else:
                     return (
                         final_residuals_cube,
                         frame,
-                        table if pca_params.full_output else frame,
+                        table if algo_params.full_output else frame,
                     )
             else:
                 raise ValueError(
                     "ncomp value should only be a float, an int or a tuple of those,"
-                    f"not a {type(pca_params.ncomp)}."
+                    f"not a {type(algo_params.ncomp)}."
                 )
         else:
             raise ValueError(
@@ -656,36 +653,36 @@ def pca(
             )
 
     # ADI and ADI+RDI (3D or 4D)
-    elif isinstance(pca_params.cube, str) or pca_params.scale_list is None:
+    elif isinstance(algo_params.cube, str) or algo_params.scale_list is None:
         if (
-            pca_params.cube_ref is not None or pca_params.source_xy is None
-        ) and pca_params.full_output:
+            algo_params.cube_ref is not None or algo_params.source_xy is None
+        ) and algo_params.full_output:
             # incremental PCA
-            if pca_params.batch is not None:
+            if algo_params.batch is not None:
                 final_res = [frame, pcs, medians]
             else:
                 # PCA grid
-                if isinstance(pca_params.ncomp, tuple):
+                if isinstance(algo_params.ncomp, tuple):
                     final_res = [final_residuals_cube, pclist]
                 # full-frame standard PCA or ADI+RDI
                 else:
                     final_res = [frame, pcs, recon, residuals_cube, residuals_cube_]
-            if pca_params.cube.ndim == 4:
+            if algo_params.cube.ndim == 4:
                 final_res.append(ifs_adi_frames)
             return tuple(final_res)
-        elif pca_params.source_xy is not None and pca_params.full_output:
+        elif algo_params.source_xy is not None and algo_params.full_output:
             # PCA grid, computing S/Ns
-            if isinstance(pca_params.ncomp, tuple):
+            if isinstance(algo_params.ncomp, tuple):
                 final_res = [final_residuals_cube, frame, table]
             # full-frame PCA with rotation threshold
             else:
                 final_res = [frame, recon_cube, residuals_cube, residuals_cube_]
-            if pca_params.cube.ndim == 4:
+            if algo_params.cube.ndim == 4:
                 final_res.append(ifs_adi_frames)
             return tuple(final_res)
-        elif not pca_params.full_output:
+        elif not algo_params.full_output:
             # PCA grid
-            if isinstance(pca_params.ncomp, tuple):
+            if isinstance(algo_params.ncomp, tuple):
                 return final_residuals_cube
             # full-frame standard PCA or ADI+RDI
             else:
@@ -693,7 +690,7 @@ def pca(
 
     else:
         raise ValueError(
-            f"cube value should only be a str or a numpy.ndarray, not a {type(pca_params.cube)}."
+            f"cube value should only be a str or a numpy.ndarray, not a {type(algo_params.cube)}."
         )
 
 

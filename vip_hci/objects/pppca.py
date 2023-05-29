@@ -349,27 +349,19 @@ class PPPCA(PostProc):
             if self.nproc is None:
                 self.nproc = nproc
 
-            add_params = {
-                "cube": self.dataset.cube,
-                "angle_list": self.dataset.angles,
-                "cube_ref": self.dataset.cuberef,
-                "fwhm": self.dataset.fwhm,
-                "scale_list": self.dataset.wavelengths,
-                "full_output": full_output,
-                "verbose": verbose,
-            }
+            self.cube = self.dataset.cube
+            self.angle_list = self.dataset.angles
+            self.cube_ref = self.dataset.cuberef
+            self.fwhm = self.dataset.fwhm
+            self.scale_list = self.dataset.wavelengths
 
-            func_params = self.par_utils.setup_parameters(
-                params_obj=self, fkt=pca_annular, **add_params
-            )
-
-            res = pca_annular(**func_params, **rot_options)
+            res = pca_annular(algo_params=self, par_utils=self.par_utils, **rot_options)
 
             self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 
             if self.results is not None:
                 self.results.register_session(
-                    params=func_params,
+                    params=self.par_utils.function_parameters,
                     frame=self.frame_final,
                     algo_name=self._algo_name[1],
                 )

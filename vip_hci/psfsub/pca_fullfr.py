@@ -285,6 +285,9 @@ def pca(
     ----------
     algo_params: PcaParams
         Dataclass retaining all the needed parameters for PCA.
+    par_utils: ParamsUtils
+        Class for parameters operations such as extracting and sorting parameters
+        needed for a given function.
     rot_options: dictionary, optional
         Dictionary with optional keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of

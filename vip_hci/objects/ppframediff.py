@@ -15,6 +15,7 @@ from .dataset import Dataset
 from .postproc import PostProc
 from ..psfsub import frame_diff
 from ..config.utils_conf import algo_calculates_decorator as calculates
+from ..var.object_utils import ParamsUtils
 
 
 @dataclass
@@ -115,23 +116,21 @@ class PPFrameDiff(PostProc):
         if self.dataset.fwhm is None:
             raise ValueError("`fwhm` has not been set")
 
-        add_params = {
-            "cube": self.dataset.cube,
-            "angle_list": self.dataset.angles,
-            "fwhm": self.dataset.fwhm,
-            "nproc": nproc,
-            "full_output": full_output,
-        }
+        self.par_utils = ParamsUtils()
 
-        func_params = setup_parameters(params_obj=self, fkt=frame_diff, **add_params)
+        self.cube = self.dataset.cube
+        self.angle_list = self.dataset.angles
+        self.fwhm = self.dataset.fwhm
 
-        res = frame_diff(**func_params, **rot_options)
+        res = frame_diff(algo_params=self, par_utils=self.par_utils, **rot_options)
 
         self.frame_final = res
 
         if self.results is not None:
             self.results.register_session(
-                params=func_params, frame=self.frame_final, algo_name=self._algo_name
+                params=self.par_utils.function_parameters,
+                frame=self.frame_final,
+                algo_name=self._algo_name,
             )
 
 

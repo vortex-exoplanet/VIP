@@ -97,6 +97,7 @@ class Adimsdi(LowEnum):
     SINGLE = auto()
 
 
+# TODO: document all modes
 class Imlib(LowEnum):
     """
     Define modes for image transformations to be used.
@@ -118,6 +119,7 @@ class Imlib(LowEnum):
     VIPFFT = "vip-fft"
 
 
+# TODO: document all modes
 class Interpolation(LowEnum):
     """
     Define modes for interpolation.
@@ -148,6 +150,7 @@ class Interpolation(LowEnum):
     LANCZOS4 = auto()
 
 
+# TODO: document all modes
 class Collapse(LowEnum):
     """
     Define modes for spectral/temporal residuals frames combining.
@@ -181,3 +184,16 @@ class ReturnList(LowEnum):
     ADI_INCREMENTAL_BATCH = auto()
     PCA_GRID_SN = auto()
     PCA_ROT_THRESH = auto()
+
+
+# TODO: document all metrics
+class Metric(LowEnum):
+    """Define all metrics possible for various post-processing functions."""
+
+    CITYBLOCK = auto()
+    COSINE = auto()
+    EUCLIDEAN = auto()
+    L1 = auto()
+    L2 = auto()
+    MANHATTAN = auto()
+    CORRELATION = auto()

@@ -13,7 +13,7 @@ fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
 
 """
 
-__author__ = "Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
+__author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
 __all__ = ["pca_annular"]
 
 import numpy as np
@@ -196,151 +196,11 @@ def pca_annular(
 
     Parameters
     ----------
-    cube : numpy ndarray, 3d or 4d
-        Input cube.
-    angle_list : numpy ndarray, 1d
-        Corresponding parallactic angle for each frame.
-    cube_ref : numpy ndarray, 3d, optional
-        Reference library cube. For Reference Star Differential Imaging.
-    scale_list : numpy ndarray, 1d, optional
-        If provided, triggers mSDI reduction. These should be the scaling
-        factors used to re-scale the spectral channels and align the speckles
-        in case of IFS data (ADI+mSDI cube). Usually, these can be approximated
-        by the last channel wavelength divided by the other wavelengths in the
-        cube (more thorough approaches can be used to get the scaling factors,
-        e.g. with ``vip_hci.preproc.find_scal_vector``).
-    radius_int : int, optional
-        The radius of the innermost annulus. By default is 0, if >0 then the
-        central circular region is discarded.
-    fwhm : float, optional
-        Size of the FHWM in pixels. Default is 4.
-    asize : float, optional
-        The size of the annuli, in pixels.
-    n_segments : int or list of ints or 'auto', optional
-        The number of segments for each annulus. When a single integer is given
-        it is used for all annuli. When set to 'auto', the number of segments is
-        automatically determined for every annulus, based on the annulus width.
-    delta_rot : float or tuple of floats, optional
-        Factor for adjusting the parallactic angle threshold, expressed in
-        FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
-        frame). If a tuple of two floats is provided, they are used as the lower
-        and upper intervals for the threshold (grows linearly as a function of
-        the separation).
-    delta_sep : float or tuple of floats, optional
-        The threshold separation in terms of the mean FWHM (for ADI+mSDI data).
-        If a tuple of two values is provided, they are used as the lower and
-        upper intervals for the threshold (grows as a function of the
-        separation).
-    ncomp : 'auto', int, tuple, 1d numpy array or tuple, optional
-        How many PCs are used as a lower-dimensional subspace to project the
-        target (sectors of) frames. Depends on the dimensionality of `cube`.
-
-        * ADI and ADI+RDI (``cube`` is a 3d array): if a single integer is
-          provided, then the same number of PCs will be subtracted at each
-          separation (annulus). If a tuple is provided, then a different number
-          of PCs will be used for each annulus (starting with the innermost
-          one). If ``ncomp`` is set to ``auto`` then the number of PCs are
-          calculated for each region/patch automatically.
-
-        * ADI or ADI+RDI (``cube`` is a 4d array): same input format allowed as
-          above. If ncomp is a list with the same length as the number of
-          channels, each element of the list will be used as ``ncomp`` value
-          (whether int, float or tuple) for each spectral channel.
-
-        * ADI+mSDI case: ``ncomp`` must be a tuple (two integers) with the
-          number of PCs obtained from each multi-spectral frame (for each
-          sector) and the number of PCs used in the second PCA stage (ADI
-          fashion, using the residuals of the first stage). If None then the
-          second PCA stage is skipped and the residuals are de-rotated and
-          combined.
-
-    svd_mode : {'lapack', 'arpack', 'eigen', 'randsvd', 'cupy', 'eigencupy',
-        'randcupy', 'pytorch', 'eigenpytorch', 'randpytorch'}, str optional
-        Switch for the SVD method/library to be used.
-
-        * ``lapack``: uses the LAPACK linear algebra library through Numpy
-          and it is the most conventional way of computing the SVD
-          (deterministic result computed on CPU).
-
-        * ``arpack``: uses the ARPACK Fortran libraries accessible through
-          Scipy (computation on CPU).
-
-        * ``eigen``: computes the singular vectors through the
-          eigendecomposition of the covariance M.M' (computation on CPU).
-
-        * ``randsvd``: uses the randomized_svd algorithm implemented in
-          Sklearn (computation on CPU), proposed in [HAL09]_.
-
-        * ``cupy``: uses the Cupy library for GPU computation of the SVD as in
-          the LAPACK version. `
-
-        * ``eigencupy``: offers the same method as with the ``eigen`` option
-          but on GPU (through Cupy).
-
-        * ``randcupy``: is an adaptation of the randomized_svd algorithm,
-          where all the computations are done on a GPU (through Cupy). `
-
-        * ``pytorch``: uses the Pytorch library for GPU computation of the SVD.
-
-        * ``eigenpytorch``: offers the same method as with the ``eigen``
-          option but on GPU (through Pytorch).
-
-        * ``randpytorch``: is an adaptation of the randomized_svd algorithm,
-          where all the linear algebra computations are done on a GPU
-          (through Pytorch).
-
-    nproc : None or int, optional
-        Number of processes for parallel computing. If None the number of
-        processes will be set to (cpu_count()/2).
-    min_frames_lib : int, optional
-        Minimum number of frames in the PCA reference library.
-    max_frames_lib : int, optional
-        Maximum number of frames in the PCA reference library. The more
-        distant/decorrelated frames are removed from the library.
-    tol : float, optional
-        Stopping criterion for choosing the number of PCs when ``ncomp``
-        is None. Lower values will lead to smaller residuals and more PCs.
-    scaling : {None, "temp-mean", spat-mean", "temp-standard",
-        "spat-standard"}, None or str optional
-        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
-        function. If set to None, the input matrix is left untouched. Otherwise:
-
-        * ``temp-mean``: temporal px-wise mean is subtracted.
-
-        * ``spat-mean``: spatial mean is subtracted.
-
-        * ``temp-standard``: temporal mean centering plus scaling pixel values
-          to unit variance. HIGHLY RECOMMENDED FOR ASDI AND RDI CASES!
-
-        * ``spat-standard``: spatial mean centering plus scaling pixel values
-          to unit variance.
-
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
-        Sets the way of collapsing the frames for producing a final image.
-    collapse_ifs : {'median', 'mean', 'sum', 'trimmean', 'absmean'}, str opt
-        Sets how spectral residual frames should be combined to produce an
-        mSDI image.
-    ifs_collapse_range: str 'all' or tuple of 2 int
-        If a tuple, it should contain the first and last channels where the mSDI
-        residual channels will be collapsed (by default collapses all channels).
-    full_output: boolean, optional
-        Whether to return the final median combined image only or with other
-        intermediate arrays.
-    verbose : bool, optional
-        If True prints to stdout intermediate info.
-    theta_init : int
-        Initial azimuth [degrees] of the first segment, counting from the
-        positive x-axis counterclockwise (irrelevant if n_segments=1).
-    weights: 1d numpy array or list, optional
-        Weights to be applied for a weighted mean. Need to be provided if
-        collapse mode is 'wmean'.
-    cube_sig: numpy ndarray, opt
-        Cube with estimate of significant authentic signals. If provided, this
-        will be subtracted before projecting cube onto reference cube.
+    algo_params: PcaAnnularParams
+        Dataclass retaining all the needed parameters for annular PCA.
+    par_utils: ParamsUtils
+        Class for parameters operations such as extracting and sorting parameters
+        needed for a given function.
     rot_options: dictionary, optional
         Dictionary with optional keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
@@ -470,16 +330,20 @@ def pca_annular(
                 "N annuli = {}, mean FWHM = {:.3f}".format(n_annuli, algo_params.fwhm)
             )
 
-        add_params = {"fr": iterable(range(n))}
+        add_params = {
+            "fr": iterable(range(n)),
+            "scal": algo_params.scale_list,
+            "collapse": algo_params.collapse_ifs,
+        }
 
         func_params = par_utils.setup_parameters(
-            params_obj=algo_params, fkt=_pca_sdi_fr, **add_params
+            params_obj=algo_params, fkt=_pca_sdi_fr, as_list=True, **add_params
         )
         res = pool_map(
             nproc=algo_params.nproc,
             fkt=_pca_sdi_fr,
             verbose=algo_params.verbose,
-            **func_params,
+            *func_params,
         )
         residuals_cube_channels = np.array(res)
 

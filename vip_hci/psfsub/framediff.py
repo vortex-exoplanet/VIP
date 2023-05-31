@@ -2,7 +2,7 @@
 """Module with a frame differencing algorithm for ADI post-processing."""
 
 __author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez"
-__all__ = ["frame_diff"]
+__all__ = ["frame_diff", "FrameDiffParams"]
 
 import numpy as np
 import pandas as pn
@@ -74,8 +74,8 @@ class FrameDiffParams:
         will be given.
     """
 
-    cube: np.ndarray
-    angle_list: np.ndarray
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
     fwhm: float = 4
     metric: LowEnum = Metric.MANHATTAN
     dist_threshold: int = 50
@@ -163,8 +163,8 @@ def frame_diff(
     )
 
     res = pool_map(
-        nproc=algo_params.nproc,
-        fkt=_pairwise_ann,
+        algo_params.nproc,
+        _pairwise_ann,
         *func_params,
         **rot_options,
     )  # border_mode, edge_blend,

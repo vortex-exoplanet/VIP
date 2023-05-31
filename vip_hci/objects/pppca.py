@@ -18,7 +18,6 @@ from .postproc import PostProc
 from ..psfsub import pca, pca_annular, pca_grid, pca_annulus
 from ..var.paramenum import Adimsdi, ReturnList
 from ..config.utils_conf import algo_calculates_decorator as calculates
-from ..var.object_utils import ParamsUtils
 
 
 # TODO : separate the various cases of PCA usage (basics, optnpc finding, others ?)
@@ -315,7 +314,6 @@ class PPPCA(PostProc):
 
         """
         self._update_dataset(dataset)
-        self.par_utils = ParamsUtils()
 
         # Fullframe mode
         if runmode == "classic":

@@ -12,7 +12,6 @@ __author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Ralf Farkas"
 __all__ = ["PostProc", "PPResult", "ALL_SESSIONS", "LAST_SESSION"]
 
 import pickle
-import inspect
 from dataclasses import dataclass, field
 from typing import (
     Tuple,
@@ -32,7 +31,7 @@ from ..metrics import snrmap, snr, significance
 from ..config.utils_conf import algo_calculates_decorator as calculates
 from ..config.utils_conf import Saveable
 from ..var import frame_center
-from ..var.object_utils import ParamsUtils, print_algo_params
+from ..var.object_utils import print_algo_params
 
 PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
 LAST_SESSION = -1
@@ -231,7 +230,6 @@ class PostProc(BaseEstimator):
     results: PPResult = None
     frame_final: np.ndarray = None
     signf: float = None
-    par_utils: ParamsUtils = None
 
     def print_parameters(self) -> None:
         """Print out the parameters of the algorithm."""

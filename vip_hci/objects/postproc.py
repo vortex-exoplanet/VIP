@@ -37,6 +37,13 @@ PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
 LAST_SESSION = -1
 ALL_SESSIONS = -2
 DATASET_PARAM = "dataset"
+EXPLICIT_PARAMS = {
+    "cube": "cube",
+    "angle_list": "angles",
+    "fwhm": "fwhm",
+    "cube_ref": "cuberef",
+    "scale_list": "wavelengths",
+}
 
 
 @dataclass
@@ -230,6 +237,43 @@ class PostProc(BaseEstimator):
     results: PPResult = None
     frame_final: np.ndarray = None
     signf: float = None
+
+    def _explicit_dataset(self):
+        """
+        Assign specific attributes from dataset to self.
+
+        Many functions wrapped by the PostProc objects do not interact with a dataset
+        but with their inner values instead : cube, fwhm, angle_list, etc. Those share
+        different names in the functions wrapped and in the dataset, see the
+        `EXPLICIT_PARAMS` constant to see the differencies.
+        """
+        for self_name, data_name in EXPLICIT_PARAMS.items():
+            dataset_value = getattr(self.dataset, data_name)
+            setattr(self, self_name, dataset_value)
+
+    def _create_parameters_dict(self, parent_class: any) -> dict:
+        """
+        Create a dictionnary with the parameters used inside of the PostProc object.
+
+        Parameters
+        ----------
+        parent_class: class
+            Parent of the object that contains the parameters used by
+            that object.
+
+        Returns
+        -------
+        params_dict: dict
+            Parameters used by the object under dictionnary form.
+        """
+        params_dict = {}
+
+        for attr_name in vars(self):
+            if hasattr(parent_class, attr_name):
+                attr_value = getattr(self, attr_name)
+                params_dict[attr_name] = attr_value
+
+        return params_dict
 
     def print_parameters(self) -> None:
         """Print out the parameters of the algorithm."""

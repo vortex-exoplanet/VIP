@@ -70,7 +70,7 @@ from ..var import (
     cube_filter_lowpass,
     mask_circle,
 )
-from ..var.object_utils import ParamsUtils
+from ..var.object_utils import setup_parameters
 from ..stats import descriptive_stats
 
 
@@ -257,7 +257,6 @@ class PcaParams:
 
 def pca(
     algo_params: PcaParams,
-    par_utils: ParamsUtils = None,
     **rot_options: dict,
 ):
     """Full-frame PCA algorithm applied to PSF substraction.
@@ -285,9 +284,6 @@ def pca(
     ----------
     algo_params: PcaParams
         Dataclass retaining all the needed parameters for PCA.
-    par_utils: ParamsUtils
-        Class for parameters operations such as extracting and sorting parameters
-        needed for a given function.
     rot_options: dictionary, optional
         Dictionary with optional keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
@@ -334,10 +330,6 @@ def pca(
 
     """
     start_time = time_ini(algo_params.verbose)
-
-    # Create a parameters handler if none was provided
-    if par_utils is None:
-        par_utils = ParamsUtils()
 
     if algo_params.batch is None:
         check_array(algo_params.cube, (3, 4), msg="cube")
@@ -411,7 +403,7 @@ def pca(
     if algo_params.scale_list is not None:
         if algo_params.adimsdi == Adimsdi.DOUBLE:
             add_params = {"start_time": start_time}
-            func_params = par_utils.setup_parameters(
+            func_params = setup_parameters(
                 params_obj=algo_params, fkt=_adimsdi_doublepca, **add_params
             )
             res_pca = _adimsdi_doublepca(
@@ -421,7 +413,7 @@ def pca(
             residuals_cube_channels, residuals_cube_channels_, frame = res_pca
         elif algo_params.adimsdi == Adimsdi.SINGLE:
             add_params = {"start_time": start_time}
-            func_params = par_utils.setup_parameters(
+            func_params = setup_parameters(
                 params_obj=algo_params, fkt=_adimsdi_singlepca, **add_params
             )
             res_pca = _adimsdi_singlepca(
@@ -470,7 +462,7 @@ def pca(
                     "cube_ref": algo_params.cube_ref[ch],
                     "ncomp": algo_params.ncomp[ch],
                 }
-                func_params = par_utils.setup_parameters(
+                func_params = setup_parameters(
                     params_obj=algo_params, fkt=_adi_rdi_pca, **add_params
                 )
                 res_pca = _adi_rdi_pca(
@@ -498,7 +490,7 @@ def pca(
                     "ncomp": algo_params.ncomp[ch],
                     "fwhm": algo_params.fwhm[ch],
                 }
-                func_params = par_utils.setup_parameters(
+                func_params = setup_parameters(
                     params_obj=algo_params, fkt=_adi_pca, **add_params
                 )
                 res_pca = _adi_pca(
@@ -559,7 +551,7 @@ def pca(
         add_params = {
             "start_time": start_time,
         }
-        func_params = par_utils.setup_parameters(
+        func_params = setup_parameters(
             params_obj=algo_params, fkt=_adi_rdi_pca, **add_params
         )
         res_pca = _adi_rdi_pca(
@@ -574,7 +566,7 @@ def pca(
             "start_time": start_time,
             "full_output": True,
         }
-        func_params = par_utils.setup_parameters(
+        func_params = setup_parameters(
             params_obj=algo_params, fkt=_adi_pca, **add_params
         )
 

@@ -29,7 +29,7 @@ from ..config import time_ini, timing
 from ..config.utils_conf import pool_map, iterable
 from ..var import get_annulus_segments, matrix_scaling
 from ..var.paramenum import SvdMode, Imlib, Interpolation, Collapse
-from ..var.object_utils import ParamsUtils
+from ..var.object_utils import setup_parameters
 from ..stats import descriptive_stats
 from .svd import get_eigenvectors
 
@@ -175,9 +175,7 @@ class PcaAnnularParams:
     left_eigv: bool = False
 
 
-def pca_annular(
-    algo_params: PcaAnnularParams, par_utils: ParamsUtils = None, **rot_options
-):
+def pca_annular(algo_params: PcaAnnularParams, **rot_options):
     """PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data.
 
     The PCA model is computed locally in each annulus (or annular sectors according
@@ -198,9 +196,6 @@ def pca_annular(
     ----------
     algo_params: PcaAnnularParams
         Dataclass retaining all the needed parameters for annular PCA.
-    par_utils: ParamsUtils
-        Class for parameters operations such as extracting and sorting parameters
-        needed for a given function.
     rot_options: dictionary, optional
         Dictionary with optional keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
@@ -231,14 +226,12 @@ def pca_annular(
                 "left_eigv is not compatible"
                 "with 'cube_ref', 'cube_sig', ncomp='auto'"
             )
-    if par_utils is None:
-        par_utils = ParamsUtils()
 
     # ADI or ADI+RDI data
     if algo_params.cube.ndim == 3:
         add_params = {"start_time": start_time, "full_output": True}
 
-        func_params = par_utils.setup_parameters(
+        func_params = setup_parameters(
             params_obj=algo_params, fkt=_pca_adi_rdi, **add_params
         )
         res = _pca_adi_rdi(**func_params, **rot_options)
@@ -283,7 +276,7 @@ def pca_annular(
                 "cube_ref": cube_ref_tmp,
             }
 
-            func_params = par_utils.setup_parameters(
+            func_params = setup_parameters(
                 params_obj=algo_params, fkt=_pca_adi_rdi, **add_params
             )
             res_pca = _pca_adi_rdi(**func_params, **rot_options)
@@ -336,7 +329,7 @@ def pca_annular(
             "collapse": algo_params.collapse_ifs,
         }
 
-        func_params = par_utils.setup_parameters(
+        func_params = setup_parameters(
             params_obj=algo_params, fkt=_pca_sdi_fr, as_list=True, **add_params
         )
         res = pool_map(
@@ -379,7 +372,7 @@ def pca_annular(
                 "cube_ref": None,
             }
 
-            func_params = par_utils.setup_parameters(
+            func_params = setup_parameters(
                 params_obj=algo_params, fkt=_pca_adi_rdi, **add_params
             )
             res = _pca_adi_rdi(**func_params, **rot_options)

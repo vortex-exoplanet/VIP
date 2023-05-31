@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from strenum import LowercaseStrEnum as LowEnum
 from sklearn.metrics import pairwise_distances
 from ..var import get_annulus_segments
-from ..var.object_utils import ParamsUtils
+from ..var.object_utils import setup_parameters
 from ..var.paramenum import Metric, Imlib, Interpolation, Collapse
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..config import time_ini, timing
@@ -94,7 +94,8 @@ class FrameDiffParams:
 
 
 def frame_diff(
-    algo_params: FrameDiffParams = None, par_utils: ParamsUtils = None, **rot_options
+    algo_params: FrameDiffParams = None,
+    **rot_options,
 ):
     """Run the frame differencing algorithm.
 
@@ -105,7 +106,7 @@ def frame_diff(
 
     Parameters
     ----------
-    algo_params: FrameDiffParams
+    algo_params: FrameDiffParams or PostProc
         Dataclass retaining all the needed parameters for frame differencing.
     par_utils: ParamsUtils
         Class for parameters operations such as extracting and sorting parameters
@@ -129,9 +130,6 @@ def frame_diff(
     y = array.shape[1]
     if not algo_params.asize < y // 2:
         raise ValueError("asize is too large")
-
-    if par_utils is None:
-        par_utils = ParamsUtils()
 
     algo_params.angle_list = check_pa_vector(algo_params.angle_list)
     n_annuli = int((y / 2 - algo_params.radius_int) / algo_params.asize)
@@ -160,13 +158,13 @@ def frame_diff(
         "debug": False,
     }
 
-    func_params = par_utils.setup_parameters(
+    func_params = setup_parameters(
         params_obj=algo_params, fkt=_pairwise_ann, as_list=True, **add_params
     )
 
     res = pool_map(
-        algo_params.nproc,
-        _pairwise_ann,
+        nproc=algo_params.nproc,
+        fkt=_pairwise_ann,
         *func_params,
         **rot_options,
     )  # border_mode, edge_blend,

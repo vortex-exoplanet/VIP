@@ -7,78 +7,114 @@ from typing import Callable
 import numpy as np
 
 
-@dataclass
-class ParamsUtils:
-    """Tools dedicated to handle the parameters of various functions."""
+def filter_duplicate_keys(
+    filter_item: object | dict, ref_item: object | dict, filter_in: bool = True
+):
+    """
+    Filter in or out keys of an item based on a reference item.
 
-    function_parameters: dict = None
+    Can keep only the keys from a reference item or exclude all of them, based
+    on the boolean `filter_in`.
 
-    def print_algo_params(self) -> None:
-        """Print the parameters that will be used for the run of an algorithm."""
-        for key, value in self.function_parameters.items():
-            if isinstance(value, np.ndarray):
-                print(f"- {key} : np.ndarray (not shown)")
-            else:
-                print(f"- {key} : {value}")
+    Parameters
+    ----------
+    filter_item : Object or dict
+        An object or a dictionnary that needs to be filtered.
+    ref_item : Object or dict
+        An object or a dictionnary that gives the keys wanted for filtering.
+    filter_in : bool
+        If True, keeps only the keys from reference, else erase only those keys.
+    """
 
-    def setup_parameters(
-        self,
-        params_obj: object,
-        fkt: Callable,
-        as_list: bool = False,
-        **add_params: dict,
-    ) -> dict | list:
-        """
-        Help creating a dictionnary of parameters for a given function.
+    # Conversion to dictionnary if the items are objects
+    if isinstance(filter_item, dict):
+        filter_dict = filter_item
+    elif isinstance(filter_item, object):
+        filter_dict = vars(filter_item)
+    else:
+        raise TypeError("The item to be filtered is neither a dictionnary or an object")
 
-        Look for the exact list of parameters needed for the ``fkt`` function and takes
-        only the attributes needed from the ``params_obj``. More parameters can be
-        included with the ``**add_pararms`` dictionnary.
+    if isinstance(ref_item, dict):
+        ref_dict = ref_item
+    elif isinstance(ref_item, object):
+        ref_dict = vars(ref_item)
+    else:
+        raise TypeError("The reference item is neither a dictionnary or an object")
 
-        Parameters
-        ----------
-        params_obj : object
-            Parameters to sort and order for the function.
-        fkt : function
-            The function we want to give parameters to.
-        as_list : boolean
-            Determines if the set of parameters should be return as a list instead
-            of a dictionnary.
-        **add_params : dictionnary, optional
-            Additionnal parameters that may not be included in the params_obj.
+    # Find keys that must serve as a filter for `filter_item`
+    common_keys = set(filter_dict.keys()) & set(ref_dict.keys())
+    # Remove the duplicate keys in the `obj_params`
 
-        Returns
-        -------
-        params_dict : dictionnary or list
-            The dictionnary comprised of parameters needed for the function, selected
-            amongst attributes of PostProc objects and additionnal parameters. Can
-            be a list if asked for (used in specific cases such as when calling
-            functions through ``vip_hci.config.utils_conf.pool_map``, see an example
-            in ``vip_hci.psfsub.framediff``).
-
-        """
-        wanted_params = OrderedDict(signature(fkt).parameters)
-        obj_params = vars(params_obj)
-        # Find keys that must be overridden by `add_params`
-        common_keys = set(obj_params.keys()) & set(add_params.keys())
-        # Remove the duplicate keys in the `obj_params`
+    if filter_in:
         for key in common_keys:
-            del obj_params[key]
+            del filter_dict[key]
+    else:
+        filter_dict = {
+            key: value for key, value in filter_dict.items() if key in ref_dict.keys()
+        }
 
-        all_params = {**obj_params, **add_params}
-        params_dict = OrderedDict(
-            (param, all_params[param]) for param in wanted_params if param in all_params
-        )
+    return filter_dict
 
-        self.function_parameters = params_dict
-        if params_obj.verbose:
-            print(
-                f"The following parameters will be used for the run of {fkt.__name__} :"
-            )
-            self.print_algo_params()
 
-        # For *args support, if an ordered list of parameters is needed
-        if as_list:
-            params_dict = list(params_dict.values())
+def setup_parameters(
+    params_obj: object,
+    fkt: Callable,
+    as_list: bool = False,
+    **add_params: dict,
+) -> dict | list:
+    """
+    Help creating a dictionnary of parameters for a given function.
 
-        return params_dict
+    Look for the exact list of parameters needed for the ``fkt`` function and takes
+    only the attributes needed from the ``params_obj``. More parameters can be
+    included with the ``**add_pararms`` dictionnary.
+
+    Parameters
+    ----------
+    params_obj : object
+        Parameters to sort and order for the function.
+    fkt : function
+        The function we want to give parameters to.
+    as_list : boolean
+        Determines if the set of parameters should be return as a list instead
+        of a dictionnary.
+    **add_params : dictionnary, optional
+        Additionnal parameters that may not be included in the params_obj.
+
+    Returns
+    -------
+    params_setup : dictionnary or list
+        The dictionnary comprised of parameters needed for the function, selected
+        amongst attributes of PostProc objects and additionnal parameters. Can
+        be a list if asked for (used in specific cases such as when calling
+        functions through ``vip_hci.config.utils_conf.pool_map``, see an example
+        in ``vip_hci.psfsub.framediff``).
+
+    """
+    wanted_params = OrderedDict(signature(fkt).parameters)
+    # Remove dupe keys in params_obj from add_params
+    obj_params = filter_duplicate_keys(filter_item=params_obj, ref_item=add_params)
+
+    all_params = {**obj_params, **add_params}
+    params_setup = OrderedDict(
+        (param, all_params[param]) for param in wanted_params if param in all_params
+    )
+
+    if params_obj.verbose:
+        print(f"The following parameters will be used for the run of {fkt.__name__} :")
+        print_algo_params(params_setup)
+
+    # For *args support, if an ordered list of parameters is needed
+    if as_list:
+        params_setup = list(params_setup.values())
+
+    return params_setup
+
+
+def print_algo_params(function_parameters) -> None:
+    """Print the parameters that will be used for the run of an algorithm."""
+    for key, value in function_parameters.items():
+        if isinstance(value, np.ndarray):
+            print(f"- {key} : np.ndarray (not shown)")
+        else:
+            print(f"- {key} : {value}")

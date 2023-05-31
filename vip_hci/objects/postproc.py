@@ -32,7 +32,7 @@ from ..metrics import snrmap, snr, significance
 from ..config.utils_conf import algo_calculates_decorator as calculates
 from ..config.utils_conf import Saveable
 from ..var import frame_center
-from ..var.object_utils import ParamsUtils
+from ..var.object_utils import ParamsUtils, print_algo_params
 
 PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
 LAST_SESSION = -1
@@ -182,7 +182,7 @@ class PPResult(Saveable):
             session_label,
             f"(function used : {self.sessions[session_id].algo_name}) : ",
         )
-        self.par_utils.print_algo_params(self.sessions[session_id].parameters)
+        print_algo_params(self.sessions[session_id].parameters)
 
         if isinstance(label, bool):
             if label:
@@ -317,7 +317,7 @@ class PostProc(BaseEstimator):
         for key, value in res[session_id].parameters.items():
             setattr(self, key, value)
         print("Configuration loaded :")
-        self.par_utils.print_algo_params(res[session_id].parameters)
+        print_algo_params(res[session_id].parameters)
 
     # TODO : identify the problem around the element `_repr_html_`
     def _get_calculations(self) -> dict:

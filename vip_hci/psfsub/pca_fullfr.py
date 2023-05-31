@@ -40,7 +40,7 @@ Options :
 """
 
 __author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
-__all__ = ["pca"]
+__all__ = ["pca", "PcaParams"]
 
 import numpy as np
 from multiprocessing import cpu_count
@@ -225,8 +225,8 @@ class PcaParams:
         will subtracted before projecting cube onto reference cube.
     """
 
-    cube: np.ndarray
-    angle_list: np.ndarray
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
     cube_ref: np.ndarray = None
     scale_list: np.ndarray = None
     ncomp: Tuple | float | int = 1

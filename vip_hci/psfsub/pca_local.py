@@ -14,7 +14,7 @@ fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
 """
 
 __author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
-__all__ = ["pca_annular"]
+__all__ = ["pca_annular", "PcaAnnularParams"]
 
 import numpy as np
 from multiprocessing import cpu_count
@@ -145,8 +145,8 @@ class PcaAnnularParams:
         will be subtracted before projecting cube onto reference cube.
     """
 
-    cube: np.ndarray
-    angle_list: np.ndarray
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
     cube_ref: np.ndarray = None
     scale_list: np.ndarray = None
     radius_int: int = 0

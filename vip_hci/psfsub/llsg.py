@@ -13,7 +13,7 @@ decomposition algorithm for ADI data.
 
 """
 
-__author__ = "Carlos Alberto Gomez Gonzalez"
+__author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez"
 __all__ = ["llsg", "thresholding", "LLSGParams"]
 
 
@@ -264,6 +264,7 @@ def llsg(
                 "indices": indices,
                 "i_patch": iterable(range(n_segments_ann)),
                 "n_segments_ann": n_segments_ann,
+                "verbose": False,
             }
 
             func_params = setup_parameters(

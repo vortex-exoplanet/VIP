@@ -93,9 +93,12 @@ def setup_parameters(
     """
     wanted_params = OrderedDict(signature(fkt).parameters)
     # Remove dupe keys in params_obj from add_params
-    obj_params = filter_duplicate_keys(filter_item=params_obj, ref_item=add_params)
+    if add_params is not None:
+        obj_params = filter_duplicate_keys(filter_item=params_obj, ref_item=add_params)
+        all_params = {**obj_params, **add_params}
+    else:
+        all_params = obj_params
 
-    all_params = {**obj_params, **add_params}
     params_setup = OrderedDict(
         (param, all_params[param]) for param in wanted_params if param in all_params
     )

@@ -85,16 +85,21 @@ class Adimsdi(LowEnum):
 
     Modes
     -----
-    * ``SINGLE``: the multi-spectral frames are rescaled wrt the largest
+    * ``SINGLE``: PCA only. The multi-spectral frames are rescaled wrt the largest
     wavelength to align the speckles and all the frames (n_channels *
     n_adiframes) are processed with a single PCA low-rank approximation.
 
-    * ``DOUBLE``: a first stage is run on the rescaled spectral frames, and
-    a second PCA frame is run on the residuals in an ADI fashion.
+    * ``DOUBLE``: PCA and LOCI. A first stage is run on the rescaled spectral frames,
+    and a second frame is run on the residuals in an ADI fashion.
+
+    * ``SKIPADI``: LOCI only. The multi-spectral frames are rescaled wrt the largest
+    wavelength to align the speckles and the least-squares model is
+    subtracted on each spectral cube separately.
     """
 
     DOUBLE = auto()
     SINGLE = auto()
+    SKIPADI = auto()
 
 
 # TODO: document all modes
@@ -221,3 +226,18 @@ class ThreshMode(LowEnum):
 
     SOFT = auto()
     HARD = auto()
+
+
+class Solver(LowEnum):
+    """
+    Define the solver for the least squares problem in LLSG.
+
+    Modes
+    -----
+    * ``LSTSQ`` : uses the standard scipy least squares solver.
+
+    * ``NNLS`` : uses the scipy non-negative least-squares solver.
+    """
+
+    LSTSQ = auto()
+    NNLS = auto()

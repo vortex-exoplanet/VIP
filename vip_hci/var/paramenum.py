@@ -241,3 +241,25 @@ class Solver(LowEnum):
 
     LSTSQ = auto()
     NNLS = auto()
+
+
+class Runmode(LowEnum):
+    """
+    Define the mode for the PostProc PCA object.
+
+    Modes
+    -----
+    * ``CLASSIC`` : base PCA function, with multiple usages depending on the
+    parameters given.
+
+    * ``ANNULAR`` : annular PCA function.
+
+    * ``GRID`` : grid PCA function (can be used implicitely from "classic").
+
+    * ``ANNULUS`` : annulus PCA function.
+    """
+
+    CLASSIC = auto()
+    ANNULAR = auto()
+    GRID = auto()
+    ANNULUS = auto()

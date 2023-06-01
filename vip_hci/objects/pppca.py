@@ -23,13 +23,11 @@ from ..psfsub import (
     PcaAnnularParams,
     PcaParams,
 )
-from ..var.paramenum import Adimsdi, ReturnList
+from ..var.paramenum import Adimsdi, ReturnList, Runmode
 from ..var.object_utils import setup_parameters
 from ..config.utils_conf import algo_calculates_decorator as calculates
 
 
-# TODO : separate the various cases of PCA usage (basics, optnpc finding, others ?)
-# TODO : work on a significance computation function (maybe in PostProc)
 @dataclass
 class PPPCA(PostProc, PcaParams, PcaAnnularParams):
     """
@@ -133,7 +131,7 @@ class PPPCA(PostProc, PcaParams, PcaAnnularParams):
     )
     def run(
         self,
-        runmode: Optional[str] = "classic",
+        runmode: Optional[str] = Runmode.CLASSIC,
         dataset: Optional[Dataset] = None,
         nproc: Optional[int] = 1,
         verbose: Optional[bool] = True,
@@ -162,7 +160,7 @@ class PPPCA(PostProc, PcaParams, PcaAnnularParams):
 
         Parameters
         ----------
-        runmode : {'classic', 'annular', 'grid', 'annulus'}, optional
+        runmode : LowerCaseStrEnum, see ``vip_hci.var.paramenum.Runmode``
             Mode of execution for the PCA.
         dataset : Dataset, optional
             Dataset to process. If not provided, ``self.dataset`` is used (as
@@ -180,101 +178,93 @@ class PPPCA(PostProc, PcaParams, PcaAnnularParams):
 
         """
         self._update_dataset(dataset)
+        if self.dataset.fwhm is None:
+            raise ValueError("`fwhm` has not been set")
         self._explicit_dataset()
 
-        # Fullframe mode
-        if runmode == "classic":
-            if self.source_xy is not None and self.dataset.fwhm is None:
-                raise ValueError("`fwhm` has not been set")
+        match (runmode):
+            case Runmode.CLASSIC:
+                # TODO : review the wavelengths attribute to be a scale_list instead
 
-            # TODO : review the wavelengths attribute to be a scale_list instead
+                params_dict = self._create_parameters_dict(PcaParams)
 
-            params_dict = self._create_parameters_dict(PcaParams)
+                res = pca(algo_params=self, **rot_options)
 
-            res = pca(algo_params=self, **rot_options)
+                self._find_pca_mode(res=res)
 
-            self._find_pca_mode(res=res)
+                if self.results is not None:
+                    self.results.register_session(
+                        params=params_dict,
+                        frame=self.frame_final,
+                        algo_name=self._algo_name[0],
+                    )
 
-            if self.results is not None:
-                self.results.register_session(
-                    params=params_dict,
-                    frame=self.frame_final,
-                    algo_name=self._algo_name[0],
+            case Runmode.ANNULAR:
+                if self.nproc is None:
+                    self.nproc = nproc
+
+                params_dict = self._create_parameters_dict(PcaAnnularParams)
+
+                res = pca_annular(algo_params=self, **rot_options)
+
+                self.cube_residuals, self.cube_residuals_der, self.frame_final = res
+
+                if self.results is not None:
+                    self.results.register_session(
+                        params=params_dict,
+                        frame=self.frame_final,
+                        algo_name=self._algo_name[1],
+                    )
+
+            case Runmode.GRID:
+                add_params = {
+                    "full_output": full_output,
+                    "verbose": verbose,
+                }
+
+                func_params = setup_parameters(
+                    params_obj=self, fkt=pca_grid, **add_params
                 )
 
-        # Annular mode
-        elif runmode == "annular":
-            if self.dataset.fwhm is None:
-                raise ValueError("`fwhm` has not been set")
+                res = pca_grid(**func_params, **rot_options)
 
-            if self.nproc is None:
-                self.nproc = nproc
+                (
+                    self.cube_residuals,
+                    self.pc_list,
+                    self.frame_final,
+                    self.dataframe,
+                    self.opt_number_pc,
+                ) = res
 
-            params_dict = self._create_parameters_dict(PcaAnnularParams)
+                if self.results is not None:
+                    self.results.register_session(
+                        params=func_params,
+                        frame=self.frame_final,
+                        algo_name=self._algo_name[2],
+                    )
 
-            res = pca_annular(algo_params=self, **rot_options)
+            case Runmode.ANNULUS:
+                add_params = {
+                    "angs": self.angle_list,
+                }
 
-            self.cube_residuals, self.cube_residuals_der, self.frame_final = res
-
-            if self.results is not None:
-                self.results.register_session(
-                    params=params_dict,
-                    frame=self.frame_final,
-                    algo_name=self._algo_name[1],
+                func_params = setup_parameters(
+                    params_obj=self, fkt=pca_annulus, **add_params
                 )
 
-        # Grid mode
-        elif runmode == "grid":
-            if self.dataset.fwhm is None:
-                raise ValueError("`fwhm` has not been set")
+                res = pca_annulus(**func_params, **rot_options)
 
-            add_params = {
-                "full_output": full_output,
-                "verbose": verbose,
-            }
+                self.frame_final = res
 
-            func_params = setup_parameters(params_obj=self, fkt=pca_grid, **add_params)
+                if self.results is not None:
+                    self.results.register_session(
+                        params=func_params,
+                        frame=self.frame_final,
+                        algo_name=self._algo_name[3],
+                    )
 
-            res = pca_grid(**func_params, **rot_options)
-
-            (
-                self.cube_residuals,
-                self.pc_list,
-                self.frame_final,
-                self.dataframe,
-                self.opt_number_pc,
-            ) = res
-
-            if self.results is not None:
-                self.results.register_session(
-                    params=func_params,
-                    frame=self.frame_final,
-                    algo_name=self._algo_name[2],
-                )
-
-        # Annulus mode
-        else:
-            if self.dataset.fwhm is None:
-                raise ValueError("`fwhm` has not been set")
-
-            add_params = {
-                "angs": self.angle_list,
-            }
-
-            func_params = setup_parameters(
-                params_obj=self, fkt=pca_annulus, **add_params
-            )
-
-            res = pca_annulus(**func_params, **rot_options)
-
-            self.frame_final = res
-
-            if self.results is not None:
-                self.results.register_session(
-                    params=func_params,
-                    frame=self.frame_final,
-                    algo_name=self._algo_name[3],
-                )
+            case _:
+                raise ValueError("Invalid run mode selected.")
 
     def _find_pca_mode(self, res):
         """

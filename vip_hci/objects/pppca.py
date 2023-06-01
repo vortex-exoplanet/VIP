@@ -44,6 +44,14 @@ class PPPCA(PostProc, PcaParams, PcaAnnularParams):
         - single annulus PCA.
     Some parameters are common to several variations.
 
+    Common parameters
+    -----------------
+    full_output: bool, optional
+        Whether to return the final median combined image only or with other
+        intermediate arrays.
+    _algo_name: str, optional
+        Name of the algorithm wrapped by the object.
+
     Grid parameters
     ---------------
     range_pcs : None or tuple, optional

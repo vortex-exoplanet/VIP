@@ -114,7 +114,7 @@ def setup_parameters(
 def print_algo_params(function_parameters) -> None:
     """Print the parameters that will be used for the run of an algorithm."""
     for key, value in function_parameters.items():
-        if isinstance(value, np.ndarray):
-            print(f"- {key} : np.ndarray (not shown)")
+        if isinstance(value, np.ndarray) or isinstance(value, list):
+            print(f"- {key} : np.ndarray or list (not shown)")
         else:
             print(f"- {key} : {value}")

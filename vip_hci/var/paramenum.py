@@ -197,3 +197,27 @@ class Metric(LowEnum):
     L2 = auto()
     MANHATTAN = auto()
     CORRELATION = auto()
+
+
+# TODO: document modes
+class LowRankMode(LowEnum):
+    """Define the values for the low rank mode for LLSG."""
+
+    SVD = auto()
+    BRP = auto()
+
+
+# TODO: document modes
+class AutoRankMode(LowEnum):
+    """Define the values for the auto rank mode for LLSG."""
+
+    NOISE = auto()
+    CEVR = auto()
+
+
+# TODO: document modes
+class ThreshMode(LowEnum):
+    """Define the values for thresholding modes for LLSG."""
+
+    SOFT = auto()
+    HARD = auto()

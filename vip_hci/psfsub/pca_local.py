@@ -83,23 +83,23 @@ class PcaAnnularParams:
         target (sectors of) frames. Depends on the dimensionality of `cube`.
 
         * ADI and ADI+RDI (``cube`` is a 3d array): if a single integer is
-          provided, then the same number of PCs will be subtracted at each
-          separation (annulus). If a tuple is provided, then a different number
-          of PCs will be used for each annulus (starting with the innermost
-          one). If ``ncomp`` is set to ``auto`` then the number of PCs are
-          calculated for each region/patch automatically.
+        provided, then the same number of PCs will be subtracted at each
+        separation (annulus). If a tuple is provided, then a different number
+        of PCs will be used for each annulus (starting with the innermost
+        one). If ``ncomp`` is set to ``auto`` then the number of PCs are
+        calculated for each region/patch automatically.
 
         * ADI or ADI+RDI (``cube`` is a 4d array): same input format allowed as
-          above. If ncomp is a list with the same length as the number of
-          channels, each element of the list will be used as ``ncomp`` value
-          (whether int, float or tuple) for each spectral channel.
+        above. If ncomp is a list with the same length as the number of
+        channels, each element of the list will be used as ``ncomp`` value
+        (whether int, float or tuple) for each spectral channel.
 
         * ADI+mSDI case: ``ncomp`` must be a tuple (two integers) with the
-          number of PCs obtained from each multi-spectral frame (for each
-          sector) and the number of PCs used in the second PCA stage (ADI
-          fashion, using the residuals of the first stage). If None then the
-          second PCA stage is skipped and the residuals are de-rotated and
-          combined.
+        number of PCs obtained from each multi-spectral frame (for each
+        sector) and the number of PCs used in the second PCA stage (ADI
+        fashion, using the residuals of the first stage). If None then the
+        second PCA stage is skipped and the residuals are de-rotated and
+        combined.
 
     svd_mode : LowerCaseStrEnum, see `vip_hci.var.paramenum.SvdMode`
         Switch for the SVD method/library to be used.

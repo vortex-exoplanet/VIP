@@ -238,11 +238,10 @@ def nmf_annular(algo_params: NMFAnnParams = None, **rot_options):
         }
 
         func_params = setup_parameters(
-            params_obj=algo_params, fkt=_define_annuli, **add_params
+            params_obj=algo_params, fkt=_define_annuli, show_params=False, **add_params
         )
 
         res_ann_par = _define_annuli(**func_params)
-        print(f"n_segments : {algo_params.n_segments}")
         pa_thr, inner_radius, ann_center = res_ann_par
         indices = get_annulus_segments(
             array[0],
@@ -303,7 +302,11 @@ def nmf_annular(algo_params: NMFAnnParams = None, **rot_options):
                 "matrix_sig_segm": matrix_sig_segm,
             }
             func_params = setup_parameters(
-                params_obj=algo_params, fkt=do_nmf_patch, as_list=True, **add_params
+                params_obj=algo_params,
+                fkt=do_nmf_patch,
+                as_list=True,
+                show_params=False,
+                **add_params,
             )
             res = pool_map(
                 algo_params.nproc,

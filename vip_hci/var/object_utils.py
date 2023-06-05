@@ -59,6 +59,7 @@ def setup_parameters(
     params_obj: object,
     fkt: Callable,
     as_list: bool = False,
+    show_params: bool = True,
     **add_params: dict,
 ) -> dict | list:
     """
@@ -102,7 +103,7 @@ def setup_parameters(
         (param, all_params[param]) for param in wanted_params if param in all_params
     )
 
-    if params_obj.verbose:
+    if show_params:
         print(f"The following parameters will be used for the run of {fkt.__name__} :")
         print_algo_params(params_setup)
 

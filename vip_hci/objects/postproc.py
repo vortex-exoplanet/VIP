@@ -43,6 +43,7 @@ EXPLICIT_PARAMS = {
     "fwhm": "fwhm",
     "cube_ref": "cuberef",
     "scale_list": "wavelengths",
+    "psf": "psfn",
 }
 
 
@@ -101,7 +102,7 @@ class PPResult(Saveable):
         """
         # If frame is already registered in a session, add the associated snr_map only
         for session in self.sessions:
-            if (frame == session.frame).all():
+            if frame == session.frame:
                 session.snr_map = snr_map
                 return
 

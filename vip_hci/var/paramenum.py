@@ -300,3 +300,26 @@ class Initsvd(LowEnum):
     NNDSVD = auto()
     NNDSVDA = auto()
     RANDOM = auto()
+
+
+# TODO: document modes
+class OptMethod(LowEnum):
+    """
+    Defines the method of balancing for the flux difference for ANDROMEDA.
+
+    Modes
+    -----
+
+    * ``NO``
+
+    * ``TOTAL``
+
+    * ``LSQ``
+
+    * ``ROBUST``
+    """
+
+    NO = auto()
+    TOTAL = auto()
+    LSQ = auto()
+    ROBUST = auto()

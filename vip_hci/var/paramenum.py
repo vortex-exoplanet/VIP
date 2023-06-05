@@ -263,3 +263,40 @@ class Runmode(LowEnum):
     ANNULAR = auto()
     GRID = auto()
     ANNULUS = auto()
+
+
+class HandleNeg(LowEnum):
+    """
+    Define modes for handling negative values in NMF full-frame.
+
+    Modes
+    -----
+    * ``SUBTR_MIN`` : subtract the minimum value in the arrays.
+
+    * ``MASK`` : mask negative values.
+
+    * ``NULL`` : set negative values to zero.
+    """
+
+    SUBTR_MIN = auto()
+    MASK = auto()
+    NULL = auto()
+
+
+class Initsvd(LowEnum):
+    """
+    Define modes for initializing SVD for NMF full-frame.
+
+    Modes
+    -----
+    * ``NNDSVD``: non-negative double SVD recommended for sparseness.
+
+    * ``NNDSVDA`` : NNDSVD where zeros are filled with the average of cube;
+        recommended when sparsity is not desired.
+
+    * ``RANDOM`` : random initial non-negative matrix.
+    """
+
+    NNDSVD = auto()
+    NNDSVDA = auto()
+    RANDOM = auto()

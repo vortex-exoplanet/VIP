@@ -25,19 +25,18 @@ def filter_duplicate_keys(
     filter_in : bool
         If True, keeps only the keys from reference, else erase only those keys.
     """
-
     # Conversion to dictionnary if the items are objects
     if isinstance(filter_item, dict):
-        filter_dict = filter_item
+        filter_dict = filter_item.copy()
     elif isinstance(filter_item, object):
-        filter_dict = vars(filter_item)
+        filter_dict = vars(filter_item).copy()
     else:
         raise TypeError("The item to be filtered is neither a dictionnary or an object")
 
     if isinstance(ref_item, dict):
-        ref_dict = ref_item
+        ref_dict = ref_item.copy()
     elif isinstance(ref_item, object):
-        ref_dict = vars(ref_item)
+        ref_dict = vars(ref_item).copy()
     else:
         raise TypeError("The reference item is neither a dictionnary or an object")
 
@@ -97,7 +96,7 @@ def setup_parameters(
         obj_params = filter_duplicate_keys(filter_item=params_obj, ref_item=add_params)
         all_params = {**obj_params, **add_params}
     else:
-        all_params = obj_params
+        all_params = vars(params_obj)
 
     params_setup = OrderedDict(
         (param, all_params[param]) for param in wanted_params if param in all_params

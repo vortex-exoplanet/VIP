@@ -30,50 +30,47 @@ def get_frame_snrmap(example_dataset_adi):
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
     print("producing a final frame...")
-    res_frame = pca(dsi.cube, dsi.angles, ncomp=10)
+    res_frame = pca(cube=dsi.cube, angle_list=dsi.angles, ncomp=10)
     return res_frame, (63, 63), dsi.fwhm
 
 
 def test_detection_log(get_frame_snrmap):
     res_frame, coord, fwhm = get_frame_snrmap
-    y, x = detection(res_frame, fwhm, psf=None, mode='log', plot=False)
+    y, x = detection(res_frame, fwhm, psf=None, mode="log", plot=False)
     check = False
     for i in range(len(y)):
-        if np.allclose(y[i], coord[0], atol=2) and \
-           np.allclose(x[i], coord[1], atol=2):
+        if np.allclose(y[i], coord[0], atol=2) and np.allclose(x[i], coord[1], atol=2):
             check = True
     assert check
 
 
 def test_detection_dog(get_frame_snrmap):
     res_frame, coord, fwhm = get_frame_snrmap
-    y, x = detection(res_frame, fwhm, psf=None, mode='dog', plot=False)
+    y, x = detection(res_frame, fwhm, psf=None, mode="dog", plot=False)
     check = False
     for i in range(len(y)):
-        if np.allclose(y[i], coord[0], atol=2) and \
-           np.allclose(x[i], coord[1], atol=2):
+        if np.allclose(y[i], coord[0], atol=2) and np.allclose(x[i], coord[1], atol=2):
             check = True
     assert check
 
 
 def test_detection_lpeaks(get_frame_snrmap):
     res_frame, coord, fwhm = get_frame_snrmap
-    y, x = detection(res_frame, fwhm, psf=None, mode='lpeaks', plot=False)
+    y, x = detection(res_frame, fwhm, psf=None, mode="lpeaks", plot=False)
     check = False
     for i in range(len(y)):
-        if np.allclose(y[i], coord[0], atol=2) and \
-           np.allclose(x[i], coord[1], atol=2):
+        if np.allclose(y[i], coord[0], atol=2) and np.allclose(x[i], coord[1], atol=2):
             check = True
     assert check
 
 
 def test_detection_snrmap(get_frame_snrmap):
     res_frame, coord, fwhm = get_frame_snrmap
-    y, x = detection(res_frame, fwhm, psf=None, mode='snrmapf',
-                      plot=False, snr_thresh=5, nproc=2)
+    y, x = detection(
+        res_frame, fwhm, psf=None, mode="snrmapf", plot=False, snr_thresh=5, nproc=2
+    )
     check = False
     for i in range(len(y)):
-        if np.allclose(y[i], coord[0], atol=2) and \
-           np.allclose(x[i], coord[1], atol=2):
+        if np.allclose(y[i], coord[0], atol=2) and np.allclose(x[i], coord[1], atol=2):
             check = True
     assert check

@@ -33,7 +33,7 @@ def get_frame(example_dataset_adi):
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
     print("producing a final frame...")
-    res_frame = pca(dsi.cube, dsi.angles, ncomp=10)
+    res_frame = pca(cube=dsi.cube, angle_list=dsi.angles, ncomp=10)
     frame = Frame(res_frame, fwhm=dsi.fwhm)
     return frame, (63, 63)
 

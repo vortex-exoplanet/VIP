@@ -38,22 +38,33 @@ def injected_cube_position(example_dataset_ifs_crop):
 
 # ====== Actual negfc tests for different parameters
 # Note: MCMC too slow to test & doesn't increase much coverage compared to 3D
-@parametrize("pca_algo, negfc_algo, ncomp, mu_sigma, fm",
-             [
-                 (pca_annulus, firstguess, 4, True, None),
-                 (pca_annulus, firstguess, 4, False, 'sum')
-                 ])
-def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma,
-               fm):
+@parametrize(
+    "pca_algo, negfc_algo, ncomp, mu_sigma, fm",
+    [
+        (pca_annulus, firstguess, 4, True, None),
+        (pca_annulus, firstguess, 4, False, "sum"),
+    ],
+)
+def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma, fm):
     ds, yx, gt = injected_cube_position
 
     # run firstguess with simplex only if followed by mcmc or nested sampling
     fwhm_m = np.mean(ds.fwhm)
-    res0 = firstguess(ds.cube, ds.angles, ds.psf, ncomp=ncomp,
-                      planets_xy_coord=np.array([[yx[1], yx[0]]]), fwhm=fwhm_m,
-                      simplex=negfc_algo == firstguess, algo=pca_algo, fmerit=fm,
-                      mu_sigma=mu_sigma, imlib='opencv', aperture_radius=2,
-                      annulus_width=4*fwhm_m)
+    res0 = firstguess(
+        cube=ds.cube,
+        angs=ds.angles,
+        psf=ds.psf,
+        ncomp=ncomp,
+        planets_xy_coord=np.array([[yx[1], yx[0]]]),
+        fwhm=fwhm_m,
+        simplex=negfc_algo == firstguess,
+        algo=pca_algo,
+        fmerit=fm,
+        mu_sigma=mu_sigma,
+        imlib="opencv",
+        aperture_radius=2,
+        annulus_width=4 * fwhm_m,
+    )
     res = (res0[0][0], res0[1][0], np.mean(res0[2][0]))
 
     # compare results

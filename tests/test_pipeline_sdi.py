@@ -60,55 +60,98 @@ def estimated_scal_factor(example_dataset_ifs):
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
     dsi_flux = np.ones_like(dsi.wavelengths)
-    scal_fac_ori = dsi.wavelengths[-1]/dsi.wavelengths
-    scal_fac, _ = vip.preproc.find_scal_vector(dsi.psf, dsi.wavelengths,
-                                               dsi_flux, nfp=2, fm="stddev")
+    scal_fac_ori = dsi.wavelengths[-1] / dsi.wavelengths
+    scal_fac, _ = vip.preproc.find_scal_vector(
+        dsi.psf, dsi.wavelengths, dsi_flux, nfp=2, fm="stddev"
+    )
 
     return scal_fac_ori, scal_fac
+
 
 # ====== algos
 
 
 def algo_medsub(ds, sc):
-    return vip.psfsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
-                                 scale_list=sc)
+    return vip.psfsub.median_sub(
+        cube=ds.cube, angle_list=ds.angles, fwhm=ds.fwhm, scale_list=sc
+    )
 
 
 def algo_medsub_annular(ds, sc):
-    return vip.psfsub.median_sub(ds.cube, ds.angles, fwhm=ds.fwhm,
-                                 scale_list=sc, mode='annular',
-                                 radius_int=10)
+    return vip.psfsub.median_sub(
+        cube=ds.cube,
+        angle_list=ds.angles,
+        fwhm=ds.fwhm,
+        scale_list=sc,
+        mode="annular",
+        radius_int=10,
+    )
 
 
 def algo_xloci(ds, sc):
-    return vip.psfsub.xloci(ds.cube, ds.angles, fwhm=ds.fwhm, scale_list=sc,
-                            asize=12)
+    return vip.psfsub.xloci(
+        cube=ds.cube, angle_list=ds.angles, fwhm=ds.fwhm, scale_list=sc, asize=12
+    )
 
 
 def algo_xloci_double(ds, sc):
-    return vip.psfsub.xloci(ds.cube, ds.angles, fwhm=ds.fwhm, scale_list=sc,
-                            adimsdi='double', asize=12)
+    return vip.psfsub.xloci(
+        cube=ds.cube,
+        angle_list=ds.angles,
+        fwhm=ds.fwhm,
+        scale_list=sc,
+        adimsdi="double",
+        asize=12,
+    )
 
 
 def algo_pca_single(ds, sc):
-    return vip.psfsub.pca(ds.cube, ds.angles, scale_list=sc,
-                          adimsdi='single', ncomp=10)
+    return vip.psfsub.pca(
+        cube=ds.cube, angle_list=ds.angles, scale_list=sc, adimsdi="single", ncomp=10
+    )
+
 
 def algo_pca_single_left_eigv(ds, sc):
-    return vip.psfsub.pca(ds.cube, ds.angles, scale_list=sc,
-                          adimsdi='single', ncomp=10, left_eigv=True)
+    return vip.psfsub.pca(
+        cube=ds.cube,
+        angle_list=ds.angles,
+        scale_list=sc,
+        adimsdi="single",
+        ncomp=10,
+        left_eigv=True,
+    )
+
 
 def algo_pca_double(ds, sc):
-    return vip.psfsub.pca(ds.cube, ds.angles, scale_list=sc,
-                          adimsdi='double', ncomp=(1, 2))
+    return vip.psfsub.pca(
+        cube=ds.cube,
+        angle_list=ds.angles,
+        scale_list=sc,
+        adimsdi="double",
+        ncomp=(1, 2),
+    )
+
 
 def algo_pca_double_left_eigv(ds, sc):
-    return vip.psfsub.pca(ds.cube, ds.angles, scale_list=sc,
-                          adimsdi='double', ncomp=(1, 2), left_eigv=True)
+    return vip.psfsub.pca(
+        cube=ds.cube,
+        angle_list=ds.angles,
+        scale_list=sc,
+        adimsdi="double",
+        ncomp=(1, 2),
+        left_eigv=True,
+    )
+
 
 def algo_pca_annular(ds, sc):
-    return vip.psfsub.pca_annular(ds.cube, ds.angles, scale_list=sc,
-                                  radius_int=10, ncomp=(1, 1), delta_sep=0.1)
+    return vip.psfsub.pca_annular(
+        cube=ds.cube,
+        angle_list=ds.angles,
+        scale_list=sc,
+        radius_int=10,
+        ncomp=(1, 1),
+        delta_sep=0.1,
+    )
 
 
 # ====== SNR map
@@ -139,37 +182,49 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
         Error margin in pixels, between the expected position and the recovered.
 
     """
+
     def verify_expcoord(vectory, vectorx, exp_yx):
         for coor in zip(vectory, vectorx):
             print(coor, exp_yx)
-            if np.allclose(coor[0], exp_yx[0], atol=deltapix) and \
-                    np.allclose(coor[1], exp_yx[1], atol=deltapix):
+            if np.allclose(coor[0], exp_yx[0], atol=deltapix) and np.allclose(
+                coor[1], exp_yx[1], atol=deltapix
+            ):
                 return True
         return False
 
-    table = vip.metrics.detection(frame, fwhm=fwhm, mode='lpeaks', bkg_sigma=5,
-                                  matched_filter=False, mask=True,
-                                  snr_thresh=snr_thresh, plot=False,
-                                  debug=False, full_output=True, verbose=True)
+    table = vip.metrics.detection(
+        frame,
+        fwhm=fwhm,
+        mode="lpeaks",
+        bkg_sigma=5,
+        matched_filter=False,
+        mask=True,
+        snr_thresh=snr_thresh,
+        plot=False,
+        debug=False,
+        full_output=True,
+        verbose=True,
+    )
     msg = "Injected companion not recovered"
     assert verify_expcoord(table.y, table.x, yx_exp), msg
 
 
-@parametrize("algo, make_detmap",
-             [
-                 (algo_medsub, None),
-                 (algo_medsub_annular, None),
-                 (algo_xloci, snrmap_fast),
-                 (algo_xloci_double, snrmap_fast),
-                 (algo_pca_single, snrmap_fast),
-                 (algo_pca_single_left_eigv, snrmap_fast),
-                 (algo_pca_double, snrmap_fast),
-                 (algo_pca_double_left_eigv, snrmap_fast),
-                 (algo_pca_annular, None),
-                 ],
-             ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x))
-def test_algos(injected_cube_position,
-               estimated_scal_factor, algo, make_detmap):
+@parametrize(
+    "algo, make_detmap",
+    [
+        (algo_medsub, None),
+        (algo_medsub_annular, None),
+        (algo_xloci, snrmap_fast),
+        (algo_xloci_double, snrmap_fast),
+        (algo_pca_single, snrmap_fast),
+        (algo_pca_single_left_eigv, snrmap_fast),
+        (algo_pca_double, snrmap_fast),
+        (algo_pca_double_left_eigv, snrmap_fast),
+        (algo_pca_annular, None),
+    ],
+    ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x),
+)
+def test_algos(injected_cube_position, estimated_scal_factor, algo, make_detmap):
     ds, position = injected_cube_position
     sc, scal_fac = estimated_scal_factor
     frame = algo(ds, sc)

@@ -102,7 +102,7 @@ class PPResult(Saveable):
         """
         # If frame is already registered in a session, add the associated snr_map only
         for session in self.sessions:
-            if frame == session.frame:
+            if (frame == session.frame).all() and snr_map is not None:
                 session.snr_map = snr_map
                 return
 

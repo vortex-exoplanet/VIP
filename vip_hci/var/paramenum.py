@@ -323,3 +323,28 @@ class OptMethod(LowEnum):
     TOTAL = auto()
     LSQ = auto()
     ROBUST = auto()
+
+
+class VarEstim(LowEnum):
+    """
+    Define modes to use for the residual noise variance estimation in FMMF.
+
+    Modes
+    -----
+
+    * ``FR``: consider the pixels in the selected annulus with a width equal
+    to asize but separately for every frame.
+
+    * ``FM``: consider the pixels in the selected annulus with a width
+    equal to asize but separately for every frame. Apply a mask one FWHM
+    on the selected pixel and its surrounding.
+
+    * ``TE``:rely on the method developped in PACO to estimate the
+    residual noise variance (take the pixels in a region of one FWHM
+    arround the selected pixel, considering every frame in the
+    derotated cube of residuals except for the selected frame).
+    """
+
+    FR = auto()
+    FM = auto()
+    TE = auto()

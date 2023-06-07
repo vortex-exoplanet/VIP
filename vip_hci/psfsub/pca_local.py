@@ -175,7 +175,7 @@ class PCAAnnParams:
     left_eigv: bool = False
 
 
-def pca_annular(algo_params: PCAAnnParams, **all_kwargs):
+def pca_annular(algo_params: PCAAnnParams = None, **all_kwargs):
     """PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data.
 
     The PCA model is computed locally in each annulus (or annular sectors according

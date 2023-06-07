@@ -1,6 +1,4 @@
-"""
-Helper functions for tests
-"""
+"""Helper functions for tests"""
 
 __author__ = "Thomas Bédrine, Ralf Farkas"
 

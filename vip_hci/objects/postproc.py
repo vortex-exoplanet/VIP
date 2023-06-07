@@ -281,6 +281,7 @@ class PostProc(BaseEstimator):
         for key, value in self.__dict__.items():
             print(f"{key} : {value}")
 
+    # TODO: write test
     def compute_significance(self, source_xy: Tuple[float] = None) -> None:
         """
         Compute the significance of a detection.

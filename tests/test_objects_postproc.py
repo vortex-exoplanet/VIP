@@ -5,12 +5,78 @@ __author__ = "Thomas Bédrine"
 import numpy as np
 import pytest
 
-from vip_hci.objects import PostProc, PPResult
+from requests.exceptions import ReadTimeout
+from ratelimit import limits, sleep_and_retry
+from astropy.utils.data import download_file
+
+from vip_hci.objects import PostProc, PPResult, Dataset
 from vip_hci.psfsub import median_sub
+from vip_hci.fits import open_fits
+from vip_hci.var.object_utils import setup_parameters
+from vip_hci.config import VLT_NACO
+
+
+@sleep_and_retry
+@limits(calls=1, period=1)
+def download_resource(url):
+    attempts = 5
+    while attempts > 0:
+        try:
+            return download_file(url, cache=True)
+        except ReadTimeout:
+            attempts -= 1
+
+    raise TimeoutError("Resource could not be accessed due to too many timeouts.")
+
+
+def make_dataset_adi():
+    """
+    Download example FITS cube from github + prepare Dataset object.
+
+    Returns
+    -------
+    dataset : HCIDataset
+
+    Notes
+    -----
+    We use the helper function ``download_resource`` which handles the request
+    and puts it to sleep for a defined duration if too many requests are done.
+    They inherently call the Astropy's ``download_file`` function which uses caching,
+    so the file is downloaded at most once per test run.
+
+    """
+    print("downloading data...")
+
+    url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
+
+    f1 = download_resource(f"{url_prefix}/naco_betapic_cube_cen.fits")
+    f2 = download_resource(f"{url_prefix}/naco_betapic_psf.fits")
+    f3 = download_resource(f"{url_prefix}/naco_betapic_pa.fits")
+
+    # load fits
+    cube = open_fits(f1)
+    angles = open_fits(f3).flatten()  # shape (61,1) -> (61,)
+    psf = open_fits(f2)
+
+    # create dataset object
+    dataset = Dataset(cube=cube, angles=angles, psf=psf, px_scale=VLT_NACO["plsc"])
+
+    dataset.normalize_psf(size=20, force_odd=False)
+
+    # overwrite PSF for easy access
+    dataset.psf = dataset.psfn
+
+    return dataset
+
+
+class TestParams:
+    fwhm = None
+    ncomp = None
+    delta_rot = None
 
 
 def test_postproc_object():
-    """Create a PostProc objects and test various actions on it."""
+    """Create a PostProc object and test various actions on it."""
     t_postproc = PostProc(verbose=False)
 
     # Test if trying to update the dataset without any specified triggers AttributeError
@@ -54,10 +120,13 @@ def test_postproc_object():
 
     # Test if the setup_parameters filters unnecessary parameters
 
-    initial_params = {"fwhm": 4, "imlib": "vip-fft", "annulus_width": 5}
+    t_postproc.ncomp = 10
+    t_postproc.fwhm = 4
+    t_postproc.delta_rot = 0.5
+    add_params = {"imlib": "vip-fft", "annulus_width": 5}
     expected_params = {"fwhm": 4, "imlib": "vip-fft", "verbose": False}
 
-    set_params = t_postproc._setup_parameters(median_sub, **initial_params)
+    set_params = setup_parameters(params_obj=t_postproc, fkt=median_sub, **add_params)
 
     assert set_params == expected_params
 
@@ -67,3 +136,28 @@ def test_postproc_object():
         t_postproc.run()
 
     assert excinfo.type == NotImplementedError
+
+    # Test if the create_parameters_dict filters parameters correctly
+
+    expected_class_params = {"ncomp": 10, "fwhm": 4, "delta_rot": 0.5}
+
+    params_dict = t_postproc._create_parameters_dict(TestParams)
+
+    assert expected_class_params == params_dict
+
+    # Test if the update_dataset correctly adds a new dataset to self
+
+    betapic = make_dataset_adi()
+
+    t_postproc._update_dataset(dataset=betapic)
+
+    assert t_postproc.dataset == betapic
+
+    # Test if the explicit_dataset extracts correctly the params from dataset
+
+    t_postproc._explicit_dataset()
+
+    assert np.allclose(np.abs(t_postproc.cube), np.abs(betapic.cube), atol=1e-2)
+    assert t_postproc.fwhm == betapic.fwhm
+    assert np.allclose(np.abs(t_postproc.angle_list), np.abs(betapic.angles), atol=1e-2)
+    assert np.allclose(np.abs(t_postproc.psf), np.abs(betapic.psfn), atol=1e-2)

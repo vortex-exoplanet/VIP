@@ -266,15 +266,15 @@ def save_snapshots_psfsub_adi():
 
     # Principal component analysis
 
-    pca_adi = pca(cube=cube, angle_list=angles, svd_mode="arpack")
+    pca_adi = pca(cube=cube, angle_list=angles, fwhm=fwhm, svd_mode="arpack")
 
     # Principal component analysis (with left eigenvalue)
 
-    pca_left_eigv_adi = pca(cube=cube, angle_list=angles, left_eigv=True)
+    pca_left_eigv_adi = pca(cube=cube, angle_list=angles, fwhm=fwhm, left_eigv=True)
 
     # Principal component analysis (svd mode set to "eigen")
 
-    pca_linalg_adi = pca(cube=cube, angle_list=angles, svd_mode="eigen")
+    pca_linalg_adi = pca(cube=cube, angle_list=angles, fwhm=fwhm, svd_mode="eigen")
 
     # Principal component analysis (with delta_rot)
 
@@ -290,11 +290,13 @@ def save_snapshots_psfsub_adi():
 
     # Principal component analysis (with ??)
 
-    pca_cevr_adi = pca(cube=cube, angle_list=angles, ncomp=0.95)
+    pca_cevr_adi = pca(cube=cube, angle_list=angles, fwhm=fwhm, ncomp=0.95)
 
     # Principal component analysis with incremental batch
 
-    pca_incr_adi = pca(cube=cube, angle_list=angles, batch=int(cube.shape[0] / 2))
+    pca_incr_adi = pca(
+        cube=cube, angle_list=angles, fwhm=fwhm, batch=int(cube.shape[0] / 2)
+    )
 
     # Principal component analysis with grid
 
@@ -302,6 +304,7 @@ def save_snapshots_psfsub_adi():
         cube=cube,
         angle_list=angles,
         ncomp=(1, 2),
+        fwhm=fwhm,
         source_xy=betapic.injections_yx[0][::-1],
         verbose=False,
     )

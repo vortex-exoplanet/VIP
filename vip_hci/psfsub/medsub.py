@@ -41,7 +41,7 @@ from strenum import LowercaseStrEnum as LowEnum
 from ..config import time_ini, timing
 from ..var import get_annulus_segments, mask_circle
 from ..var.paramenum import Imlib, Interpolation, Collapse
-from ..var.object_utils import setup_parameters
+from ..var.object_utils import setup_parameters, separate_kwargs_dict
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector, check_scal_vector
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..config.utils_conf import pool_map, iterable, print_precision
@@ -140,7 +140,7 @@ class MedsubParams:
     verbose: bool = True
 
 
-def median_sub(algo_params: MedsubParams = None, **rot_options):
+def median_sub(algo_params: MedsubParams = None, **all_kwargs):
     """Implementation of a median subtraction algorithm for model PSF
     subtraction in high-contrast imaging sequences. In the case of ADI, the
     algorithm is based on [MAR06]_. The ADI+IFS method is an extension of this
@@ -170,6 +170,14 @@ def median_sub(algo_params: MedsubParams = None, **rot_options):
         Median combination of the de-rotated cube.
 
     """
+
+    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    class_params, rot_options = separate_kwargs_dict(
+        initial_kwargs=all_kwargs, parent_class=MedsubParams
+    )
+    if algo_params is None:
+        algo_params = MedsubParams(**class_params)
+
     global ARRAY
     ARRAY = algo_params.cube.copy()
 

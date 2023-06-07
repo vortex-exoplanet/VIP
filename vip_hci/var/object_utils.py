@@ -1,6 +1,5 @@
 """Module for various object oriented functions."""
 from collections import OrderedDict
-from dataclasses import dataclass
 from inspect import signature
 from typing import Callable
 
@@ -114,10 +113,46 @@ def setup_parameters(
     return params_setup
 
 
-def print_algo_params(function_parameters) -> None:
+def print_algo_params(function_parameters: dict) -> None:
     """Print the parameters that will be used for the run of an algorithm."""
     for key, value in function_parameters.items():
         if isinstance(value, np.ndarray) or isinstance(value, list):
             print(f"- {key} : np.ndarray or list (not shown)")
         else:
             print(f"- {key} : {value}")
+
+
+def separate_kwargs_dict(initial_kwargs: dict, parent_class: any) -> None:
+    """
+    Take a set of kwargs parameters and split them in two separate dicts.
+
+    The condition for the separation is to extract the parameters of an object
+    (example: PcaParams) and leave the other parameters as another dictionnary.
+    This is used in ``vip_hci.psfsub`` and ``vip_hci.invprob`` functions to allow
+    both the parameters of the function and the usual ``rot_options`` to be passed
+    as one kwargs.
+
+    Parameters
+    ----------
+    initial_kwargs: dict
+        The complete set of kwargs to separate.
+    parent_class: class
+        The model containing the parameters to extract into the first dictionnary.
+
+    Return
+    ------
+    class_params: dict
+        Parameters for the parent class to initialize.
+    more_params: dict
+        Parameters left after extracting the class_params.
+    """
+    class_params = {}
+    more_params = {}
+
+    for key, value in initial_kwargs.items():
+        if hasattr(parent_class, key):
+            class_params[key] = value
+        else:
+            more_params[key] = value
+
+    return class_params, more_params

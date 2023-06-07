@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from strenum import LowercaseStrEnum as LowEnum
 from sklearn.metrics import pairwise_distances
 from ..var import get_annulus_segments
-from ..var.object_utils import setup_parameters
+from ..var.object_utils import setup_parameters, separate_kwargs_dict
 from ..var.paramenum import Metric, Imlib, Interpolation, Collapse
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..config import time_ini, timing
@@ -95,7 +95,7 @@ class FrameDiffParams:
 
 def frame_diff(
     algo_params: FrameDiffParams = None,
-    **rot_options,
+    **all_kwargs,
 ):
     """Run the frame differencing algorithm.
 
@@ -108,12 +108,10 @@ def frame_diff(
     ----------
     algo_params: FrameDiffParams or PostProc
         Dataclass retaining all the needed parameters for frame differencing.
-    par_utils: ParamsUtils
-        Class for parameters operations such as extracting and sorting parameters
-        needed for a given function.
-    rot_options: dictionary, optional
-        Dictionary with optional keyword values for "border_mode", "edge_blend",
-        "interp_zeros", "ker" (see documentation of
+    all_kwargs: dictionary, optional
+        Mix of the parameters that can initialize an algo_params and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
+        "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
 
     Returns
@@ -121,6 +119,14 @@ def frame_diff(
     final_frame : numpy ndarray, 2d
         Median combination of the de-rotated cube.
     """
+
+    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    class_params, rot_options = separate_kwargs_dict(
+        initial_kwargs=all_kwargs, parent_class=FrameDiffParams
+    )
+    if algo_params is None:
+        algo_params = FrameDiffParams(**class_params)
+
     global array
     array = algo_params.cube
 

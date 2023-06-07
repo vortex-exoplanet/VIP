@@ -16,7 +16,7 @@ from strenum import LowercaseStrEnum as LowEnum
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..var import get_annulus_segments, matrix_scaling
-from ..var.object_utils import setup_parameters
+from ..var.object_utils import setup_parameters, separate_kwargs_dict
 from ..var.paramenum import Initsvd, Imlib, Interpolation, HandleNeg, Collapse
 from ..config import timing, time_ini
 from ..config.utils_conf import pool_map, iterable
@@ -129,7 +129,7 @@ class NMFAnnParams:
     nmf_args: dict = field(default_factory=lambda: {})
 
 
-def nmf_annular(algo_params: NMFAnnParams = None, **rot_options):
+def nmf_annular(algo_params: NMFAnnParams = None, **all_kwargs):
     """Non Negative Matrix Factorization in concentric annuli, for ADI/RDI
     sequences. Alternative to the annular ADI-PCA processing that does not rely
     on SVD or ED for obtaining a low-rank approximation of the datacube.
@@ -140,8 +140,9 @@ def nmf_annular(algo_params: NMFAnnParams = None, **rot_options):
     ----------
     algo_params: NMFAnnParams
         Dataclass retaining all the needed parameters for NMF annular.
-    rot_options: dictionary, optional
-        Dictionary with optional keyword values for "imlib", "interpolation,
+    all_kwargs: dictionary, optional
+        Mix of the parameters that can initialize an algo_params and the optional
+        'rot_options' dictionnary, with keyword values for "imlib", "interpolation,
         "border_mode", "mask_val",  "edge_blend", "interp_zeros", "ker" (see
         documentation of ``vip_hci.preproc.frame_rotate``)
 
@@ -152,6 +153,13 @@ def nmf_annular(algo_params: NMFAnnParams = None, **rot_options):
     the residuals derotated and the final frame.
 
     """
+    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    class_params, rot_options = separate_kwargs_dict(
+        initial_kwargs=all_kwargs, parent_class=NMFAnnParams
+    )
+    if algo_params is None:
+        algo_params = NMFAnnParams(**class_params)
+
     if algo_params.verbose:
         global start_time
         start_time = time_ini()

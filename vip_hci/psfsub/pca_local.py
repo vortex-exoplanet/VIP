@@ -14,7 +14,7 @@ fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
 """
 
 __author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
-__all__ = ["pca_annular", "PcaAnnularParams"]
+__all__ = ["pca_annular", "PCAAnnParams"]
 
 import numpy as np
 from multiprocessing import cpu_count
@@ -29,7 +29,7 @@ from ..config import time_ini, timing
 from ..config.utils_conf import pool_map, iterable
 from ..var import get_annulus_segments, matrix_scaling
 from ..var.paramenum import SvdMode, Imlib, Interpolation, Collapse
-from ..var.object_utils import setup_parameters
+from ..var.object_utils import setup_parameters, separate_kwargs_dict
 from ..stats import descriptive_stats
 from .svd import get_eigenvectors
 
@@ -37,7 +37,7 @@ AUTO = "auto"
 
 
 @dataclass
-class PcaAnnularParams:
+class PCAAnnParams:
     """
     Set of parameters for the annular PCA module.
 
@@ -175,7 +175,7 @@ class PcaAnnularParams:
     left_eigv: bool = False
 
 
-def pca_annular(algo_params: PcaAnnularParams, **rot_options):
+def pca_annular(algo_params: PCAAnnParams, **all_kwargs):
     """PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data.
 
     The PCA model is computed locally in each annulus (or annular sectors according
@@ -194,10 +194,11 @@ def pca_annular(algo_params: PcaAnnularParams, **rot_options):
 
     Parameters
     ----------
-    algo_params: PcaAnnularParams
+    algo_params: PCAAnnParams
         Dataclass retaining all the needed parameters for annular PCA.
-    rot_options: dictionary, optional
-        Dictionary with optional keyword values for "border_mode", "mask_val",
+    all_kwargs: dictionary, optional
+        Mix of the parameters that can initialize an algo_params and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
 
@@ -212,6 +213,13 @@ def pca_annular(algo_params: PcaAnnularParams, **rot_options):
     frame : numpy ndarray, 2d
         [full_output=True] Median combination of the de-rotated cube.
     """
+    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    class_params, rot_options = separate_kwargs_dict(
+        initial_kwargs=all_kwargs, parent_class=PCAAnnParams
+    )
+    if algo_params is None:
+        algo_params = PCAAnnParams(**class_params)
+
     if algo_params.verbose:
         global start_time
         start_time = time_ini()

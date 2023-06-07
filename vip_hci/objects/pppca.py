@@ -20,8 +20,8 @@ from ..psfsub import (
     pca_annular,
     pca_grid,
     pca_annulus,
-    PcaAnnularParams,
-    PcaParams,
+    PCAAnnParams,
+    PCAParams,
 )
 from ..var.paramenum import Adimsdi, ReturnList, Runmode
 from ..var.object_utils import setup_parameters
@@ -29,7 +29,7 @@ from ..config.utils_conf import algo_calculates_decorator as calculates
 
 
 @dataclass
-class PPPCA(PostProc, PcaParams, PcaAnnularParams):
+class PPPCA(PostProc, PCAParams, PCAAnnParams):
     """
     Post-processing PCA algorithm, compatible with various options.
 
@@ -186,7 +186,7 @@ class PPPCA(PostProc, PcaParams, PcaAnnularParams):
             case Runmode.CLASSIC:
                 # TODO : review the wavelengths attribute to be a scale_list instead
 
-                params_dict = self._create_parameters_dict(PcaParams)
+                params_dict = self._create_parameters_dict(PCAParams)
 
                 res = pca(algo_params=self, **rot_options)
 
@@ -203,7 +203,7 @@ class PPPCA(PostProc, PcaParams, PcaAnnularParams):
                 if self.nproc is None:
                     self.nproc = nproc
 
-                params_dict = self._create_parameters_dict(PcaAnnularParams)
+                params_dict = self._create_parameters_dict(PCAAnnParams)
 
                 res = pca_annular(algo_params=self, **rot_options)
 

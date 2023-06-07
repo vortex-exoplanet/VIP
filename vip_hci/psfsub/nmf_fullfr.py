@@ -30,7 +30,7 @@ from ..var import (
     matrix_scaling,
     mask_circle,
 )
-from ..var.object_utils import setup_parameters
+from ..var.object_utils import setup_parameters, separate_kwargs_dict
 from ..var.paramenum import Collapse, HandleNeg, Initsvd
 from ..config import timing, time_ini
 
@@ -120,7 +120,7 @@ class NMFParams:
     nmf_args: dict = field(default_factory=lambda: {})
 
 
-def nmf(algo_params: NMFParams = None, **rot_options):
+def nmf(algo_params: NMFParams = None, **all_kwargs):
     """Non Negative Matrix Factorization [LEE99]_ for ADI sequences [GOM17]_.
     Alternative to the full-frame ADI-PCA processing that does not rely on SVD
     or ED for obtaining a low-rank approximation of the datacube. This function
@@ -144,6 +144,13 @@ def nmf(algo_params: NMFParams = None, **rot_options):
     the residuals derotated and the final frame.
 
     """
+    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    class_params, rot_options = separate_kwargs_dict(
+        initial_kwargs=all_kwargs, parent_class=NMFParams
+    )
+    if algo_params is None:
+        algo_params = NMFParams(**class_params)
+
     array = algo_params.cube.copy()
     if algo_params.verbose:
         start_time = time_ini()

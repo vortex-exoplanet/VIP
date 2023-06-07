@@ -170,9 +170,7 @@ class AndroParams:
     verbose: bool = False
 
 
-def andromeda(
-    algo_params: AndroParams = None,
-):
+def andromeda(algo_params: AndroParams = None, **class_params: dict):
     """
     Exoplanet detection in ADI sequences by maximum-likelihood approach.
 
@@ -183,6 +181,9 @@ def andromeda(
     ----------
     algo_params: AndroParams
         Dataclass retaining all the needed parameters for ANDROMEDA.
+    class_params: dict, optionnal
+        Set of parameters needed for an initialization of algo_params if none
+        was provided.
 
     Returns
     -------
@@ -258,6 +259,8 @@ def andromeda(
         diam_tel = 8.0   : Telescope diameter [m]
 
     """
+    if algo_params is None:
+        algo_params = AndroParams(**class_params)
 
     def info(msg, *fmt, **kwfmt):
         if algo_params.verbose:

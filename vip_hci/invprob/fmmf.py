@@ -158,9 +158,7 @@ class FMMFParams:
     verbose: bool = True
 
 
-def fmmf(
-    algo_params: FMMFParams = None,
-):
+def fmmf(algo_params: FMMFParams = None, **class_params: dict):
     """
     Forward model matched filter generating SNR map and contrast map, using
     either KLIP or LOCI as PSF subtraction techniques, as implemented in
@@ -170,6 +168,9 @@ def fmmf(
     ----------
     algo_params: FMMFParams
         Dataclass retaining all the needed parameters for FMMF.
+    class_params: dict, optionnal
+        Set of parameters needed for an initialization of algo_params if none
+        was provided.
 
     Returns
     -------
@@ -181,6 +182,8 @@ def fmmf(
         the estimated standard deviation of the contrast).
 
     """
+    if algo_params is None:
+        algo_params = FMMFParams(**class_params)
     start_time = time_ini(algo_params.verbose)
 
     if algo_params.crop >= 2 * round(algo_params.fwhm) + 1:

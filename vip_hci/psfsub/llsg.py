@@ -26,7 +26,7 @@ from strenum import LowercaseStrEnum as LowEnum
 from ..config import time_ini, timing
 from ..preproc import cube_derotate, cube_collapse
 from ..var import get_annulus_segments, cube_filter_highpass
-from ..var.object_utils import setup_parameters
+from ..var.object_utils import setup_parameters, separate_kwargs_dict
 from ..var.paramenum import Collapse, LowRankMode, AutoRankMode, ThreshMode
 from .svd import svd_wrapper, get_eigenvectors
 from ..config.utils_conf import pool_map, iterable
@@ -129,7 +129,7 @@ class LLSGParams:
 
 def llsg(
     algo_params: LLSGParams = None,
-    **rot_options,
+    **all_kwargs,
 ):
     """Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as
     described in [GOM16]_. This first version of our algorithm aims at
@@ -147,10 +147,11 @@ def llsg(
     ----------
     algo_params: LLSGParams
         Dataclass retaining all the needed parameters for LLSG.
-    rot_options: dictionary, optional
-        Dictionary with optional keyword values for "imlib", "interpolation",
-        "border_mode", "mask_val", "edge_blend", "interp_zeros", "ker" (see
-        documentation of ``vip_hci.preproc.frame_rotate``)
+    all_kwargs: dictionary, optional
+        Mix of the parameters that can initialize an algo_params and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
+        "edge_blend", "interp_zeros", "ker" (see documentation of
+        ``vip_hci.preproc.frame_rotate``)
 
     Returns
     -------
@@ -162,6 +163,14 @@ def llsg(
     frame_g
 
     """
+
+    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    class_params, rot_options = separate_kwargs_dict(
+        initial_kwargs=all_kwargs, parent_class=LLSGParams
+    )
+    if algo_params is None:
+        algo_params = LLSGParams(**class_params)
+
     if algo_params.cube.ndim != 3:
         raise TypeError("Input array is not a cube (3d array)")
     if not algo_params.cube.shape[0] == algo_params.angle_list.shape[0]:

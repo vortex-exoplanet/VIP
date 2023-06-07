@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from strenum import LowercaseStrEnum as LowEnum
 from typing import Tuple
 from ..var import get_annulus_segments
-from ..var.object_utils import setup_parameters
+from ..var.object_utils import setup_parameters, separate_kwargs_dict
 from ..var.paramenum import Metric, Adimsdi, Imlib, Interpolation, Collapse, Solver
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector, check_scal_vector
 from ..preproc.rescaling import _find_indices_sdi
@@ -149,7 +149,7 @@ class LOCIParams:
     full_output: bool = False
 
 
-def xloci(algo_params: LOCIParams = None, **rot_options):
+def xloci(algo_params: LOCIParams = None, **all_kwargs):
     """Locally Optimized Combination of Images (LOCI) algorithm as in [LAF07]_.
     The PSF is modeled (for ADI and ADI+mSDI) with a least-square combination
     of neighbouring frames (solving the equation a x = b by computing a vector
@@ -160,9 +160,11 @@ def xloci(algo_params: LOCIParams = None, **rot_options):
 
     Parameters
     ----------
-
-    rot_options: dictionary, optional
-        Dictionary with optional keyword values for "border_mode", "mask_val",
+    algo_params: LOCIParams
+        Dataclass retaining all the needed parameters for LOCI.
+    all_kwargs: dictionary, optional
+        Mix of the parameters that can initialize an algo_params and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
 
@@ -175,6 +177,13 @@ def xloci(algo_params: LOCIParams = None, **rot_options):
     cube_res, cube_der, frame_der_median
 
     """
+    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    class_params, rot_options = separate_kwargs_dict(
+        initial_kwargs=all_kwargs, parent_class=LOCIParams
+    )
+    if algo_params is None:
+        algo_params = LOCIParams(**class_params)
+
     global ARRAY
     ARRAY = algo_params.cube
 

@@ -152,11 +152,9 @@ def median_sub(algo_params: MedsubParams = None, **all_kwargs):
     ----------
     algo_params: MedsubParams or PostProc
         Dataclass retaining all the needed parameters for median subtraction.
-    par_utils: ParamsUtils
-        Class for parameters operations such as extracting and sorting parameters
-        needed for a given function.
-    rot_options: dictionary, optional
-        Dictionary with optional keyword values for "border_mode", "mask_val",
+    all_kwargs: dictionary, optional
+        Mix of the parameters that can initialize an algo_params and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
 

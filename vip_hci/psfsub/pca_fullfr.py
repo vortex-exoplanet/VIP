@@ -40,7 +40,7 @@ Options :
 """
 
 __author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
-__all__ = ["pca", "PcaParams"]
+__all__ = ["pca", "PCAParams"]
 
 import numpy as np
 from multiprocessing import cpu_count
@@ -70,12 +70,12 @@ from ..var import (
     cube_filter_lowpass,
     mask_circle,
 )
-from ..var.object_utils import setup_parameters
+from ..var.object_utils import setup_parameters, separate_kwargs_dict
 from ..stats import descriptive_stats
 
 
 @dataclass
-class PcaParams:
+class PCAParams:
     """
     Set of parameters for the PCA module.
 
@@ -256,8 +256,8 @@ class PcaParams:
 
 
 def pca(
-    algo_params: PcaParams,
-    **rot_options: dict,
+    algo_params: PCAParams = None,
+    **all_kwargs: dict,
 ):
     """Full-frame PCA algorithm applied to PSF substraction.
 
@@ -282,10 +282,11 @@ def pca(
 
     Parameters
     ----------
-    algo_params: PcaParams
+    algo_params: PCAParams
         Dataclass retaining all the needed parameters for PCA.
-    rot_options: dictionary, optional
-        Dictionary with optional keyword values for "border_mode", "mask_val",
+    all_kwargs: dictionary, optional
+        Mix of the parameters that can initialize an algo_params and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
 
@@ -329,6 +330,13 @@ def pca(
 
 
     """
+    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    class_params, rot_options = separate_kwargs_dict(
+        initial_kwargs=all_kwargs, parent_class=PCAParams
+    )
+    if algo_params is None:
+        algo_params = PCAParams(**class_params)
+
     start_time = time_ini(algo_params.verbose)
 
     if algo_params.batch is None:

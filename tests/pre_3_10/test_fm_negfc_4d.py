@@ -2,9 +2,23 @@
 Tests for fm/negfc*.py (4D IFS+ADI cube)
 
 """
-
 import copy
-from .helpers import aarc, np, parametrize, fixture
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import aarc
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import fixture
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import np
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import parametrize
 from vip_hci.fm import firstguess
 from vip_hci.psfsub import pca_annulus
 
@@ -53,7 +67,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma, fm
     res0 = firstguess(
         cube=ds.cube,
         angs=ds.angles,
-        psf=ds.psf,
+        psfn=ds.psf,
         ncomp=ncomp,
         planets_xy_coord=np.array([[yx[1], yx[0]]]),
         fwhm=fwhm_m,

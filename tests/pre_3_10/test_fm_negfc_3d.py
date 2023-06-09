@@ -2,21 +2,36 @@
 Tests for fm/negfc*.py (3D ADI cube)
 
 """
-
 import copy
-from .helpers import aarc, np, parametrize, fixture
-from vip_hci.fm import (
-    confidence,
-    firstguess,
-    mcmc_negfc_sampling,
-    nested_negfc_sampling,
-    nested_sampling_results,
-    speckle_noise_uncertainty,
-    cube_planet_free,
-    show_walk_plot,
-    show_corner_plot,
-)
-from vip_hci.psfsub import median_sub, pca, pca_annular, pca_annulus
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import aarc
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import fixture
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import np
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import parametrize
+from vip_hci.fm import confidence
+from vip_hci.fm import cube_planet_free
+from vip_hci.fm import firstguess
+from vip_hci.fm import mcmc_negfc_sampling
+from vip_hci.fm import nested_negfc_sampling
+from vip_hci.fm import nested_sampling_results
+from vip_hci.fm import show_corner_plot
+from vip_hci.fm import show_walk_plot
+from vip_hci.fm import speckle_noise_uncertainty
+from vip_hci.psfsub import median_sub
+from vip_hci.psfsub import pca
+from vip_hci.psfsub import pca_annular
+from vip_hci.psfsub import pca_annulus
 
 
 # ====== utility function for injection

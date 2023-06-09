@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with the function of merit definitions for the NEGFC optimization.
 """
@@ -404,8 +403,8 @@ def get_values_optimize(
             pad = 0
         if algo == pca_annular:
             res_tmp = algo(
-                crop_cube,
-                angs,
+                cube=crop_cube,
+                angle_list=angs,
                 radius_int=radius_int,
                 fwhm=fwhm,
                 asize=annulus_width,
@@ -427,8 +426,8 @@ def get_values_optimize(
             )
         else:
             res_tmp = algo(
-                crop_cube,
-                angs,
+                cube=crop_cube,
+                angle_list=angs,
                 radius_int=radius_int,
                 fwhm=fwhm,
                 asize=annulus_width,
@@ -469,7 +468,7 @@ def get_values_optimize(
             verbose=False,
         )
     else:
-        res = algo(cube, angs, **algo_options)
+        res = algo(cube=cube, angle_list=angs, **algo_options)
 
     indices = disk((posy, posx), radius=aperture_radius * fwhm)
     yy, xx = indices
@@ -765,8 +764,8 @@ def get_mu_and_sigma(
 
     else:
         algo_args = algo_options
-        pca_res = algo(cube, angs, **algo_args)
-        pca_res_inv = algo(cube, -angs, **algo_args)
+        pca_res = algo(cube=cube, angle_list=angs, **algo_args)
+        pca_res_inv = algo(cube=cube, angle_list=-angs, **algo_args)
 
     if wedge is None:
         delta_theta = np.amax(angs) - np.amin(angs)

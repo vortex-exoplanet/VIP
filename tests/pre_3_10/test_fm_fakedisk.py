@@ -2,12 +2,24 @@
 Tests for fm/fakecomp.py
 
 """
+import sys
 
-from .helpers import aarc, np, fixture
-from vip_hci.fm import cube_inject_fakedisk, cube_inject_trace
+sys.path.append(".../tests")
+from tests.helpers import aarc
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import fixture
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import np
+from vip_hci.fm import cube_inject_fakedisk
+from vip_hci.fm import cube_inject_trace
 
 
 # ===== utility functions
+
 
 @fixture(scope="module", params=["3D"])
 def dataset(request):
@@ -28,6 +40,7 @@ def test_cube_inject_fakedisk(dataset):
     """
     Verify position of injected disk image with 1 value, for 3D and 4D cases.
     """
+
     def _expected():
         """
         Expected positions.
@@ -56,6 +69,7 @@ def test_cube_inject_trace(dataset):
     """
     Verify position of injected disk image with 1 value, for 3D and 4D cases.
     """
+
     def _expected(ang):
         """
         Expected positions.
@@ -72,10 +86,19 @@ def test_cube_inject_trace(dataset):
     rads = [3, 4, 5]
     thetas = [90, 180, 270]
 
-    cube = cube_inject_trace(cube, psf, angles, flevel=1, rad_dists=rads,
-                             theta=thetas, plsc=0.01225, n_branches=1,
-                             imlib='vip-fft', interpolation='lanczos4',
-                             verbose=True)
+    cube = cube_inject_trace(
+        cube,
+        psf,
+        angles,
+        flevel=1,
+        rad_dists=rads,
+        theta=thetas,
+        plsc=0.01225,
+        n_branches=1,
+        imlib="vip-fft",
+        interpolation="lanczos4",
+        verbose=True,
+    )
 
     for i in range(cube.shape[0]):
         # find coords of trace in each image of the cube

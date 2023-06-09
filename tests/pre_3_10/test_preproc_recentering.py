@@ -1,4 +1,5 @@
 import copy
+import sys
 
 import hciplot
 import matplotlib as mpl
@@ -6,9 +7,17 @@ from astropy.modeling import models
 from sklearn.metrics import mean_squared_error
 
 import vip_hci as vip
-from .helpers import download_resource
-from .helpers import fixture
-from .helpers import np
+
+sys.path.append(".../tests")
+from tests.helpers import download_resource
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import fixture
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import np
 from vip_hci.preproc import approx_stellar_position
 from vip_hci.preproc import cube_correct_nan
 from vip_hci.preproc import cube_recenter_2dfit

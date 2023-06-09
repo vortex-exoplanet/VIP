@@ -3,12 +3,17 @@ Tests for metrics/stim.py
 
 """
 import copy
+import sys
 
-from .helpers import fixture
-from .helpers import np
-from vip_hci.objects.dataset import Frame
+sys.path.append(".../tests")
+from tests.helpers import fixture
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import np
 from vip_hci.metrics import inverse_stim_map
 from vip_hci.metrics import stim_map
+from vip_hci.objects.dataset import Frame
 from vip_hci.psfsub import pca
 
 

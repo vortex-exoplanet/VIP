@@ -1,25 +1,34 @@
 """
-Tests for the post-processing pipeline, using the functional API.
+Tests for the inverse-problem approach based ADI post-processing algorithms,
+using the functional API.
 
 """
-
 import copy
+import sys
+from multiprocessing import cpu_count
+
 import vip_hci as vip
-from .helpers import np, parametrize, fixture
 
+sys.path.append(".../tests")
+from tests.helpers import fixture
+import sys
 
-def print_debug(s, *args, **kwargs):
-    print(("\033[34m" + s + "\033[0m").format(*args, **kwargs))
+sys.path.append(".../tests")
+from tests.helpers import np
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import parametrize
 
 
 @fixture(scope="module")
-def injected_cube_position(example_dataset_rdi):
+def injected_cube_position(example_dataset_adi):
     """
     Inject a fake companion into an example cube.
 
     Parameters
     ----------
-    example_dataset_rdi : fixture
+    example_dataset_adi : fixture
         Taken automatically from ``conftest.py``.
 
     Returns
@@ -28,8 +37,8 @@ def injected_cube_position(example_dataset_rdi):
     injected_position_yx : tuple(y, x)
 
     """
-    print_debug("injecting fake planet...")
-    dsi = copy.copy(example_dataset_rdi)
+    print("injecting fake planet...")
+    dsi = copy.copy(example_dataset_adi)
     # we chose a shallow copy, as we will not use any in-place operations
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
@@ -39,72 +48,52 @@ def injected_cube_position(example_dataset_rdi):
 
 
 # ====== algos
-def algo_pca(ds):
-    return vip.psfsub.pca(
+def algo_fast_paco(ds):
+    fp = vip.invprob.paco.FastPACO(
         cube=ds.cube,
-        angle_list=ds.angles,
-        cube_ref=ds.cuberef,
-        ncomp=30,
-        mask_center_px=15,
+        angles=ds.angles,
+        psf=ds.psf,
+        pixscale=ds.px_scale,
+        fwhm=ds.fwhm * ds.px_scale,
+        verbose=True,
     )
+    snr, flux = fp.run(cpu=cpu_count() // 2)
+    return snr
 
 
-def algo_pca_mask(ds):
-    mask_rdi = np.ones([ds.cube.shape[-2], ds.cube.shape[-1]])
-    mask_rdi = vip.var.get_annulus_segments(mask_rdi, 15, 30, mode="mask")[0]
-    return vip.psfsub.pca(
+def algo_fast_paco_parallel(ds):
+    fp = vip.invprob.paco.FastPACO(
         cube=ds.cube,
-        angle_list=ds.angles,
-        cube_ref=ds.cuberef,
-        ncomp=30,
-        mask_center_px=15,
-        mask_rdi=mask_rdi,
+        angles=ds.angles,
+        psf=ds.psf,
+        pixscale=ds.px_scale,
+        fwhm=ds.fwhm * ds.px_scale,
+        verbose=True,
     )
+    snr, flux = fp.run(cpu=cpu_count() // 2)
+    return snr
 
 
-def algo_nmf(ds):
-    return vip.psfsub.nmf(
+def algo_full_paco(ds):
+    fp = vip.invprob.paco.FullPACO(
         cube=ds.cube,
-        angle_list=ds.angles,
-        cube_ref=ds.cuberef,
-        ncomp=30,
-        mask_center_px=15,
+        angles=ds.angles,
+        psf=ds.psf,
+        pixscale=ds.px_scale,
+        fwhm=ds.fwhm * ds.px_scale,
+        verbose=True,
     )
-
-
-def algo_pca_annular_ardi(ds):
-    return vip.psfsub.pca_annular(
-        cube=ds.cube, angle_list=ds.angles, cube_ref=ds.cuberef, ncomp=10
-    )
-
-
-def algo_pca_annular_rdi(ds):
-    return vip.psfsub.pca_annular(
-        cube=ds.cube, angle_list=ds.angles, cube_ref=ds.cuberef, ncomp=30, delta_rot=100
-    )
-
-
-def algo_nmf_annular_ardi(ds):
-    return vip.psfsub.nmf_annular(
-        cube=ds.cube, angle_list=ds.angles, cube_ref=ds.cuberef, ncomp=10
-    )
-
-
-def algo_nmf_annular_rdi(ds):
-    return vip.psfsub.nmf_annular(
-        cube=ds.cube, angle_list=ds.angles, cube_ref=ds.cuberef, ncomp=30, delta_rot=100
-    )
+    snr, flux = fp.run(cpu=cpu_count() // 2)
+    return snr
 
 
 # ====== SNR map
-
-
 def snrmap_fast(frame, ds):
     return vip.metrics.snrmap(frame, fwhm=ds.fwhm, approximated=True)
 
 
 def snrmap(frame, ds):
-    return vip.metrics.snrmap(frame, fwhm=np.mean(ds.fwhm))
+    return vip.metrics.snrmap(frame, fwhm=ds.fwhm)
 
 
 # ====== Detection with ``vip_hci.metrics.detection``, by default with a
@@ -145,7 +134,7 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
         mask=True,
         snr_thresh=snr_thresh,
         plot=False,
-        debug=False,
+        debug=True,
         full_output=True,
         verbose=True,
     )
@@ -155,15 +144,7 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
 
 @parametrize(
     "algo, make_detmap",
-    [
-        (algo_pca, snrmap_fast),
-        (algo_pca_mask, snrmap_fast),
-        (algo_pca_annular_ardi, snrmap_fast),
-        (algo_pca_annular_rdi, snrmap_fast),
-        (algo_nmf, snrmap_fast),
-        (algo_nmf_annular_ardi, snrmap_fast),
-        (algo_nmf_annular_rdi, snrmap_fast),
-    ],
+    [(algo_fast_paco, None), (algo_fast_paco_parallel, None), (algo_full_paco, None)],
     ids=lambda x: (x.__name__.replace("algo_", "") if callable(x) else x),
 )
 def test_algos(injected_cube_position, algo, make_detmap):
@@ -175,7 +156,4 @@ def test_algos(injected_cube_position, algo, make_detmap):
     else:
         detmap = frame
 
-    # since some are run with mask of zeros, detmap may have non-finite values
-    detmap[np.where(np.isinf(detmap))] = 0
-
-    check_detection(detmap, position, np.mean(ds.fwhm), snr_thresh=2)
+    check_detection(detmap, position, ds.fwhm, snr_thresh=2)

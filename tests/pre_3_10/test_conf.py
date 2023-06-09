@@ -1,8 +1,8 @@
 """
 Tests for the conf submodule.
 """
-
 import numpy as np
+
 from vip_hci.config.mem import check_enough_memory
 from vip_hci.config.utils_conf import check_array
 

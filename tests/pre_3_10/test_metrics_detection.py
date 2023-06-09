@@ -2,11 +2,17 @@
 Tests for metrics/snr.py
 
 """
-
 import copy
-from .helpers import fixture, np
-from vip_hci.psfsub import pca
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import fixture
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import np
 from vip_hci.metrics import detection
+from vip_hci.psfsub import pca
 
 
 @fixture(scope="module")

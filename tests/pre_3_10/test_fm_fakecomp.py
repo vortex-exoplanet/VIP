@@ -2,12 +2,36 @@
 Tests for fm/fakecomp.py
 
 """
+import sys
 
-from .helpers import aarc, np, param, parametrize, fixture, filterwarnings
-from vip_hci.fm import cube_inject_companions, normalize_psf
+sys.path.append(".../tests")
+from tests.helpers import aarc
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import filterwarnings
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import fixture
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import np
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import param
+import sys
+
+sys.path.append(".../tests")
+from tests.helpers import parametrize
+from vip_hci.fm import cube_inject_companions
+from vip_hci.fm import normalize_psf
 from vip_hci.var import create_synth_psf
 
 # ===== utility functions
+
 
 @fixture(scope="module", params=["3D", "4D"])
 def dataset(request):
@@ -27,16 +51,19 @@ def dataset(request):
     return cube, psf, angles
 
 
-@parametrize("branches, dists",
-             [
-                param(1, 2, id="1br-2"),
-                param(2, 2, id="2br-2"),
-                param(2, [1, 2], id="2br-[1,2]")
-             ])
+@parametrize(
+    "branches, dists",
+    [
+        param(1, 2, id="1br-2"),
+        param(2, 2, id="2br-2"),
+        param(2, [1, 2], id="2br-[1,2]"),
+    ],
+)
 def test_cube_inject_companions(dataset, branches, dists):
     """
     Verify position of injected companions, for 3D and 4D cases.
     """
+
     def _expected(branches, dists):
         """
         Expected positions.
@@ -52,10 +79,17 @@ def test_cube_inject_companions(dataset, branches, dists):
 
     cube, psf, angles = dataset
 
-    c, yx = cube_inject_companions(cube, psf_template=psf, angle_list=angles,
-                                   rad_dists=dists, n_branches=branches,
-                                   flevel=3, full_output=True, plsc=0.999,
-                                   verbose=True)
+    c, yx = cube_inject_companions(
+        cube,
+        psf_template=psf,
+        angle_list=angles,
+        rad_dists=dists,
+        n_branches=branches,
+        flevel=3,
+        full_output=True,
+        plsc=0.999,
+        verbose=True,
+    )
     yx_expected = _expected(branches, dists)
 
     aarc(yx, yx_expected)
@@ -67,11 +101,11 @@ def test_normalize_psf_shapes():
     Test if normalize_psf produces the expected shapes.
     """
     # `Force_odd` is True therefore `size` was set to 19
-    even_psf = create_synth_psf(model='gauss', shape=(20,20), amplitude=3)
-    odd_psf = create_synth_psf(model='gauss', shape=(21,21), amplitude=5)
+    even_psf = create_synth_psf(model="gauss", shape=(20, 20), amplitude=3)
+    odd_psf = create_synth_psf(model="gauss", shape=(21, 21), amplitude=5)
     even_psf += np.random.normal(loc=0, scale=0.1, size=even_psf.shape)
     odd_psf += np.random.normal(loc=0, scale=0.1, size=odd_psf.shape)
-    
+
     res_even = normalize_psf(even_psf, size=18)
     res_odd = normalize_psf(odd_psf, size=18)
     assert res_even.shape == res_odd.shape == (19, 19)

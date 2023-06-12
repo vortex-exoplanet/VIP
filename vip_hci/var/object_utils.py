@@ -58,7 +58,7 @@ def setup_parameters(
     as_list: bool = False,
     show_params: bool = True,
     **add_params: dict,
-) -> dict | list:
+) -> any:
     """
     Help creating a dictionnary of parameters for a given function.
 

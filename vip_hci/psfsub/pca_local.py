@@ -220,9 +220,8 @@ def pca_annular(algo_params: PCAAnnParams = None, **all_kwargs):
     if algo_params is None:
         algo_params = PCAAnnParams(**class_params)
 
-    if algo_params.verbose:
-        global start_time
-        start_time = time_ini()
+    global start_time
+    start_time = time_ini()
 
     if algo_params.left_eigv:
         if (
@@ -341,8 +340,8 @@ def pca_annular(algo_params: PCAAnnParams = None, **all_kwargs):
             params_obj=algo_params, fkt=_pca_sdi_fr, as_list=True, **add_params
         )
         res = pool_map(
-            nproc=algo_params.nproc,
-            fkt=_pca_sdi_fr,
+            algo_params.nproc,
+            _pca_sdi_fr,
             verbose=algo_params.verbose,
             *func_params,
         )

@@ -618,20 +618,18 @@ def pca(
     if isinstance(algo_params.cube, np.ndarray) and algo_params.scale_list is not None:
         # ADI+mSDI double-pass PCA
         if algo_params.adimsdi == Adimsdi.DOUBLE:
-            return (
-                frame if not algo_params.full_output else frame,
-                residuals_cube_channels,
-                residuals_cube_channels_,
-            )
+            if algo_params.full_output:
+                return frame, residuals_cube_channels, residuals_cube_channels_
+            else:
+                return frame
 
         elif algo_params.adimsdi == Adimsdi.SINGLE:
             # ADI+mSDI single-pass PCA
             if isinstance(algo_params.ncomp, (float, int)):
-                return (
-                    frame if not algo_params.full_output else frame,
-                    cube_allfr_residuals,
-                    cube_adi_residuals,
-                )
+                if algo_params.full_output:
+                    return frame, cube_allfr_residuals, cube_adi_residuals
+                else:
+                    return frame
             # ADI+mSDI single-pass PCA grid
             elif isinstance(algo_params.ncomp, tuple):
                 if algo_params.source_xy is None:

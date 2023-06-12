@@ -6,25 +6,10 @@ import sys
 
 sys.path.append(".../tests")
 from tests.helpers import aarc
-import sys
-
-sys.path.append(".../tests")
 from tests.helpers import filterwarnings
-import sys
-
-sys.path.append(".../tests")
 from tests.helpers import fixture
-import sys
-
-sys.path.append(".../tests")
 from tests.helpers import np
-import sys
-
-sys.path.append(".../tests")
 from tests.helpers import param
-import sys
-
-sys.path.append(".../tests")
 from tests.helpers import parametrize
 from vip_hci.fm import cube_inject_companions
 from vip_hci.fm import normalize_psf

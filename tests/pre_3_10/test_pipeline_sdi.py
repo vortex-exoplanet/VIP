@@ -9,13 +9,7 @@ import vip_hci as vip
 
 sys.path.append(".../tests")
 from tests.helpers import fixture
-import sys
-
-sys.path.append(".../tests")
 from tests.helpers import np
-import sys
-
-sys.path.append(".../tests")
 from tests.helpers import parametrize
 
 

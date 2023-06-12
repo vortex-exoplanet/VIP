@@ -307,10 +307,11 @@ def median_sub(algo_params: MedsubParams = None, **all_kwargs):
                 )
 
         add_params = {
-            "ann": iterable(range(n)),
+            "fr": iterable(range(n)),
             "scal": algo_params.scale_list,
             "flux_scal": algo_params.flux_sc_list,
             "n_annuli": n_annuli,
+            "annulus_width": algo_params.asize,
         }
 
         func_params = setup_parameters(

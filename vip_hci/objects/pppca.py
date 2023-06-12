@@ -181,7 +181,7 @@ class PPPCA(PostProc, PCAParams, PCAAnnParams):
         if self.dataset.fwhm is None:
             raise ValueError("`fwhm` has not been set")
         self._explicit_dataset()
-
+        self.full_output = full_output
         match (runmode):
             case Runmode.CLASSIC:
                 # TODO : review the wavelengths attribute to be a scale_list instead

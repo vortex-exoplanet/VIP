@@ -114,6 +114,7 @@ class FMMFParams:
         delta_rot) or LOCI (tolerance and delta_rot) PSF-subtraction
         technique:
 
+
         * ncomp : int, optional. Number of components used for the low-rank
         approximation of the speckle field. Default is 20.
         * tolerance: float, optional. Tolerance level for the approximation of

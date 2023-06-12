@@ -483,8 +483,8 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
 def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., bpm_mask=None,
                            protect_mask=0, excl_mask=None, r_in_std=50,
                            r_out_std=None, verbose=True, half_res_y=False,
-                           min_thr=None, max_thr=None, bad_values=None,
-                           full_output=False):
+                           min_thr=None, max_thr=None, min_thr_np=None,
+                           bad_values=None, full_output=False):
     """
     Function to correct the bad pixels annulus per annulus (centered on the
     provided location of the star), in an input frame or cube.
@@ -546,6 +546,10 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., bpm_mask=None,
         Any pixel whose value is lower (resp. larger) than this threshold will
         be automatically considered bad and hence sigma_filtered. If None, it
         is not used.
+    min_thr_np: {None, float}, optional
+        Any pixel whose value is lower than this threshold will be automatically 
+        considered bad and hence sigma_filtered, EVEN if located within the 
+        radius of protect_mask.
     bad_values: list or None, optional
         If not None, should correspond to a list of known bad values (e.g. 0).
         These pixels will be added to the input bad pixel map.
@@ -655,6 +659,9 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., bpm_mask=None,
         if bpm_mask_ori is not None:
             bpm_mask += bpm_mask_ori.astype(bool)
 
+        if min_thr_np is not None:
+            bpm_mask[np.where(array < min_thr_np)] = 1
+
         ind_bad = np.where(bpm_mask)
 
         for rr in range(nrad):
@@ -730,14 +737,24 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., bpm_mask=None,
         # 4/ Loop on all pixels to check bpix
         array_corr, bpix_map = correct_ann_outliers(array, bpm_mask, ann_width,
                                                     sig, med_neig, std_neig, cy,
-                                                    cx, min_thr, max_thr,
-                                                    stddev, half_res_y)
+                                                    cx, min_thr, max_thr, stddev,
+                                                    half_res_y)
 
         # 5/ Count bpix and uncorrect if within the circle
         nbpix_tot = np.sum(bpix_map)
         nbpix_tbc = nbpix_tot - np.sum(bpix_map[circl_new])
-        bpix_map[circl_new] = 0
-        array_corr[circl_new] = array[circl_new]
+
+        if min_thr_np is not None:
+            bp_tmp = np.zeros_like(bpix_map)
+            bp_tmp[circl_new] = 1
+            cond1 = array >= min_thr_np
+            cond2 = bp_tmp == 1
+            fin_mask = np.where(cond1 & cond2)
+            bpix_map[fin_mask] = 0
+            array_corr[fin_mask] = array[fin_mask]
+        else:
+            bpix_map[circl_new] = 0
+            array_corr[circl_new] = array[circl_new]
         if verbose:
             print(nbpix_tot, ' bpix in total, and ', nbpix_tbc, ' corrected.')
 

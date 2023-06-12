@@ -708,20 +708,26 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
     ----------
     array : 3d numpy ndarray
         Input cube.
-    scaling : {None, "temp-mean", spat-mean", "temp-standard", "spat-standard"}, None or str optional
-        Pixel-wise scaling mode using ``sklearn.preprocessing.scale`` function.
-        If set to None, the input matrix is left untouched. Otherwise:
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
 
-        ``temp-mean``: temporal px-wise mean is subtracted.
+        * ``temp-mean``: temporal px-wise mean is subtracted.
 
-        ``spat-mean``: spatial mean is subtracted.
+        * ``spat-mean``: spatial mean is subtracted.
 
-        ``temp-standard``: temporal mean centering plus scaling pixel values
-        to unit variance.
+        * ``temp-standard``: temporal mean centering plus scaling pixel values
+          to unit variance (temporally).
 
-        ``spat-standard``: spatial mean centering plus scaling pixel values
-        to unit variance.
+        * ``spat-standard``: spatial mean centering plus scaling pixel values
+          to unit variance (spatially).
 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
+        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     mask_center_px : None or int, optional
         [mode='fullfr'] Whether to mask the center of the frames or not.
     mode : {'fullfr', 'annular'}, optional

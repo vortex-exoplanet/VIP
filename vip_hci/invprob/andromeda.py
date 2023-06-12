@@ -476,13 +476,9 @@ def andromeda(algo_params: AndroParams = None, **class_params: dict):
 
     annuli_number = len(annuli_limits) - 1
 
-    info(
-        "Using these user parameters, {} annuli will be processed, from a "
-        "separation of {} to {} pixels.",
-        annuli_number,
-        annuli_limits[0],
-        annuli_limits[-1],
-    )
+    infomsg = "Using these user parameters, {} annuli will be processed, from a "
+    infomsg += "separation of {} to {} pixels."
+    info(infomsg, annuli_number, annuli_limits[0], annuli_limits[-1])
 
     # ===== main loop
 
@@ -633,17 +629,16 @@ def _process_annulus(
         max_sep_ld = max_sep_pix / (2 * oversampling_fact)
 
         if verbose:
-            print(
-                "  For all frames to be used in this annulus, the minimum"
-                " separation must be set at most to {} *lambda/D "
-                "(corresponding to {} pixels).".format(max_sep_ld, max_sep_pix)
-            )
+            msg = "  For all frames to be used in this annulus, the minimum"
+            msg += " separation must be set at most to {} *lambda/D "
+            msg += "(corresponding to {} pixels)."
+            print(msg.format(max_sep_ld, max_sep_pix))
 
     if index_neg is None:
         if verbose:
-            print(
-                "  Warning: No couples found for this distance. " "Skipping annulus..."
-            )
+            msg = "  Warning: No couples found for this distance. "
+            msg += "Skipping annulus..."
+            print(msg)
 
         return None
 
@@ -807,10 +802,9 @@ def andromeda_core(
 
     if gamma is None:
         if verbose:
-            print(
-                "    ANDROMEDA_CORE: The scaling factor is not taken into "
-                "account to build the model!"
-            )
+            msg = "    ANDROMEDA_CORE: The scaling factor is not taken into "
+            msg += "account to build the model!"
+            print(msg)
 
     # calculate variance
     if npairs == 1:
@@ -825,32 +819,28 @@ def andromeda_core(
         varmean = np.mean(variance_diff_2d)  # idlwrap.mean
         weights_diff_2d = np.zeros((npix, npix)) + 1 / varmean
         if verbose:
-            print(
-                "    ANDROMEDA_CORE: Variance is considered homogeneous, mean"
-                " {:.3f}".format(varmean)
-            )
+            msg = "    ANDROMEDA_CORE: Variance is considered homogeneous, mean"
+            msg += " {:.3f}".format(varmean)
+            print(msg)
     else:
-        weights_diff_2d = (variance_diff_2d > 0) / (
-            variance_diff_2d + (variance_diff_2d == 0)
-        )
+        weights_diff_2d = variance_diff_2d > 0
+        weights_diff_2d /= variance_diff_2d + (variance_diff_2d == 0)
         if verbose:
-            print(
-                "    ANDROMEDA_CORE: Variance is taken equal to the "
-                "empirical variance in each pixel (inhomogeneous, but "
-                "constant in time)"
-            )
+            msg = "    ANDROMEDA_CORE: Variance is taken equal to the "
+            msg += "empirical variance in each pixel (inhomogeneous, but "
+            msg += "constant in time)"
+            print(msg)
 
-    weighted_diff_images = diffcube * weights_diff_2d
+    wd_images = diffcube * weights_diff_2d
 
     # create annuli
     d = dist_matrix(npix)
     select_pixels = (d > rhomin) & (d < rhomax)
 
     if verbose:
-        print(
-            "    ANDROMEDA_CORE: working with {} differential images, radius "
-            "{} to {}".format(npairs, rhomin, rhomax)
-        )
+        msg = "    ANDROMEDA_CORE: working with {} differential images, radius "
+        msg += "{} to {}".format(npairs, rhomin, rhomax)
+        print(msg)
 
     # definition of the expected pattern (if a planet is present)
     numerator = np.zeros((npix, npix))
@@ -870,22 +860,18 @@ def andromeda_core(
         ):  # same ranges!
             # IDL: scans in different direction!
             if select_pixels[j, i]:
-                x0 = i - (npix / 2 - 0.5)  # distance to center of rotation, in x
-                y0 = j - (npix / 2 - 0.5)  # distance to center of rotation, in y
+                # distance to center of rotation, in x
+                x0 = i - (npix / 2 - 0.5)
+                # distance to center of rotation, in y
+                y0 = j - (npix / 2 - 0.5)
 
                 decalx = x0 * np.cos(parang) - y0 * np.sin(parang)  # (2,npairs)
                 decaly = y0 * np.cos(parang) + x0 * np.sin(parang)  # (2,npairs)
 
-                subp_x = idl_round(
-                    (decalx - np.floor(decalx).astype(int)) * precision
-                ).astype(
-                    int
-                )  # (2,npairs)
-                subp_y = idl_round(
-                    (decaly - np.floor(decaly).astype(int)) * precision
-                ).astype(
-                    int
-                )  # (2,npairs)
+                tbr = decalx - np.floor(decalx).astype(int)
+                subp_x = (idl_round(tbr) * precision).astype(int)  # (2,npairs)
+                tbr = decaly - np.floor(decaly).astype(int)
+                subp_y = (idl_round(tbr) * precision).astype(int)  # (2,npairs)
 
                 # compute, for each k and for both positive and negative indices
                 # the coordinates of the squares in which the psf will be placed
@@ -908,7 +894,6 @@ def andromeda_core(
 
                 for k in range(npairs):
                     # this is the innermost loop, performed MANY times
-
                     patt_pos = np.zeros(
                         (px_ymax[k] - px_ymin[k] + 1, px_xmax[k] - px_xmin[k] + 1)
                     )
@@ -917,24 +902,26 @@ def andromeda_core(
                     )
 
                     # put the positive psf in the right place
-                    patt_pos[
-                        bot[1, k] - px_ymin[k] : bot[1, k] - px_ymin[k] + npixpsf,
-                        lef[1, k] - px_xmin[k] : lef[1, k] - px_xmin[k] + npixpsf,
-                    ] = psf_cube[subp_y[1, k], subp_x[1, k]]
+                    y0 = bot[1, k] - px_ymin[k]
+                    yN = bot[1, k] - px_ymin[k] + npixpsf
+                    x0 = lef[1, k] - px_xmin[k]
+                    xN = lef[1, k] - px_xmin[k] + npixpsf
+                    patt_pos[y0:yN, x0:xN] = psf_cube[subp_y[1, k], subp_x[1, k]]
                     # TODO: should add a +1 somewhere??
 
                     # same for the negative psf, with a multiplication by gamma!
-                    patt_neg[
-                        bot[0, k] - px_ymin[k] : bot[0, k] - px_ymin[k] + npixpsf,
-                        lef[0, k] - px_xmin[k] : lef[0, k] - px_xmin[k] + npixpsf,
-                    ] = psf_cube[subp_y[0, k], subp_x[0, k]]
+                    y0 = bot[0, k] - px_ymin[k]
+                    yN = bot[0, k] - px_ymin[k] + npixpsf
+                    x0 = lef[0, k] - px_xmin[k]
+                    xN = lef[0, k] - px_xmin[k] + npixpsf
+                    patt_neg[y0:yN, x0:xN] = psf_cube[subp_y[0, k], subp_x[0, k]]
                     # TODO: should add a +1 somewhere??
 
                     # subtraction between the two
                     if gamma is None:
-                        pattern_cut = patt_pos - patt_neg
+                        pc = patt_pos - patt_neg
                     else:
-                        pattern_cut = patt_pos - patt_neg * gamma[k]
+                        pc = patt_pos - patt_neg * gamma[k]
 
                     # compare current (2D) map of small rectangle of weights:
                     if npairs == 1:
@@ -945,13 +932,13 @@ def andromeda_core(
                         ]
 
                     num_part += np.sum(
-                        pattern_cut
-                        * weighted_diff_images[
+                        pc
+                        * wd_images[
                             k, px_ymin[k] : px_ymax[k] + 1, px_xmin[k] : px_xmax[k] + 1
                         ]
                     )
 
-                    den_part += np.sum(pattern_cut**2 * weight_cut)
+                    den_part += np.sum(pc**2 * weight_cut)
 
                 numerator[j, i] = num_part
                 denominator[j, i] = den_part
@@ -1126,48 +1113,42 @@ def diff_images(
     # compute normalization factors
     if opt_method in ["no", 1]:
         # no renormalization
-        print(
-            "    DIFF_IMAGES: no optimisation is being performed. Note that "
-            "keywords rint and rext will be ignored."
-        )
+        msg = "    DIFF_IMAGES: no optimisation is being performed. Note that "
+        msg += "keywords rint and rext will be ignored."
+        print(msg)
         gamma += 1
     else:
         if verbose:
-            print(
-                "    DIFF_IMAGES: optimization annulus limits: {:.1f} -> "
-                "{:.1f}".format(rint, rext)
-            )
+            msg = "  DIFF_IMAGES: optimization annulus limits: {:.1f} -> {:.1f}"
+            print(msg.format(rint, rext))
 
         for i in range(nimg):
             if opt_method in ["total", 2]:
-                gamma[i] = np.sum(cube_pos[i][annulus]) / np.sum(cube_neg[i][annulus])
+                sum1 = np.sum(cube_pos[i][annulus])
+                sum2 = np.sum(cube_neg[i][annulus])
+                gamma[i] = sum1 / sum2
             elif opt_method in ["lsq", 3]:
-                gamma[i] = np.sum(cube_pos[i][annulus] * cube_neg[i][annulus]) / np.sum(
-                    cube_neg[i][annulus] ** 2
-                )
+                sum1 = np.sum(cube_pos[i][annulus] * cube_neg[i][annulus])
+                sum2 = np.sum(cube_neg[i][annulus] ** 2)
+                gamma[i] = sum1 / sum2
+
                 if verbose:
-                    print(
-                        "    DIFF_IMAGES: Factor gamma_ls for difference #{}:"
-                        " {}".format(i + 1, gamma[i])
-                    )
+                    msg = "DIFF_IMAGES: Factor gamma_ls for difference #{}:{}"
+                    print(msg.format(i + 1, gamma[i]))
             elif opt_method in ["l1", 4]:  # L1-affine optimization
                 ann_pos = cube_pos[i][annulus]
                 ann_neg = cube_neg[i][annulus]
                 gamma[i], gamma_prime[i] = fitaffine(y=ann_pos, x=ann_neg)
                 if verbose:
-                    print(
-                        "    DIFF_IMAGES: Factor gamma and gamma_prime for "
-                        "difference #{}/{}: {}, {}".format(
-                            i + 1, nimg, gamma[i], gamma_prime[i]
-                        )
-                    )
+                    msg = "    DIFF_IMAGES: Factor gamma and gamma_prime for "
+                    msg += "difference #{}/{}: {}, {}"
+                    print(msg.format(i + 1, nimg, gamma[i], gamma_prime[i]))
             else:
                 raise ValueError("opt_method '{}' unknown".format(opt_method))
 
-    print(
-        "    DIFF_IMAGES: median gamma={:.3f}, median gamma_prime={:.3f}"
-        "".format(np.median(gamma), np.median(gamma_prime))
-    )
+    if verbose:
+        msg = "    DIFF_IMAGES: median gamma={:.3f}, median gamma_prime={:.3f}"
+        print(msg.format(np.median(gamma), np.median(gamma_prime)))
 
     # compute image differences
     for i in range(nimg):
@@ -1411,7 +1392,8 @@ def couronne_img(image, xcen, ycen=None, lieu=None, step=0.5, rmax=None, verbose
         lieu = np.ones_like(image, dtype=bool)  # `True` bool mask
 
     if verbose:
-        print("Computation of azimuthal values from center to " "rmax={}".format(rmax))
+        msg = "Computation of azimuthal values from center to " "rmax={}"
+        print(msg.format(rmax))
 
     intenmoy = np.zeros(rmax + 1)
     intenmoy[0] = image[int(ycen), int(xcen)]  # order?

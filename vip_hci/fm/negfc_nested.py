@@ -115,11 +115,26 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
         The radius of the circular aperture in FWHM.
     ncomp: int optional
         The number of principal components.
-    scaling : {'temp-mean', 'temp-standard'} or None, optional
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done and with
-        "temp-standard" temporal mean centering plus scaling to unit variance
-        is done.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        * ``temp-mean``: temporal px-wise mean is subtracted.
+
+        * ``spat-mean``: spatial mean is subtracted.
+
+        * ``temp-standard``: temporal mean centering plus scaling pixel values
+          to unit variance (temporally).
+
+        * ``spat-standard``: spatial mean centering plus scaling pixel values
+          to unit variance (spatially).
+
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
+        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
     cube_ref: numpy ndarray, 3d, optional
@@ -200,7 +215,7 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
     current likelihood constraint. The different methods all use the
     current set of active points as an indicator of where the target
     parameter space lies, but differ in how they select new points from it:
-        
+
         - "classic" is close to the method described in [SKI04]_.
         - "single", [MUK06]_, Determines a single ellipsoid that bounds all 
           active points, enlarges the ellipsoid by a user-settable factor, 
@@ -267,7 +282,7 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
             change-of-variables transformation.
         flux: Poisson-invariant scale distribution
             This distribution is the Jeffrey's prior for Poisson data
-            
+
         Note
         ----
         The prior transform function is used to specify the Bayesian prior for

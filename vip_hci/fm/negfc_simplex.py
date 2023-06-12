@@ -29,7 +29,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                           collapse='median', algo=pca_annulus, delta_rot=1,
                           algo_options={}, f_range=None, transmission=None,
                           mu_sigma=(0, 1), weights=None, plot=False,
-                          verbose=True, save=False, debug=False, 
+                          verbose=True, save=False, debug=False,
                           full_output=False):
     """ Determine a first guess for the flux of a companion at a given position
     in the cube by doing a simple grid search evaluating the reduced chi2.
@@ -65,11 +65,26 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
-    scaling : {'temp-mean', 'temp-standard'} or None, optional
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done and with
-        "temp-standard" temporal mean centering plus scaling to unit variance
-        is done.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        * ``temp-mean``: temporal px-wise mean is subtracted.
+
+        * ``spat-mean``: spatial mean is subtracted.
+
+        * ``temp-standard``: temporal mean centering plus scaling pixel values
+          to unit variance (temporally).
+
+        * ``spat-standard``: spatial mean centering plus scaling pixel values
+          to unit variance (spatially).
+
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
+        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     fmerit : {'sum', 'stddev'}, string optional
         Figure of merit to be used, if mu_sigma is set to None.
     imlib : str, optional
@@ -224,16 +239,16 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
             if verbose:
                 print('Processing spectral channel {}...'.format(i))
             chi2r_tmp = _grid_search_f(r0, theta0, i, cube, angs, psfn,
-                                   fwhm, annulus_width, aperture_radius,
-                                   ncomp, cube_ref=cube_ref, svd_mode=svd_mode,
-                                   scaling=scaling, fmerit=fmerit,
-                                   imlib=imlib, interpolation=interpolation,
-                                   collapse=collapse, algo=algo,
-                                   delta_rot=delta_rot,
-                                   algo_options=algo_options, f_range=f_range,
-                                   transmission=transmission,
-                                   mu_sigma=mu_sigma, weights=weights,
-                                   verbose=False, debug=False)
+                                       fwhm, annulus_width, aperture_radius,
+                                       ncomp, cube_ref=cube_ref, svd_mode=svd_mode,
+                                       scaling=scaling, fmerit=fmerit,
+                                       imlib=imlib, interpolation=interpolation,
+                                       collapse=collapse, algo=algo,
+                                       delta_rot=delta_rot,
+                                       algo_options=algo_options, f_range=f_range,
+                                       transmission=transmission,
+                                       mu_sigma=mu_sigma, weights=weights,
+                                       verbose=False, debug=False)
             chi2r.append(chi2r_tmp)
             chi2r_tmp = np.array(chi2r_tmp)
             f0.append(f_range[chi2r_tmp.argmin()])
@@ -317,11 +332,26 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
-    scaling : {'temp-mean', 'temp-standard'} or None, optional
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done and with
-        "temp-standard" temporal mean centering plus scaling to unit variance
-        is done.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        * ``temp-mean``: temporal px-wise mean is subtracted.
+
+        * ``spat-mean``: spatial mean is subtracted.
+
+        * ``temp-standard``: temporal mean centering plus scaling pixel values
+          to unit variance (temporally).
+
+        * ``spat-standard``: spatial mean centering plus scaling pixel values
+          to unit variance (spatially).
+
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
+        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     fmerit : {'sum', 'stddev'}, string optional
         Figure of merit to be used, if mu_sigma is set to None.
     imlib : str, optional
@@ -458,11 +488,26 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
-    scaling : {'temp-mean', 'temp-standard'} or None, optional
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done and with
-        "temp-standard" temporal mean centering plus scaling to unit variance
-        is done.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        * ``temp-mean``: temporal px-wise mean is subtracted.
+
+        * ``spat-mean``: spatial mean is subtracted.
+
+        * ``temp-standard``: temporal mean centering plus scaling pixel values
+          to unit variance (temporally).
+
+        * ``spat-standard``: spatial mean centering plus scaling pixel values
+          to unit variance (spatially).
+
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
+        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     fmerit : {'sum', 'stddev'}, string optional
         Figure of merit to be used, if mu_sigma is set to None.
     imlib : str, optional

@@ -132,6 +132,8 @@ def cube_inject_trace(array, psf_template, angle_list, flevel, rad_dists, theta,
         2d array with the normalized psf template. It should have an odd shape.
         It is recommended to run the function psf_norm to get a proper PSF
         template.
+    angle_list : list
+        Vector containing the parallactic angles.
     flevel : float
         Flux at which the fake companions are injected into the cube along the
         trace.

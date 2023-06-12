@@ -116,7 +116,7 @@ def lnprior(param, bounds, force_rPA=False):
 
 def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
            aperture_radius, initial_state, cube_ref=None, svd_mode='lapack',
-           scaling='temp-mean', algo=pca_annulus, delta_rot=1, fmerit='sum',
+           scaling=None, algo=pca_annulus, delta_rot=1, fmerit='sum',
            imlib='vip-fft', interpolation='lanczos4', collapse='median',
            algo_options={}, weights=None, transmission=None, mu_sigma=True,
            sigma='spe+pho', force_rPA=False, debug=False):
@@ -148,11 +148,26 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         4d array or a list of 3d ndarray (reference cube for each wavelength).
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
-    scaling : {'temp-mean', 'temp-standard'} or None, optional
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done and with
-        "temp-standard" temporal mean centering plus scaling to unit variance
-        is done.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        * ``temp-mean``: temporal px-wise mean is subtracted.
+
+        * ``spat-mean``: spatial mean is subtracted.
+
+        * ``temp-standard``: temporal mean centering plus scaling pixel values
+          to unit variance (temporally).
+
+        * ``spat-standard``: spatial mean centering plus scaling pixel values
+          to unit variance (spatially).
+
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
+        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     algo: vip function, optional {pca_annulus, pca_annular}
         Post-processing algorithm used.
     delta_rot: float, optional
@@ -292,7 +307,7 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
 
 def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
            aperture_radius, initial_state, cube_ref=None, svd_mode='lapack',
-           scaling='temp-mean', algo=pca_annulus, delta_rot=1, fmerit='sum',
+           scaling=None, algo=pca_annulus, delta_rot=1, fmerit='sum',
            imlib='vip-fft', interpolation='lanczos4', collapse='median',
            algo_options={}, weights=None, transmission=None, mu_sigma=True,
            sigma='spe+pho', force_rPA=False, display=False):
@@ -335,11 +350,26 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         4d array or a list of 3d ndarray (reference cube for each wavelength).
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
-    scaling : {'temp-mean', 'temp-standard'} or None, optional
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done and with
-        "temp-standard" temporal mean centering plus scaling to unit variance
-        is done.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        * ``temp-mean``: temporal px-wise mean is subtracted.
+
+        * ``spat-mean``: spatial mean is subtracted.
+
+        * ``temp-standard``: temporal mean centering plus scaling pixel values
+          to unit variance (temporally).
+
+        * ``spat-standard``: spatial mean centering plus scaling pixel values
+          to unit variance (spatially).
+
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
+        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
         companions sitting on top of speckle noise.
@@ -523,11 +553,26 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
         'randsvd' is not recommended for the negative fake companion technique.
-    scaling : {'temp-mean', 'temp-standard'} or None, optional
-        With None, no scaling is performed on the input data before SVD. With
-        "temp-mean" then temporal px-wise mean subtraction is done and with
-        "temp-standard" temporal mean centering plus scaling to unit variance
-        is done.
+    scaling : {None, "temp-mean", spat-mean", "temp-standard",
+        "spat-standard"}, None or str optional
+        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
+        function. If set to None, the input matrix is left untouched. Otherwise:
+
+        * ``temp-mean``: temporal px-wise mean is subtracted.
+
+        * ``spat-mean``: spatial mean is subtracted.
+
+        * ``temp-standard``: temporal mean centering plus scaling pixel values
+          to unit variance (temporally).
+
+        * ``spat-standard``: spatial mean centering plus scaling pixel values
+          to unit variance (spatially).
+
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
+        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
@@ -768,7 +813,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
             dr = min(annulus_width/2, aperture_radius*fwhm/2)
             dth = 360./(2*np.pi*initial_state[0]/(aperture_radius*fwhm/2))
             bounds = [(initial_state[0] - dr, initial_state[0] + dr),  # radius
-                      (initial_state[1] - dth, initial_state[1] + dth)] # angle
+                      (initial_state[1] - dth, initial_state[1] + dth)]  # angle
             d0 = 2
         for i in range(dim-d0):
             bounds.append((0, 5 * initial_state[d0+i]))  # flux
@@ -1399,7 +1444,7 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
 
         else:
             arg = (isamples[:] >= bin_vertices[n_arg_min - 1]) * \
-                      (isamples[:] <= bin_vertices[n_arg_max + 1])
+                (isamples[:] <= bin_vertices[n_arg_max + 1])
             if gaussian_fit:
                 ax0_tmp.hist(isamples[arg], bins=bin_vertices,
                              facecolor='gray', edgecolor='darkgray',
@@ -1543,9 +1588,9 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                 f.write(' ')
                 f.write('Platescale = {} mas\n'.format(plsc*1000))
                 f.write('r (mas): \t\t{:.2f} \t\t-{:.2f} \t\t+{:.2f}\n'.format(
-                            val_max[pKey[0]]*plsc*1000,
-                            -confidenceInterval[pKey[0]][0]*plsc*1000,
-                            confidenceInterval[pKey[0]][1]*plsc*1000))
+                    val_max[pKey[0]]*plsc*1000,
+                    -confidenceInterval[pKey[0]][0]*plsc*1000,
+                    confidenceInterval[pKey[0]][1]*plsc*1000))
 
     if gaussian_fit:
         return mu, sigma

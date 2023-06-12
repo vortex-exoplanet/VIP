@@ -1,0 +1,20 @@
+vip_hci
+numpy
+scipy
+astropy
+photutils
+scikit-learn
+scikit-image>0.17.0, <=0.18.3
+emcee==2.2.1
+nestle
+corner
+pandas
+matplotlib<=3.4.3
+psutil
+pyprind
+munch
+nbsphinx
+hciplot>=0.2.1
+typing
+dataclass_builder
+urllib3 < 2.0

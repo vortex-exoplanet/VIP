@@ -140,8 +140,8 @@ def create_synth_psf(model='gauss', shape=(9, 9), amplitude=1, x_mean=None,
 
 
 def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
-                   theta=0, threshold=False, sigfactor=6, full_output=True,
-                   debug=True):
+                   theta=0, threshold=False, sigfactor=6, bpm=None,
+                   full_output=True, debug=True):
     """ Fitting a 2D Gaussian to the 2D distribution of the data.
 
     Parameters
@@ -169,6 +169,8 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
         to the data using sigma clipped statistics. All values smaller than
         (MEDIAN + sigfactor*STDDEV) will be replaced by small random Gaussian
         noise.
+    bpm : 2D numpy ndarray, optional
+        Mask of bad pixels to not consider for the fit.
     full_output : bool, optional
         If False it returns just the centroid, if True also returns the
         FWHM in X and Y (in pixels), the amplitude and the rotation angle,
@@ -203,6 +205,9 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     """
     check_array(array, dim=2, msg='array')
 
+    if bpm is None:
+        bpm = np.zeros_like(array).astype('bool')
+
     if crop:
         if cent is None:
             ceny, cenx = frame_center(array)
@@ -211,10 +216,13 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
 
         imside = array.shape[0]
         psf_subimage, suby, subx = get_square(array, min(cropsize, imside),
-                                              ceny, cenx, position=True, 
+                                              ceny, cenx, position=True,
                                               verbose=False)
+        bpm_subimage, _, _ = get_square(bpm, min(cropsize, imside),
+                                        ceny, cenx, position=True)
     else:
         psf_subimage = array.copy()
+        bpm_subimage = bpm.copy()
 
     if threshold:
         _, clipmed, clipstd = sigma_clipped_stats(psf_subimage, sigma=2)
@@ -224,7 +232,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
         psf_subimage[indi] = subimnoise[indi]
 
     # Creating the 2D Gaussian model
-    init_amplitude = np.ptp(psf_subimage)
+    init_amplitude = np.ptp(psf_subimage[~bpm_subimage])
     xcom, ycom = cen_com(psf_subimage)
     gauss = models.Gaussian2D(amplitude=init_amplitude, theta=theta,
                               x_mean=xcom, y_mean=ycom,
@@ -233,7 +241,8 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
     # Levenberg-Marquardt algorithm
     fitter = fitting.LevMarLSQFitter()
     y, x = np.indices(psf_subimage.shape)
-    fit = fitter(gauss, x, y, psf_subimage)
+    fit = fitter(gauss, x[~bpm_subimage], y[~bpm_subimage],
+                 psf_subimage[~bpm_subimage])
 
     if crop:
         mean_y = fit.y_mean.value + suby
@@ -269,7 +278,7 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
         if fwhm_y == fwhmy and fwhm_x == fwhmx and amplitude == init_amplitude:
             mean_y, mean_x = np.nan, np.nan
             fwhm_y, fwhm_x = np.nan, np.nan
-            amplitude, theta = np.nan, np.nan            
+            amplitude, theta = np.nan, np.nan
 
     if debug:
         if threshold:
@@ -302,7 +311,8 @@ def fit_2dgaussian(array, crop=False, cent=None, cropsize=15, fwhmx=4, fwhmy=4,
 
 
 def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
-                 threshold=False, sigfactor=6, full_output=True, debug=True):
+                 threshold=False, sigfactor=6, bpm=None, full_output=True,
+                 debug=True):
     """ Fitting a 2D Moffat to the 2D distribution of the data.
 
     Parameters
@@ -327,6 +337,8 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
         to the data using sigma clipped statistics. All values smaller than
         (MEDIAN + sigfactor*STDDEV) will be replaced by small random Gaussian
         noise.
+    bpm : 2D numpy ndarray, optional
+        Mask of bad pixels to not consider for the fit.
     full_output : bool, optional
         If False it returns just the centroid, if True also returns the
         FWHM in X and Y (in pixels), the amplitude and the rotation angle.
@@ -353,6 +365,9 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
     """
     check_array(array, dim=2, msg='array')
 
+    if bpm is None:
+        bpm = np.zeros_like(array).astype('bool')
+
     if crop:
         if cent is None:
             ceny, cenx = frame_center(array)
@@ -362,8 +377,11 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
         imside = array.shape[0]
         psf_subimage, suby, subx = get_square(array, min(cropsize, imside),
                                               ceny, cenx, position=True)
+        bpm_subimage, _, _ = get_square(bpm, min(cropsize, imside),
+                                        ceny, cenx, position=True)
     else:
         psf_subimage = array.copy()
+        bpm_subimage = bpm.copy()
 
     if threshold:
         _, clipmed, clipstd = sigma_clipped_stats(psf_subimage, sigma=2)
@@ -373,14 +391,15 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
         psf_subimage[indi] = subimnoise[indi]
 
     # Creating the 2D Moffat model
-    init_amplitude = np.ptp(psf_subimage)
+    init_amplitude = np.ptp(psf_subimage[~bpm_subimage])
     xcom, ycom = cen_com(psf_subimage)
     moffat = models.Moffat2D(amplitude=init_amplitude, x_0=xcom, y_0=ycom,
                              gamma=fwhm / 2., alpha=1)
     # Levenberg-Marquardt algorithm
     fitter = fitting.LevMarLSQFitter()
     y, x = np.indices(psf_subimage.shape)
-    fit = fitter(moffat, x, y, psf_subimage)
+    fit = fitter(moffat, x[~bpm_subimage], y[~bpm_subimage],
+                 psf_subimage[~bpm_subimage])
 
     if crop:
         mean_y = fit.y_0.value + suby
@@ -431,7 +450,7 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
         return pd.DataFrame({'centroid_y': mean_y, 'centroid_x': mean_x,
                              'fwhm': fwhm, 'alpha': alpha, 'gamma': gamma,
                              'amplitude': amplitude, 'centroid_y_err': mean_y_e,
-                             'centroid_x_err': mean_x_e, 'fwhm_err': fwhm_e, 
+                             'centroid_x_err': mean_x_e, 'fwhm_err': fwhm_e,
                              'alpha_err': alpha_e, 'gamma_err': gamma_e,
                              'amplitude_err': amplitude_e}, index=[0],
                             dtype=np.float64)
@@ -440,7 +459,8 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
 
 
 def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
-                   threshold=False, sigfactor=6, full_output=True, debug=True):
+                   threshold=False, sigfactor=6, bpm=None, full_output=True,
+                   debug=True):
     """ Fitting a 2D Airy to the 2D distribution of the data.
 
     Parameters
@@ -465,6 +485,8 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
         to the data using sigma clipped statistics. All values smaller than
         (MEDIAN + sigfactor*STDDEV) will be replaced by small random Gaussian
         noise.
+    bpm : 2D numpy ndarray, optional
+        Mask of bad pixels to not consider for the fit.
     full_output : bool, optional
         If False it returns just the centroid, if True also returns the
         FWHM in X and Y (in pixels), the amplitude and the rotation angle.
@@ -489,6 +511,9 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     """
     check_array(array, dim=2, msg='array')
 
+    if bpm is None:
+        bpm = np.zeros_like(array).astype('bool')
+
     if crop:
         if cent is None:
             ceny, cenx = frame_center(array)
@@ -498,8 +523,11 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
         imside = array.shape[0]
         psf_subimage, suby, subx = get_square(array, min(cropsize, imside),
                                               ceny, cenx, position=True)
+        bpm_subimage, _, _ = get_square(bpm, min(cropsize, imside),
+                                        ceny, cenx, position=True)
     else:
         psf_subimage = array.copy()
+        bpm_subimage = bpm.copy()
 
     if threshold:
         _, clipmed, clipstd = sigma_clipped_stats(psf_subimage, sigma=2)
@@ -509,7 +537,7 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
         psf_subimage[indi] = subimnoise[indi]
 
     # Creating the 2d Airy disk model
-    init_amplitude = np.ptp(psf_subimage)
+    init_amplitude = np.ptp(psf_subimage[~bpm_subimage])
     xcom, ycom = cen_com(psf_subimage)
     diam_1st_zero = (fwhm * 2.44) / 1.028
     airy = models.AiryDisk2D(amplitude=init_amplitude, x_0=xcom, y_0=ycom,
@@ -517,7 +545,8 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
     # Levenberg-Marquardt algorithm
     fitter = fitting.LevMarLSQFitter()
     y, x = np.indices(psf_subimage.shape)
-    fit = fitter(airy, x, y, psf_subimage)
+    fit = fitter(airy, x[~bpm_subimage], y[~bpm_subimage],
+                 psf_subimage[~bpm_subimage])
 
     if crop:
         mean_y = fit.y_0.value + suby
@@ -577,7 +606,7 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
 
 def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4,
                     fwhm_pos=4, theta_neg=0, theta_pos=0, neg_amp=1,
-                    fix_neg=True, threshold=False, sigfactor=2,
+                    fix_neg=True, threshold=False, sigfactor=2, bpm=None,
                     full_output=False, debug=True):
     """ Fitting a 2D superimposed double Gaussian (negative and positive) to
     the 2D distribution of the data (reproduce e.g. the effect of a coronagraph)
@@ -617,6 +646,8 @@ def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4,
         to the data using sigma clipped statistics. All values smaller than
         (MEDIAN + sigfactor*STDDEV) will be replaced by small random Gaussian
         noise.
+    bpm : 2D numpy ndarray, optional
+        Mask of bad pixels to not consider for the fit.
     full_output : bool, optional
         If False it returns just the centroid, if True also returns the
         FWHM in X and Y (in pixels), the amplitude and the rotation angle,
@@ -657,6 +688,9 @@ def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4,
     else:
         cenx, ceny = cent
 
+    if bpm is None:
+        bpm = np.zeros_like(array).astype('bool')
+
     if crop:
         x_sub_px = cenx % 1
         y_sub_px = ceny % 1
@@ -665,11 +699,14 @@ def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4,
         psf_subimage, suby, subx = get_square(array, min(cropsize, imside),
                                               int(ceny), int(cenx),
                                               position=True)
+        bpm_subimage, _, _ = get_square(bpm, min(cropsize, imside),
+                                        ceny, cenx, position=True)
         ceny, cenx = frame_center(psf_subimage)
         ceny += y_sub_px
         cenx += x_sub_px
     else:
         psf_subimage = array.copy()
+        bpm_subimage = bpm.copy()
 
     if threshold:
         _, clipmed, clipstd = sigma_clipped_stats(psf_subimage, sigma=2)
@@ -691,7 +728,7 @@ def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4,
         fwhm_pos_y = fwhm_pos
 
     # Creating the 2D Gaussian model
-    init_amplitude = np.ptp(psf_subimage)
+    init_amplitude = np.ptp(psf_subimage[~bpm_subimage])
     #xcom, ycom = cen_com(psf_subimage)
     ycom, xcom = frame_center(psf_subimage)
     fix_dico_pos = {'theta': True}
@@ -739,7 +776,8 @@ def fit_2d2gaussian(array, crop=False, cent=None, cropsize=15, fwhm_neg=4,
 
     fitter = fitting.LevMarLSQFitter()  # SLSQPLSQFitter() #LevMarLSQFitter()
     y, x = np.indices(psf_subimage.shape)
-    fit = fitter(double_gauss, x, y, psf_subimage, maxiter=100000, acc=1e-08)
+    fit = fitter(double_gauss, x[~bpm_subimage], y[~bpm_subimage],
+                 psf_subimage[~bpm_subimage], maxiter=100000, acc=1e-08)
 
     # positive gaussian
     if crop:

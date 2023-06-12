@@ -6,9 +6,7 @@ from typing import Callable
 import numpy as np
 
 
-def filter_duplicate_keys(
-    filter_item: object | dict, ref_item: object | dict, filter_in: bool = True
-):
+def filter_duplicate_keys(filter_item: any, ref_item: any, filter_in: bool = True):
     """
     Filter in or out keys of an item based on a reference item.
 

@@ -6,7 +6,7 @@ __all__ = [
     "NMFBuilder",
 ]
 
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -42,7 +42,7 @@ class PPNMF(PostProc, NMFAnnParams, NMFParams):
 
     """
 
-    delta_rot: int | float | Tuple[float] = DELTA_ANN_DEFAULT
+    delta_rot: Union[int, float, Tuple[float]] = DELTA_ANN_DEFAULT
     full_output: bool = True
     _algo_name: List[str] = field(default_factory=lambda: ["nmf", "nmf_annular"])
     nmf_reshaped: np.ndarray = None

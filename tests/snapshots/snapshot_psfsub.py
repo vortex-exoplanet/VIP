@@ -345,7 +345,8 @@ def save_snapshots_psfsub_adi():
             )
             det_array = np.stack(detect, axis=-1)
             # NMF frames are somewhat random and cannot be compared, no need to save
-            if "nmf" not in name:
+            # Same for PCA with delta rotation
+            if "nmf" not in name and "pca_drot" not in name:
                 np.save(f"./tests/snapshots/psfsub_adi/{name}.npy", value)
             np.save(f"./tests/snapshots/psfsub_adi/{name}_detect.npy", det_array)
     return

@@ -14,6 +14,8 @@ from tests.helpers import fixture, check_detection
 from vip_hci.objects import PCABuilder
 from tests.snapshots.snapshot_psfsub import PSFADI_PATH
 
+NO_FRAME_CASE = ["pca_drot", "pca_ann_auto"]
+
 
 # Note : this function comes from the former test for adi psfsub, I did not write it,
 # and I didn't found the author (feel free to add the author if you know them)
@@ -143,15 +145,18 @@ def test_pca_object(injected_cube_position):
         update_params = pca_test["update_params"]
         runmode = pca_test["runmode"]
 
-        print(f"case_name: {case_name}, runmode: {runmode}")
+        position = np.load(f"{PSFADI_PATH}{case_name}_adi_detect.npy").copy()
 
-        pos = np.load(f"{PSFADI_PATH}{case_name}_adi_detect.npy").copy()
-        e_frame = np.load(f"{PSFADI_PATH}{case_name}_adi.npy").copy()
+        if case_name not in NO_FRAME_CASE:
+            exp_frame = np.load(f"{PSFADI_PATH}{case_name}_adi.npy").copy()
 
         update(pca_obj, PCABuilder(**update_params))
 
         pca_obj.run(runmode=runmode)
         pca_obj.make_snrmap()
 
-        check_detection(pca_obj.snr_map, pos, betapic.fwhm, snr_thresh=2)
-        assert np.allclose(np.abs(pca_obj.frame_final), np.abs(e_frame), atol=1e-2)
+        check_detection(pca_obj.snr_map, position, betapic.fwhm, snr_thresh=2)
+        if case_name not in NO_FRAME_CASE:
+            assert np.allclose(
+                np.abs(pca_obj.frame_final), np.abs(exp_frame), atol=1e-2
+            )

@@ -73,5 +73,3 @@ jobs:
         pytest --cov=vip_hci/objects/ --cov-report=xml
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-
-  post_3_10_tests_obj:

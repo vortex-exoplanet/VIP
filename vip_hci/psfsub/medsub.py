@@ -36,7 +36,7 @@ __all__ = ["median_sub", "MedsubParams"]
 import numpy as np
 from multiprocessing import cpu_count
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Union
 from strenum import LowercaseStrEnum as LowEnum
 from ..config import time_ini, timing
 from ..var import get_annulus_segments, mask_circle
@@ -128,7 +128,7 @@ class MedsubParams:
     radius_int: int = 0
     asize: int = 4
     delta_rot: int = 1
-    delta_sep: float | Tuple[float] = (0.1, 1)
+    delta_sep: Union[float, Tuple[float]] = (0.1, 1)
     mode: str = "fullfr"
     nframes: int = 4
     sdi_only: bool = False

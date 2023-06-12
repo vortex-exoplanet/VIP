@@ -18,7 +18,7 @@ __all__ = ["pca_annular", "PCAAnnParams"]
 
 import numpy as np
 from multiprocessing import cpu_count
-from typing import Tuple, List
+from typing import Tuple, List, Union
 from strenum import LowercaseStrEnum as LowEnum
 from dataclasses import dataclass
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector, check_scal_vector
@@ -152,10 +152,10 @@ class PCAAnnParams:
     radius_int: int = 0
     fwhm: float = 4
     asize: float = 4
-    n_segments: int | List[int] | AUTO = 1
-    delta_rot: float | Tuple[float] = (0.1, 1)
-    delta_sep: float | Tuple[float] = (0.1, 1)
-    ncomp: int | Tuple | np.ndarray | AUTO = 1
+    n_segments: Union[int, List[int], AUTO] = 1
+    delta_rot: Union[float, Tuple[float]] = (0.1, 1)
+    delta_sep: Union[float, Tuple[float]] = (0.1, 1)
+    ncomp: Union[int, Tuple, np.ndarray, AUTO] = 1
     svd_mode: LowEnum = SvdMode.LAPACK
     nproc: int = 1
     min_frames_lib: int = 2
@@ -166,7 +166,7 @@ class PCAAnnParams:
     interpolation: LowEnum = Interpolation.LANCZOS4
     collapse: LowEnum = Collapse.MEDIAN
     collapse_ifs: LowEnum = Collapse.MEAN
-    ifs_collapse_range: "all" | Tuple[int] = "all"
+    ifs_collapse_range: Union["all", Tuple[int]] = "all"
     theta_init: int = 0
     weights: np.ndarray = None
     cube_sig: np.ndarray = None

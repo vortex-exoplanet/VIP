@@ -25,6 +25,7 @@ __all__ = ["andromeda", "AndroParams"]
 import numpy as np
 from dataclasses import dataclass
 from strenum import LowercaseStrEnum as LowEnum
+from typing import Union
 
 from ..var.filters import frame_filter_highpass, cube_filter_highpass
 from ..config.utils_conf import pool_map, iterable
@@ -159,7 +160,7 @@ class AndroParams:
     iwa: float = None
     owa: float = None
     precision: int = 50
-    fast: float | bool = False
+    fast: Union[float, bool] = False
     homogeneous_variance: bool = True
     ditimg: float = 1.0
     ditpsf: float = None

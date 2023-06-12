@@ -11,7 +11,7 @@ import pdb
 from multiprocessing import cpu_count
 from sklearn.decomposition import NMF
 from dataclasses import dataclass, field
-from typing import Tuple, List
+from typing import Tuple, List, Union
 from strenum import LowercaseStrEnum as LowEnum
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..preproc.derotation import _find_indices_adi, _define_annuli
@@ -121,7 +121,7 @@ class NMFAnnParams:
     fwhm: float = 4
     asize: int = 4
     n_segments: int = 1
-    delta_rot: float | Tuple[float] = (0.1, 1)
+    delta_rot: Union[float, Tuple[float]] = (0.1, 1)
     ncomp: int = 1
     init_svd: LowEnum = Initsvd.NNDSVD
     nproc: int = 1

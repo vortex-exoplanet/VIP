@@ -44,7 +44,7 @@ __all__ = ["pca", "PCAParams"]
 
 import numpy as np
 from multiprocessing import cpu_count
-from typing import Tuple, List
+from typing import Tuple, Union
 from dataclasses import dataclass
 from strenum import LowercaseStrEnum as LowEnum
 from .svd import svd_wrapper, SVDecomposer
@@ -229,7 +229,7 @@ class PCAParams:
     angle_list: np.ndarray = None
     cube_ref: np.ndarray = None
     scale_list: np.ndarray = None
-    ncomp: Tuple | float | int = 1
+    ncomp: Union[Tuple, float, int] = 1
     svd_mode: LowEnum = SvdMode.LAPACK
     scaling: LowEnum = None
     mask_center_px: int = None
@@ -243,10 +243,10 @@ class PCAParams:
     interpolation: LowEnum = Interpolation.LANCZOS4
     collapse: LowEnum = Collapse.MEDIAN
     collapse_ifs: LowEnum = Collapse.MEAN
-    ifs_collapse_range: str | Tuple[int] = "all"
+    ifs_collapse_range: Union[str, Tuple[int]] = "all"
     mask_rdi: np.ndarray = None
     check_memory: bool = True
-    batch: int | float = None
+    batch: Union[int, float] = None
     nproc: int = 1
     full_output: bool = False
     verbose: bool = True

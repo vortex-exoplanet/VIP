@@ -23,7 +23,7 @@ from multiprocessing import cpu_count
 from sklearn.metrics import pairwise_distances
 from dataclasses import dataclass
 from strenum import LowercaseStrEnum as LowEnum
-from typing import Tuple
+from typing import Tuple, Union
 from ..var import get_annulus_segments
 from ..var.object_utils import setup_parameters, separate_kwargs_dict
 from ..var.paramenum import Metric, Adimsdi, Imlib, Interpolation, Collapse, Solver
@@ -132,8 +132,8 @@ class LOCIParams:
     fwhm: float = 4
     metric: LowEnum = Metric.MANHATTAN
     dist_threshold: int = 100
-    delta_rot: float | Tuple[float] = (0.1, 1)
-    delta_sep: float | Tuple[float] = (0.1, 1)
+    delta_rot: Union[float, Tuple[float]] = (0.1, 1)
+    delta_sep: Union[float, Tuple[float]] = (0.1, 1)
     radius_int: int = 0
     asize: int = 4
     n_segments: int = 4

@@ -4,14 +4,9 @@ Tests for HCIDataset.
 
 __author__ = "Ralf Farkas"
 
-import sys
-
-sys.path.append(".../tests")
-from tests.helpers import aarc, np
-
 import tempfile
 import os
-
+from .helpers import aarc, np
 
 from vip_hci.objects.dataset import Dataset
 

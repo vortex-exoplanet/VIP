@@ -70,6 +70,6 @@ jobs:
         pre-commit run --files vip_hci/objects/*.py
     - name: Test with pytest
       run: |
-        pytest --cov=vip_hci/objects/ --cov-report=xml
+        pytest tests/post_3_10 --cov=vip_hci/objects/ --cov-report=xml
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3

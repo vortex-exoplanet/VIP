@@ -12,6 +12,9 @@ They are implementing PSF subtraction and inverse problem approach algorithms fo
 - *ANDROMEDA*.
 - *FMMF*.
 """
+import sys
+
+from .dataset import *
 from .postproc import *
 from .ppandromeda import *
 from .ppfmmf import *
@@ -20,5 +23,6 @@ from .ppllsg import *
 from .pploci import *
 from .ppmediansub import *
 from .ppnmf import *
-from .pppca import *
-from .dataset import *
+
+if sys.version_info >= (3, 10):
+    from .pppca import *

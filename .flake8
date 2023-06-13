@@ -34,3 +34,6 @@ ignore =
     S101,
     ; no configuration found (.isort.cfg or [isort] in configs) (isort plugin)
     I002,
+
+exclude=
+    vip_hci/objects

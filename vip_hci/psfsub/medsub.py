@@ -1,9 +1,8 @@
 #! /usr/bin/env python
-
 """
 Implementation of a median subtraction algorithm for model PSF subtraction in
 high-contrast imaging sequences. In the case of ADI, the algorithm is based on
-[MAR06]_. The ADI+IFS method, is an extension of this basic idea to 
+[MAR06]_. The ADI+IFS method, is an extension of this basic idea to
 multi-spectral cubes.
 
 .. [MAR06]
@@ -20,7 +19,7 @@ multi-spectral cubes.
    | *The Astrophysical Journal, Volume 578, Issue 1, pp. 543-564*
    | `https://arxiv.org/abs/astro-ph/0209078
      <https://arxiv.org/abs/astro-ph/0209078>`_
-     
+
 .. [THA07]
    | Thatte et al. 2007
    | **Very high contrast integral field spectroscopy of AB Doradus C: 9-mag contrast at 0.2arcsec without a coronagraph using spectral deconvolution**
@@ -31,32 +30,29 @@ multi-spectral cubes.
 
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['median_sub']
+__author__ = "Carlos Alberto Gomez Gonzalez, Thomas Bédrine"
+__all__ = ["median_sub", "MedsubParams"]
 
 import numpy as np
 from multiprocessing import cpu_count
+from dataclasses import dataclass
+from typing import Tuple, Union
+from strenum import LowercaseStrEnum as LowEnum
 from ..config import time_ini, timing
 from ..var import get_annulus_segments, mask_circle
-from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
-                       check_scal_vector)
+from ..var.paramenum import Imlib, Interpolation, Collapse
+from ..var.object_utils import setup_parameters, separate_kwargs_dict
+from ..preproc import cube_derotate, cube_collapse, check_pa_vector, check_scal_vector
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..config.utils_conf import pool_map, iterable, print_precision
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
 
 
-def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
-               radius_int=0, asize=4, delta_rot=1, delta_sep=(0.1, 1),
-               mode='fullfr', nframes=4, sdi_only=False, imlib='vip-fft',
-               interpolation='lanczos4', collapse='median', nproc=1,
-               full_output=False, verbose=True, **rot_options):
-    """ Implementation of a median subtraction algorithm for model PSF
-    subtraction in high-contrast imaging sequences. In the case of ADI, the
-    algorithm is based on [MAR06]_. The ADI+IFS method is an extension of this
-    basic idea to multi-spectral cubes.
-        
-    References: [MAR06]_ for median-ADI; [SPA02]_ and [THA07]_ for SDI.
+@dataclass
+class MedsubParams:
+    """
+    Set of parameters for the median subtraction module.
 
     Parameters
     ----------
@@ -106,12 +102,13 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
     sdi_only: bool, optional
         In the case of IFS data (ADI+SDI), whether to perform median-SDI, or
         median-ASDI (default).
-    imlib : str, optional
+    imlib : LowerCaseStrEnum, see `vip_hci.var.paramenum.Imlib`
+        See the documentation of ``vip_hci.preproc.frame_rotate``.
+    interpolation : LowerCaseStrEnum, see `vip_hci.var.paramenum.Interpolation`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
-        Sets the way of collapsing the frames for producing a final image.
+    collapse : LowerCaseStrEnum, see `vip_hci.var.paramenum.Collapse`
+        Sets how temporal residual frames should be combined to produce an
+        ADI image.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to cpu_count()/2. By default the algorithm works
@@ -121,8 +118,43 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
         intermediate arrays.
     verbose : bool, optional
         If True prints to stdout intermediate info.
-    rot_options: dictionary, optional
-        Dictionary with optional keyword values for "border_mode", "mask_val",
+    """
+
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
+    scale_list: np.ndarray = None
+    flux_sc_list: np.ndarray = None
+    fwhm: float = 4
+    radius_int: int = 0
+    asize: int = 4
+    delta_rot: int = 1
+    delta_sep: Union[float, Tuple[float]] = (0.1, 1)
+    mode: str = "fullfr"
+    nframes: int = 4
+    sdi_only: bool = False
+    imlib: LowEnum = Imlib.VIPFFT
+    interpolation: LowEnum = Interpolation.LANCZOS4
+    collapse: LowEnum = Collapse.MEDIAN
+    nproc: int = 1
+    full_output: bool = False
+    verbose: bool = True
+
+
+def median_sub(algo_params: MedsubParams = None, **all_kwargs):
+    """Implementation of a median subtraction algorithm for model PSF
+    subtraction in high-contrast imaging sequences. In the case of ADI, the
+    algorithm is based on [MAR06]_. The ADI+IFS method is an extension of this
+    basic idea to multi-spectral cubes.
+
+    References: [MAR06]_ for median-ADI; [SPA02]_ and [THA07]_ for SDI.
+
+    Parameters
+    ----------
+    algo_params: MedsubParams or PostProc
+        Dataclass retaining all the needed parameters for median subtraction.
+    all_kwargs: dictionary, optional
+        Mix of the parameters that can initialize an algo_params and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
 
@@ -136,25 +168,33 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
         Median combination of the de-rotated cube.
 
     """
+
+    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    class_params, rot_options = separate_kwargs_dict(
+        initial_kwargs=all_kwargs, parent_class=MedsubParams
+    )
+    if algo_params is None:
+        algo_params = MedsubParams(**class_params)
+
     global ARRAY
-    ARRAY = cube.copy()
+    ARRAY = algo_params.cube.copy()
 
     if not (ARRAY.ndim == 3 or ARRAY.ndim == 4):
-        raise TypeError('Input array is not a 3d or 4d array')
+        raise TypeError("Input array is not a 3d or 4d array")
 
-    if verbose:
+    if algo_params.verbose:
         start_time = time_ini()
 
-    if nproc is None:
-        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
+    if algo_params.nproc is None:
+        algo_params.nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
 
-    angle_list = check_pa_vector(angle_list)
+    algo_params.angle_list = check_pa_vector(algo_params.angle_list)
 
     if ARRAY.ndim == 3:
         n, y, _ = ARRAY.shape
 
-        if ARRAY.shape[0] != angle_list.shape[0]:
-            msg = 'Input vector or parallactic angles has wrong length'
+        if ARRAY.shape[0] != algo_params.angle_list.shape[0]:
+            msg = "Input vector or parallactic angles has wrong length"
             raise TypeError(msg)
 
         # The median frame is first subtracted from each frame
@@ -163,119 +203,176 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
 
         # Depending on the ``mode``
         cube_out = ARRAY
-        if mode == 'fullfr':
+        if algo_params.mode == "fullfr":
             # MASK AFTER DEROTATION TO AVOID ARTEFACTS
             # if radius_int > 0:
             #     cube_out = mask_circle(ARRAY, radius_int, fillwith=np.nan)
             # else:
             #     cube_out = ARRAY
-            if verbose:
-                print('Median psf reference subtracted')
 
-        elif mode == 'annular':
-            if nframes is not None:
-                if nframes % 2 != 0:
-                    raise TypeError('`nframes` argument must be even value')
+            if algo_params.verbose:
+                print("Median psf reference subtracted")
 
-            n_annuli = int((y / 2 - radius_int) / asize)
-            if verbose:
-                print('N annuli = {}, FWHM = {}'.format(n_annuli, fwhm))
+        elif algo_params.mode == "annular":
+            if algo_params.nframes is not None:
+                if algo_params.nframes % 2 != 0:
+                    raise TypeError("`nframes` argument must be even value")
 
-            res = pool_map(nproc, _median_subt_ann_adi,
-                           iterable(range(n_annuli)), angle_list, n_annuli,
-                           fwhm, radius_int, asize, delta_rot, nframes,
-                           verbose=verbose, msg='Processing annuli:',
-                           progressbar_single=True)
+            n_annuli = int((y / 2 - algo_params.radius_int) / algo_params.asize)
+            if algo_params.verbose:
+                print("N annuli = {}, FWHM = {}".format(n_annuli, algo_params.fwhm))
+
+            add_params = {
+                "ann": iterable(range(n_annuli)),
+                "n_annuli": n_annuli,
+                "annulus_width": algo_params.asize,
+            }
+
+            func_params = setup_parameters(
+                params_obj=algo_params,
+                fkt=_median_subt_ann_adi,
+                as_list=True,
+                **add_params,
+            )
+
+            res = pool_map(
+                algo_params.nproc,
+                _median_subt_ann_adi,
+                msg="Processing annuli:",
+                progressbar_single=True,
+                *func_params,
+            )
 
             res = np.array(res, dtype=object)
             mres = res[:, 0]
             yy = res[:, 1]
             xx = res[:, 2]
-            #cube_out = np.zeros_like(ARRAY)
-            #cube_out[:] = np.nan
+            # cube_out = np.zeros_like(ARRAY)
+            # cube_out[:] = np.nan
             for ann in range(n_annuli):
                 cube_out[:, yy[ann], xx[ann]] = mres[ann]
 
-            if verbose:
-                print('Optimized median psf reference subtracted')
+            if algo_params.verbose:
+                print("Optimized median psf reference subtracted")
 
         else:
-            raise RuntimeError('Mode not recognized')
+            raise RuntimeError("Mode not recognized")
 
-        cube_der = cube_derotate(cube_out, angle_list, nproc=nproc, imlib=imlib,
-                                 interpolation=interpolation, **rot_options)
-        if radius_int:
-            cube_out = mask_circle(cube_out, radius_int)
-            cube_der = mask_circle(cube_der, radius_int)
-        frame = cube_collapse(cube_der, mode=collapse)
+        cube_der = cube_derotate(
+            cube_out,
+            algo_params.angle_list,
+            nproc=algo_params.nproc,
+            imlib=algo_params.imlib,
+            interpolation=algo_params.interpolation,
+            **rot_options,
+        )
+        if algo_params.radius_int:
+            cube_out = mask_circle(cube_out, algo_params.radius_int)
+            cube_der = mask_circle(cube_der, algo_params.radius_int)
+        frame = cube_collapse(cube_der, mode=algo_params.collapse)
 
     elif ARRAY.ndim == 4:
         z, n, y_in, x_in = ARRAY.shape
 
-        if scale_list is None:
-            raise ValueError('Scaling factors vector must be provided')
+        if algo_params.scale_list is None:
+            raise ValueError("Scaling factors vector must be provided")
         else:
-            if np.array(scale_list).ndim > 1:
-                raise ValueError('Scaling factors vector is not 1d')
-            if not scale_list.shape[0] == z:
-                raise ValueError('Scaling factors vector has wrong length')
+            if np.array(algo_params.scale_list).ndim > 1:
+                raise ValueError("Scaling factors vector is not 1d")
+            if not algo_params.scale_list.shape[0] == z:
+                raise ValueError("Scaling factors vector has wrong length")
 
-        if flux_sc_list is not None:
-            if np.array(flux_sc_list).ndim > 1:
-                raise ValueError('Scaling factors vector is not 1d')
-            if not flux_sc_list.shape[0] == z:
-                raise ValueError('Scaling factors vector has wrong length')
+        if algo_params.flux_sc_list is not None:
+            if np.array(algo_params.flux_sc_list).ndim > 1:
+                raise ValueError("Scaling factors vector is not 1d")
+            if not algo_params.flux_sc_list.shape[0] == z:
+                raise ValueError("Scaling factors vector has wrong length")
 
         # Exploiting spectral variability (radial movement)
-        fwhm = int(np.round(np.mean(fwhm)))
-        n_annuli = int((y_in / 2 - radius_int) / asize)
+        algo_params.fwhm = int(np.round(np.mean(algo_params.fwhm)))
+        n_annuli = int((y_in / 2 - algo_params.radius_int) / algo_params.asize)
 
-        if nframes is not None:
-            if nframes % 2 != 0:
-                raise TypeError('`nframes` argument must be even value')
+        if algo_params.nframes is not None:
+            if algo_params.nframes % 2 != 0:
+                raise TypeError("`nframes` argument must be even value")
 
-        if verbose:
-            print('{} spectral channels per IFS frame'.format(z))
-            print('First median subtraction exploiting spectral variability')
-            if mode == 'annular':
-                print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli,
-                                                                 fwhm))
+        if algo_params.verbose:
+            print("{} spectral channels per IFS frame".format(z))
+            print("First median subtraction exploiting spectral variability")
+            if algo_params.mode == "annular":
+                print(
+                    "N annuli = {}, mean FWHM = {:.3f}".format(
+                        n_annuli, algo_params.fwhm
+                    )
+                )
 
-        res = pool_map(nproc, _median_subt_fr_sdi, iterable(range(n)),
-                       scale_list, flux_sc_list, n_annuli, fwhm, radius_int,
-                       asize, delta_sep, nframes, imlib, interpolation,
-                       collapse, mode)
+        add_params = {
+            "fr": iterable(range(n)),
+            "scal": algo_params.scale_list,
+            "flux_scal": algo_params.flux_sc_list,
+            "n_annuli": n_annuli,
+            "annulus_width": algo_params.asize,
+        }
+
+        func_params = setup_parameters(
+            params_obj=algo_params, fkt=_median_subt_fr_sdi, as_list=True, **add_params
+        )
+        res = pool_map(
+            algo_params.nproc,
+            _median_subt_fr_sdi,
+            *func_params,
+        )
         residuals_cube_channels = np.array(res)
 
-        if verbose:
+        if algo_params.verbose:
             timing(start_time)
-            print('{} ADI frames'.format(n))
-            print('Median subtraction in the ADI fashion')
+            print("{} ADI frames".format(n))
+            print("Median subtraction in the ADI fashion")
 
-        if sdi_only:
+        if algo_params.sdi_only:
             cube_out = residuals_cube_channels
         else:
-            if mode == 'fullfr':
+            if algo_params.mode == "fullfr":
                 median_frame = np.nanmedian(residuals_cube_channels, axis=0)
                 cube_out = residuals_cube_channels - median_frame
 
-            elif mode == 'annular':
-                if verbose:
-                    print('N annuli = {}, mean FWHM = {:.3f}'.format(n_annuli,
-                                                                     fwhm))
+            elif algo_params.mode == "annular":
+                if algo_params.verbose:
+                    print(
+                        "N annuli = {}, mean FWHM = {:.3f}".format(
+                            n_annuli, algo_params.fwhm
+                        )
+                    )
                 ARRAY = residuals_cube_channels
 
-                res = pool_map(nproc, _median_subt_ann_adi,
-                               iterable(range(n_annuli)), angle_list, n_annuli,
-                               fwhm, radius_int, asize, delta_rot, nframes)
+                add_params = {
+                    "ann": iterable(range(n_annuli)),
+                    "n_annuli": n_annuli,
+                    "annulus_width": algo_params.asize,
+                }
+
+                func_params = setup_parameters(
+                    params_obj=algo_params,
+                    fkt=_median_subt_ann_adi,
+                    as_list=True,
+                    **add_params,
+                )
+
+                res = pool_map(
+                    algo_params.nproc,
+                    _median_subt_ann_adi,
+                    msg="Processing annuli:",
+                    progressbar_single=True,
+                    *func_params,
+                )
 
                 res = np.array(res, dtype=object)
                 mres = res[:, 0]
                 yy = res[:, 1]
                 xx = res[:, 2]
                 pa_thrs = np.array(res[:, 3])
-                if verbose:
-                    print('PA thresholds: ')
+                if algo_params.verbose:
+                    print("PA thresholds: ")
                     print_precision(pa_thrs)
 
                 cube_out = np.zeros_like(ARRAY)
@@ -284,38 +381,57 @@ def median_sub(cube, angle_list, scale_list=None, flux_sc_list=None, fwhm=4,
                     cube_out[:, yy[ann], xx[ann]] = mres[ann]
 
             else:
-                raise RuntimeError('Mode not recognized')
+                raise RuntimeError("Mode not recognized")
 
-        cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
-                                 interpolation=interpolation, nproc=nproc,
-                                 **rot_options)
-        if radius_int:
-            cube_der = mask_circle(cube_der, radius_int)
-        frame = cube_collapse(cube_der, mode=collapse)
+        cube_der = cube_derotate(
+            cube_out,
+            algo_params.angle_list,
+            imlib=algo_params.imlib,
+            interpolation=algo_params.interpolation,
+            nproc=algo_params.nproc,
+            **rot_options,
+        )
+        if algo_params.radius_int:
+            cube_der = mask_circle(cube_der, algo_params.radius_int)
+        frame = cube_collapse(cube_der, mode=algo_params.collapse)
 
-    if verbose:
-        print('Done derotating and combining')
+    if algo_params.verbose:
+        print("Done derotating and combining")
         timing(start_time)
-    if full_output:
+    if algo_params.full_output:
         return cube_out, cube_der, frame
     else:
         return frame
 
 
-def _median_subt_fr_sdi(fr, scal, flux_scal, n_annuli, fwhm, radius_int,
-                        annulus_width, delta_sep, nframes, imlib, interpolation,
-                        collapse, mode):
-    """ Optimized median subtraction on a multi-spectral frame (IFS data).
-    """
+def _median_subt_fr_sdi(
+    fr,
+    scal,
+    flux_scal,
+    n_annuli,
+    fwhm,
+    radius_int,
+    annulus_width,
+    delta_sep,
+    nframes,
+    imlib,
+    interpolation,
+    collapse,
+    mode,
+):
+    """Optimized median subtraction on a multi-spectral frame (IFS data)."""
     z, n, y_in, x_in = ARRAY.shape
     scale_list = check_scal_vector(scal)
-    multispec_fr = scwave(ARRAY[:, fr, :, :], scale_list, imlib=imlib,
-                          interpolation=interpolation)[0]    # rescaled cube
+    multispec_fr = scwave(
+        ARRAY[:, fr, :, :], scale_list, imlib=imlib, interpolation=interpolation
+    )[
+        0
+    ]  # rescaled cube
     if flux_scal is not None:
         for i in range(z):
             multispec_fr[i] *= flux_scal[i]
 
-    if mode == 'annular':
+    if mode == "annular":
         cube_res = np.zeros_like(multispec_fr)  # shape (z, resc_y, resc_x)
         if isinstance(delta_sep, tuple):
             delta_sep_vec = np.linspace(delta_sep[0], delta_sep[1], n_annuli)
@@ -329,22 +445,24 @@ def _median_subt_fr_sdi(fr, scal, flux_scal, n_annuli, fwhm, radius_int,
                 inner_radius = radius_int + ann * annulus_width
             ann_center = inner_radius + (annulus_width / 2)
 
-            indices = get_annulus_segments(multispec_fr[0], inner_radius,
-                                           annulus_width)[0]
+            indices = get_annulus_segments(
+                multispec_fr[0], inner_radius, annulus_width
+            )[0]
             yy = indices[0]
             xx = indices[1]
             matrix = multispec_fr[:, yy, xx]  # shape (z, npx_annulus)
 
             for j in range(z):
-                indices_left = _find_indices_sdi(scal, ann_center, j, fwhm,
-                                                 delta_sep_vec[ann], nframes)
+                indices_left = _find_indices_sdi(
+                    scal, ann_center, j, fwhm, delta_sep_vec[ann], nframes
+                )
                 matrix_masked = matrix[indices_left]
                 ref_psf_opt = np.nanmedian(matrix_masked, axis=0)
                 curr_wv = matrix[j]
                 subtracted = curr_wv - ref_psf_opt
                 cube_res[j, yy, xx] = subtracted
 
-    elif mode == 'fullfr':
+    elif mode == "fullfr":
         median_frame = np.nanmedian(multispec_fr, axis=0)
         cube_res = multispec_fr - median_frame
 
@@ -352,16 +470,24 @@ def _median_subt_fr_sdi(fr, scal, flux_scal, n_annuli, fwhm, radius_int,
         for i in range(z):
             cube_res[i] /= flux_scal[i]
 
-    frame_desc = scwave(cube_res, scale_list, full_output=False, inverse=True,
-                        y_in=y_in, x_in=x_in, imlib=imlib,
-                        interpolation=interpolation, collapse=collapse)
+    frame_desc = scwave(
+        cube_res,
+        scale_list,
+        full_output=False,
+        inverse=True,
+        y_in=y_in,
+        x_in=x_in,
+        imlib=imlib,
+        interpolation=interpolation,
+        collapse=collapse,
+    )
     return frame_desc
 
 
-def _median_subt_ann_adi(ann, angle_list, n_annuli, fwhm, radius_int,
-                         annulus_width, delta_rot, nframes):
-    """ Optimized median subtraction for a given annulus.
-    """
+def _median_subt_ann_adi(
+    ann, angle_list, n_annuli, fwhm, radius_int, annulus_width, delta_rot, nframes
+):
+    """Optimized median subtraction for a given annulus."""
     if ARRAY.ndim == 3:
         n = ARRAY.shape[0]
     elif ARRAY.ndim == 4:
@@ -370,14 +496,13 @@ def _median_subt_ann_adi(ann, angle_list, n_annuli, fwhm, radius_int,
     # The annulus is built, and the corresponding PA thresholds for frame
     # rejection are calculated. The PA rejection is calculated at center of
     # the annulus
-    pa_thr, inner_radius, _ = _define_annuli(angle_list, ann, n_annuli, fwhm,
-                                             radius_int, annulus_width,
-                                             delta_rot, 1, False)
+    pa_thr, inner_radius, _ = _define_annuli(
+        angle_list, ann, n_annuli, fwhm, radius_int, annulus_width, delta_rot, 1, False
+    )
     if ARRAY.ndim == 3:
         indices = get_annulus_segments(ARRAY[0], inner_radius, annulus_width)[0]
     elif ARRAY.ndim == 4:
-        indices = get_annulus_segments(ARRAY[0, 0], inner_radius,
-                                       annulus_width)[0]
+        indices = get_annulus_segments(ARRAY[0, 0], inner_radius, annulus_width)[0]
     yy = indices[0]
     xx = indices[1]
     matrix = ARRAY[:, yy, xx]  # shape [n x npx_annulus]

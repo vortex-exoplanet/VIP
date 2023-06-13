@@ -12,7 +12,6 @@ __author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Ralf Farkas"
 __all__ = ["PostProc", "PPResult", "ALL_SESSIONS", "LAST_SESSION"]
 
 import pickle
-import inspect
 from dataclasses import dataclass, field
 from typing import (
     Tuple,
@@ -28,14 +27,24 @@ from hciplot import plot_frames
 from sklearn.base import BaseEstimator
 
 from .dataset import Dataset
-from ..metrics import snrmap
+from ..metrics import snrmap, snr, significance
 from ..config.utils_conf import algo_calculates_decorator as calculates
 from ..config.utils_conf import Saveable
+from ..var import frame_center
+from ..var.object_utils import print_algo_params
 
 PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
 LAST_SESSION = -1
 ALL_SESSIONS = -2
 DATASET_PARAM = "dataset"
+EXPLICIT_PARAMS = {
+    "cube": "cube",
+    "angle_list": "angles",
+    "fwhm": "fwhm",
+    "cube_ref": "cuberef",
+    "scale_list": "wavelengths",
+    "psf": "psfn",
+}
 
 
 @dataclass
@@ -56,7 +65,6 @@ class Session:
 
 
 # TODO: find a proper format for results saving (pdf, images, dictionnaries...)
-# TODO: add a way to identify which algorithm was used
 @dataclass
 class PPResult(Saveable):
     """
@@ -94,7 +102,7 @@ class PPResult(Saveable):
         """
         # If frame is already registered in a session, add the associated snr_map only
         for session in self.sessions:
-            if (frame == session.frame).all():
+            if (frame == session.frame).all() and snr_map is not None:
                 session.snr_map = snr_map
                 return
 
@@ -229,11 +237,70 @@ class PostProc(BaseEstimator):
     verbose: bool = True
     results: PPResult = None
     frame_final: np.ndarray = None
+    signf: float = None
+
+    def _explicit_dataset(self):
+        """
+        Assign specific attributes from dataset to self.
+
+        Many functions wrapped by the PostProc objects do not interact with a dataset
+        but with their inner values instead : cube, fwhm, angle_list, etc. Those share
+        different names in the functions wrapped and in the dataset, see the
+        `EXPLICIT_PARAMS` constant to see the differencies.
+        """
+        for self_name, data_name in EXPLICIT_PARAMS.items():
+            dataset_value = getattr(self.dataset, data_name)
+            setattr(self, self_name, dataset_value)
+
+    def _create_parameters_dict(self, parent_class: any) -> dict:
+        """
+        Create a dictionnary with the parameters used inside of the PostProc object.
+
+        Parameters
+        ----------
+        parent_class: class
+            Parent of the object that contains the parameters used by
+            that object.
+
+        Returns
+        -------
+        params_dict: dict
+            Parameters used by the object under dictionnary form.
+        """
+        params_dict = {}
+
+        for attr_name in vars(self):
+            if hasattr(parent_class, attr_name):
+                attr_value = getattr(self, attr_name)
+                params_dict[attr_name] = attr_value
+
+        return params_dict
 
     def print_parameters(self) -> None:
         """Print out the parameters of the algorithm."""
         for key, value in self.__dict__.items():
             print(f"{key} : {value}")
+
+    # TODO: write test
+    def compute_significance(self, source_xy: Tuple[float] = None) -> None:
+        """
+        Compute the significance of a detection.
+
+        Parameters
+        ----------
+        source_xy: Tuple of floats
+            Coordinates of the detection.
+        """
+        if self.snr_map is None:
+            self.make_snrmap()
+
+        snr_sig = snr(self.frame_final, source_xy=source_xy, fwhm=self.fwhm)
+        center_y, center_x = frame_center(self.snr_map)
+        radius = np.sqrt(
+            (center_y - source_xy[1]) ** 2 + (center_x - source_xy[0]) ** 2
+        )
+        self.signf = significance(snr_sig, radius, self.fwhm, student_to_gauss=True)
+        print(r"{:.1f} sigma detection".format(self.signf))
 
     def _update_dataset(self, dataset: Optional[Dataset] = None) -> None:
         """
@@ -481,56 +548,3 @@ class PostProc(BaseEstimator):
         add their own keyword arguments if needed.
         """
         raise NotImplementedError
-
-    # TODO: write test
-    def _setup_parameters(self, fkt: Callable, **add_params: dict) -> dict:
-        """
-        Help creating a dictionnary of parameters for a given function.
-
-        Look for the exact list of parameters needed for the ``fkt`` function and takes
-        only the attributes needed from the PostProc project. More parameters can be
-        included with the ``**add_pararms`` dictionnary.
-
-        Parameters
-        ----------
-        fkt : function
-            The function we want to give parameters to.
-        **add_params : dictionnary, optional
-            Additionnal parameters that may not be included in the PostProc object.
-
-        Returns
-        -------
-        params_dict : dictionnary
-            The dictionnary comprised of parameters needed for the function, selected
-            amongst attributes of PostProc objects and additionnal parameters.
-
-        """
-        wanted_params = inspect.signature(fkt).parameters
-        obj_params = vars(self)
-        all_params = {**obj_params, **add_params}
-        params_dict = {
-            param: all_params[param] for param in all_params if param in wanted_params
-        }
-        if self.verbose:
-            print(
-                f"The following parameters will be used for the run of {fkt.__name__} :"
-            )
-            print_algo_params(params_dict)
-        return params_dict
-
-
-def print_algo_params(params: dict) -> None:
-    """
-    Print the parameters that will be used for the run of an algorithm.
-
-    Parameters
-    ----------
-    params : dict
-        Dictionnary of the parameters that are sent to the function.
-
-    """
-    for key, value in params.items():
-        if isinstance(value, np.ndarray):
-            print(f"- {key} : np.ndarray (not shown)")
-        else:
-            print(f"- {key} : {value}")

@@ -13,7 +13,7 @@ decomposition algorithm for ADI data.
 
 """
 
-__author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez"
+__author__ = "Carlos Alberto Gomez Gonzalez, Thomas Bédrine"
 __all__ = ["llsg", "thresholding", "LLSGParams"]
 
 

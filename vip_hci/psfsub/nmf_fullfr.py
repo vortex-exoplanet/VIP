@@ -71,7 +71,7 @@ class NMFParams:
         the PA criterion is estimated. When ``ncomp`` is a tuple, a PCA grid is
         computed and the S/Ns (mean value in a 1xFWHM circular aperture) of the
         given (X,Y) coordinates are computed.
-    delta_rot : int, optional
+    delta_rot : float, optional
         Factor for tunning the parallactic angle threshold, expressed in FWHM.
         Default is 1 (excludes 1xFHWM on each side of the considered frame).
     fwhm : float, optional
@@ -109,7 +109,7 @@ class NMFParams:
     random_state: int = None
     mask_center_px: int = None
     source_xy: Tuple[int] = None
-    delta_rot: int = 1
+    delta_rot: float = 1
     fwhm: float = 4
     init_svd: LowEnum = Initsvd.NNDSVD
     collapse: LowEnum = Collapse.MEDIAN

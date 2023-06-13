@@ -1,6 +1,6 @@
 """Helper functions for tests"""
 
-__author__ = "Thomas Bédrine, Ralf Farkas"
+__author__ = "Ralf Farkas, Thomas Bédrine"
 
 __all__ = ["check_detection", "download_resource"]
 

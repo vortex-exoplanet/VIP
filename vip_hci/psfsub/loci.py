@@ -13,7 +13,7 @@ Module with a frame differencing algorithm for ADI and ADI+mSDI post-processing.
 
 """
 
-__author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez"
+__author__ = "Carlos Alberto Gomez Gonzalez, Thomas Bédrine"
 __all__ = ["xloci", "LOCIParams"]
 
 import numpy as np

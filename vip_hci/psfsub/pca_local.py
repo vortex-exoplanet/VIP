@@ -13,7 +13,7 @@ fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
 
 """
 
-__author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
+__author__ = "Carlos Alberto Gomez Gonzalez, Valentin Christiaens, Thomas Bédrine"
 __all__ = ["pca_annular", "PCAAnnParams"]
 
 import numpy as np

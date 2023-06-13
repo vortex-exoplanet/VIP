@@ -39,7 +39,7 @@ Options :
 
 """
 
-__author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
+__author__ = "Carlos Alberto Gomez Gonzalez, Valentin Christiaens, Thomas Bédrine"
 __all__ = ["pca", "PCAParams"]
 
 import numpy as np

@@ -102,7 +102,7 @@ class PPNMF(PostProc, NMFAnnParams, NMFParams):
 
         if runmode == "fullframe":
             # Annular NMF gives the default delta_rot, fullframe delta_rot must be int
-            if not isinstance(self.delta_rot, int):
+            if not isinstance(self.delta_rot, float):
                 self.delta_rot = DELTA_FF_DEFAULT
 
             params_dict = self._create_parameters_dict(NMFParams)

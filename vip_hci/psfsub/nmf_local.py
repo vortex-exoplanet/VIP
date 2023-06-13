@@ -3,7 +3,7 @@
 Module with NMF algorithm in concentric annuli for ADI/RDI.
 """
 
-__author__ = "Thomas Bédrine, Valentin Christiaens"
+__author__ = "Valentin Christiaens, Thomas Bédrine"
 __all__ = ["nmf_annular", "NMFAnnParams"]
 
 import numpy as np

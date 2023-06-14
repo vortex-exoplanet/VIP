@@ -76,7 +76,7 @@ class MedsubParams:
         provided, the algorithm will still work, but with a lower efficiency
         at subtracting the stellar halo.
     fwhm : float or 1d numpy array
-        Known size of the FHWM in pixels to be used. Default is 4.
+        Known size of the FWHM in pixels to be used. Default is 4.
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the
         central circular area is discarded.
@@ -84,7 +84,7 @@ class MedsubParams:
         The size of the annuli, in pixels.
     delta_rot : int, optional
         Factor for increasing the parallactic angle threshold, expressed in
-        FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
+        FWHM. Default is 1 (excludes 1 FWHM on each side of the considered
         frame).
     delta_sep : float or tuple of floats, optional
         The threshold separation in terms of the mean FWHM (for ADI+mSDI data).
@@ -154,7 +154,7 @@ def median_sub(algo_params: MedsubParams = None, **all_kwargs):
         Dataclass retaining all the needed parameters for median subtraction.
     all_kwargs: dictionary, optional
         Mix of the parameters that can initialize an algo_params and the optional
-        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
+        'rot_options' dictionary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
 
@@ -169,7 +169,7 @@ def median_sub(algo_params: MedsubParams = None, **all_kwargs):
 
     """
 
-    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    # Separating the parameters of the ParamsObject from the optional rot_options
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=MedsubParams
     )

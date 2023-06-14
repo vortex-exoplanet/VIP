@@ -1,52 +1,41 @@
 #! /usr/bin/env python
-
 """
 Module containing the Local Low-rank plus Sparse plus Gaussian-noise
 decomposition algorithm for ADI data.
 
 .. [GOM16]
    | Gomez-Gonzalez et al. 2016
-   | **Low-rank plus sparse decomposition for exoplanet detection in 
+   | **Low-rank plus sparse decomposition for exoplanet detection in
      direct-imaging ADI sequences. The LLSG algorithm**
    | *Astronomy & Astrophysics, Volume 589, Issue 1, p. 54*
    | `https://arxiv.org/abs/1602.08381
      <https://arxiv.org/abs/1602.08381>`_
-     
+
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['llsg',
-           'thresholding']
+__author__ = "Carlos Alberto Gomez Gonzalez, Thomas Bédrine"
+__all__ = ["llsg", "thresholding", "LLSGParams"]
 
 
 import numpy as np
 from scipy.linalg import qr
 from multiprocessing import cpu_count
 from astropy.stats import median_absolute_deviation
+from dataclasses import dataclass
+from strenum import LowercaseStrEnum as LowEnum
 from ..config import time_ini, timing
 from ..preproc import cube_derotate, cube_collapse
 from ..var import get_annulus_segments, cube_filter_highpass
+from ..var.object_utils import setup_parameters, separate_kwargs_dict
+from ..var.paramenum import Collapse, LowRankMode, AutoRankMode, ThreshMode
 from .svd import svd_wrapper, get_eigenvectors
 from ..config.utils_conf import pool_map, iterable
 
 
-def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
-         low_rank_ref=False, low_rank_mode='svd', auto_rank_mode='noise',
-         residuals_tol=1e-1, cevr=0.9, thresh_mode='soft', nproc=1, asize=None,
-         n_segments=4, azimuth_overlap=None, radius_int=None, random_seed=None,
-         high_pass=None, collapse='median', full_output=False, verbose=True,
-         debug=False, **rot_options):
-    """ Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as
-    described in [GOM16]_. This first version of our algorithm aims at 
-    decomposing ADI cubes into three terms L+S+G (low-rank, sparse and Gaussian 
-    noise). Separating the noise from the S component (where the moving planet 
-    should stay) allow us to increase the SNR of potential planets.
-
-    The three tunable parameters are the *rank* or expected rank of the L
-    component, the ``thresh`` or threshold for encouraging sparsity in the S
-    component and ``max_iter`` which sets the number of iterations. The rest of
-    parameters can be tuned at the users own risk (do it if you know what you're
-    doing).
+@dataclass
+class LLSGParams:
+    """
+    Set of parameters for the LLSG algorithm.
 
     Parameters
     ----------
@@ -65,9 +54,9 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     low_rank_ref :
         If True the first estimation of the L component is obtained from the
         remaining segments in the same annulus.
-    low_rank_mode : {'svd', 'brp'}, optional
+    low_rank_mode : LowerCaseStrEnum, see `vip_hci.var.paramenum.LowRankMode`
         Sets the method of solving the L update.
-    auto_rank_mode : {'noise', 'cevr'}, str optional
+    auto_rank_mode : LowerCaseStrEnum, see `vip_hci.var.paramenum.AutoRankMode`
         If ``rank`` is None, then ``auto_rank_mode`` sets the way that the
         ``rank`` is determined: the noise minimization or the cumulative
         explained variance ratio (when 'svd' is used).
@@ -77,7 +66,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     cevr : float, optional
         Float value in the range [0,1] for selecting the cumulative explained
         variance ratio to choose the rank automatically (if ``rank`` is None).
-    thresh_mode : {'soft', 'hard'}, optional
+    thresh_mode : LowerCaseStrEnum, see `vip_hci.var.paramenum.ThreshMode`
         Sets the type of thresholding.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
@@ -102,7 +91,7 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         first with the mode ``median-subt`` and a large window, and then with
         ``laplacian-conv`` and a kernel size equal to ``high_pass``. 5 is an
         optimal value when ``fwhm`` is ~4.
-    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+    collapse : LowerCaseStrEnum, see `vip_hci.var.paramenum.Collapse`
         Sets the way of collapsing the frames for producing a final image.
     full_output: bool, optional
         Whether to return the final median combined image only or with other
@@ -111,10 +100,58 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
         If True prints to stdout intermediate info.
     debug : bool, optional
         Whether to output some intermediate information.
-    rot_options: dictionary, optional
-        Dictionary with optional keyword values for "imlib", "interpolation",
-        "border_mode", "mask_val", "edge_blend", "interp_zeros", "ker" (see
-        documentation of ``vip_hci.preproc.frame_rotate``)
+    """
+
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
+    fwhm: float = None
+    rank: int = 10
+    thresh: float = 1
+    max_iter: int = 10
+    low_rank_ref: bool = False
+    low_rank_mode: LowEnum = LowRankMode.SVD
+    auto_rank_mode: LowEnum = AutoRankMode.NOISE
+    residuals_tol: float = 1e-1
+    cevr: float = 0.9
+    thresh_mode: LowEnum = ThreshMode.SOFT
+    nproc: int = 1
+    asize: int = None
+    n_segments: int = 4
+    azimuth_overlap: int = None
+    radius_int: int = None
+    random_seed: int = None
+    high_pass: int = None
+    collapse: LowEnum = Collapse.MEDIAN
+    full_output: bool = False
+    verbose: bool = True
+    debug: bool = False
+
+
+def llsg(
+    algo_params: LLSGParams = None,
+    **all_kwargs,
+):
+    """Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as
+    described in [GOM16]_. This first version of our algorithm aims at
+    decomposing ADI cubes into three terms L+S+G (low-rank, sparse and Gaussian
+    noise). Separating the noise from the S component (where the moving planet
+    should stay) allow us to increase the SNR of potential planets.
+
+    The three tunable parameters are the *rank* or expected rank of the L
+    component, the ``thresh`` or threshold for encouraging sparsity in the S
+    component and ``max_iter`` which sets the number of iterations. The rest of
+    parameters can be tuned at the users own risk (do it if you know what you're
+    doing).
+
+    Parameters
+    ----------
+    algo_params: LLSGParams
+        Dataclass retaining all the needed parameters for LLSG.
+    all_kwargs: dictionary, optional
+        Mix of the parameters that can initialize an algo_params and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
+        "edge_blend", "interp_zeros", "ker" (see documentation of
+        ``vip_hci.preproc.frame_rotate``)
 
     Returns
     -------
@@ -126,161 +163,238 @@ def llsg(cube, angle_list, fwhm, rank=10, thresh=1, max_iter=10,
     frame_g
 
     """
-    if cube.ndim != 3:
+
+    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    class_params, rot_options = separate_kwargs_dict(
+        initial_kwargs=all_kwargs, parent_class=LLSGParams
+    )
+    if algo_params is None:
+        algo_params = LLSGParams(**class_params)
+
+    if algo_params.cube.ndim != 3:
         raise TypeError("Input array is not a cube (3d array)")
-    if not cube.shape[0] == angle_list.shape[0]:
+    if not algo_params.cube.shape[0] == algo_params.angle_list.shape[0]:
         msg = "Angle list vector has wrong length. It must equal the number"
         msg += " frames in the cube"
         raise TypeError(msg)
 
-    if low_rank_mode == 'brp':
-        if rank is None:
+    if algo_params.low_rank_mode == LowRankMode.BRP:
+        if algo_params.rank is None:
             msg = "Auto rank only works with SVD low_rank_mode."
             msg += " Set a value for the rank parameter"
             raise ValueError(msg)
-        if low_rank_ref:
+        if algo_params.low_rank_ref:
             msg = "Low_rank_ref only works with SVD low_rank_mode"
             raise ValueError(msg)
 
     global cube_init
-    if high_pass is not None:
-        cube_init = cube_filter_highpass(cube, 'median-subt', median_size=19,
-                                         verbose=False)
-        cube_init = cube_filter_highpass(cube_init, 'laplacian-conv',
-                                         kernel_size=high_pass, verbose=False)
+    if algo_params.high_pass is not None:
+        cube_init = cube_filter_highpass(
+            algo_params.cube, "median-subt", median_size=19, verbose=False
+        )
+        cube_init = cube_filter_highpass(
+            cube_init,
+            "laplacian-conv",
+            kernel_size=algo_params.high_pass,
+            verbose=False,
+        )
     else:
-        cube_init = cube
+        cube_init = algo_params.cube
 
-    if verbose:
+    if algo_params.verbose:
         start_time = time_ini()
-    n, y, x = cube.shape
+    n, y, x = algo_params.cube.shape
 
-    if azimuth_overlap == 0:
-        azimuth_overlap = None
+    if algo_params.azimuth_overlap == 0:
+        algo_params.azimuth_overlap = None
 
-    if radius_int is None:
-        radius_int = 0
+    if algo_params.radius_int is None:
+        algo_params.radius_int = 0
 
-    if nproc is None:
-        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
+    if algo_params.nproc is None:
+        algo_params.nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
 
     # Same number of pixels per annulus
-    if asize is None:
-        annulus_width = int(np.ceil(2 * fwhm))  # as in the paper
-    elif isinstance(asize, int):
-        annulus_width = asize
-    n_annuli = int((y / 2 - radius_int) / annulus_width)
+    if algo_params.asize is None:
+        annulus_width = int(np.ceil(2 * algo_params.fwhm))  # as in the paper
+    elif isinstance(algo_params.asize, int):
+        annulus_width = algo_params.asize
+    n_annuli = int((y / 2 - algo_params.radius_int) / annulus_width)
     # TODO: asize in pxs to be consistent with other functions
 
-    if n_segments is None:
-        n_segments = [4 for _ in range(n_annuli)]   # as in the paper
-    elif isinstance(n_segments, int):
-        n_segments = [n_segments]*n_annuli
-    elif n_segments == 'auto':
-        n_segments = []
-        n_segments.append(2)    # for first annulus
-        n_segments.append(3)    # for second annulus
-        ld = 2 * np.tan(360/4/2) * annulus_width
-        for i in range(2, n_annuli):    # rest of annuli
+    if algo_params.n_segments is None:
+        algo_params.n_segments = [4 for _ in range(n_annuli)]  # as in the paper
+    elif isinstance(algo_params.n_segments, int):
+        algo_params.n_segments = [algo_params.n_segments] * n_annuli
+    elif algo_params.n_segments == "auto":
+        algo_params.n_segments = []
+        algo_params.n_segments.append(2)  # for first annulus
+        algo_params.n_segments.append(3)  # for second annulus
+        ld = 2 * np.tan(360 / 4 / 2) * annulus_width
+        for i in range(2, n_annuli):  # rest of annuli
             radius = i * annulus_width
             ang = np.rad2deg(2 * np.arctan(ld / (2 * radius)))
-            n_segments.append(int(np.ceil(360/ang)))
+            algo_params.n_segments.append(int(np.ceil(360 / ang)))
 
-    if verbose:
-        print('Annuli = {}'.format(n_annuli))
+    if algo_params.verbose:
+        print("Annuli = {}".format(n_annuli))
 
     # Azimuthal averaging of residuals
-    if azimuth_overlap is None:
-        azimuth_overlap = 360   # no overlapping, single config of segments
-    n_rots = int(360 / azimuth_overlap)
+    if algo_params.azimuth_overlap is None:
+        algo_params.azimuth_overlap = 360  # no overlapping, single config of segments
+    n_rots = int(360 / algo_params.azimuth_overlap)
 
     matrix_s = np.zeros((n_rots, n, y, x))
-    if full_output:
+    if algo_params.full_output:
         matrix_l = np.zeros((n_rots, n, y, x))
         matrix_g = np.zeros((n_rots, n, y, x))
 
     # Looping the he annuli
-    if verbose:
-        print('Processing annulus: ')
+    if algo_params.verbose:
+        print("Processing annulus: ")
     for ann in range(n_annuli):
-        inner_radius = radius_int + ann * annulus_width
-        n_segments_ann = n_segments[ann]
-        if verbose:
-            print('{} : in_rad={}, n_segm={}'.format(ann+1, inner_radius,
-                                                     n_segments_ann))
+        inner_radius = algo_params.radius_int + ann * annulus_width
+        n_segments_ann = algo_params.n_segments[ann]
+        if algo_params.verbose:
+            print(f"{ann+1} : in_rad={inner_radius}, n_segm={n_segments_ann}")
 
         # TODO: pool_map as in xloci function: build first a list
         for i in range(n_rots):
-            theta_init = i * azimuth_overlap
-            indices = get_annulus_segments(cube[0], inner_radius,
-                                           annulus_width, n_segments_ann,
-                                           theta_init)
+            theta_init = i * algo_params.azimuth_overlap
+            indices = get_annulus_segments(
+                algo_params.cube[0],
+                inner_radius,
+                annulus_width,
+                n_segments_ann,
+                theta_init,
+            )
 
-            patches = pool_map(nproc, _decompose_patch, indices,
-                               iterable(range(n_segments_ann)), n_segments_ann,
-                               rank, low_rank_ref, low_rank_mode, thresh,
-                               thresh_mode, max_iter, auto_rank_mode, cevr,
-                               residuals_tol, random_seed, debug, full_output)
+            add_params = {
+                "indices": indices,
+                "i_patch": iterable(range(n_segments_ann)),
+                "n_segments_ann": n_segments_ann,
+                "verbose": False,
+            }
+
+            func_params = setup_parameters(
+                params_obj=algo_params, fkt=_decompose_patch, as_list=True, **add_params
+            )
+
+            patches = pool_map(
+                algo_params.nproc,
+                _decompose_patch,
+                *func_params,
+            )
 
             for j in range(n_segments_ann):
                 yy = indices[j][0]
                 xx = indices[j][1]
 
-                if full_output:
+                if algo_params.full_output:
                     matrix_l[i, :, yy, xx] = patches[j][0]
                     matrix_s[i, :, yy, xx] = patches[j][1]
                     matrix_g[i, :, yy, xx] = patches[j][2]
                 else:
                     matrix_s[i, :, yy, xx] = patches[j]
 
-    if full_output:
-        list_s_array_der = [cube_derotate(matrix_s[k], angle_list, nproc=nproc,
-                                          **rot_options)
-                            for k in range(n_rots)]
-        list_frame_s = [cube_collapse(list_s_array_der[k], mode=collapse)
-                        for k in range(n_rots)]
-        frame_s = cube_collapse(np.array(list_frame_s), mode=collapse)
+    if algo_params.full_output:
+        list_s_array_der = [
+            cube_derotate(
+                matrix_s[k],
+                algo_params.angle_list,
+                nproc=algo_params.nproc,
+                **rot_options,
+            )
+            for k in range(n_rots)
+        ]
+        list_frame_s = [
+            cube_collapse(list_s_array_der[k], mode=algo_params.collapse)
+            for k in range(n_rots)
+        ]
+        frame_s = cube_collapse(np.array(list_frame_s), mode=algo_params.collapse)
 
-        list_l_array_der = [cube_derotate(matrix_l[k], angle_list, nproc=nproc,
-                                          **rot_options)
-                            for k in range(n_rots)]
-        list_frame_l = [cube_collapse(list_l_array_der[k], mode=collapse)
-                        for k in range(n_rots)]
-        frame_l = cube_collapse(np.array(list_frame_l), mode=collapse)
+        list_l_array_der = [
+            cube_derotate(
+                matrix_l[k],
+                algo_params.angle_list,
+                nproc=algo_params.nproc,
+                **rot_options,
+            )
+            for k in range(n_rots)
+        ]
+        list_frame_l = [
+            cube_collapse(list_l_array_der[k], mode=algo_params.collapse)
+            for k in range(n_rots)
+        ]
+        frame_l = cube_collapse(np.array(list_frame_l), mode=algo_params.collapse)
 
-        list_g_array_der = [cube_derotate(matrix_g[k], angle_list, nproc=nproc,
-                                          **rot_options)
-                            for k in range(n_rots)]
-        list_frame_g = [cube_collapse(list_g_array_der[k], mode=collapse)
-                        for k in range(n_rots)]
-        frame_g = cube_collapse(np.array(list_frame_g), mode=collapse)
+        list_g_array_der = [
+            cube_derotate(
+                matrix_g[k],
+                algo_params.angle_list,
+                nproc=algo_params.nproc,
+                **rot_options,
+            )
+            for k in range(n_rots)
+        ]
+        list_frame_g = [
+            cube_collapse(list_g_array_der[k], mode=algo_params.collapse)
+            for k in range(n_rots)
+        ]
+        frame_g = cube_collapse(np.array(list_frame_g), mode=algo_params.collapse)
 
     else:
-        list_s_array_der = [cube_derotate(matrix_s[k], angle_list, nproc=nproc,
-                                          **rot_options)
-                            for k in range(n_rots)]
-        list_frame_s = [cube_collapse(list_s_array_der[k], mode=collapse)
-                        for k in range(n_rots)]
+        list_s_array_der = [
+            cube_derotate(
+                matrix_s[k],
+                algo_params.angle_list,
+                nproc=algo_params.nproc,
+                **rot_options,
+            )
+            for k in range(n_rots)
+        ]
+        list_frame_s = [
+            cube_collapse(list_s_array_der[k], mode=algo_params.collapse)
+            for k in range(n_rots)
+        ]
 
-        frame_s = cube_collapse(np.array(list_frame_s), mode=collapse)
+        frame_s = cube_collapse(np.array(list_frame_s), mode=algo_params.collapse)
 
-    if verbose:
-        print('')
+    if algo_params.verbose:
+        print("")
         timing(start_time)
 
-    if full_output:
-        return(list_l_array_der, list_s_array_der, list_g_array_der,
-               frame_l, frame_s, frame_g)
+    if algo_params.full_output:
+        return (
+            list_l_array_der,
+            list_s_array_der,
+            list_g_array_der,
+            frame_l,
+            frame_s,
+            frame_g,
+        )
     else:
         return frame_s
 
 
-def _decompose_patch(indices, i_patch, n_segments_ann, rank, low_rank_ref,
-                     low_rank_mode, thresh, thresh_mode, max_iter,
-                     auto_rank_mode, cevr, residuals_tol, random_seed,
-                     debug=False, full_output=False):
-    """ Patch decomposition.
-    """
+def _decompose_patch(
+    indices,
+    i_patch,
+    n_segments_ann,
+    rank,
+    low_rank_ref,
+    low_rank_mode,
+    thresh,
+    thresh_mode,
+    max_iter,
+    auto_rank_mode,
+    cevr,
+    residuals_tol,
+    random_seed,
+    debug=False,
+    full_output=False,
+):
+    """Patch decomposition."""
     j = i_patch
     yy = indices[j][0]
     xx = indices[j][1]
@@ -300,20 +414,42 @@ def _decompose_patch(indices, i_patch, n_segments_ann, rank, low_rank_ref,
     else:
         data_ref = data_segm
 
-    patch = _patch_rlrps(data_segm, data_ref, rank, low_rank_ref,
-                         low_rank_mode, thresh, thresh_mode,
-                         max_iter, auto_rank_mode, cevr,
-                         residuals_tol, random_seed, debug=debug,
-                         full_output=full_output)
+    patch = _patch_rlrps(
+        data_segm,
+        data_ref,
+        rank,
+        low_rank_ref,
+        low_rank_mode,
+        thresh,
+        thresh_mode,
+        max_iter,
+        auto_rank_mode,
+        cevr,
+        residuals_tol,
+        random_seed,
+        debug=debug,
+        full_output=full_output,
+    )
     return patch
 
 
-def _patch_rlrps(array, array_ref, rank, low_rank_ref, low_rank_mode,
-                 thresh, thresh_mode, max_iter, auto_rank_mode='noise',
-                 cevr=0.9, residuals_tol=1e-2, random_seed=None, debug=False,
-                 full_output=False):
-    """ Patch decomposition based on GoDec/SSGoDec (Zhou & Tao 2011)
-    """
+def _patch_rlrps(
+    array,
+    array_ref,
+    rank,
+    low_rank_ref,
+    low_rank_mode,
+    thresh,
+    thresh_mode,
+    max_iter,
+    auto_rank_mode="noise",
+    cevr=0.9,
+    residuals_tol=1e-2,
+    random_seed=None,
+    debug=False,
+    full_output=False,
+):
+    """Patch decomposition based on GoDec/SSGoDec (Zhou & Tao 2011)"""
     ############################################################################
     # Initializing L and S
     ############################################################################
@@ -326,26 +462,34 @@ def _patch_rlrps(array, array_ref, rank, low_rank_ref, low_rank_mode,
     random_state = np.random.RandomState(random_seed)
     itr = 0
     power = 0
-    svdlib = 'lapack'
+    svdlib = "lapack"
 
     while itr <= max_iter:
         ########################################################################
         # Updating L
         ########################################################################
-        if low_rank_mode == 'brp':
+        if low_rank_mode == "brp":
             Y2 = random_state.randn(L.shape[1], rank)
             for _ in range(power + 1):
                 Y1 = np.dot(L, Y2)
                 Y2 = np.dot(L.T, Y1)
-            Q, _ = qr(Y2, mode='economic')
+            Q, _ = qr(Y2, mode="economic")
             Lnew = np.dot(np.dot(L, Q), Q.T)
 
-        elif low_rank_mode == 'svd':
+        elif low_rank_mode == "svd":
             if itr == 0:
-                PC = get_eigenvectors(rank, L, svdlib, mode=auto_rank_mode,
-                                      cevr=cevr, noise_error=residuals_tol,
-                                      data_ref=L_ref, debug=debug,
-                                      collapse=True, scaling='temp-standard')
+                PC = get_eigenvectors(
+                    rank,
+                    L,
+                    svdlib,
+                    mode=auto_rank_mode,
+                    cevr=cevr,
+                    noise_error=residuals_tol,
+                    data_ref=L_ref,
+                    debug=debug,
+                    collapse=True,
+                    scaling="temp-standard",
+                )
                 rank = PC.shape[0]  # so we can use the optimized rank
                 if low_rank_ref:
                     Lnew = np.dot(np.dot(PC, L).T, PC).T
@@ -353,12 +497,11 @@ def _patch_rlrps(array, array_ref, rank, low_rank_ref, low_rank_mode,
                     Lnew = np.dot(np.dot(L, PC.T), PC)
             else:
                 rank_i = min(rank, min(L.shape[0], L.shape[1]))
-                PC = svd_wrapper(L, svdlib, rank_i, False,
-                                 random_state=random_state)
+                PC = svd_wrapper(L, svdlib, rank_i, False, random_state=random_state)
                 Lnew = np.dot(np.dot(L, PC.T), PC)
 
         else:
-            raise RuntimeError('Low Rank estimation mode not recognized.')
+            raise RuntimeError("Low Rank estimation mode not recognized.")
 
         ########################################################################
         # Updating S
@@ -373,7 +516,7 @@ def _patch_rlrps(array, array_ref, rank, low_rank_ref, low_rank_mode,
         # threshold = threshmat
 
         if debug:
-            print('threshold = {:.3f}'.format(threshold))
+            print("threshold = {:.3f}".format(threshold))
         S = thresholding(T, threshold, thresh_mode)
 
         T -= S
@@ -393,10 +536,9 @@ def _patch_rlrps(array, array_ref, rank, low_rank_ref, low_rank_mode,
 
 
 def thresholding(array, threshold, mode):
-    """ Array thresholding strategies.
-    """
+    """Array thresholding strategies."""
     x = array.copy()
-    if mode == 'soft':
+    if mode == "soft":
         j = np.abs(x) <= threshold
         x[j] = 0
         k = np.abs(x) > threshold
@@ -404,20 +546,20 @@ def thresholding(array, threshold, mode):
             x[k] = x[k] - np.sign(x[k]) * threshold
         else:
             x[k] = x[k] - np.sign(x[k]) * threshold[k]
-    elif mode == 'hard':
+    elif mode == "hard":
         j = np.abs(x) < threshold
         x[j] = 0
-    elif mode == 'nng':
+    elif mode == "nng":
         j = np.abs(x) <= threshold
         x[j] = 0
         j = np.abs(x) > threshold
-        x[j] = x[j] - threshold**2/x[j]
-    elif mode == 'greater':
+        x[j] = x[j] - threshold**2 / x[j]
+    elif mode == "greater":
         j = x < threshold
         x[j] = 0
-    elif mode == 'less':
+    elif mode == "less":
         j = x > threshold
         x[j] = 0
     else:
-        raise RuntimeError('Thresholding mode not recognized')
+        raise RuntimeError("Thresholding mode not recognized")
     return x

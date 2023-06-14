@@ -1,12 +1,10 @@
-"""
-Helper functions for tests
-"""
+"""Helper functions for tests"""
 
-__author__ = "Thomas Bédrine, Ralf Farkas"
+__author__ = "Ralf Farkas, Thomas Bédrine"
 
 __all__ = ["check_detection", "download_resource"]
 
-import pytest
+from requests.exceptions import ReadTimeout
 from pytest import mark, param, raises, fixture
 from ratelimit import limits, sleep_and_retry
 from astropy.utils.data import download_file
@@ -83,4 +81,11 @@ def check_detection(frame, yx_exp, fwhm, snr_thresh, deltapix=3):
 @sleep_and_retry
 @limits(calls=1, period=1)
 def download_resource(url):
-    return download_file(url, cache=True)
+    attempts = 5
+    while attempts > 0:
+        try:
+            return download_file(url, cache=True)
+        except ReadTimeout:
+            attempts -= 1
+
+    raise TimeoutError("Resource could not be accessed due to too many timeouts.")

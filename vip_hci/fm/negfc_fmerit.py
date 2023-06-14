@@ -1,28 +1,51 @@
 #! /usr/bin/env python
-
 """
 Module with the function of merit definitions for the NEGFC optimization.
 """
 
-__author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
-__all__ = ['get_mu_and_sigma']
+__author__ = "O. Wertz, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
+__all__ = ["get_mu_and_sigma"]
 
 import numpy as np
 from hciplot import plot_frames
 from skimage.draw import disk
 from ..fm import cube_inject_companions
-from ..var import (frame_center, get_annular_wedge, cube_filter_highpass,
-                   get_annulus_segments)
+from ..var import (
+    frame_center,
+    get_annular_wedge,
+    cube_filter_highpass,
+    get_annulus_segments,
+)
 from ..psfsub import pca_annulus, pca_annular, nmf_annular, pca
 from ..preproc import cube_crop_frames
 
 
-def chisquare(modelParameters, cube, angs, psfs_norm, fwhm, annulus_width,
-              aperture_radius, initialState, ncomp, cube_ref=None,
-              svd_mode='lapack', scaling=None, fmerit='sum', collapse='median',
-              algo=pca_annulus, delta_rot=1, imlib='vip-fft',
-              interpolation='lanczos4', algo_options={}, transmission=None,
-              mu_sigma=(0, 1), weights=None, force_rPA=False, debug=False):
+def chisquare(
+    modelParameters,
+    cube,
+    angs,
+    psfs_norm,
+    fwhm,
+    annulus_width,
+    aperture_radius,
+    initialState,
+    ncomp,
+    cube_ref=None,
+    svd_mode="lapack",
+    scaling=None,
+    fmerit="sum",
+    collapse="median",
+    algo=pca_annulus,
+    delta_rot=1,
+    imlib="vip-fft",
+    interpolation="lanczos4",
+    algo_options={},
+    transmission=None,
+    mu_sigma=(0, 1),
+    weights=None,
+    force_rPA=False,
+    debug=False,
+):
     r"""
     Calculate the reduced :math:`\chi^2`:
     .. math:: \chi^2_r = \frac{1}{N-Npar}\sum_{j=1}^{N} \frac{(I_j-\mu)^2}{\sigma^2}
@@ -73,10 +96,10 @@ def chisquare(modelParameters, cube, angs, psfs_norm, fwhm, annulus_width,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
@@ -138,7 +161,7 @@ def chisquare(modelParameters, cube, angs, psfs_norm, fwhm, annulus_width,
             try:
                 r, theta, flux_tmp = modelParameters
             except TypeError:
-                msg = 'modelParameters must be a tuple, {} was given'
+                msg = "modelParameters must be a tuple, {} was given"
                 print(msg.format(type(modelParameters)))
     else:
         if force_rPA:
@@ -150,19 +173,19 @@ def chisquare(modelParameters, cube, angs, psfs_norm, fwhm, annulus_width,
                 theta = modelParameters[1]
                 flux_tmp = np.array(modelParameters[2:])
             except TypeError:
-                msg = 'modelParameters must be a tuple, {} was given'
+                msg = "modelParameters must be a tuple, {} was given"
                 print(msg.format(type(modelParameters)))
 
     # set imlib for rotation and shift
-    if imlib == 'opencv':
+    if imlib == "opencv":
         imlib_sh = imlib
         imlib_rot = imlib
-    elif imlib == 'skimage' or imlib == 'ndimage-interp':
-        imlib_sh = 'ndimage-interp'
-        imlib_rot = 'skimage'
-    elif imlib == 'vip-fft' or imlib == 'ndimage-fourier':
-        imlib_sh = 'ndimage-fourier'
-        imlib_rot = 'vip-fft'
+    elif imlib == "skimage" or imlib == "ndimage-interp":
+        imlib_sh = "ndimage-interp"
+        imlib_rot = "skimage"
+    elif imlib == "vip-fft" or imlib == "ndimage-fourier":
+        imlib_sh = "ndimage-fourier"
+        imlib_rot = "vip-fft"
     else:
         raise TypeError("Interpolation not recognized.")
 
@@ -171,31 +194,51 @@ def chisquare(modelParameters, cube, angs, psfs_norm, fwhm, annulus_width,
         flux = -flux_tmp
         # norm_weights=weights
     elif np.isscalar(flux_tmp):
-        flux = -flux_tmp*weights
+        flux = -flux_tmp * weights
         # norm_weights=weights
-        #norm_weights = weights/np.sum(weights)
+        # norm_weights = weights/np.sum(weights)
     else:
         flux = -np.outer(flux_tmp, weights)
         # norm_weights=weights
-        #norm_weights = weights/np.sum(weights)
+        # norm_weights = weights/np.sum(weights)
 
     # Create the cube with the negative fake companion injected
-    cube_negfc = cube_inject_companions(cube, psfs_norm, angs, flevel=flux,
-                                        rad_dists=[r], n_branches=1,
-                                        theta=theta, imlib=imlib_sh,
-                                        interpolation=interpolation,
-                                        transmission=transmission,
-                                        verbose=False)
+    cube_negfc = cube_inject_companions(
+        cube,
+        psfs_norm,
+        angs,
+        flevel=flux,
+        rad_dists=[r],
+        n_branches=1,
+        theta=theta,
+        imlib=imlib_sh,
+        interpolation=interpolation,
+        transmission=transmission,
+        verbose=False,
+    )
 
     # Perform PCA and extract the zone of interest
-    res = get_values_optimize(cube_negfc, angs, ncomp, annulus_width,
-                              aperture_radius, fwhm, initialState[0],
-                              initialState[1], cube_ref=cube_ref,
-                              svd_mode=svd_mode, scaling=scaling, algo=algo,
-                              delta_rot=delta_rot, collapse=collapse,
-                              algo_options=algo_options, weights=norm_weights,
-                              imlib=imlib_rot, interpolation=interpolation,
-                              debug=debug)
+    res = get_values_optimize(
+        cube_negfc,
+        angs,
+        ncomp,
+        annulus_width,
+        aperture_radius,
+        fwhm,
+        initialState[0],
+        initialState[1],
+        cube_ref=cube_ref,
+        svd_mode=svd_mode,
+        scaling=scaling,
+        algo=algo,
+        delta_rot=delta_rot,
+        collapse=collapse,
+        algo_options=algo_options,
+        weights=norm_weights,
+        imlib=imlib_rot,
+        interpolation=interpolation,
+        debug=debug,
+    )
 
     if debug and collapse is not None:
         values, frpca = res
@@ -206,31 +249,46 @@ def chisquare(modelParameters, cube, angs, psfs_norm, fwhm, annulus_width,
     # Function of merit
     if mu_sigma is None:
         # old version - delete?
-        if fmerit == 'sum':
-            chi = np.sum(np.abs(values))/(values.size-len(modelParameters))
-        elif fmerit == 'stddev':
+        if fmerit == "sum":
+            chi = np.sum(np.abs(values)) / (values.size - len(modelParameters))
+        elif fmerit == "stddev":
             values = values[values != 0]
-            ddf = values.size-len(modelParameters)
-            chi = np.std(values)*values.size/ddf  # TODO: test std**2
+            ddf = values.size - len(modelParameters)
+            chi = np.std(values) * values.size / ddf  # TODO: test std**2
         else:
-            raise RuntimeError('fmerit choice not recognized.')
+            raise RuntimeError("fmerit choice not recognized.")
     else:
         # true expression of a gaussian log probability
         mu = mu_sigma[0]
         sigma = mu_sigma[1]
-        ddf = values.size-len(modelParameters)
-        chi = np.sum(np.power(mu-values, 2)/sigma**2)/ddf
+        ddf = values.size - len(modelParameters)
+        chi = np.sum(np.power(mu - values, 2) / sigma**2) / ddf
 
     return chi
 
 
-def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
-                        fwhm, r_guess, theta_guess, cube_ref=None,
-                        svd_mode='lapack', scaling=None, algo=pca_annulus,
-                        delta_rot=1, imlib='vip-fft', interpolation='lanczos4',
-                        collapse='median', algo_options={}, weights=None,
-                        debug=False):
-    """ Extracts a PCA-ed annulus from the cube and returns the flux values of
+def get_values_optimize(
+    cube,
+    angs,
+    ncomp,
+    annulus_width,
+    aperture_radius,
+    fwhm,
+    r_guess,
+    theta_guess,
+    cube_ref=None,
+    svd_mode="lapack",
+    scaling=None,
+    algo=pca_annulus,
+    delta_rot=1,
+    imlib="vip-fft",
+    interpolation="lanczos4",
+    collapse="median",
+    algo_options={},
+    weights=None,
+    debug=False,
+):
+    """Extracts a PCA-ed annulus from the cube and returns the flux values of
     the pixels included in a circular aperture centered at a given position.
 
     Parameters
@@ -274,10 +332,10 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     algo: python routine, opt {pca_annulus, pca_annular, pca, custom}
         Routine to be used to model and subtract the stellar PSF. From an input
@@ -319,92 +377,139 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
     centy_fr, centx_fr = frame_center(cube[0])
     posy = r_guess * np.sin(np.deg2rad(theta_guess)) + centy_fr
     posx = r_guess * np.cos(np.deg2rad(theta_guess)) + centx_fr
-    halfw = max(aperture_radius*fwhm, annulus_width/2)
+    halfw = max(aperture_radius * fwhm, annulus_width / 2)
 
     # Checking annulus/aperture sizes. Assuming square frames
-    msg = 'The annulus and/or the circular aperture used by the NegFC falls '
-    msg += 'outside the FOV. Try increasing the size of your frames or '
-    msg += 'decreasing the annulus or aperture size.'
-    msg += 'rguess: {:.0f}px; centx_fr: {:.0f}px'.format(r_guess, centx_fr)
-    msg += 'halfw: {:.0f}px'.format(halfw)
-    if r_guess > centx_fr-halfw:  # or r_guess <= halfw:
+    msg = "The annulus and/or the circular aperture used by the NegFC falls "
+    msg += "outside the FOV. Try increasing the size of your frames or "
+    msg += "decreasing the annulus or aperture size."
+    msg += "rguess: {:.0f}px; centx_fr: {:.0f}px".format(r_guess, centx_fr)
+    msg += "halfw: {:.0f}px".format(halfw)
+    if r_guess > centx_fr - halfw:  # or r_guess <= halfw:
         raise RuntimeError(msg)
 
-    ncomp = algo_options.get('ncomp', ncomp)
-    svd_mode = algo_options.get('svd_mode', svd_mode)
-    scaling = algo_options.get('scaling', scaling)
-    imlib = algo_options.get('imlib', imlib)
-    interpolation = algo_options.get('interpolation', interpolation)
-    collapse = algo_options.get('collapse', collapse)
-    collapse_ifs = algo_options.get('collapse_ifs', 'absmean')
-    nproc = algo_options.get('nproc', 1)
+    ncomp = algo_options.get("ncomp", ncomp)
+    svd_mode = algo_options.get("svd_mode", svd_mode)
+    scaling = algo_options.get("scaling", scaling)
+    imlib = algo_options.get("imlib", imlib)
+    interpolation = algo_options.get("interpolation", interpolation)
+    collapse = algo_options.get("collapse", collapse)
+    collapse_ifs = algo_options.get("collapse_ifs", "absmean")
+    nproc = algo_options.get("nproc", 1)
 
     if algo == pca_annulus:
-        res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref,
-                          svd_mode, scaling, imlib=imlib,
-                          interpolation=interpolation, collapse=collapse,
-                          collapse_ifs=collapse_ifs, weights=weights,
-                          nproc=nproc)
+        res = pca_annulus(
+            cube,
+            angs,
+            ncomp,
+            annulus_width,
+            r_guess,
+            cube_ref,
+            svd_mode,
+            scaling,
+            imlib=imlib,
+            interpolation=interpolation,
+            collapse=collapse,
+            collapse_ifs=collapse_ifs,
+            weights=weights,
+            nproc=nproc,
+        )
 
     elif algo == pca_annular or algo == nmf_annular:
-
-        tol = algo_options.get('tol', 1e-1)
-        min_frames_lib = algo_options.get('min_frames_lib', 2)
-        max_frames_lib = algo_options.get('max_frames_lib', 200)
-        radius_int = max(1, int(np.floor(r_guess-annulus_width/2)))
-        radius_int = algo_options.get('radius_int', radius_int)
+        tol = algo_options.get("tol", 1e-1)
+        min_frames_lib = algo_options.get("min_frames_lib", 2)
+        max_frames_lib = algo_options.get("max_frames_lib", 200)
+        radius_int = max(1, int(np.floor(r_guess - annulus_width / 2)))
+        radius_int = algo_options.get("radius_int", radius_int)
         # crop cube to just be larger than annulus => FASTER PCA
-        crop_sz = int(2*np.ceil(radius_int+annulus_width+1))
+        crop_sz = int(2 * np.ceil(radius_int + annulus_width + 1))
         if not crop_sz % 2:
             crop_sz += 1
         if crop_sz < cube.shape[-2] and crop_sz < cube.shape[-1]:
-            pad = int((cube.shape[-2]-crop_sz)/2)
+            pad = int((cube.shape[-2] - crop_sz) / 2)
             crop_cube = cube_crop_frames(cube, crop_sz, verbose=False)
         else:
             crop_cube = cube
             pad = 0
         if algo == pca_annular:
-            res_tmp = algo(crop_cube, angs, radius_int=radius_int, fwhm=fwhm,
-                           asize=annulus_width, delta_rot=delta_rot,
-                           ncomp=ncomp, svd_mode=svd_mode, scaling=scaling,
-                           imlib=imlib, interpolation=interpolation,
-                           collapse=collapse, collapse_ifs=collapse_ifs,
-                           weights=weights, tol=tol, nproc=nproc,
-                           min_frames_lib=min_frames_lib,
-                           max_frames_lib=max_frames_lib, full_output=False,
-                           verbose=False)
+            res_tmp = algo(
+                cube=crop_cube,
+                angle_list=angs,
+                radius_int=radius_int,
+                fwhm=fwhm,
+                asize=annulus_width,
+                delta_rot=delta_rot,
+                ncomp=ncomp,
+                svd_mode=svd_mode,
+                scaling=scaling,
+                imlib=imlib,
+                interpolation=interpolation,
+                collapse=collapse,
+                collapse_ifs=collapse_ifs,
+                weights=weights,
+                tol=tol,
+                nproc=nproc,
+                min_frames_lib=min_frames_lib,
+                max_frames_lib=max_frames_lib,
+                full_output=False,
+                verbose=False,
+            )
         else:
-            res_tmp = algo(crop_cube, angs, radius_int=radius_int, fwhm=fwhm,
-                           asize=annulus_width, delta_rot=delta_rot,
-                           ncomp=ncomp, scaling=scaling, imlib=imlib,
-                           interpolation=interpolation, collapse=collapse,
-                           weights=weights, nproc=nproc,
-                           min_frames_lib=min_frames_lib,
-                           max_frames_lib=max_frames_lib, full_output=False,
-                           verbose=False)
+            res_tmp = algo(
+                cube=crop_cube,
+                angle_list=angs,
+                radius_int=radius_int,
+                fwhm=fwhm,
+                asize=annulus_width,
+                delta_rot=delta_rot,
+                ncomp=ncomp,
+                scaling=scaling,
+                imlib=imlib,
+                interpolation=interpolation,
+                collapse=collapse,
+                weights=weights,
+                nproc=nproc,
+                min_frames_lib=min_frames_lib,
+                max_frames_lib=max_frames_lib,
+                full_output=False,
+                verbose=False,
+            )
         # pad again now
-        res = np.pad(res_tmp, pad, mode='constant', constant_values=0)
+        res = np.pad(res_tmp, pad, mode="constant", constant_values=0)
 
     elif algo == pca:
-        scale_list = algo_options.get('scale_list', None)
-        ifs_collapse_range = algo_options.get('ifs_collapse_range', 'all')
-        res = pca(cube, angs, cube_ref, scale_list, ncomp, svd_mode=svd_mode,
-                  scaling=scaling, imlib=imlib, interpolation=interpolation,
-                  collapse=collapse, collapse_ifs=collapse_ifs,
-                  ifs_collapse_range=ifs_collapse_range, nproc=nproc,
-                  weights=weights, verbose=False)
+        scale_list = algo_options.get("scale_list", None)
+        ifs_collapse_range = algo_options.get("ifs_collapse_range", "all")
+        res = pca(
+            cube=cube,
+            angle_list=angs,
+            cube_ref=cube_ref,
+            scale_list=scale_list,
+            ncomp=ncomp,
+            svd_mode=svd_mode,
+            scaling=scaling,
+            imlib=imlib,
+            interpolation=interpolation,
+            collapse=collapse,
+            collapse_ifs=collapse_ifs,
+            ifs_collapse_range=ifs_collapse_range,
+            nproc=nproc,
+            weights=weights,
+            verbose=False,
+        )
     else:
-        res = algo(cube, angs, **algo_options)
+        res = algo(cube=cube, angle_list=angs, **algo_options)
 
-    indices = disk((posy, posx), radius=aperture_radius*fwhm)
+    indices = disk((posy, posx), radius=aperture_radius * fwhm)
     yy, xx = indices
 
     # also consider indices of the annulus for pca_annulus
     if algo == pca_annulus:
         fr_size = res.shape[-1]
-        inner_rad = r_guess-annulus_width/2
-        yy_a, xx_a = get_annulus_segments((fr_size, fr_size), inner_rad,
-                                          annulus_width, nsegm=1)[0]
+        inner_rad = r_guess - annulus_width / 2
+        yy_a, xx_a = get_annulus_segments(
+            (fr_size, fr_size), inner_rad, annulus_width, nsegm=1
+        )[0]
         # only consider overlapping indices
         yy_f = []
         xx_f = []
@@ -428,12 +533,28 @@ def get_values_optimize(cube, angs, ncomp, annulus_width, aperture_radius,
         return values
 
 
-def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
-                     r_guess, theta_guess, cube_ref=None, wedge=None,
-                     svd_mode='lapack', scaling=None, algo=pca_annulus,
-                     delta_rot=1, imlib='vip-fft', interpolation='lanczos4',
-                     collapse='median', weights=None, algo_options={}):
-    """ Extracts the mean and standard deviation of pixel intensities in an
+def get_mu_and_sigma(
+    cube,
+    angs,
+    ncomp,
+    annulus_width,
+    aperture_radius,
+    fwhm,
+    r_guess,
+    theta_guess,
+    cube_ref=None,
+    wedge=None,
+    svd_mode="lapack",
+    scaling=None,
+    algo=pca_annulus,
+    delta_rot=1,
+    imlib="vip-fft",
+    interpolation="lanczos4",
+    collapse="median",
+    weights=None,
+    algo_options={},
+):
+    """Extracts the mean and standard deviation of pixel intensities in an
     annulus of the PCA-ADI image obtained with 'algo', in the part of a defined
     wedge that is not overlapping with PA_pl+-delta_PA.
 
@@ -486,10 +607,10 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     algo: python routine, opt {pca_annulus, pca_annular, pca, custom}
         Routine to be used to model and subtract the stellar PSF. From an input
@@ -524,141 +645,199 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
 
     """
     centy_fr, centx_fr = frame_center(cube[0])
-    halfw = max(aperture_radius*fwhm, annulus_width/2)
+    halfw = max(aperture_radius * fwhm, annulus_width / 2)
 
     # Checking annulus/aperture sizes. Assuming square frames
-    msg = 'The annulus and/or the circular aperture used by the NegFC falls '
-    msg += 'outside the FOV. Try increasing the size of your frames or '
-    msg += 'decreasing the annulus or aperture size.'
-    msg += 'rguess: {:.0f}px; centx_fr: {:.0f}px'.format(r_guess, centx_fr)
-    msg += 'halfw: {:.0f}px'.format(halfw)
-    if r_guess > centx_fr-halfw:  # or r_guess <= halfw:
+    msg = "The annulus and/or the circular aperture used by the NegFC falls "
+    msg += "outside the FOV. Try increasing the size of your frames or "
+    msg += "decreasing the annulus or aperture size."
+    msg += "rguess: {:.0f}px; centx_fr: {:.0f}px".format(r_guess, centx_fr)
+    msg += "halfw: {:.0f}px".format(halfw)
+    if r_guess > centx_fr - halfw:  # or r_guess <= halfw:
         raise RuntimeError(msg)
 
-    ncomp = algo_options.get('ncomp', ncomp)
-    svd_mode = algo_options.get('svd_mode', svd_mode)
-    scaling = algo_options.get('scaling', scaling)
-    imlib = algo_options.get('imlib', imlib)
-    interpolation = algo_options.get('interpolation', interpolation)
-    collapse = algo_options.get('collapse', collapse)
+    ncomp = algo_options.get("ncomp", ncomp)
+    svd_mode = algo_options.get("svd_mode", svd_mode)
+    scaling = algo_options.get("scaling", scaling)
+    imlib = algo_options.get("imlib", imlib)
+    interpolation = algo_options.get("interpolation", interpolation)
+    collapse = algo_options.get("collapse", collapse)
 
-    radius_int = max(1, int(np.floor(r_guess-annulus_width/2)))
-    radius_int = algo_options.get('radius_int', radius_int)
+    radius_int = max(1, int(np.floor(r_guess - annulus_width / 2)))
+    radius_int = algo_options.get("radius_int", radius_int)
 
     # not recommended, except if large-scale residual sky present (NIRC2-L')
-    hp_filter = algo_options.get('hp_filter', None)
-    hp_kernel = algo_options.get('hp_kernel', None)
+    hp_filter = algo_options.get("hp_filter", None)
+    hp_kernel = algo_options.get("hp_kernel", None)
     if hp_filter is not None:
-        if 'median' in hp_filter:
-            cube = cube_filter_highpass(cube, mode=hp_filter,
-                                        median_size=hp_kernel)
+        if "median" in hp_filter:
+            cube = cube_filter_highpass(cube, mode=hp_filter, median_size=hp_kernel)
         elif "gauss" in hp_filter:
-            cube = cube_filter_highpass(cube, mode=hp_filter,
-                                        fwhm_size=hp_kernel)
+            cube = cube_filter_highpass(cube, mode=hp_filter, fwhm_size=hp_kernel)
         else:
-            cube = cube_filter_highpass(cube, mode=hp_filter,
-                                        kernel_size=hp_kernel)
+            cube = cube_filter_highpass(cube, mode=hp_filter, kernel_size=hp_kernel)
 
     if algo == pca_annulus:
-        pca_res = pca_annulus(cube, angs, ncomp, annulus_width, r_guess,
-                              cube_ref, svd_mode, scaling, imlib=imlib,
-                              interpolation=interpolation, collapse=collapse,
-                              weights=weights)
-        pca_res_inv = pca_annulus(cube, -angs, ncomp, annulus_width, r_guess,
-                                  cube_ref, svd_mode, scaling, imlib=imlib,
-                                  interpolation=interpolation, collapse=collapse,
-                                  weights=weights)
+        pca_res = pca_annulus(
+            cube,
+            angs,
+            ncomp,
+            annulus_width,
+            r_guess,
+            cube_ref,
+            svd_mode,
+            scaling,
+            imlib=imlib,
+            interpolation=interpolation,
+            collapse=collapse,
+            weights=weights,
+        )
+        pca_res_inv = pca_annulus(
+            cube,
+            -angs,
+            ncomp,
+            annulus_width,
+            r_guess,
+            cube_ref,
+            svd_mode,
+            scaling,
+            imlib=imlib,
+            interpolation=interpolation,
+            collapse=collapse,
+            weights=weights,
+        )
 
     elif algo == pca_annular:
-        tol = algo_options.get('tol', 1e-1)
-        min_frames_lib = algo_options.get('min_frames_lib', 2)
-        max_frames_lib = algo_options.get('max_frames_lib', 200)
-        nproc = algo_options.get('nproc', 1)
+        tol = algo_options.get("tol", 1e-1)
+        min_frames_lib = algo_options.get("min_frames_lib", 2)
+        max_frames_lib = algo_options.get("max_frames_lib", 200)
+        nproc = algo_options.get("nproc", 1)
         # crop cube to just be larger than annulus => FASTER PCA
-        crop_sz = int(2*np.ceil(radius_int+annulus_width+1))
+        crop_sz = int(2 * np.ceil(radius_int + annulus_width + 1))
         if not crop_sz % 2:
             crop_sz += 1
         if crop_sz < cube.shape[1] and crop_sz < cube.shape[2]:
-            pad = int((cube.shape[1]-crop_sz)/2)
+            pad = int((cube.shape[1] - crop_sz) / 2)
             crop_cube = cube_crop_frames(cube, crop_sz, verbose=False)
         else:
             pad = 0
             crop_cube = cube
 
-        pca_res_tmp = pca_annular(crop_cube, angs, radius_int=radius_int,
-                                  fwhm=fwhm, asize=annulus_width,
-                                  delta_rot=delta_rot, ncomp=ncomp,
-                                  svd_mode=svd_mode, scaling=scaling,
-                                  imlib=imlib, interpolation=interpolation,
-                                  collapse=collapse, tol=tol, nproc=nproc,
-                                  min_frames_lib=min_frames_lib,
-                                  max_frames_lib=max_frames_lib,
-                                  full_output=False, verbose=False,
-                                  weights=weights)
-        pca_res_tinv = pca_annular(crop_cube, -angs, radius_int=radius_int,
-                                   fwhm=fwhm, asize=annulus_width,
-                                   delta_rot=delta_rot, ncomp=ncomp,
-                                   svd_mode=svd_mode, scaling=scaling,
-                                   imlib=imlib, interpolation=interpolation,
-                                   collapse=collapse, tol=tol, nproc=nproc,
-                                   min_frames_lib=min_frames_lib,
-                                   max_frames_lib=max_frames_lib,
-                                   full_output=False, verbose=False,
-                                   weights=weights)
+        pca_res_tmp = pca_annular(
+            cube=crop_cube,
+            angle_list=angs,
+            radius_int=radius_int,
+            fwhm=fwhm,
+            asize=annulus_width,
+            delta_rot=delta_rot,
+            ncomp=ncomp,
+            svd_mode=svd_mode,
+            scaling=scaling,
+            imlib=imlib,
+            interpolation=interpolation,
+            collapse=collapse,
+            tol=tol,
+            nproc=nproc,
+            min_frames_lib=min_frames_lib,
+            max_frames_lib=max_frames_lib,
+            full_output=False,
+            verbose=False,
+            weights=weights,
+        )
+        pca_res_tinv = pca_annular(
+            cube=crop_cube,
+            angle_list=-angs,
+            radius_int=radius_int,
+            fwhm=fwhm,
+            asize=annulus_width,
+            delta_rot=delta_rot,
+            ncomp=ncomp,
+            svd_mode=svd_mode,
+            scaling=scaling,
+            imlib=imlib,
+            interpolation=interpolation,
+            collapse=collapse,
+            tol=tol,
+            nproc=nproc,
+            min_frames_lib=min_frames_lib,
+            max_frames_lib=max_frames_lib,
+            full_output=False,
+            verbose=False,
+            weights=weights,
+        )
         # pad again now
-        pca_res = np.pad(pca_res_tmp, pad, mode='constant', constant_values=0)
-        pca_res_inv = np.pad(pca_res_tinv, pad, mode='constant',
-                             constant_values=0)
+        pca_res = np.pad(pca_res_tmp, pad, mode="constant", constant_values=0)
+        pca_res_inv = np.pad(pca_res_tinv, pad, mode="constant", constant_values=0)
 
     elif algo == pca:
-        scale_list = algo_options.get('scale_list', None)
-        ifs_collapse_range = algo_options.get('ifs_collapse_range', 'all')
-        nproc = algo_options.get('nproc', 1)
+        scale_list = algo_options.get("scale_list", None)
+        ifs_collapse_range = algo_options.get("ifs_collapse_range", "all")
+        nproc = algo_options.get("nproc", 1)
 
-        pca_res = pca(cube, angs, cube_ref, scale_list, ncomp,
-                      svd_mode=svd_mode, scaling=scaling, imlib=imlib,
-                      interpolation=interpolation, collapse=collapse,
-                      ifs_collapse_range=ifs_collapse_range, nproc=nproc,
-                      weights=weights, verbose=False)
-        pca_res_inv = pca(cube, -angs, cube_ref, scale_list, ncomp,
-                          svd_mode=svd_mode, scaling=scaling, imlib=imlib,
-                          interpolation=interpolation, collapse=collapse,
-                          ifs_collapse_range=ifs_collapse_range, nproc=nproc,
-                          weights=weights, verbose=False)
+        pca_res = pca(
+            cube=cube,
+            angle_list=angs,
+            cube_ref=cube_ref,
+            scale_list=scale_list,
+            ncomp=ncomp,
+            svd_mode=svd_mode,
+            scaling=scaling,
+            imlib=imlib,
+            interpolation=interpolation,
+            collapse=collapse,
+            ifs_collapse_range=ifs_collapse_range,
+            nproc=nproc,
+            weights=weights,
+            verbose=False,
+        )
+        pca_res_inv = pca(
+            cube=cube,
+            angle_list=-angs,
+            cube_ref=cube_ref,
+            scale_list=scale_list,
+            ncomp=ncomp,
+            svd_mode=svd_mode,
+            scaling=scaling,
+            imlib=imlib,
+            interpolation=interpolation,
+            collapse=collapse,
+            ifs_collapse_range=ifs_collapse_range,
+            nproc=nproc,
+            weights=weights,
+            verbose=False,
+        )
 
     else:
         algo_args = algo_options
-        pca_res = algo(cube, angs, **algo_args)
-        pca_res_inv = algo(cube, -angs, **algo_args)
+        pca_res = algo(cube=cube, angle_list=angs, **algo_args)
+        pca_res_inv = algo(cube=cube, angle_list=-angs, **algo_args)
 
     if wedge is None:
-        delta_theta = np.amax(angs)-np.amin(angs)
+        delta_theta = np.amax(angs) - np.amin(angs)
         if delta_theta > 120:
             delta_theta = 120  # if too much rotation, be less conservative
 
-        theta_ini = (theta_guess+delta_theta) % 360
-        theta_fin = theta_ini+(360-2*delta_theta)
+        theta_ini = (theta_guess + delta_theta) % 360
+        theta_fin = theta_ini + (360 - 2 * delta_theta)
         wedge = (theta_ini, theta_fin)
     elif len(wedge) == 2:
         if wedge[0] > wedge[1]:
-            msg = '2nd value of wedge smaller than first one => 360 was added'
+            msg = "2nd value of wedge smaller than first one => 360 was added"
             print(msg)
-            wedge = (wedge[0], wedge[1]+360)
+            wedge = (wedge[0], wedge[1] + 360)
     else:
         raise TypeError("Wedge should have exactly 2 values")
 
-    indices = get_annular_wedge(pca_res, radius_int, 2*fwhm,
-                                wedge=wedge)
+    indices = get_annular_wedge(pca_res, radius_int, 2 * fwhm, wedge=wedge)
     yy, xx = indices
-    indices_inv = get_annular_wedge(pca_res_inv, radius_int, 2*fwhm,
-                                    wedge=wedge)
+    indices_inv = get_annular_wedge(pca_res_inv, radius_int, 2 * fwhm, wedge=wedge)
     yyi, xxi = indices_inv
     all_res = np.concatenate((pca_res[yy, xx], pca_res_inv[yyi, xxi]))
     mu = np.mean(all_res)
     all_res -= mu
-    npx = len(yy)+len(yyi)
-    area = np.pi*(fwhm/2)**2
-    ddof = min(int(npx*(1.-(1./area)))+1, npx-1)
+    npx = len(yy) + len(yyi)
+    area = np.pi * (fwhm / 2) ** 2
+    ddof = min(int(npx * (1.0 - (1.0 / area))) + 1, npx - 1)
     sigma = np.std(all_res, ddof=ddof)
 
     return mu, sigma

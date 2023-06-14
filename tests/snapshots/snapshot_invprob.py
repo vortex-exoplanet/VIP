@@ -9,14 +9,29 @@ import copy
 import numpy as np
 from vip_hci.invprob import fmmf, andromeda
 from vip_hci.metrics import detection
-from astropy.utils.data import download_file
 from vip_hci.fits import open_fits
 from vip_hci.objects import Dataset
 from vip_hci.config import VLT_NACO
-from tests.helpers import download_resource
+
+from requests.exceptions import ReadTimeout
+from ratelimit import limits, sleep_and_retry
+from astropy.utils.data import download_file
 
 INVADI_PATH = "./tests/snapshots/invprob_adi/"
 DATASET_ELEMENTS = ["cube", "angles", "psf"]
+
+
+@sleep_and_retry
+@limits(calls=1, period=1)
+def download_resource(url):
+    attempts = 5
+    while attempts > 0:
+        try:
+            return download_file(url, cache=True)
+        except ReadTimeout:
+            attempts -= 1
+
+    raise TimeoutError("Resource could not be accessed due to too many timeouts.")
 
 
 def make_dataset_adi():
@@ -115,7 +130,7 @@ def save_snapshots_invprob_adi():
 
     andro_adi, _, andro_snr_adi, _, _, _, _ = andromeda(
         cube=cube,
-        angles=angles,
+        angle_list=angles,
         psf=psf,
         oversampling_fact=oversamp_fac,
         filtering_fraction=0.25,
@@ -141,7 +156,7 @@ def save_snapshots_invprob_adi():
 
     androl1_adi, _, androl1_snr_adi, _, _, _, _ = andromeda(
         cube=cube,
-        angles=angles,
+        angle_list=angles,
         psf=psf,
         oversampling_fact=oversamp_fac,
         filtering_fraction=0.25,
@@ -167,7 +182,7 @@ def save_snapshots_invprob_adi():
 
     fmmf_kl_adi, fmmf_kl_snr_adi = fmmf(
         cube=cube,
-        pa=angles,
+        angle_list=angles,
         fwhm=fwhm,
         psf=psf,
         model="KLIP",
@@ -184,7 +199,7 @@ def save_snapshots_invprob_adi():
 
     fmmf_lo_adi, fmmf_lo_snr_adi = fmmf(
         cube=cube,
-        pa=angles,
+        angle_list=angles,
         fwhm=fwhm,
         psf=psf,
         model="LOCI",

@@ -1,30 +1,33 @@
 #! /usr/bin/env python
-
 """
 Module with a frame differencing algorithm for ADI and ADI+mSDI post-processing.
-     
+
 .. [PUE12]
    | Pueyo et al. 2012
    | **Application of a Damped Locally Optimized Combination of Images Method to
-     the Spectral Characterization of Faint Companions Using an Integral Field 
+     the Spectral Characterization of Faint Companions Using an Integral Field
      Spectrograph**
    | *The Astrophysical Journal Supplements, Volume 199, p. 6*
    | `https://arxiv.org/abs/1111.6102
      <https://arxiv.org/abs/1111.6102>`_
-          
+
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['xloci']
+__author__ = "Carlos Alberto Gomez Gonzalez, Thomas Bédrine"
+__all__ = ["xloci", "LOCIParams"]
 
 import numpy as np
 import scipy as sp
 import pandas as pn
 from multiprocessing import cpu_count
 from sklearn.metrics import pairwise_distances
+from dataclasses import dataclass
+from strenum import LowercaseStrEnum as LowEnum
+from typing import Tuple, Union
 from ..var import get_annulus_segments
-from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
-                       check_scal_vector)
+from ..var.object_utils import setup_parameters, separate_kwargs_dict
+from ..var.paramenum import Metric, Adimsdi, Imlib, Interpolation, Collapse, Solver
+from ..preproc import cube_derotate, cube_collapse, check_pa_vector, check_scal_vector
 from ..preproc.rescaling import _find_indices_sdi
 from ..config import time_ini, timing
 from ..preproc import cube_rescaling_wavelengths as scwave
@@ -32,19 +35,10 @@ from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..config.utils_conf import pool_map, iterable, Progressbar
 
 
-def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
-          dist_threshold=100, delta_rot=(0.1, 1), delta_sep=(0.1, 1),
-          radius_int=0, asize=4, n_segments=4, nproc=1, solver='lstsq',
-          tol=1e-2, optim_scale_fact=2, adimsdi='skipadi', imlib='vip-fft',
-          interpolation='lanczos4', collapse='median', verbose=True,
-          full_output=False, **rot_options):
-    """ Locally Optimized Combination of Images (LOCI) algorithm as in [LAF07]_.
-    The PSF is modeled (for ADI and ADI+mSDI) with a least-square combination 
-    of neighbouring frames (solving the equation a x = b by computing a vector 
-    x of coefficients that minimizes the Euclidean 2-norm || b - a x ||^2).
-    
-    This algorithm is also compatible with IFS data to perform LOCI-SDI, in a
-    similar fashion as suggested in [PUE12]_ (albeit without dampening zones).
+@dataclass
+class LOCIParams:
+    """
+    Set of parameters for the LOCI algorithm.
 
     Parameters
     ----------
@@ -61,7 +55,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
         e.g. with ``vip_hci.preproc.find_scal_vector``).
     fwhm : float, optional
         Size of the FHWM in pixels. Default is 4.
-    metric : str, optional
+    metric : LowerCaseStrEnum, see `vip_hci.var.paramenum.Metric`
         Distance metric to be used ('cityblock', 'cosine', 'euclidean', 'l1',
         'l2', 'manhattan', 'correlation', etc). It uses the scikit-learn
         function ``sklearn.metrics.pairwise.pairwise_distances`` (check its
@@ -93,7 +87,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
         Number of processes for parallel computing. If None the number of
         processes will be set to cpu_count()/2. By default the algorithm works
         in single-process mode.
-    solver : {'lstsq', 'nnls'}, str optional
+    solver : LowerCaseStrEnum, see `vip_hci.var.paramenum.Solver`
         Choosing the solver of the least squares problem. ``lstsq`` uses the
         standard scipy least squares solver. ``nnls`` uses the scipy
         non-negative least-squares solver.
@@ -108,7 +102,7 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
         similar to LOCI. The optimization segments share the same inner radius,
         mean angular position and angular width as their corresponding
         subtraction segments.
-    adimsdi : {'skipadi', 'double'}, str optional
+    adimsdi : LowerCaseStrEnum, see `vip_hci.var.paramenum.Adimsdi`
         Changes the way the 4d cubes (ADI+mSDI) are processed.
 
         ``skipadi``: the multi-spectral frames are rescaled wrt the largest
@@ -119,19 +113,58 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
         (as in the ``skipadi`` case). Then the residuals are processed again in
         an ADI fashion.
 
-    imlib : str, optional
+    imlib : LowerCaseStrEnum, see `vip_hci.var.paramenum.Imlib`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
+    interpolation : LowerCaseStrEnum, see `vip_hci.var.paramenum.Interpolation`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
+    collapse : LowerCaseStrEnum, see `vip_hci.var.paramenum.Collapse`
         Sets the way of collapsing the frames for producing a final image.
     verbose: bool, optional
         If True prints info to stdout.
     full_output: bool, optional
         Whether to return the final median combined image only or with other
         intermediate arrays.
-    rot_options: dictionary, optional
-        Dictionary with optional keyword values for "border_mode", "mask_val",
+    """
+
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
+    scale_list: np.ndarray = None
+    fwhm: float = 4
+    metric: LowEnum = Metric.MANHATTAN
+    dist_threshold: int = 100
+    delta_rot: Union[float, Tuple[float]] = (0.1, 1)
+    delta_sep: Union[float, Tuple[float]] = (0.1, 1)
+    radius_int: int = 0
+    asize: int = 4
+    n_segments: int = 4
+    nproc: int = 1
+    solver: LowEnum = Solver.LSTSQ
+    tol: float = 1e-2
+    optim_scale_fact: float = 2
+    adimsdi: LowEnum = Adimsdi.SKIPADI
+    imlib: LowEnum = Imlib.VIPFFT
+    interpolation: LowEnum = Interpolation.LANCZOS4
+    collapse: LowEnum = Collapse.MEDIAN
+    verbose: bool = True
+    full_output: bool = False
+
+
+def xloci(algo_params: LOCIParams = None, **all_kwargs):
+    """Locally Optimized Combination of Images (LOCI) algorithm as in [LAF07]_.
+    The PSF is modeled (for ADI and ADI+mSDI) with a least-square combination
+    of neighbouring frames (solving the equation a x = b by computing a vector
+    x of coefficients that minimizes the Euclidean 2-norm || b - a x ||^2).
+
+    This algorithm is also compatible with IFS data to perform LOCI-SDI, in a
+    similar fashion as suggested in [PUE12]_ (albeit without dampening zones).
+
+    Parameters
+    ----------
+    algo_params: LOCIParams
+        Dataclass retaining all the needed parameters for LOCI.
+    all_kwargs: dictionary, optional
+        Mix of the parameters that can initialize an algo_params and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
 
@@ -144,23 +177,29 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
     cube_res, cube_der, frame_der_median
 
     """
-    global ARRAY
-    ARRAY = cube
+    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    class_params, rot_options = separate_kwargs_dict(
+        initial_kwargs=all_kwargs, parent_class=LOCIParams
+    )
+    if algo_params is None:
+        algo_params = LOCIParams(**class_params)
 
-    if verbose:
+    global ARRAY
+    ARRAY = algo_params.cube
+
+    if algo_params.verbose:
         start_time = time_ini()
 
     # ADI datacube
-    if cube.ndim == 3:
-        res = _leastsq_adi(cube, angle_list, fwhm, metric, dist_threshold,
-                           delta_rot, radius_int, asize, n_segments, nproc,
-                           solver, tol, optim_scale_fact, imlib,
-                           interpolation, collapse, verbose, full_output)
+    if algo_params.cube.ndim == 3:
+        func_params = setup_parameters(params_obj=algo_params, fkt=_leastsq_adi)
 
-        if verbose:
+        res = _leastsq_adi(**func_params)
+
+        if algo_params.verbose:
             timing(start_time)
 
-        if full_output:
+        if algo_params.full_output:
             cube_res, cube_der, frame = res
             return cube_res, cube_der, frame
         else:
@@ -168,107 +207,140 @@ def xloci(cube, angle_list, scale_list=None, fwhm=4, metric='manhattan',
             return frame
 
     # ADI+mSDI (IFS) datacubes
-    elif cube.ndim == 4:
-        z, n, y_in, x_in = cube.shape
-        fwhm = int(np.round(np.mean(fwhm)))
-        n_annuli = int((y_in / 2 - radius_int) / asize)
+    elif algo_params.cube.ndim == 4:
+        z, n, y_in, x_in = algo_params.cube.shape
+        algo_params.fwhm = int(np.round(np.mean(algo_params.fwhm)))
+        n_annuli = int((y_in / 2 - algo_params.radius_int) / algo_params.asize)
 
         # Processing separately each wavelength in ADI fashion
-        if adimsdi == 'skipsdi':
-            if verbose:
-                print('ADI lst-sq modeling for each wavelength individually')
-                print('{} frames per wavelength'.format(n))
+        if algo_params.adimsdi == Adimsdi.SKIPADI:
+            if algo_params.verbose:
+                print("ADI lst-sq modeling for each wavelength individually")
+                print("{} frames per wavelength".format(n))
 
             cube_res = np.zeros((z, y_in, x_in))
             for z in Progressbar(range(z)):
-                ARRAY = cube[z]
-                res = _leastsq_adi(cube[z], angle_list, fwhm, metric,
-                                   dist_threshold, delta_rot, radius_int, asize,
-                                   n_segments, nproc, solver, tol,
-                                   optim_scale_fact, imlib, interpolation,
-                                   collapse, verbose=False, full_output=False)
+                ARRAY = algo_params.cube[z]
+
+                add_params = {
+                    "cube": algo_params.cube[z],
+                    "verbose": False,
+                    "full_output": False,
+                }
+                func_params = setup_parameters(
+                    params_obj=algo_params, fkt=_leastsq_adi, **add_params
+                )
+
+                res = _leastsq_adi(**func_params)
                 cube_res[z] = res
 
-            frame = cube_collapse(cube_res, collapse)
-            if verbose:
-                print('Done combining the residuals')
+            frame = cube_collapse(cube_res, algo_params.collapse)
+            if algo_params.verbose:
+                print("Done combining the residuals")
                 timing(start_time)
 
-            if full_output:
+            if algo_params.full_output:
                 return cube_res, frame
             else:
                 return frame
 
         else:
-            if scale_list is None:
-                raise ValueError('Scaling factors vector must be provided')
+            if algo_params.scale_list is None:
+                raise ValueError("Scaling factors vector must be provided")
             else:
-                if np.array(scale_list).ndim > 1:
-                    raise ValueError('Scaling factors vector is not 1d')
-                if not scale_list.shape[0] == z:
-                    raise ValueError('Scaling factors vector has wrong length')
+                if np.array(algo_params.scale_list).ndim > 1:
+                    raise ValueError("Scaling factors vector is not 1d")
+                if not algo_params.scale_list.shape[0] == z:
+                    raise ValueError("Scaling factors vector has wrong length")
 
-            if verbose:
-                print('SDI lst-sq modeling exploiting the spectral variability')
-                print('{} spectral channels per IFS frame'.format(z))
-                print('N annuli = {}, mean FWHM = '
-                      '{:.3f}'.format(n_annuli, fwhm))
-            res = pool_map(nproc, _leastsq_sdi_fr, iterable(range(n)),
-                           scale_list, radius_int, fwhm, asize, n_segments,
-                           delta_sep, tol, optim_scale_fact, metric,
-                           dist_threshold, solver, imlib, interpolation,
-                           collapse)
+            if algo_params.verbose:
+                print("SDI lst-sq modeling exploiting the spectral variability")
+                print("{} spectral channels per IFS frame".format(z))
+                print(
+                    "N annuli = {}, mean FWHM = "
+                    "{:.3f}".format(n_annuli, algo_params.fwhm)
+                )
+
+            add_params = {"fr": iterable(range(n)), "scal": algo_params.scale_list}
+            func_params = setup_parameters(
+                params_obj=algo_params, fkt=_leastsq_sdi_fr, as_list=True, **add_params
+            )
+            res = pool_map(
+                algo_params.nproc,
+                _leastsq_sdi_fr,
+                *func_params,
+            )
             cube_out = np.array(res)
 
             # Choosing not to exploit the rotational variability
-            if adimsdi == 'skipadi':
-                if verbose:
-                    print('Skipping the ADI least-squares subtraction')
-                    print('{} ADI frames'.format(n))
+            if algo_params.adimsdi == Adimsdi.SKIPADI:
+                if algo_params.verbose:
+                    print("Skipping the ADI least-squares subtraction")
+                    print("{} ADI frames".format(n))
                     timing(start_time)
 
-                cube_der = cube_derotate(cube_out, angle_list, imlib=imlib,
-                                         interpolation=interpolation,
-                                         nproc=nproc, **rot_options)
-                frame = cube_collapse(cube_der, mode=collapse)
+                cube_der = cube_derotate(
+                    cube_out,
+                    algo_params.angle_list,
+                    imlib=algo_params.imlib,
+                    interpolation=algo_params.interpolation,
+                    nproc=algo_params.nproc,
+                    **rot_options,
+                )
+                frame = cube_collapse(cube_der, mode=algo_params.collapse)
 
             # Exploiting rotational variability
-            elif adimsdi == 'double':
-                if verbose:
-                    print('ADI lst-sq modeling exploiting the angular '
-                          'variability')
-                    print('{} ADI frames'.format(n))
+            elif algo_params.adimsdi == Adimsdi.DOUBLE:
+                if algo_params.verbose:
+                    print("ADI lst-sq modeling exploiting the angular variability")
+                    print("{} ADI frames".format(n))
                     timing(start_time)
 
                 ARRAY = cube_out
-                res = _leastsq_adi(cube_out, angle_list, fwhm, metric,
-                                   dist_threshold, delta_rot, radius_int, asize,
-                                   n_segments, nproc, solver, tol,
-                                   optim_scale_fact, imlib, interpolation,
-                                   collapse, verbose, full_output,
-                                   **rot_options)
-                if full_output:
+                add_params = {"cube": cube_out}
+                func_params = setup_parameters(
+                    params_obj=algo_params, fkt=_leastsq_adi, **add_params
+                )
+                res = _leastsq_adi(
+                    **func_params,
+                    **rot_options,
+                )
+                if algo_params.full_output:
                     cube_out, cube_der, frame = res
                 else:
                     frame = res
 
-            if verbose:
+            if algo_params.verbose:
                 timing(start_time)
 
-            if full_output:
+            if algo_params.full_output:
                 return cube_out, cube_der, frame
             else:
                 return frame
 
 
-def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
-                 dist_threshold=50, delta_rot=0.5, radius_int=0, asize=4,
-                 n_segments=4, nproc=1, solver='lstsq', tol=1e-2,
-                 optim_scale_fact=1, imlib='vip-fft', interpolation='lanczos4',
-                 collapse='median', verbose=True, full_output=False,
-                 **rot_options):
-    """ Least-squares model PSF subtraction for ADI.
-    """
+def _leastsq_adi(
+    cube,
+    angle_list,
+    fwhm=4,
+    metric="manhattan",
+    dist_threshold=50,
+    delta_rot=0.5,
+    radius_int=0,
+    asize=4,
+    n_segments=4,
+    nproc=1,
+    solver="lstsq",
+    tol=1e-2,
+    optim_scale_fact=1,
+    imlib="vip-fft",
+    interpolation="lanczos4",
+    collapse="median",
+    verbose=True,
+    full_output=False,
+    **rot_options
+):
+    """Least-squares model PSF subtraction for ADI."""
     y = cube.shape[1]
     if not asize < y // 2:
         raise ValueError("asize is too large")
@@ -284,20 +356,20 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
         delta_rot = [delta_rot] * n_annuli
 
     if nproc is None:
-        nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
+        nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
 
     annulus_width = asize
     if isinstance(n_segments, int):
-        n_segments = [n_segments]*n_annuli
-    elif n_segments == 'auto':
+        n_segments = [n_segments] * n_annuli
+    elif n_segments == "auto":
         n_segments = list()
-        n_segments.append(2)    # for first annulus
-        n_segments.append(3)    # for second annulus
-        ld = 2 * np.tan(360/4/2) * annulus_width
-        for i in range(2, n_annuli):    # rest of annuli
+        n_segments.append(2)  # for first annulus
+        n_segments.append(3)  # for second annulus
+        ld = 2 * np.tan(360 / 4 / 2) * annulus_width
+        for i in range(2, n_annuli):  # rest of annuli
             radius = i * annulus_width
             ang = np.rad2deg(2 * np.arctan(ld / (2 * radius)))
-            n_segments.append(int(np.ceil(360/ang)))
+            n_segments.append(int(np.ceil(360 / ang)))
 
     # annulus-wise least-squares combination and subtraction
     cube_res = np.zeros_like(cube)
@@ -307,44 +379,75 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
 
     for ann in range(n_annuli):
         n_segments_ann = n_segments[ann]
-        inner_radius_ann = radius_int + ann*annulus_width
+        inner_radius_ann = radius_int + ann * annulus_width
 
         # angles
-        pa_threshold = _define_annuli(angle_list, ann, n_annuli, fwhm,
-                                      radius_int, asize, delta_rot[ann],
-                                      n_segments_ann, verbose)[0]
+        pa_threshold = _define_annuli(
+            angle_list,
+            ann,
+            n_annuli,
+            fwhm,
+            radius_int,
+            asize,
+            delta_rot[ann],
+            n_segments_ann,
+            verbose,
+        )[0]
 
         # indices
-        indices = get_annulus_segments(cube[0], inner_radius=inner_radius_ann,
-                                       width=asize, nsegm=n_segments_ann)
-        ind_opt = get_annulus_segments(cube[0], inner_radius=inner_radius_ann,
-                                       width=asize, nsegm=n_segments_ann,
-                                       optim_scale_fact=optim_scale_fact)
+        indices = get_annulus_segments(
+            cube[0], inner_radius=inner_radius_ann, width=asize, nsegm=n_segments_ann
+        )
+        ind_opt = get_annulus_segments(
+            cube[0],
+            inner_radius=inner_radius_ann,
+            width=asize,
+            nsegm=n_segments_ann,
+            optim_scale_fact=optim_scale_fact,
+        )
 
         # store segment data for multiprocessing
-        ayxyx += [(ann, indices[nseg][0], indices[nseg][1],
-                   ind_opt[nseg][0], ind_opt[nseg][1]) for nseg in
-                  range(n_segments_ann)]
+        ayxyx += [
+            (
+                ann,
+                indices[nseg][0],
+                indices[nseg][1],
+                ind_opt[nseg][0],
+                ind_opt[nseg][1],
+            )
+            for nseg in range(n_segments_ann)
+        ]
 
         pa_thresholds.append(pa_threshold)
 
-    msg = 'Patch-wise least-square combination and subtraction:'
+    msg = "Patch-wise least-square combination and subtraction:"
     # reverse order of processing, as outer segments take longer
-    res_patch = pool_map(nproc, _leastsq_patch, iterable(ayxyx[::-1]),
-                         pa_thresholds, angle_list, metric, dist_threshold,
-                         solver, tol, verbose=verbose, msg=msg,
-                         progressbar_single=True)
+    res_patch = pool_map(
+        nproc,
+        _leastsq_patch,
+        iterable(ayxyx[::-1]),
+        pa_thresholds,
+        angle_list,
+        metric,
+        dist_threshold,
+        solver,
+        tol,
+        verbose=verbose,
+        msg=msg,
+        progressbar_single=True,
+    )
 
     for patch in res_patch:
         matrix_res, yy, xx = patch
         cube_res[:, yy, xx] = matrix_res
 
-    cube_der = cube_derotate(cube_res, angle_list, imlib, interpolation,
-                             nproc=nproc, **rot_options)
+    cube_der = cube_derotate(
+        cube_res, angle_list, imlib, interpolation, nproc=nproc, **rot_options
+    )
     frame_der_median = cube_collapse(cube_der, collapse)
 
     if verbose:
-        print('Done processing annuli')
+        print("Done processing annuli")
 
     if full_output:
         return cube_res, cube_der, frame_der_median
@@ -352,9 +455,8 @@ def _leastsq_adi(cube, angle_list, fwhm=4, metric='manhattan',
         return frame_der_median
 
 
-def _leastsq_patch(ayxyx, pa_thresholds, angles, metric, dist_threshold,
-                   solver, tol):
-    """ Helper function for _leastsq_ann.
+def _leastsq_patch(ayxyx, pa_thresholds, angles, metric, dist_threshold, solver, tol):
+    """Helper function for _leastsq_ann.
 
     Parameters
     ----------
@@ -398,14 +500,14 @@ def _leastsq_patch(ayxyx, pa_thresholds, angles, metric, dist_threshold,
             ind_ref = np.where(~np.isnan(vector))[0]
             A = values_opt[ind_ref]
             b = values_opt[i]
-            if solver == 'lstsq':
-                coef = sp.linalg.lstsq(A.T, b, cond=tol)[0]     # SVD method
-            elif solver == 'nnls':
+            if solver == "lstsq":
+                coef = sp.linalg.lstsq(A.T, b, cond=tol)[0]  # SVD method
+            elif solver == "nnls":
                 coef = sp.optimize.nnls(A.T, b)[0]
-            elif solver == 'lsq':   # TODO
-                coef = sp.optimize.lsq_linear(A.T, b, bounds=(0, 1),
-                                              method='trf',
-                                              lsq_solver='lsmr')['x']
+            elif solver == "lsq":  # TODO
+                coef = sp.optimize.lsq_linear(
+                    A.T, b, bounds=(0, 1), method="trf", lsq_solver="lsmr"
+                )["x"]
             else:
                 raise ValueError("`solver` not recognized")
         else:
@@ -419,10 +521,24 @@ def _leastsq_patch(ayxyx, pa_thresholds, angles, metric, dist_threshold,
     return matrix_res, yy, xx
 
 
-def _leastsq_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep,
-                    tol, optim_scale_fact, metric, dist_threshold, solver,
-                    imlib, interpolation, collapse):
-    """ Optimized least-squares based subtraction on a multi-spectral frame
+def _leastsq_sdi_fr(
+    fr,
+    scal,
+    radius_int,
+    fwhm,
+    asize,
+    n_segments,
+    delta_sep,
+    tol,
+    optim_scale_fact,
+    metric,
+    dist_threshold,
+    solver,
+    imlib,
+    interpolation,
+    collapse,
+):
+    """Optimized least-squares based subtraction on a multi-spectral frame
     (IFS data).
     """
     z, n, y_in, x_in = ARRAY.shape
@@ -430,8 +546,9 @@ def _leastsq_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep,
     scale_list = check_scal_vector(scal)
     # rescaled cube, aligning speckles
     global MULTISPEC_FR
-    MULTISPEC_FR = scwave(ARRAY[:, fr, :, :], scale_list, imlib=imlib,
-                          interpolation=interpolation)[0]
+    MULTISPEC_FR = scwave(
+        ARRAY[:, fr, :, :], scale_list, imlib=imlib, interpolation=interpolation
+    )[0]
 
     # Exploiting spectral variability (radial movement)
     fwhm = int(np.round(np.mean(fwhm)))
@@ -440,7 +557,7 @@ def _leastsq_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep,
 
     if isinstance(n_segments, int):
         n_segments = [n_segments for _ in range(n_annuli)]
-    elif n_segments == 'auto':
+    elif n_segments == "auto":
         n_segments = list()
         n_segments.append(2)  # for first annulus
         n_segments.append(3)  # for second annulus
@@ -450,7 +567,7 @@ def _leastsq_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep,
             ang = np.rad2deg(2 * np.arctan(ld / (2 * radius)))
             n_segments.append(int(np.ceil(360 / ang)))
 
-    cube_res = np.zeros_like(MULTISPEC_FR)    # shape (z, resc_y, resc_x)
+    cube_res = np.zeros_like(MULTISPEC_FR)  # shape (z, resc_y, resc_x)
 
     if isinstance(delta_sep, tuple):
         delta_sep_vec = np.linspace(delta_sep[0], delta_sep[1], n_annuli)
@@ -464,31 +581,64 @@ def _leastsq_sdi_fr(fr, scal, radius_int, fwhm, asize, n_segments, delta_sep,
             inner_radius = radius_int + ann * annulus_width
         ann_center = inner_radius + (annulus_width / 2)
 
-        indices = get_annulus_segments(MULTISPEC_FR[0], inner_radius,
-                                       annulus_width, n_segments[ann])
+        indices = get_annulus_segments(
+            MULTISPEC_FR[0], inner_radius, annulus_width, n_segments[ann]
+        )
 
-        ind_opt = get_annulus_segments(MULTISPEC_FR[0], inner_radius,
-                                       annulus_width, n_segments[ann],
-                                       optim_scale_fact=optim_scale_fact)
+        ind_opt = get_annulus_segments(
+            MULTISPEC_FR[0],
+            inner_radius,
+            annulus_width,
+            n_segments[ann],
+            optim_scale_fact=optim_scale_fact,
+        )
 
         for seg in range(n_segments[ann]):
             yy = indices[seg][0]
             xx = indices[seg][1]
-            segm_res = _leastsq_patch_ifs(seg, indices, ind_opt, scal, ann_center,
-                                          fwhm, delta_sep_vec[ann], metric,
-                                          dist_threshold, solver, tol)
+            segm_res = _leastsq_patch_ifs(
+                seg,
+                indices,
+                ind_opt,
+                scal,
+                ann_center,
+                fwhm,
+                delta_sep_vec[ann],
+                metric,
+                dist_threshold,
+                solver,
+                tol,
+            )
             cube_res[:, yy, xx] = segm_res
 
-    frame_desc = scwave(cube_res, scale_list, full_output=False, inverse=True,
-                        y_in=y_in, x_in=x_in, imlib=imlib,
-                        interpolation=interpolation, collapse=collapse)
+    frame_desc = scwave(
+        cube_res,
+        scale_list,
+        full_output=False,
+        inverse=True,
+        y_in=y_in,
+        x_in=x_in,
+        imlib=imlib,
+        interpolation=interpolation,
+        collapse=collapse,
+    )
     return frame_desc
 
 
-def _leastsq_patch_ifs(nseg, indices, indices_opt, scal, ann_center, fwhm,
-                       delta_sep, metric, dist_threshold, solver, tol):
-    """ Helper function.
-    """
+def _leastsq_patch_ifs(
+    nseg,
+    indices,
+    indices_opt,
+    scal,
+    ann_center,
+    fwhm,
+    delta_sep,
+    metric,
+    dist_threshold,
+    solver,
+    tol,
+):
+    """Helper function."""
     yy = indices[nseg][0]
     xx = indices[nseg][1]
     values = MULTISPEC_FR[:, yy, xx]
@@ -512,8 +662,7 @@ def _leastsq_patch_ifs(nseg, indices, indices_opt, scal, ann_center, fwhm,
     else:
         mat_dists_ann = mat_dists_ann_full
 
-    threshold = np.percentile(mat_dists_ann[mat_dists_ann != 0],
-                              dist_threshold)
+    threshold = np.percentile(mat_dists_ann[mat_dists_ann != 0], dist_threshold)
     mat_dists_ann[mat_dists_ann > threshold] = np.nan
     mat_dists_ann[mat_dists_ann == 0] = np.nan
 
@@ -524,14 +673,14 @@ def _leastsq_patch_ifs(nseg, indices, indices_opt, scal, ann_center, fwhm,
             ind_ref = np.where(~np.isnan(vector))[0]
             A = values_opt[ind_ref]
             b = values_opt[z]
-            if solver == 'lstsq':
-                coef = sp.linalg.lstsq(A.T, b, cond=tol)[0]     # SVD method
-            elif solver == 'nnls':
+            if solver == "lstsq":
+                coef = sp.linalg.lstsq(A.T, b, cond=tol)[0]  # SVD method
+            elif solver == "nnls":
                 coef = sp.optimize.nnls(A.T, b)[0]
-            elif solver == 'lsq':   # TODO
-                coef = sp.optimize.lsq_linear(A.T, b, bounds=(0, 1),
-                                              method='trf',
-                                              lsq_solver='lsmr')['x']
+            elif solver == "lsq":  # TODO
+                coef = sp.optimize.lsq_linear(
+                    A.T, b, bounds=(0, 1), method="trf", lsq_solver="lsmr"
+                )["x"]
             else:
                 raise ValueError("solver not recognized")
 

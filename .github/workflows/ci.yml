@@ -6,7 +6,7 @@ name: ci
 on: [push, pull_request]
 
 jobs:
-  build:
+  no_object_checks:
 
     runs-on: ubuntu-latest
     strategy:
@@ -34,6 +34,42 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        pytest --cov=vip_hci/ --cov-report=xml --splits 3 --group ${{ matrix.group }}
+        pytest tests/pre_3_10 --cov=vip_hci/ --cov-report=xml --splits 3 --group ${{ matrix.group }}
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+
+  objects_check:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10"]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pre-commit pytest pytest-cov sphinx
+        if [ -f requirements.txt ]; then pip install -r requirements-dev.txt; fi
+    - name: Verify files with pre-commit
+      run: |
+        # Setup pre-commit hooks
+        pre-commit clean
+        pre-commit install --hook-type pre-merge-commit
+        pre-commit install --hook-type pre-push
+        pre-commit install --hook-type post-rewrite
+        pre-commit install-hooks
+        pre-commit install
+        # Run pre-commit hooks
+        pre-commit run --files vip_hci/objects/*.py
+    - name: Test with pytest
+      run: |
+        pytest tests/post_3_10 --cov=vip_hci/objects/ --cov-report=xml
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3

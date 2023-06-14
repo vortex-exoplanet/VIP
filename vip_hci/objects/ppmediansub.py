@@ -4,7 +4,7 @@
 __author__ = "Thomas Bédrine"
 __all__ = ["MedianBuilder"]
 
-from typing import Tuple, Optional
+from typing import Optional
 from dataclasses import dataclass
 
 import numpy as np
@@ -12,73 +12,28 @@ from dataclass_builder import dataclass_builder
 
 from .dataset import Dataset
 from .postproc import PostProc
-from ..psfsub import median_sub
+from ..psfsub import median_sub, MedsubParams
 from ..config.utils_conf import algo_calculates_decorator as calculates
 
 
 @dataclass
-class PPMedianSub(PostProc):
+class PPMedianSub(PostProc, MedsubParams):
     """
-    Dataclass used for the storage and typing of the PPMedianSub object.
+    Object used as a wrapper for the ``vip_hci.psfsub.median_sub``.
+
+    Gets its parameters from the MedsubParams dataclass.
 
     Parameters
     ----------
-    flux_sc_list : numpy ndarray, 1d
-        In the case of IFS data (ADI+SDI), this is the list of flux scaling
-        factors applied to each spectral frame after geometrical rescaling.
-        These should be set to either the ratio of stellar fluxes between the
-        last spectral channel and the other channels, or to the second output
-        of `preproc.find_scal_vector` (when using 2 free parameters). If not
-        provided, the algorithm will still work, but with a lower efficiency
-        at subtracting the stellar halo.
-    radius_int : int, optional
-        The radius of the innermost annulus. By default is 0, if >0 then the
-        central circular area is discarded.
-    asize : int, optional
-        The size of the annuli, in pixels.
-    delta_rot : float, optional
-        Factor for increasing the parallactic angle threshold, expressed in
-        FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
-        frame).
-    delta_sep : float or tuple of floats, optional
-        The threshold separation in terms of the mean FWHM (for ADI+mSDI data).
-        If a tuple of two values is provided, they are used as the lower and
-        upper intervals for the threshold (grows as a function of the
-        separation).
-    mode : {'fullfr', 'annular'}, str optional
-        In ``fullfr`` mode only the median frame is subtracted, in ``annular``
-        mode also the 4 closest frames given a PA threshold (annulus-wise) are
-        subtracted.
-    nframes : int or None, optional
-        Number of frames (even value) to be used for building the optimized
-        reference PSF when working in ``annular`` mode. None by default, which
-        means that all frames, excluding the thresholded ones, are used.
-    sdi_only: bool, optional
-        In the case of IFS data (ADI+SDI), whether to perform median-SDI, or
-        median-ASDI (default).
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : {'median', 'mean', 'sum', 'trimmean'}, str optional
-        Sets the way of collapsing the frames for producing a final image.
-    verbose : bool, optional
-        If True prints to stdout intermediate info.
+    full_output: bool, optional
+        Whether to return the final median combined image only or with other
+        intermediate arrays.
+    _algo_name: str, optional
+        Name of the algorithm wrapped by the object.
 
     """
 
-    flux_sc_list: np.ndarray = None
-    radius_int: int = 0
-    asize: int = 4
-    delta_rot: float = 1
-    delta_sep: Tuple[float] = (0.1, 1)
-    mode: str = "fullfr"
-    nframes: int = 4
-    sdi_only: bool = False
-    imlib: str = "vip-fft"
-    interpolation: str = "lanczos4"
-    collapse: str = "median"
-    verbose: bool = True
+    full_output: bool = True
     _algo_name: str = "median_sub"
     cube_residuals: np.ndarray = None
     cube_residuals_der: np.ndarray = None
@@ -88,9 +43,8 @@ class PPMedianSub(PostProc):
     def run(
         self,
         dataset: Optional[Dataset] = None,
-        nproc: Optional[int] = 1,
-        full_output: Optional[bool] = True,
-        verbose: Optional[bool] = True,
+        nproc: Optional[int] = None,
+        full_output: Optional[bool] = None,
         **rot_options: Optional[dict]
     ) -> None:
         """
@@ -123,24 +77,25 @@ class PPMedianSub(PostProc):
         if self.mode == "annular" and self.dataset.fwhm is None:
             raise ValueError("`fwhm` has not been set")
 
-        add_params = {
-            "cube": self.dataset.cube,
-            "angle_list": self.dataset.angles,
-            "fwhm": self.dataset.fwhm,
-            "scale_list": self.dataset.wavelengths,
-            "nproc": nproc,
-            "full_output": full_output,
-        }
+        if nproc is not None:
+            self.nproc = nproc
 
-        func_params = self._setup_parameters(fkt=median_sub, **add_params)
+        if full_output is not None:
+            self.full_output = full_output
 
-        res = median_sub(**func_params, **rot_options)
+        self._explicit_dataset()
+
+        params_dict = self._create_parameters_dict(MedsubParams)
+
+        res = median_sub(algo_params=self, **rot_options)
 
         self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 
         if self.results is not None:
             self.results.register_session(
-                params=func_params, frame=self.frame_final, algo_name=self._algo_name
+                params=params_dict,
+                frame=self.frame_final,
+                algo_name=self._algo_name,
             )
 
 

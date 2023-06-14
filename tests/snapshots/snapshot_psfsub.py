@@ -5,17 +5,41 @@ __author__ = "Thomas Bedrine"
 __all__ = "PSFADI_PATH"
 
 import copy
+from requests.exceptions import ReadTimeout
+from ratelimit import limits, sleep_and_retry
+from astropy.utils.data import download_file
 
 import numpy as np
-from vip_hci.psfsub import median_sub, frame_diff, llsg, xloci, nmf, nmf_annular
+from vip_hci.psfsub import (
+    median_sub,
+    frame_diff,
+    llsg,
+    xloci,
+    nmf,
+    nmf_annular,
+    pca,
+    pca_annular,
+)
 from vip_hci.metrics import detection, snrmap
 from vip_hci.fits import open_fits
 from vip_hci.objects import Dataset
 from vip_hci.config import VLT_NACO
-from tests.helpers import download_resource
 
 PSFADI_PATH = "./tests/snapshots/psfsub_adi/"
 DATASET_ELEMENTS = ["cube", "angles", "psf"]
+
+
+@sleep_and_retry
+@limits(calls=1, period=1)
+def download_resource(url):
+    attempts = 5
+    while attempts > 0:
+        try:
+            return download_file(url, cache=True)
+        except ReadTimeout:
+            attempts -= 1
+
+    raise TimeoutError("Resource could not be accessed due to too many timeouts.")
 
 
 def make_dataset_adi():
@@ -213,6 +237,16 @@ def save_snapshots_psfsub_adi():
         verbose=False,
     )
 
+    # Non-negative Matrix Factorization (full-frame with delta rot)
+
+    nmf_drot_adi = nmf(
+        cube=cube,
+        angle_list=angles,
+        fwhm=fwhm,
+        delta_rot=0.5,
+        source_xy=betapic.injections_yx[0][::-1],
+    )
+
     # Non-negative Matrix Factorization (annular)
 
     nmf_ann_adi = nmf_annular(
@@ -228,6 +262,69 @@ def save_snapshots_psfsub_adi():
         imlib=imlib_rot,
         interpolation=interpolation,
         verbose=False,
+    )
+
+    # Principal component analysis
+
+    pca_adi = pca(cube=cube, angle_list=angles, fwhm=fwhm, svd_mode="arpack")
+
+    # Principal component analysis (with left eigenvalue)
+
+    pca_left_eigv_adi = pca(cube=cube, angle_list=angles, fwhm=fwhm, left_eigv=True)
+
+    # Principal component analysis (svd mode set to "eigen")
+
+    pca_linalg_adi = pca(cube=cube, angle_list=angles, fwhm=fwhm, svd_mode="eigen")
+
+    # Principal component analysis (with delta_rot)
+
+    pca_drot_adi = pca(
+        cube=cube,
+        angle_list=angles,
+        ncomp=4,
+        fwhm=fwhm,
+        svd_mode="randsvd",
+        delta_rot=0.5,
+        source_xy=betapic.injections_yx[0][::-1],
+    )
+
+    # Principal component analysis (with ??)
+
+    pca_cevr_adi = pca(cube=cube, angle_list=angles, fwhm=fwhm, ncomp=0.95)
+
+    # Principal component analysis with incremental batch
+
+    pca_incr_adi = pca(
+        cube=cube, angle_list=angles, fwhm=fwhm, batch=int(cube.shape[0] / 2)
+    )
+
+    # Principal component analysis with grid
+
+    pca_grid_adi = pca(
+        cube=cube,
+        angle_list=angles,
+        ncomp=(1, 2),
+        fwhm=fwhm,
+        source_xy=betapic.injections_yx[0][::-1],
+        verbose=False,
+    )
+
+    # Principal component analysis (annular mode)
+
+    pca_ann_adi = pca_annular(
+        cube=cube, angle_list=angles, fwhm=fwhm, n_segments="auto"
+    )
+
+    # Principal component analysis (annular mode with left eigenvalue)
+
+    pca_ann_left_eigv_adi = pca_annular(
+        cube=cube, angle_list=angles, fwhm=fwhm, n_segments="auto", left_eigv=True
+    )
+
+    # Principal component analysis (annular mode with automatic number of components)
+
+    pca_ann_auto_adi = pca_annular(
+        cube=cube, angle_list=angles, fwhm=fwhm, ncomp="auto"
     )
 
     for name, value in locals().items():
@@ -248,7 +345,8 @@ def save_snapshots_psfsub_adi():
             )
             det_array = np.stack(detect, axis=-1)
             # NMF frames are somewhat random and cannot be compared, no need to save
-            if "nmf" not in name:
+            # Same for PCA with delta rotation
+            if "nmf" not in name and "pca_drot" not in name:
                 np.save(f"./tests/snapshots/psfsub_adi/{name}.npy", value)
             np.save(f"./tests/snapshots/psfsub_adi/{name}_detect.npy", det_array)
     return

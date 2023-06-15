@@ -3,7 +3,7 @@ from enum import auto
 from enum import Enum
 
 
-class SvdMode(Enum):
+class SvdMode(str, Enum):
     """
     Define the various modes to use with SVD in PCA as constant strings.
 
@@ -54,7 +54,7 @@ class SvdMode(Enum):
     RANDPYTORCH = "randpytorch"
 
 
-class Scaling(Enum):
+class Scaling(str, Enum):
     """
     Define modes for the pixel-wise scaling.
 
@@ -77,7 +77,7 @@ class Scaling(Enum):
     SPATSTANDARD = "spat-standard"
 
 
-class Adimsdi(Enum):
+class Adimsdi(str, Enum):
     """
     Define modes for processing ADI+mSDI cubes through PCA.
 
@@ -101,7 +101,7 @@ class Adimsdi(Enum):
 
 
 # TODO: document all modes
-class Imlib(Enum):
+class Imlib(str, Enum):
     """
     Define modes for image transformations to be used.
 
@@ -123,7 +123,7 @@ class Imlib(Enum):
 
 
 # TODO: document all modes
-class Interpolation(Enum):
+class Interpolation(str, Enum):
     """
     Define modes for interpolation.
 
@@ -154,7 +154,7 @@ class Interpolation(Enum):
 
 
 # TODO: document all modes
-class Collapse(Enum):
+class Collapse(str, Enum):
     """
     Define modes for spectral/temporal residuals frames combining.
 
@@ -175,7 +175,7 @@ class Collapse(Enum):
     TRIMMEAN = "trimmean"
 
 
-class ReturnList(Enum):
+class ReturnList(str, Enum):
     """List of all possible modes of classic PCA."""
 
     ADIMSDI_DOUBLE = "adimsdi_double"
@@ -190,7 +190,7 @@ class ReturnList(Enum):
 
 
 # TODO: document all metrics
-class Metric(Enum):
+class Metric(str, Enum):
     """Define all metrics possible for various post-processing functions."""
 
     CITYBLOCK = "cityblock"
@@ -203,7 +203,7 @@ class Metric(Enum):
 
 
 # TODO: document modes
-class LowRankMode(Enum):
+class LowRankMode(str, Enum):
     """Define the values for the low rank mode for LLSG."""
 
     SVD = "svd"
@@ -211,7 +211,7 @@ class LowRankMode(Enum):
 
 
 # TODO: document modes
-class AutoRankMode(Enum):
+class AutoRankMode(str, Enum):
     """Define the values for the auto rank mode for LLSG."""
 
     NOISE = "noise"
@@ -219,14 +219,14 @@ class AutoRankMode(Enum):
 
 
 # TODO: document modes
-class ThreshMode(Enum):
+class ThreshMode(str, Enum):
     """Define the values for thresholding modes for LLSG."""
 
     SOFT = "soft"
     HARD = "hard"
 
 
-class Solver(Enum):
+class Solver(str, Enum):
     """
     Define the solver for the least squares problem in LLSG.
 
@@ -241,7 +241,7 @@ class Solver(Enum):
     NNLS = "nnls"
 
 
-class Runmode(Enum):
+class Runmode(str, Enum):
     """
     Define the mode for the PostProc PCA object.
 
@@ -263,7 +263,7 @@ class Runmode(Enum):
     ANNULUS = "annulus"
 
 
-class HandleNeg(Enum):
+class HandleNeg(str, Enum):
     """
     Define modes for handling negative values in NMF full-frame.
 
@@ -281,7 +281,7 @@ class HandleNeg(Enum):
     NULL = "null"
 
 
-class Initsvd(Enum):
+class Initsvd(str, Enum):
     """
     Define modes for initializing SVD for NMF full-frame.
 
@@ -301,7 +301,7 @@ class Initsvd(Enum):
 
 
 # TODO: document modes
-class OptMethod(Enum):
+class OptMethod(str, Enum):
     """
     Defines the method of balancing for the flux difference for ANDROMEDA.
 
@@ -323,7 +323,7 @@ class OptMethod(Enum):
     ROBUST = "robust"
 
 
-class VarEstim(Enum):
+class VarEstim(str, Enum):
     """
     Define modes to use for the residual noise variance estimation in FMMF.
 

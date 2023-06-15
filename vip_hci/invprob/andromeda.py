@@ -24,7 +24,8 @@ __all__ = ["andromeda", "AndroParams"]
 
 import numpy as np
 from dataclasses import dataclass
-from strenum import LowercaseStrEnum as LowEnum
+from enum import Enum
+
 from typing import Union
 
 from ..var.filters import frame_filter_highpass, cube_filter_highpass
@@ -155,7 +156,7 @@ class AndroParams:
     min_sep: float = 0.5
     annuli_width: float = 1.0
     roa: float = 2
-    opt_method: LowEnum = OptMethod.LSQ
+    opt_method: Enum = OptMethod.LSQ
     nsmooth_snr: int = 18
     iwa: float = None
     owa: float = None

@@ -19,7 +19,7 @@ __all__ = ["pca_annular", "PCAAnnParams"]
 import numpy as np
 from multiprocessing import cpu_count
 from typing import Tuple, List, Union
-from strenum import LowercaseStrEnum as LowEnum
+from enum import Enum
 from dataclasses import dataclass
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector, check_scal_vector
 from ..preproc import cube_rescaling_wavelengths as scwave
@@ -101,7 +101,7 @@ class PCAAnnParams:
         second PCA stage is skipped and the residuals are de-rotated and
         combined.
 
-    svd_mode : LowerCaseStrEnum, see `vip_hci.var.paramenum.SvdMode`
+    svd_mode : Enum, see `vip_hci.var.paramenum.SvdMode`
         Switch for the SVD method/library to be used.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
@@ -114,16 +114,16 @@ class PCAAnnParams:
     tol : float, optional
         Stopping criterion for choosing the number of PCs when ``ncomp``
         is None. Lower values will lead to smaller residuals and more PCs.
-    scaling : LowerCaseStrEnum, see `vip_hci.var.paramenum.Scaling`
+    scaling : Enum, see `vip_hci.var.paramenum.Scaling`
         Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
         function. If set to None, the input matrix is left untouched.
-    imlib : LowerCaseStrEnum, see `vip_hci.var.paramenum.Imlib`
+    imlib : Enum, see `vip_hci.var.paramenum.Imlib`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation :  LowerCaseStrEnum, see `vip_hci.var.paramenum.Interpolation`
+    interpolation :  Enum, see `vip_hci.var.paramenum.Interpolation`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : LowerCaseStrEnum, see `vip_hci.var.paramenum.Collapse`
+    collapse : Enum, see `vip_hci.var.paramenum.Collapse`
         Sets the way of collapsing the frames for producing a final image.
-    collapse_ifs : LowerCaseStrEnum, see `vip_hci.var.paramenum.Collapse`
+    collapse_ifs : Enum, see `vip_hci.var.paramenum.Collapse`
         Sets how spectral residual frames should be combined to produce an
         mSDI image.
     ifs_collapse_range: str 'all' or tuple of 2 int
@@ -156,16 +156,16 @@ class PCAAnnParams:
     delta_rot: Union[float, Tuple[float]] = (0.1, 1)
     delta_sep: Union[float, Tuple[float]] = (0.1, 1)
     ncomp: Union[int, Tuple, np.ndarray, AUTO] = 1
-    svd_mode: LowEnum = SvdMode.LAPACK
+    svd_mode: Enum = SvdMode.LAPACK
     nproc: int = 1
     min_frames_lib: int = 2
     max_frames_lib: int = 200
     tol: float = 1e-1
-    scaling: LowEnum = None
-    imlib: LowEnum = Imlib.VIPFFT
-    interpolation: LowEnum = Interpolation.LANCZOS4
-    collapse: LowEnum = Collapse.MEDIAN
-    collapse_ifs: LowEnum = Collapse.MEAN
+    scaling: Enum = None
+    imlib: Enum = Imlib.VIPFFT
+    interpolation: Enum = Interpolation.LANCZOS4
+    collapse: Enum = Collapse.MEDIAN
+    collapse_ifs: Enum = Collapse.MEAN
     ifs_collapse_range: Union["all", Tuple[int]] = "all"
     theta_init: int = 0
     weights: np.ndarray = None

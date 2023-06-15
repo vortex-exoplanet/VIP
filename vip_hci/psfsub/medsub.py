@@ -36,8 +36,8 @@ __all__ = ["median_sub", "MedsubParams"]
 import numpy as np
 from multiprocessing import cpu_count
 from dataclasses import dataclass
+from enum import Enum
 from typing import Tuple, Union
-from strenum import LowercaseStrEnum as LowEnum
 from ..config import time_ini, timing
 from ..var import get_annulus_segments, mask_circle
 from ..var.paramenum import Imlib, Interpolation, Collapse
@@ -102,11 +102,11 @@ class MedsubParams:
     sdi_only: bool, optional
         In the case of IFS data (ADI+SDI), whether to perform median-SDI, or
         median-ASDI (default).
-    imlib : LowerCaseStrEnum, see `vip_hci.var.paramenum.Imlib`
+    imlib : Enum, see `vip_hci.var.paramenum.Imlib`
         See the documentation of ``vip_hci.preproc.frame_rotate``.
-    interpolation : LowerCaseStrEnum, see `vip_hci.var.paramenum.Interpolation`
+    interpolation : Enum, see `vip_hci.var.paramenum.Interpolation`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : LowerCaseStrEnum, see `vip_hci.var.paramenum.Collapse`
+    collapse : Enum, see `vip_hci.var.paramenum.Collapse`
         Sets how temporal residual frames should be combined to produce an
         ADI image.
     nproc : None or int, optional
@@ -132,9 +132,9 @@ class MedsubParams:
     mode: str = "fullfr"
     nframes: int = 4
     sdi_only: bool = False
-    imlib: LowEnum = Imlib.VIPFFT
-    interpolation: LowEnum = Interpolation.LANCZOS4
-    collapse: LowEnum = Collapse.MEDIAN
+    imlib: Enum = Imlib.VIPFFT
+    interpolation: Enum = Interpolation.LANCZOS4
+    collapse: Enum = Collapse.MEDIAN
     nproc: int = 1
     full_output: bool = False
     verbose: bool = True

@@ -12,7 +12,7 @@ from multiprocessing import cpu_count
 from sklearn.decomposition import NMF
 from dataclasses import dataclass, field
 from typing import Tuple, List, Union
-from strenum import LowercaseStrEnum as LowEnum
+from enum import Enum
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..var import get_annulus_segments, matrix_scaling
@@ -123,20 +123,20 @@ class NMFAnnParams:
     n_segments: int = 1
     delta_rot: Union[float, Tuple[float]] = (0.1, 1)
     ncomp: int = 1
-    init_svd: LowEnum = Initsvd.NNDSVD
+    init_svd: Enum = Initsvd.NNDSVD
     nproc: int = 1
     min_frames_lib: int = 2
     max_frames_lib: int = 200
-    scaling: LowEnum = None
-    imlib: LowEnum = Imlib.VIPFFT
-    interpolation: LowEnum = Interpolation.LANCZOS4
-    collapse: LowEnum = Collapse.MEDIAN
+    scaling: Enum = None
+    imlib: Enum = Imlib.VIPFFT
+    interpolation: Enum = Interpolation.LANCZOS4
+    collapse: Enum = Collapse.MEDIAN
     full_output: bool = False
     verbose: bool = True
     theta_init: float = 0
     weights: List = None
     cube_sig: np.ndarray = None
-    handle_neg: LowEnum = HandleNeg.MASK
+    handle_neg: Enum = HandleNeg.MASK
     max_iter: int = 1000
     random_state: int = None
     nmf_args: dict = field(default_factory=lambda: {})

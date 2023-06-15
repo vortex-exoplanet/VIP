@@ -22,7 +22,7 @@ from scipy.linalg import qr
 from multiprocessing import cpu_count
 from astropy.stats import median_absolute_deviation
 from dataclasses import dataclass
-
+from enum import Enum
 from ..config import time_ini, timing
 from ..preproc import cube_derotate, cube_collapse
 from ..var import get_annulus_segments, cube_filter_highpass

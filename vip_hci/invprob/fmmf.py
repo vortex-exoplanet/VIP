@@ -61,7 +61,7 @@ from multiprocessing import cpu_count
 from dataclasses import dataclass, field
 import numpy as np
 import numpy.linalg as la
-from strenum import LowercaseStrEnum as LowEnum
+from enum import Enum
 from skimage.draw import disk
 from ..var import get_annulus_segments, frame_center
 from ..preproc import frame_crop, cube_crop_frames, cube_derotate
@@ -106,7 +106,7 @@ class FMMFParams:
     model: string, optional
         Selected PSF-subtraction technique for the computation of the FMMF
         detection map. FMMF work either with KLIP or LOCI. Default is 'KLIP'.
-    var: LowerCaseStrEnum, see `vip_hci.var.paramenum.VarEstim`
+    var: Enum, see `vip_hci.var.paramenum.VarEstim`
         Model used for the residual noise variance estimation used in the
         matched filtering (maximum likelihood estimation of the flux and SNR).
     param: dict, optional
@@ -126,10 +126,10 @@ class FMMFParams:
     crop: int, optional
         Part of the PSF template considered in the estimation of the FMMF
         detection map. Default is 5.
-    imlib : LowerCaseStrEnum, see `vip_hci.var.paramenum.Imlib`
+    imlib : Enum, see `vip_hci.var.paramenum.Imlib`
         Parameter used for the derotation of the residual cube. See the
         documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : LowerCaseStrEnum, see `vip_hci.var.paramenum.Interpolation`
+    interpolation : Enum, see `vip_hci.var.paramenum.Interpolation`
         Parameter used for the derotation of the residual cube. See the
         documentation of the ``vip_hci.preproc.frame_rotate`` function.
     nproc : int or None, optional
@@ -148,13 +148,13 @@ class FMMFParams:
     min_r: int = None
     max_r: int = None
     model: str = "KLIP"
-    var: LowEnum = VarEstim.FR
+    var: Enum = VarEstim.FR
     param: dict = field(
         default_factory=lambda: {"ncomp": 20, "tolerance": 5e-3, "delta_rot": 0.5}
     )
     crop: int = 5
-    imlib: LowEnum = Imlib.VIPFFT
-    interpolation: LowEnum = Interpolation.LANCZOS4
+    imlib: Enum = Imlib.VIPFFT
+    interpolation: Enum = Interpolation.LANCZOS4
     nproc: int = 1
     verbose: bool = True
 

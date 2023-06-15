@@ -1,11 +1,9 @@
 """Module containing enums for parameters of HCI algorithms."""
 from enum import auto
-
-from strenum import KebabCaseStrEnum as KebEnum
-from strenum import LowercaseStrEnum as LowEnum
+from enum import Enum
 
 
-class SvdMode(LowEnum):
+class SvdMode(str, Enum):
     """
     Define the various modes to use with SVD in PCA as constant strings.
 
@@ -44,19 +42,19 @@ class SvdMode(LowEnum):
 
     """
 
-    LAPACK = auto()
-    ARPACK = auto()
-    EIGEN = auto()
-    RANDSVD = auto()
-    CUPY = auto()
-    EIGENCUPY = auto()
-    RANDCUPY = auto()
-    PYTORCH = auto()
-    EIGENPYTORCH = auto()
-    RANDPYTORCH = auto()
+    LAPACK = "lapack"
+    ARPACK = "arpack"
+    EIGEN = "eigen"
+    RANDSVD = "randsvd"
+    CUPY = "cupy"
+    EIGENCUPY = "eigencupy"
+    RANDCUPY = "randcupy"
+    PYTORCH = "pytorch"
+    EIGENPYTORCH = "eigenpytorch"
+    RANDPYTORCH = "randpytorch"
 
 
-class Scaling(LowEnum):
+class Scaling(str, Enum):
     """
     Define modes for the pixel-wise scaling.
 
@@ -79,7 +77,7 @@ class Scaling(LowEnum):
     SPATSTANDARD = "spat-standard"
 
 
-class Adimsdi(LowEnum):
+class Adimsdi(str, Enum):
     """
     Define modes for processing ADI+mSDI cubes through PCA.
 
@@ -97,13 +95,13 @@ class Adimsdi(LowEnum):
     subtracted on each spectral cube separately.
     """
 
-    DOUBLE = auto()
-    SINGLE = auto()
-    SKIPADI = auto()
+    DOUBLE = "double"
+    SINGLE = "single"
+    SKIPADI = "skipadi"
 
 
 # TODO: document all modes
-class Imlib(LowEnum):
+class Imlib(str, Enum):
     """
     Define modes for image transformations to be used.
 
@@ -118,14 +116,14 @@ class Imlib(LowEnum):
     * ̀``VIPFFT``: uses VIP FFT based rotation method.
     """
 
-    OPENCV = auto()
-    SKIMAGE = auto()
-    NDIMAGE = auto()
+    OPENCV = "opencv"
+    SKIMAGE = "skimage"
+    NDIMAGE = "ndimage"
     VIPFFT = "vip-fft"
 
 
 # TODO: document all modes
-class Interpolation(LowEnum):
+class Interpolation(str, Enum):
     """
     Define modes for interpolation.
 
@@ -146,17 +144,17 @@ class Interpolation(LowEnum):
     * ̀``LANCZOS4`` : slowest and most accurate. Default for OpenCV.
     """
 
-    NEARNEIG = auto()
-    BILINEAR = auto()
-    BIQUADRATIC = auto()
-    BICUBIC = auto()
-    BIQUARTIC = auto()
-    BIQUINTIC = auto()
-    LANCZOS4 = auto()
+    NEARNEIG = "nearneig"
+    BILINEAR = "bilinear"
+    BIQUADRATIC = "biquadratic"
+    BICUBIC = "bicubic"
+    BIQUARTIC = "biquartic"
+    BIQUINTIC = "biquintic"
+    LANCZOS4 = "lanczos4"
 
 
 # TODO: document all modes
-class Collapse(LowEnum):
+class Collapse(str, Enum):
     """
     Define modes for spectral/temporal residuals frames combining.
 
@@ -171,64 +169,64 @@ class Collapse(LowEnum):
     * ̀``TRIMMEAN``
     """
 
-    MEDIAN = auto()
-    MEAN = auto()
-    SUM = auto()
-    TRIMMEAN = auto()
+    MEDIAN = "median"
+    MEAN = "mean"
+    SUM = "sum"
+    TRIMMEAN = "trimmean"
 
 
-class ReturnList(LowEnum):
+class ReturnList(str, Enum):
     """List of all possible modes of classic PCA."""
 
-    ADIMSDI_DOUBLE = auto()
-    ADIMSDI_SINGLE_NO_GRID = auto()
-    ADIMSDI_SINGLE_GRID_NO_SOURCE = auto()
-    ADIMSDI_SINGLE_GRID_SOURCE = auto()
-    ADI_FULLFRAME_GRID = auto()
-    ADI_FULLFRAME_STANDARD = auto()
-    ADI_INCREMENTAL_BATCH = auto()
-    PCA_GRID_SN = auto()
-    PCA_ROT_THRESH = auto()
+    ADIMSDI_DOUBLE = "adimsdi_double"
+    ADIMSDI_SINGLE_NO_GRID = "adimsdi_single_no_grid"
+    ADIMSDI_SINGLE_GRID_NO_SOURCE = "adimsdi_single_grid_no_source"
+    ADIMSDI_SINGLE_GRID_SOURCE = "adimsdi_single_grid_source"
+    ADI_FULLFRAME_GRID = "adi_fullframe_grid"
+    ADI_FULLFRAME_STANDARD = "adi_fullframe_standard"
+    ADI_INCREMENTAL_BATCH = "adi_incremental_batch"
+    PCA_GRID_SN = "pca_grid_sn"
+    PCA_ROT_THRESH = "pca_rot_thresh"
 
 
 # TODO: document all metrics
-class Metric(LowEnum):
+class Metric(str, Enum):
     """Define all metrics possible for various post-processing functions."""
 
-    CITYBLOCK = auto()
-    COSINE = auto()
-    EUCLIDEAN = auto()
-    L1 = auto()
-    L2 = auto()
-    MANHATTAN = auto()
-    CORRELATION = auto()
+    CITYBLOCK = "cityblock"
+    COSINE = "cosine"
+    EUCLIDEAN = "euclidean"
+    L1 = "l1"
+    L2 = "l2"
+    MANHATTAN = "manhattan"
+    CORRELATION = "correlation"
 
 
 # TODO: document modes
-class LowRankMode(LowEnum):
+class LowRankMode(str, Enum):
     """Define the values for the low rank mode for LLSG."""
 
-    SVD = auto()
-    BRP = auto()
+    SVD = "svd"
+    BRP = "brp"
 
 
 # TODO: document modes
-class AutoRankMode(LowEnum):
+class AutoRankMode(str, Enum):
     """Define the values for the auto rank mode for LLSG."""
 
-    NOISE = auto()
-    CEVR = auto()
+    NOISE = "noise"
+    CEVR = "cevr"
 
 
 # TODO: document modes
-class ThreshMode(LowEnum):
+class ThreshMode(str, Enum):
     """Define the values for thresholding modes for LLSG."""
 
-    SOFT = auto()
-    HARD = auto()
+    SOFT = "soft"
+    HARD = "hard"
 
 
-class Solver(LowEnum):
+class Solver(str, Enum):
     """
     Define the solver for the least squares problem in LLSG.
 
@@ -239,11 +237,11 @@ class Solver(LowEnum):
     * ``NNLS`` : uses the scipy non-negative least-squares solver.
     """
 
-    LSTSQ = auto()
-    NNLS = auto()
+    LSTSQ = "lstsq"
+    NNLS = "nnls"
 
 
-class Runmode(LowEnum):
+class Runmode(str, Enum):
     """
     Define the mode for the PostProc PCA object.
 
@@ -259,13 +257,13 @@ class Runmode(LowEnum):
     * ``ANNULUS`` : annulus PCA function.
     """
 
-    CLASSIC = auto()
-    ANNULAR = auto()
-    GRID = auto()
-    ANNULUS = auto()
+    CLASSIC = "classic"
+    ANNULAR = "annular"
+    GRID = "grid"
+    ANNULUS = "annulus"
 
 
-class HandleNeg(LowEnum):
+class HandleNeg(str, Enum):
     """
     Define modes for handling negative values in NMF full-frame.
 
@@ -278,12 +276,12 @@ class HandleNeg(LowEnum):
     * ``NULL`` : set negative values to zero.
     """
 
-    SUBTR_MIN = auto()
-    MASK = auto()
-    NULL = auto()
+    SUBTR_MIN = "subtr_min"
+    MASK = "mask"
+    NULL = "null"
 
 
-class Initsvd(LowEnum):
+class Initsvd(str, Enum):
     """
     Define modes for initializing SVD for NMF full-frame.
 
@@ -297,13 +295,13 @@ class Initsvd(LowEnum):
     * ``RANDOM`` : random initial non-negative matrix.
     """
 
-    NNDSVD = auto()
-    NNDSVDA = auto()
-    RANDOM = auto()
+    NNDSVD = "nndsvd"
+    NNDSVDA = "nndsvda"
+    RANDOM = "random"
 
 
 # TODO: document modes
-class OptMethod(LowEnum):
+class OptMethod(str, Enum):
     """
     Defines the method of balancing for the flux difference for ANDROMEDA.
 
@@ -319,13 +317,13 @@ class OptMethod(LowEnum):
     * ``ROBUST``
     """
 
-    NO = auto()
-    TOTAL = auto()
-    LSQ = auto()
-    ROBUST = auto()
+    NO = "no"
+    TOTAL = "total"
+    LSQ = "lsq"
+    ROBUST = "robust"
 
 
-class VarEstim(LowEnum):
+class VarEstim(str, Enum):
     """
     Define modes to use for the residual noise variance estimation in FMMF.
 
@@ -345,6 +343,6 @@ class VarEstim(LowEnum):
     derotated cube of residuals except for the selected frame).
     """
 
-    FR = auto()
-    FM = auto()
-    TE = auto()
+    FR = "fr"
+    FM = "fm"
+    TE = "te"

@@ -9,7 +9,7 @@ import pandas as pn
 from hciplot import plot_frames
 from multiprocessing import cpu_count
 from dataclasses import dataclass
-from strenum import LowercaseStrEnum as LowEnum
+from enum import Enum
 from sklearn.metrics import pairwise_distances
 from ..var import get_annulus_segments
 from ..var.object_utils import setup_parameters, separate_kwargs_dict
@@ -77,16 +77,16 @@ class FrameDiffParams:
     cube: np.ndarray = None
     angle_list: np.ndarray = None
     fwhm: float = 4
-    metric: LowEnum = Metric.MANHATTAN
+    metric: Enum = Metric.MANHATTAN
     dist_threshold: int = 50
     n_similar: int = None
     delta_rot: int = 0.5
     radius_int: int = 2
     asize: int = 4
     ncomp: int = None
-    imlib: LowEnum = Imlib.VIPFFT
-    interpolation: LowEnum = Interpolation.LANCZOS4
-    collapse: LowEnum = Collapse.MEDIAN
+    imlib: Enum = Imlib.VIPFFT
+    interpolation: Enum = Interpolation.LANCZOS4
+    collapse: Enum = Collapse.MEDIAN
     nproc: int = 1
     verbose: bool = True
     debug: bool = False

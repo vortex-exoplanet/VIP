@@ -259,7 +259,7 @@ def pca(
     algo_params: PCAParams = None,
     **all_kwargs: dict,
 ):
-    """Full-frame PCA algorithm applied to PSF substraction.
+    """Full-frame PCA algorithm applied to PSF subtraction.
 
     The reference PSF and the quasi-static speckle pattern are modeled using Principal
     Component Analysis. Depending on the input parameters this PCA function can work in
@@ -286,7 +286,7 @@ def pca(
         Dataclass retaining all the needed parameters for PCA.
     all_kwargs: dictionary, optional
         Mix of the parameters that can initialize an algo_params and the optional
-        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
+        'rot_options' dictionary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``)
 
@@ -330,7 +330,7 @@ def pca(
 
 
     """
-    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    # Separating the parameters of the ParamsObject from the optional rot_options
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=PCAParams
     )

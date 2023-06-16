@@ -46,7 +46,7 @@ import numpy as np
 from multiprocessing import cpu_count
 from typing import Tuple, Union
 from dataclasses import dataclass
-from strenum import LowercaseStrEnum as LowEnum
+from enum import Enum
 from .svd import svd_wrapper, SVDecomposer
 from .utils_pca import pca_incremental, pca_grid
 from ..var.paramenum import SvdMode, Adimsdi, Interpolation, Imlib, Collapse
@@ -149,9 +149,9 @@ class PCAParams:
         None then the second PCA stage is skipped and the residuals are
         de-rotated and combined).
 
-    svd_mode : LowerCaseStrEnum, see `vip_hci.var.paramenum.SvdMode`
+    svd_mode : Enum, see `vip_hci.var.paramenum.SvdMode`
         Switch for the SVD method/library to be used.
-    scaling : LowerCaseStrEnum, see `vip_hci.var.paramenum.Scaling`
+    scaling : Enum, see `vip_hci.var.paramenum.Scaling`
         Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
         function. If set to None, the input matrix is left untouched.
     mask_center_px : None or int
@@ -169,7 +169,7 @@ class PCAParams:
     fwhm : float, list or 1d numpy array, optional
         Known size of the FHWM in pixels to be used. Default value is 4.
         Can be a list or 1d numpy array for a 4d input cube with no scale_list.
-    adimsdi : LowerCaseStrEnum, see `vip_hci.var.paramenum.Adimsdi`
+    adimsdi : Enum, see `vip_hci.var.paramenum.Adimsdi`
         Changes the way the 4d cubes (ADI+mSDI) are processed. Basically it
         determines whether a single or double pass PCA is going to be computed.
     crop_ifs: bool, optional
@@ -177,16 +177,16 @@ class PCAParams:
         rescaling in wavelength. This is recommended for large FOVs such as the
         one of SPHERE, but can remove significant amount of information close to
         the edge of small FOVs (e.g. SINFONI).
-    imlib : LowerCaseStrEnum, see `vip_hci.var.paramenum.Imlib`
+    imlib : Enum, see `vip_hci.var.paramenum.Imlib`
         See the documentation of ``vip_hci.preproc.frame_rotate``.
-    imlib2 : LowerCaseStrEnum, see `vip_hci.var.paramenum.Imlib`
+    imlib2 : Enum, see `vip_hci.var.paramenum.Imlib`
         See the documentation of ``vip_hci.preproc.cube_rescaling_wavelengths``.
-    interpolation : LowerCaseStrEnum, see `vip_hci.var.paramenum.Interpolation`
+    interpolation : Enum, see `vip_hci.var.paramenum.Interpolation`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : LowerCaseStrEnum, see `vip_hci.var.paramenum.Collapse`
+    collapse : Enum, see `vip_hci.var.paramenum.Collapse`
         Sets how temporal residual frames should be combined to produce an
         ADI image.
-    collapse_ifs : LowerCaseStrEnum, see `vip_hci.var.paramenum.Collapse`
+    collapse_ifs : Enum, see `vip_hci.var.paramenum.Collapse`
         Sets how spectral residual frames should be combined to produce an
         mSDI image.
     ifs_collapse_range: str 'all' or tuple of 2 int
@@ -230,19 +230,19 @@ class PCAParams:
     cube_ref: np.ndarray = None
     scale_list: np.ndarray = None
     ncomp: Union[Tuple, float, int] = 1
-    svd_mode: LowEnum = SvdMode.LAPACK
-    scaling: LowEnum = None
+    svd_mode: Enum = SvdMode.LAPACK
+    scaling: Enum = None
     mask_center_px: int = None
     source_xy: Tuple[int] = None
     delta_rot: int = None
     fwhm: float = 4
-    adimsdi: LowEnum = Adimsdi.SINGLE
+    adimsdi: Enum = Adimsdi.SINGLE
     crop_ifs: bool = True
-    imlib: LowEnum = Imlib.VIPFFT
-    imlib2: LowEnum = Imlib.VIPFFT
-    interpolation: LowEnum = Interpolation.LANCZOS4
-    collapse: LowEnum = Collapse.MEDIAN
-    collapse_ifs: LowEnum = Collapse.MEAN
+    imlib: Enum = Imlib.VIPFFT
+    imlib2: Enum = Imlib.VIPFFT
+    interpolation: Enum = Interpolation.LANCZOS4
+    collapse: Enum = Collapse.MEDIAN
+    collapse_ifs: Enum = Collapse.MEAN
     ifs_collapse_range: Union[str, Tuple[int]] = "all"
     mask_rdi: np.ndarray = None
     check_memory: bool = True

@@ -160,7 +160,7 @@ class PPPCA(PostProc, PCAParams, PCAAnnParams):
 
         Parameters
         ----------
-        runmode : LowerCaseStrEnum, see ``vip_hci.var.paramenum.Runmode``
+        runmode : Enum, see ``vip_hci.var.paramenum.Runmode``
             Mode of execution for the PCA.
         dataset : Dataset, optional
             Dataset to process. If not provided, ``self.dataset`` is used (as

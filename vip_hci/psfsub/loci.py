@@ -22,7 +22,7 @@ import pandas as pn
 from multiprocessing import cpu_count
 from sklearn.metrics import pairwise_distances
 from dataclasses import dataclass
-from strenum import LowercaseStrEnum as LowEnum
+from enum import Enum
 from typing import Tuple, Union
 from ..var import get_annulus_segments
 from ..var.object_utils import setup_parameters, separate_kwargs_dict
@@ -55,7 +55,7 @@ class LOCIParams:
         e.g. with ``vip_hci.preproc.find_scal_vector``).
     fwhm : float, optional
         Size of the FHWM in pixels. Default is 4.
-    metric : LowerCaseStrEnum, see `vip_hci.var.paramenum.Metric`
+    metric : Enum, see `vip_hci.var.paramenum.Metric`
         Distance metric to be used ('cityblock', 'cosine', 'euclidean', 'l1',
         'l2', 'manhattan', 'correlation', etc). It uses the scikit-learn
         function ``sklearn.metrics.pairwise.pairwise_distances`` (check its
@@ -87,7 +87,7 @@ class LOCIParams:
         Number of processes for parallel computing. If None the number of
         processes will be set to cpu_count()/2. By default the algorithm works
         in single-process mode.
-    solver : LowerCaseStrEnum, see `vip_hci.var.paramenum.Solver`
+    solver : Enum, see `vip_hci.var.paramenum.Solver`
         Choosing the solver of the least squares problem. ``lstsq`` uses the
         standard scipy least squares solver. ``nnls`` uses the scipy
         non-negative least-squares solver.
@@ -102,7 +102,7 @@ class LOCIParams:
         similar to LOCI. The optimization segments share the same inner radius,
         mean angular position and angular width as their corresponding
         subtraction segments.
-    adimsdi : LowerCaseStrEnum, see `vip_hci.var.paramenum.Adimsdi`
+    adimsdi : Enum, see `vip_hci.var.paramenum.Adimsdi`
         Changes the way the 4d cubes (ADI+mSDI) are processed.
 
         ``skipadi``: the multi-spectral frames are rescaled wrt the largest
@@ -113,11 +113,11 @@ class LOCIParams:
         (as in the ``skipadi`` case). Then the residuals are processed again in
         an ADI fashion.
 
-    imlib : LowerCaseStrEnum, see `vip_hci.var.paramenum.Imlib`
+    imlib : Enum, see `vip_hci.var.paramenum.Imlib`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : LowerCaseStrEnum, see `vip_hci.var.paramenum.Interpolation`
+    interpolation : Enum, see `vip_hci.var.paramenum.Interpolation`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : LowerCaseStrEnum, see `vip_hci.var.paramenum.Collapse`
+    collapse : Enum, see `vip_hci.var.paramenum.Collapse`
         Sets the way of collapsing the frames for producing a final image.
     verbose: bool, optional
         If True prints info to stdout.
@@ -130,7 +130,7 @@ class LOCIParams:
     angle_list: np.ndarray = None
     scale_list: np.ndarray = None
     fwhm: float = 4
-    metric: LowEnum = Metric.MANHATTAN
+    metric: Enum = Metric.MANHATTAN
     dist_threshold: int = 100
     delta_rot: Union[float, Tuple[float]] = (0.1, 1)
     delta_sep: Union[float, Tuple[float]] = (0.1, 1)
@@ -138,13 +138,13 @@ class LOCIParams:
     asize: int = 4
     n_segments: int = 4
     nproc: int = 1
-    solver: LowEnum = Solver.LSTSQ
+    solver: Enum = Solver.LSTSQ
     tol: float = 1e-2
     optim_scale_fact: float = 2
-    adimsdi: LowEnum = Adimsdi.SKIPADI
-    imlib: LowEnum = Imlib.VIPFFT
-    interpolation: LowEnum = Interpolation.LANCZOS4
-    collapse: LowEnum = Collapse.MEDIAN
+    adimsdi: Enum = Adimsdi.SKIPADI
+    imlib: Enum = Imlib.VIPFFT
+    interpolation: Enum = Interpolation.LANCZOS4
+    collapse: Enum = Collapse.MEDIAN
     verbose: bool = True
     full_output: bool = False
 

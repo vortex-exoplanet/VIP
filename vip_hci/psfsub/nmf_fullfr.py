@@ -18,7 +18,7 @@ __all__ = ["nmf", "NMFParams"]
 import numpy as np
 from sklearn.decomposition import NMF
 from dataclasses import dataclass, field
-from strenum import LowercaseStrEnum as LowEnum
+from enum import Enum
 from typing import Tuple
 from ..preproc import cube_derotate, cube_collapse
 from ..preproc.derotation import _compute_pa_thresh, _find_indices_adi
@@ -51,7 +51,7 @@ class NMFParams:
     ncomp : int, optional
         How many components are used as for low-rank approximation of the
         datacube.
-    scaling : LowerCaseStrEnum, see `vip_hci.var.paramenum.Scaling`
+    scaling : Enum, see `vip_hci.var.paramenum.Scaling`
         With None, no scaling is performed on the input data before SVD. With
         "temp-mean" then temporal px-wise mean subtraction is done, with
         "spat-mean" then the spatial mean is subtracted, with "temp-standard"
@@ -76,20 +76,20 @@ class NMFParams:
         Default is 1 (excludes 1xFHWM on each side of the considered frame).
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Default value is 4.
-    init_svd: LowerCaseStrEnum, see `vip_hci.var.paramenum.Initsvd`
+    init_svd: Enum, see `vip_hci.var.paramenum.Initsvd`
         Method used to initialize the iterative procedure to find H and W.
         'nndsvd': non-negative double SVD recommended for sparseness
         'nndsvda': NNDSVD where zeros are filled with the average of cube;
         recommended when sparsity is not desired
         'random': random initial non-negative matrix
-    collapse : LowerCaseStrEnum, see `vip_hci.var.paramenum.Collapse`
+    collapse : Enum, see `vip_hci.var.paramenum.Collapse`
         Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
         Whether to return the final median combined image only or with other
         intermediate arrays.
     verbose : {True, False}, bool optional
         If True prints intermediate info and timing.
-    handle_neg: LowerCaseStrEnum, see `vip_hci.var.paramenum.HandleNeg`
+    handle_neg: Enum, see `vip_hci.var.paramenum.HandleNeg`
         Determines how to handle negative values: mask them, set them to zero,
         or subtract the minimum value in the arrays. Note: 'mask' or 'null'
         may leave significant artefacts after derotation of residual cube
@@ -104,19 +104,19 @@ class NMFParams:
     angle_list: np.ndarray = None
     cube_ref: np.ndarray = None
     ncomp: int = 1
-    scaling: LowEnum = None
+    scaling: Enum = None
     max_iter: int = 10000
     random_state: int = None
     mask_center_px: int = None
     source_xy: Tuple[int] = None
     delta_rot: float = 1
     fwhm: float = 4
-    init_svd: LowEnum = Initsvd.NNDSVD
-    collapse: LowEnum = Collapse.MEDIAN
+    init_svd: Enum = Initsvd.NNDSVD
+    collapse: Enum = Collapse.MEDIAN
     full_output: bool = False
     verbose: bool = True
     cube_sig: np.ndarray = None
-    handle_neg: LowEnum = HandleNeg.MASK
+    handle_neg: Enum = HandleNeg.MASK
     nmf_args: dict = field(default_factory=lambda: {})
 
 

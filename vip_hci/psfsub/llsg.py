@@ -22,7 +22,7 @@ from scipy.linalg import qr
 from multiprocessing import cpu_count
 from astropy.stats import median_absolute_deviation
 from dataclasses import dataclass
-from strenum import LowercaseStrEnum as LowEnum
+from enum import Enum
 from ..config import time_ini, timing
 from ..preproc import cube_derotate, cube_collapse
 from ..var import get_annulus_segments, cube_filter_highpass
@@ -54,9 +54,9 @@ class LLSGParams:
     low_rank_ref :
         If True the first estimation of the L component is obtained from the
         remaining segments in the same annulus.
-    low_rank_mode : LowerCaseStrEnum, see `vip_hci.var.paramenum.LowRankMode`
+    low_rank_mode : Enum, see `vip_hci.var.paramenum.LowRankMode`
         Sets the method of solving the L update.
-    auto_rank_mode : LowerCaseStrEnum, see `vip_hci.var.paramenum.AutoRankMode`
+    auto_rank_mode : Enum, see `vip_hci.var.paramenum.AutoRankMode`
         If ``rank`` is None, then ``auto_rank_mode`` sets the way that the
         ``rank`` is determined: the noise minimization or the cumulative
         explained variance ratio (when 'svd' is used).
@@ -66,7 +66,7 @@ class LLSGParams:
     cevr : float, optional
         Float value in the range [0,1] for selecting the cumulative explained
         variance ratio to choose the rank automatically (if ``rank`` is None).
-    thresh_mode : LowerCaseStrEnum, see `vip_hci.var.paramenum.ThreshMode`
+    thresh_mode : Enum, see `vip_hci.var.paramenum.ThreshMode`
         Sets the type of thresholding.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
@@ -91,7 +91,7 @@ class LLSGParams:
         first with the mode ``median-subt`` and a large window, and then with
         ``laplacian-conv`` and a kernel size equal to ``high_pass``. 5 is an
         optimal value when ``fwhm`` is ~4.
-    collapse : LowerCaseStrEnum, see `vip_hci.var.paramenum.Collapse`
+    collapse : Enum, see `vip_hci.var.paramenum.Collapse`
         Sets the way of collapsing the frames for producing a final image.
     full_output: bool, optional
         Whether to return the final median combined image only or with other
@@ -109,11 +109,11 @@ class LLSGParams:
     thresh: float = 1
     max_iter: int = 10
     low_rank_ref: bool = False
-    low_rank_mode: LowEnum = LowRankMode.SVD
-    auto_rank_mode: LowEnum = AutoRankMode.NOISE
+    low_rank_mode: Enum = LowRankMode.SVD
+    auto_rank_mode: Enum = AutoRankMode.NOISE
     residuals_tol: float = 1e-1
     cevr: float = 0.9
-    thresh_mode: LowEnum = ThreshMode.SOFT
+    thresh_mode: Enum = ThreshMode.SOFT
     nproc: int = 1
     asize: int = None
     n_segments: int = 4
@@ -121,7 +121,7 @@ class LLSGParams:
     radius_int: int = None
     random_seed: int = None
     high_pass: int = None
-    collapse: LowEnum = Collapse.MEDIAN
+    collapse: Enum = Collapse.MEDIAN
     full_output: bool = False
     verbose: bool = True
     debug: bool = False

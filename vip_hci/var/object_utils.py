@@ -56,7 +56,7 @@ def setup_parameters(
     params_obj: object,
     fkt: Callable,
     as_list: bool = False,
-    show_params: bool = True,
+    show_params: bool = False,
     **add_params: dict,
 ) -> any:
     """

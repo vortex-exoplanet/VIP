@@ -13,7 +13,7 @@ from enum import Enum
 from sklearn.metrics import pairwise_distances
 from ..var import get_annulus_segments
 from ..var.object_utils import setup_parameters, separate_kwargs_dict
-from ..var.paramenum import Metric, Imlib, Interpolation, Collapse
+from ..var.paramenum import Metric, Imlib, Interpolation, Collapse, ALGO_KEY
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..config import time_ini, timing
 from ..config.utils_conf import pool_map, iterable
@@ -26,7 +26,52 @@ class FrameDiffParams:
     """
     Set of parameters for the frame differencing module.
 
+    See the function `frame_diff` below for the documentation.
+    """
+
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
+    fwhm: float = 4
+    metric: Enum = Metric.MANHATTAN
+    dist_threshold: int = 50
+    n_similar: int = None
+    delta_rot: int = 0.5
+    radius_int: int = 2
+    asize: int = 4
+    ncomp: int = None
+    imlib: Enum = Imlib.VIPFFT
+    interpolation: Enum = Interpolation.LANCZOS4
+    collapse: Enum = Collapse.MEDIAN
+    nproc: int = 1
+    verbose: bool = True
+    debug: bool = False
+    full_output: bool = False
+
+
+def frame_diff(
+    *all_args,
+    **all_kwargs,
+):
+    """Run the frame differencing algorithm.
+
+    It uses vector distance (depending on
+    ``metric``), using separately the pixels from different annuli of ``asize``
+    width, to create pairs of most similar images. Then it performs pair-wise
+    subtraction and combines the residuals.
+
     Parameters
+    ----------
+    all_args: list, optional
+        Positionnal arguments for the frame diff algorithm. Full list of parameters
+        below.
+    all_kwargs: dictionary, optional
+        Mix of keyword arguments that can initialize a MedsubParams and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
+        "edge_blend", "interp_zeros", "ker" (see documentation of
+        ``vip_hci.preproc.frame_rotate``). Can also contain a FrameDiffParams if
+        provided.
+
+    Frame differencing parameters
     ----------
     cube : numpy ndarray, 3d
         Input cube.
@@ -72,47 +117,6 @@ class FrameDiffParams:
     debug : bool, optional
         If True the distance matrices will be plotted and additional information
         will be given.
-    """
-
-    cube: np.ndarray = None
-    angle_list: np.ndarray = None
-    fwhm: float = 4
-    metric: Enum = Metric.MANHATTAN
-    dist_threshold: int = 50
-    n_similar: int = None
-    delta_rot: int = 0.5
-    radius_int: int = 2
-    asize: int = 4
-    ncomp: int = None
-    imlib: Enum = Imlib.VIPFFT
-    interpolation: Enum = Interpolation.LANCZOS4
-    collapse: Enum = Collapse.MEDIAN
-    nproc: int = 1
-    verbose: bool = True
-    debug: bool = False
-    full_output: bool = False
-
-
-def frame_diff(
-    algo_params: FrameDiffParams = None,
-    **all_kwargs,
-):
-    """Run the frame differencing algorithm.
-
-    It uses vector distance (depending on
-    ``metric``), using separately the pixels from different annuli of ``asize``
-    width, to create pairs of most similar images. Then it performs pair-wise
-    subtraction and combines the residuals.
-
-    Parameters
-    ----------
-    algo_params: FrameDiffParams or PostProc
-        Dataclass retaining all the needed parameters for frame differencing.
-    all_kwargs: dictionary, optional
-        Mix of the parameters that can initialize an algo_params and the optional
-        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
-        "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``)
 
     Returns
     -------
@@ -124,8 +128,15 @@ def frame_diff(
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=FrameDiffParams
     )
+
+    # Extracting the object of parameters (if any)
+    algo_params = None
+    if ALGO_KEY in rot_options.keys():
+        algo_params = rot_options[ALGO_KEY]
+        del rot_options[ALGO_KEY]
+
     if algo_params is None:
-        algo_params = FrameDiffParams(**class_params)
+        algo_params = FrameDiffParams(*all_args, **class_params)
 
     global array
     array = algo_params.cube

@@ -65,7 +65,7 @@ def frame_diff(
         Positionnal arguments for the frame diff algorithm. Full list of parameters
         below.
     all_kwargs: dictionary, optional
-        Mix of keyword arguments that can initialize a MedsubParams and the optional
+        Mix of keyword arguments that can initialize a FrameDiffParams and the optional
         'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
         ``vip_hci.preproc.frame_rotate``). Can also contain a FrameDiffParams if

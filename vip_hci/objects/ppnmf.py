@@ -100,13 +100,15 @@ class PPNMF(PostProc, NMFAnnParams, NMFParams):
         if verbose is not None:
             self.verbose = verbose
 
+        all_params = {"algo_params": self, **rot_options}
+
         if runmode == "fullframe":
             # Annular NMF gives the default delta_rot, fullframe delta_rot must be int
             if not isinstance(self.delta_rot, float):
                 self.delta_rot = DELTA_FF_DEFAULT
 
             params_dict = self._create_parameters_dict(NMFParams)
-            res = nmf(algo_params=self, **rot_options)
+            res = nmf(**all_params)
 
             (
                 self.nmf_reshaped,
@@ -128,7 +130,7 @@ class PPNMF(PostProc, NMFAnnParams, NMFParams):
 
         else:
             params_dict = self._create_parameters_dict(NMFAnnParams)
-            res = nmf_annular(algo_params=self, **rot_options)
+            res = nmf_annular(**all_params)
 
             (
                 self.cube_residuals,

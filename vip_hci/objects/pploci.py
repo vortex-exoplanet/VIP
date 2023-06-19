@@ -77,7 +77,8 @@ class PPLOCI(PostProc, LOCIParams):
 
         params_dict = self._create_parameters_dict(LOCIParams)
 
-        res = xloci(algo_params=self, **rot_options)
+        all_params = {"algo_params": self, **rot_options}
+        res = xloci(**all_params)
 
         self.cube_res, self.cube_der, self.frame_final = res
 

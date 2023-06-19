@@ -80,7 +80,9 @@ class PPLLSG(PostProc, LLSGParams):
 
         params_dict = self._create_parameters_dict(LLSGParams)
 
-        res = llsg(algo_params=self, **rot_options)
+        all_params = {"algo_params": self, **rot_options}
+
+        res = llsg(**all_params)
         self.frame_l = res[3]
         self.frame_s = res[4]
         self.frame_g = res[5]

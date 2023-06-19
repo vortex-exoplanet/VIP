@@ -27,7 +27,7 @@ from ..config import time_ini, timing
 from ..preproc import cube_derotate, cube_collapse
 from ..var import get_annulus_segments, cube_filter_highpass
 from ..var.object_utils import setup_parameters, separate_kwargs_dict
-from ..var.paramenum import Collapse, LowRankMode, AutoRankMode, ThreshMode
+from ..var.paramenum import Collapse, LowRankMode, AutoRankMode, ThreshMode, ALGO_KEY
 from .svd import svd_wrapper, get_eigenvectors
 from ..config.utils_conf import pool_map, iterable
 
@@ -37,7 +37,63 @@ class LLSGParams:
     """
     Set of parameters for the LLSG algorithm.
 
+    See function `llsg` below for the documentation.
+    """
+
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
+    fwhm: float = None
+    rank: int = 10
+    thresh: float = 1
+    max_iter: int = 10
+    low_rank_ref: bool = False
+    low_rank_mode: Enum = LowRankMode.SVD
+    auto_rank_mode: Enum = AutoRankMode.NOISE
+    residuals_tol: float = 1e-1
+    cevr: float = 0.9
+    thresh_mode: Enum = ThreshMode.SOFT
+    nproc: int = 1
+    asize: int = None
+    n_segments: int = 4
+    azimuth_overlap: int = None
+    radius_int: int = None
+    random_seed: int = None
+    high_pass: int = None
+    collapse: Enum = Collapse.MEDIAN
+    full_output: bool = False
+    verbose: bool = True
+    debug: bool = False
+
+
+def llsg(
+    *all_args,
+    **all_kwargs,
+):
+    """Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as
+    described in [GOM16]_. This first version of our algorithm aims at
+    decomposing ADI cubes into three terms L+S+G (low-rank, sparse and Gaussian
+    noise). Separating the noise from the S component (where the moving planet
+    should stay) allow us to increase the SNR of potential planets.
+
+    The three tunable parameters are the *rank* or expected rank of the L
+    component, the ``thresh`` or threshold for encouraging sparsity in the S
+    component and ``max_iter`` which sets the number of iterations. The rest of
+    parameters can be tuned at the users own risk (do it if you know what you're
+    doing).
+
     Parameters
+    ----------
+    all_args: list, optional
+        Positionnal arguments for the LLSG algorithm. Full list of parameters
+        below.
+    all_kwargs: dictionary, optional
+        Mix of keyword arguments that can initialize a LLSGParams and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
+        "edge_blend", "interp_zeros", "ker" (see documentation of
+        ``vip_hci.preproc.frame_rotate``). Can also contain a LLSGParams if
+        provided.
+
+    LLSG parameters
     ----------
     cube : numpy ndarray, 3d
         Input ADI cube.
@@ -100,58 +156,6 @@ class LLSGParams:
         If True prints to stdout intermediate info.
     debug : bool, optional
         Whether to output some intermediate information.
-    """
-
-    cube: np.ndarray = None
-    angle_list: np.ndarray = None
-    fwhm: float = None
-    rank: int = 10
-    thresh: float = 1
-    max_iter: int = 10
-    low_rank_ref: bool = False
-    low_rank_mode: Enum = LowRankMode.SVD
-    auto_rank_mode: Enum = AutoRankMode.NOISE
-    residuals_tol: float = 1e-1
-    cevr: float = 0.9
-    thresh_mode: Enum = ThreshMode.SOFT
-    nproc: int = 1
-    asize: int = None
-    n_segments: int = 4
-    azimuth_overlap: int = None
-    radius_int: int = None
-    random_seed: int = None
-    high_pass: int = None
-    collapse: Enum = Collapse.MEDIAN
-    full_output: bool = False
-    verbose: bool = True
-    debug: bool = False
-
-
-def llsg(
-    algo_params: LLSGParams = None,
-    **all_kwargs,
-):
-    """Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as
-    described in [GOM16]_. This first version of our algorithm aims at
-    decomposing ADI cubes into three terms L+S+G (low-rank, sparse and Gaussian
-    noise). Separating the noise from the S component (where the moving planet
-    should stay) allow us to increase the SNR of potential planets.
-
-    The three tunable parameters are the *rank* or expected rank of the L
-    component, the ``thresh`` or threshold for encouraging sparsity in the S
-    component and ``max_iter`` which sets the number of iterations. The rest of
-    parameters can be tuned at the users own risk (do it if you know what you're
-    doing).
-
-    Parameters
-    ----------
-    algo_params: LLSGParams
-        Dataclass retaining all the needed parameters for LLSG.
-    all_kwargs: dictionary, optional
-        Mix of the parameters that can initialize an algo_params and the optional
-        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
-        "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``)
 
     Returns
     -------
@@ -168,8 +172,15 @@ def llsg(
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=LLSGParams
     )
+
+    # Extracting the object of parameters (if any)
+    algo_params = None
+    if ALGO_KEY in rot_options.keys():
+        algo_params = rot_options[ALGO_KEY]
+        del rot_options[ALGO_KEY]
+
     if algo_params is None:
-        algo_params = LLSGParams(**class_params)
+        algo_params = LLSGParams(*all_args, **class_params)
 
     if algo_params.cube.ndim != 3:
         raise TypeError("Input array is not a cube (3d array)")

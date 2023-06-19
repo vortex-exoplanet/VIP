@@ -26,7 +26,15 @@ from enum import Enum
 from typing import Tuple, Union
 from ..var import get_annulus_segments
 from ..var.object_utils import setup_parameters, separate_kwargs_dict
-from ..var.paramenum import Metric, Adimsdi, Imlib, Interpolation, Collapse, Solver
+from ..var.paramenum import (
+    Metric,
+    Adimsdi,
+    Imlib,
+    Interpolation,
+    Collapse,
+    Solver,
+    ALGO_KEY,
+)
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector, check_scal_vector
 from ..preproc.rescaling import _find_indices_sdi
 from ..config import time_ini, timing
@@ -40,7 +48,54 @@ class LOCIParams:
     """
     Set of parameters for the LOCI algorithm.
 
+    See function `xloci` below for the documentation.
+    """
+
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
+    scale_list: np.ndarray = None
+    fwhm: float = 4
+    metric: Enum = Metric.MANHATTAN
+    dist_threshold: int = 100
+    delta_rot: Union[float, Tuple[float]] = (0.1, 1)
+    delta_sep: Union[float, Tuple[float]] = (0.1, 1)
+    radius_int: int = 0
+    asize: int = 4
+    n_segments: int = 4
+    nproc: int = 1
+    solver: Enum = Solver.LSTSQ
+    tol: float = 1e-2
+    optim_scale_fact: float = 2
+    adimsdi: Enum = Adimsdi.SKIPADI
+    imlib: Enum = Imlib.VIPFFT
+    interpolation: Enum = Interpolation.LANCZOS4
+    collapse: Enum = Collapse.MEDIAN
+    verbose: bool = True
+    full_output: bool = False
+
+
+def xloci(*all_args, **all_kwargs):
+    """Locally Optimized Combination of Images (LOCI) algorithm as in [LAF07]_.
+    The PSF is modeled (for ADI and ADI+mSDI) with a least-square combination
+    of neighbouring frames (solving the equation a x = b by computing a vector
+    x of coefficients that minimizes the Euclidean 2-norm || b - a x ||^2).
+
+    This algorithm is also compatible with IFS data to perform LOCI-SDI, in a
+    similar fashion as suggested in [PUE12]_ (albeit without dampening zones).
+
     Parameters
+    ----------
+    all_args: list, optional
+        Positionnal arguments for the LOCI algorithm. Full list of parameters
+        below.
+    all_kwargs: dictionary, optional
+        Mix of keyword arguments that can initialize a LOCIParams and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
+        "edge_blend", "interp_zeros", "ker" (see documentation of
+        ``vip_hci.preproc.frame_rotate``). Can also contain a LOCIParams if
+        provided.
+
+    LOCI parameters
     ----------
     cube : numpy ndarray, 3d or 4d
         Input cube.
@@ -124,49 +179,6 @@ class LOCIParams:
     full_output: bool, optional
         Whether to return the final median combined image only or with other
         intermediate arrays.
-    """
-
-    cube: np.ndarray = None
-    angle_list: np.ndarray = None
-    scale_list: np.ndarray = None
-    fwhm: float = 4
-    metric: Enum = Metric.MANHATTAN
-    dist_threshold: int = 100
-    delta_rot: Union[float, Tuple[float]] = (0.1, 1)
-    delta_sep: Union[float, Tuple[float]] = (0.1, 1)
-    radius_int: int = 0
-    asize: int = 4
-    n_segments: int = 4
-    nproc: int = 1
-    solver: Enum = Solver.LSTSQ
-    tol: float = 1e-2
-    optim_scale_fact: float = 2
-    adimsdi: Enum = Adimsdi.SKIPADI
-    imlib: Enum = Imlib.VIPFFT
-    interpolation: Enum = Interpolation.LANCZOS4
-    collapse: Enum = Collapse.MEDIAN
-    verbose: bool = True
-    full_output: bool = False
-
-
-def xloci(algo_params: LOCIParams = None, **all_kwargs):
-    """Locally Optimized Combination of Images (LOCI) algorithm as in [LAF07]_.
-    The PSF is modeled (for ADI and ADI+mSDI) with a least-square combination
-    of neighbouring frames (solving the equation a x = b by computing a vector
-    x of coefficients that minimizes the Euclidean 2-norm || b - a x ||^2).
-
-    This algorithm is also compatible with IFS data to perform LOCI-SDI, in a
-    similar fashion as suggested in [PUE12]_ (albeit without dampening zones).
-
-    Parameters
-    ----------
-    algo_params: LOCIParams
-        Dataclass retaining all the needed parameters for LOCI.
-    all_kwargs: dictionary, optional
-        Mix of the parameters that can initialize an algo_params and the optional
-        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
-        "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``)
 
     Returns
     -------
@@ -181,8 +193,15 @@ def xloci(algo_params: LOCIParams = None, **all_kwargs):
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=LOCIParams
     )
+
+    # Extracting the object of parameters (if any)
+    algo_params = None
+    if ALGO_KEY in rot_options.keys():
+        algo_params = rot_options[ALGO_KEY]
+        del rot_options[ALGO_KEY]
+
     if algo_params is None:
-        algo_params = LOCIParams(**class_params)
+        algo_params = LOCIParams(*all_args, **class_params)
 
     global ARRAY
     ARRAY = algo_params.cube

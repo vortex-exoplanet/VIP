@@ -48,14 +48,59 @@ from ..config.utils_conf import pool_map, iterable, print_precision
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
 
+ALGO_KEY = "algo_params"
+
 
 @dataclass
 class MedsubParams:
     """
     Set of parameters for the median subtraction module.
 
+    See function `median_sub` below for documentation.
+    """
+
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
+    scale_list: np.ndarray = None
+    flux_sc_list: np.ndarray = None
+    fwhm: float = 4
+    radius_int: int = 0
+    asize: int = 4
+    delta_rot: int = 1
+    delta_sep: Union[float, Tuple[float]] = (0.1, 1)
+    mode: str = "fullfr"
+    nframes: int = 4
+    sdi_only: bool = False
+    imlib: Enum = Imlib.VIPFFT
+    interpolation: Enum = Interpolation.LANCZOS4
+    collapse: Enum = Collapse.MEDIAN
+    nproc: int = 1
+    full_output: bool = False
+    verbose: bool = True
+
+
+def median_sub(*all_args, **all_kwargs):
+    """Implementation of a median subtraction algorithm for model PSF
+    subtraction in high-contrast imaging sequences. In the case of ADI, the
+    algorithm is based on [MAR06]_. The ADI+IFS method is an extension of this
+    basic idea to multi-spectral cubes.
+
+    References: [MAR06]_ for median-ADI; [SPA02]_ and [THA07]_ for SDI.
+
     Parameters
     ----------
+    all_args: list, optional
+        Positionnal arguments for the median_sub function. Full list of parameters
+        below.
+    all_kwargs: dictionary, optional
+        Mix of keyword arguments that can initialize a MedsubParams and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
+        "edge_blend", "interp_zeros", "ker" (see documentation of
+        ``vip_hci.preproc.frame_rotate``). Can also contain a MedsubParams if
+        provided.
+
+    Median subtraction parameters
+    -----------------------------
     cube : numpy ndarray, 3d
         Input cube.
     angle_list : numpy ndarray, 1d
@@ -118,46 +163,6 @@ class MedsubParams:
         intermediate arrays.
     verbose : bool, optional
         If True prints to stdout intermediate info.
-    """
-
-    cube: np.ndarray = None
-    angle_list: np.ndarray = None
-    scale_list: np.ndarray = None
-    flux_sc_list: np.ndarray = None
-    fwhm: float = 4
-    radius_int: int = 0
-    asize: int = 4
-    delta_rot: int = 1
-    delta_sep: Union[float, Tuple[float]] = (0.1, 1)
-    mode: str = "fullfr"
-    nframes: int = 4
-    sdi_only: bool = False
-    imlib: Enum = Imlib.VIPFFT
-    interpolation: Enum = Interpolation.LANCZOS4
-    collapse: Enum = Collapse.MEDIAN
-    nproc: int = 1
-    full_output: bool = False
-    verbose: bool = True
-
-
-def median_sub(algo_params: MedsubParams = None, **all_kwargs):
-    """Implementation of a median subtraction algorithm for model PSF
-    subtraction in high-contrast imaging sequences. In the case of ADI, the
-    algorithm is based on [MAR06]_. The ADI+IFS method is an extension of this
-    basic idea to multi-spectral cubes.
-
-    References: [MAR06]_ for median-ADI; [SPA02]_ and [THA07]_ for SDI.
-
-    Parameters
-    ----------
-    algo_params: MedsubParams or PostProc
-        Dataclass retaining all the needed parameters for median subtraction.
-    all_kwargs: dictionary, optional
-        Mix of the parameters that can initialize an algo_params and the optional
-        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
-        "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``)
-
     Returns
     -------
     cube_out : numpy ndarray, 3d
@@ -168,13 +173,19 @@ def median_sub(algo_params: MedsubParams = None, **all_kwargs):
         Median combination of the de-rotated cube.
 
     """
-
     # Separating the parameters of the ParamsObject from the optionnal rot_options
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=MedsubParams
     )
+
+    # Extracting the object of parameters (if any)
+    algo_params = None
+    if ALGO_KEY in rot_options.keys():
+        algo_params = rot_options[ALGO_KEY]
+        del rot_options[ALGO_KEY]
+
     if algo_params is None:
-        algo_params = MedsubParams(**class_params)
+        algo_params = MedsubParams(*all_args, **class_params)
 
     global ARRAY
     ARRAY = algo_params.cube.copy()

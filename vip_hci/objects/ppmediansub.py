@@ -87,7 +87,9 @@ class PPMedianSub(PostProc, MedsubParams):
 
         params_dict = self._create_parameters_dict(MedsubParams)
 
-        res = median_sub(algo_params=self, **rot_options)
+        all_params = {"algo_params": self, **rot_options}
+
+        res = median_sub(**all_params)
 
         self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 

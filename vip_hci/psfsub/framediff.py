@@ -9,6 +9,7 @@ import pandas as pn
 from hciplot import plot_frames
 from multiprocessing import cpu_count
 from dataclasses import dataclass
+from typing import List
 from enum import Enum
 from sklearn.metrics import pairwise_distances
 from ..var import get_annulus_segments
@@ -48,10 +49,7 @@ class FrameDiffParams:
     full_output: bool = False
 
 
-def frame_diff(
-    *all_args,
-    **all_kwargs,
-):
+def frame_diff(*all_args: List, **all_kwargs: dict):
     """Run the frame differencing algorithm.
 
     It uses vector distance (depending on
@@ -68,8 +66,8 @@ def frame_diff(
         Mix of keyword arguments that can initialize a FrameDiffParams and the optional
         'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``). Can also contain a FrameDiffParams if
-        provided.
+        ``vip_hci.preproc.frame_rotate``). Can also contain a FrameDiffParams named as
+        `algo_params`.
 
     Frame differencing parameters
     ----------

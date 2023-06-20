@@ -19,7 +19,7 @@ import numpy as np
 from sklearn.decomposition import NMF
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Tuple
+from typing import Tuple, List
 from ..preproc import cube_derotate, cube_collapse
 from ..preproc.derotation import _compute_pa_thresh, _find_indices_adi
 from ..var import (
@@ -63,7 +63,7 @@ class NMFParams:
     nmf_args: dict = field(default_factory=lambda: {})
 
 
-def nmf(*all_args, **all_kwargs):
+def nmf(*all_args: List, **all_kwargs: dict):
     """Non Negative Matrix Factorization [LEE99]_ for ADI sequences [GOM17]_.
     Alternative to the full-frame ADI-PCA processing that does not rely on SVD
     or ED for obtaining a low-rank approximation of the datacube. This function
@@ -79,8 +79,8 @@ def nmf(*all_args, **all_kwargs):
         Mix of keyword arguments that can initialize a NMFParams and the optional
         'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``). Can also contain a NMFParams if
-        provided.
+        ``vip_hci.preproc.frame_rotate``). Can also contain a NMFParams named as
+        `algo_params`.
 
     NMF parameters
     ----------

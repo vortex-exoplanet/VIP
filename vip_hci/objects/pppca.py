@@ -188,7 +188,9 @@ class PPPCA(PostProc, PCAParams, PCAAnnParams):
 
                 params_dict = self._create_parameters_dict(PCAParams)
 
-                res = pca(algo_params=self, **rot_options)
+                all_params = {"algo_params": self, **rot_options}
+
+                res = pca(**all_params)
 
                 self._find_pca_mode(res=res)
 
@@ -205,7 +207,9 @@ class PPPCA(PostProc, PCAParams, PCAAnnParams):
 
                 params_dict = self._create_parameters_dict(PCAAnnParams)
 
-                res = pca_annular(algo_params=self, **rot_options)
+                all_params = {"algo_params": self, **rot_options}
+
+                res = pca_annular(**all_params)
 
                 self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 

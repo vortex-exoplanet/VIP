@@ -59,7 +59,7 @@ class NMFAnnParams:
 
 
 # TODO: update the doc of the params (some are missing)
-def nmf_annular(*all_args, **all_kwargs):
+def nmf_annular(*all_args: List, **all_kwargs: dict):
     """Non Negative Matrix Factorization in concentric annuli, for ADI/RDI
     sequences. Alternative to the annular ADI-PCA processing that does not rely
     on SVD or ED for obtaining a low-rank approximation of the datacube.
@@ -75,8 +75,8 @@ def nmf_annular(*all_args, **all_kwargs):
         Mix of keyword arguments that can initialize a NMFAnnParams and the optional
         'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``). Can also contain a NMFAnnParams if
-        provided.
+        ``vip_hci.preproc.frame_rotate``). Can also contain a NMFAnnParams named as
+        `algo_params`..
 
     NMF annular parameters
     ----------

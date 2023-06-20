@@ -23,7 +23,7 @@ from multiprocessing import cpu_count
 from sklearn.metrics import pairwise_distances
 from dataclasses import dataclass
 from enum import Enum
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 from ..var import get_annulus_segments
 from ..var.object_utils import setup_parameters, separate_kwargs_dict
 from ..var.paramenum import (
@@ -74,7 +74,7 @@ class LOCIParams:
     full_output: bool = False
 
 
-def xloci(*all_args, **all_kwargs):
+def xloci(*all_args: List, **all_kwargs: dict):
     """Locally Optimized Combination of Images (LOCI) algorithm as in [LAF07]_.
     The PSF is modeled (for ADI and ADI+mSDI) with a least-square combination
     of neighbouring frames (solving the equation a x = b by computing a vector
@@ -92,8 +92,8 @@ def xloci(*all_args, **all_kwargs):
         Mix of keyword arguments that can initialize a LOCIParams and the optional
         'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``). Can also contain a LOCIParams if
-        provided.
+        ``vip_hci.preproc.frame_rotate``). Can also contain a LOCIParams named as
+        `algo_params`.
 
     LOCI parameters
     ----------

@@ -22,6 +22,7 @@ from scipy.linalg import qr
 from multiprocessing import cpu_count
 from astropy.stats import median_absolute_deviation
 from dataclasses import dataclass
+from typing import List
 from enum import Enum
 from ..config import time_ini, timing
 from ..preproc import cube_derotate, cube_collapse
@@ -65,10 +66,7 @@ class LLSGParams:
     debug: bool = False
 
 
-def llsg(
-    *all_args,
-    **all_kwargs,
-):
+def llsg(*all_args: List, **all_kwargs: dict):
     """Local Low-rank plus Sparse plus Gaussian-noise decomposition (LLSG) as
     described in [GOM16]_. This first version of our algorithm aims at
     decomposing ADI cubes into three terms L+S+G (low-rank, sparse and Gaussian
@@ -90,8 +88,8 @@ def llsg(
         Mix of keyword arguments that can initialize a LLSGParams and the optional
         'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``). Can also contain a LLSGParams if
-        provided.
+        ``vip_hci.preproc.frame_rotate``). Can also contain a LLSGParams named as
+        `algo_params`.
 
     LLSG parameters
     ----------

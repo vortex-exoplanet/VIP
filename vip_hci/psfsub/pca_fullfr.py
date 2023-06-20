@@ -44,12 +44,12 @@ __all__ = ["pca", "PCAParams"]
 
 import numpy as np
 from multiprocessing import cpu_count
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 from dataclasses import dataclass
 from enum import Enum
 from .svd import svd_wrapper, SVDecomposer
 from .utils_pca import pca_incremental, pca_grid
-from ..var.paramenum import SvdMode, Adimsdi, Interpolation, Imlib, Collapse
+from ..var.paramenum import SvdMode, Adimsdi, Interpolation, Imlib, Collapse, ALGO_KEY
 from ..preproc.derotation import _find_indices_adi, _compute_pa_thresh
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc import (
@@ -79,7 +79,74 @@ class PCAParams:
     """
     Set of parameters for the PCA module.
 
+    See function `pca` below for the documentation.
+    """
+
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
+    cube_ref: np.ndarray = None
+    scale_list: np.ndarray = None
+    ncomp: Union[Tuple, float, int] = 1
+    svd_mode: Enum = SvdMode.LAPACK
+    scaling: Enum = None
+    mask_center_px: int = None
+    source_xy: Tuple[int] = None
+    delta_rot: int = None
+    fwhm: float = 4
+    adimsdi: Enum = Adimsdi.SINGLE
+    crop_ifs: bool = True
+    imlib: Enum = Imlib.VIPFFT
+    imlib2: Enum = Imlib.VIPFFT
+    interpolation: Enum = Interpolation.LANCZOS4
+    collapse: Enum = Collapse.MEDIAN
+    collapse_ifs: Enum = Collapse.MEAN
+    ifs_collapse_range: Union[str, Tuple[int]] = "all"
+    mask_rdi: np.ndarray = None
+    check_memory: bool = True
+    batch: Union[int, float] = None
+    nproc: int = 1
+    full_output: bool = False
+    verbose: bool = True
+    weights: np.ndarray = None
+    left_eigv: bool = False
+    cube_sig: np.ndarray = None
+
+
+def pca(*all_args: List, **all_kwargs: dict):
+    """Full-frame PCA algorithm applied to PSF substraction.
+
+    The reference PSF and the quasi-static speckle pattern are modeled using Principal
+    Component Analysis. Depending on the input parameters this PCA function can work in
+    ADI, RDI or mSDI (IFS data) mode.
+
+    ADI: the target ``cube`` itself is used to learn the PCs and to obtain a
+    low-rank approximation model PSF (star + speckles). Both `cube_ref`` and
+    ``scale_list`` must be None. The full-frame ADI-PCA implementation is based
+    on [AMA12]_ and [SOU12]_. If ``batch`` is provided then the cube is processed
+    with incremental PCA as described in [GOM17]_.
+
+    (ADI+)RDI: if a reference cube is provided (``cube_ref``), its PCs are used
+    to reconstruct the target frames to obtain the model PSF (star + speckles).
+
+    (ADI+)mSDI (IFS data): if a scaling vector is provided (``scale_list``) and
+    the cube is a 4d array [# channels, # adi-frames, Y, X], it's assumed it
+    contains several multi-spectral frames acquired in pupil-stabilized mode.
+    A single or two stages PCA can be performed, depending on ``adimsdi``, as
+    explained in [CHR19]_.
+
     Parameters
+    ----------
+    all_args: list, optional
+        Positionnal arguments for the PCA algorithm. Full list of parameters
+        below.
+    all_kwargs: dictionary, optional
+        Mix of keyword arguments that can initialize a PCAParams and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
+        "edge_blend", "interp_zeros", "ker" (see documentation of
+        ``vip_hci.preproc.frame_rotate``). Can also contain a PCAParams named as
+        `algo_params`.
+
+    PCA parameters
     ----------
     cube : str or numpy ndarray, 3d or 4d
         Input cube (ADI or ADI+mSDI). If 4D, the first dimension should be
@@ -223,72 +290,6 @@ class PCAParams:
     cube_sig: numpy ndarray, opt
         Cube with estimate of significant authentic signals. If provided, this
         will subtracted before projecting cube onto reference cube.
-    """
-
-    cube: np.ndarray = None
-    angle_list: np.ndarray = None
-    cube_ref: np.ndarray = None
-    scale_list: np.ndarray = None
-    ncomp: Union[Tuple, float, int] = 1
-    svd_mode: Enum = SvdMode.LAPACK
-    scaling: Enum = None
-    mask_center_px: int = None
-    source_xy: Tuple[int] = None
-    delta_rot: int = None
-    fwhm: float = 4
-    adimsdi: Enum = Adimsdi.SINGLE
-    crop_ifs: bool = True
-    imlib: Enum = Imlib.VIPFFT
-    imlib2: Enum = Imlib.VIPFFT
-    interpolation: Enum = Interpolation.LANCZOS4
-    collapse: Enum = Collapse.MEDIAN
-    collapse_ifs: Enum = Collapse.MEAN
-    ifs_collapse_range: Union[str, Tuple[int]] = "all"
-    mask_rdi: np.ndarray = None
-    check_memory: bool = True
-    batch: Union[int, float] = None
-    nproc: int = 1
-    full_output: bool = False
-    verbose: bool = True
-    weights: np.ndarray = None
-    left_eigv: bool = False
-    cube_sig: np.ndarray = None
-
-
-def pca(
-    algo_params: PCAParams = None,
-    **all_kwargs: dict,
-):
-    """Full-frame PCA algorithm applied to PSF substraction.
-
-    The reference PSF and the quasi-static speckle pattern are modeled using Principal
-    Component Analysis. Depending on the input parameters this PCA function can work in
-    ADI, RDI or mSDI (IFS data) mode.
-
-    ADI: the target ``cube`` itself is used to learn the PCs and to obtain a
-    low-rank approximation model PSF (star + speckles). Both `cube_ref`` and
-    ``scale_list`` must be None. The full-frame ADI-PCA implementation is based
-    on [AMA12]_ and [SOU12]_. If ``batch`` is provided then the cube is processed
-    with incremental PCA as described in [GOM17]_.
-
-    (ADI+)RDI: if a reference cube is provided (``cube_ref``), its PCs are used
-    to reconstruct the target frames to obtain the model PSF (star + speckles).
-
-    (ADI+)mSDI (IFS data): if a scaling vector is provided (``scale_list``) and
-    the cube is a 4d array [# channels, # adi-frames, Y, X], it's assumed it
-    contains several multi-spectral frames acquired in pupil-stabilized mode.
-    A single or two stages PCA can be performed, depending on ``adimsdi``, as
-    explained in [CHR19]_.
-
-    Parameters
-    ----------
-    algo_params: PCAParams
-        Dataclass retaining all the needed parameters for PCA.
-    all_kwargs: dictionary, optional
-        Mix of the parameters that can initialize an algo_params and the optional
-        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
-        "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``)
 
     Return
     -------
@@ -334,8 +335,15 @@ def pca(
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=PCAParams
     )
+
+    # Extracting the object of parameters (if any)
+    algo_params = None
+    if ALGO_KEY in rot_options.keys():
+        algo_params = rot_options[ALGO_KEY]
+        del rot_options[ALGO_KEY]
+
     if algo_params is None:
-        algo_params = PCAParams(**class_params)
+        algo_params = PCAParams(*all_args, **class_params)
 
     start_time = time_ini(algo_params.verbose)
 

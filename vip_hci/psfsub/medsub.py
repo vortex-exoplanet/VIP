@@ -37,7 +37,7 @@ import numpy as np
 from multiprocessing import cpu_count
 from dataclasses import dataclass
 from enum import Enum
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 from ..config import time_ini, timing
 from ..var import get_annulus_segments, mask_circle
 from ..var.paramenum import Imlib, Interpolation, Collapse, ALGO_KEY
@@ -77,7 +77,7 @@ class MedsubParams:
     verbose: bool = True
 
 
-def median_sub(*all_args, **all_kwargs):
+def median_sub(*all_args: List, **all_kwargs: dict):
     """Implementation of a median subtraction algorithm for model PSF
     subtraction in high-contrast imaging sequences. In the case of ADI, the
     algorithm is based on [MAR06]_. The ADI+IFS method is an extension of this
@@ -94,8 +94,8 @@ def median_sub(*all_args, **all_kwargs):
         Mix of keyword arguments that can initialize a MedsubParams and the optional
         'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``). Can also contain a MedsubParams if
-        provided.
+        ``vip_hci.preproc.frame_rotate``). Can also contain a MedsubParams named as
+        `algo_params`.
 
     Median subtraction parameters
     -----------------------------

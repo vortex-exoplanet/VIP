@@ -60,7 +60,8 @@ class PPFMMF(PostProc, FMMFParams):
             self.nproc = nproc
 
         params_dict = self._create_parameters_dict(FMMFParams)
-        res = fmmf(algo_params=self)
+        all_params = {"algo_params": self}
+        res = fmmf(**all_params)
 
         self.frame_final, self.snr_map = res
 

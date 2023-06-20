@@ -265,15 +265,15 @@ def andromeda(*all_args: List, **all_kwargs: dict):
         diam_tel = 8.0   : Telescope diameter [m]
 
     """
-    class_params, rot_options = separate_kwargs_dict(
+    class_params, other_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=AndroParams
     )
 
     # Extracting the object of parameters (if any)
     algo_params = None
-    if ALGO_KEY in rot_options.keys():
-        algo_params = rot_options[ALGO_KEY]
-        del rot_options[ALGO_KEY]
+    if ALGO_KEY in other_options.keys():
+        algo_params = other_options[ALGO_KEY]
+        del other_options[ALGO_KEY]
 
     if algo_params is None:
         algo_params = AndroParams(*all_args, **class_params)

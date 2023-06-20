@@ -26,13 +26,13 @@ import numpy as np
 from dataclasses import dataclass
 from enum import Enum
 
-from typing import Union
+from typing import Union, List
 
 from ..var.filters import frame_filter_highpass, cube_filter_highpass
 from ..config.utils_conf import pool_map, iterable
 from ..var import dist_matrix
-from ..var.object_utils import setup_parameters
-from ..var.paramenum import OptMethod
+from ..var.object_utils import setup_parameters, separate_kwargs_dict
+from ..var.paramenum import OptMethod, ALGO_KEY
 
 from .utils_andro import (
     calc_psf_shift_subpix,
@@ -48,10 +48,53 @@ global CUBE
 
 @dataclass
 class AndroParams:
-    r"""
+    """
     Set of parameters for the ANDROMEDA algorithm.
 
+    See function `andromeda` below for the documentation.
+    """
+
+    cube: np.ndarray = None
+    oversampling_fact: float = None
+    angle_list: np.ndarray = None
+    psf: np.ndarray = None
+    filtering_fraction: float = 0.25
+    min_sep: float = 0.5
+    annuli_width: float = 1.0
+    roa: float = 2
+    opt_method: Enum = OptMethod.LSQ
+    nsmooth_snr: int = 18
+    iwa: float = None
+    owa: float = None
+    precision: int = 50
+    fast: Union[float, bool] = False
+    homogeneous_variance: bool = True
+    ditimg: float = 1.0
+    ditpsf: float = None
+    tnd: float = 1.0
+    total: bool = False
+    multiply_gamma: bool = True
+    nproc: int = 1
+    verbose: bool = False
+
+
+def andromeda(*all_args: List, **all_kwargs: dict):
+    r"""
+    Exoplanet detection in ADI sequences by maximum-likelihood approach.
+
+    This is as implemented in [CAN15]_, itself inspired by the framework presented in
+    [MUG09]_.
+
     Parameters
+    ----------
+    all_args: list, optional
+        Positionnal arguments for the andromeda algorithm. Full list of parameters
+        below.
+    all_kwargs: dictionary, optional
+        Mix of keyword arguments that can initialize a AndroParams or a AndroParams
+        itself.
+
+    Andromeda parameters
     ----------
     cube : 3d numpy ndarray
         Input cube.
@@ -147,45 +190,6 @@ class AndroParams:
     verbose : bool, optional
         Print some parameter values for control.
         IDL parameter: ``VERBOSE``
-    """
-    cube: np.ndarray = None
-    oversampling_fact: float = None
-    angle_list: np.ndarray = None
-    psf: np.ndarray = None
-    filtering_fraction: float = 0.25
-    min_sep: float = 0.5
-    annuli_width: float = 1.0
-    roa: float = 2
-    opt_method: Enum = OptMethod.LSQ
-    nsmooth_snr: int = 18
-    iwa: float = None
-    owa: float = None
-    precision: int = 50
-    fast: Union[float, bool] = False
-    homogeneous_variance: bool = True
-    ditimg: float = 1.0
-    ditpsf: float = None
-    tnd: float = 1.0
-    total: bool = False
-    multiply_gamma: bool = True
-    nproc: int = 1
-    verbose: bool = False
-
-
-def andromeda(algo_params: AndroParams = None, **class_params: dict):
-    """
-    Exoplanet detection in ADI sequences by maximum-likelihood approach.
-
-    This is as implemented in [CAN15]_, itself inspired by the framework presented in
-    [MUG09]_.
-
-    Parameters
-    ----------
-    algo_params: AndroParams
-        Dataclass retaining all the needed parameters for ANDROMEDA.
-    class_params: dict, optionnal
-        Set of parameters needed for an initialization of algo_params if none
-        was provided.
 
     Returns
     -------
@@ -261,8 +265,18 @@ def andromeda(algo_params: AndroParams = None, **class_params: dict):
         diam_tel = 8.0   : Telescope diameter [m]
 
     """
+    class_params, rot_options = separate_kwargs_dict(
+        initial_kwargs=all_kwargs, parent_class=AndroParams
+    )
+
+    # Extracting the object of parameters (if any)
+    algo_params = None
+    if ALGO_KEY in rot_options.keys():
+        algo_params = rot_options[ALGO_KEY]
+        del rot_options[ALGO_KEY]
+
     if algo_params is None:
-        algo_params = AndroParams(**class_params)
+        algo_params = AndroParams(*all_args, **class_params)
 
     def info(msg, *fmt, **kwfmt):
         if algo_params.verbose:

@@ -73,7 +73,8 @@ class PPAndromeda(PostProc, AndroParams):
             self.nproc = nproc
 
         params_dict = self._create_parameters_dict(AndroParams)
-        res = andromeda(algo_params=self)
+        all_params = {"algo_params": self}
+        res = andromeda(**all_params)
 
         self.contrast_map = res[0]
         self.likelihood_map = res[5]

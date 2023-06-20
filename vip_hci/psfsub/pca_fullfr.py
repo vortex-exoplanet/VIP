@@ -332,6 +332,8 @@ def pca(*all_args: List, **all_kwargs: dict):
 
     """
     # Separating the parameters of the ParamsObject from the optionnal rot_options
+    print(f"kwargs : {all_kwargs}")
+
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=PCAParams
     )

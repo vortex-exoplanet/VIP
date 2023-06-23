@@ -2,7 +2,7 @@
 """Module for the post-processing median subtraction algorithm."""
 
 __author__ = "Thomas Bédrine"
-__all__ = ["MedianBuilder"]
+__all__ = ["MedianBuilder", "PPMedianSub"]
 
 from typing import Optional
 from dataclasses import dataclass

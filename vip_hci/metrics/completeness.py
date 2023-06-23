@@ -352,6 +352,7 @@ def completeness_curve(
             wedge=(0, 360),
             fc_snr=100,
             plot=False,
+            algo_class=algo_class,
             **algo_dict,
         )
         ini_rads = np.array(ini_cc["distance"])

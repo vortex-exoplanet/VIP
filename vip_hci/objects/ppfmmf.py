@@ -2,9 +2,7 @@
 """Module for the post-processing FMMF algorithm."""
 
 __author__ = "Thomas Bédrine"
-__all__ = [
-    "FMMFBuilder",
-]
+__all__ = ["FMMFBuilder", "PPFMMF"]
 
 from typing import Optional
 from dataclasses import dataclass

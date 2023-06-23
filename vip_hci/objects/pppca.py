@@ -2,9 +2,7 @@
 """Module for the post-processing PCA algorithm."""
 
 __author__ = "Thomas Bédrine"
-__all__ = [
-    "PCABuilder",
-]
+__all__ = ["PCABuilder", "PPPCA"]
 
 from typing import Tuple, Optional, List
 from dataclasses import dataclass, field

@@ -2,9 +2,7 @@
 """Module for the post-processing ANDROMEDA algorithm."""
 
 __author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Ralf Farkas"
-__all__ = [
-    "AndroBuilder",
-]
+__all__ = ["AndroBuilder", "PPAndromeda"]
 
 from typing import Optional
 from dataclasses import dataclass

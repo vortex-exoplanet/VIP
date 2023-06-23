@@ -2,9 +2,7 @@
 """Module for the post-processing frame differencing algorithm."""
 
 __author__ = "Thomas Bédrine"
-__all__ = [
-    "FrameDiffBuilder",
-]
+__all__ = ["FrameDiffBuilder", "PPFrameDiff"]
 
 from dataclasses import dataclass
 from typing import Optional

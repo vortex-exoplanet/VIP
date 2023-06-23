@@ -2,7 +2,7 @@
 """Module for the post-processing LOCI algorithm."""
 
 __author__ = "Thomas Bédrine"
-__all__ = ["LOCIBuilder"]
+__all__ = ["LOCIBuilder", "PPLOCI"]
 
 
 from typing import Optional

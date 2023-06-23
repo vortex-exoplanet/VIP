@@ -2,9 +2,7 @@
 """Module for the post-processing LLSG algorithm."""
 
 __author__ = "Thomas Bédrine"
-__all__ = [
-    "LLSGBuilder",
-]
+__all__ = ["LLSGBuilder", "PPLLSG"]
 
 from typing import Optional
 from dataclasses import dataclass

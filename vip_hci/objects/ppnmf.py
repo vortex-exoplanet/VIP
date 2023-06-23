@@ -2,9 +2,7 @@
 """Module for the post-processing non-negative matrix factorization algorithm."""
 
 __author__ = "Thomas Bédrine"
-__all__ = [
-    "NMFBuilder",
-]
+__all__ = ["NMFBuilder", "PPNMF"]
 
 from typing import Optional, List, Tuple, Union
 from dataclasses import dataclass, field

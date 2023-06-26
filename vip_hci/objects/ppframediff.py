@@ -2,9 +2,7 @@
 """Module for the post-processing frame differencing algorithm."""
 
 __author__ = "Thomas Bédrine"
-__all__ = [
-    "FrameDiffBuilder",
-]
+__all__ = ["FrameDiffBuilder", "PPFrameDiff"]
 
 from dataclasses import dataclass
 from typing import Optional
@@ -74,7 +72,9 @@ class PPFrameDiff(PostProc, FrameDiffParams):
         self._explicit_dataset()
         params_dict = self._create_parameters_dict(FrameDiffParams)
 
-        res = frame_diff(algo_params=self, **rot_options)
+        all_params = {"algo_params": self, **rot_options}
+
+        res = frame_diff(**all_params)
 
         self.frame_final = res
 

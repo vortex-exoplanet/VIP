@@ -26,6 +26,7 @@ from ..config.utils_conf import vip_figsize, vip_figdpi
 from ..var import frame_center, dist
 
 
+# TODO: Include algo_class modifications in any tutorial using this function
 def contrast_curve(
     cube,
     angle_list,
@@ -56,6 +57,7 @@ def contrast_curve(
     frame_size=None,
     fix_y_lim=(),
     figsize=vip_figsize,
+    algo_class=None,
     **algo_dict,
 ):
     """Computes the contrast curve at a given confidence (``sigma``) level for
@@ -234,6 +236,7 @@ def contrast_curve(
         fc_snr=fc_snr,
         full_output=True,
         verbose=verbose_thru,
+        algo_class=algo_class,
         **algo_dict,
     )
     vector_radd = res_throug[3]
@@ -556,6 +559,7 @@ def contrast_curve(
         return datafr
 
 
+# TODO: Include algo_class modifications in any tutorial using this function
 def throughput(
     cube,
     angle_list,
@@ -570,6 +574,7 @@ def throughput(
     fc_snr=100,
     full_output=False,
     verbose=True,
+    algo_class=None,
     **algo_dict,
 ):
     """Measures the throughput for chosen algorithm and input dataset (ADI or
@@ -708,11 +713,8 @@ def throughput(
         start_time = time_ini()
     # ***************************************************************************
     # Compute noise in concentric annuli on the "empty frame"
-    algo_params = signature(algo).parameters
-    param_name = next(iter(algo_params))
-    class_name = algo_params[param_name].annotation
 
-    argl = [attr for attr in vars(class_name)]
+    argl = [attr for attr in vars(algo_class)]
     if "cube" in argl and "angle_list" in argl and "verbose" in argl:
         if "fwhm" in argl:
             frame_nofc = algo(
@@ -832,11 +834,8 @@ def throughput(
                     timing(start_time)
 
                 # ***************************************************************
-                algo_params = signature(algo).parameters
-                param_name = next(iter(algo_params))
-                class_name = algo_params[param_name].annotation
 
-                arg = [attr for attr in vars(class_name)]
+                arg = [attr for attr in vars(algo_class)]
                 if "cube" in arg and "angle_list" in arg and "verbose" in arg:
                     if "fwhm" in arg:
                         frame_fc = algo(
@@ -937,11 +936,8 @@ def throughput(
                     timing(start_time)
 
                 # **************************************************************
-                algo_params = signature(algo).parameters
-                param_name = next(iter(algo_params))
-                class_name = algo_params[param_name].annotation
 
-                arg = [attr for attr in vars(class_name)]
+                arg = [attr for attr in vars(algo_class)]
                 if "cube" in arg and "angle_list" in arg and "verbose" in arg:
                     if "fwhm" in arg:
                         frame_fc = algo(

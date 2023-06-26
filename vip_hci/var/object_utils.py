@@ -5,6 +5,8 @@ from typing import Callable
 
 import numpy as np
 
+KWARGS_EXCEPTIONS = ["param"]
+
 
 def filter_duplicate_keys(filter_item: any, ref_item: any, filter_in: bool = True):
     """
@@ -56,7 +58,7 @@ def setup_parameters(
     params_obj: object,
     fkt: Callable,
     as_list: bool = False,
-    show_params: bool = True,
+    show_params: bool = False,
     **add_params: dict,
 ) -> any:
     """
@@ -148,7 +150,7 @@ def separate_kwargs_dict(initial_kwargs: dict, parent_class: any) -> None:
     more_params = {}
 
     for key, value in initial_kwargs.items():
-        if hasattr(parent_class, key):
+        if hasattr(parent_class, key) or key in KWARGS_EXCEPTIONS:
             class_params[key] = value
         else:
             more_params[key] = value

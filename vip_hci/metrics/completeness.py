@@ -187,6 +187,7 @@ def _estimate_snr_fc(
     return max_target - max_map, b
 
 
+# TODO: Include algo_class modifications in any tutorial using this function
 def completeness_curve(
     cube,
     angle_list,
@@ -210,6 +211,7 @@ def completeness_curve(
     object_name=None,
     fix_y_lim=(),
     figsize=vip_figsize,
+    algo_class=None,
 ):
     """
     Function allowing the computation of completeness-based contrast curves with
@@ -350,6 +352,7 @@ def completeness_curve(
             wedge=(0, 360),
             fc_snr=100,
             plot=False,
+            algo_class=algo_class,
             **algo_dict,
         )
         ini_rads = np.array(ini_cc["distance"])
@@ -368,11 +371,8 @@ def completeness_curve(
 
     if verbose:
         print("Calculating initial SNR map with no injected companion...")
-    algo_params = signature(algo).parameters
-    param_name = next(iter(algo_params))
-    class_name = algo_params[param_name].annotation
 
-    argl = [attr for attr in vars(class_name)]
+    argl = [attr for attr in vars(algo_class)]
     if "cube" in argl and "angle_list" in argl:
         if "fwhm" in argl:
             frame_fin = algo(
@@ -699,6 +699,7 @@ def completeness_curve(
     return an_dist, cont_curve
 
 
+# TODO: Include the algo_class in the metrics tutorial !!
 def completeness_map(
     cube,
     angle_list,
@@ -713,6 +714,7 @@ def completeness_map(
     nproc=1,
     algo_dict={},
     verbose=True,
+    algo_class=None,
 ):
     """
     Function allowing the computation of two dimensional (radius and
@@ -846,15 +848,11 @@ def completeness_map(
 
     # argl = getfullargspec(algo).args # does not work with recent object support
 
-    """Because all psfsub algorithms now take a single object as parameter, looking for
-    specific named arguments can be a puzzle. We have to first identify the object,
-    and look inside its attributes to find the arguments we need."""
+    """Because all psfsub algorithms now take more vague parameters, looking for
+    specific named arguments can be a puzzle. We have to first identify the parameters
+    tied to the algorithm by looking at its object of parameters."""
 
-    algo_params = signature(algo).parameters
-    param_name = next(iter(algo_params))
-    class_name = algo_params[param_name].annotation
-
-    argl = [attr for attr in vars(class_name)]
+    argl = [attr for attr in vars(algo_class)]
 
     if "cube" in argl and "angle_list" in argl and "verbose" in argl:
         if "fwhm" in argl:

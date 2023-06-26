@@ -2,7 +2,7 @@
 """Module for the post-processing median subtraction algorithm."""
 
 __author__ = "Thomas Bédrine"
-__all__ = ["MedianBuilder"]
+__all__ = ["MedianBuilder", "PPMedianSub"]
 
 from typing import Optional
 from dataclasses import dataclass
@@ -87,7 +87,9 @@ class PPMedianSub(PostProc, MedsubParams):
 
         params_dict = self._create_parameters_dict(MedsubParams)
 
-        res = median_sub(algo_params=self, **rot_options)
+        all_params = {"algo_params": self, **rot_options}
+
+        res = median_sub(**all_params)
 
         self.cube_residuals, self.cube_residuals_der, self.frame_final = res
 

@@ -19,7 +19,7 @@ import numpy as np
 from sklearn.decomposition import NMF
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Tuple
+from typing import Tuple, List
 from ..preproc import cube_derotate, cube_collapse
 from ..preproc.derotation import _compute_pa_thresh, _find_indices_adi
 from ..var import (
@@ -31,7 +31,7 @@ from ..var import (
     mask_circle,
 )
 from ..var.object_utils import setup_parameters, separate_kwargs_dict
-from ..var.paramenum import Collapse, HandleNeg, Initsvd
+from ..var.paramenum import Collapse, HandleNeg, Initsvd, ALGO_KEY
 from ..config import timing, time_ini
 
 
@@ -40,7 +40,49 @@ class NMFParams:
     """
     Set of parameters for the NMF full-frame algorithm.
 
+    See function `nmf` below for the documentation.
+    """
+
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
+    cube_ref: np.ndarray = None
+    ncomp: int = 1
+    scaling: Enum = None
+    max_iter: int = 10000
+    random_state: int = None
+    mask_center_px: int = None
+    source_xy: Tuple[int] = None
+    delta_rot: float = 1
+    fwhm: float = 4
+    init_svd: Enum = Initsvd.NNDSVD
+    collapse: Enum = Collapse.MEDIAN
+    full_output: bool = False
+    verbose: bool = True
+    cube_sig: np.ndarray = None
+    handle_neg: Enum = HandleNeg.MASK
+    nmf_args: dict = field(default_factory=lambda: {})
+
+
+def nmf(*all_args: List, **all_kwargs: dict):
+    """Non Negative Matrix Factorization [LEE99]_ for ADI sequences [GOM17]_.
+    Alternative to the full-frame ADI-PCA processing that does not rely on SVD
+    or ED for obtaining a low-rank approximation of the datacube. This function
+    embeds the scikit-learn NMF algorithm solved through either the coordinate
+    descent or the multiplicative update method.
+
     Parameters
+    ----------
+    all_args: list, optional
+        Positionnal arguments for the NMF algorithm. Full list of parameters
+        below.
+    all_kwargs: dictionary, optional
+        Mix of keyword arguments that can initialize a NMFParams and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
+        "edge_blend", "interp_zeros", "ker" (see documentation of
+        ``vip_hci.preproc.frame_rotate``). Can also contain a NMFParams named as
+        `algo_params`.
+
+    NMF parameters
     ----------
     cube : numpy ndarray, 3d
         Input cube.
@@ -98,44 +140,6 @@ class NMFParams:
     nmf_args : dictionary, optional
         Additional arguments for scikit-learn NMF algorithm. See:
         https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.NMF.html
-    """
-
-    cube: np.ndarray = None
-    angle_list: np.ndarray = None
-    cube_ref: np.ndarray = None
-    ncomp: int = 1
-    scaling: Enum = None
-    max_iter: int = 10000
-    random_state: int = None
-    mask_center_px: int = None
-    source_xy: Tuple[int] = None
-    delta_rot: float = 1
-    fwhm: float = 4
-    init_svd: Enum = Initsvd.NNDSVD
-    collapse: Enum = Collapse.MEDIAN
-    full_output: bool = False
-    verbose: bool = True
-    cube_sig: np.ndarray = None
-    handle_neg: Enum = HandleNeg.MASK
-    nmf_args: dict = field(default_factory=lambda: {})
-
-
-def nmf(algo_params: NMFParams = None, **all_kwargs):
-    """Non Negative Matrix Factorization [LEE99]_ for ADI sequences [GOM17]_.
-    Alternative to the full-frame ADI-PCA processing that does not rely on SVD
-    or ED for obtaining a low-rank approximation of the datacube. This function
-    embeds the scikit-learn NMF algorithm solved through either the coordinate
-    descent or the multiplicative update method.
-
-    Parameters
-    ----------
-    algo_params: NMFParams
-        Dataclass retaining all the needed parameters for NMF full-frame.
-    rot_options: dictionary, optional
-        Dictionary with optional keyword values for "nproc", "imlib",
-        "interpolation, "border_mode", "mask_val",  "edge_blend",
-        "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``)
 
     Returns
     -------
@@ -148,8 +152,15 @@ def nmf(algo_params: NMFParams = None, **all_kwargs):
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=NMFParams
     )
+
+    # Extracting the object of parameters (if any)
+    algo_params = None
+    if ALGO_KEY in rot_options.keys():
+        algo_params = rot_options[ALGO_KEY]
+        del rot_options[ALGO_KEY]
+
     if algo_params is None:
-        algo_params = NMFParams(**class_params)
+        algo_params = NMFParams(*all_args, **class_params)
 
     array = algo_params.cube.copy()
     if algo_params.verbose:

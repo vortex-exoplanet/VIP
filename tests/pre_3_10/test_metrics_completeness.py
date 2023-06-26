@@ -14,7 +14,7 @@ from vip_hci.fm import cube_planet_free
 from vip_hci.metrics import completeness_curve
 from vip_hci.metrics import completeness_map
 from vip_hci.preproc import frame_crop
-from vip_hci.psfsub import pca
+from vip_hci.psfsub import pca, PCAParams
 
 
 @fixture(scope="module")
@@ -62,6 +62,7 @@ def test_completeness_curve(get_cube_empty):
         starphot=starphot,
         plot=True,
         algo_dict={"imlib": "opencv"},
+        algo_class=PCAParams,
     )
 
     if np.allclose(comp_curve / expected_res, [1], atol=0.5):
@@ -89,6 +90,7 @@ def test_completeness_map(get_cube_empty):
         ini_contrast=expected_res,
         starphot=starphot,
         algo_dict={"imlib": "opencv"},
+        algo_class=PCAParams,
     )
 
     if np.allclose(contrasts[:, -2] / expected_res, [1], atol=0.5):

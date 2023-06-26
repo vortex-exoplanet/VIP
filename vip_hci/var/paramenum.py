@@ -2,6 +2,8 @@
 from enum import auto
 from enum import Enum
 
+ALGO_KEY = "algo_params"
+
 
 class SvdMode(str, Enum):
     """

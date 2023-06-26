@@ -2,9 +2,7 @@
 """Module for the post-processing LLSG algorithm."""
 
 __author__ = "Thomas Bédrine"
-__all__ = [
-    "LLSGBuilder",
-]
+__all__ = ["LLSGBuilder", "PPLLSG"]
 
 from typing import Optional
 from dataclasses import dataclass
@@ -80,7 +78,9 @@ class PPLLSG(PostProc, LLSGParams):
 
         params_dict = self._create_parameters_dict(LLSGParams)
 
-        res = llsg(algo_params=self, **rot_options)
+        all_params = {"algo_params": self, **rot_options}
+
+        res = llsg(**all_params)
         self.frame_l = res[3]
         self.frame_s = res[4]
         self.frame_g = res[5]

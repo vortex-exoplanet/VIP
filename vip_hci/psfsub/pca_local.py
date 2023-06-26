@@ -28,7 +28,7 @@ from ..preproc.rescaling import _find_indices_sdi
 from ..config import time_ini, timing
 from ..config.utils_conf import pool_map, iterable
 from ..var import get_annulus_segments, matrix_scaling
-from ..var.paramenum import SvdMode, Imlib, Interpolation, Collapse
+from ..var.paramenum import SvdMode, Imlib, Interpolation, Collapse, ALGO_KEY
 from ..var.object_utils import setup_parameters, separate_kwargs_dict
 from ..stats import descriptive_stats
 from .svd import get_eigenvectors
@@ -41,7 +41,69 @@ class PCAAnnParams:
     """
     Set of parameters for the annular PCA module.
 
+
+    """
+
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
+    cube_ref: np.ndarray = None
+    scale_list: np.ndarray = None
+    radius_int: int = 0
+    fwhm: float = 4
+    asize: float = 4
+    n_segments: Union[int, List[int], AUTO] = 1
+    delta_rot: Union[float, Tuple[float]] = (0.1, 1)
+    delta_sep: Union[float, Tuple[float]] = (0.1, 1)
+    ncomp: Union[int, Tuple, np.ndarray, AUTO] = 1
+    svd_mode: Enum = SvdMode.LAPACK
+    nproc: int = 1
+    min_frames_lib: int = 2
+    max_frames_lib: int = 200
+    tol: float = 1e-1
+    scaling: Enum = None
+    imlib: Enum = Imlib.VIPFFT
+    interpolation: Enum = Interpolation.LANCZOS4
+    collapse: Enum = Collapse.MEDIAN
+    collapse_ifs: Enum = Collapse.MEAN
+    ifs_collapse_range: Union["all", Tuple[int]] = "all"
+    theta_init: int = 0
+    weights: np.ndarray = None
+    cube_sig: np.ndarray = None
+    full_output: bool = False
+    verbose: bool = True
+    left_eigv: bool = False
+
+
+def pca_annular(*all_args: List, **all_kwargs: dict):
+    """PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data.
+
+    The PCA model is computed locally in each annulus (or annular sectors according
+    to ``n_segments``). For each sector we discard reference frames taking into
+    account a parallactic angle threshold (``delta_rot``) and optionally a
+    radial movement threshold (``delta_sep``) for 4d cubes.
+
+    For ADI+RDI data, it computes the principal components from the reference
+    library/cube, forcing pixel-wise temporal standardization. The number of
+    principal components can be automatically adjusted by the algorithm by
+    minimizing the residuals inside each patch/region.
+
+    References: [AMA12]_ for PCA-ADI; [ABS13]_ for PCA-ADI in concentric annuli
+    considering a parallactic angle threshold; [CHR19]_ for PCA-ASDI and
+    PCA-SADI in one or two steps.
+
     Parameters
+    ----------
+    all_args: list, optional
+        Positionnal arguments for the PCA annular algorithm. Full list of parameters
+        below.
+    all_kwargs: dictionary, optional
+        Mix of keyword arguments that can initialize a PCAAnnParams and the optional
+        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
+        "edge_blend", "interp_zeros", "ker" (see documentation of
+        ``vip_hci.preproc.frame_rotate``). Can also contain a PCAAnnParams named as
+        `algo_params`.
+
+    PCA annular parameters
     ----------
     cube : numpy ndarray, 3d or 4d
         Input cube.
@@ -143,64 +205,6 @@ class PCAAnnParams:
     cube_sig: numpy ndarray, opt
         Cube with estimate of significant authentic signals. If provided, this
         will be subtracted before projecting cube onto reference cube.
-    """
-
-    cube: np.ndarray = None
-    angle_list: np.ndarray = None
-    cube_ref: np.ndarray = None
-    scale_list: np.ndarray = None
-    radius_int: int = 0
-    fwhm: float = 4
-    asize: float = 4
-    n_segments: Union[int, List[int], AUTO] = 1
-    delta_rot: Union[float, Tuple[float]] = (0.1, 1)
-    delta_sep: Union[float, Tuple[float]] = (0.1, 1)
-    ncomp: Union[int, Tuple, np.ndarray, AUTO] = 1
-    svd_mode: Enum = SvdMode.LAPACK
-    nproc: int = 1
-    min_frames_lib: int = 2
-    max_frames_lib: int = 200
-    tol: float = 1e-1
-    scaling: Enum = None
-    imlib: Enum = Imlib.VIPFFT
-    interpolation: Enum = Interpolation.LANCZOS4
-    collapse: Enum = Collapse.MEDIAN
-    collapse_ifs: Enum = Collapse.MEAN
-    ifs_collapse_range: Union["all", Tuple[int]] = "all"
-    theta_init: int = 0
-    weights: np.ndarray = None
-    cube_sig: np.ndarray = None
-    full_output: bool = False
-    verbose: bool = True
-    left_eigv: bool = False
-
-
-def pca_annular(algo_params: PCAAnnParams = None, **all_kwargs):
-    """PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data.
-
-    The PCA model is computed locally in each annulus (or annular sectors according
-    to ``n_segments``). For each sector we discard reference frames taking into
-    account a parallactic angle threshold (``delta_rot``) and optionally a
-    radial movement threshold (``delta_sep``) for 4d cubes.
-
-    For ADI+RDI data, it computes the principal components from the reference
-    library/cube, forcing pixel-wise temporal standardization. The number of
-    principal components can be automatically adjusted by the algorithm by
-    minimizing the residuals inside each patch/region.
-
-    References: [AMA12]_ for PCA-ADI; [ABS13]_ for PCA-ADI in concentric annuli
-    considering a parallactic angle threshold; [CHR19]_ for PCA-ASDI and
-    PCA-SADI in one or two steps.
-
-    Parameters
-    ----------
-    algo_params: PCAAnnParams
-        Dataclass retaining all the needed parameters for annular PCA.
-    all_kwargs: dictionary, optional
-        Mix of the parameters that can initialize an algo_params and the optional
-        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
-        "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``)
 
     Returns
     -------
@@ -217,8 +221,15 @@ def pca_annular(algo_params: PCAAnnParams = None, **all_kwargs):
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=PCAAnnParams
     )
+
+    # Extracting the object of parameters (if any)
+    algo_params = None
+    if ALGO_KEY in rot_options.keys():
+        algo_params = rot_options[ALGO_KEY]
+        del rot_options[ALGO_KEY]
+
     if algo_params is None:
-        algo_params = PCAAnnParams(**class_params)
+        algo_params = PCAAnnParams(*all_args, **class_params)
 
     global start_time
     start_time = time_ini()
@@ -536,7 +547,7 @@ def _pca_adi_rdi(
     weights=None,
     cube_sig=None,
     left_eigv=False,
-    **rot_options
+    **rot_options,
 ):
     """PCA exploiting angular variability (ADI fashion)."""
     array = cube

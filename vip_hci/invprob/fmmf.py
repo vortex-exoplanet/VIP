@@ -69,14 +69,51 @@ from ..config.utils_conf import pool_map, iterable
 from ..config import time_ini, timing
 from ..fm import cube_inject_companions
 from ..preproc.derotation import _find_indices_adi
-from ..var.object_utils import setup_parameters
-from ..var.paramenum import VarEstim, Imlib, Interpolation
+from ..var.object_utils import setup_parameters, separate_kwargs_dict
+from ..var.paramenum import VarEstim, Imlib, Interpolation, ALGO_KEY
 
 
 @dataclass
 class FMMFParams:
     """
     Set of parameters for the FMMF algorithm.
+
+    See function `fmmf` below for the documentation.
+    """
+
+    cube: np.ndarray = None
+    angle_list: np.ndarray = None
+    psf: np.ndarray = None
+    fwhm: float = None
+    min_r: int = None
+    max_r: int = None
+    model: str = "KLIP"
+    var: Enum = VarEstim.FR
+    param: dict = field(
+        default_factory=lambda: {"ncomp": 20,
+                                 "tolerance": 5e-3, "delta_rot": 0.5}
+    )
+    crop: int = 5
+    imlib: Enum = Imlib.VIPFFT
+    interpolation: Enum = Interpolation.LANCZOS4
+    nproc: int = 1
+    verbose: bool = True
+
+
+def fmmf(*all_args, **all_kwargs: dict):
+    """
+    Forward model matched filter generating SNR map and contrast map, using
+    either KLIP or LOCI as PSF subtraction techniques, as implemented in
+    [RUF17]_ and [DAH21a]_.
+
+    Parameters
+    ----------
+    all_args: list, optional
+        Positionnal arguments for the FMMF algorithm. Full list of parameters
+        below.
+    all_kwargs: dictionary, optional
+        Mix of keyword arguments that can initialize a FMMFParams or a FMMFParams
+        itself.
 
     Parameters
     ----------
@@ -139,40 +176,6 @@ class FMMFParams:
     verbose: bool, optional
         If True provide a message each time an annulus has been treated.
         Default True.
-    """
-
-    cube: np.ndarray = None
-    angle_list: np.ndarray = None
-    psf: np.ndarray = None
-    fwhm: float = None
-    min_r: int = None
-    max_r: int = None
-    model: str = "KLIP"
-    var: Enum = VarEstim.FR
-    param: dict = field(
-        default_factory=lambda: {"ncomp": 20,
-                                 "tolerance": 5e-3, "delta_rot": 0.5}
-    )
-    crop: int = 5
-    imlib: Enum = Imlib.VIPFFT
-    interpolation: Enum = Interpolation.LANCZOS4
-    nproc: int = 1
-    verbose: bool = True
-
-
-def fmmf(algo_params: FMMFParams = None, **class_params: dict):
-    """
-    Forward model matched filter generating SNR map and contrast map, using
-    either KLIP or LOCI as PSF subtraction techniques, as implemented in
-    [RUF17]_ and [DAH21a]_.
-
-    Parameters
-    ----------
-    algo_params: FMMFParams
-        Dataclass retaining all the needed parameters for FMMF.
-    class_params: dict, optionnal
-        Set of parameters needed for an initialization of algo_params if none
-        was provided.
 
     Returns
     -------
@@ -184,8 +187,18 @@ def fmmf(algo_params: FMMFParams = None, **class_params: dict):
         the estimated standard deviation of the contrast).
 
     """
+    class_params, other_options = separate_kwargs_dict(
+        initial_kwargs=all_kwargs, parent_class=FMMFParams
+    )
+
+    # Extracting the object of parameters (if any)
+    algo_params = None
+    if ALGO_KEY in other_options.keys():
+        algo_params = other_options[ALGO_KEY]
+        del other_options[ALGO_KEY]
+
     if algo_params is None:
-        algo_params = FMMFParams(**class_params)
+        algo_params = FMMFParams(*all_args, **class_params)
     start_time = time_ini(algo_params.verbose)
 
     if algo_params.crop >= 2 * round(algo_params.fwhm) + 1:

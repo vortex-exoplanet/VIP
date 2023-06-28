@@ -366,7 +366,8 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
     xx_final = np.array(xx_final)
     yy_out = np.array(yy_out)
     xx_out = np.array(xx_out)
-    table = pn.DataFrame({'y': yy_final.tolist(), 'x': xx_final.tolist(), 'px_snr': snr_final})
+    table = pn.DataFrame(
+        {'y': yy_final.tolist(), 'x': xx_final.tolist(), 'px_snr': snr_final})
 
     if plot:
         coords = tuple(zip(xx_out.tolist() + xx_final.tolist(),
@@ -440,12 +441,12 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
         med_filt_tmp = frame_filter_lowpass(obj_tmp, 'median',
                                             median_size=int(fwhm))
         if approx_peak is None:
-            ind_max = np.unravel_index(med_filt_tmp.argmax(),
+            ind_max = np.unravel_index(med_filt_tmp.nanargmax(),
                                        med_filt_tmp.shape)
         else:
             sbox = med_filt_tmp[approx_peak[0]-sbox_y:approx_peak[0]+sbox_y+1,
                                 approx_peak[1]-sbox_x:approx_peak[1]+sbox_x+1]
-            ind_max_sbox = np.unravel_index(sbox.argmax(), sbox.shape)
+            ind_max_sbox = np.unravel_index(sbox.nanargmax(), sbox.shape)
             ind_max = (approx_peak[0]-sbox_y+ind_max_sbox[0],
                        approx_peak[1]-sbox_x+ind_max_sbox[1])
 
@@ -462,23 +463,23 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
             med_filt_tmp[zz] = frame_filter_lowpass(obj_tmp[zz], 'median',
                                                     median_size=int(fwhm[zz]))
             if approx_peak is None:
-                ind_ch_max[zz] = np.unravel_index(med_filt_tmp[zz].argmax(),
+                ind_ch_max[zz] = np.unravel_index(med_filt_tmp[zz].nanargmax(),
                                                   med_filt_tmp[zz].shape)
             else:
                 sbox[zz] = med_filt_tmp[zz, approx_peak[0]-sbox_y:
                                         approx_peak[0]+sbox_y+1,
                                         approx_peak[1]-sbox_x:
                                         approx_peak[1]+sbox_x+1]
-                ind_max_sbox = np.unravel_index(sbox[zz].argmax(),
+                ind_max_sbox = np.unravel_index(sbox[zz].nanargmax(),
                                                 sbox[zz].shape)
                 ind_ch_max[zz] = (approx_peak[0]-sbox_y+ind_max_sbox[0],
                                   approx_peak[1]-sbox_x+ind_max_sbox[1])
 
         if approx_peak is None:
-            ind_max = np.unravel_index(med_filt_tmp.argmax(),
+            ind_max = np.unravel_index(med_filt_tmp.nanargmax(),
                                        med_filt_tmp.shape)
         else:
-            ind_max_tmp = np.unravel_index(sbox.argmax(),
+            ind_max_tmp = np.unravel_index(sbox.nanargmax(),
                                            sbox.shape)
             ind_max = (ind_max_tmp[0]+approx_peak[0]-sbox_y,
                        ind_max_tmp[1]+approx_peak[1]-sbox_x)

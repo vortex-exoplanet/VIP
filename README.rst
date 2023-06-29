@@ -212,8 +212,7 @@ that you are able to import ``VIP``:
 
   import vip_hci as vip
 
-If everything went fine with the installation, you will see a welcome message.
-Now you can start finding exoplanets!
+If everything went fine with the installation, you should not get any error message upon importation, and you can start finding exoplanets!
 
 
 Image conventions

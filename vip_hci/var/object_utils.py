@@ -4,6 +4,7 @@ from inspect import signature
 from typing import Callable
 
 import numpy as np
+from astropy.io.fits import Header
 
 KWARGS_EXCEPTIONS = ["param"]
 
@@ -156,3 +157,24 @@ def separate_kwargs_dict(initial_kwargs: dict, parent_class: any) -> None:
             more_params[key] = value
 
     return class_params, more_params
+
+
+def dict_to_fitsheader(initial_dict: dict) -> Header:
+    """
+    Convert a dictionnary into a fits Header object.
+
+    Parameters
+    ----------
+    initial_dict: dict
+        Dictionnary of parameters to convert to a Header object.
+
+    Returns
+    -------
+    fits_header: Header
+        Converted set of parameters.
+    """
+    fits_header = Header()
+    for key, value in initial_dict.items():
+        fits_header[key] = value
+
+    return fits_header

@@ -30,6 +30,8 @@ htmlcov/
 .settings
 .project
 .vscode/
+.vipenv/
+justfile
 
 # scripts
 _pypi.sh

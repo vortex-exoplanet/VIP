@@ -31,7 +31,8 @@ from ..metrics import snrmap, snr, significance
 from ..config.utils_conf import algo_calculates_decorator as calculates
 from ..config.utils_conf import Saveable
 from ..var import frame_center
-from ..var.object_utils import print_algo_params
+from ..var.object_utils import print_algo_params, dict_to_fitsheader
+from ..fits import write_fits
 
 PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
 LAST_SESSION = -1
@@ -66,7 +67,7 @@ class Session:
 
 # TODO: find a proper format for results saving (pdf, images, dictionnaries...)
 @dataclass
-class PPResult(Saveable):
+class PPResult:
     """
     Container for results of post-processing algorithms.
 
@@ -154,6 +155,38 @@ class PPResult(Saveable):
                     "list of integers (includes constant values such as ALL_SESSIONS or"
                     " LAST_SESSION)."
                 )
+        else:
+            raise AttributeError(
+                "No session was registered yet. Please register"
+                " a session with the function `register_session`."
+            )
+
+    def results_to_fits(self, filepath: str) -> None:
+        """
+        Save all configurations as a fits file.
+
+        Parameters
+        ----------
+        filepath: str
+            The path of the FITS file.
+        """
+        if self.sessions:
+            images = []
+            headers = []
+            for _, session in enumerate(self.sessions):
+                cube = None
+                # Stacks both frame and detection map (if any), else only frame
+                if session.snr_map is not None:
+                    cube = np.stack((session.frame, session.snr_map), axis=0)
+                else:
+                    cube = session.frame
+                images.append(cube)
+                fits_header = dict_to_fitsheader(session.parameters)
+                headers.append(fits_header)
+
+            write_fits(
+                fitsfilename=filepath, array=tuple(images), header=tuple(headers)
+            )
         else:
             raise AttributeError(
                 "No session was registered yet. Please register"

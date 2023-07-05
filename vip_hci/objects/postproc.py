@@ -83,6 +83,15 @@ class PPResult:
     sessions: List = field(default_factory=lambda: [])
 
     def __init__(self, load_from_path: str = None):
+        """
+        Create a PPResult object or load one from a FITS file.
+
+        Parameters
+        ----------
+        load_from_path : str, optional
+            Path of FITS file to optionally load a previously saved PPResult
+            object from.
+        """
         self.sessions = []
         if load_from_path is not None:
             self.fits_to_results(filepath=load_from_path)

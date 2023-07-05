@@ -2,6 +2,7 @@
 from collections import OrderedDict
 from inspect import signature
 from typing import Callable
+from typing import Tuple
 
 import numpy as np
 from astropy.io.fits import Header
@@ -178,3 +179,43 @@ def dict_to_fitsheader(initial_dict: dict) -> Header:
         fits_header[key] = value
 
     return fits_header
+
+
+def fitsheader_to_dict(
+    initial_header: Header, sort_by_prefix: str = ""
+) -> Tuple[dict, str]:
+    """
+    Extract a dictionnary of parameters and a string from a FITS Header.
+
+    The string is supposedly the name of the algorithm that was used to obtain
+    the results that go with the Header.
+
+    Parameters
+    ----------
+    initial_header : Header
+        HDU Header that contains parameters used for the run of an algorithm
+        through PostProc, and some unwanted parameters as well.
+    sort_by_prefix : str
+        String that will help filter keys of the header that don't start with
+        that same string. By default, it doesn't filter out anything.
+
+    Returns
+    -------
+    parameters : dict
+        The set of parameters saved in PPResult that was used for a run of
+        an algorithm.
+    algo_name : str
+        The name of the algorithm that was saved alongside its parameters.
+    """
+    head_dict = dict(initial_header)
+    # Some parameters get their keys converted to uppercase
+    lowercase_dict = {key.lower(): value for key, value in head_dict.items()}
+    # Sorting parameters that don't belong in the dictionnary
+    parameters = {
+        key[len(sort_by_prefix) :]: value
+        for key, value in lowercase_dict.items()
+        if key.startswith(sort_by_prefix)
+    }
+    algo_name = parameters["algo_name"]
+    del parameters["algo_name"]
+    return parameters, algo_name

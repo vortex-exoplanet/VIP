@@ -58,6 +58,7 @@ class PPFrameDiff(PostProc, FrameDiffParams):
             ``vip_hci.preproc.frame_rotate``).
 
         """
+        self.snr_map = None
         self._update_dataset(dataset)
 
         if self.dataset.fwhm is None:

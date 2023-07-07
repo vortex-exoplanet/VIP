@@ -221,7 +221,6 @@ class PPResult:
                 " a session with the function `register_session`."
             )
 
-    # Note: unfinished
     def fits_to_results(self, filepath: str, session_id: int = ALL_FITS) -> None:
         """
         Load all configurations from a fits file.

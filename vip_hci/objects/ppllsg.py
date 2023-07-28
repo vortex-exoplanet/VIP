@@ -64,6 +64,7 @@ class PPLLSG(PostProc, LLSGParams):
             ``vip_hci.preproc.frame_rotate``)
 
         """
+        self.snr_map = None
         self._update_dataset(dataset)
         self._explicit_dataset()
 

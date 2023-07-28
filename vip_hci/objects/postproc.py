@@ -31,7 +31,9 @@ from ..metrics import snrmap, snr, significance
 from ..config.utils_conf import algo_calculates_decorator as calculates
 from ..config.utils_conf import Saveable
 from ..var import frame_center
-from ..var.object_utils import print_algo_params
+from ..var.object_utils import print_algo_params, dict_to_fitsheader, fitsheader_to_dict
+from ..var.paramenum import ALL_FITS
+from ..fits import write_fits, open_fits
 
 PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
 LAST_SESSION = -1
@@ -45,6 +47,7 @@ EXPLICIT_PARAMS = {
     "scale_list": "wavelengths",
     "psf": "psfn",
 }
+PREFIX = "postproc_"
 
 
 @dataclass
@@ -66,7 +69,7 @@ class Session:
 
 # TODO: find a proper format for results saving (pdf, images, dictionnaries...)
 @dataclass
-class PPResult(Saveable):
+class PPResult:
     """
     Container for results of post-processing algorithms.
 
@@ -79,10 +82,24 @@ class PPResult(Saveable):
 
     sessions: List = field(default_factory=lambda: [])
 
+    def __init__(self, load_from_path: str = None):
+        """
+        Create a PPResult object or load one from a FITS file.
+
+        Parameters
+        ----------
+        load_from_path : str, optional
+            Path of FITS file to optionally load a previously saved PPResult
+            object from.
+        """
+        self.sessions = []
+        if load_from_path is not None:
+            self.fits_to_results(filepath=load_from_path)
+
     def register_session(
         self,
         frame: np.ndarray,
-        algo_name: Optional[dict] = None,
+        algo_name: Optional[str] = None,
         params: Optional[dict] = None,
         snr_map: Optional[np.ndarray] = None,
     ) -> None:
@@ -102,9 +119,13 @@ class PPResult(Saveable):
         """
         # If frame is already registered in a session, add the associated snr_map only
         for session in self.sessions:
-            if (frame == session.frame).all() and snr_map is not None:
-                session.snr_map = snr_map
-                return
+            if session.frame.shape == frame.shape:
+                if (
+                    np.allclose(np.abs(session.frame), np.abs(frame), atol=1e-3)
+                    and snr_map is not None
+                ):
+                    session.snr_map = snr_map
+                    return
 
         # TODO: review filter_params to only target cube and angles, not all ndarrays
         # TODO: rename angles-type parameters in all procedural functions
@@ -158,6 +179,91 @@ class PPResult(Saveable):
             raise AttributeError(
                 "No session was registered yet. Please register"
                 " a session with the function `register_session`."
+            )
+
+    def results_to_fits(self, filepath: str) -> None:
+        """
+        Save all configurations as a fits file.
+
+        Parameters
+        ----------
+        filepath: str
+            The path of the FITS file.
+        """
+        if self.sessions:
+            images = []
+            headers = []
+            for _, session in enumerate(self.sessions):
+                cube = None
+                # Stacks both frame and detection map (if any), else only frame
+                if session.snr_map is not None:
+                    cube = np.stack((session.frame, session.snr_map), axis=0)
+                else:
+                    cube = session.frame
+                images.append(cube)
+                session.parameters["algo_name"] = session.algo_name
+                # Adding a specific prefix to identify the PostProc parameters when
+                # extracting the header
+                prefix_dict = {
+                    PREFIX + key: value for key, value in session.parameters.items()
+                }
+                fits_header = dict_to_fitsheader(prefix_dict)
+                headers.append(fits_header)
+
+            write_fits(
+                fitsfilename=filepath, array=tuple(images), header=tuple(headers)
+            )
+
+            print(f"Results saved successfully to {filepath} !")
+        else:
+            raise AttributeError(
+                "No session was registered yet. Please register"
+                " a session with the function `register_session`."
+            )
+
+    def fits_to_results(self, filepath: str, session_id: int = ALL_FITS) -> None:
+        """
+        Load all configurations from a fits file.
+
+        Parameters
+        ----------
+        filepath: str
+            The path of the FITS file.
+        """
+        data, header = open_fits(fitsfilename=filepath, n=session_id, get_header=True)
+        self.sessions = []
+        if session_id == ALL_FITS:
+            for index, element in enumerate(data):
+                frame = None
+                snr_map = None
+                parameters, algo_name = fitsheader_to_dict(
+                    initial_header=header[index], sort_by_prefix=PREFIX
+                )
+                # Both frame and detmap were saved
+                if element.ndim == 3:
+                    frame = element[0]
+                    snr_map = element[1]
+                # Frame only
+                else:
+                    frame = element
+                self.register_session(
+                    frame=frame, algo_name=algo_name, params=parameters, snr_map=snr_map
+                )
+        else:
+            frame = None
+            snr_map = None
+            parameters, algo_name = fitsheader_to_dict(
+                initial_header=header, sort_by_prefix=PREFIX
+            )
+            # Both frame and detmap were saved
+            if data.ndim == 3:
+                frame = data[0]
+                snr_map = data[1]
+            # Frame only
+            else:
+                frame = data
+            self.register_session(
+                frame=frame, algo_name=algo_name, params=parameters, snr_map=snr_map
             )
 
     def _show_single_session(
@@ -279,7 +385,10 @@ class PostProc(BaseEstimator):
     def print_parameters(self) -> None:
         """Print out the parameters of the algorithm."""
         for key, value in self.__dict__.items():
-            print(f"{key} : {value}")
+            if not isinstance(value, np.ndarray):
+                print(f"{key} : {value}")
+            else:
+                print(f"{key} : numpy ndarray (not shown)")
 
     # TODO: write test
     def compute_significance(self, source_xy: Tuple[float] = None) -> None:

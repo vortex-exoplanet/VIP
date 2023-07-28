@@ -72,6 +72,7 @@ class PPMedianSub(PostProc, MedsubParams):
             ``vip_hci.preproc.frame_rotate``).
 
         """
+        self.snr_map = None
         self._update_dataset(dataset)
 
         if self.mode == "annular" and self.dataset.fwhm is None:

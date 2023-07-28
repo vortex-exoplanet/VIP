@@ -109,6 +109,7 @@ class PPPCA(PostProc, PCAParams, PCAAnnParams):
     pc_list: List = None
     opt_number_pc: int = None
     # Single annulus parameters
+    annulus_width: float = None
     r_guess: float = None
 
     # TODO: write test
@@ -124,7 +125,6 @@ class PPPCA(PostProc, PCAParams, PCAAnnParams):
         "final_residuals_cube",
         "medians",
         "dataframe",
-        "pc_list",
         "opt_number_pc",
     )
     def run(
@@ -175,6 +175,7 @@ class PPPCA(PostProc, PCAParams, PCAAnnParams):
             ``vip_hci.preproc.frame_rotate``)
 
         """
+        self.snr_map = None
         self._update_dataset(dataset)
         if self.dataset.fwhm is None:
             raise ValueError("`fwhm` has not been set")
@@ -232,7 +233,6 @@ class PPPCA(PostProc, PCAParams, PCAAnnParams):
 
                 (
                     self.cube_residuals,
-                    self.pc_list,
                     self.frame_final,
                     self.dataframe,
                     self.opt_number_pc,

@@ -48,6 +48,7 @@ class PPFMMF(PostProc, FMMFParams):
             If True prints to stdout intermediate info.
 
         """
+        self.snr_map = None
         self._update_dataset(dataset)
 
         if self.dataset.fwhm is None:

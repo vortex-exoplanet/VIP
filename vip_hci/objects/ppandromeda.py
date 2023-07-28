@@ -60,6 +60,7 @@ class PPAndromeda(PostProc, AndroParams):
             Print some parameter values for control.
 
         """
+        self.snr_map = None
         self._update_dataset(dataset)
 
         if self.dataset.fwhm is None:

@@ -1,8 +1,9 @@
-"""Module containing enums for parameters of HCI algorithms."""
+"""Module containing enums for parameters of HCI algorithms and literal constants."""
 from enum import auto
 from enum import Enum
 
 ALGO_KEY = "algo_params"
+ALL_FITS = -2
 
 
 class SvdMode(str, Enum):

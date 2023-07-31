@@ -50,16 +50,16 @@ VIP - Vortex Image Processing package
 Introduction
 ------------
 
-``VIP`` is a python package for high-contrast imaging of exoplanets and circumstellar disks. 
-``VIP`` is compatible with Python 3.7, 3.8 and 3.9 (Python 2 compatibility dropped with ``VIP`` 0.9.9).
+VIP is a python package for high-contrast imaging of exoplanets and circumstellar disks. 
+VIP is compatible with Python 3.8, 3.9, 3.10 and 3.11 (Python 2 compatibility dropped with VIP 0.9.9, and Python 3.7 compatibility dropped with VIP 1.4.3).
 
-The goal of ``VIP`` is to integrate open-source, efficient, easy-to-use and
+The goal of VIP is to integrate open-source, efficient, easy-to-use and
 well-documented implementations of high-contrast image processing algorithms to
-the interested scientific community. The main repository of ``VIP`` resides on
+the interested scientific community. The main repository of VIP resides on
 `GitHub <https://github.com/vortex-exoplanet/VIP>`_, the standard for scientific
 open source code distribution, using Git as a version control system.
 
-Most of ``VIP``'s functionalities are mature but
+Most of VIP's functionalities are mature but
 it does not mean it is free from bugs. The code is continuously evolving and
 therefore feedback/contributions are greatly appreciated. Please refer to `these instructions <https://vip.readthedocs.io/en/latest/Contact.html>`_ if you want to report
 a bug, ask a question, suggest a new functionality or contribute to the code (the latter is particularly welcome)!
@@ -69,12 +69,12 @@ a bug, ask a question, suggest a new functionality or contribute to the code (th
 
 Documentation
 -------------
-The documentation for ``VIP`` can be found here: http://vip.readthedocs.io.
+The documentation for VIP can be found here: http://vip.readthedocs.io.
 
 
 Jupyter notebook tutorial
 -------------------------
-Tutorials, in the form of Jupyter notebooks, showcasing ``VIP``'s usage and 
+Tutorials, in the form of Jupyter notebooks, showcasing VIP's usage and 
 other resources such as test datasets are available in the 
 ``VIP-extras`` `repository <https://github.com/vortex-exoplanet/VIP_extras>`_. 
 **In order to execute the notebook tutorials, you will have to download or clone the VIP-extras repository, and open each tutorial locally with jupyter notebook.**
@@ -97,53 +97,52 @@ TL;DR setup guide
 Installation and dependencies
 -----------------------------
 The benefits of using a Python package manager (distribution), such as
-(ana)conda or Canopy, are many. Mainly, it brings easy and robust package
+(ana)conda, are many. Mainly, it brings easy and robust package
 management and avoids messing up with your system's default python. An
 alternative is to use package managers like apt-get for Ubuntu or
 Homebrew/MacPorts/Fink for macOS. We recommend using 
 `Miniconda <https://conda.io/miniconda>`_.
 
-``VIP`` depends on existing packages from the Python ecosystem, such as
+VIP depends on existing packages from the Python ecosystem, such as
 ``numpy``, ``scipy``, ``matplotlib``, ``pandas``, ``astropy``, ``scikit-learn``,
 ``scikit-image``, ``photutils`` and others. There are different ways of
-installing ``VIP`` suitable for different scenarios.
+installing VIP suitable for different scenarios.
+
+Before installing the package, it is **highly recommended to create a dedicated
+conda environment** to not mess up with the package versions in your base 
+environment. This can be done easily with (replace ``vipenv`` by the name you want
+for your environment):
+
+.. code-block:: bash
+
+  $ conda create -n vipenv python=3.10 ipython
+
+.. note::
+  Installing ipython while creating the environment, as in the example above, will
+  avoid a commonly reported issue which stems from trying to import VIP from 
+  within a base python2.7 ipython console.
 
 
-Using pip
-^^^^^^^^^
-The easiest way to install ``VIP`` is through the Python Package Index, aka
-`PyPI <https://pypi.org/>`_, with the ``pip`` package manager. Simply run:
+For users (not planning to contribute):
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Once within your new environment, the easiest way to install VIP is 
+through the Python Package Index, aka `PyPI <https://pypi.org/>`_, with 
+the ``pip`` package manager. Simply run:
 
 .. code-block:: bash
 
   $ pip install vip_hci
 
 With ``pip`` you can easily uninstall, upgrade or install a specific version of
-``VIP``. For upgrading the package run:
+VIP. For upgrading the package, run:
 
 .. code-block:: bash
 
   $ pip install --upgrade vip_hci
 
-Alternatively, you can use ``pip install`` and point to the GitHub repo:
 
-.. code-block:: bash
-
-  $ pip install git+https://github.com/vortex-exoplanet/VIP.git
-
-Using the setup.py file
-^^^^^^^^^^^^^^^^^^^^^^^
-You can download ``VIP`` from its GitHub repository as a zip file. A ``setup.py``
-file (setuptools) is included in the root folder of ``VIP``. Enter the package's
-root folder and run:
-
-.. code-block:: bash
-
-  $ python setup.py install
-
-
-Using Git
-^^^^^^^^^
+For potential contributors:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you plan to contribute or experiment with the code you need to make a 
 fork of the repository (click on the fork button in the top right corner) and 
 clone it:
@@ -159,26 +158,13 @@ functionalities by cloning the repository (but will not be able to contribute):
 
   $ git clone https://github.com/vortex-exoplanet/VIP.git
 
-Before installing the package, it is highly recommended to create a dedicated
-conda environment to not mess up with the package versions in your base 
-environment. This can be done easily with (replace vipenv by the name you want
-for your environment):
 
-.. code-block:: bash
-
-  $ conda create -n vipenv python=3.9 ipython
-
-Note: installing ipython while creating the environment with the above line will
-avoid a commonly reported issue which stems from trying to import VIP from 
-within a base python2.7 ipython console.
-
-To install VIP, simply cd into the VIP directory and run the setup file 
-in 'develop' mode:
+To install VIP, then simply cd into your local VIP directory and run the installation in editable mode:
 
 .. code-block:: bash
 
   $ cd VIP
-  $ python setup.py develop
+  $ pip install -e .
 
 If cloned from your fork, make sure to link your VIP directory to the upstream 
 source, to be able to easily update your local copy when a new version comes 
@@ -194,26 +180,25 @@ also install the optional dependencies listed below.
 
 Optional dependencies
 ^^^^^^^^^^^^^^^^^^^^^
-The following dependencies are not automatically installed upon installation of ``VIP`` but may significantly improve your experience:
+The following dependencies are not automatically installed upon installation of VIP but may significantly improve your experience:
 
-- ``VIP`` contains a class ``vip_hci.vip_ds9`` that enables, through ``pyds9``, the interaction with a DS9 window (displaying numpy arrays, controlling the display options, etc). To enable this feature, ``pyds9`` must be installed from the latest development version: ``pip install git+git://github.com/ericmandel/pyds9.git#egg=pyds9``
-- ``VIP`` image operations (e.g. shifts, rotations, scaling) can be performed using ``OpenCV`` instead of the default FFT-based methods. While flux are less well preserved, ``OpenCV`` offers a significant speed improvement (up to a factor 50x), in particular for image rotations, which can be useful to get quick results. Installation: ``pip install opencv-python``.
+- VIP contains a class ``vip_hci.vip_ds9`` that enables, through ``pyds9``, the interaction with a DS9 window (displaying numpy arrays, controlling the display options, etc). To enable this feature, ``pyds9`` must be installed from the latest development version: ``pip install git+git://github.com/ericmandel/pyds9.git#egg=pyds9``
+- VIP image operations (e.g. shifts, rotations, scaling) can be performed using ``OpenCV`` instead of the default FFT-based methods. While flux are less well preserved, ``OpenCV`` offers a significant speed improvement (up to a factor 50x), in particular for image rotations, which can be useful to get quick results. Installation: ``pip install opencv-python``.
 - Also, you can install the Intel Math Kernel Library (``mkl``) optimizations (provided that you have a recent version of ``conda``) or ``openblas`` libraries. Either of them can be installed with ``conda install``.
-- ``VIP`` offers the possibility of computing SVDs on GPU by using ``CuPy`` (starting from version 0.8.0) or ``PyTorch`` (from version 0.9.2). These remain as optional requirements, to be installed by the user, as well as a proper CUDA environment (and a decent GPU card).
+- VIP offers the possibility of computing SVDs on GPU by using ``CuPy`` (starting from version 0.8.0) or ``PyTorch`` (from version 0.9.2). These remain as optional requirements, to be installed by the user, as well as a proper CUDA environment (and a decent GPU card).
 - Finally, bad pixel correction routines can be optimised with ``Numba``, which  converts some Python code, particularly ``NumPy``, into fast machine code. A factor up to ~50x times speed improvement can be obtained on large images compared to NumPy. Numba can be installed with ``conda install numba``.
 
 
 Loading VIP
 ^^^^^^^^^^^
 Finally, start Python (or IPython or a Jupyter notebook if you prefer) and check
-that you are able to import ``VIP``:
+that you are able to import VIP:
 
 .. code-block:: python
 
   import vip_hci as vip
 
-If everything went fine with the installation, you will see a welcome message.
-Now you can start finding exoplanets!
+If everything went fine with the installation, you should not get any error message upon importation, and you can start finding exoplanets!
 
 
 Image conventions
@@ -242,7 +227,7 @@ If you wish to be kept informed about major VIP updates and on-going/future deve
 Attribution
 -----------
 
-``VIP`` started as the effort of `Carlos Alberto Gomez Gonzalez <https://github.com/carlos-gg>`_,
+VIP started as the effort of `Carlos Alberto Gomez Gonzalez <https://github.com/carlos-gg>`_,
 a former PhD student of `PSILab <https://sites.google.com/site/olivierabsil/psilab>`_
 (ULiege, Belgium), who has led the development of VIP from 2015 to 2020.
 Maintenance and current development is now led by `Valentin Christiaens <https://github.com/VChristiaens>`_.
@@ -250,5 +235,5 @@ VIP benefitted from contributions made by collaborators from several teams, incl
 More details about the respective contributions are available `here <https://github.com/vortex-exoplanet/VIP/graphs/contributors?from=2015-07-26&to=2022-03-29&type=a>`_.
 
 Please cite `Gomez Gonzalez et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017AJ....154....7G/abstract>`_ and `Christiaens et al. (2023) <https://ui.adsabs.harvard.edu/abs/2023JOSS....8.4774C/abstract>`_ whenever 
-you publish data reduced with ``VIP`` (Astrophysics Source Code Library reference `ascl:1603.003`).
+you publish data reduced with VIP (Astrophysics Source Code Library reference `ascl:1603.003`).
 In addition, please cite the relevant publication(s) for the algorithms you use within VIP (usually mentioned in the documentation, e.g. `Marois et al. 2006 <https://ui.adsabs.harvard.edu/abs/2006ApJ...641..556M/abstract>`_ for median-ADI).

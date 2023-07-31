@@ -21,18 +21,17 @@ from multiprocessing import cpu_count
 from typing import Tuple, List, Union
 from enum import Enum
 from dataclasses import dataclass
+from .svd import get_eigenvectors
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector, check_scal_vector
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
 from ..config import time_ini, timing
+from ..config.paramenum import SvdMode, Imlib, Interpolation, Collapse, ALGO_KEY
 from ..config.utils_conf import pool_map, iterable
-from ..var import get_annulus_segments, matrix_scaling
-from ..var.paramenum import SvdMode, Imlib, Interpolation, Collapse, ALGO_KEY
-from ..var.object_utils import setup_parameters, separate_kwargs_dict
+from ..config.utils_param import setup_parameters, separate_kwargs_dict
 from ..stats import descriptive_stats
-from .svd import get_eigenvectors
-
+from ..var import get_annulus_segments, matrix_scaling
 AUTO = "auto"
 
 
@@ -163,7 +162,7 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         second PCA stage is skipped and the residuals are de-rotated and
         combined.
 
-    svd_mode : Enum, see `vip_hci.var.paramenum.SvdMode`
+    svd_mode : Enum, see `vip_hci.config.paramenum.SvdMode`
         Switch for the SVD method/library to be used.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
@@ -176,16 +175,16 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
     tol : float, optional
         Stopping criterion for choosing the number of PCs when ``ncomp``
         is None. Lower values will lead to smaller residuals and more PCs.
-    scaling : Enum, see `vip_hci.var.paramenum.Scaling`
+    scaling : Enum, see `vip_hci.config.paramenum.Scaling`
         Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
         function. If set to None, the input matrix is left untouched.
-    imlib : Enum, see `vip_hci.var.paramenum.Imlib`
+    imlib : Enum, see `vip_hci.config.paramenum.Imlib`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation :  Enum, see `vip_hci.var.paramenum.Interpolation`
+    interpolation :  Enum, see `vip_hci.config.paramenum.Interpolation`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : Enum, see `vip_hci.var.paramenum.Collapse`
+    collapse : Enum, see `vip_hci.config.paramenum.Collapse`
         Sets the way of collapsing the frames for producing a final image.
-    collapse_ifs : Enum, see `vip_hci.var.paramenum.Collapse`
+    collapse_ifs : Enum, see `vip_hci.config.paramenum.Collapse`
         Sets how spectral residual frames should be combined to produce an
         mSDI image.
     ifs_collapse_range: str 'all' or tuple of 2 int
@@ -338,7 +337,8 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
             print("First PCA subtraction exploiting the spectral variability")
             print("{} spectral channels per IFS frame".format(z))
             print(
-                "N annuli = {}, mean FWHM = {:.3f}".format(n_annuli, algo_params.fwhm)
+                "N annuli = {}, mean FWHM = {:.3f}".format(
+                    n_annuli, algo_params.fwhm)
             )
 
         add_params = {

@@ -12,13 +12,13 @@ from dataclasses import dataclass
 from typing import List
 from enum import Enum
 from sklearn.metrics import pairwise_distances
+from .utils_pca import pca_annulus
 from ..var import get_annulus_segments
-from ..var.object_utils import setup_parameters, separate_kwargs_dict
-from ..var.paramenum import Metric, Imlib, Interpolation, Collapse, ALGO_KEY
-from ..preproc import cube_derotate, cube_collapse, check_pa_vector
+from ..config.utils_param import setup_parameters, separate_kwargs_dict
+from ..config.paramenum import Metric, Imlib, Interpolation, Collapse, ALGO_KEY
 from ..config import time_ini, timing
 from ..config.utils_conf import pool_map, iterable
-from .utils_pca import pca_annulus
+from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 
 

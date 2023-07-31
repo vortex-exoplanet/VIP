@@ -63,14 +63,14 @@ import numpy as np
 import numpy.linalg as la
 from enum import Enum
 from skimage.draw import disk
-from ..var import get_annulus_segments, frame_center
-from ..preproc import frame_crop, cube_crop_frames, cube_derotate
+from ..config.utils_param import setup_parameters, separate_kwargs_dict
 from ..config.utils_conf import pool_map, iterable
 from ..config import time_ini, timing
+from ..config.paramenum import VarEstim, Imlib, Interpolation, ALGO_KEY
 from ..fm import cube_inject_companions
 from ..preproc.derotation import _find_indices_adi
-from ..var.object_utils import setup_parameters, separate_kwargs_dict
-from ..var.paramenum import VarEstim, Imlib, Interpolation, ALGO_KEY
+from ..preproc import frame_crop, cube_crop_frames, cube_derotate
+from ..var import get_annulus_segments, frame_center
 
 
 @dataclass
@@ -143,15 +143,13 @@ def fmmf(*all_args, **all_kwargs: dict):
     model: string, optional
         Selected PSF-subtraction technique for the computation of the FMMF
         detection map. FMMF work either with KLIP or LOCI. Default is 'KLIP'.
-    var: Enum, see `vip_hci.var.paramenum.VarEstim`
+    var: Enum, see `vip_hci.config.paramenum.VarEstim`
         Model used for the residual noise variance estimation used in the
         matched filtering (maximum likelihood estimation of the flux and SNR).
     param: dict, optional
         Dictionnary regrouping the parameters used by the KLIP (ncomp and
         delta_rot) or LOCI (tolerance and delta_rot) PSF-subtraction
         technique:
-
-
         * ncomp : int, optional. Number of components used for the low-rank
         approximation of the speckle field. Default is 20.
         * tolerance: float, optional. Tolerance level for the approximation of
@@ -163,10 +161,10 @@ def fmmf(*all_args, **all_kwargs: dict):
     crop: int, optional
         Part of the PSF template considered in the estimation of the FMMF
         detection map. Default is 5.
-    imlib : Enum, see `vip_hci.var.paramenum.Imlib`
+    imlib : Enum, see `vip_hci.config.paramenum.Imlib`
         Parameter used for the derotation of the residual cube. See the
         documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : Enum, see `vip_hci.var.paramenum.Interpolation`
+    interpolation : Enum, see `vip_hci.config.paramenum.Interpolation`
         Parameter used for the derotation of the residual cube. See the
         documentation of the ``vip_hci.preproc.frame_rotate`` function.
     nproc : int or None, optional

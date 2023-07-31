@@ -49,29 +49,19 @@ from dataclasses import dataclass
 from enum import Enum
 from .svd import svd_wrapper, SVDecomposer
 from .utils_pca import pca_incremental, pca_grid
-from ..var.paramenum import SvdMode, Adimsdi, Interpolation, Imlib, Collapse, ALGO_KEY
+from ..config import (timing, time_ini, check_enough_memory, Progressbar,
+                      check_array)
+from ..config.paramenum import (SvdMode, Adimsdi, Interpolation, Imlib, Collapse,
+                                ALGO_KEY)
+from ..config.utils_conf import pool_map, iterable
+from ..config.utils_param import setup_parameters, separate_kwargs_dict
 from ..preproc.derotation import _find_indices_adi, _compute_pa_thresh
 from ..preproc import cube_rescaling_wavelengths as scwave
-from ..preproc import (
-    cube_derotate,
-    cube_collapse,
-    check_pa_vector,
-    check_scal_vector,
-    cube_crop_frames,
-    cube_subtract_sky_pca,
-)
-from ..config import timing, time_ini, check_enough_memory, Progressbar, check_array
-from ..config.utils_conf import pool_map, iterable
-from ..var import (
-    frame_center,
-    dist,
-    prepare_matrix,
-    reshape_matrix,
-    cube_filter_lowpass,
-    mask_circle,
-)
-from ..var.object_utils import setup_parameters, separate_kwargs_dict
+from ..preproc import (cube_derotate, cube_collapse, cube_subtract_sky_pca,
+                       check_pa_vector, check_scal_vector, cube_crop_frames)
 from ..stats import descriptive_stats
+from ..var import (frame_center, dist, prepare_matrix, reshape_matrix,
+                   cube_filter_lowpass, mask_circle)
 
 
 @dataclass
@@ -216,9 +206,9 @@ def pca(*all_args: List, **all_kwargs: dict):
         None then the second PCA stage is skipped and the residuals are
         de-rotated and combined).
 
-    svd_mode : Enum, see `vip_hci.var.paramenum.SvdMode`
+    svd_mode : Enum, see `vip_hci.config.paramenum.SvdMode`
         Switch for the SVD method/library to be used.
-    scaling : Enum, see `vip_hci.var.paramenum.Scaling`
+    scaling : Enum, see `vip_hci.config.paramenum.Scaling`
         Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
         function. If set to None, the input matrix is left untouched.
     mask_center_px : None or int
@@ -236,7 +226,7 @@ def pca(*all_args: List, **all_kwargs: dict):
     fwhm : float, list or 1d numpy array, optional
         Known size of the FHWM in pixels to be used. Default value is 4.
         Can be a list or 1d numpy array for a 4d input cube with no scale_list.
-    adimsdi : Enum, see `vip_hci.var.paramenum.Adimsdi`
+    adimsdi : Enum, see `vip_hci.config.paramenum.Adimsdi`
         Changes the way the 4d cubes (ADI+mSDI) are processed. Basically it
         determines whether a single or double pass PCA is going to be computed.
     crop_ifs: bool, optional
@@ -244,16 +234,16 @@ def pca(*all_args: List, **all_kwargs: dict):
         rescaling in wavelength. This is recommended for large FOVs such as the
         one of SPHERE, but can remove significant amount of information close to
         the edge of small FOVs (e.g. SINFONI).
-    imlib : Enum, see `vip_hci.var.paramenum.Imlib`
+    imlib : Enum, see `vip_hci.config.paramenum.Imlib`
         See the documentation of ``vip_hci.preproc.frame_rotate``.
-    imlib2 : Enum, see `vip_hci.var.paramenum.Imlib`
+    imlib2 : Enum, see `vip_hci.config.paramenum.Imlib`
         See the documentation of ``vip_hci.preproc.cube_rescaling_wavelengths``.
-    interpolation : Enum, see `vip_hci.var.paramenum.Interpolation`
+    interpolation : Enum, see `vip_hci.config.paramenum.Interpolation`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : Enum, see `vip_hci.var.paramenum.Collapse`
+    collapse : Enum, see `vip_hci.config.paramenum.Collapse`
         Sets how temporal residual frames should be combined to produce an
         ADI image.
-    collapse_ifs : Enum, see `vip_hci.var.paramenum.Collapse`
+    collapse_ifs : Enum, see `vip_hci.config.paramenum.Collapse`
         Sets how spectral residual frames should be combined to produce an
         mSDI image.
     ifs_collapse_range: str 'all' or tuple of 2 int
@@ -676,7 +666,8 @@ def pca(*all_args: List, **all_kwargs: dict):
                     final_res = [final_residuals_cube, pclist]
                 # full-frame standard PCA or ADI+RDI
                 else:
-                    final_res = [frame, pcs, recon, residuals_cube, residuals_cube_]
+                    final_res = [frame, pcs, recon,
+                                 residuals_cube, residuals_cube_]
             if algo_params.cube.ndim == 4:
                 final_res.append(ifs_adi_frames)
             return tuple(final_res)
@@ -815,7 +806,8 @@ def _adi_pca(
                 x1, y1 = source_xy
                 ann_center = dist(yc, xc, y1, x1)
                 pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
-                mid_range = np.abs(np.amax(angle_list) - np.amin(angle_list)) / 2
+                mid_range = np.abs(np.amax(angle_list) -
+                                   np.amin(angle_list)) / 2
                 if pa_thr >= mid_range - mid_range * 0.1:
                     new_pa_th = float(mid_range - mid_range * 0.1)
                     if verbose:
@@ -859,7 +851,8 @@ def _adi_pca(
 
                 # number of frames in library printed for each annular quadrant
                 if verbose:
-                    descriptive_stats(nfrslib, verbose=verbose, label="Size LIB: ")
+                    descriptive_stats(nfrslib, verbose=verbose,
+                                      label="Size LIB: ")
 
             residuals_cube_ = cube_derotate(
                 residuals_cube,
@@ -1031,7 +1024,7 @@ def _adimsdi_singlepca(
 
         for i in Progressbar(range(n), verbose=verbose):
             frame_i = scwave(
-                res_cube[i * z + idx_ini : i * z + idx_fin],
+                res_cube[i * z + idx_ini: i * z + idx_fin],
                 scale_list[idx_ini:idx_fin],
                 full_output=False,
                 inverse=True,
@@ -1199,14 +1192,16 @@ def _adimsdi_doublepca(
             interpolation=interpolation,
             **rot_options,
         )
-        frame = cube_collapse(residuals_cube_channels_, mode=collapse, w=weights)
+        frame = cube_collapse(residuals_cube_channels_,
+                              mode=collapse, w=weights)
         if verbose:
             timing(start_time)
     else:
         if ncomp_adi > n:
             ncomp_adi = n
             print(
-                "Number of PCs too high, using  maximum of {} PCs " "instead".format(n)
+                "Number of PCs too high, using  maximum of {} PCs " "instead".format(
+                    n)
             )
         if verbose:
             print("{} ADI frames".format(n))
@@ -1235,7 +1230,8 @@ def _adimsdi_doublepca(
             **rot_options,
         )
         residuals_cube_channels_ = der_res
-        frame = cube_collapse(residuals_cube_channels_, mode=collapse, w=weights)
+        frame = cube_collapse(residuals_cube_channels_,
+                              mode=collapse, w=weights)
         if verbose:
             timing(start_time)
     return residuals_cube_channels, residuals_cube_channels_, frame
@@ -1515,7 +1511,8 @@ def _project_subtract(
             curr_frame = matrix[frame]  # current frame
             curr_frame_emp = matrix_emp[frame]
             if left_eigv:
-                V = svd_wrapper(ref_lib, svd_mode, ncomp, False, left_eigv=left_eigv)
+                V = svd_wrapper(ref_lib, svd_mode, ncomp,
+                                False, left_eigv=left_eigv)
                 transformed = np.dot(curr_frame_emp.T, V)
                 reconstructed = np.dot(V, transformed.T)
             else:
@@ -1533,7 +1530,8 @@ def _project_subtract(
         # the whole matrix is processed at once
         else:
             if left_eigv:
-                V = svd_wrapper(ref_lib, svd_mode, ncomp, verbose, left_eigv=left_eigv)
+                V = svd_wrapper(ref_lib, svd_mode, ncomp,
+                                verbose, left_eigv=left_eigv)
                 transformed = np.dot(matrix_emp.T, V)
                 reconstructed = np.dot(V, transformed.T)
             else:

@@ -39,14 +39,14 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple, Union, List
 from ..config import time_ini, timing
-from ..var import get_annulus_segments, mask_circle
-from ..var.paramenum import Imlib, Interpolation, Collapse, ALGO_KEY
-from ..var.object_utils import setup_parameters, separate_kwargs_dict
+from ..config.paramenum import Imlib, Interpolation, Collapse, ALGO_KEY
+from ..config.utils_conf import pool_map, iterable, print_precision
+from ..config.utils_param import setup_parameters, separate_kwargs_dict
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector, check_scal_vector
 from ..preproc import cube_rescaling_wavelengths as scwave
-from ..config.utils_conf import pool_map, iterable, print_precision
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
+from ..var import get_annulus_segments, mask_circle
 
 
 @dataclass
@@ -145,11 +145,11 @@ def median_sub(*all_args: List, **all_kwargs: dict):
     sdi_only: bool, optional
         In the case of IFS data (ADI+SDI), whether to perform median-SDI, or
         median-ASDI (default).
-    imlib : Enum, see `vip_hci.var.paramenum.Imlib`
+    imlib : Enum, see `vip_hci.config.paramenum.Imlib`
         See the documentation of ``vip_hci.preproc.frame_rotate``.
-    interpolation : Enum, see `vip_hci.var.paramenum.Interpolation`
+    interpolation : Enum, see `vip_hci.config.paramenum.Interpolation`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : Enum, see `vip_hci.var.paramenum.Collapse`
+    collapse : Enum, see `vip_hci.config.paramenum.Collapse`
         Sets how temporal residual frames should be combined to produce an
         ADI image.
     nproc : None or int, optional
@@ -229,7 +229,8 @@ def median_sub(*all_args: List, **all_kwargs: dict):
 
             n_annuli = int((y / 2 - algo_params.radius_int) / algo_params.asize)
             if algo_params.verbose:
-                print("N annuli = {}, FWHM = {}".format(n_annuli, algo_params.fwhm))
+                print("N annuli = {}, FWHM = {}".format(
+                    n_annuli, algo_params.fwhm))
 
             add_params = {
                 "ann": iterable(range(n_annuli)),
@@ -511,7 +512,8 @@ def _median_subt_ann_adi(
     if ARRAY.ndim == 3:
         indices = get_annulus_segments(ARRAY[0], inner_radius, annulus_width)[0]
     elif ARRAY.ndim == 4:
-        indices = get_annulus_segments(ARRAY[0, 0], inner_radius, annulus_width)[0]
+        indices = get_annulus_segments(
+            ARRAY[0, 0], inner_radius, annulus_width)[0]
     yy = indices[0]
     xx = indices[1]
     matrix = ARRAY[:, yy, xx]  # shape [n x npx_annulus]

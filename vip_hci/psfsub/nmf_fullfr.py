@@ -20,19 +20,13 @@ from sklearn.decomposition import NMF
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Tuple, List
+from ..config.utils_param import setup_parameters, separate_kwargs_dict
+from ..config.paramenum import Collapse, HandleNeg, Initsvd, ALGO_KEY
+from ..config import timing, time_ini
 from ..preproc import cube_derotate, cube_collapse
 from ..preproc.derotation import _compute_pa_thresh, _find_indices_adi
-from ..var import (
-    prepare_matrix,
-    reshape_matrix,
-    frame_center,
-    dist,
-    matrix_scaling,
-    mask_circle,
-)
-from ..var.object_utils import setup_parameters, separate_kwargs_dict
-from ..var.paramenum import Collapse, HandleNeg, Initsvd, ALGO_KEY
-from ..config import timing, time_ini
+from ..var import (prepare_matrix, reshape_matrix, frame_center, dist,
+                   matrix_scaling, mask_circle)
 
 
 @dataclass
@@ -93,7 +87,7 @@ def nmf(*all_args: List, **all_kwargs: dict):
     ncomp : int, optional
         How many components are used as for low-rank approximation of the
         datacube.
-    scaling : Enum, see `vip_hci.var.paramenum.Scaling`
+    scaling : Enum, see `vip_hci.config.paramenum.Scaling`
         With None, no scaling is performed on the input data before SVD. With
         "temp-mean" then temporal px-wise mean subtraction is done, with
         "spat-mean" then the spatial mean is subtracted, with "temp-standard"
@@ -118,20 +112,20 @@ def nmf(*all_args: List, **all_kwargs: dict):
         Default is 1 (excludes 1xFHWM on each side of the considered frame).
     fwhm : float, optional
         Known size of the FHWM in pixels to be used. Default value is 4.
-    init_svd: Enum, see `vip_hci.var.paramenum.Initsvd`
+    init_svd: Enum, see `vip_hci.config.paramenum.Initsvd`
         Method used to initialize the iterative procedure to find H and W.
         'nndsvd': non-negative double SVD recommended for sparseness
         'nndsvda': NNDSVD where zeros are filled with the average of cube;
         recommended when sparsity is not desired
         'random': random initial non-negative matrix
-    collapse : Enum, see `vip_hci.var.paramenum.Collapse`
+    collapse : Enum, see `vip_hci.config.paramenum.Collapse`
         Sets the way of collapsing the frames for producing a final image.
     full_output: boolean, optional
         Whether to return the final median combined image only or with other
         intermediate arrays.
     verbose : {True, False}, bool optional
         If True prints intermediate info and timing.
-    handle_neg: Enum, see `vip_hci.var.paramenum.HandleNeg`
+    handle_neg: Enum, see `vip_hci.config.paramenum.HandleNeg`
         Determines how to handle negative values: mask them, set them to zero,
         or subtract the minimum value in the arrays. Note: 'mask' or 'null'
         may leave significant artefacts after derotation of residual cube
@@ -175,7 +169,8 @@ def nmf(*all_args: List, **all_kwargs: dict):
         if algo_params.mask_center_px:
             array = mask_circle(array, algo_params.mask_center_px)
         if algo_params.cube_sig is not None:
-            yy, xx = np.where(np.amin(array - np.abs(algo_params.cube_sig), axis=0) > 0)
+            yy, xx = np.where(
+                np.amin(array - np.abs(algo_params.cube_sig), axis=0) > 0)
         else:
             yy, xx = np.where(np.amin(array, axis=0) > 0)
         H_tmp = np.zeros([algo_params.ncomp, y, x])
@@ -193,7 +188,8 @@ def nmf(*all_args: List, **all_kwargs: dict):
         if algo_params.handle_neg == HandleNeg.NULL:
             if algo_params.cube_sig is not None:
                 array[np.where(array - algo_params.cube_sig < 0)] = 0
-                algo_params.cube_sig[np.where(array - algo_params.cube_sig < 0)] = 0
+                algo_params.cube_sig[np.where(
+                    array - algo_params.cube_sig < 0)] = 0
             else:
                 array[np.where(array < 0)] = 0
 
@@ -277,9 +273,11 @@ def nmf(*all_args: List, **all_kwargs: dict):
         yc, xc = frame_center(algo_params.cube[0], False)
         x1, y1 = algo_params.source_xy
         ann_center = dist(yc, xc, y1, x1)
-        pa_thr = _compute_pa_thresh(ann_center, algo_params.fwhm, algo_params.delta_rot)
+        pa_thr = _compute_pa_thresh(
+            ann_center, algo_params.fwhm, algo_params.delta_rot)
         mid_range = (
-            np.abs(np.amax(algo_params.angle_list) - np.amin(algo_params.angle_list))
+            np.abs(np.amax(algo_params.angle_list) -
+                   np.amin(algo_params.angle_list))
             / 2
         )
         if pa_thr >= mid_range - mid_range * 0.1:
@@ -302,7 +300,8 @@ def nmf(*all_args: List, **all_kwargs: dict):
             func_params = setup_parameters(
                 params_obj=algo_params, fkt=_project_subtract, **add_params
             )
-            res_result = _project_subtract(**func_params, **algo_params.nmf_args)
+            res_result = _project_subtract(
+                **func_params, **algo_params.nmf_args)
             # ! Instead of reshaping, fill frame using get_annulus?
             if algo_params.full_output:
                 residuals = res_result[0]

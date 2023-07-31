@@ -28,11 +28,11 @@ from enum import Enum
 
 from typing import Union, List
 
-from ..var.filters import frame_filter_highpass, cube_filter_highpass
+from ..config.utils_param import setup_parameters, separate_kwargs_dict
 from ..config.utils_conf import pool_map, iterable
+from ..config.paramenum import OptMethod, ALGO_KEY
+from ..var.filters import frame_filter_highpass, cube_filter_highpass
 from ..var import dist_matrix
-from ..var.object_utils import setup_parameters, separate_kwargs_dict
-from ..var.paramenum import OptMethod, ALGO_KEY
 
 from .utils_andro import (
     calc_psf_shift_subpix,
@@ -334,8 +334,10 @@ def andromeda(*all_args: List, **all_kwargs: dict):
     if algo_params.iwa is None:
         for test_iwa in [0.5, 4, 0.25]:
             # keep first IWA which produces frame pairs
-            test_ang = 2 * np.arcsin(algo_params.min_sep / (2 * test_iwa)) * 180 / np.pi
-            test_id, _, _ = create_indices(algo_params.angle_list, angmin=test_ang)
+            test_ang = 2 * np.arcsin(algo_params.min_sep /
+                                     (2 * test_iwa)) * 180 / np.pi
+            test_id, _, _ = create_indices(
+                algo_params.angle_list, angmin=test_ang)
             if test_id is not None:  # pairs found
                 break
 
@@ -343,7 +345,8 @@ def andromeda(*all_args: List, **all_kwargs: dict):
         info("iwa automatically set to {}*lambda/D", algo_params.iwa)
 
     if algo_params.owa is None:
-        algo_params.owa = (npix / 2 - npixpsf / 2) / (2 * algo_params.oversampling_fact)
+        algo_params.owa = (npix / 2 - npixpsf / 2) / \
+            (2 * algo_params.oversampling_fact)
         info("owa automatically set to {} (based on frame size)", algo_params.owa)
     else:
         # radius of the last annulus taken into account for process [lambda/D]:
@@ -422,7 +425,8 @@ def andromeda(*all_args: List, **all_kwargs: dict):
         )
 
     # library of all different PSF positions
-    psf_cube = calc_psf_shift_subpix(algo_params.psf, precision=algo_params.precision)
+    psf_cube = calc_psf_shift_subpix(
+        algo_params.psf, precision=algo_params.precision)
 
     # spatial filtering of the preprocessed image-cubes:
     if algo_params.filtering_fraction != 1:
@@ -447,7 +451,8 @@ def andromeda(*all_args: List, **all_kwargs: dict):
         first_distarray = (
             dmin
             + np.arange(
-                int(np.round(np.abs(dmean - dmin - 1)) / algo_params.annuli_width + 1),
+                int(np.round(np.abs(dmean - dmin - 1)) /
+                    algo_params.annuli_width + 1),
                 dtype=float,
             )
             * algo_params.annuli_width
@@ -534,7 +539,8 @@ def andromeda(*all_args: List, **all_kwargs: dict):
     # translating into contrast:
     # flux_factor: float or 2d array, depending on tnd
     factor = 1 / psf_scale_factor
-    flux_factor = factor * algo_params.tnd * (algo_params.ditpsf / algo_params.ditimg)
+    flux_factor = factor * algo_params.tnd * \
+        (algo_params.ditpsf / algo_params.ditimg)
     if algo_params.verbose:
         print("[34m", "psf_scale_factor:", psf_scale_factor, "[0m")
         print("[34m", "tnd:", algo_params.tnd, "[0m")
@@ -637,10 +643,12 @@ def _process_annulus(
             print(
                 "  WARNING: {} frame(s) cannot be used because it wasn't "
                 "possible to find any other frame to couple with them. "
-                "Their indices are: {}".format(len(indices_not_used), indices_not_used)
+                "Their indices are: {}".format(
+                    len(indices_not_used), indices_not_used)
             )
         max_sep_pix = (
-            2 * rhomin * np.sin(np.deg2rad((max(angle_list) - min(angle_list)) / 4))
+            2 * rhomin *
+            np.sin(np.deg2rad((max(angle_list) - min(angle_list)) / 4))
         )
         max_sep_ld = max_sep_pix / (2 * oversampling_fact)
 
@@ -862,13 +870,15 @@ def andromeda_core(
     numerator = np.zeros((npix, npix))
     denominator = np.ones((npix, npix))
 
-    parang = np.array([angle_list[index_neg], angle_list[index_pos]]) * np.pi / 180
+    parang = np.array(
+        [angle_list[index_neg], angle_list[index_pos]]) * np.pi / 180
     # shape (2,npairs) -> array([[1, 2, 3],
     #                             [4, 5, 6]])   (for npairs=3)
     # IDL: dimension = SIZE =  _, npairs,2, _, _
 
     for j in range(
-        npix // 2 - np.ceil(rhomax).astype(int), npix // 2 + np.ceil(rhomax).astype(int)
+        npix // 2 - np.ceil(rhomax).astype(int), npix // 2 +
+        np.ceil(rhomax).astype(int)
     ):
         for i in range(
             npix // 2 - np.ceil(rhomax).astype(int),
@@ -894,8 +904,10 @@ def andromeda_core(
                 # lef, bot, ... have shape (2,npairs)
                 lef = npix // 2 + np.floor(decalx).astype(int) - npixpsf // 2
                 bot = npix // 2 + np.floor(decaly).astype(int) - npixpsf // 2
-                rig = npix // 2 + np.floor(decalx).astype(int) + npixpsf // 2 - 1
-                top = npix // 2 + np.floor(decaly).astype(int) + npixpsf // 2 - 1
+                rig = npix // 2 + \
+                    np.floor(decalx).astype(int) + npixpsf // 2 - 1
+                top = npix // 2 + \
+                    np.floor(decaly).astype(int) + npixpsf // 2 - 1
 
                 # now select the minimum of the two, to compute the area to be
                 # cut (the smallest rectangle which contains both psf's)
@@ -911,10 +923,12 @@ def andromeda_core(
                 for k in range(npairs):
                     # this is the innermost loop, performed MANY times
                     patt_pos = np.zeros(
-                        (px_ymax[k] - px_ymin[k] + 1, px_xmax[k] - px_xmin[k] + 1)
+                        (px_ymax[k] - px_ymin[k] + 1,
+                         px_xmax[k] - px_xmin[k] + 1)
                     )
                     patt_neg = np.zeros(
-                        (px_ymax[k] - px_ymin[k] + 1, px_xmax[k] - px_xmin[k] + 1)
+                        (px_ymax[k] - px_ymin[k] + 1,
+                         px_xmax[k] - px_xmin[k] + 1)
                     )
 
                     # put the positive psf in the right place
@@ -944,13 +958,13 @@ def andromeda_core(
                         weight_cut = weights_diff_2d
                     else:
                         weight_cut = weights_diff_2d[
-                            px_ymin[k] : px_ymax[k] + 1, px_xmin[k] : px_xmax[k] + 1
+                            px_ymin[k]: px_ymax[k] + 1, px_xmin[k]: px_xmax[k] + 1
                         ]
 
                     num_part += np.sum(
                         pc
                         * wd_images[
-                            k, px_ymin[k] : px_ymax[k] + 1, px_xmin[k] : px_xmax[k] + 1
+                            k, px_ymin[k]: px_ymax[k] + 1, px_xmin[k]: px_xmax[k] + 1
                         ]
                     )
 
@@ -1038,7 +1052,8 @@ def create_indices(angle_list, angmin, verbose=True):
             indices_pos.append(good_angles[0])
         else:  # search in other direction
             if i not in indices_pos:
-                good_angles_back = idl_where((angle_list[i] - angle_list >= angmin))
+                good_angles_back = idl_where(
+                    (angle_list[i] - angle_list >= angmin))
 
                 if len(good_angles_back) > 0:
                     indices_neg.append(i)
@@ -1286,7 +1301,7 @@ def normalize_snr(
 
     # IDL `farzone:`
     dfast = 450  # [px] for SPHERE-IRDIS data # TODO: add as function argument?
-    dnozero = snr[int(ycen), int(xcen) :].nonzero()[0][-1].item()
+    dnozero = snr[int(ycen), int(xcen):].nonzero()[0][-1].item()
 
     if dnozero == dmax:
         id5 = (tempo >= (dnozero - nsmooth_snr - 1)) & (tempo <= nsnr / 2 - 1)

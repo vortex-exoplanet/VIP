@@ -25,22 +25,16 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple, Union, List
 from ..var import get_annulus_segments
-from ..var.object_utils import setup_parameters, separate_kwargs_dict
-from ..var.paramenum import (
-    Metric,
-    Adimsdi,
-    Imlib,
-    Interpolation,
-    Collapse,
-    Solver,
-    ALGO_KEY,
-)
-from ..preproc import cube_derotate, cube_collapse, check_pa_vector, check_scal_vector
-from ..preproc.rescaling import _find_indices_sdi
 from ..config import time_ini, timing
+from ..config.utils_param import setup_parameters, separate_kwargs_dict
+from ..config.paramenum import (Metric, Adimsdi, Imlib, Interpolation, Collapse,
+                                Solver, ALGO_KEY)
+from ..config.utils_conf import pool_map, iterable, Progressbar
+from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
+                       check_scal_vector)
+from ..preproc.rescaling import _find_indices_sdi
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc.derotation import _find_indices_adi, _define_annuli
-from ..config.utils_conf import pool_map, iterable, Progressbar
 
 
 @dataclass
@@ -110,7 +104,7 @@ def xloci(*all_args: List, **all_kwargs: dict):
         e.g. with ``vip_hci.preproc.find_scal_vector``).
     fwhm : float, optional
         Size of the FHWM in pixels. Default is 4.
-    metric : Enum, see `vip_hci.var.paramenum.Metric`
+    metric : Enum, see `vip_hci.config.paramenum.Metric`
         Distance metric to be used ('cityblock', 'cosine', 'euclidean', 'l1',
         'l2', 'manhattan', 'correlation', etc). It uses the scikit-learn
         function ``sklearn.metrics.pairwise.pairwise_distances`` (check its
@@ -142,7 +136,7 @@ def xloci(*all_args: List, **all_kwargs: dict):
         Number of processes for parallel computing. If None the number of
         processes will be set to cpu_count()/2. By default the algorithm works
         in single-process mode.
-    solver : Enum, see `vip_hci.var.paramenum.Solver`
+    solver : Enum, see `vip_hci.config.paramenum.Solver`
         Choosing the solver of the least squares problem. ``lstsq`` uses the
         standard scipy least squares solver. ``nnls`` uses the scipy
         non-negative least-squares solver.
@@ -157,7 +151,7 @@ def xloci(*all_args: List, **all_kwargs: dict):
         similar to LOCI. The optimization segments share the same inner radius,
         mean angular position and angular width as their corresponding
         subtraction segments.
-    adimsdi : Enum, see `vip_hci.var.paramenum.Adimsdi`
+    adimsdi : Enum, see `vip_hci.config.paramenum.Adimsdi`
         Changes the way the 4d cubes (ADI+mSDI) are processed.
 
         ``skipadi``: the multi-spectral frames are rescaled wrt the largest
@@ -168,11 +162,11 @@ def xloci(*all_args: List, **all_kwargs: dict):
         (as in the ``skipadi`` case). Then the residuals are processed again in
         an ADI fashion.
 
-    imlib : Enum, see `vip_hci.var.paramenum.Imlib`
+    imlib : Enum, see `vip_hci.config.paramenum.Imlib`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    interpolation : Enum, see `vip_hci.var.paramenum.Interpolation`
+    interpolation : Enum, see `vip_hci.config.paramenum.Interpolation`
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-    collapse : Enum, see `vip_hci.var.paramenum.Collapse`
+    collapse : Enum, see `vip_hci.config.paramenum.Collapse`
         Sets the way of collapsing the frames for producing a final image.
     verbose: bool, optional
         If True prints info to stdout.
@@ -280,7 +274,8 @@ def xloci(*all_args: List, **all_kwargs: dict):
                     "{:.3f}".format(n_annuli, algo_params.fwhm)
                 )
 
-            add_params = {"fr": iterable(range(n)), "scal": algo_params.scale_list}
+            add_params = {"fr": iterable(
+                range(n)), "scal": algo_params.scale_list}
             func_params = setup_parameters(
                 params_obj=algo_params, fkt=_leastsq_sdi_fr, as_list=True, **add_params
             )

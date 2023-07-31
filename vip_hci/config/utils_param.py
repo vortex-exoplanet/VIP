@@ -2,10 +2,8 @@
 from collections import OrderedDict
 from inspect import signature
 from typing import Callable
-from typing import Tuple
 
 import numpy as np
-from astropy.io.fits import Header
 
 KWARGS_EXCEPTIONS = ["param"]
 
@@ -32,14 +30,16 @@ def filter_duplicate_keys(filter_item: any, ref_item: any, filter_in: bool = Tru
     elif isinstance(filter_item, object):
         filter_dict = vars(filter_item).copy()
     else:
-        raise TypeError("The item to be filtered is neither a dictionnary or an object")
+        raise TypeError(
+            "The item to be filtered is neither a dictionnary or an object")
 
     if isinstance(ref_item, dict):
         ref_dict = ref_item.copy()
     elif isinstance(ref_item, object):
         ref_dict = vars(ref_item).copy()
     else:
-        raise TypeError("The reference item is neither a dictionnary or an object")
+        raise TypeError(
+            "The reference item is neither a dictionnary or an object")
 
     # Find keys that must serve as a filter for `filter_item`
     common_keys = set(filter_dict.keys()) & set(ref_dict.keys())
@@ -95,7 +95,8 @@ def setup_parameters(
     wanted_params = OrderedDict(signature(fkt).parameters)
     # Remove dupe keys in params_obj from add_params
     if add_params is not None:
-        obj_params = filter_duplicate_keys(filter_item=params_obj, ref_item=add_params)
+        obj_params = filter_duplicate_keys(
+            filter_item=params_obj, ref_item=add_params)
         all_params = {**obj_params, **add_params}
     else:
         all_params = vars(params_obj)
@@ -105,7 +106,8 @@ def setup_parameters(
     )
 
     if show_params:
-        print(f"The following parameters will be used for the run of {fkt.__name__} :")
+        print(
+            f"The following parameters will be used for the run of {fkt.__name__} :")
         print_algo_params(params_setup)
 
     # For *args support, if an ordered list of parameters is needed
@@ -158,64 +160,3 @@ def separate_kwargs_dict(initial_kwargs: dict, parent_class: any) -> None:
             more_params[key] = value
 
     return class_params, more_params
-
-
-def dict_to_fitsheader(initial_dict: dict) -> Header:
-    """
-    Convert a dictionnary into a fits Header object.
-
-    Parameters
-    ----------
-    initial_dict: dict
-        Dictionnary of parameters to convert to a Header object.
-
-    Returns
-    -------
-    fits_header: Header
-        Converted set of parameters.
-    """
-    fits_header = Header()
-    for key, value in initial_dict.items():
-        fits_header[key] = value
-
-    return fits_header
-
-
-def fitsheader_to_dict(
-    initial_header: Header, sort_by_prefix: str = ""
-) -> Tuple[dict, str]:
-    """
-    Extract a dictionnary of parameters and a string from a FITS Header.
-
-    The string is supposedly the name of the algorithm that was used to obtain
-    the results that go with the Header.
-
-    Parameters
-    ----------
-    initial_header : Header
-        HDU Header that contains parameters used for the run of an algorithm
-        through PostProc, and some unwanted parameters as well.
-    sort_by_prefix : str
-        String that will help filter keys of the header that don't start with
-        that same string. By default, it doesn't filter out anything.
-
-    Returns
-    -------
-    parameters : dict
-        The set of parameters saved in PPResult that was used for a run of
-        an algorithm.
-    algo_name : str
-        The name of the algorithm that was saved alongside its parameters.
-    """
-    head_dict = dict(initial_header)
-    # Some parameters get their keys converted to uppercase
-    lowercase_dict = {key.lower(): value for key, value in head_dict.items()}
-    # Sorting parameters that don't belong in the dictionnary
-    parameters = {
-        key[len(sort_by_prefix) :]: value
-        for key, value in lowercase_dict.items()
-        if key.startswith(sort_by_prefix)
-    }
-    algo_name = parameters["algo_name"]
-    del parameters["algo_name"]
-    return parameters, algo_name

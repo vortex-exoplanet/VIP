@@ -7,7 +7,6 @@ __author__ = "Valentin Christiaens, Thomas Bédrine"
 __all__ = ["nmf_annular", "NMFAnnParams"]
 
 import numpy as np
-import pdb
 from multiprocessing import cpu_count
 from sklearn.decomposition import NMF
 from dataclasses import dataclass, field
@@ -16,8 +15,8 @@ from enum import Enum
 from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..var import get_annulus_segments, matrix_scaling
-from ..var.object_utils import setup_parameters, separate_kwargs_dict
-from ..var.paramenum import Initsvd, Imlib, Interpolation, HandleNeg, Collapse, ALGO_KEY
+from ..config.utils_param import setup_parameters, separate_kwargs_dict
+from ..config.paramenum import Initsvd, Imlib, Interpolation, HandleNeg, Collapse, ALGO_KEY
 from ..config import timing, time_ini
 from ..config.utils_conf import pool_map, iterable
 
@@ -207,7 +206,8 @@ def nmf_annular(*all_args: List, **all_kwargs: dict):
         algo_params.delta_rot = [algo_params.delta_rot] * n_annuli
 
     if isinstance(algo_params.n_segments, int):
-        algo_params.n_segments = [algo_params.n_segments for _ in range(n_annuli)]
+        algo_params.n_segments = [
+            algo_params.n_segments for _ in range(n_annuli)]
     elif algo_params.n_segments == "auto":
         algo_params.n_segments = list()
         algo_params.n_segments.append(2)  # for first annulus
@@ -308,15 +308,18 @@ def nmf_annular(*all_args: List, **all_kwargs: dict):
                         > 0
                     ]
                 else:
-                    yp = [yy[i] for i in npts if np.amin(array[:, yy[i], xx[i]]) > 0]
-                    xp = [xx[i] for i in npts if np.amin(array[:, yy[i], xx[i]]) > 0]
+                    yp = [yy[i]
+                          for i in npts if np.amin(array[:, yy[i], xx[i]]) > 0]
+                    xp = [xx[i]
+                          for i in npts if np.amin(array[:, yy[i], xx[i]]) > 0]
                 yy = tuple(yp)
                 xx = tuple(xp)
             matrix_segm = array[:, yy, xx]  # shape [nframes x npx_segment]
             matrix_segm = matrix_scaling(matrix_segm, algo_params.scaling)
             if algo_params.cube_ref is not None:
                 matrix_segm_ref = algo_params.cube_ref[:, yy, xx]
-                matrix_segm_ref = matrix_scaling(matrix_segm_ref, algo_params.scaling)
+                matrix_segm_ref = matrix_scaling(
+                    matrix_segm_ref, algo_params.scaling)
             else:
                 matrix_segm_ref = None
             if algo_params.cube_sig is not None:
@@ -365,7 +368,8 @@ def nmf_annular(*all_args: List, **all_kwargs: dict):
     cube_der = cube_derotate(
         cube_out, algo_params.angle_list, nproc=algo_params.nproc, **rot_options
     )
-    frame = cube_collapse(cube_der, mode=algo_params.collapse, w=algo_params.weights)
+    frame = cube_collapse(
+        cube_der, mode=algo_params.collapse, w=algo_params.weights)
     if algo_params.verbose:
         print("Done derotating and combining.")
         timing(start_time)

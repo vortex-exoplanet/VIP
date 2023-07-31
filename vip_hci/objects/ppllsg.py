@@ -14,7 +14,6 @@ from .dataset import Dataset
 from .postproc import PostProc
 from ..psfsub import llsg, LLSGParams
 from ..config.utils_conf import algo_calculates_decorator as calculates
-from ..var.object_utils import setup_parameters
 
 
 @dataclass

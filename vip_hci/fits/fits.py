@@ -5,26 +5,20 @@ Module with various fits handling functions.
 
 
 __author__ = "Carlos Alberto Gomez Gonzalez"
-__all__ = ["open_fits", "info_fits", "write_fits", "verify_fits", "byteswap_array"]
+__all__ = ["open_fits", "info_fits",
+           "write_fits", "verify_fits", "byteswap_array"]
 
 
 import os
 import numpy as np
 from astropy.io import fits as ap_fits
 from astropy.io.fits import HDUList
-from ..var.paramenum import ALL_FITS
+from ..config.paramenum import ALL_FITS
 
 
-def open_fits(
-    fitsfilename,
-    n=0,
-    get_header=False,
-    ignore_missing_end=False,
-    precision=np.float32,
-    return_memmap=False,
-    verbose=True,
-    **kwargs,
-):
+def open_fits(fitsfilename, n=0, get_header=False, ignore_missing_end=False,
+              precision=np.float32, return_memmap=False, verbose=True,
+              **kwargs):
     """
     Load a fits file into memory as numpy array.
 
@@ -215,14 +209,8 @@ def verify_fits(fitsfilename):
             f.verify()
 
 
-def write_fits(
-    fitsfilename,
-    array,
-    header=None,
-    output_verify="exception",
-    precision=np.float32,
-    verbose=True,
-):
+def write_fits(fitsfilename, array, header=None, output_verify="exception",
+               precision=np.float32, verbose=True):
     """
     Write array and header into FITS file.
 

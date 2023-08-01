@@ -131,7 +131,7 @@ def separate_kwargs_dict(initial_kwargs: dict, parent_class: any) -> None:
     Take a set of kwargs parameters and split them in two separate dicts.
 
     The condition for the separation is to extract the parameters of an object
-    (example: PcaParams) and leave the other parameters as another dictionnary.
+    (example: PCA_Params) and leave the other parameters as another dictionnary.
     This is used in ``vip_hci.psfsub`` and ``vip_hci.invprob`` functions to allow
     both the parameters of the function and the usual ``rot_options`` to be passed
     as one kwargs.

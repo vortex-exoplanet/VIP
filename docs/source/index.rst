@@ -42,9 +42,11 @@ a bug, ask a question, suggest a new functionality or contribute to the code (th
    :hidden:
 
    tutos
-   tutorials/01_quickstart.ipynb
+   tutorials/01A_quickstart.ipynb
+   tutorials/01B_quickstart_with_objects.ipynb
    tutorials/02_preproc.ipynb
-   tutorials/03_psfsub.ipynb
+   tutorials/03A_psfsub.ipynb
+   tutorials/03B_psfsub_as_objects.ipynb
    tutorials/04_metrics.ipynb
    tutorials/05_fm_planets.ipynb
    tutorials/06_fm_disk.ipynb

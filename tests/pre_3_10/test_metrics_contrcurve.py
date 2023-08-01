@@ -2,21 +2,20 @@
 Tests for metrics/contrcurve.py
 
 """
+from vip_hci.psfsub import pca, PCA_Params
+from vip_hci.preproc import frame_crop
+from vip_hci.metrics import contrast_curve
+from vip_hci.fm.utils_negfc import find_nearest
+from vip_hci.fm.utils_negfc import cube_planet_free
+from vip_hci.config import VLT_NACO
+from tests.helpers import np
+from tests.helpers import fixture
 import copy
 import sys
 
 sys.path.append(".../tests")
-from tests.helpers import fixture
-import sys
 
 sys.path.append(".../tests")
-from tests.helpers import np
-from vip_hci.config import VLT_NACO
-from vip_hci.fm.utils_negfc import cube_planet_free
-from vip_hci.fm.utils_negfc import find_nearest
-from vip_hci.metrics import contrast_curve
-from vip_hci.preproc import frame_crop
-from vip_hci.psfsub import pca, PCAParams
 
 
 @fixture(scope="module")
@@ -69,7 +68,7 @@ def test_contrast_curve(get_cube):
         transmission=trans,
         plot=True,
         debug=True,
-        algo_class=PCAParams,
+        algo_class=PCA_Params,
     )
 
     rad = np.array(cc["distance"])

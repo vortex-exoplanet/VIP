@@ -96,10 +96,10 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         Positionnal arguments for the PCA annular algorithm. Full list of parameters
         below.
     all_kwargs: dictionary, optional
-        Mix of keyword arguments that can initialize a PCAAnnParams and the optional
+        Mix of keyword arguments that can initialize a PCA_ANNULAR_Params and the optional
         'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``). Can also contain a PCAAnnParams named as
+        ``vip_hci.preproc.frame_rotate``). Can also contain a PCA_ANNULAR_Params named as
         `algo_params`.
 
     PCA annular parameters

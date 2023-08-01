@@ -198,7 +198,7 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
                 if self.nproc is None:
                     self.nproc = nproc
 
-                params_dict = self._create_parameters_dict(PCAAnnParams)
+                params_dict = self._create_parameters_dict(PCA_ANNULAR_Params)
 
                 all_params = {"algo_params": self, **rot_options}
 

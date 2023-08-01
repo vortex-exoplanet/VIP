@@ -13,14 +13,8 @@ from dataclass_builder import dataclass_builder
 
 from .dataset import Dataset
 from .postproc import PostProc
-from ..psfsub import (
-    pca,
-    pca_annular,
-    pca_grid,
-    pca_annulus,
-    PCAAnnParams,
-    PCAParams,
-)
+from ..psfsub import (pca, pca_annular, pca_grid, pca_annulus, PCAAnnParams,
+                      PCAParams)
 from ..config.paramenum import Adimsdi, ReturnList, Runmode
 from ..config.utils_conf import algo_calculates_decorator as calculates
 from ..config.utils_param import setup_parameters

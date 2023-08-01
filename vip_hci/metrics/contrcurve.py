@@ -9,12 +9,11 @@ __all__ = ["contrast_curve", "noise_per_annulus", "throughput", "aperture_flux"]
 
 import numpy as np
 import pandas as pd
-
+from inspect import getfullargspec
 try:
     from photutils.aperture import aperture_photometry, CircularAperture
 except:
     from photutils import aperture_photometry, CircularAperture
-from inspect import getfullargspec, signature
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy import stats
 from scipy.signal import savgol_filter
@@ -313,7 +312,8 @@ def contrast_curve(
         rad_samp = rad_samp[: cutin2 + 1]
 
         # interpolating the throughput vector, spline order 2
-        f = InterpolatedUnivariateSpline(vector_radd, thruput_mean, k=interp_order)
+        f = InterpolatedUnivariateSpline(
+            vector_radd, thruput_mean, k=interp_order)
         thruput_interp = f(rad_samp)
 
         # interpolating the transmission vector, spline order 1
@@ -387,7 +387,8 @@ def contrast_curve(
         plt.rc("savefig", dpi=dpi)
         plt.figure(figsize=figsize, dpi=dpi)
         # throughput
-        plt.plot(vector_radd * pxscale, thruput_mean, ".", label="computed", alpha=0.6)
+        plt.plot(vector_radd * pxscale, thruput_mean,
+                 ".", label="computed", alpha=0.6)
         plt.plot(
             rad_samp_arcsec, thruput_interp, ",-", label="interpolated", lw=2, alpha=0.5
         )
@@ -440,7 +441,8 @@ def contrast_curve(
     # plotting
     if plot or debug:
         if student:
-            label = ["Sensitivity (Gaussian)", "Sensitivity (Student-t correction)"]
+            label = ["Sensitivity (Gaussian)",
+                     "Sensitivity (Student-t correction)"]
         else:
             label = ["Sensitivity (Gaussian)"]
 
@@ -505,7 +507,8 @@ def contrast_curve(
             (con4,) = ax3.plot(
                 rad_samp_arcsec, cc_mags, "-", alpha=0.2, lw=2, color="green"
             )
-            (con5,) = ax3.plot(rad_samp_arcsec, cc_mags, ".", alpha=0.2, color="green")
+            (con5,) = ax3.plot(rad_samp_arcsec,
+                               cc_mags, ".", alpha=0.2, color="green")
             if student:
                 cc_mags_corr = -2.5 * np.log10(cont_curve_samp_corr)
                 (con6,) = ax3.plot(
@@ -764,10 +767,10 @@ def throughput(
     else:
         noise_noscal = noise.copy()
 
-    vector_radd = vector_radd[inner_rad - 1 :]
-    noise = noise[inner_rad - 1 :]
-    res_level = res_level[inner_rad - 1 :]
-    noise_noscal = noise_noscal[inner_rad - 1 :]
+    vector_radd = vector_radd[inner_rad - 1:]
+    noise = noise[inner_rad - 1:]
+    res_level = res_level[inner_rad - 1:]
+    noise_noscal = noise_noscal[inner_rad - 1:]
     if verbose:
         print("Measured annulus-wise noise in resulting frame")
         timing(start_time)
@@ -819,8 +822,10 @@ def throughput(
                         interpolation=interpolation,
                         verbose=False,
                     )
-                    y = cy + radvec[i] * np.sin(np.deg2rad(br * angle_branch + theta))
-                    x = cx + radvec[i] * np.cos(np.deg2rad(br * angle_branch + theta))
+                    y = cy + radvec[i] * \
+                        np.sin(np.deg2rad(br * angle_branch + theta))
+                    x = cx + radvec[i] * \
+                        np.cos(np.deg2rad(br * angle_branch + theta))
                     fc_map = frame_inject_companion(
                         fc_map, psf_template, y, x, flux, imlib, interpolation
                     )
@@ -835,7 +840,10 @@ def throughput(
 
                 # ***************************************************************
 
-                arg = [attr for attr in vars(algo_class)]
+                if algo_class is not None:
+                    arg = [attr for attr in vars(algo_class)]
+                else:
+                    arg = getfullargspec(algo).args
                 if "cube" in arg and "angle_list" in arg and "verbose" in arg:
                     if "fwhm" in arg:
                         frame_fc = algo(
@@ -900,7 +908,8 @@ def throughput(
             # radius = vector_radd[irad::fc_rad_sep]
             for irad in range(fc_rad_sep):
                 radvec = vector_radd[irad::fc_rad_sep]
-                thetavec = range(int(theta), int(theta) + 360, 360 // len(radvec))
+                thetavec = range(int(theta), int(theta) +
+                                 360, 360 // len(radvec))
                 cube_fc = array.copy()
                 # filling map with small numbers
                 fc_map = np.ones_like(array[:, 0]) * 1e-6
@@ -925,7 +934,8 @@ def throughput(
                     x = cx + radvec[i] * np.cos(
                         np.deg2rad(br * angle_branch + thetavec[i])
                     )
-                    fc_map = frame_inject_companion(fc_map, psf_template, y, x, flux)
+                    fc_map = frame_inject_companion(
+                        fc_map, psf_template, y, x, flux)
                     fcy.append(y)
                     fcx.append(x)
 
@@ -1056,7 +1066,8 @@ def noise_per_annulus(
     if array.ndim != 2:
         raise TypeError("Input array is not a frame or 2d array")
     if not isinstance(wedge, tuple):
-        raise TypeError("Wedge must be a tuple with the initial and final " "angles")
+        raise TypeError(
+            "Wedge must be a tuple with the initial and final " "angles")
 
     if init_rad is None:
         init_rad = fwhm

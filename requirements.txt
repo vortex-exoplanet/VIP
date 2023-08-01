@@ -8,7 +8,7 @@ emcee==2.2.1
 nestle
 corner
 pandas
-matplotlib
+matplotlib<3.3.0,>=3.7.0
 psutil
 pyprind
 munch

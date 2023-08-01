@@ -20,7 +20,7 @@ Based on ANDROMEDA v3.1 from 28/06/2018.
 """
 
 __author__ = "Thomas Bédrine, Ralf Farkas"
-__all__ = ["andromeda", "AndroParams"]
+__all__ = ["andromeda", "ANDROMEDA_Params"]
 
 import numpy as np
 from dataclasses import dataclass
@@ -47,7 +47,7 @@ global CUBE
 
 
 @dataclass
-class AndroParams:
+class ANDROMEDA_Params:
     """
     Set of parameters for the ANDROMEDA algorithm.
 
@@ -266,7 +266,7 @@ def andromeda(*all_args: List, **all_kwargs: dict):
 
     """
     class_params, other_options = separate_kwargs_dict(
-        initial_kwargs=all_kwargs, parent_class=AndroParams
+        initial_kwargs=all_kwargs, parent_class=ANDROMEDA_Params
     )
 
     # Extracting the object of parameters (if any)
@@ -276,7 +276,7 @@ def andromeda(*all_args: List, **all_kwargs: dict):
         del other_options[ALGO_KEY]
 
     if algo_params is None:
-        algo_params = AndroParams(*all_args, **class_params)
+        algo_params = ANDROMEDA_Params(*all_args, **class_params)
 
     def info(msg, *fmt, **kwfmt):
         if algo_params.verbose:

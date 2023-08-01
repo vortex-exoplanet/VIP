@@ -12,12 +12,12 @@ from dataclass_builder import dataclass_builder
 
 from .dataset import Dataset
 from .postproc import PostProc
-from ..invprob import andromeda, AndroParams
+from ..invprob import andromeda, ANDROMEDA_Params
 from ..config.utils_conf import algo_calculates_decorator as calculates
 
 
 @dataclass
-class PPAndromeda(PostProc, AndroParams):
+class PPAndromeda(PostProc, ANDROMEDA_Params):
     """Post-processing ANDROMEDA algorithm."""
 
     _algo_name: str = "andromeda"
@@ -71,7 +71,7 @@ class PPAndromeda(PostProc, AndroParams):
         if nproc is not None:
             self.nproc = nproc
 
-        params_dict = self._create_parameters_dict(AndroParams)
+        params_dict = self._create_parameters_dict(ANDROMEDA_Params)
         all_params = {"algo_params": self}
         res = andromeda(**all_params)
 

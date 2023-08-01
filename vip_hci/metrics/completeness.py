@@ -84,11 +84,35 @@ def _estimate_snr_fc(
     else:
         cy, cx = frame_center(cube[0])
 
-    algo_params = signature(algo).parameters
-    param_name = next(iter(algo_params))
-    class_name = algo_params[param_name].annotation
+    # TODO: Clean below?
+    # Consider 3 cases depending on whether algo is (i) defined externally,
+    # (ii) a VIP postproc algorithm; (iii) ineligible for contrast curves
+    argl = getfullargspec(algo).args
+    if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+        # (i) external algorithm with appropriate parameters [OK]
+        pass
+    else:
+        algo_name = algo.__name__
+        idx = algo.__module__.index(
+            '.', algo.__module__.index('.') + 1)
+        mod = algo.__module__[:idx]
+        tmp = __import__(
+            mod, fromlist=[algo_name.upper()+'_Params'])
+        algo_params = getattr(tmp, algo_name.upper()+'_Params')
+        argl = [attr for attr in vars(algo_params)]
+        if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+            # (ii) a VIP postproc algorithm [OK]
+            pass
+        else:
+            # (iii) ineligible routine for contrast curves [Raise error]
+            msg = "Ineligible algo for contrast curve function. algo should "
+            msg += "have parameters 'cube', 'angle_list' and 'verbose'"
+            raise TypeError(msg)
+    # algo_params = signature(algo).parameters
+    # param_name = next(iter(algo_params))
+    # class_name = algo_params[param_name].annotation
 
-    argl = [attr for attr in vars(class_name)]
+    # argl = [attr for attr in vars(class_name)]
     if "verbose" in argl:
         algo_dict["verbose"] = False
     if "fwhm" in argl:
@@ -375,11 +399,30 @@ def completeness_curve(
     if verbose:
         print("Calculating initial SNR map with no injected companion...")
 
-    # TODO: Clean below
-    if algo_class is not None:
-        argl = [attr for attr in vars(algo_class)]
+    # TODO: Clean below?
+    # Consider 3 cases depending on whether algo is (i) defined externally,
+    # (ii) a VIP postproc algorithm; (iii) ineligible for contrast curves
+    argl = getfullargspec(algo).args
+    if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+        # (i) external algorithm with appropriate parameters [OK]
+        pass
     else:
-        argl = getfullargspec(algo).args
+        algo_name = algo.__name__
+        idx = algo.__module__.index(
+            '.', algo.__module__.index('.') + 1)
+        mod = algo.__module__[:idx]
+        tmp = __import__(
+            mod, fromlist=[algo_name.upper()+'_Params'])
+        algo_params = getattr(tmp, algo_name.upper()+'_Params')
+        argl = [attr for attr in vars(algo_params)]
+        if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+            # (ii) a VIP postproc algorithm [OK]
+            pass
+        else:
+            # (iii) ineligible routine for contrast curves [Raise error]
+            msg = "Ineligible algo for contrast curve function. algo should "
+            msg += "have parameters 'cube', 'angle_list' and 'verbose'"
+            raise TypeError(msg)
 
     if "cube" in argl and "angle_list" in argl:
         if "fwhm" in argl:
@@ -861,11 +904,30 @@ def completeness_map(
     specific named arguments can be a puzzle. We have to first identify the parameters
     tied to the algorithm by looking at its object of parameters."""
 
-    # TODO: Clean below
-    if algo_class is not None:
-        argl = [attr for attr in vars(algo_class)]
+    # TODO: Clean below?
+    # Consider 3 cases depending on whether algo is (i) defined externally,
+    # (ii) a VIP postproc algorithm; (iii) ineligible for contrast curves
+    argl = getfullargspec(algo).args
+    if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+        # (i) external algorithm with appropriate parameters [OK]
+        pass
     else:
-        argl = getfullargspec(algo).args
+        algo_name = algo.__name__
+        idx = algo.__module__.index(
+            '.', algo.__module__.index('.') + 1)
+        mod = algo.__module__[:idx]
+        tmp = __import__(
+            mod, fromlist=[algo_name.upper()+'_Params'])
+        algo_params = getattr(tmp, algo_name.upper()+'_Params')
+        argl = [attr for attr in vars(algo_params)]
+        if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+            # (ii) a VIP postproc algorithm [OK]
+            pass
+        else:
+            # (iii) ineligible routine for contrast curves [Raise error]
+            msg = "Ineligible algo for contrast curve function. algo should "
+            msg += "have parameters 'cube', 'angle_list' and 'verbose'"
+            raise TypeError(msg)
 
     if "cube" in argl and "angle_list" in argl and "verbose" in argl:
         if "fwhm" in argl:

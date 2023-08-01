@@ -13,7 +13,7 @@ for ADI and RDI data, in full frames.
 """
 
 __author__ = "Thomas Bédrine, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
-__all__ = ["nmf", "NMFParams"]
+__all__ = ["nmf", "NMF_Params"]
 
 import numpy as np
 from sklearn.decomposition import NMF
@@ -30,7 +30,7 @@ from ..var import (prepare_matrix, reshape_matrix, frame_center, dist,
 
 
 @dataclass
-class NMFParams:
+class NMF_Params:
     """
     Set of parameters for the NMF full-frame algorithm.
 
@@ -144,7 +144,7 @@ def nmf(*all_args: List, **all_kwargs: dict):
     """
     # Separating the parameters of the ParamsObject from the optionnal rot_options
     class_params, rot_options = separate_kwargs_dict(
-        initial_kwargs=all_kwargs, parent_class=NMFParams
+        initial_kwargs=all_kwargs, parent_class=NMF_Params
     )
 
     # Extracting the object of parameters (if any)
@@ -154,7 +154,7 @@ def nmf(*all_args: List, **all_kwargs: dict):
         del rot_options[ALGO_KEY]
 
     if algo_params is None:
-        algo_params = NMFParams(*all_args, **class_params)
+        algo_params = NMF_Params(*all_args, **class_params)
 
     array = algo_params.cube.copy()
     if algo_params.verbose:

@@ -717,53 +717,69 @@ def throughput(
     # ***************************************************************************
     # Compute noise in concentric annuli on the "empty frame"
 
-    argl = [attr for attr in vars(algo_class)]
+    # TODO: Clean below?
+    # Consider 3 cases depending on whether algo is (i) defined externally,
+    # (ii) a VIP postproc algorithm; (iii) ineligible for contrast curves
+    argl = getfullargspec(algo).args
+    if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+        # (i) external algorithm with appropriate parameters [OK]
+        pass
+    else:
+        algo_name = algo.__name__
+        idx = algo.__module__.index('.', algo.__module__.index('.') + 1)
+        mod = algo.__module__[:idx]
+        tmp = __import__(mod, fromlist=[algo_name.upper()+'_Params'])
+        algo_params = getattr(tmp, algo_name.upper()+'_Params')
+        argl = [attr for attr in vars(algo_params)]
+        if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+            # (ii) a VIP postproc algorithm [OK]
+            pass
+        else:
+            # (iii) ineligible routine for contrast curves [Raise error]
+            msg = "Ineligible algo for contrast curve function. algo should "
+            msg += "have parameters 'cube', 'angle_list' and 'verbose'"
+            raise TypeError(msg)
+
     if "cube" in argl and "angle_list" in argl and "verbose" in argl:
         if "fwhm" in argl:
-            frame_nofc = algo(
-                cube=array,
-                angle_list=parangles,
-                fwhm=fwhm_med,
-                verbose=False,
-                **algo_dict,
-            )
+            frame_nofc = algo(cube=array, angle_list=parangles, fwhm=fwhm_med,
+                              verbose=False, **algo_dict)
             if algo_dict.pop("scaling", None):
                 new_algo_dict = algo_dict.copy()
                 new_algo_dict["scaling"] = None
-                frame_nofc_noscal = algo(
-                    cube=array,
-                    angle_list=parangles,
-                    fwhm=fwhm_med,
-                    verbose=False,
-                    **new_algo_dict,
-                )
+                frame_nofc_noscal = algo(cube=array, angle_list=parangles,
+                                         fwhm=fwhm_med, verbose=False,
+                                         **new_algo_dict)
             else:
                 frame_nofc_noscal = frame_nofc
         else:
-            frame_nofc = algo(
-                cube=array, angle_list=parangles, verbose=False, **algo_dict
-            )
+            frame_nofc = algo(cube=array, angle_list=parangles, verbose=False,
+                              **algo_dict)
             if algo_dict.pop("scaling", None):
                 new_algo_dict = algo_dict.copy()
                 new_algo_dict["scaling"] = None
-                frame_nofc_noscal = algo(
-                    cube=array, angle_list=parangles, verbose=False, **new_algo_dict
-                )
+                frame_nofc_noscal = algo(cube=array, angle_list=parangles,
+                                         verbose=False, **new_algo_dict)
             else:
                 frame_nofc_noscal = frame_nofc
+    else:
+        msg = "The algorithm used should take input parameters named 'cube', "
+        msg += "'angle_list' and 'verbose'."
+        raise ValueError(msg)
 
     if verbose:
         msg1 = "Cube without fake companions processed with {}"
         print(msg1.format(algo.__name__))
         timing(start_time)
 
-    noise, res_level, vector_radd = noise_per_annulus(
-        frame_nofc, separation=fwhm_med, fwhm=fwhm_med, wedge=wedge
-    )
+    noise, res_level, vector_radd = noise_per_annulus(frame_nofc,
+                                                      separation=fwhm_med,
+                                                      fwhm=fwhm_med,
+                                                      wedge=wedge)
     if scaling is not None:
-        noise_noscal, _, _ = noise_per_annulus(
-            frame_nofc_noscal, separation=fwhm_med, fwhm=fwhm_med, wedge=wedge
-        )
+        noise_noscal, _, _ = noise_per_annulus(frame_nofc_noscal,
+                                               separation=fwhm_med,
+                                               fwhm=fwhm_med, wedge=wedge)
     else:
         noise_noscal = noise.copy()
 
@@ -839,11 +855,30 @@ def throughput(
                     timing(start_time)
 
                 # ***************************************************************
-
-                if algo_class is not None:
-                    arg = [attr for attr in vars(algo_class)]
+                # TODO: Clean below?
+                # Consider 3 cases depending on whether algo is (i) defined externally,
+                # (ii) a VIP postproc algorithm; (iii) ineligible for contrast curves
+                arg = getfullargspec(algo).args
+                if "cube" in arg and "angle_list" in arg and "verbose" in arg:
+                    # (i) external algorithm with appropriate parameters [OK]
+                    pass
                 else:
-                    arg = getfullargspec(algo).args
+                    algo_name = algo.__name__
+                    idx = algo.__module__.index(
+                        '.', algo.__module__.index('.') + 1)
+                    mod = algo.__module__[:idx]
+                    tmp = __import__(
+                        mod, fromlist=[algo_name.upper()+'_Params'])
+                    algo_params = getattr(tmp, algo_name.upper()+'_Params')
+                    arg = [attr for attr in vars(algo_params)]
+                    if "cube" in arg and "angle_list" in arg and "verbose" in arg:
+                        # (ii) a VIP postproc algorithm [OK]
+                        pass
+                    else:
+                        # (iii) ineligible routine for contrast curves [Raise error]
+                        msg = "Ineligible algo for contrast curve function. algo should "
+                        msg += "have parameters 'cube', 'angle_list' and 'verbose'"
+                        raise TypeError(msg)
                 if "cube" in arg and "angle_list" in arg and "verbose" in arg:
                     if "fwhm" in arg:
                         frame_fc = algo(
@@ -946,8 +981,30 @@ def throughput(
                     timing(start_time)
 
                 # **************************************************************
-
-                arg = [attr for attr in vars(algo_class)]
+                # TODO: Clean below?
+                # Consider 3 cases depending on whether algo is (i) defined externally,
+                # (ii) a VIP postproc algorithm; (iii) ineligible for contrast curves
+                arg = getfullargspec(algo).args
+                if "cube" in arg and "angle_list" in arg and "verbose" in arg:
+                    # (i) external algorithm with appropriate parameters [OK]
+                    pass
+                else:
+                    algo_name = algo.__name__
+                    idx = algo.__module__.index(
+                        '.', algo.__module__.index('.') + 1)
+                    mod = algo.__module__[:idx]
+                    tmp = __import__(
+                        mod, fromlist=[algo_name.upper()+'_Params'])
+                    algo_params = getattr(tmp, algo_name.upper()+'_Params')
+                    arg = [attr for attr in vars(algo_params)]
+                    if "cube" in arg and "angle_list" in arg and "verbose" in arg:
+                        # (ii) a VIP postproc algorithm [OK]
+                        pass
+                    else:
+                        # (iii) ineligible routine for contrast curves [Raise error]
+                        msg = "Ineligible algo for contrast curve function. algo should "
+                        msg += "have parameters 'cube', 'angle_list' and 'verbose'"
+                        raise TypeError(msg)
                 if "cube" in arg and "angle_list" in arg and "verbose" in arg:
                     if "fwhm" in arg:
                         frame_fc = algo(

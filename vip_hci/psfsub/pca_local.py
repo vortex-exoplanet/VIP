@@ -14,7 +14,7 @@ fashion) model PSF subtraction for ADI, ADI+SDI (IFS) and ADI+RDI datasets.
 """
 
 __author__ = "Carlos Alberto Gomez Gonzalez, Valentin Christiaens, Thomas Bédrine"
-__all__ = ["pca_annular", "PCAAnnParams"]
+__all__ = ["pca_annular", "PCA_ANNULAR_Params"]
 
 import numpy as np
 from multiprocessing import cpu_count
@@ -36,7 +36,7 @@ AUTO = "auto"
 
 
 @dataclass
-class PCAAnnParams:
+class PCA_ANNULAR_Params:
     """
     Set of parameters for the annular PCA module.
 
@@ -217,9 +217,9 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         [full_output=True] Median combination of the de-rotated cube.
     """
     # Separating the parameters of the ParamsObject from the optionnal rot_options
-    class_params, rot_options = separate_kwargs_dict(
-        initial_kwargs=all_kwargs, parent_class=PCAAnnParams
-    )
+    class_params, rot_options = separate_kwargs_dict(initial_kwargs=all_kwargs,
+                                                     parent_class=PCA_ANNULAR_Params
+                                                     )
 
     # Extracting the object of parameters (if any)
     algo_params = None
@@ -228,7 +228,7 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         del rot_options[ALGO_KEY]
 
     if algo_params is None:
-        algo_params = PCAAnnParams(*all_args, **class_params)
+        algo_params = PCA_ANNULAR_Params(*all_args, **class_params)
 
     global start_time
     start_time = time_ini()

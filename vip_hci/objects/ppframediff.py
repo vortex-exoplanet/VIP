@@ -11,12 +11,12 @@ from dataclass_builder import dataclass_builder
 
 from .dataset import Dataset
 from .postproc import PostProc
-from ..psfsub import frame_diff, FrameDiffParams
+from ..psfsub import frame_diff, FRAME_DIFF_Params
 from ..config.utils_conf import algo_calculates_decorator as calculates
 
 
 @dataclass
-class PPFrameDiff(PostProc, FrameDiffParams):
+class PPFrameDiff(PostProc, FRAME_DIFF_Params):
     """
     Post-processing frame differencing algorithm.
 
@@ -71,7 +71,7 @@ class PPFrameDiff(PostProc, FrameDiffParams):
             self.full_output = full_output
 
         self._explicit_dataset()
-        params_dict = self._create_parameters_dict(FrameDiffParams)
+        params_dict = self._create_parameters_dict(FRAME_DIFF_Params)
 
         all_params = {"algo_params": self, **rot_options}
 

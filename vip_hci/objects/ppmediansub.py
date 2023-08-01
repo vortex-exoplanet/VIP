@@ -12,12 +12,12 @@ from dataclass_builder import dataclass_builder
 
 from .dataset import Dataset
 from .postproc import PostProc
-from ..psfsub import median_sub, MedsubParams
+from ..psfsub import median_sub, MEDIAN_SUB_Params
 from ..config.utils_conf import algo_calculates_decorator as calculates
 
 
 @dataclass
-class PPMedianSub(PostProc, MedsubParams):
+class PPMedianSub(PostProc, MEDIAN_SUB_Params):
     """
     Object used as a wrapper for the ``vip_hci.psfsub.median_sub``.
 
@@ -86,7 +86,7 @@ class PPMedianSub(PostProc, MedsubParams):
 
         self._explicit_dataset()
 
-        params_dict = self._create_parameters_dict(MedsubParams)
+        params_dict = self._create_parameters_dict(MEDIAN_SUB_Params)
 
         all_params = {"algo_params": self, **rot_options}
 

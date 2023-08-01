@@ -31,7 +31,7 @@ multi-spectral cubes.
 """
 
 __author__ = "Carlos Alberto Gomez Gonzalez, Thomas Bédrine"
-__all__ = ["median_sub", "MedsubParams"]
+__all__ = ["median_sub", "MEDIAN_SUB_Params"]
 
 import numpy as np
 from multiprocessing import cpu_count
@@ -50,7 +50,7 @@ from ..var import get_annulus_segments, mask_circle
 
 
 @dataclass
-class MedsubParams:
+class MEDIAN_SUB_Params:
     """
     Set of parameters for the median subtraction module.
 
@@ -173,7 +173,7 @@ def median_sub(*all_args: List, **all_kwargs: dict):
     """
     # Separating the parameters of the ParamsObject from the optionnal rot_options
     class_params, rot_options = separate_kwargs_dict(
-        initial_kwargs=all_kwargs, parent_class=MedsubParams
+        initial_kwargs=all_kwargs, parent_class=MEDIAN_SUB_Params
     )
 
     # Extracting the object of parameters (if any)
@@ -183,7 +183,7 @@ def median_sub(*all_args: List, **all_kwargs: dict):
         del rot_options[ALGO_KEY]
 
     if algo_params is None:
-        algo_params = MedsubParams(*all_args, **class_params)
+        algo_params = MEDIAN_SUB_Params(*all_args, **class_params)
 
     global ARRAY
     ARRAY = algo_params.cube.copy()

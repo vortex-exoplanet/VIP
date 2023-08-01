@@ -55,7 +55,7 @@ likelihood approach.
 """
 
 __author__ = "Carl-Henrik Dahlqvist, Thomas Bédrine"
-__all__ = ["fmmf", "FMMFParams"]
+__all__ = ["fmmf", "FMMF_Params"]
 
 from multiprocessing import cpu_count
 from dataclasses import dataclass, field
@@ -74,7 +74,7 @@ from ..var import get_annulus_segments, frame_center
 
 
 @dataclass
-class FMMFParams:
+class FMMF_Params:
     """
     Set of parameters for the FMMF algorithm.
 
@@ -186,7 +186,7 @@ def fmmf(*all_args, **all_kwargs: dict):
 
     """
     class_params, other_options = separate_kwargs_dict(
-        initial_kwargs=all_kwargs, parent_class=FMMFParams
+        initial_kwargs=all_kwargs, parent_class=FMMF_Params
     )
 
     # Extracting the object of parameters (if any)
@@ -196,7 +196,7 @@ def fmmf(*all_args, **all_kwargs: dict):
         del other_options[ALGO_KEY]
 
     if algo_params is None:
-        algo_params = FMMFParams(*all_args, **class_params)
+        algo_params = FMMF_Params(*all_args, **class_params)
     start_time = time_ini(algo_params.verbose)
 
     if algo_params.crop >= 2 * round(algo_params.fwhm) + 1:

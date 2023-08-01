@@ -4,7 +4,7 @@ Module with NMF algorithm in concentric annuli for ADI/RDI.
 """
 
 __author__ = "Valentin Christiaens, Thomas Bédrine"
-__all__ = ["nmf_annular", "NMFAnnParams"]
+__all__ = ["nmf_annular", "NMF_ANNULAR_Params"]
 
 import numpy as np
 from multiprocessing import cpu_count
@@ -22,7 +22,7 @@ from ..config.utils_conf import pool_map, iterable
 
 
 @dataclass
-class NMFAnnParams:
+class NMF_ANNULAR_Params:
     """
     Set of parameters for the NMF annular algorithm.
 
@@ -170,9 +170,9 @@ def nmf_annular(*all_args: List, **all_kwargs: dict):
 
     """
     # Separating the parameters of the ParamsObject from the optionnal rot_options
-    class_params, rot_options = separate_kwargs_dict(
-        initial_kwargs=all_kwargs, parent_class=NMFAnnParams
-    )
+    class_params, rot_options = separate_kwargs_dict(initial_kwargs=all_kwargs,
+                                                     parent_class=NMF_ANNULAR_Params
+                                                     )
 
     # Extracting the object of parameters (if any)
     algo_params = None
@@ -181,7 +181,7 @@ def nmf_annular(*all_args: List, **all_kwargs: dict):
         del rot_options[ALGO_KEY]
 
     if algo_params is None:
-        algo_params = NMFAnnParams(*all_args, **class_params)
+        algo_params = NMF_ANNULAR_Params(*all_args, **class_params)
 
     if algo_params.verbose:
         global start_time

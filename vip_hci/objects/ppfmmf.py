@@ -12,12 +12,12 @@ from dataclass_builder import dataclass_builder
 
 from .dataset import Dataset
 from .postproc import PostProc
-from ..invprob import fmmf, FMMFParams
+from ..invprob import fmmf, FMMF_Params
 from ..config.utils_conf import algo_calculates_decorator as calculates
 
 
 @dataclass
-class PPFMMF(PostProc, FMMFParams):
+class PPFMMF(PostProc, FMMF_Params):
     """Post-processing forward model matching filter algorithm."""
 
     _algo_name: str = "fmmf"
@@ -58,7 +58,7 @@ class PPFMMF(PostProc, FMMFParams):
         if nproc is not None:
             self.nproc = nproc
 
-        params_dict = self._create_parameters_dict(FMMFParams)
+        params_dict = self._create_parameters_dict(FMMF_Params)
         all_params = {"algo_params": self}
         res = fmmf(**all_params)
 

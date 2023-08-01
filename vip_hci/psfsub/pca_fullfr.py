@@ -40,7 +40,7 @@ Options :
 """
 
 __author__ = "Carlos Alberto Gomez Gonzalez, Valentin Christiaens, Thomas Bédrine"
-__all__ = ["pca", "PCAParams"]
+__all__ = ["pca", "PCA_Params"]
 
 import numpy as np
 from multiprocessing import cpu_count
@@ -65,7 +65,7 @@ from ..var import (frame_center, dist, prepare_matrix, reshape_matrix,
 
 
 @dataclass
-class PCAParams:
+class PCA_Params:
     """
     Set of parameters for the PCA module.
 
@@ -324,7 +324,7 @@ def pca(*all_args: List, **all_kwargs: dict):
     # Separating the parameters of the ParamsObject from the optionnal rot_options
 
     class_params, rot_options = separate_kwargs_dict(
-        initial_kwargs=all_kwargs, parent_class=PCAParams
+        initial_kwargs=all_kwargs, parent_class=PCA_Params
     )
 
     # Extracting the object of parameters (if any)
@@ -334,7 +334,7 @@ def pca(*all_args: List, **all_kwargs: dict):
         del rot_options[ALGO_KEY]
 
     if algo_params is None:
-        algo_params = PCAParams(*all_args, **class_params)
+        algo_params = PCA_Params(*all_args, **class_params)
 
     start_time = time_ini(algo_params.verbose)
 

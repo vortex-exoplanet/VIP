@@ -12,7 +12,7 @@ from dataclass_builder import dataclass_builder
 
 from .dataset import Dataset
 from .postproc import PostProc
-from ..psfsub import nmf, nmf_annular, NMFParams, NMFAnnParams
+from ..psfsub import nmf, nmf_annular, NMF_Params, NMF_ANNULAR_Params
 from ..config.utils_conf import algo_calculates_decorator as calculates
 
 DELTA_ANN_DEFAULT = (0.1, 1)
@@ -21,7 +21,7 @@ DELTA_FF_DEFAULT = 1
 
 # TODO: update PPNMF doc to include 'nndsvdar' in init_svd section, weights too
 @dataclass
-class PPNMF(PostProc, NMFAnnParams, NMFParams):
+class PPNMF(PostProc, NMF_ANNULAR_Params, NMF_Params):
     """
     Post-processing full-frame non-negative matrix factorization algorithm.
 
@@ -42,7 +42,8 @@ class PPNMF(PostProc, NMFAnnParams, NMFParams):
 
     delta_rot: Union[int, float, Tuple[float]] = DELTA_ANN_DEFAULT
     full_output: bool = True
-    _algo_name: List[str] = field(default_factory=lambda: ["nmf", "nmf_annular"])
+    _algo_name: List[str] = field(
+        default_factory=lambda: ["nmf", "nmf_annular"])
     nmf_reshaped: np.ndarray = None
     cube_residuals: np.ndarray = None
     cube_residuals_der: np.ndarray = None
@@ -106,7 +107,7 @@ class PPNMF(PostProc, NMFAnnParams, NMFParams):
             if not isinstance(self.delta_rot, float):
                 self.delta_rot = DELTA_FF_DEFAULT
 
-            params_dict = self._create_parameters_dict(NMFParams)
+            params_dict = self._create_parameters_dict(NMF_Params)
             res = nmf(**all_params)
 
             (
@@ -128,7 +129,7 @@ class PPNMF(PostProc, NMFAnnParams, NMFParams):
             self.delta_rot = DELTA_ANN_DEFAULT
 
         else:
-            params_dict = self._create_parameters_dict(NMFAnnParams)
+            params_dict = self._create_parameters_dict(NMF_ANNULAR_Params)
             res = nmf_annular(**all_params)
 
             (

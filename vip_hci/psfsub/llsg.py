@@ -14,7 +14,7 @@ decomposition algorithm for ADI data.
 """
 
 __author__ = "Carlos Alberto Gomez Gonzalez, Thomas Bédrine"
-__all__ = ["llsg", "thresholding", "LLSGParams"]
+__all__ = ["llsg", "thresholding", "LLSG_Params"]
 
 
 import numpy as np
@@ -34,7 +34,7 @@ from ..var import get_annulus_segments, cube_filter_highpass
 
 
 @dataclass
-class LLSGParams:
+class LLSG_Params:
     """
     Set of parameters for the LLSG algorithm.
 
@@ -168,7 +168,7 @@ def llsg(*all_args: List, **all_kwargs: dict):
 
     # Separating the parameters of the ParamsObject from the optionnal rot_options
     class_params, rot_options = separate_kwargs_dict(
-        initial_kwargs=all_kwargs, parent_class=LLSGParams
+        initial_kwargs=all_kwargs, parent_class=LLSG_Params
     )
 
     # Extracting the object of parameters (if any)
@@ -178,7 +178,7 @@ def llsg(*all_args: List, **all_kwargs: dict):
         del rot_options[ALGO_KEY]
 
     if algo_params is None:
-        algo_params = LLSGParams(*all_args, **class_params)
+        algo_params = LLSG_Params(*all_args, **class_params)
 
     if algo_params.cube.ndim != 3:
         raise TypeError("Input array is not a cube (3d array)")

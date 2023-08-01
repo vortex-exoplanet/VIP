@@ -179,7 +179,7 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
             case Runmode.CLASSIC:
                 # TODO : review the wavelengths attribute to be a scale_list instead
 
-                params_dict = self._create_parameters_dict(PCAParams)
+                params_dict = self._create_parameters_dict(PCA_Params)
 
                 all_params = {"algo_params": self, **rot_options}
 

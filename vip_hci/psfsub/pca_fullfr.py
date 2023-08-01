@@ -130,10 +130,10 @@ def pca(*all_args: List, **all_kwargs: dict):
         Positionnal arguments for the PCA algorithm. Full list of parameters
         below.
     all_kwargs: dictionary, optional
-        Mix of keyword arguments that can initialize a PCAParams and the optional
+        Mix of keyword arguments that can initialize a PCA_Params and the optional
         'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
         "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``). Can also contain a PCAParams named as
+        ``vip_hci.preproc.frame_rotate``). Can also contain a PCA_Params named as
         `algo_params`.
 
     PCA parameters

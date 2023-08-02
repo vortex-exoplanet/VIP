@@ -35,6 +35,12 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    transmission: numpy array, optional
+        Radial transmission of the coronagraph, if any. Array with either
+        2 x n_rad, 1+n_ch x n_rad columns. The first column should contain the
+        radial separation in pixels, while the other column(s) are the
+        corresponding off-axis transmission (between 0 and 1), for either all,
+        or each spectral channel (only relevant for a 4D input cube).
 
     Returns
     -------
@@ -95,7 +101,7 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
 
     Possible constraints: 'ceil', 'floor', None ("ceil" will return the closest
     element with a value greater than 'value', "floor" the opposite).
-    
+
     Parameters
     ----------
     array: 1d numpy array or list

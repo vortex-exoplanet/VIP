@@ -10,11 +10,13 @@ __all__ = ['cube_inject_fakedisk',
 
 import numpy as np
 from scipy import signal
+from scipy.interpolate import interp1d
 from ..preproc import cube_derotate, frame_shift
-from ..var import frame_center
+from ..var import frame_center, dist_matrix
 
 
-def cube_inject_fakedisk(fakedisk, angle_list, psf=None, **rot_options):
+def cube_inject_fakedisk(fakedisk, angle_list, psf=None, transmission=None,
+                         **rot_options):
     """
     Creates an ADI cube with a rotated synthetic disk image injected following
     input angle list.
@@ -111,6 +113,17 @@ def cube_inject_fakedisk(fakedisk, angle_list, psf=None, **rot_options):
             # much faster
             fakedisk_cube[i, :, :] = signal.fftconvolve(fakedisk_cube[i, :, :],
                                                         psf, mode='same')
+
+    if transmission is not None:
+        # last radial separation should be beyond the edge of frame
+        interp_trans = interp1d(transmission[0], transmission[1])
+        y_star, x_star = frame_center(fakedisk_cube[0])
+        d = dist_matrix(fakedisk_cube.shape[-1], x_star, y_star)
+        for i in range(d.shape[0]):
+            for j in range(d.shape[1]):
+                fakedisk_cube[:, i, j] = interp_trans(
+                    d[i, j])*fakedisk_cube[:, i, j]
+
     return fakedisk_cube
 
 

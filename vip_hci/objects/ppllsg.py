@@ -12,13 +12,12 @@ from dataclass_builder import dataclass_builder
 
 from .dataset import Dataset
 from .postproc import PostProc
-from ..psfsub import llsg, LLSGParams
+from ..psfsub import llsg, LLSG_Params
 from ..config.utils_conf import algo_calculates_decorator as calculates
-from ..var.object_utils import setup_parameters
 
 
 @dataclass
-class PPLLSG(PostProc, LLSGParams):
+class PPLLSG(PostProc, LLSG_Params):
     """
     Post-processing LLSG algorithm.
 
@@ -77,7 +76,7 @@ class PPLLSG(PostProc, LLSGParams):
         if self.dataset.fwhm is None:
             raise ValueError("`fwhm` has not been set")
 
-        params_dict = self._create_parameters_dict(LLSGParams)
+        params_dict = self._create_parameters_dict(LLSG_Params)
 
         all_params = {"algo_params": self, **rot_options}
 

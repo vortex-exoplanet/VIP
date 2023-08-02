@@ -27,13 +27,12 @@ from hciplot import plot_frames
 from sklearn.base import BaseEstimator
 
 from .dataset import Dataset
-from ..metrics import snrmap, snr, significance
+from ..config.paramenum import ALL_FITS
 from ..config.utils_conf import algo_calculates_decorator as calculates
-from ..config.utils_conf import Saveable
+from ..config.utils_param import print_algo_params
+from ..fits import write_fits, open_fits, dict_to_fitsheader, fitsheader_to_dict
+from ..metrics import snrmap, snr, significance
 from ..var import frame_center
-from ..var.object_utils import print_algo_params, dict_to_fitsheader, fitsheader_to_dict
-from ..var.paramenum import ALL_FITS
-from ..fits import write_fits, open_fits
 
 PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
 LAST_SESSION = -1
@@ -230,7 +229,8 @@ class PPResult:
         filepath: str
             The path of the FITS file.
         """
-        data, header = open_fits(fitsfilename=filepath, n=session_id, get_header=True)
+        data, header = open_fits(fitsfilename=filepath,
+                                 n=session_id, get_header=True)
         self.sessions = []
         if session_id == ALL_FITS:
             for index, element in enumerate(data):
@@ -408,7 +408,8 @@ class PostProc(BaseEstimator):
         radius = np.sqrt(
             (center_y - source_xy[1]) ** 2 + (center_x - source_xy[0]) ** 2
         )
-        self.signf = significance(snr_sig, radius, self.fwhm, student_to_gauss=True)
+        self.signf = significance(
+            snr_sig, radius, self.fwhm, student_to_gauss=True)
         print(r"{:.1f} sigma detection".format(self.signf))
 
     def _update_dataset(self, dataset: Optional[Dataset] = None) -> None:
@@ -634,7 +635,8 @@ class PostProc(BaseEstimator):
         self.detection_map = self.snr_map
 
         if self.results is not None:
-            self.results.register_session(frame=self.frame_final, snr_map=self.snr_map)
+            self.results.register_session(
+                frame=self.frame_final, snr_map=self.snr_map)
 
     def save(self, filename: str) -> None:
         """

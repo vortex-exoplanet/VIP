@@ -2,19 +2,17 @@
 Tests for metrics/completeness.py
 
 """
+from vip_hci.psfsub import pca, PCA_Params
+from vip_hci.preproc import frame_crop
+from vip_hci.metrics import completeness_map
+from vip_hci.metrics import completeness_curve
+from vip_hci.fm import cube_planet_free
+from tests.helpers import np
+from tests.helpers import fixture
 import copy
 import sys
 
 sys.path.append(".../tests")
-from tests.helpers import fixture
-import sys
-
-from tests.helpers import np
-from vip_hci.fm import cube_planet_free
-from vip_hci.metrics import completeness_curve
-from vip_hci.metrics import completeness_map
-from vip_hci.preproc import frame_crop
-from vip_hci.psfsub import pca, PCAParams
 
 
 @fixture(scope="module")
@@ -40,7 +38,8 @@ def get_cube_empty(example_dataset_adi):
     f_b = 648.2
 
     psfn = frame_crop(dsi.psf[1:, 1:], 11)
-    dsi.cube = cube_planet_free([(r_b, theta_b, f_b)], dsi.cube, dsi.angles, psfn=psfn)
+    dsi.cube = cube_planet_free(
+        [(r_b, theta_b, f_b)], dsi.cube, dsi.angles, psfn=psfn)
 
     return dsi, starphot
 
@@ -62,7 +61,7 @@ def test_completeness_curve(get_cube_empty):
         starphot=starphot,
         plot=True,
         algo_dict={"imlib": "opencv"},
-        algo_class=PCAParams,
+        algo_class=PCA_Params,
     )
 
     if np.allclose(comp_curve / expected_res, [1], atol=0.5):
@@ -90,7 +89,7 @@ def test_completeness_map(get_cube_empty):
         ini_contrast=expected_res,
         starphot=starphot,
         algo_dict={"imlib": "opencv"},
-        algo_class=PCAParams,
+        algo_class=PCA_Params,
     )
 
     if np.allclose(contrasts[:, -2] / expected_res, [1], atol=0.5):

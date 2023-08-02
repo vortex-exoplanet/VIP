@@ -13,12 +13,12 @@ from dataclass_builder import dataclass_builder
 
 from .dataset import Dataset
 from .postproc import PostProc
-from ..psfsub import xloci, LOCIParams
+from ..psfsub import xloci, XLOCI_Params
 from ..config.utils_conf import algo_calculates_decorator as calculates
 
 
 @dataclass
-class PPLOCI(PostProc, LOCIParams):
+class PPLOCI(PostProc, XLOCI_Params):
     """
     Post-processing LOCI algorithm.
 
@@ -76,7 +76,7 @@ class PPLOCI(PostProc, LOCIParams):
         if nproc is not None:
             self.nproc = nproc
 
-        params_dict = self._create_parameters_dict(LOCIParams)
+        params_dict = self._create_parameters_dict(XLOCI_Params)
 
         all_params = {"algo_params": self, **rot_options}
         res = xloci(**all_params)

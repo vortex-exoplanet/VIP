@@ -13,21 +13,15 @@ from dataclass_builder import dataclass_builder
 
 from .dataset import Dataset
 from .postproc import PostProc
-from ..psfsub import (
-    pca,
-    pca_annular,
-    pca_grid,
-    pca_annulus,
-    PCAAnnParams,
-    PCAParams,
-)
-from ..var.paramenum import Adimsdi, ReturnList, Runmode
-from ..var.object_utils import setup_parameters
+from ..psfsub import (pca, pca_annular, pca_grid, pca_annulus, PCA_Params,
+                      PCA_ANNULAR_Params)
+from ..config.paramenum import Adimsdi, ReturnList, Runmode
 from ..config.utils_conf import algo_calculates_decorator as calculates
+from ..config.utils_param import setup_parameters
 
 
 @dataclass
-class PPPCA(PostProc, PCAParams, PCAAnnParams):
+class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
     """
     Post-processing PCA algorithm, compatible with various options.
 
@@ -158,7 +152,7 @@ class PPPCA(PostProc, PCAParams, PCAAnnParams):
 
         Parameters
         ----------
-        runmode : Enum, see ``vip_hci.var.paramenum.Runmode``
+        runmode : Enum, see ``vip_hci.config.paramenum.Runmode``
             Mode of execution for the PCA.
         dataset : Dataset, optional
             Dataset to process. If not provided, ``self.dataset`` is used (as
@@ -181,11 +175,11 @@ class PPPCA(PostProc, PCAParams, PCAAnnParams):
             raise ValueError("`fwhm` has not been set")
         self._explicit_dataset()
         self.full_output = full_output
-        match (runmode):
+        match(runmode):
             case Runmode.CLASSIC:
                 # TODO : review the wavelengths attribute to be a scale_list instead
 
-                params_dict = self._create_parameters_dict(PCAParams)
+                params_dict = self._create_parameters_dict(PCA_Params)
 
                 all_params = {"algo_params": self, **rot_options}
 
@@ -204,7 +198,7 @@ class PPPCA(PostProc, PCAParams, PCAAnnParams):
                 if self.nproc is None:
                     self.nproc = nproc
 
-                params_dict = self._create_parameters_dict(PCAAnnParams)
+                params_dict = self._create_parameters_dict(PCA_ANNULAR_Params)
 
                 all_params = {"algo_params": self, **rot_options}
 
@@ -340,7 +334,7 @@ class PPPCA(PostProc, PCAParams, PCAAnnParams):
                 pca_mode = mode
                 break
 
-        match (pca_mode):
+        match(pca_mode):
             case ReturnList.ADIMSDI_DOUBLE:
                 self.frame_final, self.cube_residuals, self.cube_residuals_der = res
             case ReturnList.ADIMSDI_SINGLE_NO_GRID:

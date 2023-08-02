@@ -123,8 +123,8 @@ for your environment):
   within a base python2.7 ipython console.
 
 
-For users (not planning to contribute):
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+For users not planning to contribute:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Once within your new environment, the easiest way to install VIP is 
 through the Python Package Index, aka `PyPI <https://pypi.org/>`_, with 
 the ``pip`` package manager. Simply run:

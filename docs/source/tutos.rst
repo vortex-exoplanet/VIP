@@ -9,3 +9,6 @@ Alternatively, you can execute these tutorials on
 
 If you are new to the Jupyter notebook application check out the `beginner's guide
 <https://jupyter-notebook-beginner-guide.readthedocs.io/en/latest/what_is_jupyter.html>`_.
+
+For notebooks 1 and 3, an object-oriented version is available, leveraging new Dataset and Post-processing algorithm Classes.
+Note that these tutorials (1B and 3B) will only run for Python versions 3.10 or later.s

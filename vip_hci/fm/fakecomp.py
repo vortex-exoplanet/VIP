@@ -99,7 +99,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
     verbose : bool, optional
         If True prints out additional information.
     nproc: int or None, optional
-        Number of CPUs to use for multiprocessing. If None, will be 
+        Number of CPUs to use for multiprocessing. If None, will be
         automatically set to half the number of available CPUs.
 
     Returns
@@ -480,7 +480,7 @@ def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,
 
 def frame_inject_companion(array, array_fc, pos_y, pos_x, flux,
                            imlib='vip-fft', interpolation='lanczos4'):
-    """ 
+    """
     Injects a fake companion in a single frame (it could be a single
     multi-wavelength frame) at given coordinates, or in a cube (at the same
     coordinates, flux and with same fake companion image throughout the cube).
@@ -725,7 +725,10 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         else:
             array = array.copy()
 
-        if fwhm == 'fit':
+        if not np.isscalar(fwhm):
+            msg = "For a 2d input array, fwhm should be a scalar or string."
+            raise ValueError(msg)
+        elif fwhm == 'fit':
             fit = fit_2d(array, full_output=True, debug=debug)
             if model == 'gauss':
                 fwhm = np.mean((fit['fwhm_x'], fit['fwhm_y']))
@@ -760,37 +763,43 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
             else:
                 array = array.copy()
 
-        if isinstance(fwhm, (int, float)):
-            fwhm = [fwhm] * array.shape[0]
-        elif fwhm == 'fit':
-            fits_vect = [fit_2d(array[i], full_output=True, debug=debug) for i
-                         in range(n)]
-            if model == 'gauss':
-                fwhmx = [fits_vect[i]['fwhm_x'] for i in range(n)]
-                fwhmy = [fits_vect[i]['fwhm_y'] for i in range(n)]
-                fwhm_vect = [np.mean((fwhmx[i], fwhmy[i])) for i in range(n)]
-                fwhm = np.array(fwhm_vect)
-                if verbose:
-                    print("Mean FWHM per channel: ")
-                    print_precision(fwhm)
-            elif model == 'moff' or model == 'airy':
-                fwhm_vect = [fits_vect[i]['fwhm'] for i in range(n)]
-                fwhm = np.array(fwhm_vect)
-                fwhm = fwhm.flatten()
-                if verbose:
-                    print("FWHM per channel:")
-                    print_precision(fwhm)
-            # Replace outliers if needed
-            if correct_outliers:
-                if np.sum(np.isnan(fwhm)) > 0:
-                    for f in range(n):
-                        if np.isnan(fwhm[f]) and f != 0 and f != n-1:
-                            fwhm[f] = np.nanmean(np.array([fwhm[f-1],
-                                                           fwhm[f+1]]))
-                        elif np.isnan(fwhm[f]):
-                            msg = "2D fit failed for first or last channel. "
-                            msg += "Try other parameters?"
-                            raise ValueError(msg)
+        if np.isscalar(fwhm):
+            if fwhm != 'fit':
+                fwhm = [fwhm] * array.shape[0]
+            else:
+                fits_vect = [fit_2d(array[i], full_output=True, debug=debug) for i
+                             in range(n)]
+                if model == 'gauss':
+                    fwhmx = [fits_vect[i]['fwhm_x'] for i in range(n)]
+                    fwhmy = [fits_vect[i]['fwhm_y'] for i in range(n)]
+                    fwhm_vect = [np.mean((fwhmx[i], fwhmy[i]))
+                                 for i in range(n)]
+                    fwhm = np.array(fwhm_vect)
+                    if verbose:
+                        print("Mean FWHM per channel: ")
+                        print_precision(fwhm)
+                elif model == 'moff' or model == 'airy':
+                    fwhm_vect = [fits_vect[i]['fwhm'] for i in range(n)]
+                    fwhm = np.array(fwhm_vect)
+                    fwhm = fwhm.flatten()
+                    if verbose:
+                        print("FWHM per channel:")
+                        print_precision(fwhm)
+                # Replace outliers if needed
+                if correct_outliers:
+                    if np.sum(np.isnan(fwhm)) > 0:
+                        for f in range(n):
+                            if np.isnan(fwhm[f]) and f != 0 and f != n-1:
+                                fwhm[f] = np.nanmean(np.array([fwhm[f-1],
+                                                               fwhm[f+1]]))
+                            elif np.isnan(fwhm[f]):
+                                msg = "2D fit failed for first or last channel. "
+                                msg += "Try other parameters?"
+                                raise ValueError(msg)
+        elif len(fwhm) != array.shape[0]:
+            msg = "If fwhm is a list/1darray it should have a length of {}"
+            raise ValueError(msg.format(array.shape[0]))
+
         array_out = []
         fwhm_flux = np.zeros(n)
 

@@ -33,7 +33,7 @@ __all__ = ["completeness_curve", "completeness_map"]
 
 from multiprocessing import cpu_count
 import numpy as np
-from inspect import signature
+from inspect import signature, getfullargspec
 from skimage.draw import disk
 from matplotlib import pyplot as plt
 from ..fm import cube_inject_companions, normalize_psf
@@ -84,11 +84,35 @@ def _estimate_snr_fc(
     else:
         cy, cx = frame_center(cube[0])
 
-    algo_params = signature(algo).parameters
-    param_name = next(iter(algo_params))
-    class_name = algo_params[param_name].annotation
+    # TODO: Clean below?
+    # Consider 3 cases depending on whether algo is (i) defined externally,
+    # (ii) a VIP postproc algorithm; (iii) ineligible for contrast curves
+    argl = getfullargspec(algo).args
+    if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+        # (i) external algorithm with appropriate parameters [OK]
+        pass
+    else:
+        algo_name = algo.__name__
+        idx = algo.__module__.index(
+            '.', algo.__module__.index('.') + 1)
+        mod = algo.__module__[:idx]
+        tmp = __import__(
+            mod, fromlist=[algo_name.upper()+'_Params'])
+        algo_params = getattr(tmp, algo_name.upper()+'_Params')
+        argl = [attr for attr in vars(algo_params)]
+        if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+            # (ii) a VIP postproc algorithm [OK]
+            pass
+        else:
+            # (iii) ineligible routine for contrast curves [Raise error]
+            msg = "Ineligible algo for contrast curve function. algo should "
+            msg += "have parameters 'cube', 'angle_list' and 'verbose'"
+            raise TypeError(msg)
+    # algo_params = signature(algo).parameters
+    # param_name = next(iter(algo_params))
+    # class_name = algo_params[param_name].annotation
 
-    argl = [attr for attr in vars(class_name)]
+    # argl = [attr for attr in vars(class_name)]
     if "verbose" in argl:
         algo_dict["verbose"] = False
     if "fwhm" in argl:
@@ -147,7 +171,8 @@ def _estimate_snr_fc(
         coords = [(int(x), int(y)) for (x, y) in zip(xx, yy)]
         tophat_kernel = Tophat2DKernel(fwhm / 2)
         frame_fin = convolve(frame_fin, tophat_kernel)
-        res = pool_map(1, _snr_approx, frame_fin, iterable(coords), fwhm_med, cy, cx)
+        res = pool_map(1, _snr_approx, frame_fin,
+                       iterable(coords), fwhm_med, cy, cx)
         res = np.array(res, dtype=object)
         yy = res[:, 0]
         xx = res[:, 1]
@@ -157,7 +182,8 @@ def _estimate_snr_fc(
     else:
         coords = zip(xx, yy)
         res = pool_map(
-            1, snr, frame_fin, iterable(coords), fwhm_med, True, None, False, True
+            1, snr, frame_fin, iterable(
+                coords), fwhm_med, True, None, False, True
         )
         res = np.array(res, dtype=object)
         yy = res[:, 0]
@@ -329,7 +355,8 @@ def completeness_curve(
 
     if an_dist is None:
         an_dist = np.array(
-            range(2 * round(fwhm_med), int(cube.shape[-1] // 2 - 2 * fwhm_med), 5)
+            range(2 * round(fwhm_med),
+                  int(cube.shape[-1] // 2 - 2 * fwhm_med), 5)
         )
         print("an_dist not provided, the following list will be used:", an_dist)
     elif an_dist[-1] > cube.shape[-1] // 2 - 2 * fwhm_med:
@@ -372,7 +399,31 @@ def completeness_curve(
     if verbose:
         print("Calculating initial SNR map with no injected companion...")
 
-    argl = [attr for attr in vars(algo_class)]
+    # TODO: Clean below?
+    # Consider 3 cases depending on whether algo is (i) defined externally,
+    # (ii) a VIP postproc algorithm; (iii) ineligible for contrast curves
+    argl = getfullargspec(algo).args
+    if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+        # (i) external algorithm with appropriate parameters [OK]
+        pass
+    else:
+        algo_name = algo.__name__
+        idx = algo.__module__.index(
+            '.', algo.__module__.index('.') + 1)
+        mod = algo.__module__[:idx]
+        tmp = __import__(
+            mod, fromlist=[algo_name.upper()+'_Params'])
+        algo_params = getattr(tmp, algo_name.upper()+'_Params')
+        argl = [attr for attr in vars(algo_params)]
+        if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+            # (ii) a VIP postproc algorithm [OK]
+            pass
+        else:
+            # (iii) ineligible routine for contrast curves [Raise error]
+            msg = "Ineligible algo for contrast curve function. algo should "
+            msg += "have parameters 'cube', 'angle_list' and 'verbose'"
+            raise TypeError(msg)
+
     if "cube" in argl and "angle_list" in argl:
         if "fwhm" in argl:
             frame_fin = algo(
@@ -597,7 +648,8 @@ def completeness_curve(
             fact = (level_bound[1] - level_bound[0]) / (
                 detect_bound[1] - detect_bound[0]
             )
-            level = level_bound[0] + fact * (completeness * n_fc - detect_bound[0])
+            level = level_bound[0] + fact * \
+                (completeness * n_fc - detect_bound[0])
 
             res = pool_map(
                 nproc,
@@ -852,7 +904,30 @@ def completeness_map(
     specific named arguments can be a puzzle. We have to first identify the parameters
     tied to the algorithm by looking at its object of parameters."""
 
-    argl = [attr for attr in vars(algo_class)]
+    # TODO: Clean below?
+    # Consider 3 cases depending on whether algo is (i) defined externally,
+    # (ii) a VIP postproc algorithm; (iii) ineligible for contrast curves
+    argl = getfullargspec(algo).args
+    if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+        # (i) external algorithm with appropriate parameters [OK]
+        pass
+    else:
+        algo_name = algo.__name__
+        idx = algo.__module__.index(
+            '.', algo.__module__.index('.') + 1)
+        mod = algo.__module__[:idx]
+        tmp = __import__(
+            mod, fromlist=[algo_name.upper()+'_Params'])
+        algo_params = getattr(tmp, algo_name.upper()+'_Params')
+        argl = [attr for attr in vars(algo_params)]
+        if "cube" in argl and "angle_list" in argl and "verbose" in argl:
+            # (ii) a VIP postproc algorithm [OK]
+            pass
+        else:
+            # (iii) ineligible routine for contrast curves [Raise error]
+            msg = "Ineligible algo for contrast curve function. algo should "
+            msg += "have parameters 'cube', 'angle_list' and 'verbose'"
+            raise TypeError(msg)
 
     if "cube" in argl and "angle_list" in argl and "verbose" in argl:
         if "fwhm" in argl:
@@ -1005,7 +1080,8 @@ def completeness_map(
 
         if verbose:
             print(
-                "Upper bound ({:.0f}%) found: {}".format(100 * (n_fc - 1) / n_fc, level)
+                "Upper bound ({:.0f}%) found: {}".format(
+                    100 * (n_fc - 1) / n_fc, level)
             )
 
         missing = np.where(contrast_matrix[k, :] == 0)[0]
@@ -1035,7 +1111,8 @@ def completeness_map(
                     pos_non_detect = list(pos_non_detect)
                     num = lvl_bound[1] - lvl_bound[0]
                     denom = det_bound[1] - det_bound[0]
-                    level = lvl_bound[1] + num * (missing[0] - det_bound[1]) / denom
+                    level = lvl_bound[1] + num * \
+                        (missing[0] - det_bound[1]) / denom
 
                     res = pool_map(
                         nproc,
@@ -1069,7 +1146,8 @@ def completeness_map(
                     pos_non_detect = list(pos_non_detect)
                     num = lvl_bound[1] - lvl_bound[0]
                     denom = det_bound[1] - det_bound[0]
-                    level = lvl_bound[0] + num * (missing[0] - det_bound[0]) / denom
+                    level = lvl_bound[0] + num * \
+                        (missing[0] - det_bound[0]) / denom
 
                     res = pool_map(
                         nproc,

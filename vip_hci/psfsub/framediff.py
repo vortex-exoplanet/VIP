@@ -2,7 +2,7 @@
 """Module with a frame differencing algorithm for ADI post-processing."""
 
 __author__ = "Carlos Alberto Gomez Gonzalez, Thomas Bédrine"
-__all__ = ["frame_diff", "FrameDiffParams"]
+__all__ = ["frame_diff", "FRAME_DIFF_Params"]
 
 import numpy as np
 import pandas as pn
@@ -12,18 +12,18 @@ from dataclasses import dataclass
 from typing import List
 from enum import Enum
 from sklearn.metrics import pairwise_distances
+from .utils_pca import pca_annulus
 from ..var import get_annulus_segments
-from ..var.object_utils import setup_parameters, separate_kwargs_dict
-from ..var.paramenum import Metric, Imlib, Interpolation, Collapse, ALGO_KEY
-from ..preproc import cube_derotate, cube_collapse, check_pa_vector
+from ..config.utils_param import setup_parameters, separate_kwargs_dict
+from ..config.paramenum import Metric, Imlib, Interpolation, Collapse, ALGO_KEY
 from ..config import time_ini, timing
 from ..config.utils_conf import pool_map, iterable
-from .utils_pca import pca_annulus
+from ..preproc import cube_derotate, cube_collapse, check_pa_vector
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 
 
 @dataclass
-class FrameDiffParams:
+class FRAME_DIFF_Params:
     """
     Set of parameters for the frame differencing module.
 
@@ -124,7 +124,7 @@ def frame_diff(*all_args: List, **all_kwargs: dict):
 
     # Separating the parameters of the ParamsObject from the optionnal rot_options
     class_params, rot_options = separate_kwargs_dict(
-        initial_kwargs=all_kwargs, parent_class=FrameDiffParams
+        initial_kwargs=all_kwargs, parent_class=FRAME_DIFF_Params
     )
 
     # Extracting the object of parameters (if any)
@@ -134,7 +134,7 @@ def frame_diff(*all_args: List, **all_kwargs: dict):
         del rot_options[ALGO_KEY]
 
     if algo_params is None:
-        algo_params = FrameDiffParams(*all_args, **class_params)
+        algo_params = FRAME_DIFF_Params(*all_args, **class_params)
 
     global array
     array = algo_params.cube

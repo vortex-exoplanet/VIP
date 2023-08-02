@@ -14,7 +14,7 @@ decomposition algorithm for ADI data.
 """
 
 __author__ = "Carlos Alberto Gomez Gonzalez, Thomas Bédrine"
-__all__ = ["llsg", "thresholding", "LLSGParams"]
+__all__ = ["llsg", "thresholding", "LLSG_Params"]
 
 
 import numpy as np
@@ -24,17 +24,17 @@ from astropy.stats import median_absolute_deviation
 from dataclasses import dataclass
 from typing import List
 from enum import Enum
+from .svd import svd_wrapper, get_eigenvectors
 from ..config import time_ini, timing
+from ..config.paramenum import Collapse, LowRankMode, AutoRankMode, ThreshMode, ALGO_KEY
+from ..config.utils_conf import pool_map, iterable
+from ..config.utils_param import setup_parameters, separate_kwargs_dict
 from ..preproc import cube_derotate, cube_collapse
 from ..var import get_annulus_segments, cube_filter_highpass
-from ..var.object_utils import setup_parameters, separate_kwargs_dict
-from ..var.paramenum import Collapse, LowRankMode, AutoRankMode, ThreshMode, ALGO_KEY
-from .svd import svd_wrapper, get_eigenvectors
-from ..config.utils_conf import pool_map, iterable
 
 
 @dataclass
-class LLSGParams:
+class LLSG_Params:
     """
     Set of parameters for the LLSG algorithm.
 
@@ -108,9 +108,9 @@ def llsg(*all_args: List, **all_kwargs: dict):
     low_rank_ref :
         If True the first estimation of the L component is obtained from the
         remaining segments in the same annulus.
-    low_rank_mode : Enum, see `vip_hci.var.paramenum.LowRankMode`
+    low_rank_mode : Enum, see `vip_hci.config.paramenum.LowRankMode`
         Sets the method of solving the L update.
-    auto_rank_mode : Enum, see `vip_hci.var.paramenum.AutoRankMode`
+    auto_rank_mode : Enum, see `vip_hci.config.paramenum.AutoRankMode`
         If ``rank`` is None, then ``auto_rank_mode`` sets the way that the
         ``rank`` is determined: the noise minimization or the cumulative
         explained variance ratio (when 'svd' is used).
@@ -120,7 +120,7 @@ def llsg(*all_args: List, **all_kwargs: dict):
     cevr : float, optional
         Float value in the range [0,1] for selecting the cumulative explained
         variance ratio to choose the rank automatically (if ``rank`` is None).
-    thresh_mode : Enum, see `vip_hci.var.paramenum.ThreshMode`
+    thresh_mode : Enum, see `vip_hci.config.paramenum.ThreshMode`
         Sets the type of thresholding.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
@@ -145,7 +145,7 @@ def llsg(*all_args: List, **all_kwargs: dict):
         first with the mode ``median-subt`` and a large window, and then with
         ``laplacian-conv`` and a kernel size equal to ``high_pass``. 5 is an
         optimal value when ``fwhm`` is ~4.
-    collapse : Enum, see `vip_hci.var.paramenum.Collapse`
+    collapse : Enum, see `vip_hci.config.paramenum.Collapse`
         Sets the way of collapsing the frames for producing a final image.
     full_output: bool, optional
         Whether to return the final median combined image only or with other
@@ -168,7 +168,7 @@ def llsg(*all_args: List, **all_kwargs: dict):
 
     # Separating the parameters of the ParamsObject from the optionnal rot_options
     class_params, rot_options = separate_kwargs_dict(
-        initial_kwargs=all_kwargs, parent_class=LLSGParams
+        initial_kwargs=all_kwargs, parent_class=LLSG_Params
     )
 
     # Extracting the object of parameters (if any)
@@ -178,7 +178,7 @@ def llsg(*all_args: List, **all_kwargs: dict):
         del rot_options[ALGO_KEY]
 
     if algo_params is None:
-        algo_params = LLSGParams(*all_args, **class_params)
+        algo_params = LLSG_Params(*all_args, **class_params)
 
     if algo_params.cube.ndim != 3:
         raise TypeError("Input array is not a cube (3d array)")
@@ -320,7 +320,8 @@ def llsg(*all_args: List, **all_kwargs: dict):
             cube_collapse(list_s_array_der[k], mode=algo_params.collapse)
             for k in range(n_rots)
         ]
-        frame_s = cube_collapse(np.array(list_frame_s), mode=algo_params.collapse)
+        frame_s = cube_collapse(np.array(list_frame_s),
+                                mode=algo_params.collapse)
 
         list_l_array_der = [
             cube_derotate(
@@ -335,7 +336,8 @@ def llsg(*all_args: List, **all_kwargs: dict):
             cube_collapse(list_l_array_der[k], mode=algo_params.collapse)
             for k in range(n_rots)
         ]
-        frame_l = cube_collapse(np.array(list_frame_l), mode=algo_params.collapse)
+        frame_l = cube_collapse(np.array(list_frame_l),
+                                mode=algo_params.collapse)
 
         list_g_array_der = [
             cube_derotate(
@@ -350,7 +352,8 @@ def llsg(*all_args: List, **all_kwargs: dict):
             cube_collapse(list_g_array_der[k], mode=algo_params.collapse)
             for k in range(n_rots)
         ]
-        frame_g = cube_collapse(np.array(list_frame_g), mode=algo_params.collapse)
+        frame_g = cube_collapse(np.array(list_frame_g),
+                                mode=algo_params.collapse)
 
     else:
         list_s_array_der = [
@@ -367,7 +370,8 @@ def llsg(*all_args: List, **all_kwargs: dict):
             for k in range(n_rots)
         ]
 
-        frame_s = cube_collapse(np.array(list_frame_s), mode=algo_params.collapse)
+        frame_s = cube_collapse(np.array(list_frame_s),
+                                mode=algo_params.collapse)
 
     if algo_params.verbose:
         print("")
@@ -506,7 +510,8 @@ def _patch_rlrps(
                     Lnew = np.dot(np.dot(L, PC.T), PC)
             else:
                 rank_i = min(rank, min(L.shape[0], L.shape[1]))
-                PC = svd_wrapper(L, svdlib, rank_i, False, random_state=random_state)
+                PC = svd_wrapper(L, svdlib, rank_i, False,
+                                 random_state=random_state)
                 Lnew = np.dot(np.dot(L, PC.T), PC)
 
         else:

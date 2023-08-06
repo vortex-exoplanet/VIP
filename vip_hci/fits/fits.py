@@ -63,40 +63,22 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     fitsfilename = str(fitsfilename)
     if not os.path.isfile(fitsfilename):
         fitsfilename += ".fits"
-
-    if return_memmap:
-        return ap_fits.open(fitsfilename, ignore_missing_end=ignore_missing_end,
-                            memmap=True, **kwargs)[n]
-    else:
-    	try:
-            hdulist = ap_fits.open(fitsfilename, 
-                                   ignore_missing_end=ignore_missing_end,
-                    	           	memmap=True, **kwargs)
-    	except: # If BZERO/BSCALE/BLANK header keywords are present, HDU can’t be loaded as memory map
-        	hdulist = ap_fits.open(fitsfilename,
-                                   ignore_missing_end=ignore_missing_end,
-                    	           	memmap=False, **kwargs)
-            # data = hdulist[n].data
-            # data = np.array(data, dtype=precision)
-            # hdulist.close()
-            # if header:
-            #     header = hdulist[n].header
-            #     if verbose:
-            #         print("Fits HDU-{} data and header successfully loaded. "
-            #               "Data shape: {}".format(n, data.shape))
-            #     return data, header
-            # else:
-            #     if verbose:
-            #         print("Fits HDU-{} data successfully loaded. "
-            #               "Data shape: {}".format(n, data.shape))
-            #     return data
+    
+    try:
+        hdulist = ap_fits.open(fitsfilename, 
+                               ignore_missing_end=ignore_missing_end,
+                   	           	memmap=True, **kwargs)
+    except: # If BZERO/BSCALE/BLANK header keywords are present, HDU can’t be loaded as memory map
+        hdulist = ap_fits.open(fitsfilename,
+                               ignore_missing_end=ignore_missing_end,
+                   	           	memmap=False, **kwargs)
 
     # Opening all extensions in a MEF
     if n == ALL_FITS:
-        data_list = []
-        header_list = []
         if return_memmap:
             return hdulist
+        data_list = []
+        header_list = []
 
         for index, element in enumerate(hdulist):
             data, head = _return_data_fits(hdulist=hdulist, index=index,

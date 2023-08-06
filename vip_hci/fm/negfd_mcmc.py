@@ -35,12 +35,11 @@ Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
 
 
 from ..fits import write_fits
-__author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez, V. Christiaens'
-__all__ = ['mcmc_negfc_sampling',
-           'chain_zero_truncated',
-           'show_corner_plot',
-           'show_walk_plot',
-           'confidence']
+__author__ = 'V. Christiaens, O. Wertz, Carlos Alberto Gomez Gonzalez'
+__all__ = ['mcmc_negfd_sampling',
+           'show_corner_plot_fd',
+           'show_walk_plot_fd',
+           'confidence_fd']
 import numpy as np
 import os
 import emcee
@@ -56,6 +55,7 @@ from ..fm import cube_inject_companions
 from ..config import time_ini, timing
 from ..config.utils_conf import sep
 from ..psfsub import pca_annulus
+from .negfc_mcmc import chain_zero_truncated
 from .negfc_fmerit import get_values_optimize, get_mu_and_sigma
 from .utils_mcmc import gelman_rubin, autocorr_test
 from .utils_negfc import find_nearest
@@ -435,7 +435,7 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
                        transmission, mu_sigma, sigma, force_rPA)
 
 
-def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
+def mcmc_negfd_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
                         ncomp=1, annulus_width=8, aperture_radius=1, fwhm=4,
                         mu_sigma=True, sigma='spe+pho', force_rPA=False,
                         fmerit='sum', cube_ref=None, svd_mode='lapack',
@@ -1021,30 +1021,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     return chain_zero_truncated(chain)
 
 
-def chain_zero_truncated(chain):
-    """
-    Return the Markov chain with the dimension: walkers x steps* x parameters,
-    where steps* is the last step before having 0 (not yet constructed chain).
 
-    Parameters
-    ----------
-    chain: numpy.array
-        The MCMC chain.
-
-    Returns
-    -------
-    out: numpy.array
-        The truncated MCMC chain, that is to say, the chain which only contains
-        relevant information.
-    """
-    try:
-        idxzero = np.where(chain[0, :, 0] == 0.0)[0][0]
-    except BaseException:
-        idxzero = chain.shape[1]
-    return chain[:, 0:idxzero, :]
-
-
-def show_walk_plot(chain, save=False, output_dir='', **kwargs):
+def show_walk_plot_fd(chain, save=False, output_dir='', **kwargs):
     """
     Display or save a figure showing the path of each walker during the MCMC run
 
@@ -1103,7 +1081,7 @@ def show_walk_plot(chain, save=False, output_dir='', **kwargs):
         plt.show()
 
 
-def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
+def show_corner_plot_fd(chain, burnin=0.5, save=False, output_dir='', **kwargs):
     """
     Display or save a figure showing the corner plot (pdfs + correlation plots)
 
@@ -1160,7 +1138,7 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
         plt.show()
 
 
-def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
+def confidence_fd(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
                verbose=True, save=False, output_dir='', force=False,
                output_file='confidence.txt', title=None, ndig=1, plsc=None,
                labels=['r', 'theta', 'f'], gt=None, **kwargs):

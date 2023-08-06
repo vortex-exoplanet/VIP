@@ -2,11 +2,12 @@
 
 """
 Module with routines allowing for the estimation of the uncertainty on the
-parameters of an imaged companion associated to residual speckle noise.
+parameters of an imaged companion associated to uncertainty on the contribution
+from a subtracted disk at that location.
 """
 
-__author__ = 'O. Wertz, C. A. Gomez Gonzalez, V. Christiaens'
-__all__ = ['speckle_noise_uncertainty']
+__author__ = 'V. Christiaens, O. Wertz, C. A. Gomez Gonzalez'
+__all__ = ['speckle_noise_uncertainty_fd']
 
 #import itertools as itt
 from multiprocessing import cpu_count
@@ -21,15 +22,17 @@ from .utils_negfc import cube_planet_free
 from .negfc_mcmc import confidence
 
 
-def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
-                              psfn, fwhm, aperture_radius, opp_ang=False,
-                              indep_ap=False, cube_ref=None, fmerit='sum',
-                              algo_options={}, transmission=None, mu_sigma=None,
-                              wedge=None, weights=None, force_rPA=False,
-                              nproc=None, simplex_options=None, bins=None,
-                              save=False, output=None, verbose=True,
-                              full_output=True, plot=False, trim_outliers=True):
+def speckle_noise_uncertainty_fd(cube, p_true, angle_range, derot_angles, algo,
+                                 psfn, fwhm, aperture_radius, opp_ang=False,
+                                 indep_ap=False, cube_ref=None, fmerit='sum',
+                                 algo_options={}, transmission=None, mu_sigma=None,
+                                 wedge=None, weights=None, force_rPA=False,
+                                 nproc=None, simplex_options=None, bins=None,
+                                 save=False, output=None, verbose=True,
+                                 full_output=True, plot=False, trim_outliers=True):
     """
+    TODO!
+    
     Step-by-step procedure used to determine the speckle noise uncertainty
     associated to the parameters of a companion candidate.
 

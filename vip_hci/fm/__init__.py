@@ -31,3 +31,4 @@ from .negfd_simplex import *
 from .negfd_speckle_noise import *
 from .utils_mcmc import *
 from .utils_negfc import *
+from .utils_negfd import *

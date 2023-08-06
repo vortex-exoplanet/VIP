@@ -25,19 +25,18 @@ __all__ = ['firstguess',
 def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                           aperture_radius, ncomp, cube_ref=None,
                           svd_mode='lapack', scaling=None, fmerit='sum',
-                          imlib='vip-fft', interpolation='lanczos4',
+                          imlib='skimage', interpolation='biquintic',
                           collapse='median', algo=pca_annulus, delta_rot=1,
                           algo_options={}, f_range=None, transmission=None,
-                          mu_sigma=(0, 1), weights=None, plot=False,
-                          verbose=True, save=False, debug=False,
-                          full_output=False):
+                          mu_sigma=None, weights=None, plot=False, verbose=True,
+                          save=False, debug=False, full_output=False):
     """ Determine a first guess for the flux of a companion at a given position
     in the cube by doing a simple grid search evaluating the reduced chi2.
 
     Parameters
     ----------
     planet: numpy.array
-        The (x,y) position of the planet in the pca processed cube.
+        The (x,y) position of the planet in the processed cube.
     center: numpy.array
         The (x,y) position of the cube center.
     cube: 3d or 4d numpy ndarray
@@ -109,7 +108,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         dict (the latter are also kept as function arguments for compatibility
         with older versions of vip).
     f_range: numpy.array, optional
-        The range of tested flux values. If None, 20 values between 0 and 5000
+        The range of tested flux values. If None, 30 values between 1e-1 and 1e4
         are tested.
     transmission: numpy array, optional
         Array with 2 columns. First column is the radial separation in pixels.
@@ -292,8 +291,8 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
 
 def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
                        aperture_radius, cube_ref=None, svd_mode='lapack',
-                       scaling=None, fmerit='sum', imlib='vip-fft',
-                       interpolation='lanczos4', collapse='median',
+                       scaling=None, fmerit='sum', imlib='skimage',
+                       interpolation='biquintic', collapse='median',
                        algo=pca_annulus, delta_rot=1, algo_options={},
                        p_ini=None, transmission=None, mu_sigma=(0, 1),
                        weights=None, force_rPA=False, options=None,
@@ -433,12 +432,12 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
 
 def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
                annulus_width=4, aperture_radius=1, cube_ref=None,
-               svd_mode='lapack', scaling=None, fmerit='sum', imlib='vip-fft',
-               interpolation='lanczos4', collapse='median', algo=pca_annulus,
-               delta_rot=1, p_ini=None, f_range=None, transmission=None,
-               mu_sigma=True, wedge=None, weights=None, force_rPA=False,
-               algo_options={}, simplex=True, simplex_options=None, plot=False,
-               verbose=True, save=False):
+               svd_mode='lapack', scaling=None, fmerit='sum', imlib='skimage',
+               interpolation='biquintic', collapse='median', algo=pca_annulus,
+               delta_rot=1, f_range=None, transmission=None, mu_sigma=True,
+               wedge=None, weights=None, force_rPA=False, algo_options={},
+               simplex=True, simplex_options=None, plot=False, verbose=True,
+               save=False):
     """ Determines a first guess for the position and the flux of a planet, as
     explained in [WER17]_.
 
@@ -525,8 +524,6 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
-    p_ini: numpy.array
-        Position (r, theta) of the circular aperture center.
     f_range: numpy.array, optional
         The range of flux tested values. If None, 20 values between 0 and 5000
         are tested.
@@ -687,7 +684,7 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
                                      imlib=imlib, interpolation=interpolation,
                                      collapse=collapse, algo=algo,
                                      delta_rot=delta_rot,
-                                     algo_options=algo_options, p_ini=p_ini,
+                                     algo_options=algo_options,
                                      transmission=transmission,
                                      mu_sigma=mu_sigma, weights=weights,
                                      force_rPA=force_rPA,
@@ -723,11 +720,11 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
             centy, centx = frame_center(cube[0])
             posy = r_0 * np.sin(np.deg2rad(theta_0[index_planet])) + centy
             posx = r_0 * np.cos(np.deg2rad(theta_0[index_planet])) + centx
-            msg6 = 'Planet {}: simplex result: (r, theta, '.format(index_planet)
+            msg6 = 'Planet {}: Optimization result: (r, '.format(index_planet)
             if cube.ndim == 3:
-                msg6 += 'f)=({:.3f}, {:.3f}, {:.3f})'.format(r_0[index_planet],
-                                                             theta_0[index_planet],
-                                                             f_0[index_planet])
+                msg6 += 'theta, f)=({:.3f}, '.format(r_0[index_planet])
+                msg6 += '{:.3f}, {:.3f})'.format(theta_0[index_planet],
+                                                 f_0[index_planet])
             else:
                 msg6b = '('
                 for z in range(cube.shape[0]):

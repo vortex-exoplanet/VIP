@@ -39,20 +39,19 @@ nested sampling (``nestle``).
 
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens',
-__all__ = ['nested_negfc_sampling',
-           'nested_sampling_results']
+__all__ = ['nested_negfd_sampling',
+           'nested_sampling_results_fd']
 
 import nestle
 import corner
 import numpy as np
 from matplotlib import pyplot as plt
 from ..config import time_ini, timing
-from .negfc_mcmc import lnlike, confidence, show_walk_plot
-from .negfc_fmerit import get_mu_and_sigma
+from .negfd_mcmc import lnlike, confidence_fd, show_walk_plot_fd
 from ..psfsub import pca_annulus
 
 
-def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
+def nested_negfd_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
                           sigma='spe+pho', fmerit='sum', annulus_width=8,
                           aperture_radius=1, ncomp=10, scaling=None,
                           svd_mode='lapack', cube_ref=None, collapse='median',
@@ -242,27 +241,6 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
 
     """
 
-    # calculate mu_sigma
-    mu_sig = get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
-                              fwhm, init[0], init[1], cube_ref=cube_ref,
-                              svd_mode=svd_mode, scaling=scaling, algo=algo,
-                              delta_rot=delta_rot, collapse=collapse,
-                              algo_options=algo_options)
-    # Measure mu and sigma once in the annulus (instead of each MCMC step)
-    if isinstance(mu_sigma, tuple):
-        if len(mu_sigma) != 2:
-            raise TypeError("if a tuple, mu_sigma should have 2 elements")
-
-    elif mu_sigma:
-        mu_sigma = mu_sig
-        if verbose:
-            msg = "The mean and stddev in the annulus at the radius of the "
-            msg += "companion (excluding the PA area directly adjacent to it)"
-            msg += " are {:.2f} and {:.2f} respectively."
-            print(msg.format(mu_sigma[0], mu_sigma[1]))
-    else:
-        mu_sigma = mu_sig[0]  # just take mean
-
     def prior_transform(x):
         """
         Computes the transformation from the unit distribution `[0, 1]` to
@@ -340,7 +318,7 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
     return res
 
 
-def nested_sampling_results(ns_object, burnin=0.4, bins=None, cfd=68.27,
+def nested_sampling_results_fd(ns_object, burnin=0.4, bins=None, cfd=68.27,
                             save=False, output_dir='/', plot=False):
     """ Shows the results of the Nested Sampling, summary, parameters with
     errors, walk and corner plots.
@@ -348,7 +326,7 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, cfd=68.27,
     Parameters
     ----------
     ns_object: numpy.array
-        The nestle object returned from `nested_spec_sampling`.
+        The nestle object returned from `nested_negfd_sampling`.
     burnin: float, default: 0
         The fraction of a walker we want to discard.
     bins: int, optional
@@ -401,7 +379,7 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, cfd=68.27,
         show_walk_plot(np.expand_dims(res.samples, axis=0))
         if burnin > 0:
             print("\nWalk plots after the burnin")
-            show_walk_plot(np.expand_dims(res.samples[indburnin:], axis=0))
+            show_walk_plot_fd(np.expand_dims(res.samples[indburnin:], axis=0))
         plt.savefig(output_dir+'Nested_walk_plots.pdf')
 
     mean, cov = nestle.mean_and_cov(res.samples[indburnin:],
@@ -444,7 +422,7 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, cfd=68.27,
 
     print('\nConfidence intervals')
     if save or plot:
-        _ = confidence(res.samples[indburnin:], cfd=68, bins=bins,
+        _ = confidence_fd(res.samples[indburnin:], cfd=68, bins=bins,
                        weights=res.weights[indburnin:],
                        gaussian_fit=True, verbose=True, save=False)
 

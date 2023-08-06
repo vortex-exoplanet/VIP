@@ -348,7 +348,7 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, cfd=68.27,
     Parameters
     ----------
     ns_object: numpy.array
-        The nestle object returned from `nested_spec_sampling`.
+        The nestle object returned from `nested_negfc_sampling`.
     burnin: float, default: 0
         The fraction of a walker we want to discard.
     bins: int, optional

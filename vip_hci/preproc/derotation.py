@@ -51,12 +51,14 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
     angle : float
         Rotation angle.
     imlib : {'opencv', 'skimage', 'vip-fft'}, str optional
-        Library used for image transformations. Opencv is faster than
-        Skimage or scipy.ndimage. 'vip-fft' corresponds to the FFT-based
-        rotation method described in [LAR97]_, and implemented in this
-        module. Best results are obtained with images without any sharp
-        intensity change (i.e. no numerical mask). Edge-blending and/or
-        zero-interpolation may help if sharp transitions are unavoidable.
+        Library used for image transformations. Opencv is faster than skimage or 
+        'vip-fft', but vip-fft slightly better preserves the flux in the image 
+        (followed by skimage with a biquintic interpolation). 'vip-fft' 
+        corresponds to the FFT-based rotation method described in [LAR97]_, and 
+        implemented in this module. Best results are obtained with images 
+        without any sharp intensity change (i.e. no numerical mask). 
+        Edge-blending and/or zero-interpolation may help if sharp transitions 
+        are unavoidable.
     interpolation : str, optional
         [Only used for imlib='opencv' or imlib='skimage']
         For Skimage the options are: 'nearneig', bilinear', 'biquadratic',

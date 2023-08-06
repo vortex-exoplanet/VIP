@@ -4,9 +4,9 @@ Module with various fits handling functions.
 """
 
 
-__author__ = "Carlos Alberto Gomez Gonzalez"
-__all__ = ["open_fits", "info_fits",
-           "write_fits", "verify_fits", "byteswap_array"]
+__author__ = "C. A. Gomez Gonzalez, T. Bédrine, V. Christiaens"
+__all__ = ["open_fits", "info_fits", "write_fits", "verify_fits", 
+           "byteswap_array"]
 
 
 import os
@@ -16,7 +16,7 @@ from astropy.io.fits import HDUList
 from ..config.paramenum import ALL_FITS
 
 
-def open_fits(fitsfilename, n=0, get_header=False, ignore_missing_end=False,
+def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
               precision=np.float32, return_memmap=False, verbose=True,
               **kwargs):
     """
@@ -64,9 +64,32 @@ def open_fits(fitsfilename, n=0, get_header=False, ignore_missing_end=False,
     if not os.path.isfile(fitsfilename):
         fitsfilename += ".fits"
 
-    hdulist = ap_fits.open(
-        fitsfilename, ignore_missing_end=ignore_missing_end, memmap=True, **kwargs
-    )
+    if return_memmap:
+        return ap_fits.open(fitsfilename, ignore_missing_end=ignore_missing_end,
+                            memmap=True, **kwargs)[n]
+    else:
+    	try:
+            hdulist = ap_fits.open(fitsfilename, 
+                                   ignore_missing_end=ignore_missing_end,
+                    	           	memmap=True, **kwargs)
+    	except: # If BZERO/BSCALE/BLANK header keywords are present, HDU can’t be loaded as memory map
+        	hdulist = ap_fits.open(fitsfilename,
+                                   ignore_missing_end=ignore_missing_end,
+                    	           	memmap=False, **kwargs)
+            # data = hdulist[n].data
+            # data = np.array(data, dtype=precision)
+            # hdulist.close()
+            # if header:
+            #     header = hdulist[n].header
+            #     if verbose:
+            #         print("Fits HDU-{} data and header successfully loaded. "
+            #               "Data shape: {}".format(n, data.shape))
+            #     return data, header
+            # else:
+            #     if verbose:
+            #         print("Fits HDU-{} data successfully loaded. "
+            #               "Data shape: {}".format(n, data.shape))
+            #     return data
 
     # Opening all extensions in a MEF
     if n == ALL_FITS:
@@ -76,17 +99,14 @@ def open_fits(fitsfilename, n=0, get_header=False, ignore_missing_end=False,
             return hdulist
 
         for index, element in enumerate(hdulist):
-            data, header = _return_data_fits(
-                hdulist=hdulist,
-                index=index,
-                precision=precision,
-                verbose=verbose,
-            )
+            data, head = _return_data_fits(hdulist=hdulist, index=index,
+                                           precision=precision,
+                                           verbose=verbose)
             data_list.append(data)
-            header_list.append(header)
+            header_list.append(head)
 
         hdulist.close()
-        if get_header:
+        if header:
             if verbose:
                 print(f"All fits HDU data and headers succesfully loaded.")
             return data_list, header_list
@@ -99,24 +119,19 @@ def open_fits(fitsfilename, n=0, get_header=False, ignore_missing_end=False,
         if return_memmap:
             return hdulist[n]
 
-        data, header = _return_data_fits(
-            hdulist=hdulist,
-            index=n,
-            precision=precision,
-            verbose=verbose,
-        )
+        data, head = _return_data_fits(hdulist=hdulist, index=n, 
+                                       precision=precision, verbose=verbose)
         hdulist.close()
-        if get_header:
-            return data, header
+        if header:
+            return data, head
         else:
             return data
 
 
-def _return_data_fits(
-    hdulist: HDUList,
-    index: int,
-    precision=np.float32,
-    verbose: bool = True,
+def _return_data_fits(hdulist: HDUList,
+                      index: int,
+                      precision=np.float32,
+                      verbose: bool = True,
 ):
     """
     Subfunction used to return data (and header) from a given index.
@@ -130,14 +145,14 @@ def _return_data_fits(
     """
     data = hdulist[index].data
     data = np.array(data, dtype=precision)
-    header = hdulist[index].header
+    head = hdulist[index].header
 
     if verbose:
         print(
             f"Fits HDU-{index} data successfully loaded, header available. "
             f"Data shape: {data.shape}"
         )
-    return data, header
+    return data, head
 
 
 def byteswap_array(array):

@@ -1093,7 +1093,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
 def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  fwhm=4, subi_size=None, upsample_factor=100,
                                  imlib='vip-fft', interpolation='lanczos4',
-                                 mask=None, border_mode='reflect',
+                                 mask=None, border_mode='reflect', log=False,
                                  full_output=False, verbose=True, nproc=None,
                                  save_shifts=False, debug=False, plot=True):
     """ Recenters a cube of frames using the DFT upsampling method as proposed 
@@ -1143,6 +1143,10 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         beyond the edge with zeros. With 'mirror', the input is extended by
         reflecting about the center of the last pixel. With 'wrap', the input is
         extended by wrapping around to the opposite edge. Default is 'reflect'.
+    log : bool
+        Whether to run the cross-correlation algorithm on images converted in 
+        log scale. This can be useful to leverage the whole extent of the PSF
+        and be less dominated by the brightest central pixels.
     full_output : bool, optional
         Whether to return 2 1d arrays of shifts along with the recentered cube
         or not.
@@ -1216,20 +1220,24 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
 
     cy, cx = frame_center(array[0])
 
-    # Finding the shifts with DFT upsampling of each frame wrt the first
+    # convert to log scale
+    if log:
+        array_rec -= (np.nanmin(array_rec)-1)
+        array_rec = np.log(array_rec)
 
+    # Finding the shifts with DFT upsampling of each frame wrt the first
     if nproc is None:
         nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
 
     if nproc == 1:
         for i in Progressbar(range(1, n_frames),
                              desc="frames", verbose=verbose):
-            y[i], x[i], array_rec[i] = _shift_dft(array_rec, array, i,
+            y[i], x[i], array_rec[i] = _shift_dft(array_rec, array_rec, i,
                                                   upsample_factor, mask,
                                                   interpolation, imlib,
                                                   border_mode)
     elif nproc > 1:
-        res = pool_map(nproc, _shift_dft, array_rec, array,
+        res = pool_map(nproc, _shift_dft, array_rec, array_rec,
                        iterable(range(1, n_frames)), upsample_factor, mask,
                        interpolation, imlib, border_mode)
         res = np.array(res, dtype=object)
@@ -1237,6 +1245,8 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         y[1:] = res[:, 0]
         x[1:] = res[:, 1]
         array_rec[1:] = [frames for frames in res[:, 2]]
+    else:
+        raise ValueError("nproc should be an int > 0.")
 
     if debug:
         print("\nShifts in X and Y")
@@ -1248,12 +1258,15 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     msg0 = "The rest of the frames will be shifted by cross-correlation wrt the" \
            " 1st"
     if subi_size is not None:
+        # before 2D gaussian fit, take non-log images
+        if log:
+            array_rec = cube_shift(array, shift_y=y, shift_x=x, imlib=imlib,
+                                   interpolation=interpolation, nproc=nproc)
         y1, x1 = _centroid_2dg_frame([np.mean(array_rec, axis=0)], 0, subi_size,
                                      cy_1, cx_1, negative, debug, fwhm)
         x[:] += cx - x1
         y[:] += cy - y1
-        array_rec = cube_shift(array, shift_y=y, shift_x=x, imlib=imlib,
-                               interpolation=interpolation, nproc=nproc)
+
         if verbose:
             msg = "Shift for first frame X,Y=({:.3f}, {:.3f})"
             print(msg.format(x[0], y[0]))
@@ -1263,13 +1276,14 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
             plot_frames((frame_crop(array[0], subi_size, verbose=False),
                         frame_crop(array_rec[0], subi_size, verbose=False)),
                         grid=True, title=titd)
-    else:
+    else:           
         if verbose:
             print("The first frame is assumed to be well centered wrt the"
                   "center of the array")
             print(msg0)
-        x[0] = 0
-        y[0] = 0
+            
+    array_rec = cube_shift(array, shift_y=y, shift_x=x, imlib=imlib,
+                           interpolation=interpolation, nproc=nproc)
 
     if verbose:
         timing(start_time)
@@ -1307,8 +1321,8 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
     """
     if version.parse(skimage.__version__) > version.parse('0.17.0'):
         shift_yx = cc_center(array_rec[0], array[frnum],
-                             upsample_factor=upsample_factor, reference_mask=mask,
-                             return_error=False)
+                             upsample_factor=upsample_factor, 
+                             reference_mask=mask, return_error=False)
     else:
         shift_yx = cc_center(array_rec[0], array[frnum],
                              upsample_factor=upsample_factor)

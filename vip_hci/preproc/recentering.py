@@ -1799,14 +1799,18 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     if ref_star:
         cube_ref_lpf = cube_ref_subframe.copy()
 
-    cube_sci_lpf = cube_sci_lpf + np.abs(np.min(cube_sci_lpf))
+    cube_sci_lpf = cube_sci_lpf -np.min(cube_sci_lpf)+1
     if ref_star:
-        cube_ref_lpf = cube_ref_lpf + np.abs(np.min(cube_ref_lpf))
+        cube_ref_lpf = cube_ref_lpf - np.min(cube_ref_lpf)+1
 
-    median_size = int(fwhm * max_spat_freq)
-    # Remove spatial frequencies <0.5 lam/D and >3lam/D to isolate speckles
-    cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
-                                        median_size=median_size, verbose=False)
+    if max_spat_freq>0:
+        median_size = int(fwhm * max_spat_freq)
+        # Remove spatial frequencies <0.5 lam/D and >3lam/D to isolate speckles
+        cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
+                                            median_size=median_size, 
+                                            verbose=False)
+    else:
+        cube_sci_hpf = cube_sci_lpf
     if min_spat_freq > 0:
         cube_sci_lpf = cube_filter_lowpass(cube_sci_hpf, 'gauss',
                                            fwhm_size=min_spat_freq * fwhm,
@@ -1815,9 +1819,12 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         cube_sci_lpf = cube_sci_hpf
 
     if ref_star:
-        cube_ref_hpf = cube_filter_highpass(cube_ref_lpf, 'median-subt',
-                                            median_size=median_size,
-                                            verbose=False)
+        if max_spat_freq>0:
+            cube_ref_hpf = cube_filter_highpass(cube_ref_lpf, 'median-subt',
+                                                median_size=median_size,
+                                                verbose=False)
+        else:
+            cube_ref_hpf = cube_ref_lpf
         if min_spat_freq > 0:
             cube_ref_lpf = cube_filter_lowpass(cube_ref_hpf, 'gauss',
                                                fwhm_size=min_spat_freq * fwhm,
@@ -1837,12 +1844,40 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     cum_y_shifts = 0
     cum_x_shifts = 0
 
-    for i in range(alignment_iter):
-        alignment_cube[0] = np.median(alignment_cube[1:(n + 1)], axis=0)
+    # no iteration => just align with respect to first frame => converges
+    if alignment_iter==1:
+        alignment_cube[0] = cube_sci_lpf[0]
+        # center the cube with stretched values
+        cube_stret = np.log10((np.abs(alignment_cube) + 1) ** gammaval)
+        if mask is not None and crop:
+            mask_tmp = frame_crop(mask, subframesize)
+        else:
+            mask_tmp = mask
+        res = cube_recenter_dft_upsampling(cube_stret, (ceny, cenx), fwhm=fwhm,
+                                           subi_size=None, full_output=True,
+                                           verbose=debug, plot=plot,
+                                           mask=mask_tmp, imlib=imlib,
+                                           interpolation=interpolation, 
+                                           nproc=nproc)
+        cube_stret, y_shift, x_shift = res
+        sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
+        print('Square sum of shift vecs: ' + str(sqsum_shifts))
+
+        for j in range(1, n_frames):
+            alignment_cube[j] = frame_shift(alignment_cube[j], y_shift[j],
+                                            x_shift[j], imlib=imlib,
+                                            interpolation=interpolation,
+                                            border_mode=border_mode)
+        cum_y_shifts += y_shift
+        cum_x_shifts += x_shift
+        
         if recenter_median:
+            alignment_cube[0] = np.median(alignment_cube[1:(n + 1)], axis=0)
             # Recenter the median frame using a 2d fit
-            if fit_type == 'gaus':
+            if fit_type == 'gaus' and negative:
                 crop_sz = int(fwhm)
+            elif fit_type == 'gaus':
+                crop_sz = int(3*fwhm)
             else:
                 crop_sz = int(6*fwhm)
             if not crop_sz % 2:
@@ -1867,44 +1902,78 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                                unc_in=2.)
             yshift = ceny - (y1 + y_i)
             xshift = cenx - (x1 + x_i)
-
-            alignment_cube[0] = frame_shift(alignment_cube[0, :, :], yshift,
-                                            xshift, imlib=imlib,
-                                            interpolation=interpolation,
-                                            border_mode=border_mode)
-
-        # center the cube with stretched values
-        cube_stret = np.log10((np.abs(alignment_cube) + 1) ** gammaval)
-        if mask is not None and crop:
-            mask_tmp = frame_crop(mask, subframesize)
-        else:
-            mask_tmp = mask
-        res = cube_recenter_dft_upsampling(cube_stret, (ceny, cenx), fwhm=fwhm,
-                                           subi_size=None, full_output=True,
-                                           verbose=False, plot=False,
-                                           mask=mask_tmp, imlib=imlib,
-                                           interpolation=interpolation, nproc=nproc)
-        _, y_shift, x_shift = res
-        sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
-        print('Square sum of shift vecs: ' + str(sqsum_shifts))
-
-        for j in range(1, n_frames):
-            alignment_cube[j] = frame_shift(alignment_cube[j], y_shift[j],
-                                            x_shift[j], imlib=imlib,
-                                            interpolation=interpolation,
-                                            border_mode=border_mode)
-
-        cum_y_shifts += y_shift
-        cum_x_shifts += x_shift
+            
+            cum_y_shifts += yshift
+            cum_x_shifts += xshift
+    else:
+        for i in range(alignment_iter):
+            alignment_cube[0] = np.median(alignment_cube[1:(n + 1)], axis=0)
+            if recenter_median:
+                # Recenter the median frame using a 2d fit
+                if fit_type == 'gaus':
+                    crop_sz = int(fwhm)
+                else:
+                    crop_sz = int(6*fwhm)
+                if not crop_sz % 2:
+                    # size should be odd and small, but at least 7 for 2D fit
+                    if crop_sz > 7:
+                        crop_sz -= 1
+                    else:
+                        crop_sz += 1
+                sub_image, y1, x1 = get_square(alignment_cube[0], size=crop_sz,
+                                               y=ceny, x=cenx, position=True)
+    
+                if fit_type == 'gaus':
+                    if negative:
+                        sub_image = -sub_image + np.abs(np.min(-sub_image))
+                    y_i, x_i = fit_2dgaussian(sub_image, crop=False,
+                                              threshold=False, sigfactor=1,
+                                              debug=debug, full_output=False)
+                elif fit_type == 'ann':
+                    y_i, x_i, rad = _fit_2dannulus(sub_image, fwhm=fwhm, crop=False,
+                                                   hole_rad=0.5, sampl_cen=0.1,
+                                                   sampl_rad=0.2, ann_width=0.5,
+                                                   unc_in=2.)
+                yshift = ceny - (y1 + y_i)
+                xshift = cenx - (x1 + x_i)
+    
+                alignment_cube[0] = frame_shift(alignment_cube[0, :, :], yshift,
+                                                xshift, imlib=imlib,
+                                                interpolation=interpolation,
+                                                border_mode=border_mode)
+    
+            # center the cube with stretched values
+            cube_stret = np.log10((np.abs(alignment_cube) + 1) ** gammaval)
+            if mask is not None and crop:
+                mask_tmp = frame_crop(mask, subframesize)
+            else:
+                mask_tmp = mask
+            res = cube_recenter_dft_upsampling(cube_stret, (ceny, cenx), 
+                                               fwhm=fwhm, subi_size=None, 
+                                               full_output=True,
+                                               verbose=False, plot=False,
+                                               mask=mask_tmp, imlib=imlib,
+                                               interpolation=interpolation, 
+                                               nproc=nproc)
+            _, y_shift, x_shift = res
+            sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
+            print('Square sum of shift vecs: ' + str(sqsum_shifts))
+    
+            for j in range(1, n_frames):
+                alignment_cube[j] = frame_shift(alignment_cube[j], y_shift[j],
+                                                x_shift[j], imlib=imlib,
+                                                interpolation=interpolation,
+                                                border_mode=border_mode)
+    
+            cum_y_shifts += y_shift
+            cum_x_shifts += x_shift
 
     cube_reg_sci = cube_sci.copy()
     cum_y_shifts_sci = cum_y_shifts[1:(n + 1)]
     cum_x_shifts_sci = cum_x_shifts[1:(n + 1)]
-    for i in range(n):
-        cube_reg_sci[i] = frame_shift(cube_sci[i], cum_y_shifts_sci[i],
-                                      cum_x_shifts_sci[i], imlib=imlib,
-                                      interpolation=interpolation,
-                                      border_mode=border_mode)
+    cube_reg_sci = cube_shift(cube_sci, cum_y_shifts_sci, cum_x_shifts_sci, 
+                              imlib=imlib, interpolation=interpolation,
+                              border_mode=border_mode)
 
     if plot:
         plt.figure(figsize=vip_figsize)
@@ -1928,11 +1997,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         cube_reg_ref = cube_ref.copy()
         cum_y_shifts_ref = cum_y_shifts[(n + 1):]
         cum_x_shifts_ref = cum_x_shifts[(n + 1):]
-        for i in range(nref):
-            cube_reg_ref[i] = frame_shift(cube_ref[i], cum_y_shifts_ref[i],
-                                          cum_x_shifts_ref[i], imlib=imlib,
-                                          interpolation=interpolation,
-                                          border_mode=border_mode)
+        cube_reg_ref = cube_shift(cube_ref, cum_y_shifts_ref, cum_x_shifts_ref, 
+                                  imlib=imlib, interpolation=interpolation,
+                                  border_mode=border_mode)
 
     if ref_star:
         if full_output:

@@ -76,7 +76,7 @@ def frame_diff(*all_args: List, **all_kwargs: dict):
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
     fwhm : float, optional
-        Known size of the FHWM in pixels to be used. Default is 4.
+        Known size of the FWHM in pixels to be used. Default is 4.
     metric : str, optional
         Distance metric to be used ('cityblock', 'cosine', 'euclidean', 'l1',
         'l2', 'manhattan', 'correlation', etc). It uses the scikit-learn

@@ -137,7 +137,7 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
     ncomp: int or None
         The number of principal components for PCA-based algorithms.
     fwhm : float
-        The FHWM in pixels.
+        The FWHM in pixels.
     aperture_radius: float
         The radius of the circular aperture in terms of the FWHM.
     initial_state: numpy.array
@@ -335,7 +335,7 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
         the first dimension(s) must match those of the input cube.
     fwhm : float
-        The FHWM in pixels.
+        The FWHM in pixels.
     annulus_width: float
         The width in pixel of the annulus on wich the PCA is performed.
     ncomp: int or None
@@ -525,7 +525,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     aperture_radius: float, optional
         The radius in FWHM of the circular aperture.
     fwhm : float
-        The FHWM in pixels.
+        The FWHM in pixels.
     mu_sigma: tuple of 2 floats or bool, opt
         If set to None: not used, and falls back to original version of the
         algorithm, using ``fmerit`` [WER17]_.

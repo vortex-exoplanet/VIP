@@ -54,7 +54,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
         the first dimension(s) must match those of the input cube.
     fwhm : float
-        The FHWM in pixels.
+        The FWHM in pixels.
     annulus_width: int, optional
         The width in pixels of the annulus on which the PCA is done.
     aperture_radius: int, optional
@@ -323,7 +323,7 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
     ncomp: int or None
         The number of principal components.
     fwhm : float
-        The FHWM in pixels.
+        The FWHM in pixels.
     annulus_width: int, optional
         The width in pixels of the annulus on which the PCA is done.
     aperture_radius: int, optional
@@ -479,7 +479,7 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
     plsc: float, optional
         The platescale, in arcsec per pixel.
     fwhm : float, optional
-        The FHWM in pixels.
+        The FWHM in pixels.
     annulus_width: int, optional
         The width in pixels of the annulus on which the PCA is done.
     aperture_radius: int, optional

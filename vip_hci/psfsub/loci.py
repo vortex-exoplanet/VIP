@@ -103,7 +103,7 @@ def xloci(*all_args: List, **all_kwargs: dict):
         cube (more thorough approaches can be used to get the scaling factors,
         e.g. with ``vip_hci.preproc.find_scal_vector``).
     fwhm : float, optional
-        Size of the FHWM in pixels. Default is 4.
+        Size of the FWHM in pixels. Default is 4.
     metric : Enum, see `vip_hci.config.paramenum.Metric`
         Distance metric to be used ('cityblock', 'cosine', 'euclidean', 'l1',
         'l2', 'manhattan', 'correlation', etc). It uses the scikit-learn
@@ -114,7 +114,7 @@ def xloci(*all_args: List, **all_kwargs: dict):
         initially discarded. 100 by default.
     delta_rot : float or tuple of floats, optional
         Factor for adjusting the parallactic angle threshold, expressed in
-        FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
+        FWHM. Default is 1 (excludes 1 FWHM on each side of the considered
         frame). If a tuple of two floats is provided, they are used as the lower
         and upper intervals for the threshold (grows linearly as a function of
         the separation).

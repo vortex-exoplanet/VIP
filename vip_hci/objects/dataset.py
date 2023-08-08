@@ -601,7 +601,7 @@ class Dataset(Saveable):
         self.fwhm = fwhm
         if self.fwhm is not None:
             if self.cube.ndim == 4:
-                check_array(self.fwhm, dim=1, msg="FHWM")
+                check_array(self.fwhm, dim=1, msg="FWHM")
             elif self.cube.ndim == 3:
                 print("FWHM: {}".format(self.fwhm))
         self.px_scale = px_scale

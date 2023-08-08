@@ -109,9 +109,9 @@ def nmf(*all_args: List, **all_kwargs: dict):
         given (X,Y) coordinates are computed.
     delta_rot : float, optional
         Factor for tunning the parallactic angle threshold, expressed in FWHM.
-        Default is 1 (excludes 1xFHWM on each side of the considered frame).
+        Default is 1 (excludes 1xFWHM on each side of the considered frame).
     fwhm : float, optional
-        Known size of the FHWM in pixels to be used. Default value is 4.
+        Known size of the FWHM in pixels to be used. Default value is 4.
     init_svd: Enum, see `vip_hci.config.paramenum.Initsvd`
         Method used to initialize the iterative procedure to find H and W.
         'nndsvd': non-negative double SVD recommended for sparseness

@@ -119,7 +119,7 @@ def median_sub(*all_args: List, **all_kwargs: dict):
         provided, the algorithm will still work, but with a lower efficiency
         at subtracting the stellar halo.
     fwhm : float or 1d numpy array
-        Known size of the FHWM in pixels to be used. Default is 4.
+        Known size of the FWHM in pixels to be used. Default is 4.
     radius_int : int, optional
         The radius of the innermost annulus. By default is 0, if >0 then the
         central circular area is discarded.
@@ -127,7 +127,7 @@ def median_sub(*all_args: List, **all_kwargs: dict):
         The size of the annuli, in pixels.
     delta_rot : int, optional
         Factor for increasing the parallactic angle threshold, expressed in
-        FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
+        FWHM. Default is 1 (excludes 1 FWHM on each side of the considered
         frame).
     delta_sep : float or tuple of floats, optional
         The threshold separation in terms of the mean FWHM (for ADI+mSDI data).

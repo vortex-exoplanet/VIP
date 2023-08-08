@@ -222,9 +222,9 @@ def pca(*all_args: List, **all_kwargs: dict):
         given (X,Y) coordinates are computed.
     delta_rot : int, optional
         Factor for tuning the parallactic angle threshold, expressed in FWHM.
-        Default is 1 (excludes 1xFHWM on each side of the considered frame).
+        Default is 1 (excludes 1xFWHM on each side of the considered frame).
     fwhm : float, list or 1d numpy array, optional
-        Known size of the FHWM in pixels to be used. Default value is 4.
+        Known size of the FWHM in pixels to be used. Default value is 4.
         Can be a list or 1d numpy array for a 4d input cube with no scale_list.
     adimsdi : Enum, see `vip_hci.config.paramenum.Adimsdi`
         Changes the way the 4d cubes (ADI+mSDI) are processed. Basically it

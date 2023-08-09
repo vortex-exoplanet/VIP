@@ -99,6 +99,7 @@ class PCA_Params:
     verbose: bool = True
     weights: np.ndarray = None
     left_eigv: bool = False
+    min_frames_pca: int = 10
     cube_sig: np.ndarray = None
 
 
@@ -277,6 +278,9 @@ def pca(*all_args: List, **all_kwargs: dict):
     left_eigv : bool, optional
         Whether to use rather left or right singularvectors
         This mode is not compatible with 'mask_rdi' and 'batch'
+    min_frames_pca : int, optional
+        Minimum number of frames required in the PCA library. An error is raised
+        if less than such number of frames can be found.
     cube_sig: numpy ndarray, opt
         Cube with estimate of significant authentic signals. If provided, this
         will subtracted before projecting cube onto reference cube.
@@ -716,6 +720,7 @@ def _adi_pca(
     weights=None,
     cube_sig=None,
     left_eigv=False,
+    min_frames_pca=10,
     **rot_options,
 ):
     """Handle the ADI PCA post-processing."""
@@ -837,6 +842,7 @@ def _adi_pca(
                         frame,
                         cube_sig=cube_sig,
                         left_eigv=left_eigv,
+                        min_frames_pca=min_frames_pca,
                     )
                     if full_output:
                         nfrslib.append(res_result[0])
@@ -937,6 +943,7 @@ def _adimsdi_singlepca(
     full_output,
     weights=None,
     left_eigv=False,
+    min_frames_pca=10,
     **rot_options,
 ):
     """Handle the full-frame ADI+mSDI single PCA post-processing."""
@@ -1006,6 +1013,7 @@ def _adimsdi_singlepca(
                 verbose,
                 False,
                 left_eigv=left_eigv,
+                min_frames_pca=min_frames_pca,
             )
 
         if verbose:
@@ -1412,6 +1420,7 @@ def _project_subtract(
     frame=None,
     cube_sig=None,
     left_eigv=False,
+    min_frames_pca=10,
 ):
     """
     PCA projection and model PSF subtraction.
@@ -1503,11 +1512,10 @@ def _project_subtract(
         # a rotation threshold is used (frames are processed one by one)
         if indices is not None and frame is not None:
             ref_lib = ref_lib[indices]
-            if ref_lib.shape[0] <= 10:
-                raise RuntimeError(
-                    "Less than 10 frames left in the PCA library"
-                    ", Try decreasing the parameter delta_rot"
-                )
+            if ref_lib.shape[0] < min_frames_pca:
+                msg = "Less than {} frames left in the ".format(min_frames_pca)
+                msg += "PCA library, Try decreasing the parameter delta_rot"
+                raise RuntimeError(msg)
             curr_frame = matrix[frame]  # current frame
             curr_frame_emp = matrix_emp[frame]
             if left_eigv:

@@ -42,8 +42,7 @@ class PPNMF(PostProc, NMF_ANNULAR_Params, NMF_Params):
 
     delta_rot: Union[int, float, Tuple[float]] = DELTA_ANN_DEFAULT
     full_output: bool = True
-    _algo_name: List[str] = field(
-        default_factory=lambda: ["nmf", "nmf_annular"])
+    _algo_name: List[str] = field(default_factory=lambda: ["nmf", "nmf_annular"])
     nmf_reshaped: np.ndarray = None
     cube_residuals: np.ndarray = None
     cube_residuals_der: np.ndarray = None

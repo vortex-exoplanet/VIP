@@ -41,7 +41,20 @@ coverage:
 	coverage report -m
 
 test:
+	pre-commit clean
+	pre-commit install --hook-type pre-merge-commit
+	pre-commit install --hook-type pre-push
+	pre-commit install --hook-type post-rewrite
+	pre-commit install-hooks
+	pre-commit install
+	pre-commit run --files vip_hci/objects/*.py
 	pytest --cov=vip_hci/ --cov-report=xml
+	rm confi_hist.pdf
+	rm confi_hist_gaussfit.pdf
+	rm confidence.txt
+	rm corner_plot.pdf
+	rm walk_plot.pdf
+	rm -rf results/
 
 pep8-format:
 	autopep8 --in-place --aggressive vip_hci/*.py

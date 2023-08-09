@@ -13,8 +13,14 @@ from dataclass_builder import dataclass_builder
 
 from .dataset import Dataset
 from .postproc import PostProc
-from ..psfsub import (pca, pca_annular, pca_grid, pca_annulus, PCA_Params,
-                      PCA_ANNULAR_Params)
+from ..psfsub import (
+    pca,
+    pca_annular,
+    pca_grid,
+    pca_annulus,
+    PCA_Params,
+    PCA_ANNULAR_Params,
+)
 from ..config.paramenum import Adimsdi, ReturnList, Runmode
 from ..config.utils_conf import algo_calculates_decorator as calculates
 from ..config.utils_param import setup_parameters
@@ -175,7 +181,7 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
             raise ValueError("`fwhm` has not been set")
         self._explicit_dataset()
         self.full_output = full_output
-        match(runmode):
+        match (runmode):
             case Runmode.CLASSIC:
                 # TODO : review the wavelengths attribute to be a scale_list instead
 
@@ -334,7 +340,7 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
                 pca_mode = mode
                 break
 
-        match(pca_mode):
+        match (pca_mode):
             case ReturnList.ADIMSDI_DOUBLE:
                 self.frame_final, self.cube_residuals, self.cube_residuals_der = res
             case ReturnList.ADIMSDI_SINGLE_NO_GRID:

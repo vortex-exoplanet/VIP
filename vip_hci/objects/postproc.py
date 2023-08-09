@@ -229,8 +229,7 @@ class PPResult:
         filepath: str
             The path of the FITS file.
         """
-        data, header = open_fits(fitsfilename=filepath,
-                                 n=session_id, get_header=True)
+        data, header = open_fits(fitsfilename=filepath, n=session_id, get_header=True)
         self.sessions = []
         if session_id == ALL_FITS:
             for index, element in enumerate(data):
@@ -408,8 +407,7 @@ class PostProc(BaseEstimator):
         radius = np.sqrt(
             (center_y - source_xy[1]) ** 2 + (center_x - source_xy[0]) ** 2
         )
-        self.signf = significance(
-            snr_sig, radius, self.fwhm, student_to_gauss=True)
+        self.signf = significance(snr_sig, radius, self.fwhm, student_to_gauss=True)
         print(r"{:.1f} sigma detection".format(self.signf))
 
     def _update_dataset(self, dataset: Optional[Dataset] = None) -> None:
@@ -635,8 +633,7 @@ class PostProc(BaseEstimator):
         self.detection_map = self.snr_map
 
         if self.results is not None:
-            self.results.register_session(
-                frame=self.frame_final, snr_map=self.snr_map)
+            self.results.register_session(frame=self.frame_final, snr_map=self.snr_map)
 
     def save(self, filename: str) -> None:
         """

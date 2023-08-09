@@ -1681,7 +1681,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                fit_type='gaus', negative=True, crop=True,
                                subframesize=21, mask=None, imlib='vip-fft',
                                interpolation='lanczos4', border_mode='reflect',
-                               plot=True, full_output=False, nproc=None):
+                               log=True, plot=True, full_output=False, 
+                               nproc=None):
     """ Registers frames based on the median speckle pattern. Optionally centers
     based on the position of the vortex null in the median frame. Images are
     filtered to isolate speckle spatial frequencies.
@@ -1735,6 +1736,10 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         beyond the edge with zeros. With 'mirror', the input is extended by
         reflecting about the center of the last pixel. With 'wrap', the input is
         extended by wrapping around to the opposite edge. Default is 'reflect'.
+    log : bool
+        Whether to run the cross-correlation algorithm on images converted in 
+        log scale. This can be useful to leverage the whole extent of the PSF
+        and be less dominated by the brightest central pixels.
     plot : bool, optional
         If True, the shifts are plotted.
     full_output: bool, optional
@@ -1799,9 +1804,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     if ref_star:
         cube_ref_lpf = cube_ref_subframe.copy()
 
-    cube_sci_lpf = cube_sci_lpf -np.min(cube_sci_lpf)+1
+    cube_sci_lpf = cube_sci_lpf - np.min(cube_sci_lpf)
     if ref_star:
-        cube_ref_lpf = cube_ref_lpf - np.min(cube_ref_lpf)+1
+        cube_ref_lpf = cube_ref_lpf - np.min(cube_ref_lpf)
 
     if max_spat_freq>0:
         median_size = int(fwhm * max_spat_freq)
@@ -1848,7 +1853,10 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     if alignment_iter==1:
         alignment_cube[0] = cube_sci_lpf[0]
         # center the cube with stretched values
-        cube_stret = np.log10((np.abs(alignment_cube) + 1) ** gammaval)
+        if log:
+            cube_stret = np.log10((alignment_cube-np.min(alignment_cube)+1)**gammaval)
+        else:
+            cube_stret = alignment_cube.copy()
         if mask is not None and crop:
             mask_tmp = frame_crop(mask, subframesize)
         else:
@@ -1943,6 +1951,10 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                                 border_mode=border_mode)
     
             # center the cube with stretched values
+            if log:
+                cube_stret = np.log10((alignment_cube-np.min(alignment_cube)+1)**gammaval)
+            else:
+                cube_stret = alignment_cube.copy()
             cube_stret = np.log10((np.abs(alignment_cube) + 1) ** gammaval)
             if mask is not None and crop:
                 mask_tmp = frame_crop(mask, subframesize)

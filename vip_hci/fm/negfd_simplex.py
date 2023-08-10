@@ -1,36 +1,54 @@
 #! /usr/bin/env python
-
 """
 Module with simplex (Nelder-Mead) optimization for defining the flux and
 position of a companion using the Negative Fake Companion.
 
 """
-
-
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.optimize import minimize
-from .negfd_fmerit import chisquare_fd
-from ..psfsub import pca
-from ..var import frame_center
-from ..config import time_ini, timing
+
+from ..config import time_ini
+from ..config import timing
 from ..config.utils_conf import sep
+from ..psfsub import pca
+from .negfd_fmerit import chisquare_fd
 
 
-__author__ = 'V. Christiaens, O. Wertz, C. A. Gomez Gonzalez'
-__all__ = ['firstguess_fd',
-           'firstguess_fd_from_coord']
+__author__ = "V. Christiaens, O. Wertz, C. A. Gomez Gonzalez"
+__all__ = ["firstguess_fd", "firstguess_fd_from_coord"]
 
 
-def firstguess_fd_from_coord(disk_xy, disk_theta, center, cube, angs, disk_img,
-                             mask_fm, fmerit='sum', mu_sigma=None, f_range=None,
-                             psfn=None, algo=pca, algo_options={},
-                             imlib='skimage', interpolation='biquintic',
-                             transmission=None, weights=None, plot=False,
-                             verbose=True, save=False, debug=False,
-                             full_output=False, **rot_options):
-    """ Determine a first guess for the flux scaling of the disk image for a
-    given xy shift and rotation, by doing a simple grid search evaluating the reduced chi2.
+def firstguess_fd_from_coord(
+    disk_xy,
+    disk_theta,
+    disk_scal,
+    cube,
+    angs,
+    disk_img,
+    mask_fm,
+    fmerit="sum",
+    mu_sigma=None,
+    f_range=None,
+    psfn=None,
+    algo=pca,
+    algo_options={},
+    imlib="skimage",
+    interpolation="biquintic",
+    transmission=None,
+    weights=None,
+    plot=False,
+    verbose=True,
+    save=False,
+    debug=False,
+    full_output=False,
+    rot_options={},
+):
+    """
+
+    Determine a first guess for the flux scaling of the disk image for a given \
+    xy shift and rotation, by doing a simple grid search evaluating the reduced\
+    chi2.
 
     Parameters
     ----------
@@ -39,8 +57,9 @@ def firstguess_fd_from_coord(disk_xy, disk_theta, center, cube, angs, disk_img,
     disk_theta: float
         The rotation angle to be applied to the disk image (after shift) in the
         processed image.
-    center: numpy.array
-        The (x,y) position of the cube center.
+    disk_scal: float
+        The spatial scaling factor to apply on the disk image (after shift and
+        rotation) in the processed image.
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
     angs: numpy.array
@@ -77,17 +96,17 @@ def firstguess_fd_from_coord(disk_xy, disk_theta, center, cube, angs, disk_img,
     algo_options: dict, opt
         Dictionary with additional parameters for the algorithm (e.g. ncomp,
         fwhm, asize, delta_rot, tol, min_frames_lib, max_frames_lib, cube_ref,
-        svd_mode=, scaling, imlib, interpolation, collapse, if relevant). 
+        svd_mode=, scaling, imlib, interpolation, collapse, if relevant).
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-        By default, imlib is set to 'skimage' for NEGFC as it is faster than 
-        'vip-fft'. If opencv is installed, it is recommended to set imlib to 
-        'opencv' and interpolation to 'lanczos4'. Takes precedence over value 
+        By default, imlib is set to 'skimage' for NEGFC as it is faster than
+        'vip-fft'. If opencv is installed, it is recommended to set imlib to
+        'opencv' and interpolation to 'lanczos4'. Takes precedence over value
         provided in algo_options.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-        If opencv is installed, it is recommended to set imlib to 'opencv' and 
-        interpolation to 'lanczos4'. Takes precedence over value provided in 
+        If opencv is installed, it is recommended to set imlib to 'opencv' and
+        interpolation to 'lanczos4'. Takes precedence over value provided in
         algo_options.
     transmission: numpy array, optional
         Array with 2 columns. First column is the radial separation in pixels.
@@ -119,49 +138,84 @@ def firstguess_fd_from_coord(disk_xy, disk_theta, center, cube, angs, disk_img,
         [full_output=True] The chi2r values corresponding to tested flux values.
     """
 
-    def _grid_search_f(x0, y0, theta0, ch, cube, angs, disk_img, mask_fm,
-                       fmerit='sum', mu_sigma=None,
-                       f_range=np.geomspace(1e-1, 1e4, 30), psfn=None, algo=pca,
-                       algo_options={}, imlib='skimage',
-                       interpolation='biquintic', transmission=None,
-                       weights=None, verbose=True, debug=False, **rot_options):
-
+    def _grid_search_f(
+        x0,
+        y0,
+        theta0,
+        scal0,
+        ch,
+        cube,
+        angs,
+        disk_img,
+        mask_fm,
+        fmerit="sum",
+        mu_sigma=None,
+        f_range=np.geomspace(1e-1, 1e4, 30),
+        psfn=None,
+        algo=pca,
+        algo_options={},
+        imlib="skimage",
+        interpolation="biquintic",
+        transmission=None,
+        weights=None,
+        verbose=True,
+        debug=False,
+        rot_options=rot_options,
+    ):
         chi2r = []
         if verbose:
-            print('Step | flux    | chi2r')
+            print("Step | flux    | chi2r")
 
         counter = 0
         for j, f_guess in enumerate(f_range):
             if cube.ndim == 3:
-                params = (x0, y0, theta0, f_guess)
+                params = (f_guess,)
             elif ch is not None and cube.ndim == 4:
-                params = [x0, y0, theta0]
-                fluxes = [0]*cube.shape[0]
+                fluxes = [0] * cube.shape[0]
                 fluxes[ch] = f_guess
-                params = tuple(params+fluxes)
+                params = tuple(fluxes)
             else:
                 raise TypeError("If cube is 4d, channel index must be provided")
-            chi2r.append(chisquare_fd(params, cube, angs, disk_img, mask_fm,
-                                      (x0, y0, theta0), True, fmerit, mu_sigma,
-                                      psfn, algo, algo_options, imlib,
-                                      interpolation, transmission, weights,
-                                      debug, **rot_options))
-            if chi2r[j] > chi2r[j-1]:
+            inistate = (x0, y0, theta0, scal0)
+            force_params = (1, 1, 1, 1, 0)
+            chi2r.append(
+                chisquare_fd(
+                    params,
+                    cube,
+                    angs,
+                    disk_img,
+                    mask_fm,
+                    inistate,
+                    force_params,
+                    fmerit,
+                    mu_sigma,
+                    psfn,
+                    algo,
+                    algo_options,
+                    imlib,
+                    interpolation,
+                    transmission,
+                    weights,
+                    debug,
+                    rot_options,
+                )
+            )
+            if chi2r[j] > chi2r[j - 1]:
                 counter += 1
             if counter == 4:
                 break
             if verbose:
-                print('{}/{}   {:.3f}   {:.3f}'.format(j +
-                      1, n, f_guess, chi2r[j]))
+                print("{}/{}   {:.3f}   {:.3f}".format(j + 1, n, f_guess, chi2r[j]))
 
         return chi2r
 
-    if len(disk_xy) != 2 or len(center) != 2:
-        msg = "'disk_xy' and 'center' should have 2 elements"
+    if len(disk_xy) != 2:
+        msg = "'disk_xy' should have 2 elements"
         raise ValueError(msg)
 
-    x0, y0 = disk_xy-center
+    x0, y0 = disk_xy
     theta0 = disk_theta
+    scal0 = disk_scal
 
     if f_range is not None:
         n = f_range.shape[0]
@@ -170,59 +224,99 @@ def firstguess_fd_from_coord(disk_xy, disk_theta, center, cube, angs, disk_img,
         f_range = np.geomspace(1e-1, 1e4, n)
 
     if cube.ndim == 3:
-        chi2r = _grid_search_f(x0, y0, theta0, None, cube, angs, disk_img,
-                               mask_fm, fmerit=fmerit, mu_sigma=mu_sigma,
-                               f_range=f_range, psfn=psfn, algo=algo,
-                               algo_options=algo_options, imlib=imlib,
-                               interpolation=interpolation,
-                               transmission=transmission, weights=weights,
-                               verbose=verbose, debug=debug, **rot_options)
+        chi2r = _grid_search_f(
+            x0,
+            y0,
+            theta0,
+            scal0,
+            None,
+            cube,
+            angs,
+            disk_img,
+            mask_fm,
+            fmerit=fmerit,
+            mu_sigma=mu_sigma,
+            f_range=f_range,
+            psfn=psfn,
+            algo=algo,
+            algo_options=algo_options,
+            imlib=imlib,
+            interpolation=interpolation,
+            transmission=transmission,
+            weights=weights,
+            verbose=verbose,
+            debug=debug,
+            rot_options=rot_options,
+        )
         chi2r = np.array(chi2r)
         f0 = f_range[chi2r.argmin()]
 
         if plot:
             plt.figure(figsize=(8, 4))
-            plt.title('$\\chi^2_{r}$ vs flux')
-            plt.xlim(f_range[0], f_range[:chi2r.shape[0]].max())
-            plt.ylim(chi2r.min()*0.9, chi2r.max()*1.1)
-            plt.plot(f_range[:chi2r.shape[0]], chi2r, linestyle='-', color='gray',
-                     marker='.', markerfacecolor='r', markeredgecolor='r')
-            plt.xlabel('flux')
-            plt.ylabel(r'$\chi^2_r$')
-            plt.grid('on')
+            plt.title("$\\chi^2_{r}$ vs flux")
+            plt.xlim(f_range[0], f_range[: chi2r.shape[0]].max())
+            plt.ylim(chi2r.min() * 0.95, chi2r.max() * 1.05)
+            plt.plot(
+                f_range[: chi2r.shape[0]],
+                chi2r,
+                linestyle="-",
+                color="gray",
+                marker=".",
+                markerfacecolor="r",
+                markeredgecolor="r",
+            )
+            plt.xlabel("flux")
+            plt.ylabel(r"$\chi^2_r$")
+            plt.grid("on")
         if save and plot:
-            plt.savefig('chi2rVSflux.pdf')
+            plt.savefig("chi2rVSflux.pdf")
         if plot:
             plt.show()
 
-        res = (x0, y0, theta0, f0)
+        res = (x0, y0, theta0, scal0, f0)
 
     else:
         f0 = []
         chi2r = []
         if plot:
             plt.figure(figsize=(8, 4))
-            plt.title('$\\chi^2_{r}$ vs flux')
-            plt.xlabel('flux')
-            plt.ylabel(r'$\chi^2_{r}$')
-            plt.grid('on')
+            plt.title("$\\chi^2_{r}$ vs flux")
+            plt.xlabel("flux")
+            plt.ylabel(r"$\chi^2_{r}$")
+            plt.grid("on")
 
         for i in range(cube.shape[0]):
             if verbose:
-                print('Processing spectral channel {}...'.format(i))
-            chi2r_tmp = _grid_search_f(x0, y0, theta0, i, cube, angs, disk_img,
-                                       mask_fm, fmerit=fmerit, mu_sigma=mu_sigma,
-                                       f_range=f_range, psfn=psfn, algo=algo,
-                                       algo_options=algo_options, imlib=imlib,
-                                       interpolation=interpolation,
-                                       transmission=transmission,
-                                       weights=weights, verbose=verbose,
-                                       debug=debug, **rot_options)
+                print("Processing spectral channel {}...".format(i))
+            chi2r_tmp = _grid_search_f(
+                x0,
+                y0,
+                theta0,
+                scal0,
+                i,
+                cube,
+                angs,
+                disk_img,
+                mask_fm,
+                fmerit=fmerit,
+                mu_sigma=mu_sigma,
+                f_range=f_range,
+                psfn=psfn,
+                algo=algo,
+                algo_options=algo_options,
+                imlib=imlib,
+                interpolation=interpolation,
+                transmission=transmission,
+                weights=weights,
+                verbose=verbose,
+                debug=debug,
+                **rot_options
+            )
             chi2r.append(chi2r_tmp)
             chi2r_tmp = np.array(chi2r_tmp)
             f0.append(f_range[chi2r_tmp.argmin()])
             if verbose:
-                msg = r'... optimal grid flux: {:.3f} ($\chi^2_r$ = {:.1f})'
+                msg = r"... optimal grid flux: {:.3f} ($\chi^2_r$ = {:.1f})"
                 print(msg.format(f0[i], np.amin(chi2r_tmp)))
 
             if i == 0:
@@ -238,20 +332,26 @@ def firstguess_fd_from_coord(disk_xy, disk_theta, center, cube, angs, disk_img,
                     fmax = f0[i]
 
             if plot:
-                plt.plot(f_range[:chi2r_tmp.shape[0]], chi2r_tmp, linestyle='-',
-                         marker='.', markerfacecolor='r', markeredgecolor='r',
-                         label='ch. {}'.format(i))
+                plt.plot(
+                    f_range[: chi2r_tmp.shape[0]],
+                    chi2r_tmp,
+                    linestyle="-",
+                    marker=".",
+                    markerfacecolor="r",
+                    markeredgecolor="r",
+                    label="ch. {}".format(i),
+                )
 
         if plot:
-            plt.xlim(f_range[0], f_range[:chi2r_tmp.shape[0]].max())
-            plt.ylim(min_chi2r*0.9, max_chi2r*1.1)
+            plt.xlim(f_range[0], f_range[: chi2r_tmp.shape[0]].max())
+            plt.ylim(min_chi2r * 0.9, max_chi2r * 1.1)
             plt.legend()
         if save and plot:
-            plt.savefig('chi2rVSflux.pdf')
+            plt.savefig("chi2rVSflux.pdf")
         if plot:
             plt.show()
 
-        res = tuple([x0, y0, theta0]+f0)
+        res = tuple([x0, y0, theta0, scal0] + f0)
 
     if full_output:
         return res, f_range, chi2r
@@ -259,19 +359,34 @@ def firstguess_fd_from_coord(disk_xy, disk_theta, center, cube, angs, disk_img,
         return res
 
 
-def firstguess_fd_simplex(p, cube, angs, disk_img, mask_fm, fmerit='sum',
-                          mu_sigma=None, force_pos=False, options=None,
-                          psfn=None, algo=pca, algo_options={}, imlib='skimage',
-                          interpolation='biquintic', transmission=None,
-                          weights=None, plot=False, verbose=False,
-                          **rot_options):
+def firstguess_fd_simplex(
+    p,
+    cube,
+    angs,
+    disk_img,
+    mask_fm,
+    fmerit="sum",
+    mu_sigma=None,
+    force_params=None,
+    options=None,
+    psfn=None,
+    algo=pca,
+    algo_options={},
+    imlib="skimage",
+    interpolation="biquintic",
+    transmission=None,
+    weights=None,
+    plot=False,
+    verbose=False,
+    rot_options={},
+):
     """
-    Determine the position of a companion using the negative fake companion
-    technique and a standard minimization algorithm (Default=Nelder-Mead) .
+
+    Determine the position of a companion using the negative fake companion \
+    technique and a standard minimization algorithm (Default=Nelder-Mead).
 
     Parameters
     ----------
-
     p : np.array
         Estimate of the x shift, y shift, rotation angle and flux scaling of the
         disk image.
@@ -298,8 +413,8 @@ def firstguess_fd_simplex(p, cube, angs, disk_img, mask_fm, fmerit='sum',
         containing the mean and standard deviation of pixel intensities in an
         annulus encompassing most of the disk signal, with the standard
         deviation then converted into a proxy for noise.
-    force_pos: bool, optional
-        Whether to only search for optimal flux, provided (x,y,theta).
+    force_params: None or list/tuple of bool, optional
+        If not None, list/tuple of bool corresponding to parameters to fix.
     options: dict, optional
         The scipy.optimize.minimize options.
     psfn: 2d or 3d numpy ndarray
@@ -313,17 +428,17 @@ def firstguess_fd_simplex(p, cube, angs, disk_img, mask_fm, fmerit='sum',
     algo_options: dict, opt
         Dictionary with additional parameters for the algorithm (e.g. ncomp,
         fwhm, asize, delta_rot, tol, min_frames_lib, max_frames_lib, cube_ref,
-        svd_mode=, scaling, imlib, interpolation, collapse, if relevant). 
+        svd_mode=, scaling, imlib, interpolation, collapse, if relevant).
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-        By default, imlib is set to 'skimage' for NEGFC as it is faster than 
-        'vip-fft'. If opencv is installed, it is recommended to set imlib to 
-        'opencv' and interpolation to 'lanczos4'. Takes precedence over value 
+        By default, imlib is set to 'skimage' for NEGFC as it is faster than
+        'vip-fft'. If opencv is installed, it is recommended to set imlib to
+        'opencv' and interpolation to 'lanczos4'. Takes precedence over value
         provided in algo_options.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-        If opencv is installed, it is recommended to set imlib to 'opencv' and 
-        interpolation to 'lanczos4'. Takes precedence over value provided in 
+        If opencv is installed, it is recommended to set imlib to 'opencv' and
+        interpolation to 'lanczos4'. Takes precedence over value provided in
         algo_options.
     transmission: numpy array, optional
         Array with 2 columns. First column is the radial separation in pixels.
@@ -333,7 +448,6 @@ def firstguess_fd_simplex(p, cube, angs, disk_img, mask_fm, fmerit='sum',
         If provided, the disk image flux factors will be scaled according
         to these weights before injection in the cube. Can reflect changes in
         the observing conditions throughout the sequence.
-
     verbose : boolean, optional
         If True, additional information is printed out.
     **kwargs: optional
@@ -346,48 +460,83 @@ def firstguess_fd_simplex(p, cube, angs, disk_img, mask_fm, fmerit='sum',
 
     """
     if verbose:
-        print('\nNelder-Mead minimization is running...')
+        print("\nNelder-Mead minimization is running...")
 
-    if force_pos:
-        p_t = p[3:]
-        p_ini = (p[0], p[1], p[2])
+    if force_params is not None:
+        p_t = []
+        p_ini = []
+        for i in range(len(p)):
+            if force_params[i]:
+                p_ini.apend(p[i])
+            else:
+                p_t.append(p[i])
+        p_t = tuple(p_t)
+        p_ini = tuple(p_ini)
     else:
         p_t = p
         p_ini = p
-    solu = minimize(chisquare_fd, p_t, args=(cube, angs, disk_img, mask_fm,
-                                             p_ini, force_pos, fmerit, mu_sigma,
-                                             psfn, algo, algo_options, imlib,
-                                             interpolation, transmission,
-                                             weights, False, rot_options),
-                    method='Nelder-Mead', options=options)
+    solu = minimize(
+        chisquare_fd,
+        p_t,
+        args=(
+            cube,
+            angs,
+            disk_img,
+            mask_fm,
+            p_ini,
+            force_params,
+            fmerit,
+            mu_sigma,
+            psfn,
+            algo,
+            algo_options,
+            imlib,
+            interpolation,
+            transmission,
+            weights,
+            False,
+            rot_options,
+        ),
+        method="Nelder-Mead",
+        options=options,
+    )
 
     if verbose:
         print(solu)
     return solu
 
 
-def firstguess_fd(cube, angs, disk_img, mask_fm, ini_xy=(0, 0), ini_theta=0,
-                  fmerit='sum', mu_sigma=None, f_range=None, psfn=None, algo=pca,
-                  algo_options={}, imlib='skimage', interpolation='biquintic',
-                  simplex=True, simplex_options=None, transmission=None,
-                  weights=None, force_pos=False, plot=False, verbose=True,
-                  save=False, full_output=False, **rot_options):
-    """ Determines a first guess for the shifts (x,y), rotation and flux scaling
-    of a disk model image.
+def firstguess_fd(
+    cube,
+    angs,
+    disk_img,
+    mask_fm,
+    ini_xy=(0, 0),
+    ini_theta=0,
+    ini_scal=1.0,
+    fmerit="sum",
+    mu_sigma=None,
+    f_range=None,
+    psfn=None,
+    algo=pca,
+    algo_options={},
+    imlib="skimage",
+    interpolation="biquintic",
+    simplex=True,
+    simplex_options=None,
+    transmission=None,
+    weights=None,
+    force_params=None,
+    plot=False,
+    verbose=True,
+    save=False,
+    full_output=False,
+    rot_options={},
+):
+    """
 
-    We process the cube without injecting any negative fake companion.
-    This leads to the visual detection of the planet(s). For each of them,
-    one can estimate the (x,y) coordinates in pixel for the position of the
-    star, as well as the planet(s).
-
-    From the (x,y) coordinates in pixels for the star and planet(s), we can
-    estimate a preliminary guess for the position and flux for each planet
-    by using the method "firstguess_from_coord". The argument "f_range" allows
-    to indicate prior limits for the flux (optional, default: None).
-    This step can be reiterate to refine the preliminary guess for the flux.
-
-    We can go a step further by using a Simplex Nelder_Mead minimization to
-    estimate the first guess based on the preliminary guess.
+    Determine a first guess for the shifts (x,y), rotation, spatial scaling and\
+    flux scaling of a disk model image.
 
     Parameters
     ----------
@@ -407,7 +556,10 @@ def firstguess_fd(cube, angs, disk_img, mask_fm, ini_xy=(0, 0), ini_theta=0,
         Initial estimate of the x,y shift to be applied to the disk model image.
     ini_theta: float
         Initial estimate of the rotation angle to be applied to the disk model
-        image.
+        image (after shift).
+    ini_scal: float
+        Initial estimate of the spatial scaling factor to be applied to the disk
+        model image (after shift and rotation).
     fmerit : {'sum', 'stddev'}, string optional
         Figure of merit to be used, if mu_sigma is set to None. 'sum' will find
         optimal parameters that minimize the absolute intensity residuals in
@@ -438,14 +590,14 @@ def firstguess_fd(cube, angs, disk_img, mask_fm, ini_xy=(0, 0), ini_theta=0,
         interpolation to 'lanczos4'.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-        By default, imlib is set to 'skimage' for NEGFC as it is faster than 
-        'vip-fft'. If opencv is installed, it is recommended to set imlib to 
-        'opencv' and interpolation to 'lanczos4'. Takes precedence over value 
+        By default, imlib is set to 'skimage' for NEGFC as it is faster than
+        'vip-fft'. If opencv is installed, it is recommended to set imlib to
+        'opencv' and interpolation to 'lanczos4'. Takes precedence over value
         provided in algo_options.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
-        If opencv is installed, it is recommended to set imlib to 'opencv' and 
-        interpolation to 'lanczos4'. Takes precedence over value provided in 
+        If opencv is installed, it is recommended to set imlib to 'opencv' and
+        interpolation to 'lanczos4'. Takes precedence over value provided in
         algo_options.
     simplex: bool, optional
         If True, the Nelder-Mead minimization is performed after the flux grid
@@ -459,10 +611,12 @@ def firstguess_fd(cube, angs, disk_img, mask_fm, ini_xy=(0, 0), ini_theta=0,
     weights : 1d array, optional
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in
-        the observing conditions throughout the sequence. Length should match 
+        the observing conditions throughout the sequence. Length should match
         the temporal axis of the cube.
-    force_pos: bool, optional
-        Whether to only search for optimal flux, provided (x,y,theta).
+    force_params: None or list/tuple of bool, optional
+        If not None, list/tuple of bool corresponding to parameters to fix. For
+        a 4D input cube, the length of the list/tuple should be 4+nch, where nch
+        is the number of spectral channels.
     plot: boolean, optional
         If True, the figure chi2 vs. flux is displayed.
     verbose: bool, optional
@@ -481,6 +635,8 @@ def firstguess_fd(cube, angs, disk_img, mask_fm, ini_xy=(0, 0), ini_theta=0,
     theta_0: float
         Optimal rotation angle (with respect to x axis) for the model disk
         image.
+    scal_0: float
+        Optimal spatial scaling factor for the model disk image.
     f_0: float
         Optimal flux scaling factor for the model disk image.
     chi2: float
@@ -488,10 +644,10 @@ def firstguess_fd(cube, angs, disk_img, mask_fm, ini_xy=(0, 0), ini_theta=0,
 
     Note
     ----
-    Polar angle is not the conventional NORTH-TO-EAST P.A., but the
+    Polar angle is not the conventional NORTH-TO-EAST P.A., but the \
     counter-clockwise angle measured from the positive x axis.
-    """
 
+    """
     if cube.ndim != 3 and cube.ndim != 4:
         raise TypeError("Input cube is not 3D nor 4D")
 
@@ -499,7 +655,6 @@ def firstguess_fd(cube, angs, disk_img, mask_fm, ini_xy=(0, 0), ini_theta=0,
         start_time = time_ini()
 
     ini_xy = np.array(ini_xy)
-    center_xy_coord = np.array(frame_center(cube[0]))
 
     if cube.ndim == 4:
         if psfn.ndim < 3:
@@ -512,76 +667,117 @@ def firstguess_fd(cube, angs, disk_img, mask_fm, ini_xy=(0, 0), ini_theta=0,
             raise TypeError(msg)
 
     if verbose:
-        print('\n'+sep)
-        msg2 = 'Flux estimation for xy shift [{},{}], and {}deg rotation '
-        msg2 += 'running ...'
-        print(msg2.format(ini_xy[0], ini_xy[1], ini_theta))
+        print("\n" + sep)
+        msg2 = "Flux estimation for xy shift [{},{}], {}deg rotation and "
+        msg2 += "{}x spatial scaling is running ..."
+        print(msg2.format(ini_xy[0], ini_xy[1], ini_theta, ini_scal))
 
     if isinstance(mu_sigma, tuple):
         if len(mu_sigma) != 2:
             raise TypeError("If a tuple, mu_sigma must have 2 elements")
 
-    res_init = firstguess_fd_from_coord(ini_xy, ini_theta, center_xy_coord, cube,
-                                        angs, disk_img, mask_fm, fmerit=fmerit,
-                                        mu_sigma=mu_sigma, f_range=f_range,
-                                        psfn=psfn, algo=algo,
-                                        algo_options=algo_options, imlib=imlib,
-                                        interpolation=interpolation,
-                                        transmission=transmission,
-                                        weights=weights, plot=plot,
-                                        verbose=verbose, save=save,
-                                        **rot_options)
+    res_init = firstguess_fd_from_coord(
+        ini_xy,
+        ini_theta,
+        ini_scal,
+        cube,
+        angs,
+        disk_img,
+        mask_fm,
+        fmerit=fmerit,
+        mu_sigma=mu_sigma,
+        f_range=f_range,
+        psfn=psfn,
+        algo=algo,
+        algo_options=algo_options,
+        imlib=imlib,
+        interpolation=interpolation,
+        transmission=transmission,
+        weights=weights,
+        plot=plot,
+        verbose=verbose,
+        save=save,
+        rot_options=rot_options,
+    )
 
     x_pre = res_init[0]
     y_pre = res_init[1]
     theta_pre = res_init[2]
-    f_pre = res_init[3:]
+    scal_pre = res_init[3]
+    f_pre = res_init[4:]
 
     if verbose:
-        msg3a = 'Preliminary shift & rotation guess: (x, y, theta)=({:.1f}, '
-        msg3a += '{:.1f}, {:.1f})'
-        print(msg3a.format(x_pre, y_pre, theta_pre))
-        msg3b = 'Preliminary flux guess: '
+        msg3a = "Preliminary shift, rotation and scaling guess: (x, y, theta, "
+        msg3a += "scal) = ({:.1f}, {:.1f}, {:.1f}, {:.1f})"
+        print(msg3a.format(x_pre, y_pre, theta_pre, scal_pre))
+        msg3b = "Preliminary flux guess: "
         for z in range(len(f_pre)):
-            msg3b += '{:.1f}'.format(f_pre[z])
-            if z < len(f_pre)-1:
-                msg3b += ', '
+            msg3b += "{:.1f}".format(f_pre[z])
+            if z < len(f_pre) - 1:
+                msg3b += ", "
         print(msg3b)
 
-    if simplex or force_pos:
+    if simplex:
         if verbose:
-            msg4 = 'Simplex Nelder-Mead minimization, running ...'
+            msg4 = "Simplex Nelder-Mead minimization, running ..."
             print(msg4)
 
         if simplex_options is None:
-            simplex_options = {'xatol': 1e-6, 'fatol': 1e-6, 'maxiter': 800,
-                               'maxfev': 2000}
+            simplex_options = {
+                "xatol": 1e-6,
+                "fatol": 1e-6,
+                "maxiter": 800,
+                "maxfev": 2000,
+            }
 
-        res = firstguess_fd_simplex(res_init, cube, angs, disk_img, mask_fm,
-                                    fmerit, mu_sigma, force_pos, simplex_options,
-                                    psfn, algo, algo_options, imlib,
-                                    interpolation, transmission, weights, plot,
-                                    verbose, **rot_options)
-        if force_pos:
-            x_0, y_0, theta_0 = (x_pre, y_pre, theta_pre)
-            f_0, = res.x
+        res = firstguess_fd_simplex(
+            res_init,
+            cube,
+            angs,
+            disk_img,
+            mask_fm,
+            fmerit,
+            mu_sigma,
+            force_params,
+            simplex_options,
+            psfn,
+            algo,
+            algo_options,
+            imlib,
+            interpolation,
+            transmission,
+            weights,
+            plot,
+            verbose,
+            rot_options,
+        )
+        if force_params is not None:
+            params_0 = []
+            c_free = 0
+            for i in range(len(res_init)):
+                if force_params[i]:
+                    params_0[i].append(res_init[i])
+                else:
+                    params_0[i].append(res.x[c_free])
+                    c_free += 1
+            x_0, y_0, theta_0, scal_0 = tuple(params_0[:4])
+            f_0 = tuple(params_0[4:])
         else:
-            x_0, y_0, theta_0 = res.x[0], res.x[1], res.x[2]
+            x_0, y_0, theta_0, scal_0 = res.x[0], res.x[1], res.x[2], res.x[3]
             if cube.ndim == 3:
-                f_0 = res.x[3]
+                f_0 = res.x[4]
             else:
-                f_0 = res.x[3:]
+                f_0 = res.x[4:]
         if verbose:
-            msg5 = 'Success: {}, nit: {}, nfev: {}, chi2r: {}'
-            print(msg5.format(res.success, res.nit, res.nfev,
-                              res.fun))
-            print('message: {}'.format(res.message))
+            msg5 = "Success: {}, nit: {}, nfev: {}, chi2r: {}"
+            print(msg5.format(res.success, res.nit, res.nfev, res.fun))
+            print("message: {}".format(res.message))
 
     else:
         if verbose:
-            msg4 = 'Simplex Nelder-Mead minimization skipped.'
+            msg4 = "Simplex Nelder-Mead minimization skipped."
             print(msg4)
-        x_0, y_0, theta_0 = (x_pre, y_pre, theta_pre)
+        x_0, y_0, theta_0, scal_0 = (x_pre, y_pre, theta_pre, scal_pre)
         if cube.ndim == 3:
             f_0 = f_pre[0]
         else:
@@ -591,27 +787,29 @@ def firstguess_fd(cube, angs, disk_img, mask_fm, ini_xy=(0, 0), ini_theta=0,
         # centy, centx = frame_center(cube[0])
         # posy = y_0 + centy
         # posx = x_0 + centx
-        msg6 = 'Optimization result: (dx, dy, theta, '
+        msg6 = "Optimization result: (dx, dy, theta, scal, "
         if cube.ndim == 3:
-            msg6 += 'f) = ({:.2f}, {:.2f}, {:.2f}, '.format(x_0, y_0, theta_0)
-            msg6 += '{:.2f})'.format(f_0)
+            msg6 += "f) = ({:.2f}, {:.2f}, {:.2f}, ".format(x_0, y_0, theta_0)
+            msg6 += "{:.2f}, {:.2f})".format(scal_0, f_0)
         else:
-            msg6b = '({:.2f}, {:.2f}, {:.2f}, '.format(x_0, y_0, theta_0)
+            msg6b = "({:.2f}, {:.2f}, {:.2f}, {:.2f}, ".format(
+                x_0, y_0, theta_0, scal_0
+            )
             for z in range(cube.shape[0]):
-                msg6 += 'f{}'.format(z)
-                msg6b += '{:.2f}'.format(f_0[z])
-                if z < cube.shape[0]-1:
-                    msg6 += ', '
-                    msg6b += ', '
-            msg6 += ')='
-            msg6b += ')'
+                msg6 += "f{}".format(z)
+                msg6b += "{:.2f}".format(f_0[z])
+                if z < cube.shape[0] - 1:
+                    msg6 += ", "
+                    msg6b += ", "
+            msg6 += ")="
+            msg6b += ")"
             msg6 += msg6b
         print(msg6)
 
     if verbose:
-        print('\n', sep, '\nDONE !\n', sep)
+        print("\n", sep, "\nDONE !\n", sep)
         timing(start_time)
 
     if full_output:
-        return x_0, y_0, theta_0, f_0, float(res.fun)
-    return x_0, y_0, theta_0, f_0
+        return x_0, y_0, theta_0, scal_0, f_0, float(res.fun)
+    return x_0, y_0, theta_0, scal_0, f_0

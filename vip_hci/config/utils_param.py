@@ -30,16 +30,14 @@ def filter_duplicate_keys(filter_item: any, ref_item: any, filter_in: bool = Tru
     elif isinstance(filter_item, object):
         filter_dict = vars(filter_item).copy()
     else:
-        raise TypeError(
-            "The item to be filtered is neither a dictionnary or an object")
+        raise TypeError("The item to be filtered is neither a dictionnary or an object")
 
     if isinstance(ref_item, dict):
         ref_dict = ref_item.copy()
     elif isinstance(ref_item, object):
         ref_dict = vars(ref_item).copy()
     else:
-        raise TypeError(
-            "The reference item is neither a dictionnary or an object")
+        raise TypeError("The reference item is neither a dictionnary or an object")
 
     # Find keys that must serve as a filter for `filter_item`
     common_keys = set(filter_dict.keys()) & set(ref_dict.keys())
@@ -95,8 +93,7 @@ def setup_parameters(
     wanted_params = OrderedDict(signature(fkt).parameters)
     # Remove dupe keys in params_obj from add_params
     if add_params is not None:
-        obj_params = filter_duplicate_keys(
-            filter_item=params_obj, ref_item=add_params)
+        obj_params = filter_duplicate_keys(filter_item=params_obj, ref_item=add_params)
         all_params = {**obj_params, **add_params}
     else:
         all_params = vars(params_obj)
@@ -106,8 +103,7 @@ def setup_parameters(
     )
 
     if show_params:
-        print(
-            f"The following parameters will be used for the run of {fkt.__name__} :")
+        print(f"The following parameters will be used for the run of {fkt.__name__} :")
         print_algo_params(params_setup)
 
     # For *args support, if an ordered list of parameters is needed

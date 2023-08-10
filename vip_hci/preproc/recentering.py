@@ -1,23 +1,22 @@
 #! /usr/bin/env python
-
 """
 Module containing functions for cubes frame registration.
-     
+
 .. [GUI08]
    | Guizar-Sicairos et al. 2008
    | **Efficient subpixel image registration algorithms**
    | *Optics Letters, Volume 33, Issue 2, p. 156*
    | `https://ui.adsabs.harvard.edu/abs/2008OptL...33..156G
      <https://ui.adsabs.harvard.edu/abs/2008OptL...33..156G>`_
-     
+
 .. [PUE15]
    | Pueyo et al. 2015
-   | **Reconnaissance of the HR 8799 Exosolar System. II. Astrometry and Orbital 
+   | **Reconnaissance of the HR 8799 Exosolar System. II. Astrometry and Orbital
      Motion**
    | *The Astrophysical Journal, Volume 803, Issue 1, p. 31*
    | `https://arxiv.org/abs/1409.6388
      <https://arxiv.org/abs/1409.6388>`_
-     
+
 """
 
 __author__ = 'C. A. Gomez Gonzalez, V. Christiaens, G. Ruane, R. Farkas'
@@ -274,7 +273,7 @@ def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
     border_mode : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     nproc: int or None, optional
-        Number of CPUs to use for multiprocessing. If None, will be 
+        Number of CPUs to use for multiprocessing. If None, will be
         automatically set to half the number of available CPUs.
 
     Returns
@@ -364,7 +363,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     shifty, shiftx : floats
         Shift Y,X to get to the true center.
     ceny, cenx : floats
-        Center Y,X coordinates of the true center. *Only returned if 
+        Center Y,X coordinates of the true center. *Only returned if
         ``shift=True``.*
 
     Note
@@ -655,7 +654,7 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
                        verbose=True, plot=True, debug=False):
     """ Finding the center of a broadband (co-added) frame with speckles and
     satellite spots elongated towards the star (center). We use the Radon
-    transform implementation from scikit-image, and follow the algorithm 
+    transform implementation from scikit-image, and follow the algorithm
     presented in [PUE15]_.
 
     Parameters
@@ -667,20 +666,20 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
         be used. It should be large enough to contain the bright elongated
         speckle or satellite spots.
     hsize_ini : float, optional
-        Size of the box for the grid search for first centering iteration. The 
-        frame is shifted to each direction from the center in a hsize length 
+        Size of the box for the grid search for first centering iteration. The
+        frame is shifted to each direction from the center in a hsize length
         with a given step.
     step_ini : float, optional
-        The step of the coordinates change in the first step. Note: should not 
+        The step of the coordinates change in the first step. Note: should not
         be too fine for efficiency as it is automatically refined at each step.
     n_iter : int, optional
-        Number of iterations for finer recentering. At each step, a finer 
-        step is considered based on the amplitude of the shifts found in the 
-        previous step. Iterations are particularly relevant when mask_center is 
+        Number of iterations for finer recentering. At each step, a finer
+        step is considered based on the amplitude of the shifts found in the
+        previous step. Iterations are particularly relevant when mask_center is
         not None (as the masked area will change from one iteration to the next).
     tol : float, optional
         Absolute tolerance on relative shift from one iteration to the next to
-        consider convergence. If the absolute value of the shift is found to be 
+        consider convergence. If the absolute value of the shift is found to be
         less than tol, the iterative algorithm is stopped.
     mask_center : None or int, optional
         If None the central area of the frame is kept. If int a centered zero
@@ -691,7 +690,7 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
     satspots_cfg: None or str ('x', '+' or 'custom'), opt
         If satellite spots are present, provide a string corresponding to the
         configuration of the satellite spots: as a cross ('x'), as a
-        plus sign ('+') or 'custom' (provide theta_0). Leave to None if no 
+        plus sign ('+') or 'custom' (provide theta_0). Leave to None if no
         satellite spots present. Note: setting satspots_cfg to non-None value
         leads to varying performance depending on dataset.
     theta_0: float between [0,90[, optional
@@ -700,13 +699,13 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
     delta_theta: float, optional
         Azimuthal half-width in degrees of the slices considered along a '+' or
         'x' pattern to calculate the Radon transform. E.g. if set to 5 for 'x'
-        configuration, it will consider slices from 40 to 50 deg in each 
+        configuration, it will consider slices from 40 to 50 deg in each
         quadrant.
     hpf: bool, optional
         Whether to high-pass filter the images
     filter_fwhm: float, optional
         In case of high-pass filtering, this is the FWHM of the low-pass filter
-        used for subtraction to the original image to get the high-pass 
+        used for subtraction to the original image to get the high-pass
         filtered image (i.e. should be >~ 2 x FWHM).
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
@@ -1096,8 +1095,8 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  mask=None, border_mode='reflect', log=False,
                                  full_output=False, verbose=True, nproc=None,
                                  save_shifts=False, debug=False, plot=True):
-    """ Recenters a cube of frames using the DFT upsampling method as proposed 
-    in [GUI08]_ and implemented in the ``register_translation`` function from 
+    """ Recenters a cube of frames using the DFT upsampling method as proposed
+    in [GUI08]_ and implemented in the ``register_translation`` function from
     scikit-image.
 
     The algorithm (DFT upsampling) obtains an initial estimate of the
@@ -1144,7 +1143,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         reflecting about the center of the last pixel. With 'wrap', the input is
         extended by wrapping around to the opposite edge. Default is 'reflect'.
     log : bool
-        Whether to run the cross-correlation algorithm on images converted in 
+        Whether to run the cross-correlation algorithm on images converted in
         log scale. This can be useful to leverage the whole extent of the PSF
         and be less dominated by the brightest central pixels.
     full_output : bool, optional
@@ -1170,9 +1169,9 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
 
     Note
     ----
-    This function uses the implementation from scikit-image of the algorithm 
-    described in [GUI08]_. This algorithm registers two images (2-D rigid 
-    translation) within a fraction of a pixel specified by the user. Instead of 
+    This function uses the implementation from scikit-image of the algorithm
+    described in [GUI08]_. This algorithm registers two images (2-D rigid
+    translation) within a fraction of a pixel specified by the user. Instead of
     computing a zero-padded FFT (fast Fourier transform), this code
     uses selective upsampling by a matrix-multiply DFT (discrete FT) to
     dramatically reduce computation time and memory without sacrificing
@@ -1276,12 +1275,12 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
             plot_frames((frame_crop(array[0], subi_size, verbose=False),
                         frame_crop(array_rec[0], subi_size, verbose=False)),
                         grid=True, title=titd)
-    else:           
+    else:
         if verbose:
             print("The first frame is assumed to be well centered wrt the"
                   "center of the array")
             print(msg0)
-            
+
     array_rec = cube_shift(array, shift_y=y, shift_x=x, imlib=imlib,
                            interpolation=interpolation, nproc=nproc)
 
@@ -1321,7 +1320,7 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
     """
     if version.parse(skimage.__version__) > version.parse('0.17.0'):
         shift_yx = cc_center(array_rec[0], array[frnum],
-                             upsample_factor=upsample_factor, 
+                             upsample_factor=upsample_factor,
                              reference_mask=mask, return_error=False)
     else:
         shift_yx = cc_center(array_rec[0], array[frnum],
@@ -1681,7 +1680,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                fit_type='gaus', negative=True, crop=True,
                                subframesize=21, mask=None, imlib='vip-fft',
                                interpolation='lanczos4', border_mode='reflect',
-                               log=True, plot=True, full_output=False, 
+                               log=True, plot=True, full_output=False,
                                nproc=None):
     """ Registers frames based on the median speckle pattern. Optionally centers
     based on the position of the vortex null in the median frame. Images are
@@ -1737,7 +1736,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         reflecting about the center of the last pixel. With 'wrap', the input is
         extended by wrapping around to the opposite edge. Default is 'reflect'.
     log : bool
-        Whether to run the cross-correlation algorithm on images converted in 
+        Whether to run the cross-correlation algorithm on images converted in
         log scale. This can be useful to leverage the whole extent of the PSF
         and be less dominated by the brightest central pixels.
     plot : bool, optional
@@ -1749,19 +1748,19 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     Returns
     -------
     cube_reg_sci : numpy 3d ndarray
-        Registered science cube 
+        Registered science cube
     cube_reg_ref : numpy 3d ndarray
         [cube_ref!=None] Cube registered to science frames
     cube_sci_lpf : numpy 3d ndarray
-        [full_output=True] Low+high-pass filtered science cube 
+        [full_output=True] Low+high-pass filtered science cube
     cube_stret : numpy 3d ndarray
         [full_output=True] cube_stret with stretched values used for cross-corr
     cum_x_shifts_sci: numpy 1d array
-        [full_output=True] Vector of x shifts for science frames 
+        [full_output=True] Vector of x shifts for science frames
     cum_y_shifts_sci: numpy 1d array
-        [full_output=True] Vector of x shifts for science frames 
+        [full_output=True] Vector of x shifts for science frames
     cum_x_shifts_ref: numpy 1d array
-        [full_output=True & cube_ref!=None] Vector of x shifts for ref frames 
+        [full_output=True & cube_ref!=None] Vector of x shifts for ref frames
     cum_y_shifts_ref: numpy 1d array
         [full_output=True & cube_ref!=None] Vector of y shifts for ref frames
     """
@@ -1812,7 +1811,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         median_size = int(fwhm * max_spat_freq)
         # Remove spatial frequencies <0.5 lam/D and >3lam/D to isolate speckles
         cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
-                                            median_size=median_size, 
+                                            median_size=median_size,
                                             verbose=False)
     else:
         cube_sci_hpf = cube_sci_lpf
@@ -1865,7 +1864,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                            subi_size=None, full_output=True,
                                            verbose=debug, plot=plot,
                                            mask=mask_tmp, imlib=imlib,
-                                           interpolation=interpolation, 
+                                           interpolation=interpolation,
                                            nproc=nproc)
         cube_stret, y_shift, x_shift = res
         sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
@@ -1878,7 +1877,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                             border_mode=border_mode)
         cum_y_shifts += y_shift
         cum_x_shifts += x_shift
-        
+
         if recenter_median:
             alignment_cube[0] = np.median(alignment_cube[1:(n + 1)], axis=0)
             # Recenter the median frame using a 2d fit
@@ -1910,7 +1909,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                                unc_in=2.)
             yshift = ceny - (y1 + y_i)
             xshift = cenx - (x1 + x_i)
-            
+
             cum_y_shifts += yshift
             cum_x_shifts += xshift
     else:
@@ -1930,7 +1929,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                         crop_sz += 1
                 sub_image, y1, x1 = get_square(alignment_cube[0], size=crop_sz,
                                                y=ceny, x=cenx, position=True)
-    
+
                 if fit_type == 'gaus':
                     if negative:
                         sub_image = -sub_image + np.abs(np.min(-sub_image))
@@ -1944,12 +1943,12 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                                    unc_in=2.)
                 yshift = ceny - (y1 + y_i)
                 xshift = cenx - (x1 + x_i)
-    
+
                 alignment_cube[0] = frame_shift(alignment_cube[0, :, :], yshift,
                                                 xshift, imlib=imlib,
                                                 interpolation=interpolation,
                                                 border_mode=border_mode)
-    
+
             # center the cube with stretched values
             if log:
                 cube_stret = np.log10((alignment_cube-np.min(alignment_cube)+1)**gammaval)
@@ -1960,30 +1959,30 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                 mask_tmp = frame_crop(mask, subframesize)
             else:
                 mask_tmp = mask
-            res = cube_recenter_dft_upsampling(cube_stret, (ceny, cenx), 
-                                               fwhm=fwhm, subi_size=None, 
+            res = cube_recenter_dft_upsampling(cube_stret, (ceny, cenx),
+                                               fwhm=fwhm, subi_size=None,
                                                full_output=True,
                                                verbose=False, plot=False,
                                                mask=mask_tmp, imlib=imlib,
-                                               interpolation=interpolation, 
+                                               interpolation=interpolation,
                                                nproc=nproc)
             _, y_shift, x_shift = res
             sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
             print('Square sum of shift vecs: ' + str(sqsum_shifts))
-    
+
             for j in range(1, n_frames):
                 alignment_cube[j] = frame_shift(alignment_cube[j], y_shift[j],
                                                 x_shift[j], imlib=imlib,
                                                 interpolation=interpolation,
                                                 border_mode=border_mode)
-    
+
             cum_y_shifts += y_shift
             cum_x_shifts += x_shift
 
     cube_reg_sci = cube_sci.copy()
     cum_y_shifts_sci = cum_y_shifts[1:(n + 1)]
     cum_x_shifts_sci = cum_x_shifts[1:(n + 1)]
-    cube_reg_sci = cube_shift(cube_sci, cum_y_shifts_sci, cum_x_shifts_sci, 
+    cube_reg_sci = cube_shift(cube_sci, cum_y_shifts_sci, cum_x_shifts_sci,
                               imlib=imlib, interpolation=interpolation,
                               border_mode=border_mode)
 
@@ -2009,7 +2008,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         cube_reg_ref = cube_ref.copy()
         cum_y_shifts_ref = cum_y_shifts[(n + 1):]
         cum_x_shifts_ref = cum_x_shifts[(n + 1):]
-        cube_reg_ref = cube_shift(cube_ref, cum_y_shifts_ref, cum_x_shifts_ref, 
+        cube_reg_ref = cube_shift(cube_ref, cum_y_shifts_ref, cum_x_shifts_ref,
                                   imlib=imlib, interpolation=interpolation,
                                   border_mode=border_mode)
 

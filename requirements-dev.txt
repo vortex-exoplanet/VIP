@@ -10,3 +10,4 @@ flake8-bandit
 flake8-docstrings
 autopep8
 ratelimit
+pre-commit

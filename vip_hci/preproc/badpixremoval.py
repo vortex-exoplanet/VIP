@@ -15,7 +15,8 @@ Module with functions for correcting bad pixels in cubes.
 
 
 import warnings
-__author__ = 'V. Christiaens, Carlos Alberto Gomez Gonzalez'
+__author__ = ('V. Christiaens, Carlos Alberto Gomez Gonzalez, '
+              'Srikanth Kompella')
 __all__ = ['frame_fix_badpix_isolated',
            'cube_fix_badpix_isolated',
            'cube_fix_badpix_annuli',
@@ -334,7 +335,8 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
                 array_out[i] = res[0]
                 final_bpm[i] = res[1]
         else:
-            print("Processing using ADACS' multiprocessing approach...")
+            if verbose:
+                print("Cleaning frames using ADACS' multiprocessing approach")
             # dummy calling the function to create cached version of the code prior to forking
             if bpm_mask is not None:
                 bpm_mask_dum = bpm_mask[0]
@@ -1110,8 +1112,8 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                                         verbose)
                     array_corr[i], bpix_map_cumul[i] = res
             else:
-                msg = "Cleaning frames using ADACS' multiprocessing approach"
-                print(msg)
+                if verbose:
+                    print("Cleaning frames using ADACS' multiprocessing approach")
                 # creating shared memory buffer space for the image cube.
                 shm_clump = shared_memory.SharedMemory(create=True,
                                                        size=array_corr.nbytes)
@@ -1182,8 +1184,8 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                                                  neighbor_box, nneig, half_res_y,
                                                  verbose)
             else:
-                msg = "Cleaning frames using ADACS' multiprocessing approach"
-                print(msg)
+                if verbose:
+                    print("Cleaning frames using ADACS' multiprocessing approach")
                 # dummy calling sigma_filter function to create a cached version of the numba function
                 if bpm_mask.ndim == 3:
                     dummy_bpm = bpm_mask[0]

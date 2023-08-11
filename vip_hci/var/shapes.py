@@ -857,7 +857,7 @@ def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
     source_xy: tuple of 2 int
         Pixel coordinates of the location of interest.
     exc_radius : float
-        Known size of the FHWM in pixels to be used. Default is 4.
+        Known size of the FWHM in pixels to be used. Default is 4.
     ann_width: int
         Width (in pxs) of the annulus (region 3 on description).
     inc_radius: int

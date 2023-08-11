@@ -98,7 +98,7 @@ def llsg(*all_args: List, **all_kwargs: dict):
     angle_list : numpy ndarray, 1d
         Corresponding parallactic angle for each frame.
     fwhm : float
-        Known size of the FHWM in pixels to be used.
+        Known size of the FWHM in pixels to be used.
     rank : int, optional
         Expected rank of the L component.
     thresh : float, optional

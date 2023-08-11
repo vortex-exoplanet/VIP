@@ -89,7 +89,7 @@ def nmf_annular(*all_args: List, **all_kwargs: dict):
         The radius of the innermost annulus. By default is 0, if >0 then the
         central circular region is discarded.
     fwhm : float, optional
-        Size of the FHWM in pixels. Default is 4.
+        Size of the FWHM in pixels. Default is 4.
     asize : float, optional
         The size of the annuli, in pixels.
     n_segments : int or list of ints or 'auto', optional
@@ -98,7 +98,7 @@ def nmf_annular(*all_args: List, **all_kwargs: dict):
         automatically determined for every annulus, based on the annulus width.
     delta_rot : float or tuple of floats, optional
         Factor for adjusting the parallactic angle threshold, expressed in
-        FWHM. Default is 1 (excludes 1 FHWM on each side of the considered
+        FWHM. Default is 1 (excludes 1 FWHM on each side of the considered
         frame). If a tuple of two floats is provided, they are used as the lower
         and upper intervals for the threshold (grows linearly as a function of
         the separation). !!! Important: this is used even if a reference cube
@@ -144,7 +144,7 @@ def nmf_annular(*all_args: List, **all_kwargs: dict):
         given (X,Y) coordinates are computed.
     delta_rot : int, optional
         Factor for tunning the parallactic angle threshold, expressed in FWHM.
-        Default is 1 (excludes 1xFHWM on each side of the considered frame).
+        Default is 1 (excludes 1xFWHM on each side of the considered frame).
     init_svd: str, optional {'nnsvd','nnsvda','random'}
         Method used to initialize the iterative procedure to find H and W.
         'nndsvd': non-negative double SVD recommended for sparseness

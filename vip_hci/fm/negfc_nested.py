@@ -88,7 +88,7 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
         If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
         the first dimension(s) must match those of the input cube.
     fwhm : float
-        The FHWM in pixels.
+        The FWHM in pixels.
     mu_sigma: tuple of 2 floats or bool, opt
         If set to None: not used, and falls back to original version of the
         algorithm, using fmerit [WER17]_.

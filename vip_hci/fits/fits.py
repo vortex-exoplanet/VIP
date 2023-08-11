@@ -4,7 +4,7 @@ Module with various fits handling functions.
 """
 
 
-__author__ = "C. A. Gomez Gonzalez, T. Bédrine, V. Christiaens"
+__author__ = "C. A. Gomez Gonzalez, T. Bédrine, V. Christiaens, I. Hammond"
 __all__ = ["open_fits", "info_fits", "write_fits", "verify_fits",
            "byteswap_array"]
 

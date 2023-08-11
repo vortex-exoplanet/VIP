@@ -69,13 +69,11 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         fitsfilename += ".fits"
 
     try:
-        hdulist = open(fitsfilename,
-                               ignore_missing_end=ignore_missing_end,
-                   	           	memmap=True, **kwargs)
-    except: # If BZERO/BSCALE/BLANK header keywords are present, HDU can’t be loaded as memory map
-        hdulist = open(fitsfilename,
-                               ignore_missing_end=ignore_missing_end,
-                   	           	memmap=False, **kwargs)
+        hdulist = fitsopen(fitsfilename, ignore_missing_end=ignore_missing_end,
+                           memmap=True, **kwargs)
+    except ValueError:  # If BZERO/BSCALE/BLANK header keywords are present, HDU can’t be loaded as memory map
+        hdulist = fitsopen(fitsfilename, ignore_missing_end=ignore_missing_end,
+                           memmap=False, **kwargs)
 
     # Opening all extensions in a MEF
     if n == ALL_FITS:
@@ -86,9 +84,6 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
 
         for index, element in enumerate(hdulist):
             data, head = _return_data_fits(hdulist=hdulist, index=index,
-                                           precision=precision,
-                                           verbose=verbose)
-            data, head = _return_data_fits(hdulist=hdulist, index=index,
                                            header=header, precision=precision,
                                            verbose=verbose)
             data_list.append(data)
@@ -97,11 +92,11 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         hdulist.close()
         if header:
             if verbose:
-                print(f"All {len(hdulist)} FITS HDUs and headers successfully loaded. ")
+                print(f"All {len(hdulist)} FITS HDU data and headers successfully loaded. ")
             return data_list, header_list
         else:
             if verbose:
-                print(f"All {len(hdulist)} FITS HDUs successfully loaded.")
+                print(f"All {len(hdulist)} FITS HDU data successfully loaded. ")
             return data_list
 
     # Opening only a specified extension
@@ -109,7 +104,7 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         if return_memmap:
             return hdulist[n]
 
-        data, head = _return_data_fits(hdulist=hdulist, index=n,
+        data, head = _return_data_fits(hdulist=hdulist, index=n, header=header,
                                        precision=precision, verbose=verbose)
         hdulist.close()
         if header:
@@ -122,8 +117,7 @@ def _return_data_fits(hdulist: HDUList,
                       index: int,
                       header: bool = False,
                       precision=np.float32,
-                      verbose: bool = True,
-):
+                      verbose: bool = True):
     """
     Subfunction used to return data (and header) from a given index.
 
@@ -175,7 +169,7 @@ def byteswap_array(array):
     Note
     ----
     More info about byteswapping here:
-    http://docs.scipy.org/doc/numpy-1.10.1/user/basics.byteswapping.html
+    https://docs.scipy.org/doc/numpy-1.10.1/user/basics.byteswapping.html
 
     """
     array_out = array.byteswap().newbyteorder()

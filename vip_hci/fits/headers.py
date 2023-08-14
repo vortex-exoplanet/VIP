@@ -100,7 +100,7 @@ def open_header(fitsfilename: str, n: int = 0, extname: str = None,
 
     Returns
     -------
-    header : dict or list of dict
+    header : `Header` dictionary
         Astropy Header class with both a dict-like and list-like interface.
     """
 
@@ -116,6 +116,6 @@ def open_header(fitsfilename: str, n: int = 0, extname: str = None,
         header = getheader(fitsfilename, ext=n, ignore_missing_end=True)
 
     if verbose:
-        print(f"Fits HDU-{n} header successfully loaded.")
+        print(f"FITS HDU-{n} header successfully loaded.")
 
     return header

@@ -31,20 +31,22 @@ Module with completeness curve and map generation function.
 __author__ = "C.H. Dahlqvist, V. Christiaens, T. Bédrine"
 __all__ = ["completeness_curve", "completeness_map"]
 
+from math import gcd
+from inspect import getfullargspec
 from multiprocessing import cpu_count
+
 import numpy as np
-from inspect import signature, getfullargspec
-from skimage.draw import disk
+from astropy.convolution import convolve, Tophat2DKernel
 from matplotlib import pyplot as plt
-from ..fm import cube_inject_companions, normalize_psf
+from skimage.draw import disk
+
+from .contrcurve import contrast_curve
+from .snr_source import snrmap, _snr_approx, snr
 from ..config.utils_conf import pool_map, iterable, vip_figsize, vip_figdpi
-from ..var import get_annulus_segments, frame_center
+from ..fm import cube_inject_companions, normalize_psf
 from ..fm.utils_negfc import find_nearest
 from ..preproc import cube_crop_frames
-from .snr_source import snrmap, _snr_approx, snr
-from .contrcurve import contrast_curve
-from astropy.convolution import convolve, Tophat2DKernel
-import math
+from ..var import get_annulus_segments, frame_center
 
 
 def _estimate_snr_fc(
@@ -333,7 +335,7 @@ def completeness_curve(
     """
 
     if (100 * completeness) % (100 / n_fc) > 0:
-        n_fc = int(100 / math.gcd(int(100 * completeness), 100))
+        n_fc = int(100 / gcd(int(100 * completeness), 100))
 
     if cube.ndim != 3 and cube.ndim != 4:
         raise TypeError("The input array is not a 3d or 4d cube")

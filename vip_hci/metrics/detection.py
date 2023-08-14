@@ -14,11 +14,10 @@ import numpy as np
 import pandas as pn
 from hciplot import plot_frames
 from scipy.ndimage import correlate
-from skimage import feature
-from astropy.stats import sigma_clipped_stats
-from astropy.stats import gaussian_fwhm_to_sigma, gaussian_sigma_to_fwhm
+from astropy.stats import (sigma_clipped_stats, gaussian_fwhm_to_sigma,
+                           gaussian_sigma_to_fwhm)
 from astropy.modeling import models, fitting
-from skimage.feature import peak_local_max
+from skimage.feature import peak_local_max, blob_log, blob_dog
 from ..var import (mask_circle, get_square, frame_center, fit_2dgaussian,
                    frame_filter_lowpass, dist_matrix)
 from ..config.utils_conf import sep
@@ -282,9 +281,9 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
 
     elif mode == 'log':
         sigma = fwhm * gaussian_fwhm_to_sigma
-        coords = feature.blob_log(frame_det.astype('float'),
-                                  threshold=bkg_level, min_sigma=sigma-.5,
-                                  max_sigma=sigma+.5)
+        coords = blob_log(frame_det.astype('float'),
+                          threshold=bkg_level, min_sigma=sigma-.5,
+                          max_sigma=sigma+.5)
         if len(coords) == 0:
             print_abort()
             return 0, 0
@@ -296,9 +295,9 @@ def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
 
     elif mode == 'dog':
         sigma = fwhm * gaussian_fwhm_to_sigma
-        coords = feature.blob_dog(frame_det.astype('float'),
-                                  threshold=bkg_level, min_sigma=sigma-.5,
-                                  max_sigma=sigma+.5)
+        coords = blob_dog(frame_det.astype('float'),
+                          threshold=bkg_level, min_sigma=sigma-.5,
+                          max_sigma=sigma+.5)
         if len(coords) == 0:
             print_abort()
             return 0, 0

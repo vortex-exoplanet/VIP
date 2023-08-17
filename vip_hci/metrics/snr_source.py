@@ -1,7 +1,6 @@
 #! /usr/bin/env python
-
 """
-Module with S/N calculation functions. We strongly recommend users to read 
+Module with S/N calculation functions. We strongly recommend users to read
 [MAW14]_ before using routines of this module.
 
 """
@@ -84,8 +83,8 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
     check_array(array, dim=2, msg='array')
     sizey, sizex = array.shape
     snrmap_array = np.zeros_like(array)
-    width = min(sizey, sizex) / 2 - 1.5 * fwhm
-    mask = get_annulus_segments(array, (fwhm / 2) + 2, width, mode="mask")[0]
+    width = min(sizey, sizex) / 2 - 1.5*fwhm
+    mask = get_annulus_segments(array, (fwhm / 2) + 1, width, mode="mask")[0]
     mask = np.ma.make_mask(mask)
     # by making a bool mask *after* applying the mask to the array, we also mask
     # out zero values from the array. This logic cannot be simplified by using
@@ -362,9 +361,9 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         Whether to include the adjacent aperture lobes to the tested location
         or not. Can be set to True if the image shows significant neg lobes.
     exclude_theta_range : tuple of 2 floats or None, opt
-        If provided, range of trigonometric angles  in deg (measured from 
+        If provided, range of trigonometric angles  in deg (measured from
         positive x axis), to be avoided for apertures used for noise estimation.
-        WARNING: this is to be used wisely, e.g. only if a known authentic 
+        WARNING: this is to be used wisely, e.g. only if a known authentic
         circumstellar signal is biasing the SNR estimate.
     plot : bool, optional
         Plots the frame and the apertures considered for clarity.

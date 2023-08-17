@@ -467,7 +467,7 @@ def firstguess_fd_simplex(
         p_ini = []
         for i in range(len(p)):
             if force_params[i]:
-                p_ini.apend(p[i])
+                p_ini.append(p[i])
             else:
                 p_t.append(p[i])
         p_t = tuple(p_t)
@@ -756,12 +756,15 @@ def firstguess_fd(
             c_free = 0
             for i in range(len(res_init)):
                 if force_params[i]:
-                    params_0[i].append(res_init[i])
+                    params_0.append(res_init[i])
                 else:
-                    params_0[i].append(res.x[c_free])
+                    params_0.append(res.x[c_free])
                     c_free += 1
             x_0, y_0, theta_0, scal_0 = tuple(params_0[:4])
-            f_0 = tuple(params_0[4:])
+            if cube.ndim == 3:
+                f_0 = params_0[4]
+            else:
+                f_0 = tuple(params_0[4:])
         else:
             x_0, y_0, theta_0, scal_0 = res.x[0], res.x[1], res.x[2], res.x[3]
             if cube.ndim == 3:

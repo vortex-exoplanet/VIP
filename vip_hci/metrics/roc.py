@@ -1,7 +1,8 @@
 """
 ROC curves generation.
 """
-__all__ = ["EvalRoc", "compute_binary_map"]
+__all__ = ['EvalRoc',
+           'compute_binary_map']
 
 import copy
 import numpy as np
@@ -38,16 +39,8 @@ class EvalRoc(object):
     # # For algos that output a likelihood or probability map
     # THRESHOLDS_01_099 = np.linspace(0.1, 0.99, 10).tolist()
 
-    def __init__(
-        self,
-        dataset,
-        plsc=0.0272,
-        n_injections=100,
-        inrad=8,
-        outrad=12,
-        dist_flux=("uniform", 2, 500),
-        mask=None,
-    ):
+    def __init__(self, dataset, plsc=0.0272, n_injections=100, inrad=8,
+                 outrad=12, dist_flux=("uniform", 2, 500), mask=None):
         """
         [...]
         dist_flux : tuple ('method', *args)
@@ -75,15 +68,11 @@ class EvalRoc(object):
         thresholds : list of lists
 
         """
-        self.methods.append(
-            Munch(
-                algo=algo, name=name, color=color, symbol=symbol, thresholds=thresholds
-            )
-        )
+        self.methods.append(Munch(algo=algo, name=name, color=color,
+                                  symbol=symbol, thresholds=thresholds))
 
-    def inject_and_postprocess(
-        self, patch_size, cevr=0.9, expvar_mode="annular", nproc=1
-    ):
+    def inject_and_postprocess(self, patch_size, cevr=0.9,
+                               expvar_mode='annular', nproc=1):
         # """
 
         # Notes
@@ -99,14 +88,9 @@ class EvalRoc(object):
 
         # ===== number of PCs for PCA / rank for LLSG
         if cevr is not None:
-            svdecomp = SVDecomposer(
-                self.dataset.cube,
-                mode=expvar_mode,
-                inrad=self.inrad,
-                outrad=self.outrad,
-                svd_mode="lapack",
-                verbose=False,
-            )
+            svdecomp = SVDecomposer(self.dataset.cube, mode=expvar_mode,
+                                    inrad=self.inrad, outrad=self.outrad,
+                                    svd_mode='lapack', verbose=False)
             _ = svdecomp.get_cevr(ncomp_list=None)
             ratio_cumsum = svdecomp.cevr
             self.optpcs = np.searchsorted(ratio_cumsum, cevr) + 1
@@ -124,15 +108,15 @@ class EvalRoc(object):
             #
         # Getting indices in annulus
         width = self.outrad - self.inrad
-        yy, xx = get_annulus_segments(self.dataset.cube[0], self.inrad, width)[0]
+        yy, xx = get_annulus_segments(self.dataset.cube[0], self.inrad,
+                                      width)[0]
         num_patches = yy.shape[0]
 
         # Defining Fluxes according to chosen distribution
-        dist_fkt = dict(
-            skewnormal=stats.skewnorm.rvs,
-            normal=np.random.normal,
-            uniform=np.random.uniform,
-        ).get(self.dist_flux[0], self.dist_flux[0])
+        dist_fkt = dict(skewnormal=stats.skewnorm.rvs,
+                        normal=np.random.normal,
+                        uniform=np.random.uniform).get(self.dist_flux[0],
+                                                       self.dist_flux[0])
 
         self.fluxes = dist_fkt(*self.dist_flux[1:], size=self.n_injections)
         self.fluxes.sort()
@@ -158,16 +142,13 @@ class EvalRoc(object):
 
         # Injections
         for n in Progressbar(range(self.n_injections), desc="injecting"):
-            cufc, cox, coy = _create_synt_cube(
-                self.dataset.cube,
-                self.dataset.psf,
-                self.dataset.angles,
-                self.plsc,
-                theta=self.thetas[n],
-                flux=self.fluxes[n],
-                dist=self.dists[n],
-                verbose=False,
-            )
+            cufc, cox, coy = _create_synt_cube(self.dataset.cube,
+                                               self.dataset.psf,
+                                               self.dataset.angles, self.plsc,
+                                               theta=self.thetas[n],
+                                               flux=self.fluxes[n],
+                                               dist=self.dists[n],
+                                               verbose=False)
             cox = int(np.round(cox))
             coy = int(np.round(coy))
             self.list_xy.append((cox, coy))
@@ -215,17 +196,14 @@ class EvalRoc(object):
             m.fps = []
             m.bmaps = []
 
-        print("Evaluating injections:")
+        print('Evaluating injections:')
         for i in Progressbar(range(self.n_injections)):
             x, y = self.list_xy[i]
 
             for m in self.methods:
                 dets, fps, bmaps = compute_binary_map(
-                    m.probmaps[i],
-                    m.thresholds,
-                    fwhm=self.dataset.fwhm,
-                    injections=(x, y),
-                    **kwargs
+                    m.probmaps[i], m.thresholds, fwhm=self.dataset.fwhm,
+                    injections=(x, y), **kwargs
                 )
                 m.detections.append(dets)
                 m.fps.append(fps)
@@ -233,17 +211,9 @@ class EvalRoc(object):
 
         timing(starttime)
 
-    def plot_detmaps(
-        self,
-        i=None,
-        thr=9,
-        dpi=100,
-        axis=True,
-        grid=False,
-        vmin=-10,
-        vmax="max",
-        plot_type="horiz",
-    ):
+    def plot_detmaps(self, i=None, thr=9, dpi=100,
+                     axis=True, grid=False, vmin=-10, vmax='max',
+                     plot_type="horiz"):
         """
         Plot the detection maps for one injection.
 
@@ -273,121 +243,63 @@ class EvalRoc(object):
             else:
                 i = len(self.list_xy) // 2
 
-        if vmax == "max":
+        if vmax == 'max':
             # TODO: document this feature.
-            vmax = (
-                np.concatenate(
-                    [
-                        m.frames[i]
-                        for m in self.methods
-                        if hasattr(m, "frames") and len(m.frames) >= i
-                    ]
-                ).max()
-                / 2
-            )
+            vmax = np.concatenate([m.frames[i] for m in self.methods if
+                                   hasattr(m, "frames") and
+                                   len(m.frames) >= i]).max()/2
 
         # print information
-        print("X,Y: {}".format(self.list_xy[i]))
-        print("dist: {:.3f}, flux: {:.3f}".format(self.dists[i], self.fluxes[i]))
+        print('X,Y: {}'.format(self.list_xy[i]))
+        print('dist: {:.3f}, flux: {:.3f}'.format(self.dists[i],
+                                                  self.fluxes[i]))
         print()
 
         if plot_type in [1, "horiz"]:
             for m in self.methods:
-                print(
-                    "detection state: {} | false postives: {}".format(
-                        m.detections[i][thr], m.fps[i][thr]
-                    )
-                )
-                labels = (
-                    "{} frame".format(m.name),
-                    "{} S/Nmap".format(m.name),
-                    "Thresholded at {:.1f}".format(m.thresholds[thr]),
-                )
-                plot_frames(
-                    (
-                        m.frames[i] if len(m.frames) >= i else np.zeros((2, 2)),
-                        m.probmaps[i],
-                        m.bmaps[i][thr],
-                    ),
-                    label=labels,
-                    dpi=dpi,
-                    horsp=0.2,
-                    axis=axis,
-                    grid=grid,
-                    cmap=["viridis", "viridis", "gray"],
-                )
+                print('detection state: {} | false postives: {}'.format(
+                    m.detections[i][thr], m.fps[i][thr]))
+                labels = ('{} frame'.format(m.name), '{} S/Nmap'.format(m.name),
+                          'Thresholded at {:.1f}'.format(m.thresholds[thr]))
+                plot_frames((m.frames[i] if len(m.frames) >= i else
+                            np.zeros((2, 2)), m.probmaps[i], m.bmaps[i][thr]),
+                            label=labels, dpi=dpi, horsp=0.2, axis=axis,
+                            grid=grid, cmap=['viridis', 'viridis', 'gray'])
 
         elif plot_type in [2, "vert"]:
-            labels = tuple(
-                "{} frame".format(m.name)
-                for m in self.methods
-                if hasattr(m, "frames") and len(m.frames) >= i
-            )
-            plot_frames(
-                tuple(
-                    m.frames[i]
-                    for m in self.methods
-                    if hasattr(m, "frames") and len(m.frames) >= i
-                ),
-                dpi=dpi,
-                label=labels,
-                vmax=vmax,
-                vmin=vmin,
-                axis=axis,
-                grid=grid,
-            )
+            labels = tuple('{} frame'.format(m.name) for m in self.methods if
+                           hasattr(m, "frames") and len(m.frames) >= i)
+            plot_frames(tuple(m.frames[i] for m in self.methods if
+                        hasattr(m, "frames") and len(m.frames) >= i),
+                        dpi=dpi, label=labels, vmax=vmax, vmin=vmin, axis=axis,
+                        grid=grid)
 
-            plot_frames(
-                tuple(m.probmaps[i] for m in self.methods),
-                dpi=dpi,
-                label=tuple(["{} S/Nmap".format(m.name) for m in self.methods]),
-                axis=axis,
-                grid=grid,
-            )
+            plot_frames(tuple(m.probmaps[i] for m in self.methods), dpi=dpi,
+                        label=tuple(['{} S/Nmap'.format(m.name) for m in
+                                     self.methods]), axis=axis, grid=grid)
 
             for m in self.methods:
-                msg = "{} detection: {}, FPs: {}"
+                msg = '{} detection: {}, FPs: {}'
                 print(msg.format(m.name, m.detections[i][thr], m.fps[i][thr]))
 
-            labels = tuple(
-                "Thresholded at {:.1f}".format(m.thresholds[thr]) for m in self.methods
-            )
-            plot_frames(
-                tuple(m.bmaps[i][thr] for m in self.methods),
-                dpi=dpi,
-                label=labels,
-                axis=axis,
-                grid=grid,
-                colorbar=False,
-                cmap="bone",
-            )
+            labels = tuple('Thresholded at {:.1f}'.format(m.thresholds[thr])
+                           for m in self.methods)
+            plot_frames(tuple(m.bmaps[i][thr] for m in self.methods),
+                        dpi=dpi, label=labels, axis=axis, grid=grid,
+                        colorbar=False, cmap='bone')
         else:
             raise ValueError("`plot_type` unknown")
 
-    def plot_roc_curves(
-        self,
-        dpi=100,
-        figsize=(5, 5),
-        xmin=None,
-        xmax=None,
-        ymin=-0.05,
-        ymax=1.02,
-        xlog=True,
-        label_skip_one=False,
-        legend_loc="lower right",
-        legend_size=6,
-        show_data_labels=True,
-        hide_overlap_label=True,
-        label_gap=(0, -0.028),
-        save_plot=False,
-        label_params={},
-        line_params={},
-        marker_params={},
-        verbose=True,
-    ):
+    def plot_roc_curves(self, dpi=100, figsize=(5, 5), xmin=None, xmax=None,
+                        ymin=-0.05, ymax=1.02, xlog=True, label_skip_one=False,
+                        legend_loc='lower right', legend_size=6,
+                        show_data_labels=True, hide_overlap_label=True,
+                        label_gap=(0, -0.028), save_plot=False, label_params={},
+                        line_params={}, marker_params={}, verbose=True):
         # """
         # Parameters
         # ----------
+
 
         # Returns
         # -------
@@ -401,9 +313,8 @@ class EvalRoc(object):
         # # TODO: hardcoded `methodconf`?
 
         # """
-        labelskw = dict(
-            alpha=1, fontsize=5.5, weight="bold", rotation=0, annotation_clip=True
-        )
+        labelskw = dict(alpha=1, fontsize=5.5, weight="bold", rotation=0,
+                        annotation_clip=True)
         linekw = dict(alpha=0.2)
         markerkw = dict(alpha=0.5, ms=3)
         labelskw.update(label_params)
@@ -412,16 +323,17 @@ class EvalRoc(object):
         n_thresholds = len(self.methods[0].thresholds)
 
         if verbose:
-            print("{} injections".format(self.n_injections))
+            print('{} injections'.format(self.n_injections))
             # print('Flux distro : {} [{}:{}]'.format(roc_injections.flux_distribution,
             # roc_injections.fluxp1, roc_injections.fluxp2))
-            print("Annulus from {} to {} pixels".format(self.inrad, self.outrad))
+            print('Annulus from {} to {} pixels'.format(self.inrad,
+                                                        self.outrad))
 
         fig = plt.figure(figsize=figsize, dpi=dpi)
         ax = fig.add_subplot(111)
 
         if not isinstance(label_skip_one, (list, tuple)):
-            label_skip_one = [label_skip_one] * len(self.methods)
+            label_skip_one = [label_skip_one]*len(self.methods)
         labels = []
 
         # methodconf = {"CADI": dict(color="#d62728", symbol="^"),
@@ -433,25 +345,22 @@ class EvalRoc(object):
         #             }  # maps m.name to plot style
 
         for i, m in enumerate(self.methods):
+
             if not hasattr(m, "detections") or not hasattr(m, "fps"):
-                raise AttributeError(
-                    "method #{} has no detections/fps. Run"
-                    "`compute_tpr_fps` first.".format(i)
-                )
+                raise AttributeError("method #{} has no detections/fps. Run"
+                                     "`compute_tpr_fps` first.".format(i))
 
             m.tpr = np.zeros((n_thresholds))
             m.mean_fps = np.zeros((n_thresholds))
 
             for j in range(n_thresholds):
-                m.tpr[j] = (
-                    np.asarray(m.detections)[:, j].tolist().count(1) / self.n_injections
-                )
+                m.tpr[j] = np.asarray(m.detections)[:, j].tolist().count(1) / \
+                           self.n_injections
                 m.mean_fps[j] = np.asarray(m.fps)[:, j].mean()
 
-            plt.plot(m.mean_fps, m.tpr, "--", color=m.color, **linekw)
-            plt.plot(
-                m.mean_fps, m.tpr, m.symbol, label=m.name, color=m.color, **markerkw
-            )
+            plt.plot(m.mean_fps, m.tpr, '--', color=m.color, **linekw)
+            plt.plot(m.mean_fps, m.tpr, m.symbol, label=m.name, color=m.color,
+                     **markerkw)
 
             if show_data_labels:
                 if label_skip_one[i]:
@@ -463,26 +372,21 @@ class EvalRoc(object):
                     lab_y = m.tpr
                     thr = m.thresholds
 
-                for i, xy in enumerate(zip(lab_x + label_gap[0], lab_y + label_gap[1])):
-                    labels.append(
-                        ax.annotate(
-                            "{:.2f}".format(thr[i]),
-                            xy=xy,
-                            xycoords="data",
-                            color=m.color,
-                            **labelskw
-                        )
-                    )
+                for i, xy in enumerate(zip(lab_x + label_gap[0],
+                                           lab_y + label_gap[1])):
+                    labels.append(ax.annotate('{:.2f}'.format(thr[i]),
+                                  xy=xy, xycoords='data', color=m.color,
+                                              **labelskw))
                     # TODO: reverse order of `self.methods` for better annot.
                     # z-index?
 
-        plt.legend(loc=legend_loc, prop={"size": legend_size})
+        plt.legend(loc=legend_loc, prop={'size': legend_size})
         if xlog:
             ax.set_xscale("symlog")
         plt.ylim(ymin=ymin, ymax=ymax)
         plt.xlim(xmin=xmin, xmax=xmax)
-        plt.ylabel("TPR")
-        plt.xlabel("Full-frame mean FPs")
+        plt.ylabel('TPR')
+        plt.xlabel('Full-frame mean FPs')
         plt.grid(alpha=0.4)
 
         if show_data_labels:
@@ -507,22 +411,14 @@ class EvalRoc(object):
 
         if save_plot:
             if isinstance(save_plot, str):
-                plt.savefig(save_plot, dpi=dpi, bbox_inches="tight")
+                plt.savefig(save_plot, dpi=dpi, bbox_inches='tight')
             else:
-                plt.savefig("roc_curve.pdf", dpi=dpi, bbox_inches="tight")
+                plt.savefig('roc_curve.pdf', dpi=dpi, bbox_inches='tight')
 
 
-def compute_binary_map(
-    frame,
-    thresholds,
-    injections,
-    fwhm,
-    npix=1,
-    overlap_threshold=0.7,
-    max_blob_fact=2,
-    plot=False,
-    debug=False,
-):
+def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
+                       overlap_threshold=0.7, max_blob_fact=2, plot=False,
+                       debug=False):
     """
     Take a list of ``thresholds``, create binary maps and counts detections/fps.
     A blob which is "too big" is split into apertures, and every aperture adds
@@ -567,7 +463,6 @@ def compute_binary_map(
         value.
 
     """
-
     def _overlap_injection_blob(injection, fwhm, blob_mask):
         """
         Parameters
@@ -585,13 +480,9 @@ def compute_binary_map(
 
         """
         if len(injections[0]) > 0:
-            injection_mask = get_circle(
-                np.ones_like(blob_mask),
-                radius=fwhm,
-                cy=injection[1],
-                cx=injection[0],
-                mode="mask",
-            )
+            injection_mask = get_circle(np.ones_like(blob_mask), radius=fwhm,
+                                        cy=injection[1], cx=injection[0],
+                                        mode="mask")
         else:
             injection_mask = np.zeros_like(blob_mask)
         intersection = injection_mask & blob_mask
@@ -632,38 +523,28 @@ def compute_binary_map(
             list_fps.append(fps)
             continue
 
-        binmap = segments.data != 0
+        binmap = (segments.data != 0)
 
         if debug:
-            plot_frames(
-                (segments.data, binmap),
-                cmap=("tab20b", "binary"),
-                circle=tuple(tuple(xy) for xy in injections),
-                circle_radius=fwhm,
-                circle_alpha=0.6,
-                label=("segmentation map", "binary map"),
-            )
+            plot_frames((segments.data, binmap), cmap=('tab20b', 'binary'),
+                        circle=tuple(tuple(xy) for xy in injections),
+                        circle_radius=fwhm, circle_alpha=0.6,
+                        label=("segmentation map", "binary map"))
 
         detections = 0
         fps = 0
 
         for segment in segments.segments:
             label = segment.label
-            blob_mask = segments.data == label
+            blob_mask = (segments.data == label)
             blob_area = segment.area
 
             if debug:
                 lab = "blob #{}, area={}px**2".format(label, blob_area)
-                plot_frames(
-                    blob_mask,
-                    circle_radius=fwhm,
-                    circle_alpha=0.6,
-                    circle=tuple(tuple(xy) for xy in injections),
-                    cmap="binary",
-                    label_size=8,
-                    label=lab,
-                    size_factor=3,
-                )
+                plot_frames(blob_mask, circle_radius=fwhm, circle_alpha=0.6,
+                            circle=tuple(tuple(xy) for xy in injections),
+                            cmap='binary', label_size=8, label=lab,
+                            size_factor=3)
 
             for iinj, injection in enumerate(injections):
                 if len(injections[0]) > 0:  # checking injections is not empty
@@ -671,18 +552,15 @@ def compute_binary_map(
                         raise ValueError("Wrong coordinates in `injections`")
 
                     if debug:
-                        print(
-                            "\ttesting injection #{} at {}".format(iinj + 1, injection)
-                        )
+                        print("\ttesting injection #{} at {}".format(iinj + 1,
+                                                                     injection))
 
                 if blob_area > max_blob_fact * npix_circ_aperture:
                     number_of_apertures_in_blob = blob_area / npix_circ_aperture
                     fps += number_of_apertures_in_blob  # float, rounded at end
                     if debug:
-                        print(
-                            "\tblob is too big (+{:.0f} fps)"
-                            "".format(number_of_apertures_in_blob)
-                        )
+                        print("\tblob is too big (+{:.0f} fps)"
+                              "".format(number_of_apertures_in_blob))
                         print("\tskipping all other injections")
                     # continue with next blob, do not check other injections
                     break
@@ -690,7 +568,8 @@ def compute_binary_map(
                 overlap = _overlap_injection_blob(injection, fwhm, blob_mask)
                 if overlap > overlap_threshold:
                     if debug:
-                        print("\toverlap of {}! (+1 detection)" "".format(overlap))
+                        print("\toverlap of {}! (+1 detection)"
+                              "".format(overlap))
 
                     detections += 1
                     # continue with next blob, do not check other injections
@@ -701,9 +580,8 @@ def compute_binary_map(
 
             else:
                 if debug:
-                    print(
-                        "\tdid not find a matching injection for this " "blob (+1 fps)"
-                    )
+                    print("\tdid not find a matching injection for this "
+                          "blob (+1 fps)")
                 fps += 1
 
         if debug:
@@ -717,32 +595,25 @@ def compute_binary_map(
         list_fps.append(fps)
 
     if plot:
-        labs = tuple(
-            str(det) + " detections" + "\n" + str(fps) + " false positives"
-            for det, fps in zip(list_detections, list_fps)
-        )
+        labs = tuple(str(det) + ' detections' + '\n' + str(fps) +
+                     ' false positives' for det, fps in zip(list_detections,
+                                                            list_fps))
         if len(injections[0]) > 0:
             circles = tuple(tuple(xy) for xy in injections)
         else:
             circles = None
-        plot_frames(
-            tuple(list_binmaps),
-            title="Final binary maps",
-            label=labs,
-            label_size=8,
-            cmap="binary",
-            circle_alpha=0.8,
-            circle=circles,
-            circle_radius=fwhm,
-            circle_color="deepskyblue",
-            axis=False,
-        )
+        plot_frames(tuple(list_binmaps), title='Final binary maps', label=labs,
+                    label_size=8, cmap='binary', circle_alpha=0.8,
+                    circle=circles, circle_radius=fwhm,
+                    circle_color='deepskyblue', axis=False)
 
     return list_detections, list_fps, list_binmaps
 
 
-def _create_synt_cube(cube, psf, ang, plsc, dist, flux, theta=None, verbose=False):
-    """ """
+def _create_synt_cube(cube, psf, ang, plsc, dist, flux, theta=None,
+                      verbose=False):
+    """
+    """
     centy_fr, centx_fr = frame_center(cube[0])
     if theta is None:
         np.random.seed()
@@ -751,17 +622,9 @@ def _create_synt_cube(cube, psf, ang, plsc, dist, flux, theta=None, verbose=Fals
     posy = dist * np.sin(np.deg2rad(theta)) + centy_fr
     posx = dist * np.cos(np.deg2rad(theta)) + centx_fr
     if verbose:
-        print("Theta:", theta)
-        print("Flux_inj:", flux)
-    cubefc = cube_inject_companions(
-        cube,
-        psf,
-        ang,
-        flevel=flux,
-        plsc=plsc,
-        rad_dists=[dist],
-        n_branches=1,
-        theta=theta,
-        verbose=verbose,
-    )
+        print('Theta:', theta)
+        print('Flux_inj:', flux)
+    cubefc = cube_inject_companions(cube, psf, ang, flevel=flux, plsc=plsc,
+                                    rad_dists=[dist], n_branches=1, theta=theta,
+                                    verbose=verbose)
     return cubefc, posx, posy

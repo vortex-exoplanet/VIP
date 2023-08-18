@@ -3,13 +3,16 @@
 Module with conversion utilities from dictionaries to headers, and reversely.
 """
 
-__author__ = "Thomas Bedrine"
+__author__ = "Thomas Bedrine, Iain Hammond"
 __all__ = ["dict_to_fitsheader",
-           "fitsheader_to_dict"]
+           "fitsheader_to_dict",
+           "open_header"]
 
-
+from os.path import isfile
 from typing import Tuple
-from astropy.io.fits import Header
+
+from astropy.io.fits.convenience import getheader
+from astropy.io.fits.header import Header
 
 
 def dict_to_fitsheader(initial_dict: dict) -> Header:
@@ -37,7 +40,7 @@ def fitsheader_to_dict(
     initial_header: Header, sort_by_prefix: str = ""
 ) -> Tuple[dict, str]:
     """
-    Extract a dictionnary of parameters and a string from a FITS Header.
+    Extract a dictionary of parameters and a string from a FITS Header.
 
     The string is supposedly the name of the algorithm that was used to obtain
     the results that go with the Header.
@@ -71,3 +74,48 @@ def fitsheader_to_dict(
     algo_name = parameters["algo_name"]
     del parameters["algo_name"]
     return parameters, algo_name
+
+
+def open_header(fitsfilename: str, n: int = 0, extname: str = None,
+                verbose: bool = False) -> Header:
+    """
+    Load a FITS header into memory to avoid loading the data.
+
+    This function is a simple wrapper of astropy.io.fits.convenience.getheader
+    designed to substitute `open_fits` when only a FITS header is needed.
+    This is ~ 40 times faster than using `open_fits` with header=True on
+    an average sized VLT/SPHERE data set.
+
+    Parameters
+    ----------
+    fitsfilename : string
+        Name of the FITS file.
+    n : int, optional
+        Which HDU ext to open. Default is the first ext (zero based indexing).
+    extname : str, optional
+        Opens the HDU ext by name, rather than by HDU number. Overrides `n` and
+        is not case-sensitive.
+    verbose : bool, optional
+        If True prints message of completion.
+
+    Returns
+    -------
+    header : dict or list of dict
+        Astropy Header class with both a dict-like and list-like interface.
+    """
+
+    fitsfilename = str(fitsfilename)
+    if not isfile(fitsfilename):
+        fitsfilename += ".fits"
+
+    # if extname is a non-empty string, provide that instead. Else use HDU number
+    if extname and not extname.isspace():
+        n = extname
+        header = getheader(fitsfilename, extname=n, ignore_missing_end=True)
+    else:
+        header = getheader(fitsfilename, ext=n, ignore_missing_end=True)
+
+    if verbose:
+        print(f"Fits HDU-{n} header successfully loaded.")
+
+    return header

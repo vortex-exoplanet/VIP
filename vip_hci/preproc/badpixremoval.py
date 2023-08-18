@@ -1,21 +1,19 @@
 #! /usr/bin/env python
-
 """
 Module with functions for correcting bad pixels in cubes.
 
 .. [AAC01]
    | Aach & Metzler 2001
-   | **Defect interpolation in digital radiography how object-oriented 
+   | **Defect interpolation in digital radiography how object-oriented
      transform coding helps**
    | *SPIE, Proceedings Volume 4322, Medical Imaging 2001: Image Processing*
    | `https://doi.org/10.1117/12.431161
      <https://doi.org/10.1117/12.431161>`_
 
 """
-
-
 import warnings
-__author__ = 'V. Christiaens, Carlos Alberto Gomez Gonzalez'
+__author__ = ('V. Christiaens, Carlos Alberto Gomez Gonzalez, '
+              'Srikanth Kompella')
 __all__ = ['frame_fix_badpix_isolated',
            'cube_fix_badpix_isolated',
            'cube_fix_badpix_annuli',
@@ -73,8 +71,8 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
     array : numpy ndarray
         Input 2d array.
     bpm_mask : numpy ndarray, optional
-        Input bad pixel map. Should have same size as array. Binary map where 
-        the bad pixels have a value of 1. If None is provided a bad pixel map 
+        Input bad pixel map. Should have same size as array. Binary map where
+        the bad pixels have a value of 1. If None is provided a bad pixel map
         will be created using sigma clip statistics.
     correct_only : bool, opt
         If True and bpix_map is provided, will only correct for provided bad
@@ -94,9 +92,9 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
         frames) in which no bad pixels will be identified. This can be useful
         to protect the star and vicinity.
     excl_mask : numpy ndarray, optional
-        Binary mask with 1 in areas that should not be considered as good 
-        neighbouring pixels during the identification of bad pixels. These 
-        should not be considered as bad pixels to be corrected neither (i.e. 
+        Binary mask with 1 in areas that should not be considered as good
+        neighbouring pixels during the identification of bad pixels. These
+        should not be considered as bad pixels to be corrected neither (i.e.
         different to bpm_mask).
     cxy: None or tuple
         If protect_mask is True, this is the location of the star centroid in
@@ -228,9 +226,9 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
         frames) in which no bad pixels will be identified. This can be useful
         to protect the star and vicinity.
     excl_mask : numpy ndarray, optional
-        Binary mask with 1 in areas that should not be considered as good 
-        neighbouring pixels during the identification of bad pixels. These 
-        should not be considered as bad pixels to be corrected neither (i.e. 
+        Binary mask with 1 in areas that should not be considered as good
+        neighbouring pixels during the identification of bad pixels. These
+        should not be considered as bad pixels to be corrected neither (i.e.
         different to bpm_mask).
     cxy: None, tuple or 2d numpy ndarray
         If protect_mask is True, this is the location of the star centroid in
@@ -250,9 +248,9 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
         Whether to return as well the cube of bad pixel maps and the cube of
         defined annuli.
     nproc: int, optional
-        This feature is added following ADACS update. Refers to the number of 
-        processors available for calculations. Choosing a number >1 enables 
-        multiprocessing for the correction of frames. This happens only when 
+        This feature is added following ADACS update. Refers to the number of
+        processors available for calculations. Choosing a number >1 enables
+        multiprocessing for the correction of frames. This happens only when
         ``frame_by_frame=True''.
 
     Return
@@ -334,7 +332,8 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
                 array_out[i] = res[0]
                 final_bpm[i] = res[1]
         else:
-            print("Processing using ADACS' multiprocessing approach...")
+            if verbose:
+                print("Cleaning frames using ADACS' multiprocessing approach")
             # dummy calling the function to create cached version of the code prior to forking
             if bpm_mask is not None:
                 bpm_mask_dum = bpm_mask[0]
@@ -488,11 +487,11 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., bpm_mask=None,
     """
     Function to correct the bad pixels annulus per annulus (centered on the
     provided location of the star), in an input frame or cube.
-    This function is faster than ``cube_fix_badpix_clump``; hence to be 
-    preferred in all cases where there is only one bright source with circularly 
-    symmetric PSF. The bad pixel values are replaced by: 
+    This function is faster than ``cube_fix_badpix_clump``; hence to be
+    preferred in all cases where there is only one bright source with circularly
+    symmetric PSF. The bad pixel values are replaced by:
     ann_median + random_poisson;
-    where ann_median is the median of the annulus, and random_poisson is 
+    where ann_median is the median of the annulus, and random_poisson is
     random noise picked from a Poisson distribution centered on ann_median.
 
     Parameters
@@ -513,18 +512,18 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., bpm_mask=None,
         Number of stddev above or below the median of the pixels in the same
         annulus, to consider a pixel as bad.
     bpm_mask: 3D or 2D array, opt
-        Input bad pixel array. If 2D and array is 3D: should have same last 2 
-        dimensions as array. If 3D, should have exact same dimensions as input 
-        array. If not provided, the algorithm will attempt to identify bad pixel 
+        Input bad pixel array. If 2D and array is 3D: should have same last 2
+        dimensions as array. If 3D, should have exact same dimensions as input
+        array. If not provided, the algorithm will attempt to identify bad pixel
         clumps automatically.
     protect_mask : int or float, optional
         If larger than 0, radius of a circular aperture (at the center of the
         frames) in which no bad pixels will be identified. This can be useful
         to protect the star and vicinity.
     excl_mask : numpy ndarray, optional
-        Binary mask with 1 in areas that should not be considered as good 
-        neighbouring pixels during the identification of bad pixels. These 
-        should not be considered as bad pixels to be corrected neither (i.e. 
+        Binary mask with 1 in areas that should not be considered as good
+        neighbouring pixels during the identification of bad pixels. These
+        should not be considered as bad pixels to be corrected neither (i.e.
         different to bpm_mask).
     r_in_std: float or None, optional
         Inner radius (in pixels) of the annulus used for the calculation of the
@@ -547,8 +546,8 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., bpm_mask=None,
         be automatically considered bad and hence sigma_filtered. If None, it
         is not used.
     min_thr_np: {None, float}, optional
-        Any pixel whose value is lower than this threshold will be automatically 
-        considered bad and hence sigma_filtered, EVEN if located within the 
+        Any pixel whose value is lower than this threshold will be automatically
+        considered bad and hence sigma_filtered, EVEN if located within the
         radius of protect_mask.
     bad_values: list or None, optional
         If not None, should correspond to a list of known bad values (e.g. 0).
@@ -842,9 +841,9 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
     array : 3D or 2D array
         Input 3d cube or 2d image.
     bpm_mask: 3D or 2D array, opt
-        Input bad pixel array. If 2D and array is 3D: should have same last 2 
-        dimensions as array. If 3D, should have exact same dimensions as input 
-        array. If not provided, the algorithm will attempt to identify bad pixel 
+        Input bad pixel array. If 2D and array is 3D: should have same last 2
+        dimensions as array. If 3D, should have exact same dimensions as input
+        array. If not provided, the algorithm will attempt to identify bad pixel
         clumps automatically.
     correct_only : bool, opt
         If True and bpix_map is provided, will only correct for provided bad
@@ -867,9 +866,9 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
         frames) in which no bad pixels will be identified. This can be useful
         to protect the star and vicinity.
     excl_mask : numpy ndarray, optional
-        Binary mask with same dimensions as array, with 1 in areas that should 
-        not be considered as good neighbouring pixels during the identification 
-        of bad pixels. These should not be considered as bad pixels to be 
+        Binary mask with same dimensions as array, with 1 in areas that should
+        not be considered as good neighbouring pixels during the identification
+        of bad pixels. These should not be considered as bad pixels to be
         corrected neither (i.e. different to bpm_mask).
     half_res_y: bool, {True,False}, optional
         Whether the input data has only half the angular resolution vertically
@@ -902,9 +901,9 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
         Whether to return as well the cube of bad pixel maps and the cube of
         defined annuli.
     nproc: int, optional
-        This feature is added following ADACS update. Refers to the number of 
-        processors available for calculations. Choosing a number >1 enables 
-        multiprocessing for the correction of frames.  
+        This feature is added following ADACS update. Refers to the number of
+        processors available for calculations. Choosing a number >1 enables
+        multiprocessing for the correction of frames.
 
     Returns
     -------
@@ -1110,8 +1109,8 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                                         verbose)
                     array_corr[i], bpix_map_cumul[i] = res
             else:
-                msg = "Cleaning frames using ADACS' multiprocessing approach"
-                print(msg)
+                if verbose:
+                    print("Cleaning frames using ADACS' multiprocessing approach")
                 # creating shared memory buffer space for the image cube.
                 shm_clump = shared_memory.SharedMemory(create=True,
                                                        size=array_corr.nbytes)
@@ -1182,8 +1181,8 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                                                  neighbor_box, nneig, half_res_y,
                                                  verbose)
             else:
-                msg = "Cleaning frames using ADACS' multiprocessing approach"
-                print(msg)
+                if verbose:
+                    print("Cleaning frames using ADACS' multiprocessing approach")
                 # dummy calling sigma_filter function to create a cached version of the numba function
                 if bpm_mask.ndim == 3:
                     dummy_bpm = bpm_mask[0]
@@ -1476,10 +1475,10 @@ def cube_fix_badpix_interp(array, bpm_mask, mode='fft', excl_mask=None, fwhm=4.,
         Can be either a 2D Gaussian ('gauss') or an input normalized PSF
         ('psf').
     excl_mask: 3D or 2D array, optional
-        [Only used if mode != 'fft'] Input exclusion mask array. Pixels in the 
-        exclusion mask will neither be used for interpolation, nor replaced as 
-        bad pixels. excl_mask should have same x,y dimensions as array. If 2D, 
-        but input array is 3D, the same exclusion mask will be assumed for all 
+        [Only used if mode != 'fft'] Input exclusion mask array. Pixels in the
+        exclusion mask will neither be used for interpolation, nor replaced as
+        bad pixels. excl_mask should have same x,y dimensions as array. If 2D,
+        but input array is 3D, the same exclusion mask will be assumed for all
         frames.
     fwhm: float, 1D array or tuple of 2 floats, opt
         If mode is 'gauss', the fwhm of the Gaussian.
@@ -1504,14 +1503,14 @@ def cube_fix_badpix_interp(array, bpm_mask, mode='fft', excl_mask=None, fwhm=4.,
         If a list is provided, a list of bad pixel corrected frames/cubes is
         returned.
     tol: float
-        Tolerance in terms of E_g (see [AAC01]_). The iterative process is 
+        Tolerance in terms of E_g (see [AAC01]_). The iterative process is
         stopped if the error E_g gets lower than this tolerance.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to (cpu_count()/2). Note: only used for input
         3D cube and 'fft' mode.
     full_output: bool, {False,True}, optional
-        In the case of FT-based interpolation, whether to return as well the 
+        In the case of FT-based interpolation, whether to return as well the
         reconstructed images.
     **kwargs : dict
         Passed through to the astropy.convolution.convolve or convolve_fft
@@ -1921,7 +1920,7 @@ def correct_ann_outliers(array, bpix_map, ann_width, sig, med_neig, std_neig,
     Parameters:
     -----------
     array: numpy ndarray
-        Input array with respect to which either a test_value or the central 
+        Input array with respect to which either a test_value or the central
         value of data is determined to be an outlier or not
     bpix_map: numpy ndarray or None
         Input array of known bad pixels.
@@ -2054,23 +2053,23 @@ def frame_fix_badpix_fft(array, bpm_mask, nit=500, tol=1, pad_fac=2,
         The number of iterations to use. If a list is provided, a list of bad
         pixel corrected frames/cubes is returned.
     tol: float, opt
-        Tolerance in terms of E_g (see [AAC01]_). The iterative process is 
+        Tolerance in terms of E_g (see [AAC01]_). The iterative process is
         stopped if the error E_g gets lower than this tolerance.
     pad_fac: int or float, opt
         Padding factor before calculating 2D-FFT.
     verbose: bool
-        Whether to print additional information during processing, incl. 
+        Whether to print additional information during processing, incl.
         progress bar.
     full_output: bool
-        Whether to also return the reconstructed estimate f_hat of the input 
-        array. 
+        Whether to also return the reconstructed estimate f_hat of the input
+        array.
 
     Returns
     -------
     array_corr: 2D ndarray or list of 2D ndarray
         Image in which the bad pixels have been interpolated.
     f_est: 2D ndarray or list of 2D ndarray
-        [full_output=True] Reconstructed estimate (f_hat in [AAC01]_) of the 
+        [full_output=True] Reconstructed estimate (f_hat in [AAC01]_) of the
         input array
     """
 

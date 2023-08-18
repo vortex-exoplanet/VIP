@@ -1,20 +1,20 @@
 #! /usr/bin/env python
-
 """
 Module with simplex (Nelder-Mead) optimization for defining the flux and
 position of a companion using the Negative Fake Companion.
-     
+
 """
-
-
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.optimize import minimize
-from .negfc_fmerit import chisquare, get_mu_and_sigma
+
+from ..config import time_ini
+from ..config import timing
+from ..config.utils_conf import sep
 from ..psfsub import pca_annulus
 from ..var import frame_center
-from ..config import time_ini, timing
-from ..config.utils_conf import sep
+from .negfc_fmerit import chisquare
+from .negfc_fmerit import get_mu_and_sigma
 
 
 __author__ = 'O. Wertz, C. A. Gomez Gonzalez, V. Christiaens'
@@ -53,7 +53,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
         the first dimension(s) must match those of the input cube.
     fwhm : float
-        The FHWM in pixels.
+        The FWHM in pixels.
     annulus_width: int, optional
         The width in pixels of the annulus on which the PCA is done.
     aperture_radius: int, optional
@@ -79,10 +79,10 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     fmerit : {'sum', 'stddev'}, string optional
         Figure of merit to be used, if mu_sigma is set to None.
@@ -133,7 +133,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
     debug: bool, optional
         Whether to print details of the grid search
     full_output : bool, optional
-        Whether to also return the range of fluxes tested and their chi2r 
+        Whether to also return the range of fluxes tested and their chi2r
         values.
 
     Returns
@@ -141,9 +141,9 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
     res : tuple
         The polar coordinates and the flux(es) of the companion.
     f_range: 1d numpy.array
-        [full_output=True] The range of tested flux values. 
+        [full_output=True] The range of tested flux values.
     chi2r: 1d numpy.array
-        [full_output=True] The chi2r values corresponding to tested flux values. 
+        [full_output=True] The chi2r values corresponding to tested flux values.
     """
     def _grid_search_f(r0, theta0, ch, cube, angs, psfn, fwhm, annulus_width,
                        aperture_radius, ncomp, cube_ref=None, svd_mode='lapack',
@@ -322,7 +322,7 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
     ncomp: int or None
         The number of principal components.
     fwhm : float
-        The FHWM in pixels.
+        The FWHM in pixels.
     annulus_width: int, optional
         The width in pixels of the annulus on which the PCA is done.
     aperture_radius: int, optional
@@ -346,10 +346,10 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     fmerit : {'sum', 'stddev'}, string optional
         Figure of merit to be used, if mu_sigma is set to None.
@@ -478,7 +478,7 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
     plsc: float, optional
         The platescale, in arcsec per pixel.
     fwhm : float, optional
-        The FHWM in pixels.
+        The FWHM in pixels.
     annulus_width: int, optional
         The width in pixels of the annulus on which the PCA is done.
     aperture_radius: int, optional
@@ -502,10 +502,10 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     fmerit : {'sum', 'stddev'}, string optional
         Figure of merit to be used, if mu_sigma is set to None.
@@ -578,7 +578,7 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
 
     Note
     ----
-    Polar angle is not the conventional NORTH-TO-EAST P.A., but the 
+    Polar angle is not the conventional NORTH-TO-EAST P.A., but the
     counter-clockwise angle measured from the positive x axis.
     """
 

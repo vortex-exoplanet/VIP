@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
 
@@ -9,14 +8,14 @@ Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
    | *MNRAS, Volume 502, Issue 4, pp. 6117-6139*
    | `https://arxiv.org/abs/2102.10288
      <https://arxiv.org/abs/2102.10288>`_
-     
+
 .. [FOR13]
    | Foreman-Mackey et al. 2013
    | **emcee: The MCMC Hammer**
    | *PASP, Volume 125, Issue 925, p. 306*
    | `https://arxiv.org/abs/1202.3665
      <https://arxiv.org/abs/1202.3665>`_
-     
+
 .. [WER17]
    | Wertz et al. 2017
    | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond-level accuracy. Orbital architecture analysis with PyAstrOFit**
@@ -30,10 +29,8 @@ Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
    | *Comm. App. Math. Comp. Sci., Vol. 5, Issue 1, pp. 65-80.*
    | `https://ui.adsabs.harvard.edu/abs/2010CAMCS...5...65G
      <https://ui.adsabs.harvard.edu/abs/2010CAMCS...5...65G>`_
-     
+
 """
-
-
 from ..fits import write_fits
 __author__ = 'O. Wertz, Carlos Alberto Gomez Gonzalez, V. Christiaens'
 __all__ = ['mcmc_negfc_sampling',
@@ -137,7 +134,7 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
     ncomp: int or None
         The number of principal components for PCA-based algorithms.
     fwhm : float
-        The FHWM in pixels.
+        The FWHM in pixels.
     aperture_radius: float
         The radius of the circular aperture in terms of the FWHM.
     initial_state: numpy.array
@@ -163,10 +160,10 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     algo: vip function, optional {pca_annulus, pca_annular}
         Post-processing algorithm used.
@@ -335,7 +332,7 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
         the first dimension(s) must match those of the input cube.
     fwhm : float
-        The FHWM in pixels.
+        The FWHM in pixels.
     annulus_width: float
         The width in pixel of the annulus on wich the PCA is performed.
     ncomp: int or None
@@ -365,10 +362,10 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
@@ -488,9 +485,9 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         - set ``imlib='opencv'`` (much faster image rotations, BUT at the expense
           of flux conservation);
         - increase ``nproc`` (if your machine allows);
-        - reduce ``ac_c`` (or increase ``rhat_threshold`` if ``conv_test='gb'``) 
+        - reduce ``ac_c`` (or increase ``rhat_threshold`` if ``conv_test='gb'``)
           for a faster convergence);
-        - reduce ``niteration_limit`` to force the sampler to stop even if it 
+        - reduce ``niteration_limit`` to force the sampler to stop even if it
           has not reached convergence.
 
     Parameters
@@ -525,7 +522,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     aperture_radius: float, optional
         The radius in FWHM of the circular aperture.
     fwhm : float
-        The FHWM in pixels.
+        The FWHM in pixels.
     mu_sigma: tuple of 2 floats or bool, opt
         If set to None: not used, and falls back to original version of the
         algorithm, using ``fmerit`` [WER17]_.
@@ -544,7 +541,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     fmerit : {'sum', 'stddev'}, string optional
         If mu_sigma is not provided nor set to True, this parameter determines
         which figure of merit to be used among the 2 possibilities implemented
-        in [WER17]_. 'stddev' may work well for point like sources surrounded by 
+        in [WER17]_. 'stddev' may work well for point like sources surrounded by
         extended signals.
     cube_ref : 3d or 4d numpy ndarray, or list of 3d ndarray, optional
         Reference library cube for Reference Star Differential Imaging. Should
@@ -568,10 +565,10 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
@@ -1125,8 +1122,8 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
 
     Returns
     -------
-    None 
-        (Displays the figure or create a pdf file named walk_plot.pdf in the 
+    None
+        (Displays the figure or create a pdf file named walk_plot.pdf in the
         working directory).
 
     Raises
@@ -1218,10 +1215,10 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     Returns
     -------
     out: A 2 elements tuple with either:
-        [gaussian_fit=False] i) the highly probable solutions (dictionary), 
+        [gaussian_fit=False] i) the highly probable solutions (dictionary),
             ii) the respective confidence interval (dict.);
-        [gaussian_fit=True] i) the center of the best-fit 1d Gaussian 
-            distributions (tuple of 3 floats), and ii) their standard deviation, 
+        [gaussian_fit=True] i) the center of the best-fit 1d Gaussian
+            distributions (tuple of 3 floats), and ii) their standard deviation,
             for each parameter
 
     """

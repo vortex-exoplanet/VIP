@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with detection algorithms.
 """
@@ -13,7 +12,7 @@ __all__ = ['detection',
 import numpy as np
 import pandas as pn
 from hciplot import plot_frames
-from scipy.ndimage.filters import correlate
+from scipy.ndimage import correlate
 from skimage import feature
 from astropy.stats import sigma_clipped_stats
 from astropy.stats import gaussian_fwhm_to_sigma, gaussian_sigma_to_fwhm

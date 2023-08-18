@@ -68,7 +68,7 @@ def chisquare(
     psfs_norm: numpy.array
         The scaled psf expressed as a numpy.array.
     fwhm : float
-        The FHWM in pixels.
+        The FWHM in pixels.
     annulus_width: int, optional
         The width in pixels of the annulus on which the PCA is done.
     aperture_radius: int, optional

@@ -508,6 +508,21 @@ def compute_binary_map(frame, thresholds, injections, fwhm, npix=1,
             print("\nprocessing threshold #{}: {}".format(ithr + 1, threshold))
 
         segments = detect_sources(frame, threshold, npix, connectivity=4)
+
+        # required since photutils v0.7
+        if segments is None:
+            binmap = np.zeros_like(frame)
+            detections = 0
+            fps = 0
+            if debug:
+                print("done with threshold #{}".format(ithr))
+                print("result: {} detections, {} fps".format(detections, fps))
+
+            list_detections.append(detections)
+            list_binmaps.append(binmap)
+            list_fps.append(fps)
+            continue
+
         binmap = (segments.data != 0)
 
         if debug:

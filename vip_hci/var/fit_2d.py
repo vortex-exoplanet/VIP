@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 2d fitting and creation of synthetic PSFs.
 """

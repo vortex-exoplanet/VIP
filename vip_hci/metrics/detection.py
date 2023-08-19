@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with detection algorithms.
 """

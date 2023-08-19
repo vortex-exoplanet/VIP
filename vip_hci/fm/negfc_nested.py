@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with functions for posterior sampling of the NEGFC parameters using
 nested sampling (``nestle``).
@@ -13,28 +12,28 @@ nested sampling (``nestle``).
 
 .. [FER09]
    | Feroz et al. 2009
-   | **MULTINEST: an efficient and robust Bayesian inference tool for cosmology 
+   | **MULTINEST: an efficient and robust Bayesian inference tool for cosmology
      and particle physics**
    | *MNRAS, Volume 398, Issue 4, pp. 1601-1614*
    | `https://arxiv.org/abs/0809.3437
      <https://arxiv.org/abs/0809.3437>`_
-     
+
 .. [MUK06]
    | Mukherjee et al. 2006
    | **A Nested Sampling Algorithm for Cosmological Model Selection**
    | *ApJL, Volume 638, Issue 2, pp. 51-54*
    | `https://arxiv.org/abs/astro-ph/0508461
      <https://arxiv.org/abs/astro-ph/0508461>`_
-     
+
 .. [SKI04]
    | Skilling 2004
-   | **Bayesian Inference and Maximum Entropy Methods in Science and Engineering: 
-     24th International Workshop on Bayesian Inference and Maximum Entropy 
+   | **Bayesian Inference and Maximum Entropy Methods in Science and Engineering:
+     24th International Workshop on Bayesian Inference and Maximum Entropy
      Methods in Science and Engineering**
    | *American Institute of Physics Conference Series, Volume 735, pp. 395-405*
    | `https://ui.adsabs.harvard.edu/abs/2004AIPC..735..395S
      <https://ui.adsabs.harvard.edu/abs/2004AIPC..735..395S>`_
-     
+
 """
 
 
@@ -60,12 +59,12 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
                           weights=None, w=(5, 5, 200), method='single',
                           npoints=100, dlogz=0.1, decline_factor=None,
                           rstate=None, verbose=True):
-    """ Runs a nested sampling algorithm with ``nestle`` [BAR13]_ in order to 
-    determine the position and the flux of the planet using the 'Negative Fake 
-    Companion' technique. The result of this procedure is a ``nestle`` object 
-    containing the samples from the posterior distributions of each of the 3 
-    parameters. It provides good results (value plus error bars) compared to a 
-    more CPU intensive Monte Carlo approach with the affine invariant sampler 
+    """ Runs a nested sampling algorithm with ``nestle`` [BAR13]_ in order to
+    determine the position and the flux of the planet using the 'Negative Fake
+    Companion' technique. The result of this procedure is a ``nestle`` object
+    containing the samples from the posterior distributions of each of the 3
+    parameters. It provides good results (value plus error bars) compared to a
+    more CPU intensive Monte Carlo approach with the affine invariant sampler
     (``emcee``).
 
     Parameters
@@ -130,10 +129,10 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
         Switch for different ways of computing the SVD and selected PCs.
@@ -217,27 +216,27 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
     parameter space lies, but differ in how they select new points from it:
 
         - "classic" is close to the method described in [SKI04]_.
-        - "single", [MUK06]_, Determines a single ellipsoid that bounds all 
-          active points, enlarges the ellipsoid by a user-settable factor, 
+        - "single", [MUK06]_, Determines a single ellipsoid that bounds all
+          active points, enlarges the ellipsoid by a user-settable factor,
           and selects a new point at random from within the ellipsoid.
-        - "multiple", [FER09]_ (Multinest). In cases where the posterior is 
-          multi-modal, the single-ellipsoid method can be extremely 
-          inefficient. In such situations, there are clusters of active 
-          points on separate high-likelihood regions separated by regions of 
-          lower likelihood. Bounding all points in a single ellipsoid means 
-          that the ellipsoid includes the lower-likelihood regions we wish to 
-          avoid sampling from. The solution is to detect these clusters and 
-          bound them in separate ellipsoids. For this, we use a recursive 
-          process where we perform K-means clustering with K=2. If the 
-          resulting two ellipsoids have a significantly lower total volume 
-          than the parent ellipsoid (less than half), we accept the split and 
-          repeat the clustering and volume test on each of the two subset of 
-          points. This process continues recursively. Alternatively, if the 
-          total ellipse volume is significantly greater than expected (based 
-          on the expected density of points) this indicates that there may be 
-          more than two clusters and that K=2 was not an appropriate cluster 
-          division. We therefore still try to subdivide the clusters 
-          recursively. However, we still only accept the final split into N 
+        - "multiple", [FER09]_ (Multinest). In cases where the posterior is
+          multi-modal, the single-ellipsoid method can be extremely
+          inefficient. In such situations, there are clusters of active
+          points on separate high-likelihood regions separated by regions of
+          lower likelihood. Bounding all points in a single ellipsoid means
+          that the ellipsoid includes the lower-likelihood regions we wish to
+          avoid sampling from. The solution is to detect these clusters and
+          bound them in separate ellipsoids. For this, we use a recursive
+          process where we perform K-means clustering with K=2. If the
+          resulting two ellipsoids have a significantly lower total volume
+          than the parent ellipsoid (less than half), we accept the split and
+          repeat the clustering and volume test on each of the two subset of
+          points. This process continues recursively. Alternatively, if the
+          total ellipse volume is significantly greater than expected (based
+          on the expected density of points) this indicates that there may be
+          more than two clusters and that K=2 was not an appropriate cluster
+          division. We therefore still try to subdivide the clusters
+          recursively. However, we still only accept the final split into N
           clusters if the total volume decrease is significant.
 
     """

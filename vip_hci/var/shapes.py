@@ -1,16 +1,15 @@
 #! /usr/bin/env python
-
 """
-Module with various functions to create shapes, annuli and segments.     
+Module with various functions to create shapes, annuli and segments.
 
 .. [GEB20]
    | Gebhard et al. 2020
-   | **Physically constrained causal noise models for high-contrast imaging of 
+   | **Physically constrained causal noise models for high-contrast imaging of
      exoplanets**
    | *arXiv e-prints7*
    | `https://arxiv.org/abs/2010.05591
      <https://arxiv.org/abs/2010.05591>`_
-     
+
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, Carles Cantero'
@@ -55,11 +54,11 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None, output="
         ``fillwith``. When set to 'out' the pixels outside the circular mask
         are set to ``fillwith``.
     cy, cx : floats, opt
-        XY coordinates of thenter of the mask. By default, it considers the 
+        XY coordinates of thenter of the mask. By default, it considers the
         center of the image.
     output : {'masked_arr', 'bool_mask'}, optional
         Whether to return the masked frame or a bolean mask
-    
+
     Returns
     -------
     array_masked : numpy ndarray
@@ -74,8 +73,8 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None, output="
 
     shape = (array.shape[-2], array.shape[-1])
     ind = disk((cy, cx), radius, shape=shape)
-    
-    if output == "bool_mask" : 
+
+    if output == "bool_mask" :
         mask = np.ones(shape, dtype=bool)
         mask[ind] = False
         return mask
@@ -89,7 +88,7 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None, output="
                 array_masked[:, ind[1], ind[0]] = fillwith
             elif array.ndim == 4:
                 array_masked[:, :, ind[1], ind[0]] = fillwith
-    
+
         elif mode == 'out':
             array_masked = np.full_like(array, fillwith)
             if array.ndim == 2:
@@ -722,10 +721,10 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     mask_center_px : None or int, optional
         [mode='fullfr'] Whether to mask the center of the frames or not.
@@ -838,15 +837,15 @@ def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
           excluded in the final mask.
         * (r2) Local region: Pixels around xy in a circular fashion.
         * (r3) Symmetric local region: Pixels around the (anti)symmetric xy with
-          respect to the star location. It is also defined in a circular fashion 
+          respect to the star location. It is also defined in a circular fashion
           with same radius as "local region."
         * (r4) Annulus region: Pixels from the annulus where xy is located.
 
     The goal of this mask is to disentangle the expected structure of the
-    speckle pattern. [GEB20]_ comment that 'r2 is chosen to capture any local 
-    effects around xy due to the instrument. r3 is chosen symmetrically opposite 
-    of xy because if there is a speckle at xy, there should also be an 
-    (anti-)speckle at r2. r4 is used because we know that the systematic noise 
+    speckle pattern. [GEB20]_ comment that 'r2 is chosen to capture any local
+    effects around xy due to the instrument. r3 is chosen symmetrically opposite
+    of xy because if there is a speckle at xy, there should also be an
+    (anti-)speckle at r2. r4 is used because we know that the systematic noise
     significantly depends on the radial variable.'
 
     Parameters

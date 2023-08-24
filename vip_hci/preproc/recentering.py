@@ -1111,7 +1111,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         Input cube.
     center_fr1 : tuple, optional
         Coordinates in (y, x) of the center of the subimage for fitting a
-        2d Gaussian and centroiding the 1st frame .
+        2d Gaussian and centroiding the 1st frame.
     negative : bool, optional
         If True the centroiding of the 1st frames is done with a negative
         2d Gaussian fit.

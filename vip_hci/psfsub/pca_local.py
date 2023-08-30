@@ -139,7 +139,7 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         If a tuple of two values is provided, they are used as the lower and
         upper intervals for the threshold (grows as a function of the
         separation).
-    ncomp : 'auto', int, tuple, 1d numpy array or tuple, list, optional
+    ncomp : 'auto', int, tuple/1d numpy array of int, list, tuple of lists, opt
         How many PCs are used as a lower-dimensional subspace to project the
         target (sectors of) frames. Depends on the dimensionality of `cube`.
 
@@ -150,9 +150,10 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         one). If ``ncomp`` is set to ``auto`` then the number of PCs are
         calculated for each region/patch automatically. If a list of int is
         provided, several npc will be tried at once, but the same value of npc
-        will be used for all annuli. If a list of tuple of int is provided, then
-        different sets of npc will be calculated at once with the value of npc
-        provided in the tuples matching the different annuli.
+        will be used for all annuli. If a tuple of lists of int is provided,
+        the length of tuple should match the number of annuli and different sets
+        of npc will be calculated simultaneously for each annulus, with the
+        exact values of npc provided in the respective lists.
 
         * ADI or ADI+RDI (``cube`` is a 4d array): same input format allowed as
         above, but with a slightly different behaviour if ncomp is a list: if it
@@ -234,6 +235,12 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
 
     if algo_params is None:
         algo_params = PCA_ANNULAR_Params(*all_args, **class_params)
+
+    # by default, interpolate masked area before derotation if a mask is used
+    if algo_params.radius_int and len(rot_options) == 0:
+        rot_options['mask_val'] = 0
+        rot_options['ker'] = 1
+
 
     global start_time
     start_time = time_ini()

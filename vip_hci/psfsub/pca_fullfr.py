@@ -321,7 +321,7 @@ def pca(*all_args: List, **all_kwargs: dict):
 
 
     """
-    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    # Separating the parameters of the ParamsObject from optional rot_options
 
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=PCA_Params
@@ -378,7 +378,7 @@ def pca(*all_args: List, **all_kwargs: dict):
         )
 
     if algo_params.nproc is None:
-        algo_params.nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
+        algo_params.nproc = cpu_count() // 2  # Hyper-threading doubles # cores
 
     # All possible outputs for any PCA usage must be pre-declared to None
     # Default possible outputs

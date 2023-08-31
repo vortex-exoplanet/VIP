@@ -190,12 +190,12 @@ def compute_derot_angles_pa(
         for ii in range(10**digit_format):
             if os.path.exists(_fitsfile(ii)):
                 list_obj.append(ii)
-                _, header = open_fits(_fitsfile(ii), verbose=False, get_header=True)
+                _, header = open_fits(_fitsfile(ii), verbose=False, header=True)
                 posang_st.append(header[PosAng_st_key])
                 posang_nd.append(header[PosAng_nd_key])
     else:
         for ii in list_obj:
-            _, header = open_fits(_fitsfile(ii), verbose=False, get_header=True)
+            _, header = open_fits(_fitsfile(ii), verbose=False, header=True)
             posang_st.append(header[PosAng_st_key])
             posang_nd.append(header[PosAng_nd_key])
 
@@ -335,14 +335,14 @@ def compute_derot_angles_cd(
         for ii in range(10**digit_format):
             if os.path.exists(_fitsfile(ii)):
                 list_obj.append(ii)
-                _, header = open_fits(_fitsfile(ii), verbose=False, get_header=True)
+                _, header = open_fits(_fitsfile(ii), verbose=False, header=True)
                 cd1_1.append(header[cd11_key])
                 cd1_2.append(header[cd12_key])
                 cd2_1.append(header[cd21_key])
                 cd2_2.append(header[cd22_key])
     else:
         for ii in list_obj:
-            _, header = open_fits(_fitsfile(ii), verbose=False, get_header=True)
+            _, header = open_fits(_fitsfile(ii), verbose=False, header=True)
             cd1_1.append(header[cd11_key])
             cd1_2.append(header[cd12_key])
             cd2_1.append(header[cd21_key])

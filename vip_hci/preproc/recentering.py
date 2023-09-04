@@ -732,7 +732,6 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
         [full_output=True] Radon cost function surface.
 
     """
-    from .cosmetics import frame_crop
 
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
@@ -1063,11 +1062,10 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
         start_time = time_ini()
 
     n_frames = array.shape[0]
-    x = np.zeros((n_frames))
-    y = np.zeros((n_frames))
+    x = np.zeros(n_frames)
+    y = np.zeros(n_frames)
     dyx = np.zeros((n_frames, 2))
     cy, cx = frame_center(array[0])
-    array_rec = array.copy()
 
     for i in Progressbar(range(n_frames), desc="Recentering frames...",
                          verbose=verbose):
@@ -1077,9 +1075,9 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
         y[i] = res[0]
         x[i] = res[1]
         dyx[i] = res[2]
-        array_rec[i] = frame_shift(array[i], cy-y[i], cx-x[i], imlib=imlib,
-                                   interpolation=interpolation,
-                                   border_mode=border_mode)
+    array_rec = cube_shift(array, shift_y=cy-y, shift_x=cx-x, imlib=imlib,
+                           interpolation=interpolation, border_mode=border_mode,
+                           **kwargs)
 
     if verbose:
         timing(start_time)

@@ -1040,6 +1040,9 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
         beyond the edge with zeros. With 'mirror', the input is extended by
         reflecting about the center of the last pixel. With 'wrap', the input is
         extended by wrapping around to the opposite edge. Default is 'reflect'.
+    nproc : int, optional
+        Number of processes for parallel computing. If None the number of
+        processes will be set to cpu_count()/2.
     kwargs:
         Additional optional parameters for ``vip_hci.preproc.frame_center_radon``
         function, such as cropsize, hsize, step, satspots_cfg, mask_center,

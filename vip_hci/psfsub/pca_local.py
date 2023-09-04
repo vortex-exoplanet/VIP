@@ -599,7 +599,9 @@ def _pca_adi_rdi(
     # rejection are calculated (at the center of the annulus)
     cube_out = np.zeros_like(array)
     if isinstance(ncomp, list):
-        cube_out = [np.zeros_like(array)]*len(ncomp)
+        nncomp = len(ncomp)
+        cube_out = np.zeros([nncomp, array.shape[0], array.shape[1],
+                             array.shape[2]])
     for ann in range(n_annuli):
         if isinstance(ncomp, tuple) or isinstance(ncomp, np.ndarray):
             if len(ncomp) == n_annuli:
@@ -671,8 +673,10 @@ def _pca_adi_rdi(
 
                 if isinstance(ncomp, list):
                     nncomp = len(ncomp)
-                    residuals = [np.array(res[:][0][nn],
-                                          dtype=object) for nn in range(nncomp)]
+                    residuals = []
+                    for nn in range(nncomp):
+                        tmp = np.array([res[i][0][nn] for i in range(n)])
+                        residuals.append(tmp)
                 else:
                     res = np.array(res, dtype=object)
                     residuals = np.array(res[:, 0])
@@ -707,7 +711,7 @@ def _pca_adi_rdi(
             if isinstance(ncomp, list):
                 for nn, npc in enumerate(ncomp):
                     for fr in range(n):
-                        cube_out[nn][fr][yy, xx] = residuals[nn][fr]
+                        cube_out[nn, fr][yy, xx] = residuals[nn][fr]
             else:
                 for fr in range(n):
                     cube_out[fr][yy, xx] = residuals[fr]
@@ -723,15 +727,13 @@ def _pca_adi_rdi(
             timing(start_time)
 
     if isinstance(ncomp, list):
-        cube_der = []
+        cube_der = np.zeros_like(cube_out)
         frame = []
         for nn, npc in enumerate(ncomp):
-            cube_der.append(cube_derotate(cube_out[nn],
-                                          angle_list,
-                                          nproc=nproc,
-                                          imlib=imlib,
-                                          interpolation=interpolation,
-                                          **rot_options))
+            cube_der[nn] = cube_derotate(cube_out[nn], angle_list, nproc=nproc,
+                                         imlib=imlib,
+                                         interpolation=interpolation,
+                                         **rot_options)
             frame.append(cube_collapse(cube_der[nn], mode=collapse, w=weights))
     else:
         # Cube is derotated according to the parallactic angle and collapsed
@@ -780,9 +782,9 @@ def do_pca_patch(
 
     if pa_threshold != 0:
         # if ann_center > fwhm*10:
-        indices_left = _find_indices_adi(
-            angle_list, frame, pa_threshold, truncate=True, max_frames=max_frames_lib
-        )
+        indices_left = _find_indices_adi(angle_list, frame, pa_threshold,
+                                         truncate=True,
+                                         max_frames=max_frames_lib)
         # else:
         #    indices_left = _find_indices_adi(angle_list, frame,
         #                                     pa_threshold, truncate=False)

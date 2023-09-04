@@ -71,7 +71,8 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
     try:
         hdulist = fitsopen(fitsfilename, ignore_missing_end=ignore_missing_end,
                            memmap=True, **kwargs)
-    except ValueError:  # If BZERO/BSCALE/BLANK header keywords are present, HDU can’t be loaded as memory map
+    except ValueError:
+        # If BZERO/BSCALE/BLANK header keywords present HDU can’t load as memmap
         hdulist = fitsopen(fitsfilename, ignore_missing_end=ignore_missing_end,
                            memmap=False, **kwargs)
 
@@ -92,11 +93,13 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
         hdulist.close()
         if header:
             if verbose:
-                print(f"All {len(hdulist)} FITS HDU data and headers successfully loaded. ")
+                msg = f"All {len(hdulist)} FITS HDU data and headers "
+                msg += "successfully loaded."
+                print(msg)
             return data_list, header_list
         else:
             if verbose:
-                print(f"All {len(hdulist)} FITS HDU data successfully loaded. ")
+                print(f"All {len(hdulist)} FITS HDU data successfully loaded.")
             return data_list
 
     # Opening only a specified extension

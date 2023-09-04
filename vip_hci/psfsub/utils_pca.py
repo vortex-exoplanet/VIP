@@ -281,6 +281,8 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
     n = cube.shape[0]
 
     if source_xy is not None:
+        if fwhm is None:
+            raise ValueError('if source_xy is provided, so should fwhm')
         x, y = source_xy
     else:
         x = None

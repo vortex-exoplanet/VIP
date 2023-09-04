@@ -16,7 +16,6 @@ from tests.snapshots.snapshot_psfsub import PSFADI_PATH
 
 NO_FRAME_CASE = ["pca_drot", "pca_ann_auto"]
 
-
 # Note : this function comes from the former test for adi psfsub, I did not write it,
 # and I didn't found the author (feel free to add the author if you know them)
 @fixture(scope="module")
@@ -74,6 +73,15 @@ def test_pca_object(injected_cube_position):
     check_detection(pca_obj.snr_map, position, betapic.fwhm, snr_thresh=2)
     assert np.allclose(np.abs(pca_obj.frame_final), np.abs(exp_frame), atol=1e-2)
 
+    # Testing the basic version of PCA with ncomp as list
+    update_params = {"ncomp": [1, 2],
+                     "verbose": False}
+    update(pca_obj, PCABuilder(**update_params))
+    pca_obj.run(runmode="classic")
+    assert np.allclose(np.abs(pca_obj.frames_final[0]), np.abs(exp_frame),
+                       atol=1e-2)
+
+
     pca_test_set = [
         {
             "case_name": "pca_left_eigv",
@@ -113,6 +121,14 @@ def test_pca_object(injected_cube_position):
             "update_params": {
                 "ncomp": (1, 2),
                 "source_xy": betapic.injections_yx[0][::-1],
+                "verbose": False,
+            },
+            "runmode": "classic",
+        },
+        {
+            "case_name": "pca_grid_list",
+            "update_params": {
+                "ncomp": [1, 2],
                 "verbose": False,
             },
             "runmode": "classic",

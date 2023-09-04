@@ -240,6 +240,7 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
     if algo_params.radius_int and len(rot_options) == 0:
         rot_options['mask_val'] = 0
         rot_options['ker'] = 1
+        rot_options['interp_zeros'] = True
 
 
     global start_time

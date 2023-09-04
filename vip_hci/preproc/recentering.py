@@ -1016,7 +1016,7 @@ def _radon_costf(frame, cent, radint, coords, satspots_cfg=None, theta_0=0,
 
 def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
                         interpolation='lanczos4', border_mode='reflect',
-                        **kwargs):
+                        nproc=None, **kwargs):
     """ Recenters a cube looping through its frames and calling the
     ``frame_center_radon`` function, as in [PUE15]_.
 
@@ -1057,6 +1057,8 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
 
     """
     check_array(array, dim=3)
+    if nproc is None:
+        nproc = int(cpu_count() / 2)
 
     if verbose:
         start_time = time_ini()
@@ -1071,13 +1073,13 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
                          verbose=verbose):
         res = frame_center_radon(array[i], verbose=False, plot=False,
                                  imlib=imlib, interpolation=interpolation,
-                                 full_output=True, **kwargs)
+                                 full_output=True, nproc=nproc, **kwargs)
         y[i] = res[0]
         x[i] = res[1]
         dyx[i] = res[2]
     array_rec = cube_shift(array, shift_y=cy-y, shift_x=cx-x, imlib=imlib,
                            interpolation=interpolation, border_mode=border_mode,
-                           **kwargs)
+                           nproc=nproc)
 
     if verbose:
         timing(start_time)

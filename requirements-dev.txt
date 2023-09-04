@@ -11,3 +11,4 @@ flake8-docstrings
 autopep8
 ratelimit
 pre-commit
+sphinx_rtd_theme

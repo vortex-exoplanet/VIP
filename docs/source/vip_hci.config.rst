@@ -20,6 +20,14 @@ vip\_hci.config.param module
    :undoc-members:
    :show-inheritance:
 
+vip\_hci.config.paramenum module
+--------------------------------
+
+.. automodule:: vip_hci.config.paramenum
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 vip\_hci.config.timing module
 -----------------------------
 
@@ -32,6 +40,14 @@ vip\_hci.config.utils\_conf module
 ----------------------------------
 
 .. automodule:: vip_hci.config.utils_conf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+vip\_hci.config.utils\_param module
+-----------------------------------
+
+.. automodule:: vip_hci.config.utils_param
    :members:
    :undoc-members:
    :show-inheritance:

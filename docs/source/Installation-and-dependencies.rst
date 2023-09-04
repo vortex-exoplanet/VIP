@@ -63,12 +63,12 @@ functionalities by cloning the repository (but will not be able to contribute):
   $ git clone https://github.com/vortex-exoplanet/VIP.git
 
 
-To install VIP, then simply cd into your local VIP directory and run the installation in editable mode:
+To install VIP, then simply cd into your local VIP directory, and run the installation in editable mode pointing to developer requirements:
 
 .. code-block:: bash
 
   $ cd VIP
-  $ pip install -e .
+  $  pip install -e . -r requirements-dev.txt
 
 If cloned from your fork, make sure to link your VIP directory to the upstream
 source, to be able to easily update your local copy when a new version comes

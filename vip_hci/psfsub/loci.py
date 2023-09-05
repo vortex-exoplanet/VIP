@@ -171,7 +171,7 @@ def xloci(*all_args: List, **all_kwargs: dict):
     verbose: bool, optional
         If True prints info to stdout.
     full_output: bool, optional
-        Whether to return the final median combined image only or along with 
+        Whether to return the final median combined image only or along with
         2 other residual cubes (before and after derotation).
 
     Returns

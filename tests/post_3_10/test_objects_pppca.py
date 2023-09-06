@@ -119,6 +119,7 @@ def test_pca_object(injected_cube_position):
             "case_name": "pca_grid_list",
             "update_params": {
                 "ncomp": [1, 2],
+                "source_xy": None,
                 "verbose": False,
             },
             "runmode": "classic",

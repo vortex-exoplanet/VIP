@@ -286,9 +286,10 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
         """
         Identify the mode of PCA used and extracts return elements accordingly.
 
-        Nine modes are currently known and each of them looks at specific conditions.
-        Every mode and its set of conditions is verified to be True or not, and
-        associates its return elements via the `match...case` if recognized.
+        Nine modes are currently known and each of them looks at specific
+        conditions. Every mode and its set of conditions is verified to be True
+        or not, and associates its return elements via the `match...case` if
+        recognized.
 
         Parameters
         ----------

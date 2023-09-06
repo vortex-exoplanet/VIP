@@ -304,8 +304,8 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
             pcmin, pcmax, step = range_pcs
             pcmax = min(pcmax, n)
         else:
-            raise TypeError('`range_pcs` must be None or a tuple, corresponding to '
-                            '(PC_INI, PC_MAX) or (PC_INI, PC_MAX, STEP)')
+            raise TypeError('`range_pcs` must be None or a tuple, corresponding'
+                            'to (PC_INI, PC_MAX) or (PC_INI, PC_MAX, STEP)')
         pclist = list(range(pcmin, pcmax+1, step))
 
     # Getting `pcmax` principal components once
@@ -343,7 +343,6 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
     snrlist = []
     fluxlist = []
     frlist = []
-    counter = 0
     for pc in pclist:
         if mode == 'fullfr':
             frame = truncate_svd_get_finframe(matrix, angle_list, pc, V)
@@ -360,7 +359,6 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
             snrlist.append(snr_value)
             fluxlist.append(flux)
 
-        counter += 1
         frlist.append(frame)
 
     cubeout = np.array((frlist))

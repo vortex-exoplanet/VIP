@@ -152,6 +152,8 @@ def test_pca_object(injected_cube_position):
         runmode = pca_test["runmode"]
 
         if case_name in PREV_CASE:
+            update(pca_obj, PCABuilder(**update_params))
+            pca_obj.run(runmode=runmode)
             # compare to frame_final from previous iteration
             assert np.allclose(
                 np.abs(pca_obj.frame_final), np.abs(pca_obj.frames_final[-1]),

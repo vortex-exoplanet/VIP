@@ -15,7 +15,7 @@ from vip_hci.objects import PCABuilder
 from tests.snapshots.snapshot_psfsub import PSFADI_PATH
 
 NO_FRAME_CASE = ["pca_drot", "pca_ann_auto"]
-
+PREV_CASE = ["pca_grid_list"]
 
 # Note : this function comes from the former test for adi psfsub, I did not write it,
 # and I didn't found the author (feel free to add the author if you know them)
@@ -50,16 +50,13 @@ def test_pca_object(injected_cube_position):
 
     Generate a frame with ``vip_hci.objects.pppca`` and ensure they match with
     their procedural counterpart. This is done by getting the snapshots of the
-    ``vip_hci.psfsub.pca`` and ``vip_hci.psfsub.pca_annular`` functions, generated
-    preemptively with ``tests..snapshots.snapshot_psfsub``. There are a lot more
-    of cases to test than in regular post-processing methods because PCA is the
-    "go-to" method of the package.
+    ``vip_hci.psfsub.pca`` and ``vip_hci.psfsub.pca_annular`` functions,
+    generated preemptively with ``tests.snapshots.snapshot_psfsub``. There are a
+    lot more cases to test than in regular post-processing methods because PCA
+    is the "go-to" method of the package.
 
     """
     betapic = injected_cube_position
-
-    imlib_rot = "vip-fft"
-    interpolation = None
 
     # Testing the basic version of PCA
 
@@ -72,7 +69,8 @@ def test_pca_object(injected_cube_position):
     pca_obj.make_snrmap()
 
     check_detection(pca_obj.snr_map, position, betapic.fwhm, snr_thresh=2)
-    assert np.allclose(np.abs(pca_obj.frame_final), np.abs(exp_frame), atol=1e-2)
+    assert np.allclose(np.abs(pca_obj.frame_final), np.abs(exp_frame),
+                       atol=1e-2)
 
     pca_test_set = [
         {
@@ -118,6 +116,15 @@ def test_pca_object(injected_cube_position):
             "runmode": "classic",
         },
         {
+            "case_name": "pca_grid_list",
+            "update_params": {
+                "ncomp": [1, 2],
+                "source_xy": None,
+                "verbose": False,
+            },
+            "runmode": "classic",
+        },
+        {
             "case_name": "pca_ann",
             "update_params": {
                 "ncomp": 1,
@@ -140,23 +147,31 @@ def test_pca_object(injected_cube_position):
     ]
     # Testing all alternatives of PCA listed above
 
-    for pca_test in pca_test_set:
+    for pp, pca_test in enumerate(pca_test_set):
         case_name = pca_test["case_name"]
         update_params = pca_test["update_params"]
         runmode = pca_test["runmode"]
 
-        position = np.load(f"{PSFADI_PATH}{case_name}_adi_detect.npy").copy()
-
-        if case_name not in NO_FRAME_CASE:
-            exp_frame = np.load(f"{PSFADI_PATH}{case_name}_adi.npy").copy()
-
-        update(pca_obj, PCABuilder(**update_params))
-
-        pca_obj.run(runmode=runmode)
-        pca_obj.make_snrmap()
-
-        check_detection(pca_obj.snr_map, position, betapic.fwhm, snr_thresh=2)
-        if case_name not in NO_FRAME_CASE:
+        if case_name in PREV_CASE:
+            update(pca_obj, PCABuilder(**update_params))
+            pca_obj.run(runmode=runmode)
+            # compare to frame_final from previous iteration
             assert np.allclose(
-                np.abs(pca_obj.frame_final), np.abs(exp_frame), atol=1e-2
+                np.abs(pca_obj.frame_final), np.abs(pca_obj.frames_final[-1]),
+                atol=1e-2
             )
+        else:
+            pos = np.load(f"{PSFADI_PATH}{case_name}_adi_detect.npy").copy()
+            if case_name not in NO_FRAME_CASE:
+                exp_frame = np.load(f"{PSFADI_PATH}{case_name}_adi.npy").copy()
+
+            update(pca_obj, PCABuilder(**update_params))
+
+            pca_obj.run(runmode=runmode)
+            pca_obj.make_snrmap()
+
+            check_detection(pca_obj.snr_map, pos, betapic.fwhm, snr_thresh=2)
+            if case_name not in NO_FRAME_CASE:
+                assert np.allclose(
+                    np.abs(pca_obj.frame_final), np.abs(exp_frame), atol=1e-2
+                )

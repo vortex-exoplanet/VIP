@@ -31,8 +31,10 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                           mu_sigma=(0, 1), weights=None, plot=False,
                           verbose=True, save=False, debug=False,
                           full_output=False):
-    """ Determine a first guess for the flux of a companion at a given position
-    in the cube by doing a simple grid search evaluating the reduced chi2.
+    """Determine a first guess for the flux of a companion at a given position\
+    in the cube by doing a simple grid search evaluating the reduced chi2 using\
+    the negative fake companion technique (i.e. the reduced chi2 is calculated\
+    in the post-processed frame after subtraction of a negative fake companion).
 
     Parameters
     ----------
@@ -146,6 +148,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
     chi2r: 1d numpy.array
         [full_output=True] The chi2r values corresponding to tested flux values.
     """
+
     def _grid_search_f(r0, theta0, ch, cube, angs, psfn, fwhm, annulus_width,
                        aperture_radius, ncomp, cube_ref=None, svd_mode='lapack',
                        scaling=None, fmerit='sum', imlib='vip-fft',
@@ -298,13 +301,11 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
                        p_ini=None, transmission=None, mu_sigma=(0, 1),
                        weights=None, force_rPA=False, options=None,
                        verbose=False, **kwargs):
-    """
-    Determine the position of a companion using the negative fake companion
-    technique and a standard minimization algorithm (Default=Nelder-Mead) .
+    """Determine the position of a companion using the negative fake companion\
+    technique and a standard minimization algorithm (Default=Nelder-Mead).
 
     Parameters
     ----------
-
     p : np.array
         Estimate of the candidate position.
     cube: 3d or 4d numpy ndarray
@@ -439,22 +440,16 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
                mu_sigma=True, wedge=None, weights=None, force_rPA=False,
                algo_options={}, simplex=True, simplex_options=None, plot=False,
                verbose=True, save=False):
-    """ Determines a first guess for the position and the flux of a planet, as
-    explained in [WER17]_.
+    """Determine a first guess for the position and the flux of a planet using\
+    the negative fake companion techique, as explained in [WER17]_.
 
-    We process the cube without injecting any negative fake companion.
-    This leads to the visual detection of the planet(s). For each of them,
-    one can estimate the (x,y) coordinates in pixel for the position of the
-    star, as well as the planet(s).
-
-    From the (x,y) coordinates in pixels for the star and planet(s), we can
-    estimate a preliminary guess for the position and flux for each planet
-    by using the method "firstguess_from_coord". The argument "f_range" allows
-    to indicate prior limits for the flux (optional, default: None).
-    This step can be reiterate to refine the preliminary guess for the flux.
-
-    We can go a step further by using a Simplex Nelder_Mead minimization to
-    estimate the first guess based on the preliminary guess.
+    This first requires processing the cube without injecting any negative fake
+    companion. Once planets or planet candidates are identified, their initial
+    guess (x,y) coordinates can be provided to this function. A preliminary flux
+    guess is then found for each planet by using the method
+    ``firstguess_from_coord`` called within this function. Optionally, a Simplex
+    Nelder_Mead minimization is used for a refined estimate of position and flux
+    based on the preliminary guesses.
 
     Parameters
     ----------
@@ -584,7 +579,6 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
     Polar angle is not the conventional NORTH-TO-EAST P.A., but the
     counter-clockwise angle measured from the positive x axis.
     """
-
     if cube.ndim != 3 and cube.ndim != 4:
         raise TypeError("Input cube is not 3D nor 4D")
 
@@ -613,21 +607,21 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
     else:
         norm_weights = weights
 
-    for index_planet in range(n_planet):
+    for i_planet in range(n_planet):
         if verbose:
             print('\n'+sep)
-            print('             Planet {}           '.format(index_planet))
+            print('             Planet {}           '.format(i_planet))
             print(sep+'\n')
             msg2 = 'Planet {}: flux estimation at the position [{},{}], '
             msg2 += 'running ...'
-            print(msg2.format(index_planet, planets_xy_coord[index_planet, 0],
-                              planets_xy_coord[index_planet, 1]))
+            print(msg2.format(i_planet, planets_xy_coord[i_planet, 0],
+                              planets_xy_coord[i_planet, 1]))
         # Measure mu and sigma once in the annulus (instead of each MCMC step)
         if isinstance(mu_sigma, tuple):
             if len(mu_sigma) != 2:
                 raise TypeError("If a tuple, mu_sigma must have 2 elements")
         elif mu_sigma is not None:
-            xy = planets_xy_coord[index_planet]-center_xy_coord
+            xy = planets_xy_coord[i_planet]-center_xy_coord
             r0 = np.sqrt(xy[0]**2 + xy[1]**2)
             theta0 = np.mod(np.arctan2(xy[1], xy[0]) / np.pi*180, 360)
             mu_sigma = get_mu_and_sigma(cube, angs, ncomp, annulus_width,
@@ -640,7 +634,7 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
                                         collapse=collapse, weights=norm_weights,
                                         algo_options=algo_options)
 
-        res_init = firstguess_from_coord(planets_xy_coord[index_planet],
+        res_init = firstguess_from_coord(planets_xy_coord[i_planet],
                                          center_xy_coord, cube, angs,
                                          psfn, fwhm, annulus_width,
                                          aperture_radius, ncomp,
@@ -660,10 +654,10 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
         f_pre = res_init[2:]
 
         if verbose:
-            msg3a = 'Planet {}: preliminary position guess: (r, theta)=({:.1f}, '
-            msg3a += '{:.1f})'
-            print(msg3a.format(index_planet, r_pre, theta_pre))
-            msg3b = 'Planet {}: preliminary flux guess: '.format(index_planet)
+            msg3a = 'Planet {}: preliminary position guess: (r, theta)=({:.1f},'
+            msg3a += ' {:.1f})'
+            print(msg3a.format(i_planet, r_pre, theta_pre))
+            msg3b = 'Planet {}: preliminary flux guess: '.format(i_planet)
             for z in range(len(f_pre)):
                 msg3b += '{:.1f}'.format(f_pre[z])
                 if z < len(f_pre)-1:
@@ -674,7 +668,7 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
             if verbose:
                 msg4 = 'Planet {}: Simplex Nelder-Mead minimization, '
                 msg4 += 'running ...'
-                print(msg4.format(index_planet))
+                print(msg4.format(i_planet))
 
             if simplex_options is None:
                 simplex_options = {'xatol': 1e-6, 'fatol': 1e-6, 'maxiter': 800,
@@ -693,46 +687,46 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
                                      force_rPA=force_rPA,
                                      options=simplex_options, verbose=False)
             if force_rPA:
-                r_0[index_planet], theta_0[index_planet] = (r_pre, theta_pre)
-                f_0[index_planet], = res.x
+                r_0[i_planet], theta_0[i_planet] = (r_pre, theta_pre)
+                f_0[i_planet], = res.x
             else:
-                r_0[index_planet] = res.x[0]
-                theta_0[index_planet] = res.x[1]
+                r_0[i_planet] = res.x[0]
+                theta_0[i_planet] = res.x[1]
                 if cube.ndim == 3:
-                    f_0[index_planet] = res.x[2]
+                    f_0[i_planet] = res.x[2]
                 else:
-                    f_0[index_planet] = res.x[2:]
+                    f_0[i_planet] = res.x[2:]
             if verbose:
                 msg5 = 'Planet {}: Success: {}, nit: {}, nfev: {}, chi2r: {}'
-                print(msg5.format(index_planet, res.success, res.nit, res.nfev,
+                print(msg5.format(i_planet, res.success, res.nit, res.nfev,
                                   res.fun))
                 print('message: {}'.format(res.message))
 
         else:
             if verbose:
                 msg4bis = 'Planet {}: Simplex Nelder-Mead minimization skipped.'
-                print(msg4bis.format(index_planet))
-            r_0[index_planet] = r_pre
-            theta_0[index_planet] = theta_pre
+                print(msg4bis.format(i_planet))
+            r_0[i_planet] = r_pre
+            theta_0[i_planet] = theta_pre
             if cube.ndim == 3:
-                f_0[index_planet] = f_pre[0]
+                f_0[i_planet] = f_pre[0]
             else:
-                f_0[index_planet] = f_pre
+                f_0[i_planet] = f_pre
 
         if verbose:
             centy, centx = frame_center(cube[0])
-            posy = r_0 * np.sin(np.deg2rad(theta_0[index_planet])) + centy
-            posx = r_0 * np.cos(np.deg2rad(theta_0[index_planet])) + centx
-            msg6 = 'Planet {}: simplex result: (r, theta, '.format(index_planet)
+            posy = r_0 * np.sin(np.deg2rad(theta_0[i_planet])) + centy
+            posx = r_0 * np.cos(np.deg2rad(theta_0[i_planet])) + centx
+            msg6 = 'Planet {} simplex result: (r, theta, '.format(i_planet)
             if cube.ndim == 3:
-                msg6 += 'f)=({:.3f}, {:.3f}, {:.3f})'.format(r_0[index_planet],
-                                                             theta_0[index_planet],
-                                                             f_0[index_planet])
+                msg6 += 'f)=({:.3f}, {:.3f}, {:.3f})'.format(r_0[i_planet],
+                                                             theta_0[i_planet],
+                                                             f_0[i_planet])
             else:
                 msg6b = '('
                 for z in range(cube.shape[0]):
                     msg6 += 'f{}'.format(z)
-                    msg6b += '{:.3f}'.format(f_0[index_planet, z])
+                    msg6b += '{:.3f}'.format(f_0[i_planet, z])
                     if z < cube.shape[0]-1:
                         msg6 += ', '
                         msg6b += ', '

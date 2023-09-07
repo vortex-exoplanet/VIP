@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with helping functions for PCA.
 """
@@ -46,14 +45,15 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
     fwhm : None or float, optional
         Size of the FWHM in pixels, used for computing S/Ns when ``source_xy``
         is passed.
-    range_pcs : None or tuple, optional
-        The interval of PCs to be tried. If a ``range_pcs`` is entered as
-        ``[PC_INI, PC_MAX]`` a sequential grid will be evaluated between
-        ``PC_INI`` and ``PC_MAX`` with step of 1. If a ``range_pcs`` is entered
-        as ``[PC_INI, PC_MAX, STEP]`` a grid will be evaluated between
+    range_pcs : None or tuple or list, optional
+        The interval of PCs to be tried. If ``range_pcs`` is a tuple entered as
+        ``(PC_INI, PC_MAX)`` a sequential grid will be evaluated between
+        ``PC_INI`` and ``PC_MAX`` with step of 1. If ``range_pcs`` is a tuple
+        entered as ``(PC_INI, PC_MAX, STEP]`` a grid will be evaluated between
         ``PC_INI`` and ``PC_MAX`` with the given ``STEP``. If ``range_pcs`` is
         None, ``PC_INI=1``, ``PC_MAX=n_frames-1`` and ``STEP=1``, which will
-        result in longer running time.
+        result in longer running time. If ``range_pcs`` is a list, it should
+        correspond to the number of PCs to be tested.
     source_xy : None or tuple of floats
         X and Y coordinates of the pixel where the source is located and whose
         SNR is going to be maximized.
@@ -117,10 +117,10 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     mask_center_px : None or int, optional
         If None, no masking is done. If an integer > 1 then this value is the
@@ -281,25 +281,32 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
     n = cube.shape[0]
 
     if source_xy is not None:
+        if fwhm is None:
+            raise ValueError('if source_xy is provided, so should fwhm')
         x, y = source_xy
     else:
         x = None
         y = None
 
-    if range_pcs is None:
-        pcmin = 1
-        pcmax = n - 1
-        step = 1
-    elif len(range_pcs) == 2:
-        pcmin, pcmax = range_pcs
-        pcmax = min(pcmax, n)
-        step = 1
-    elif len(range_pcs) == 3:
-        pcmin, pcmax, step = range_pcs
-        pcmax = min(pcmax, n)
+    if isinstance(range_pcs, list):
+        pclist = range_pcs
+        pcmax = max(pclist)
     else:
-        raise TypeError('`range_pcs` must be None or a tuple, corresponding to '
-                        '(PC_INI, PC_MAX) or (PC_INI, PC_MAX, STEP)')
+        if range_pcs is None:
+            pcmin = 1
+            pcmax = n - 1
+            step = 1
+        elif len(range_pcs) == 2:
+            pcmin, pcmax = range_pcs
+            pcmax = min(pcmax, n)
+            step = 1
+        elif len(range_pcs) == 3:
+            pcmin, pcmax, step = range_pcs
+            pcmax = min(pcmax, n)
+        else:
+            raise TypeError('`range_pcs` must be None or a tuple, corresponding'
+                            'to (PC_INI, PC_MAX) or (PC_INI, PC_MAX, STEP)')
+        pclist = list(range(pcmin, pcmax+1, step))
 
     # Getting `pcmax` principal components once
     if mode == 'fullfr':
@@ -334,11 +341,9 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
         timing(start_time)
 
     snrlist = []
-    pclist = []
     fluxlist = []
     frlist = []
-    counter = 0
-    for pc in range(pcmin, pcmax + 1, step):
+    for pc in pclist:
         if mode == 'fullfr':
             frame = truncate_svd_get_finframe(matrix, angle_list, pc, V)
         elif mode == 'annular':
@@ -354,8 +359,6 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
             snrlist.append(snr_value)
             fluxlist.append(flux)
 
-        counter += 1
-        pclist.append(pc)
         frlist.append(frame)
 
     cubeout = np.array((frlist))
@@ -644,10 +647,10 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     collapse : {'median', 'mean', 'sum', 'wmean'}, str or None, optional
         Sets the way of collapsing the residual frames to produce a final image.
@@ -667,8 +670,8 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     Returns
     -------
     pca_res: 2d or 3d ndarray
-        Depending on ``collapse`` and ``angs`` parameters, either a final 
-        collapsed frame (``collapse`` not None) or the cube of residuals 
+        Depending on ``collapse`` and ``angs`` parameters, either a final
+        collapsed frame (``collapse`` not None) or the cube of residuals
         (derotated if angs is not None, non-derotated otherwises).
         Note: for 4d input cube, collapse must be non-None.
     """

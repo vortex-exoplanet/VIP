@@ -139,7 +139,7 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         If a tuple of two values is provided, they are used as the lower and
         upper intervals for the threshold (grows as a function of the
         separation).
-    ncomp : 'auto', int, tuple, 1d numpy array or tuple, optional
+    ncomp : 'auto', int, tuple/1d numpy array of int, list, tuple of lists, opt
         How many PCs are used as a lower-dimensional subspace to project the
         target (sectors of) frames. Depends on the dimensionality of `cube`.
 
@@ -148,19 +148,25 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         separation (annulus). If a tuple is provided, then a different number
         of PCs will be used for each annulus (starting with the innermost
         one). If ``ncomp`` is set to ``auto`` then the number of PCs are
-        calculated for each region/patch automatically.
+        calculated for each region/patch automatically. If a list of int is
+        provided, several npc will be tried at once, but the same value of npc
+        will be used for all annuli. If a tuple of lists of int is provided,
+        the length of tuple should match the number of annuli and different sets
+        of npc will be calculated simultaneously for each annulus, with the
+        exact values of npc provided in the respective lists.
 
         * ADI or ADI+RDI (``cube`` is a 4d array): same input format allowed as
-        above. If ncomp is a list with the same length as the number of
-        channels, each element of the list will be used as ``ncomp`` value
-        (whether int, float or tuple) for each spectral channel.
+        above, but with a slightly different behaviour if ncomp is a list: if it
+        has the same length as the number of channels, each element of the list
+        will be used as ``ncomp`` value (whether int, float or tuple) for each
+        spectral channel. Otherwise the same behaviour as above is assumed.
 
-        * ADI+mSDI case: ``ncomp`` must be a tuple (two integers) with the
-        number of PCs obtained from each multi-spectral frame (for each
-        sector) and the number of PCs used in the second PCA stage (ADI
-        fashion, using the residuals of the first stage). If None then the
-        second PCA stage is skipped and the residuals are de-rotated and
-        combined.
+        * ADI+mSDI case: ``ncomp`` must be a tuple of two integers or a list of
+        tuples of two integers, with the number of PCs obtained from each
+        multi-spectral frame (for each sector) and the number of PCs used in the
+        second PCA stage (ADI fashion, using the residuals of the first stage).
+        If None then the second PCA stage is skipped and the residuals are
+        de-rotated and combined.
 
     svd_mode : Enum, see `vip_hci.config.paramenum.SvdMode`
         Switch for the SVD method/library to be used.
@@ -230,6 +236,13 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
     if algo_params is None:
         algo_params = PCA_ANNULAR_Params(*all_args, **class_params)
 
+    # by default, interpolate masked area before derotation if a mask is used
+    if algo_params.radius_int and len(rot_options) == 0:
+        rot_options['mask_val'] = 0
+        rot_options['ker'] = 1
+        rot_options['interp_zeros'] = True
+
+
     global start_time
     start_time = time_ini()
 
@@ -265,11 +278,8 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         ifs_adi_frames = np.zeros([nch, ny, nx])
         if not isinstance(algo_params.ncomp, list):
             algo_params.ncomp = [algo_params.ncomp] * nch
-        elif isinstance(algo_params.ncomp, list) and len(algo_params.ncomp) != nch:
-            msg = "If ncomp is a list, in the case of a 4d input cube without "
-            msg += "input scale_list, it should have the same length as the "
-            msg += "first dimension of the cube."
-            raise TypeError()
+        elif len(algo_params.ncomp) != nch:
+            algo_params.ncomp = [algo_params.ncomp] * nch
         if np.isscalar(algo_params.fwhm):
             algo_params.fwhm = [algo_params.fwhm] * nch
 
@@ -589,14 +599,18 @@ def _pca_adi_rdi(
     # The annuli are built, and the corresponding PA thresholds for frame
     # rejection are calculated (at the center of the annulus)
     cube_out = np.zeros_like(array)
+    if isinstance(ncomp, list):
+        nncomp = len(ncomp)
+        cube_out = np.zeros([nncomp, array.shape[0], array.shape[1],
+                             array.shape[2]])
     for ann in range(n_annuli):
         if isinstance(ncomp, tuple) or isinstance(ncomp, np.ndarray):
             if len(ncomp) == n_annuli:
                 ncompann = ncomp[ann]
             else:
-                raise TypeError(
-                    "If `ncomp` is a tuple, it must match the " "number of annuli"
-                )
+                msg = "If `ncomp` is a tuple, its length must match the number "
+                msg += "of annuli"
+                raise TypeError(msg)
         else:
             ncompann = ncomp
 
@@ -619,9 +633,9 @@ def _pca_adi_rdi(
         )
 
         if left_eigv:
-            indices_out = get_annulus_segments(
-                array[0], inner_radius, asize, n_segments_ann, theta_init, out=True
-            )
+            indices_out = get_annulus_segments(array[0], inner_radius, asize,
+                                               n_segments_ann, theta_init,
+                                               out=True)
 
         # Library matrix is created for each segment and scaled if needed
         for j in range(n_segments_ann):
@@ -658,10 +672,17 @@ def _pca_adi_rdi(
                     matrix_sig_segm,
                 )
 
-                res = np.array(res, dtype=object)
-                residuals = np.array(res[:, 0])
-                ncomps = res[:, 1]
-                nfrslib = res[:, 2]
+                if isinstance(ncomp, list):
+                    nncomp = len(ncomp)
+                    residuals = []
+                    for nn in range(nncomp):
+                        tmp = np.array([res[i][0][nn] for i in range(n)])
+                        residuals.append(tmp)
+                else:
+                    res = np.array(res, dtype=object)
+                    residuals = np.array(res[:, 0])
+                    ncomps = res[:, 1]
+                    nfrslib = res[:, 2]
             else:
                 yy_out = indices_out[j][0]
                 xx_out = indices_out[j][1]
@@ -669,22 +690,36 @@ def _pca_adi_rdi(
                     :, yy_out, xx_out
                 ]  # shape [nframes x npx_out_segment]
                 matrix_out_segm = matrix_scaling(matrix_out_segm, scaling)
+                if isinstance(ncomp, list):
+                    npc = max(ncomp)
+                else:
+                    npc = ncomp
+                V = get_eigenvectors(npc, matrix_out_segm, svd_mode,
+                                     noise_error=tol, left_eigv=True)
 
-                V = get_eigenvectors(
-                    ncomp, matrix_out_segm, svd_mode, noise_error=tol, left_eigv=True
-                )
+                if isinstance(ncomp, list):
+                    residuals = []
+                    for nn, npc_tmp in enumerate(ncomp):
+                        transformed = np.dot(V[:npc_tmp], matrix_segm.T)
+                        reconstructed = np.dot(transformed.T, V[:npc_tmp])
+                        residuals.append(matrix_segm - reconstructed)
+                else:
+                    transformed = np.dot(V, matrix_segm.T)
+                    reconstructed = np.dot(transformed.T, V)
+                    residuals = matrix_segm - reconstructed
+                    nfrslib = matrix_out_segm.shape[0]
 
-                transformed = np.dot(V, matrix_segm.T)
-                reconstructed = np.dot(transformed.T, V)
-                residuals = matrix_segm - reconstructed
-                nfrslib = matrix_out_segm.shape[0]
-
-            for fr in range(n):
-                cube_out[fr][yy, xx] = residuals[fr]
+            if isinstance(ncomp, list):
+                for nn, npc in enumerate(ncomp):
+                    for fr in range(n):
+                        cube_out[nn, fr][yy, xx] = residuals[nn][fr]
+            else:
+                for fr in range(n):
+                    cube_out[fr][yy, xx] = residuals[fr]
 
             # number of frames in library printed for each annular quadrant
             # number of PCs printed for each annular quadrant
-            if verbose == 2:
+            if verbose == 2 and not isinstance(ncomp, list):
                 descriptive_stats(nfrslib, verbose=verbose, label="\tLIBsize: ")
                 descriptive_stats(ncomps, verbose=verbose, label="\tNum PCs: ")
 
@@ -692,19 +727,31 @@ def _pca_adi_rdi(
             print("Done PCA with {} for current annulus".format(svd_mode))
             timing(start_time)
 
-    # Cube is derotated according to the parallactic angle and collapsed
-    cube_der = cube_derotate(
-        cube_out,
-        angle_list,
-        nproc=nproc,
-        imlib=imlib,
-        interpolation=interpolation,
-        **rot_options,
-    )
-    frame = cube_collapse(cube_der, mode=collapse, w=weights)
+    if isinstance(ncomp, list):
+        cube_der = np.zeros_like(cube_out)
+        frame = []
+        for nn, npc in enumerate(ncomp):
+            cube_der[nn] = cube_derotate(cube_out[nn], angle_list, nproc=nproc,
+                                         imlib=imlib,
+                                         interpolation=interpolation,
+                                         **rot_options)
+            frame.append(cube_collapse(cube_der[nn], mode=collapse, w=weights))
+    else:
+        # Cube is derotated according to the parallactic angle and collapsed
+        cube_der = cube_derotate(
+            cube_out,
+            angle_list,
+            nproc=nproc,
+            imlib=imlib,
+            interpolation=interpolation,
+            **rot_options,
+        )
+        frame = cube_collapse(cube_der, mode=collapse, w=weights)
+
     if verbose:
         print("Done derotating and combining.")
         timing(start_time)
+
     if full_output:
         return cube_out, cube_der, frame
     else:
@@ -736,9 +783,9 @@ def do_pca_patch(
 
     if pa_threshold != 0:
         # if ann_center > fwhm*10:
-        indices_left = _find_indices_adi(
-            angle_list, frame, pa_threshold, truncate=True, max_frames=max_frames_lib
-        )
+        indices_left = _find_indices_adi(angle_list, frame, pa_threshold,
+                                         truncate=True,
+                                         max_frames=max_frames_lib)
         # else:
         #    indices_left = _find_indices_adi(angle_list, frame,
         #                                     pa_threshold, truncate=False)
@@ -786,8 +833,21 @@ def do_pca_patch(
         curr_frame_emp = matrix[frame] - matrix_sig_segm[frame]
     else:
         curr_frame_emp = curr_frame
-    V = get_eigenvectors(ncomp, data_ref, svd_mode, noise_error=tol)
-    transformed = np.dot(curr_frame_emp, V.T)
-    reconstructed = np.dot(transformed.T, V)
-    residuals = curr_frame - reconstructed
+    if isinstance(ncomp, list):
+        npc = max(ncomp)
+    else:
+        npc = ncomp
+    V = get_eigenvectors(npc, data_ref, svd_mode, noise_error=tol)
+
+    if isinstance(ncomp, list):
+        residuals = []
+        for nn, npc_tmp in enumerate(ncomp):
+            transformed = np.dot(curr_frame_emp, V[:npc_tmp].T)
+            reconstructed = np.dot(transformed.T, V[:npc_tmp])
+            residuals.append(curr_frame - reconstructed)
+    else:
+        transformed = np.dot(curr_frame_emp, V.T)
+        reconstructed = np.dot(transformed.T, V)
+        residuals = curr_frame - reconstructed
+
     return residuals, V.shape[0], data_ref.shape[0]

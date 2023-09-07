@@ -98,6 +98,7 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
     final_residuals_cube: np.ndarray = None
     medians: np.ndarray = None
     # Grid parameters
+    frames_final: np.ndarray = None
     range_pcs: Tuple[int] = None
     mode: str = "fullfr"
     fmerit: str = "mean"
@@ -109,7 +110,7 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
     pc_list: List = None
     opt_number_pc: int = None
     # Single annulus parameters
-    annulus_width: float = None
+    annulus_width: float = None  # Note: also used for Grid in annular mode
     r_guess: float = None
 
     # TODO: write test
@@ -193,7 +194,7 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
 
                 self._find_pca_mode(res=res)
 
-                if self.results is not None:
+                if self.results is not None and self.frame_final is not None:
                     self.results.register_session(
                         params=params_dict,
                         frame=self.frame_final,
@@ -210,9 +211,14 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
 
                 res = pca_annular(**all_params)
 
-                self.cube_residuals, self.cube_residuals_der, self.frame_final = res
+                self.cube_residuals = res[0]
+                self.cube_residuals_der = res[1]
+                if isinstance(res[2], list):
+                    self.frames_final = res[2]
+                else:
+                    self.frame_final = res[2]
 
-                if self.results is not None:
+                if self.results is not None and self.frame_final is not None:
                     self.results.register_session(
                         params=params_dict,
                         frame=self.frame_final,
@@ -231,19 +237,27 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
 
                 res = pca_grid(**func_params, **rot_options)
 
-                (
-                    self.cube_residuals,
-                    self.frame_final,
-                    self.dataframe,
-                    self.opt_number_pc,
-                ) = res
+                if self.source_xy is not None and self.fwhm is not None:
+                    (
+                        self.cube_residuals,
+                        self.frame_final,
+                        self.dataframe,
+                        self.opt_number_pc,
+                    ) = res
+                    if self.results is not None:
+                        self.results.register_session(
+                            params=func_params,
+                            frame=self.frame_final,
+                            algo_name=self._algo_name[2],
+                        )
+                elif self.full_output:
+                    (
+                        self.final_residuals_cube,
+                        self.pc_list
+                    ) = res
+                else:
+                    self.final_residuals_cube = res
 
-                if self.results is not None:
-                    self.results.register_session(
-                        params=func_params,
-                        frame=self.frame_final,
-                        algo_name=self._algo_name[2],
-                    )
 
             case Runmode.ANNULUS:
                 add_params = {
@@ -272,9 +286,10 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
         """
         Identify the mode of PCA used and extracts return elements accordingly.
 
-        Nine modes are currently known and each of them looks at specific conditions.
-        Every mode and its set of conditions is verified to be True or not, and
-        associates its return elements via the `match...case` if recognized.
+        Nine modes are currently known and each of them looks at specific
+        conditions. Every mode and its set of conditions is verified to be True
+        or not, and associates its return elements via the `match...case` if
+        recognized.
 
         Parameters
         ----------
@@ -287,7 +302,7 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
             "adimsdidouble": self.adimsdi == Adimsdi.DOUBLE,
             "adimsdisingle": self.adimsdi == Adimsdi.SINGLE,
             "ncompunit": isinstance(self.ncomp, (float, int)),
-            "ncomptuple": isinstance(self.ncomp, tuple),
+            "ncompit": isinstance(self.ncomp, (tuple, list)),
             "source": self.source_xy is not None,
             "nosource": self.source_xy is None,
             "reforsource": self.cube_ref is not None or self.source_xy is None,
@@ -307,17 +322,17 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
             ReturnList.ADIMSDI_SINGLE_GRID_NO_SOURCE: conditions["cube"]
             and conditions["scale"]
             and conditions["adimsdisingle"]
-            and conditions["ncomptuple"]
+            and conditions["ncompit"]
             and conditions["nosource"],
             ReturnList.ADIMSDI_SINGLE_GRID_SOURCE: conditions["cube"]
             and conditions["scale"]
             and conditions["adimsdisingle"]
-            and conditions["ncomptuple"]
+            and conditions["ncompit"]
             and conditions["source"],
             ReturnList.ADI_FULLFRAME_GRID: conditions["cubeorscale"]
             and conditions["reforsource"]
             and conditions["nobatch"]
-            and conditions["ncomptuple"],
+            and conditions["ncompit"],
             ReturnList.ADI_INCREMENTAL_BATCH: conditions["cubeorscale"]
             and conditions["reforsource"]
             and conditions["batch"],
@@ -327,7 +342,7 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
             and conditions["ncompunit"],
             ReturnList.PCA_GRID_SN: conditions["cubeorscale"]
             and conditions["source"]
-            and conditions["ncomptuple"],
+            and conditions["ncompit"],
             ReturnList.PCA_ROT_THRESH: conditions["cubeorscale"]
             and conditions["source"]
             and conditions["ncompunit"],
@@ -351,9 +366,9 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
                 self.final_residuals_cube, self.pc_list = res
             case ReturnList.ADI_FULLFRAME_GRID:
                 if self.cube.ndim == 4:
-                    self.final_residuals_cube, self.pc_list, _ = res
+                    self.frames_final, self.pc_list, _ = res
                 else:
-                    self.final_residuals_cube, self.pc_list = res
+                    self.frames_final, self.pc_list = res
             case ReturnList.ADI_INCREMENTAL_BATCH:
                 if self.cube.ndim == 4:
                     self.frame_final, self.pcs, self.medians, _ = res
@@ -379,7 +394,7 @@ class PPPCA(PostProc, PCA_Params, PCA_ANNULAR_Params):
                     ) = res
             case ReturnList.PCA_GRID_SN:
                 if self.cube.ndim == 4:
-                    self.final_residuals_cube, self.frame_final, _, _ = res
+                    self.final_residuals_cube, self.frame_final, _, self.opt_number_pc = res
                 else:
                     self.final_residuals_cube, self.frame_final, _ = res
             case ReturnList.PCA_ROT_THRESH:

@@ -12,6 +12,14 @@ vip\_hci.fits.fits module
    :undoc-members:
    :show-inheritance:
 
+vip\_hci.fits.headers module
+----------------------------
+
+.. automodule:: vip_hci.fits.headers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

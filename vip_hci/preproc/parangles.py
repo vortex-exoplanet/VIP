@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 """
-Module with frame parallactica angles calculations and de-rotation routines for
+Module with frame parallactic angles calculations and de-rotation routines for
 ADI.
 
 .. [MEE98]

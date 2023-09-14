@@ -187,7 +187,7 @@ The following dependencies are not automatically installed upon installation of 
 - Also, you can install the Intel Math Kernel Library (``mkl``) optimizations (provided that you have a recent version of ``conda``) or ``openblas`` libraries. Either of them can be installed with ``conda install``.
 - VIP offers the possibility of computing SVDs on GPU by using ``CuPy`` (starting from version 0.8.0) or ``PyTorch`` (from version 0.9.2). These remain as optional requirements, to be installed by the user, as well as a proper CUDA environment (and a decent GPU card).
 - Bad pixel correction routines can be optimised with ``Numba``, which  converts some Python code, particularly ``NumPy``, into fast machine code. A factor up to ~50x times speed improvement can be obtained on large images compared to NumPy. Numba can be installed with ``conda install numba``.
-- Finally, robust contrast curves and contrast grids can be calculated with `applefy`. Example usage is provided in `VIP tutorial 4 <https://vip.readthedocs.io/en/latest/tutorials/04_metrics.html>`_. See more details in `Bonse et al. (2023) <https://ui.adsabs.harvard.edu/abs/2023AJ....166...71B/abstract>`_.
+- Finally, robust contrast curves and contrast grids can be calculated with ``applefy`` (``pip install Applefy``). Example usage is provided in `VIP tutorial 4 <https://vip.readthedocs.io/en/latest/tutorials/04_metrics.html>`_. See more details in `Bonse et al. (2023) <https://ui.adsabs.harvard.edu/abs/2023AJ....166...71B/abstract>`_.
 
 
 Loading VIP

@@ -548,9 +548,9 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
         S = s_gpu[:ncomp]
         U = torch.transpose(u_gpu, 0, 1)[:ncomp]
         if to_numpy:
-            V = np.array(V)
-            S = np.array(S)
-            U = np.array(U)
+            V = V.cpu().numpy()  # V = np.array(V)
+            S = S.cpu().numpy()  # S = np.array(S)
+            U = U.cpu().numpy()  # U = np.array(U)
         if verbose:
             print('Done SVD/PCA with pytorch (GPU)')
 
@@ -566,11 +566,12 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
             V[:, i] /= S
         V = V[:ncomp]
         if to_numpy:
-            V = np.array(V)
+            V = V.cpu().numpy()  # V = np.array(V)
         if full_output or left_eigv:
             U = EV/np.sqrt(np.abs(e))
             U = U[:ncomp]
-            if to_numpy: U = cupy.asnumpy(U)
+            if to_numpy:
+                U = U.cpu().numpy()  # U = cupy.asnumpy(U)
         if verbose:
             print('Done PCA with pytorch eig function')
 
@@ -579,9 +580,9 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
             raise RuntimeError('Pytorch is not installed')
         U, S, V = randomized_svd_gpu(matrix, ncomp, n_iter=2, lib='pytorch')
         if to_numpy:
-            V = np.array(V)
-            S = np.array(S)
-            U = np.array(U)
+            V = V.cpu().numpy()  # V = np.array(V)
+            S = S.cpu().numpy()  # S = np.array(S)
+            U = U.cpu().numpy()  # U = np.array(U)
         if verbose:
             print('Done randomized SVD/PCA with randomized pytorch (GPU)')
 

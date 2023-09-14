@@ -403,8 +403,10 @@ def compute_derot_angles_cd(
 
 
 def check_pa_vector(angle_list, unit="deg"):
-    """Checks if the angle list has the right format to avoid any bug in the
-    pca-adi algorithm. The right format complies to 3 criteria:
+    """Check if the angle list has the right format to avoid any bug in the\
+    psfsub algorithms.
+
+    The right format complies to 3 criteria:
 
     1. angles are expressed in degree
     2. the angles are positive

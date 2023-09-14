@@ -10,14 +10,14 @@ speed tricks, compatibility with ADI/RDI/SDI datasets and datasets too large to
 fit in memory.
 - full-frame and annular versions of *NMF* [LEE99]_ / [GOM17]_.
 """
-
-from .pca_fullfr import *
-from .pca_local import *
-from .svd import *
-from .utils_pca import *
 from .framediff import *
 from .llsg import *
 from .loci import *
 from .medsub import *
 from .nmf_fullfr import *
 from .nmf_local import *
+from .pca_fullfr import *
+from .pca_local import *
+from .rollsub import *
+from .svd import *
+from .utils_pca import *

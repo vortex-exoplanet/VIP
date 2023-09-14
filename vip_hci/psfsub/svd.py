@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with functions for computing SVDs.
 """
@@ -103,10 +102,10 @@ class SVDecomposer:
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
 
     scale_list : numpy ndarray, optional
@@ -390,7 +389,7 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
     verbose: bool
         If True intermediate information is printed out.
     full_output : bool optional
-        If True the 3 terms of the SVD factorization are returned. 
+        If True the 3 terms of the SVD factorization are returned.
     random_state : int, RandomState instance or None, optional
         If int, random_state is the seed used by the random number generator.
         If RandomState instance, random_state is the random number generator.
@@ -402,7 +401,7 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
         VRAM and converted to numpy ndarrays.
     left_eigv : bool, optional
         Whether to use rather left or right singularvectors
-        
+
 
     Returns
     -------
@@ -459,7 +458,7 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
             V[:, i] /= S    # scaling EVs by the square root of EVals
         V = V[:ncomp]
         if full_output or left_eigv:
-            U = EV/np.sqrt(np.abs(e)) 
+            U = EV/np.sqrt(np.abs(e))
             U = U[:ncomp]
         if verbose:
             print('Done PCA with numpy linalg eigh functions')
@@ -534,7 +533,7 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
         if to_numpy:
             V = cupy.asnumpy(V)
         if full_output or left_eigv:
-            U = EV/np.sqrt(np.abs(e)) 
+            U = EV/np.sqrt(np.abs(e))
             U = U[:ncomp]
             if to_numpy: U = cupy.asnumpy(U)
         if verbose:
@@ -569,9 +568,9 @@ def svd_wrapper(matrix, mode, ncomp, verbose, full_output=False,
         if to_numpy:
             V = np.array(V)
         if full_output or left_eigv:
-            U = EV/np.sqrt(np.abs(e)) 
+            U = EV/np.sqrt(np.abs(e))
             U = U[:ncomp]
-            if to_numpy: U = cupy.asnumpy(U)    
+            if to_numpy: U = cupy.asnumpy(U)
         if verbose:
             print('Done PCA with pytorch eig function')
 

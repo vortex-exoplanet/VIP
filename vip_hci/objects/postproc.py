@@ -229,7 +229,8 @@ class PPResult:
         filepath: str
             The path of the FITS file.
         """
-        data, header = open_fits(fitsfilename=filepath, n=session_id, get_header=True)
+        data, header = open_fits(fitsfilename=filepath, n=session_id,
+                                 header=True)
         self.sessions = []
         if session_id == ALL_FITS:
             for index, element in enumerate(data):

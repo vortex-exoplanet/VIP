@@ -82,17 +82,17 @@ def andromeda(*all_args: List, **all_kwargs: dict):
     r"""
     Exoplanet detection in ADI sequences by maximum-likelihood approach.
 
-    This is as implemented in [CAN15]_, itself inspired by the framework presented in
-    [MUG09]_.
+    This is as implemented in [CAN15]_, itself inspired by the framework
+    presented in [MUG09]_.
 
     Parameters
     ----------
     all_args: list, optional
-        Positionnal arguments for the andromeda algorithm. Full list of parameters
-        below.
+        Positionnal arguments for the andromeda algorithm. Full list of
+        parameters below.
     all_kwargs: dictionary, optional
-        Mix of keyword arguments that can initialize a AndroParams or a AndroParams
-        itself.
+        Mix of keyword arguments that can initialize a AndroParams or a
+        AndroParams itself.
 
     Andromeda parameters
     ----------
@@ -347,7 +347,8 @@ def andromeda(*all_args: List, **all_kwargs: dict):
     if algo_params.owa is None:
         algo_params.owa = (npix / 2 - npixpsf / 2) / \
             (2 * algo_params.oversampling_fact)
-        info("owa automatically set to {} (based on frame size)", algo_params.owa)
+        info("owa automatically set to {} (based on frame size)",
+             algo_params.owa)
     else:
         # radius of the last annulus taken into account for process [lambda/D]:
         algo_params.owa -= (npixpsf / 2) / (2 * algo_params.oversampling_fact)
@@ -363,19 +364,13 @@ def andromeda(*all_args: List, **all_kwargs: dict):
             dmean = algo_params.fast
         else:
             algo_params.fast = 0
-
         if algo_params.iwa > algo_params.fast:
             dmean = algo_params.owa
-
     else:
         if algo_params.owa > algo_params.fast:
             dmean = algo_params.fast
         else:
             algo_params.fast = 0
-
-    if not algo_params.fast:
-        dmean = algo_params.owa
-    # dmean is not defined when fast=0, but it is also not used then. <- WHAT?
 
     if algo_params.fast:
         info(
@@ -389,7 +384,8 @@ def andromeda(*all_args: List, **all_kwargs: dict):
         algo_params.ditpsf = algo_params.ditimg
 
     if np.asarray(algo_params.tnd).ndim == 0:  # int or float
-        info2("Throughput map: Homogeneous transmission: {}%", algo_params.tnd * 100)
+        info2("Throughput map: Homogeneous transmission: {}%",
+              algo_params.tnd * 100)
     else:  # TODO: test if really 2d map?
         info2("Throughput map: Inhomogeneous 2D throughput map given.")
 

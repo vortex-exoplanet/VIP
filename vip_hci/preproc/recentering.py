@@ -257,7 +257,7 @@ def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
 
 def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
                interpolation='lanczos4', border_mode='reflect', nproc=None):
-    """ Shifts the X-Y coordinates of a cube or 3D array by x and y values.
+    """Shift the X-Y coordinates of a cube or 3D array by x and y values.
 
     Parameters
     ----------
@@ -310,14 +310,16 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
                           imlib='vip-fft', interpolation='lanczos4',
                           fit_type='moff', border_mode='reflect', debug=False,
                           verbose=True):
-    """ Finds the center of a frame with waffle/satellite spots (e.g. for
-    VLT/SPHERE). The method used to determine the center is by centroiding the
-    4 spots via a 2d Gaussian fit and finding the intersection of the
-    lines they create (see Notes). This method is very sensitive to the SNR of
-    the satellite spots, therefore thresholding of the background pixels is
-    performed. If the results are too extreme, the debug parameter will allow to
-    see in depth what is going on with the fit (maybe you'll need to adjust the
-    sigfactor for the background pixels thresholding).
+    """Find the center of a frame with satellite spots (relevant e.g. for\
+    VLT/SPHERE data).
+
+    The method used to determine the center is by centroiding the 4 spots via a
+    2D Gaussian fit and finding the intersection of the lines they create (see
+    Notes). This method is very sensitive to the SNR of the satellite spots,
+    therefore thresholding of the background pixels is performed. If the results
+    are too extreme, the debug parameter will allow to see in depth what is
+    going on with the fit (you may have to adjust the `sigfactor` for the
+    background pixels thresholding).
 
     Parameters
     ----------
@@ -414,16 +416,14 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
     """
     def line(p1, p2):
-        """ produces coefs A, B, C of line equation by 2 points
-        """
+        """Calculate coefs A, B, C of line equation by 2 points."""
         A = (p1[1] - p2[1])
         B = (p2[0] - p1[0])
         C = (p1[0] * p2[1] - p2[0] * p1[1])
         return A, B, -C
 
     def intersection(L1, L2):
-        """ finds intersection point (if any) of 2 lines provided by coefs
-        """
+        """Find intersection point (if any) of 2 lines provided by coefs."""
         D = L1[0] * L2[1] - L1[1] * L2[0]
         Dx = L1[2] * L2[1] - L1[1] * L2[2]
         Dy = L1[0] * L2[2] - L1[2] * L2[0]
@@ -451,8 +451,8 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
                                position=True, verbose=False)
         if fit_type == 'gaus':
             cent2dgy, cent2dgx = fit_2dgaussian(sim, crop=False, threshold=True,
-                                                sigfactor=sigfactor, debug=debug,
-                                                full_output=False)
+                                                sigfactor=sigfactor,
+                                                debug=debug, full_output=False)
         else:
             cent2dgy, cent2dgx = fit_2dmoffat(sim, crop=False, threshold=True,
                                               sigfactor=sigfactor, debug=debug,
@@ -505,14 +505,15 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
                            fit_type='moff', lbda=None, border_mode='constant',
                            debug=False, verbose=True, full_output=False):
-    """ Function analog to frame_center_satspots but for image sequences. It
-    actually will call frame_center_satspots for each image in the cube. The
-    function also returns the shifted images (not recommended to use when the
-    shifts are of a few percents of a pixel) and plots the histogram of the
-    shifts and calculate its statistics. This is important to assess the
+    """Recenter an image cube based on satellite spots (more details in `.
+
+    The function relies on ``frame_center_satspots`` to align each image of the
+    sequence individually (more details in the docstring of that function). The
+    function can also return the shifted images, plot the histogram of the
+    shifts, and calculate its statistics. This is important to assess the
     dispersion of the star center by using artificial waffle/satellite spots
     (like those in VLT/SPHERE images) and evaluate the uncertainty of the
-    position of the center. The use of the shifted images is not recommended.
+    position of the center.
 
     Parameters
     ----------
@@ -652,10 +653,11 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
                        gauss_fit=True, hpf=True, filter_fwhm=8, imlib='vip-fft',
                        interpolation='lanczos4', full_output=False,
                        verbose=True, plot=True, debug=False):
-    """ Finding the center of a broadband (co-added) frame with speckles and
-    satellite spots elongated towards the star (center). We use the Radon
-    transform implementation from scikit-image, and follow the algorithm
-    presented in [PUE15]_.
+    """Find the center of a broadband (co-added) frame with speckles and\
+    satellite spots elongated towards the star (center).
+
+    The function uses the Radon transform implementation from scikit-image, and
+    follow the algorithm presented in [PUE15]_.
 
     Parameters
     ----------
@@ -676,7 +678,7 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
         Number of iterations for finer recentering. At each step, a finer
         step is considered based on the amplitude of the shifts found in the
         previous step. Iterations are particularly relevant when mask_center is
-        not None (as the masked area will change from one iteration to the next).
+        not None, as the masked area will change from one iteration to the next.
     tol : float, optional
         Absolute tolerance on relative shift from one iteration to the next to
         consider convergence. If the absolute value of the shift is found to be
@@ -741,7 +743,7 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
 
     def _center_radon(array, cropsize=None, hsize=1., step=0.1,
                       mask_center=None, nproc=None, satspots_cfg=None,
-                      theta_0=0, delta_theta=5, gauss_fit=False,
+                      theta_0=0, d_theta=5, gauss_fit=False,
                       imlib='vip-fft', interpolation='lanczos4',
                       verbose=True, plot=True, debug=False):
 
@@ -769,52 +771,53 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
             if satspots_cfg is not None:
                 samples = 10
                 if satspots_cfg == 'x':
-                    theta = np.hstack((np.linspace(start=45-delta_theta,
-                                                   stop=45+delta_theta,
+                    theta = np.hstack((np.linspace(start=45-d_theta,
+                                                   stop=45+d_theta,
                                                    num=samples,
                                                    endpoint=False),
-                                       np.linspace(start=135-delta_theta,
-                                                   stop=135+delta_theta,
+                                       np.linspace(start=135-d_theta,
+                                                   stop=135+d_theta,
                                                    num=samples,
                                                    endpoint=False),
-                                       np.linspace(start=225-delta_theta,
-                                                   stop=225+delta_theta,
+                                       np.linspace(start=225-d_theta,
+                                                   stop=225+d_theta,
                                                    num=samples,
                                                    endpoint=False),
-                                       np.linspace(start=315-delta_theta,
-                                                   stop=315+delta_theta,
+                                       np.linspace(start=315-d_theta,
+                                                   stop=315+d_theta,
                                                    num=samples,
                                                    endpoint=False)))
                 elif satspots_cfg == '+':
-                    theta = np.hstack((np.linspace(start=-delta_theta,
-                                                   stop=delta_theta,
+                    theta = np.hstack((np.linspace(start=-d_theta,
+                                                   stop=d_theta,
                                                    num=samples,
                                                    endpoint=False),
-                                       np.linspace(start=90-delta_theta,
-                                                   stop=90+delta_theta,
+                                       np.linspace(start=90-d_theta,
+                                                   stop=90+d_theta,
                                                    num=samples,
                                                    endpoint=False),
-                                       np.linspace(start=180-delta_theta,
-                                                   stop=180+delta_theta,
+                                       np.linspace(start=180-d_theta,
+                                                   stop=180+d_theta,
                                                    num=samples,
                                                    endpoint=False),
-                                       np.linspace(start=270-delta_theta,
-                                                   stop=270+delta_theta,
+                                       np.linspace(start=270-d_theta,
+                                                   stop=270+d_theta,
                                                    num=samples,
                                                    endpoint=False)))
                 elif satspots_cfg == 'custom':
-                    theta = np.hstack((np.linspace(start=90-theta_0-delta_theta,
-                                                   stop=90-theta_0+delta_theta,
+                    theta = np.hstack((np.linspace(start=90-theta_0-d_theta,
+                                                   stop=90-theta_0+d_theta,
                                                    num=samples, endpoint=False),
-                                       np.linspace(start=180-theta_0-delta_theta,
-                                                   stop=180-theta_0+delta_theta,
+                                       np.linspace(start=180-theta_0-d_theta,
+                                                   stop=180-theta_0+d_theta,
                                                    num=samples, endpoint=False),
-                                       np.linspace(start=270-theta_0-delta_theta,
-                                                   stop=270-theta_0+delta_theta,
+                                       np.linspace(start=270-theta_0-d_theta,
+                                                   stop=270-theta_0+d_theta,
                                                    num=samples, endpoint=False),
-                                       np.linspace(start=360-theta_0-delta_theta,
-                                                   stop=360-theta_0+delta_theta,
-                                                   num=samples, endpoint=False)))
+                                       np.linspace(start=360-theta_0-d_theta,
+                                                   stop=360-theta_0+d_theta,
+                                                   num=samples,
+                                                   endpoint=False)))
                 else:
                     msg = "If not None, satspots_cfg can only be 'x' or '+'."
                     raise ValueError(msg)
@@ -829,7 +832,7 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
                 print(np.sum(np.abs(sinogram[int(cent), :])))
 
         if nproc is None:
-            nproc = cpu_count() // 2        # Hyper-threading doubles the # of cores
+            nproc = cpu_count() // 2    # Hyper-threading doubles the # of cores
 
         if nproc == 1:
             costf = []
@@ -878,7 +881,7 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
         # Replace the position found by Gaussian fit
         if not gauss_fit:
             # OLD CODE:
-            # argm = np.argmax(costf) # index of 1st max in 1d cost function 'surface'
+            # argm = np.argmax(costf) # index of 1st max in 1d cost function
             # optimy, optimx = coords[argm]
 
             # maxima in the 2d cost function surface
@@ -896,8 +899,8 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
         if verbose:
             print('Cost function max: {}'.format(costf.max()))
             # print('Cost function # maxima: {}'.format(num_max))
-            msg = 'Finished grid search radon optimization. dy={:.3f}, dx={:.3f}'
-            print(msg.format(opt_yshift, opt_xshift))
+            m = 'Finished grid search radon optimization: dy={:.3f}, dx={:.3f}'
+            print(m.format(opt_yshift, opt_xshift))
             timing(start_time)
 
         return optimy, optimx, opt_yshift, opt_xshift, dyx, cost_bound
@@ -947,8 +950,8 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
 
     if verbose:
         print("Star (x,y) location: {:.2f}, {:.2f}".format(optimx, optimy))
-        print("Final cumulative (x,y) shifts: {:.2f}, {:.2f}".format(opt_xshift,
-                                                                     opt_yshift))
+        print("Final (x,y) shifts: {:.2f}, {:.2f}".format(opt_xshift,
+                                                          opt_yshift))
 
     if full_output:
         return optimy, optimx, dyx, cost_bound
@@ -958,8 +961,7 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
 
 def _radon_costf(frame, cent, radint, coords, satspots_cfg=None, theta_0=0,
                  delta_theta=5, imlib='vip-fft', interpolation='lanczos4'):
-    """ Radon cost function used in frame_center_radon().
-    """
+    """Calculate Radon cost function used in frame_center_radon()."""
     frame_shifted = frame_shift(frame, coords[0], coords[1], imlib=imlib,
                                 interpolation=interpolation)
     frame_shifted_ann = get_annulus_segments(frame_shifted, radint,
@@ -1017,7 +1019,7 @@ def _radon_costf(frame, cent, radint, coords, satspots_cfg=None, theta_0=0,
 def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
                         interpolation='lanczos4', border_mode='reflect',
                         **kwargs):
-    """ Recenters a cube looping through its frames and calling the
+    """Recenter a cube looping through its frames and calling the\
     ``frame_center_radon`` function, as in [PUE15]_.
 
     Parameters
@@ -1041,7 +1043,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
         reflecting about the center of the last pixel. With 'wrap', the input is
         extended by wrapping around to the opposite edge. Default is 'reflect'.
     kwargs:
-        Additional optional parameters for ``vip_hci.preproc.frame_center_radon``
+        Other optional parameters for ``vip_hci.preproc.frame_center_radon``
         function, such as cropsize, hsize, step, satspots_cfg, mask_center,
         hpf, filter_fwhm, nproc or debug.
 
@@ -1095,8 +1097,8 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  mask=None, border_mode='reflect', log=False,
                                  full_output=False, verbose=True, nproc=None,
                                  save_shifts=False, debug=False, plot=True):
-    """ Recenters a cube of frames using the DFT upsampling method as proposed
-    in [GUI08]_ and implemented in the ``register_translation`` function from
+    """Recenter a cube of frames using the DFT upsampling method as proposed\
+    in [GUI08]_ and implemented in the ``register_translation`` function from\
     scikit-image.
 
     The algorithm (DFT upsampling) obtains an initial estimate of the
@@ -1184,7 +1186,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
 
     check_array(array, dim=3)
     if mask is not None:
-        if mask.shape[-1] != array.shape[-1] or mask.shape[-2] != array.shape[-2]:
+        if mask.shape != array.shape[-2:]:
             msg = "If provided, mask should have same shape as frames"
             raise TypeError(msg)
 
@@ -1254,8 +1256,8 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
 
     # Centroiding mean frame with 2d gaussian and shifting (only necessary if
     # first frame was not well-centered)
-    msg0 = "The rest of the frames will be shifted by cross-correlation wrt the" \
-           " 1st"
+    msg0 = "The rest of the frames will be shifted by cross-correlation wrt "
+    msg0 += "the 1st"
     if subi_size is not None:
         # before 2D gaussian fit, take non-log images
         if log:
@@ -1289,8 +1291,8 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
 
     if plot:
         plt.figure(figsize=vip_figsize)
-        plt.plot(y, 'o-', label='shifts in y', alpha=0.5)
         plt.plot(x, 'o-', label='shifts in x', alpha=0.5)
+        plt.plot(y, 'o-', label='shifts in y', alpha=0.5)
         plt.legend(loc='best')
         plt.grid('on', alpha=0.2)
         plt.ylabel('Pixels')
@@ -1315,9 +1317,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
 
 def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
                imlib, border_mode):
-    """
-    function used in recenter_dft_unsampling
-    """
+    """Dft-based shift, as used in recenter_dft_unsampling."""
     if version.parse(skimage.__version__) > version.parse('0.17.0'):
         shift_yx = cc_center(array_rec[0], array[frnum],
                              upsample_factor=upsample_factor,
@@ -1339,21 +1339,24 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
                         border_mode='reflect', save_shifts=False,
                         full_output=False, verbose=True, debug=False,
                         plot=True):
-    """ Recenters the frames of a cube. The shifts are found by fitting a 2d
-    Gaussian or Moffat to a subimage centered at ``xy``. This assumes the frames
-    don't have too large shifts (>5px). The frames are shifted using the
-    function frame_shift().
+    """Recenter the frames of a cube such that the centroid of a fitted 2D\
+    model is placed at the center of the frames.
+
+    The shifts are found by fitting a 2D Gaussian, Moffat, Airy or double
+    Gaussian (positive+negative), as set by ``model``, to a subimage centered at
+    ``xy``. This assumes the frames don't have too large shifts (<5px). The
+    frames are then shifted using the function frame_shift().
 
     Parameters
     ----------
     array : numpy ndarray
         Input cube.
     xy : tuple of integers or floats
-        Integer coordinates of the center of the subimage (wrt the original frame).
-        For the double gaussian fit with fixed negative gaussian, this should
-        correspond to the exact location of the center of the negative gaussiam
-        (e.g. the center of the coronagraph mask) - in that case a tuple of
-        floats is also accepted.
+        Integer coordinates of the center of the subimage. For the double
+        Gaussian fit with fixed negative gaussian (``fix_neg=True``), this
+        should correspond to the exact location of the center of the negative
+        Gaussian (e.g. the center of the coronagraph mask). In that case a tuple
+        of floats is accepted.
     fwhm : float or numpy ndarray
         FWHM size in pixels, either one value (float) that will be the same for
         the whole cube, or an array of floats with the same dimension as the
@@ -1579,9 +1582,7 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
 
 def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
                         fwhm, threshold=False, sigfactor=1):
-    """ Finds the centroid by using a 2d gaussian fitting in one frame from a
-    cube.
-    """
+    """Find the centroid with a 2d Gaussian fit in a frame of the cube."""
     sub_image, y1, x1 = get_square(cube[frnum], size=size, y=pos_y, x=pos_x,
                                    position=True)
     # negative gaussian fit
@@ -1589,7 +1590,8 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
         sub_image = -sub_image + np.abs(np.min(-sub_image))
 
     y_i, x_i = fit_2dgaussian(sub_image, crop=False, fwhmx=fwhm, fwhmy=fwhm,
-                              threshold=threshold, sigfactor=sigfactor, debug=debug,
+                              threshold=threshold, sigfactor=sigfactor,
+                              debug=debug,
                               full_output=False)
     y_i = y1 + y_i
     x_i = x1 + x_i
@@ -1598,9 +1600,7 @@ def _centroid_2dg_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
 
 def _centroid_2dm_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
                         fwhm, threshold=False, sigfactor=1):
-    """ Finds the centroid by using a 2d moffat fitting in one frame from a
-    cube.
-    """
+    """Find the centroid with a 2d Moffat fit in a frame of the cube."""
     sub_image, y1, x1 = get_square(cube[frnum], size=size, y=pos_y, x=pos_x,
                                    position=True)
     # negative fit
@@ -1617,9 +1617,7 @@ def _centroid_2dm_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
 
 def _centroid_2da_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
                         fwhm, threshold=False, sigfactor=1):
-    """ Finds the centroid by using a 2d Airy disk fitting in one frame from a
-    cube.
-    """
+    """Find the centroid with a 2d Airy fit in a frame of the cube."""
     sub_image, y1, x1 = get_square(cube[frnum], size=size, y=pos_y, x=pos_x,
                                    position=True)
     # negative fit
@@ -1637,11 +1635,7 @@ def _centroid_2da_frame(cube, frnum, size, pos_y, pos_x, negative, debug,
 def _centroid_2d2g_frame(cube, frnum, size, pos_y, pos_x, debug=False, fwhm=4,
                          fix_neg=True, params_2g=None, threshold=False,
                          sigfactor=1):
-    """ Finds the centroid by using a 2d double gaussian (positive+negative)
-    fitting in one frame from a cube. To be called from within
-    cube_recenter_doublegauss2d_fit().
-    """
-
+    """Find the centroid with a 2d double Gaussian fit in a cube frame."""
     size = min(cube[frnum].shape[0], cube[frnum].shape[1], size)
     if isinstance(params_2g, dict):
         fwhm_neg = params_2g.get('fwhm_neg', 0.8*fwhm)
@@ -1651,8 +1645,9 @@ def _centroid_2d2g_frame(cube, frnum, size, pos_y, pos_x, debug=False, fwhm=4,
         neg_amp = params_2g.get('neg_amp', 1)
 
     res_DF = fit_2d2gaussian(cube[frnum], crop=True, cent=(pos_x, pos_y),
-                             cropsize=size, fwhm_neg=fwhm_neg, fwhm_pos=fwhm_pos,
-                             neg_amp=neg_amp, fix_neg=fix_neg, theta_neg=theta_neg,
+                             cropsize=size, fwhm_neg=fwhm_neg,
+                             fwhm_pos=fwhm_pos, neg_amp=neg_amp,
+                             fix_neg=fix_neg, theta_neg=theta_neg,
                              theta_pos=theta_pos, threshold=threshold,
                              sigfactor=sigfactor, full_output=True, debug=debug)
     y_i = res_DF['centroid_y']
@@ -1682,9 +1677,11 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                interpolation='lanczos4', border_mode='reflect',
                                log=True, plot=True, full_output=False,
                                nproc=None):
-    """ Registers frames based on the median speckle pattern. Optionally centers
-    based on the position of the vortex null in the median frame. Images are
-    filtered to isolate speckle spatial frequencies.
+    """Register frames based on the median speckle pattern.
+
+    The function also optionally centers images based on the position of the
+    vortex null in the median frame (through a negative Gaussian fit). Images
+    are filtered to isolate speckle spatial frequencies.
 
     Parameters
     ----------
@@ -1766,6 +1763,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     """
     n, y, x = cube_sci.shape
     check_array(cube_sci, dim=3)
+    gam = gammaval
 
     if nproc is None:
         nproc = cpu_count()//2
@@ -1807,7 +1805,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     if ref_star:
         cube_ref_lpf = cube_ref_lpf - np.min(cube_ref_lpf)
 
-    if max_spat_freq>0:
+    if max_spat_freq > 0:
         median_size = int(fwhm * max_spat_freq)
         # Remove spatial frequencies <0.5 lam/D and >3lam/D to isolate speckles
         cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
@@ -1823,7 +1821,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         cube_sci_lpf = cube_sci_hpf
 
     if ref_star:
-        if max_spat_freq>0:
+        if max_spat_freq > 0:
             cube_ref_hpf = cube_filter_highpass(cube_ref_lpf, 'median-subt',
                                                 median_size=median_size,
                                                 verbose=False)
@@ -1837,25 +1835,25 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             cube_ref_lpf = cube_ref_hpf
 
     if ref_star:
-        alignment_cube = np.zeros((1 + n + nref, subframesize, subframesize))
-        alignment_cube[1:(n + 1), :, :] = cube_sci_lpf
-        alignment_cube[(n + 1):(n + 2 + nref), :, :] = cube_ref_lpf
+        align_cube = np.zeros((1 + n + nref, subframesize, subframesize))
+        align_cube[1:(n + 1), :, :] = cube_sci_lpf
+        align_cube[(n + 1):(n + 2 + nref), :, :] = cube_ref_lpf
     else:
-        alignment_cube = np.zeros((1 + n, subframesize, subframesize))
-        alignment_cube[1:(n + 1), :, :] = cube_sci_lpf
+        align_cube = np.zeros((1 + n, subframesize, subframesize))
+        align_cube[1:(n + 1), :, :] = cube_sci_lpf
 
-    n_frames = alignment_cube.shape[0]  # 1+n or 1+n+nref
+    n_frames = align_cube.shape[0]  # 1+n or 1+n+nref
     cum_y_shifts = 0
     cum_x_shifts = 0
 
     # no iteration => just align with respect to first frame => converges
-    if alignment_iter==1:
-        alignment_cube[0] = cube_sci_lpf[0]
+    if alignment_iter == 1:
+        align_cube[0] = cube_sci_lpf[0]
         # center the cube with stretched values
         if log:
-            cube_stret = np.log10((alignment_cube-np.min(alignment_cube)+1)**gammaval)
+            cube_stret = np.log10((align_cube-np.min(align_cube)+1)**gam)
         else:
-            cube_stret = alignment_cube.copy()
+            cube_stret = align_cube.copy()
         if mask is not None and crop:
             mask_tmp = frame_crop(mask, subframesize)
         else:
@@ -1871,15 +1869,15 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         print('Square sum of shift vecs: ' + str(sqsum_shifts))
 
         for j in range(1, n_frames):
-            alignment_cube[j] = frame_shift(alignment_cube[j], y_shift[j],
-                                            x_shift[j], imlib=imlib,
-                                            interpolation=interpolation,
-                                            border_mode=border_mode)
+            align_cube[j] = frame_shift(align_cube[j], y_shift[j], x_shift[j],
+                                        imlib=imlib,
+                                        interpolation=interpolation,
+                                        border_mode=border_mode)
         cum_y_shifts += y_shift
         cum_x_shifts += x_shift
 
         if recenter_median:
-            alignment_cube[0] = np.median(alignment_cube[1:(n + 1)], axis=0)
+            align_cube[0] = np.median(align_cube[1:(n + 1)], axis=0)
             # Recenter the median frame using a 2d fit
             if fit_type == 'gaus' and negative:
                 crop_sz = int(fwhm)
@@ -1893,7 +1891,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                     crop_sz -= 1
                 else:
                     crop_sz += 1
-            sub_image, y1, x1 = get_square(alignment_cube[0], size=crop_sz,
+            sub_image, y1, x1 = get_square(align_cube[0], size=crop_sz,
                                            y=ceny, x=cenx, position=True)
 
             if fit_type == 'gaus':
@@ -1914,7 +1912,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             cum_x_shifts += xshift
     else:
         for i in range(alignment_iter):
-            alignment_cube[0] = np.median(alignment_cube[1:(n + 1)], axis=0)
+            align_cube[0] = np.median(align_cube[1:(n + 1)], axis=0)
             if recenter_median:
                 # Recenter the median frame using a 2d fit
                 if fit_type == 'gaus':
@@ -1927,7 +1925,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                         crop_sz -= 1
                     else:
                         crop_sz += 1
-                sub_image, y1, x1 = get_square(alignment_cube[0], size=crop_sz,
+                sub_image, y1, x1 = get_square(align_cube[0], size=crop_sz,
                                                y=ceny, x=cenx, position=True)
 
                 if fit_type == 'gaus':
@@ -1937,24 +1935,24 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                               threshold=False, sigfactor=1,
                                               debug=debug, full_output=False)
                 elif fit_type == 'ann':
-                    y_i, x_i, rad = _fit_2dannulus(sub_image, fwhm=fwhm, crop=False,
-                                                   hole_rad=0.5, sampl_cen=0.1,
-                                                   sampl_rad=0.2, ann_width=0.5,
-                                                   unc_in=2.)
+                    y_i, x_i, rad = _fit_2dannulus(sub_image, fwhm=fwhm,
+                                                   crop=False, hole_rad=0.5,
+                                                   sampl_cen=0.1, sampl_rad=0.2,
+                                                   ann_width=0.5, unc_in=2.)
                 yshift = ceny - (y1 + y_i)
                 xshift = cenx - (x1 + x_i)
 
-                alignment_cube[0] = frame_shift(alignment_cube[0, :, :], yshift,
-                                                xshift, imlib=imlib,
-                                                interpolation=interpolation,
-                                                border_mode=border_mode)
+                align_cube[0] = frame_shift(align_cube[0, :, :], yshift, xshift,
+                                            imlib=imlib,
+                                            interpolation=interpolation,
+                                            border_mode=border_mode)
 
             # center the cube with stretched values
             if log:
-                cube_stret = np.log10((alignment_cube-np.min(alignment_cube)+1)**gammaval)
+                cube_stret = np.log10((align_cube-np.min(align_cube)+1)**gam)
             else:
-                cube_stret = alignment_cube.copy()
-            cube_stret = np.log10((np.abs(alignment_cube) + 1) ** gammaval)
+                cube_stret = align_cube.copy()
+            cube_stret = np.log10((np.abs(align_cube) + 1)**gam)
             if mask is not None and crop:
                 mask_tmp = frame_crop(mask, subframesize)
             else:
@@ -1971,10 +1969,10 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             print('Square sum of shift vecs: ' + str(sqsum_shifts))
 
             for j in range(1, n_frames):
-                alignment_cube[j] = frame_shift(alignment_cube[j], y_shift[j],
-                                                x_shift[j], imlib=imlib,
-                                                interpolation=interpolation,
-                                                border_mode=border_mode)
+                align_cube[j] = frame_shift(align_cube[j], y_shift[j],
+                                            x_shift[j], imlib=imlib,
+                                            interpolation=interpolation,
+                                            border_mode=border_mode)
 
             cum_y_shifts += y_shift
             cum_x_shifts += x_shift
@@ -2030,11 +2028,13 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
 def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15,
                    hole_rad=0.5, sampl_cen=0.1, sampl_rad=None, ann_width=0.5,
                    unc_in=2.):
-    """Finds the center of a donut-shape signal (e.g. a coronagraphic
-    PSF) by fitting an annulus, using a grid of positions for the center and
-    radius of the annulus. The best fit is found by maximizing the mean flux
-    measured in the annular mask. Requires the image to be already roughly
-    centered (by an uncertainty provided by unc_in).
+    """Find the center of a donut-shape signal (e.g. a coronagraphic PSF) with\
+    an annulus fit.
+
+    The function uses a grid of positions for the center and radius of the
+    annulus. The best fit is found by maximizing the mean flux measured in the
+    annular mask. This requires the image to be already roughly centered
+    (by an uncertainty provided by unc_in).
 
     Parameters
     ----------
@@ -2070,7 +2070,6 @@ def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15,
     final_hole_rad : float
         Best fit radius of the hole, in terms of fwhm.
     """
-
     if cent is None:
         ceny, cenx = frame_center(array)
     else:

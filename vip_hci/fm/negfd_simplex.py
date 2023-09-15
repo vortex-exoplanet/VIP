@@ -65,10 +65,10 @@ def firstguess_fd_from_coord(
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array.
     disk_img: 2d or 3d numpy ndarray
-        The disk image to be injected, as a 2d ndarray (for either 3D or 4D
-        input cubes) or a 3d numpy array (for a 4D spectral+ADI input cube). In
-        the latter case, the images should correspond to different wavelengths,
-        and the zeroth shape of disk_model and cube should match.
+        The disk image to be injected, as a 2d ndarray (for a 3D input cube) or
+        a 3d numpy array (for a 4D spectral+ADI input cube). In the latter case,
+        the images should correspond to different wavelengths, and the zeroth
+        shape of disk_model and cube should match.
     mask_fm: 2d numpy ndarray
         Binary mask on which to calculate the figure of merit in the processed
         image. Residuals will be minimized where mask values are 1.
@@ -205,7 +205,8 @@ def firstguess_fd_from_coord(
             if counter == 4:
                 break
             if verbose:
-                print("{}/{}   {:.3f}   {:.3f}".format(j + 1, n, f_guess, chi2r[j]))
+                print("{}/{}   {:.3f}   {:.3f}".format(j + 1, n, f_guess,
+                                                       chi2r[j]))
 
         return chi2r
 
@@ -223,7 +224,7 @@ def firstguess_fd_from_coord(
         n = 30
         f_range = np.geomspace(1e-1, 1e4, n)
 
-    if cube.ndim == 3:
+    if cube.ndim == 3 or 'scale_list' in algo_options.keys():
         chi2r = _grid_search_f(
             x0,
             y0,
@@ -296,7 +297,7 @@ def firstguess_fd_from_coord(
                 i,
                 cube,
                 angs,
-                disk_img,
+                disk_img[i],
                 mask_fm,
                 fmerit=fmerit,
                 mu_sigma=mu_sigma,
@@ -352,6 +353,7 @@ def firstguess_fd_from_coord(
             plt.show()
 
         res = tuple([x0, y0, theta0, scal0] + f0)
+        res = tuple(res)
 
     if full_output:
         return res, f_range, chi2r
@@ -509,7 +511,7 @@ def firstguess_fd_simplex(
 def firstguess_fd(
     cube,
     angs,
-    disk_img,
+    disk_model,
     mask_fm,
     ini_xy=(0, 0),
     ini_theta=0,
@@ -544,9 +546,12 @@ def firstguess_fd(
         Input ADI or ADI+IFS cube.
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array.
-    disk_img: 2d or 3d numpy ndarray
-        The disk image to be injected, as a 2d ndarray (for either 3D or 4D
-        input cubes) or a 3d numpy array (for a 4D spectral+ADI input cube). In
+    disk_model: numpy ndarray
+        The disk image(s) to be injected, should be 2d ndarray (for a 3D input
+        cube), 3d numpy array (for a 4D spectral+ADI input cube), or higher
+        dimensionality for an input grid of disk models provided (the number of
+        additional dimensions is inferred from the
+                . In
         the latter case, the images should correspond to different wavelengths,
         and the zeroth shape of disk_model and cube should match.
     mask_fm: 2d numpy ndarray
@@ -660,6 +665,9 @@ def firstguess_fd(
         if psfn.ndim < 3:
             msg = "The normalized PSF should be 3D for a 4D input cube"
             raise TypeError(msg)
+        if disk_model.ndim != 3:
+            msg = "The disk model should be 3D for a 4D input cube"
+            raise TypeError(msg)
 
     if weights is not None:
         if not len(weights) == cube.shape[-3]:
@@ -676,35 +684,83 @@ def firstguess_fd(
         if len(mu_sigma) != 2:
             raise TypeError("If a tuple, mu_sigma must have 2 elements")
 
-    res_init = firstguess_fd_from_coord(
-        ini_xy,
-        ini_theta,
-        ini_scal,
-        cube,
-        angs,
-        disk_img,
-        mask_fm,
-        fmerit=fmerit,
-        mu_sigma=mu_sigma,
-        f_range=f_range,
-        psfn=psfn,
-        algo=algo,
-        algo_options=algo_options,
-        imlib=imlib,
-        interpolation=interpolation,
-        transmission=transmission,
-        weights=weights,
-        plot=plot,
-        verbose=verbose,
-        save=save,
-        rot_options=rot_options,
-    )
+    extra_dims = cube.ndim-disk_model.ndim-1
+    if extra_dims > 0:
+        dim_test = disk_model.shape[:extra_dims]
+        ntests = 1
+        for i in range(extra_dims):
+            ntests *= dim_test[i]
+        all_chi2r = np.ones(ntests)
+        all_succ = np.zeros(ntests)
+        for c in range(ntests):
+            res_c = firstguess_fd_from_coord(
+                ini_xy,
+                ini_theta,
+                ini_scal,
+                cube,
+                angs,
+                disk_model,
+                mask_fm,
+                fmerit=fmerit,
+                mu_sigma=mu_sigma,
+                f_range=f_range,
+                psfn=psfn,
+                algo=algo,
+                algo_options=algo_options,
+                imlib=imlib,
+                interpolation=interpolation,
+                transmission=transmission,
+                weights=weights,
+                plot=plot,
+                verbose=verbose,
+                full_output=True
+                save=save,
+                rot_options=rot_options,
+            )
+            res_init = res_c[0]
+            if res_c[1]:
+                all_chi2r[c]
+                all_succ[c] = 1
+            else:
+                all_chi2r[]
 
-    x_pre = res_init[0]
-    y_pre = res_init[1]
-    theta_pre = res_init[2]
-    scal_pre = res_init[3]
-    f_pre = res_init[4:]
+            chi2r = res_c[-1]
+
+            x_pre = res_init[0]
+            y_pre = res_init[1]
+            theta_pre = res_init[2]
+            scal_pre = res_init[3]
+            f_pre = res_init[4:]
+    else:
+        res_init = firstguess_fd_from_coord(
+            ini_xy,
+            ini_theta,
+            ini_scal,
+            cube,
+            angs,
+            disk_model,
+            mask_fm,
+            fmerit=fmerit,
+            mu_sigma=mu_sigma,
+            f_range=f_range,
+            psfn=psfn,
+            algo=algo,
+            algo_options=algo_options,
+            imlib=imlib,
+            interpolation=interpolation,
+            transmission=transmission,
+            weights=weights,
+            plot=plot,
+            verbose=verbose,
+            save=save,
+            rot_options=rot_options,
+        )
+
+        x_pre = res_init[0]
+        y_pre = res_init[1]
+        theta_pre = res_init[2]
+        scal_pre = res_init[3]
+        f_pre = res_init[4:]
 
     if verbose:
         msg3a = "Preliminary shift, rotation and scaling guess: (x, y, theta, "
@@ -734,7 +790,7 @@ def firstguess_fd(
             res_init,
             cube,
             angs,
-            disk_img,
+            disk_model,
             mask_fm,
             fmerit,
             mu_sigma,

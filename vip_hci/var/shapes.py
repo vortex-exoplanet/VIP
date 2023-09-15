@@ -697,7 +697,8 @@ def matrix_scaling(matrix, scaling):
 
 
 def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
-                   inner_radius=None, outer_radius=None, discard_mask_pix=False, verbose=True):
+                   inner_radius=None, outer_radius=None, discard_mask_pix=False,
+                   verbose=True):
     """
     Build the matrix for the SVD/PCA and other matrix decompositions.
 
@@ -773,7 +774,7 @@ def prepare_matrix(array, scaling=None, mask_center_px=None, mode='fullfr',
             if discard_mask_pix:
                 mask = mask_circle(array, mask_center_px, output="bool_mask")
                 array = array[:, mask]
-            else :
+            else:
                 array = mask_circle(array, mask_center_px)
 
         nfr = array.shape[0]

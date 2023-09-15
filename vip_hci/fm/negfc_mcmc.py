@@ -18,7 +18,8 @@ Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
 
 .. [WER17]
    | Wertz et al. 2017
-   | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond-level accuracy. Orbital architecture analysis with PyAstrOFit**
+   | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond
+   level accuracy. Orbital architecture analysis with PyAstrOFit**
    | *Astronomy & Astrophysics, Volume 598, p. 83*
    | `https://arxiv.org/abs/1610.04014
      <https://arxiv.org/abs/1610.04014>`_

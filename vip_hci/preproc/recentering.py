@@ -1321,7 +1321,8 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
     """Function used in recenter_dft_unsampling."""
     if version.parse(skimage.__version__) > version.parse('0.17.0'):
         shift_yx = cc_center(array_rec[0], array[frnum],
-                             upsample_factor=upsample_factor, reference_mask=mask,
+                             upsample_factor=upsample_factor,
+                             reference_mask=mask,
                              return_error=False)
     else:
         shift_yx = cc_center(array_rec[0], array[frnum],

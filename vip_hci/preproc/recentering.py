@@ -450,11 +450,11 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     centy = []
     subims = []
     if filter_freq[0] > 0:
-        print("filter is bigger 0")
+        
         array = frame_filter_highpass(array, mode='gauss-subt', 
                                       fwhm_size=filter_freq[0])
     if filter_freq[1] > 0:
-        print("filter is bigger 0")
+        
         array = frame_filter_lowpass(array, fwhm_size=filter_freq[1])
     for i in range(len(xy)):
         sim, y, x = get_square(array, subi_size, xy[i][1], xy[i][0],

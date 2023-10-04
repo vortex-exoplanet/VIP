@@ -450,9 +450,11 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     centy = []
     subims = []
     if filter_freq[0] > 0:
+        print("filter is bigger 0")
         array = frame_filter_highpass(array, mode='gauss-subt', 
                                       fwhm_size=filter_freq[0])
     if filter_freq[1] > 0:
+        print("filter is bigger 0")
         array = frame_filter_lowpass(array, fwhm_size=filter_freq[1])
     for i in range(len(xy)):
         sim, y, x = get_square(array, subi_size, xy[i][1], xy[i][0],
@@ -614,7 +616,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         res = frame_center_satspots(array[i], final_xy[i], debug=debug,
                                     shift=True, subi_size=subi_size,
                                     sigfactor=sigfactor, fit_type=fit_type,
-                                    filter_freq=(0,0),
+                                    filter_freq=filter_freq,
                                     verbose=False, border_mode=border_mode)
         array_rec.append(res[0])
         shift_y[i] = res[1]

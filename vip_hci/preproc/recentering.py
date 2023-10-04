@@ -60,7 +60,7 @@ from ..stats import frame_basic_stats
 from ..var import (get_square, frame_center, get_annulus_segments,
                    fit_2dmoffat, fit_2dgaussian, fit_2dairydisk,
                    fit_2d2gaussian, cube_filter_lowpass, cube_filter_highpass,
-                   frame_filter_highpass)
+                   frame_filter_highpass, frame_filter_lowpass)
 from .cosmetics import cube_crop_frames, frame_crop
 
 
@@ -308,8 +308,8 @@ def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
 
 def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
                           imlib='vip-fft', interpolation='lanczos4',
-                          fit_type='moff', border_mode='reflect', debug=False,
-                          verbose=True):
+                          fit_type='moff', filter_freq=(0,0), border_mode='reflect', 
+                          debug=False, verbose=True):
     """ Finds the center of a frame with waffle/satellite spots (e.g. for
     VLT/SPHERE). The method used to determine the center is by centroiding the
     4 spots via a 2d Gaussian fit and finding the intersection of the
@@ -343,6 +343,10 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     fit_type: str, optional {'gaus','moff'}
         Type of 2d fit to infer the centroid of the satellite spots.
+    filter_freq: tuple of 2 elements. 
+    If the first and second elements are bigger than 0, then the first element
+    corresponds to fwhm_size in cube_filter_highpass with mode='gauss-subt'. 
+    The second element is in fwhm_size for cube_filter_lowpass. 
     border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
         Points outside the boundaries of the input are filled accordingly.
         With 'reflect', the input is extended by reflecting about the edge of
@@ -445,7 +449,11 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     centx = []
     centy = []
     subims = []
-
+    if filter_freq[0] > 0:
+        array = frame_filter_highpass(array, mode='gauss-subt', 
+                                      fwhm_size=filter_freq[0])
+    if filter_freq[1] > 0:
+        array = frame_filter_lowpass(array, fwhm_size=filter_freq[1])
     for i in range(len(xy)):
         sim, y, x = get_square(array, subi_size, xy[i][1], xy[i][0],
                                position=True, verbose=False)
@@ -503,7 +511,7 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
 
 def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
-                           fit_type='moff', lbda=None, border_mode='constant',
+                           fit_type='moff', lbda=None, filter_freq=(0,0), border_mode='constant',
                            debug=False, verbose=True, full_output=False):
     """ Function analog to frame_center_satspots but for image sequences. It
     actually will call frame_center_satspots for each image in the cube. The
@@ -541,6 +549,10 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     lbda: 1d array or list, opt
         Wavelength vector. If provided, the subimages will be scaled accordingly
         to follow the motion of the satellite spots.
+    filter_freq: tuple of 2 elements. 
+    If the first and second elements are bigger than 0, then the first element
+    corresponds to fwhm_size in cube_filter_highpass with mode='gauss-subt'. 
+    The second element is in fwhm_size for cube_filter_lowpass. 
     border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
         Points outside the boundaries of the input are filled accordingly.
         With 'reflect', the input is extended by reflecting about the edge of
@@ -602,6 +614,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         res = frame_center_satspots(array[i], final_xy[i], debug=debug,
                                     shift=True, subi_size=subi_size,
                                     sigfactor=sigfactor, fit_type=fit_type,
+                                    filter_freq=(0,0),
                                     verbose=False, border_mode=border_mode)
         array_rec.append(res[0])
         shift_y[i] = res[1]

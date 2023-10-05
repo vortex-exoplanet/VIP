@@ -518,8 +518,9 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
 
 def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
-                           fit_type='moff', lbda=None, filter_freq=(0,0), border_mode='constant',
-                           debug=False, verbose=True, full_output=False):
+                           fit_type='moff', lbda=None, filter_freq=(0,0), 
+                           border_mode='constant', debug=False, verbose=True, 
+                           full_output=False):
     """ Function analog to frame_center_satspots but for image sequences. It
     actually will call frame_center_satspots for each image in the cube. The
     function also returns the shifted images (not recommended to use when the

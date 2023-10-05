@@ -308,7 +308,8 @@ def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
 
 def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
                           imlib='vip-fft', interpolation='lanczos4',
-                          fit_type='moff', filter_freq=(0,0), border_mode='reflect', 
+                          fit_type='moff', filter_freq=(0,0), 
+                          border_mode='reflect', 
                           debug=False, verbose=True):
     """ Finds the center of a frame with waffle/satellite spots (e.g. for
     VLT/SPHERE). The method used to determine the center is by centroiding the
@@ -343,10 +344,14 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     fit_type: str, optional {'gaus','moff'}
         Type of 2d fit to infer the centroid of the satellite spots.
-    filter_freq: tuple of 2 elements. 
-    If the first and second elements are bigger than 0, then the first element
-    corresponds to fwhm_size in cube_filter_highpass with mode='gauss-subt'. 
-    The second element is in fwhm_size for cube_filter_lowpass. 
+    filter_freq: tuple of 2 floats, optional 
+        If the first (resp. second) element of the tuple is larger than 0, 
+        a high-pass (resp. low-pass) filter is applied to the image, 
+        before fitting the satellite spots. The elements should correspond to 
+        the fwhm_size of the frame_filter_highpass and frame_filter_lowpass 
+        functions, respectively. If both elements are non-zero, both high-pass
+        and low-pass filter of the image are applied, in that order.
+        This can be useful to better isolate the signal from the satellite spots. 
     border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
         Points outside the boundaries of the input are filled accordingly.
         With 'reflect', the input is extended by reflecting about the edge of
@@ -449,13 +454,13 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     centx = []
     centy = []
     subims = []
+    
     if filter_freq[0] > 0:
-        
         array = frame_filter_highpass(array, mode='gauss-subt', 
                                       fwhm_size=filter_freq[0])
     if filter_freq[1] > 0:
-        
         array = frame_filter_lowpass(array, fwhm_size=filter_freq[1])
+        
     for i in range(len(xy)):
         sim, y, x = get_square(array, subi_size, xy[i][1], xy[i][0],
                                position=True, verbose=False)
@@ -551,10 +556,14 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     lbda: 1d array or list, opt
         Wavelength vector. If provided, the subimages will be scaled accordingly
         to follow the motion of the satellite spots.
-    filter_freq: tuple of 2 elements. 
-    If the first and second elements are bigger than 0, then the first element
-    corresponds to fwhm_size in cube_filter_highpass with mode='gauss-subt'. 
-    The second element is in fwhm_size for cube_filter_lowpass. 
+    filter_freq: tuple of 2 floats, optional 
+        If the first (resp. second) element of the tuple is larger than 0, 
+        a high-pass (resp. low-pass) filter is applied to the image, 
+        before fitting the satellite spots. The elements should correspond to 
+        the fwhm_size of the frame_filter_highpass and frame_filter_lowpass 
+        functions, respectively. If both elements are non-zero, both high-pass
+        and low-pass filter of the image are applied, in that order.
+        This can be useful to better isolate the signal from the satellite spots. 
     border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
         Points outside the boundaries of the input are filled accordingly.
         With 'reflect', the input is extended by reflecting about the edge of

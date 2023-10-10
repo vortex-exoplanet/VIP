@@ -295,7 +295,7 @@ def firstguess_fd_from_coord(
                 theta0,
                 scal0,
                 i,
-                cube,
+                cube[i],
                 angs,
                 disk_img[i],
                 mask_fm,
@@ -353,7 +353,6 @@ def firstguess_fd_from_coord(
             plt.show()
 
         res = tuple([x0, y0, theta0, scal0] + f0)
-        res = tuple(res)
 
     if full_output:
         return res, f_range, chi2r
@@ -365,8 +364,9 @@ def firstguess_fd_simplex(
     p,
     cube,
     angs,
-    disk_img,
+    disk_model,
     mask_fm,
+    grid_params_list=None,
     fmerit="sum",
     mu_sigma=None,
     force_params=None,
@@ -390,20 +390,29 @@ def firstguess_fd_simplex(
     Parameters
     ----------
     p : np.array
-        Estimate of the x shift, y shift, rotation angle and flux scaling of the
+        First estimate of optimal model grid indices (if a model grid is
+        provided), x shift, y shift, rotation angle and flux scaling of the
         disk image.
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array.
-    disk_img: 2d or 3d numpy ndarray
-        The disk image to be injected, as a 2d ndarray (for either 3D or 4D
-        input cubes) or a 3d numpy array (for a 4D spectral+ADI input cube). In
-        the latter case, the images should correspond to different wavelengths,
-        and the zeroth shape of disk_model and cube should match.
+    disk_model: numpy ndarray
+        The disk image(s) to be injected, should be a 2d ndarray (for a 3D input
+        cube), 3d numpy array (for a 4D spectral+ADI input cube), or a higher
+        dimensionality for an input grid of disk models provided (the number of
+        additional dimensions is inferred automatically depending on input cube.
+        For a spectral+ADI input cube, the disk images should correspond to
+        different wavelengths with its zeroth shape matching cube's.
     mask_fm: 2d numpy ndarray
         Binary mask on which to calculate the figure of merit in the processed
         image. Residuals will be minimized where mask values are 1.
+    grid_params_list: list of lists/1d nd arrays, or None
+        If input disk_model is a grid of either images (for 3D input cube) or
+        spectral cubes (for a 4D input cube), this should be provided. It should
+        be a list of either lists or 1d nd arrays corresponding to the parameter
+        values sampled by the input disk model grid, with their lengths matching
+        the respective first dimensions of disk_model.
     fmerit : {'sum', 'stddev'}, string optional
         Figure of merit to be used, if mu_sigma is set to None. 'sum' will find
         optimal parameters that minimize the absolute intensity residuals in
@@ -417,6 +426,10 @@ def firstguess_fd_simplex(
         deviation then converted into a proxy for noise.
     force_params: None or list/tuple of bool, optional
         If not None, list/tuple of bool corresponding to parameters to fix.
+        Length should correspond to total potential number of free parameters,
+        i.e. ngrid+5 (for a 3D input cube) or ngrid+4+nch (for a 4D input cube),
+        where ngrid is the number of dimensions of the input disk model grid and
+        nch is the number of spectral channels.
     options: dict, optional
         The scipy.optimize.minimize options.
     psfn: 2d or 3d numpy ndarray
@@ -464,6 +477,8 @@ def firstguess_fd_simplex(
     if verbose:
         print("\nNelder-Mead minimization is running...")
 
+    # check if additional params
+
     if force_params is not None:
         p_t = []
         p_ini = []
@@ -477,16 +492,18 @@ def firstguess_fd_simplex(
     else:
         p_t = p
         p_ini = p
+
     solu = minimize(
         chisquare_fd,
         p_t,
         args=(
             cube,
             angs,
-            disk_img,
+            disk_model,
             mask_fm,
             p_ini,
             force_params,
+            grid_params_list,
             fmerit,
             mu_sigma,
             psfn,
@@ -516,6 +533,8 @@ def firstguess_fd(
     ini_xy=(0, 0),
     ini_theta=0,
     ini_scal=1.0,
+    ini_f=None,
+    grid_params_list=None,
     fmerit="sum",
     mu_sigma=None,
     f_range=None,
@@ -547,13 +566,12 @@ def firstguess_fd(
     angs: numpy.array
         The parallactic angle fits image expressed as a numpy.array.
     disk_model: numpy ndarray
-        The disk image(s) to be injected, should be 2d ndarray (for a 3D input
-        cube), 3d numpy array (for a 4D spectral+ADI input cube), or higher
+        The disk image(s) to be injected, should be a 2d ndarray (for a 3D input
+        cube), 3d numpy array (for a 4D spectral+ADI input cube), or a higher
         dimensionality for an input grid of disk models provided (the number of
-        additional dimensions is inferred from the
-                . In
-        the latter case, the images should correspond to different wavelengths,
-        and the zeroth shape of disk_model and cube should match.
+        additional dimensions is inferred automatically depending on input cube.
+        For a spectral+ADI input cube, the disk images should correspond to
+        different wavelengths with its zeroth shape matching cube's.
     mask_fm: 2d numpy ndarray
         Binary mask on which to calculate the figure of merit in the processed
         image. Residuals will be minimized where mask values are 1.
@@ -565,6 +583,17 @@ def firstguess_fd(
     ini_scal: float
         Initial estimate of the spatial scaling factor to be applied to the disk
         model image (after shift and rotation).
+    ini_f: float, 1d ndarray or None
+        Initial estimate of the spatial scaling factor to be applied to the disk
+        model image (after shift and rotation). If None, a grid on f_range is
+        used to get a first estimate of this parameter. Else, the provided
+        estimate is directly used for a simplex minimzation.
+    grid_params_list: list of lists/1d nd arrays, or None
+        If input disk_model is a grid of either images (for 3D input cube) or
+        spectral cubes (for a 4D input cube), this should be provided. It should
+        be a list of either lists or 1d nd arrays corresponding to the parameter
+        values sampled by the input disk model grid, with their lengths matching
+        the respective first dimensions of disk_model.
     fmerit : {'sum', 'stddev'}, string optional
         Figure of merit to be used, if mu_sigma is set to None. 'sum' will find
         optimal parameters that minimize the absolute intensity residuals in
@@ -575,9 +604,10 @@ def firstguess_fd(
         algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
         containing the mean and standard deviation of pixel intensities in an
         annulus encompassing most of the disk signal.
-    f_range: numpy.array, optional
-        The range of tested flux scaling values. If None, 30 values between 1e-1
-        and 1e4 are tested, following a geometric progression.
+    f_range: numpy.array or None, optional
+        The range of tested flux scaling values. If None and ini_f is also None,
+        a grid of 30 values between 1e-1 and 1e4 are tested, following a
+        geometric progression.
     psfn: 2d or 3d numpy ndarray
         The normalized psf expressed as a numpy ndarray. Can be 3d for a 4d
         (spectral+ADI) input cube. This would only be used to convolve disk_img.
@@ -605,8 +635,8 @@ def firstguess_fd(
         interpolation to 'lanczos4'. Takes precedence over value provided in
         algo_options.
     simplex: bool, optional
-        If True, the Nelder-Mead minimization is performed after the flux grid
-        search.
+        If True, the Nelder-Mead minimization is performed either after the flux
+        grid search, or using an initial ini_f estimate (if provided).
     simplex_options: dict, optional
         The scipy.optimize.minimize options.
     transmission: numpy array, optional
@@ -620,8 +650,12 @@ def firstguess_fd(
         the temporal axis of the cube.
     force_params: None or list/tuple of bool, optional
         If not None, list/tuple of bool corresponding to parameters to fix. For
-        a 4D input cube, the length of the list/tuple should be 4+nch, where nch
-        is the number of spectral channels.
+        a 3D input cube, the length of the list/tuple should be ngrid+5, where
+        ngrid correspond to the number of dimensions in the provided model grid
+        (0 if a single model image is provided), and the 5 extra dimensions
+        correspond to shifts (x,y), rotation, spatial scaling and flux scaling,
+        respectively. For a 4D input cube, the length of the list/tuple should
+        be ngrid+4+nch, where nch is the number of spectral channels.
     plot: boolean, optional
         If True, the figure chi2 vs. flux is displayed.
     verbose: bool, optional
@@ -656,6 +690,10 @@ def firstguess_fd(
     if cube.ndim != 3 and cube.ndim != 4:
         raise TypeError("Input cube is not 3D nor 4D")
 
+    if ini_f is not None and not simplex:
+        msg = "ini_f provided and simplex set to False => no minimization done"
+        raise TypeError(msg)
+
     if verbose:
         start_time = time_ini()
 
@@ -663,43 +701,65 @@ def firstguess_fd(
 
     if cube.ndim == 4:
         if psfn.ndim < 3:
-            msg = "The normalized PSF should be 3D for a 4D input cube"
+            msg = "The normalized PSF should be 3D for a 4D input cube."
             raise TypeError(msg)
-        if disk_model.ndim != 3:
-            msg = "The disk model should be 3D for a 4D input cube"
+        if disk_model.ndim < 3:
+            msg = "The disk model should be at least 3D for a 4D input cube."
+            raise TypeError(msg)
+        elif disk_model.shape[0] != cube.shape[0]:
+            msg = "First dimension of disk_model and cube should match."
+            raise TypeError(msg)
+    else:
+        if disk_model.ndim < 2:
+            msg = "The disk model should be at least 2D for a 3D input cube."
             raise TypeError(msg)
 
     if weights is not None:
         if not len(weights) == cube.shape[-3]:
-            msg = "Weights should have same length as temporal cube axis"
+            msg = "Weights should have same length as temporal cube axis."
             raise TypeError(msg)
-
-    if verbose:
-        print("\n" + sep)
-        msg2 = "Flux estimation for xy shift [{},{}], {}deg rotation and "
-        msg2 += "{}x spatial scaling is running ..."
-        print(msg2.format(ini_xy[0], ini_xy[1], ini_theta, ini_scal))
 
     if isinstance(mu_sigma, tuple):
         if len(mu_sigma) != 2:
             raise TypeError("If a tuple, mu_sigma must have 2 elements")
 
-    extra_dims = cube.ndim-disk_model.ndim-1
+    extra_dims = disk_model.ndim-cube.ndim+1
     if extra_dims > 0:
+        if grid_params_list is None:
+            msg = "Input grid_params_list should be provided if a disk model "
+            msg += "grid is provided"
+            raise TypeError(msg)
+        elif len(grid_params_list) != extra_dims:
+            msg = "Input grid_params_list should have same length as the number"
+            msg += "of extra dimensions in the input disk model grid."
+            raise TypeError(msg)
+        else:
+            for e in range(extra_dims):
+                if len(grid_params_list[e]) != disk_model.shape[e]:
+                    msg = "Input grid_params_list lengths and the first "
+                    msg += " dimensions of the disk model grid should match."
+                    msg += "Not the case for dimension {}: {} vs {}"
+                    raise TypeError(msg.format(e,
+                                               len(grid_params_list[e]),
+                                               disk_model.shape[e]))
+
         dim_test = disk_model.shape[:extra_dims]
         ntests = 1
         for i in range(extra_dims):
             ntests *= dim_test[i]
+        if ini_f is not None:
+            f_range = np.array([ini_f])
         all_chi2r = np.ones(ntests)
-        all_succ = np.zeros(ntests)
+        all_res = []
         for c in range(ntests):
+            unravel_idx = np.unravel_index(c, dim_test)
             res_c = firstguess_fd_from_coord(
                 ini_xy,
                 ini_theta,
                 ini_scal,
                 cube,
                 angs,
-                disk_model,
+                disk_model[unravel_idx],
                 mask_fm,
                 fmerit=fmerit,
                 mu_sigma=mu_sigma,
@@ -713,25 +773,42 @@ def firstguess_fd(
                 weights=weights,
                 plot=plot,
                 verbose=verbose,
-                full_output=True
+                full_output=True,
                 save=save,
                 rot_options=rot_options,
             )
-            res_init = res_c[0]
-            if res_c[1]:
-                all_chi2r[c]
-                all_succ[c] = 1
-            else:
-                all_chi2r[]
+            all_res.append(res_c[0])
+            all_chi2r[c] = res_c[-1]
 
-            chi2r = res_c[-1]
+        max_chi = np.nanmax(all_chi2r)
+        all_chi2r[np.where(~np.isfinite(all_chi2r))] = max_chi
+        idx_min = np.argmin(all_chi2r)
+        uidx_min = np.unravel_index(idx_min, dim_test)
 
-            x_pre = res_init[0]
-            y_pre = res_init[1]
-            theta_pre = res_init[2]
-            scal_pre = res_init[3]
-            f_pre = res_init[4:]
+        res_init = []
+        for e in range(extra_dims):
+            res_init.append(grid_params_list[uidx_min[e]])
+        res_tmp = all_res[idx_min]
+        for r in range(len(res_tmp)):
+            res_init.append(res_tmp[r])
+        x_pre = res_init[extra_dims+0]
+        y_pre = res_init[extra_dims+1]
+        theta_pre = res_init[extra_dims+2]
+        scal_pre = res_init[extra_dims+3]
+        f_pre = res_init[extra_dims+4:]
+    elif ini_f is not None:
+        x_pre = ini_xy[0]
+        y_pre = ini_xy[1]
+        theta_pre = ini_theta
+        scal_pre = ini_scal
+        f_pre = ini_f
     else:
+        if verbose:
+            print("\n" + sep)
+            msg2 = "Flux estimation for xy shift [{},{}], {}deg rotation and "
+            msg2 += "{}x spatial scaling is running ..."
+            print(msg2.format(ini_xy[0], ini_xy[1], ini_theta, ini_scal))
+
         res_init = firstguess_fd_from_coord(
             ini_xy,
             ini_theta,
@@ -763,7 +840,12 @@ def firstguess_fd(
         f_pre = res_init[4:]
 
     if verbose:
-        msg3a = "Preliminary shift, rotation and scaling guess: (x, y, theta, "
+        if extra_dims > 0:
+            msg3a = "Preliminary indices of best model in disk model grid: {}"
+            msg3a.format(uidx_min)
+        else:
+            msg3a = ""
+        msg3a += "Preliminary shift, rotation and scaling guess: (x, y, theta, "
         msg3a += "scal) = ({:.1f}, {:.1f}, {:.1f}, {:.1f})"
         print(msg3a.format(x_pre, y_pre, theta_pre, scal_pre))
         msg3b = "Preliminary flux guess: "
@@ -792,6 +874,7 @@ def firstguess_fd(
             angs,
             disk_model,
             mask_fm,
+            grid_params_list,
             fmerit,
             mu_sigma,
             force_params,

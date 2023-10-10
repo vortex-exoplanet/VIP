@@ -62,7 +62,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 def lnprior(param, bounds, force_rPA=False):
-    """ Define the prior log-function.
+    """Define the prior log-function.
 
     Parameters
     ----------
@@ -79,8 +79,8 @@ def lnprior(param, bounds, force_rPA=False):
     out: float.
         0 if all the model parameters satisfy the prior conditions defined here.
         -np.inf if at least one model parameters is out of bounds.
-    """
 
+    """
     if not force_rPA:
         try:
             _ = param[0]
@@ -118,7 +118,7 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
            imlib='vip-fft', interpolation='lanczos4', collapse='median',
            algo_options={}, weights=None, transmission=None, mu_sigma=True,
            sigma='spe+pho', force_rPA=False, debug=False):
-    """ Define the likelihood log-function.
+    """Define the log-likelihood function.
 
     Parameters
     ----------
@@ -135,7 +135,7 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
     ncomp: int or None
         The number of principal components for PCA-based algorithms.
     fwhm : float
-        The FWHM in pixels.
+        The FHWM in pixels.
     aperture_radius: float
         The radius of the circular aperture in terms of the FWHM.
     initial_state: numpy.array
@@ -309,8 +309,8 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
            imlib='vip-fft', interpolation='lanczos4', collapse='median',
            algo_options={}, weights=None, transmission=None, mu_sigma=True,
            sigma='spe+pho', force_rPA=False, display=False):
-    """ Define the probability log-function as the sum between the prior and
-    likelihood log-funtions.
+    """Define the log-probability function as the sum between the prior and\
+    log-likelihood funtions.
 
     Parameters
     ----------
@@ -333,7 +333,7 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
         the first dimension(s) must match those of the input cube.
     fwhm : float
-        The FWHM in pixels.
+        The FHWM in pixels.
     annulus_width: float
         The width in pixel of the annulus on wich the PCA is performed.
     ncomp: int or None
@@ -447,12 +447,12 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
                         ac_c=50, ac_count_thr=3, nproc=1, output_dir='results/',
                         output_file=None, display=False, verbosity=0,
                         save=False):
-    r""" Runs an affine invariant mcmc sampling algorithm in order to determine
-    the position and the flux of the planet using the 'Negative Fake Companion'
-    technique. The result of this procedure is a chain with the samples from the
-    posterior distributions of each of the 3 parameters.
+    r"""Run an affine invariant mcmc sampling algorithm to determine position
+    and flux of a companion using the 'Negative Fake Companion' technique.
 
-    This technique can be summarized as follows:
+    The result of this procedure is a chain with the samples from the posterior
+    distributions of each of the 3 parameters. This technique can be summarized
+    as follows:
     1) We inject a negative fake companion (one candidate) at a given position
     and characterized by a given flux, both close to the expected values.
     2) We run PCA on an full annulus which pass through the initial guess,
@@ -483,7 +483,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     Speed tricks:
         - crop your input cube to a size such as to just include the annulus on
           which the PCA is performed;
-        - set ``imlib='opencv'`` (much faster image rotations, BUT at the expense
+        - set ``imlib='opencv'`` (much faster image rotation, at the expense
           of flux conservation);
         - increase ``nproc`` (if your machine allows);
         - reduce ``ac_c`` (or increase ``rhat_threshold`` if ``conv_test='gb'``)
@@ -523,7 +523,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     aperture_radius: float, optional
         The radius in FWHM of the circular aperture.
     fwhm : float
-        The FWHM in pixels.
+        The FHWM in pixels.
     mu_sigma: tuple of 2 floats or bool, opt
         If set to None: not used, and falls back to original version of the
         algorithm, using ``fmerit`` [WER17]_.
@@ -691,6 +691,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
 
     The parameter ``rhat_threshold`` can be a numpy.array with individual
     threshold value for each model parameter.
+
     """
     if verbosity > 0:
         start_time = time_ini()

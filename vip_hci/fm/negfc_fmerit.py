@@ -1,7 +1,5 @@
 #! /usr/bin/env python
-"""
-Module with the function of merit definitions for the NEGFC optimization.
-"""
+"""Module with function of merit definitions for the NEGFC optimization."""
 
 __author__ = "O. Wertz, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
 __all__ = ["get_mu_and_sigma"]

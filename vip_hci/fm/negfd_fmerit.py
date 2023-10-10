@@ -1,12 +1,11 @@
 #! /usr/bin/env python
-"""
-Module with the function of merit definitions for the NEGFC optimization.
-"""
+"""Module with function of merit definitions for the NEGFD optimization."""
 
 __author__ = "Valentin Christiaens, O. Wertz, Carlos Alberto Gomez Gonzalez"
 __all__ = ["chisquare_fd"]
 
 import numpy as np
+from .negfd_interp import interpolate_model
 from .utils_negfd import cube_disk_free
 from ..psfsub import pca
 
@@ -15,10 +14,11 @@ def chisquare_fd(
     modelParameters,
     cube,
     angs,
-    disk_img,
+    disk_model,
     mask_fm,
     initialState,
     force_params=None,
+    grid_param_list=None,
     fmerit="sum",
     mu_sigma=None,
     psfn=None,
@@ -62,9 +62,16 @@ def chisquare_fd(
     aperture_radius: int, optional
         The radius of the circular aperture in terms of the FWHM.
     initialState: numpy.array
-        Fixed parameters applied to the disk model image.
+        All initial parameters (including fixed ones) applied to the disk model
+        image.
     force_params: None or list/tuple of bool, optional
         If not None, list/tuple of bool corresponding to parameters to fix.
+    grid_params_list: list of lists/1d nd arrays, or None
+        If input disk_model is a grid of either images (for 3D input cube) or
+        spectral cubes (for a 4D input cube), this should be provided. It should
+        be a list of either lists or 1d nd arrays corresponding to the parameter
+        values sampled by the input disk model grid, with their lengths matching
+        the respective first dimensions of disk_model.
     ncomp: int or None
         The number of principal components for PCA-based algorithms.
     cube_ref : numpy ndarray, 3d, optional
@@ -131,8 +138,6 @@ def chisquare_fd(
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in
         the observing conditions throughout the sequence.
-    force_rPA: bool, optional
-        Whether to only search for optimal flux, provided (r,PA).
     debug: bool, opt
         Whether to debug and plot the post-processed frame after injection of
         the negative fake companion.
@@ -143,43 +148,63 @@ def chisquare_fd(
         The reduced chi squared.
 
     """
+    grid_ndim = disk_model.ndim-cube.ndim+1
+
     if cube.ndim == 3:
+        multispectral = False
         if force_params is not None:
+            grid_params = []
             df_params = []
             c_free = 0
             c_forced = 0
             for i in range(len(force_params)):
                 if force_params[i]:
-                    df_params.append(initialState[c_forced])
+                    if i < grid_ndim:
+                        grid_params.append(initialState[c_forced])
+                    else:
+                        df_params.append(initialState[c_forced])
                     c_forced += 1
                 else:
-                    df_params.append(modelParameters[c_free])
+                    if i < grid_ndim:
+                        grid_params.append(modelParameters[c_free])
+                    else:
+                        df_params.append(modelParameters[c_free])
                     c_free += 1
             x, y, theta, scal = tuple(df_params[:4])
             flux_tmp = df_params[-1]
         else:
             try:
-                x, y, theta, scal = modelParameters[:4]
-                flux_tmp = modelParameters[4:]
+                if grid_ndim > 0:
+                    grid_params = modelParameters[:grid_ndim]
+                x, y, theta, scal = modelParameters[grid_ndim:grid_ndim+4]
+                flux_tmp = modelParameters[grid_ndim+4:]
             except TypeError:
                 msg = "modelParameters must be a tuple, {} was given"
                 print(msg.format(type(modelParameters)))
     else:
+        multispectral = True
         if force_params is not None:
-            flux_fix = force_params[4]
-            for j in range(len(force_params) - 5):
-                if force_params[j + 5] != flux_fix:
+            flux_fix = force_params[grid_ndim+4]
+            for j in range(len(force_params) - (5+grid_ndim)):
+                if force_params[j+5+grid_ndim] != flux_fix:
                     msg = "All fluxes need to be either free or fixed"
                     raise ValueError(msg)
+            grid_params = []
             df_params = []
             c_free = 0
             c_forced = 0
-            for i in range(len(force_params[:4])):
+            for i in range(len(force_params[:4+grid_ndim])):
                 if force_params[i]:
-                    df_params.append(initialState[c_forced])
+                    if i < grid_ndim:
+                        grid_params.append(initialState[c_forced])
+                    else:
+                        df_params.append(initialState[c_forced])
                     c_forced += 1
                 else:
-                    df_params.append(modelParameters[c_free])
+                    if i < grid_ndim:
+                        grid_params.append(modelParameters[c_free])
+                    else:
+                        df_params.append(modelParameters[c_free])
                     c_free += 1
             if flux_fix:
                 flux_tmp = initialState[c_forced:]
@@ -188,13 +213,40 @@ def chisquare_fd(
             x, y, theta, scal = tuple(df_params)
         else:
             try:
-                x = modelParameters[0]
-                y = modelParameters[1]
-                theta = modelParameters[2]
-                flux_tmp = np.array(modelParameters[3:])
+                if grid_ndim > 0:
+                    grid_params = modelParameters[:grid_ndim]
+                x = modelParameters[grid_ndim+0]
+                y = modelParameters[grid_ndim+1]
+                theta = modelParameters[grid_ndim+2]
+                flux_tmp = np.array(modelParameters[grid_ndim+3:])
             except TypeError:
                 msg = "modelParameters must be a tuple, {} was given"
                 print(msg.format(type(modelParameters)))
+
+    # apply temporal weights, if any
+    if weights is None:
+        flux = flux_tmp
+    elif np.isscalar(flux_tmp):
+        flux = flux_tmp * weights
+    else:
+        flux = np.outer(flux_tmp, weights)
+
+    df_params = x, y, theta, scal, flux
+
+    # interpolate in the model grid, if any
+    if grid_ndim > 0:
+        grid_params = tuple(grid_params)
+        # Return infinity if requested grid params outside original bounds.
+        for p in range(len(grid_param_list)):
+            if grid_params[p] < grid_param_list[p][0]:
+                return np.inf
+            elif grid_params[p] > grid_param_list[p][-1]:
+                return np.inf
+        # Otherwise Interpolate disk_img from the input grid.
+        disk_img = interpolate_model(grid_params, grid_param_list, disk_model,
+                                     multispectral=multispectral)
+    else:
+        disk_img = disk_model.copy()
 
     # set imlib for rotation and shift
     if imlib == "opencv":
@@ -208,15 +260,6 @@ def chisquare_fd(
         imlib_rot = "vip-fft"
     else:
         raise TypeError("Interpolation not recognized.")
-
-    if weights is None:
-        flux = flux_tmp
-    elif np.isscalar(flux_tmp):
-        flux = flux_tmp * weights
-    else:
-        flux = np.outer(flux_tmp, weights)
-
-    df_params = x, y, theta, scal, flux
 
     # Create the cube with the negative fake companion injected
     cube_negfd = cube_disk_free(

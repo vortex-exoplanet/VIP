@@ -30,9 +30,9 @@ __all__ = ['frame_shift',
            'cube_recenter_2dfit',
            'cube_recenter_via_speckles']
 
-import numpy as np
 import warnings
-from packaging import version
+
+import numpy as np
 
 try:
     import cv2
@@ -45,14 +45,11 @@ except ImportError:
 from hciplot import plot_frames
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
-import skimage
 from skimage.transform import radon
-if version.parse(skimage.__version__) <= version.parse('0.17.0'):
-    from skimage.feature import register_translation as cc_center
-else:
-    from skimage.registration import phase_cross_correlation as cc_center
+from skimage.registration import phase_cross_correlation as cc_center
 from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
+
 from ..config import time_ini, timing, Progressbar
 from ..config.utils_conf import vip_figsize, check_array
 from ..config.utils_conf import pool_map, iterable
@@ -1136,7 +1133,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     mask: 2D np.ndarray, optional
         Binary mask indicating where the cross-correlation should be calculated
         in the images. If provided, should be the same size as array frames.
-        [Note: only used if version of skimage >= 0.18.0]
+        [Note: requires skimage >= 0.18.0]
     border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
         Points outside the boundaries of the input are filled accordingly.
         With 'reflect', the input is extended by reflecting about the edge of
@@ -1319,14 +1316,12 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
 def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
                imlib, border_mode):
     """Function used in recenter_dft_unsampling."""
-    if version.parse(skimage.__version__) > version.parse('0.17.0'):
-        shift_yx = cc_center(array_rec[0], array[frnum],
-                             upsample_factor=upsample_factor,
-                             reference_mask=mask,
-                             return_error=False)
-    else:
-        shift_yx = cc_center(array_rec[0], array[frnum],
-                             upsample_factor=upsample_factor)
+
+    shift_yx = cc_center(array_rec[0], array[frnum],
+                         upsample_factor=upsample_factor,
+                         reference_mask=mask,
+                         return_error=False)
+
     y_i, x_i = shift_yx
     array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
                               imlib=imlib, interpolation=interpolation,

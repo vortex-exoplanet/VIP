@@ -46,7 +46,7 @@ from hciplot import plot_frames
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
 from skimage.transform import radon
-from skimage.registration import phase_cross_correlation as cc_center
+from skimage.registration import phase_cross_correlation
 from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
 
@@ -1342,11 +1342,15 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
                imlib, border_mode):
     """Function used in cube_recenter_dft_upsampling."""
 
-    shift_yx = cc_center(array_rec[0], array[frnum],
-                         upsample_factor=upsample_factor,
-                         reference_mask=mask)
+    shifts = phase_cross_correlation(array_rec[0], array[frnum],
+                                     upsample_factor=upsample_factor,
+                                     reference_mask=mask)
+    # from skimage 0.22, phase_cross_correlation returns two more variables
+    # in addition to the array of shifts
+    if len(shifts) == 3:
+        shifts = shifts[0]
 
-    y_i, x_i = shift_yx
+    y_i, x_i = shifts
     array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
                               imlib=imlib, interpolation=interpolation,
                               border_mode=border_mode)

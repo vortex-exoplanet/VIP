@@ -1340,7 +1340,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
 
 def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
                imlib, border_mode):
-    """Function used in recenter_dft_unsampling."""
+    """Function used in cube_recenter_dft_upsampling."""
 
     shift_yx = cc_center(array_rec[0], array[frnum],
                          upsample_factor=upsample_factor,

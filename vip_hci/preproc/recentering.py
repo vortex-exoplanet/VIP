@@ -1343,15 +1343,12 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
                imlib, border_mode):
     """Function used in cube_recenter_dft_upsampling."""
 
-    shifts = phase_cross_correlation(array_rec[0], array[frnum],
-                                     upsample_factor=upsample_factor,
-                                     reference_mask=mask)
-    # from skimage 0.22, phase_cross_correlation returns two more variables
-    # in addition to the array of shifts
-    if len(shifts) == 3:
-        shifts = shifts[0]
+    shift_yx = phase_cross_correlation(array_rec[0], array[frnum],
+                                       upsample_factor=upsample_factor,
+                                       reference_mask=mask,
+                                       return_error=False)
 
-    y_i, x_i = shifts
+    y_i, x_i = shift_yx
     array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
                               imlib=imlib, interpolation=interpolation,
                               border_mode=border_mode)

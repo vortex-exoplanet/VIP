@@ -1827,13 +1827,10 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     if ref_star:
         cube_ref_lpf = cube_ref_lpf + np.abs(np.min(cube_ref_lpf))
 
-    if max_spat_freq > 0:
-        median_size = int(fwhm * max_spat_freq)
-        # Remove spatial frequencies <0.5 lam/D and >3lam/D to isolate speckles
-        cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
-                                            median_size=median_size, verbose=False)
-    else:
-        cube_sci_hpf = cube_sci_lpf
+    median_size = int(fwhm * max_spat_freq)
+    # Remove spatial frequencies <0.5 lam/D and >3lam/D to isolate speckles
+    cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
+                                        median_size=median_size, verbose=False)
 
     if min_spat_freq > 0:
         cube_sci_lpf = cube_filter_lowpass(cube_sci_hpf, 'gauss',

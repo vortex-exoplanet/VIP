@@ -1858,6 +1858,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         alignment_cube = np.zeros((1 + n, subframesize, subframesize))
         alignment_cube[1:(n + 1), :, :] = cube_sci_lpf
 
+    n_frames = alignment_cube.shape[0]  # 1+n or 1+n+nref
     cum_y_shifts = 0
     cum_x_shifts = 0
 
@@ -1903,30 +1904,32 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             mask_tmp = frame_crop(mask, subframesize)
         else:
             mask_tmp = mask
-        res = cube_recenter_dft_upsampling(cube_stret, center_fr1=(ceny, cenx),
-                                           fwhm=fwhm, subi_size=None,
-                                           full_output=True, verbose=False,
-                                           plot=False, mask=mask_tmp,
-                                           imlib=imlib, interpolation=interpolation,
-                                           nproc=nproc)
+        res = cube_recenter_dft_upsampling(cube_stret, (ceny, cenx), fwhm=fwhm,
+                                           subi_size=None, full_output=True,
+                                           verbose=False, plot=False,
+                                           mask=mask_tmp, imlib=imlib,
+                                           interpolation=interpolation, nproc=nproc)
         _, y_shift, x_shift = res
         sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
         print('Square sum of shift vecs: ' + str(sqsum_shifts))
 
-        alignment_cube = cube_shift(alignment_cube, shift_y=y_shift, shift_x=x_shift,
-                                    imlib=imlib, interpolation=interpolation,
-                                    border_mode=border_mode, nproc=nproc)
+        for j in range(1, n_frames):
+            alignment_cube[j] = frame_shift(alignment_cube[j], y_shift[j],
+                                            x_shift[j], imlib=imlib,
+                                            interpolation=interpolation,
+                                            border_mode=border_mode)
 
         cum_y_shifts += y_shift
         cum_x_shifts += x_shift
 
+    cube_reg_sci = cube_sci.copy()
     cum_y_shifts_sci = cum_y_shifts[1:(n + 1)]
     cum_x_shifts_sci = cum_x_shifts[1:(n + 1)]
-
-    cube_reg_sci = cube_shift(cube_sci, shift_y=cum_y_shifts_sci,
-                              shift_x=cum_x_shifts_sci, imlib=imlib,
-                              interpolation=interpolation,
-                              border_mode=border_mode, nproc=nproc)
+    for i in range(n):
+        cube_reg_sci[i] = frame_shift(cube_sci[i], cum_y_shifts_sci[i],
+                                      cum_x_shifts_sci[i], imlib=imlib,
+                                      interpolation=interpolation,
+                                      border_mode=border_mode)
 
     if plot:
         plt.figure(figsize=vip_figsize)
@@ -1947,12 +1950,14 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         plt.xlabel('Pixels')
 
     if ref_star:
+        cube_reg_ref = cube_ref.copy()
         cum_y_shifts_ref = cum_y_shifts[(n + 1):]
         cum_x_shifts_ref = cum_x_shifts[(n + 1):]
-        cube_reg_ref = cube_shift(cube_ref, shift_y=cum_y_shifts_ref,
-                                  shift_x=cum_x_shifts_ref, imlib=imlib,
-                                  interpolation=interpolation,
-                                  border_mode=border_mode, nproc=nproc)
+        for i in range(nref):
+            cube_reg_ref[i] = frame_shift(cube_ref[i], cum_y_shifts_ref[i],
+                                          cum_x_shifts_ref[i], imlib=imlib,
+                                          interpolation=interpolation,
+                                          border_mode=border_mode)
 
     if ref_star:
         if full_output:

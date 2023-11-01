@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from hciplot import plot_frames
 from scipy import stats
-from photutils import detect_sources
+from photutils.segmentation import detect_sources
 from munch import Munch
 from ..config import time_ini, timing, Progressbar
 from ..fm import cube_inject_companions

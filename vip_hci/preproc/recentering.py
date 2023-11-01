@@ -30,9 +30,9 @@ __all__ = ['frame_shift',
            'cube_recenter_2dfit',
            'cube_recenter_via_speckles']
 
-import numpy as np
 import warnings
-from packaging import version
+
+import numpy as np
 
 try:
     import cv2
@@ -45,14 +45,11 @@ except ImportError:
 from hciplot import plot_frames
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
-import skimage
 from skimage.transform import radon
-if version.parse(skimage.__version__) <= version.parse('0.17.0'):
-    from skimage.feature import register_translation as cc_center
-else:
-    from skimage.registration import phase_cross_correlation as cc_center
+from skimage.registration import phase_cross_correlation
 from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
+
 from ..config import time_ini, timing, Progressbar
 from ..config.utils_conf import vip_figsize, check_array
 from ..config.utils_conf import pool_map, iterable
@@ -756,7 +753,6 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
         [full_output=True] Radon cost function surface.
 
     """
-    from .cosmetics import frame_crop
 
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
@@ -1041,7 +1037,7 @@ def _radon_costf(frame, cent, radint, coords, satspots_cfg=None, theta_0=0,
 
 def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
                         interpolation='lanczos4', border_mode='reflect',
-                        **kwargs):
+                        nproc=None, **kwargs):
     """ Recenters a cube looping through its frames and calling the
     ``frame_center_radon`` function, as in [PUE15]_.
 
@@ -1065,6 +1061,9 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
         beyond the edge with zeros. With 'mirror', the input is extended by
         reflecting about the center of the last pixel. With 'wrap', the input is
         extended by wrapping around to the opposite edge. Default is 'reflect'.
+    nproc : int, optional
+        Number of processes for parallel computing. If None the number of
+        processes will be set to cpu_count()/2.
     kwargs:
         Additional optional parameters for ``vip_hci.preproc.frame_center_radon``
         function, such as cropsize, hsize, step, satspots_cfg, mask_center,
@@ -1082,6 +1081,8 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
 
     """
     check_array(array, dim=3)
+    if nproc is None:
+        nproc = int(cpu_count() / 2)
 
     if verbose:
         start_time = time_ini()
@@ -1097,7 +1098,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
                          verbose=verbose):
         res = frame_center_radon(array[i], verbose=False, plot=False,
                                  imlib=imlib, interpolation=interpolation,
-                                 full_output=True, **kwargs)
+                                 full_output=True, nproc=nproc, **kwargs)
         y[i] = res[0]
         x[i] = res[1]
         dyx[i] = res[2]
@@ -1121,7 +1122,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  full_output=False, verbose=True, nproc=None,
                                  save_shifts=False, debug=False, plot=True):
     """ Recenters a cube of frames using the DFT upsampling method as proposed
-    in [GUI08]_ and implemented in the ``register_translation`` function from
+    in [GUI08]_ and implemented in the ``phase_cross_correlation`` function from
     scikit-image.
 
     The algorithm (DFT upsampling) obtains an initial estimate of the
@@ -1133,9 +1134,9 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     ----------
     array : numpy ndarray
         Input cube.
-    center_fr1 = (cy_1, cx_1) : Tuple, optional
-        Coordinates of the center of the subimage for fitting a 2d Gaussian and
-        centroiding the 1st frame.
+    center_fr1 : tuple, optional
+        Coordinates in (y, x) of the center of the subimage for fitting a
+        2d Gaussian and centroiding the 1st frame.
     negative : bool, optional
         If True the centroiding of the 1st frames is done with a negative
         2d Gaussian fit.
@@ -1158,7 +1159,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     mask: 2D np.ndarray, optional
         Binary mask indicating where the cross-correlation should be calculated
         in the images. If provided, should be the same size as array frames.
-        [Note: only used if version of skimage >= 0.18.0]
+        [Note: requires skimage >= 0.18.0]
     border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
         Points outside the boundaries of the input are filled accordingly.
         With 'reflect', the input is extended by reflecting about the edge of
@@ -1216,9 +1217,9 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     n_frames, sizey, sizex = array.shape
     if subi_size is not None:
         if center_fr1 is None:
-            print('`cx_1` or `cy_1` not provided')
-            print('Using the coordinates of the 1st frame center for '
-                  'the Gaussian 2d fit')
+            print("`center_fr1` not provided")
+            print("Using the coordinates of the 1st frame center for "
+                  "the Gaussian 2d fit")
             cy_1, cx_1 = frame_center(array[0])
         else:
             cy_1, cx_1 = center_fr1
@@ -1340,16 +1341,21 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
 
 def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
                imlib, border_mode):
-    """Function used in recenter_dft_unsampling."""
-    if version.parse(skimage.__version__) > version.parse('0.17.0'):
-        shift_yx = cc_center(array_rec[0], array[frnum],
-                             upsample_factor=upsample_factor,
-                             reference_mask=mask,
-                             return_error=False)
-    else:
-        shift_yx = cc_center(array_rec[0], array[frnum],
-                             upsample_factor=upsample_factor)
-    y_i, x_i = shift_yx
+    """Function used in cube_recenter_dft_upsampling. See the docstring of
+    skimage.register.phase_cross_correlation for a description of the
+    ``normalization`` parameter which was added in scikit-image 0.19. This
+    should be set to None to maintain the original behaviour of _shift_dft."""
+
+    shifts = phase_cross_correlation(array_rec[0], array[frnum],
+                                     upsample_factor=upsample_factor,
+                                     reference_mask=mask,
+                                     normalization=None)
+    # from skimage 0.22, phase_cross_correlation returns two more variables
+    # in addition to the array of shifts
+    if len(shifts) == 3:
+        shifts = shifts[0]
+
+    y_i, x_i = shifts
     array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
                               imlib=imlib, interpolation=interpolation,
                               border_mode=border_mode)
@@ -1809,33 +1815,37 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                                  force=True, verbose=False)
     else:
         subframesize = cube_sci.shape[-1]
-        cube_sci_subframe = cube_sci.copy()
+        cube_sci_subframe = np.copy(cube_sci)
         if ref_star:
-            cube_ref_subframe = cube_ref.copy()
+            cube_ref_subframe = np.copy(cube_ref)
 
     ceny, cenx = frame_center(cube_sci_subframe[0])
     print('Sub frame shape: {}'.format(cube_sci_subframe.shape))
     print('Center pixel: ({}, {})'.format(ceny, cenx))
 
     # Filtering cubes. Will be used for alignment purposes
-    cube_sci_lpf = cube_sci_subframe.copy()
+    cube_sci_lpf = np.copy(cube_sci_subframe)
     if ref_star:
-        cube_ref_lpf = cube_ref_subframe.copy()
+        cube_ref_lpf = np.copy(cube_ref_subframe)
 
     cube_sci_lpf = cube_sci_lpf + np.abs(np.min(cube_sci_lpf))
     if ref_star:
         cube_ref_lpf = cube_ref_lpf + np.abs(np.min(cube_ref_lpf))
 
-    median_size = int(fwhm * max_spat_freq)
     # Remove spatial frequencies <0.5 lam/D and >3lam/D to isolate speckles
-    cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
-                                        median_size=median_size, verbose=False)
+    if max_spat_freq > 0:
+        median_size = int(fwhm * max_spat_freq)
+        cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
+                                            median_size=median_size, verbose=False)
+    else:
+        cube_sci_hpf = np.copy(cube_sci_lpf)
+
     if min_spat_freq > 0:
         cube_sci_lpf = cube_filter_lowpass(cube_sci_hpf, 'gauss',
                                            fwhm_size=min_spat_freq * fwhm,
                                            verbose=False)
     else:
-        cube_sci_lpf = cube_sci_hpf
+        cube_sci_lpf = np.copy(cube_sci_hpf)
 
     if ref_star:
         cube_ref_hpf = cube_filter_highpass(cube_ref_lpf, 'median-subt',
@@ -1846,7 +1856,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                                fwhm_size=min_spat_freq * fwhm,
                                                verbose=False)
         else:
-            cube_ref_lpf = cube_ref_hpf
+            cube_ref_lpf = np.copy(cube_ref_hpf)
 
     if ref_star:
         alignment_cube = np.zeros((1 + n + nref, subframesize, subframesize))
@@ -1902,11 +1912,12 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             mask_tmp = frame_crop(mask, subframesize)
         else:
             mask_tmp = mask
-        res = cube_recenter_dft_upsampling(cube_stret, (ceny, cenx), fwhm=fwhm,
-                                           subi_size=None, full_output=True,
-                                           verbose=False, plot=False,
-                                           mask=mask_tmp, imlib=imlib,
-                                           interpolation=interpolation, nproc=nproc)
+        res = cube_recenter_dft_upsampling(cube_stret, center_fr1=(ceny, cenx),
+                                           fwhm=fwhm, subi_size=None,
+                                           full_output=True, verbose=False,
+                                           plot=False, mask=mask_tmp,
+                                           imlib=imlib, interpolation=interpolation,
+                                           nproc=nproc)
         _, y_shift, x_shift = res
         sqsum_shifts = np.sum(np.sqrt(y_shift ** 2 + x_shift ** 2))
         print('Square sum of shift vecs: ' + str(sqsum_shifts))
@@ -1920,7 +1931,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         cum_y_shifts += y_shift
         cum_x_shifts += x_shift
 
-    cube_reg_sci = cube_sci.copy()
+    cube_reg_sci = np.copy(cube_sci)
     cum_y_shifts_sci = cum_y_shifts[1:(n + 1)]
     cum_x_shifts_sci = cum_x_shifts[1:(n + 1)]
     for i in range(n):
@@ -1948,7 +1959,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         plt.xlabel('Pixels')
 
     if ref_star:
-        cube_reg_ref = cube_ref.copy()
+        cube_reg_ref = np.copy(cube_ref)
         cum_y_shifts_ref = cum_y_shifts[(n + 1):]
         cum_x_shifts_ref = cum_x_shifts[(n + 1):]
         for i in range(nref):
@@ -2032,8 +2043,6 @@ def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15,
         ceny, cenx = frame_center(psf_subimage)
         ceny += y_sub_px
         cenx += x_sub_px
-    else:
-        psf_subimage = array.copy()
 
     ann_sz = ann_width*fwhm
 

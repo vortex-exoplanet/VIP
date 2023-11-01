@@ -272,4 +272,4 @@ def write_fits(fitsfilename, array, header=None, output_verify="exception",
         writeto(fitsfilename, array, header, output_verify)
 
     if verbose:
-        print(f"Fits file successfully {res}")
+        print(f"FITS file successfully {res}")

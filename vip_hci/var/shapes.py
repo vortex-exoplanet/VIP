@@ -27,11 +27,10 @@ __all__ = ['get_square',
            'mask_roi']
 
 import numpy as np
-from skimage.draw import polygon
-from skimage.draw import disk
+from skimage.draw import polygon, disk
 from sklearn.preprocessing import scale
-from hciplot import plot_frames
 
+from hciplot import plot_frames
 from .coords import frame_center, dist
 from ..config.utils_conf import frame_or_shape
 

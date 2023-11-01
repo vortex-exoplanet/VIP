@@ -1815,34 +1815,37 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                                  force=True, verbose=False)
     else:
         subframesize = cube_sci.shape[-1]
-        cube_sci_subframe = cube_sci.copy()
+        cube_sci_subframe = np.copy(cube_sci)
         if ref_star:
-            cube_ref_subframe = cube_ref.copy()
+            cube_ref_subframe = np.copy(cube_ref)
 
     ceny, cenx = frame_center(cube_sci_subframe[0])
     print('Sub frame shape: {}'.format(cube_sci_subframe.shape))
     print('Center pixel: ({}, {})'.format(ceny, cenx))
 
     # Filtering cubes. Will be used for alignment purposes
-    cube_sci_lpf = cube_sci_subframe.copy()
+    cube_sci_lpf = np.copy(cube_sci_subframe)
     if ref_star:
-        cube_ref_lpf = cube_ref_subframe.copy()
+        cube_ref_lpf = np.copy(cube_ref_subframe)
 
     cube_sci_lpf = cube_sci_lpf + np.abs(np.min(cube_sci_lpf))
     if ref_star:
         cube_ref_lpf = cube_ref_lpf + np.abs(np.min(cube_ref_lpf))
 
-    median_size = int(fwhm * max_spat_freq)
     # Remove spatial frequencies <0.5 lam/D and >3lam/D to isolate speckles
-    cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
-                                        median_size=median_size, verbose=False)
+    if max_spat_freq > 0:
+        median_size = int(fwhm * max_spat_freq)
+        cube_sci_hpf = cube_filter_highpass(cube_sci_lpf, 'median-subt',
+                                            median_size=median_size, verbose=False)
+    else:
+        cube_sci_hpf = np.copy(cube_sci_lpf)
 
     if min_spat_freq > 0:
         cube_sci_lpf = cube_filter_lowpass(cube_sci_hpf, 'gauss',
                                            fwhm_size=min_spat_freq * fwhm,
                                            verbose=False)
     else:
-        cube_sci_lpf = cube_sci_hpf
+        cube_sci_lpf = np.copy(cube_sci_hpf)
 
     if ref_star:
         cube_ref_hpf = cube_filter_highpass(cube_ref_lpf, 'median-subt',
@@ -1853,7 +1856,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                                fwhm_size=min_spat_freq * fwhm,
                                                verbose=False)
         else:
-            cube_ref_lpf = cube_ref_hpf
+            cube_ref_lpf = np.copy(cube_ref_hpf)
 
     if ref_star:
         alignment_cube = np.zeros((1 + n + nref, subframesize, subframesize))
@@ -1928,7 +1931,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         cum_y_shifts += y_shift
         cum_x_shifts += x_shift
 
-    cube_reg_sci = cube_sci.copy()
+    cube_reg_sci = np.copy(cube_sci)
     cum_y_shifts_sci = cum_y_shifts[1:(n + 1)]
     cum_x_shifts_sci = cum_x_shifts[1:(n + 1)]
     for i in range(n):
@@ -1956,7 +1959,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         plt.xlabel('Pixels')
 
     if ref_star:
-        cube_reg_ref = cube_ref.copy()
+        cube_reg_ref = np.copy(cube_ref)
         cum_y_shifts_ref = cum_y_shifts[(n + 1):]
         cum_x_shifts_ref = cum_x_shifts[(n + 1):]
         for i in range(nref):
@@ -2040,8 +2043,6 @@ def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15,
         ceny, cenx = frame_center(psf_subimage)
         ceny += y_sub_px
         cenx += x_sub_px
-    else:
-        psf_subimage = array.copy()
 
     ann_sz = ann_width*fwhm
 

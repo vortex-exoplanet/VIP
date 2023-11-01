@@ -1122,7 +1122,7 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
                                  full_output=False, verbose=True, nproc=None,
                                  save_shifts=False, debug=False, plot=True):
     """ Recenters a cube of frames using the DFT upsampling method as proposed
-    in [GUI08]_ and implemented in the ``register_translation`` function from
+    in [GUI08]_ and implemented in the ``phase_cross_correlation`` function from
     scikit-image.
 
     The algorithm (DFT upsampling) obtains an initial estimate of the
@@ -1341,7 +1341,10 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
 
 def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
                imlib, border_mode):
-    """Function used in cube_recenter_dft_upsampling."""
+    """Function used in cube_recenter_dft_upsampling. See the docstring of
+    skimage.register.phase_cross_correlation for a description of the
+    ``normalization`` parameter which was added in scikit-image 0.19. This
+    should be set to None to maintain the original behaviour of _shift_dft."""
 
     shifts = phase_cross_correlation(array_rec[0], array[frnum],
                                      upsample_factor=upsample_factor,

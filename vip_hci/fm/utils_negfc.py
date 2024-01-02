@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with post-processing related functions called from within the NEGFC
 algorithm.
@@ -30,7 +29,7 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
     angs: numpy ndarray
         The parallactic angle fits image expressed as a numpy.array.
     psfn: 2d or 3d numpy ndarray
-        The normalized psf expressed as a numpy ndarray. Can be 3d for a 4d 
+        The normalized psf expressed as a numpy ndarray. Can be 3d for a 4d
         (spectral+ADI) input cube.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
@@ -112,9 +111,10 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
         the array.
     output: str, opt {'index','value','both' }
         Set what is returned
-    constraint: str, opt {None, 'ceil', 'floor'}
-        If not None, will check for the closest element larger than value (ceil)
-        or closest element smaller than value (floor).
+    constraint: str, opt {None, 'ceil', 'floor', 'ceil=', 'floor='}
+        If not None, will check for the closest element larger (or equal) than
+        value if set to 'ceil' ('ceil='), or closest element smaller (or equal)
+        than value if set to 'floor' ('floor=').
     n: int, opt
         Number of elements to be returned, sorted by proximity to the values.
         Default: only the closest value is returned.
@@ -136,14 +136,18 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
     if constraint is None:
         fm = np.absolute(array-value)
         idx = fm.argsort()[:n]
-    elif constraint == 'floor' or constraint == 'ceil':
+    elif 'floor' in constraint or 'ceil' in constraint:
         indices = np.arange(len(array), dtype=np.int32)
-        if constraint == 'floor':
+        if 'floor' in constraint:
             fm = -(array-value)
         else:
             fm = array-value
-        crop_indices = indices[np.where(fm > 0)]
-        fm = fm[np.where(fm > 0)]
+        if '=' in constraint:
+            crop_indices = indices[np.where(fm >= 0)]
+            fm = fm[np.where(fm >= 0)]
+        else:
+            crop_indices = indices[np.where(fm > 0)]
+            fm = fm[np.where(fm > 0)]
         idx = fm.argsort()[:n]
         idx = crop_indices[idx]
         if len(idx) == 0:

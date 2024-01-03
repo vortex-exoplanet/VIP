@@ -1,30 +1,29 @@
 #! /usr/bin/env python
-
 """
 Module with frame/cube filtering functionalities.
-     
+
 .. [DAB15]
    | Dabbech et al. 2015
-   | **MORESANE: MOdel REconstruction by Synthesis-ANalysis Estimators. A sparse 
+   | **MORESANE: MOdel REconstruction by Synthesis-ANalysis Estimators. A sparse
      deconvolution algorithm for radio interferometric imaging**
    | *The Astrophysical Journal, Volume 641, Issue 1, pp. 556-564*
    | `https://arxiv.org/abs/1412.5387
      <https://arxiv.org/abs/1412.5387>`_
-     
+
 .. [KEN15]
    | J. S. Kenyon 2015
    | **PyMORESANE**
    | *GitHub repository*
    | `https://github.com/ratt-ru/PyMORESANE
      <https://github.com/ratt-ru/PyMORESANE>`_
-     
+
 .. [LUC74]
    | L. Lucy 1974
    | **An iterative technique for the rectification of observed distributions**
    | *The Astronomical Journal, Volume 79, p. 745*
    | `https://ui.adsabs.harvard.edu/abs/1974AJ.....79..745L/abstract
      <https://ui.adsabs.harvard.edu/abs/1974AJ.....79..745L/abstract>`_
-     
+
 .. [RIC72]
    | W. H. Richardson 1972
    | **Bayesian-Based Iterative Method of Image Restoration**
@@ -63,7 +62,7 @@ from ..config import Progressbar
 
 def cube_filter_iuwt(cube, coeff=5, rel_coeff=1, full_output=False):
     """
-    Isotropic Undecimated Wavelet Transform filtering, as implemented in 
+    Isotropic Undecimated Wavelet Transform filtering, as implemented in
     [KEN15]_ and detailed in [DAB15]_.
 
     Parameters
@@ -136,7 +135,7 @@ def cube_filter_highpass(array, mode='laplacian', verbose=True, **kwargs):
     elif array.ndim == 4:
         for i in Progressbar(range(array.shape[1]), verbose=verbose):
             for lam in range(array.shape[0]):
-                array_out[lam][i] = frame_filter_highpass(array[lam][i], 
+                array_out[lam][i] = frame_filter_highpass(array[lam][i],
                                                           mode=mode, **kwargs)
     else:
         raise TypeError('Input array is not a 3d or 4d cube')
@@ -418,8 +417,9 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
     median_size : int, optional
         Size of the median box for filtering the low-pass median filter.
     fwhm_size : float or tuple of 2 floats, optional
-        Size of the Gaussian kernel for the low-pass Gaussian filter. If a 
-        tuple is provided, it should correspon
+        Size of the Gaussian kernel for the low-pass Gaussian filter. If a
+        tuple is provided, it should correspond to y and x kernel sizes,
+        respectively.
     conv_mode : {'conv', 'convfft'}, str optional
         'conv' uses the multidimensional gaussian filter from scipy.ndimage and
         'convfft' uses the fft convolution with a 2d Gaussian kernel.
@@ -486,7 +486,7 @@ def frame_filter_lowpass(array, mode='gauss', median_size=5, fwhm_size=5,
                 kernel_sz_y = int(kernel_sz*fwhm_size[0]/fwhm_size[1])
                 if kernel_sz_y % 2 != kernel_sz % 2:
                     kernel_sz_y += 1
-            
+
         if half_res_y:
             sigma_y = max(1, sigma_y//2)
             if kernel_sz_y is not None:

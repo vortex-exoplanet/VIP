@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with routines allowing for the estimation of the uncertainty on the
 parameters of an imaged companion associated to residual speckle noise.
@@ -8,7 +7,6 @@ parameters of an imaged companion associated to residual speckle noise.
 __author__ = 'O. Wertz, C. A. Gomez Gonzalez, V. Christiaens'
 __all__ = ['speckle_noise_uncertainty']
 
-#import itertools as itt
 from multiprocessing import cpu_count
 import numpy as np
 import matplotlib.pyplot as plt
@@ -26,11 +24,11 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                               indep_ap=False, cube_ref=None, fmerit='sum',
                               algo_options={}, transmission=None, mu_sigma=None,
                               wedge=None, weights=None, force_rPA=False,
-                              nproc=None, simplex_options=None, bins=None,
-                              save=False, output=None, verbose=True,
-                              full_output=True, plot=False, trim_outliers=True):
+                              ndet=None, nproc=None, simplex_options=None,
+                              bins=None, save=False, output=None, verbose=True,
+                              full_output=True, plot=False, sigma_trim=None):
     """
-    Step-by-step procedure used to determine the speckle noise uncertainty
+    Step-by-step procedure used to determine the speckle noise uncertainty\
     associated to the parameters of a companion candidate.
 
     The steps 1 to 3 need to be performed for each angle.
@@ -57,9 +55,9 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     p_true: tuple or numpy array with 3 (or more) elements
         The radial separation, position angle (from x=0 axis) and flux
         associated to a given companion candidate for which the speckle
-        uncertainty is to be evaluated. The planet will first be subtracted 
-        from the cube, then used for test injections. For a 4D input cube, the 
-        length of ``p_true`` should be equal to 2 (for r, theta) + the number 
+        uncertainty is to be evaluated. The planet will first be subtracted
+        from the cube, then used for test injections. For a 4D input cube, the
+        length of ``p_true`` should be equal to 2 (for r, theta) + the number
         of spectral channels (flux at each wavelength).
     angle_range: 1d numpy array
         Range of angles (counted from x=0 axis, counter-clockwise) at which the
@@ -105,11 +103,39 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         and standard deviation automatically.
     force_rPA: bool, optional
         Whether to only search for optimal flux, provided (r,PA).
+    ndet: int or None, optional
+        [only used if fmerit='hessian'] If not None, ndet should be the number
+        of pixel(s) along x and y around the first guess position for which the
+        determinant of the Hessian matrix is calculated. If odd, the pixel(s)
+        around the closest integer coordinates will be considered. If even, the
+        pixel(s) around the subpixel coordinates of the first guess location are
+        considered. The figure of merit is the absolute sum of the determinants.
+        If None, ndet is determined automatically to be max(1, round(fwhm/2)).
     nproc: int or None, optional
         The number of processes to use for parallelization. If None, will be set
         automatically to half the number of CPUs available.
-    fmerit: None
-        Figure of merit to use, if mu_sigma is None.
+    fmerit : {'sum', 'stddev', 'hessian'}, string optional
+        If mu_sigma is not provided nor set to True, this parameter determines
+        which figure of merit to be used:
+
+            * ``sum``: minimizes the sum of absolute residual intensities in the
+            aperture defined with `initial_state` and `aperture_radius`. More
+            details in [WER17]_.
+
+            * ``stddev``: minimizes the standard deviation of residual
+            intensities in the aperture defined with `initial_state` and
+            `aperture_radius`. More details in [WER17]_.
+
+            * ``hessian``: minimizes the sum of absolute values of the
+            determinant of the Hessian matrix calculated for each of the 4
+            pixels encompassing the first guess location defined with
+            `initial_state`. More details in [QUA15]_.
+
+        From experience: ``sum`` is more robust for high SNR companions (but
+        rather consider setting mu_sigma=True), while ``stddev`` tend to be more
+        reliable in presence of strong residual speckle noise. ``hessian`` is
+        expected to be more reliable in presence of extended signals around the
+        companion location.
     simplex_options: dict
         All the required simplex parameters, for instance {'tol':1e-08,
         'max_iter':200}
@@ -127,9 +153,9 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     plot: bool, optional
         Whether to plot the gaussian fit to the distributions of parameter
         deviations (between retrieved and injected).
-    trim_outliers: bool, opt
-        Whether to trim outliers when considering a Gaussian fit to the
-        histogram of residual deviations.
+    sigma_trim: float, opt
+        If provided, sigma threshold used to trim out outliers before
+        considering a Gaussian fit to the histogram of residual deviations.
 
     Returns
     -------
@@ -140,17 +166,17 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     mean_dev: numpy ndarray of 3 elements
         [full_output = True] Mean deviation for each of the 3 parameters
     p_simplex: numpy ndarray n_fc x 3
-        [full_output = True] Parameters retrieved by the simplex for the 
+        [full_output = True] Parameters retrieved by the simplex for the
         injected fake companions; n_fc is the number of injected
     offset: numpy ndarray n_fc x 3
-        [full_output = True] Deviations with respect to the values used for 
+        [full_output = True] Deviations with respect to the values used for
         injection of the fake companions.
     chi2, nit, success: numpy ndarray of length n_fc
-        [full_output = True] Outputs from the simplex function for the retrieval 
-        of the parameters of each injected companion: chi square value, number 
+        [full_output = True] Outputs from the simplex function for the retrieval
+        of the parameters of each injected companion: chi square value, number
         of iterations and whether the simplex converged, respectively.
-    """
 
+    """
     if not nproc:   # Hyper-threading "duplicates" the cores -> cpu_count/2
         nproc = int(cpu_count()/2)
 
@@ -163,14 +189,14 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
 
     if len(p_true) == 3:
         r_true, theta_true, f_true = p_true
-        nch = 1 
+        nch = 1
     elif len(p_true) > 3 and cube.ndim == 4 and cube.shape[0] == len(p_true)-2:
         r_true = p_true[0]
         theta_true = p_true[1]
         f_true = np.array(p_true[2:])
         nch = cube.shape[0]
     else:
-        msg = "cube ndim ({}) and parameter length ({}) combination not accepted"
+        msg = "cube ndim ({}) and parameter length ({}) combo not accepted"
         raise TypeError(msg.format(cube.ndim, len(p_true)))
 
     if indep_ap:
@@ -195,10 +221,10 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     if len(p_true) == 3:
         planet_parameter = np.array([[r_true, theta_true, f_true]])
     else:
-        planet_parameter = np.zeros([1,3,nch])
-        planet_parameter[0,0,:] = r_true
-        planet_parameter[0,1,:] = theta_true
-        planet_parameter[0,2] = f_true
+        planet_parameter = np.zeros([1, 3, nch])
+        planet_parameter[0, 0, :] = r_true
+        planet_parameter[0, 1, :] = theta_true
+        planet_parameter[0, 2] = f_true
     cube_pf = cube_planet_free(planet_parameter, cube, derot_angles, psfn,
                                imlib=imlib, interpolation=interpolation,
                                transmission=transmission)
@@ -226,8 +252,8 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     res = pool_map(nproc, _estimate_speckle_one_angle, iterable(angle_range),
                    cube_pf, psfn, derot_angles, r_true, f_true, fwhm,
                    aperture_radius, cube_ref, fmerit, algo, algo_options,
-                   transmission, mu_sigma, weights, force_rPA, simplex_options,
-                   imlib, interpolation, verbose=verbose)
+                   transmission, mu_sigma, weights, force_rPA, ndet,
+                   simplex_options, imlib, interpolation, verbose=verbose)
     residuals = np.array(res)
 
     if opp_ang:  # do opposite angles
@@ -235,7 +261,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                        iterable(angle_range), cube_pf, psfn, -derot_angles,
                        r_true, f_true, fwhm, aperture_radius, cube_ref, fmerit,
                        algo, algo_options, transmission, mu_sigma, weights,
-                       force_rPA, simplex_options, imlib, interpolation,
+                       force_rPA, ndet, simplex_options, imlib, interpolation,
                        verbose=verbose)
         residuals2 = np.array(res)
         residuals = np.concatenate((residuals, residuals2))
@@ -282,11 +308,11 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     if force_rPA:
         offset = offset[:, 2:]
         print(offset.shape)
-    if trim_outliers:
+    if sigma_trim:
         std = np.std(offset, axis=0)
         trim_offset = []
         for i in range(offset.shape[0]):
-            if np.all(np.abs(offset[i]) < 5*std):
+            if np.all(np.abs(offset[i]) < sigma_trim*std):
                 trim_offset.append(offset[i])
         offset = np.array(trim_offset)
 
@@ -304,9 +330,10 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         for ch in range(nch):
             labels.append('f{}'.format(ch))
 
-    mean_dev, sp_unc = confidence(offset, cfd=68.27, bins=bins, 
-                                  gaussian_fit=True, verbose=True, save=False,
-                                  output_dir='', labels=labels, force=True)
+    mean_dev, sp_unc = confidence(offset, cfd=68.27, bins=bins,
+                                  gaussian_fit=True, verbose=verbose,
+                                  save=False, output_dir='', labels=labels,
+                                  force=True, plot=verbose)
     if plot:
         plt.show()
 
@@ -319,7 +346,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
 def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
                                 fwhm, aperture_radius, cube_ref, fmerit, algo,
                                 algo_options, transmission, mu_sigma, weights,
-                                force_rPA, simplex_options, imlib,
+                                force_rPA, ndet, simplex_options, imlib,
                                 interpolation, verbose=True):
 
     if verbose:
@@ -342,7 +369,7 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
     else:
         p_ini = (r_true, angle, f_true)
 
-    res_simplex = firstguess_simplex(p_ini, cube_fc, angs, 
+    res_simplex = firstguess_simplex(p_ini, cube_fc, angs,
                                      psfn, ncomp, fwhm, annulus_width,
                                      aperture_radius, cube_ref=cube_ref,
                                      fmerit=fmerit, algo=algo,
@@ -350,7 +377,7 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
                                      interpolation=interpolation,
                                      transmission=transmission,
                                      mu_sigma=mu_sigma, weights=weights,
-                                     force_rPA=force_rPA,
+                                     force_rPA=force_rPA, ndet=ndet,
                                      options=simplex_options,
                                      verbose=False)
     res = []
@@ -374,7 +401,7 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
             simplex_res_f = np.array(res_simplex.x)
             simplex_res_r, simplex_res_PA = r_true, angle
         else:
-            simplex_res = res_simplex.x  
+            simplex_res = res_simplex.x
             simplex_res_r = simplex_res[0]
             simplex_res_PA = simplex_res[1]
             simplex_res_f = np.array(simplex_res[2:])
@@ -397,7 +424,7 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
     res.append(chi2)
     res.append(nit)
     res.append(success)
-    
+
     res = tuple(res)
 
     return res

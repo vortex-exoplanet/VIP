@@ -8,14 +8,10 @@ import numpy as np
 from hciplot import plot_frames
 from skimage.draw import disk
 from ..fm import cube_inject_companions
-from ..var import (
-    frame_center,
-    get_annular_wedge,
-    cube_filter_highpass,
-    get_annulus_segments,
-)
+from ..var import (frame_center, get_annular_wedge, cube_filter_highpass,
+                   get_annulus_segments)
 from ..psfsub import pca_annulus, pca_annular, nmf_annular, pca
-from ..preproc import cube_crop_frames
+from ..preproc import cube_crop_frames, frame_crop
 
 
 def chisquare(
@@ -42,6 +38,7 @@ def chisquare(
     mu_sigma=(0, 1),
     weights=None,
     force_rPA=False,
+    ndet=None,
     debug=False,
 ):
     r"""
@@ -99,9 +96,28 @@ def chisquare(
         involves a sort of c-ADI preprocessing, which (i) can be dangerous for
         datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
-    fmerit : {'sum', 'stddev'}, string optional
-        Chooses the figure of merit to be used. stddev works better for close in
-        companions sitting on top of speckle noise.
+    fmerit : {'sum', 'stddev', 'hessian'}, string optional
+        If mu_sigma is not provided nor set to True, this parameter determines
+        which figure of merit to be used:
+
+            * ``sum``: minimizes the sum of absolute residual intensities in the
+            aperture defined with `initial_state` and `aperture_radius`. More
+            details in [WER17]_.
+
+            * ``stddev``: minimizes the standard deviation of residual
+            intensities in the aperture defined with `initial_state` and
+            `aperture_radius`. More details in [WER17]_.
+
+            * ``hessian``: minimizes the sum of absolute values of the
+            determinant of the Hessian matrix calculated for each of the 4
+            pixels encompassing the first guess location defined with
+            `initial_state`. More details in [QUA15]_.
+
+        From experience: ``sum`` is more robust for high SNR companions (but
+        rather consider setting mu_sigma=True), while ``stddev`` tend to be more
+        reliable in presence of strong residual speckle noise. ``hessian`` is
+        expected to be more reliable in presence of extended signals around the
+        companion location.
     collapse : {'median', 'mean', 'sum', 'trimmean', None}, str or None, optional
         Sets the way of collapsing the frames for producing a final image. If
         None then the cube of residuals is used when measuring the function of
@@ -141,6 +157,14 @@ def chisquare(
         the observing conditions throughout the sequence.
     force_rPA: bool, optional
         Whether to only search for optimal flux, provided (r,PA).
+    ndet: int or None, optional
+        [only used if fmerit='hessian'] If not None, ndet should be the number
+        of pixel(s) along x and y around the first guess position for which the
+        determinant of the Hessian matrix is calculated. If odd, the pixel(s)
+        around the closest integer coordinates will be considered. If even, the
+        pixel(s) around the subpixel coordinates of the first guess location are
+        considered. The figure of merit is the absolute sum of the determinants.
+        If None, ndet is determined automatically to be max(1, round(fwhm/2)).
     debug: bool, opt
         Whether to debug and plot the post-processed frame after injection of
         the negative fake companion.
@@ -216,6 +240,8 @@ def chisquare(
     )
 
     # Perform PCA and extract the zone of interest
+    full_output = (debug and collapse) or (fmerit == "hessian")
+
     res = get_values_optimize(
         cube_negfc,
         angs,
@@ -235,24 +261,59 @@ def chisquare(
         weights=norm_weights,
         imlib=imlib_rot,
         interpolation=interpolation,
-        debug=debug,
+        full_output=full_output,
     )
 
-    if debug and collapse is not None:
+    if full_output:
         values, frpca = res
-        plot_frames(frpca)
+        if debug:
+            plot_frames(frpca)
     else:
         values = res
 
     # Function of merit
     if mu_sigma is None:
-        # old version - delete?
         if fmerit == "sum":
             chi = np.sum(np.abs(values)) / (values.size - len(modelParameters))
         elif fmerit == "stddev":
             values = values[values != 0]
             ddf = values.size - len(modelParameters)
             chi = np.std(values) * values.size / ddf  # TODO: test std**2
+        elif fmerit == "hessian":
+            # number of Hessian determinants (i.e. of pixels) to consider
+            if ndet is None:
+                ndet = int(round(max(min(fwhm/2, r), 2)))
+            elif not isinstance(ndet, int):
+                raise TypeError("If provided, ndet should be an integer")
+
+            # consider a sub-image in the post-processed image
+            ny, nx = frpca.shape[-2:]
+            cy, cx = frame_center(frpca)
+            yi = cy+r*np.sin(np.deg2rad(theta))
+            xi = cx+r*np.cos(np.deg2rad(theta))
+            if ndet % 2:
+                # odd crop
+                yround, xround = int(np.round(yi)), int(np.round(xi))
+            else:
+                # even crop
+                yround, xround = int(np.ceil(yi)), int(np.ceil(xi))
+            crop_sz = ndet+4
+
+            # check there is enough space around the location to crop
+            spaces = [yround, xround, ny-yround, nx-xround]
+            if crop_sz/2 > np.amin(spaces):
+                msg = "Test location too close from image edge for Hessian "
+                msg += "calculation. Consider larger input images."
+                raise ValueError(msg)
+
+            subim = frame_crop(frpca, crop_sz, cenxy=(xround, yround),
+                               force=True, verbose=False)
+            H = hessian(subim)
+            dets = np.zeros([ndet, ndet])
+            for i in range(ndet):
+                for j in range(ndet):
+                    dets[i, j] = np.linalg.det(H[:, :, 2+i, 2+j])
+            chi = np.sum(np.abs(dets))
         else:
             raise RuntimeError("fmerit choice not recognized.")
     else:
@@ -284,7 +345,7 @@ def get_values_optimize(
     collapse="median",
     algo_options={},
     weights=None,
-    debug=False,
+    full_output=False,
 ):
     """Extracts a PCA-ed annulus from the cube and returns the flux values of
     the pixels included in a circular aperture centered at a given position.
@@ -361,15 +422,15 @@ def get_values_optimize(
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in
         the observing conditions throughout the sequence.
-    debug: boolean
+    full_output: boolean
         If True, the cube is returned along with the values.
 
     Returns
     -------
-    values: numpy.array
+    values: numpy ndarray
         The pixel values in the circular aperture after the PCA process.
-
-    If debug is True and collapse non-None, the PCA frame is also returned.
+    res: numpy ndarray
+        [full_output=True & collapse!= None] The post-processed image.
 
     """
     centy_fr, centx_fr = frame_center(cube[0])
@@ -525,7 +586,7 @@ def get_values_optimize(
     else:
         values = res[yy, xx].ravel()
 
-    if debug and collapse is not None:
+    if full_output and collapse is not None:
         return values, res
     else:
         return values
@@ -669,11 +730,14 @@ def get_mu_and_sigma(
     hp_kernel = algo_options.get("hp_kernel", None)
     if hp_filter is not None:
         if "median" in hp_filter:
-            cube = cube_filter_highpass(cube, mode=hp_filter, median_size=hp_kernel)
+            cube = cube_filter_highpass(cube, mode=hp_filter,
+                                        median_size=hp_kernel)
         elif "gauss" in hp_filter:
-            cube = cube_filter_highpass(cube, mode=hp_filter, fwhm_size=hp_kernel)
+            cube = cube_filter_highpass(cube, mode=hp_filter,
+                                        fwhm_size=hp_kernel)
         else:
-            cube = cube_filter_highpass(cube, mode=hp_filter, kernel_size=hp_kernel)
+            cube = cube_filter_highpass(cube, mode=hp_filter,
+                                        kernel_size=hp_kernel)
 
     if algo == pca_annulus:
         pca_res = pca_annulus(
@@ -765,7 +829,8 @@ def get_mu_and_sigma(
         )
         # pad again now
         pca_res = np.pad(pca_res_tmp, pad, mode="constant", constant_values=0)
-        pca_res_inv = np.pad(pca_res_tinv, pad, mode="constant", constant_values=0)
+        pca_res_inv = np.pad(pca_res_tinv, pad, mode="constant",
+                             constant_values=0)
 
     elif algo == pca:
         scale_list = algo_options.get("scale_list", None)
@@ -839,3 +904,32 @@ def get_mu_and_sigma(
     sigma = np.std(all_res, ddof=ddof)
 
     return mu, sigma
+
+
+def hessian(array):
+    """
+    Calculate the Hessian matrix with finite differences for any input array.
+
+    Parameters
+    ----------
+       array : numpy ndarray
+           Input array for which the Hessian matrix should be calculated.
+
+    Returns
+    -------
+       hessian: numpy ndarray of shape (array.ndim, array.ndim) + array.shape
+           The Hessian matrix associated to each element of the input array,
+           e.g. for a 2D input, hessian[i, j, k, l] corresponds to the second
+           derivative x_ij (ij can be y or x) at coordinates (k,l) of input
+           array.
+    """
+    grad = np.gradient(array)
+    hessian = np.empty((array.ndim, array.ndim) + array.shape,
+                       dtype=array.dtype)
+    for k, grad_k in enumerate(grad):
+        # iterate over dimensions
+        # apply gradient again to every component of the first derivative.
+        tmp_grad = np.gradient(grad_k)
+        for m, grad_km in enumerate(tmp_grad):
+            hessian[k, m, :, :] = grad_km
+    return hessian

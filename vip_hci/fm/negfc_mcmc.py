@@ -16,6 +16,14 @@ Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
    | `https://arxiv.org/abs/1202.3665
      <https://arxiv.org/abs/1202.3665>`_
 
+.. [QUA15]
+   | Quanz et al. 2015
+   | **Confirmation and Characterization of the Protoplanet HD 100546 b—Direct
+   Evidence for Gas Giant Planet Formation at 50 AU**
+   | *Astronomy & Astrophysics, Volume 807, p. 64*
+   | `https://arxiv.org/abs/1412.5173
+     <https://arxiv.org/abs/1412.5173>`_
+
 .. [WER17]
    | Wertz et al. 2017
    | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond
@@ -171,9 +179,28 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
         to select frames in the PCA library (see description of pca_annular).
-    fmerit : {'sum', 'stddev'}, string optional
-        Chooses the figure of merit to be used. stddev works better for close in
-        companions sitting on top of speckle noise.
+    fmerit : {'sum', 'stddev', 'hessian'}, string optional
+        If mu_sigma is not provided nor set to True, this parameter determines
+        which figure of merit to be used:
+
+            * ``sum``: minimizes the sum of absolute residual intensities in the
+            aperture defined with `initial_state` and `aperture_radius`. More
+            details in [WER17]_.
+
+            * ``stddev``: minimizes the standard deviation of residual
+            intensities in the aperture defined with `initial_state` and
+            `aperture_radius`. More details in [WER17]_.
+
+            * ``hessian``: minimizes the sum of absolute values of the
+            determinant of the Hessian matrix calculated for each of the 4
+            pixels encompassing the first guess location defined with
+            `initial_state`. More details in [QUA15]_.
+
+        From experience: ``sum`` is more robust for high SNR companions (but
+        rather consider setting mu_sigma=True), while ``stddev`` tend to be more
+        reliable in presence of strong residual speckle noise. ``hessian`` is
+        expected to be more reliable in presence of extended signals around the
+        companion location.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
@@ -368,9 +395,28 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         involves a sort of c-ADI preprocessing, which (i) can be dangerous for
         datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
-    fmerit : {'sum', 'stddev'}, string optional
-        Chooses the figure of merit to be used. stddev works better for close in
-        companions sitting on top of speckle noise.
+    fmerit : {'sum', 'stddev', 'hessian'}, string optional
+        If mu_sigma is not provided nor set to True, this parameter determines
+        which figure of merit to be used:
+
+            * ``sum``: minimizes the sum of absolute residual intensities in the
+            aperture defined with `initial_state` and `aperture_radius`. More
+            details in [WER17]_.
+
+            * ``stddev``: minimizes the standard deviation of residual
+            intensities in the aperture defined with `initial_state` and
+            `aperture_radius`. More details in [WER17]_.
+
+            * ``hessian``: minimizes the sum of absolute values of the
+            determinant of the Hessian matrix calculated for each of the 4
+            pixels encompassing the first guess location defined with
+            `initial_state`. More details in [QUA15]_.
+
+        From experience: ``sum`` is more robust for high SNR companions (but
+        rather consider setting mu_sigma=True), while ``stddev`` tend to be more
+        reliable in presence of strong residual speckle noise. ``hessian`` is
+        expected to be more reliable in presence of extended signals around the
+        companion location.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
@@ -539,11 +585,29 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         residual (mostly whitened) speckle noise, or 'spe+pho' for both.
     force_rPA: bool, optional
         Whether to only search for optimal flux, provided (r,PA).
-    fmerit : {'sum', 'stddev'}, string optional
+    fmerit : {'sum', 'stddev', 'hessian'}, string optional
         If mu_sigma is not provided nor set to True, this parameter determines
-        which figure of merit to be used among the 2 possibilities implemented
-        in [WER17]_. 'stddev' may work well for point like sources surrounded by
-        extended signals.
+        which figure of merit to be used:
+
+            * ``sum``: minimizes the sum of absolute residual intensities in the
+            aperture defined with `initial_state` and `aperture_radius`. More
+            details in [WER17]_.
+
+            * ``stddev``: minimizes the standard deviation of residual
+            intensities in the aperture defined with `initial_state` and
+            `aperture_radius`. More details in [WER17]_.
+
+            * ``hessian``: minimizes the sum of absolute values of the
+            determinant of the Hessian matrix calculated for each of the 4
+            pixels encompassing the first guess location defined with
+            `initial_state`. More details in [QUA15]_.
+
+        From experience: ``sum`` is more robust for high SNR companions (but
+        rather consider setting mu_sigma=True), while ``stddev`` tend to be more
+        reliable in presence of strong residual speckle noise. ``hessian`` is
+        expected to be more reliable in presence of extended signals around the
+        companion location.
+
     cube_ref : 3d or 4d numpy ndarray, or list of 3d ndarray, optional
         Reference library cube for Reference Star Differential Imaging. Should
         be 3d, except if the input cube is 4d, in which case it can either be a
@@ -1022,7 +1086,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
 
 def chain_zero_truncated(chain):
     """
-    Return the Markov chain with the dimension: walkers x steps* x parameters,
+    Return the Markov chain with the dimension: walkers x steps* x parameters,\
     where steps* is the last step before having 0 (not yet constructed chain).
 
     Parameters
@@ -1045,7 +1109,7 @@ def chain_zero_truncated(chain):
 
 def show_walk_plot(chain, save=False, output_dir='', **kwargs):
     """
-    Display or save a figure showing the path of each walker during the MCMC run
+    Display or save figure showing the path of each walker during the MCMC run.
 
     Parameters
     ----------
@@ -1104,7 +1168,7 @@ def show_walk_plot(chain, save=False, output_dir='', **kwargs):
 
 def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
     """
-    Display or save a figure showing the corner plot (pdfs + correlation plots)
+    Display or save a figure showing the corner plot (pdfs + correlation plots).
 
     Parameters
     ----------
@@ -1224,7 +1288,6 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             for each parameter
 
     """
-
     try:
         l = isamples.shape[1]
         if l == 1:
@@ -1256,9 +1319,9 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
     if cfd == 100:
         cfd = 99.9
 
-    #########################################
-    ##  Determine the confidence interval  ##
-    #########################################
+    #######################################
+    #  Determine the confidence interval  #
+    #######################################
     if gaussian_fit:
         mu = np.zeros(l)
         sigma = np.zeros_like(mu)
@@ -1557,9 +1620,9 @@ def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,
             for i, lab in enumerate(labels):
                 print('{}: {} +-{}'.format(lab, mu[i], sigma[i]))
 
-    ##############################################
-    ##  Write inference results in a text file  ##
-    ##############################################
+    ############################################
+    #  Write inference results in a text file  #
+    ############################################
     if save:
         with open(output_dir+output_file, "w") as f:
             f.write('###########################\n')

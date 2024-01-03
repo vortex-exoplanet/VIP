@@ -27,8 +27,7 @@ __all__ = ['get_square',
            'mask_roi']
 
 import numpy as np
-from skimage.draw import polygon
-from skimage.draw import disk
+from skimage.draw import disk, ellipse, polygon
 from sklearn.preprocessing import scale
 from hciplot import plot_frames
 
@@ -36,7 +35,8 @@ from .coords import frame_center, dist
 from ..config.utils_conf import frame_or_shape
 
 
-def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None, output="masked_arr"):
+def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None,
+                output="masked_arr"):
     """
     Mask the pixels inside/outside of a centered circle with ``fillwith``.
 
@@ -46,8 +46,8 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None, output="
     ----------
     array : 2d/3d/4d numpy ndarray
         Input frame or cube.
-    radius : int
-        Radius of the circular aperture.
+    radius : float
+        Radius of the circular mask.
     fillwith : int, float or np.nan, optional
         Value to put instead of the masked out pixels.
     mode : {'in', 'out'}, optional
@@ -75,7 +75,79 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None, output="
     shape = (array.shape[-2], array.shape[-1])
     ind = disk((cy, cx), radius, shape=shape)
 
-    if output == "bool_mask" :
+    if output == "bool_mask":
+        mask = np.ones(shape, dtype=bool)
+        mask[ind] = False
+        return mask
+
+    elif output == "masked_arr":
+        if mode == 'in':
+            array_masked = array.copy()
+            if array.ndim == 2:
+                array_masked[ind] = fillwith
+            elif array.ndim == 3:
+                array_masked[:, ind[1], ind[0]] = fillwith
+            elif array.ndim == 4:
+                array_masked[:, :, ind[1], ind[0]] = fillwith
+
+        elif mode == 'out':
+            array_masked = np.full_like(array, fillwith)
+            if array.ndim == 2:
+                array_masked[ind] = array[ind]
+            elif array.ndim == 3:
+                array_masked[:, ind[1], ind[0]] = array[:, ind[1], ind[0]]
+            elif array.ndim == 4:
+                array_masked[:, :, ind[1], ind[0]] = array[:, :, ind[1], ind[0]]
+
+    return array_masked
+
+
+def mask_ellipse(array, a, b, theta, fillwith=0, mode='in', cy=None, cx=None,
+                 output="masked_arr"):
+    """
+    Mask the pixels inside/outside of a centered circle with ``fillwith``.
+
+    Returns a modified copy of ``array``.
+
+    Parameters
+    ----------
+    array : 2d/3d/4d numpy ndarray
+        Input frame or cube.
+    a : float
+        Semi-major axis of the elliptic mask.
+    b : float
+        Semi-minor axis of the elliptic mask.
+    theta : float
+        Azimuthal angle of the semi-major axis of the elliptic mask,
+        counted counter-clockwise from the positive y-axis.
+    fillwith : int, float or np.nan, optional
+        Value to put instead of the masked out pixels.
+    mode : {'in', 'out'}, optional
+        When set to 'in' then the pixels inside the radius are set to
+        ``fillwith``. When set to 'out' the pixels outside the circular mask
+        are set to ``fillwith``.
+    cy, cx : floats, opt
+        XY coordinates of thenter of the mask. By default, it considers the
+        center of the image.
+    output : {'masked_arr', 'bool_mask'}, optional
+        Whether to return the masked frame or a bolean mask
+
+    Returns
+    -------
+    array_masked : numpy ndarray
+        Masked frame or cube.
+
+    """
+    if not isinstance(fillwith, (int, float)):
+        raise ValueError('`fillwith` must be integer, float or np.nan')
+
+    if cy is None or cx is None:
+        cy, cx = frame_center(array)
+
+    shape = (array.shape[-2], array.shape[-1])
+    ind = ellipse(cy, cx, b, a, shape=shape, rotation=-np.deg2rad(theta-90))
+
+    if output == "bool_mask":
         mask = np.ones(shape, dtype=bool)
         mask[ind] = False
         return mask
@@ -416,6 +488,7 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
         selected pixels, or a boolean mask.
     out : bool; optional
         Return all indices or values outside the centered annulus.
+
     Returns
     -------
     indices : list of ndarrays
@@ -592,7 +665,7 @@ def get_annular_wedge(data, inner_radius, width, wedge=(0, 360), mode="ind"):
 
 def get_ell_annulus(data, a, b, PA, width, cy=None, cx=None, mode="ind"):
     """
-    Return a centered elliptical annulus from a 2d ndarray
+    Return a centered elliptical annulus from a 2d ndarray.
 
     All the rest pixels are set to zeros.
 
@@ -828,7 +901,7 @@ def reshape_matrix(array, y, x):
 def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
              mode='val', plot=False):
     """
-    Return a mask corresponding to the region of interest for a test point
+    Return a mask corresponding to the region of interest for a test point\
     source as defined in [GEB20]_.
 
     Given a frame and a location of interest with coordinates xy=(cx,cy),
@@ -882,7 +955,6 @@ def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
     indices : tuple(y, x)
         [mode='ind'] Coordinates of the mask.
     """
-
     if exc_radius >= inc_radius:
         print('Warning: The excluded region is bigger than the included region')
 
@@ -919,7 +991,7 @@ def mask_roi(array, source_xy, exc_radius=4, ann_width=4, inc_radius=8,
             elif mode == 'mask':
                 return array*mask
             elif mode == 'ind':
-                return np.where(mask == True)
+                return np.where(mask is True)
             else:
                 raise ValueError("mode '{}' unknown!".format(mode))
         else:

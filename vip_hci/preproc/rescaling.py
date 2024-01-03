@@ -619,7 +619,8 @@ def frame_rescaling(
                 [0, scale_y, (1.0 - scale_y) * ref_xy[1]],
             ]
         )
-        array_out = cv2.warpAffine(array.astype(np.float32), M, outshape, flags=intp)
+        array_out = cv2.warpAffine(array.astype(np.float32), M, outshape,
+                                   flags=intp)
         array_out /= scale_y * scale_x
 
     elif imlib == "vip-fft":
@@ -785,9 +786,9 @@ def find_scal_vector(
     ----------
     cube: 3D-array
        Data cube with frames to be rescaled.
-    lbdas: 1d array or list
+    lbdas: 1d array
         Vector with the wavelengths, used for first guess on scaling factor.
-    fluxes: 1d array or list
+    fluxes: 1d array
         Vector with the (unsaturated) fluxes at the different wavelengths,
         used for first guess on flux factor.
     mask: 2D-array, opt
@@ -805,7 +806,7 @@ def find_scal_vector(
         Whether to high-pass filter images before searching for optimal scaling
         factors. Can help to not be biased by a diffuse halo, and just leverage
         speckle expansion.
-    max_fwhm: float, optional
+    fwhm_max: float, optional
         Maximum FWHM of the PSF across all wavelengths, in pixels. Only used if
         hpf is set to True.
     **kwargs: optional
@@ -827,7 +828,8 @@ def find_scal_vector(
         raise TypeError(msg)
 
     if simplex_options is None:
-        simplex_options = {"xatol": 1e-6, "fatol": 1e-6, "maxiter": 800, "maxfev": 2000}
+        simplex_options = {"xatol": 1e-6, "fatol": 1e-6, "maxiter": 800,
+                           "maxfev": 2000}
     scal_vec = np.ones(n_z)
     flux_vec = np.ones(n_z)
     array = cube.copy()
@@ -835,7 +837,8 @@ def find_scal_vector(
         med_sz = int(5 * fwhm_max)
         if not med_sz % 2:
             med_sz += 1
-        array = cube_filter_highpass(cube, mode="median-subt", median_size=med_sz)
+        array = cube_filter_highpass(cube, mode="median-subt",
+                                     median_size=med_sz)
     for z in range(n_z - 1):
         flux_scal = fluxes[-1] / fluxes[z]
         cube_tmp = np.array([array[z], array[-1]])

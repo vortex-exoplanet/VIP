@@ -23,12 +23,12 @@ __all__ = ['firstguess',
 
 
 def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
-                          aperture_radius, ncomp, cube_ref=None,
+                          aperture_radius, ncomp=1, cube_ref=None,
                           svd_mode='lapack', scaling=None, fmerit='sum',
                           imlib='skimage', interpolation='biquintic',
                           collapse='median', algo=pca_annulus, delta_rot=1,
                           algo_options={}, f_range=None, transmission=None,
-                          mu_sigma=(0, 1), weights=None, plot=False,
+                          mu_sigma=(0, 1), weights=None, ndet=None, plot=False,
                           verbose=True, save=False, debug=False,
                           full_output=False):
     """Determine a first guess for the flux of a companion at a given position\
@@ -61,8 +61,8 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         The width in pixels of the annulus on which the PCA is done.
     aperture_radius: int, optional
         The radius of the circular aperture in terms of the FWHM.
-    ncomp: int
-        The number of principal components.
+    ncomp: int, optional
+        The number of principal components, if the algorithm used is PCA.
     cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
@@ -87,8 +87,28 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         involves a sort of c-ADI preprocessing, which (i) can be dangerous for
         datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
-    fmerit : {'sum', 'stddev'}, string optional
-        Figure of merit to be used, if mu_sigma is set to None.
+    fmerit : {'sum', 'stddev', 'hessian'}, string optional
+        If mu_sigma is not provided nor set to True, this parameter determines
+        which figure of merit to be used:
+
+            * ``sum``: minimizes the sum of absolute residual intensities in the
+            aperture defined with `initial_state` and `aperture_radius`. More
+            details in [WER17]_.
+
+            * ``stddev``: minimizes the standard deviation of residual
+            intensities in the aperture defined with `initial_state` and
+            `aperture_radius`. More details in [WER17]_.
+
+            * ``hessian``: minimizes the sum of absolute values of the
+            determinant of the Hessian matrix calculated for each of the 4
+            pixels encompassing the first guess location defined with
+            `initial_state`. More details in [QUA15]_.
+
+        From experience: ``sum`` is more robust for high SNR companions (but
+        rather consider setting mu_sigma=True), while ``stddev`` tend to be more
+        reliable in presence of strong residual speckle noise. ``hessian`` is
+        expected to be more reliable in presence of extended signals around the
+        companion location.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
@@ -127,6 +147,14 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in
         the observing conditions throughout the sequence.
+    ndet: int or None, optional
+        [only used if fmerit='hessian'] If not None, ndet should be the number
+        of pixel(s) along x and y around the first guess position for which the
+        determinant of the Hessian matrix is calculated. If odd, the pixel(s)
+        around the closest integer coordinates will be considered. If even, the
+        pixel(s) around the subpixel coordinates of the first guess location are
+        considered. The figure of merit is the absolute sum of the determinants.
+        If None, ndet is determined automatically to be max(1, round(fwhm/2)).
     plot: boolean, optional
         If True, the figure chi2 vs. flux is displayed.
     verbose: boolean
@@ -155,7 +183,8 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                        interpolation='lanczos4', collapse='median',
                        algo=pca_annulus, delta_rot=1, algo_options={},
                        f_range=np.geomspace(1e-1, 1e4, 30), transmission=None,
-                       mu_sigma=None, weights=None, verbose=True, debug=False):
+                       mu_sigma=None, weights=None, ndet=None, verbose=True,
+                       debug=False):
 
         chi2r = []
         if verbose:
@@ -177,7 +206,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                                    ncomp, cube_ref, svd_mode, scaling, fmerit,
                                    collapse, algo, delta_rot, imlib,
                                    interpolation, algo_options, transmission,
-                                   mu_sigma, weights, debug))
+                                   mu_sigma, weights, False, ndet, debug))
             if chi2r[j] > chi2r[j-1]:
                 counter += 1
             if counter == 4:
@@ -207,7 +236,8 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                                algo=algo, delta_rot=delta_rot,
                                algo_options=algo_options, f_range=f_range,
                                transmission=transmission, mu_sigma=mu_sigma,
-                               weights=weights, verbose=verbose, debug=debug)
+                               weights=weights, ndet=ndet, verbose=verbose,
+                               debug=debug)
         chi2r = np.array(chi2r)
         f0 = f_range[chi2r.argmin()]
 
@@ -216,8 +246,9 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
             plt.title('$\\chi^2_{r}$ vs flux')
             plt.xlim(f_range[0], f_range[:chi2r.shape[0]].max())
             plt.ylim(chi2r.min()*0.9, chi2r.max()*1.1)
-            plt.plot(f_range[:chi2r.shape[0]], chi2r, linestyle='-', color='gray',
-                     marker='.', markerfacecolor='r', markeredgecolor='r')
+            plt.plot(f_range[:chi2r.shape[0]], chi2r, linestyle='-',
+                     color='gray', marker='.', markerfacecolor='r',
+                     markeredgecolor='r')
             plt.xlabel('flux')
             plt.ylabel(r'$\chi^2_r$')
             plt.grid('on')
@@ -252,7 +283,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                                        f_range=f_range,
                                        transmission=transmission,
                                        mu_sigma=mu_sigma, weights=weights,
-                                       verbose=False, debug=False)
+                                       ndet=ndet, verbose=False, debug=False)
             chi2r.append(chi2r_tmp)
             chi2r_tmp = np.array(chi2r_tmp)
             f0.append(f_range[chi2r_tmp.argmin()])
@@ -300,7 +331,7 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
                        interpolation='biquintic', collapse='median',
                        algo=pca_annulus, delta_rot=1, algo_options={},
                        p_ini=None, transmission=None, mu_sigma=(0, 1),
-                       weights=None, force_rPA=False, options=None,
+                       weights=None, force_rPA=False, ndet=None, options=None,
                        verbose=False, **kwargs):
     """Determine the position of a companion using the negative fake companion\
     technique and a standard minimization algorithm (Default=Nelder-Mead).
@@ -323,7 +354,7 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
         If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
         the first dimension(s) must match those of the input cube.
     ncomp: int or None
-        The number of principal components.
+        The number of principal components to use, if the algorithm is PCA.
     fwhm : float
         The FWHM in pixels.
     annulus_width: int, optional
@@ -354,8 +385,28 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
         involves a sort of c-ADI preprocessing, which (i) can be dangerous for
         datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
-    fmerit : {'sum', 'stddev'}, string optional
-        Figure of merit to be used, if mu_sigma is set to None.
+    fmerit : {'sum', 'stddev', 'hessian'}, string optional
+        If mu_sigma is not provided nor set to True, this parameter determines
+        which figure of merit to be used:
+
+            * ``sum``: minimizes the sum of absolute residual intensities in the
+            aperture defined with `initial_state` and `aperture_radius`. More
+            details in [WER17]_.
+
+            * ``stddev``: minimizes the standard deviation of residual
+            intensities in the aperture defined with `initial_state` and
+            `aperture_radius`. More details in [WER17]_.
+
+            * ``hessian``: minimizes the sum of absolute values of the
+            determinant of the Hessian matrix calculated for each of the 4
+            pixels encompassing the first guess location defined with
+            `initial_state`. More details in [QUA15]_.
+
+        From experience: ``sum`` is more robust for high SNR companions (but
+        rather consider setting mu_sigma=True), while ``stddev`` tend to be more
+        reliable in presence of strong residual speckle noise. ``hessian`` is
+        expected to be more reliable in presence of extended signals around the
+        companion location.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
@@ -395,6 +446,14 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
         the observing conditions throughout the sequence.
     force_rPA: bool, optional
         Whether to only search for optimal flux, provided (r,PA).
+    ndet: int or None, optional
+        [only used if fmerit='hessian'] If not None, ndet should be the number
+        of pixel(s) along x and y around the first guess position for which the
+        determinant of the Hessian matrix is calculated. If odd, the pixel(s)
+        around the closest integer coordinates will be considered. If even, the
+        pixel(s) around the subpixel coordinates of the first guess location are
+        considered. The figure of merit is the absolute sum of the determinants.
+        If None, ndet is determined automatically to be max(1, round(fwhm/2)).
     options: dict, optional
         The scipy.optimize.minimize options.
     verbose : boolean, optional
@@ -425,7 +484,7 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
                                           collapse, algo, delta_rot, imlib,
                                           interpolation, algo_options,
                                           transmission, mu_sigma, weights,
-                                          force_rPA),
+                                          force_rPA, ndet),
                     method='Nelder-Mead', options=options, **kwargs)
 
     if verbose:
@@ -433,14 +492,14 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
     return solu
 
 
-def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
+def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
                annulus_width=4, aperture_radius=1, cube_ref=None,
                svd_mode='lapack', scaling=None, fmerit='sum', imlib='skimage',
                interpolation='biquintic', collapse='median', algo=pca_annulus,
                delta_rot=1, f_range=None, transmission=None, mu_sigma=True,
-               wedge=None, weights=None, force_rPA=False, algo_options={},
-               simplex=True, simplex_options=None, plot=False, verbose=True,
-               save=False):
+               wedge=None, weights=None, force_rPA=False, ndet=None,
+               algo_options={}, simplex=True, simplex_options=None, plot=False,
+               verbose=True, save=False):
     """Determine a first guess for the position and the flux of a planet using\
     the negative fake companion techique, as explained in [WER17]_.
 
@@ -467,11 +526,12 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
         unsaturated and conditions were variable.
         If the input cube is 4D, psfn must be either 3D or 4D. In either cases,
         the first dimension(s) must match those of the input cube.
-    ncomp : int or 1d numpy array of int
-        The number of principal components. If cube is a 4D cube, ncomp can be a
-        list of integers, with length matching the first dimension of the cube.
     planets_xy_coord: array or list
         The list of (x,y) positions of the planets.
+    ncomp : int or 1d numpy array of int, optional
+        The number of principal components to use, if the algorithm is PCA. If
+        the input cube is 4D, ncomp can be a list of integers, with length
+        matching the first dimension of the cube.
     plsc: float, optional
         The platescale, in arcsec per pixel.
     fwhm : float, optional
@@ -504,8 +564,28 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
         involves a sort of c-ADI preprocessing, which (i) can be dangerous for
         datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
-    fmerit : {'sum', 'stddev'}, string optional
-        Figure of merit to be used, if mu_sigma is set to None.
+    fmerit : {'sum', 'stddev', 'hessian'}, string optional
+        If mu_sigma is not provided nor set to True, this parameter determines
+        which figure of merit to be used:
+
+            * ``sum``: minimizes the sum of absolute residual intensities in the
+            aperture defined with `initial_state` and `aperture_radius`. More
+            details in [WER17]_.
+
+            * ``stddev``: minimizes the standard deviation of residual
+            intensities in the aperture defined with `initial_state` and
+            `aperture_radius`. More details in [WER17]_.
+
+            * ``hessian``: minimizes the sum of absolute values of the
+            determinant of the Hessian matrix calculated for each of the 4
+            pixels encompassing the first guess location defined with
+            `initial_state`. More details in [QUA15]_.
+
+        From experience: ``sum`` is more robust for high SNR companions (but
+        rather consider setting mu_sigma=True), while ``stddev`` tend to be more
+        reliable in presence of strong residual speckle noise. ``hessian`` is
+        expected to be more reliable in presence of extended signals around the
+        companion location.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
@@ -550,6 +630,14 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
         the observing conditions throughout the sequence.
     force_rPA: bool, optional
         Whether to only search for optimal flux, provided (r,PA).
+    ndet: int or None, optional
+        [only used if fmerit='hessian'] If not None, ndet should be the number
+        of pixel(s) along x and y around the first guess position for which the
+        determinant of the Hessian matrix is calculated. If odd, the pixel(s)
+        around the closest integer coordinates will be considered. If even, the
+        pixel(s) around the subpixel coordinates of the first guess location are
+        considered. The figure of merit is the absolute sum of the determinants.
+        If None, ndet is determined automatically to be max(1, round(fwhm/2)).
     algo_options: dict, opt
         Dictionary with additional parameters for the pca algorithm (e.g. tol,
         min_frames_lib, max_frames_lib). Note: arguments such as svd_mode,
@@ -646,7 +734,8 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
                                          algo_options=algo_options,
                                          transmission=transmission,
                                          mu_sigma=mu_sigma, weights=weights,
-                                         plot=plot, verbose=verbose, save=save)
+                                         ndet=ndet, plot=plot, verbose=verbose,
+                                         save=save)
 
         r_pre = res_init[0]
         theta_pre = res_init[1]
@@ -683,7 +772,7 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
                                      algo_options=algo_options,
                                      transmission=transmission,
                                      mu_sigma=mu_sigma, weights=weights,
-                                     force_rPA=force_rPA,
+                                     force_rPA=force_rPA, ndet=ndet,
                                      options=simplex_options, verbose=False)
             if force_rPA:
                 r_0[i_planet], theta_0[i_planet] = (r_pre, theta_pre)

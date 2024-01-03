@@ -129,9 +129,9 @@ def contrast_curve(
         If True the radial noise curve is smoothed with a Savitzky-Golay filter
         of order 2.
     interp_order : int or None, optional
-        If True the throughput vector is interpolated with a spline of order
-        ``interp_order``. Takes values from 1 to 5. If None, then the
-        throughput is not interpolated.
+        If an integer is provided, the throughput vector is interpolated with a
+        spline of order ``interp_order``. Takes values from 1 to 5. If None,
+        then the throughput is not interpolated.
     plot : bool, optional
         Whether to plot the final contrast curve or not. True by default.
     dpi : int optional
@@ -233,6 +233,7 @@ def contrast_curve(
         fc_rad_sep=fc_rad_sep,
         wedge=wedge,
         fc_snr=fc_snr,
+        noise_sep=noise_sep,
         full_output=True,
         verbose=verbose_thru,
         algo_class=algo_class,
@@ -285,7 +286,7 @@ def contrast_curve(
             ntransmission[1] = np.mean(transmission[1:], axis=0)
             transmission = ntransmission.copy()
 
-    if interp_order is not None or noise_sep != None:
+    if interp_order is not None or noise_sep is not None:
         # noise measured in the empty frame with nosie_sep sampling
         if noise_sep is None:
             rad_samp = vector_radd
@@ -305,16 +306,21 @@ def contrast_curve(
         noise_samp = noise_samp[cutin1:]
         res_lev_samp = res_lev_samp[cutin1:]
         rad_samp = rad_samp[cutin1:]
-        radmax = vector_radd.astype(int).max()
+        # define max radius, ensuring it is > fwhm/2 from the outer image edge
+        radmax_fwhm = ((cube.shape[-1]-1)//2)-fwhm_med/2
+        radmax = min(vector_radd.astype(int).max(), radmax_fwhm)
         cutin2 = np.where(rad_samp.astype(int) == radmax)[0][0]
         noise_samp = noise_samp[: cutin2 + 1]
         res_lev_samp = res_lev_samp[: cutin2 + 1]
         rad_samp = rad_samp[: cutin2 + 1]
 
-        # interpolating the throughput vector, spline order 2
-        f = InterpolatedUnivariateSpline(
-            vector_radd, thruput_mean, k=interp_order)
-        thruput_interp = f(rad_samp)
+        if interp_order is not None:
+            # interpolating the throughput vector, spline order 2
+            f = InterpolatedUnivariateSpline(
+                vector_radd, thruput_mean, k=interp_order)
+            thruput_interp = f(rad_samp)
+        else:
+            thruput_interp = thruput_mean.copy()
 
         # interpolating the transmission vector, spline order 1
         if transmission is not None:
@@ -575,6 +581,7 @@ def throughput(
     fc_rad_sep=3,
     wedge=(0, 360),
     fc_snr=100,
+    noise_sep=1,
     full_output=False,
     verbose=True,
     algo_class=None,
@@ -623,6 +630,10 @@ def throughput(
     fc_snr: float optional
         Signal to noise ratio of injected fake companions (w.r.t a Gaussian
         distribution).
+    noise_sep: int or None, optional
+        Radial sampling of the noise level. By default it is performed with a
+        radial step of 1 pixel. If set to None, it will be automatically set to
+        be sampled every fwhm pixels radially.
     full_output : bool, optional
         If True returns intermediate arrays.
     verbose : bool, optional
@@ -772,13 +783,18 @@ def throughput(
         print(msg1.format(algo.__name__))
         timing(start_time)
 
+    if noise_sep is None:
+        sep = fwhm_med
+    else:
+        sep = noise_sep
+
     noise, res_level, vector_radd = noise_per_annulus(frame_nofc,
-                                                      separation=fwhm_med,
+                                                      separation=sep,
                                                       fwhm=fwhm_med,
                                                       wedge=wedge)
     if scaling is not None:
         noise_noscal, _, _ = noise_per_annulus(frame_nofc_noscal,
-                                               separation=fwhm_med,
+                                               separation=sep,
                                                fwhm=fwhm_med, wedge=wedge)
     else:
         noise_noscal = noise.copy()

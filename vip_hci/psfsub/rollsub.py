@@ -2,15 +2,14 @@
 """
 Implementation of a roll subtraction algorithm for PSF subtraction in imaging
 sequences obtained with space-based instruments (e.g. JWST or HST) with
-different roll angles. The concept was proposed in [SCH03]_ for application to
+different roll angles. The concept was proposed in [SCH98]_ for application to
 HST/NICMOS observations.
 
-.. [SCH03]
-   | Schneider & Silverstone 2003
-   | **NICMOS Coronagraphic Observations of the GM Aurigae Circumstellar Disk**
-   | *The Astronomical Journal, Volume 6125, Issue 3, pp. 1467-1479*
-   | `https://arxiv.org/abs/astro-ph/0512335
-     <https://arxiv.org/abs/astro-ph/0512335>`_
+.. [SCH98]
+   | Schneider et al. 1998
+   | **Exploration of the environments of nearby stars with the NICMOS
+   coronagraph: instrumental performance considerations**
+   | *Proc. SPIE Vol. 3356, pp. 222-233*
 
 """
 
@@ -36,7 +35,6 @@ class ROLL_SUB_Params:
 
     See function `roll_sub` for documentation.
     """
-
     cube: np.ndarray = None
     angle_list: np.ndarray = None
     mode: str = "mean"
@@ -46,6 +44,7 @@ class ROLL_SUB_Params:
     fwhm_lp_bef: float = 0.
     fwhm_lp_aft: float = 0.
     mask_rad: float = 0.
+    cube_sig: np.ndarray = None
     nproc: int = 1
     full_output: bool = False
     verbose: bool = True
@@ -63,11 +62,11 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
         Positionnal arguments for the roll_sub algorithm. Full list of
         parameters below.
     all_kwargs: dictionary, optional
-        Mix of keyword arguments that can initialize a MEDIAN_SUB_Params and the
+        Mix of keyword arguments that can initialize a ROLL_SUB_Params and the
         optional ``rot_options`` dictionary (with keywords ``border_mode``,
         ``mask_val``, ``edge_blend``, ``interp_zeros``, ``ker``; see docstrings
         of ``vip_hci.preproc.frame_rotate``). Can also contain a
-        MEDIAN_SUB_Params object/dictionary named ``algo_params``.
+        ROLL_SUB_Params object/dictionary named ``algo_params``.
 
     Parameters
     ----------
@@ -137,8 +136,6 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
     if algo_params is None:
         algo_params = ROLL_SUB_Params(*all_args, **class_params)
 
-    global ARRAY
-
     mang = np.mean(algo_params.angle_list)
     if len(algo_params.angle_list) == 2:
         ang1, ang2 = algo_params.angle_list
@@ -178,9 +175,15 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
         algo_params.nproc = cpu_count() // 2
 
     if algo_params.fwhm_lp_bef > 0:
-        cube = cube_filter_lowpass(ARRAY, fwhm_size=algo_params.fwhm_lp_bef)
+        cube = cube_filter_lowpass(ARRAY.copy(),
+                                   fwhm_size=algo_params.fwhm_lp_bef)
     else:
         cube = ARRAY.copy()
+
+    if algo_params.cube_sig is not None:
+        cube_ref = cube - algo_params.cube_sig
+    else:
+        cube_ref = cube.copy()
 
     idx1 = np.where(algo_params.angle_list <= mang)
     idx2 = np.where(algo_params.angle_list > mang)
@@ -192,9 +195,11 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
             raise ValueError(msg)
         cube1 = cube[idx1]
         cube2 = cube[idx2]
-        cube_res1 = np.array([cube1[i]-cube2[i] for i in range(nh1)])
-        cube_res2 = np.array([cube2[i]-cube1[i] for i in range(nh2)])
-        cube_res = np.concantenate((cube_res1, cube_res2), axis=0)
+        arr1 = cube_ref[idx1] # makes a difference in iterative roll subtraction
+        arr2 = cube_ref[idx2] # makes a difference in iterative roll subtraction
+        cube_res1 = np.array([cube1[i]-arr2[i] for i in range(nh1)])
+        cube_res2 = np.array([cube2[i]-arr1[i] for i in range(nh2)])
+        cube_res = np.concatenate((cube_res1, cube_res2), axis=0)
         cube_der = cube_derotate(cube_res, algo_params.angle_list,
                                  imlib=algo_params.imlib,
                                  interpolation=algo_params.interpolation,
@@ -205,15 +210,19 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
     else:
         mr1 = np.mean(cube[idx1], axis=0)
         mr2 = np.mean(cube[idx2], axis=0)
+        arr1 = np.mean(cube_ref[idx1], axis=0) # makes a difference in iroll
+        arr2 = np.mean(cube_ref[idx2], axis=0) # makes a difference in iroll
+        ang1 = np.mean(-algo_params.angle_list[idx1])
+        ang2 = np.mean(-algo_params.angle_list[idx2])
 
-        dr12 = mr1-mr2
-        dr12_drot = frame_rotate(dr12, -algo_params.angle_list[idx1],
+        dr12 = mr1-arr2
+        dr12_drot = frame_rotate(dr12, ang1,
                                  imlib=algo_params.imlib,
                                  interpolation=algo_params.interpolation,
                                  **rot_options)
 
-        dr21 = mr2-mr1
-        dr21_drot = frame_rotate(dr21, -algo_params.angle_list[idx2],
+        dr21 = mr2-arr1
+        dr21_drot = frame_rotate(dr21, ang2,
                                  imlib=algo_params.imlib,
                                  interpolation=algo_params.interpolation,
                                  **rot_options)

@@ -1,8 +1,9 @@
 """
 Subpackage ``psfsub`` contains a large number of stellar PSF modelling +
 subtraction algorithms. The following methods have been implemented:
-- *median ADI/SDI* [MAR06]_ / [SPA02]_ / [THA07]_.
-- *frame differencing*.
+- *roll subtraction* [SCH98]_
+- *median ADI/SDI* [MAR06]_ / [SPA02]_ / [THA07]_
+- *frame differencing*
 - a simplified version of *LOCI* [LAF07]_
 - different flavours of *PCA* [AMA12]_ / [SOU12]_
 working in full-frame, incremental and annular mode, including improvements,

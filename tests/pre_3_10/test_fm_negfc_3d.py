@@ -88,9 +88,10 @@ def test_algos(
 
     # run firstguess with simplex only if followed by mcmc or nested sampling
     if pca_algo == median_sub:
-        algo_options = {"imlib": "opencv", "verbose": False}
+        algo_options = {"imlib": "opencv", "interpolation": "lanczos4",
+                        "verbose": False}
     else:
-        algo_options = {"imlib": "opencv"}
+        algo_options = {"imlib": "opencv", "interpolation": "lanczos4"}
     res0 = firstguess(
         cube=ds.cube,
         angs=ds.angles,
@@ -112,8 +113,9 @@ def test_algos(
 
     if negfc_algo == firstguess:
         # use injection of 180 companions in empty cube to estimate error bars
-        cube_emp = cube_planet_free(res, ds.cube, ds.angles, ds.psf, imlib="opencv")
-        algo_options = {"imlib": "opencv"}
+        cube_emp = cube_planet_free(res, ds.cube, ds.angles, ds.psf,
+                                    imlib="opencv", interpolation="lanczos4")
+        algo_options = {"imlib": "opencv", "interpolation": "lanczos4"}
         if pca_algo != median_sub:
             algo_options["ncomp"] = ncomp
         if pca_algo == pca_annular:
@@ -167,6 +169,7 @@ def test_algos(
             sigma="spe+pho",
             fmerit=fm,
             imlib="opencv",
+            interpolation="lanczos4",
             nwalkers=100,
             niteration_min=200,
             niteration_limit=niteration_limit,
@@ -245,7 +248,7 @@ def test_algos(
             decline_factor=None,
             rstate=None,
             verbose=True,
-            algo_options={"imlib": "opencv"},
+            algo_options={"imlib": "opencv", "interpolation": "lanczos4"},
         )
         # infer mu, sigma from nested sampling result
         mu_sig = nested_sampling_results(res, burnin=0.3, bins=None, save=False)

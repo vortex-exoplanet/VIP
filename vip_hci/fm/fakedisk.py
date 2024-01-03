@@ -1,7 +1,5 @@
 #! /usr/bin/env python
-"""
-Module with fake disk injection functions.
-"""
+"""Module with fake disk injection functions."""
 
 __author__ = "Julien Milli, Valentin Christiaens"
 __all__ = ["cube_inject_fakedisk", "cube_inject_trace"]
@@ -17,7 +15,7 @@ def cube_inject_fakedisk(
     fakedisk, angle_list, psf=None, transmission=None, **rot_options
 ):
     """
-    Creates an ADI cube with a rotated synthetic disk image injected following
+    Create an ADI cube with a rotated synthetic disk image injected following\
     input angle list.
 
     Parameters
@@ -67,9 +65,9 @@ def cube_inject_fakedisk(
         fakedisk = np.zeros((200,200))
         fakedisk[:,99:101] = 1
         angle_list = np.arange(10)
-        c = create_fakedisk_cube(fakedisk, angle_list, psf=None, imlib='vip-fft',
-                                 interpolation='lanczos4',cxy=None, nproc=1,
-                                 border_mode='constant')
+        c = create_fakedisk_cube(fakedisk, angle_list, psf=None,
+                                 imlib='vip-fft', interpolation='lanczos4',
+                                 cxy=None, nproc=1, border_mode='constant')
 
     """
     if not fakedisk.ndim == 2:
@@ -111,9 +109,6 @@ def cube_inject_fakedisk(
                 "float."
             )
         for i in range(nframes):
-            # fakedisk_cube[i, :, :] = signal.convolve2d(fakedisk_cube[i, :, :],
-            #                                            psf, mode='same')
-            # much faster
             fakedisk_cube[i, :, :] = signal.fftconvolve(
                 fakedisk_cube[i, :, :], psf, mode="same"
             )
@@ -125,7 +120,8 @@ def cube_inject_fakedisk(
         d = dist_matrix(fakedisk_cube.shape[-1], x_star, y_star)
         for i in range(d.shape[0]):
             for j in range(d.shape[1]):
-                fakedisk_cube[:, i, j] = interp_trans(d[i, j]) * fakedisk_cube[:, i, j]
+                i_t = interp_trans(d[i, j])
+                fakedisk_cube[:, i, j] = i_t * fakedisk_cube[:, i, j]
 
     return fakedisk_cube
 
@@ -143,9 +139,10 @@ def cube_inject_trace(
     interpolation="lanczos4",
     verbose=True,
 ):
-    """Injects fake companions along a trace, such as a spiral. The trace is
-    provided by 2 arrays corresponding to the polar coordinates where the
-    companions will be located in the final derotated frame.
+    """Inject fake companions along a trace, such as a spiral.
+
+    The trace is provided by 2 arrays corresponding to the polar coordinates
+    where the companions will be located in the final derotated frame.
     Note: for a continuous-looking trace, and for an easier scaling using
     parameter 'flevel', it is recommended to separate the points of the trace
     by a distance of FWHM/2.
@@ -232,10 +229,13 @@ def cube_inject_trace(
                 else:
                     mod_y = (y % 1.0) - 1
                 try:
-                    psf_tmp = flevel * psf_template[y0_psf:yn_psf, x0_psf:xn_psf]
-                    fc_fr[y0_fr:yn_fr, x0_fr:xn_fr] = frame_shift(
-                        psf_tmp, mod_y, mod_x, imlib=imlib, interpolation=interpolation
-                    )
+                    psf_tmp = flevel * psf_template[y0_psf:yn_psf,
+                                                    x0_psf:xn_psf]
+                    fc_fr[y0_fr:yn_fr, x0_fr:xn_fr] = frame_shift(psf_tmp,
+                                                                  mod_y, mod_x,
+                                                                  imlib=imlib,
+                                                                  interpolation=interpolation
+                                                                  )
                 except BaseException:
                     raise TypeError("Problem with the coordinates of the trace")
                 tmp += fc_fr

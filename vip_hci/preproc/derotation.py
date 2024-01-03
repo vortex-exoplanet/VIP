@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with frame de-rotation routine for ADI.
 
@@ -11,13 +10,15 @@ Module with frame de-rotation routine for ADI.
      <https://ui.adsabs.harvard.edu/abs/1997OptCo.139...99L>`_
 
 """
-
-
-from ..var import frame_center, frame_filter_lowpass
-from ..config.utils_conf import pool_map, iterable
-from .cosmetics import frame_pad
 from multiprocessing import cpu_count
+
 from skimage.transform import rotate
+
+from ..config.utils_conf import iterable
+from ..config.utils_conf import pool_map
+from ..var import frame_center
+from ..var import frame_filter_lowpass
+from .cosmetics import frame_pad
 __author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
 __all__ = ['cube_derotate',
            'frame_rotate',
@@ -51,13 +52,13 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
     angle : float
         Rotation angle.
     imlib : {'opencv', 'skimage', 'vip-fft'}, str optional
-        Library used for image transformations. Opencv is faster than skimage or 
-        'vip-fft', but vip-fft slightly better preserves the flux in the image 
-        (followed by skimage with a biquintic interpolation). 'vip-fft' 
-        corresponds to the FFT-based rotation method described in [LAR97]_, and 
-        implemented in this module. Best results are obtained with images 
-        without any sharp intensity change (i.e. no numerical mask). 
-        Edge-blending and/or zero-interpolation may help if sharp transitions 
+        Library used for image transformations. Opencv is faster than skimage or
+        'vip-fft', but vip-fft slightly better preserves the flux in the image
+        (followed by skimage with a biquintic interpolation). 'vip-fft'
+        corresponds to the FFT-based rotation method described in [LAR97]_, and
+        implemented in this module. Best results are obtained with images
+        without any sharp intensity change (i.e. no numerical mask).
+        Edge-blending and/or zero-interpolation may help if sharp transitions
         are unavoidable.
     interpolation : str, optional
         [Only used for imlib='opencv' or imlib='skimage']
@@ -491,10 +492,8 @@ def _compute_pa_thresh(ann_center, fwhm, delta_rot=1):
 
 def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
                    delta_rot, n_segments, verbose, strict=False):
-    """ Function that defines the annuli geometry using the input parameters.
-    Returns the parallactic angle threshold, the inner radius and the annulus
-    center for each annulus.
-    """
+    """Define and return the requested annuli geometry: parallactic angle\
+    threshold, inner radius and annulus center for each annulus."""
     if ann == n_annuli - 1:
         inner_radius = radius_int + (ann * annulus_width - 1)
     else:
@@ -526,9 +525,10 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
 
 
 def rotate_fft(array, angle):
-    """ Rotates a frame or 2D array using Fourier transform phases.
+    """Rotate a frame or 2D array using Fourier transforms.
+
     Rotation is equivalent to 3 consecutive linear shears, or 3 consecutive 1D
-    FFT phase shifts. See details in [LAR97]_. 
+    FFT phase shifts. See details in [LAR97]_.
 
     Parameters
     ----------
@@ -544,9 +544,9 @@ def rotate_fft(array, angle):
 
     Note
     ----
-    This method is slower than interpolation methods (e.g. opencv/lanczos4 or 
-    ndimage), but preserves the flux better (by construction it preserves the 
-    total power). It is more prone to large-scale Gibbs artefacts, so make sure 
+    This method is slower than interpolation methods (e.g. opencv/lanczos4 or
+    ndimage), but preserves the flux better (by construction it preserves the
+    total power). It is more prone to large-scale Gibbs artefacts, so make sure
     no sharp edge nor bad pixels are present in the image to be rotated.
 
     Note

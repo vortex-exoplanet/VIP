@@ -24,6 +24,7 @@ def chisquare_fd(
     psfn=None,
     algo=pca,
     algo_options={},
+    interp_order=-1,
     imlib="skimage",
     interpolation="biquintic",
     transmission=None,
@@ -74,30 +75,12 @@ def chisquare_fd(
         the respective first dimensions of disk_model.
     ncomp: int or None
         The number of principal components for PCA-based algorithms.
-    cube_ref : numpy ndarray, 3d, optional
-        Reference library cube. For Reference Star Differential Imaging.
-    svd_mode : {'lapack', 'randsvd', 'eigen', 'arpack'}, str optional
-        Switch for different ways of computing the SVD and selected PCs.
-    scaling : {None, "temp-mean", spat-mean", "temp-standard",
-        "spat-standard"}, None or str optional
-        Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
-        function. If set to None, the input matrix is left untouched. Otherwise:
-
-        * ``temp-mean``: temporal px-wise mean is subtracted.
-
-        * ``spat-mean``: spatial mean is subtracted.
-
-        * ``temp-standard``: temporal mean centering plus scaling pixel values
-          to unit variance (temporally).
-
-        * ``spat-standard``: spatial mean centering plus scaling pixel values
-          to unit variance (spatially).
-
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
-        datasets with low amount of rotation (strong self-subtraction), and (ii)
-        should probably be referred to as ARDI (i.e. not RDI stricto sensu).
+    mu_sigma: tuple of 2 floats or None, opt
+        If set to None: not used, and falls back to original version of the
+        algorithm, using fmerit.
+        If set to anything but None: will compute the mean and standard
+        deviation of pixel intensities in an annulus centered on the location
+        of the companion, excluding the area directly adjacent to the companion.
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
         companions sitting on top of speckle noise.
@@ -109,13 +92,6 @@ def chisquare_fd(
         Routine to be used to model and subtract the stellar PSF. From an input
         cube, derotation angles, and optional arguments, it should return a
         post-processed frame.
-    delta_rot: float, optional
-        If algo is set to pca_annular, delta_rot is the angular threshold used
-        to select frames in the PCA library (see description of pca_annular).
-    imlib : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
-    interpolation : str, optional
-        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     algo_options: dict, opt
         Dictionary with additional parameters related to the algorithm
         (e.g. tol, min_frames_lib, max_frames_lib). If 'algo' is not a vip
@@ -124,16 +100,23 @@ def chisquare_fd(
         scaling, imlib, interpolation or collapse can also be included in this
         dict (the latter are also kept as function arguments for consistency
         with older versions of vip).
+    interp_order: int or tuple of int, optional, {-1,0,1}
+        [only used if grid_params_list is not None] Interpolation mode for model
+        interpolation. If a tuple of integers, the length should match the
+        number of grid dimensions and will trigger a different interpolation
+        mode for the different parameters.
+            - -1: Order 1 spline interpolation in logspace for the parameter
+            - 0: nearest neighbour model
+            - 1: Order 1 spline interpolation
+
+    imlib : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
+    interpolation : str, optional
+        See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     transmission: numpy array, optional
         Array with 2 columns. First column is the radial separation in pixels.
         Second column is the off-axis transmission (between 0 and 1) at the
         radial separation given in column 1.
-    mu_sigma: tuple of 2 floats or None, opt
-        If set to None: not used, and falls back to original version of the
-        algorithm, using fmerit.
-        If set to anything but None: will compute the mean and standard
-        deviation of pixel intensities in an annulus centered on the location
-        of the companion, excluding the area directly adjacent to the companion.
     weights : 1d array, optional
         If provided, the negative fake companion fluxes will be scaled according
         to these weights before injection in the cube. Can reflect changes in
@@ -244,7 +227,8 @@ def chisquare_fd(
                 return np.inf
         # Otherwise Interpolate disk_img from the input grid.
         disk_img = interpolate_model(grid_params, grid_param_list, disk_model,
-                                     multispectral=multispectral)
+                                     multispectral=multispectral,
+                                     interp_order=interp_order)
     else:
         disk_img = disk_model.copy()
 
@@ -306,6 +290,24 @@ def chisquare_fd(
         # true expression of a gaussian log probability
         mu = mu_sigma[0]
         sigma = mu_sigma[1]
-        chi = np.sum(np.power(mu - values, 2) / sigma**2) / ddf
+        # check format
+        if isinstance(mu, np.ndarray):
+            if mu.shape == cube.shape[-2:]:
+                mu = mu[np.where(mask_fm)]
+                mu = mu[values != 0]
+            else:
+                msg = "If input mu is an array, it should have same shape as "
+                msg += "cube frames"
+                raise TypeError(msg)
+        if isinstance(sigma, np.ndarray):
+            if sigma.shape == cube.shape[-2:]:
+                sigma = sigma[np.where(mask_fm)]
+                sigma = sigma[values != 0]
+            else:
+                msg = "If input sigma is an array, it should have same shape as"
+                msg += " cube frames"
+                raise TypeError(msg)
+
+        chi = np.sum(np.power((mu - values)/sigma, 2)) / ddf
 
     return chi

@@ -24,10 +24,7 @@ from .negfc_simplex import *
 from .negfc_speckle_noise import *
 from .negfd_fmerit import *
 from .negfd_interp import *
-from .negfd_mcmc import *
-from .negfd_nested import *
 from .negfd_simplex import *
-from .negfd_speckle_noise import *
 from .scattered_light_disk import *
 from .utils_mcmc import *
 from .utils_negfc import *

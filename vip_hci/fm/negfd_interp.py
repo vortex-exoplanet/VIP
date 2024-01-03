@@ -27,11 +27,14 @@ def interpolate_model(params, grid_param_list, model_grid, interp_order=-1,
         a single (resp. multi) wavelength model, the model grid should have N+2
         (resp. N+3) dimensions, where N is the number of free parameters in the
         grid (i.e. the length of grid_param_list).
-    interp_order: int, opt, {-1,0,1}
-        Interpolation mode for model interpolation.
-            - -1: log interpolation (i.e. linear interpolatlion on log(Flux))
+    interp_order: int or tuple of int, optional, {-1,0,1}
+        Interpolation mode for model interpolation. If a tuple of integers, the
+        length should match the number of grid dimensions and will trigger a
+        different interpolation mode for the different parameters.
+            - -1: Order 1 spline interpolation in logspace for the parameter
             - 0: nearest neighbour model
             - 1: Order 1 spline interpolation
+
     multispectral: bool, optional
         Whether the model grid is computed for various wavelenghts - e.g. for
         IFS data. In this case, the wavelength dimension should be the third to
@@ -62,7 +65,11 @@ def interpolate_model(params, grid_param_list, model_grid, interp_order=-1,
 
     n_params_tot = len(grid_param_list)
 
-    if interp_order == 0:
+    if isinstance(interp_order, (int, bool)):
+        interp_order = [interp_order]*n_params_tot
+        interp_order = tuple(interp_order)
+
+    if np.sum(np.abs(interp_order)) == 0:
         idx_tmp = []
         for nn in range(n_params_tot):
             idx_tmp.append(find_nearest(grid_param_list[nn], params[nn],
@@ -70,7 +77,17 @@ def interpolate_model(params, grid_param_list, model_grid, interp_order=-1,
         idx_tmp = tuple(idx_tmp)
         return model_grid[idx_tmp]
 
-    elif abs(interp_order) == 1:
+    else:
+        if len(interp_order) != n_params_tot:
+            msg = "if a tuple, interp_order should have same length as the "
+            msg += "number of grid dimensions"
+            raise TypeError(msg)
+        else:
+            for i in range(n_params_tot):
+                if interp_order[i] not in [-1, 0, 1]:
+                    msg = "interp_order values should be -1, 0, or 1"
+                    raise TypeError(msg)
+
         # multispectral or not?
         if multispectral:
             ndim = 3
@@ -80,7 +97,7 @@ def interpolate_model(params, grid_param_list, model_grid, interp_order=-1,
         # first compute new subgrid "coords" for interpolation
         if verbose:
             print("Computing new coords for interpolation")
-        constr = ['floor', 'ceil']
+        constr = ['floor=', 'ceil=']
         new_coords = np.zeros([n_params_tot, 1])
         sub_grid_param = np.zeros([n_params_tot, 2])
         for nn in range(n_params_tot):
@@ -91,14 +108,23 @@ def interpolate_model(params, grid_param_list, model_grid, interp_order=-1,
                                                       params_tmp,
                                                       constraint=constr[ii],
                                                       output='value')
-            if interp_order == -1:
-                # consider it in log space
+            if interp_order[nn] == -1:
                 num = np.log(params_tmp/sub_grid_param[nn, 0])
                 denom = np.log(sub_grid_param[nn, 1]/sub_grid_param[nn, 0])
             else:
-                num = params_tmp-sub_grid_param[nn, 0]
-                denom = sub_grid_param[nn, 1]-sub_grid_param[nn, 0]
+                num = (params_tmp-sub_grid_param[nn, 0])
+                denom = (sub_grid_param[nn, 1]-sub_grid_param[nn, 0])
             new_coords[nn, 0] = num/denom
+            if interp_order[nn] == 0:
+                new_coords[nn, 0] = round(new_coords[nn, 0])
+            # if interp_order == -1:
+            #     # consider it in log space
+            #     num = np.log(params_tmp/sub_grid_param[nn, 0])
+            #     denom = np.log(sub_grid_param[nn, 1]/sub_grid_param[nn, 0])
+            # else:
+            #     num = params_tmp-sub_grid_param[nn, 0]
+            #     denom = sub_grid_param[nn, 1]-sub_grid_param[nn, 0]
+            # new_coords[nn, 0] = num/denom
 
         # make subgrid in the model grid
         if verbose:
@@ -151,7 +177,3 @@ def interpolate_model(params, grid_param_list, model_grid, interp_order=-1,
                                                     order=1)
 
         return model
-
-    else:
-        msg = "Interpolation order not allowed. Only -1, 0 or 1 accepted"
-        raise TypeError(msg)

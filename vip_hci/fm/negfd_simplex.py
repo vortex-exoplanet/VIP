@@ -33,6 +33,7 @@ def firstguess_fd_from_coord(
     psfn=None,
     algo=pca,
     algo_options={},
+    interp_order=-1,
     imlib="skimage",
     interpolation="biquintic",
     transmission=None,
@@ -97,6 +98,15 @@ def firstguess_fd_from_coord(
         Dictionary with additional parameters for the algorithm (e.g. ncomp,
         fwhm, asize, delta_rot, tol, min_frames_lib, max_frames_lib, cube_ref,
         svd_mode=, scaling, imlib, interpolation, collapse, if relevant).
+    interp_order: int or tuple of int, optional, {-1,0,1}
+        [only used if grid_params_list is not None] Interpolation mode for model
+        interpolation. If a tuple of integers, the length should match the
+        number of grid dimensions and will trigger a different interpolation
+        mode for the different parameters.
+            - -1: Order 1 spline interpolation in logspace for the parameter
+            - 0: nearest neighbour model
+            - 1: Order 1 spline interpolation
+
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
         By default, imlib is set to 'skimage' for NEGFC as it is faster than
@@ -154,6 +164,7 @@ def firstguess_fd_from_coord(
         psfn=None,
         algo=pca,
         algo_options={},
+        interp_order=-1,
         imlib="skimage",
         interpolation="biquintic",
         transmission=None,
@@ -187,11 +198,13 @@ def firstguess_fd_from_coord(
                     mask_fm,
                     inistate,
                     force_params,
+                    None,
                     fmerit,
                     mu_sigma,
                     psfn,
                     algo,
                     algo_options,
+                    interp_order,
                     imlib,
                     interpolation,
                     transmission,
@@ -241,6 +254,7 @@ def firstguess_fd_from_coord(
             psfn=psfn,
             algo=algo,
             algo_options=algo_options,
+            interp_order=interp_order,
             imlib=imlib,
             interpolation=interpolation,
             transmission=transmission,
@@ -305,6 +319,7 @@ def firstguess_fd_from_coord(
                 psfn=psfn,
                 algo=algo,
                 algo_options=algo_options,
+                interp_order=interp_order,
                 imlib=imlib,
                 interpolation=interpolation,
                 transmission=transmission,
@@ -374,6 +389,7 @@ def firstguess_fd_simplex(
     psfn=None,
     algo=pca,
     algo_options={},
+    interp_order=-1,
     imlib="skimage",
     interpolation="biquintic",
     transmission=None,
@@ -444,6 +460,15 @@ def firstguess_fd_simplex(
         Dictionary with additional parameters for the algorithm (e.g. ncomp,
         fwhm, asize, delta_rot, tol, min_frames_lib, max_frames_lib, cube_ref,
         svd_mode=, scaling, imlib, interpolation, collapse, if relevant).
+    interp_order: int or tuple of int, optional, {-1,0,1}
+        [only used if grid_params_list is not None] Interpolation mode for model
+        interpolation. If a tuple of integers, the length should match the
+        number of grid dimensions and will trigger a different interpolation
+        mode for the different parameters.
+            - -1: Order 1 spline interpolation in logspace for the parameter
+            - 0: nearest neighbour model
+            - 1: Order 1 spline interpolation
+
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
         By default, imlib is set to 'skimage' for NEGFC as it is faster than
@@ -509,6 +534,7 @@ def firstguess_fd_simplex(
             psfn,
             algo,
             algo_options,
+            interp_order,
             imlib,
             interpolation,
             transmission,
@@ -535,12 +561,14 @@ def firstguess_fd(
     ini_scal=1.0,
     ini_f=None,
     grid_params_list=None,
+    grid_params_labels=None,
     fmerit="sum",
     mu_sigma=None,
     f_range=None,
     psfn=None,
     algo=pca,
     algo_options={},
+    interp_order=-1,
     imlib="skimage",
     interpolation="biquintic",
     simplex=True,
@@ -588,22 +616,30 @@ def firstguess_fd(
         model image (after shift and rotation). If None, a grid on f_range is
         used to get a first estimate of this parameter. Else, the provided
         estimate is directly used for a simplex minimzation.
-    grid_params_list: list of lists/1d nd arrays, or None
+    grid_params_list: list of lists/1d nd arrays, or None, optional
         If input disk_model is a grid of either images (for 3D input cube) or
         spectral cubes (for a 4D input cube), this should be provided. It should
         be a list of either lists or 1d nd arrays corresponding to the parameter
         values sampled by the input disk model grid, with their lengths matching
         the respective first dimensions of disk_model.
+    grid_params_labels: list/tuple of str, or None, optional
+        If grid_params_list is provided, these are the name of the physical
+        parameters that are probed in the grid. This is only used for the
+        purpose of printing/writing results. If left to None, they will be named
+        'param_i' with i ranging from 1 to the length of grid_params_list.
     fmerit : {'sum', 'stddev'}, string optional
         Figure of merit to be used, if mu_sigma is set to None. 'sum' will find
         optimal parameters that minimize the absolute intensity residuals in
         mask_fm. 'stddev' will minimize the standard deviation of pixel
         intensity residuals in mask_fm.
     mu_sigma: tuple of 2 floats or None, opt
-        If set to None: not used, and falls back to original version of the
-        algorithm, using fmerit. Otherwise, should be a tuple of 2 elements,
-        containing the mean and standard deviation of pixel intensities in an
-        annulus encompassing most of the disk signal.
+        If set to None: not used, and falls back to using fmerit. Otherwise,
+        should be a tuple of 2 elements, containing either the mean and standard
+        deviation of pixel intensities in the image (i.e. floats), or individual
+        maps of the expected values and uncertainties for each pixel in the
+        image (i.e. np.ndarrays). In the latter case, the arrays must be 2D (for
+        a 3D input cube) or 3D (for a 4D input cube). It can also be a mix of
+        both, e.g. a float and a 2D array.
     f_range: numpy.array or None, optional
         The range of tested flux scaling values. If None and ini_f is also None,
         a grid of 30 values between 1e-1 and 1e4 are tested, following a
@@ -623,6 +659,15 @@ def firstguess_fd(
         default, imlib is set to 'skimage' which is faster than 'vip-fft'. If
         opencv is installed, it is recommended to set imlib to 'opencv' and
         interpolation to 'lanczos4'.
+    interp_order: int or tuple of int, optional, {-1,0,1}
+        [only used if grid_params_list is not None] Interpolation mode for model
+        interpolation. If a tuple of integers, the length should match the
+        number of grid dimensions and will trigger a different interpolation
+        mode for the different parameters.
+            - -1: Order 1 spline interpolation in logspace for the parameter
+            - 0: nearest neighbour model
+            - 1: Order 1 spline interpolation
+
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
         By default, imlib is set to 'skimage' for NEGFC as it is faster than
@@ -767,6 +812,7 @@ def firstguess_fd(
                 psfn=psfn,
                 algo=algo,
                 algo_options=algo_options,
+                interp_order=interp_order,
                 imlib=imlib,
                 interpolation=interpolation,
                 transmission=transmission,
@@ -778,16 +824,19 @@ def firstguess_fd(
                 rot_options=rot_options,
             )
             all_res.append(res_c[0])
-            all_chi2r[c] = res_c[-1]
+            all_chi2r[c] = np.nanmin(res_c[-1])
 
         max_chi = np.nanmax(all_chi2r)
         all_chi2r[np.where(~np.isfinite(all_chi2r))] = max_chi
         idx_min = np.argmin(all_chi2r)
         uidx_min = np.unravel_index(idx_min, dim_test)
 
+        grid_params_pre = []
         res_init = []
         for e in range(extra_dims):
-            res_init.append(grid_params_list[uidx_min[e]])
+            grid_params_pre.append(grid_params_list[e][uidx_min[e]])
+            res_init.append(grid_params_list[e][uidx_min[e]])
+        grid_params_pre = tuple(grid_params_pre)
         res_tmp = all_res[idx_min]
         for r in range(len(res_tmp)):
             res_init.append(res_tmp[r])
@@ -823,6 +872,7 @@ def firstguess_fd(
             psfn=psfn,
             algo=algo,
             algo_options=algo_options,
+            interp_order=interp_order,
             imlib=imlib,
             interpolation=interpolation,
             transmission=transmission,
@@ -841,8 +891,8 @@ def firstguess_fd(
 
     if verbose:
         if extra_dims > 0:
-            msg3a = "Preliminary indices of best model in disk model grid: {}"
-            msg3a.format(uidx_min)
+            msg3a = "Preliminary indices of best model in disk model grid: {}. "
+            msg3a = msg3a.format(uidx_min)
         else:
             msg3a = ""
         msg3a += "Preliminary shift, rotation and scaling guess: (x, y, theta, "
@@ -868,6 +918,8 @@ def firstguess_fd(
                 "maxfev": 2000,
             }
 
+        if verbose:
+            print("Initial guess: ", res_init)
         res = firstguess_fd_simplex(
             res_init,
             cube,
@@ -882,6 +934,7 @@ def firstguess_fd(
             psfn,
             algo,
             algo_options,
+            interp_order,
             imlib,
             interpolation,
             transmission,
@@ -899,17 +952,22 @@ def firstguess_fd(
                 else:
                     params_0.append(res.x[c_free])
                     c_free += 1
-            x_0, y_0, theta_0, scal_0 = tuple(params_0[:4])
+            if extra_dims > 0:
+                grid_params_0 = tuple(params_0[:extra_dims])
+            x_0, y_0, theta_0, scal_0 = tuple(params_0[extra_dims:extra_dims+4])
             if cube.ndim == 3:
-                f_0 = params_0[4]
+                f_0 = params_0[extra_dims+4]
             else:
-                f_0 = tuple(params_0[4:])
+                f_0 = tuple(params_0[extra_dims+4:])
         else:
-            x_0, y_0, theta_0, scal_0 = res.x[0], res.x[1], res.x[2], res.x[3]
+            if extra_dims > 0:
+                grid_params_0 = res.x[:extra_dims]
+            x_0, y_0 = res.x[extra_dims], res.x[extra_dims+1]
+            theta_0, scal_0 = res.x[extra_dims+2], res.x[extra_dims+3]
             if cube.ndim == 3:
-                f_0 = res.x[4]
+                f_0 = res.x[extra_dims+4]
             else:
-                f_0 = res.x[4:]
+                f_0 = res.x[extra_dims+4:]
         if verbose:
             msg5 = "Success: {}, nit: {}, nfev: {}, chi2r: {}"
             print(msg5.format(res.success, res.nit, res.nfev, res.fun))
@@ -919,22 +977,36 @@ def firstguess_fd(
         if verbose:
             msg4 = "Simplex Nelder-Mead minimization skipped."
             print(msg4)
+        if extra_dims > 0:
+            grid_params_0 = grid_params_pre
         x_0, y_0, theta_0, scal_0 = (x_pre, y_pre, theta_pre, scal_pre)
         if cube.ndim == 3:
             f_0 = f_pre[0]
         else:
             f_0 = f_pre
 
+    res_0 = []
+    if extra_dims > 0:
+        res_0.extend(list(grid_params_0))
+    res_0.extend([x_0, y_0, theta_0, scal_0, f_0])
+
     if verbose:
         # centy, centx = frame_center(cube[0])
         # posy = y_0 + centy
         # posx = x_0 + centx
-        msg6 = "Optimization result: (dx, dy, theta, scal, "
+        msg6 = "Optimization result: ("
+        msg6a = "("
+        if extra_dims > 0:
+            for ll, labs in enumerate(grid_params_labels):
+                msg6 += "{}, ".format(labs)
+                msg6a += "{}, ".format(grid_params_0[ll])
+        msg6 += "dx, dy, dtheta, scal, "
         if cube.ndim == 3:
-            msg6 += "f) = ({:.2f}, {:.2f}, {:.2f}, ".format(x_0, y_0, theta_0)
-            msg6 += "{:.2f}, {:.2f})".format(scal_0, f_0)
+            msg6 += "f) = "
+            msg6b = "{:.2f}, {:.2f}, {:.2f}, ".format(x_0, y_0, theta_0)
+            msg6b += "{:.2f}, {:.2f})".format(scal_0, f_0)
         else:
-            msg6b = "({:.2f}, {:.2f}, {:.2f}, {:.2f}, ".format(
+            msg6b = "{:.2f}, {:.2f}, {:.2f}, {:.2f}, ".format(
                 x_0, y_0, theta_0, scal_0
             )
             for z in range(cube.shape[0]):
@@ -943,9 +1015,9 @@ def firstguess_fd(
                 if z < cube.shape[0] - 1:
                     msg6 += ", "
                     msg6b += ", "
-            msg6 += ")="
+            msg6 += ") = "
             msg6b += ")"
-            msg6 += msg6b
+        msg6 += msg6a+msg6b
         print(msg6)
 
     if verbose:
@@ -953,5 +1025,6 @@ def firstguess_fd(
         timing(start_time)
 
     if full_output:
-        return x_0, y_0, theta_0, scal_0, f_0, float(res.fun)
-    return x_0, y_0, theta_0, scal_0, f_0
+        res_0.append(float(res.fun))
+        return tuple(res_0)
+    return tuple(res_0)

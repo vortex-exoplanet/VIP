@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
 
@@ -9,20 +8,13 @@ Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
    | *MNRAS, Volume 502, Issue 4, pp. 6117-6139*
    | `https://arxiv.org/abs/2102.10288
      <https://arxiv.org/abs/2102.10288>`_
-     
+
 .. [FOR13]
    | Foreman-Mackey et al. 2013
    | **emcee: The MCMC Hammer**
    | *PASP, Volume 125, Issue 925, p. 306*
    | `https://arxiv.org/abs/1202.3665
      <https://arxiv.org/abs/1202.3665>`_
-     
-.. [WER17]
-   | Wertz et al. 2017
-   | **VLT/SPHERE robust astrometry of the HR8799 planets at milliarcsecond-level accuracy. Orbital architecture analysis with PyAstrOFit**
-   | *Astronomy & Astrophysics, Volume 598, p. 83*
-   | `https://arxiv.org/abs/1610.04014
-     <https://arxiv.org/abs/1610.04014>`_
 
 .. [GOO10]
    | Goodman & Weare 2010
@@ -30,10 +22,8 @@ Module with the MCMC (``emcee``) sampling for NEGFC parameter estimation.
    | *Comm. App. Math. Comp. Sci., Vol. 5, Issue 1, pp. 65-80.*
    | `https://ui.adsabs.harvard.edu/abs/2010CAMCS...5...65G
      <https://ui.adsabs.harvard.edu/abs/2010CAMCS...5...65G>`_
-     
+
 """
-
-
 from ..fits import write_fits
 __author__ = 'V. Christiaens, O. Wertz, Carlos Alberto Gomez Gonzalez'
 __all__ = ['mcmc_negfd_sampling',
@@ -54,7 +44,7 @@ from scipy.stats import norm
 from ..fm import cube_inject_companions
 from ..config import time_ini, timing
 from ..config.utils_conf import sep
-from ..psfsub import pca_annulus
+from ..psfsub import pca
 from .negfc_mcmc import chain_zero_truncated
 from .negfc_fmerit import get_values_optimize, get_mu_and_sigma
 from .utils_mcmc import gelman_rubin, autocorr_test
@@ -64,7 +54,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 def lnprior(param, bounds, force_rPA=False):
-    """ Define the prior log-function.
+    """Define the prior log-function.
 
     Parameters
     ----------
@@ -81,8 +71,8 @@ def lnprior(param, bounds, force_rPA=False):
     out: float.
         0 if all the model parameters satisfy the prior conditions defined here.
         -np.inf if at least one model parameters is out of bounds.
-    """
 
+    """
     if not force_rPA:
         try:
             _ = param[0]
@@ -114,13 +104,13 @@ def lnprior(param, bounds, force_rPA=False):
         return -np.inf
 
 
-def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
+def lnlike(param, cube, angs, disk_model, fwhm, annulus_width, ncomp,
            aperture_radius, initial_state, cube_ref=None, svd_mode='lapack',
-           scaling=None, algo=pca_annulus, delta_rot=1, fmerit='sum',
+           scaling=None, algo=pca, delta_rot=1, fmerit='sum',
            imlib='vip-fft', interpolation='lanczos4', collapse='median',
            algo_options={}, weights=None, transmission=None, mu_sigma=True,
            sigma='spe+pho', force_rPA=False, debug=False):
-    """ Define the likelihood log-function.
+    """Define the log-likelihood function.
 
     Parameters
     ----------
@@ -163,10 +153,10 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     algo: vip function, optional {pca_annulus, pca_annular}
         Post-processing algorithm used.
@@ -305,14 +295,14 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         return lnlikelihood
 
 
-def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
+def lnprob(param, bounds, cube, angs, disk_model, fwhm, annulus_width, ncomp,
            aperture_radius, initial_state, cube_ref=None, svd_mode='lapack',
-           scaling=None, algo=pca_annulus, delta_rot=1, fmerit='sum',
+           scaling=None, algo=pca, delta_rot=1, fmerit='sum',
            imlib='vip-fft', interpolation='lanczos4', collapse='median',
            algo_options={}, weights=None, transmission=None, mu_sigma=True,
            sigma='spe+pho', force_rPA=False, display=False):
-    """ Define the probability log-function as the sum between the prior and
-    likelihood log-funtions.
+    """Define the log-probability function as the sum between the prior and\
+    log-likelihood funtions.
 
     Parameters
     ----------
@@ -365,10 +355,10 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     fmerit : {'sum', 'stddev'}, string optional
         Chooses the figure of merit to be used. stddev works better for close in
@@ -428,16 +418,15 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
     if np.isinf(lp):
         return -np.inf
 
-    return lp + lnlike(param, cube, angs, psf_norm, fwhm, annulus_width,
+    return lp + lnlike(param, cube, angs, disk_model, fwhm, annulus_width,
                        ncomp, aperture_radius, initial_state, cube_ref,
                        svd_mode, scaling, algo, delta_rot, fmerit, imlib,
                        interpolation, collapse, algo_options, weights,
                        transmission, mu_sigma, sigma, force_rPA)
 
 
-def mcmc_negfd_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
-                        ncomp=1, annulus_width=8, aperture_radius=1, fwhm=4,
-                        mu_sigma=True, sigma='spe+pho', force_rPA=False,
+def mcmc_negfd_sampling(cube, angs, disk_model, initial_state, mask_fm,
+                        algo=pca, fwhm=4, mu_sigma=True, force_rPA=False,
                         fmerit='sum', cube_ref=None, svd_mode='lapack',
                         scaling=None, delta_rot=1, imlib='vip-fft',
                         interpolation='lanczos4', collapse='median',
@@ -449,12 +438,12 @@ def mcmc_negfd_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
                         ac_c=50, ac_count_thr=3, nproc=1, output_dir='results/',
                         output_file=None, display=False, verbosity=0,
                         save=False):
-    r""" Runs an affine invariant mcmc sampling algorithm in order to determine
-    the position and the flux of the planet using the 'Negative Fake Companion'
-    technique. The result of this procedure is a chain with the samples from the
-    posterior distributions of each of the 3 parameters.
+    r"""Run an affine invariant mcmc sampling algorithm to determine optimal
+    disk model parameters using the 'Negative Fake Disk' technique.
 
-    This technique can be summarized as follows:
+    The result of this procedure is a chain with the samples from the posterior
+    distributions of each of the 3 parameters. This technique can be summarized
+    as follows:
     1) We inject a negative fake companion (one candidate) at a given position
     and characterized by a given flux, both close to the expected values.
     2) We run PCA on an full annulus which pass through the initial guess,
@@ -485,12 +474,12 @@ def mcmc_negfd_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     Speed tricks:
         - crop your input cube to a size such as to just include the annulus on
           which the PCA is performed;
-        - set ``imlib='opencv'`` (much faster image rotations, BUT at the expense
+        - set ``imlib='opencv'`` (much faster image rotation, at the expense
           of flux conservation);
         - increase ``nproc`` (if your machine allows);
-        - reduce ``ac_c`` (or increase ``rhat_threshold`` if ``conv_test='gb'``) 
+        - reduce ``ac_c`` (or increase ``rhat_threshold`` if ``conv_test='gb'``)
           for a faster convergence);
-        - reduce ``niteration_limit`` to force the sampler to stop even if it 
+        - reduce ``niteration_limit`` to force the sampler to stop even if it
           has not reached convergence.
 
     Parameters
@@ -544,7 +533,7 @@ def mcmc_negfd_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     fmerit : {'sum', 'stddev'}, string optional
         If mu_sigma is not provided nor set to True, this parameter determines
         which figure of merit to be used among the 2 possibilities implemented
-        in [WER17]_. 'stddev' may work well for point like sources surrounded by 
+        in [WER17]_. 'stddev' may work well for point like sources surrounded by
         extended signals.
     cube_ref : 3d or 4d numpy ndarray, or list of 3d ndarray, optional
         Reference library cube for Reference Star Differential Imaging. Should
@@ -568,10 +557,10 @@ def mcmc_negfd_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
         * ``spat-standard``: spatial mean centering plus scaling pixel values
           to unit variance (spatially).
 
-        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve 
-        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this 
-        involves a sort of c-ADI preprocessing, which (i) can be dangerous for 
-        datasets with low amount of rotation (strong self-subtraction), and (ii) 
+        DISCLAIMER: Using ``temp-mean`` or ``temp-standard`` scaling can improve
+        the speckle subtraction for ASDI or (A)RDI reductions. Nonetheless, this
+        involves a sort of c-ADI preprocessing, which (i) can be dangerous for
+        datasets with low amount of rotation (strong self-subtraction), and (ii)
         should probably be referred to as ARDI (i.e. not RDI stricto sensu).
     delta_rot: float, optional
         If algo is set to pca_annular, delta_rot is the angular threshold used
@@ -693,6 +682,7 @@ def mcmc_negfd_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
 
     The parameter ``rhat_threshold`` can be a numpy.array with individual
     threshold value for each model parameter.
+
     """
     if verbosity > 0:
         start_time = time_ini()
@@ -1103,8 +1093,8 @@ def show_corner_plot_fd(chain, burnin=0.5, save=False, output_dir='', **kwargs):
 
     Returns
     -------
-    None 
-        (Displays the figure or create a pdf file named walk_plot.pdf in the 
+    None
+        (Displays the figure or create a pdf file named walk_plot.pdf in the
         working directory).
 
     Raises
@@ -1196,10 +1186,10 @@ def confidence_fd(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=Non
     Returns
     -------
     out: A 2 elements tuple with either:
-        [gaussian_fit=False] i) the highly probable solutions (dictionary), 
+        [gaussian_fit=False] i) the highly probable solutions (dictionary),
             ii) the respective confidence interval (dict.);
-        [gaussian_fit=True] i) the center of the best-fit 1d Gaussian 
-            distributions (tuple of 3 floats), and ii) their standard deviation, 
+        [gaussian_fit=True] i) the center of the best-fit 1d Gaussian
+            distributions (tuple of 3 floats), and ii) their standard deviation,
             for each parameter
 
     """

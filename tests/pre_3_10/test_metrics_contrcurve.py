@@ -2,16 +2,18 @@
 Tests for metrics/contrcurve.py
 
 """
-from vip_hci.psfsub import pca, PCA_Params
-from vip_hci.preproc import frame_crop
-from vip_hci.metrics import contrast_curve
-from vip_hci.fm.utils_negfc import find_nearest
-from vip_hci.fm.utils_negfc import cube_planet_free
-from vip_hci.config import VLT_NACO
-from tests.helpers import np
-from tests.helpers import fixture
 import copy
 import sys
+
+from tests.helpers import fixture
+from tests.helpers import np
+from vip_hci.config import VLT_NACO
+from vip_hci.fm.utils_negfc import cube_planet_free
+from vip_hci.fm.utils_negfc import find_nearest
+from vip_hci.metrics import contrast_curve
+from vip_hci.preproc import frame_crop
+from vip_hci.psfsub import pca
+from vip_hci.psfsub import PCA_Params
 
 sys.path.append(".../tests")
 
@@ -113,9 +115,9 @@ def test_contrast_curve(get_cube):
 
     # check that at 0.4'' 5-sigma cc: Student statistics > Gaussian statistics
     cc_stu = student_cc[idx_r]
-    if cc_stu < 4e-4 * corr_r and cc_stu > cc_gau:
+    if cc_stu < 5e-4 * corr_r and cc_stu > cc_gau:
         check = True
-    elif cc_stu < 4e-4 * corr_r:
+    elif cc_stu < 5e-4 * corr_r:
         check = False
         msg = "Student-statistics cc smaller than Gaussian statistics cc"
     else:

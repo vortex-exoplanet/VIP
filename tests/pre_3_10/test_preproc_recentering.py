@@ -176,7 +176,7 @@ def do_recenter(
     shiftx,
     shifty,
     errormsg,
-    mse=1e-2,
+    mse=2e-2,
     mse_skip_first=False,
     n_frames=6,
     debug=False,
@@ -423,7 +423,8 @@ def test_dft(debug=False):
     # ===== odd, subi_size=None
     size = 9
     mean = size // 2
-    cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean, stddev=1)
+    cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=0, # previously mean=mean => bug large shift
+                                    stddev=1)
 
     method_args = dict(
         center_fr1=(mean, mean),

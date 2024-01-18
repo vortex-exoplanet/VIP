@@ -921,7 +921,7 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
         res = _center_radon(array, cropsize=cropsize, hsize=hsize, step=step,
                             mask_center=mask_center, nproc=nproc,
                             satspots_cfg=satspots_cfg, theta_0=theta_0,
-                            delta_theta=delta_theta, gauss_fit=gauss_fit,
+                            d_theta=delta_theta, gauss_fit=gauss_fit,
                             imlib=imlib, interpolation=interpolation,
                             verbose=verbose, plot=plot, debug=debug)
         _, _, y_shift, x_shift, dyx, cost_bound = res

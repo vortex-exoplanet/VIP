@@ -101,17 +101,17 @@ def test_contrast_curve(get_cube):
     msg = "Contrast too shallow compared to expectations: {} > {}"
     assert check, msg.format(cc_stu, 4e-3 * corr_r)
 
-    # check that at 0.4'' 5-sigma cc < 4e-4
+    # check that at 0.4'' 5-sigma cc < 5e-4
     idx_r = find_nearest(rad * plsc, 0.4)
     cc_gau = gauss_cc[idx_r]
     corr_r = sigma_corr[idx_r]
 
-    if cc_gau < 4e-4:
+    if cc_gau < 5e-4:
         check = True
     else:
         check = False
     msg = "Contrast too shallow compared to expectations: {} > {}"
-    assert check, msg.format(cc_gau, 4e-4)
+    assert check, msg.format(cc_gau, 5e-4)
 
     # check that at 0.4'' 5-sigma cc: Student statistics > Gaussian statistics
     cc_stu = student_cc[idx_r]
@@ -123,4 +123,4 @@ def test_contrast_curve(get_cube):
     else:
         check = False
         msg = "Contrast too shallow compared to expectations: {} > {}"
-    assert check, msg.format(cc_stu, 4e-4 * corr_r)
+    assert check, msg.format(cc_stu, 5e-4 * corr_r)

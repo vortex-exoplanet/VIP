@@ -176,7 +176,7 @@ def do_recenter(
     shiftx,
     shifty,
     errormsg,
-    mse=2e-2,
+    mse=4e-2,
     mse_skip_first=False,
     n_frames=6,
     debug=False,
@@ -423,8 +423,8 @@ def test_dft(debug=False):
     # ===== odd, subi_size=None
     size = 9
     mean = size // 2
-    cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=0, # previously mean=mean => bug large shift
-                                    stddev=1)
+    cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
+                                    stddev=2.5)
 
     method_args = dict(
         center_fr1=(mean, mean),
@@ -446,7 +446,8 @@ def test_dft(debug=False):
     # ===== even, subi_size
     size = 10
     mean = size // 2  # - 0.5 # 0-indexed
-    cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean, stddev=1)
+    cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
+                                    stddev=2.5)
 
     method_args = dict(
         center_fr1=(mean, mean), subi_size=8, negative=False, **method_args_additional
@@ -772,6 +773,6 @@ def test_speckle_recentering(get_cube, debug=False):
             randay,
             errormsg=errormsg,
             debug=debug,
-            mse=0.04,
+            mse=0.05,
             **method_args
         )

@@ -76,6 +76,7 @@ def test_algos(injected_cube_position, pca_algo, negfc_algo, ncomp, mu_sigma, fm
         fmerit=fm,
         mu_sigma=mu_sigma,
         imlib="opencv",
+        interpolation='lanczos4',
         aperture_radius=2,
         annulus_width=4 * fwhm_m,
     )

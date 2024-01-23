@@ -67,7 +67,7 @@ def injected_cube_position(example_dataset_adi):
     "pca_algo, negfc_algo, ncomp, mu_sigma, fm, force_rpa, conv_test",
     [
         (pca_annular, firstguess, 3, False, "stddev", False, None),
-        (pca, firstguess, 6, True, None, False, None),
+        (pca, firstguess, 5, True, None, False, None),
         (median_sub, firstguess, None, False, "sum", False, None),
         (pca_annulus, mcmc_negfc_sampling, 3, False, "stddev", False, "gb"),
         (pca_annulus, mcmc_negfc_sampling, 3, True, None, True, "ac"),
@@ -139,6 +139,7 @@ def test_algos(
                 full_output=False,
                 algo_options=algo_options,
                 nproc=1,
+                sigma_trim=5
             )
         else:
             sp_unc = (2, 2, 0.1 * gt[2])

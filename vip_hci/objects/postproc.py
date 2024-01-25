@@ -34,7 +34,7 @@ from ..fits import write_fits, open_fits, dict_to_fitsheader, fitsheader_to_dict
 from ..metrics import snrmap, snr, significance
 from ..var import frame_center
 
-PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_"]
+PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_", "_estimator_html_repr"]
 LAST_SESSION = -1
 ALL_SESSIONS = -2
 DATASET_PARAM = "dataset"
@@ -502,12 +502,12 @@ class PostProc(BaseEstimator):
             """
             if element not in PROBLEMATIC_ATTRIBUTE_NAMES:
                 try:
-                    # print(
-                    #     "directory element : ",
-                    #     e,
-                    #     ", calculations list : ",
-                    #     calculations,
-                    # )
+                    print(
+                        "directory element : ",
+                        element,
+                        ", calculations list : ",
+                        calculations,
+                    )
                     for k in getattr(getattr(self, element), "_calculates"):
                         calculations[k] = element
                 except AttributeError:

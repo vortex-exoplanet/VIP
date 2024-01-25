@@ -176,7 +176,7 @@ def do_recenter(
     shiftx,
     shifty,
     errormsg,
-    mse=3e-2,
+    mse=5e-2,
     mse_skip_first=False,
     n_frames=6,
     debug=False,

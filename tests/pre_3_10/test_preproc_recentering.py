@@ -412,7 +412,7 @@ def test_dft(debug=False):
     method = cube_recenter_dft_upsampling
     method_args_additional = dict(verbose=True, full_output=True, plot=True)
     errormsg = "Error when recentering with DFT upsampling method"
-    n_frames = 6
+    n_frames = 10
 
     shift_magnitude = 2
     randax = seed.uniform(-shift_magnitude, shift_magnitude, size=n_frames)
@@ -421,14 +421,14 @@ def test_dft(debug=False):
     randay[0] = 0
 
     # ===== odd, subi_size=None
-    size = 11
+    size = 21
     mean = size // 2
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
                                     stddev=3.)
 
     method_args = dict(
         center_fr1=(mean, mean),
-        subi_size=7,
+        subi_size=15,
         negative=False,
         **method_args_additional
     )
@@ -444,13 +444,13 @@ def test_dft(debug=False):
     )
 
     # ===== even, subi_size
-    size = 10
+    size = 20
     mean = size // 2  # - 0.5 # 0-indexed
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
                                     stddev=3.)
 
     method_args = dict(
-        center_fr1=(mean, mean), subi_size=8, negative=False,
+        center_fr1=(mean, mean), subi_size=16, negative=False,
         **method_args_additional
     )
     do_recenter(
@@ -465,14 +465,14 @@ def test_dft(debug=False):
     )
 
     # ===== odd negative (ring), subi_size
-    size = 15
+    size = 21
     mean = size // 2
     cube = create_cube_with_gauss2d_ring(
         shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2
     )
 
     method_args = dict(
-        center_fr1=(mean, mean), subi_size=12, negative=True, **method_args_additional
+        center_fr1=(mean, mean), subi_size=15, negative=True, **method_args_additional
     )
     do_recenter(
         method,
@@ -486,7 +486,7 @@ def test_dft(debug=False):
     )
 
     # ===== even negative (ring), subi_size=None
-    size = 16
+    size = 20
     mean = size // 2  # - 0.5
     cube = create_cube_with_gauss2d_ring(
         shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2

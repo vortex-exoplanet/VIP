@@ -127,7 +127,7 @@ def test_algos(
             sp_unc = speckle_noise_uncertainty(
                 cube_emp,
                 res,
-                np.arange(0, 360, 3),
+                np.arange(0, 360, 2),
                 ds.angles,
                 algo=pca_algo,
                 psfn=ds.psf,
@@ -139,7 +139,7 @@ def test_algos(
                 full_output=False,
                 algo_options=algo_options,
                 nproc=1,
-                sigma_trim=5
+                sigma_trim=3
             )
         else:
             sp_unc = (2, 2, 0.1 * gt[2])

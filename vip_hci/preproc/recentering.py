@@ -1322,10 +1322,11 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
         shift_yx = cc_center(array_rec[0], array[frnum],
                              upsample_factor=upsample_factor,
                              reference_mask=mask, return_error=False)
+        y_i, x_i = shift_yx
     else:
         shift_yx = cc_center(array_rec[0], array[frnum],
                              upsample_factor=upsample_factor)
-    y_i, x_i = shift_yx
+        y_i, x_i = shift_yx[0]
     array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
                               imlib=imlib, interpolation=interpolation,
                               border_mode=border_mode)

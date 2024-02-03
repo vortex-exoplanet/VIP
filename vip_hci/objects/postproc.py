@@ -34,7 +34,8 @@ from ..fits import write_fits, open_fits, dict_to_fitsheader, fitsheader_to_dict
 from ..metrics import snrmap, snr, significance
 from ..var import frame_center
 
-PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_", "_estimator_html_repr"]
+PROBLEMATIC_ATTRIBUTE_NAMES = ["_repr_html_", "_estimator_html_repr",
+                               "_doc_link_template"]
 LAST_SESSION = -1
 ALL_SESSIONS = -2
 DATASET_PARAM = "dataset"
@@ -512,6 +513,14 @@ class PostProc(BaseEstimator):
                         calculations[k] = element
                 except AttributeError:
                     pass
+            # below can be commented after debug
+            else:
+                print(
+                    "directory element SKIPPED: ",
+                    element,
+                    ", calculations list : ",
+                    calculations,
+                )
 
         return calculations
 

@@ -838,12 +838,12 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
             costf = []
             for coord in coords:
                 res = _radon_costf(frame, cent, radint, coord, satspots_cfg,
-                                   theta_0, delta_theta, imlib, interpolation)
+                                   theta_0, d_theta, imlib, interpolation)
                 costf.append(res)
             costf = np.array(costf)
         elif nproc > 1:
             res = pool_map(nproc, _radon_costf, frame, cent, radint,
-                           iterable(coords), satspots_cfg, theta_0, delta_theta,
+                           iterable(coords), satspots_cfg, theta_0, d_theta,
                            imlib, interpolation)
             costf = np.array(res)
 
@@ -1321,12 +1321,11 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
     if version.parse(skimage.__version__) > version.parse('0.17.0'):
         shift_yx = cc_center(array_rec[0], array[frnum],
                              upsample_factor=upsample_factor,
-                             reference_mask=mask, return_error=False)
-        y_i, x_i = shift_yx
+                             reference_mask=mask)
     else:
         shift_yx = cc_center(array_rec[0], array[frnum],
                              upsample_factor=upsample_factor)
-        y_i, x_i = shift_yx[0]
+    y_i, x_i = shift_yx[0]
     array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
                               imlib=imlib, interpolation=interpolation,
                               border_mode=border_mode)

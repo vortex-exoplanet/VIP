@@ -866,16 +866,16 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
                                      threshold=False, sigfactor=1, debug=debug,
                                      full_output=True)
             # optimal shift -> optimal position
-            opt_yind = float(fit_res['centroid_y'])
-            opt_xind = float(fit_res['centroid_x'])
+            opt_yind = float(fit_res['centroid_y'].iloc[0])
+            opt_xind = float(fit_res['centroid_x'].iloc[0])
             opt_yshift = -hsize + opt_yind*step
             opt_xshift = -hsize + opt_xind*step
             optimy = ori_cent_y - opt_yshift
             optimx = ori_cent_x - opt_xshift
 
             # find uncertainty on centering
-            unc_y = float(fit_res['fwhm_y'])*step
-            unc_x = float(fit_res['fwhm_x'])*step
+            unc_y = float(fit_res['fwhm_y'].iloc[0])*step
+            unc_x = float(fit_res['fwhm_x'].iloc[0])*step
             dyx = (unc_y, unc_x)  # np.sqrt(unc_y**2 + unc_x**2)
 
         # Replace the position found by Gaussian fit

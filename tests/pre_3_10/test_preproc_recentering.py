@@ -421,14 +421,14 @@ def test_dft(debug=False):
     randay[0] = 0
 
     # ===== odd, subi_size=None
-    size = 21
+    size = 25
     mean = size // 2
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
-                                    stddev=3.)
+                                    stddev=4.)
 
     method_args = dict(
         center_fr1=(mean, mean),
-        subi_size=15,
+        subi_size=19,
         negative=False,
         **method_args_additional
     )
@@ -444,13 +444,13 @@ def test_dft(debug=False):
     )
 
     # ===== even, subi_size
-    size = 20
+    size = 26
     mean = size // 2  # - 0.5 # 0-indexed
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
-                                    stddev=3.)
+                                    stddev=4.)
 
     method_args = dict(
-        center_fr1=(mean, mean), subi_size=16, negative=False,
+        center_fr1=(mean, mean), subi_size=20, negative=False,
         **method_args_additional
     )
     do_recenter(
@@ -465,7 +465,7 @@ def test_dft(debug=False):
     )
 
     # ===== odd negative (ring), subi_size
-    size = 21
+    size = 25
     mean = size // 2
     cube = create_cube_with_gauss2d_ring(
         shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2
@@ -486,7 +486,7 @@ def test_dft(debug=False):
     )
 
     # ===== even negative (ring), subi_size=None
-    size = 20
+    size = 26
     mean = size // 2  # - 0.5
     cube = create_cube_with_gauss2d_ring(
         shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2
@@ -708,17 +708,14 @@ def test_radon(debug=False):
         cropsize=131,
         satspots_cfg='custom',
         theta_0=52,
-        mask_center=40,
+        mask_center=30,
         verbose=True,
         imlib="opencv",
         hpf=True,
         filter_fwhm=2 * np.mean(fwhm),
     )
     # # first recenter with Radon to make sure it is well recentered
-    try:
-        cube = cube_recenter_radon(cube, **method_args)
-    except:
-        pass
+    cube = cube_recenter_radon(cube, **method_args)
 
     # ===== shift
     shift_magnitude = 2

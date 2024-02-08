@@ -27,7 +27,7 @@ from vip_hci.preproc import cube_recenter_satspots
 from vip_hci.preproc import cube_recenter_via_speckles
 from vip_hci.preproc import cube_subsample
 from vip_hci.preproc import frame_shift
-from vip_hci.var import frame_center, fit2d_gaussian
+from vip_hci.var import frame_center, fit_2dgaussian
 
 mpl.use("Agg")
 

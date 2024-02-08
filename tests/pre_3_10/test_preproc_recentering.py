@@ -27,7 +27,7 @@ from vip_hci.preproc import cube_recenter_satspots
 from vip_hci.preproc import cube_recenter_via_speckles
 from vip_hci.preproc import cube_subsample
 from vip_hci.preproc import frame_shift
-from vip_hci.var import frame_center
+from vip_hci.var import frame_center, fit2d_gaussian
 
 mpl.use("Agg")
 
@@ -421,14 +421,14 @@ def test_dft(debug=False):
     randay[0] = 0
 
     # ===== odd, subi_size=None
-    size = 25
+    size = 15
     mean = size // 2
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
                                     stddev=4.)
 
     method_args = dict(
         center_fr1=(mean, mean),
-        subi_size=19,
+        subi_size=11,
         negative=False,
         **method_args_additional
     )
@@ -444,13 +444,13 @@ def test_dft(debug=False):
     )
 
     # ===== even, subi_size
-    size = 26
+    size = 16
     mean = size // 2  # - 0.5 # 0-indexed
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
                                     stddev=4.)
 
     method_args = dict(
-        center_fr1=(mean, mean), subi_size=20, negative=False,
+        center_fr1=(mean, mean), subi_size=10, negative=False,
         **method_args_additional
     )
     do_recenter(
@@ -465,14 +465,14 @@ def test_dft(debug=False):
     )
 
     # ===== odd negative (ring), subi_size
-    size = 25
+    size = 15
     mean = size // 2
     cube = create_cube_with_gauss2d_ring(
         shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2
     )
 
     method_args = dict(
-        center_fr1=(mean, mean), subi_size=15, negative=True, **method_args_additional
+        center_fr1=(mean, mean), subi_size=11, negative=True, **method_args_additional
     )
     do_recenter(
         method,
@@ -486,7 +486,7 @@ def test_dft(debug=False):
     )
 
     # ===== even negative (ring), subi_size=None
-    size = 26
+    size = 16
     mean = size // 2  # - 0.5
     cube = create_cube_with_gauss2d_ring(
         shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2
@@ -636,6 +636,11 @@ def test_radon(debug=False):
         psfifs, fwhm="fit", full_output=True, size=15
     )
 
+    # Fir BKG star position
+    med_psf = np.nanmedian(psfifs, axis=0)
+    fit_res = vip.var.fit_2dgaussian(med_psf, crop=True, cropsize=13,
+                                     debug=False, full_output=True)
+    med_y, med_x = float(fit_res['centroid_y']), float(fit_res['centroid_x'])
     # remove BKG star
     fit_flux = np.array(
         [
@@ -680,8 +685,8 @@ def test_radon(debug=False):
             57.52,
         ]
     )
-    med_y = 146.99531922145198
-    med_x = 144.27429227212795
+    # med_y = 146.99531922145198
+    # med_x = 144.27429227212795
     for z in range(cube.shape[0]):
         cube[z] = vip.fm.frame_inject_companion(
             cube[z],
@@ -690,7 +695,6 @@ def test_radon(debug=False):
             med_x,
             -fit_flux[z],
             imlib="vip-fft",
-            interpolation="lanczos4",
         )
 
     # subsample and correct for NaNs
@@ -715,7 +719,7 @@ def test_radon(debug=False):
         filter_fwhm=2 * np.mean(fwhm),
     )
     # # first recenter with Radon to make sure it is well recentered
-    cube = cube_recenter_radon(cube, **method_args)
+    #cube = cube_recenter_radon(cube, **method_args)
 
     # ===== shift
     shift_magnitude = 2

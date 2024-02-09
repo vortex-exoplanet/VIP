@@ -293,6 +293,8 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
         1d array of good indices.
     bad_index_list : numpy ndarray
         1d array of bad frames indices.
+    distances : numpy ndarray
+        [if full_output=True] 1d array with the measured distances
 
     """
     from .cosmetics import cube_crop_frames, frame_crop

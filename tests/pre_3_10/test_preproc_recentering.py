@@ -636,10 +636,11 @@ def test_radon(debug=False):
         psfifs, fwhm="fit", full_output=True, size=15
     )
 
-    # Fir BKG star position
-    med_psf = np.nanmedian(psfifs, axis=0)
-    fit_res = vip.var.fit_2dgaussian(med_psf, crop=True, cropsize=13,
-                                     debug=False, full_output=True)
+    # Fit BKG star position
+    med_fr = np.nanmedian(cube, axis=0)
+    fit_res = vip.var.fit_2dgaussian(med_fr, crop=True, cropsize=13,
+                                     cent=(144, 147), debug=False,
+                                     full_output=True)
     med_y, med_x = float(fit_res['centroid_y']), float(fit_res['centroid_x'])
     # remove BKG star
     fit_flux = np.array(
@@ -698,28 +699,27 @@ def test_radon(debug=False):
         )
 
     # subsample and correct for NaNs
-    cube = cube_subsample(cube, 25)  # discard last channels with BKG star bias
+    cube = cube[:25]  # discard last channels with BKG star bias
     cube = cube_correct_nan(cube)
 
     # high-pass filter
-    cube[0] = vip.var.frame_filter_highpass(
-        cube[0], mode="gauss-subt", fwhm_size=2 * np.mean(fwhm)
-    )
+    # cube[0] = vip.var.frame_filter_highpass(
+    #     cube[0], mode="gauss-subt", fwhm_size=3 * np.mean(fwhm)
+    # )
 
     method_args = dict(
-        hsize_ini=2.0,
-        step_ini=0.1,
-        cropsize=131,
+        hsize_ini=3.0,
+        step_ini=0.3,
+        cropsize=151,
         satspots_cfg='custom',
-        theta_0=52,
-        mask_center=30,
+        theta_0=54,
+        mask_center=35,
         verbose=True,
-        imlib="opencv",
-        hpf=True,
-        filter_fwhm=2 * np.mean(fwhm),
+        imlib="vip-fft",
+        gauss_fit=False,
     )
     # # first recenter with Radon to make sure it is well recentered
-    #cube = cube_recenter_radon(cube, **method_args)
+    # cube = cube_recenter_radon(cube, **method_args)
 
     # ===== shift
     shift_magnitude = 2
@@ -735,7 +735,7 @@ def test_radon(debug=False):
         randay,
         errormsg=errormsg,
         debug=debug,
-        mse=0.5,
+        mse=0.1,
         **method_args
     )
 

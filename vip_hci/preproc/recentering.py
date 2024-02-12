@@ -648,7 +648,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
 
 
 def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
-                       n_iter=5, tol=0.05, mask_center=None, nproc=None,
+                       n_iter=5, tol=0.1, mask_center=None, nproc=None,
                        satspots_cfg=None, theta_0=0, delta_theta=5,
                        gauss_fit=True, hpf=True, filter_fwhm=8, imlib='vip-fft',
                        interpolation='lanczos4', full_output=False,
@@ -763,6 +763,7 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
             radint = mask_center
 
         coords = [(y, x) for y in listyx for x in listyx]
+        #coords = [(x, y) for y in listyx for x in listyx]
         cent, _ = frame_center(frame)
 
         frame = get_annulus_segments(frame, radint, cent-radint, mode="mask")[0]
@@ -860,10 +861,10 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
             plt.grid('off')
             plt.show()
 
-        if gauss_fit or full_output:
+        if gauss_fit:# or full_output:
             # fit a 2d gaussian to the surface
             fit_res = fit_2dgaussian(cost_bound-np.amin(cost_bound), crop=False,
-                                     threshold=False, sigfactor=1, debug=debug,
+                                     threshold=False, sigfactor=3, debug=debug,
                                      full_output=True)
             # optimal shift -> optimal position
             opt_yind = float(fit_res['centroid_y'].iloc[0])
@@ -881,20 +882,23 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
         # Replace the position found by Gaussian fit
         if not gauss_fit:
             # OLD CODE:
-            # argm = np.argmax(costf) # index of 1st max in 1d cost function
-            # optimy, optimx = coords[argm]
+            argm = np.argmax(costf)  # index of 1st max in 1d cost function
+            opt_yshift, opt_xshift = coords[argm]
 
             # maxima in the 2d cost function surface
-            num_max = np.where(cost_bound == cost_bound.max())[0].shape[0]
-            ind_maximay, ind_maximax = np.where(cost_bound == cost_bound.max())
-            argmy = ind_maximay[int(np.ceil(num_max/2)) - 1]
-            argmx = ind_maximax[int(np.ceil(num_max/2)) - 1]
-            y_grid = np.array(coords)[:, 0].reshape(listyx.shape[0],
-                                                    listyx.shape[0])
-            x_grid = np.array(coords)[:, 1].reshape(listyx.shape[0],
-                                                    listyx.shape[0])
-            optimy = ori_cent_y-y_grid[argmy, 0]  # subtract optimal shift
-            optimx = ori_cent_x-x_grid[0, argmx]  # subtract optimal shift
+            # num_max = np.where(cost_bound == cost_bound.max())[0].shape[0]
+            # ind_maximay, ind_maximax = np.where(cost_bound == cost_bound.max())
+            # argmy = ind_maximay[int(np.ceil(num_max/2)) - 1]
+            # argmx = ind_maximax[int(np.ceil(num_max/2)) - 1]
+            # y_grid = np.array(coords)[:, 0].reshape(listyx.shape[0],
+            #                                         listyx.shape[0])
+            # x_grid = np.array(coords)[:, 1].reshape(listyx.shape[0],
+            #                                         listyx.shape[0])
+            # optimy = ori_cent_y-y_grid[argmy, 0]  # subtract optimal shift
+            # optimx = ori_cent_x-x_grid[0, argmx]  # subtract optimal shift
+            optimy = ori_cent_y - opt_yshift
+            optimx = ori_cent_x - opt_xshift
+            dyx = (step, step)
 
         if verbose:
             print('Cost function max: {}'.format(costf.max()))
@@ -940,13 +944,13 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
                 msg = "Convergence found after {} iterations (final step = {})."
             print(msg.format(i+1, step))
             break
-        # refine box
-        max_sh = np.amax(np.abs(np.array([y_shift, x_shift])))
-        hsize = 2*max_sh
-        step = hsize/10.
+        # refine box - OR NOT?!
+        # max_sh = np.amax(np.abs(np.array([y_shift, x_shift])))
+        hsize *= 0.75  # *max_sh
+        step *= 0.75
 
-    optimy = ori_cent_y-opt_yshift
-    optimx = ori_cent_x-opt_xshift
+    optimy = ori_cent_y+opt_yshift  # ORI: -
+    optimx = ori_cent_x+opt_xshift  # ORI: -
 
     if verbose:
         print("Star (x,y) location: {:.2f}, {:.2f}".format(optimx, optimy))
@@ -1012,7 +1016,13 @@ def _radon_costf(frame, cent, radint, coords, satspots_cfg=None, theta_0=0,
                                        stop=theta_0+270+delta_theta,
                                        num=samples, endpoint=False)))
     sinogram = radon(frame_shifted_ann, theta=theta, circle=True)
-    costf = np.sum(np.abs(sinogram[int(cent), :]))
+    # costf = np.sum(np.abs(sinogram[int(cent), :])) # ORI DEF
+    # rather consider the sum of the 4 top values?
+    qstep = len(theta)//4
+    sort_sin = []
+    for i in range(4):
+        sort_sin.append(np.nanmax(sinogram[int(cent), i*qstep:(i+1)*qstep]))
+    costf = np.nansum(sort_sin)
     return costf
 
 

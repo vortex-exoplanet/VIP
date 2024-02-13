@@ -1096,7 +1096,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
         timing(start_time)
 
     if full_output:
-        return array_rec, cy-y, cx-x, dyx
+        return array_rec, y-cy, x-cx, dyx
     else:
         return array_rec
 

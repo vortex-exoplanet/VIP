@@ -358,7 +358,7 @@ def test_2d(debug=False):
 
         # ===== odd negative (ring)
         cube = create_cube_with_gauss2d_ring(
-            shape=(n_frames, 9, 9), mean=4, stddev_outer=2, stddev_inner=1
+            shape=(n_frames, 9, 9), mean=4, stddev_outer=2.5, stddev_inner=0.5
         )
 
         method_args = dict(
@@ -382,7 +382,7 @@ def test_2d(debug=False):
 
         # ===== even negative (ring)
         cube = create_cube_with_gauss2d_ring(
-            shape=(n_frames, 10, 10), mean=5, stddev_outer=2, stddev_inner=1
+            shape=(n_frames, 10, 10), mean=5, stddev_outer=2.5, stddev_inner=0.5
         )
 
         method_args = dict(
@@ -469,11 +469,13 @@ def test_dft(debug=False):
     size = 15
     mean = size // 2
     cube = create_cube_with_gauss2d_ring(
-        shape=(n_frames, size, size), mean=mean, stddev_outer=2, stddev_inner=1
+        shape=(n_frames, size, size), mean=mean, stddev_outer=2.5,
+        stddev_inner=0.5
     )
 
     method_args = dict(
-        center_fr1=(mean, mean), subi_size=11, negative=True, **method_args_additional
+        center_fr1=(mean, mean), subi_size=11, negative=True,
+        **method_args_additional
     )
     do_recenter(
         method,
@@ -490,11 +492,12 @@ def test_dft(debug=False):
     size = 16
     mean = size // 2  # - 0.5
     cube = create_cube_with_gauss2d_ring(
-        shape=(n_frames, size, size), mean=mean, stddev_outer=2, stddev_inner=1
+        shape=(n_frames, size, size), mean=mean, stddev_outer=2.5,ADIstddev_inner=0.5
     )
 
     method_args = dict(
-        center_fr1=(mean, mean), subi_size=None, negative=True, **method_args_additional
+        center_fr1=(mean, mean), subi_size=None, negative=True,
+        **method_args_additional
     )
     do_recenter(
         method,

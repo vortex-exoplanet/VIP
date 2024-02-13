@@ -424,7 +424,7 @@ def test_dft(debug=False):
     size = 15
     mean = size // 2
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
-                                    stddev=3.)
+                                    stddev=2.)
 
     method_args = dict(
         center_fr1=(mean, mean),
@@ -447,7 +447,7 @@ def test_dft(debug=False):
     size = 16
     mean = size // 2  # - 0.5 # 0-indexed
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
-                                    stddev=3.)
+                                    stddev=2.)
 
     method_args = dict(
         center_fr1=(mean, mean), subi_size=10, negative=False,
@@ -468,7 +468,8 @@ def test_dft(debug=False):
     size = 15
     mean = size // 2
     cube = create_cube_with_gauss2d_ring(
-        shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2
+        shape=(n_frames, size, size), mean=mean, stddev_outer=2.5,
+        stddev_inner=1.5
     )
 
     method_args = dict(
@@ -489,7 +490,7 @@ def test_dft(debug=False):
     size = 16
     mean = size // 2  # - 0.5
     cube = create_cube_with_gauss2d_ring(
-        shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2
+        shape=(n_frames, size, size), mean=mean, stddev_outer=2.5, stddev_inner=1.5
     )
 
     method_args = dict(

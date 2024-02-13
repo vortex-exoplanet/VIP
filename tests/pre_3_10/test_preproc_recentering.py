@@ -126,9 +126,7 @@ def create_cube_with_gauss2d(shape=(4, 9, 9), mean=4, stddev=1):
     except Exception:
         x_mean = y_mean = mean
 
-    gauss = models.Gaussian2D(
-        amplitude=1, x_mean=x_mean, y_mean=y_mean, x_stddev=stddev, y_stddev=stddev
-    )
+_
     x = np.arange(sizex)
     y = np.arange(sizey)
     x, y = np.meshgrid(x, y)
@@ -312,7 +310,8 @@ def test_2d(debug=False):
 
     for model, name in {"moff": "Moffat", "gauss": "Gaussian"}.items():
         # ===== odd
-        cube = create_cube_with_gauss2d(shape=(n_frames, 9, 9), mean=4, stddev=1)
+        cube = create_cube_with_gauss2d(shape=(n_frames, 9, 9), mean=4,
+                                        stddev=1)
 
         method_args = dict(
             fwhm=1,
@@ -334,7 +333,8 @@ def test_2d(debug=False):
         )
 
         # ===== even
-        cube = create_cube_with_gauss2d(shape=(n_frames, 10, 10), mean=5, stddev=1)
+        cube = create_cube_with_gauss2d(shape=(n_frames, 10, 10), mean=5,
+                                        stddev=1)
 
         method_args = dict(
             fwhm=1,
@@ -357,7 +357,7 @@ def test_2d(debug=False):
 
         # ===== odd negative (ring)
         cube = create_cube_with_gauss2d_ring(
-            shape=(n_frames, 9, 9), mean=4, stddev_outer=3, stddev_inner=2
+            shape=(n_frames, 9, 9), mean=4, stddev_outer=2, stddev_inner=1
         )
 
         method_args = dict(
@@ -381,7 +381,7 @@ def test_2d(debug=False):
 
         # ===== even negative (ring)
         cube = create_cube_with_gauss2d_ring(
-            shape=(n_frames, 10, 10), mean=5, stddev_outer=3, stddev_inner=2
+            shape=(n_frames, 10, 10), mean=5, stddev_outer=2, stddev_inner=1
         )
 
         method_args = dict(
@@ -424,7 +424,7 @@ def test_dft(debug=False):
     size = 15
     mean = size // 2
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
-                                    stddev=2.)
+                                    stddev=1.5)
 
     method_args = dict(
         center_fr1=(mean, mean),
@@ -447,7 +447,7 @@ def test_dft(debug=False):
     size = 16
     mean = size // 2  # - 0.5 # 0-indexed
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
-                                    stddev=2.)
+                                    stddev=1.5)
 
     method_args = dict(
         center_fr1=(mean, mean), subi_size=10, negative=False,
@@ -468,8 +468,7 @@ def test_dft(debug=False):
     size = 15
     mean = size // 2
     cube = create_cube_with_gauss2d_ring(
-        shape=(n_frames, size, size), mean=mean, stddev_outer=2.5,
-        stddev_inner=1.5
+        shape=(n_frames, size, size), mean=mean, stddev_outer=2, stddev_inner=1
     )
 
     method_args = dict(
@@ -490,7 +489,7 @@ def test_dft(debug=False):
     size = 16
     mean = size // 2  # - 0.5
     cube = create_cube_with_gauss2d_ring(
-        shape=(n_frames, size, size), mean=mean, stddev_outer=2.5, stddev_inner=1.5
+        shape=(n_frames, size, size), mean=mean, stddev_outer=2, stddev_inner=1
     )
 
     method_args = dict(

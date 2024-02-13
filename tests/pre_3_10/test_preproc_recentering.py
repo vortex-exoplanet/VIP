@@ -126,7 +126,8 @@ def create_cube_with_gauss2d(shape=(4, 9, 9), mean=4, stddev=1):
     except Exception:
         x_mean = y_mean = mean
 
-_
+    gauss = models.Gaussian2D(amplitude=1, x_mean=x_mean, y_mean=y_mean,
+                              x_stddev=stddev, y_stddev=stddev)
     x = np.arange(sizex)
     y = np.arange(sizey)
     x, y = np.meshgrid(x, y)

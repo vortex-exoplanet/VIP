@@ -422,7 +422,7 @@ def test_dft(debug=False):
     randay[0] = 0
 
     # ===== odd, subi_size=None
-    size = 15
+    size = 11
     mean = size // 2
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
                                     stddev=1.5)
@@ -445,7 +445,7 @@ def test_dft(debug=False):
     )
 
     # ===== even, subi_size
-    size = 16
+    size = 12
     mean = size // 2  # - 0.5 # 0-indexed
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
                                     stddev=1.5)
@@ -466,7 +466,7 @@ def test_dft(debug=False):
     )
 
     # ===== odd negative (ring), subi_size
-    size = 15
+    size = 9
     mean = size // 2
     cube = create_cube_with_gauss2d_ring(
         shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2
@@ -488,7 +488,7 @@ def test_dft(debug=False):
     )
 
     # ===== even negative (ring), subi_size=None
-    size = 16
+    size = 10
     mean = size // 2  # - 0.5
     cube = create_cube_with_gauss2d_ring(
         shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2

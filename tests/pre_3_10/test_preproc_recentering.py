@@ -429,7 +429,7 @@ def test_dft(debug=False):
 
     method_args = dict(
         center_fr1=(mean, mean),
-        subi_size=11,
+        subi_size=9,
         negative=False,
         **method_args_additional
     )
@@ -466,14 +466,14 @@ def test_dft(debug=False):
     )
 
     # ===== odd negative (ring), subi_size
-    size = 9
+    size = 11
     mean = size // 2
     cube = create_cube_with_gauss2d_ring(
         shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2
     )
 
     method_args = dict(
-        center_fr1=(mean, mean), subi_size=11, negative=True,
+        center_fr1=(mean, mean), subi_size=9, negative=True,
         **method_args_additional
     )
     do_recenter(

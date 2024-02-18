@@ -418,8 +418,6 @@ def test_dft(debug=False):
     shift_magnitude = 2
     randax = seed.uniform(-shift_magnitude, shift_magnitude, size=n_frames)
     randay = seed.uniform(-shift_magnitude, shift_magnitude, size=n_frames)
-    randax[0] = 0  # do not shift first frame
-    randay[0] = 0
 
     # ===== odd, subi_size=None
     size = 11
@@ -469,7 +467,7 @@ def test_dft(debug=False):
     size = 11
     mean = size // 2
     cube = create_cube_with_gauss2d_ring(
-        shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2
+        shape=(n_frames, size, size), mean=mean, stddev_outer=4, stddev_inner=2
     )
 
     method_args = dict(
@@ -491,8 +489,10 @@ def test_dft(debug=False):
     size = 10
     mean = size // 2  # - 0.5
     cube = create_cube_with_gauss2d_ring(
-        shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2
+        shape=(n_frames, size, size), mean=mean, stddev_outer=4, stddev_inner=2
     )
+    randax[0] = 0  # do not shift first frame
+    randay[0] = 0
 
     method_args = dict(
         center_fr1=(mean, mean), subi_size=None, negative=True,

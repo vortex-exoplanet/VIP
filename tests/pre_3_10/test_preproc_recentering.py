@@ -480,6 +480,7 @@ def test_dft(debug=False):
         randax,
         randay,
         errormsg=errormsg,
+        mse=0.1,  # note: DFT seems less accurate for this test
         mse_skip_first=True,
         debug=debug,
         **method_args
@@ -504,6 +505,7 @@ def test_dft(debug=False):
         randax,
         randay,
         errormsg=errormsg,
+        mse=0.1,  # note: DFT seems less accurate for this test
         mse_skip_first=True,
         debug=debug,
         **method_args

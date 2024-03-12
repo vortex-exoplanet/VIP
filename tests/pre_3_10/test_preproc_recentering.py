@@ -419,7 +419,7 @@ def test_dft(debug=False):
     randax = seed.uniform(-shift_magnitude, shift_magnitude, size=n_frames)
     randay = seed.uniform(-shift_magnitude, shift_magnitude, size=n_frames)
 
-    # ===== odd, subi_size=None
+    # ===== odd, subi_size
     size = 11
     mean = size // 2
     cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
@@ -438,7 +438,7 @@ def test_dft(debug=False):
         randay,
         errormsg=errormsg,
         mse_skip_first=True,
-        mse=0.1,  # i.e. on average ~0.3px error
+        mse=0.01,  # i.e. on average ~0.1px error
         debug=debug,
         **method_args
     )
@@ -460,7 +460,7 @@ def test_dft(debug=False):
         randay,
         errormsg=errormsg,
         mse_skip_first=True,
-        mse=0.1,  # i.e. on average ~0.3px error
+        mse=0.01,  # i.e. on average ~0.1px error
         debug=debug,
         **method_args
     )
@@ -482,7 +482,7 @@ def test_dft(debug=False):
         randax,
         randay,
         errormsg=errormsg,
-        mse=0.1,  # i.e. on average ~0.3px error
+        mse=0.01,  # i.e. on average ~0.1px error
         mse_skip_first=True,
         debug=debug,
         **method_args
@@ -507,7 +507,7 @@ def test_dft(debug=False):
         randax,
         randay,
         errormsg=errormsg,
-        mse=0.1,  # i.e. on average ~0.3px error
+        mse=0.01,  # i.e. on average ~0.1px error
         mse_skip_first=True,
         debug=debug,
         **method_args
@@ -559,6 +559,7 @@ def test_dft_image(debug=False):
         randax,
         randay,
         errormsg=errormsg,
+        mse=0.02,  # i.e. on average ~0.15px error
         mse_skip_first=True,
         debug=debug,
         **method_args

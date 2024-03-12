@@ -1,14 +1,14 @@
 #! /usr/bin/env python
 """
 Class definition for ScatteredLightDisk, Dust_distribution and Phase_function
-     
+
 .. [AUG99]
    | Augereau et al. 1999
    | **On the HR 4796 A circumstellar disk**
    | *Astronomy & Astrophysics, Volume 348, pp. 557-569*
    | `https://arxiv.org/abs/astro-ph/9906429
      <https://arxiv.org/abs/astro-ph/9906429>`_
-     
+
 """
 
 __author__ = 'Julien Milli'
@@ -26,23 +26,23 @@ from ..var import frame_center
 class ScatteredLightDisk(object):
     """
     Class used to generate a synthetic disc, inspired from a light version of
-    the GRATER tool (GRenoble RAdiative TransfER) written originally in IDL 
+    the GRATER tool (GRenoble RAdiative TransfER) written originally in IDL
     [AUG99]_, and converted to Python by J. Milli.
     """
 
     def __init__(self, nx=200, ny=200, distance=50., itilt=60., omega=0.,
                  pxInArcsec=0.01225, pa=0., flux_max=None,
                  density_dico={'name': '2PowerLaws', 'ain': 5, 'aout': -5,
-                               'a': 40, 'e': 0, 'ksi0': 1., 'gamma': 2., 
+                               'a': 40, 'e': 0, 'ksi0': 1., 'gamma': 2.,
                                'beta': 1., 'dens_at_r0': 1.},
-                 spf_dico={'name': 'HG', 'g': 0., 'polar': False}, xdo=0., 
+                 spf_dico={'name': 'HG', 'g': 0., 'polar': False}, xdo=0.,
                  ydo=0.):
         """
         Constructor of the Scattered_light_disk object, taking in input the
         geometric parameters of the disk, the radial density distribution
         and the scattering phase function.
         So far, only one radial distribution is implemented: a smoothed
-        2-power-law distribution, but more complex radial profiles can be 
+        2-power-law distribution, but more complex radial profiles can be
         implemented on demand.
         The star is assumed to be centered at the frame center as defined in
         the vip_hci.var.frame_center function (geometric center of the image,
@@ -199,7 +199,7 @@ class ScatteredLightDisk(object):
             linear flaring. This dictionary should at least contain the key
             "name". For a to-power law distribution, you can set it with
             name:'2PowerLaws' and with the following parameters:
-                
+
                 - a : float
                     Reference radius in au (default 60)
                 - ksi0 : float
@@ -276,7 +276,7 @@ class ScatteredLightDisk(object):
 
     def compute_scattered_light(self, halfNbSlices=25):
         """
-        Computes the scattered lignt image of the disk.
+        Computes the scattered light image of the disk.
 
         Parameters
         ----------

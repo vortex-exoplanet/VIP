@@ -65,11 +65,11 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
         length as the number of spectral channels (i.e. provide a spectrum). If
         a 2d array, it should be n_wavelength x n_frames (can e.g. be used to
         inject a spectrum in varying conditions).
+    rad_dists : float, list or array 1d
+        Vector of radial distances of fake companions in pixels.
     plsc : float or None
         Value of the plsc in arcsec/px. Only used for printing debug output when
         ``verbose=True``.
-    rad_dists : float, list or array 1d
-        Vector of radial distances of fake companions in pixels.
     n_branches : int, optional
         Number of azimutal branches.
     theta : float, optional

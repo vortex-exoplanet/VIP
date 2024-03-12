@@ -161,13 +161,13 @@ def cube_inject_trace(
         Flux at which the fake companions are injected into the cube along the
         trace.
     rad_dists : list or array 1d
-        Vector of radial distances where the trace is to be injected.
+        Vector of radial distances in pixels where the trace is to be injected.
     theta : list or array 1d
         Vector of angles (deg) where the trace is to be injected (trigonometric
         angles, NOT PA East from North).
     plsc : float, opt
         Value of the plate scale in arcsec/pixel (optional, will only be used
-        if verbose is True).
+        if verbose is True to print trace locations in arcsec).
     n_branches : int, optional
         Number of azimutal branches on which the trace is injected.
     imlib : {'opencv', 'ndimage-fourier', 'ndimage-interp', 'vip-fft'}, str opt

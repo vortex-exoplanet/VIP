@@ -503,12 +503,12 @@ class PostProc(BaseEstimator):
             """
             if element not in PROBLEMATIC_ATTRIBUTE_NAMES:
                 try:
-                    print(
-                        "directory element : ",
-                        element,
-                        ", calculations list : ",
-                        calculations,
-                    )
+                    # print(
+                    #     "directory element : ",
+                    #     element,
+                    #     ", calculations list : ",
+                    #     calculations,
+                    # )
                     for k in getattr(getattr(self, element), "_calculates"):
                         calculations[k] = element
                 except AttributeError:

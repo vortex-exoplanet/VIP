@@ -1343,7 +1343,7 @@ def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
 
 
 def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
-                        nproc=None, imlib='vip-fft', interpolation='lanczos4',
+                        nproc=1, imlib='vip-fft', interpolation='lanczos4',
                         offset=None, negative=False, threshold=False,
                         sigfactor=2, fix_neg=False, params_2g=None,
                         border_mode='reflect', save_shifts=False,
@@ -1556,6 +1556,9 @@ def cube_recenter_2dfit(array, xy=None, fwhm=4, subi_size=5, model='gauss',
         timing(start_time)
 
     if plot:
+        if nproc > 1:
+            print("Warning: plots may not show well if nproc is set to a value")
+            print(" different than 1.")
         plt.figure(figsize=vip_figsize)
         b = int(np.sqrt(n_frames))
         la = 'Histogram'

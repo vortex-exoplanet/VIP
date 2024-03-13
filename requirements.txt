@@ -3,7 +3,7 @@ scipy
 astropy
 photutils
 scikit-learn
-scikit-image<=0.18.1 # unsolved bug in skimage.registration.phase_cross_correlation since that version - cfr. Issues on their GitHub
+scikit-image<=0.18.3 # unsolved bug in skimage.registration.phase_cross_correlation since that version
 emcee==2.2.1
 nestle
 corner

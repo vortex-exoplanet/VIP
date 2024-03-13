@@ -471,8 +471,6 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
         list of integers, with length matching the first dimension of the cube.
     planets_xy_coord: array or list
         The list of (x,y) positions of the planets.
-    plsc: float, optional
-        The platescale, in arcsec per pixel.
     fwhm : float, optional
         The FWHM in pixels.
     annulus_width: int, optional

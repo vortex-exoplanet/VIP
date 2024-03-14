@@ -22,7 +22,8 @@ from typing import Tuple, List, Union
 from enum import Enum
 from dataclasses import dataclass
 from .svd import get_eigenvectors
-from ..preproc import cube_derotate, cube_collapse, check_pa_vector, check_scal_vector
+from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
+                       check_scal_vector)
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi

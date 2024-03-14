@@ -43,7 +43,7 @@ except ImportError:
 def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
                  cxy=None, border_mode='constant', mask_val=np.nan,
                  edge_blend=None, interp_zeros=False, ker=1):
-    """ Rotates a frame or 2D array.
+    """Rotate a frame or 2D array.
 
     Parameters
     ----------
@@ -175,9 +175,6 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         # interpolate nans with a Gaussian filter
         if 'interp' in edge_blend:
             array_prep2[y0_p:y1_p, x0_p:x1_p] = array_nan.copy()
-            #gauss_ker1 = Gaussian2DKernel(x_stddev=int(array_nan.shape[0]/15))
-            # Lanczos4 requires 4 neighbours & default Gaussian box=8*stddev+1:
-            #gauss_ker2 = Gaussian2DKernel(x_stddev=1)
             cond1 = array_prep1 == 0
             cond2 = np.isnan(array_prep2)
             new_nan = np.where(cond1 & cond2)
@@ -187,12 +184,10 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
             ker2 = 1
             array_prep_corr1 = frame_filter_lowpass(array_prep2, mode='gauss',
                                                     fwhm_size=ker)
-            #interp_nan(array_prep2, kernel=gauss_ker1)
             if 'noise' in edge_blend:
                 array_prep_corr2 = frame_filter_lowpass(array_prep2,
                                                         mode='gauss',
                                                         fwhm_size=ker2)
-                #interp_nan(array_prep2, kernel=gauss_ker2)
                 ori_nan = np.where(np.isnan(array_prep1))
                 array_prep[ori_nan] = array_prep_corr2[ori_nan]
                 array_prep[new_nan] += array_prep_corr1[new_nan]
@@ -319,10 +314,11 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
 def cube_derotate(array, angle_list, imlib='vip-fft', interpolation='lanczos4',
                   cxy=None, nproc=1, border_mode='constant', mask_val=np.nan,
                   edge_blend=None, interp_zeros=False, ker=1):
-    """ Rotates an cube (3d array or image sequence) providing a vector or
-    corresponding angles. Serves for rotating an ADI sequence to a common north
-    given a vector with the corresponding parallactic angles for each frame. By
-    default bicubic interpolation is used (opencv).
+    """Rotate a cube (3d array or image sequence) providing a vector or\
+    corresponding angles.
+
+    Serves for rotating an ADI sequence to a common north given a vector with
+    the corresponding parallactic angles for each frame.
 
     Parameters
     ----------
@@ -396,7 +392,7 @@ def _frame_rotate_mp(frame, angle, imlib, interpolation, cxy, border_mode,
 
 def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
                       truncate=False, max_frames=200):
-    """ Returns the indices to be left in frames library for annular ADI median
+    """Return the indices to be left in frames library for annular ADI median\
     subtraction, LOCI or annular PCA.
 
     Parameters
@@ -484,7 +480,8 @@ def _find_indices_adi(angle_list, frame, thr, nframes=None, out_closest=False,
 
 
 def _compute_pa_thresh(ann_center, fwhm, delta_rot=1):
-    """ Computes the parallactic angle threshold [degrees]
+    """Compute the parallactic angle threshold [degrees].
+
     Replacing approximation: delta_rot * (fwhm/ann_center) / np.pi * 180
     """
     return np.rad2deg(2 * np.arctan(delta_rot * fwhm / (2 * ann_center)))
@@ -507,7 +504,6 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
         msg += ' value for annulus {:.0f}: {:.2f}'
         if strict:
             print(msg.format(pa_threshold, ann, new_pa_th))
-            #raise ValueError(msg.format(pa_threshold,ann, new_pa_th))
         else:
             print('PA threshold {:.2f} is likely too big, will be set to '
                   '{:.2f}'.format(pa_threshold, new_pa_th))

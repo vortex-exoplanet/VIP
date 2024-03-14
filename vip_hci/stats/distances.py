@@ -24,19 +24,15 @@ __author__ = 'Carlos Alberto Gomez Gonzalez; V. Christiaens'
 __all__ = ['cube_distance',
            'spectral_correlation']
 
-from astropy.stats import gaussian_fwhm_to_sigma
 import numpy as np
-import scipy.stats
-from scipy.optimize import curve_fit
+from scipy.stats import pearsonr, spearmanr
+from astropy.stats import gaussian_fwhm_to_sigma
 from matplotlib import pyplot as plt
-try:
-    # for skimage version >= '0.16' use skimage.metrics.structural_similarity
-    from skimage.metrics import structural_similarity as ssim
-except BaseException:
-    # before skimage version '0.16' use skimage.measure.compare_ssim
-    from skimage.measure import compare_ssim as ssim
-from ..var import get_annulus_segments, get_circle
+from scipy.optimize import curve_fit
+from skimage.metrics import structural_similarity as ssim
+
 from ..config import vip_figsize
+from ..var import get_annulus_segments, get_circle
 
 
 def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
@@ -132,10 +128,10 @@ def cube_distance(array, frame, mode='full', dist='sad', inradius=None,
         elif dist == 'mse':
             lista.append((np.sum((frame_ref - framei)**2))/len(frame_ref))
         elif dist == 'pearson':
-            pears, _ = scipy.stats.pearsonr(frame_ref.ravel(), framei.ravel())
+            pears, _ = pearsonr(frame_ref.ravel(), framei.ravel())
             lista.append(pears)
         elif dist == 'spearman':
-            spear, _ = scipy.stats.spearmanr(frame_ref.ravel(), framei.ravel())
+            spear, _ = spearmanr(frame_ref.ravel(), framei.ravel())
             lista.append(spear)
         elif dist == 'ssim':
             mean_ssim = ssim(frame_ref, framei, win_size=7,

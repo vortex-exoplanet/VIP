@@ -30,9 +30,9 @@ __all__ = ['frame_shift',
            'cube_recenter_2dfit',
            'cube_recenter_via_speckles']
 
-import numpy as np
 import warnings
-from packaging import version
+
+import numpy as np
 
 try:
     import cv2
@@ -45,14 +45,11 @@ except ImportError:
 from hciplot import plot_frames
 from scipy.ndimage import fourier_shift
 from scipy.ndimage import shift
-import skimage
 from skimage.transform import radon
-if version.parse(skimage.__version__) <= version.parse('0.17.0'):
-    from skimage.feature import register_translation as cc_center
-else:
-    from skimage.registration import phase_cross_correlation as cc_center
+from skimage.registration import phase_cross_correlation
 from multiprocessing import cpu_count
 from matplotlib import pyplot as plt
+
 from ..config import time_ini, timing, Progressbar
 from ..config.utils_conf import vip_figsize, check_array
 from ..config.utils_conf import pool_map, iterable
@@ -60,14 +57,14 @@ from ..stats import frame_basic_stats
 from ..var import (get_square, frame_center, get_annulus_segments,
                    fit_2dmoffat, fit_2dgaussian, fit_2dairydisk,
                    fit_2d2gaussian, cube_filter_lowpass, cube_filter_highpass,
-                   frame_filter_highpass)
+                   frame_filter_highpass, frame_filter_lowpass)
 from .cosmetics import cube_crop_frames, frame_crop
 from .subsampling import cube_collapse
 
 
 def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
                 interpolation='lanczos4', border_mode='reflect'):
-    """ Shifts a 2D array by shift_y, shift_x.
+    """Shift a 2D array by shift_y, shift_x.
 
     Parameters
     ----------
@@ -309,8 +306,8 @@ def cube_shift(cube, shift_y, shift_x, imlib='vip-fft',
 
 def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
                           imlib='vip-fft', interpolation='lanczos4',
-                          fit_type='moff', border_mode='reflect', debug=False,
-                          verbose=True):
+                          fit_type='moff', filter_freq=(0, 0),
+                          border_mode='reflect', debug=False, verbose=True):
     """Find the center of a frame with satellite spots (relevant e.g. for\
     VLT/SPHERE data).
 
@@ -346,6 +343,14 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     fit_type: str, optional {'gaus','moff'}
         Type of 2d fit to infer the centroid of the satellite spots.
+    filter_freq: tuple of 2 floats, optional
+        If the first (resp. second) element of the tuple is larger than 0,
+        a high-pass (resp. low-pass) filter is applied to the image,
+        before fitting the satellite spots. The elements should correspond to
+        the fwhm_size of the frame_filter_highpass and frame_filter_lowpass
+        functions, respectively. If both elements are non-zero, both high-pass
+        and low-pass filter of the image are applied, in that order. This can be
+        useful to better isolate the signal from the satellite spots.
     border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
         Points outside the boundaries of the input are filled accordingly.
         With 'reflect', the input is extended by reflecting about the edge of
@@ -447,6 +452,12 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
     centy = []
     subims = []
 
+    if filter_freq[0] > 0:
+        array = frame_filter_highpass(array, mode='gauss-subt',
+                                      fwhm_size=filter_freq[0])
+    if filter_freq[1] > 0:
+        array = frame_filter_lowpass(array, fwhm_size=filter_freq[1])
+
     for i in range(len(xy)):
         sim, y, x = get_square(array, subi_size, xy[i][1], xy[i][0],
                                position=True, verbose=False)
@@ -504,15 +515,16 @@ def frame_center_satspots(array, xy, subi_size=19, sigfactor=6, shift=False,
 
 
 def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
-                           fit_type='moff', lbda=None, border_mode='constant',
-                           debug=False, verbose=True, full_output=False):
+                           fit_type='moff', lbda=None, filter_freq=(0, 0),
+                           border_mode='constant', debug=False, verbose=True,
+                           full_output=False):
     """Recenter an image cube based on satellite spots (more details in `.
 
     The function relies on ``frame_center_satspots`` to align each image of the
-    sequence individually (more details in the docstring of that function). The
-    function can also return the shifted images, plot the histogram of the
-    shifts, and calculate its statistics. This is important to assess the
-    dispersion of the star center by using artificial waffle/satellite spots
+    cube individually (details in ``vip_hci.preproc.frame_center_satspots``).
+    The function returns the recentered image cube, abd can also plot the
+    histogram of the shifts, and calculate its statistics. The latter can help
+    to assess the dispersion of the star center by using waffle/satellite spots
     (like those in VLT/SPHERE images) and evaluate the uncertainty of the
     position of the center.
 
@@ -543,6 +555,14 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
     lbda: 1d array or list, opt
         Wavelength vector. If provided, the subimages will be scaled accordingly
         to follow the motion of the satellite spots.
+    filter_freq: tuple of 2 floats, optional
+        If the first (resp. second) element of the tuple is larger than 0,
+        a high-pass (resp. low-pass) filter is applied to the image,
+        before fitting the satellite spots. The elements should correspond to
+        the fwhm_size of the frame_filter_highpass and frame_filter_lowpass
+        functions, respectively. If both elements are non-zero, both high-pass
+        and low-pass filter of the image are applied, in that order.
+        This can be useful to isolate the signal from the satellite spots.
     border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
         Points outside the boundaries of the input are filled accordingly.
         With 'reflect', the input is extended by reflecting about the edge of
@@ -604,6 +624,7 @@ def cube_recenter_satspots(array, xy, subi_size=19, sigfactor=6, plot=True,
         res = frame_center_satspots(array[i], final_xy[i], debug=debug,
                                     shift=True, subi_size=subi_size,
                                     sigfactor=sigfactor, fit_type=fit_type,
+                                    filter_freq=filter_freq,
                                     verbose=False, border_mode=border_mode)
         array_rec.append(res[0])
         shift_y[i] = res[1]
@@ -734,8 +755,6 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
         [full_output=True] Radon cost function surface.
 
     """
-    from .cosmetics import frame_crop
-
     if array.ndim != 2:
         raise TypeError('Input array is not a frame or 2d array')
 
@@ -1029,9 +1048,11 @@ def _radon_costf(frame, cent, radint, coords, satspots_cfg=None, theta_0=0,
 
 def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
                         interpolation='lanczos4', border_mode='reflect',
-                        **kwargs):
-    """Recenter a cube looping through its frames and calling the\
-    ``frame_center_radon`` function, as in [PUE15]_.
+                        nproc=None, **kwargs):
+    """Recenter a cube using the Radon transform, as in [PUE15]_.
+
+    The function loops through its frames, relying on the ``frame_center_radon``
+    function for the recentering.
 
     Parameters
     ----------
@@ -1053,6 +1074,9 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
         beyond the edge with zeros. With 'mirror', the input is extended by
         reflecting about the center of the last pixel. With 'wrap', the input is
         extended by wrapping around to the opposite edge. Default is 'reflect'.
+    nproc : int, optional
+        Number of processes for parallel computing. If None the number of
+        processes will be set to cpu_count()/2.
     kwargs:
         Other optional parameters for ``vip_hci.preproc.frame_center_radon``
         function, such as cropsize, hsize, step, satspots_cfg, mask_center,
@@ -1070,6 +1094,8 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
 
     """
     check_array(array, dim=3)
+    if nproc is None:
+        nproc = int(cpu_count() / 2)
 
     if verbose:
         start_time = time_ini()
@@ -1085,7 +1111,7 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
                          verbose=verbose):
         res = frame_center_radon(array[i], verbose=False, plot=False,
                                  imlib=imlib, interpolation=interpolation,
-                                 full_output=True, **kwargs)
+                                 full_output=True, nproc=nproc, **kwargs)
         y[i] = res[0]
         x[i] = res[1]
         dyx[i] = res[2]
@@ -1110,8 +1136,8 @@ def cube_recenter_dft_upsampling(array, upsample_factor=100, subi_size=None,
                                  verbose=True, nproc=None, save_shifts=False,
                                  debug=False, plot=True, **collapse_args):
     """Recenter a cube of frames using the DFT upsampling method as proposed\
-    in [GUI08]_ and implemented in the ``register_translation`` function from\
-    scikit-image.
+    in [GUI08]_ and implemented in the ``phase_cross_correlation`` function\
+    from scikit-image.
 
     The algorithm (DFT upsampling) obtains an initial estimate of the
     cross-correlation peak by an FFT and then refines the shift estimation by
@@ -1157,7 +1183,7 @@ def cube_recenter_dft_upsampling(array, upsample_factor=100, subi_size=None,
     mask: 2D np.ndarray, optional
         Binary mask indicating where the cross-correlation should be calculated
         in the images. If provided, should be the same size as array frames.
-        [Note: only used if version of skimage >= 0.18.0]
+        [Note: requires skimage >= 0.18.0]
     border_mode : {'reflect', 'nearest', 'constant', 'mirror', 'wrap'}
         Points outside the boundaries of the input are filled accordingly.
         With 'reflect', the input is extended by reflecting about the edge of
@@ -1222,9 +1248,9 @@ def cube_recenter_dft_upsampling(array, upsample_factor=100, subi_size=None,
     n_frames, sizey, sizex = array.shape
     if subi_size is not None:
         if center_fr1 is None:
-            print('`cx_1` or `cy_1` not provided')
-            print('Using the coordinates of the 1st frame center for '
-                  'the Gaussian 2d fit')
+            print("`center_fr1` not provided")
+            print("Using the coordinates of the 1st frame center for "
+                  "the Gaussian 2d fit")
             cy_1, cx_1 = frame_center(array[0])
         else:
             cy_1, cx_1 = center_fr1
@@ -1347,15 +1373,12 @@ def cube_recenter_dft_upsampling(array, upsample_factor=100, subi_size=None,
 
 def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
                imlib, border_mode):
-    """Dft-based shift, as used in recenter_dft_unsampling."""
-    if version.parse(skimage.__version__) > version.parse('0.17.0'):
-        shift_yx = cc_center(array_rec[0], array[frnum],
-                             upsample_factor=upsample_factor,
-                             reference_mask=mask)
-    else:
-        shift_yx = cc_center(array_rec[0], array[frnum],
-                             upsample_factor=upsample_factor)
+    """Align images using a DFT-based cross-correlation algorithm."""
+    shift_yx = phase_cross_correlation(array_rec[0], array[frnum],
+                                       upsample_factor=upsample_factor,
+                                       reference_mask=mask)
     y_i, x_i = shift_yx[0]
+
     array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
                               imlib=imlib, interpolation=interpolation,
                               border_mode=border_mode)
@@ -1827,18 +1850,18 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                                  force=True, verbose=False)
     else:
         subframesize = cube_sci.shape[-1]
-        cube_sci_subframe = cube_sci.copy()
+        cube_sci_subframe = np.copy(cube_sci)
         if ref_star:
-            cube_ref_subframe = cube_ref.copy()
+            cube_ref_subframe = np.copy(cube_ref)
 
     ceny, cenx = frame_center(cube_sci_subframe[0])
     print('Sub frame shape: {}'.format(cube_sci_subframe.shape))
     print('Center pixel: ({}, {})'.format(ceny, cenx))
 
     # Filtering cubes. Will be used for alignment purposes
-    cube_sci_lpf = cube_sci_subframe.copy()
+    cube_sci_lpf = np.copy(cube_sci_subframe)
     if ref_star:
-        cube_ref_lpf = cube_ref_subframe.copy()
+        cube_ref_lpf = np.copy(cube_ref_subframe)
 
     cube_sci_lpf = cube_sci_lpf - np.min(cube_sci_lpf)
     if ref_star:
@@ -1857,7 +1880,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                            fwhm_size=min_spat_freq * fwhm,
                                            verbose=False)
     else:
-        cube_sci_lpf = cube_sci_hpf
+        cube_sci_lpf = np.copy(cube_sci_hpf)
 
     if ref_star:
         if max_spat_freq > 0:
@@ -1871,7 +1894,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                                fwhm_size=min_spat_freq * fwhm,
                                                verbose=False)
         else:
-            cube_ref_lpf = cube_ref_hpf
+            cube_ref_lpf = np.copy(cube_ref_hpf)
 
     if ref_star:
         align_cube = np.zeros((1 + n + nref, subframesize, subframesize))
@@ -1996,7 +2019,6 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                 cube_stret = np.log10((align_cube-np.min(align_cube)+1)**gam)
             else:
                 cube_stret = align_cube.copy()
-            cube_stret = np.log10((np.abs(align_cube) + 1)**gam)
             if mask is not None and crop:
                 mask_tmp = frame_crop(mask, subframesize)
             else:
@@ -2021,7 +2043,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             cum_y_shifts += y_shift
             cum_x_shifts += x_shift
 
-    cube_reg_sci = cube_sci.copy()
+    cube_reg_sci = np.copy(cube_sci)
     cum_y_shifts_sci = cum_y_shifts[1:(n + 1)]
     cum_x_shifts_sci = cum_x_shifts[1:(n + 1)]
     cube_reg_sci = cube_shift(cube_sci, cum_y_shifts_sci, cum_x_shifts_sci,
@@ -2047,7 +2069,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         plt.xlabel('Pixels')
 
     if ref_star:
-        cube_reg_ref = cube_ref.copy()
+        cube_reg_ref = np.copy(cube_ref)
         cum_y_shifts_ref = cum_y_shifts[(n + 1):]
         cum_x_shifts_ref = cum_x_shifts[(n + 1):]
         cube_reg_ref = cube_shift(cube_ref, cum_y_shifts_ref, cum_x_shifts_ref,
@@ -2130,8 +2152,6 @@ def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15,
         ceny, cenx = frame_center(psf_subimage)
         ceny += y_sub_px
         cenx += x_sub_px
-    else:
-        psf_subimage = array.copy()
 
     ann_sz = ann_width*fwhm
 

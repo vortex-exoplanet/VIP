@@ -741,7 +741,7 @@ def throughput(
         mod = algo.__module__[:idx]
         tmp = __import__(mod, fromlist=[algo_name.upper()+'_Params'])
         algo_params = getattr(tmp, algo_name.upper()+'_Params')
-        argl = [attr for attr in vars(algo_params)]
+        argl = [attr for attr in dir(algo_params)]
         if "cube" in argl and "angle_list" in argl and "verbose" in argl:
             # (ii) a VIP postproc algorithm [OK]
             pass
@@ -886,7 +886,7 @@ def throughput(
                     tmp = __import__(
                         mod, fromlist=[algo_name.upper()+'_Params'])
                     algo_params = getattr(tmp, algo_name.upper()+'_Params')
-                    arg = [attr for attr in vars(algo_params)]
+                    arg = [attr for attr in dir(algo_params)]
                     if "cube" in arg and "angle_list" in arg and "verbose" in arg:
                         # (ii) a VIP postproc algorithm [OK]
                         pass
@@ -1012,7 +1012,7 @@ def throughput(
                     tmp = __import__(
                         mod, fromlist=[algo_name.upper()+'_Params'])
                     algo_params = getattr(tmp, algo_name.upper()+'_Params')
-                    arg = [attr for attr in vars(algo_params)]
+                    arg = [attr for attr in dir(algo_params)]
                     if "cube" in arg and "angle_list" in arg and "verbose" in arg:
                         # (ii) a VIP postproc algorithm [OK]
                         pass

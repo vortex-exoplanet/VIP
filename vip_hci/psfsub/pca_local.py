@@ -807,6 +807,10 @@ def do_pca_patch(
         else:
             data_ref = matrix
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> master
     if matrix_ref is not None:
         # Stacking the ref and the target ref (pa thresh) libraries
         if data_ref is not None:

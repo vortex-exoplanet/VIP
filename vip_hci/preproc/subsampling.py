@@ -29,7 +29,7 @@ def cube_collapse(cube, mode='median', n=50, w=None):
     ----------
     cube : numpy ndarray
         Cube.
-    mode : {'median', 'mean', 'sum', 'max', 'trimmean', 'absmean', 'wmean'}, str, optional
+    mode : {'median', 'mean', 'sum', 'max', 'trimmean', 'absmean', 'wmean'}
         Sets the way of collapsing the images in the cube.
         'wmean' stands for weighted mean and requires weights w to be provided.
         'absmean' stands for the mean of absolute values (potentially useful

@@ -62,6 +62,7 @@ from ..var import (get_square, frame_center, get_annulus_segments,
                    fit_2d2gaussian, cube_filter_lowpass, cube_filter_highpass,
                    frame_filter_highpass)
 from .cosmetics import cube_crop_frames, frame_crop
+from .subsampling import cube_collapse
 
 
 def frame_shift(array, shift_y, shift_x, imlib='vip-fft',
@@ -763,7 +764,7 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
             radint = mask_center
 
         coords = [(y, x) for y in listyx for x in listyx]
-        #coords = [(x, y) for y in listyx for x in listyx]
+        #  coords = [(x, y) for y in listyx for x in listyx]
         cent, _ = frame_center(frame)
 
         frame = get_annulus_segments(frame, radint, cent-radint, mode="mask")[0]
@@ -861,7 +862,7 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
             plt.grid('off')
             plt.show()
 
-        if gauss_fit:# or full_output:
+        if gauss_fit:  # or full_output:
             # fit a 2d gaussian to the surface
             fit_res = fit_2dgaussian(cost_bound-np.amin(cost_bound), crop=False,
                                      threshold=False, sigfactor=3, debug=debug,
@@ -887,9 +888,9 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
 
             # maxima in the 2d cost function surface
             # num_max = np.where(cost_bound == cost_bound.max())[0].shape[0]
-            # ind_maximay, ind_maximax = np.where(cost_bound == cost_bound.max())
-            # argmy = ind_maximay[int(np.ceil(num_max/2)) - 1]
-            # argmx = ind_maximax[int(np.ceil(num_max/2)) - 1]
+            # ind_maxy, ind_maxx = np.where(cost_bound == cost_bound.max())
+            # argmy = ind_maxy[int(np.ceil(num_max/2)) - 1]
+            # argmx = ind_maxx[int(np.ceil(num_max/2)) - 1]
             # y_grid = np.array(coords)[:, 0].reshape(listyx.shape[0],
             #                                         listyx.shape[0])
             # x_grid = np.array(coords)[:, 1].reshape(listyx.shape[0],
@@ -1101,12 +1102,13 @@ def cube_recenter_radon(array, full_output=False, verbose=True, imlib='vip-fft',
         return array_rec
 
 
-def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
-                                 fwhm=4, subi_size=None, upsample_factor=100,
+def cube_recenter_dft_upsampling(array, upsample_factor=100, subi_size=None,
+                                 center_fr1=None, negative=False, fwhm=4,
                                  imlib='vip-fft', interpolation='lanczos4',
                                  mask=None, border_mode='reflect', log=False,
-                                 full_output=False, verbose=True, nproc=None,
-                                 save_shifts=False, debug=False, plot=True):
+                                 collapse='median', full_output=False,
+                                 verbose=True, nproc=None, save_shifts=False,
+                                 debug=False, plot=True, **collapse_args):
     """Recenter a cube of frames using the DFT upsampling method as proposed\
     in [GUI08]_ and implemented in the ``register_translation`` function from\
     scikit-image.
@@ -1116,28 +1118,38 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
     upsampling the DFT only in a small neighborhood of that estimate by means
     of a matrix-multiply DFT.
 
+    Optionally, after alignment of all images to the first one, a 2D Gaussian
+    fit can be made to the mean image to recenter them based on the location of
+    the Gaussian centroid. This second stage is performed if subi_size is not
+    None.
+
     Parameters
     ----------
     array : numpy ndarray
         Input cube.
-    center_fr1 = (cy_1, cx_1) : Tuple, optional
-        Coordinates of the center of the subimage for fitting a 2d Gaussian and
-        centroiding the 1st frame.
-    negative : bool, optional
-        If True the centroiding of the 1st frames is done with a negative
-        2d Gaussian fit.
-    fwhm : float, optional
-        FWHM size in pixels.
+    upsample_factor : int, optional
+        Upsampling factor (default 100). Images will be registered to within
+        1/upsample_factor of a pixel. The larger the slower the algorithm.
     subi_size : int or None, optional
-        Size of the square subimage sides in pixels, used to centroid to first
-        frame. If subi_size is None then the first frame is assumed to be
+        Size of the square subimage sides in pixels, used to find the centroid
+        of the mean aligned cube image (i.e. after DFT-based registration). If
+        subi_size is None then the first frame is assumed to be
         centered already.
+    center_fr1 = (cy_1, cx_1) : Tuple, optional
+        [subi_size != None] Coordinates of the center of the subimage for
+        fitting a 2d Gaussian. Since the first part of the function of the
+        algorithm aligns all subsequent frames to the first one. This tuple
+        should be the rough coordinates of the centroid in the first frame. If
+        not provided, the function considers the center of the images.
+    negative : bool, optional
+        [subi_size != None] If True the final centroiding is done with a
+        negative 2D Gaussian fit, instead of a positive one.
+    fwhm : float, optional
+        [subi_size != None] First guess of the FWHM in pixels for the Gaussian
+        fit.
     nproc : int or None, optional
         Number of processes (>1) for parallel computing. If 1 then it runs in
         serial. If None the number of processes will be set to (cpu_count()/2).
-    upsample_factor : int, optional
-        Upsampling factor (default 100). Images will be registered to within
-        1/upsample_factor of a pixel.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_shift`` function.
     interpolation : str, optional
@@ -1154,10 +1166,14 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         beyond the edge with zeros. With 'mirror', the input is extended by
         reflecting about the center of the last pixel. With 'wrap', the input is
         extended by wrapping around to the opposite edge. Default is 'reflect'.
-    log : bool
+    log : bool, optional
         Whether to run the cross-correlation algorithm on images converted in
         log scale. This can be useful to leverage the whole extent of the PSF
         and be less dominated by the brightest central pixels.
+    collapse : {'median', 'mean', 'sum', 'max', 'trimmean', 'absmean', 'wmean'}
+        Method used to collapse the aligned cube before 2D Gaussian fit. Should
+        be an argument accepted by the ``vip_hci.preproc.cube_collapse``
+        function.
     full_output : bool, optional
         Whether to return 2 1d arrays of shifts along with the recentered cube
         or not.
@@ -1169,6 +1185,9 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         Whether to print to stdout the shifts or not.
     plot : bool, optional
         If True, the shifts are plotted.
+    collapse_args: opt
+        Additional options passed to the ``vip_hci.preproc.cube_collapse``
+        function.
 
     Returns
     -------
@@ -1273,7 +1292,8 @@ def cube_recenter_dft_upsampling(array, center_fr1=None, negative=False,
         if log:
             array_rec = cube_shift(array, shift_y=y, shift_x=x, imlib=imlib,
                                    interpolation=interpolation, nproc=nproc)
-        y1, x1 = _centroid_2dg_frame([np.mean(array_rec, axis=0)], 0, subi_size,
+        marray_al = cube_collapse(array_rec, mode=collapse, **collapse_args)
+        y1, x1 = _centroid_2dg_frame([marray_al], 0, subi_size,
                                      cy_1, cx_1, negative, debug, fwhm)
         x[:] += cx - x1
         y[:] += cy - y1
@@ -1686,10 +1706,10 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                gammaval=1, min_spat_freq=0.5, max_spat_freq=3,
                                fwhm=4, debug=False, recenter_median=False,
                                fit_type='gaus', negative=True, crop=True,
-                               subframesize=21, mask=None, imlib='vip-fft',
-                               interpolation='lanczos4', border_mode='reflect',
-                               log=True, plot=True, full_output=False,
-                               nproc=None):
+                               subframesize=21, mask=None, collapse='median',
+                               imlib='vip-fft', interpolation='lanczos4',
+                               border_mode='reflect', log=True, plot=True,
+                               full_output=False, nproc=None, **collapse_args):
     """Register frames based on the median speckle pattern.
 
     The function also optionally centers images based on the position of the
@@ -1733,6 +1753,10 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     mask: 2D np.ndarray, optional
         Binary mask indicating where the cross-correlation should be calculated
         in the images. If provided, should be the same size as array frames.
+    collapse : {'median', 'mean', 'sum', 'max', 'trimmean', 'absmean', 'wmean'}
+        Method used to collapse the aligned cube before 2D Gaussian fit. Should
+        be an argument accepted by the ``vip_hci.preproc.cube_collapse``
+        function.
     imlib : str, optional
         Image processing library to use.
     interpolation : str, optional
@@ -1753,7 +1777,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         If True, the shifts are plotted.
     full_output: bool, optional
         Whether to return more variables, useful for debugging.
-
+    **collapse_args:
+        Additional arguments passed to the ``vip_hci.preproc.cube_collapse``
+        function.
 
     Returns
     -------
@@ -1871,8 +1897,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             mask_tmp = frame_crop(mask, subframesize)
         else:
             mask_tmp = mask
-        res = cube_recenter_dft_upsampling(cube_stret, (ceny, cenx), fwhm=fwhm,
-                                           subi_size=None, full_output=True,
+        res = cube_recenter_dft_upsampling(cube_stret, center_fr1=(ceny, cenx),
+                                           fwhm=fwhm, subi_size=None,
+                                           full_output=True,
                                            verbose=debug, plot=plot,
                                            mask=mask_tmp, imlib=imlib,
                                            interpolation=interpolation,
@@ -1890,7 +1917,8 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         cum_x_shifts += x_shift
 
         if recenter_median:
-            align_cube[0] = np.median(align_cube[1:(n + 1)], axis=0)
+            align_cube[0] = cube_collapse(align_cube[1:(n + 1)], mode=collapse,
+                                          **collapse_args)
             # Recenter the median frame using a 2d fit
             if fit_type == 'gaus' and negative:
                 crop_sz = int(fwhm)
@@ -1899,7 +1927,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             else:
                 crop_sz = int(6*fwhm)
             if not crop_sz % 2:
-                # size should be odd and small, but at least 7 for 2D fit
+                # size should be odd and small, between 5 and 7
                 if crop_sz > 7:
                     crop_sz -= 1
                 else:
@@ -1925,15 +1953,18 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             cum_x_shifts += xshift
     else:
         for i in range(alignment_iter):
-            align_cube[0] = np.median(align_cube[1:(n + 1)], axis=0)
+            align_cube[0] = cube_collapse(align_cube[1:(n + 1)], mode=collapse,
+                                          **collapse_args)
             if recenter_median:
                 # Recenter the median frame using a 2d fit
-                if fit_type == 'gaus':
+                if fit_type == 'gaus' and negative:
                     crop_sz = int(fwhm)
+                elif fit_type == 'gaus':
+                    crop_sz = int(3*fwhm)
                 else:
                     crop_sz = int(6*fwhm)
                 if not crop_sz % 2:
-                    # size should be odd and small, but at least 7 for 2D fit
+                    # size should be odd and small, between 5 and 7
                     if crop_sz > 7:
                         crop_sz -= 1
                     else:
@@ -1970,9 +2001,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                 mask_tmp = frame_crop(mask, subframesize)
             else:
                 mask_tmp = mask
-            res = cube_recenter_dft_upsampling(cube_stret, (ceny, cenx),
-                                               fwhm=fwhm, subi_size=None,
-                                               full_output=True,
+            res = cube_recenter_dft_upsampling(cube_stret, subi_size=None,
+                                               center_fr1=(ceny, cenx),
+                                               fwhm=fwhm, full_output=True,
                                                verbose=False, plot=False,
                                                mask=mask_tmp, imlib=imlib,
                                                interpolation=interpolation,

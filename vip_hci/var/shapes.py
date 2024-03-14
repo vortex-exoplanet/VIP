@@ -27,11 +27,7 @@ __all__ = ['get_square',
            'mask_roi']
 
 import numpy as np
-<<<<<<< HEAD
 from skimage.draw import disk, ellipse, polygon
-=======
-from skimage.draw import polygon, disk
->>>>>>> master
 from sklearn.preprocessing import scale
 
 from hciplot import plot_frames
@@ -561,7 +557,8 @@ def get_annulus_segments(data, inner_radius, width, nsegm=1, theta_init=0,
             masks.append((rad >= inner_radius) & (rad < outer_radius) &
                          (phirot >= phi_start) & (phirot < phi_end))
 
-    if out: mask = ~np.array(masks)
+    if out:
+        masks = ~np.array(masks)
 
     if mode == "ind":
         return [np.where(mask) for mask in masks]

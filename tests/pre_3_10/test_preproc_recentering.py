@@ -280,7 +280,8 @@ def test_approx_star(debug=False):
 
     for model, name in {"gauss": "Gaussian"}.items():
         # ===== odd
-        cube = create_cube_with_gauss2d(shape=(n_frames, 9, 9), mean=4, stddev=1)
+        cube = create_cube_with_gauss2d(shape=(n_frames, 9, 9), mean=4,
+                                        stddev=1)
         cube += np.random.normal(0, 0.1, cube.shape)
         cy, cx = frame_center(cube)
         est_yx = method(cube, fwhm=1)
@@ -592,9 +593,11 @@ def test_satspots_image(debug=False):
 
     # ===== recenter
     spotcoords = [(41, 109), (109, 109), (41, 41), (109, 41)]  # NW NE SW SE
-    method_args = dict(xy=spotcoords, subi_size=25, full_output=True, verbose=True)
+    method_args = dict(xy=spotcoords, subi_size=25, full_output=True,
+                       verbose=True)
     do_recenter(
-        method, cube, randax, randay, errormsg=errormsg, debug=debug, **method_args
+        method, cube, randax, randay, errormsg=errormsg, debug=debug,
+        **method_args
     )
 
 
@@ -620,7 +623,8 @@ def test_satspots(debug=False):
         xy=spotcoords, subi_size=9, plot=True, full_output=True, verbose=True
     )
     do_recenter(
-        method, cube, randax, randay, errormsg=errormsg, debug=debug, **method_args
+        method, cube, randax, randay, errormsg=errormsg, debug=debug,
+        **method_args
     )
 
 
@@ -763,20 +767,22 @@ def test_speckle_recentering(get_cube, debug=False):
     n_frames = ds.cube.shape[0]
 
     # ===== shift
-    randax = np.ones(n_frames)
-    randay = np.ones(n_frames)
+    randax = seed.uniform(-1, 1, size=n_frames)
+    randay = seed.uniform(-1, 1, size=n_frames)
 
     # ===== recenter
     types = ["gaus", "ann"]
+    upsamp_facs = [100, 20]
 
-    for ty in types:
+    for t, ty in enumerate(types):
         method_args = dict(
             plot=False,
             full_output=True,
             fwhm=4.2,
             fit_type=ty,
             recenter_median=True,
-            subframesize=49,
+            upsample_factor=upsamp_facs[t],
+            subframesize=35,
             imlib="opencv",
             interpolation="lanczos4",
         )

@@ -1727,17 +1727,23 @@ def _centroid_2d2g_frame(cube, frnum, size, pos_y, pos_x, debug=False, fwhm=4,
 
 def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                gammaval=1, min_spat_freq=0.5, max_spat_freq=3,
-                               fwhm=4, debug=False, recenter_median=False,
-                               fit_type='gaus', negative=True, crop=True,
-                               subframesize=21, mask=None, collapse='median',
+                               fwhm=4, upsample_factor=100, debug=False,
+                               recenter_median=False, fit_type='gaus',
+                               negative=True, crop=True, subframesize=25,
+                               mask=None, ann_rad=0.5, ann_rad_search=False,
+                               ann_width=0.5, collapse='median',
                                imlib='vip-fft', interpolation='lanczos4',
                                border_mode='reflect', log=True, plot=True,
                                full_output=False, nproc=None, **collapse_args):
     """Register frames based on the median speckle pattern.
 
     The function also optionally centers images based on the position of the
-    vortex null in the median frame (through a negative Gaussian fit). Images
-    are filtered to isolate speckle spatial frequencies.
+    vortex null in the median frame (through a negative Gaussian fit or an
+    annulus fit). By default, images are filtered to isolate speckle spatial
+    frequencies, and converted to log-scale before the cross-correlation based
+    alignment. The image cube should already be centered within ~2px accuracy
+    before being passed to this function (e.g. through an eyeball crop using
+    ``vip_hci.preproc.cube_crop_frames``).
 
     Parameters
     ----------
@@ -1756,6 +1762,9 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         Spatial frequency for high pass filter.
     fwhm : float, optional
         Full width at half maximum.
+    upsample_factor: int, optional
+        Upsampling factor (default 100). Images will be registered to within
+        1/upsample_factor of a pixel. The larger the slower the algorithm.
     debug : bool, optional
         Outputs extra info.
     recenter_median : bool, optional
@@ -1776,6 +1785,12 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     mask: 2D np.ndarray, optional
         Binary mask indicating where the cross-correlation should be calculated
         in the images. If provided, should be the same size as array frames.
+    ann_rad: float, optional
+        [if fit_type='ann'] The expected inner radius of the annulus in FWHM.
+    ann_rad_search: bool
+        [if fit_type='ann'] Whether to also search for optimal radius.
+    ann_width: float, optional
+        [if fit_type='ann'] The expected radial width of the annulus in FWHM.
     collapse : {'median', 'mean', 'sum', 'max', 'trimmean', 'absmean', 'wmean'}
         Method used to collapse the aligned cube before 2D Gaussian fit. Should
         be an argument accepted by the ``vip_hci.preproc.cube_collapse``
@@ -1921,6 +1936,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         else:
             mask_tmp = mask
         res = cube_recenter_dft_upsampling(cube_stret, center_fr1=(ceny, cenx),
+                                           upsample_factor=upsample_factor,
                                            fwhm=fwhm, subi_size=None,
                                            full_output=True,
                                            verbose=debug, plot=plot,
@@ -1965,9 +1981,19 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                           threshold=False, sigfactor=1,
                                           debug=debug, full_output=False)
             elif fit_type == 'ann':
+                if upsample_factor > 20:
+                    print("WARNING: the annulus centering may be slow for ")
+                    print("upsample_factor larger than 20")
+                sampl_cen = 1./upsample_factor
+                if ann_rad_search:
+                    sampl_rad = fwhm*ann_rad/10  # 1/10 of estimated radius
+                else:
+                    sampl_rad = None
                 y_i, x_i, rad = _fit_2dannulus(sub_image, fwhm=fwhm, crop=False,
-                                               hole_rad=0.5, sampl_cen=0.1,
-                                               sampl_rad=0.2, ann_width=0.5,
+                                               ann_rad=ann_rad,
+                                               sampl_cen=sampl_cen,
+                                               sampl_rad=sampl_rad,
+                                               ann_width=ann_width,
                                                unc_in=2.)
             yshift = ceny - (y1 + y_i)
             xshift = cenx - (x1 + x_i)
@@ -1987,7 +2013,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                 else:
                     crop_sz = int(6*fwhm)
                 if not crop_sz % 2:
-                    # size should be odd and small, between 5 and 7
+                    # size should be odd and small
                     if crop_sz > 7:
                         crop_sz -= 1
                     else:
@@ -2002,10 +2028,17 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
                                               threshold=False, sigfactor=1,
                                               debug=debug, full_output=False)
                 elif fit_type == 'ann':
+                    sampl_cen = 1./upsample_factor
+                    if ann_rad_search:
+                        sampl_rad = fwhm*ann_rad/10  # 1/10 of estimated radius
+                    else:
+                        sampl_rad = None
                     y_i, x_i, rad = _fit_2dannulus(sub_image, fwhm=fwhm,
-                                                   crop=False, hole_rad=0.5,
-                                                   sampl_cen=0.1, sampl_rad=0.2,
-                                                   ann_width=0.5, unc_in=2.)
+                                                   crop=False, ann_rad=ann_rad,
+                                                   sampl_cen=sampl_cen,
+                                                   sampl_rad=sampl_rad,
+                                                   ann_width=ann_width,
+                                                   unc_in=2.)
                 yshift = ceny - (y1 + y_i)
                 xshift = cenx - (x1 + x_i)
 
@@ -2024,6 +2057,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
             else:
                 mask_tmp = mask
             res = cube_recenter_dft_upsampling(cube_stret, subi_size=None,
+                                               upsample_factor=upsample_factor,
                                                center_fr1=(ceny, cenx),
                                                fwhm=fwhm, full_output=True,
                                                verbose=False, plot=False,
@@ -2092,7 +2126,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
 
 
 def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15,
-                   hole_rad=0.5, sampl_cen=0.1, sampl_rad=None, ann_width=0.5,
+                   ann_rad=0.5, ann_width=0.5, sampl_cen=0.1, sampl_rad=None,
                    unc_in=2.):
     """Find the center of a donut-shape signal (e.g. a coronagraphic PSF) with\
     an annulus fit.
@@ -2109,10 +2143,12 @@ def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15,
         center of the frame.
     fwhm : float
         Gaussian PSF full width half maximum from fitting (in pixels).
-    hole_rad: float, opt
+    ann_rad: float, opt
         First estimate of the hole radius (in terms of fwhm). The grid search
         on the radius of the optimal annulus goes from 0.5 to 2 times hole_rad.
         Note: for the AGPM PSF of VLT/NACO, the optimal hole_rad ~ 0.5FWHM.
+    ann_width: float, opt
+        Width of the annulus in FWHM; default is 0.5 FWHM.
     sampl_cen: float, opt
         Precision of the grid sampling to find the center of the annulus (in
         pixels)
@@ -2120,8 +2156,6 @@ def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15,
         Precision of the grid sampling to find the optimal radius of the
         annulus (in pixels). If set to None, there is no grid search for the
         optimal radius of the annulus, the value given by hole_rad is used.
-    ann_width: float, opt
-        Width of the annulus in FWHM; default is 0.5 FWHM.
     unc_in: float, opt
         Initial uncertainty on the center location (with respect to center of
         input subframe) in pixels; this will set the grid width.
@@ -2132,9 +2166,10 @@ def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15,
         Source centroid y position on the full image from fitting.
     mean_x : float
         Source centroid x position on the full image from fitting.
-    if sampl_rad is not None, also returns final_hole_rad:
     final_hole_rad : float
-        Best fit radius of the hole, in terms of fwhm.
+        [if sampl_rad != None] Best fit radius of the annulus, in pixels.
+        [if sampl_rad = None] Input radius of the annulus, in pixels.
+
     """
     if cent is None:
         ceny, cenx = frame_center(array)
@@ -2158,9 +2193,9 @@ def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15,
     grid_sh_x = np.arange(-unc_in, unc_in, sampl_cen)
     grid_sh_y = np.arange(-unc_in, unc_in, sampl_cen)
     if sampl_rad is None:
-        rads = [hole_rad*fwhm]
+        rads = [ann_rad*fwhm]
     else:
-        rads = np.arange(0.5*hole_rad*fwhm, 2*hole_rad*fwhm, sampl_rad)
+        rads = np.arange(0.5*ann_rad*fwhm, 2*ann_rad*fwhm, sampl_rad)
     flux_ann = np.zeros([grid_sh_x.shape[0], grid_sh_y.shape[0]])
     best_rad = np.zeros([grid_sh_x.shape[0], grid_sh_y.shape[0]])
 
@@ -2180,7 +2215,7 @@ def _fit_2dannulus(array, fwhm=4, crop=False, cent=None, cropsize=15,
     mean_y = ceny - grid_sh_y[j_max]
 
     if sampl_rad is None:
-        return mean_y, mean_x
+        return mean_y, mean_x, ann_rad*fwhm
     else:
         final_hole_rad = best_rad[i_max, j_max]/fwhm
         return mean_y, mean_x, final_hole_rad

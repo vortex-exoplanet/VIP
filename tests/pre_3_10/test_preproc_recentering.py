@@ -782,7 +782,7 @@ def test_speckle_recentering(get_cube, debug=False):
     # ===== recenter
     types = ["gaus", "ann"]
     upsamp_facs = [100, 20]
-    crop_szs = [35, 81]
+    crop_szs = [35, 59]
 
     for t, ty in enumerate(types):
         if t == 0:

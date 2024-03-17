@@ -1832,7 +1832,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     cum_x_shifts_sci: numpy 1d array
         [full_output=True] Vector of x shifts for science frames
     cum_y_shifts_sci: numpy 1d array
-        [full_output=True] Vector of x shifts for science frames
+        [full_output=True] Vector of y shifts for science frames
     cum_x_shifts_ref: numpy 1d array
         [full_output=True & cube_ref!=None] Vector of x shifts for ref frames
     cum_y_shifts_ref: numpy 1d array

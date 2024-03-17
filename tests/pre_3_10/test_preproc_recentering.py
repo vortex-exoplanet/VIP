@@ -93,7 +93,7 @@ def get_cube(example_dataset_adi):
 
 
 @fixture(scope="module")
-def get_ifs_cube(example_dataset_sdi):
+def get_ifs_cube_cen(example_dataset_ifs_cen):
     """
     Get the ADI+IFS sequence from conftest.py.
 
@@ -107,7 +107,7 @@ def get_ifs_cube(example_dataset_sdi):
     dsi : VIP Dataset
 
     """
-    dsi = copy.copy(example_dataset_sdi)
+    dsi = copy.copy(example_dataset_ifs_cen)
 
     return dsi
 
@@ -141,20 +141,30 @@ def create_cube_with_gauss2d_ring(stddev_inner, stddev_outer, **kwargs):
     return outer - inner
 
 
-def create_cube_with_satspots(n_frames=6, wh=31, star_fwhm=3, debug=False):
+def create_cube_with_satspots(n_frames=6, wh=31, star_fwhm=3, debug=False,
+                              pattern='x', diagonal=None):
     global seed
     shape = (n_frames, wh, wh)
     star = create_cube_with_gauss2d(shape=shape, mean=wh // 2, stddev=star_fwhm)
 
     # make sure satspot is neither too close to star nor at the edge of the
     # image
-    diagonal = seed.uniform(4 * star_fwhm, wh // 2)
+    if diagonal is None:
+        diagonal = seed.uniform(4 * star_fwhm, wh // 2)
+    else:
+        diagonal *= star_fwhm
     d = diagonal / np.sqrt(2)
 
-    sat1_coords = (wh // 2 - d, wh // 2 + d)
-    sat2_coords = (wh // 2 + d, wh // 2 + d)
-    sat3_coords = (wh // 2 - d, wh // 2 - d)
-    sat4_coords = (wh // 2 + d, wh // 2 - d)
+    if pattern == 'x':
+        sat1_coords = (wh // 2 - d, wh // 2 + d)
+        sat2_coords = (wh // 2 + d, wh // 2 + d)
+        sat3_coords = (wh // 2 - d, wh // 2 - d)
+        sat4_coords = (wh // 2 + d, wh // 2 - d)
+    else:
+        sat1_coords = (wh // 2 - 2*d, wh // 2)
+        sat2_coords = (wh // 2 + 2*d, wh // 2)
+        sat3_coords = (wh // 2, wh // 2 - 2*d)
+        sat4_coords = (wh // 2, wh // 2 + 2*d)
 
     sat1 = create_cube_with_gauss2d(shape=shape, mean=sat1_coords, stddev=1)
     sat2 = create_cube_with_gauss2d(shape=shape, mean=sat2_coords, stddev=1)
@@ -637,21 +647,27 @@ def test_radon(debug=False):
     errormsg = "Error when recentering with Radon transform"
     n_frames = 1
 
-    # ===== datacube
-    url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
+    ds = get_ifs_cube_cen
 
-    f1 = download_resource("{}/sphere_ifs_PDS70_cen.fits".format(url_prefix))
-    f2 = download_resource("{}/sphere_ifs_PDS70_psf.fits".format(url_prefix))
+    # ===== OLD - datacube
+    # url_d="https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    # load fits
-    cube = vip.fits.open_fits(f1)
-    psfifs = vip.fits.open_fits(f2)
+    # f1 = download_resource("{}/sphere_ifs_PDS70_cen.fits".format(url_d))
+    # f2 = download_resource("{}/sphere_ifs_PDS70_psf.fits".format(url_d))
+
+    # # load fits
+    # cube = vip.fits.open_fits(f1)
+    # psfifs = vip.fits.open_fits(f2)
+    # norm_psf, flux, fwhm = vip.fm.normalize_psf(
+    #     psfifs, fwhm="fit", full_output=True, size=15
+    # )
+
     norm_psf, flux, fwhm = vip.fm.normalize_psf(
-        psfifs, fwhm="fit", full_output=True, size=15
+        ds.psf, fwhm="fit", full_output=True, size=15
     )
 
     # Fit BKG star position
-    med_fr = np.nanmedian(cube, axis=0)
+    med_fr = np.nanmedian(ds.cube, axis=0)
     fit_res = vip.var.fit_2dgaussian(med_fr, crop=True, cropsize=13,
                                      cent=(144, 147), debug=False,
                                      full_output=True)
@@ -702,7 +718,8 @@ def test_radon(debug=False):
     )
     # med_y = 146.99531922145198
     # med_x = 144.27429227212795
-    for z in range(cube.shape[0]):
+    cube = ds.cube.copy()
+    for z in range(ds.cube.shape[0]):
         cube[z] = vip.fm.frame_inject_companion(
             cube[z],
             norm_psf[z],
@@ -762,33 +779,58 @@ def test_speckle_recentering(get_cube, debug=False):
     method = cube_recenter_via_speckles
     errormsg = "Error when recentering via speckles"
 
-    # ===== datacube
-    ds = get_cube
-    n_frames = ds.cube.shape[0]
-
-    # ===== shift
-    randax = seed.uniform(-1, 1, size=n_frames)
-    randay = seed.uniform(-1, 1, size=n_frames)
-
     # ===== recenter
     types = ["gaus", "ann"]
     upsamp_facs = [100, 20]
+    crop_szs = [35, 81]
 
     for t, ty in enumerate(types):
+        if t == 0:
+            # ===== datacube Beta Pic for gaus test
+            ds = get_cube
+            cube = ds.cube
+            n_frames = ds.cube.shape[0]
+            fwhm = ds.fwhm
+            method_args_additional = {}
+        else:
+            # ===== fiducial datacube with 4 satspots as speckles
+            size = 61
+            mean = size // 2  # - 0.5
+            n_frames = 20
+            cube_ring = create_cube_with_gauss2d_ring(
+                shape=(n_frames, size, size), mean=mean, stddev_outer=4,
+                stddev_inner=2
+            )
+            cube_ss1, spotcoords = create_cube_with_satspots(n_frames=n_frames,
+                                                             wh=size)
+            cube_ss2, spotcoords = create_cube_with_satspots(n_frames=n_frames,
+                                                             wh=size,
+                                                             pattern='+',
+                                                             diagonal=6)
+            rand_noise = 1e-2*np.random.random(cube_ss1.shape)
+            cube = 10*cube_ring + cube_ss1 + 0.1*cube_ss2 + rand_noise
+            fwhm = 3.
+            method_args_additional = dict(ann_rad=0.5, ann_rad_search=False,
+                                          ann_width=1.5)
+        # ===== shift
+        randax = seed.uniform(-1, 1, size=n_frames)
+        randay = seed.uniform(-1, 1, size=n_frames)
+
         method_args = dict(
             plot=False,
             full_output=True,
-            fwhm=4.2,
+            fwhm=fwhm,
             fit_type=ty,
             recenter_median=True,
             upsample_factor=upsamp_facs[t],
-            subframesize=35,
+            subframesize=crop_szs[t],
             imlib="opencv",
             interpolation="lanczos4",
+            **method_args_additional
         )
         do_recenter(
             method,
-            ds.cube,
+            cube,
             randax,
             randay,
             errormsg=errormsg,

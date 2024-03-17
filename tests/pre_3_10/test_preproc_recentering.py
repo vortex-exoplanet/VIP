@@ -647,27 +647,21 @@ def test_radon(get_ifs_cube_cen, debug=False):
     errormsg = "Error when recentering with Radon transform"
     n_frames = 1
 
-    ds = get_ifs_cube_cen
-
     # ===== OLD - datacube
-    # url_d="https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
+    url_d = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    # f1 = download_resource("{}/sphere_ifs_PDS70_cen.fits".format(url_d))
-    # f2 = download_resource("{}/sphere_ifs_PDS70_psf.fits".format(url_d))
+    f1 = download_resource("{}/sphere_ifs_PDS70_cen.fits".format(url_d))
+    f2 = download_resource("{}/sphere_ifs_PDS70_psf.fits".format(url_d))
 
-    # # load fits
-    # cube = vip.fits.open_fits(f1)
-    # psfifs = vip.fits.open_fits(f2)
-    # norm_psf, flux, fwhm = vip.fm.normalize_psf(
-    #     psfifs, fwhm="fit", full_output=True, size=15
-    # )
-
+    # load fits
+    cube = vip.fits.open_fits(f1)
+    psfifs = vip.fits.open_fits(f2)
     norm_psf, flux, fwhm = vip.fm.normalize_psf(
-        ds.psf, fwhm="fit", full_output=True, size=15
+        psfifs, fwhm="fit", full_output=True, size=15
     )
 
     # Fit BKG star position
-    med_fr = np.nanmedian(ds.cube, axis=0)
+    med_fr = np.nanmedian(cube, axis=0)
     fit_res = vip.var.fit_2dgaussian(med_fr, crop=True, cropsize=13,
                                      cent=(144, 147), debug=False,
                                      full_output=True)
@@ -718,8 +712,8 @@ def test_radon(get_ifs_cube_cen, debug=False):
     )
     # med_y = 146.99531922145198
     # med_x = 144.27429227212795
-    cube = ds.cube.copy()
-    for z in range(ds.cube.shape[0]):
+    cube = cube.copy()
+    for z in range(cube.shape[0]):
         cube[z] = vip.fm.frame_inject_companion(
             cube[z],
             norm_psf[z],

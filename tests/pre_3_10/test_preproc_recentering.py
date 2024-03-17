@@ -638,7 +638,7 @@ def test_satspots(debug=False):
     )
 
 
-def test_radon(debug=False):
+def test_radon(get_ifs_cube_cen, debug=False):
     global seed
     if debug:
         html("<h2>===== test_radon =====</h2>")

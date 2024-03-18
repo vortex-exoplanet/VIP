@@ -689,7 +689,8 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
     else:
         # Performing SVD/PCA according to "svd_mode" flag
         ncomp = min(ncomp, min(data_ref.shape[0], data_ref.shape[1]))
-        V = svd_wrapper(data_ref, svd_mode, ncomp, verbose=False, left_eigv=False)
+        V = svd_wrapper(data_ref, svd_mode, ncomp, verbose=False,
+                        left_eigv=left_eigv)
 
     return V
 

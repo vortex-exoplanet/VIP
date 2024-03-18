@@ -92,26 +92,6 @@ def get_cube(example_dataset_adi):
     return dsi
 
 
-@fixture(scope="module")
-def get_ifs_cube_cen(example_dataset_ifs_cen):
-    """
-    Get the ADI+IFS sequence from conftest.py.
-
-    Parameters
-    ----------
-    example_dataset_sdi : fixture
-        Taken automatically from ``conftest.py``.
-
-    Returns
-    -------
-    dsi : VIP Dataset
-
-    """
-    dsi = copy.copy(example_dataset_ifs_cen)
-
-    return dsi
-
-
 def shift_cube(cube, randax, randay):
     return np.array(
         [frame_shift(cube[i], randay[i], randax[i]) for i in range(cube.shape[0])]
@@ -638,7 +618,7 @@ def test_satspots(debug=False):
     )
 
 
-def test_radon(get_ifs_cube_cen, debug=False):
+def test_radon(debug=False):
     global seed
     if debug:
         html("<h2>===== test_radon =====</h2>")

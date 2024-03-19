@@ -691,13 +691,15 @@ def get_eigenvectors(ncomp, data, svd_mode, mode='noise', noise_error=1e-3,
         ncomp = min(ncomp, min(data_ref.shape[0], data_ref.shape[1]))
         V = svd_wrapper(data_ref, svd_mode, ncomp, verbose=False,
                         left_eigv=left_eigv)
+        if left_eigv:
+            V = V.T
 
     return V
 
 
 def randomized_svd_gpu(M, n_components, n_oversamples=10, n_iter='auto',
                        transpose='auto', random_state=0, lib='cupy'):
-    """Computes a truncated randomized SVD on GPU. Adapted from Sklearn.
+    """Compute a truncated randomized SVD on GPU - adapted from Sklearn.
 
     Parameters
     ----------

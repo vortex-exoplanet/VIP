@@ -702,11 +702,11 @@ def _pca_adi_rdi(
                     for nn, npc_tmp in enumerate(ncomp):
                         transformed = np.dot(V[:npc_tmp], matrix_segm)
                         reconstructed = np.dot(transformed.T, V[:npc_tmp])
-                        residuals.append(matrix_segm - reconstructed)
+                        residuals.append(matrix_segm - reconstructed.T)
                 else:
                     transformed = np.dot(V, matrix_segm)
                     reconstructed = np.dot(transformed.T, V)
-                    residuals = matrix_segm - reconstructed
+                    residuals = matrix_segm - reconstructed.T
                     nfrslib = matrix_out_segm.shape[0]
 
             if isinstance(ncomp, list):

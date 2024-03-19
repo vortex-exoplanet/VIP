@@ -67,7 +67,7 @@ def injected_cube_position(example_dataset_adi):
     "pca_algo, negfc_algo, ncomp, mu_sigma, fm, force_rpa, conv_test",
     [
         (pca_annular, firstguess, 3, False, "stddev", False, None),
-        (pca, firstguess, 3, True, None, False, None),
+        (pca, firstguess, 5, True, None, False, None),
         (median_sub, firstguess, None, False, "sum", False, None),
         (pca_annulus, mcmc_negfc_sampling, 3, False, "stddev", False, "gb"),
         (pca_annulus, mcmc_negfc_sampling, 3, True, None, True, "ac"),
@@ -88,9 +88,10 @@ def test_algos(
 
     # run firstguess with simplex only if followed by mcmc or nested sampling
     if pca_algo == median_sub:
-        algo_options = {"imlib": "opencv", "verbose": False}
+        algo_options = {"imlib": "opencv", "interpolation": "lanczos4",
+                        "verbose": False}
     else:
-        algo_options = {"imlib": "opencv"}
+        algo_options = {"imlib": "opencv", "interpolation": "lanczos4"}
     res0 = firstguess(
         cube=ds.cube,
         angs=ds.angles,
@@ -112,8 +113,9 @@ def test_algos(
 
     if negfc_algo == firstguess:
         # use injection of 180 companions in empty cube to estimate error bars
-        cube_emp = cube_planet_free(res, ds.cube, ds.angles, ds.psf, imlib="opencv")
-        algo_options = {"imlib": "opencv"}
+        cube_emp = cube_planet_free(res, ds.cube, ds.angles, ds.psf,
+                                    imlib="opencv", interpolation="lanczos4")
+        algo_options = {"imlib": "opencv", "interpolation": "lanczos4"}
         if pca_algo != median_sub:
             algo_options["ncomp"] = ncomp
         if pca_algo == pca_annular:
@@ -125,7 +127,7 @@ def test_algos(
             sp_unc = speckle_noise_uncertainty(
                 cube_emp,
                 res,
-                np.arange(0, 360, 3),
+                np.arange(0, 360, 2),
                 ds.angles,
                 algo=pca_algo,
                 psfn=ds.psf,
@@ -137,6 +139,7 @@ def test_algos(
                 full_output=False,
                 algo_options=algo_options,
                 nproc=1,
+                sigma_trim=3
             )
         else:
             sp_unc = (2, 2, 0.1 * gt[2])
@@ -167,6 +170,7 @@ def test_algos(
             sigma="spe+pho",
             fmerit=fm,
             imlib="opencv",
+            interpolation="lanczos4",
             nwalkers=100,
             niteration_min=200,
             niteration_limit=niteration_limit,
@@ -245,7 +249,7 @@ def test_algos(
             decline_factor=None,
             rstate=None,
             verbose=True,
-            algo_options={"imlib": "opencv"},
+            algo_options={"imlib": "opencv", "interpolation": "lanczos4"},
         )
         # infer mu, sigma from nested sampling result
         mu_sig = nested_sampling_results(res, burnin=0.3, bins=None, save=False)

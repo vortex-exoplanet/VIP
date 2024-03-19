@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with post-processing related functions called from within the NEGFC
 algorithm.
@@ -25,16 +24,23 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
         The (r, theta, flux) for all known companions. For a 4d cube r,
         theta and flux must all be 1d arrays with length equal to cube.shape[0];
         i.e. planet_parameter should have shape: (n_pl,3,n_ch).
-    cube: numpy.array
+    cube: numpy ndarray
         The cube of fits images expressed as a numpy.array.
-    angs: numpy.array
+    angs: numpy ndarray
         The parallactic angle fits image expressed as a numpy.array.
-    psfn: numpy.array
-        The scaled psf expressed as a numpy.array.
+    psfn: 2d or 3d numpy ndarray
+        The normalized psf expressed as a numpy ndarray. Can be 3d for a 4d
+        (spectral+ADI) input cube.
     imlib : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
     interpolation : str, optional
         See the documentation of the ``vip_hci.preproc.frame_rotate`` function.
+    transmission: numpy array, optional
+        Radial transmission of the coronagraph, if any. Array with either
+        2 x n_rad, 1+n_ch x n_rad columns. The first column should contain the
+        radial separation in pixels, while the other column(s) are the
+        corresponding off-axis transmission (between 0 and 1), for either all,
+        or each spectral channel (only relevant for a 4D input cube).
 
     Returns
     -------
@@ -95,7 +101,7 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
 
     Possible constraints: 'ceil', 'floor', None ("ceil" will return the closest
     element with a value greater than 'value', "floor" the opposite).
-    
+
     Parameters
     ----------
     array: 1d numpy array or list
@@ -105,9 +111,10 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
         the array.
     output: str, opt {'index','value','both' }
         Set what is returned
-    constraint: str, opt {None, 'ceil', 'floor'}
-        If not None, will check for the closest element larger than value (ceil)
-        or closest element smaller than value (floor).
+    constraint: str, opt {None, 'ceil', 'floor', 'ceil=', 'floor='}
+        If not None, will check for the closest element larger (or equal) than
+        value if set to 'ceil' ('ceil='), or closest element smaller (or equal)
+        than value if set to 'floor' ('floor=').
     n: int, opt
         Number of elements to be returned, sorted by proximity to the values.
         Default: only the closest value is returned.
@@ -129,14 +136,18 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
     if constraint is None:
         fm = np.absolute(array-value)
         idx = fm.argsort()[:n]
-    elif constraint == 'floor' or constraint == 'ceil':
+    elif 'floor' in constraint or 'ceil' in constraint:
         indices = np.arange(len(array), dtype=np.int32)
-        if constraint == 'floor':
+        if 'floor' in constraint:
             fm = -(array-value)
         else:
             fm = array-value
-        crop_indices = indices[np.where(fm > 0)]
-        fm = fm[np.where(fm > 0)]
+        if '=' in constraint:
+            crop_indices = indices[np.where(fm >= 0)]
+            fm = fm[np.where(fm >= 0)]
+        else:
+            crop_indices = indices[np.where(fm > 0)]
+            fm = fm[np.where(fm > 0)]
         idx = fm.argsort()[:n]
         idx = crop_indices[idx]
         if len(idx) == 0:

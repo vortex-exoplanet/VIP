@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with functions for outlier frame detection.
 """
@@ -86,8 +85,8 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
     if window is None:
         window = n//3
     mean_smooth = pn.Series(mean_values).rolling(window, center=True).mean()
-    mean_smooth = mean_smooth.fillna(method='backfill')
-    mean_smooth = mean_smooth.fillna(method='ffill')
+    mean_smooth = mean_smooth.bfill()  # fillna(method='backfill')
+    mean_smooth = mean_smooth.ffill()  # fillna(method='ffill')
     sigma = np.std(mean_values)
     bad_index_list = []
     good_index_list = []
@@ -294,6 +293,8 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
         1d array of good indices.
     bad_index_list : numpy ndarray
         1d array of bad frames indices.
+    distances : numpy ndarray
+        [if full_output=True] 1d array with the measured distances
 
     """
     from .cosmetics import cube_crop_frames, frame_crop

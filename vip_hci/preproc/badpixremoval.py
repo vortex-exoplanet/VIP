@@ -740,8 +740,8 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., bpm_mask=None,
                                                     half_res_y)
 
         # 5/ Count bpix and uncorrect if within the circle
-        nbpix_tot = np.sum(bpix_map)
-        nbpix_tbc = nbpix_tot - np.sum(bpix_map[circl_new])
+        nbpix_tot = int(np.sum(bpix_map))
+        nbpix_tbc = int(nbpix_tot - np.sum(bpix_map[circl_new]))
 
         if min_thr_np is not None:
             bp_tmp = np.zeros_like(bpix_map)

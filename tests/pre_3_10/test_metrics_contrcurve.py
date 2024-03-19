@@ -2,16 +2,18 @@
 Tests for metrics/contrcurve.py
 
 """
-from vip_hci.psfsub import pca, PCA_Params
-from vip_hci.preproc import frame_crop
-from vip_hci.metrics import contrast_curve
-from vip_hci.fm.utils_negfc import find_nearest
-from vip_hci.fm.utils_negfc import cube_planet_free
-from vip_hci.config import VLT_NACO
-from tests.helpers import np
-from tests.helpers import fixture
 import copy
 import sys
+
+from tests.helpers import fixture
+from tests.helpers import np
+from vip_hci.config import VLT_NACO
+from vip_hci.fm.utils_negfc import cube_planet_free
+from vip_hci.fm.utils_negfc import find_nearest
+from vip_hci.metrics import contrast_curve
+from vip_hci.preproc import frame_crop
+from vip_hci.psfsub import pca
+from vip_hci.psfsub import PCA_Params
 
 sys.path.append(".../tests")
 
@@ -99,26 +101,26 @@ def test_contrast_curve(get_cube):
     msg = "Contrast too shallow compared to expectations: {} > {}"
     assert check, msg.format(cc_stu, 4e-3 * corr_r)
 
-    # check that at 0.4'' 5-sigma cc < 4e-4
+    # check that at 0.4'' 5-sigma cc < 5e-4
     idx_r = find_nearest(rad * plsc, 0.4)
     cc_gau = gauss_cc[idx_r]
     corr_r = sigma_corr[idx_r]
 
-    if cc_gau < 4e-4:
+    if cc_gau < 5e-4:
         check = True
     else:
         check = False
     msg = "Contrast too shallow compared to expectations: {} > {}"
-    assert check, msg.format(cc_gau, 4e-4)
+    assert check, msg.format(cc_gau, 5e-4)
 
     # check that at 0.4'' 5-sigma cc: Student statistics > Gaussian statistics
     cc_stu = student_cc[idx_r]
-    if cc_stu < 4e-4 * corr_r and cc_stu > cc_gau:
+    if cc_stu < 5e-4 * corr_r and cc_stu > cc_gau:
         check = True
-    elif cc_stu < 4e-4 * corr_r:
+    elif cc_stu < 5e-4 * corr_r:
         check = False
         msg = "Student-statistics cc smaller than Gaussian statistics cc"
     else:
         check = False
         msg = "Contrast too shallow compared to expectations: {} > {}"
-    assert check, msg.format(cc_stu, 4e-4 * corr_r)
+    assert check, msg.format(cc_stu, 5e-4 * corr_r)

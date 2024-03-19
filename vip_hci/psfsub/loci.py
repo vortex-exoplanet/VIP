@@ -171,16 +171,17 @@ def xloci(*all_args: List, **all_kwargs: dict):
     verbose: bool, optional
         If True prints info to stdout.
     full_output: bool, optional
-        Whether to return the final median combined image only or with other
-        intermediate arrays.
+        Whether to return the final median combined image only or along with
+        2 other residual cubes (before and after derotation).
 
     Returns
     -------
+    cube_res : numpy ndarray, 3d
+        [full_output=True] Cube of residuals.
+    cube_der : numpy ndarray, 3d
+        [full_output=True] Derotated cube of residuals.
     frame_der_median : numpy ndarray, 2d
         Median combination of the de-rotated cube of residuals.
-
-    If ``full_output`` is True, the following intermediate arrays are returned:
-    cube_res, cube_der, frame_der_median
 
     """
     # Separating the parameters of the ParamsObject from the optionnal rot_options

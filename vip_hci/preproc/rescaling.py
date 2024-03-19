@@ -1,21 +1,25 @@
 #! /usr/bin/env python
-
 """
 Module with frame px resampling/rescaling functions.
 """
-__author__ = 'Carlos Alberto Gomez Gonzalez, V. Christiaens, R. Farkas'
-__all__ = ['frame_px_resampling',
-           'cube_px_resampling',
-           'cube_rescaling_wavelengths',
-           'frame_rescaling',
-           'check_scal_vector',
-           'find_scal_vector',
-           'scale_fft']
+__author__ = "Carlos Alberto Gomez Gonzalez, V. Christiaens, R. Farkas"
+__all__ = [
+    "frame_px_resampling",
+    "cube_px_resampling",
+    "cube_rescaling_wavelengths",
+    "frame_rescaling",
+    "cube_rescaling",
+    "check_scal_vector",
+    "find_scal_vector",
+    "scale_fft",
+]
 
 import numpy as np
 import warnings
+
 try:
     import cv2
+
     no_opencv = False
 except ImportError:
     warnings.warn("Opencv python bindings are missing.", ImportWarning)
@@ -29,8 +33,14 @@ from .recentering import frame_shift
 from .cosmetics import frame_crop
 
 
-def cube_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
-                       keep_center=False, verbose=True):
+def cube_px_resampling(
+    array,
+    scale,
+    imlib="vip-fft",
+    interpolation="lanczos4",
+    keep_center=False,
+    verbose=True,
+):
     """
     Resample the frames of a cube with a single scale factor. Can deal with NaN
     values.
@@ -66,13 +76,17 @@ def cube_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
 
     """
     if array.ndim != 3:
-        raise TypeError('Input array is not a cube or 3d array.')
+        raise TypeError("Input array is not a cube or 3d array.")
 
     array_resc = []
     for i in range(array.shape[0]):
-        imresc = frame_px_resampling(array[i], scale=scale, imlib=imlib,
-                                     interpolation=interpolation,
-                                     keep_center=keep_center)
+        imresc = frame_px_resampling(
+            array[i],
+            scale=scale,
+            imlib=imlib,
+            interpolation=interpolation,
+            keep_center=keep_center,
+        )
         array_resc.append(imresc)
 
     array_resc = np.array(array_resc)
@@ -83,8 +97,14 @@ def cube_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
     return array_resc
 
 
-def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
-                        keep_center=False, verbose=False):
+def frame_px_resampling(
+    array,
+    scale,
+    imlib="vip-fft",
+    interpolation="lanczos4",
+    keep_center=False,
+    verbose=False,
+):
     """
     Resample the pixels of a frame changing the frame size.
     Can deal with NaN values.
@@ -130,7 +150,7 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
 
     """
     if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array')
+        raise TypeError("Input array is not a frame or 2d array")
 
     if isinstance(scale, tuple):
         scale_x, scale_y = scale
@@ -138,7 +158,7 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
         scale_x = scale
         scale_y = scale
     else:
-        raise TypeError('`scale` must be float, int or tuple')
+        raise TypeError("`scale` must be float, int or tuple")
 
     # Replace any NaN with real values before scaling
     mask = None
@@ -156,36 +176,37 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
         odd = False
 
     # expected output size
-    out_sz = int(round(array.shape[0]*scale_y)
-                 ), int(round(array.shape[1]*scale_x))
+    out_sz = int(round(array.shape[0] * scale_y)), int(round(array.shape[1] * scale_x))
 
-    if not odd and keep_center and imlib != 'vip-fft':
+    if not odd and keep_center and imlib != "vip-fft":
+
         def _make_odd(img):
-            img_odd = np.zeros([img.shape[0]+1, img.shape[1]+1])
+            img_odd = np.zeros([img.shape[0] + 1, img.shape[1] + 1])
             img_odd[:-1, :-1] = img.copy()
             img_odd[-1, :-1] = img[-1].copy()
             img_odd[:-1, -1] = img[:, -1].copy()
             img_odd[-1, -1] = np.mean([img[-1, -2], img[-2, -1], img[-2, -2]])
             return img_odd
+
         array = _make_odd(array)
         if mask is not None:
             mask = _make_odd(mask)
 
-    if imlib == 'ndimage':
-        if interpolation == 'nearneig':
+    if imlib == "ndimage":
+        if interpolation == "nearneig":
             order = 0
-        elif interpolation == 'bilinear':
+        elif interpolation == "bilinear":
             order = 1
-        elif interpolation == 'biquadratic':
+        elif interpolation == "biquadratic":
             order = 2
-        elif interpolation == 'bicubic':
+        elif interpolation == "bicubic":
             order = 3
-        elif interpolation == 'biquartic' or interpolation == 'lanczos4':
+        elif interpolation == "biquartic" or interpolation == "lanczos4":
             order = 4
-        elif interpolation == 'biquintic':
+        elif interpolation == "biquintic":
             order = 5
         else:
-            raise TypeError('Scipy.ndimage interpolation method not recognized')
+            raise TypeError("Scipy.ndimage interpolation method not recognized")
 
         if mask is not None:
             mask = zoom(mask, zoom=(scale_y, scale_x), order=order)
@@ -193,94 +214,101 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
         # For flux conservation:
         array_resc /= scale_y * scale_x
 
-    elif imlib == 'opencv':
+    elif imlib == "opencv":
         if no_opencv:
-            msg = 'Opencv python bindings cannot be imported. Install opencv or'
-            msg += ' set imlib to ndimage'
+            msg = "Opencv python bindings cannot be imported. Install opencv or"
+            msg += " set imlib to ndimage"
             raise RuntimeError(msg)
 
-        if interpolation == 'bilinear':
+        if interpolation == "bilinear":
             intp = cv2.INTER_LINEAR
-        elif interpolation == 'bicubic':
+        elif interpolation == "bicubic":
             intp = cv2.INTER_CUBIC
-        elif interpolation == 'nearneig':
+        elif interpolation == "nearneig":
             intp = cv2.INTER_NEAREST
-        elif interpolation == 'lanczos4':
+        elif interpolation == "lanczos4":
             intp = cv2.INTER_LANCZOS4
         else:
-            raise TypeError('Opencv interpolation method not recognized')
+            raise TypeError("Opencv interpolation method not recognized")
 
         if mask is not None:
-            mask = cv2.resize(mask.astype(np.float32), (0, 0), fx=scale_x,
-                              fy=scale_y, interpolation=intp)
+            mask = cv2.resize(
+                mask.astype(np.float32),
+                (0, 0),
+                fx=scale_x,
+                fy=scale_y,
+                interpolation=intp,
+            )
 
-        array_resc = cv2.resize(array.astype(np.float32), (0, 0), fx=scale_x,
-                                fy=scale_y, interpolation=intp)
+        array_resc = cv2.resize(
+            array.astype(np.float32), (0, 0), fx=scale_x, fy=scale_y, interpolation=intp
+        )
 
         # For flux conservation:
         array_resc /= scale_y * scale_x
 
-    elif imlib == 'vip-fft':
+    elif imlib == "vip-fft":
         if scale_x != scale_y:
-            msg = 'FFT scaling only supports identical factors along x and y'
+            msg = "FFT scaling only supports identical factors along x and y"
             raise ValueError(msg)
         if array.shape[0] != array.shape[1]:
-            msg = 'FFT scaling only supports square input arrays'
+            msg = "FFT scaling only supports square input arrays"
             raise ValueError(msg)
 
         # make array with even dimensions before FFT-scaling
         if odd:
-            array_even = np.zeros([array.shape[0]+1, array.shape[1]+1])
+            array_even = np.zeros([array.shape[0] + 1, array.shape[1] + 1])
             array_even[1:, 1:] = array
             array = array_even
 
         if mask is not None:
             if odd:
-                mask_even = np.zeros([mask.shape[0]+1, mask.shape[1]+1])
+                mask_even = np.zeros([mask.shape[0] + 1, mask.shape[1] + 1])
                 mask_even[1:, 1:] = mask
                 mask = mask_even
             mask = scale_fft(mask, scale_x)
             if odd:
-                mask_odd = np.zeros([mask.shape[0]-1, mask.shape[1]-1])
+                mask_odd = np.zeros([mask.shape[0] - 1, mask.shape[1] - 1])
                 mask_odd = mask[1:, 1:]
                 mask = mask_odd
 
         array_resc = scale_fft(array, scale_x)
         if odd:
-            array = np.zeros([array_resc.shape[0]-1, array_resc.shape[1]-1])
+            array = np.zeros([array_resc.shape[0] - 1, array_resc.shape[1] - 1])
             array = array_resc[1:, 1:]
             array_resc = array
 
         # Note: FFT preserves flux - no need to scale flux separately
 
     else:
-        raise ValueError('Image transformation library not recognized')
+        raise ValueError("Image transformation library not recognized")
 
     # Place back NaN values in scaled array
     if mask is not None:
         array_resc[mask >= 0.5] = np.nan
 
-    if keep_center and not array_resc.shape[0] % 2 and imlib != 'vip-fft':
-        if imlib == 'ndimage':
-            imlib_s = 'ndimage-interp'
+    if keep_center and not array_resc.shape[0] % 2 and imlib != "vip-fft":
+        if imlib == "ndimage":
+            imlib_s = "ndimage-interp"
         else:
             imlib_s = imlib
         array_resc = frame_shift(array_resc, 0.5, 0.5, imlib_s, interpolation)
 
-    if array_resc.shape != out_sz and imlib != 'vip-fft':
+    if array_resc.shape != out_sz and imlib != "vip-fft":
         if out_sz[0] == out_sz[1]:
             if out_sz[0] < array_resc.shape[0]:
-                array_resc = frame_crop(array_resc, out_sz[0], force=True,
-                                        verbose=False)
+                array_resc = frame_crop(
+                    array_resc, out_sz[0], force=True, verbose=False
+                )
         else:
             # crop manually along each axis
             cy, cx = frame_center(array_resc)
-            wing_y = (out_sz[0]-1)/2
-            y0 = int(cy-wing_y)
-            yN = int(cy+wing_y+1)
-            wing_x = (out_sz[1]-1)/2
-            x0 = int(cx-wing_x)
-            xN = int(cx+wing_x+1)
+            wing_y = (out_sz[0] - 1) / 2
+            y0 = int(cy - wing_y)
+            yN = int(cy + wing_y + 1)
+            wing_x = (out_sz[1] - 1) / 2
+            x0 = int(cx - wing_x)
+            xN = int(cx + wing_x + 1)
             array_resc = array_resc[y0:yN, x0:xN]
 
     if verbose:
@@ -290,10 +318,18 @@ def frame_px_resampling(array, scale, imlib='vip-fft', interpolation='lanczos4',
     return array_resc
 
 
-def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
-                               y_in=None, x_in=None, imlib='vip-fft',
-                               interpolation='lanczos4', collapse='median',
-                               pad_mode='reflect'):
+def cube_rescaling_wavelengths(
+    cube,
+    scal_list,
+    full_output=True,
+    inverse=False,
+    y_in=None,
+    x_in=None,
+    imlib="vip-fft",
+    interpolation="lanczos4",
+    collapse="median",
+    pad_mode="reflect",
+):
     """
     Scale/Descale a cube by scal_list, with padding. Can deal with NaN values.
 
@@ -376,7 +412,7 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
     cube : 3d array
         [full_output=True] Rescaled cube
     frame : 2d array
-        [full_output=True] Median of the rescaled cube -- note it is in 2nd 
+        [full_output=True] Median of the rescaled cube -- note it is in 2nd
         position if full_output is set to True.
     y,x,cy,cx : floats
         [full_output=True] New y and x shapes of the cube, and the new centers cy and
@@ -405,18 +441,18 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
     cy, cx = frame_center(big_cube[0])
 
     if inverse:
-        scal_list = 1. / scal_list
+        scal_list = 1.0 / scal_list
         cy, cx = frame_center(cube[0])
 
     # (de)scale the cube, so that a planet would now move radially
-    cube = _cube_resc_wave(big_cube, scal_list, ref_xy=(cx, cy),
-                           imlib=imlib, interpolation=interpolation)
+    cube = cube_rescaling(
+        big_cube, scal_list, ref_xy=(cx, cy), imlib=imlib, interpolation=interpolation
+    )
     frame = cube_collapse(cube, collapse)
 
     if inverse and max_sc > 1:
         if y_in is None or x_in is None:
-            raise ValueError("You need to provide y_in and x_in when "
-                             "inverse=True!")
+            raise ValueError("You need to provide y_in and x_in when " "inverse=True!")
         siz = max(y_in, x_in)
         if frame.shape[0] > siz:
             frame = get_square(frame, siz, cy, cx)
@@ -433,8 +469,7 @@ def cube_rescaling_wavelengths(cube, scal_list, full_output=True, inverse=False,
         return frame
 
 
-def _scale_func(output_coords, ref_xy=0, scaling=1.0, scale_y=None,
-                scale_x=None):
+def _scale_func(output_coords, ref_xy=0, scaling=1.0, scale_y=None, scale_x=None):
     """
     For each coordinate point in a new scaled image (output_coords),
     coordinates in the image before the scaling are returned. This scaling
@@ -447,12 +482,21 @@ def _scale_func(output_coords, ref_xy=0, scaling=1.0, scale_y=None,
         scale_y = scaling
     if scale_x is None:
         scale_x = scaling
-    return (ref_y + (output_coords[0] - ref_y) / scale_y,
-            ref_x + (output_coords[1] - ref_x) / scale_x)
+    return (
+        ref_y + (output_coords[0] - ref_y) / scale_y,
+        ref_x + (output_coords[1] - ref_x) / scale_x,
+    )
 
 
-def frame_rescaling(array, ref_xy=None, scale=1.0, imlib='vip-fft',
-                    interpolation='lanczos4', scale_y=None, scale_x=None):
+def frame_rescaling(
+    array,
+    ref_xy=None,
+    scale=1.0,
+    imlib="vip-fft",
+    interpolation="lanczos4",
+    scale_y=None,
+    scale_x=None,
+):
     """
     Rescale a frame by a factor wrt a reference point.
 
@@ -496,7 +540,7 @@ def frame_rescaling(array, ref_xy=None, scale=1.0, imlib='vip-fft',
 
     """
     if array.ndim != 2:
-        raise TypeError('Input array is not a frame or 2d array.')
+        raise TypeError("Input array is not a frame or 2d array.")
 
     if scale_y is None:
         scale_y = scale
@@ -507,7 +551,7 @@ def frame_rescaling(array, ref_xy=None, scale=1.0, imlib='vip-fft',
     if ref_xy is None:
         ref_xy = frame_center(array)
     else:
-        if imlib == 'vip-fft' and ref_xy != frame_center(array):
+        if imlib == "vip-fft" and ref_xy != frame_center(array):
             msg = "'vip-fft'imlib does not yet allow for custom center to be "
             msg += " provided "
             raise ValueError(msg)
@@ -522,66 +566,75 @@ def frame_rescaling(array, ref_xy=None, scale=1.0, imlib='vip-fft',
         mask = np.zeros_like(array)
         mask[nan_mask] = 1
 
-    if imlib == 'ndimage':
-        if interpolation == 'nearneig':
+    if imlib == "ndimage":
+        if interpolation == "nearneig":
             order = 0
-        elif interpolation == 'bilinear':
+        elif interpolation == "bilinear":
             order = 1
-        elif interpolation == 'biquadratic':
+        elif interpolation == "biquadratic":
             order = 2
-        elif interpolation == 'bicubic':
+        elif interpolation == "bicubic":
             order = 3
-        elif interpolation == 'biquartic' or interpolation == 'lanczos4':
+        elif interpolation == "biquartic" or interpolation == "lanczos4":
             order = 4
-        elif interpolation == 'biquintic':
+        elif interpolation == "biquintic":
             order = 5
         else:
-            raise TypeError(
-                'Scipy.ndimage interpolation method not recognized')
+            raise TypeError("Scipy.ndimage interpolation method not recognized")
 
-        array_out = geometric_transform(array, _scale_func, order=order,
-                                        output_shape=outshape,
-                                        extra_keywords={'ref_xy': ref_xy,
-                                                        'scaling': scale,
-                                                        'scale_y': scale_y,
-                                                        'scale_x': scale_x})
+        array_out = geometric_transform(
+            array,
+            _scale_func,
+            order=order,
+            output_shape=outshape,
+            extra_keywords={
+                "ref_xy": ref_xy,
+                "scaling": scale,
+                "scale_y": scale_y,
+                "scale_x": scale_x,
+            },
+        )
         array_out /= scale_y * scale_x
 
-    elif imlib == 'opencv':
+    elif imlib == "opencv":
         if no_opencv:
-            msg = 'Opencv python bindings cannot be imported. Install '
-            msg += ' opencv or set imlib to skimage'
+            msg = "Opencv python bindings cannot be imported. Install "
+            msg += " opencv or set imlib to skimage"
             raise RuntimeError(msg)
 
-        if interpolation == 'bilinear':
+        if interpolation == "bilinear":
             intp = cv2.INTER_LINEAR
-        elif interpolation == 'bicubic':
+        elif interpolation == "bicubic":
             intp = cv2.INTER_CUBIC
-        elif interpolation == 'nearneig':
+        elif interpolation == "nearneig":
             intp = cv2.INTER_NEAREST
-        elif interpolation == 'lanczos4':
+        elif interpolation == "lanczos4":
             intp = cv2.INTER_LANCZOS4
         else:
-            raise TypeError('Opencv interpolation method not recognized')
+            raise TypeError("Opencv interpolation method not recognized")
 
-        M = np.array([[scale_x, 0, (1. - scale_x) * ref_xy[0]],
-                      [0, scale_y, (1. - scale_y) * ref_xy[1]]])
+        M = np.array(
+            [
+                [scale_x, 0, (1.0 - scale_x) * ref_xy[0]],
+                [0, scale_y, (1.0 - scale_y) * ref_xy[1]],
+            ]
+        )
         array_out = cv2.warpAffine(array.astype(np.float32), M, outshape,
                                    flags=intp)
         array_out /= scale_y * scale_x
 
-    elif imlib == 'vip-fft':
+    elif imlib == "vip-fft":
         if scale_x != scale_y:
-            msg = 'FFT scaling only supports identical factors along x and y'
+            msg = "FFT scaling only supports identical factors along x and y"
             raise ValueError(msg)
         if array.shape[0] != array.shape[1]:
-            msg = 'FFT scaling only supports square input arrays'
+            msg = "FFT scaling only supports square input arrays"
             raise ValueError(msg)
 
         # make array with even dimensions before FFT-scaling
         if array.shape[0] % 2:
             odd = True
-            array_even = np.zeros([array.shape[0]+1, array.shape[1]+1])
+            array_even = np.zeros([array.shape[0] + 1, array.shape[1] + 1])
             array_even[1:, 1:] = array
             array = array_even
         else:
@@ -589,23 +642,23 @@ def frame_rescaling(array, ref_xy=None, scale=1.0, imlib='vip-fft',
 
         if mask is not None:
             if odd:
-                mask_even = np.zeros([mask.shape[0]+1, mask.shape[1]+1])
+                mask_even = np.zeros([mask.shape[0] + 1, mask.shape[1] + 1])
                 mask_even[1:, 1:] = mask
                 mask = mask_even
             mask = scale_fft(mask, scale_x, ori_dim=True)
             if odd:
-                mask_odd = np.zeros([mask.shape[0]-1, mask.shape[1]-1])
+                mask_odd = np.zeros([mask.shape[0] - 1, mask.shape[1] - 1])
                 mask_odd = mask[1:, 1:]
                 mask = mask_odd
 
         array_out = scale_fft(array, scale_x, ori_dim=True)
         if odd:
-            array = np.zeros([array_out.shape[0]-1, array_out.shape[1]-1])
+            array = np.zeros([array_out.shape[0] - 1, array_out.shape[1] - 1])
             array = array_out[1:, 1:]
             array_out = array
 
     else:
-        raise ValueError('Image transformation library not recognized')
+        raise ValueError("Image transformation library not recognized")
 
     # Place back NaN values in scaled array
     if mask is not None:
@@ -614,8 +667,15 @@ def frame_rescaling(array, ref_xy=None, scale=1.0, imlib='vip-fft',
     return array_out
 
 
-def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='vip-fft',
-                    interpolation='lanczos4', scaling_y=None, scaling_x=None):
+def cube_rescaling(
+    array,
+    scaling_list,
+    ref_xy=None,
+    imlib="vip-fft",
+    interpolation="lanczos4",
+    scaling_y=None,
+    scaling_x=None,
+):
     """
     Rescale a cube by factors from ``scaling_list`` wrt a position.
 
@@ -623,7 +683,7 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='vip-fft',
     ----------
     array : numpy ndarray
         Input 3d array, cube.
-    scaling_list : 1D-array
+    scaling_list : 1D numpy ndarray or list
         Scale corresponding to each frame in the cube.
     ref_xy : float, optional
         Coordinates X,Y of the point with respect to which the rescaling will be
@@ -648,16 +708,23 @@ def _cube_resc_wave(array, scaling_list, ref_xy=None, imlib='vip-fft',
     """
 
     if array.ndim != 3:
-        raise TypeError('Input array is not a cube or 3d array')
+        raise TypeError("Input array is not a cube or 3d array")
 
     array_sc = []
     if scaling_list is None:
-        scaling_list = [None]*array.shape[0]
+        scaling_list = [None] * array.shape[0]
     for i in range(array.shape[0]):
-        array_sc.append(frame_rescaling(array[i], ref_xy=ref_xy,
-                                        scale=scaling_list[i], imlib=imlib,
-                                        interpolation=interpolation,
-                                        scale_y=scaling_y, scale_x=scaling_x))
+        array_sc.append(
+            frame_rescaling(
+                array[i],
+                ref_xy=ref_xy,
+                scale=scaling_list[i],
+                imlib=imlib,
+                interpolation=interpolation,
+                scale_y=scaling_y,
+                scale_x=scaling_x,
+            )
+        )
     return np.array(array_sc)
 
 
@@ -680,20 +747,32 @@ def check_scal_vector(scal_vec):
 
     """
     if not isinstance(scal_vec, (list, np.ndarray)):
-        raise TypeError('`Scal_vec` is neither a list or an np.ndarray')
+        raise TypeError("`Scal_vec` is neither a list or an np.ndarray")
 
     scal_vec = np.array(scal_vec)
 
     # checking if min factor is 1:
     if scal_vec.min() != 1:
-        scal_vec = scal_vec/scal_vec.min()
+        scal_vec = scal_vec / scal_vec.min()
 
     return scal_vec
 
 
-def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev",
-                     simplex_options=None, debug=False, imlib='vip-fft',
-                     interpolation='lanczos4', hpf=False, fwhm_max=5, **kwargs):
+def find_scal_vector(
+    cube,
+    lbdas,
+    fluxes,
+    mask=None,
+    nfp=2,
+    fm="stddev",
+    simplex_options=None,
+    debug=False,
+    imlib="vip-fft",
+    interpolation="lanczos4",
+    hpf=False,
+    fwhm_max=5,
+    **kwargs
+):
     """
     Find the optimal scaling factor for the channels of an IFS cube (or of
     dual-band pairs of images).
@@ -707,9 +786,9 @@ def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev",
     ----------
     cube: 3D-array
        Data cube with frames to be rescaled.
-    lbdas: 1d array or list
+    lbdas: 1d array
         Vector with the wavelengths, used for first guess on scaling factor.
-    fluxes: 1d array or list
+    fluxes: 1d array
         Vector with the (unsaturated) fluxes at the different wavelengths,
         used for first guess on flux factor.
     mask: 2D-array, opt
@@ -727,7 +806,7 @@ def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev",
         Whether to high-pass filter images before searching for optimal scaling
         factors. Can help to not be biased by a diffuse halo, and just leverage
         speckle expansion.
-    max_fwhm: float, optional
+    fwhm_max: float, optional
         Maximum FWHM of the PSF across all wavelengths, in pixels. Only used if
         hpf is set to True.
     **kwargs: optional
@@ -742,44 +821,51 @@ def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev",
         Vector containing the associated flux factors.
     """
 
-    scal_vec_ini = lbdas[-1]/lbdas
+    scal_vec_ini = lbdas[-1] / lbdas
     n_z = len(lbdas)
     if n_z != len(fluxes) or n_z != cube.shape[0]:
         msg = "first axis of cube, fluxes and lbda must have same length"
         raise TypeError(msg)
 
     if simplex_options is None:
-        simplex_options = {'xatol': 1e-6, 'fatol': 1e-6, 'maxiter': 800,
-                           'maxfev': 2000}
+        simplex_options = {"xatol": 1e-6, "fatol": 1e-6, "maxiter": 800,
+                           "maxfev": 2000}
     scal_vec = np.ones(n_z)
     flux_vec = np.ones(n_z)
     array = cube.copy()
     if hpf:
-        med_sz = int(5*fwhm_max)
-        if not med_sz%2:
-            med_sz+=1
-        array = cube_filter_highpass(cube, mode='median-subt',
+        med_sz = int(5 * fwhm_max)
+        if not med_sz % 2:
+            med_sz += 1
+        array = cube_filter_highpass(cube, mode="median-subt",
                                      median_size=med_sz)
-    for z in range(n_z-1):
-        flux_scal = fluxes[-1]/fluxes[z]
+    for z in range(n_z - 1):
+        flux_scal = fluxes[-1] / fluxes[z]
         cube_tmp = np.array([array[z], array[-1]])
         if nfp == 1:
             p_ini = (scal_vec_ini[z],)
-            solu = minimize(_chisquare_scal, p_ini, args=(cube_tmp, flux_scal,
-                                                          mask, fm, imlib,
-                                                          interpolation),
-                            method='Nelder-Mead', bounds=((1e-1, None),),
-                            options=simplex_options,
-                            **kwargs)
-            scal_fac, =  solu.x
+            solu = minimize(
+                _chisquare_scal,
+                p_ini,
+                args=(cube_tmp, flux_scal, mask, fm, imlib, interpolation),
+                method="Nelder-Mead",
+                bounds=((1e-1, None),),
+                options=simplex_options,
+                **kwargs
+            )
+            (scal_fac,) = solu.x
             flux_fac = flux_scal
         else:
             p_ini = (scal_vec_ini[z], flux_scal)
-            solu = minimize(_chisquare_scal_2fp, p_ini, args=(cube_tmp, mask,
-                                                              fm, imlib,
-                                                              interpolation),
-                            method='Nelder-Mead', options=simplex_options,
-                            bounds=((1e-1, None), (1e-2, None)), **kwargs)
+            solu = minimize(
+                _chisquare_scal_2fp,
+                p_ini,
+                args=(cube_tmp, mask, fm, imlib, interpolation),
+                method="Nelder-Mead",
+                options=simplex_options,
+                bounds=((1e-1, None), (1e-2, None)),
+                **kwargs
+            )
             scal_fac, flux_fac = solu.x
         if debug:
             print("channel {:.0f}:".format(z), solu.x)
@@ -791,8 +877,9 @@ def find_scal_vector(cube, lbdas, fluxes, mask=None, nfp=2, fm="stddev",
     return scal_vec, flux_vec
 
 
-def _find_indices_sdi(scal, dist, index_ref, fwhm, delta_sep=1, nframes=None,
-                      debug=False):
+def _find_indices_sdi(
+    scal, dist, index_ref, fwhm, delta_sep=1, nframes=None, debug=False
+):
     """
     Find optimal wavelengths which minimize self-subtraction in model PSF
     subtraction.
@@ -838,8 +925,10 @@ def _find_indices_sdi(scal, dist, index_ref, fwhm, delta_sep=1, nframes=None,
         print("indices size: {}".format(indices.size))
 
     if indices.size == 0:
-        raise RuntimeError("No frames left after radial motion threshold. Try "
-                           "decreasing the value of `delta_sep`")
+        raise RuntimeError(
+            "No frames left after radial motion threshold. Try "
+            "decreasing the value of `delta_sep`"
+        )
 
     if nframes is not None:
         i1 = map_lft.sum()
@@ -848,12 +937,14 @@ def _find_indices_sdi(scal, dist, index_ref, fwhm, delta_sep=1, nframes=None,
             window = nframes
         ind1 = max(0, i1 - window)
         ind2 = min(scal.size, i1 + window)
-        indices = indices[ind1: ind2]
+        indices = indices[ind1:ind2]
 
         if indices.size < 2:
-            raise RuntimeError("No frames left after radial motion threshold. "
-                               "Try decreasing the value of `delta_sep` or "
-                               "`nframes`")
+            raise RuntimeError(
+                "No frames left after radial motion threshold. "
+                "Try decreasing the value of `delta_sep` or "
+                "`nframes`"
+            )
 
     if debug:
         print("indices (nframes):", indices)
@@ -861,8 +952,15 @@ def _find_indices_sdi(scal, dist, index_ref, fwhm, delta_sep=1, nframes=None,
     return indices
 
 
-def _chisquare_scal(modelParameters, cube, flux_fac=1, mask=None, fm='sum',
-                    imlib='vip-fft', interpolation='lanczos4'):
+def _chisquare_scal(
+    modelParameters,
+    cube,
+    flux_fac=1,
+    mask=None,
+    fm="sum",
+    imlib="vip-fft",
+    interpolation="lanczos4",
+):
     r"""
     Calculate the reduced math:`\chi^2`:
     .. math:: \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -894,31 +992,38 @@ def _chisquare_scal(modelParameters, cube, flux_fac=1, mask=None, fm='sum',
     """
     # rescale in flux and spatially
     array = cube.copy()
-    #scale_fac, flux_fac = modelParameters
-    scale_fac, = modelParameters
+    # scale_fac, flux_fac = modelParameters
+    (scale_fac,) = modelParameters
     array[0] *= flux_fac
     scaling_list = np.array([scale_fac, 1])
-    array = _cube_resc_wave(array, scaling_list, imlib=imlib,
-                            interpolation=interpolation)
+    array = cube_rescaling(
+        array, scaling_list, imlib=imlib, interpolation=interpolation
+    )
 
-    frame = array[1]-array[0]
+    frame = array[1] - array[0]
     if mask is None:
         mask = np.ones_like(frame)
 
-    if fm == 'sum':
+    if fm == "sum":
         chi = np.sum(np.power(frame[np.where(mask)], 2))
-    elif fm == 'stddev':
+    elif fm == "stddev":
         values = frame[np.where(mask)]
         values = values[values != 0]
         chi = np.std(values)
     else:
-        raise RuntimeError('fm choice not recognized.')
+        raise RuntimeError("fm choice not recognized.")
 
     return chi
 
 
-def _chisquare_scal_2fp(modelParameters, cube, mask=None, fm='sum',
-                        imlib='vip-fft', interpolation='lanczos4'):
+def _chisquare_scal_2fp(
+    modelParameters,
+    cube,
+    mask=None,
+    fm="sum",
+    imlib="vip-fft",
+    interpolation="lanczos4",
+):
     r"""
     Calculate the reduced :math:`\chi^2`:
     .. math:: \chi^2_r = \frac{1}{N-3}\sum_{j=1}^{N} |I_j|,
@@ -950,21 +1055,22 @@ def _chisquare_scal_2fp(modelParameters, cube, mask=None, fm='sum',
     scale_fac, flux_fac = modelParameters
     array[0] *= flux_fac
     scaling_list = np.array([scale_fac, 1])
-    array = _cube_resc_wave(array, scaling_list, imlib=imlib,
-                            interpolation=interpolation)
+    array = cube_rescaling(
+        array, scaling_list, imlib=imlib, interpolation=interpolation
+    )
 
-    frame = array[1]-array[0]
+    frame = array[1] - array[0]
     if mask is None:
         mask = np.ones_like(frame)
 
-    if fm == 'sum':
+    if fm == "sum":
         chi = np.sum(np.power(frame[np.where(mask)], 2))
-    elif fm == 'stddev':
+    elif fm == "stddev":
         values = frame[np.where(mask)]
         values = values[values != 0]
         chi = np.std(values)
     else:
-        raise RuntimeError('fm choice not recognized.')
+        raise RuntimeError("fm choice not recognized.")
 
     return chi
 
@@ -998,7 +1104,7 @@ def scale_fft(array, scale, ori_dim=False):
     dim = array.shape[0]  # even square
     dtype = array.dtype.kind
 
-    kd_array = np.arange(dim/2 + 1, dtype=int)
+    kd_array = np.arange(dim / 2 + 1, dtype=int)
 
     # scaling factor chosen as *close* as possible to N''/N', where:
     #   N' = N + 2*KD (N': dim after FT)
@@ -1007,35 +1113,39 @@ def scale_fft(array, scale, ori_dim=False):
     #   => KF = (N"-N)/2 = round(N'*sc/2 - N/2)
     #         = round(N/2*(sc-1) + KD*sc)
     # We call yy=N/2*(sc-1) +KD*sc
-    yy = dim/2 * (scale - 1) + kd_array.astype(float)*scale
+    yy = dim / 2 * (scale - 1) + kd_array.astype(float) * scale
 
     # We minimize the difference between the `ideal' N" and its closest
     # integer value by minimizing |yy-int(yy)|.
     kf_array = np.round(yy).astype(int)
-    tmp = np.abs(yy-kf_array)
+    tmp = np.abs(yy - kf_array)
     imin = np.nanargmin(tmp)
 
     kd_io = kd_array[imin]
     kf_io = kf_array[imin]
 
     # Extract a part of array and place into dim_p array
-    dim_p = int(dim + 2*kd_io)
+    dim_p = int(dim + 2 * kd_io)
     tmp = np.zeros((dim_p, dim_p), dtype=dtype)
-    tmp[kd_io:kd_io+dim, kd_io:kd_io+dim] = array
+    tmp[kd_io : kd_io + dim, kd_io : kd_io + dim] = array
 
     # Fourier-transform the larger array
     array_f = np.fft.fftshift(np.fft.fft2(tmp))
 
     # Extract a part of, or expand, the FT to dim_pp pixels
-    dim_pp = int(dim + 2*kf_io)
+    dim_pp = int(dim + 2 * kf_io)
 
     if dim_pp > dim_p:
         tmp = np.zeros((dim_pp, dim_pp), dtype=complex)
-        tmp[(dim_pp-dim_p)//2:(dim_pp+dim_p)//2,
-            (dim_pp-dim_p)//2:(dim_pp+dim_p)//2] = array_f
+        tmp[
+            (dim_pp - dim_p) // 2 : (dim_pp + dim_p) // 2,
+            (dim_pp - dim_p) // 2 : (dim_pp + dim_p) // 2,
+        ] = array_f
     else:
-        tmp = array_f[kd_io-kf_io:kd_io-kf_io+dim_pp,
-                      kd_io-kf_io:kd_io-kf_io+dim_pp]
+        tmp = array_f[
+            kd_io - kf_io : kd_io - kf_io + dim_pp,
+            kd_io - kf_io : kd_io - kf_io + dim_pp,
+        ]
 
     # inverse Fourier-transform the FT
     tmp = np.fft.ifft2(np.fft.fftshift(tmp))
@@ -1043,25 +1153,29 @@ def scale_fft(array, scale, ori_dim=False):
     del tmp
 
     # Extract a part of or expand the scaled image to desired number of pixels
-    dim_resc = int(round(scale*dim))
+    dim_resc = int(round(scale * dim))
     if dim_resc > dim and dim_resc % 2 != dim % 2:
         dim_resc += 1
     elif dim_resc < dim and dim_resc % 2 != dim % 2:
         dim_resc -= 1  # for reversibility
 
     if not ori_dim and dim_pp > dim_resc:
-        array_resc = array_resc[(dim_pp-dim_resc)//2:(dim_pp+dim_resc)//2,
-                                (dim_pp-dim_resc)//2:(dim_pp+dim_resc)//2]
+        array_resc = array_resc[
+            (dim_pp - dim_resc) // 2 : (dim_pp + dim_resc) // 2,
+            (dim_pp - dim_resc) // 2 : (dim_pp + dim_resc) // 2,
+        ]
     elif not ori_dim and dim_pp <= dim_resc:
         array = np.zeros((dim_resc, dim_resc))
-        array[(dim_resc-dim_pp)//2:(dim_resc+dim_pp)//2,
-              (dim_resc-dim_pp)//2:(dim_resc+dim_pp)//2] = array_resc
+        array[
+            (dim_resc - dim_pp) // 2 : (dim_resc + dim_pp) // 2,
+            (dim_resc - dim_pp) // 2 : (dim_resc + dim_pp) // 2,
+        ] = array_resc
         array_resc = array
     elif dim_pp > dim:
-        array_resc = array_resc[kf_io:kf_io+dim, kf_io:kf_io+dim]
+        array_resc = array_resc[kf_io : kf_io + dim, kf_io : kf_io + dim]
     elif dim_pp <= dim:
-        scaled = array*0
-        scaled[-kf_io:-kf_io+dim_pp, -kf_io:-kf_io+dim_pp] = array_resc
+        scaled = array * 0
+        scaled[-kf_io : -kf_io + dim_pp, -kf_io : -kf_io + dim_pp] = array_resc
         array_resc = scaled
 
     return array_resc

@@ -1,14 +1,12 @@
 """Test for the PostProc object dedicated to principal component analysis."""
 
-__author__ = "Thomas Bédrine"
+__author__ = "Carlos Gomez Gonzalez, Thomas Bédrine"
 
 import copy
 
 import numpy as np
 from dataclass_builder import update
-
 import sys
-
 sys.path.append(".../tests")
 from tests.helpers import fixture, check_detection
 from vip_hci.objects import PCABuilder
@@ -17,8 +15,7 @@ from tests.snapshots.snapshot_psfsub import PSFADI_PATH
 NO_FRAME_CASE = ["pca_drot", "pca_ann_auto"]
 PREV_CASE = ["pca_grid_list"]
 
-# Note : this function comes from the former test for adi psfsub, I did not write it,
-# and I didn't found the author (feel free to add the author if you know them)
+
 @fixture(scope="module")
 def injected_cube_position(example_dataset_adi):
     """

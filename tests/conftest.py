@@ -25,17 +25,17 @@ def example_dataset_adi():
     -----
     We use the helper function ``download_resource`` which handles the request
     and puts it to sleep for a defined duration if too many requests are done.
-    They inherently call the Astropy's ``download_file`` function which uses caching,
-    so the file is downloaded at most once per test run.
+    They inherently call the Astropy's ``download_file`` function which uses
+    caching, so the file is downloaded at most once per test run.
 
     """
     print("downloading data...")
 
-    url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
+    url_d = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_resource("{}/naco_betapic_cube_cen.fits".format(url_prefix))
-    f2 = download_resource("{}/naco_betapic_psf.fits".format(url_prefix))
-    f3 = download_resource("{}/naco_betapic_pa.fits".format(url_prefix))
+    f1 = download_resource("{}/naco_betapic_cube_cen.fits".format(url_d))
+    f2 = download_resource("{}/naco_betapic_psf.fits".format(url_d))
+    f3 = download_resource("{}/naco_betapic_pa.fits".format(url_d))
 
     # load fits
     cube = vip.fits.open_fits(f1)
@@ -93,18 +93,18 @@ def example_dataset_ifs():
     -----
     We use the helper function ``download_resource`` which handles the request
     and puts it to sleep for a defined duration if too many requests are done.
-    They inherently call the Astropy's ``download_file`` function which uses caching,
-    so the file is downloaded at most once per test run.
+    They inherently call the Astropy's ``download_file`` function which uses
+    caching, so the file is downloaded at most once per test run.
 
     """
     print("downloading data...")
 
-    url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
+    url_d = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_resource("{}/sphere_v471tau_cube.fits".format(url_prefix))
-    f2 = download_resource("{}/sphere_v471tau_psf.fits".format(url_prefix))
-    f3 = download_resource("{}/sphere_v471tau_pa.fits".format(url_prefix))
-    f4 = download_resource("{}/sphere_v471tau_wl.fits".format(url_prefix))
+    f1 = download_resource("{}/sphere_v471tau_cube.fits".format(url_d))
+    f2 = download_resource("{}/sphere_v471tau_psf.fits".format(url_d))
+    f3 = download_resource("{}/sphere_v471tau_pa.fits".format(url_d))
+    f4 = download_resource("{}/sphere_v471tau_wl.fits".format(url_d))
 
     # load fits
     cube = vip.fits.open_fits(f1)
@@ -134,7 +134,7 @@ def example_dataset_ifs():
 @pytest.fixture(scope="session")
 def example_dataset_ifs_crop():
     """
-    Download example FITS cube from github + prepare HCIDataset object, after
+    Download example FITS cube from github + prepare HCIDataset object, after\
     cropping to only 3 sp. channels (faster NEGFC test).
 
     Returns
@@ -145,18 +145,18 @@ def example_dataset_ifs_crop():
     -----
     We use the helper function ``download_resource`` which handles the request
     and puts it to sleep for a defined duration if too many requests are done.
-    They inherently call the Astropy's ``download_file`` function which uses caching,
-    so the file is downloaded at most once per test run.
+    They inherently call the Astropy's ``download_file`` function which uses
+    caching, so the file is downloaded at most once per test run.
 
     """
     print("downloading data...")
 
-    url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
+    url_d = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_resource("{}/sphere_v471tau_cube.fits".format(url_prefix))
-    f2 = download_resource("{}/sphere_v471tau_psf.fits".format(url_prefix))
-    f3 = download_resource("{}/sphere_v471tau_pa.fits".format(url_prefix))
-    f4 = download_resource("{}/sphere_v471tau_wl.fits".format(url_prefix))
+    f1 = download_resource("{}/sphere_v471tau_cube.fits".format(url_d))
+    f2 = download_resource("{}/sphere_v471tau_psf.fits".format(url_d))
+    f3 = download_resource("{}/sphere_v471tau_pa.fits".format(url_d))
+    f4 = download_resource("{}/sphere_v471tau_wl.fits".format(url_d))
 
     # load fits
     cube = vip.fits.open_fits(f1)
@@ -199,17 +199,17 @@ def example_dataset_rdi():
     -----
     We use the helper function ``download_resource`` which handles the request
     and puts it to sleep for a defined duration if too many requests are done.
-    They inherently call the Astropy's ``download_file`` function which uses caching,
-    so the file is downloaded at most once per test run.
+    They inherently call the Astropy's ``download_file`` function which uses
+    caching, so the file is downloaded at most once per test run.
 
     """
     print("downloading data...")
 
-    url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
+    url_d = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_resource("{}/naco_betapic_cube_cen.fits".format(url_prefix))
-    f2 = download_resource("{}/naco_betapic_psf.fits".format(url_prefix))
-    f3 = download_resource("{}/naco_betapic_pa.fits".format(url_prefix))
+    f1 = download_resource("{}/naco_betapic_cube_cen.fits".format(url_d))
+    f2 = download_resource("{}/naco_betapic_psf.fits".format(url_d))
+    f3 = download_resource("{}/naco_betapic_pa.fits".format(url_d))
 
     # load fits
     cube = vip.fits.open_fits(f1)
@@ -255,7 +255,7 @@ def example_dataset_rdi():
 
 @pytest.fixture(autouse=True)
 def time_test():
-    """Time a test and print out how long it took"""
+    """Time a test and print out how long it took."""
     before = time.time()
     yield
     after = time.time()
@@ -264,7 +264,7 @@ def time_test():
 
 @pytest.fixture(autouse=True, scope="session")
 def time_all_tests():
-    """Time a test and print out how long it took"""
+    """Time all tests and print out how long they took."""
     before = time.time()
     yield
     after = time.time()

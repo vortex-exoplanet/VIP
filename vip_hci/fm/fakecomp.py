@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with fake companion injection functions.
 """
@@ -57,8 +56,8 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
     angle_list : 1d numpy ndarray
         List of parallactic angles, in degrees.
     flevel : float or 1d array or 2d array
-        Factor for controlling the brightness of the fake companions. If a float,
-        the same flux is used for all injections.
+        Factor for controlling the brightness of the fake companions. If a
+        float, the same flux is used for all injections.
         [3D input cube]: if a list/1d array is provided, it should have same
         length as number of frames in the 3D cube (can be used to take into
         account varying observing conditions or airmass).
@@ -66,11 +65,11 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
         length as the number of spectral channels (i.e. provide a spectrum). If
         a 2d array, it should be n_wavelength x n_frames (can e.g. be used to
         inject a spectrum in varying conditions).
+    rad_dists : float, list or array 1d
+        Vector of radial distances of fake companions in pixels.
     plsc : float or None
         Value of the plsc in arcsec/px. Only used for printing debug output when
         ``verbose=True``.
-    rad_dists : float, list or array 1d
-        Vector of radial distances of fake companions in pixels.
     n_branches : int, optional
         Number of azimutal branches.
     theta : float, optional

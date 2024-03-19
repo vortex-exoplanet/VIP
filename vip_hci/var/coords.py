@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Module with functions related to image coordinates and coordinate conversions.
 """
@@ -33,7 +32,7 @@ def dist_matrix(n, cx=None, cy=None):
 
     Parameters
     ----------
-    n : int
+    n : int or 2D nd array
         output image shape is (n, n)
     cx,cy : float
         reference point. Defaults to the center.
@@ -47,12 +46,17 @@ def dist_matrix(n, cx=None, cy=None):
     This is a replacement for ANDROMEDA's DISTC.
 
     """
-    if cx is None:
-        cx = (n - 1) / 2
+    if isinstance(n, int):
+        n1 = n
+        n2 = n
+    elif isinstance(n, np.ndarray):
+        n1, n2 = n.shape[:2]
     if cy is None:
-        cy = (n - 1) / 2
+        cy = (n1 - 1) / 2
+    if cx is None:
+        cx = (n2 - 1) / 2
 
-    yy, xx = np.ogrid[:n, :n]
+    yy, xx = np.ogrid[:n1, :n2]
     return np.sqrt((yy-cy)**2 + (xx-cx)**2)
 
 

@@ -270,7 +270,8 @@ def save_snapshots_psfsub_adi():
 
     # Principal component analysis (with left eigenvalue)
 
-    pca_left_eigv_adi = pca(cube=cube, angle_list=angles, fwhm=fwhm, left_eigv=True)
+    pca_left_eigv_adi = pca(cube=cube, angle_list=angles, fwhm=fwhm,
+                            left_eigv=True)
 
     # Principal component analysis (svd mode set to "eigen")
 
@@ -318,7 +319,8 @@ def save_snapshots_psfsub_adi():
     # Principal component analysis (annular mode with left eigenvalue)
 
     pca_ann_left_eigv_adi = pca_annular(
-        cube=cube, angle_list=angles, fwhm=fwhm, n_segments="auto", left_eigv=True
+        cube=cube, angle_list=angles, fwhm=fwhm, n_segments="auto",
+        left_eigv=True
     )
 
     # Principal component analysis (annular mode with automatic number of components)

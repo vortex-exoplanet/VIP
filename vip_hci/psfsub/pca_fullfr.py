@@ -37,6 +37,13 @@ Options :
    | `https://arxiv.org/abs/0909.4061
      <https://arxiv.org/abs/0909.4061>`_
 
+.. [REN23]
+   | Ren 2023
+   | **Karhunen-Loève data imputation in high-contrast imaging**
+   | *Astronomy & Astrophysics, Volume 679, p. 8*
+   | `https://arxiv.org/abs/2308.16912
+     <https://arxiv.org/abs/2308.16912>`_
+
 """
 
 __author__ = "C.A. Gomez Gonzalez, V. Christiaens, T. Bédrine"
@@ -272,11 +279,13 @@ def pca(*all_args: List, **all_kwargs: dict):
     ifs_collapse_range: str 'all' or tuple of 2 int
         If a tuple, it should contain the first and last channels where the mSDI
         residual channels will be collapsed (by default collapses all channels).
-    mask_rdi: 2d numpy array, opt
-        If provided, this binary mask will be used either in RDI mode or in
-        ADI+mSDI (2 steps) mode. The projection coefficients for the principal
-        components will be found considering the area covered by the mask
-        (useful to avoid self-subtraction in presence of bright disc signal)
+    mask_rdi: tuple of two numpy array or one signle 2d numpy array, opt
+        If provided, binary mask(s) will be used either in RDI mode or in 
+        ADI+mSDI (2 steps) mode. They will be used as boat and anchor masks 
+        following the procedure described in [REN23], which is useful to avoid
+        self-subtraction in the presence of a bright disc signal. If only one 
+        mask is provided, the boat images will be unmasked 
+        (i.e., full frames will be used).    
     check_memory : bool, optional
         If True, it checks that the input cube is smaller than the available
         system memory.
@@ -761,6 +770,7 @@ def _adi_rdi_pca(
     nproc,
     full_output,
     weights=None,
+    mask_rdi=None,
     cube_sig=None,
     left_eigv=False,
     min_frames_pca=10,
@@ -815,49 +825,9 @@ def _adi_rdi_pca(
                     "Number of PCs too high (max PCs={}), using {} PCs "
                     "instead.".format(n, ncomp)
                 )
-
-            if source_xy is None:
-                residuals_result = _project_subtract(
-                    cube,
-                    cube_ref,
-                    ncomp,
-                    scaling,
-                    mask_center_px,
-                    svd_mode,
-                    verbose,
-                    full_output,
-                    cube_sig=cube_sig,
-                    left_eigv=left_eigv,
-                )
-                if verbose:
-                    timing(start_time)
-                if full_output:
-                    residuals_cube = residuals_result[0]
-                    reconstructed = residuals_result[1]
-                    V = residuals_result[2]
-                    pcs = reshape_matrix(V, y, x) if not left_eigv else V.T
-                    recon = reshape_matrix(reconstructed, y, x)
-                else:
-                    residuals_cube = residuals_result
-
-            # A rotation threshold is applied
-            else:
-                if delta_rot is None or fwhm is None:
-                    msg = "Delta_rot or fwhm parameters missing. Needed for the"
-                    msg += "PA-based rejection of frames from the library"
-                    raise TypeError(msg)
-                nfrslib = []
-                residuals_cube = np.zeros_like(cube)
-                recon_cube = np.zeros_like(cube)
-                yc, xc = frame_center(cube[0], False)
-                x1, y1 = source_xy
-                ann_center = dist(yc, xc, y1, x1)
-                pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
-
-                for frame in range(n):
-                    ind = _find_indices_adi(angle_list, frame, pa_thr)
-
-                    res_result = _project_subtract(
+            if mask_rdi is None:
+                if source_xy is None:
+                    residuals_result = _project_subtract(
                         cube,
                         cube_ref,
                         ncomp,
@@ -866,28 +836,75 @@ def _adi_rdi_pca(
                         svd_mode,
                         verbose,
                         full_output,
-                        ind,
-                        frame,
                         cube_sig=cube_sig,
                         left_eigv=left_eigv,
-                        min_frames_pca=min_frames_pca,
                     )
+                    if verbose:
+                        timing(start_time)
                     if full_output:
-                        nfrslib.append(res_result[0])
-                        residual_frame = res_result[1]
-                        recon_frame = res_result[2]
-                        residuals_cube[frame] = residual_frame.reshape((y, x))
-                        recon_cube[frame] = recon_frame.reshape((y, x))
+                        residuals_cube = residuals_result[0]
+                        reconstructed = residuals_result[1]
+                        V = residuals_result[2]
+                        pcs = reshape_matrix(V, y, x) if not left_eigv else V.T
+                        recon = reshape_matrix(reconstructed, y, x)
                     else:
-                        nfrslib.append(res_result[0])
-                        residual_frame = res_result[1]
-                        residuals_cube[frame] = residual_frame.reshape((y, x))
-
-                # number of frames in library printed for each annular quadrant
-                if verbose:
-                    descriptive_stats(nfrslib, verbose=verbose,
-                                      label="Size LIB: ")
-
+                        residuals_cube = residuals_result
+    
+                # A rotation threshold is applied
+                else:
+                    if delta_rot is None or fwhm is None:
+                        msg = "Delta_rot or fwhm parameters missing. Needed for the"
+                        msg += "PA-based rejection of frames from the library"
+                        raise TypeError(msg)
+                    nfrslib = []
+                    residuals_cube = np.zeros_like(cube)
+                    recon_cube = np.zeros_like(cube)
+                    yc, xc = frame_center(cube[0], False)
+                    x1, y1 = source_xy
+                    ann_center = dist(yc, xc, y1, x1)
+                    pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
+    
+                    for frame in range(n):
+                        ind = _find_indices_adi(angle_list, frame, pa_thr)
+    
+                        res_result = _project_subtract(
+                            cube,
+                            cube_ref,
+                            ncomp,
+                            scaling,
+                            mask_center_px,
+                            svd_mode,
+                            verbose,
+                            full_output,
+                            ind,
+                            frame,
+                            cube_sig=cube_sig,
+                            left_eigv=left_eigv,
+                            min_frames_pca=min_frames_pca,
+                        )
+                        if full_output:
+                            nfrslib.append(res_result[0])
+                            residual_frame = res_result[1]
+                            recon_frame = res_result[2]
+                            residuals_cube[frame] = residual_frame.reshape((y, x))
+                            recon_cube[frame] = recon_frame.reshape((y, x))
+                        else:
+                            nfrslib.append(res_result[0])
+                            residual_frame = res_result[1]
+                            residuals_cube[frame] = residual_frame.reshape((y, x))
+    
+                    # number of frames in library printed for each annular quadrant
+                    if verbose:
+                        descriptive_stats(nfrslib, verbose=verbose,
+                                          label="Size LIB: ")
+            else: 
+                residuals_result = cube_subtract_sky_pca(
+                    cube, cube_ref, mask_rdi, ncomp=ncomp, full_output=True
+                )
+                residuals_cube = residuals_result[0]
+                pcs = residuals_result[2]
+                recon = residuals_result[-1]
+                
             residuals_cube_ = cube_derotate(
                 residuals_cube,
                 angle_list,

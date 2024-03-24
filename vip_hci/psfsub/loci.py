@@ -411,7 +411,8 @@ def _leastsq_adi(
 
         # indices
         indices = get_annulus_segments(
-            cube[0], inner_radius=inner_radius_ann, width=asize, nsegm=n_segments_ann
+            cube[0], inner_radius=inner_radius_ann, width=asize,
+            nsegm=n_segments_ann
         )
         ind_opt = get_annulus_segments(
             cube[0],
@@ -470,7 +471,8 @@ def _leastsq_adi(
         return frame_der_median
 
 
-def _leastsq_patch(ayxyx, pa_thresholds, angles, metric, dist_threshold, solver, tol):
+def _leastsq_patch(ayxyx, pa_thresholds, angles, metric, dist_threshold, solver,
+                   tol):
     """Helper function for _leastsq_ann.
 
     Parameters
@@ -516,7 +518,10 @@ def _leastsq_patch(ayxyx, pa_thresholds, angles, metric, dist_threshold, solver,
             A = values_opt[ind_ref]
             b = values_opt[i]
             if solver == "lstsq":
-                coef = sp.linalg.lstsq(A.T, b, cond=tol)[0]  # SVD method
+                try:
+                    coef = sp.linalg.lstsq(A.T, b, cond=tol)[0]  # SVD method
+                except:
+                    coef = sp.optimize.nnls(A.T, b)[0]  # if SVD does not work
             elif solver == "nnls":
                 coef = sp.optimize.nnls(A.T, b)[0]
             elif solver == "lsq":  # TODO

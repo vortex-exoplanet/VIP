@@ -474,7 +474,7 @@ class PostProc(BaseEstimator):
         print_algo_params(res[session_id].parameters)
 
     # TODO : identify the problem around the element `_repr_html_`
-    def _get_calculations(self) -> dict:
+    def _get_calculations(self, debug=False) -> dict:
         """
         Get a list of all attributes which are *calculated*.
 
@@ -494,33 +494,36 @@ class PostProc(BaseEstimator):
         for element in dir(self):
             # BLACKMAGIC : _repr_html_ must be skipped
             """
-            `_repr_html_` is an element of the directory of the PostProc object which
-            causes the search of calculated attributes to overflow, looping indefinitely
-            and never reaching the actual elements containing those said attributes.
-            It will be skipped until the issue has been properly identified and fixed.
-            You can uncomment the block below to observe how the directory loops after
-            reaching that element - acknowledging you are not skipping it.
+            `_repr_html_` is an element of the directory of the PostProc object
+            which causes the search of calculated attributes to overflow,
+            looping indefinitely and never reaching the actual elements
+            containing those said attributes. It will be skipped until the issue
+            has been properly identified and fixed. You can set debug=True to
+            observe how the directory loops after reaching that element -
+            acknowledging you are not skipping it.
             """
             if element not in PROBLEMATIC_ATTRIBUTE_NAMES:
                 try:
-                    # print(
-                    #     "directory element : ",
-                    #     element,
-                    #     ", calculations list : ",
-                    #     calculations,
-                    # )
+                    if debug:
+                        print(
+                            "directory element : ",
+                            element,
+                            ", calculations list : ",
+                            calculations,
+                        )
                     for k in getattr(getattr(self, element), "_calculates"):
                         calculations[k] = element
                 except AttributeError:
                     pass
             # below can be commented after debug
             else:
-                print(
-                    "directory element SKIPPED: ",
-                    element,
-                    ", calculations list : ",
-                    calculations,
-                )
+                if debug:
+                    print(
+                        "directory element SKIPPED: ",
+                        element,
+                        ", calculations list : ",
+                        calculations,
+                    )
 
         return calculations
 
@@ -550,9 +553,9 @@ class PostProc(BaseEstimator):
         """
         calculations = self._get_calculations()
         if attr in calculations:
-            raise AttributeError(
-                f"The {attr} was not calculated yet. Call {calculations[attr]} first."
-            )
+            msg = f"The {attr} was not calculated yet. "
+            msg += f"Call {calculations[attr]} first."
+            raise AttributeError(msg)
         # this raises a regular AttributeError:
         return self.__getattribute__(attr)
 

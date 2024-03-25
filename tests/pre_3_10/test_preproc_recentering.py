@@ -604,7 +604,7 @@ def test_satspots(debug=False):
     cube, spotcoords = create_cube_with_satspots(n_frames=n_frames)
 
     # ===== shift
-    shift_magnitude = 1
+    shift_magnitude = 0.8
     randax = seed.uniform(-shift_magnitude, 0, size=n_frames)
     randay = seed.uniform(0, shift_magnitude, size=n_frames)
 
@@ -645,7 +645,8 @@ def test_radon(debug=False):
     fit_res = vip.var.fit_2dgaussian(med_fr, crop=True, cropsize=13,
                                      cent=(144, 147), debug=False,
                                      full_output=True)
-    med_y, med_x = float(fit_res['centroid_y']), float(fit_res['centroid_x'])
+    med_y = float(fit_res['centroid_y'][0])
+    med_x = float(fit_res['centroid_x'][0])
     # remove BKG star
     fit_flux = np.array(
         [

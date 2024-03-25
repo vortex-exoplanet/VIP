@@ -280,12 +280,12 @@ def pca(*all_args: List, **all_kwargs: dict):
         If a tuple, it should contain the first and last channels where the mSDI
         residual channels will be collapsed (by default collapses all channels).
     mask_rdi: tuple of two numpy array or one signle 2d numpy array, opt
-        If provided, binary mask(s) will be used either in RDI mode or in 
-        ADI+mSDI (2 steps) mode. They will be used as boat and anchor masks 
+        If provided, binary mask(s) will be used either in RDI mode or in
+        ADI+mSDI (2 steps) mode. They will be used as boat and anchor masks
         following the procedure described in [REN23], which is useful to avoid
-        self-subtraction in the presence of a bright disc signal. If only one 
-        mask is provided, the boat images will be unmasked 
-        (i.e., full frames will be used).    
+        self-subtraction in the presence of a bright disc signal. If only one
+        mask is provided, the boat images will be unmasked
+        (i.e., full frames will be used).
     check_memory : bool, optional
         If True, it checks that the input cube is smaller than the available
         system memory.
@@ -849,11 +849,11 @@ def _adi_rdi_pca(
                         recon = reshape_matrix(reconstructed, y, x)
                     else:
                         residuals_cube = residuals_result
-    
+
                 # A rotation threshold is applied
                 else:
                     if delta_rot is None or fwhm is None:
-                        msg = "Delta_rot or fwhm parameters missing. Needed for the"
+                        msg = "Delta_rot or fwhm parameters missing. Needed for"
                         msg += "PA-based rejection of frames from the library"
                         raise TypeError(msg)
                     nfrslib = []
@@ -863,10 +863,10 @@ def _adi_rdi_pca(
                     x1, y1 = source_xy
                     ann_center = dist(yc, xc, y1, x1)
                     pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
-    
+
                     for frame in range(n):
                         ind = _find_indices_adi(angle_list, frame, pa_thr)
-    
+
                         res_result = _project_subtract(
                             cube,
                             cube_ref,
@@ -886,25 +886,27 @@ def _adi_rdi_pca(
                             nfrslib.append(res_result[0])
                             residual_frame = res_result[1]
                             recon_frame = res_result[2]
-                            residuals_cube[frame] = residual_frame.reshape((y, x))
+                            residuals_cube[frame] = residual_frame.reshape((y,
+                                                                            x))
                             recon_cube[frame] = recon_frame.reshape((y, x))
                         else:
                             nfrslib.append(res_result[0])
                             residual_frame = res_result[1]
-                            residuals_cube[frame] = residual_frame.reshape((y, x))
-    
-                    # number of frames in library printed for each annular quadrant
+                            residuals_cube[frame] = residual_frame.reshape((y,
+                                                                            x))
+
+                    # number of frames in library printed for each ann. quadrant
                     if verbose:
                         descriptive_stats(nfrslib, verbose=verbose,
                                           label="Size LIB: ")
-            else: 
+            else:
                 residuals_result = cube_subtract_sky_pca(
                     cube, cube_ref, mask_rdi, ncomp=ncomp, full_output=True
                 )
                 residuals_cube = residuals_result[0]
                 pcs = residuals_result[2]
                 recon = residuals_result[-1]
-                
+
             residuals_cube_ = cube_derotate(
                 residuals_cube,
                 angle_list,

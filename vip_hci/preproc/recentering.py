@@ -844,13 +844,13 @@ def frame_center_radon(array, cropsize=None, hsize_ini=1., step_ini=0.1,
                     raise ValueError(msg)
                 sinogram = radon(frame, theta=theta, circle=True)
                 plot_frames((frame, sinogram))
-                print(np.sum(np.abs(sinogram[int(cent), :])))
+                # print(np.sum(np.abs(sinogram[int(cent), :])))
             else:
                 theta = np.linspace(start=0, stop=360, num=int(cent*2),
                                     endpoint=False)
                 sinogram = radon(frame, theta=theta, circle=True)
                 plot_frames((frame, sinogram))
-                print(np.sum(np.abs(sinogram[int(cent), :])))
+                # print(np.sum(np.abs(sinogram[int(cent), :])))
 
         if nproc is None:
             nproc = cpu_count() // 2    # Hyper-threading doubles the # of cores

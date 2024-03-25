@@ -26,11 +26,13 @@ from .snr_source import snr, snrmap, frame_report
 def detection(array, fwhm=4, psf=None, mode='lpeaks', bkg_sigma=5,
               matched_filter=False, mask=True, snr_thresh=5, nproc=1, plot=True,
               debug=False, full_output=False, verbose=True, **kwargs):
-    """ Finds blobs in a 2d array. The algorithm is designed for automatically
-    finding planets in post-processed high contrast final frames. Blob can be
-    defined as a region of an image in which some properties are constant or
-    vary within a prescribed range of values. See ``Notes`` below to read about
-    the algorithm details.
+    """Automatically find point-like sources in a 2d array.
+
+    The algorithm is designed for automatically finding planets in
+    post-processed high contrast final frames. Blob can be defined as a region
+    of an image in which some properties are constant or vary within a
+    prescribed range of values. See ``Notes`` below to read about the algorithm
+    details.
 
     Parameters
     ----------

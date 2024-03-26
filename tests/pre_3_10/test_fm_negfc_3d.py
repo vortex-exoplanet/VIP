@@ -71,7 +71,7 @@ def injected_cube_position(example_dataset_adi):
         (median_sub, firstguess, None, False, "sum", False, None),
         (pca_annulus, mcmc_negfc_sampling, 2, False, "stddev", False, "gb"),
         (pca_annulus, mcmc_negfc_sampling, 3, True, None, True, "ac"),
-        (pca_annulus, nested_negfc_sampling, 2, False, "sum", False, None),
+        (pca_annulus, nested_negfc_sampling, 3, False, "sum", False, None),
     ],
 )
 def test_algos(
@@ -152,10 +152,7 @@ def test_algos(
         trans[0] = np.linspace(0, ds.cube.shape[-1], 10, endpoint=True)
         trans[1, :] = 1
         # run MCMC
-        if force_rpa:
-            niteration_limit = 400
-        else:
-            niteration_limit = 300
+        niteration_limit = 400
         res = negfc_algo(
             ds.cube,
             ds.angles,
@@ -181,7 +178,7 @@ def test_algos(
             force_rPA=force_rpa,
             verbosity=2,
         )
-        burnin = 0.5
+        burnin = 0.3
         if force_rpa:
             labels = ["f"]
             isamples = res[:, int(res.shape[1] // (1 / burnin)) :, :].reshape((-1, 1))

@@ -5,7 +5,7 @@ VIP - Vortex Image Processing package
 .. image:: https://badge.fury.io/py/vip-hci.svg
     :target: https://pypi.python.org/pypi/vip-hci
 
-.. image:: https://img.shields.io/badge/Python-3.7%2C%203.8%2C%203.9-brightgreen.svg
+.. image:: https://img.shields.io/badge/Python-3.7%2C%203.8%2C%203.9%2C%203.10%2C%203.11-brightgreen.svg
     :target: https://pypi.python.org/pypi/vip-hci
 
 .. image:: https://travis-ci.com/vortex-exoplanet/VIP.svg?branch=master

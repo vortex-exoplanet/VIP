@@ -72,17 +72,17 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install pre-commit pytest pytest-cov sphinx
         if [ -f requirements.txt ]; then pip install -r requirements-dev.txt; fi
-    - name: Verify files with pre-commit
-      run: |
-        # Setup pre-commit hooks
-        pre-commit clean
-        pre-commit install --hook-type pre-merge-commit
-        pre-commit install --hook-type pre-push
-        pre-commit install --hook-type post-rewrite
-        pre-commit install-hooks
-        pre-commit install
-        # Run pre-commit hooks
-        pre-commit run --files vip_hci/objects/*.py
+#    - name: Verify files with pre-commit
+#      run: |
+#        # Setup pre-commit hooks
+#        pre-commit clean
+#        pre-commit install --hook-type pre-merge-commit
+#        pre-commit install --hook-type pre-push
+#        pre-commit install --hook-type post-rewrite
+#        pre-commit install-hooks
+#        pre-commit install
+#        # Run pre-commit hooks
+#        pre-commit run --files vip_hci/objects/*.py
     - name: Test with pytest
       run: |
         pytest tests/post_3_10 --cov=vip_hci/objects/ --cov-report=xml

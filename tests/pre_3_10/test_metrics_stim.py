@@ -42,7 +42,7 @@ def get_frame(example_dataset_adi):
     res_cube = res[-2]
     res_der_cube = res[-1]
     frame = Frame(res_frame, fwhm=dsi.fwhm)
-    return frame, (63, 63), res_cube, res_der_cube, dsi.angles
+    return frame, (35.55, 58.65), res_cube, res_der_cube, dsi.angles
 
 
 atol = 2

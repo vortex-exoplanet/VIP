@@ -66,9 +66,10 @@ def test_normstimmap(get_frame):
     y1, x1 = np.where(norm_stimap == norm_stimap.max())
     assert np.allclose(x1, x0, atol=atol) and np.allclose(y1, y0, atol=atol)
 
+
 def test_normstimmap_two(get_frame):
     frame, positions, res_cube, res_der_cube, angles = get_frame
     y0, x0 = positions
-    norm_stimap = normalized_stim_map(res_der_cube)
+    norm_stimap = normalized_stim_map(res_cube, angles)
     y1, x1 = np.where(norm_stimap == norm_stimap.max())
     assert np.allclose(x1, x0, atol=atol) and np.allclose(y1, y0, atol=atol)

@@ -47,7 +47,7 @@ def test_contrast_curve(get_cube):
 
     # first empty the cube from planet b
     r_b = 0.452 / ds.px_scale  # Absil+2013
-    theta_b = 211.0 + 90 + 104.84 - 0.45  # # Absil+2013
+    theta_b = 211.0 + 90  # + 104.84 - 0.45 (incl. in derot_angs now) Absil+2013
     flux_b = 550.2
     pl_par = [(r_b, theta_b, flux_b)]
     cube = cube_planet_free(pl_par, ds.cube, ds.angles, ds.psf)

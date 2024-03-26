@@ -66,7 +66,7 @@ def test_contrast_curve(get_cube):
         starphot=starphot,
         algo=pca,
         nbranch=3,
-        ncomp=9,
+        ncomp=13,
         transmission=trans,
         plot=True,
         debug=True,
@@ -87,7 +87,7 @@ def test_contrast_curve(get_cube):
     else:
         check = False
     msg = "Contrast too shallow compared to expectations: {} > {}"
-    assert check, msg.format(cc_gau, 4e-3)
+    assert check, msg.format(cc_gau, 6e-3)
 
     # check that at 0.2'' 5-sigma cc: Student statistics > Gaussian statistics
     cc_stu = student_cc[idx_r]
@@ -99,7 +99,7 @@ def test_contrast_curve(get_cube):
     else:
         check = False
     msg = "Contrast too shallow compared to expectations: {} > {}"
-    assert check, msg.format(cc_stu, 4e-3 * corr_r)
+    assert check, msg.format(cc_stu, 6e-3 * corr_r)
 
     # check that at 0.4'' 5-sigma cc < 5e-4
     idx_r = find_nearest(rad * plsc, 0.4)

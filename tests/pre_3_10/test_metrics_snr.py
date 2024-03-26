@@ -40,7 +40,7 @@ def get_frame(example_dataset_adi):
     print("producing a final frame...")
     res_frame = pca(cube=dsi.cube, angle_list=dsi.angles, ncomp=10)
     frame = Frame(res_frame, fwhm=dsi.fwhm)
-    return frame, (63, 63)
+    return frame, (35.55, 58.65)  # position of beta pic b
 
 
 atol = 2

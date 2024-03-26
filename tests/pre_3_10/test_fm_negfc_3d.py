@@ -56,7 +56,7 @@ def injected_cube_position(example_dataset_adi):
     # we chose a shallow copy, as we will not use any in-place operations
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
-    gt = (30, 0, 300)
+    gt = (30, 90, 300)
     dsi.inject_companions(gt[2], rad_dists=gt[0], theta=gt[1])
 
     return dsi, dsi.injections_yx[0], gt

@@ -69,9 +69,9 @@ def injected_cube_position(example_dataset_adi):
         (pca_annular, firstguess, 3, False, "stddev", False, None),
         (pca, firstguess, 5, True, None, False, None),
         (median_sub, firstguess, None, False, "sum", False, None),
-        (pca_annulus, mcmc_negfc_sampling, 3, False, "stddev", False, "gb"),
+        (pca_annulus, mcmc_negfc_sampling, 2, False, "stddev", False, "gb"),
         (pca_annulus, mcmc_negfc_sampling, 3, True, None, True, "ac"),
-        (pca_annulus, nested_negfc_sampling, 3, False, "sum", False, None),
+        (pca_annulus, nested_negfc_sampling, 2, False, "sum", False, None),
     ],
 )
 def test_algos(
@@ -145,7 +145,7 @@ def test_algos(
             sp_unc = (2, 2, 0.1 * gt[2])
         # compare results
         for i in range(3):
-            aarc(res[i], gt[i], rtol=1e-1, atol=3 * sp_unc[i])
+            aarc(res[i], gt[i], atol=3 * sp_unc[i])
     elif negfc_algo == mcmc_negfc_sampling:
         # define fake unit transmission (to test that branch of the algo)
         trans = np.zeros([2, 10])
@@ -155,7 +155,7 @@ def test_algos(
         if force_rpa:
             niteration_limit = 400
         else:
-            niteration_limit = 210
+            niteration_limit = 300
         res = negfc_algo(
             ds.cube,
             ds.angles,
@@ -181,7 +181,7 @@ def test_algos(
             force_rPA=force_rpa,
             verbosity=2,
         )
-        burnin = 0.3
+        burnin = 0.5
         if force_rpa:
             labels = ["f"]
             isamples = res[:, int(res.shape[1] // (1 / burnin)) :, :].reshape((-1, 1))

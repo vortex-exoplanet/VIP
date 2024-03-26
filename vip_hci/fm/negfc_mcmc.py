@@ -1162,8 +1162,6 @@ def show_walk_plot(chain, save=False, output_dir='', **kwargs):
     if save:
         plt.savefig(output_dir+'walk_plot.pdf')
         plt.close(fig)
-    else:
-        plt.show()
 
 
 def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
@@ -1219,8 +1217,6 @@ def show_corner_plot(chain, burnin=0.5, save=False, output_dir='', **kwargs):
     if save:
         plt.savefig(output_dir+'corner_plot.pdf')
         plt.close(fig)
-    else:
-        plt.show()
 
 
 def confidence(isamples, cfd=68.27, bins=100, gaussian_fit=False, weights=None,

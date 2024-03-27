@@ -79,18 +79,18 @@ def test_contrast_curve(get_cube):
     sigma_corr = np.array(cc["sigma corr"])
 
     # check that at 0.2'' 5-sigma cc < 4e-3 - Gaussian statistics
+    thr02 = 6e-3
     idx_r = find_nearest(rad * plsc, 0.2)
     cc_gau = gauss_cc[idx_r]
     corr_r = sigma_corr[idx_r]
-    if cc_gau < 4e-3:
+    if cc_gau < thr02:
         check = True
     else:
         check = False
     msg = "Contrast too shallow compared to expectations: {} > {}"
-    assert check, msg.format(cc_gau, 6e-3)
+    assert check, msg.format(cc_gau, thr02)
 
     # check that at 0.2'' 5-sigma cc: Student statistics > Gaussian statistics
-    thr02 = 6e-3
     cc_stu = student_cc[idx_r]
     if cc_stu < thr02 * corr_r and cc_stu > cc_gau:
         check = True

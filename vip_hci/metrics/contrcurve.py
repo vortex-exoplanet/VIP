@@ -212,7 +212,8 @@ def contrast_curve(
         if isinstance(starphot, float) or isinstance(starphot, int):
             msg0 = "ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {},"
             msg0 += " STARPHOT = {}"
-            print(msg0.format(algo.__name__, fwhm_med, nbranch, sigma, starphot))
+            print(msg0.format(algo.__name__, fwhm_med, nbranch, sigma,
+                              starphot))
         else:
             msg0 = "ALGO : {}, FWHM = {}, # BRANCHES = {}, SIGMA = {}"
             print(msg0.format(algo.__name__, fwhm_med, nbranch, sigma))
@@ -257,7 +258,7 @@ def contrast_curve(
         if transmission.ndim != 2:
             raise ValueError("transmission should be a 2D ndarray")
         elif t_nz != 2 and t_nz != 1 + cube.shape[0]:
-            msg = "transmission dimensions should be either (2,N) or (n_wave+1, N)"
+            msg = "transmission dimensions should be (2,N) or (n_wave+1,N)"
             raise ValueError(msg)
         # if transmission doesn't have right format for interpolation, adapt it
         diag = np.sqrt(2) * cube.shape[-1]
@@ -344,7 +345,10 @@ def contrast_curve(
 
     # take abs value of the mean residual fluxes otherwise the more
     # oversubtraction (negative res_lev_samp), the better the contrast!!
-    res_lev_samp = np.abs(res_lev_samp)
+    # res_lev_samp = np.abs(res_lev_samp)
+
+    # correction (noticed in cases of oversubtraction) - to be confirmed:
+    res_lev_samp = np.zeros_like(res_lev_samp)
 
     if smooth:
         # smoothing the noise vector using a Savitzky-Golay filter
@@ -396,7 +400,8 @@ def contrast_curve(
         plt.plot(vector_radd * pxscale, thruput_mean,
                  ".", label="computed", alpha=0.6)
         plt.plot(
-            rad_samp_arcsec, thruput_interp, ",-", label="interpolated", lw=2, alpha=0.5
+            rad_samp_arcsec, thruput_interp, ",-", label="interpolated", lw=2,
+            alpha=0.5
         )
         plt.grid("on", which="both", alpha=0.2, linestyle="solid")
         plt.xlabel("Angular separation [arcsec]")
@@ -456,7 +461,8 @@ def contrast_curve(
         fig = plt.figure(figsize=figsize, dpi=dpi)
         ax1 = fig.add_subplot(111)
         (con1,) = ax1.plot(
-            rad_samp_arcsec, cont_curve_samp, "-", alpha=0.2, lw=2, color="green"
+            rad_samp_arcsec, cont_curve_samp, "-", alpha=0.2, lw=2,
+            color="green"
         )
         (con2,) = ax1.plot(
             rad_samp_arcsec, cont_curve_samp, ".", alpha=0.2, color="green"
@@ -471,7 +477,8 @@ def contrast_curve(
                 color="blue",
             )
             (con4,) = ax1.plot(
-                rad_samp_arcsec, cont_curve_samp_corr, ".", alpha=0.4, color="blue"
+                rad_samp_arcsec, cont_curve_samp_corr, ".", alpha=0.4,
+                color="blue"
             )
             lege = [(con1, con2), (con3, con4)]
         else:
@@ -518,7 +525,8 @@ def contrast_curve(
             if student:
                 cc_mags_corr = -2.5 * np.log10(cont_curve_samp_corr)
                 (con6,) = ax3.plot(
-                    rad_samp_arcsec, cc_mags_corr, "-", alpha=0.4, lw=2, color="blue"
+                    rad_samp_arcsec, cc_mags_corr, "-", alpha=0.4, lw=2,
+                    color="blue"
                 )
                 (con7,) = ax3.plot(
                     rad_samp_arcsec, cc_mags_corr, ".", alpha=0.4, color="blue"
@@ -587,12 +595,14 @@ def throughput(
     algo_class=None,
     **algo_dict,
 ):
-    """Measures the throughput for chosen algorithm and input dataset (ADI or
-    ADI+mSDI). The final throughput is the average of the same procedure
-    measured in ``nbranch`` azimutally equidistant branches.
+    """Measure the throughput for chosen algorithm and input dataset (ADI or\
+    ADI+mSDI).
+
+    The final throughput is the average of the same procedure measured in
+    ``nbranch`` azimutally equidistant branches.
 
     Parameters
-    ---------_
+    ----------
     cube : 3d or 4d numpy ndarray
         The input cube, 3d (ADI data) or 4d array (IFS data), without fake
         companions.
@@ -872,10 +882,12 @@ def throughput(
 
                 # ***************************************************************
                 # TODO: Clean below?
-                # Consider 3 cases depending on whether algo is (i) defined externally,
-                # (ii) a VIP postproc algorithm; (iii) ineligible for contrast curves
-                arg = getfullargspec(algo).args
-                if "cube" in arg and "angle_list" in arg and "verbose" in arg:
+                # Consider 3 cases depending on whether algo is
+                # (i) defined externally,
+                # (ii) a VIP postproc algorithm;
+                # (iii) ineligible for contrast curves
+                ar = getfullargspec(algo).args
+                if "cube" in ar and "angle_list" in ar and "verbose" in ar:
                     # (i) external algorithm with appropriate parameters [OK]
                     pass
                 else:
@@ -886,35 +898,31 @@ def throughput(
                     tmp = __import__(
                         mod, fromlist=[algo_name.upper()+'_Params'])
                     algo_params = getattr(tmp, algo_name.upper()+'_Params')
-                    arg = [attr for attr in dir(algo_params)]
-                    if "cube" in arg and "angle_list" in arg and "verbose" in arg:
+                    ar = [attr for attr in dir(algo_params)]
+                    if "cube" in ar and "angle_list" in ar and "verbose" in ar:
                         # (ii) a VIP postproc algorithm [OK]
                         pass
                     else:
-                        # (iii) ineligible routine for contrast curves [Raise error]
-                        msg = "Ineligible algo for contrast curve function. algo should "
-                        msg += "have parameters 'cube', 'angle_list' and 'verbose'"
+                        # (iii) ineligible routine [Raise error]
+                        msg = "Ineligible algo for contrast curve function. "
+                        msg += "algo should have parameters 'cube', "
+                        msg += "'angle_list' and 'verbose'"
                         raise TypeError(msg)
-                if "cube" in arg and "angle_list" in arg and "verbose" in arg:
-                    if "fwhm" in arg:
-                        frame_fc = algo(
-                            cube=cube_fc,
-                            angle_list=parangles,
-                            fwhm=fwhm_med,
-                            verbose=False,
-                            **algo_dict,
-                        )
-                    else:
-                        frame_fc = algo(
-                            cube=cube_fc,
-                            angle_list=parangles,
-                            verbose=False,
-                            **algo_dict,
-                        )
+                if "fwhm" in ar:
+                    frame_fc = algo(
+                        cube=cube_fc,
+                        angle_list=parangles,
+                        fwhm=fwhm_med,
+                        verbose=False,
+                        **algo_dict,
+                    )
                 else:
-                    msg = "Input algorithm must have at least 3 parameters: "
-                    msg += "cube, angle_list and verbose"
-                    raise ValueError(msg)
+                    frame_fc = algo(
+                        cube=cube_fc,
+                        angle_list=parangles,
+                        verbose=False,
+                        **algo_dict,
+                    )
 
                 if verbose:
                     msg3 = "Cube with fake companions processed with {}"
@@ -998,10 +1006,12 @@ def throughput(
 
                 # **************************************************************
                 # TODO: Clean below?
-                # Consider 3 cases depending on whether algo is (i) defined externally,
-                # (ii) a VIP postproc algorithm; (iii) ineligible for contrast curves
-                arg = getfullargspec(algo).args
-                if "cube" in arg and "angle_list" in arg and "verbose" in arg:
+                # Consider 3 cases depending on whether algo is
+                # (i) defined externally,
+                # (ii) a VIP postproc algorithm;
+                # (iii) ineligible for contrast curves
+                ar = getfullargspec(algo).args
+                if "cube" in ar and "angle_list" in ar and "verbose" in ar:
                     # (i) external algorithm with appropriate parameters [OK]
                     pass
                 else:
@@ -1012,31 +1022,31 @@ def throughput(
                     tmp = __import__(
                         mod, fromlist=[algo_name.upper()+'_Params'])
                     algo_params = getattr(tmp, algo_name.upper()+'_Params')
-                    arg = [attr for attr in dir(algo_params)]
-                    if "cube" in arg and "angle_list" in arg and "verbose" in arg:
+                    ar = [attr for attr in dir(algo_params)]
+                    if "cube" in ar and "angle_list" in ar and "verbose" in ar:
                         # (ii) a VIP postproc algorithm [OK]
                         pass
                     else:
-                        # (iii) ineligible routine for contrast curves [Raise error]
-                        msg = "Ineligible algo for contrast curve function. algo should "
-                        msg += "have parameters 'cube', 'angle_list' and 'verbose'"
+                        # (iii) ineligible routine [Raise error]
+                        msg = "Ineligible algo for contrast curve function. "
+                        msg += "algo should have parameters 'cube', "
+                        msg += "'angle_list' and 'verbose'"
                         raise TypeError(msg)
-                if "cube" in arg and "angle_list" in arg and "verbose" in arg:
-                    if "fwhm" in arg:
-                        frame_fc = algo(
-                            cube=cube_fc,
-                            angle_list=parangles,
-                            fwhm=fwhm_med,
-                            verbose=False,
-                            **algo_dict,
-                        )
-                    else:
-                        frame_fc = algo(
-                            cube=cube_fc,
-                            angle_list=parangles,
-                            verbose=False,
-                            **algo_dict,
-                        )
+                if "fwhm" in ar:
+                    frame_fc = algo(
+                        cube=cube_fc,
+                        angle_list=parangles,
+                        fwhm=fwhm_med,
+                        verbose=False,
+                        **algo_dict,
+                    )
+                else:
+                    frame_fc = algo(
+                        cube=cube_fc,
+                        angle_list=parangles,
+                        verbose=False,
+                        **algo_dict,
+                    )
 
                 if verbose:
                     msg3 = "Cube with fake companions processed with {}"
@@ -1080,10 +1090,11 @@ def throughput(
 
 
 def noise_per_annulus(
-    array, separation, fwhm, init_rad=None, wedge=(0, 360), verbose=False, debug=False
+    array, separation, fwhm, init_rad=None, wedge=(0, 360), verbose=False,
+    debug=False
 ):
-    """Measures the noise and mean residual level as the standard deviation
-    and mean, respectively, of apertures defined in each annulus with a given
+    """Measure the noise and mean residual level as the standard deviation\
+    and mean, respectively, of apertures defined in each annulus with a given\
     separation.
 
     The annuli start at init_rad (= fwhm by default if not provided) and stop
@@ -1181,7 +1192,8 @@ def noise_per_annulus(
             for j in range(xx.shape[0]):
                 # Circle takes coordinates as (X,Y)
                 aper = plt.Circle(
-                    (xx[j], yy[j]), radius=fwhm / 2, color="r", fill=False, alpha=0.8
+                    (xx[j], yy[j]), radius=fwhm / 2, color="r", fill=False,
+                    alpha=0.8
                 )
                 ax.add_patch(aper)
                 cent = plt.Circle(
@@ -1196,7 +1208,7 @@ def noise_per_annulus(
 
 
 def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
-    """Returns the sum of pixel values in a circular aperture centered on the
+    """Return the sum of pixel values in a circular aperture centered on the\
     input coordinates. The radius of the aperture is set as (ap_factor*fwhm)/2.
 
     Parameters

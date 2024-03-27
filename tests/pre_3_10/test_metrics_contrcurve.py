@@ -66,7 +66,7 @@ def test_contrast_curve(get_cube):
         starphot=starphot,
         algo=pca,
         nbranch=3,
-        ncomp=7,
+        ncomp=4,
         transmission=trans,
         plot=True,
         debug=True,

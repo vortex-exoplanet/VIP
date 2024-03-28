@@ -1,36 +1,37 @@
 VIP - Vortex Image Processing package
 =====================================
 
+|VIP| |Versions| |travis| |License| |ArXiV| |docs| |codecov| |DOI| |Zenodo| |EMAC|
 
-.. image:: https://badge.fury.io/py/vip-hci.svg
-    :target: https://pypi.python.org/pypi/vip-hci
+.. |VIP| image:: https://badge.fury.io/py/vip-hci.svg
+        :target: https://pypi.python.org/pypi/vip-hci
 
-.. image:: https://img.shields.io/badge/Python-3.7%2C%203.8%2C%203.9-brightgreen.svg
-    :target: https://pypi.python.org/pypi/vip-hci
+.. |Versions| image:: https://img.shields.io/badge/Python-3.7%2C%203.8%2C%203.9%2C%203.10%2C%203.11-brightgreen.svg
+             :target: https://pypi.python.org/pypi/vip-hci
 
-.. image:: https://travis-ci.com/vortex-exoplanet/VIP.svg?branch=master
-    :target: https://travis-ci.com/vortex-exoplanet/VIP
+.. |travis| image:: https://travis-ci.com/vortex-exoplanet/VIP.svg?branch=master
+           :target: https://travis-ci.com/vortex-exoplanet/VIP
 
-.. image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
-    :target: https://github.com/vortex-exoplanet/VIP/blob/master/LICENSE
+.. |License| image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
+            :target: https://github.com/vortex-exoplanet/VIP/blob/master/LICENSE
 
-.. image:: https://img.shields.io/badge/arXiv-1705.06184%20-yellowgreen.svg
-    :target: https://arxiv.org/abs/1705.06184
+.. |ArXiV| image:: https://img.shields.io/badge/arXiv-1705.06184%20-yellowgreen.svg
+          :target: https://arxiv.org/abs/1705.06184
 
-.. image:: https://readthedocs.org/projects/vip/badge/?version=latest
-    :target: http://vip.readthedocs.io/en/latest/?badge=latest
+.. |docs| image:: https://readthedocs.org/projects/vip/badge/?version=latest
+         :target: http://vip.readthedocs.io/en/latest/?badge=latest
 
-.. image:: https://codecov.io/gh/vortex-exoplanet/VIP/branch/master/graph/badge.svg?token=HydCFQqLRf
-    :target: https://codecov.io/gh/vortex-exoplanet/VIP
+.. |codecov| image:: https://codecov.io/gh/vortex-exoplanet/VIP/branch/master/graph/badge.svg?token=HydCFQqLRf
+            :target: https://codecov.io/gh/vortex-exoplanet/VIP
 
-.. image:: https://joss.theoj.org/papers/10.21105/joss.04774/status.svg
-   :target: https://doi.org/10.21105/joss.04774
+.. |DOI| image:: https://joss.theoj.org/papers/10.21105/joss.04774/status.svg
+        :target: https://doi.org/10.21105/joss.04774
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7499314.svg
-   :target: https://doi.org/10.5281/zenodo.7499314
+.. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7499314.svg
+           :target: https://doi.org/10.5281/zenodo.7499314
 
-.. image:: https://img.shields.io/badge/EMAC-2207--116-blue
-   :target: https://emac.gsfc.nasa.gov/?cid=2207-116
+.. |EMAC| image:: https://img.shields.io/badge/EMAC-2207--116-blue
+         :target: https://emac.gsfc.nasa.gov/?cid=2207-116
 
 ::
 

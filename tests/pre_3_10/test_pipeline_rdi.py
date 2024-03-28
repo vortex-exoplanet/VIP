@@ -55,7 +55,7 @@ def algo_pca(ds):
         cube=ds.cube,
         angle_list=ds.angles,
         cube_ref=ds.cuberef,
-        ncomp=30,
+        ncomp=15,
         mask_center_px=15,
     )
 
@@ -67,7 +67,7 @@ def algo_pca_mask(ds):
         cube=ds.cube,
         angle_list=ds.angles,
         cube_ref=ds.cuberef,
-        ncomp=30,
+        ncomp=15,
         mask_center_px=15,
         mask_rdi=mask_rdi,
     )
@@ -78,7 +78,7 @@ def algo_nmf(ds):
         cube=ds.cube,
         angle_list=ds.angles,
         cube_ref=ds.cuberef,
-        ncomp=30,
+        ncomp=15,
         mask_center_px=15,
     )
 
@@ -91,7 +91,8 @@ def algo_pca_annular_ardi(ds):
 
 def algo_pca_annular_rdi(ds):
     return vip.psfsub.pca_annular(
-        cube=ds.cube, angle_list=ds.angles, cube_ref=ds.cuberef, ncomp=30, delta_rot=100
+        cube=ds.cube, angle_list=ds.angles, cube_ref=ds.cuberef, ncomp=15,
+        delta_rot=100
     )
 
 
@@ -103,7 +104,8 @@ def algo_nmf_annular_ardi(ds):
 
 def algo_nmf_annular_rdi(ds):
     return vip.psfsub.nmf_annular(
-        cube=ds.cube, angle_list=ds.angles, cube_ref=ds.cuberef, ncomp=30, delta_rot=100
+        cube=ds.cube, angle_list=ds.angles, cube_ref=ds.cuberef, ncomp=15,
+        delta_rot=100
     )
 
 

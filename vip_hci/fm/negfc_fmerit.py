@@ -893,7 +893,8 @@ def get_mu_and_sigma(
 
     indices = get_annular_wedge(pca_res, radius_int, 2 * fwhm, wedge=wedge)
     yy, xx = indices
-    indices_inv = get_annular_wedge(pca_res_inv, radius_int, 2 * fwhm, wedge=wedge)
+    indices_inv = get_annular_wedge(pca_res_inv, radius_int, 2 * fwhm,
+                                    wedge=wedge)
     yyi, xxi = indices_inv
     all_res = np.concatenate((pca_res[yy, xx], pca_res_inv[yyi, xxi]))
     mu = np.mean(all_res)

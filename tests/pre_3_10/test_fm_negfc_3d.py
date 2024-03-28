@@ -56,7 +56,7 @@ def injected_cube_position(example_dataset_adi):
     # we chose a shallow copy, as we will not use any in-place operations
     # (like +=). Using `deepcopy` would be safer, but consume more memory.
 
-    gt = (30, 0, 300)
+    gt = (30, 90, 300)
     dsi.inject_companions(gt[2], rad_dists=gt[0], theta=gt[1])
 
     return dsi, dsi.injections_yx[0], gt
@@ -69,7 +69,7 @@ def injected_cube_position(example_dataset_adi):
         (pca_annular, firstguess, 3, False, "stddev", False, None),
         (pca, firstguess, 5, True, None, False, None),
         (median_sub, firstguess, None, False, "sum", False, None),
-        (pca_annulus, mcmc_negfc_sampling, 3, False, "stddev", False, "gb"),
+        (pca_annulus, mcmc_negfc_sampling, 2, False, "stddev", False, "gb"),
         (pca_annulus, mcmc_negfc_sampling, 3, True, None, True, "ac"),
         (pca_annulus, nested_negfc_sampling, 3, False, "sum", False, None),
     ],
@@ -145,17 +145,14 @@ def test_algos(
             sp_unc = (2, 2, 0.1 * gt[2])
         # compare results
         for i in range(3):
-            aarc(res[i], gt[i], rtol=1e-1, atol=3 * sp_unc[i])
+            aarc(res[i], gt[i], rtol=1e-2, atol=3 * sp_unc[i])
     elif negfc_algo == mcmc_negfc_sampling:
         # define fake unit transmission (to test that branch of the algo)
         trans = np.zeros([2, 10])
         trans[0] = np.linspace(0, ds.cube.shape[-1], 10, endpoint=True)
         trans[1, :] = 1
         # run MCMC
-        if force_rpa:
-            niteration_limit = 400
-        else:
-            niteration_limit = 210
+        niteration_limit = 400
         res = negfc_algo(
             ds.cube,
             ds.angles,
@@ -184,10 +181,14 @@ def test_algos(
         burnin = 0.3
         if force_rpa:
             labels = ["f"]
-            isamples = res[:, int(res.shape[1] // (1 / burnin)) :, :].reshape((-1, 1))
+            isamples = res[:,
+                           int(res.shape[1] // (1 / burnin)):,
+                           :].reshape((-1, 1))
         else:
             labels = ["r", "theta", "f"]
-            isamples = res[:, int(res.shape[1] // (1 / burnin)) :, :].reshape((-1, 3))
+            isamples = res[:,
+                           int(res.shape[1] // (1 / burnin)):,
+                           :].reshape((-1, 3))
         show_walk_plot(res, save=True, labels=labels)
         show_corner_plot(res, burnin=burnin, save=True, labels=labels)
         # infer most likely values + confidence intervals
@@ -226,7 +227,7 @@ def test_algos(
             else:
                 j = i
             ci_max = np.amax(np.abs(ci[lab]))
-            aarc(val_max[lab], gt[j], atol=3 * ci_max)  # diff within 3 sigma
+            aarc(val_max[lab], gt[j], rtol=1e-2, atol=3 * ci_max)  # within 3sig
     else:
         # run nested sampling
         res = negfc_algo(
@@ -256,4 +257,4 @@ def test_algos(
         # compare results for each param
         for i in range(3):
             # diff within 3 sigma
-            aarc(mu_sig[i, 0], gt[i], atol=3 * mu_sig[i, 1])
+            aarc(mu_sig[i, 0], gt[i], rtol=1e-2, atol=3*mu_sig[i, 1])

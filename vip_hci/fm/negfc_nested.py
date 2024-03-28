@@ -391,17 +391,20 @@ def nested_sampling_results(ns_object, burnin=0.4, bins=None, cfd=68.27,
         plt.ylabel('weights')
         plt.vlines(indburnin, res.weights.min(), res.weights.max(),
                    linestyles='dotted')
+        if save:
+            plt.savefig(output_dir+'Nested_results.pdf')
         if plot:
             plt.show()
-
-        plt.savefig(output_dir+'Nested_results.pdf')
 
         print("\nWalk plots before the burnin")
         show_walk_plot(np.expand_dims(res.samples, axis=0))
         if burnin > 0:
             print("\nWalk plots after the burnin")
             show_walk_plot(np.expand_dims(res.samples[indburnin:], axis=0))
-        plt.savefig(output_dir+'Nested_walk_plots.pdf')
+        if save:
+            plt.savefig(output_dir+'Nested_walk_plots.pdf')
+        if plot:
+            plt.show()
 
     mean, cov = nestle.mean_and_cov(res.samples[indburnin:],
                                     res.weights[indburnin:])

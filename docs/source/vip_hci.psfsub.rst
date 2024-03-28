@@ -68,6 +68,14 @@ vip\_hci.psfsub.pca\_local module
    :undoc-members:
    :show-inheritance:
 
+vip\_hci.psfsub.rollsub module
+------------------------------
+
+.. automodule:: vip_hci.psfsub.rollsub
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 vip\_hci.psfsub.svd module
 --------------------------
 

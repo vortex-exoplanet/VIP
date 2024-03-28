@@ -40,7 +40,7 @@ def get_frame(example_dataset_adi):
     print("producing a final frame...")
     res_frame = pca(cube=dsi.cube, angle_list=dsi.angles, ncomp=10)
     frame = Frame(res_frame, fwhm=dsi.fwhm)
-    return frame, (63, 63)
+    return frame, (34., 59.)  # position of beta pic b
 
 
 atol = 2
@@ -50,7 +50,8 @@ plot = False
 def test_snrmap_sss(get_frame):
     frame, positions = get_frame
     y0, x0 = positions
-    snmap = snrmap(frame.data, fwhm=frame.fwhm, plot=plot, nproc=2)
+    snmap = snrmap(frame.data, fwhm=frame.fwhm, plot=plot, nproc=2,
+                   exclude_negative_lobes=True)
     y1, x1 = np.where(snmap == snmap.max())
     assert np.allclose(x1, x0, atol=atol) and np.allclose(y1, y0, atol=atol)
 
@@ -72,7 +73,8 @@ def test_snrmap_masked(get_frame):
 def test_snrmap_fast(get_frame):
     frame, positions = get_frame
     y0, x0 = positions
-    snmap = snrmap(frame.data, fwhm=frame.fwhm, plot=plot, approximated=True, nproc=2)
+    snmap = snrmap(frame.data, fwhm=frame.fwhm, plot=plot, approximated=True,
+                   nproc=2)
     y1, x1 = np.where(snmap == snmap.max())
     assert np.allclose(x1, x0, atol=atol) and np.allclose(y1, y0, atol=atol)
 

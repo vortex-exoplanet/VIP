@@ -34,7 +34,9 @@ class ROLL_SUB_Params:
     Set of parameters for the roll subtraction module.
 
     See function `roll_sub` for documentation.
+
     """
+
     cube: np.ndarray = None
     angle_list: np.ndarray = None
     mode: str = "mean"
@@ -54,7 +56,7 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
     """Perform roll-subtraction, followed by derotation and stacking of\
     residual images.
 
-    Reference: [SCH03]_.
+    Reference: [SCH98]_.
 
     Parameters
     ----------
@@ -148,7 +150,8 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
     if isinstance(algo_params.cube, tuple):
         nh1 = len(algo_params.cube[0])
         nh2 = len(algo_params.cube[1])
-        ARRAY = np.concatenate((ARRAY[0], ARRAY[1]), axis=0)
+        ARRAY = np.concatenate((algo_params.cube[0], algo_params.cube[1]),
+                               axis=0)
         algo_params.angle_list = [ang1]*nh1
         algo_params.angle_list.extend([ang2]*nh2)
         algo_params.angle_list = np.array(algo_params.angle_list)
@@ -195,8 +198,8 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
             raise ValueError(msg)
         cube1 = cube[idx1]
         cube2 = cube[idx2]
-        arr1 = cube_ref[idx1] # makes a difference in iterative roll subtraction
-        arr2 = cube_ref[idx2] # makes a difference in iterative roll subtraction
+        arr1 = cube_ref[idx1]  # makes a difference in iroll
+        arr2 = cube_ref[idx2]  # makes a difference in iroll
         cube_res1 = np.array([cube1[i]-arr2[i] for i in range(nh1)])
         cube_res2 = np.array([cube2[i]-arr1[i] for i in range(nh2)])
         cube_res = np.concatenate((cube_res1, cube_res2), axis=0)
@@ -210,8 +213,8 @@ def roll_sub(*all_args: List, **all_kwargs: dict):
     else:
         mr1 = np.mean(cube[idx1], axis=0)
         mr2 = np.mean(cube[idx2], axis=0)
-        arr1 = np.mean(cube_ref[idx1], axis=0) # makes a difference in iroll
-        arr2 = np.mean(cube_ref[idx2], axis=0) # makes a difference in iroll
+        arr1 = np.mean(cube_ref[idx1], axis=0)  # makes a difference in iroll
+        arr2 = np.mean(cube_ref[idx2], axis=0)  # makes a difference in iroll
         ang1 = np.mean(-algo_params.angle_list[idx1])
         ang2 = np.mean(-algo_params.angle_list[idx2])
 

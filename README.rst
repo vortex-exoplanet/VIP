@@ -132,14 +132,14 @@ the ``pip`` package manager. Simply run:
 
 .. code-block:: bash
 
-  $ pip install vip_hci
+  pip install vip_hci
 
 With ``pip`` you can easily uninstall, upgrade or install a specific version of
 VIP. For upgrading the package, run:
 
 .. code-block:: bash
 
-  $ pip install --upgrade vip_hci
+  pip install --upgrade vip_hci
 
 
 For potential contributors:

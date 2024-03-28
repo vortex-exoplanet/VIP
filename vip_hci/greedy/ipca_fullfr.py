@@ -1,5 +1,24 @@
 #! /usr/bin/env python
-"""Full-frame iterative PCA algorithm for ADI or ADI+RDI cubes."""
+"""Full-frame iterative PCA algorithm for ADI or ADI+RDI cubes.
+
+The concept was proposed in [PAI18]_ and [PAI21].
+
+.. [PAI18]
+   | Pairet et al. 2018
+   | **Reference-less algorithm for circumstellar disks imaging**
+   | *In Proceedings of iTWIST'18, 23*
+   | `https://arxiv.org/abs/1812.01333
+     <https://arxiv.org/abs/1812.01333>`_
+
+.. [PAI21]
+   | Pairet et al. 2021
+   | **MAYONNAISE: a morphological components analysis pipeline for
+   circumstellar discs and exoplanets imaging in the near-infrared**
+   | *MNRAS 503, 3724*
+   | `https://arxiv.org/abs/2008.05170
+     <https://arxiv.org/abs/2008.05170>`_
+
+"""
 
 __author__ = 'Valentin Christiaens'
 __all__ = ['ipca']

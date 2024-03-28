@@ -52,7 +52,6 @@ a bug, ask a question, suggest a new functionality or contribute to the code (th
    tutorials/05B_fm_disks.ipynb
    tutorials/07_psfsub_fm_IFS-ASDI_planets.ipynb
    tutorials/08_imlib_and_interpolation.ipynb
-   tutorials/09_datasets_as_objects.ipynb
 
 .. toctree::
    :maxdepth: 2

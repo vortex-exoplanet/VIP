@@ -92,7 +92,7 @@ TL;DR setup guide
 -----------------
 .. code-block:: bash
 
-    $ pip install vip_hci
+   pip install vip_hci
 
 
 Installation and dependencies
@@ -116,12 +116,12 @@ for your environment):
 
 .. code-block:: bash
 
-  $ conda create -n vipenv python=3.10 ipython
+   conda create -n vipenv python=3.10 ipython
 
 .. note::
-  Installing ipython while creating the environment, as in the example above, will
-  avoid a commonly reported issue which stems from trying to import VIP from
-  within a base python2.7 ipython console.
+   Installing ipython while creating the environment, as in the example above, will
+   avoid a commonly reported issue which stems from trying to import VIP from
+   within a base python2.7 ipython console.
 
 
 For users not planning to contribute:
@@ -132,14 +132,14 @@ the ``pip`` package manager. Simply run:
 
 .. code-block:: bash
 
-  $ pip install vip_hci
+  pip install vip_hci
 
 With ``pip`` you can easily uninstall, upgrade or install a specific version of
 VIP. For upgrading the package, run:
 
 .. code-block:: bash
 
-  $ pip install --upgrade vip_hci
+  pip install --upgrade vip_hci
 
 
 For potential contributors:
@@ -150,22 +150,22 @@ clone it:
 
 .. code-block:: bash
 
-  $ git clone https://github.com/<replace-by-your-username>/VIP.git
+   git clone https://github.com/<replace-by-your-username>/VIP.git
 
 If you do not create a fork, you can still benefit from the ``git`` syncing
 functionalities by cloning the repository (but will not be able to contribute):
 
 .. code-block:: bash
 
-  $ git clone https://github.com/vortex-exoplanet/VIP.git
+   git clone https://github.com/vortex-exoplanet/VIP.git
 
 
 To install VIP, then simply cd into your local VIP directory, and run the installation in editable mode pointing to developer requirements:
 
 .. code-block:: bash
 
-  $ cd VIP
-  $  pip install -e . -r requirements-dev.txt
+   cd VIP
+   pip install -e . -r requirements-dev.txt
 
 If cloned from your fork, make sure to link your VIP directory to the upstream
 source, to be able to easily update your local copy when a new version comes
@@ -173,7 +173,7 @@ out or a bug is fixed:
 
 .. code-block:: bash
 
-  $ git add remote upstream https://github.com/vortex-exoplanet/VIP.git
+   git add remote upstream https://github.com/vortex-exoplanet/VIP.git
 
 If you plan to develop VIP or use it intensively, it is highly recommended to
 also install the optional dependencies listed below.
@@ -198,7 +198,7 @@ that you are able to import VIP:
 
 .. code-block:: python
 
-  import vip_hci as vip
+   import vip_hci as vip
 
 If everything went fine with the installation, you should not get any error message upon importation, and you can start finding exoplanets!
 
@@ -216,6 +216,7 @@ i.e. exactly on a pixel in either cases. The VIP recentering routines will place
 
 Contact
 -------
+
 Answers to `frequently asked questions <https://vip.readthedocs.io/en/latest/faq.html>`_ are provided in the relevant section of the documentation.
 If you have an issue with VIP, please first check it is not detailed in the FAQ.
 If you find a bug or experience an unreported issue in VIP, it is recommended to post a new entry in the `Issues section <https://github.com/vortex-exoplanet/VIP/issues>`_ on GitHub. Feel free to propose a pull request if you have already identified the source of the bug/issue.

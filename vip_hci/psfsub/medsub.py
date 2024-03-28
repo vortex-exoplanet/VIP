@@ -23,7 +23,7 @@ while median-SDI (also referred to as spectral deconvolution) was proposed in
 .. [THA07]
    | Thatte et al. 2007
    | **Very high contrast integral field spectroscopy of AB Doradus C: 9-mag
-   contrast at 0.2arcsec without a coronagraph using spectral deconvolution**
+     contrast at 0.2arcsec without a coronagraph using spectral deconvolution**
    | *MNRAS, Volume 378, Issue 4, pp. 1229-1236*
    | `https://arxiv.org/abs/astro-ph/0703565
      <https://arxiv.org/abs/astro-ph/0703565>`_

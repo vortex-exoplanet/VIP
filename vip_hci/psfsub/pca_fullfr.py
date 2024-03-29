@@ -281,7 +281,7 @@ def pca(*all_args: List, **all_kwargs: dict):
         residual channels will be collapsed (by default collapses all channels).
     mask_rdi: tuple of two numpy array or one signle 2d numpy array, opt
         If provided, binary mask(s) will be used either in RDI mode or in
-        ADI+mSDI (2 steps) mode. They will be used as boat and anchor masks
+        ADI+mSDI (2 steps) mode. They will be used as anchor and boat masks
         following the procedure described in [REN23], which is useful to avoid
         self-subtraction in the presence of a bright disc signal. If only one
         mask is provided, the boat images will be unmasked

@@ -45,7 +45,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, masks, ref_cube=None, ncomp=2,
     sky_cube : numpy ndarray
         3d array of sky frames.
     masks : tuple of two numpy ndarray or one signle numpy ndarray
-        Mask indicating the boat and anchor regions for the analysis.
+        Mask indicating the anchor and boat regions for the analysis.
         If two masks are provided, they will be assigned to mask_anchor and
         mask_boat in that order.
         If only one mask is provided, it will be used as the anchor, and the

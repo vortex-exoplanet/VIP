@@ -246,9 +246,10 @@ def write_fits(fitsfilename, array, header=None, output_verify="exception",
     if not fitsfilename.endswith(".fits"):
         fitsfilename += ".fits"
 
-    result = "saved"
+    res = "saved"
     if exists(fitsfilename):
-        result = "overwritten"
+        remove(fitsfilename)
+        res = "overwritten"
 
     if isinstance(array, tuple):
         new_hdul = HDUList()
@@ -262,16 +263,13 @@ def write_fits(fitsfilename, array, header=None, output_verify="exception",
             raise ValueError(msg)
 
         for i in range(len(array)):
-            array_tmp = array[i]
-            if array_tmp.dtype != precision:
-                array_tmp = array_tmp.astype(precision, copy=False)
+            array_tmp = array[i].astype(precision, copy=False)
             new_hdul.append(ImageHDU(array_tmp, header=header[i]))
 
-        new_hdul.writeto(fitsfilename, output_verify=output_verify, overwrite=True)
+        new_hdul.writeto(fitsfilename, output_verify=output_verify)
     else:
-        if array.dtype != precision:
-            array = array.astype(precision, copy=False)
-        writeto(fitsfilename, array, header, output_verify, overwrite=True)
+        array = array.astype(precision, copy=False)
+        writeto(fitsfilename, array, header, output_verify)
 
     if verbose:
-        print(f"FITS file successfully {result}")
+        print(f"FITS file successfully {res}")

@@ -65,8 +65,11 @@ def open_fits(fitsfilename, n=0, header=False, ignore_missing_end=False,
 
     """
     fitsfilename = str(fitsfilename)
-    if not isfile(fitsfilename):
+    if not fitsfilename.endswith(".fits"):
         fitsfilename += ".fits"
+
+    if not isfile(fitsfilename):
+        raise FileNotFoundError(f"No such file: '{fitsfilename}'")
 
     try:
         hdulist = fitsopen(fitsfilename, ignore_missing_end=ignore_missing_end,

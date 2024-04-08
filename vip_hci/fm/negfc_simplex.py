@@ -441,7 +441,7 @@ def firstguess(cube, angs, psfn, ncomp, planets_xy_coord, fwhm=4,
                algo_options={}, simplex=True, simplex_options=None, plot=False,
                verbose=True, save=False):
     """Determine a first guess for the position and the flux of a planet using\
-    the negative fake companion techique, as explained in [WER17]_.
+    the negative fake companion technique, as explained in [WER17]_.
 
     This first requires processing the cube without injecting any negative fake
     companion. Once planets or planet candidates are identified, their initial

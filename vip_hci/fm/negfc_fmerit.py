@@ -218,8 +218,7 @@ def chisquare(
         imlib=imlib_sh,
         interpolation=interpolation,
         transmission=transmission,
-        verbose=False,
-        nproc=nproc
+        verbose=False
     )
 
     # Perform PCA and extract the zone of interest

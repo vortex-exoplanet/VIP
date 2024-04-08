@@ -47,6 +47,16 @@ test:
 	pre-commit install --hook-type post-rewrite
 	pre-commit install-hooks
 	pre-commit install
+	pre-commit run --files vip_hci/config/*.py
+	pre-commit run --files vip_hci/fits/*.py
+	pre-commit run --files vip_hci/fm/*.py
+	pre-commit run --files vip_hci/greedy/*.py
+	pre-commit run --files vip_hci/invprob/*.py
+	pre-commit run --files vip_hci/metrics/*.py
+	pre-commit run --files vip_hci/preproc/*.py
+	pre-commit run --files vip_hci/psfsub/*.py
+	pre-commit run --files vip_hci/stats/*.py
+	pre-commit run --files vip_hci/var/*.py
 	pre-commit run --files vip_hci/objects/*.py
 	pytest --cov=vip_hci/ --cov-report=xml
 	rm confi_hist.pdf

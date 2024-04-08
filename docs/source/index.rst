@@ -45,14 +45,13 @@ a bug, ask a question, suggest a new functionality or contribute to the code (th
    tutorials/01A_quickstart.ipynb
    tutorials/01B_quickstart_with_objects.ipynb
    tutorials/02_preproc.ipynb
-   tutorials/03A_psfsub.ipynb
-   tutorials/03B_psfsub_as_objects.ipynb
+   tutorials/03A_psfsub_ADI.ipynb
+   tutorials/03B_psfsub_ADI_as_objects.ipynb
    tutorials/04_metrics.ipynb
-   tutorials/05_fm_planets.ipynb
-   tutorials/06_fm_disk.ipynb
-   tutorials/07_ifs_psfsub_fm_planets.ipynb
+   tutorials/05A_fm_planets.ipynb
+   tutorials/05B_fm_disks.ipynb
+   tutorials/07_psfsub_fm_IFS-ASDI_planets.ipynb
    tutorials/08_imlib_and_interpolation.ipynb
-   tutorials/09_datasets_as_objects.ipynb
 
 .. toctree::
    :maxdepth: 2

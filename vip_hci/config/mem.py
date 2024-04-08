@@ -3,9 +3,8 @@
 System memory related functions
 """
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['check_enough_memory',
-           'get_available_memory']
+__author__ = "Carlos Alberto Gomez Gonzalez"
+__all__ = ["check_enough_memory", "get_available_memory"]
 
 from psutil import virtual_memory
 
@@ -27,13 +26,14 @@ def get_available_memory(verbose=True):
     """
     mem = virtual_memory()
     if verbose:
-        print("System total memory = {:.3f} GB".format(mem.total/1e9))
-        print("System available memory = {:.3f} GB".format(mem.available/1e9))
+        print("System total memory = {:.3f} GB".format(mem.total / 1e9))
+        print("System available memory = {:.3f} GB".format(mem.available / 1e9))
     return mem.available
 
 
-def check_enough_memory(input_bytes, factor=1, raise_error=True, error_msg='',
-                        verbose=True):
+def check_enough_memory(
+    input_bytes, factor=1, raise_error=True, error_msg="", verbose=True
+):
     """
     Check if ``input_bytes`` are larger than system's available memory times
     ``factor``. This function is used to check the inputs (largest ones such as
@@ -57,8 +57,9 @@ def check_enough_memory(input_bytes, factor=1, raise_error=True, error_msg='',
     available_memory = get_available_memory(verbose=verbose)
     if input_bytes > factor * available_memory:
         if raise_error:
-            raise RuntimeError('Input is larger than available system memory' +
-                               error_msg)
+            raise RuntimeError(
+                "Input is larger than available system memory" + error_msg
+            )
         return False
     else:
         return True

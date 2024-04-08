@@ -10,6 +10,7 @@ Subpackages
    vip_hci.config
    vip_hci.fits
    vip_hci.fm
+   vip_hci.greedy
    vip_hci.invprob
    vip_hci.metrics
    vip_hci.objects

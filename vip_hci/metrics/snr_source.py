@@ -1,7 +1,6 @@
 #! /usr/bin/env python
-
 """
-Module with S/N calculation functions. We strongly recommend users to read 
+Module with S/N calculation functions. We strongly recommend users to read
 [MAW14]_ before using routines of this module.
 
 """
@@ -84,8 +83,8 @@ def snrmap(array, fwhm, approximated=False, plot=False, known_sources=None,
     check_array(array, dim=2, msg='array')
     sizey, sizex = array.shape
     snrmap_array = np.zeros_like(array)
-    width = min(sizey, sizex) / 2 - 1.5 * fwhm
-    mask = get_annulus_segments(array, (fwhm / 2) + 2, width, mode="mask")[0]
+    width = min(sizey, sizex) / 2 - 1.5*fwhm
+    mask = get_annulus_segments(array, (fwhm / 2) + 1, width, mode="mask")[0]
     mask = np.ma.make_mask(mask)
     # by making a bool mask *after* applying the mask to the array, we also mask
     # out zero values from the array. This logic cannot be simplified by using
@@ -362,9 +361,9 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         Whether to include the adjacent aperture lobes to the tested location
         or not. Can be set to True if the image shows significant neg lobes.
     exclude_theta_range : tuple of 2 floats or None, opt
-        If provided, range of trigonometric angles  in deg (measured from 
+        If provided, range of trigonometric angles  in deg (measured from
         positive x axis), to be avoided for apertures used for noise estimation.
-        WARNING: this is to be used wisely, e.g. only if a known authentic 
+        WARNING: this is to be used wisely, e.g. only if a known authentic
         circumstellar signal is biasing the SNR estimate.
     plot : bool, optional
         Plots the frame and the apertures considered for clarity.
@@ -453,11 +452,10 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         return snr_vale
 
 
-def significance(snr, rad, fwhm, student_to_gauss=True):
-    """ Converts a S/N ratio (measured as in [MAW14]_) into the
-    equivalent gaussian significance, i.e. the n-sigma with the same confidence
-    level as the S/N at the given separation.
-
+def significance(snr, rad, fwhm, student_to_gauss=True, verbose=True):
+    """Convert a S/N ratio (measured as in [MAW14]_) into a Gaussian\
+    significance (n-sigma) with equivalent false alarm probability for a\
+    point-source detection measured at a given separation, or the opposite.
 
     Parameters
     ----------
@@ -470,32 +468,45 @@ def significance(snr, rad, fwhm, student_to_gauss=True):
     fwhm : float
         Full Width Half Maximum of the PSF.
     student_to_gauss : bool, optional
-        Whether the conversion is from Student SNR to Gaussian significance. If
-        False, will assume the opposite: Gaussian significance to Student SNR.
+        Whether the conversion is from Student SNR to Gaussian significance
+        (True), or the opposite (False).
 
     Returns
     -------
-    sigma : float
-        Gaussian significance in terms of n-sigma
-
+    sig : float
+        Equivalent Gaussian significance [student_to_gauss=True] or equivalent
+        Student S/N ratio [student_to_gauss=False].
     """
-
     if student_to_gauss:
-        sigma = norm.ppf(t.cdf(snr, (rad/fwhm)*2*np.pi-2))
+        sig = norm.ppf(t.cdf(snr, (rad/fwhm)*2*np.pi-2))
         if t.cdf(snr, (rad/fwhm)*2*np.pi-2) == 1.0:
             print("Warning high S/N! cdf>0.9999999999999999 is rounded to 1")
             msg = "Returning 8.2 sigma, but quote significance > 8.2 sigma."
             print(msg)
             return 8.2
+        if verbose:
+            msg = r"At a separation of {:.1f} px ({:.1f} FWHM), S/N = {:.1f} "
+            msg += r"corresponds to a {:.1f}-sigma detection in terms of "
+            msg += r"Gaussian false alarm probability."
+            print(msg.format(rad, rad/fwhm, snr, sig))
     else:
-        sigma = t.ppf(norm.cdf(snr), (rad/fwhm)*2*np.pi-2)
+        sig = t.ppf(norm.cdf(snr), (rad/fwhm)*2*np.pi-2)
+        if verbose:
+            msg = r"At a separation of {:.1f} px ({:.1f} FWHM), a {:.1f}-sigma "
+            msg += r"detection in terms of Gaussian false alarm probability "
+            msg += r"translates into a Student S/N = {:.1f}."
+            print(msg.format(rad, rad/fwhm, snr, sig))
 
-    return sigma
+    return sig
 
 
-def frame_report(array, fwhm, source_xy=None, verbose=True):
-    """ Gets information from given frame: Integrated flux in aperture, S/N of
-    central pixel (either ``source_xy`` or max value), mean S/N in aperture.
+def frame_report(array, fwhm, source_xy=None, verbose=True, **snr_arguments):
+    """Provide info about candidate companions in a given post-processed frame.
+
+    Either a list of source positions is passed, or the position with the
+    highest is automatically considered. Integrated flux in aperture, S/N of\
+    central pixel (either ``source_xy`` or at max S/N value), mean S/N in
+    aperture at those/that location.
 
     Parameters
     ----------
@@ -507,6 +518,8 @@ def frame_report(array, fwhm, source_xy=None, verbose=True):
         X and Y coordinates of the center(s) of the source(s).
     verbose : bool, optional
         If True prints to stdout the frame info.
+    snr_arguments: dictionary, optional
+        Optional parameters for the ``vip_hci.metrics.snrmap`` function.
 
     Returns
     -------
@@ -572,7 +585,8 @@ def frame_report(array, fwhm, source_xy=None, verbose=True):
                 print('')
 
     else:
-        y, x = np.where(array == array.max())
+        snr_map = snrmap(array, fwhm, **snr_arguments)
+        y, x = np.where(snr_map == np.nanmax(snr_map))
         y, x = y[0], x[0]  # assuming there is only one max, taking 1st if clump
         source_xy = (x, y)
         if verbose:

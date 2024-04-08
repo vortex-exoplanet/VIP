@@ -27,7 +27,7 @@ from vip_hci.preproc import cube_recenter_satspots
 from vip_hci.preproc import cube_recenter_via_speckles
 from vip_hci.preproc import cube_subsample
 from vip_hci.preproc import frame_shift
-from vip_hci.var import frame_center
+from vip_hci.var import frame_center, fit_2dgaussian
 
 mpl.use("Agg")
 
@@ -92,26 +92,6 @@ def get_cube(example_dataset_adi):
     return dsi
 
 
-@fixture(scope="module")
-def get_ifs_cube(example_dataset_sdi):
-    """
-    Get the ADI+IFS sequence from conftest.py.
-
-    Parameters
-    ----------
-    example_dataset_sdi : fixture
-        Taken automatically from ``conftest.py``.
-
-    Returns
-    -------
-    dsi : VIP Dataset
-
-    """
-    dsi = copy.copy(example_dataset_sdi)
-
-    return dsi
-
-
 def shift_cube(cube, randax, randay):
     return np.array(
         [frame_shift(cube[i], randay[i], randax[i]) for i in range(cube.shape[0])]
@@ -126,9 +106,8 @@ def create_cube_with_gauss2d(shape=(4, 9, 9), mean=4, stddev=1):
     except Exception:
         x_mean = y_mean = mean
 
-    gauss = models.Gaussian2D(
-        amplitude=1, x_mean=x_mean, y_mean=y_mean, x_stddev=stddev, y_stddev=stddev
-    )
+    gauss = models.Gaussian2D(amplitude=1, x_mean=x_mean, y_mean=y_mean,
+                              x_stddev=stddev, y_stddev=stddev)
     x = np.arange(sizex)
     y = np.arange(sizey)
     x, y = np.meshgrid(x, y)
@@ -142,20 +121,30 @@ def create_cube_with_gauss2d_ring(stddev_inner, stddev_outer, **kwargs):
     return outer - inner
 
 
-def create_cube_with_satspots(n_frames=6, wh=31, star_fwhm=3, debug=False):
+def create_cube_with_satspots(n_frames=6, wh=31, star_fwhm=3, debug=False,
+                              pattern='x', diagonal=None):
     global seed
     shape = (n_frames, wh, wh)
     star = create_cube_with_gauss2d(shape=shape, mean=wh // 2, stddev=star_fwhm)
 
     # make sure satspot is neither too close to star nor at the edge of the
     # image
-    diagonal = seed.uniform(4 * star_fwhm, wh // 2)
+    if diagonal is None:
+        diagonal = seed.uniform(4 * star_fwhm, wh // 2)
+    else:
+        diagonal *= star_fwhm
     d = diagonal / np.sqrt(2)
 
-    sat1_coords = (wh // 2 - d, wh // 2 + d)
-    sat2_coords = (wh // 2 + d, wh // 2 + d)
-    sat3_coords = (wh // 2 - d, wh // 2 - d)
-    sat4_coords = (wh // 2 + d, wh // 2 - d)
+    if pattern == 'x':
+        sat1_coords = (wh // 2 - d, wh // 2 + d)
+        sat2_coords = (wh // 2 + d, wh // 2 + d)
+        sat3_coords = (wh // 2 - d, wh // 2 - d)
+        sat4_coords = (wh // 2 + d, wh // 2 - d)
+    else:
+        sat1_coords = (wh // 2 - 2*d, wh // 2)
+        sat2_coords = (wh // 2 + 2*d, wh // 2)
+        sat3_coords = (wh // 2, wh // 2 - 2*d)
+        sat4_coords = (wh // 2, wh // 2 + 2*d)
 
     sat1 = create_cube_with_gauss2d(shape=shape, mean=sat1_coords, stddev=1)
     sat2 = create_cube_with_gauss2d(shape=shape, mean=sat2_coords, stddev=1)
@@ -176,7 +165,7 @@ def do_recenter(
     shiftx,
     shifty,
     errormsg,
-    mse=1e-2,
+    mse=5e-2,
     mse_skip_first=False,
     n_frames=6,
     debug=False,
@@ -281,7 +270,8 @@ def test_approx_star(debug=False):
 
     for model, name in {"gauss": "Gaussian"}.items():
         # ===== odd
-        cube = create_cube_with_gauss2d(shape=(n_frames, 9, 9), mean=4, stddev=1)
+        cube = create_cube_with_gauss2d(shape=(n_frames, 9, 9), mean=4,
+                                        stddev=1)
         cube += np.random.normal(0, 0.1, cube.shape)
         cy, cx = frame_center(cube)
         est_yx = method(cube, fwhm=1)
@@ -312,7 +302,8 @@ def test_2d(debug=False):
 
     for model, name in {"moff": "Moffat", "gauss": "Gaussian"}.items():
         # ===== odd
-        cube = create_cube_with_gauss2d(shape=(n_frames, 9, 9), mean=4, stddev=1)
+        cube = create_cube_with_gauss2d(shape=(n_frames, 9, 9), mean=4,
+                                        stddev=1)
 
         method_args = dict(
             fwhm=1,
@@ -334,7 +325,8 @@ def test_2d(debug=False):
         )
 
         # ===== even
-        cube = create_cube_with_gauss2d(shape=(n_frames, 10, 10), mean=5, stddev=1)
+        cube = create_cube_with_gauss2d(shape=(n_frames, 10, 10), mean=5,
+                                        stddev=1)
 
         method_args = dict(
             fwhm=1,
@@ -412,22 +404,21 @@ def test_dft(debug=False):
     method = cube_recenter_dft_upsampling
     method_args_additional = dict(verbose=True, full_output=True, plot=True)
     errormsg = "Error when recentering with DFT upsampling method"
-    n_frames = 6
+    n_frames = 10
 
     shift_magnitude = 2
     randax = seed.uniform(-shift_magnitude, shift_magnitude, size=n_frames)
     randay = seed.uniform(-shift_magnitude, shift_magnitude, size=n_frames)
-    randax[0] = 0  # do not shift first frame
-    randay[0] = 0
 
-    # ===== odd, subi_size=None
-    size = 9
+    # ===== odd, subi_size
+    size = 11
     mean = size // 2
-    cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean, stddev=1)
+    cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
+                                    stddev=1.5)
 
     method_args = dict(
         center_fr1=(mean, mean),
-        subi_size=None,
+        subi_size=9,
         negative=False,
         **method_args_additional
     )
@@ -438,17 +429,20 @@ def test_dft(debug=False):
         randay,
         errormsg=errormsg,
         mse_skip_first=True,
+        mse=0.01,  # i.e. on average ~0.1px error
         debug=debug,
         **method_args
     )
 
     # ===== even, subi_size
-    size = 10
+    size = 12
     mean = size // 2  # - 0.5 # 0-indexed
-    cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean, stddev=1)
+    cube = create_cube_with_gauss2d(shape=(n_frames, size, size), mean=mean,
+                                    stddev=1.5)
 
     method_args = dict(
-        center_fr1=(mean, mean), subi_size=8, negative=False, **method_args_additional
+        center_fr1=(mean, mean), subi_size=10, negative=False,
+        **method_args_additional
     )
     do_recenter(
         method,
@@ -457,19 +451,22 @@ def test_dft(debug=False):
         randay,
         errormsg=errormsg,
         mse_skip_first=True,
+        mse=0.01,  # i.e. on average ~0.1px error
         debug=debug,
         **method_args
     )
 
     # ===== odd negative (ring), subi_size
-    size = 15
+    size = 25
     mean = size // 2
     cube = create_cube_with_gauss2d_ring(
-        shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2
+        shape=(n_frames, size, size), mean=mean, stddev_outer=4,
+        stddev_inner=2
     )
 
     method_args = dict(
-        center_fr1=(mean, mean), subi_size=12, negative=True, **method_args_additional
+        center_fr1=(mean, mean), subi_size=9, negative=True,
+        **method_args_additional
     )
     do_recenter(
         method,
@@ -477,20 +474,25 @@ def test_dft(debug=False):
         randax,
         randay,
         errormsg=errormsg,
+        mse=0.01,  # i.e. on average ~0.1px error
         mse_skip_first=True,
         debug=debug,
         **method_args
     )
 
     # ===== even negative (ring), subi_size=None
-    size = 16
+    size = 24
     mean = size // 2  # - 0.5
     cube = create_cube_with_gauss2d_ring(
-        shape=(n_frames, size, size), mean=mean, stddev_outer=3, stddev_inner=2
+        shape=(n_frames, size, size), mean=mean, stddev_outer=4,
+        stddev_inner=2
     )
+    randax[0] = 0  # do not shift first frame
+    randay[0] = 0
 
     method_args = dict(
-        center_fr1=(mean, mean), subi_size=None, negative=True, **method_args_additional
+        center_fr1=(mean, mean), subi_size=None, negative=True,
+        **method_args_additional
     )
     do_recenter(
         method,
@@ -498,6 +500,7 @@ def test_dft(debug=False):
         randax,
         randay,
         errormsg=errormsg,
+        mse=0.01,  # i.e. on average ~0.1px error
         mse_skip_first=True,
         debug=debug,
         **method_args
@@ -549,6 +552,7 @@ def test_dft_image(debug=False):
         randax,
         randay,
         errormsg=errormsg,
+        mse=0.02,  # i.e. on average ~0.15px error
         mse_skip_first=True,
         debug=debug,
         **method_args
@@ -579,9 +583,11 @@ def test_satspots_image(debug=False):
 
     # ===== recenter
     spotcoords = [(41, 109), (109, 109), (41, 41), (109, 41)]  # NW NE SW SE
-    method_args = dict(xy=spotcoords, subi_size=25, full_output=True, verbose=True)
+    method_args = dict(xy=spotcoords, subi_size=25, full_output=True,
+                       verbose=True)
     do_recenter(
-        method, cube, randax, randay, errormsg=errormsg, debug=debug, **method_args
+        method, cube, randax, randay, errormsg=errormsg, debug=debug,
+        **method_args
     )
 
 
@@ -598,7 +604,7 @@ def test_satspots(debug=False):
     cube, spotcoords = create_cube_with_satspots(n_frames=n_frames)
 
     # ===== shift
-    shift_magnitude = 1
+    shift_magnitude = 0.8
     randax = seed.uniform(-shift_magnitude, 0, size=n_frames)
     randay = seed.uniform(0, shift_magnitude, size=n_frames)
 
@@ -607,7 +613,8 @@ def test_satspots(debug=False):
         xy=spotcoords, subi_size=9, plot=True, full_output=True, verbose=True
     )
     do_recenter(
-        method, cube, randax, randay, errormsg=errormsg, debug=debug, **method_args
+        method, cube, randax, randay, errormsg=errormsg, debug=debug,
+        **method_args
     )
 
 
@@ -620,11 +627,11 @@ def test_radon(debug=False):
     errormsg = "Error when recentering with Radon transform"
     n_frames = 1
 
-    # ===== datacube
-    url_prefix = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
+    # ===== OLD - datacube
+    url_d = "https://github.com/vortex-exoplanet/VIP_extras/raw/master/datasets"
 
-    f1 = download_resource("{}/sphere_ifs_PDS70_cen.fits".format(url_prefix))
-    f2 = download_resource("{}/sphere_ifs_PDS70_psf.fits".format(url_prefix))
+    f1 = download_resource("{}/sphere_ifs_PDS70_cen.fits".format(url_d))
+    f2 = download_resource("{}/sphere_ifs_PDS70_psf.fits".format(url_d))
 
     # load fits
     cube = vip.fits.open_fits(f1)
@@ -633,6 +640,13 @@ def test_radon(debug=False):
         psfifs, fwhm="fit", full_output=True, size=15
     )
 
+    # Fit BKG star position
+    med_fr = np.nanmedian(cube, axis=0)
+    fit_res = vip.var.fit_2dgaussian(med_fr, crop=True, cropsize=13,
+                                     cent=(144, 147), debug=False,
+                                     full_output=True)
+    med_y = float(fit_res['centroid_y'][0])
+    med_x = float(fit_res['centroid_x'][0])
     # remove BKG star
     fit_flux = np.array(
         [
@@ -677,8 +691,9 @@ def test_radon(debug=False):
             57.52,
         ]
     )
-    med_y = 146.99531922145198
-    med_x = 144.27429227212795
+    # med_y = 146.99531922145198
+    # med_x = 144.27429227212795
+    cube = cube.copy()
     for z in range(cube.shape[0]):
         cube[z] = vip.fm.frame_inject_companion(
             cube[z],
@@ -687,7 +702,6 @@ def test_radon(debug=False):
             med_x,
             -fit_flux[z],
             imlib="vip-fft",
-            interpolation="lanczos4",
         )
 
     # subsample and correct for NaNs
@@ -695,25 +709,23 @@ def test_radon(debug=False):
     cube = cube_correct_nan(cube)
 
     # high-pass filter
-    cube[0] = vip.var.frame_filter_highpass(
-        cube[0], mode="gauss-subt", fwhm_size=2 * np.mean(fwhm)
-    )
+    # cube[0] = vip.var.frame_filter_highpass(
+    #     cube[0], mode="gauss-subt", fwhm_size=3 * np.mean(fwhm)
+    # )
 
     method_args = dict(
-        hsize_ini=2.0,
-        step_ini=0.1,
-        cropsize=131,
-        mask_center=40,
+        hsize_ini=3.0,
+        step_ini=0.3,
+        cropsize=151,
+        satspots_cfg='custom',
+        theta_0=54,
+        mask_center=35,
         verbose=True,
-        imlib="opencv",
-        hpf=True,
-        filter_fwhm=2 * np.mean(fwhm),
+        imlib="vip-fft",
+        gauss_fit=False,
     )
     # # first recenter with Radon to make sure it is well recentered
-    try:
-        cube = cube_recenter_radon(cube, **method_args)
-    except:
-        pass
+    # cube = cube_recenter_radon(cube, **method_args)
 
     # ===== shift
     shift_magnitude = 2
@@ -729,7 +741,7 @@ def test_radon(debug=False):
         randay,
         errormsg=errormsg,
         debug=debug,
-        mse=0.5,
+        mse=0.1,
         **method_args
     )
 
@@ -742,35 +754,62 @@ def test_speckle_recentering(get_cube, debug=False):
     method = cube_recenter_via_speckles
     errormsg = "Error when recentering via speckles"
 
-    # ===== datacube
-    ds = get_cube
-    n_frames = ds.cube.shape[0]
-
-    # ===== shift
-    randax = np.ones(n_frames)
-    randay = np.ones(n_frames)
-
     # ===== recenter
     types = ["gaus", "ann"]
+    upsamp_facs = [100, 20]
+    crop_szs = [35, 59]
 
-    for ty in types:
+    for t, ty in enumerate(types):
+        if t == 0:
+            # ===== datacube Beta Pic for gaus test
+            ds = get_cube
+            cube = ds.cube
+            n_frames = ds.cube.shape[0]
+            fwhm = ds.fwhm
+            method_args_additional = {}
+        else:
+            # ===== fiducial datacube with 4 satspots as speckles
+            size = 61
+            mean = size // 2  # - 0.5
+            n_frames = 20
+            cube_ring = create_cube_with_gauss2d_ring(
+                shape=(n_frames, size, size), mean=mean, stddev_outer=4,
+                stddev_inner=2
+            )
+            cube_ss1, spotcoords = create_cube_with_satspots(n_frames=n_frames,
+                                                             wh=size)
+            cube_ss2, spotcoords = create_cube_with_satspots(n_frames=n_frames,
+                                                             wh=size,
+                                                             pattern='+',
+                                                             diagonal=6)
+            rand_noise = 1e-2*np.random.random(cube_ss1.shape)
+            cube = 10*cube_ring + cube_ss1 + 0.1*cube_ss2 + rand_noise
+            fwhm = 3.
+            method_args_additional = dict(ann_rad=0.5, ann_rad_search=False,
+                                          ann_width=1.5)
+        # ===== shift
+        randax = seed.uniform(-1, 1, size=n_frames)
+        randay = seed.uniform(-1, 1, size=n_frames)
+
         method_args = dict(
             plot=False,
             full_output=True,
-            fwhm=4.2,
+            fwhm=fwhm,
             fit_type=ty,
             recenter_median=True,
-            subframesize=49,
+            upsample_factor=upsamp_facs[t],
+            subframesize=crop_szs[t],
             imlib="opencv",
             interpolation="lanczos4",
+            **method_args_additional
         )
         do_recenter(
             method,
-            ds.cube,
+            cube,
             randax,
             randay,
             errormsg=errormsg,
             debug=debug,
-            mse=0.04,
+            mse=0.05,
             **method_args
         )

@@ -9,7 +9,7 @@ emcee==2.2.1
 nestle
 corner
 pandas
-matplotlib<=3.4.3
+matplotlib>=3.7.0
 psutil
 pyprind
 munch
@@ -18,3 +18,4 @@ hciplot>=0.2.1
 typing
 dataclass_builder
 urllib3 < 2.0
+sphinx-rtd-theme

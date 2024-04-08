@@ -22,7 +22,8 @@ from typing import Tuple, List, Union
 from enum import Enum
 from dataclasses import dataclass
 from .svd import get_eigenvectors
-from ..preproc import cube_derotate, cube_collapse, check_pa_vector, check_scal_vector
+from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
+                       check_scal_vector)
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
@@ -76,10 +77,10 @@ class PCA_ANNULAR_Params:
 def pca_annular(*all_args: List, **all_kwargs: dict):
     """PCA model PSF subtraction for ADI, ADI+RDI or ADI+mSDI (IFS) data.
 
-    The PCA model is computed locally in each annulus (or annular sectors according
-    to ``n_segments``). For each sector we discard reference frames taking into
-    account a parallactic angle threshold (``delta_rot``) and optionally a
-    radial movement threshold (``delta_sep``) for 4d cubes.
+    The PCA model is computed locally in each annulus (or annular sectors
+    according to ``n_segments``). For each sector we discard reference frames
+    taking into account a parallactic angle threshold (``delta_rot``) and
+    optionally a radial movement threshold (``delta_sep``) for 4d cubes.
 
     For ADI+RDI data, it computes the principal components from the reference
     library/cube, forcing pixel-wise temporal standardization. The number of
@@ -93,14 +94,14 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
     Parameters
     ----------
     all_args: list, optional
-        Positionnal arguments for the PCA annular algorithm. Full list of parameters
-        below.
+        Positionnal arguments for the PCA annular algorithm. Full list of
+        parameters below.
     all_kwargs: dictionary, optional
-        Mix of keyword arguments that can initialize a PCA_ANNULAR_Params and the optional
-        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
-        "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``). Can also contain a PCA_ANNULAR_Params named as
-        `algo_params`.
+        Mix of keyword arguments that can initialize a PCA_ANNULAR_Params and
+        the optional 'rot_options' dictionnary, with keyword values for
+        "border_mode", "mask_val", "edge_blend", "interp_zeros", "ker" (see
+        documentation of ``vip_hci.preproc.frame_rotate``). Can also contain a
+        PCA_ANNULAR_Params named as `algo_params`.
 
     PCA annular parameters
     ----------
@@ -242,7 +243,6 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         rot_options['ker'] = 1
         rot_options['interp_zeros'] = True
 
-
     global start_time
     start_time = time_ini()
 
@@ -336,9 +336,9 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
             raise ValueError("Scaling factors vector has wrong length")
 
         if not isinstance(algo_params.ncomp, tuple):
-            raise TypeError(
-                "`ncomp` must be a tuple of two integers when " "`cube` is a 4d array"
-            )
+            msg = "`ncomp` must be a tuple of two integers when "
+            msg += "`cube` is a 4d array"
+            raise TypeError(msg)
         else:
             ncomp2 = algo_params.ncomp[1]
             algo_params.ncomp = algo_params.ncomp[0]
@@ -392,7 +392,7 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
 
         else:
             if algo_params.verbose:
-                print("Second PCA subtraction exploiting the angular variability")
+                print("Second PCA subtraction exploiting angular variability")
 
             add_params = {
                 "cube": residuals_cube_channels,
@@ -700,13 +700,13 @@ def _pca_adi_rdi(
                 if isinstance(ncomp, list):
                     residuals = []
                     for nn, npc_tmp in enumerate(ncomp):
-                        transformed = np.dot(V[:npc_tmp], matrix_segm.T)
+                        transformed = np.dot(V[:npc_tmp], matrix_segm)
                         reconstructed = np.dot(transformed.T, V[:npc_tmp])
-                        residuals.append(matrix_segm - reconstructed)
+                        residuals.append(matrix_segm - reconstructed.T)
                 else:
-                    transformed = np.dot(V, matrix_segm.T)
+                    transformed = np.dot(V, matrix_segm)
                     reconstructed = np.dot(transformed.T, V)
-                    residuals = matrix_segm - reconstructed
+                    residuals = matrix_segm - reconstructed.T
                     nfrslib = matrix_out_segm.shape[0]
 
             if isinstance(ncomp, list):
@@ -773,22 +773,20 @@ def do_pca_patch(
     matrix_ref,
     matrix_sig_segm,
 ):
-    """Does the SVD/PCA for each frame patch (small matrix). For each frame we
-    find the frames to be rejected depending on the amount of rotation. The
-    library is also truncated on the other end (frames too far or which have
-    rotated more) which are more decorrelated to keep the computational cost
-    lower. This truncation is done on the annuli after 10*FWHM and the goal is
-    to keep min(num_frames/2, 200) in the library.
-    """
+    """Do the SVD/PCA for each frame patch (small matrix).
 
+    For each frame, frames to be rejected from the PCA library are found
+    depending on the criterion in field rotation. The library is also truncated
+    on the other end (frames too far in time, which have rotated more) which are
+    more decorrelated, to keep the computational cost lower. This truncation is
+    done on the annuli beyong 10*FWHM radius and the goal is to keep
+    min(num_frames/2, 200) in the library.
+
+    """
     if pa_threshold != 0:
-        # if ann_center > fwhm*10:
         indices_left = _find_indices_adi(angle_list, frame, pa_threshold,
                                          truncate=True,
                                          max_frames=max_frames_lib)
-        # else:
-        #    indices_left = _find_indices_adi(angle_list, frame,
-        #                                     pa_threshold, truncate=False)
         msg = "Too few frames left in the PCA library. "
         msg += "Accepted indices length ({:.0f}) less than {:.0f}. "
         msg += "Try decreasing either delta_rot or min_frames_lib."
@@ -809,7 +807,6 @@ def do_pca_patch(
             data_ref = matrix - matrix_sig_segm
         else:
             data_ref = matrix
-
 
     if matrix_ref is not None:
         # Stacking the ref and the target ref (pa thresh) libraries

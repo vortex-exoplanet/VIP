@@ -1,16 +1,15 @@
 #! /usr/bin/env python
-
 """
 Module with pixel and frame subsampling functions.
 
 .. [BRA13]
    | Brandt et al. 2013
-   | **New Techniques for High-contrast Imaging with ADI: The ACORNS-ADI SEEDS 
+   | **New Techniques for High-contrast Imaging with ADI: The ACORNS-ADI SEEDS
      Data Reduction Pipeline**
    | *The Astrophysical Journal, Volume 764, Issue 2, p. 183*
    | `https://arxiv.org/abs/1209.3014
      <https://arxiv.org/abs/1209.3014>`_
-     
+
 """
 
 __author__ = 'Carlos Alberto Gomez Gonzalez, Valentin Christiaens'
@@ -22,15 +21,20 @@ import numpy as np
 
 
 def cube_collapse(cube, mode='median', n=50, w=None):
-    """ Collapses a cube into a frame (3D array -> 2D array) depending on the
-    parameter ``mode``. It's possible to perform a trimmed mean combination of
-    the frames based on description in [BRA13]_.
+    """Collapse a 3D or 4D cube into a 2D frame or 3D cube, respectively.
+
+    The  ``mode`` parameter determines how the collapse should be done. It is
+    possible to perform a trimmed mean combination of the frames, as in
+    [BRA13]_. In case of a 4D input cube, it is assumed to be an IFS dataset
+    with the zero-th axis being the spectral dimension, and the first axis the
+    temporal dimension.
+
 
     Parameters
     ----------
     cube : numpy ndarray
         Cube.
-    mode : {'median', 'mean', 'sum', 'max', 'trimmean', 'absmean', 'wmean'}, str, optional
+    mode : {'median', 'mean', 'sum', 'max', 'trimmean', 'absmean', 'wmean'}
         Sets the way of collapsing the images in the cube.
         'wmean' stands for weighted mean and requires weights w to be provided.
         'absmean' stands for the mean of absolute values (potentially useful
@@ -48,7 +52,12 @@ def cube_collapse(cube, mode='median', n=50, w=None):
         Output array, cube combined.
     """
     arr = cube
-    if arr.ndim != 3:
+    if arr.ndim == 3:
+        ax = 0
+    elif arr.ndim == 4:
+        nch = arr.shape[0]
+        ax = 1
+    else:
         raise TypeError('The input array is not a cube or 3d array.')
 
     if mode == 'wmean':
@@ -61,34 +70,47 @@ def cube_collapse(cube, mode='median', n=50, w=None):
             w = np.array(w)
 
     if mode == 'mean':
-        frame = np.nanmean(arr, axis=0)
+        frame = np.nanmean(arr, axis=ax)
     elif mode == 'median':
-        frame = np.nanmedian(arr, axis=0)
+        frame = np.nanmedian(arr, axis=ax)
     elif mode == 'sum':
-        frame = np.nansum(arr, axis=0)
+        frame = np.nansum(arr, axis=ax)
     elif mode == 'max':
-        frame = np.nanmax(arr, axis=0)
+        frame = np.nanmax(arr, axis=ax)
     elif mode == 'trimmean':
-        N = arr.shape[0]
+        N = arr.shape[ax]
         k = (N - n)//2
         if N % 2 != n % 2:
             n += 1
-        frame = np.empty_like(arr[0])
-        for index, _ in np.ndenumerate(arr[0]):
-            sort = np.sort(arr[:, index[0], index[1]])
-            frame[index] = np.nanmean(sort[k:k+n])
+        if ax == 0:
+            frame = np.empty_like(arr[0])
+            for index, _ in np.ndenumerate(arr[0]):
+                sort = np.sort(arr[:, index[0], index[1]])
+                frame[index] = np.nanmean(sort[k:k+n])
+        else:
+            frame = np.empty_like(arr[:, 0])
+            for j in range(nch):
+                for index, _ in np.ndenumerate(arr[:, 0]):
+                    sort = np.sort(arr[j, :, index[0], index[1]])
+                    frame[j][index] = np.nanmean(sort[k:k+n])
     elif mode == 'wmean':
         arr[np.where(np.isnan(arr))] = 0  # to avoid product with nan
-        frame = np.inner(w, np.moveaxis(arr, 0, -1))
+        if ax == 0:
+            frame = np.inner(w, np.moveaxis(arr, 0, -1))
+        else:
+            frame = np.empty_like(arr[:, 0])
+            for j in range(nch):
+                frame[j] = np.inner(w, np.moveaxis(arr[j], 0, -1))
     elif mode == 'absmean':
-        frame = np.mean(np.abs(arr), axis=0)
+        frame = np.nanmean(np.abs(arr), axis=ax)
     else:
         raise TypeError("mode not recognized")
 
     return frame
 
 
-def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
+def cube_subsample(array, n, mode="mean", w=None, parallactic=None,
+                   verbose=True):
     """Mean/Median combines frames in 3d or 4d cube with window ``n``.
 
     Parameters
@@ -97,8 +119,8 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
         Input 3d array, cube.
     n : int
         Window for mean/median.
-    mode : {'mean','median'}, optional
-        Switch for choosing mean or median.
+    mode : {'mean','median', 'wmean'}, optional
+        Switch for choosing mean, median or weighted average.
     parallactic : numpy ndarray, optional
         List of corresponding parallactic angles.
     verbose : bool optional
@@ -112,10 +134,15 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
     if array.ndim not in [3, 4]:
         raise TypeError('The input array is not a cube or 3d or 4d array')
 
+    kwargs = {}
     if mode == 'median':
         func = np.median
     elif mode == 'mean':
         func = np.mean
+    elif mode == 'wmean':
+        func = np.average
+        w = w/np.sum(w)
+        kwargs = {'weights': w}
     else:
         raise ValueError('`Mode` should be either Mean or Median')
 
@@ -129,9 +156,9 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
             angles = np.zeros(m)
 
         for i in range(m):
-            arr[i, :, :] = func(array[n * i:n * i + n, :, :], axis=0)
+            arr[i, :, :] = func(array[n * i:n * i + n, :, :], axis=0, **kwargs)
             if parallactic is not None:
-                angles[i] = func(parallactic[n * i:n * i + n])
+                angles[i] = func(parallactic[n * i:n * i + n], **kwargs)
 
     elif array.ndim == 4:
         m = int(array.shape[1] / n)
@@ -145,9 +172,10 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
 
         for j in range(w):
             for i in range(m):
-                arr[j, i, :, :] = func(array[j, n * i:n * i + n, :, :], axis=0)
+                arr[j, i, :, :] = func(array[j, n * i:n * i + n, :, :], axis=0,
+                                       **kwargs)
                 if parallactic is not None:
-                    angles[i] = func(parallactic[n * i:n * i + n])
+                    angles[i] = func(parallactic[n * i:n * i + n], **kwargs)
 
     if verbose:
         msg = "Cube temporally subsampled by taking the {} of every {} frames"
@@ -164,8 +192,9 @@ def cube_subsample(array, n, mode="mean", parallactic=None, verbose=True):
 
 
 def cube_subsample_trimmean(arr, n, m):
-    """Performs a trimmed mean combination every m frames in a cube. Based on
-    description in Brandt+ 2012.
+    """Perform a trimmed mean combination every m frames in a cube.
+
+    Details in [BRA13]_.
 
     Parameters
     ----------

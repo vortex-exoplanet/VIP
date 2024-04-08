@@ -60,6 +60,30 @@ vip\_hci.fm.negfc\_speckle\_noise module
    :undoc-members:
    :show-inheritance:
 
+vip\_hci.fm.negfd\_fmerit module
+--------------------------------
+
+.. automodule:: vip_hci.fm.negfd_fmerit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+vip\_hci.fm.negfd\_interp module
+--------------------------------
+
+.. automodule:: vip_hci.fm.negfd_interp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+vip\_hci.fm.negfd\_simplex module
+---------------------------------
+
+.. automodule:: vip_hci.fm.negfd_simplex
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 vip\_hci.fm.scattered\_light\_disk module
 -----------------------------------------
 
@@ -80,6 +104,14 @@ vip\_hci.fm.utils\_negfc module
 -------------------------------
 
 .. automodule:: vip_hci.fm.utils_negfc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+vip\_hci.fm.utils\_negfd module
+-------------------------------
+
+.. automodule:: vip_hci.fm.utils_negfd
    :members:
    :undoc-members:
    :show-inheritance:

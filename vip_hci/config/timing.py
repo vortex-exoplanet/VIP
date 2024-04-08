@@ -1,12 +1,11 @@
 #! /usr/bin/env python
-
 """
 Functions for timing other functions/procedures.
 """
 
 
-__author__ = 'Carlos Alberto Gomez Gonzalez'
-__all__ = ['time_ini', 'timing', 'time_fin']
+__author__ = "Carlos Alberto Gomez Gonzalez"
+__all__ = ["time_ini", "timing", "time_fin"]
 
 from datetime import datetime
 from .utils_conf import sep
@@ -36,7 +35,7 @@ def timing(start_time):
 
     It requires the initialization  with the function time_ini().
     """
-    print("Running time:  " + str(datetime.now()-start_time))
+    print("Running time:  " + str(datetime.now() - start_time))
     print(sep)
 
 
@@ -46,4 +45,4 @@ def time_fin(start_time):
 
     It requires the initialization  with the function time_ini().
     """
-    return str(datetime.now()-start_time)
+    return str(datetime.now() - start_time)

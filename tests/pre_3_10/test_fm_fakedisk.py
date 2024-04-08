@@ -45,7 +45,7 @@ def test_cube_inject_fakedisk(dataset):
         """
         Expected positions.
         """
-        return [(15, 12), (12, 9), (9, 12)]
+        return [(15, 12), (12, 15), (9, 12)]
 
     psf = np.zeros((25, 25))
     psf[15, 12] = 1

@@ -15,8 +15,6 @@ merit corresponding to the residuals in an aperture at the initial estimate for
 the location of the companion, in the post-processed image.
 
 """
-
-from .scattered_light_disk import *
 from .fakecomp import *
 from .fakedisk import *
 from .negfc_fmerit import *
@@ -24,5 +22,10 @@ from .negfc_mcmc import *
 from .negfc_nested import *
 from .negfc_simplex import *
 from .negfc_speckle_noise import *
+from .negfd_fmerit import *
+from .negfd_interp import *
+from .negfd_simplex import *
+from .scattered_light_disk import *
 from .utils_mcmc import *
 from .utils_negfc import *
+from .utils_negfd import *

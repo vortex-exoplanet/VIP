@@ -171,16 +171,17 @@ def xloci(*all_args: List, **all_kwargs: dict):
     verbose: bool, optional
         If True prints info to stdout.
     full_output: bool, optional
-        Whether to return the final median combined image only or with other
-        intermediate arrays.
+        Whether to return the final median combined image only or along with
+        2 other residual cubes (before and after derotation).
 
     Returns
     -------
+    cube_res : numpy ndarray, 3d
+        [full_output=True] Cube of residuals.
+    cube_der : numpy ndarray, 3d
+        [full_output=True] Derotated cube of residuals.
     frame_der_median : numpy ndarray, 2d
         Median combination of the de-rotated cube of residuals.
-
-    If ``full_output`` is True, the following intermediate arrays are returned:
-    cube_res, cube_der, frame_der_median
 
     """
     # Separating the parameters of the ParamsObject from the optionnal rot_options
@@ -410,7 +411,8 @@ def _leastsq_adi(
 
         # indices
         indices = get_annulus_segments(
-            cube[0], inner_radius=inner_radius_ann, width=asize, nsegm=n_segments_ann
+            cube[0], inner_radius=inner_radius_ann, width=asize,
+            nsegm=n_segments_ann
         )
         ind_opt = get_annulus_segments(
             cube[0],
@@ -469,7 +471,8 @@ def _leastsq_adi(
         return frame_der_median
 
 
-def _leastsq_patch(ayxyx, pa_thresholds, angles, metric, dist_threshold, solver, tol):
+def _leastsq_patch(ayxyx, pa_thresholds, angles, metric, dist_threshold, solver,
+                   tol):
     """Helper function for _leastsq_ann.
 
     Parameters
@@ -515,7 +518,10 @@ def _leastsq_patch(ayxyx, pa_thresholds, angles, metric, dist_threshold, solver,
             A = values_opt[ind_ref]
             b = values_opt[i]
             if solver == "lstsq":
-                coef = sp.linalg.lstsq(A.T, b, cond=tol)[0]  # SVD method
+                try:
+                    coef = sp.linalg.lstsq(A.T, b, cond=tol)[0]  # SVD method
+                except:
+                    coef = sp.optimize.nnls(A.T, b)[0]  # if SVD does not work
             elif solver == "nnls":
                 coef = sp.optimize.nnls(A.T, b)[0]
             elif solver == "lsq":  # TODO

@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 """
 Implementation of a median subtraction algorithm for model PSF subtraction in
-high-contrast imaging sequences. In the case of ADI, the algorithm is based on
-[MAR06]_. The ADI+IFS method, is an extension of this basic idea to
-multi-spectral cubes.
+high-contrast imaging sequences. Median-ADI was originally proposed in [MAR06]_,
+while median-SDI (also referred to as spectral deconvolution) was proposed in
+[SPA02]_ and further developed in [THA07]_.
 
 .. [MAR06]
    | Marois et al. 2006
@@ -22,7 +22,8 @@ multi-spectral cubes.
 
 .. [THA07]
    | Thatte et al. 2007
-   | **Very high contrast integral field spectroscopy of AB Doradus C: 9-mag contrast at 0.2arcsec without a coronagraph using spectral deconvolution**
+   | **Very high contrast integral field spectroscopy of AB Doradus C: 9-mag
+     contrast at 0.2arcsec without a coronagraph using spectral deconvolution**
    | *MNRAS, Volume 378, Issue 4, pp. 1229-1236*
    | `https://arxiv.org/abs/astro-ph/0703565
      <https://arxiv.org/abs/astro-ph/0703565>`_
@@ -42,7 +43,8 @@ from ..config import time_ini, timing
 from ..config.paramenum import Imlib, Interpolation, Collapse, ALGO_KEY
 from ..config.utils_conf import pool_map, iterable, print_precision
 from ..config.utils_param import setup_parameters, separate_kwargs_dict
-from ..preproc import cube_derotate, cube_collapse, check_pa_vector, check_scal_vector
+from ..preproc import (cube_derotate, cube_collapse, check_pa_vector,
+                       check_scal_vector)
 from ..preproc import cube_rescaling_wavelengths as scwave
 from ..preproc.derotation import _find_indices_adi, _define_annuli
 from ..preproc.rescaling import _find_indices_sdi
@@ -54,7 +56,7 @@ class MEDIAN_SUB_Params:
     """
     Set of parameters for the median subtraction module.
 
-    See function `median_sub` below for documentation.
+    See function `median_sub` for documentation.
     """
 
     cube: np.ndarray = None
@@ -78,27 +80,29 @@ class MEDIAN_SUB_Params:
 
 
 def median_sub(*all_args: List, **all_kwargs: dict):
-    """Implementation of a median subtraction algorithm for model PSF
-    subtraction in high-contrast imaging sequences. In the case of ADI, the
-    algorithm is based on [MAR06]_. The ADI+IFS method is an extension of this
-    basic idea to multi-spectral cubes.
+    """Perform (smart) median-ADI or median-SDI.
+
+    In the case of angular differential imaging (ADI), the algorithm is based on
+    [MAR06]_. The ADI+IFS method is an extension of this basic idea to
+    multi-spectral cubes, combining ADI with spectral deconvolution (also called
+    spectral differential imaging or SDI).
 
     References: [MAR06]_ for median-ADI; [SPA02]_ and [THA07]_ for SDI.
 
     Parameters
     ----------
     all_args: list, optional
-        Positionnal arguments for the medsub algorithm. Full list of parameters
-        below.
+        Positionnal arguments for the median_sub algorithm. Full list of
+        parameters is provided below.
     all_kwargs: dictionary, optional
-        Mix of keyword arguments that can initialize a MedsubParams and the optional
-        'rot_options' dictionnary, with keyword values for "border_mode", "mask_val",
-        "edge_blend", "interp_zeros", "ker" (see documentation of
-        ``vip_hci.preproc.frame_rotate``). Can also contain a MedsubParams named as
-        `algo_params`.
+        Mix of keyword arguments that can initialize a MEDIAN_SUB_Params and the
+        optional ``rot_options`` dictionary (with keywords ``border_mode``,
+        ``mask_val``, ``edge_blend``, ``interp_zeros``, ``ker``; see docstrings
+        of ``vip_hci.preproc.frame_rotate``). Can also contain a
+        MEDIAN_SUB_Params object/dictionary named ``algo_params``.
 
-    Median subtraction parameters
-    -----------------------------
+    Parameters
+    ----------
     cube : numpy ndarray, 3d
         Input cube.
     angle_list : numpy ndarray, 1d
@@ -161,6 +165,7 @@ def median_sub(*all_args: List, **all_kwargs: dict):
         intermediate arrays.
     verbose : bool, optional
         If True prints to stdout intermediate info.
+
     Returns
     -------
     cube_out : numpy ndarray, 3d
@@ -171,7 +176,7 @@ def median_sub(*all_args: List, **all_kwargs: dict):
         Median combination of the de-rotated cube.
 
     """
-    # Separating the parameters of the ParamsObject from the optionnal rot_options
+    # Separating the parameters of the ParamsObject from optional rot_options
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=MEDIAN_SUB_Params
     )
@@ -195,7 +200,7 @@ def median_sub(*all_args: List, **all_kwargs: dict):
         start_time = time_ini()
 
     if algo_params.nproc is None:
-        algo_params.nproc = cpu_count() // 2  # Hyper-threading doubles the # of cores
+        algo_params.nproc = cpu_count() // 2
 
     algo_params.angle_list = check_pa_vector(algo_params.angle_list)
 
@@ -324,9 +329,9 @@ def median_sub(*all_args: List, **all_kwargs: dict):
             "annulus_width": algo_params.asize,
         }
 
-        func_params = setup_parameters(
-            params_obj=algo_params, fkt=_median_subt_fr_sdi, as_list=True, **add_params
-        )
+        func_params = setup_parameters(params_obj=algo_params,
+                                       fkt=_median_subt_fr_sdi, as_list=True,
+                                       **add_params)
         res = pool_map(
             algo_params.nproc,
             _median_subt_fr_sdi,
@@ -494,9 +499,8 @@ def _median_subt_fr_sdi(
     return frame_desc
 
 
-def _median_subt_ann_adi(
-    ann, angle_list, n_annuli, fwhm, radius_int, annulus_width, delta_rot, nframes
-):
+def _median_subt_ann_adi(ann, angle_list, n_annuli, fwhm, radius_int,
+                         annulus_width, delta_rot, nframes):
     """Optimized median subtraction for a given annulus."""
     if ARRAY.ndim == 3:
         n = ARRAY.shape[0]
@@ -506,9 +510,9 @@ def _median_subt_ann_adi(
     # The annulus is built, and the corresponding PA thresholds for frame
     # rejection are calculated. The PA rejection is calculated at center of
     # the annulus
-    pa_thr, inner_radius, _ = _define_annuli(
-        angle_list, ann, n_annuli, fwhm, radius_int, annulus_width, delta_rot, 1, False
-    )
+    pa_thr, inner_radius, _ = _define_annuli(angle_list, ann, n_annuli, fwhm,
+                                             radius_int, annulus_width,
+                                             delta_rot, 1, False)
     if ARRAY.ndim == 3:
         indices = get_annulus_segments(ARRAY[0], inner_radius, annulus_width)[0]
     elif ARRAY.ndim == 4:

@@ -1,36 +1,37 @@
 VIP - Vortex Image Processing package
 =====================================
 
+|VIP| |Versions| |travis| |License| |ArXiV| |docs| |codecov| |DOI| |Zenodo| |EMAC|
 
-.. image:: https://badge.fury.io/py/vip-hci.svg
-    :target: https://pypi.python.org/pypi/vip-hci
+.. |VIP| image:: https://badge.fury.io/py/vip-hci.svg
+        :target: https://pypi.python.org/pypi/vip-hci
 
-.. image:: https://img.shields.io/badge/Python-3.7%2C%203.8%2C%203.9-brightgreen.svg
-    :target: https://pypi.python.org/pypi/vip-hci
+.. |Versions| image:: https://img.shields.io/badge/Python-3.7%2C%203.8%2C%203.9%2C%203.10%2C%203.11-brightgreen.svg
+             :target: https://pypi.python.org/pypi/vip-hci
 
-.. image:: https://travis-ci.com/vortex-exoplanet/VIP.svg?branch=master
-    :target: https://travis-ci.com/vortex-exoplanet/VIP
+.. |travis| image:: https://travis-ci.com/vortex-exoplanet/VIP.svg?branch=master
+           :target: https://travis-ci.com/vortex-exoplanet/VIP
 
-.. image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
-    :target: https://github.com/vortex-exoplanet/VIP/blob/master/LICENSE
+.. |License| image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
+            :target: https://github.com/vortex-exoplanet/VIP/blob/master/LICENSE
 
-.. image:: https://img.shields.io/badge/arXiv-1705.06184%20-yellowgreen.svg
-    :target: https://arxiv.org/abs/1705.06184
+.. |ArXiV| image:: https://img.shields.io/badge/arXiv-1705.06184%20-yellowgreen.svg
+          :target: https://arxiv.org/abs/1705.06184
 
-.. image:: https://readthedocs.org/projects/vip/badge/?version=latest
-    :target: http://vip.readthedocs.io/en/latest/?badge=latest
+.. |docs| image:: https://readthedocs.org/projects/vip/badge/?version=latest
+         :target: http://vip.readthedocs.io/en/latest/?badge=latest
 
-.. image:: https://codecov.io/gh/vortex-exoplanet/VIP/branch/master/graph/badge.svg?token=HydCFQqLRf
-    :target: https://codecov.io/gh/vortex-exoplanet/VIP
+.. |codecov| image:: https://codecov.io/gh/vortex-exoplanet/VIP/branch/master/graph/badge.svg?token=HydCFQqLRf
+            :target: https://codecov.io/gh/vortex-exoplanet/VIP
 
-.. image:: https://joss.theoj.org/papers/10.21105/joss.04774/status.svg
-   :target: https://doi.org/10.21105/joss.04774
+.. |DOI| image:: https://joss.theoj.org/papers/10.21105/joss.04774/status.svg
+        :target: https://doi.org/10.21105/joss.04774
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7499314.svg
-   :target: https://doi.org/10.5281/zenodo.7499314
+.. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7499314.svg
+           :target: https://doi.org/10.5281/zenodo.7499314
 
-.. image:: https://img.shields.io/badge/EMAC-2207--116-blue
-   :target: https://emac.gsfc.nasa.gov/?cid=2207-116
+.. |EMAC| image:: https://img.shields.io/badge/EMAC-2207--116-blue
+         :target: https://emac.gsfc.nasa.gov/?cid=2207-116
 
 ::
 
@@ -91,7 +92,7 @@ TL;DR setup guide
 -----------------
 .. code-block:: bash
 
-    $ pip install vip_hci
+   pip install vip_hci
 
 
 Installation and dependencies
@@ -115,12 +116,12 @@ for your environment):
 
 .. code-block:: bash
 
-  $ conda create -n vipenv python=3.10 ipython
+   conda create -n vipenv python=3.10 ipython
 
 .. note::
-  Installing ipython while creating the environment, as in the example above, will
-  avoid a commonly reported issue which stems from trying to import VIP from
-  within a base python2.7 ipython console.
+   Installing ipython while creating the environment, as in the example above, will
+   avoid a commonly reported issue which stems from trying to import VIP from
+   within a base python2.7 ipython console.
 
 
 For users not planning to contribute:
@@ -131,14 +132,14 @@ the ``pip`` package manager. Simply run:
 
 .. code-block:: bash
 
-  $ pip install vip_hci
+  pip install vip_hci
 
 With ``pip`` you can easily uninstall, upgrade or install a specific version of
 VIP. For upgrading the package, run:
 
 .. code-block:: bash
 
-  $ pip install --upgrade vip_hci
+  pip install --upgrade vip_hci
 
 
 For potential contributors:
@@ -149,22 +150,22 @@ clone it:
 
 .. code-block:: bash
 
-  $ git clone https://github.com/<replace-by-your-username>/VIP.git
+   git clone https://github.com/<replace-by-your-username>/VIP.git
 
 If you do not create a fork, you can still benefit from the ``git`` syncing
 functionalities by cloning the repository (but will not be able to contribute):
 
 .. code-block:: bash
 
-  $ git clone https://github.com/vortex-exoplanet/VIP.git
+   git clone https://github.com/vortex-exoplanet/VIP.git
 
 
 To install VIP, then simply cd into your local VIP directory, and run the installation in editable mode pointing to developer requirements:
 
 .. code-block:: bash
 
-  $ cd VIP
-  $  pip install -e . -r requirements-dev.txt
+   cd VIP
+   pip install -e . -r requirements-dev.txt
 
 If cloned from your fork, make sure to link your VIP directory to the upstream
 source, to be able to easily update your local copy when a new version comes
@@ -172,7 +173,7 @@ out or a bug is fixed:
 
 .. code-block:: bash
 
-  $ git add remote upstream https://github.com/vortex-exoplanet/VIP.git
+   git add remote upstream https://github.com/vortex-exoplanet/VIP.git
 
 If you plan to develop VIP or use it intensively, it is highly recommended to
 also install the optional dependencies listed below.
@@ -197,14 +198,16 @@ that you are able to import VIP:
 
 .. code-block:: python
 
-  import vip_hci as vip
+   import vip_hci as vip
 
 If everything went fine with the installation, you should not get any error message upon importation, and you can start finding exoplanets!
 
 
-Image conventions
------------------
+Conventions
+-----------
 
+Image Center
+^^^^^^^^^^^^
 By default, VIP routines are compatible with either even- or odd-dimension input frames. For VIP routines that require the star to be centered in the input images (e.g. post-processing routines involving (de)rotation or scaling), the code will assume that it is placed on (zero-based indexing):
 
 - size/2-0.5 for odd-size input images;
@@ -212,9 +215,18 @@ By default, VIP routines are compatible with either even- or odd-dimension input
 
 i.e. exactly on a pixel in either cases. The VIP recentering routines will place the star centroid at one of these locations accordingly.
 
+Position angles
+^^^^^^^^^^^^^^^
+In VIP all angles are measured counter-clockwise from the positive x axis (i.e. trigonometric angles), as all packages it leverages upon, including for the position angles retrieved when characterizing directly imaged planets. This is different to the typical astronomical convention to measure angles east from north (just add +90deg to angles returned by VIP).
+
+4D IFS+ADI cubes
+^^^^^^^^^^^^^^^^
+For all routines compatible with 4D IFS+ADI cubes, the convention throughout VIP is to consider the zeroth axis to correspond to the spectral dimension, and the first axis to be the temporal (ADI) dimension.
+
 
 Contact
 -------
+
 Answers to `frequently asked questions <https://vip.readthedocs.io/en/latest/faq.html>`_ are provided in the relevant section of the documentation.
 If you have an issue with VIP, please first check it is not detailed in the FAQ.
 If you find a bug or experience an unreported issue in VIP, it is recommended to post a new entry in the `Issues section <https://github.com/vortex-exoplanet/VIP/issues>`_ on GitHub. Feel free to propose a pull request if you have already identified the source of the bug/issue.

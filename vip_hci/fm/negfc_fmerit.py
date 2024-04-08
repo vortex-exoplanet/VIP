@@ -7,6 +7,7 @@ __author__ = "O. Wertz, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
 __all__ = ["get_mu_and_sigma"]
 
 import numpy as np
+from multiprocessing import cpu_count
 from hciplot import plot_frames
 from skimage.draw import disk
 from ..fm import cube_inject_companions
@@ -146,7 +147,6 @@ def chisquare(
     debug: bool, opt
         Whether to debug and plot the post-processed frame after injection of
         the negative fake companion.
-
     Returns
     -------
     out: float
@@ -202,6 +202,10 @@ def chisquare(
         # norm_weights=weights
         # norm_weights = weights/np.sum(weights)
 
+    nproc = algo_options.get("nproc", None)
+    if nproc is None:
+        nproc = cpu_count()//2
+
     # Create the cube with the negative fake companion injected
     cube_negfc = cube_inject_companions(
         cube,
@@ -215,6 +219,7 @@ def chisquare(
         interpolation=interpolation,
         transmission=transmission,
         verbose=False,
+        nproc=nproc
     )
 
     # Perform PCA and extract the zone of interest

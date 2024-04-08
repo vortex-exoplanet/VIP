@@ -417,7 +417,7 @@ def get_values_optimize(
             collapse=collapse,
             collapse_ifs=collapse_ifs,
             weights=weights,
-            nproc=nproc,
+            rot_options={"nproc": nproc}
         )
 
     elif algo == pca_annular or algo == nmf_annular:

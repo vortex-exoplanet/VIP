@@ -121,36 +121,32 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
 
     Returns
     -------
-    output='index' : int or array of ints
-        Indices of the closest n values in the array.
-    output='value' : array
-        The closest n values in the array.
-    output='both' : tuple
-        Tuple containing the closest n values and their indices.
+    [output='index']: index/indices of the closest n value(s) in the array;
+    [output='value']: the closest n value(s) in the array,
+    [output='both']: closest value(s) and index/-ices, respectively.
 
     """
     array = np.asarray(array)
-
     if constraint is None:
-        fm = np.absolute(array-value)
-        idx = fm.argsort()[:n]
+        fm = np.abs(array - value)
+        idx = np.argpartition(fm, n)[:n]
     elif 'floor' in constraint or 'ceil' in constraint:
         indices = np.arange(len(array), dtype=np.int32)
         if 'floor' in constraint:
-            fm = -(array-value)
+            fm = -(array - value)
         else:
-            fm = array-value
+            fm = array - value
         if '=' in constraint:
-            crop_indices = indices[np.where(fm >= 0)]
-            fm = fm[np.where(fm >= 0)]
+            crop_indices = indices[fm >= 0]
+            fm = fm[fm >= 0]
         else:
             crop_indices = indices[fm > 0]
             fm = fm[fm > 0]
-        idx = fm.argsort()[:n]
+        idx = np.argpartition(fm, n)[:n]
         idx = crop_indices[idx]
         if len(idx) == 0:
-            msg = f"No indices match the constraint ({constraint} w.r.t {value:.2f})"
-            print(msg)
+            msg = "No indices match the constraint ({} w.r.t {:.2f})"
+            print(msg.format(constraint, value))
             raise ValueError("No indices match the constraint")
     else:
         raise ValueError("Constraint not recognised")
@@ -162,7 +158,5 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
         return idx
     elif output == 'value':
         return array[idx]
-    elif output == 'both':
-        return array[idx], idx
     else:
-        raise ValueError("Invalid output parameter. Use 'index', 'value', or 'both'.")
+        return array[idx], idx

@@ -1374,7 +1374,8 @@ def cube_recenter_dft_upsampling(array, upsample_factor=100, subi_size=None,
 
 def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
                imlib, border_mode):
-    """Function used in cube_recenter_dft_upsampling. See the docstring of
+    """ Align images using a DFT-based cross-correlation algorithm, used in
+    cube_recenter_dft_upsampling. See the docstring of
     skimage.register.phase_cross_correlation for a description of the
     ``normalization`` parameter which was added in scikit-image 0.19. This
     should be set to None to maintain the original behaviour of _shift_dft."""

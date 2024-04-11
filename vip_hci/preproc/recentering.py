@@ -31,6 +31,7 @@ __all__ = ['frame_shift',
            'cube_recenter_via_speckles']
 
 import warnings
+from importlib.metadata import version
 
 import numpy as np
 
@@ -1373,12 +1374,27 @@ def cube_recenter_dft_upsampling(array, upsample_factor=100, subi_size=None,
 
 def _shift_dft(array_rec, array, frnum, upsample_factor, mask, interpolation,
                imlib, border_mode):
-    """Align images using a DFT-based cross-correlation algorithm."""
-    shift_yx = phase_cross_correlation(array_rec[0], array[frnum],
-                                       upsample_factor=upsample_factor,
-                                       reference_mask=mask)
-    y_i, x_i = shift_yx[0]
+    """Align images using a DFT-based cross-correlation algorithm, used in
+    cube_recenter_dft_upsampling. See the docstring of
+    skimage.register.phase_cross_correlation for a description of the
+    ``normalization`` parameter which was added in scikit-image 0.19. This
+    should be set to None to maintain the original behaviour of _shift_dft."""
 
+    if version("scikit-image") > "0.18.3":
+        shifts = phase_cross_correlation(array_rec[0], array[frnum],
+                                         upsample_factor=upsample_factor,
+                                         reference_mask=mask,
+                                         normalization=None)
+    else:
+        shifts = phase_cross_correlation(array_rec[0], array[frnum],
+                                         upsample_factor=upsample_factor,
+                                         reference_mask=mask)
+    # from skimage 0.22, phase_cross_correlation returns two more variables
+    # in addition to the array of shifts
+    if len(shifts) == 3:
+        shifts = shifts[0]
+
+    y_i, x_i = shifts
     array_rec_i = frame_shift(array[frnum], shift_y=y_i, shift_x=x_i,
                               imlib=imlib, interpolation=interpolation,
                               border_mode=border_mode)

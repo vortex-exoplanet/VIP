@@ -126,29 +126,23 @@ def find_nearest(array, value, output='index', constraint=None, n=1):
     [output='both']: closest value(s) and index/-ices, respectively.
 
     """
-    if isinstance(array, np.ndarray):
-        pass
-    elif isinstance(array, list):
-        array = np.array(array)
-    else:
-        raise ValueError("Input type for array should be np.ndarray or list.")
-
+    array = np.asarray(array)
     if constraint is None:
-        fm = np.absolute(array-value)
-        idx = fm.argsort()[:n]
+        fm = np.abs(array - value)
+        idx = np.argpartition(fm, n)[:n]
     elif 'floor' in constraint or 'ceil' in constraint:
         indices = np.arange(len(array), dtype=np.int32)
         if 'floor' in constraint:
-            fm = -(array-value)
+            fm = -(array - value)
         else:
-            fm = array-value
+            fm = array - value
         if '=' in constraint:
-            crop_indices = indices[np.where(fm >= 0)]
-            fm = fm[np.where(fm >= 0)]
+            crop_indices = indices[fm >= 0]
+            fm = fm[fm >= 0]
         else:
-            crop_indices = indices[np.where(fm > 0)]
-            fm = fm[np.where(fm > 0)]
-        idx = fm.argsort()[:n]
+            crop_indices = indices[fm > 0]
+            fm = fm[fm > 0]
+        idx = np.argpartition(fm, n)[:n]
         idx = crop_indices[idx]
         if len(idx) == 0:
             msg = "No indices match the constraint ({} w.r.t {:.2f})"

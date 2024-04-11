@@ -12,18 +12,13 @@ from multiprocessing import cpu_count
 import numpy as np
 from scipy import stats
 from scipy.interpolate import interp1d
-from packaging import version
-import photutils
+
 try:
     from photutils.aperture import aperture_photometry, CircularAperture
 except:
     from photutils import aperture_photometry, CircularAperture
-if version.parse(photutils.__version__) >= version.parse('0.3'):
-    # for photutils version >= '0.3' use photutils.centroids.centroid_com
-    from photutils.centroids import centroid_com as cen_com
-else:
-    # for photutils version < '0.3' use photutils.centroid_com
-    import photutils.centroid_com as cen_com
+from photutils.centroids import centroid_com
+
 from ..preproc import (cube_crop_frames, frame_shift, frame_crop, cube_shift,
                        frame_rotate)
 from ..var import (frame_center, fit_2dgaussian, fit_2dairydisk, fit_2dmoffat,
@@ -640,7 +635,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
         """Normalize PSF in the 2d case."""
         # we check if the psf is centered and fix it if needed
         cy, cx = frame_center(psf, verbose=False)
-        xcom, ycom = cen_com(psf)
+        xcom, ycom = centroid_com(psf)
         if not (np.allclose(cy, ycom, atol=1e-2) or
                 np.allclose(cx, xcom, atol=1e-2)):
             # first we find the centroid and put it in the center of the array

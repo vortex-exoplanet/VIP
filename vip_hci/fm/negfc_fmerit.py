@@ -168,7 +168,6 @@ def chisquare(
     debug: bool, opt
         Whether to debug and plot the post-processed frame after injection of
         the negative fake companion.
-
     Returns
     -------
     out: float
@@ -236,7 +235,7 @@ def chisquare(
         imlib=imlib_sh,
         interpolation=interpolation,
         transmission=transmission,
-        verbose=False,
+        verbose=False
     )
 
     # Perform PCA and extract the zone of interest
@@ -471,7 +470,7 @@ def get_values_optimize(
             collapse=collapse,
             collapse_ifs=collapse_ifs,
             weights=weights,
-            nproc=nproc,
+            nproc=nproc
         )
 
     elif algo == pca_annular or algo == nmf_annular:

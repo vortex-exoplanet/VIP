@@ -3,7 +3,7 @@ scipy
 astropy
 photutils
 scikit-learn
-scikit-image>0.17.0, <=0.18.3 # unsolved bug in skimage.registration.phase_cross_correlation for versions >0.18.3 up to at least 0.22. Req>0.17 to have the reference mask option implemented in that function.
+scikit-image
 emcee==2.2.1
 nestle
 corner

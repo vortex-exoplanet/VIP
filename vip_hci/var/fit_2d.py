@@ -531,7 +531,7 @@ def fit_2dairydisk(array, crop=False, cent=None, cropsize=15, fwhm=4,
 
     # Creating the 2d Airy disk model
     init_amplitude = np.ptp(psf_subimage[~bpm_subimage])
-    xcom, ycom = cen_com(psf_subimage)
+    xcom, ycom = centroid_com(psf_subimage)
     diam_1st_zero = (fwhm * 2.44) / 1.028
     airy = models.AiryDisk2D(amplitude=init_amplitude, x_0=xcom, y_0=ycom,
                              radius=diam_1st_zero/2.)

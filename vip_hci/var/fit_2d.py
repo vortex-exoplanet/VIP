@@ -385,7 +385,7 @@ def fit_2dmoffat(array, crop=False, cent=None, cropsize=15, fwhm=4,
 
     # Creating the 2D Moffat model
     init_amplitude = np.ptp(psf_subimage[~bpm_subimage])
-    xcom, ycom = cen_com(psf_subimage)
+    xcom, ycom = centroid_com(psf_subimage)
     moffat = models.Moffat2D(amplitude=init_amplitude, x_0=xcom, y_0=ycom,
                              gamma=fwhm / 2., alpha=1)
     # Levenberg-Marquardt algorithm

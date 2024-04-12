@@ -92,7 +92,12 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None,
 
         elif mode == 'out':
             array_masked = np.full_like(array, fillwith)
-            array_masked[ind] = array[ind]
+            if array.ndim == 2:
+                array_masked[ind] = array[ind]
+            elif array.ndim == 3:
+                array_masked[:, ind[1], ind[0]] = array[:, ind[1], ind[0]]
+            elif array.ndim == 4:
+                array_masked[:, :, ind[1], ind[0]] = array[:, :, ind[1], ind[0]]
             return array_masked
 
 

@@ -82,24 +82,18 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None,
 
     elif output == "masked_arr":
         if mode == 'in':
-            array_masked = array.copy()
             if array.ndim == 2:
-                array_masked[ind] = fillwith
+                array[ind] = fillwith
             elif array.ndim == 3:
-                array_masked[:, ind[1], ind[0]] = fillwith
+                array[:, ind[1], ind[0]] = fillwith
             elif array.ndim == 4:
-                array_masked[:, :, ind[1], ind[0]] = fillwith
+                array[:, :, ind[1], ind[0]] = fillwith
+            return array
 
         elif mode == 'out':
             array_masked = np.full_like(array, fillwith)
-            if array.ndim == 2:
-                array_masked[ind] = array[ind]
-            elif array.ndim == 3:
-                array_masked[:, ind[1], ind[0]] = array[:, ind[1], ind[0]]
-            elif array.ndim == 4:
-                array_masked[:, :, ind[1], ind[0]] = array[:, :, ind[1], ind[0]]
-
-    return array_masked
+            array_masked[ind] = array[ind]
+            return array_masked
 
 
 def mask_ellipse(array, a, b, theta, fillwith=0, mode='in', cy=None, cx=None,

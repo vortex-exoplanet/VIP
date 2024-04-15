@@ -265,7 +265,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
         if norm:
             array_out *= max_val
             array_out += min_val
-        array_out = np.nan_to_num(array_out, copy=False)
+        array_out = np.nan_to_num(array_out)
 
     elif imlib == 'opencv':
         if no_opencv:

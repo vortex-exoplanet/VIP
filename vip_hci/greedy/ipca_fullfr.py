@@ -361,7 +361,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
     elif algo_params.cube_ref is not None:
         if algo_params.strategy == 'ADI':
             msg = "WARNING: requested strategy is 'ADI' but reference cube "
-            msg += "detected! Startegy automatically switched to 'ARDI'."
+            msg += "detected! Strategy automatically switched to 'ARDI'."
             print(msg)
             algo_params.strategy = 'ARDI'
         if algo_params.mask_rdi is not None:

@@ -261,7 +261,7 @@ def indep_ap_centers(array, source_xy, fwhm, exclude_negative_lobes=False,
     if exclude_theta_range is not None:
         exc_theta_range = list(exclude_theta_range)
 
-    if not sep > (fwhm / 2) + 1:
+    if not sep > (fwhm / 2):
         raise RuntimeError('`source_xy` is too close to the frame center')
 
     # sens = 'clock'  # counterclock

@@ -274,6 +274,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
             return np.mean(snr_pixels), np.mean(fluxes)
 
     # --------------------------------------------------------------------------
+    check_array(cube, dim=3, msg='cube')
 
     if start_time is None:
         start_time = time_ini(verbose)

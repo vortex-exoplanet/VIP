@@ -9,7 +9,7 @@ __all__ = ['cube_detect_badfr_pxstats',
            'cube_detect_badfr_correlation']
 
 import numpy as np
-import pandas as pn
+from pandas import Series
 from astropy.stats import sigma_clip
 from matplotlib import pyplot as plt
 
@@ -82,7 +82,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
 
     if window is None:
         window = n//3
-    mean_smooth = pn.Series(mean_values).rolling(window, center=True).mean()
+    mean_smooth = Series(mean_values).rolling(window, center=True).mean()
     mean_smooth = mean_smooth.bfill()  # fillna(method='backfill')
     mean_smooth = mean_smooth.ffill()  # fillna(method='ffill')
     sigma = np.std(mean_values)

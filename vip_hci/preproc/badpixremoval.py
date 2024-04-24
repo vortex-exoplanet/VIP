@@ -1620,6 +1620,7 @@ def cube_fix_badpix_interp(array, bpm_mask, mode='fft', excl_mask=None, fwhm=4.,
                                                           **kwargs)
 
         # replace only the bad pixels (array_corr is low-pass filtered)
+        array_corr = array.copy()  # redefined because NaNs in previous one
         array_corr[np.where(bpm_mask)] = array_corr_filt[np.where(bpm_mask)]
 
     else:

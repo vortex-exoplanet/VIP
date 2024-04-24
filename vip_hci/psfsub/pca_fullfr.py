@@ -352,12 +352,12 @@ def pca(*all_args: List, **all_kwargs: dict):
         [full_output=True, adimsdi='single'] Residuals cube (of the big cube
         with channels and time processed together) after de-scaling the wls.
         Valid for ADI+mSDI (4D) (when ``scale_list`` is provided).
-    medians : numpy ndarray
-        [full_output=True, source_xy=None] This is also returned when ``batch``
-        is not None (incremental PCA).
     ifs_adi_frames : numpy ndarray
         [full_output=True, 4D input cube, ``scale_list=None``] This is the cube
         of individual ADI reductions for each channel of the IFS cube.
+    medians : numpy ndarray
+        [full_output=True, source_xy=None, batch!=None] Median images of each
+        batch, in incremental PCA, for 3D input cubes only.
 
     """
     # Separating the parameters of the ParamsObject from optional rot_options

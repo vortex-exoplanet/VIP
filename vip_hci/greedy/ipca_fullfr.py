@@ -66,13 +66,13 @@ def ipca(*all_args: List, **all_kwargs: dict):
     The algorithm finds significant disc or planet signal in the final PCA
     image, then subtracts it from the input cube (after rotation) just before
     (and only for) projection onto the principal components. This is repeated
-    n_it times, which progressively reduces geometric biases in the image
+    nit times, which progressively reduces geometric biases in the image
     (e.g. negative side lobes for ADI).
     This is similar to the algorithm presented in Pairet et al. (2020).
 
     The same parameters as pca() can be provided, except 'batch'. There are two
     additional parameters related to the iterative algorithm: the number of
-    iterations (n_it) and the threshold (thr) used for the identification of
+    iterations (nit) and the threshold (thr) used for the identification of
     significant signals.
 
     Note: The iterative PCA can only be used in ADI, RDI, ARDI or R+ADI modes.
@@ -92,13 +92,13 @@ def ipca(*all_args: List, **all_kwargs: dict):
         to get the scaling factors). This scaling factors are used to re-scale
         the spectral channels and align the speckles.
     mode: str or None, opt {'Pairet18', 'Pairet21'}
-        - If None: runs with provided value of 'n_comp' for 'n_it' iterations,
+        - If None: runs with provided value of 'n_comp' for 'nit' iterations,
         and considering threshold 'thr'.
         - If 'Pairet18': runs for n_comp iterations, with n_comp=1,...,n_comp,
         at each iteration (if `nit` is provided it is ignored). thr set to 0
         (ignored if provided).
-        - If 'Pairet21': runs with n_comp=1,...,n_comp, and n_it times for each
-        n_comp (i.e. outer loop on n_comp, inner loop on n_it). thr set to 0
+        - If 'Pairet21': runs with n_comp=1,...,n_comp, and nit times for each
+        n_comp (i.e. outer loop on n_comp, inner loop on nit). thr set to 0
         (ignored if provided). 'thr' parameter discarded, always set to 0.
         - If 'Christiaens21': same as 'Pairet21', but with 'thr' parameter used.
     ncomp : int or tuple/list of int, optional
@@ -121,7 +121,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
             total number of iterations
         - if mode is 'Pairet18':
             this parameter is ignored. Number of iterations will be ncomp.
-        - if mode is 'Pairet21':
+        - if mode is 'Pairet21' or 'Christiaens21':
             iterations per tested ncomp.
     strategy: str {'ADI, 'RDI', 'ARDI', 'RADI'}, opt
         Whether to do iterative ADI only ('ADI'), iterative RDI only ('RDI'),
@@ -361,7 +361,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
     elif algo_params.cube_ref is not None:
         if algo_params.strategy == 'ADI':
             msg = "WARNING: requested strategy is 'ADI' but reference cube "
-            msg += "detected! Startegy automatically switched to 'ARDI'."
+            msg += "detected! Strategy automatically switched to 'ARDI'."
             print(msg)
             algo_params.strategy = 'ARDI'
         if algo_params.mask_rdi is not None:

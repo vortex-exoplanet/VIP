@@ -12,7 +12,5 @@ matplotlib>=3.7.0
 psutil
 pyprind
 munch
-nbsphinx
 hciplot>=0.2.4
-typing
 dataclass_builder

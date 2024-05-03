@@ -122,7 +122,7 @@ def open_header(fitsfilename: str, n: int = 0, extname: str = None,
     return header
 
 
-def seeing_from_header(fitsfilename: list[str] | str, verbose: bool = False) -> float:
+def seeing_from_header(fitsfilename, verbose: bool = False) -> float:
     """
     Extract the average seeing values from FITS headers.
 

@@ -725,7 +725,8 @@ def get_mu_and_sigma(
     interpolation = algo_options.get("interpolation", interpolation)
     collapse = algo_options.get("collapse", collapse)
 
-    radius_int = algo_options.get("radius_int", 0)
+    radius_int = max(1, int(np.floor(r_guess - annulus_width / 2)))
+    radius_int = algo_options.get("radius_int", radius_int)
 
     # not recommended, except if large-scale residual sky present (NIRC2-L')
     hp_filter = algo_options.get("hp_filter", None)
@@ -893,9 +894,9 @@ def get_mu_and_sigma(
     else:
         raise TypeError("Wedge should have exactly 2 values")
 
-    indices = get_annular_wedge(pca_res, r_guess - fwhm, 2 * fwhm, wedge=wedge)
+    indices = get_annular_wedge(pca_res, radius_int, 2 * fwhm, wedge=wedge)
     yy, xx = indices
-    indices_inv = get_annular_wedge(pca_res_inv, r_guess - fwhm, 2 * fwhm,
+    indices_inv = get_annular_wedge(pca_res_inv, radius_int, 2 * fwhm,
                                     wedge=wedge)
     yyi, xxi = indices_inv
     all_res = np.concatenate((pca_res[yy, xx], pca_res_inv[yyi, xxi]))

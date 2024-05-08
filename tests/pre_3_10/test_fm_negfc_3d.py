@@ -138,7 +138,6 @@ def test_algos(
                 verbose=True,
                 full_output=False,
                 algo_options=algo_options,
-                nproc=1,
                 sigma_trim=3
             )
         else:
@@ -172,7 +171,6 @@ def test_algos(
             niteration_min=200,
             niteration_limit=niteration_limit,
             conv_test=conv_test,
-            nproc=1,
             save=True,
             transmission=trans,
             force_rPA=force_rpa,

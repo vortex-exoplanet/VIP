@@ -716,7 +716,7 @@ def get_mu_and_sigma(
 
     # check if r_guess is less than fwhm
     if r_guess < fwhm:
-        raise RuntimeError("r_guess should be greater than fwhm.")
+        raise ValueError("r_guess should be greater than fwhm.")
 
     ncomp = algo_options.get("ncomp", ncomp)
     svd_mode = algo_options.get("svd_mode", svd_mode)
@@ -724,7 +724,12 @@ def get_mu_and_sigma(
     imlib = algo_options.get("imlib", imlib)
     interpolation = algo_options.get("interpolation", interpolation)
     collapse = algo_options.get("collapse", collapse)
-    radius_int = algo_options.get("radius_int", 0)
+
+    # if r_guess is smaller than annulus_width/2, raise an error
+    if r_guess < annulus_width / 2:
+        raise ValueError(f"annulus_width should be smaller than 2 times r_guess"
+                         f" ({2 * r_guess} pixels). Got {annulus_width} pixels")
+    radius_int = int(np.floor(r_guess - annulus_width / 2))
 
     # not recommended, except if large-scale residual sky present (NIRC2-L')
     hp_filter = algo_options.get("hp_filter", None)
@@ -893,10 +898,10 @@ def get_mu_and_sigma(
         raise TypeError("Wedge should have exactly 2 values")
 
     indices = get_annular_wedge(pca_res, inner_radius=radius_int,
-                                width=annulus_width, wedge=wedge)
+                                width=min(annulus_width, 2 * fwhm), wedge=wedge)
     yy, xx = indices
     indices_inv = get_annular_wedge(pca_res_inv, inner_radius=radius_int,
-                                    width=annulus_width, wedge=wedge)
+                                    width=min(annulus_width, 2 * fwhm), wedge=wedge)
     yyi, xxi = indices_inv
     all_res = np.concatenate((pca_res[yy, xx], pca_res_inv[yyi, xxi]))
     mu = np.mean(all_res)

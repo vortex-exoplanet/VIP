@@ -726,9 +726,9 @@ def get_mu_and_sigma(
     collapse = algo_options.get("collapse", collapse)
 
     # if r_guess is smaller than annulus_width/2, raise an error
-    if r_guess < annulus_width / 2:
-        raise ValueError(f"annulus_width should be smaller than 2 times r_guess"
-                         f" ({2 * r_guess} pixels). Got {annulus_width} pixels")
+    # if r_guess > annulus_width / 2:
+    #     raise ValueError(f"annulus_width should be smaller than 2 times r_guess"
+    #                      f" ({2 * r_guess} pixels). Got {annulus_width} pixels")
     radius_int = int(np.floor(r_guess - annulus_width / 2))
 
     # not recommended, except if large-scale residual sky present (NIRC2-L')

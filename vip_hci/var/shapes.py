@@ -35,25 +35,70 @@ from .coords import frame_center, dist
 from ..config.utils_conf import frame_or_shape
 
 
-def mask_circle_optimized(array, radius, fillwith=0, mode='in', cy=None, cx=None, output="masked_arr"):
+def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None,
+                output="masked_arr"):
+    """
+    Mask the pixels inside/outside of a centered circle with ``fillwith``.
+
+    Returns a modified copy of ``array``.
+
+    Parameters
+    ----------
+    array : 2d/3d/4d numpy ndarray
+        Input frame or cube.
+    radius : float
+        Radius of the circular mask.
+    fillwith : int, float or np.nan, optional
+        Value to put instead of the masked out pixels.
+    mode : {'in', 'out'}, optional
+        When set to 'in' then the pixels inside the radius are set to
+        ``fillwith``. When set to 'out' the pixels outside the circular mask
+        are set to ``fillwith``.
+    cy, cx : floats, opt
+        XY coordinates of the center of the mask. By default, it considers the
+        center of the image.
+    output : {'masked_arr', 'bool_mask'}, optional
+        Whether to return the masked frame or a boolean mask
+
+    Returns
+    -------
+    array_masked : numpy ndarray
+        Masked frame or cube.
+
+    """
     if not isinstance(fillwith, (int, float)):
         raise ValueError('`fillwith` must be integer, float or np.nan')
 
     if cy is None or cx is None:
         cy, cx = frame_center(array)
 
-    y, x = np.ogrid[-cy:array.shape[0]-cy, -cx:array.shape[1]-cx]
-    mask = (x*x + y*y <= radius*radius).astype(np.int8)
+    shape = (array.shape[-2], array.shape[-1])
+    ind = disk((cy, cx), radius, shape=shape)
 
     if output == "bool_mask":
+        mask = np.ones(shape, dtype=bool)
+        mask[ind] = False
         return mask
 
     elif output == "masked_arr":
         if mode == 'in':
-            array[~mask.astype(bool)] = fillwith
+            if array.ndim == 2:
+                array[ind] = fillwith
+            elif array.ndim == 3:
+                array[:, ind[1], ind[0]] = fillwith
+            elif array.ndim == 4:
+                array[:, :, ind[1], ind[0]] = fillwith
+
         elif mode == 'out':
-            array[mask.astype(bool)] = fillwith
-        return array
+            array_masked = np.full_like(array, fillwith)
+            if array.ndim == 2:
+                array_masked[ind] = array[ind]
+            elif array.ndim == 3:
+                array_masked[:, ind[1], ind[0]] = array[:, ind[1], ind[0]]
+            elif array.ndim == 4:
+                array_masked[:, :, ind[1], ind[0]] = array[:, :, ind[1], ind[0]]
+
+        return array_masked
 
 
 def mask_ellipse(array, a, b, theta, fillwith=0, mode='in', cy=None, cx=None,

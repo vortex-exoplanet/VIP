@@ -35,37 +35,7 @@ from .coords import frame_center, dist
 from ..config.utils_conf import frame_or_shape
 
 
-def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None,
-                output="masked_arr"):
-    """
-    Mask the pixels inside/outside of a centered circle with ``fillwith``.
-
-    Returns a modified copy of ``array``.
-
-    Parameters
-    ----------
-    array : 2d/3d/4d numpy ndarray
-        Input frame or cube.
-    radius : float
-        Radius of the circular mask.
-    fillwith : int, float or np.nan, optional
-        Value to put instead of the masked out pixels.
-    mode : {'in', 'out'}, optional
-        When set to 'in' then the pixels inside the radius are set to
-        ``fillwith``. When set to 'out' the pixels outside the circular mask
-        are set to ``fillwith``.
-    cy, cx : floats, opt
-        XY coordinates of the center of the mask. By default, it considers the
-        center of the image.
-    output : {'masked_arr', 'bool_mask'}, optional
-        Whether to return the masked frame or a boolean mask
-
-    Returns
-    -------
-    array_masked : numpy ndarray
-        Masked frame or cube.
-
-    """
+def mask_circle_optimized(array, radius, fillwith=0, mode='in', cy=None, cx=None, output="masked_arr"):
     if not isinstance(fillwith, (int, float)):
         raise ValueError('`fillwith` must be integer, float or np.nan')
 
@@ -73,16 +43,16 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None,
         cy, cx = frame_center(array)
 
     y, x = np.ogrid[-cy:array.shape[0]-cy, -cx:array.shape[1]-cx]
-    mask = x*x + y*y <= radius*radius
+    mask = (x*x + y*y <= radius*radius).astype(np.int8)
 
     if output == "bool_mask":
         return mask
 
     elif output == "masked_arr":
         if mode == 'in':
-            array[~mask] = fillwith
+            array[~mask.astype(bool)] = fillwith
         elif mode == 'out':
-            array[mask] = fillwith
+            array[mask.astype(bool)] = fillwith
         return array
 
 

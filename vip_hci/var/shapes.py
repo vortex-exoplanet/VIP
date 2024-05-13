@@ -70,7 +70,7 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None,
         raise ValueError('`fillwith` must be integer, float or np.nan')
 
     if cy is None or cx is None:
-        cy, cx = array.shape[0] // 2, array.shape[1] // 2
+        cy, cx = frame_center(array)
 
     y, x = np.ogrid[-cy:array.shape[0]-cy, -cx:array.shape[1]-cx]
     mask = x*x + y*y <= radius*radius

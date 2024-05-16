@@ -725,11 +725,7 @@ def get_mu_and_sigma(
     interpolation = algo_options.get("interpolation", interpolation)
     collapse = algo_options.get("collapse", collapse)
 
-    # if r_guess is smaller than annulus_width/2, raise an error
-    # if r_guess > annulus_width / 2:
-    #     raise ValueError(f"annulus_width should be smaller than 2 times r_guess"
-    #                      f" ({2 * r_guess} pixels). Got {annulus_width} pixels")
-    radius_int = int(np.floor(r_guess - annulus_width / 2))
+    radius_int = max(int(np.floor(r_guess - annulus_width / 2)), 0)
 
     # not recommended, except if large-scale residual sky present (NIRC2-L')
     hp_filter = algo_options.get("hp_filter", None)
@@ -897,6 +893,7 @@ def get_mu_and_sigma(
     else:
         raise TypeError("Wedge should have exactly 2 values")
 
+    # annulus should encompass the companion location for accurate mu and sigma
     indices = get_annular_wedge(pca_res, inner_radius=radius_int,
                                 width=min(annulus_width, 2 * fwhm), wedge=wedge)
     yy, xx = indices

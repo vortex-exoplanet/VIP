@@ -904,12 +904,12 @@ def get_mu_and_sigma(
                                     width=min(annulus_width, 2 * fwhm), wedge=wedge)
     yyi, xxi = indices_inv
     all_res = np.concatenate((pca_res[yy, xx], pca_res_inv[yyi, xxi]))
-    mu = np.mean(all_res)
+    mu = np.nanmean(all_res)
     all_res -= mu
     npx = len(yy) + len(yyi)
     area = np.pi * (fwhm / 2) ** 2
     ddof = min(int(npx * (1.0 - (1.0 / area))) + 1, npx - 1)
-    sigma = np.std(all_res, ddof=ddof)
+    sigma = np.nanstd(all_res, ddof=ddof)
 
     return mu, sigma
 

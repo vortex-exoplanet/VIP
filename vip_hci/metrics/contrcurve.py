@@ -59,9 +59,9 @@ def contrast_curve(
     algo_class=None,
     **algo_dict,
 ):
-    """Computes the contrast curve at a given confidence (``sigma``) level for
-    an ADI cube or ADI+IFS cube. The contrast is calculated as
-    sigma*noise/throughput. This implementation takes into account the small
+    """Computes the contrast curve at a given confidence (``sigma``) level for\
+    an ADI cube or ADI+IFS cube. The contrast is calculated as\
+    sigma*noise/throughput. This implementation takes into account the small\
     sample statistics correction proposed in [MAW14]_.
 
     Parameters

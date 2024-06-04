@@ -11,7 +11,6 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -19,8 +18,8 @@
 import os
 import sys
 
-# fix for `ImportError: No module named _tkinter`:
 import matplotlib
+# fix for `ImportError: No module named _tkinter`:
 matplotlib.use("agg")
 
 
@@ -42,7 +41,8 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
-    'nbsphinx'
+    'myst_nb' # replaces nbsphinx
+    #'nbsphinx'
     # 'sphinx.ext.githubpages',
 ]
 
@@ -167,7 +167,7 @@ html_theme_options = {
 
     ### for bizstyle theme
     #'rightsidebar': True
-    
+
     ### for sphinx_book theme
     # 'path_to_docs': 'docs/source',
     # 'repository_url': 'https://github.com/vortex-exoplanets/VIP',

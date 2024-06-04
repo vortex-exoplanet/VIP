@@ -365,7 +365,10 @@ def ipca(*all_args: List, **all_kwargs: dict):
             print(msg)
             algo_params.strategy = 'ARDI'
         if algo_params.mask_rdi is not None:
-            mask_rdi_tmp = algo_params.mask_rdi.copy()
+            if isinstance(algo_params.mask_rdi, (list, tuple)):
+                mask_rdi_tmp = algo_params.mask_rdi
+            else:
+                mask_rdi_tmp = algo_params.mask_rdi.copy()
         if algo_params.cube_ref is None:
             raise ValueError("cube_ref should be provided for RDI or RADI")
         if algo_params.strategy == 'ARDI':

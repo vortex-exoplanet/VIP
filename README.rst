@@ -217,7 +217,7 @@ i.e. exactly on a pixel in either cases. The VIP recentering routines will place
 
 Position angles
 ^^^^^^^^^^^^^^^
-In VIP all angles are measured counter-clockwise from the positive x axis (i.e. trigonometric angles), as all packages it leverages upon, including for the position angles retrieved when characterizing directly imaged planets. This is different to the typical astronomical convention to measure angles east from north (just add +90deg to angles returned by VIP).
+In VIP, all angles are measured counter-clockwise from the positive x axis (i.e. trigonometric angles), following the convention of most packages VIP leverages upon. This includes the position angles returned by algorithms in the forward modelling subpackage of VIP used to characterize directly imaged exoplanets (e.g. negative fake companion routines). This convention is different to the typical astronomical convention which measures angles east from north (for the conversion, simply subtract 90deg to angles returned by VIP).
 
 4D IFS+ADI cubes
 ^^^^^^^^^^^^^^^^

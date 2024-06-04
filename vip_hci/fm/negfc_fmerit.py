@@ -58,8 +58,8 @@ def chisquare(
         (r, theta, f1, ..., fN) for a 4D cube with N spectral channels.
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     psfs_norm: numpy.array
         The scaled psf expressed as a numpy.array.
     fwhm : float
@@ -353,8 +353,8 @@ def get_values_optimize(
     ----------
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     ncomp: int or None
         The number of principal components for PCA-based algorithms.
     annulus_width: float
@@ -620,8 +620,8 @@ def get_mu_and_sigma(
     ----------
     cube: numpy.array
         The cube of fits images expressed as a numpy.array.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     ncomp: int or None
         The number of principal components for PCA-based algorithms.
     annulus_width: float

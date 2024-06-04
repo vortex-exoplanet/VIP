@@ -1,40 +1,46 @@
 """
 Implementation of the PACO algorithm for VIP, based on [FLA18]_.
 
-Variable naming is based on the notation of [FLA18]_, see table 1 in the paper 
+Variable naming is based on the notation of [FLA18]_, see table 1 in the paper
 for a description.
 
 Last updated 2022-05-09 by Evert Nasedkin (nasedkinevert@gmail.com).
 
 .. [FLA18]
    | Flasseur et al. 2018
-   | **Exoplanet detection in angular differential imaging by statistical 
+   | **Exoplanet detection in angular differential imaging by statistical
      learning of the nonstationary patch covariances. The PACO algorithm**
    | *Astronomy & Astrophysics, Volume 618, p. 138*
    | `https://ui.adsabs.harvard.edu/abs/2018A%26A...618A.138F/abstract
      <https://ui.adsabs.harvard.edu/abs/2018A%26A...618A.138F/abstract>`_
-     
+
 """
-
 import sys
-#import os
 from abc import abstractmethod
-# Required so numpy parallelization doesn't conflict with multiprocessing
-# os.environ["MKL_NUM_THREADS"] = "1"
-# os.environ["NUMEXPR_NUM_THREADS"] = "1"
-# os.environ["OMP_NUM_THREADS"] = "1"
+from typing import Callable
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
-#from multiprocessing import Pool
-from typing import Tuple, Union, Optional, Callable
 import numpy as np
 from scipy import ndimage
 from scipy.ndimage import filters
 
-from ..config.utils_conf import pool_map, iterable
-from ..preproc.rescaling import frame_px_resampling, cube_px_resampling, frame_shift
-from ..var.coords import cart_to_pol, pol_to_cart
-from ..metrics.detection import detection
+from ..config.utils_conf import iterable
+from ..config.utils_conf import pool_map
 from ..fm import normalize_psf
+from ..metrics.detection import detection
+from ..preproc.rescaling import cube_px_resampling
+from ..preproc.rescaling import frame_px_resampling
+from ..preproc.rescaling import frame_shift
+from ..var.coords import cart_to_pol
+from ..var.coords import pol_to_cart
+#import os
+# Required so numpy parallelization doesn't conflict with multiprocessing
+# os.environ["MKL_NUM_THREADS"] = "1"
+# os.environ["NUMEXPR_NUM_THREADS"] = "1"
+# os.environ["OMP_NUM_THREADS"] = "1"
+#from multiprocessing import Pool
 __author__ = "Evert Nasedkin"
 __all__ = ['FastPACO',
            'FullPACO']
@@ -42,15 +48,15 @@ __all__ = ['FastPACO',
 
 class PACO:
     """
-    This class implements the bulk of the PACO algorithm as described in 
-    [FLA18]_. In general, the idea is to take in an ADI stack of images and 
-    statistically determine if there is a signal above the background in each 
-    'patch' of the image. This is done by tracing the ark of the hypothesized 
-    planet through the stack, and comparing this set of patches to a set 
-    consisting of background only. This is done for each pixel (or sub-pixel) 
-    location in the image. The output is a signal-to-noise and/or a flux map 
-    over the field of view. The user can choose to use FullPACO or FastPACO, 
-    which are described by algorithms 1 and 2 of [FLA18]_. FastPACO has been 
+    This class implements the bulk of the PACO algorithm as described in
+    [FLA18]_. In general, the idea is to take in an ADI stack of images and
+    statistically determine if there is a signal above the background in each
+    'patch' of the image. This is done by tracing the ark of the hypothesized
+    planet through the stack, and comparing this set of patches to a set
+    consisting of background only. This is done for each pixel (or sub-pixel)
+    location in the image. The output is a signal-to-noise and/or a flux map
+    over the field of view. The user can choose to use FullPACO or FastPACO,
+    which are described by algorithms 1 and 2 of [FLA18]_. FastPACO has been
     parallelized, and is the recommended usage.
 
     This output can then be used to compute an unbiased estimate of the flux
@@ -61,32 +67,32 @@ class PACO:
     ----------
     cube : numpy.ndarray
         3D science frames taken in pupil tracking/ADI mode.
-        Dimensions should be (time, x, y), and units should be detector units 
-        (ie output of SPHERE or GPI reduction pipelines). The data should be 
-        centered, and have pre-processing already applied (e.g. bad pixel 
+        Dimensions should be (time, x, y), and units should be detector units
+        (ie output of SPHERE or GPI reduction pipelines). The data should be
+        centered, and have pre-processing already applied (e.g. bad pixel
         correction).
     angles : numpy.ndarray
-        List of parallactic angles for each frame in degrees. Length of this 
-        array should be the same as the time axis of the science cube. 
+        List of derotation angles for each frame in degrees. Length of this
+        array should be the same as the time axis of the science cube.
     psf : numpy.ndarray
-        Unsaturated PSF image. If a cube is provided, the median of the cube 
+        Unsaturated PSF image. If a cube is provided, the median of the cube
         will be used.
     dit_psf : float, optional
-        Integration time of the unsaturated PSF in seconds. The PSF is 
+        Integration time of the unsaturated PSF in seconds. The PSF is
         normalised to dit_science/dit_psf/nd_transmission.
     dit_science : float, optional
         Integration time of the science frames in seconds. The PSF is normalised
         to dit_science/dit_psf/nd_transmission.
     nd_transmission : float, optional
-        Transmission of an ND filter used to aquire the unsaturated PSF. The PSF 
+        Transmission of an ND filter used to aquire the unsaturated PSF. The PSF
         is normalised to dit_science/dit_psf/nd_transmission.
     fwhm : float, optional
         FWHM of PSF in arcseconds. Default values give 4px radius.
     pixscale : float, optional
-        Detector pixel scale in arcseconds per pixel.  Default values give 4px 
+        Detector pixel scale in arcseconds per pixel.  Default values give 4px
         radius.
     rescaling_factor : float, optional
-        Scaling for sub/super pixel resolution for PACO. Will rescale both the 
+        Scaling for sub/super pixel resolution for PACO. Will rescale both the
         science cube and the PSF.
     verbose : bool, optional
         Sets level of printed outputs.
@@ -174,7 +180,7 @@ class PACO:
         Parameters
         ----------
         phi0s : numpy.ndarray
-            Array of pixel coordinates to try to search for the planet signal. 
+            Array of pixel coordinates to try to search for the planet signal.
             Typically a grid created using numpy.meshgrid.
         use_subpixel_psf_astrometry : bool
             If true, the PSF model for each patch is shifted to the correct
@@ -717,14 +723,14 @@ class PACO:
                                   mask: Optional[bool] = True,
                                   full_output: Optional[bool] = False,
                                   cpu: Optional[int] = 1) -> np.ndarray:
-        """ Wraps VIP.metrics.detection.detection, see that function for further 
-        documentation. Note that the output convention here is different - this 
+        """ Wraps VIP.metrics.detection.detection, see that function for further
+        documentation. Note that the output convention here is different - this
         function returns xx,yy.
 
         Finds blobs in a 2d array. The algorithm is designed for automatically
-        finding planets in post-processed high contrast final frames. Blob can 
-        be defined as a region of an image in which some properties are constant 
-        or vary within a prescribed range of values. See ``Notes`` below to read 
+        finding planets in post-processed high contrast final frames. Blob can
+        be defined as a region of an image in which some properties are constant
+        or vary within a prescribed range of values. See ``Notes`` below to read
         about the algorithm details.
 
         Parameters
@@ -757,7 +763,7 @@ class PACO:
         Returns
         -------
         peaks : np.ndarray
-            xx,yy values of the centers of local maxima above the provided 
+            xx,yy values of the centers of local maxima above the provided
             threshold
         """
         peaks = detection(snr_map,

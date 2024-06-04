@@ -93,8 +93,8 @@ def xloci(*all_args: List, **all_kwargs: dict):
     ----------
     cube : numpy ndarray, 3d or 4d
         Input cube.
-    angle_list : numpy ndarray, 1d
-        Corresponding parallactic angle for each frame.
+    angle_list : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     scale_list : numpy ndarray, 1d, optional
         If provided, triggers mSDI reduction. These should be the scaling
         factors used to re-scale the spectral channels and align the speckles

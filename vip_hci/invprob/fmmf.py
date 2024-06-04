@@ -120,8 +120,8 @@ def fmmf(*all_args, **all_kwargs: dict):
     cube : numpy ndarray, 3d
         Input cube (ADI sequences), Dim 1 = temporal axis, Dim 2-3 =
         spatial axis
-    angle_list : numpy ndarray, 1d
-        Parallactic angles for each frame of the ADI sequences.
+    angle_list : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     psf : numpy ndarray 2d
         2d array with the normalized PSF template, with an odd shape.
         The PSF image must be centered wrt to the array! Therefore, it is

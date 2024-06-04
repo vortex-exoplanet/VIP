@@ -170,7 +170,7 @@ def pca(*all_args: List, **all_kwargs: dict):
         fits file to be opened in memmap mode (incremental PCA-ADI of 3D cubes
         only).
     angle_list : numpy ndarray, 1d
-        Corresponding parallactic angle for each frame.
+        Vector of derotation angles to align North up in your images.
     cube_ref : 3d or 4d numpy ndarray, or list of 3D numpy ndarray, optional
         Reference library cube for Reference Star Differential Imaging. Should
         be 3D, except if input cube is 4D and no scale_list is provided,

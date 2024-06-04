@@ -52,8 +52,8 @@ def inverse_stim_map(cube, angle_list, **rot_options):
     cube : 3d numpy ndarray
         Non de-rotated residuals from reduction algorithm, eg.
         ``residuals_cube`` output from ``vip_hci.psfsub.pca``.
-    angle_list : numpy ndarray, 1d
-        Corresponding parallactic angle for each frame.
+    angle_list : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     rot_options: dictionary, optional
         Dictionary with optional keyword values for "nproc", "imlib",
         "interpolation, "border_mode", "mask_val",  "edge_blend",
@@ -80,8 +80,8 @@ def normalized_stim_map(cube, angle_list, mask=None, **rot_options):
     cube : 3d numpy ndarray
         Non de-rotated residuals from reduction algorithm, eg.
         ``residuals_cube`` output from ``vip_hci.psfsub.pca``.
-    angle_list : numpy ndarray, 1d
-        Corresponding parallactic angle for each frame.
+    angle_list : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     mask : int, float, numpy ndarray 2d or None
         Mask informing where the maximum value in the inverse STIM map should
         be calculated. If an integer or float, a circular mask with that radius

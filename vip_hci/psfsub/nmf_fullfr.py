@@ -80,8 +80,8 @@ def nmf(*all_args: List, **all_kwargs: dict):
     ----------
     cube : numpy ndarray, 3d
         Input cube.
-    angle_list : numpy ndarray, 1d
-        Corresponding parallactic angle for each frame.
+    angle_list : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     ncomp : int, optional

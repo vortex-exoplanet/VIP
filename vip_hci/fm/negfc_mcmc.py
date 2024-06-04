@@ -134,8 +134,8 @@ def lnlike(param, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         The model parameters, typically (r, theta, flux).
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     psf_norm: numpy.array
         The scaled psf expressed as a numpy.array.
     annulus_width: float
@@ -348,8 +348,8 @@ def lnprob(param, bounds, cube, angs, psf_norm, fwhm, annulus_width, ncomp,
         Ex: bounds = [(10,20),(0,360),(0,5000)]
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     psfn: numpy 2D or 3D array
         Normalised PSF template used for negative fake companion injection.
         The PSF must be centered and the flux in a 1xFWHM aperture must equal 1
@@ -541,8 +541,8 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
     ----------
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle vector.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     psfn: numpy 2D or 3D array
         Normalised PSF template used for negative fake companion injection.
         The PSF must be centered and the flux in a 1xFWHM aperture must equal 1

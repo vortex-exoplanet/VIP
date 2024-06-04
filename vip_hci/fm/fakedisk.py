@@ -22,8 +22,8 @@ def cube_inject_fakedisk(
     ----------
     fakedisk : numpy ndarray
         Input image of a fake disc
-    angle_list : list
-        Vector containing the parallactic angles.
+    angle_list : 1d numpy ndarray
+        Vector of derotation angles to be associated with the cube images.
     psf : (optional) the PSF to convolve the disk image with. It can be a
         small numpy.ndarray (we advise to use odd sizes to make sure the center
         s not shifted through the convolution). It forces normalization of the
@@ -155,8 +155,8 @@ def cube_inject_trace(
         2d array with the normalized psf template. It should have an odd shape.
         It is recommended to run the function psf_norm to get a proper PSF
         template.
-    angle_list : list
-        Vector containing the parallactic angles.
+    angle_list : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     flevel : float
         Flux at which the fake companions are injected into the cube along the
         trace.

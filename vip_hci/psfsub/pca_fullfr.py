@@ -163,7 +163,7 @@ def pca(*all_args: List, **all_kwargs: dict):
         dictionary named `algo_params`.
 
     PCA parameters
-    ----------
+    --------------
     cube : str or numpy ndarray, 3d or 4d
         Input cube (ADI or ADI+mSDI). If 4D, the first dimension should be
         spectral. If a string is given, it must correspond to the path to the

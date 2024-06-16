@@ -691,8 +691,7 @@ def KLIP_patch(frame, matrix, numbasis, angle_list, fwhm, pa_threshold,
                ann_center, nframes=None):
     """
     Function allowing the computation of the reference PSF via KLIP for a
-    given sub-region of the original ADI sequence. Code inspired by the
-    PyKLIP librabry
+    given sub-region of the original ADI sequence.
     """
 
     max_frames_lib = 200
@@ -825,9 +824,9 @@ def LOCI_FM(cube, psf, ann_center, angle_list, asize, fwhm, Tol, delta_rot,
 def _leastsq_patch_fm(ayxyx, angle_list, fwhm, cube, dist_threshold, tol,
                       psf=None):
     """
-    Function allowing th estimation of the optimal factors for the modeled
+    Function allowing the estimation of the optimal factors for the modeled
     speckle field estimation via the LOCI framework. The code has been
-    developped based on the VIP python function _leastsq_patch, but return
+    developped based on the function _leastsq_patch (xloci), but return
     additionnaly the set of coefficients used for the speckle field computation.
     """
 

@@ -56,7 +56,7 @@ def make_dataset_adi():
 
     f1 = download_resource(f"{url_prefix}/naco_betapic_cube_cen.fits")
     f2 = download_resource(f"{url_prefix}/naco_betapic_psf.fits")
-    f3 = download_resource(f"{url_prefix}/naco_betapic_pa.fits")
+    f3 = download_resource(f"{url_prefix}/naco_betapic_derot_angles.fits")
 
     # load fits
     cube = open_fits(f1)
@@ -192,7 +192,7 @@ def save_snapshots_invprob_adi():
         max_r=34,
         param={"ncomp": 10, "tolerance": 0.005, "delta_rot": 0.5},
         crop=5,
-        imlib="opencv",
+        imlib="opencv"
     )
 
     # FMMF (LOCI model)
@@ -209,7 +209,7 @@ def save_snapshots_invprob_adi():
         max_r=34,
         param={"ncomp": 10, "tolerance": 0.005, "delta_rot": 0.5},
         crop=5,
-        imlib="opencv",
+        imlib="opencv"
     )
 
     for name, value in locals().items():

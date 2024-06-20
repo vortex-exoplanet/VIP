@@ -556,7 +556,7 @@ def thresholding(array, threshold, mode):
         j = np.abs(x) <= threshold
         x[j] = 0
         k = np.abs(x) > threshold
-        if isinstance(threshold, float):
+        if np.isscalar(threshold):
             x[k] = x[k] - np.sign(x[k]) * threshold
         else:
             x[k] = x[k] - np.sign(x[k]) * threshold[k]

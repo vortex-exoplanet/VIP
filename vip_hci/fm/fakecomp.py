@@ -48,7 +48,7 @@ def cube_inject_companions(array, psf_template, angle_list, flevel, rad_dists,
         [for a 4D input array] In the ADI+mSDI case, it must be a 3d array
         (matching spectral dimensions).
     angle_list : 1d numpy ndarray
-        List of parallactic angles, in degrees.
+        Vector of derotation angles to align North up in your cube images.
     flevel : float or 1d array or 2d array
         Factor for controlling the brightness of the fake companions. If a
         float, the same flux is used for all injections.
@@ -382,7 +382,7 @@ def generate_cube_copies_with_injections(array, psf_template, angle_list, plsc,
         It's recommended to run the function ``normalize_psf`` to get a proper
         PSF template. In the ADI+mSDI case it must be a 3d array.
     angle_list : 1d numpy ndarray
-        List of parallactic angles, in degrees.
+        Vector of derotation angles to align North up in your cube images.
     plsc : float
         Value of the plsc in arcsec/px. Only used for printing debug output when
         ``verbose=True``.

@@ -44,8 +44,8 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         The (x,y) position of the cube center.
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     psfn: numpy 2D or 3D array
         Normalised PSF template used for negative fake companion injection.
         The PSF must be centered and the flux in a 1xFWHM aperture must equal 1
@@ -342,8 +342,8 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
         Estimate of the candidate position.
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     psfn: numpy 2D or 3D array
         Normalised PSF template used for negative fake companion injection.
         The PSF must be centered and the flux in a 1xFWHM aperture must equal 1
@@ -515,8 +515,8 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
     ----------
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     psfn: numpy 2D or 3D array
         Normalised PSF template used for negative fake companion injection.
         The PSF must be centered and the flux in a 1xFWHM aperture must equal 1

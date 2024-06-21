@@ -163,14 +163,14 @@ def pca(*all_args: List, **all_kwargs: dict):
         dictionary named `algo_params`.
 
     PCA parameters
-    ----------
+    --------------
     cube : str or numpy ndarray, 3d or 4d
         Input cube (ADI or ADI+mSDI). If 4D, the first dimension should be
         spectral. If a string is given, it must correspond to the path to the
         fits file to be opened in memmap mode (incremental PCA-ADI of 3D cubes
         only).
     angle_list : numpy ndarray, 1d
-        Corresponding parallactic angle for each frame.
+        Vector of derotation angles to align North up in your images.
     cube_ref : 3d or 4d numpy ndarray, or list of 3D numpy ndarray, optional
         Reference library cube for Reference Star Differential Imaging. Should
         be 3D, except if input cube is 4D and no scale_list is provided,
@@ -281,11 +281,10 @@ def pca(*all_args: List, **all_kwargs: dict):
         residual channels will be collapsed (by default collapses all channels).
     mask_rdi: tuple of two numpy array or one signle 2d numpy array, opt
         If provided, binary mask(s) will be used either in RDI mode or in
-        ADI+mSDI (2 steps) mode. They will be used as anchor and boat masks
-        following the procedure described in [REN23], which is useful to avoid
-        self-subtraction in the presence of a bright disc signal. If only one
-        mask is provided, the boat images will be unmasked
-        (i.e., full frames will be used).
+        ADI+mSDI (2 steps) mode. If two masks are provided, they will the anchor
+        and boat regions, respectively, following the denominations in [REN23]_.
+        If only one mask is provided, it will be used as the anchor, and the
+        boat images will not be masked (i.e., full frames used).
     check_memory : bool, optional
         If True, it checks that the input cube is smaller than the available
         system memory.
@@ -352,12 +351,12 @@ def pca(*all_args: List, **all_kwargs: dict):
         [full_output=True, adimsdi='single'] Residuals cube (of the big cube
         with channels and time processed together) after de-scaling the wls.
         Valid for ADI+mSDI (4D) (when ``scale_list`` is provided).
-    medians : numpy ndarray
-        [full_output=True, source_xy=None] This is also returned when ``batch``
-        is not None (incremental PCA).
     ifs_adi_frames : numpy ndarray
         [full_output=True, 4D input cube, ``scale_list=None``] This is the cube
         of individual ADI reductions for each channel of the IFS cube.
+    medians : numpy ndarray
+        [full_output=True, source_xy=None, batch!=None] Median images of each
+        batch, in incremental PCA, for 3D input cubes only.
 
     """
     # Separating the parameters of the ParamsObject from optional rot_options

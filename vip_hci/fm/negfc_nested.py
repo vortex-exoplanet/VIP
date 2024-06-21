@@ -75,8 +75,8 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
         in a bounded interval).
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle vector.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     psfn: numpy 2D or 3D array
         Normalised PSF template used for negative fake companion injection.
         The PSF must be centered and the flux in a 1xFWHM aperture must equal 1

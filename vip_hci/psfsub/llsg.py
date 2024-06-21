@@ -95,8 +95,8 @@ def llsg(*all_args: List, **all_kwargs: dict):
     ----------
     cube : numpy ndarray, 3d
         Input ADI cube.
-    angle_list : numpy ndarray, 1d
-        Corresponding parallactic angle for each frame.
+    angle_list : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     fwhm : float
         Known size of the FWHM in pixels to be used.
     rank : int, optional
@@ -556,7 +556,7 @@ def thresholding(array, threshold, mode):
         j = np.abs(x) <= threshold
         x[j] = 0
         k = np.abs(x) > threshold
-        if isinstance(threshold, float):
+        if np.isscalar(threshold):
             x[k] = x[k] - np.sign(x[k]) * threshold
         else:
             x[k] = x[k] - np.sign(x[k]) * threshold[k]

@@ -262,7 +262,7 @@ def completeness_curve(
         The input cube, 3d (ADI data) or 4d array (IFS data), without fake
         companions.
     angle_list : 1d numpy ndarray
-        Vector with parallactic angles.
+        Vector of derotation angles to align North up in your cube images.
     psf : 2d or 3d numpy ndarray
         Frame with the psf template for the fake companion(s).
         PSF must be centered in array. Normalization is done internally.
@@ -792,7 +792,7 @@ def completeness_map(
         The input cube, 3d (ADI data) or 4d array (IFS data), without fake
         companions.
     angle_list : 1d numpy ndarray
-        Vector with parallactic angles.
+        Vector of derotation angles to align North up in your cube images.
     psf : 2d or 3d numpy ndarray
         Frame with the psf template for the fake companion(s).
         PSF must be centered in array. Normalization is done internally.

@@ -64,7 +64,7 @@ def make_dataset_adi():
 
     f1 = download_resource(f"{url_prefix}/naco_betapic_cube_cen.fits")
     f2 = download_resource(f"{url_prefix}/naco_betapic_psf.fits")
-    f3 = download_resource(f"{url_prefix}/naco_betapic_pa.fits")
+    f3 = download_resource(f"{url_prefix}/naco_betapic_derot_angles.fits")
 
     # load fits
     cube = open_fits(f1)

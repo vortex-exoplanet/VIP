@@ -52,8 +52,8 @@ def chisquare_fd(
         cube with N spectral channels (if force_params=None).
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     psfs_norm: numpy.array
         The scaled psf expressed as a numpy.array.
     fwhm : float

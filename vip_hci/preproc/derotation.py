@@ -260,7 +260,7 @@ def frame_rotate(array, angle, imlib='vip-fft', interpolation='lanczos4',
             im_temp = array_prep.copy()
 
         array_out = rotate(im_temp, angle, order=order, center=(cx, cy),
-                           cval=np.nan, mode=border_mode)
+                           cval=0, mode=border_mode)
 
         if norm:
             array_out *= max_val

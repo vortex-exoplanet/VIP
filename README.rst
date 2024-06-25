@@ -1,16 +1,13 @@
 VIP - Vortex Image Processing package
 =====================================
 
-|VIP| |Versions| |travis| |License| |ArXiV| |docs| |codecov| |DOI| |Zenodo| |EMAC|
+|VIP| |Versions| |License| |ArXiV| |docs| |codecov| |DOI| |Zenodo| |EMAC|
 
 .. |VIP| image:: https://badge.fury.io/py/vip-hci.svg
         :target: https://pypi.python.org/pypi/vip-hci
 
 .. |Versions| image:: https://img.shields.io/badge/Python-3.7%2C%203.8%2C%203.9%2C%203.10%2C%203.11-brightgreen.svg
              :target: https://pypi.python.org/pypi/vip-hci
-
-.. |travis| image:: https://travis-ci.com/vortex-exoplanet/VIP.svg?branch=master
-           :target: https://travis-ci.com/vortex-exoplanet/VIP
 
 .. |License| image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
             :target: https://github.com/vortex-exoplanet/VIP/blob/master/LICENSE

@@ -493,6 +493,7 @@ def get_values_optimize(
             res_tmp = algo(
                 cube=crop_cube,
                 angle_list=angs,
+                cube_ref=cube_ref,
                 radius_int=radius_int,
                 fwhm=fwhm,
                 asize=annulus_width,
@@ -516,6 +517,7 @@ def get_values_optimize(
             res_tmp = algo(
                 cube=crop_cube,
                 angle_list=angs,
+                cube_ref=cube_ref,
                 radius_int=radius_int,
                 fwhm=fwhm,
                 asize=annulus_width,

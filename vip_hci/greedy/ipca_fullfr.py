@@ -428,6 +428,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
         cube_ref_tmp = None
 
     # 2. Get a first disc estimate, using PCA
+    pca_params['ncomp'] = final_ncomp[0]
     pca_params['cube_ref'] = ref_cube
     res = pca(**pca_params, **rot_options)
     frame = res[0]

@@ -108,6 +108,8 @@ class PCA_Params:
     source_xy: Tuple[int] = None
     delta_rot: int = None
     fwhm: float = 4
+    # strategy: str = 'ADI' # TBD: add a strategy keyword: 'ADI', 'RDI', 'ARDI',
+    # 'ASDI', 'SDI', 'S+ADI', 'ARSDI', 'RSDI' => replace 'adimsdi'
     adimsdi: Enum = Adimsdi.SINGLE
     crop_ifs: bool = True
     imlib: Enum = Imlib.VIPFFT

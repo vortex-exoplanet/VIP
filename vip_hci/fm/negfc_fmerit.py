@@ -454,6 +454,8 @@ def get_values_optimize(
     collapse = algo_options.get("collapse", collapse)
     collapse_ifs = algo_options.get("collapse_ifs", "absmean")
     nproc = algo_options.get("nproc", 1)
+    if algo == pca:
+        mask_rdi = algo_options.get("mask_rdi", None)
 
     if algo == pca_annulus:
         res = pca_annulus(
@@ -555,6 +557,7 @@ def get_values_optimize(
             ifs_collapse_range=ifs_collapse_range,
             nproc=nproc,
             weights=weights,
+            mask_rdi=mask_rdi,
             verbose=False,
         )
     else:

@@ -505,6 +505,9 @@ def pca(*all_args: List, **all_kwargs: dict):
         recon = []
         residuals_cube = []
         residuals_cube_ = []
+        final_residuals_cube = []
+        recon_cube = []
+        medians = []
 
         # (ADI+)RDI
         if algo_params.cube_ref is not None:
@@ -533,13 +536,8 @@ def pca(*all_args: List, **all_kwargs: dict):
                 ifs_adi_frames[ch] = res_pca[-1]
         # ADI
         else:
-            final_residuals_cube = []
             table = []
-            recon_cube = []
-            residuals_cube = []
-            residuals_cube_ = []
             pclist = []
-            medians = []
             for ch in range(nch):
                 add_params = {
                     "start_time": start_time,
@@ -590,9 +588,9 @@ def pca(*all_args: List, **all_kwargs: dict):
 
             if grid_case:
                 for i in range(len(ncomp[0])):
-                    frame = [cube_collapse(ifs_adi_frames[:, i],
-                                           mode=algo_params.collapse_ifs)]
-                    final_residuals_cube = frame
+                    frame = cube_collapse(ifs_adi_frames[:, i],
+                                          mode=algo_params.collapse_ifs)
+                    final_residuals_cube.append(frame)
             else:
                 frame = cube_collapse(ifs_adi_frames,
                                       mode=algo_params.collapse_ifs)

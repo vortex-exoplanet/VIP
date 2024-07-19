@@ -161,14 +161,14 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
         ori_nan_mask = np.where(np.isnan(frame))
         ind = clip_array(frame, sigma_clip, sigma_clip, bpm_mask,
                          neighbor=neigh, num_neighbor=num_neig, mad=mad)
-        bpm_mask = np.zeros_like(frame)
-        bpm_mask[ind] = 1
+        bpm_mask = np.zeros(frame.shape, dtype=bool)
+        bpm_mask[ind] = True
         if ignore_nan:
-            bpm_mask[ori_nan_mask] = 0
+            bpm_mask[ori_nan_mask] = False
         if protect_mask:
             cir = disk((cy, cx), protect_mask, shape=bpm_mask.shape)
-            bpm_mask[cir] = 0
-        bpm_mask[ind_excl] = 0
+            bpm_mask[cir] = False
+        bpm_mask[ind_excl] = False
         bpm_mask = bpm_mask.astype('bool')
 
     smoothed = median_filter(frame, size, mode='mirror')
@@ -193,9 +193,13 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
                              excl_mask=None, cxy=None, mad=False,
                              ignore_nan=True, verbose=True, full_output=False,
                              nproc=1):
-    """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is
-    replaced by the median of the adjacent pixels. This function is very fast
-    but works only with isolated (sparse) pixels.
+    """Correct bad pixels, either marked in input bad pixel mask or identified\
+    through sigma clipping.
+
+    The bad pixels are replaced by the median of the adjacent pixels. This
+    function is very fast but works only with sparse bad pixels. Consider the
+    iterative ``vip_hci.preproc.cube_fix_badpix_clump`` function to identify and
+    correct clumps of bad pixels.
 
     Parameters
     ----------
@@ -259,8 +263,8 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
         Cube with bad pixels corrected.
     bpm_mask: 2d or 3d array [if full_output is True]
         The bad pixel map or the cube of bad pixel maps
-    """
 
+    """
     if array.ndim != 3:
         raise TypeError('Array is not a 3d array or cube')
     if size % 2 == 0:
@@ -448,13 +452,13 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
                              all_excl_mask, neighbor=neigh,
                              num_neighbor=num_neig, mad=mad)
             final_bpm = bpm_mask.copy()
-            final_bpm[ind] += 1
+            final_bpm[ind] = True
             if ignore_nan:
-                final_bpm[ori_nan_mask] = 0
+                final_bpm[ori_nan_mask] = False
             if protect_mask:
                 cir = disk((cy, cx), protect_mask, shape=final_bpm.shape)
-                final_bpm[cir] = 0
-            final_bpm[ind_excl] = 0
+                final_bpm[cir] = False
+            final_bpm[ind_excl] = False
             final_bpm = final_bpm.astype('bool')
         else:
             if bpm_mask.ndim == 3:

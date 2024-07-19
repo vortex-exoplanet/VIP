@@ -161,14 +161,14 @@ def frame_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
         ori_nan_mask = np.where(np.isnan(frame))
         ind = clip_array(frame, sigma_clip, sigma_clip, bpm_mask,
                          neighbor=neigh, num_neighbor=num_neig, mad=mad)
-        bpm_mask = np.zeros_like(frame)
-        bpm_mask[ind] = 1
+        bpm_mask = np.zeros(frame.shape, dtype=bool)
+        bpm_mask[ind] = True
         if ignore_nan:
-            bpm_mask[ori_nan_mask] = 0
+            bpm_mask[ori_nan_mask] = False
         if protect_mask:
             cir = disk((cy, cx), protect_mask, shape=bpm_mask.shape)
-            bpm_mask[cir] = 0
-        bpm_mask[ind_excl] = 0
+            bpm_mask[cir] = False
+        bpm_mask[ind_excl] = False
         bpm_mask = bpm_mask.astype('bool')
 
     smoothed = median_filter(frame, size, mode='mirror')
@@ -193,9 +193,13 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
                              excl_mask=None, cxy=None, mad=False,
                              ignore_nan=True, verbose=True, full_output=False,
                              nproc=1):
-    """ Corrects the bad pixels, marked in the bad pixel mask. The bad pixel is
-    replaced by the median of the adjacent pixels. This function is very fast
-    but works only with isolated (sparse) pixels.
+    """Correct bad pixels, either marked in input bad pixel mask or identified\
+    through sigma clipping.
+
+    The bad pixels are replaced by the median of the adjacent pixels. This
+    function is very fast but works only with sparse bad pixels. Consider the
+    iterative ``vip_hci.preproc.cube_fix_badpix_clump`` function to identify and
+    correct clumps of bad pixels.
 
     Parameters
     ----------
@@ -259,8 +263,8 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
         Cube with bad pixels corrected.
     bpm_mask: 2d or 3d array [if full_output is True]
         The bad pixel map or the cube of bad pixel maps
-    """
 
+    """
     if array.ndim != 3:
         raise TypeError('Array is not a 3d array or cube')
     if size % 2 == 0:
@@ -321,6 +325,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
                 else:
                     excl_mask_tmp = None
                 res = frame_fix_badpix_isolated(array[i], bpm_mask=bpm_mask_tmp,
+                                                correct_only=correct_only,
                                                 sigma_clip=sigma_clip,
                                                 num_neig=num_neig, size=size,
                                                 protect_mask=protect_mask,
@@ -334,7 +339,8 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
         else:
             if verbose:
                 print("Cleaning frames using ADACS' multiprocessing approach")
-            # dummy calling the function to create cached version of the code prior to forking
+            # dummy calling the function to create cached version of the code
+            # prior to forking
             if bpm_mask is not None:
                 bpm_mask_dum = bpm_mask[0]
             else:
@@ -345,6 +351,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
                 excl_mask_dum = None
             # point of dummy call
             frame_fix_badpix_isolated(array[0], bpm_mask=bpm_mask_dum,
+                                      correct_only=correct_only,
                                       sigma_clip=sigma_clip, num_neig=num_neig,
                                       size=size, protect_mask=protect_mask,
                                       excl_mask=excl_mask_dum, verbose=False,
@@ -373,6 +380,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
                                   excl_mask=None, verbose=False, cxy=None,
                                   ignore_nan=True, full_output=True):
                 sh_res = frame_fix_badpix_isolated(frame, bpm_mask,
+                                                   correct_only=correct_only,
                                                    sigma_clip=sigma_clip,
                                                    num_neig=num_neig, size=size,
                                                    protect_mask=protect_mask,
@@ -406,7 +414,8 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
                 dict_kwargs = {'bpm_mask': bpm_mask_tmp,
                                'sigma_clip': sigma_clip, 'num_neig': num_neig,
                                'size': size, 'protect_mask': protect_mask,
-                               'excl_mask': excl_mask_tmp, 'cxy': (cx[j], cy[j]),
+                               'excl_mask': excl_mask_tmp,
+                               'cxy': (cx[j], cy[j]),
                                'ignore_nan': ignore_nan}
                 args.append([j, array[j], dict_kwargs])
 
@@ -428,7 +437,7 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
             excl_mask = np.zeros(array.shape[-2:], dtype=bool)
         elif excl_mask.ndim == 3:
             excl_mask = np.median(excl_mask, axis=0)
-        elif excl_mask is None:
+        else:
             msg = "Input exclusion mask should have same last 2 dims as array\n"
             assert excl_mask.shape == array.shape[-2:], msg
         ind_excl = np.where(excl_mask)
@@ -437,19 +446,19 @@ def cube_fix_badpix_isolated(array, bpm_mask=None, correct_only=False,
                 bpm_mask = np.zeros(array.shape[-2:], dtype=bool)
             elif bpm_mask.ndim == 3:
                 bpm_mask = np.median(bpm_mask, axis=0)
-            bpm_mask = bpm_mask+excl_mask
+            all_excl_mask = bpm_mask+excl_mask
             ori_nan_mask = np.where(np.isnan(np.nanmean(array, axis=0)))
             ind = clip_array(np.nanmean(array, axis=0), sigma_clip, sigma_clip,
-                             bpm_mask, neighbor=neigh, num_neighbor=num_neig,
-                             mad=mad)
-            final_bpm = np.zeros_like(array[0], dtype=bool)
-            final_bpm[ind] = 1
+                             all_excl_mask, neighbor=neigh,
+                             num_neighbor=num_neig, mad=mad)
+            final_bpm = bpm_mask.copy()
+            final_bpm[ind] = True
             if ignore_nan:
-                final_bpm[ori_nan_mask] = 0
+                final_bpm[ori_nan_mask] = False
             if protect_mask:
                 cir = disk((cy, cx), protect_mask, shape=final_bpm.shape)
-                final_bpm[cir] = 0
-            final_bpm[ind_excl] = 0
+                final_bpm[cir] = False
+            final_bpm[ind_excl] = False
             final_bpm = final_bpm.astype('bool')
         else:
             if bpm_mask.ndim == 3:
@@ -485,8 +494,9 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., bpm_mask=None,
                            min_thr=None, max_thr=None, min_thr_np=None,
                            bad_values=None, full_output=False):
     """
-    Function to correct the bad pixels annulus per annulus (centered on the
-    provided location of the star), in an input frame or cube.
+    Correct bad pixels in concentric annuli centered on the provided location\
+    of the star, in an input frame or cube.
+
     This function is faster than ``cube_fix_badpix_clump``; hence to be
     preferred in all cases where there is only one bright source with circularly
     symmetric PSF. The bad pixel values are replaced by:
@@ -564,8 +574,8 @@ def cube_fix_badpix_annuli(array, fwhm, cy=None, cx=None, sig=5., bpm_mask=None,
         [full_output=True] The bad pixel map or the cube of bpix maps
     ann_frame_cumul: 2 or 3d array
         [full_output=True] The cube of defined annuli
-    """
 
+    """
     ndims = array.ndim
     assert ndims == 2 or ndims == 3, "Object is not two or three dimensional.\n"
 

@@ -471,7 +471,13 @@ def pool_map(nproc, fkt, *args, **kwargs):
         if not _generator:
             res = list(res)
     else:
-        multiprocessing.set_start_method("fork", force=True)
+        # Check available start methods and pick accordingly (machine-dependent)
+        avail_methods = multiprocessing.get_all_start_methods()
+        if 'fork' in avail_methods:
+            # faster when available
+            multiprocessing.set_start_method("fork", force=True)
+        else:
+            multiprocessing.set_start_method("spawn", force=True)
         from multiprocessing import Pool
 
         # deactivate multithreading

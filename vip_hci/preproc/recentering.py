@@ -2098,7 +2098,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
     cum_x_shifts_sci = cum_x_shifts[1:(n + 1)]
     cube_reg_sci = cube_shift(cube_sci, cum_y_shifts_sci, cum_x_shifts_sci,
                               imlib=imlib, interpolation=interpolation,
-                              border_mode=border_mode)
+                              border_mode=border_mode, nproc=nproc)
 
     if plot:
         plt.figure(figsize=vip_figsize)
@@ -2124,7 +2124,7 @@ def cube_recenter_via_speckles(cube_sci, cube_ref=None, alignment_iter=5,
         cum_x_shifts_ref = cum_x_shifts[(n + 1):]
         cube_reg_ref = cube_shift(cube_ref, cum_y_shifts_ref, cum_x_shifts_ref,
                                   imlib=imlib, interpolation=interpolation,
-                                  border_mode=border_mode)
+                                  border_mode=border_mode, nproc=nproc)
 
     if ref_star:
         if full_output:

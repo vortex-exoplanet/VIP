@@ -334,7 +334,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
     class_params, rot_options = separate_kwargs_dict(
         initial_kwargs=all_kwargs, parent_class=IPCA_Params
     )
-    # Do the same to separate IROLL and ROLL params
+    # Do the same to separate IPCA and PCA params
     pca_params, ipca_params = separate_kwargs_dict(
         initial_kwargs=class_params, parent_class=PCA_Params
     )
@@ -371,7 +371,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
                 mask_rdi_tmp = algo_params.mask_rdi.copy()
         if algo_params.cube_ref is None:
             raise ValueError("cube_ref should be provided for RDI or RADI")
-        if algo_params.strategy == 'ARDI':
+        if algo_params.strategy == 'ARDI' and algo_params.mask_rdi is None:
             ref_cube = np.concatenate((algo_params.cube,
                                        algo_params.cube_ref), axis=0)
         else:

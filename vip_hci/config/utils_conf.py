@@ -15,6 +15,7 @@ import itertools as itt
 from inspect import signature, Parameter
 from functools import wraps
 import multiprocessing
+import warnings
 from vip_hci import __version__
 
 sep = "―" * 80
@@ -471,7 +472,20 @@ def pool_map(nproc, fkt, *args, **kwargs):
         if not _generator:
             res = list(res)
     else:
-        multiprocessing.set_start_method("fork", force=True)
+        # Check available start methods and pick accordingly (machine-dependent)
+        avail_methods = multiprocessing.get_all_start_methods()
+        if 'fork' in avail_methods:
+            # faster when available
+            warnings.filterwarnings("error")  # allows to catch warning as error
+            try:
+                multiprocessing.set_start_method("fork", force=True)
+            except (DeprecationWarning, OSError):
+                multiprocessing.set_start_method("spawn", force=True)
+        elif 'forkserver' in avail_methods:
+            multiprocessing.set_start_method("forkserver", force=True)
+        else:
+            multiprocessing.set_start_method("spawn", force=True)
+        warnings.resetwarnings()  # reset warning behaviour to default
         from multiprocessing import Pool
 
         # deactivate multithreading

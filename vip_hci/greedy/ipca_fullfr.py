@@ -396,6 +396,7 @@ def ipca(*all_args: List, **all_kwargs: dict):
 
     ncomp_tmp = ncomp_list[0]
     nframes = algo_params.cube.shape[0]
+    nit_ori = algo_params.nit
 
     if algo_params.mode is not None:
         final_ncomp = list(range(1, ncomp_tmp+1, algo_params.ncomp_step))
@@ -478,95 +479,101 @@ def ipca(*all_args: List, **all_kwargs: dict):
 
     # 4.Loop, updating the reference cube before projection by subtracting the
     #   best disc estimate. This is done by providing sig_cube.
+    cond_skip = False  # whether to skip an iteration (e.g. in incremental mode)
     for it in Progressbar(range(1, algo_params.nit), desc="Iterating..."):
-        # Uncomment here (and comment below) to do like IROLL
-        # if smooth_ker[it] is not None:
-        #     frame = _blurring_2d(frame, None, fwhm_sz=smooth_ker[it])
-        # create and rotate sig cube
-        sig_cube = np.repeat(frame[np.newaxis, :, :], nframes, axis=0)
-        sig_cube = cube_derotate(sig_cube, -algo_params.angle_list,
-                                 imlib=algo_params.imlib,
-                                 nproc=algo_params.nproc)
+        if not cond_skip:
+            # Uncomment here (and comment below) to do like IROLL
+            # if smooth_ker[it] is not None:
+            #     frame = _blurring_2d(frame, None, fwhm_sz=smooth_ker[it])
+            # create and rotate sig cube
+            sig_cube = np.repeat(frame[np.newaxis, :, :], nframes, axis=0)
+            sig_cube = cube_derotate(sig_cube, -algo_params.angle_list,
+                                     imlib=algo_params.imlib,
+                                     nproc=algo_params.nproc)
 
-        if algo_params.thr_mode == 'STIM':
-            # create and rotate binary mask
-            mask_sig = np.zeros_like(sig_image)
-            mask_sig[np.where(sig_image > 0)] = 1
-            sig_mcube = np.repeat(mask_sig[np.newaxis, :, :], nframes, axis=0)
-            sig_mcube = cube_derotate(sig_mcube, -algo_params.angle_list,
-                                      imlib='skimage', interpolation='bilinear',
-                                      nproc=algo_params.nproc)
-            sig_cube[np.where(sig_mcube < 0.5)] = 0
-            sig_cube[np.where(sig_cube < 0)] = 0
-        else:
-            sig_cube[np.where(sig_cube < algo_params.thr)] = 0
+            if algo_params.thr_mode == 'STIM':
+                # create and rotate binary mask
+                mask_sig = np.zeros_like(sig_image)
+                mask_sig[np.where(sig_image > 0)] = 1
+                sig_mcube = np.repeat(mask_sig[np.newaxis, :, :], nframes,
+                                      axis=0)
+                sig_mcube = cube_derotate(sig_mcube, -algo_params.angle_list,
+                                          imlib='skimage',
+                                          interpolation='bilinear',
+                                          nproc=algo_params.nproc)
+                sig_cube[np.where(sig_mcube < 0.5)] = 0
+                sig_cube[np.where(sig_cube < 0)] = 0
+            else:
+                sig_cube[np.where(sig_cube < algo_params.thr)] = 0
 
-        if algo_params.strategy == 'ARDI':
-            ref_cube = np.concatenate((algo_params.cube-sig_cube,
-                                       algo_params.cube_ref), axis=0)
-            cube_ref_tmp = prepare_matrix(ref_cube, scaling=algo_params.scaling,
-                                          mask_center_px=mask_center_px,
-                                          mode='fullfr', verbose=False)
-            cube_ref_tmp = np.reshape(cube_ref_tmp, ref_cube.shape)
+            if algo_params.strategy == 'ARDI':
+                ref_cube = np.concatenate((algo_params.cube-sig_cube,
+                                           algo_params.cube_ref), axis=0)
+                cube_ref_tmp = prepare_matrix(ref_cube,
+                                              scaling=algo_params.scaling,
+                                              mask_center_px=mask_center_px,
+                                              mode='fullfr', verbose=False)
+                cube_ref_tmp = np.reshape(cube_ref_tmp, ref_cube.shape)
 
-        # Run PCA on original cube
-        # Update PCA PARAMS
-        pca_params['cube'] = algo_params.cube
-        pca_params['cube_ref'] = ref_cube
-        pca_params['ncomp'] = final_ncomp[it]
-        pca_params['scaling'] = algo_params.scaling
-        pca_params['cube_sig'] = sig_cube
-        pca_params['mask_rdi'] = mask_rdi_tmp
+            # Run PCA on original cube
+            # Update PCA PARAMS
+            pca_params['cube'] = algo_params.cube
+            pca_params['cube_ref'] = ref_cube
+            pca_params['ncomp'] = final_ncomp[it]
+            pca_params['scaling'] = algo_params.scaling
+            pca_params['cube_sig'] = sig_cube
+            pca_params['mask_rdi'] = mask_rdi_tmp
 
-        res = pca(**pca_params, **rot_options)
+            res = pca(**pca_params, **rot_options)
 
-        frame = res[0]
-        residuals_cube = res[-2]
-        it_cube[it] = frame.copy()
+            frame = res[0]
+            residuals_cube = res[-2]
+            it_cube[it] = frame.copy()
 
-        # DON'T otherwise frame is smoothed twice!
-        # smoothing and manual derotation if requested
-        if smooth_ker[it] is not None:
-            residuals_cube = _blurring_3d(residuals_cube, None,
-                                          fwhm_sz=smooth_ker[it])
-            residuals_cube_ = cube_derotate(residuals_cube,
-                                            algo_params.angle_list,
-                                            imlib=algo_params.imlib,
-                                            nproc=algo_params.nproc)
-            frame = cube_collapse(residuals_cube_, algo_params.collapse)
+            # DON'T otherwise frame is smoothed twice!
+            # smoothing and manual derotation if requested
+            if smooth_ker[it] is not None:
+                residuals_cube = _blurring_3d(residuals_cube, None,
+                                              fwhm_sz=smooth_ker[it])
+                residuals_cube_ = cube_derotate(residuals_cube,
+                                                algo_params.angle_list,
+                                                imlib=algo_params.imlib,
+                                                nproc=algo_params.nproc)
+                frame = cube_collapse(residuals_cube_, algo_params.collapse)
 
-        # Run PCA on disk-empty cube
-        # Update PCA PARAMS
-        pca_params['cube'] = cube_tmp-sig_cube
-        pca_params['cube_ref'] = cube_ref_tmp
-        pca_params['cube_sig'] = None
-        pca_params['scaling'] = None
+            # Run PCA on disk-empty cube
+            # Update PCA PARAMS
+            pca_params['cube'] = cube_tmp-sig_cube
+            pca_params['cube_ref'] = cube_ref_tmp
+            pca_params['cube_sig'] = None
+            pca_params['scaling'] = None
 
-        res_nd = pca(**pca_params, **rot_options)
+            res_nd = pca(**pca_params, **rot_options)
 
-        residuals_cube_nd = res_nd[-2]
-        frame_nd = res_nd[0]
+            residuals_cube_nd = res_nd[-2]
+            frame_nd = res_nd[0]
 
-        if algo_params.thr_mode == 'STIM':
-            sig_mask, nstim = _find_significant_signals(residuals_cube_nd,
-                                                        residuals_cube_,
-                                                        algo_params.angle_list,
-                                                        algo_params.thr,
-                                                        mask=mask_center_px,
-                                                        r_out=algo_params.r_out)
-        else:
-            sig_mask = np.ones_like(frame)
-            sig_mask[np.where(frame < algo_params.thr)] = 0
-            nstim = sig_mask.copy()
-        inv_sig_mask = np.ones_like(sig_mask)
-        inv_sig_mask[np.where(sig_mask)] = 0
-        if mask_center_px:
-            inv_sig_mask = mask_circle(inv_sig_mask, mask_center_px,
-                                       fillwith=1)
-        sig_image = frame.copy()
-        sig_image[np.where(inv_sig_mask)] = 0
-        sig_image[np.where(sig_image < 0)] = 0
+            if algo_params.thr_mode == 'STIM':
+                sig_mask, nstim = _find_significant_signals(residuals_cube_nd,
+                                                            residuals_cube_,
+                                                            algo_params.angle_list,
+                                                            algo_params.thr,
+                                                            mask=mask_center_px,
+                                                            r_out=algo_params.r_out)
+            else:
+                sig_mask = np.ones_like(frame)
+                sig_mask[np.where(frame < algo_params.thr)] = 0
+                nstim = sig_mask.copy()
+            inv_sig_mask = np.ones_like(sig_mask)
+            inv_sig_mask[np.where(sig_mask)] = 0
+            if mask_center_px:
+                inv_sig_mask = mask_circle(inv_sig_mask, mask_center_px,
+                                           fillwith=1)
+            sig_image = frame.copy()
+            sig_image[np.where(inv_sig_mask)] = 0
+            sig_image[np.where(sig_image < 0)] = 0
 
+        # whether skipped or not:
         it_cube[it] = frame.copy()
         it_cube_nd[it] = frame_nd.copy()
         sig_images[it] = sig_image.copy()
@@ -579,18 +586,26 @@ def ipca(*all_args: List, **all_kwargs: dict):
             cond2 = np.allclose(sig_image, sig_images[it-2],
                                 rtol=algo_params.rtol, atol=algo_params.atol)
             if cond1 or cond2:
-                if algo_params.strategy in ['ADI', 'RDI', 'ARDI']:
-                    msg = "Convergence criterion met after {:.0f} iterations"
-                    condB = algo_params.continue_without_smooth_after_conv
-                    if smooth_ker[it] is not None and condB:
-                        smooth_ker[it+1:] = None
-                        msg2 = "... Switching smoothing off and iterating more!"
-                        if algo_params.verbose:
-                            print(msg.format(it)+msg2)
-                    else:
-                        if algo_params.verbose:
-                            print("Final " + msg.format(it))
-                        break
+                # if convergence in incremental mode: skip iterations until the
+                # next increment in ncomp
+                cond_mode = algo_params.mode in ['Pairet21', 'Christiaens21']
+                cond_it = (it % nit_ori != nit_ori-1)
+                if cond_mode and cond_it:
+                    cond_skip = True
+                else:
+                    cond_skip = False
+                    if algo_params.strategy in ['ADI', 'RDI', 'ARDI']:
+                        msg = "Convergence criterion met after {} iterations"
+                        condB = algo_params.continue_without_smooth_after_conv
+                        if smooth_ker[it] is not None and condB:
+                            smooth_ker[it+1:] = None
+                            msg2 = "...Smoothing turned off and iterating more"
+                            if algo_params.verbose:
+                                print(msg.format(it)+msg2)
+                        else:
+                            if algo_params.verbose:
+                                print("Final " + msg.format(it))
+                            break
                 if algo_params.strategy == 'RADI':
                     # continue to iterate with ADI
                     ncomp_tmp = ncomp_list[1]

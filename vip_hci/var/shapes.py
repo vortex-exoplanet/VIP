@@ -126,10 +126,10 @@ def mask_ellipse(array, a, b, theta, fillwith=0, mode='in', cy=None, cx=None,
         ``fillwith``. When set to 'out' the pixels outside the circular mask
         are set to ``fillwith``.
     cy, cx : floats, opt
-        XY coordinates of thenter of the mask. By default, it considers the
+        XY coordinates of the center of the mask. By default, it considers the
         center of the image.
     output : {'masked_arr', 'bool_mask'}, optional
-        Whether to return the masked frame or a bolean mask
+        Whether to return the masked frame or a boolean mask
 
     Returns
     -------

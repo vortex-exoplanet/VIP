@@ -63,8 +63,8 @@ def firstguess_fd_from_coord(
         rotation) in the processed image.
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     disk_img: 2d or 3d numpy ndarray
         The disk image to be injected, as a 2d ndarray (for a 3D input cube) or
         a 3d numpy array (for a 4D spectral+ADI input cube). In the latter case,
@@ -411,8 +411,8 @@ def firstguess_fd_simplex(
         disk image.
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     disk_model: numpy ndarray
         The disk image(s) to be injected, should be a 2d ndarray (for a 3D input
         cube), 3d numpy array (for a 4D spectral+ADI input cube), or a higher
@@ -591,8 +591,8 @@ def firstguess_fd(
     ----------
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     disk_model: numpy ndarray
         The disk image(s) to be injected, should be a 2d ndarray (for a 3D input
         cube), 3d numpy array (for a 4D spectral+ADI input cube), or a higher

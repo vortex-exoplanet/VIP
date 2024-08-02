@@ -107,8 +107,8 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
     ----------
     cube : numpy ndarray, 3d or 4d
         Input cube.
-    angle_list : numpy ndarray, 1d
-        Corresponding parallactic angle for each frame.
+    angle_list : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     cube_ref : numpy ndarray, 3d, optional
         Reference library cube. For Reference Star Differential Imaging.
     scale_list : numpy ndarray, 1d, optional
@@ -223,9 +223,9 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
     frame : numpy ndarray, 2d
         [full_output=True] Median combination of the de-rotated cube.
     """
-    # Separating the parameters of the ParamsObject from the optionnal rot_options
-    class_params, rot_options = separate_kwargs_dict(initial_kwargs=all_kwargs,
-                                                     parent_class=PCA_ANNULAR_Params
+    # Separate parameters of the ParamsObject from the optionnal rot_options
+    class_params, rot_options = separate_kwargs_dict(all_kwargs,
+                                                     PCA_ANNULAR_Params
                                                      )
 
     # Extracting the object of parameters (if any)
@@ -244,7 +244,8 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
         rot_options['interp_zeros'] = True
 
     global start_time
-    start_time = time_ini()
+    if algo_params.verbose:
+        start_time = time_ini()
 
     if algo_params.left_eigv:
         if (
@@ -259,7 +260,10 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
 
     # ADI or ADI+RDI data
     if algo_params.cube.ndim == 3:
-        add_params = {"start_time": start_time, "full_output": True}
+        if algo_params.verbose:
+            add_params = {"start_time": start_time, "full_output": True}
+        else:
+            add_params = {"full_output": True}
 
         func_params = setup_parameters(
             params_obj=algo_params, fkt=_pca_adi_rdi, **add_params

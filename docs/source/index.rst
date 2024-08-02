@@ -42,16 +42,16 @@ a bug, ask a question, suggest a new functionality or contribute to the code (th
    :hidden:
 
    tutos
-   tutorials/01A_quickstart.ipynb
-   tutorials/01B_quickstart_with_objects.ipynb
-   tutorials/02_preproc.ipynb
-   tutorials/03A_psfsub_ADI.ipynb
-   tutorials/03B_psfsub_ADI_as_objects.ipynb
-   tutorials/04_metrics.ipynb
-   tutorials/05A_fm_planets.ipynb
-   tutorials/05B_fm_disks.ipynb
-   tutorials/07_psfsub_fm_IFS-ASDI_planets.ipynb
-   tutorials/08_imlib_and_interpolation.ipynb
+   tutorials/01A_quickstart
+   tutorials/01B_quickstart_with_objects
+   tutorials/02_preproc
+   tutorials/03A_psfsub_ADI
+   tutorials/03B_psfsub_ADI_as_objects
+   tutorials/04_metrics
+   tutorials/05A_fm_planets
+   tutorials/05B_fm_disks
+   tutorials/07_psfsub_fm_IFS-ASDI_planets
+   tutorials/08_imlib_and_interpolation
 
 .. toctree::
    :maxdepth: 2

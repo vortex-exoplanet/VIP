@@ -35,7 +35,7 @@ def example_dataset_adi():
 
     f1 = download_resource("{}/naco_betapic_cube_cen.fits".format(url_d))
     f2 = download_resource("{}/naco_betapic_psf.fits".format(url_d))
-    f3 = download_resource("{}/naco_betapic_pa.fits".format(url_d))
+    f3 = download_resource("{}/naco_betapic_derot_angles.fits".format(url_d))
 
     # load fits
     cube = vip.fits.open_fits(f1)
@@ -212,7 +212,7 @@ def example_dataset_rdi():
 
     f1 = download_resource("{}/naco_betapic_cube_cen.fits".format(url_d))
     f2 = download_resource("{}/naco_betapic_psf.fits".format(url_d))
-    f3 = download_resource("{}/naco_betapic_pa.fits".format(url_d))
+    f3 = download_resource("{}/naco_betapic_derot_angles.fits".format(url_d))
 
     # load fits
     cube = vip.fits.open_fits(f1)

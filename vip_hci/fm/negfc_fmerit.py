@@ -58,8 +58,8 @@ def chisquare(
         (r, theta, f1, ..., fN) for a 4D cube with N spectral channels.
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     psfs_norm: numpy.array
         The scaled psf expressed as a numpy.array.
     fwhm : float
@@ -353,8 +353,8 @@ def get_values_optimize(
     ----------
     cube: 3d or 4d numpy ndarray
         Input ADI or ADI+IFS cube.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     ncomp: int or None
         The number of principal components for PCA-based algorithms.
     annulus_width: float
@@ -454,6 +454,8 @@ def get_values_optimize(
     collapse = algo_options.get("collapse", collapse)
     collapse_ifs = algo_options.get("collapse_ifs", "absmean")
     nproc = algo_options.get("nproc", 1)
+    if algo == pca:
+        mask_rdi = algo_options.get("mask_rdi", None)
 
     if algo == pca_annulus:
         res = pca_annulus(
@@ -493,6 +495,7 @@ def get_values_optimize(
             res_tmp = algo(
                 cube=crop_cube,
                 angle_list=angs,
+                cube_ref=cube_ref,
                 radius_int=radius_int,
                 fwhm=fwhm,
                 asize=annulus_width,
@@ -516,6 +519,7 @@ def get_values_optimize(
             res_tmp = algo(
                 cube=crop_cube,
                 angle_list=angs,
+                cube_ref=cube_ref,
                 radius_int=radius_int,
                 fwhm=fwhm,
                 asize=annulus_width,
@@ -553,6 +557,7 @@ def get_values_optimize(
             ifs_collapse_range=ifs_collapse_range,
             nproc=nproc,
             weights=weights,
+            mask_rdi=mask_rdi,
             verbose=False,
         )
     else:
@@ -620,8 +625,8 @@ def get_mu_and_sigma(
     ----------
     cube: numpy.array
         The cube of fits images expressed as a numpy.array.
-    angs: numpy.array
-        The parallactic angle fits image expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     ncomp: int or None
         The number of principal components for PCA-based algorithms.
     annulus_width: float

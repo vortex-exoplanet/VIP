@@ -107,10 +107,11 @@ def andromeda(*all_args: List, **all_kwargs: dict):
         an important parameter. See Note for example calculation.
         IDL parameter: ``OVERSAMPLING_1_INPUT``
     angle_list : numpy ndarray
-        List of parallactic angles associated with each frame in ``cube``. Note
+        List of derotation angles associated with each frame in ``cube``. Note
         that, compared to the IDL version, the PA convention is different: If
-        you would pass ``[1,2,3]`` to the IDL version, you should pass ``[-1,
-        -2, -3]`` to this function to obtain the same results.
+        you would pass ``[1,2,3]`` to the IDL version (parallactic angles), you
+        should pass ``[-1,-2, -3]`` (derotation angles) to this function to
+        obtain the same results.
         IDL parameter: ``- ANGLES_INPUT``
     psf : 2d numpy ndarray
         The experimental PSF used to model the planet signature in the

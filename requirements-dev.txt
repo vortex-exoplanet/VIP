@@ -1,6 +1,7 @@
 -r requirements.txt
 opencv-python
 sphinx
+myst-nb
 pandoc
 pytest
 pytest-cov ~=2.6.0

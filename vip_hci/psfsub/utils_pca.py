@@ -41,8 +41,8 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
     ----------
     cube : numpy ndarray, 3d
         Input cube.
-    angle_list : numpy ndarray, 1d
-        Corresponding parallactic angle for each frame.
+    angle_list : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     fwhm : None or float, optional
         Size of the FWHM in pixels, used for computing S/Ns when ``source_xy``
         is passed.
@@ -439,8 +439,8 @@ def pca_incremental(cube, angle_list, batch=0.25, ncomp=1, collapse='median',
     cube : str or numpy ndarray
         Input cube as numpy array or string with the path to the fits file to be
         opened in memmap mode.
-    angle_list : str or numpy ndarray
-        Corresponding parallactic angle for each frame.
+    angle_list : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     batch : int or float, optional
         When int it corresponds to the number of frames in each batch. If a
         float (0, 1] is passed then it is the size of the batch is computed wrt
@@ -623,8 +623,8 @@ def pca_annulus(cube, angs, ncomp, annulus_width, r_guess, cube_ref=None,
     ----------
     cube : 3d or 4d numpy ndarray
         Input data cube to be processed by PCA.
-    angs : numpy ndarray or None
-        The parallactic angles expressed as a numpy.array.
+    angs : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     ncomp : int or list/1d numpy array of int
         The number of principal component.
     annulus_width : float
@@ -791,8 +791,8 @@ def _compute_inverse_stim_map(cube, angle_list, **rot_options):
     cube : 3d numpy ndarray
         Non de-rotated residuals from reduction algorithm, eg. output residuals
         from ``vip_hci.pca.pca``.
-    angle_list : numpy ndarray, 1d
-        Corresponding parallactic angle for each frame.
+    angle_list : 1d numpy ndarray
+        Vector of derotation angles to align North up in your cube images.
     rot_options: dictionary, optional
         Dictionary with optional keyword values for "nproc", "imlib",
         "interpolation, "border_mode", "mask_val",  "edge_blend",

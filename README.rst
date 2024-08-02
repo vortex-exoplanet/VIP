@@ -1,16 +1,13 @@
 VIP - Vortex Image Processing package
 =====================================
 
-|VIP| |Versions| |travis| |License| |ArXiV| |docs| |codecov| |DOI| |Zenodo| |EMAC|
+|VIP| |Versions| |License| |ArXiV| |docs| |codecov| |DOI| |Zenodo| |EMAC|
 
 .. |VIP| image:: https://badge.fury.io/py/vip-hci.svg
         :target: https://pypi.python.org/pypi/vip-hci
 
 .. |Versions| image:: https://img.shields.io/badge/Python-3.7%2C%203.8%2C%203.9%2C%203.10%2C%203.11-brightgreen.svg
              :target: https://pypi.python.org/pypi/vip-hci
-
-.. |travis| image:: https://travis-ci.com/vortex-exoplanet/VIP.svg?branch=master
-           :target: https://travis-ci.com/vortex-exoplanet/VIP
 
 .. |License| image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
             :target: https://github.com/vortex-exoplanet/VIP/blob/master/LICENSE
@@ -217,7 +214,7 @@ i.e. exactly on a pixel in either cases. The VIP recentering routines will place
 
 Position angles
 ^^^^^^^^^^^^^^^
-In VIP all angles are measured counter-clockwise from the positive x axis (i.e. trigonometric angles), as all packages it leverages upon, including for the position angles retrieved when characterizing directly imaged planets. This is different to the typical astronomical convention to measure angles east from north (just add +90deg to angles returned by VIP).
+In VIP, all angles are measured counter-clockwise from the positive x axis (i.e. trigonometric angles), following the convention of most packages VIP leverages upon. This includes the position angles returned by algorithms in the forward modelling subpackage of VIP used to characterize directly imaged exoplanets (e.g. negative fake companion routines). This convention is different to the typical astronomical convention which measures angles east from north (for the conversion, simply subtract 90deg to angles returned by VIP).
 
 4D IFS+ADI cubes
 ^^^^^^^^^^^^^^^^

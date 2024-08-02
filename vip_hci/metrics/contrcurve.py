@@ -59,9 +59,9 @@ def contrast_curve(
     algo_class=None,
     **algo_dict,
 ):
-    """Computes the contrast curve at a given confidence (``sigma``) level for
-    an ADI cube or ADI+IFS cube. The contrast is calculated as
-    sigma*noise/throughput. This implementation takes into account the small
+    """Computes the contrast curve at a given confidence (``sigma``) level for\
+    an ADI cube or ADI+IFS cube. The contrast is calculated as\
+    sigma*noise/throughput. This implementation takes into account the small\
     sample statistics correction proposed in [MAW14]_.
 
     Parameters
@@ -70,7 +70,7 @@ def contrast_curve(
         The input cube, 3d (ADI data) or 4d array (IFS data), without fake
         companions.
     angle_list : 1d numpy ndarray
-        Vector with parallactic angles.
+        Vector of derotation angles to align North up in your images.
     psf_template : 2d or 3d numpy ndarray
         Frame with the psf template for the fake companion(s).
         PSF must be centered in array. Normalization is done internally.

@@ -205,9 +205,8 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, masks, ref_cube=None, ncomp=2,
     sci_cube_skysub = np.zeros_like(sci_cube)
     sky_opt = sci_cube.copy()
     for i in range(Msci_masked.shape[0]):
-        tmp_sky = [np.sum(np.fromiter(transf_sci_scaled[j, i]*sky_boat_cube[j]
-                          for j in range(ncomp)))]
-        sky_opt[i] = np.array(tmp_sky)
+        sky_opt[i] = np.sum([transf_sci_scaled[j, i]*sky_boat_cube[j]
+                             for j in range(ncomp)], axis=0)
         sci_cube_skysub[i] = sci_cube_boat[i] - sky_opt[i]
 
     # -- Processing the reference cube (if any)

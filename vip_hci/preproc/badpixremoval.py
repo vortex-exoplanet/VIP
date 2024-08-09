@@ -923,7 +923,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
         [full_output=True] The bad pixel map or the cube of bpix maps
     """
 
-    array_corr = np.array(array, dtype=np.float32, copy=True)
+    array_corr = array.copy()
     ndims = array_corr.ndim
     assert ndims == 2 or ndims == 3, "Object is not two or three dimensional.\n"
 
@@ -958,7 +958,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                 msg2 = 'Hence, you should not use option half_res_y = True'
                 raise ValueError(msg+msg2)
             n_y = int(n_y/2)
-            frame = np.array(array_corr, dtype=np.float32, copy=True)
+            frame = array_corr.copy()
             array_corr = np.zeros([n_y, n_x])
             excl_mask_corr = np.zeros([n_y, n_x])
             for yy in range(n_y):

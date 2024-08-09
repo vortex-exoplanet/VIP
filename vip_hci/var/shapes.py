@@ -82,7 +82,7 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None,
 
     elif output == "masked_arr":
         if mode == 'in':
-            array_masked = np.array(array, copy=True)
+            array_masked = array.copy()
             if array.ndim == 2:
                 array_masked[ind] = fillwith
             elif array.ndim == 3:

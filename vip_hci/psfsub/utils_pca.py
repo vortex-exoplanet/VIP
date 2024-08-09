@@ -12,6 +12,7 @@ from sklearn.decomposition import IncrementalPCA
 from pandas import DataFrame
 from skimage.draw import disk
 from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
 from ..fits import open_fits
 from ..preproc import cube_rescaling_wavelengths as scwave
 from .svd import svd_wrapper
@@ -388,6 +389,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
                 ax1.minorticks_on()
                 ax1.grid('on', 'major', linestyle='solid', alpha=0.4)
                 ax1.set_title('Optimal # PCs: {}'.format(opt_npc))
+                ax1.xaxis.set_major_locator(MaxNLocator(integer=True))  # ensure x-axis has integer values for npc
 
                 ax2 = plt.subplot(212)
                 ax2.plot(pclist, fluxlist, '-', alpha=0.5, color='C1')
@@ -398,6 +400,7 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
                 ax2.set_ylabel('Flux in FWHM ap. [ADUs]')
                 ax2.minorticks_on()
                 ax2.grid('on', 'major', linestyle='solid', alpha=0.4)
+                ax2.xaxis.set_major_locator(MaxNLocator(integer=True))  # ensure x-axis has integer values for npc
 
             if save_plot is not None:
                 plt.savefig(save_plot, dpi=100, bbox_inches='tight')

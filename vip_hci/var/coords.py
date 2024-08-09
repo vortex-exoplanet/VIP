@@ -23,7 +23,7 @@ def dist(yc, xc, y1, x1):
     Return the Euclidean distance between two points, or between an array
     of positions and a point.
     """
-    return np.sqrt(np.power(yc-y1, 2) + np.power(xc-x1, 2))
+    return np.hypot(yc - y1, xc - x1)
 
 
 def dist_matrix(n, cx=None, cy=None):

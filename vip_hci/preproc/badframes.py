@@ -9,17 +9,15 @@ __all__ = ['cube_detect_badfr_pxstats',
            'cube_detect_badfr_correlation']
 
 import numpy as np
-import pandas as pn
-from matplotlib import pyplot as plt
-try:
-    from photutils.detection import DAOStarFinder
-except:
-    from photutils import DAOStarFinder
+from pandas import Series
 from astropy.stats import sigma_clip
-from ..var import get_annulus_segments
+from matplotlib import pyplot as plt
+
 from ..config import time_ini, timing, check_array
+from .cosmetics import cube_crop_frames, frame_crop
 from ..config.utils_conf import vip_figsize
 from ..stats import cube_basic_stats, cube_distance
+from ..var import get_annulus_segments
 
 
 def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
@@ -84,7 +82,7 @@ def cube_detect_badfr_pxstats(array, mode='annulus', in_radius=10, width=10,
 
     if window is None:
         window = n//3
-    mean_smooth = pn.Series(mean_values).rolling(window, center=True).mean()
+    mean_smooth = Series(mean_values).rolling(window, center=True).mean()
     mean_smooth = mean_smooth.bfill()  # fillna(method='backfill')
     mean_smooth = mean_smooth.ffill()  # fillna(method='ffill')
     sigma = np.std(mean_values)
@@ -178,7 +176,7 @@ def cube_detect_badfr_ellipticity(array, fwhm, crop_size=30, roundlo=-0.2,
     extended in x or y will have a negative or positive roundness, respectively.
 
     """
-    from .cosmetics import cube_crop_frames
+    from photutils.detection import DAOStarFinder
 
     check_array(array, 3, msg='array')
 
@@ -297,7 +295,6 @@ def cube_detect_badfr_correlation(array, frame_ref, crop_size=30,
         [if full_output=True] 1d array with the measured distances
 
     """
-    from .cosmetics import cube_crop_frames, frame_crop
 
     check_array(array, 3, msg='array')
 

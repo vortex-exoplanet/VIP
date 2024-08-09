@@ -719,6 +719,10 @@ def get_mu_and_sigma(
     if r_guess > centx_fr - halfw:  # or r_guess <= halfw:
         raise RuntimeError(msg)
 
+    # check if r_guess is less than fwhm
+    if r_guess < fwhm:
+        raise ValueError("r_guess should be greater than fwhm.")
+
     ncomp = algo_options.get("ncomp", ncomp)
     svd_mode = algo_options.get("svd_mode", svd_mode)
     scaling = algo_options.get("scaling", scaling)
@@ -726,8 +730,7 @@ def get_mu_and_sigma(
     interpolation = algo_options.get("interpolation", interpolation)
     collapse = algo_options.get("collapse", collapse)
 
-    radius_int = max(1, int(np.floor(r_guess - annulus_width / 2)))
-    radius_int = algo_options.get("radius_int", radius_int)
+    radius_int = max(int(np.floor(r_guess - annulus_width / 2)), 0)
 
     # not recommended, except if large-scale residual sky present (NIRC2-L')
     hp_filter = algo_options.get("hp_filter", None)
@@ -895,18 +898,20 @@ def get_mu_and_sigma(
     else:
         raise TypeError("Wedge should have exactly 2 values")
 
-    indices = get_annular_wedge(pca_res, radius_int, 2 * fwhm, wedge=wedge)
+    # annulus should encompass the companion location for accurate mu and sigma
+    indices = get_annular_wedge(pca_res, inner_radius=radius_int,
+                                width=min(annulus_width, 2 * fwhm), wedge=wedge)
     yy, xx = indices
-    indices_inv = get_annular_wedge(pca_res_inv, radius_int, 2 * fwhm,
-                                    wedge=wedge)
+    indices_inv = get_annular_wedge(pca_res_inv, inner_radius=radius_int,
+                                    width=min(annulus_width, 2 * fwhm), wedge=wedge)
     yyi, xxi = indices_inv
     all_res = np.concatenate((pca_res[yy, xx], pca_res_inv[yyi, xxi]))
-    mu = np.mean(all_res)
+    mu = np.nanmean(all_res)
     all_res -= mu
     npx = len(yy) + len(yyi)
     area = np.pi * (fwhm / 2) ** 2
     ddof = min(int(npx * (1.0 - (1.0 / area))) + 1, npx - 1)
-    sigma = np.std(all_res, ddof=ddof)
+    sigma = np.nanstd(all_res, ddof=ddof)
 
     return mu, sigma
 

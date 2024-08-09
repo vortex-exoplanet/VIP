@@ -972,7 +972,7 @@ def cube_fix_badpix_clump(array, bpm_mask=None, correct_only=False, cy=None,
                 bpm_mask_ori = bpm_mask_tmp
 
         fwhm_round = int(round(fwhm))
-        # This should reduce the chance to accidently correct a bright planet:
+        # This should reduce the chance to accidentally correct a bright planet:
         if fwhm_round % 2 == 0:
             neighbor_box = max(3, fwhm_round+1)
         else:

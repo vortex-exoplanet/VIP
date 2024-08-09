@@ -6,7 +6,8 @@ Module with conversion utilities from dictionaries to headers, and reversely.
 __author__ = "Thomas Bedrine, Iain Hammond"
 __all__ = ["dict_to_fitsheader",
            "fitsheader_to_dict",
-           "open_header"]
+           "open_header",
+           "seeing_from_header"]
 
 from os.path import isfile
 from typing import Tuple
@@ -119,3 +120,35 @@ def open_header(fitsfilename: str, n: int = 0, extname: str = None,
         print(f"FITS HDU-{n} header successfully loaded.")
 
     return header
+
+
+def seeing_from_header(fitsfilename, verbose: bool = False) -> float:
+    """
+    Extract the average seeing values from FITS headers.
+
+    Parameters
+    ----------
+    fitsfilename : string or list of string
+        FITS files.
+    verbose : bool, optional
+        If True prints result.
+
+    Returns
+    -------
+    seeing : float
+        The average seeing extracted from the FITS header.
+    """
+
+    if isinstance(fitsfilename, str):
+        fitsfilename = [fitsfilename]
+
+    seeing = []
+    for fitsfile in fitsfilename:  # loop and get the seeing values
+        header = open_header(fitsfile)
+        seeing.append(header["HIERARCH ESO TEL AMBI FWHM START"])
+        seeing.append(header["HIERARCH ESO TEL AMBI FWHM END"])
+
+    seeing = sum(seeing)/len(seeing)
+    if verbose:
+        print(f"Average seeing is {seeing} arcseconds", flush=True)
+    return seeing

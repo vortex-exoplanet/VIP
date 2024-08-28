@@ -13,7 +13,7 @@ from ..fm import cube_inject_companions
 
 
 def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
-                     interpolation='lanczos4', transmission=None):
+                     interpolation='lanczos4', transmission=None, nproc=None):
     """
     Return a cube in which we have injected negative fake companion at the
     position/flux given by planet_parameter.
@@ -41,6 +41,8 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
         radial separation in pixels, while the other column(s) are the
         corresponding off-axis transmission (between 0 and 1), for either all,
         or each spectral channel (only relevant for a 4D input cube).
+    nproc: int or None, optional
+        Number of CPUs to use for multiprocessing.
 
     Returns
     -------
@@ -81,7 +83,8 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
                                                 imlib=imlib,
                                                 interpolation=interpolation,
                                                 verbose=False,
-                                                transmission=transmission)
+                                                transmission=transmission,
+                                                nproc=nproc)
         else:
             cpf = cube_inject_companions(cube_temp, psfn, angs, n_branches=1,
                                          flevel=-planet_parameter[i, 2],
@@ -89,7 +92,8 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
                                          theta=planet_parameter[i, 1],
                                          imlib=imlib, verbose=False,
                                          interpolation=interpolation,
-                                         transmission=transmission)
+                                         transmission=transmission,
+                                         nproc=nproc)
     return cpf
 
 

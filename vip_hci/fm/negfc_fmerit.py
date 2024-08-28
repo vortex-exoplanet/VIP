@@ -710,13 +710,13 @@ def get_mu_and_sigma(
     centy_fr, centx_fr = frame_center(cube[0])
     halfw = max(aperture_radius * fwhm, annulus_width / 2)
 
-    # Checking annulus/aperture sizes. Assuming square frames
-    msg = "The annulus and/or the circular aperture used by the NegFC falls "
-    msg += "outside the FOV. Try increasing the size of your frames or "
-    msg += "decreasing the annulus or aperture size."
-    msg += "rguess: {:.0f}px; centx_fr: {:.0f}px".format(r_guess, centx_fr)
-    msg += "halfw: {:.0f}px".format(halfw)
     if r_guess > centx_fr - halfw:  # or r_guess <= halfw:
+        # Checking annulus/aperture sizes. Assuming square frames
+        msg = "The annulus and/or the circular aperture used by the NegFC falls "
+        msg += "outside the FOV. Try increasing the size of your frames or "
+        msg += "decreasing the annulus or aperture size."
+        msg += "rguess: {:.0f}px; centx_fr: {:.0f}px".format(r_guess, centx_fr)
+        msg += "halfw: {:.0f}px".format(halfw)
         raise RuntimeError(msg)
 
     # check if r_guess is less than fwhm

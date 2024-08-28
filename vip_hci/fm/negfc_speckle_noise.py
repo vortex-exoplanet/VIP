@@ -97,7 +97,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         If set to None: not used, and falls back to original version of the
         algorithm, using fmerit.
         If a tuple of 2 elements: should be the mean and standard deviation of
-        pixel intensities in an annulus centered on the lcoation of the
+        pixel intensities in an annulus centered on the location of the
         companion candidate, excluding the area directly adjacent to the CC.
         If set to anything else, but None/False/tuple: will compute said mean
         and standard deviation automatically.

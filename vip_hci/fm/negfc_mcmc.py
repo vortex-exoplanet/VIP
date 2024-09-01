@@ -999,7 +999,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
                     if verbosity > 0:
                         print('   r_hat = {}'.format(rhat))
                         cond = rhat <= rhat_threshold
-                        print('   r_hat <= threshold = {} \n'.format(cond))
+                        print('   r_hat <= threshold = {} \n'.format(cond), flush=True)
                     # We test the rhat.
                     if (rhat <= rhat_threshold).all():
                         rhat_count += 1
@@ -1025,7 +1025,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
                     thr = 1./ac_c
                     if verbosity > 0:
                         print('Auto-corr tau/N = {}'.format(rhat))
-                        print('tau/N <= {} = {} \n'.format(thr, rhat < thr))
+                        print('tau/N <= {} = {} \n'.format(thr, rhat < thr), flush=True)
                     if (rhat <= thr).all():
                         ac_count += 1
                         if verbosity > 0:

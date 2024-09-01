@@ -309,6 +309,9 @@ def pca_grid(cube, angle_list, fwhm=None, range_pcs=None, source_xy=None,
                             'to (PC_INI, PC_MAX) or (PC_INI, PC_MAX, STEP)')
         pclist = list(range(pcmin, pcmax+1, step))
 
+    if fmerit not in ['px', 'max', 'mean']:
+        raise ValueError(f"Invalid value for fmerit: {fmerit}.")
+
     # Getting `pcmax` principal components once
     if mode == 'fullfr':
         matrix = prepare_matrix(cube, scaling, mask_center_px, verbose=False)

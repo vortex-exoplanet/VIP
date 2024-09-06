@@ -315,7 +315,10 @@ def pca_annular(*all_args: List, **all_kwargs: dict):
             cube_der.append(res_pca[1])
             ifs_adi_frames[ch] = res_pca[-1]
 
-        frame = cube_collapse(ifs_adi_frames, mode=algo_params.collapse_ifs)
+        if algo_params.collapse_ifs is not None:
+            frame = cube_collapse(ifs_adi_frames, mode=algo_params.collapse_ifs)
+        else:
+            frame = ifs_adi_frames
 
         # convert to numpy arrays
         cube_out = np.array(cube_out)

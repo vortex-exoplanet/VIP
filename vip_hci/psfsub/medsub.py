@@ -250,8 +250,19 @@ def median_sub(*all_args: List, **all_kwargs: dict):
             elif 'mean' in algo_params.collapse_ref:
                 ref_frame = np.mean(algo_params.cube_ref, axis=0)
             else:
-                ref_frame = cube_collapse(algo_params.cube_ref,
-                                          mode=algo_params.collapse)
+                idx0 = 0
+                if "sc_" in algo_params.collapse_ref:
+                    idx0 = 3
+                if '-' in algo_params.collapse_ref:
+                    idxN = algo_params.collapse_ref.index('-') - 1  # or -2
+                try:
+                    collapse_mode = algo_params.collapse_ref[idx0:idxN]
+                    ref_frame = cube_collapse(algo_params.cube_ref,
+                                              mode=collapse_mode)
+                except TypeError:
+                    collapse_mode = algo_params.collapse_ref[idx0:idxN-1]
+                    ref_frame = cube_collapse(algo_params.cube_ref,
+                                              mode=collapse_mode)
         if ARRAY.shape[0] != algo_params.angle_list.shape[0]:
             msg = "Input vector or parallactic angles has wrong length"
             raise TypeError(msg)
@@ -302,13 +313,13 @@ def median_sub(*all_args: List, **all_kwargs: dict):
                     n_annuli, algo_params.fwhm))
 
             add_params = {
-                "frame_ref": ref_frame,
                 "ann": iterable(range(n_annuli)),
                 "n_annuli": n_annuli,
                 "annulus_width": algo_params.asize,
             }
 
             if algo_params.cube_ref is not None:
+                add_params["frame_ref"] = ref_frame
                 func_params = setup_parameters(
                     params_obj=algo_params,
                     fkt=_median_subt_ann_rdi,

@@ -503,7 +503,8 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
         msg = 'WARNING: PA threshold {:.2f} is too big, recommended '
         msg += ' value for annulus {:.0f}: {:.2f}'
         if strict:
-            print(msg.format(pa_threshold, ann, new_pa_th))
+            if verbose:
+                print(msg.format(pa_threshold, ann, new_pa_th))
         else:
             print('PA threshold {:.2f} is likely too big, will be set to '
                   '{:.2f}'.format(pa_threshold, new_pa_th))

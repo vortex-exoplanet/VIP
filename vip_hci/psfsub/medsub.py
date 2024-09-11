@@ -75,6 +75,7 @@ class MEDIAN_SUB_Params:
     interpolation: Enum = Interpolation.LANCZOS4
     collapse: Enum = Collapse.MEDIAN
     cube_ref: np.ndarray = None
+    collapse_ref: str = 'median'
     nproc: int = 1
     full_output: bool = False
     verbose: bool = True
@@ -214,6 +215,12 @@ def median_sub(*all_args: List, **all_kwargs: dict):
 
     if algo_params is None:
         algo_params = MEDIAN_SUB_Params(*all_args, **class_params)
+
+    # by default, interpolate masked area before derotation if a mask is used
+    if algo_params.radius_int and len(rot_options) == 0:
+        rot_options['mask_val'] = 0
+        rot_options['ker'] = 1
+        rot_options['interp_zeros'] = True
 
     global ARRAY
     ARRAY = algo_params.cube.copy()
@@ -622,9 +629,7 @@ def _median_subt_ann_rdi(frame_ref, collapse_ref, ann, n_annuli,
     if ARRAY.ndim == 3:
         n = ARRAY.shape[0]
 
-    _, inner_radius, _ = _define_annuli(np.zeros([10]), ann, n_annuli, 4,
-                                        radius_int, annulus_width,
-                                        0.1, 1, False)
+    inner_radius = radius_int + ann * annulus_width
 
     if ARRAY.ndim == 3:
         indices = get_annulus_segments(ARRAY[0], inner_radius, annulus_width)[0]

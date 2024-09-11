@@ -624,6 +624,12 @@ def _pca_adi_rdi(
         nncomp = len(ncomp)
         cube_out = np.zeros([nncomp, array.shape[0], array.shape[1],
                              array.shape[2]])
+    if verbose:
+        #  verbosity set to 2 only for ADI
+        verbose_ann = int(verbose) + int(cube_ref is None)
+    else:
+        verbose_ann = verbose
+
     for ann in range(n_annuli):
         if isinstance(ncomp, tuple) or isinstance(ncomp, np.ndarray):
             if len(ncomp) == n_annuli:
@@ -645,7 +651,7 @@ def _pca_adi_rdi(
             asize,
             delta_rot[ann],
             n_segments_ann,
-            verbose,
+            verbose_ann,
             True,
         )
         pa_thr, inner_radius, ann_center = res_ann_par

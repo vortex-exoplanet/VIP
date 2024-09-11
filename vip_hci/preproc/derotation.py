@@ -491,6 +491,7 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
                    delta_rot, n_segments, verbose, strict=False):
     """Define and return the requested annuli geometry: parallactic angle\
     threshold, inner radius and annulus center for each annulus."""
+    verbosity = int(verbose)
     if ann == n_annuli - 1:
         inner_radius = radius_int + (ann * annulus_width - 1)
     else:
@@ -503,14 +504,14 @@ def _define_annuli(angle_list, ann, n_annuli, fwhm, radius_int, annulus_width,
         msg = 'WARNING: PA threshold {:.2f} is too big, recommended '
         msg += ' value for annulus {:.0f}: {:.2f}'
         if strict:
-            if verbose:
+            if verbosity > 1:
                 print(msg.format(pa_threshold, ann, new_pa_th))
         else:
             print('PA threshold {:.2f} is likely too big, will be set to '
                   '{:.2f}'.format(pa_threshold, new_pa_th))
             pa_threshold = new_pa_th
 
-    if verbose:
+    if verbosity:
         if pa_threshold > 0:
             print('Ann {}    PA thresh: {:5.2f}    Ann center: '
                   '{:3.0f}    N segments: {} '.format(ann + 1, pa_threshold,

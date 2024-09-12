@@ -101,6 +101,15 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         companion candidate, excluding the area directly adjacent to the CC.
         If set to anything else, but None/False/tuple: will compute said mean
         and standard deviation automatically.
+    wedge: tuple, opt
+        [Only used if mu_sigma is not None] Input for the
+        ``vip_hci.fm.get_mu_and_sigma`` function. Range in theta where the mean
+        and standard deviation are computed in an annulus defined in the PCA
+        image. If None, it will be calculated automatically based on initial
+        guess and derotation angles to avoid. If some disc signal is present
+        elsewhere in the annulus, it is recommended to provide wedge manually.
+        The provided range should be continuous and >0. E.g. provide (270, 370)
+        to consider a PA range between [-90,+10].
     force_rPA: bool, optional
         Whether to only search for optimal flux, provided (r,PA).
     ndet: int or None, optional

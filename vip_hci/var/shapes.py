@@ -73,6 +73,18 @@ def mask_circle(array, radius, fillwith=0, mode='in', cy=None, cx=None,
         cy, cx = frame_center(array)
 
     shape = (array.shape[-2], array.shape[-1])
+
+    # avoid runtime warning
+    if radius == 0:
+        if mode == 'in':
+            mask = np.ones(shape, dtype=bool)
+        else:
+            mask = np.zeros(shape, dtype=bool)
+        if output == "bool_mask":
+            return mask
+        else:
+            return mask[0, 0]*array
+
     ind = disk((cy, cx), radius, shape=shape)
 
     if output == "bool_mask":

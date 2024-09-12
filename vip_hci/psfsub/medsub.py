@@ -31,7 +31,7 @@ while median-SDI (also referred to as spectral deconvolution) was proposed in
 
 """
 
-__author__ = "Carlos Alberto Gomez Gonzalez, Thomas Bédrine"
+__author__ = "C. A. Gomez Gonzalez, T. Bédrine, V. Christiaens"
 __all__ = ["median_sub", "MEDIAN_SUB_Params"]
 
 import numpy as np
@@ -74,13 +74,15 @@ class MEDIAN_SUB_Params:
     imlib: Enum = Imlib.VIPFFT
     interpolation: Enum = Interpolation.LANCZOS4
     collapse: Enum = Collapse.MEDIAN
+    cube_ref: np.ndarray = None
+    collapse_ref: str = 'median'
     nproc: int = 1
     full_output: bool = False
     verbose: bool = True
 
 
 def median_sub(*all_args: List, **all_kwargs: dict):
-    """Perform (smart) median-ADI or median-SDI.
+    """Perform (smart) median-ADI, median-SDI or median-RDI.
 
     In the case of angular differential imaging (ADI), the algorithm is based on
     [MAR06]_. The ADI+IFS method is an extension of this basic idea to
@@ -103,7 +105,7 @@ def median_sub(*all_args: List, **all_kwargs: dict):
 
     Parameters
     ----------
-    cube : numpy ndarray, 3d
+    cube : numpy ndarray, 3d or 4d
         Input cube.
     angle_list : 1d numpy ndarray
         Vector of derotation angles to align North up in your cube images.
@@ -139,9 +141,16 @@ def median_sub(*all_args: List, **all_kwargs: dict):
         upper intervals for the threshold (grows as a function of the
         separation).
     mode : {'fullfr', 'annular'}, str optional
-        In ``fullfr`` mode only the median frame is subtracted, in ``annular``
-        mode also the 4 closest frames given a PA threshold (annulus-wise) are
-        subtracted.
+        Whether to run the algorithm in full-frame or concentric annuli.
+
+        * median-ADI case (cube_ref = None): in ``fullfr`` mode only the median
+        frame is subtracted, in ``annular`` mode the 4 closest frames meeting a
+        PA threshold condition (annulus-wise) are subtracted.
+
+        * median RDI case (cube_ref != None): in ``fullfr`` mode only a single
+        (scaled) reference frame is subtracted, while in ``annular`` mode the
+        reference frame is subtracted in after scaling to each annulus.
+        PA threshold condition (annulus-wise) are subtracted.
     nframes : int or None, optional
         Number of frames (even value) to be used for building the optimized
         reference PSF when working in ``annular`` mode. None by default, which
@@ -156,6 +165,23 @@ def median_sub(*all_args: List, **all_kwargs: dict):
     collapse : Enum, see `vip_hci.config.paramenum.Collapse`
         Sets how temporal residual frames should be combined to produce an
         ADI image.
+    cube_ref : 3d numpy ndarray, optional
+        Reference library cube for Reference Star Differential Imaging. If not
+        None will automatically trigger median-RDI.
+    collapse_ref : {'median', 'mean', 'sc_median', 'sc_mean'}, str optional
+        Method to consider for collapsing the reference cube to create a
+        reference PSF image to be subtracted to the science images. Choice
+        between median, mean, scaled median ('sc_median') or scaled mean
+        ('sc_mean'). In the latter 2 cases the reference image is scaled in flux
+        based on the ratio of integrated flux in the reference image and each
+        science image, before subtraction. By default, the whole images are
+        considered to calculate the flux ratio, but if a pair of integers
+        separated by '-' are provided, these will be considered as inner and
+        outer radius to be used for flux scaling. For example 'sc_median0-30'
+        means a median reference image will be used, scaled based on the ratio
+        of integrated flux measured within a radius of 30px. If scaling of the
+        reference is requested ('sc' in collapse_ref) while ``mode`` is set to
+        'annular', the scaling will be done annulus per annulus.
     nproc : None or int, optional
         Number of processes for parallel computing. If None the number of
         processes will be set to cpu_count()/2. By default the algorithm works
@@ -190,6 +216,12 @@ def median_sub(*all_args: List, **all_kwargs: dict):
     if algo_params is None:
         algo_params = MEDIAN_SUB_Params(*all_args, **class_params)
 
+    # by default, interpolate masked area before derotation if a mask is used
+    if algo_params.radius_int and len(rot_options) == 0:
+        rot_options['mask_val'] = 0
+        rot_options['ker'] = 1
+        rot_options['interp_zeros'] = True
+
     global ARRAY
     ARRAY = algo_params.cube.copy()
 
@@ -205,15 +237,40 @@ def median_sub(*all_args: List, **all_kwargs: dict):
     algo_params.angle_list = check_pa_vector(algo_params.angle_list)
 
     if ARRAY.ndim == 3:
-        n, y, _ = ARRAY.shape
-
+        n, y, x = ARRAY.shape
+        if algo_params.cube_ref is not None:
+            condx = algo_params.cube_ref.shape[-1] != x
+            condy = algo_params.cube_ref.shape[-2] != y
+            if condx or condy:
+                msg = "Reference cube shape should have same xy dimensions as "
+                msg += "science cube"
+                raise TypeError(msg)
+            if 'median' in algo_params.collapse_ref:
+                ref_frame = np.median(algo_params.cube_ref, axis=0)
+            elif 'mean' in algo_params.collapse_ref:
+                ref_frame = np.mean(algo_params.cube_ref, axis=0)
+            else:
+                idx0 = 0
+                if "sc_" in algo_params.collapse_ref:
+                    idx0 = 3
+                if '-' in algo_params.collapse_ref:
+                    idxN = algo_params.collapse_ref.index('-') - 1  # or -2
+                try:
+                    collapse_mode = algo_params.collapse_ref[idx0:idxN]
+                    ref_frame = cube_collapse(algo_params.cube_ref,
+                                              mode=collapse_mode)
+                except TypeError:
+                    collapse_mode = algo_params.collapse_ref[idx0:idxN-1]
+                    ref_frame = cube_collapse(algo_params.cube_ref,
+                                              mode=collapse_mode)
         if ARRAY.shape[0] != algo_params.angle_list.shape[0]:
             msg = "Input vector or parallactic angles has wrong length"
             raise TypeError(msg)
 
-        # The median frame is first subtracted from each frame
-        model_psf = np.median(ARRAY, axis=0)
-        ARRAY -= model_psf
+        # The median frame is first subtracted from each frame (if no RDI)
+        if algo_params.cube_ref is None:
+            model_psf = np.median(ARRAY, axis=0)
+            ARRAY -= model_psf
 
         # Depending on the ``mode``
         cube_out = ARRAY
@@ -223,15 +280,33 @@ def median_sub(*all_args: List, **all_kwargs: dict):
             #     cube_out = mask_circle(ARRAY, radius_int, fillwith=np.nan)
             # else:
             #     cube_out = ARRAY
-
+            if algo_params.cube_ref is not None:
+                if 'sc' in algo_params.collapse_ref:
+                    if len(algo_params.collapse_ref) > 9:  # ie radii given?
+                        idx_rin = algo_params.collapse_ref.index('n')+1
+                        idx_rout = algo_params.collapse_ref.index('-')
+                        rin = algo_params.collapse_ref[idx_rin:idx_rout]
+                        rin = int(rin)
+                        rout = algo_params.collapse_ref[idx_rout+1:]
+                        rout = int(rout)
+                    else:
+                        rin = 0
+                        rout = y//2 - 1
+                    mask_ref = mask_circle(ref_frame, rin, fillwith=np.nan)
+                    mask_ref = mask_circle(mask_ref, rout, fillwith=np.nan,
+                                           mode='out')
+                    for i in range(n):
+                        mask_sci = mask_circle(ARRAY[i], rin, fillwith=np.nan)
+                        mask_sci = mask_circle(mask_sci, rout, fillwith=np.nan,
+                                               mode='out')
+                        scal_fac = np.nansum(mask_sci)/np.nansum(mask_ref)
+                        ARRAY[i] -= scal_fac*ref_frame
+                else:
+                    ARRAY -= ref_frame
             if algo_params.verbose:
                 print("Median psf reference subtracted")
 
         elif algo_params.mode == "annular":
-            if algo_params.nframes is not None:
-                if algo_params.nframes % 2 != 0:
-                    raise TypeError("`nframes` argument must be even value")
-
             n_annuli = int((y / 2 - algo_params.radius_int) / algo_params.asize)
             if algo_params.verbose:
                 print("N annuli = {}, FWHM = {}".format(
@@ -243,20 +318,38 @@ def median_sub(*all_args: List, **all_kwargs: dict):
                 "annulus_width": algo_params.asize,
             }
 
-            func_params = setup_parameters(
-                params_obj=algo_params,
-                fkt=_median_subt_ann_adi,
-                as_list=True,
-                **add_params,
-            )
-
-            res = pool_map(
-                algo_params.nproc,
-                _median_subt_ann_adi,
-                msg="Processing annuli:",
-                progressbar_single=True,
-                *func_params,
-            )
+            if algo_params.cube_ref is not None:
+                add_params["frame_ref"] = ref_frame
+                func_params = setup_parameters(
+                    params_obj=algo_params,
+                    fkt=_median_subt_ann_rdi,
+                    as_list=True,
+                    **add_params,
+                )
+                res = pool_map(
+                    algo_params.nproc,
+                    _median_subt_ann_rdi,
+                    msg="Processing annuli:",
+                    progressbar_single=True,
+                    *func_params,
+                )
+            else:
+                if algo_params.nframes is not None:
+                    if algo_params.nframes % 2 != 0:
+                        raise TypeError("`nframes` argument must be even value")
+                func_params = setup_parameters(
+                    params_obj=algo_params,
+                    fkt=_median_subt_ann_adi,
+                    as_list=True,
+                    **add_params,
+                )
+                res = pool_map(
+                    algo_params.nproc,
+                    _median_subt_ann_adi,
+                    msg="Processing annuli:",
+                    progressbar_single=True,
+                    *func_params,
+                )
 
             res = np.array(res, dtype=object)
             mres = res[:, 0]
@@ -539,3 +632,39 @@ def _median_subt_ann_adi(ann, angle_list, n_annuli, fwhm, radius_int,
         matrix_res[frame] = subtracted
 
     return matrix_res, yy, xx, pa_thr
+
+
+def _median_subt_ann_rdi(frame_ref, collapse_ref, ann, n_annuli,
+                         radius_int, annulus_width):
+    """RDI median subtraction for a given annulus."""
+    if ARRAY.ndim == 3:
+        n = ARRAY.shape[0]
+
+    inner_radius = radius_int + ann * annulus_width
+
+    if ARRAY.ndim == 3:
+        indices = get_annulus_segments(ARRAY[0], inner_radius, annulus_width)[0]
+    elif ARRAY.ndim == 4:
+        indices = get_annulus_segments(
+            ARRAY[0, 0], inner_radius, annulus_width)[0]
+    yy = indices[0]
+    xx = indices[1]
+
+    matrix_ref = frame_ref[yy, xx]
+    matrix = ARRAY[:, yy, xx]  # shape [n x npx_annulus]
+    matrix_res = np.zeros_like(matrix)
+
+    # A second optimized psf reference is subtracted from each frame.
+    # For each frame we find ``nframes``, depending on the PA threshold,
+    # to construct this optimized psf reference
+    for frame in range(n):
+        curr_frame = matrix[frame]
+        if 'sc' in collapse_ref:
+            scal_fac = np.nansum(curr_frame)/np.nansum(matrix_ref)
+            ref_psf_opt = scal_fac*matrix_ref
+        else:
+            ref_psf_opt = matrix_ref.copy()
+        subtracted = curr_frame - ref_psf_opt
+        matrix_res[frame] = subtracted
+
+    return matrix_res, yy, xx

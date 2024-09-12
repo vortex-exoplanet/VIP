@@ -147,14 +147,13 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
     return array_view
 
 
-def frame_pad(
-    array, fac, fillwith=0, loc=0, scale=1, keep_parity=True, full_output=False
-):
-    """Pads a frame (2d array) equally on each sides, where the final frame
-    size is set by a multiplicative factor applied to the original size. The
-    padding is set by fillwith, which can be either a fixed value or white
-    noise, characterized by (loc, scale).
-    Uses the ``get_square`` function.
+def frame_pad(array, fac, fillwith=0, loc=0, scale=1, keep_parity=True,
+              full_output=False):
+    """Pad a frame (2d array) equally on each sides, where the final frame\
+    size is set by a multiplicative factor applied to the original size.
+
+    The padding is set by fillwith, which can be either a fixed value or white
+    noise, characterized by (loc, scale). Uses the ``get_square`` function.
 
     Parameters
     ----------
@@ -187,7 +186,6 @@ def frame_pad(
         (y0, yN, x0, xN).
 
     """
-
     if not array.ndim == 2:
         raise TypeError("The input array must be 2d")
     if np.isscalar(fac):

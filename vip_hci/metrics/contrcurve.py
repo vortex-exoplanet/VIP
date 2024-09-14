@@ -59,7 +59,7 @@ def contrast_curve(
     algo_class=None,
     **algo_dict,
 ):
-    """Computes the contrast curve at a given confidence (``sigma``) level for\
+    """Compute the contrast curve at a given confidence (``sigma``) level for\
     an ADI cube or ADI+IFS cube. The contrast is calculated as\
     sigma*noise/throughput. This implementation takes into account the small\
     sample statistics correction proposed in [MAW14]_.
@@ -308,7 +308,7 @@ def contrast_curve(
         res_lev_samp = res_lev_samp[cutin1:]
         rad_samp = rad_samp[cutin1:]
         # define max radius, ensuring it is > fwhm/2 from the outer image edge
-        radmax_fwhm = ((cube.shape[-1]-1)//2)-fwhm_med/2
+        radmax_fwhm = int(((cube.shape[-1]-1)//2)-fwhm_med/2)
         radmax = min(vector_radd.astype(int).max(), radmax_fwhm)
         cutin2 = np.where(rad_samp.astype(int) == radmax)[0][0]
         noise_samp = noise_samp[: cutin2 + 1]
@@ -1089,10 +1089,8 @@ def throughput(
         return thruput_arr, vector_radd
 
 
-def noise_per_annulus(
-    array, separation, fwhm, init_rad=None, wedge=(0, 360), verbose=False,
-    debug=False
-):
+def noise_per_annulus(array, separation, fwhm, init_rad=None, wedge=(0, 360),
+                      verbose=False, debug=False):
     """Measure the noise and mean residual level as the standard deviation\
     and mean, respectively, of apertures defined in each annulus with a given\
     separation.
@@ -1251,7 +1249,7 @@ def aperture_flux(array, yc, xc, fwhm, ap_factor=1, mean=False, verbose=False):
             aper = CircularAperture((x, y), (ap_factor * fwhm) / 2)
             obj_flux = aperture_photometry(array, aper, method="exact")
             obj_flux = np.array(obj_flux["aperture_sum"])
-        flux[i] = obj_flux
+        flux[i] = float(obj_flux[0])
 
         if verbose:
             print("Coordinates of object {} : ({},{})".format(i, y, x))

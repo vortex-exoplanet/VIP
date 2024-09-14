@@ -334,7 +334,7 @@ def cube_rescaling_wavelengths(
     Scale/Descale a cube by scal_list, with padding. Can deal with NaN values.
 
     Wrapper to scale or descale a cube by factors given in scal_list,
-    without any loss of information (zero-padding if scaling > 1).
+    without any loss of information (zero-padding if necessary).
     Important: in case of IFS data, the scaling factors in scal_list should be
     >= 1 (ie. provide the scaling factors as for scaling to the longest
     wavelength channel).
@@ -415,8 +415,8 @@ def cube_rescaling_wavelengths(
         [full_output=True] Median of the rescaled cube -- note it is in 2nd
         position if full_output is set to True.
     y,x,cy,cx : floats
-        [full_output=True] New y and x shapes of the cube, and the new centers cy and
-        cx of the frames
+        [full_output=True] New y and x shapes of the cube, and the new centers
+        cy and cx of the frames
 
     """
     n, y, x = cube.shape
@@ -445,14 +445,13 @@ def cube_rescaling_wavelengths(
         cy, cx = frame_center(cube[0])
 
     # (de)scale the cube, so that a planet would now move radially
-    cube = cube_rescaling(
-        big_cube, scal_list, ref_xy=(cx, cy), imlib=imlib, interpolation=interpolation
-    )
+    cube = cube_rescaling(big_cube, scal_list, ref_xy=(cx, cy), imlib=imlib,
+                          interpolation=interpolation)
     frame = cube_collapse(cube, collapse)
 
     if inverse and max_sc > 1:
         if y_in is None or x_in is None:
-            raise ValueError("You need to provide y_in and x_in when " "inverse=True!")
+            raise ValueError("Provide y_in and x_in when inverse=True")
         siz = max(y_in, x_in)
         if frame.shape[0] > siz:
             frame = get_square(frame, siz, cy, cx)
@@ -469,7 +468,8 @@ def cube_rescaling_wavelengths(
         return frame
 
 
-def _scale_func(output_coords, ref_xy=0, scaling=1.0, scale_y=None, scale_x=None):
+def _scale_func(output_coords, ref_xy=0, scaling=1.0, scale_y=None,
+                scale_x=None):
     """
     For each coordinate point in a new scaled image (output_coords),
     coordinates in the image before the scaling are returned. This scaling

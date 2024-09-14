@@ -473,7 +473,7 @@ def pca(*all_args: List, **all_kwargs: dict):
                 **func_params,
                 **rot_options,
             )
-            if isinstance(algo_params.ncomp, (int, float)):
+            if np.isscalar(algo_params.ncomp):
                 cube_allfr_residuals, cube_adi_residuals, frame = res_pca
             elif isinstance(algo_params.ncomp, (tuple, list)):
                 if algo_params.source_xy is None:
@@ -652,7 +652,7 @@ def pca(*all_args: List, **all_kwargs: dict):
 
         elif algo_params.adimsdi == Adimsdi.SINGLE:
             # ADI+mSDI single-pass PCA
-            if isinstance(algo_params.ncomp, (float, int)):
+            if np.isscalar(algo_params.ncomp):
                 if algo_params.full_output:
                     return frame, cube_allfr_residuals, cube_adi_residuals
                 else:
@@ -781,7 +781,7 @@ def _adi_rdi_pca(
                 "equal the number of frames in the cube"
             )
 
-        if not isinstance(ncomp, (int, float, tuple, list)):
+        if not np.isscalar(ncomp) and not isinstance(ncomp, (tuple, list)):
             msg = "`ncomp` must be an int, float, tuple or list in the ADI case"
             raise TypeError(msg)
 

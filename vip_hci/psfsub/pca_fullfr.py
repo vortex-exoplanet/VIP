@@ -108,8 +108,6 @@ class PCA_Params:
     source_xy: Tuple[int] = None
     delta_rot: int = None
     fwhm: float = 4
-    # strategy: str = 'ADI' # TBD: add a strategy keyword: 'ADI', 'RDI', 'ARDI',
-    # 'ASDI', 'SDI', 'S+ADI', 'ARSDI', 'RSDI' => replace 'adimsdi'
     adimsdi: Enum = Adimsdi.SINGLE
     crop_ifs: bool = True
     imlib: Enum = Imlib.VIPFFT
@@ -119,6 +117,8 @@ class PCA_Params:
     collapse_ifs: Enum = Collapse.MEAN
     ifs_collapse_range: Union[str, Tuple[int]] = "all"
     mask_rdi: np.ndarray = None
+    ref_strategy: str = 'RDI'  # TBD: expand keyword to replace 'adimsdi'
+    # {'RDI', 'ARDI', 'RSDI', 'ARSDI', 'ASDI', 'S+ADI', 'S+ARDI'}
     check_memory: bool = True
     batch: Union[int, float] = None
     nproc: int = 1
@@ -287,6 +287,11 @@ def pca(*all_args: List, **all_kwargs: dict):
         and boat regions, respectively, following the denominations in [REN23]_.
         If only one mask is provided, it will be used as the anchor, and the
         boat images will not be masked (i.e., full frames used).
+    ref_strategy: str, opt {'RDI', 'ARDI'}
+        [cube_ref is not None] Indicates the strategy to be adopted when a
+        reference cube is provided. By default, RDI is done - i.e. the science
+        images are not used in the PCA library. If set to 'ARDI', the PCA
+        library is made of both the science and reference images.
     check_memory : bool, optional
         If True, it checks that the input cube is smaller than the available
         system memory.
@@ -527,7 +532,17 @@ def pca(*all_args: List, **all_kwargs: dict):
                 if algo_params.cube_ref[ch].ndim != 3:
                     msg = "Ref cube has wrong format for 4d input cube"
                     raise TypeError(msg)
-                add_params["cube_ref"] = algo_params.cube_ref[ch]
+                if algo_params.ref_strategy == 'RDI':
+                    add_params["cube_ref"] = algo_params.cube_ref[ch]
+                elif algo_params.ref_strategy == 'ARDI':
+                    cube_ref = np.concatenate((algo_params.cube[ch],
+                                               algo_params.cube_ref[ch]))
+                    add_params["cube_ref"] = cube_ref
+                else:
+                    msg = "ref_strategy argument not recognized."
+                    msg += "Should be 'RDI' or 'ARDI'"
+                    raise TypeError(msg)
+
 
             func_params = setup_parameters(
                 params_obj=algo_params, fkt=_adi_rdi_pca, **add_params
@@ -601,11 +616,19 @@ def pca(*all_args: List, **all_kwargs: dict):
             "full_output": True,
         }
 
-        func_params = setup_parameters(params_obj=algo_params,
-                                       fkt=_adi_rdi_pca, **add_params)
-
         if algo_params.cube_ref is not None and algo_params.batch is not None:
             raise ValueError("RDI not compatible with batch mode")
+        elif algo_params.cube_ref is not None:
+            if algo_params.ref_strategy == 'ARDI':
+                algo_params.cube_ref = np.concatenate((algo_params.cube,
+                                                       algo_params.cube_ref))
+            elif algo_params.ref_strategy != 'RDI':
+                msg = "ref_strategy argument not recognized."
+                msg += "Should be 'RDI' or 'ARDI'"
+                raise TypeError(msg)
+
+        func_params = setup_parameters(params_obj=algo_params,
+                                       fkt=_adi_rdi_pca, **add_params)
 
         res_pca = _adi_rdi_pca(**func_params, **rot_options)
 

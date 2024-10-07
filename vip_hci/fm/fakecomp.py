@@ -793,7 +793,7 @@ def normalize_psf(array, fwhm='fit', size=None, threshold=None, mask_core=None,
             restemp = psf_norm_2d(array[fr], fwhm[fr], threshold, mask_core,
                                   True, False)
             array_out.append(restemp[0])
-            fwhm_flux[fr] = restemp[1]
+            fwhm_flux[fr] = restemp[1][0]
 
         array_out = np.array(array_out)
         if verbose:

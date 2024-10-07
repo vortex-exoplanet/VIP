@@ -703,12 +703,12 @@ def throughput(
                 raise TypeError(msg)
             if psf_template.ndim != 3:
                 raise TypeError("Template PSF is not a frame, 3d array")
-            if "scale_list" not in algo_dict:
-                raise ValueError("Vector of wavelength not found")
-            else:
+            if "scale_list" in algo_dict:
+            #     raise ValueError("Vector of wavelength not found")
+            # else:
                 if algo_dict["scale_list"].shape[0] != array.shape[0]:
                     raise TypeError("Input wavelength vector has wrong length")
-                if isinstance(fwhm, float) or isinstance(fwhm, int):
+                if np.isscalar(fwhm):
                     maxfcsep = int((array.shape[2] / 2.0) / fwhm) - 1
                 else:
                     maxfcsep = int((array.shape[2] / 2.0) / np.amin(fwhm)) - 1

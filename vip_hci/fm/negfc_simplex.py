@@ -745,7 +745,7 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
             print(msg3a.format(i_planet, r_pre, theta_pre))
             msg3b = 'Planet {}: preliminary flux guess: '.format(i_planet)
             for z in range(len(f_pre)):
-                msg3b += '{:.1f}'.format(f_pre[z])
+                msg3b += '{:.2f}'.format(f_pre[z])
                 if z < len(f_pre)-1:
                     msg3b += ', '
             print(msg3b)

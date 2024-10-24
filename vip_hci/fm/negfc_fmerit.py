@@ -305,7 +305,7 @@ def chisquare(
                 msg += "calculation. Consider larger input images."
                 raise ValueError(msg)
 
-            subim = frame_crop(frpca, crop_sz, cenxy=(xround, yround),
+            subim = frame_crop(frpca, crop_sz, xy=(xround, yround),
                                force=True, verbose=False)
             H = hessian(subim)
             dets = np.zeros([ndet, ndet])

@@ -38,11 +38,7 @@ AUTO = "auto"
 
 @dataclass
 class PCA_ANNULAR_Params:
-    """
-    Set of parameters for the annular PCA module.
-
-
-    """
+    """Set of parameters for the annular PCA module."""
 
     cube: np.ndarray = None
     angle_list: np.ndarray = None

@@ -460,7 +460,7 @@ def _snr_contrast_esti(
                 psfm = frame_crop(
                     psfm_temp[j],
                     crop,
-                    cenxy=[int(psfm_temp.shape[-1] / 2),
+                    xy=[int(psfm_temp.shape[-1] / 2),
                            int(psfm_temp.shape[-1] / 2)],
                     verbose=False,
                 )
@@ -468,7 +468,7 @@ def _snr_contrast_esti(
             num.append(
                 np.multiply(
                     frame_crop(
-                        mcube[j], crop, cenxy=[
+                        mcube[j], crop, xy=[
                             poscentx, poscenty], verbose=False
                     ),
                     psfm,

@@ -452,7 +452,8 @@ def snr(array, source_xy, fwhm, full_output=False, array2=None, use2alone=False,
         return snr_vale
 
 
-def significance(snr, rad, fwhm, student_to_gauss=True, verbose=True):
+def significance(snr, rad, fwhm, n_ap=None, student_to_gauss=True,
+                 verbose=True):
     """Convert a S/N ratio (measured as in [MAW14]_) into a Gaussian\
     significance (n-sigma) with equivalent false alarm probability for a\
     point-source detection measured at a given separation, or the opposite.
@@ -467,6 +468,11 @@ def significance(snr, rad, fwhm, student_to_gauss=True, verbose=True):
         to each snr measurement.
     fwhm : float
         Full Width Half Maximum of the PSF.
+    n_ap : int, optional
+        Number of independent samples available. If provided, will take
+        precedence over using input rad and FWHM. This can be useful when the
+        limited azimuthal coverage is available (e.g. when using APP or 4QPM
+        coronagraphs).
     student_to_gauss : bool, optional
         Whether the conversion is from Student SNR to Gaussian significance
         (True), or the opposite (False).
@@ -477,9 +483,12 @@ def significance(snr, rad, fwhm, student_to_gauss=True, verbose=True):
         Equivalent Gaussian significance [student_to_gauss=True] or equivalent
         Student S/N ratio [student_to_gauss=False].
     """
+    if n_ap is None:
+        n_ap = (rad/fwhm)*2*np.pi-2
+
     if student_to_gauss:
-        sig = norm.ppf(t.cdf(snr, (rad/fwhm)*2*np.pi-2))
-        if t.cdf(snr, (rad/fwhm)*2*np.pi-2) == 1.0:
+        sig = norm.ppf(t.cdf(snr, n_ap))
+        if t.cdf(snr, n_ap) == 1.0:
             print("Warning high S/N! cdf>0.9999999999999999 is rounded to 1")
             msg = "Returning 8.2 sigma, but quote significance > 8.2 sigma."
             print(msg)
@@ -490,7 +499,7 @@ def significance(snr, rad, fwhm, student_to_gauss=True, verbose=True):
             msg += r"Gaussian false alarm probability."
             print(msg.format(rad, rad/fwhm, snr, sig))
     else:
-        sig = t.ppf(norm.cdf(snr), (rad/fwhm)*2*np.pi-2)
+        sig = t.ppf(norm.cdf(snr), n_ap)
         if verbose:
             msg = r"At a separation of {:.1f} px ({:.1f} FWHM), a {:.1f}-sigma "
             msg += r"detection in terms of Gaussian false alarm probability "

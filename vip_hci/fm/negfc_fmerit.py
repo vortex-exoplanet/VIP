@@ -922,20 +922,24 @@ def hessian(array):
 
     Parameters
     ----------
-    array : numpy ndarray
-        Input array for which the Hessian matrix should be calculated.
+       array : numpy ndarray
+           Input array for which the Hessian matrix should be calculated.
 
     Returns
     -------
-    hessian: numpy ndarray of shape (array.ndim, array.ndim) + array.shape
-        The Hessian matrix associated to each element of the input array,
-        e.g. for a 2D input, hessian[i, j, k, l] corresponds to the second
-        derivative x_ij (ij can be y or x) at coordinates (k,l) of input
-        array.
+       hessian: numpy ndarray of shape (array.ndim, array.ndim) + array.shape
+           The Hessian matrix associated to each element of the input array,
+           e.g. for a 2D input, hessian[i, j, k, l] corresponds to the second
+           derivative x_ij (ij can be y or x) at coordinates (k,l) of input
+           array.
     """
     grad = np.gradient(array)
-    hessian = np.empty((array.ndim, array.ndim) + array.shape, dtype=array.dtype)
-    for k in range(array.ndim):
-        for m in range(array.ndim):
-            hessian[k, m, :, :] = np.gradient(grad[k], axis=m)
+    hessian = np.empty((array.ndim, array.ndim) + array.shape,
+                       dtype=array.dtype)
+    for k, grad_k in enumerate(grad):
+        # iterate over dimensions
+        # apply gradient again to every component of the first derivative.
+        tmp_grad = np.gradient(grad_k)
+        for m, grad_km in enumerate(tmp_grad):
+            hessian[k, m, :, :] = grad_km
     return hessian

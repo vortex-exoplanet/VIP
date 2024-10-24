@@ -236,7 +236,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         planet_parameter[0, 2] = f_true
     cube_pf = cube_planet_free(planet_parameter, cube, derot_angles, psfn,
                                imlib=imlib, interpolation=interpolation,
-                               transmission=transmission)
+                               transmission=transmission, nproc=nproc)
 
     # Measure mu and sigma once in the annulus (instead of each MCMC step)
     if isinstance(mu_sigma, tuple):

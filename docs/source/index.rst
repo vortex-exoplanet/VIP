@@ -50,6 +50,7 @@ a bug, ask a question, suggest a new functionality or contribute to the code (th
    tutorials/04_metrics
    tutorials/05A_fm_planets
    tutorials/05B_fm_disks
+   tutorials/06_psfsub_fm_RDI
    tutorials/07_psfsub_fm_IFS-ASDI_planets
    tutorials/08_imlib_and_interpolation
 

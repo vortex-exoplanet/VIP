@@ -288,7 +288,7 @@ def contrast_curve(
             transmission = ntransmission.copy()
 
     if interp_order is not None or noise_sep is not None:
-        # noise measured in the empty frame with nosie_sep sampling
+        # noise measured in the empty frame with noise_sep sampling
         if noise_sep is None:
             rad_samp = vector_radd
             noise_samp = res_throug[1]
@@ -310,7 +310,11 @@ def contrast_curve(
         # define max radius, ensuring it is > fwhm/2 from the outer image edge
         radmax_fwhm = int(((cube.shape[-1]-1)//2)-fwhm_med/2)
         radmax = min(vector_radd.astype(int).max(), radmax_fwhm)
-        cutin2 = np.where(rad_samp.astype(int) == radmax)[0][0]
+        radtmp = radmax
+        if len(np.where(rad_samp.astype(int) == radmax)[0]) == 0:
+            while len(np.where(rad_samp.astype(int) == radtmp)[0]) == 0:
+                radtmp -= 1
+        cutin2 = np.where(rad_samp.astype(int) == radtmp)[0][0]
         noise_samp = noise_samp[: cutin2 + 1]
         res_lev_samp = res_lev_samp[: cutin2 + 1]
         rad_samp = rad_samp[: cutin2 + 1]

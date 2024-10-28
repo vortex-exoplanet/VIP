@@ -4,7 +4,6 @@ Module with cosmetics procedures. Contains the function for bad pixel fixing.
 Also functions for cropping cubes.
 """
 
-
 __author__ = "Carlos Alberto Gomez Gonzalez, V. Christiaens"
 __all__ = [
     "cube_crop_frames",
@@ -15,16 +14,12 @@ __all__ = [
     "approx_stellar_position",
 ]
 
-
 from multiprocessing import cpu_count
 import numpy as np
 from astropy.stats import sigma_clipped_stats
-from ..config.utils_conf import pool_map, iterable
 from ..stats import sigma_filter
 from ..var import frame_center, get_square
-from multiprocessing import Process
 import multiprocessing
-from multiprocessing import set_start_method
 
 shared_mem = True
 try:
@@ -79,9 +74,8 @@ def cube_crop_frames(
         cenx, ceny = xy
     else:
         ceny, cenx = frame_center(temp_fr)
-    _, y0, x0 = get_square(
-        temp_fr, size, y=ceny, x=cenx, position=True, force=force, verbose=verbose
-    )
+    _, y0, x0 = get_square(temp_fr, size, y=ceny, x=cenx, position=True,
+                           force=force, verbose=verbose)
 
     if not force:
         if temp_fr.shape[0] % 2 == 0:
@@ -107,7 +101,7 @@ def cube_crop_frames(
         return array_out
 
 
-def frame_crop(array, size, cenxy=None, force=False, verbose=True):
+def frame_crop(array, size, xy=None, force=False, verbose=True):
     """Crops a square frame (2d array). Uses the ``get_square`` function.
 
     Parameters
@@ -116,7 +110,7 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
         Input frame.
     size : int, odd
         Size of the subframe.
-    cenxy : tuple, optional
+    xy : tuple, optional
         Coordinates of the center of the subframe.
     force : bool, optional
         Size and the size of the 2d array must be both even or odd. With
@@ -136,11 +130,12 @@ def frame_crop(array, size, cenxy=None, force=False, verbose=True):
     if array.ndim != 2:
         raise TypeError("`Array` is not a frame or 2d array")
 
-    if not cenxy:
+    if not xy:
         ceny, cenx = frame_center(array)
     else:
-        cenx, ceny = cenxy
-    array_view = get_square(array, size, ceny, cenx, force=force, verbose=verbose)
+        cenx, ceny = xy
+    array_view = get_square(array, size, ceny, cenx, force=force,
+                            verbose=verbose)
 
     if verbose:
         print("New shape: {}".format(array_view.shape))
@@ -267,16 +262,16 @@ def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
         raise TypeError("End index must be smaller than the # of frames")
 
     if array.ndim == 4:
-        array_view = array[:, n - 1 : m, :, :].copy()
+        array_view = array[:, n - 1: m, :, :].copy()
     elif array.ndim == 3:
-        array_view = array[n - 1 : m, :, :].copy()
+        array_view = array[n - 1: m, :, :].copy()
     else:
         raise ValueError("only 3D and 4D cubes are supported!")
 
     if parallactic is not None:
         if not parallactic.ndim == 1:
             raise ValueError("Parallactic angles vector has wrong shape")
-        parallactic = parallactic[n - 1 : m]
+        parallactic = parallactic[n - 1: m]
 
     if verbose:
         print("Cube successfully sliced")
@@ -292,9 +287,8 @@ def cube_drop_frames(array, n, m, parallactic=None, verbose=True):
 
 
 def frame_remove_stripes(array):
-    """Removes unwanted stripe artifact in frames with non-perfect bias or sky
-    subtraction. Encountered this case on an LBT data cube.
-    """
+    """Remove unwanted stripe artifact in frames with non-perfect bias or sky\
+    subtraction. Encountered this case on an LBT data cube."""
     lines = array[:50]
     lines = np.vstack((lines, array[-50:]))
     mean = lines.mean(axis=0)
@@ -303,11 +297,10 @@ def frame_remove_stripes(array):
     return array
 
 
-def cube_correct_nan(
-    cube, neighbor_box=3, min_neighbors=3, verbose=False, half_res_y=False, nproc=1
-):
-    """Sigma filtering of nan pixels in a whole frame or cube. Tested on
-    SINFONI data.
+def cube_correct_nan(cube, neighbor_box=3, min_neighbors=3, verbose=False,
+                     half_res_y=False, nproc=1):
+    """
+    Sigma filter nan pixels in a whole frame or cube.
 
     Parameters
     ----------
@@ -334,8 +327,8 @@ def cube_correct_nan(
     -------
     obj_tmp : numpy ndarray
         Output cube with corrected nan pixels in each frame
-    """
 
+    """
     obj_tmp = cube.copy()
 
     ndims = obj_tmp.ndim
@@ -364,14 +357,15 @@ def cube_correct_nan(
         if nproc == 1 or not shared_mem:
             for zz in range(n_z):
                 obj_tmp[zz], nnanpix = nan_corr_2d(
-                    obj_tmp[zz], neighbor_box, min_neighbors, half_res_y, verbose, True
+                    obj_tmp[zz], neighbor_box, min_neighbors, half_res_y,
+                    verbose, True
                 )
                 if verbose:
                     msg = "In channel {}, {} NaN pixels were corrected"
                     print(msg.format(zz, nnanpix))
         else:
-            # dummy calling the function to prevent compiling of the function by individual workers
-            # This should save some time.
+            # dummy calling the function to prevent compiling of the function
+            #  by individual workers. This should save some time.
             dummy_obj = nan_corr_2d(
                 obj_tmp[0],
                 neighbor_box,
@@ -381,16 +375,17 @@ def cube_correct_nan(
                 full_output=False,
             )
             if verbose:
-                msg = "Correcting NaNs in multiprocessing using ADACS' approach..."
+                msg = "Correcting NaNs in multiprocessing using ADACS' approach"
                 print(msg)
             # creation of shared memory blob
             shm = shared_memory.SharedMemory(create=True, size=obj_tmp.nbytes)
-            # creating an array object similar to obj_tmp and occupying shared memory.
+            # creating array object similar to obj_tmp and occupying shared mem
             obj_tmp_shared = np.ndarray(
                 obj_tmp.shape, dtype=obj_tmp.dtype, buffer=shm.buf
             )
 
-            # nan_corr_2d_mp function passes the frame and other details to nan_corr_2d for processing.
+            # nan_corr_2d_mp function passes the frame and other details to
+            # nan_corr_2d for processing.
             def nan_corr_2d_mp(
                 i, obj, neighbor_box, min_neighbors, half_res_y, verbose
             ):
@@ -417,7 +412,8 @@ def cube_correct_nan(
             args = []
             for j in range(n_z):
                 args.append(
-                    [j, obj_tmp[j], neighbor_box, min_neighbors, half_res_y, verbose]
+                    [j, obj_tmp[j], neighbor_box, min_neighbors, half_res_y,
+                     verbose]
                 )
             try:
                 pool.map_async(_nan_corr_2d_mp, args, chunksize=1).get(
@@ -429,9 +425,11 @@ def cube_correct_nan(
                 obj_tmp[:] = obj_tmp_shared[:]
                 shm.close()
                 shm.unlink()
-            # Original Multiprocessing code commented out below and ADACS approach is activated.
-            # res = pool_map(nproc, nan_corr_2d, iterable(obj_tmp), neighbor_box,
-            #                min_neighbors, half_res_y, verbose, False)
+            # Original Multiprocessing code commented out below and ADACS
+            # approach is activated.
+            # res = pool_map(nproc, nan_corr_2d, iterable(obj_tmp),
+            #                 neighbor_box, min_neighbors, half_res_y, verbose,
+            #                 False)
             # obj_tmp = np.array(res, dtype=object)
 
     if verbose:
@@ -487,9 +485,9 @@ def nan_corr_2d(
 
 
 def approx_stellar_position(cube, fwhm, return_test=False, verbose=False):
-    """Finds the approximate coordinates of the star, assuming it is the
-    brightest signal in the images. The algorithm can handle images dominated
-    by noise, since outliers are corrected based on the position of ths star in
+    """Find the approximate coordinates of the star, assuming it is the\
+    brightest signal in the images. The algorithm can handle images dominated\
+    by noise, since outliers are corrected based on the position of ths star in\
     other channels.
 
     Parameters

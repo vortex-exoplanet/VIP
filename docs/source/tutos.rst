@@ -24,7 +24,7 @@ A summary of available notebooks is provided below:
 - `Tutorial 5A <https://vip.readthedocs.io/en/latest/tutorials/05A_fm_planets.html>`_: how to characterize a directly imaged companion;
 - `Tutorial 5B <https://vip.readthedocs.io/en/latest/tutorials/05B_fm_disks.html>`_: how to characterize a circumstellar disk;
 - Tutorial 5C (coming soon): how to characterize a companion in a disk using JWST observations ;
-- Tutorial 6 (coming soon): post-processing algorithms leveraging reference star differential imaging;
+- `Tutorial 6 <https://vip.readthedocs.io/en/latest/tutorials/06_psfsub_fm_RDI.html>`_: post-processing algorithms leveraging reference star differential imaging;
 - `Tutorial 7 <https://vip.readthedocs.io/en/latest/tutorials/07_psfsub_fm_IFS-ASDI_planets.html>`_:
 post-processing algorithms leveraging spectral differential imaging;
 - `Tutorial 8 <https://vip.readthedocs.io/en/latest/tutorials/08_imlib_and_interpolation.html>`_: the difference between FFT- and interpolation-based image operations (rotation, shifts, scaling).

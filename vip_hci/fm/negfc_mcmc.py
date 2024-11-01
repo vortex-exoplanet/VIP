@@ -516,7 +516,7 @@ def mcmc_negfc_sampling(cube, angs, psfn, initial_state, algo=pca_annulus,
           'sum' when residual speckle noise is still significant):\
           :math:`\chi^2 = N \sigma_{I_j}(values,ddof=1)*values.size`
         - ``mu_sigma=True`` or a tuple (as in [CHR21]_, new default):\
-          :math:`\chi^2 = \sum\frac{(I_j- mu)^2}{\sigma^2}`
+          :math:`\chi^2 = \sum\frac{(I_j- \mu)^2}{\sigma^2}`
 
     where :math:`j \in {1,...,N}` with N the total number of pixels
     contained in the circular aperture, :math:`\sigma_{I_j}` is the standard

@@ -639,7 +639,7 @@ def _fft_shear(arr, arr_ori, c, ax, pad=0, shift_ini=True):
 
 
 
-def tensor_rotate_fft(tensor: torch.Tensor, angle: float) -> torch.Tensor:
+def tensor_rotate_fft(tensor, angle):
     """ Rotates Tensor using Fourier transform phases:
         Rotation = 3 consecutive lin. shears = 3 consecutive FFT phase shifts
         See details in Larkin et al. (1997) and Hagelberg et al. (2016).

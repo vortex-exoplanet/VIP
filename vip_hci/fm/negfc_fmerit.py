@@ -731,6 +731,7 @@ def get_mu_and_sigma(
     collapse = algo_options.get("collapse", collapse)
 
     radius_int = max(int(np.floor(r_guess - annulus_width / 2)), 0)
+    radius_int = algo_options.get("radius_int", radius_int)
 
     # not recommended, except if large-scale residual sky present (NIRC2-L')
     hp_filter = algo_options.get("hp_filter", None)
@@ -900,10 +901,10 @@ def get_mu_and_sigma(
 
     # annulus should encompass the companion location for accurate mu and sigma
     indices = get_annular_wedge(pca_res, inner_radius=radius_int,
-                                width=min(annulus_width, 2 * fwhm), wedge=wedge)
+                                width=annulus_width, wedge=wedge)
     yy, xx = indices
     indices_inv = get_annular_wedge(pca_res_inv, inner_radius=radius_int,
-                                    width=min(annulus_width, 2 * fwhm), wedge=wedge)
+                                    width=annulus_width, wedge=wedge)
     yyi, xxi = indices_inv
     all_res = np.concatenate((pca_res[yy, xx], pca_res_inv[yyi, xxi]))
     mu = np.nanmean(all_res)

@@ -6,7 +6,6 @@ __all__ = ["get_mu_and_sigma"]
 
 import numpy as np
 
-from example_run_script import source
 from hciplot import plot_frames
 from skimage.draw import disk
 from ..fm import cube_inject_companions

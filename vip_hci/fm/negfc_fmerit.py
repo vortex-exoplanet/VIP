@@ -5,6 +5,8 @@ __author__ = "O. Wertz, Carlos Alberto Gomez Gonzalez, Valentin Christiaens"
 __all__ = ["get_mu_and_sigma"]
 
 import numpy as np
+
+from example_run_script import source
 from hciplot import plot_frames
 from skimage.draw import disk
 from ..fm import cube_inject_companions
@@ -844,6 +846,7 @@ def get_mu_and_sigma(
         scale_list = algo_options.get("scale_list", None)
         ifs_collapse_range = algo_options.get("ifs_collapse_range", "all")
         nproc = algo_options.get("nproc", 1)
+        source_xy = algo_options.get("source_xy", None)
 
         pca_res = pca(
             cube=cube,
@@ -853,6 +856,8 @@ def get_mu_and_sigma(
             ncomp=ncomp,
             svd_mode=svd_mode,
             scaling=scaling,
+            delta_rot=delta_rot,
+            source_xy=source_xy,
             imlib=imlib,
             interpolation=interpolation,
             collapse=collapse,
@@ -869,6 +874,8 @@ def get_mu_and_sigma(
             ncomp=ncomp,
             svd_mode=svd_mode,
             scaling=scaling,
+            delta_rot=delta_rot,
+            source_xy=source_xy,
             imlib=imlib,
             interpolation=interpolation,
             collapse=collapse,

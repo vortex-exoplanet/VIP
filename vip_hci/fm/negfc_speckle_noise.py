@@ -367,9 +367,6 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
                                      imlib=imlib, interpolation=interpolation,
                                      verbose=False)
 
-    ncomp = algo_options.get('ncomp', 1)
-    annulus_width = algo_options.get('annulus_width', int(fwhm))
-
     if cube_pf.ndim == 4:
         p_ini = [r_true, angle]
         for f in f_true:
@@ -378,10 +375,14 @@ def _estimate_speckle_one_angle(angle, cube_pf, psfn, angs, r_true, f_true,
     else:
         p_ini = (r_true, angle, f_true)
 
+    ncomp = algo_options.get('ncomp', 1)
+    annulus_width = algo_options.get('annulus_width', int(fwhm))
+    delta_rot = algo_options.get('delta_rot', 1)
+
     res_simplex = firstguess_simplex(p_ini, cube_fc, angs,
                                      psfn, ncomp, fwhm, annulus_width,
                                      aperture_radius, cube_ref=cube_ref,
-                                     fmerit=fmerit, algo=algo,
+                                     fmerit=fmerit, algo=algo, delta_rot=delta_rot,
                                      algo_options=algo_options, imlib=imlib,
                                      interpolation=interpolation,
                                      transmission=transmission,

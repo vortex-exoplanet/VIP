@@ -482,8 +482,10 @@ def get_values_optimize(
         max_frames_lib = algo_options.get("max_frames_lib", 200)
         radius_int = max(1, int(np.floor(r_guess - annulus_width / 2)))
         radius_int = algo_options.get("radius_int", radius_int)
+        asize = algo_options.get("asize", annulus_width)
+        delta_rot = algo_options.get("delta_rot", delta_rot)
         # crop cube to just be larger than annulus => FASTER PCA
-        crop_sz = int(2 * np.ceil(radius_int + annulus_width + 1))
+        crop_sz = int(2 * np.ceil(radius_int + asize + 1))
         if not crop_sz % 2:
             crop_sz += 1
         if crop_sz < cube.shape[-2] and crop_sz < cube.shape[-1]:
@@ -499,7 +501,7 @@ def get_values_optimize(
                 cube_ref=cube_ref,
                 radius_int=radius_int,
                 fwhm=fwhm,
-                asize=annulus_width,
+                asize=asize,
                 delta_rot=delta_rot,
                 ncomp=ncomp,
                 svd_mode=svd_mode,

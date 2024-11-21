@@ -61,7 +61,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         of spectral channels (flux at each wavelength).
     angle_range: 1d numpy array
         Range of angles (counted from x=0 axis, counter-clockwise) at which the
-        fake companions will be injected, in [0,360[.
+        fake companions will be injected, in [0,360].
     derot_angles: 1d numpy array
         Derotation angles for ADI. Length should match input cube.
     algo: python routine
@@ -158,7 +158,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
     save: bool, optional
         If True, the result are pickled.
     verbose: bool, optional
-        If True, informations are displayed in the shell.
+        If True, information is displayed in the shell.
     plot: bool, optional
         Whether to plot the gaussian fit to the distributions of parameter
         deviations (between retrieved and injected).

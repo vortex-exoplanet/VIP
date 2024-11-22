@@ -408,7 +408,7 @@ def peak_coordinates(obj_tmp, fwhm, approx_peak=None, search_box=None,
     channels_peak: bool, {False, True}, opt
         Whether returns the indices of the peak in each channel in addition to
         the global indices of the peak in the cube. If True, it would hence
-        return two 1d-arrays. (note: only available if the input is a 3d cube)
+        return two arrays. Note: only available if the input is a 3d cube.
 
     Returns
     -------

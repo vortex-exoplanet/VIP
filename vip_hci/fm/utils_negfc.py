@@ -14,16 +14,17 @@ from ..fm import cube_inject_companions
 
 def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
                      interpolation='lanczos4', transmission=None):
-    """
-    Return a cube in which we have injected negative fake companion at the
+    """Return a cube in which we have injected negative fake companion at the\
     position/flux given by planet_parameter.
 
     Parameters
     ----------
     planet_parameter: numpy.array or list or tuple
-        The (r, theta, flux) for all known companions. For a 4d cube r,
-        theta and flux must all be 1d arrays with length equal to cube.shape[0];
-        i.e. planet_parameter should have shape: (n_pl,3,n_ch).
+        The (r, theta, flux) for all known companions. For a 3D cube, this
+        parameter must have a shape (n_pl,3) or (3,) -- the latter case assumes
+        a single planet in the data. For a 4d cube r, theta and flux
+        must all be 1d arrays with length equal to cube.shape[0]; i.e.
+        planet_parameter should have shape: (n_pl,3,n_ch).
     cube: numpy ndarray
         The cube of fits images expressed as a numpy.array.
     angs: numpy ndarray
@@ -94,10 +95,8 @@ def cube_planet_free(planet_parameter, cube, angs, psfn, imlib='vip-fft',
 
 
 def find_nearest(array, value, output='index', constraint=None, n=1):
-    """
-    Function to find the indices, and optionally the values, of an array's n
-    closest elements to a certain value.
-    By default, only returns the index/indices.
+    """Find the indices, and optionally the values, of an array's n closest\
+    elements to a certain value. By default, only returns the index/indices.
 
     Possible constraints: 'ceil', 'floor', None ("ceil" will return the closest
     element with a value greater than 'value', "floor" the opposite).

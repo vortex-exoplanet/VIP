@@ -216,7 +216,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                                   angle_range[-1]+delta_theta/2, n_ap,
                                   endpoint=False)
 
-    elif angle_range[0] % 360 == angle_range[-1] % 360:
+    if angle_range[0] % 360 == angle_range[-1] % 360:
         angle_range = angle_range[:-1]
 
     if verbose:
@@ -254,8 +254,8 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
             norm_weights = weights
         mu_sigma = get_mu_and_sigma(cube, derot_angles, ncomp, annulus_width,
                                     aperture_radius, fwhm, r_true, theta_true,
-                                    cube_ref=cube_ref, wedge=wedge, algo=algo,
-                                    weights=norm_weights,
+                                    f_true, psfn, cube_ref=cube_ref, wedge=wedge,
+                                    algo=algo, weights=norm_weights,
                                     algo_options=algo_options)
 
     res = pool_map(nproc, _estimate_speckle_one_angle, iterable(angle_range),

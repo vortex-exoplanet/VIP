@@ -12,10 +12,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ..config.utils_conf import pool_map, iterable  # eval_func_tuple
-from ..fm import cube_inject_companions
+from ..fm import cube_inject_companions, cube_planet_free
 from .negfc_simplex import firstguess_simplex
 from .negfc_fmerit import get_mu_and_sigma
-from .utils_negfc import cube_planet_free
 from .negfc_mcmc import confidence
 
 

@@ -241,9 +241,11 @@ def pca(*all_args: List, **all_kwargs: dict):
 
     svd_mode : Enum, see `vip_hci.config.paramenum.SvdMode`
         Switch for the SVD method/library to be used.
-    scaling : Enum, see `vip_hci.config.paramenum.Scaling`
+    scaling : Enum, or tuple of Enum, see `vip_hci.config.paramenum.Scaling`
         Pixel-wise scaling mode using ``sklearn.preprocessing.scale``
-        function. If set to None, the input matrix is left untouched.
+        function. If set to None, the input matrix is left untouched. In the
+        case of PCA-SADI in 2 steps, this can be a tuple of 2 values,
+        corresponding to the scaling for each of the 2 steps of PCA.
     mask_center_px : None or int
         If None, no masking is done. If an integer > 1 then this value is the
         radius of the circular mask.
@@ -1197,6 +1199,9 @@ def _adimsdi_doublepca(
             raise ValueError("Scaling factors vector has wrong length")
     scale_list = check_scal_vector(scale_list)
 
+    if type(scaling) is not tuple:
+        scaling = (scaling, scaling)
+
     if verbose:
         print("{} spectral channels in IFS cube".format(z))
         if ncomp_ifs is None:
@@ -1215,7 +1220,7 @@ def _adimsdi_doublepca(
         iterable(range(n)),
         ncomp_ifs,
         scale_list,
-        scaling,
+        scaling[0],
         mask_center_px,
         svd_mode,
         imlib2,
@@ -1268,7 +1273,7 @@ def _adimsdi_doublepca(
                 residuals_cube_channels,
                 None,
                 ncomp_adi,
-                scaling,
+                scaling[1],
                 mask_center_px,
                 svd_mode,
                 verbose,
@@ -1297,7 +1302,7 @@ def _adimsdi_doublepca(
                     residuals_cube_channels,
                     None,
                     ncomp_adi,
-                    scaling,
+                    scaling[1],
                     mask_center_px,
                     svd_mode,
                     verbose,

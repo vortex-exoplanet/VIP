@@ -28,9 +28,9 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                           imlib='skimage', interpolation='biquintic',
                           collapse='median', algo=pca_annulus, delta_rot=1,
                           algo_options={}, f_range=None, transmission=None,
-                          mu_sigma=(0, 1), weights=None, ndet=None, plot=False,
-                          verbose=True, save=False, debug=False,
-                          full_output=False):
+                          mu_sigma=(0, 1), weights=None, ndet=None,
+                          bin_spec=False, plot=False, verbose=True, save=False,
+                          debug=False, full_output=False):
     """Determine a first guess for the flux of a companion at a given position\
     in the cube by doing a simple grid search evaluating the reduced chi2 using\
     the negative fake companion technique (i.e. the reduced chi2 is calculated\
@@ -155,6 +155,10 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         pixel(s) around the subpixel coordinates of the first guess location are
         considered. The figure of merit is the absolute sum of the determinants.
         If None, ndet is determined automatically to be max(1, round(fwhm/2)).
+    bin_spec: bool, optional
+        [only used if cube is 4D] Whether to collapse the spectral dimension
+        (i.e. estimate a single binned flux) instead of estimating the flux in
+        each spectral channel.
     plot: boolean, optional
         If True, the figure chi2 vs. flux is displayed.
     verbose: boolean
@@ -183,8 +187,8 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                        interpolation='lanczos4', collapse='median',
                        algo=pca_annulus, delta_rot=1, algo_options={},
                        f_range=np.geomspace(1e-1, 1e4, 30), transmission=None,
-                       mu_sigma=None, weights=None, ndet=None, verbose=True,
-                       debug=False):
+                       mu_sigma=None, weights=None, ndet=None, bin_spec=False,
+                       verbose=True, debug=False):
 
         chi2r = []
         if verbose:
@@ -192,7 +196,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
 
         counter = 0
         for j, f_guess in enumerate(f_range):
-            if cube.ndim == 3:
+            if cube.ndim == 3 or (cube.ndim == 4 and bin_spec):
                 params = (r0, theta0, f_guess)
             elif ch is not None and cube.ndim == 4:
                 params = [r0, theta0]
@@ -206,7 +210,8 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                                    ncomp, cube_ref, svd_mode, scaling, fmerit,
                                    collapse, algo, delta_rot, imlib,
                                    interpolation, algo_options, transmission,
-                                   mu_sigma, weights, False, ndet, debug))
+                                   mu_sigma, weights, False, ndet, bin_spec,
+                                   debug))
             if chi2r[j] > chi2r[j-1]:
                 counter += 1
             if counter == 4:
@@ -227,7 +232,7 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
         n = 30
         f_range = np.geomspace(1e-1, 1e4, n)
 
-    if cube.ndim == 3:
+    if cube.ndim == 3 or bin_spec:
         chi2r = _grid_search_f(r0, theta0, None, cube, angs, psfn, fwhm,
                                annulus_width, aperture_radius, ncomp,
                                cube_ref=cube_ref, svd_mode=svd_mode,
@@ -236,8 +241,8 @@ def firstguess_from_coord(planet, center, cube, angs, psfn, fwhm, annulus_width,
                                algo=algo, delta_rot=delta_rot,
                                algo_options=algo_options, f_range=f_range,
                                transmission=transmission, mu_sigma=mu_sigma,
-                               weights=weights, ndet=ndet, verbose=verbose,
-                               debug=debug)
+                               weights=weights, ndet=ndet, bin_spec=bin_spec,
+                               verbose=verbose, debug=debug)
         chi2r = np.array(chi2r)
         f0 = f_range[chi2r.argmin()]
 
@@ -331,8 +336,8 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
                        interpolation='biquintic', collapse='median',
                        algo=pca_annulus, delta_rot=1, algo_options={},
                        p_ini=None, transmission=None, mu_sigma=(0, 1),
-                       weights=None, force_rPA=False, ndet=None, options=None,
-                       verbose=False, **kwargs):
+                       weights=None, force_rPA=False, ndet=None, bin_spec=False,
+                       options=None, verbose=False, **kwargs):
     """Determine the position of a companion using the negative fake companion\
     technique and a standard minimization algorithm (Default=Nelder-Mead).
 
@@ -454,6 +459,10 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
         pixel(s) around the subpixel coordinates of the first guess location are
         considered. The figure of merit is the absolute sum of the determinants.
         If None, ndet is determined automatically to be max(1, round(fwhm/2)).
+    bin_spec: bool, optional
+        [only used if cube is 4D] Whether to collapse the spectral dimension
+        (i.e. estimate a single binned flux) instead of estimating the flux in
+        each spectral channel.
     options: dict, optional
         The scipy.optimize.minimize options.
     verbose : boolean, optional
@@ -484,7 +493,7 @@ def firstguess_simplex(p, cube, angs, psfn, ncomp, fwhm, annulus_width,
                                           collapse, algo, delta_rot, imlib,
                                           interpolation, algo_options,
                                           transmission, mu_sigma, weights,
-                                          force_rPA, ndet),
+                                          force_rPA, ndet, bin_spec),
                     method='Nelder-Mead', options=options, **kwargs)
 
     if verbose:
@@ -498,8 +507,8 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
                interpolation='biquintic', collapse='median', algo=pca_annulus,
                delta_rot=1, f_range=None, transmission=None, mu_sigma=True,
                wedge=None, weights=None, force_rPA=False, ndet=None,
-               algo_options={}, simplex=True, simplex_options=None, plot=False,
-               verbose=True, save=False):
+               bin_spec=False, algo_options={}, simplex=True,
+               simplex_options=None, plot=False, verbose=True, save=False):
     """Determine a first guess for the position and the flux of a planet using\
     the negative fake companion technique, as explained in [WER17]_.
 
@@ -636,6 +645,10 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
         pixel(s) around the subpixel coordinates of the first guess location are
         considered. The figure of merit is the absolute sum of the determinants.
         If None, ndet is determined automatically to be max(1, round(fwhm/2)).
+    bin_spec: bool, optional
+        [only used if cube is 4D] Whether to collapse the spectral dimension
+        (i.e. estimate a single binned flux) instead of estimating the flux in
+        each spectral channel.
     algo_options: dict, opt
         Dictionary with additional parameters for the pca algorithm (e.g. tol,
         min_frames_lib, max_frames_lib). Note: arguments such as svd_mode,
@@ -682,7 +695,10 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
         if psfn.ndim < 3:
             msg = "The normalized PSF should be 3D for a 4D input cube"
             raise TypeError(msg)
-        f_0 = np.zeros([n_planet, cube.shape[0]])
+        if cube.ndim == 4 and bin_spec:
+            f_0 = np.zeros_like(r_0)
+        else:
+            f_0 = np.zeros([n_planet, cube.shape[0]])
 
     if weights is not None:
         if not len(weights) == cube.shape[-3]:
@@ -717,7 +733,8 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
                                         delta_rot=delta_rot, imlib=imlib,
                                         interpolation=interpolation,
                                         collapse=collapse, weights=norm_weights,
-                                        algo_options=algo_options)
+                                        algo_options=algo_options,
+                                        bin_spec=bin_spec)
 
         res_init = firstguess_from_coord(planets_xy_coord[i_planet],
                                          center_xy_coord, cube, angs,
@@ -732,8 +749,8 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
                                          algo_options=algo_options,
                                          transmission=transmission,
                                          mu_sigma=mu_sigma, weights=weights,
-                                         ndet=ndet, plot=plot, verbose=verbose,
-                                         save=save)
+                                         ndet=ndet, bin_spec=bin_spec,
+                                         plot=plot, verbose=verbose, save=save)
 
         r_pre = res_init[0]
         theta_pre = res_init[1]
@@ -771,14 +788,15 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
                                      transmission=transmission,
                                      mu_sigma=mu_sigma, weights=weights,
                                      force_rPA=force_rPA, ndet=ndet,
-                                     options=simplex_options, verbose=False)
+                                     bin_spec=bin_spec, options=simplex_options,
+                                     verbose=False)
             if force_rPA:
                 r_0[i_planet], theta_0[i_planet] = (r_pre, theta_pre)
                 f_0[i_planet] = res.x[:]
             else:
                 r_0[i_planet] = res.x[0]
                 theta_0[i_planet] = res.x[1]
-                if cube.ndim == 3:
+                if cube.ndim == 3 or (cube.ndim == 4 and bin_spec):
                     f_0[i_planet] = res.x[2]
                 else:
                     f_0[i_planet] = res.x[2:]
@@ -794,7 +812,7 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
                 print(msg4bis.format(i_planet))
             r_0[i_planet] = r_pre
             theta_0[i_planet] = theta_pre
-            if cube.ndim == 3:
+            if cube.ndim == 3 or (cube.ndim == 4 and bin_spec):
                 f_0[i_planet] = f_pre[0]
             else:
                 f_0[i_planet] = f_pre
@@ -804,7 +822,7 @@ def firstguess(cube, angs, psfn, planets_xy_coord, ncomp=1, fwhm=4,
             posy = r_0 * np.sin(np.deg2rad(theta_0[i_planet])) + centy
             posx = r_0 * np.cos(np.deg2rad(theta_0[i_planet])) + centx
             msg6 = 'Planet {} simplex result: (r, theta, '.format(i_planet)
-            if cube.ndim == 3:
+            if cube.ndim == 3 or (cube.ndim == 4 and bin_spec):
                 msg6 += 'f)=({:.3f}, {:.3f}, {:.3f})'.format(r_0[i_planet],
                                                              theta_0[i_planet],
                                                              f_0[i_planet])

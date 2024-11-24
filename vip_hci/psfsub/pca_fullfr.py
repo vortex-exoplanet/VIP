@@ -116,7 +116,7 @@ class PCA_Params:
     collapse: Enum = Collapse.MEDIAN
     collapse_ifs: Enum = Collapse.MEAN
     ifs_collapse_range: Union[str, Tuple[int]] = "all"
-    smooth_first_pass: False
+    smooth_first_pass: bool = False
     mask_rdi: np.ndarray = None
     ref_strategy: str = 'RDI'  # TBD: expand keyword to replace 'adimsdi'
     # {'RDI', 'ARDI', 'RSDI', 'ARSDI', 'ASDI', 'S+ADI', 'S+ARDI'}
@@ -1160,7 +1160,10 @@ def _adimsdi_doublepca(
     start_time,
     nproc,
     weights=None,
+    source_xy=None,
+    delta_rot=None,
     fwhm=4,
+    min_frames_pca=10,
     mask_rdi=None,
     cube_sig=None,
     left_eigv=False,
@@ -1260,18 +1263,53 @@ def _adimsdi_doublepca(
             print("{} ADI frames".format(n))
             print("Second PCA stage exploiting rotational variability")
 
-        res_ifs_adi = _project_subtract(
-            residuals_cube_channels,
-            None,
-            ncomp_adi,
-            scaling,
-            mask_center_px,
-            svd_mode,
-            verbose=False,
-            full_output=False,
-            cube_sig=cube_sig,
-            left_eigv=left_eigv,
-        )
+        if source_xy is None:
+            res_ifs_adi = _project_subtract(
+                residuals_cube_channels,
+                None,
+                ncomp_adi,
+                scaling,
+                mask_center_px,
+                svd_mode,
+                verbose,
+                False,
+                cube_sig=cube_sig,
+                left_eigv=left_eigv,
+            )
+            if verbose:
+                timing(start_time)
+        # A rotation threshold is applied
+        else:
+            if delta_rot is None or fwhm is None:
+                msg = "Delta_rot or fwhm parameters missing. Needed for"
+                msg += "PA-based rejection of frames from the library"
+                raise TypeError(msg)
+            yc, xc = frame_center(cube[0], False)
+            x1, y1 = source_xy
+            ann_center = dist(yc, xc, y1, x1)
+            pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
+
+            res_ifs_adi = np.zeros_like(cube)
+            for frame in range(n):
+                ind = _find_indices_adi(angle_list, frame, pa_thr)
+
+                res_result = _project_subtract(
+                    residuals_cube_channels,
+                    None,
+                    ncomp_adi,
+                    scaling,
+                    mask_center_px,
+                    svd_mode,
+                    verbose,
+                    False,
+                    ind,
+                    frame,
+                    cube_sig=cube_sig,
+                    left_eigv=left_eigv,
+                    min_frames_pca=min_frames_pca,
+                )
+                res_ifs_adi[frame] = res_result[-1]
+
         if verbose:
             print("De-rotating and combining residuals")
         der_res = cube_derotate(

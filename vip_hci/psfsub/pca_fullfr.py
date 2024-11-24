@@ -1289,7 +1289,7 @@ def _adimsdi_doublepca(
             ann_center = dist(yc, xc, y1, x1)
             pa_thr = _compute_pa_thresh(ann_center, fwhm, delta_rot)
 
-            res_ifs_adi = np.zeros_like(cube)
+            res_ifs_adi = np.zeros_like(residuals_cube_channels)
             for frame in range(n):
                 ind = _find_indices_adi(angle_list, frame, pa_thr)
 
@@ -1308,7 +1308,7 @@ def _adimsdi_doublepca(
                     left_eigv=left_eigv,
                     min_frames_pca=min_frames_pca,
                 )
-                res_ifs_adi[frame] = res_result[-1]
+                res_ifs_adi[frame] = res_result[-1].reshape((y_in, x_in))
 
         if verbose:
             print("De-rotating and combining residuals")

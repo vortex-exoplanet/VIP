@@ -116,6 +116,7 @@ class PCA_Params:
     collapse: Enum = Collapse.MEDIAN
     collapse_ifs: Enum = Collapse.MEAN
     ifs_collapse_range: Union[str, Tuple[int]] = "all"
+    smooth_first_pass: False
     mask_rdi: np.ndarray = None
     ref_strategy: str = 'RDI'  # TBD: expand keyword to replace 'adimsdi'
     # {'RDI', 'ARDI', 'RSDI', 'ARSDI', 'ASDI', 'S+ADI', 'S+ARDI'}
@@ -281,6 +282,10 @@ def pca(*all_args: List, **all_kwargs: dict):
     ifs_collapse_range: str 'all' or tuple of 2 int
         If a tuple, it should contain the first and last channels where the mSDI
         residual channels will be collapsed (by default collapses all channels).
+    smooth_first_pass: bool, optional
+        [adimsdi='double'] For 4D cubes with requested PCA-SADI processing in 2
+        steps, whether to smooth the results of the first pass before performing
+        the second pass.
     mask_rdi: tuple of two numpy array or one signle 2d numpy array, opt
         If provided, binary mask(s) will be used either in RDI mode or in
         ADI+mSDI (2 steps) mode. If two masks are provided, they will the anchor
@@ -542,7 +547,6 @@ def pca(*all_args: List, **all_kwargs: dict):
                     msg = "ref_strategy argument not recognized."
                     msg += "Should be 'RDI' or 'ARDI'"
                     raise TypeError(msg)
-
 
             func_params = setup_parameters(
                 params_obj=algo_params, fkt=_adi_rdi_pca, **add_params
@@ -1151,12 +1155,12 @@ def _adimsdi_doublepca(
     collapse,
     collapse_ifs,
     ifs_collapse_range,
+    smooth_first_pass,
     verbose,
     start_time,
     nproc,
     weights=None,
     fwhm=4,
-    conv=False,
     mask_rdi=None,
     cube_sig=None,
     left_eigv=False,
@@ -1216,7 +1220,6 @@ def _adimsdi_doublepca(
         collapse_ifs,
         ifs_collapse_range,
         fwhm,
-        conv,
         mask_rdi,
         left_eigv,
     )
@@ -1224,6 +1227,12 @@ def _adimsdi_doublepca(
 
     if verbose:
         timing(start_time)
+
+    if smooth_first_pass:
+        residuals_cube_channels = cube_filter_lowpass(residuals_cube_channels,
+                                                      mode='gauss',
+                                                      fwhm_size=fwhm/3,
+                                                      verbose=False)
 
     # de-rotation of the PCA processed channels, ADI fashion
     if ncomp_adi is None:
@@ -1293,7 +1302,6 @@ def _adimsdi_doublepca_ifs(
     collapse,
     ifs_collapse_range,
     fwhm,
-    conv,
     mask_rdi=None,
     left_eigv=False,
 ):
@@ -1317,11 +1325,6 @@ def _adimsdi_doublepca_ifs(
             multispec_fr, scale_list, imlib=imlib, interpolation=interpolation
         )[0]
 
-        if conv:
-            # convolve all frames with the same kernel
-            cube_resc = cube_filter_lowpass(
-                cube_resc, mode="gauss", fwhm_size=fwhm, verbose=False
-            )
         if mask_rdi is None:
             residuals = _project_subtract(
                 cube_resc,

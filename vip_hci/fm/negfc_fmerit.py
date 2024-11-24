@@ -452,16 +452,16 @@ def get_values_optimize(
     if r_guess > cenx_fr - halfw:  # or r_guess <= halfw:
         raise RuntimeError(msg)
 
-    ncomp = algo_options.get("ncomp", ncomp)
-    svd_mode = algo_options.get("svd_mode", svd_mode)
-    scaling = algo_options.get("scaling", scaling)
-    imlib = algo_options.get("imlib", imlib)
-    interpolation = algo_options.get("interpolation", interpolation)
-    collapse = algo_options.get("collapse", collapse)
-    collapse_ifs = algo_options.get("collapse_ifs", "absmean")
-    nproc = algo_options.get("nproc", 1)
+    ncomp = algo_options.pop("ncomp", ncomp)
+    svd_mode = algo_options.pop("svd_mode", svd_mode)
+    scaling = algo_options.pop("scaling", scaling)
+    imlib = algo_options.pop("imlib", imlib)
+    interpolation = algo_options.pop("interpolation", interpolation)
+    collapse = algo_options.pop("collapse", collapse)
+    collapse_ifs = algo_options.pop("collapse_ifs", "absmean")
+    nproc = algo_options.pop("nproc", 1)
     if algo == pca:
-        mask_rdi = algo_options.get("mask_rdi", None)
+        mask_rdi = algo_options.pop("mask_rdi", None)
 
     if algo == pca_annulus:
         res = pca_annulus(
@@ -546,8 +546,8 @@ def get_values_optimize(
         res = np.pad(res_tmp, pad, mode="constant", constant_values=0)
 
     elif algo == pca:
-        scale_list = algo_options.get("scale_list", None)
-        ifs_collapse_range = algo_options.get("ifs_collapse_range", "all")
+        scale_list = algo_options.pop("scale_list", None)
+        ifs_collapse_range = algo_options.pop("ifs_collapse_range", "all")
         res = pca(
             cube=cube,
             angle_list=angs,
@@ -565,6 +565,7 @@ def get_values_optimize(
             weights=weights,
             mask_rdi=mask_rdi,
             verbose=False,
+            **algo_options,
         )
     else:
         res = algo(cube=cube, angle_list=angs, **algo_options)

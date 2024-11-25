@@ -924,13 +924,14 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
             theta_ini = (theta_guess + delta_theta) % 360
             theta_fin = theta_ini + (360 - 2 * delta_theta)
             wedge = (theta_ini, theta_fin)
-        if len(wedge) == 2:
-            if wedge[0] > wedge[1]:
-                msg = "2nd value of wedge smaller than first one => +360"
-                print(msg)
-                wedge = (wedge[0], wedge[1] + 360)
-        else:
-            raise TypeError("Wedge should have exactly 2 values")
+        if wedge is not None:
+            if len(wedge) == 2:
+                if wedge[0] > wedge[1]:
+                    msg = "2nd value of wedge smaller than first one => +360"
+                    print(msg)
+                    wedge = (wedge[0], wedge[1] + 360)
+            else:
+                raise TypeError("Wedge should have exactly 2 values")
 
         # annulus to estimate mu & sigma should encompass the companion location
         indices = get_annular_wedge(pca_res, inner_radius=radius_int,

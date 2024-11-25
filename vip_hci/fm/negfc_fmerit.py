@@ -447,21 +447,23 @@ def get_values_optimize(
     msg += "outside the FOV. Try increasing the size of your frames or "
     msg += "decreasing the annulus or aperture size. "
     msg += "r_guess: {:.1f}px; half xy dim: {:.1f}px; ".format(r_guess, cenx_fr)
-    msg += "Aperture radius: {:.1f}px".format(aperture_radius * fwhm)
+    msg += "Aperture radius: {:.1f}px ".format(aperture_radius * fwhm)
     msg += "Annulus half width: {:.1f}px".format(annulus_width / 2)
     if r_guess > cenx_fr - halfw:  # or r_guess <= halfw:
         raise RuntimeError(msg)
 
-    ncomp = algo_options.pop("ncomp", ncomp)
-    svd_mode = algo_options.pop("svd_mode", svd_mode)
-    scaling = algo_options.pop("scaling", scaling)
-    imlib = algo_options.pop("imlib", imlib)
-    interpolation = algo_options.pop("interpolation", interpolation)
-    collapse = algo_options.pop("collapse", collapse)
-    collapse_ifs = algo_options.pop("collapse_ifs", "absmean")
-    nproc = algo_options.pop("nproc", 1)
+    algo_opt_copy = algo_options.copy()
+    ncomp = algo_opt_copy.pop("ncomp", ncomp)
+    svd_mode = algo_opt_copy.pop("svd_mode", svd_mode)
+    scaling = algo_opt_copy.pop("scaling", scaling)
+    imlib = algo_opt_copy.pop("imlib", imlib)
+    interpolation = algo_opt_copy.pop("interpolation", interpolation)
+    collapse = algo_opt_copy.pop("collapse", collapse)
+    collapse_ifs = algo_opt_copy.pop("collapse_ifs", "absmean")
+    nproc = algo_opt_copy.pop("nproc", 1)
+    verbose = algo_opt_copy.pop("verbose", False)
     if algo == pca:
-        mask_rdi = algo_options.pop("mask_rdi", None)
+        mask_rdi = algo_opt_copy.pop("mask_rdi", None)
 
     if algo == pca_annulus:
         res = pca_annulus(
@@ -478,15 +480,16 @@ def get_values_optimize(
             collapse=collapse,
             collapse_ifs=collapse_ifs,
             weights=weights,
-            nproc=nproc
+            nproc=nproc,
+            **algo_opt_copy,
         )
 
     elif algo == pca_annular or algo == nmf_annular:
-        tol = algo_options.get("tol", 1e-1)
-        min_frames_lib = algo_options.get("min_frames_lib", 2)
-        max_frames_lib = algo_options.get("max_frames_lib", 200)
+        tol = algo_opt_copy.pop("tol", 1e-1)
+        min_frames_lib = algo_opt_copy.pop("min_frames_lib", 2)
+        max_frames_lib = algo_opt_copy.pop("max_frames_lib", 200)
         radius_int = max(1, int(np.floor(r_guess - annulus_width / 2)))
-        radius_int = algo_options.get("radius_int", radius_int)
+        radius_int = algo_opt_copy.pop("radius_int", radius_int)
         # crop cube to just be larger than annulus => FASTER PCA
         crop_sz = int(2 * np.ceil(radius_int + annulus_width + 1))
         if not crop_sz % 2:
@@ -519,7 +522,8 @@ def get_values_optimize(
                 min_frames_lib=min_frames_lib,
                 max_frames_lib=max_frames_lib,
                 full_output=False,
-                verbose=False,
+                verbose=verbose,
+                **algo_opt_copy,
             )
         else:
             res_tmp = algo(
@@ -540,14 +544,15 @@ def get_values_optimize(
                 min_frames_lib=min_frames_lib,
                 max_frames_lib=max_frames_lib,
                 full_output=False,
-                verbose=False,
+                verbose=verbose,
+                **algo_opt_copy,
             )
         # pad again now
         res = np.pad(res_tmp, pad, mode="constant", constant_values=0)
 
     elif algo == pca:
-        scale_list = algo_options.pop("scale_list", None)
-        ifs_collapse_range = algo_options.pop("ifs_collapse_range", "all")
+        scale_list = algo_opt_copy.pop("scale_list", None)
+        ifs_collapse_range = algo_opt_copy.pop("ifs_collapse_range", "all")
         res = pca(
             cube=cube,
             angle_list=angs,
@@ -564,8 +569,8 @@ def get_values_optimize(
             nproc=nproc,
             weights=weights,
             mask_rdi=mask_rdi,
-            verbose=False,
-            **algo_options,
+            verbose=verbose,
+            **algo_opt_copy,
         )
     else:
         res = algo(cube=cube, angle_list=angs, **algo_options)

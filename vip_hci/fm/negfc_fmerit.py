@@ -970,6 +970,8 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
             fwhm = [fwhm]*nch
         if f_guess is None or np.isscalar(f_guess):
             f_guess = [f_guess]*nch
+        if psfn is None:
+            psfn = [psfn]*nch
         for ch in range(nch):
             res = _estimate_mu_sigma_3d(cube[ch], angs, ncomp, annulus_width,
                                         aperture_radius, fwhm[ch], r_guess,

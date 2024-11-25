@@ -8,7 +8,7 @@ import sys
 from tests.helpers import fixture
 from tests.helpers import np
 from vip_hci.config import VLT_NACO
-from vip_hci.fm.utils_negfc import cube_planet_free
+from vip_hci.fm import cube_planet_free
 from vip_hci.fm.utils_negfc import find_nearest
 from vip_hci.metrics import contrast_curve
 from vip_hci.preproc import frame_crop

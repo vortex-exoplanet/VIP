@@ -712,70 +712,76 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
         The pixel values in the circular aperture after the PCA process.
 
     """
+    if f_guess is not None and psfn is not None:
+        planet_parameter = (r_guess, theta_guess, f_guess)
+        array = cube_planet_free(planet_parameter, cube, angs, psfn,
+                                 imlib=imlib, interpolation=interpolation,
+                                 transmission=None)
+    else:
+        msg = "WARNING: f_guess not provided. The companion will not be "
+        msg += "removed from the cube before estimating mu and sigma. "
+        msg += "A wedge will be used"
+        print(msg)
+        array = cube.copy()
 
-    def _estimate_mu_sigma_3d(cube, angs, ncomp, annulus_width, aperture_radius,
-                              fwhm, r_guess, theta_guess, f_guess=None,
-                              psfn=None, cube_ref=None, wedge=None,
-                              svd_mode="lapack", scaling=None, algo=pca_annulus,
-                              delta_rot=1, imlib="vip-fft",
-                              interpolation="lanczos4", collapse="median",
-                              weights=None, algo_options={}):
+    centy_fr, centx_fr = frame_center(array[0])
+    halfw = max(aperture_radius * fwhm, annulus_width / 2)
 
-        if f_guess is not None and psfn is not None:
-            planet_parameter = (r_guess, theta_guess, f_guess)
-            array = cube_planet_free(planet_parameter, cube, angs, psfn,
-                                     imlib=imlib, interpolation=interpolation,
-                                     transmission=None)
+    # Checking annulus/aperture sizes. Assuming square frames
+    msg = "The annulus and/or the circular aperture used by the NegFC falls"
+    msg += " outside the FOV. Try increasing the size of your frames or "
+    msg += "decreasing the annulus or aperture size."
+    msg += "rguess: {:.0f}px; centx_fr: {:.0f}px".format(r_guess, centx_fr)
+    msg += "halfw: {:.0f}px".format(halfw)
+    if r_guess > centx_fr - halfw:  # or r_guess <= halfw:
+        raise RuntimeError(msg)
+
+    # check if r_guess is less than fwhm
+    if r_guess < fwhm:
+        raise ValueError("r_guess should be greater than fwhm.")
+
+    ncomp = algo_options.get("ncomp", ncomp)
+    svd_mode = algo_options.get("svd_mode", svd_mode)
+    scaling = algo_options.get("scaling", scaling)
+    imlib = algo_options.get("imlib", imlib)
+    interpolation = algo_options.get("interpolation", interpolation)
+    collapse = algo_options.get("collapse", collapse)
+
+    radius_int = max(int(np.floor(r_guess - annulus_width / 2)), 0)
+
+    # not recommended, except if large-scale residual sky present (NIRC2-L')
+    hp_filter = algo_options.get("hp_filter", None)
+    hp_kernel = algo_options.get("hp_kernel", None)
+    if hp_filter is not None:
+        if "median" in hp_filter:
+            array = cube_filter_highpass(array, mode=hp_filter,
+                                         median_size=hp_kernel)
+        elif "gauss" in hp_filter:
+            array = cube_filter_highpass(array, mode=hp_filter,
+                                         fwhm_size=hp_kernel)
         else:
-            msg = "WARNING: f_guess not provided. The companion will not be "
-            msg += "removed from the cube before estimating mu and sigma. "
-            msg += "A wedge will be used"
-            print(msg)
-            array = cube.copy()
+            array = cube_filter_highpass(array, mode=hp_filter,
+                                         kernel_size=hp_kernel)
 
-        centy_fr, centx_fr = frame_center(array[0])
-        halfw = max(aperture_radius * fwhm, annulus_width / 2)
-
-        # Checking annulus/aperture sizes. Assuming square frames
-        msg = "The annulus and/or the circular aperture used by the NegFC falls"
-        msg += " outside the FOV. Try increasing the size of your frames or "
-        msg += "decreasing the annulus or aperture size."
-        msg += "rguess: {:.0f}px; centx_fr: {:.0f}px".format(r_guess, centx_fr)
-        msg += "halfw: {:.0f}px".format(halfw)
-        if r_guess > centx_fr - halfw:  # or r_guess <= halfw:
-            raise RuntimeError(msg)
-
-        # check if r_guess is less than fwhm
-        if r_guess < fwhm:
-            raise ValueError("r_guess should be greater than fwhm.")
-
-        ncomp = algo_options.get("ncomp", ncomp)
-        svd_mode = algo_options.get("svd_mode", svd_mode)
-        scaling = algo_options.get("scaling", scaling)
-        imlib = algo_options.get("imlib", imlib)
-        interpolation = algo_options.get("interpolation", interpolation)
-        collapse = algo_options.get("collapse", collapse)
-
-        radius_int = max(int(np.floor(r_guess - annulus_width / 2)), 0)
-
-        # not recommended, except if large-scale residual sky present (NIRC2-L')
-        hp_filter = algo_options.get("hp_filter", None)
-        hp_kernel = algo_options.get("hp_kernel", None)
-        if hp_filter is not None:
-            if "median" in hp_filter:
-                array = cube_filter_highpass(array, mode=hp_filter,
-                                             median_size=hp_kernel)
-            elif "gauss" in hp_filter:
-                array = cube_filter_highpass(array, mode=hp_filter,
-                                             fwhm_size=hp_kernel)
-            else:
-                array = cube_filter_highpass(array, mode=hp_filter,
-                                             kernel_size=hp_kernel)
-
-        if algo == pca_annulus:
-            pca_res = pca_annulus(
+    if algo == pca_annulus:
+        pca_res = pca_annulus(
+            array,
+            angs,
+            ncomp,
+            annulus_width,
+            r_guess,
+            cube_ref,
+            svd_mode,
+            scaling,
+            imlib=imlib,
+            interpolation=interpolation,
+            collapse=collapse,
+            weights=weights,
+        )
+        if f_guess is not None and psfn is not None:
+            pca_res_inv = pca_annulus(
                 array,
-                angs,
+                -angs,
                 ncomp,
                 annulus_width,
                 r_guess,
@@ -787,41 +793,52 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                 collapse=collapse,
                 weights=weights,
             )
-            if f_guess is not None and psfn is not None:
-                pca_res_inv = pca_annulus(
-                    array,
-                    -angs,
-                    ncomp,
-                    annulus_width,
-                    r_guess,
-                    cube_ref,
-                    svd_mode,
-                    scaling,
-                    imlib=imlib,
-                    interpolation=interpolation,
-                    collapse=collapse,
-                    weights=weights,
-                )
 
-        elif algo == pca_annular:
-            tol = algo_options.get("tol", 1e-1)
-            min_frames_lib = algo_options.get("min_frames_lib", 2)
-            max_frames_lib = algo_options.get("max_frames_lib", 200)
-            nproc = algo_options.get("nproc", 1)
-            # crop cube to just be larger than annulus => FASTER PCA
-            crop_sz = int(2 * np.ceil(radius_int + annulus_width + 1))
-            if not crop_sz % 2:
-                crop_sz += 1
-            if crop_sz < array.shape[1] and crop_sz < array.shape[2]:
-                pad = int((array.shape[1] - crop_sz) / 2)
-                crop_cube = cube_crop_frames(array, crop_sz, verbose=False)
-            else:
-                pad = 0
-                crop_cube = array
+    elif algo == pca_annular:
+        tol = algo_options.get("tol", 1e-1)
+        min_frames_lib = algo_options.get("min_frames_lib", 2)
+        max_frames_lib = algo_options.get("max_frames_lib", 200)
+        nproc = algo_options.get("nproc", 1)
+        # crop cube to just be larger than annulus => FASTER PCA
+        crop_sz = int(2 * np.ceil(radius_int + annulus_width + 1))
+        if not crop_sz % 2:
+            crop_sz += 1
+        if crop_sz < array.shape[1] and crop_sz < array.shape[2]:
+            pad = int((array.shape[1] - crop_sz) / 2)
+            crop_cube = cube_crop_frames(array, crop_sz, verbose=False)
+        else:
+            pad = 0
+            crop_cube = array
 
-            pca_res_tmp = pca_annular(
+        pca_res_tmp = pca_annular(
+            cube=crop_cube,
+            angle_list=angs,
+            radius_int=radius_int,
+            fwhm=fwhm,
+            asize=annulus_width,
+            delta_rot=delta_rot,
+            ncomp=ncomp,
+            svd_mode=svd_mode,
+            scaling=scaling,
+            imlib=imlib,
+            interpolation=interpolation,
+            collapse=collapse,
+            tol=tol,
+            nproc=nproc,
+            min_frames_lib=min_frames_lib,
+            max_frames_lib=max_frames_lib,
+            full_output=False,
+            verbose=False,
+            weights=weights,
+        )
+        # pad again now
+        pca_res = np.pad(pca_res_tmp, pad, mode="constant",
+                         constant_values=0)
+
+        if f_guess is not None and psfn is not None:
+            pca_res_tinv = pca_annular(
                 cube=crop_cube,
-                angle_list=angs,
+                angle_list=-angs,
                 radius_int=radius_int,
                 fwhm=fwhm,
                 asize=annulus_width,
@@ -839,44 +856,35 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                 full_output=False,
                 verbose=False,
                 weights=weights,
-            )
-            # pad again now
-            pca_res = np.pad(pca_res_tmp, pad, mode="constant",
-                             constant_values=0)
+                )
+            pca_res_inv = np.pad(pca_res_tinv, pad, mode="constant",
+                                 constant_values=0)
 
-            if f_guess is not None and psfn is not None:
-                pca_res_tinv = pca_annular(
-                    cube=crop_cube,
-                    angle_list=-angs,
-                    radius_int=radius_int,
-                    fwhm=fwhm,
-                    asize=annulus_width,
-                    delta_rot=delta_rot,
-                    ncomp=ncomp,
-                    svd_mode=svd_mode,
-                    scaling=scaling,
-                    imlib=imlib,
-                    interpolation=interpolation,
-                    collapse=collapse,
-                    tol=tol,
-                    nproc=nproc,
-                    min_frames_lib=min_frames_lib,
-                    max_frames_lib=max_frames_lib,
-                    full_output=False,
-                    verbose=False,
-                    weights=weights,
-                    )
-                pca_res_inv = np.pad(pca_res_tinv, pad, mode="constant",
-                                     constant_values=0)
+    elif algo == pca:
+        scale_list = algo_options.get("scale_list", None)
+        ifs_collapse_range = algo_options.get("ifs_collapse_range", "all")
+        nproc = algo_options.get("nproc", 1)
 
-        elif algo == pca:
-            scale_list = algo_options.get("scale_list", None)
-            ifs_collapse_range = algo_options.get("ifs_collapse_range", "all")
-            nproc = algo_options.get("nproc", 1)
-
-            pca_res = pca(
+        pca_res = pca(
+            cube=array,
+            angle_list=angs,
+            cube_ref=cube_ref,
+            scale_list=scale_list,
+            ncomp=ncomp,
+            svd_mode=svd_mode,
+            scaling=scaling,
+            imlib=imlib,
+            interpolation=interpolation,
+            collapse=collapse,
+            ifs_collapse_range=ifs_collapse_range,
+            nproc=nproc,
+            weights=weights,
+            verbose=False,
+        )
+        if f_guess is not None and psfn is not None:
+            pca_res_inv = pca(
                 cube=array,
-                angle_list=angs,
+                angle_list=-angs,
                 cube_ref=cube_ref,
                 scale_list=scale_list,
                 ncomp=ncomp,
@@ -890,97 +898,55 @@ def get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius, fwhm,
                 weights=weights,
                 verbose=False,
             )
-            if f_guess is not None and psfn is not None:
-                pca_res_inv = pca(
-                    cube=array,
-                    angle_list=-angs,
-                    cube_ref=cube_ref,
-                    scale_list=scale_list,
-                    ncomp=ncomp,
-                    svd_mode=svd_mode,
-                    scaling=scaling,
-                    imlib=imlib,
-                    interpolation=interpolation,
-                    collapse=collapse,
-                    ifs_collapse_range=ifs_collapse_range,
-                    nproc=nproc,
-                    weights=weights,
-                    verbose=False,
-                )
 
-        else:
-            algo_args = algo_options
-            pca_res = algo(cube=array, angle_list=angs, **algo_args)
-            if f_guess is not None and psfn is not None:
-                pca_res_inv = algo(cube=array, angle_list=-angs, **algo_args)
-
-        if f_guess is not None and psfn is not None:
-            wedge = wedge
-        elif wedge is None:
-            delta_theta = np.amax(angs) - np.amin(angs)
-            if delta_theta > 120:
-                delta_theta = 120  # if too much rotation, be less conservative
-
-            theta_ini = (theta_guess + delta_theta) % 360
-            theta_fin = theta_ini + (360 - 2 * delta_theta)
-            wedge = (theta_ini, theta_fin)
-        if wedge is not None:
-            if len(wedge) == 2:
-                if wedge[0] > wedge[1]:
-                    msg = "2nd value of wedge smaller than first one => +360"
-                    print(msg)
-                    wedge = (wedge[0], wedge[1] + 360)
-            else:
-                raise TypeError("Wedge should have exactly 2 values")
-
-        # annulus to estimate mu & sigma should encompass the companion location
-        indices = get_annular_wedge(pca_res, inner_radius=radius_int,
-                                    width=min(annulus_width, 2 * fwhm),
-                                    wedge=wedge)
-        yy, xx = indices
-        if f_guess is not None and psfn is not None:
-            indices_inv = get_annular_wedge(pca_res_inv,
-                                            inner_radius=radius_int,
-                                            width=min(annulus_width, 2 * fwhm))
-            yyi, xxi = indices_inv
-            all_res = np.concatenate((pca_res[yy, xx], pca_res_inv[yyi, xxi]))
-            npx = len(yy) + len(yyi)
-        else:
-            all_res = pca_res[yy, xx]
-            npx = len(yy)
-        mu = np.nanmean(all_res)
-        all_res -= mu
-        area = np.pi * (fwhm / 2) ** 2
-        ddof = min(int(npx * (1.0 - (1.0 / area))), npx - 1)
-        sigma = np.nanstd(all_res, ddof=ddof)
-
-        return mu, sigma
-
-    if cube.ndim == 3 or (cube.ndim == 4 and bin_spec):
-        mu, sigma = _estimate_mu_sigma_3d(cube, angs, ncomp, annulus_width,
-                                          aperture_radius, fwhm, r_guess,
-                                          theta_guess, f_guess, psfn, cube_ref,
-                                          wedge, svd_mode, scaling, algo,
-                                          delta_rot, imlib, interpolation,
-                                          collapse, weights, algo_options)
     else:
-        nch = cube.shape[0]
-        mu = sigma = np.zeros([nch])
-        if np.isscalar(fwhm):
-            fwhm = [fwhm]*nch
-        if f_guess is None or np.isscalar(f_guess):
-            f_guess = [f_guess]*nch
-        if psfn is None:
-            psfn = [psfn]*nch
-        for ch in range(nch):
-            res = _estimate_mu_sigma_3d(cube[ch], angs, ncomp, annulus_width,
-                                        aperture_radius, fwhm[ch], r_guess,
-                                        theta_guess, f_guess[ch], psfn[ch],
-                                        cube_ref, wedge, svd_mode, scaling,
-                                        algo, delta_rot, imlib, interpolation,
-                                        collapse, weights, algo_options)
-            mu[ch] = res[0]
-            sigma[ch] = res[1]
+        algo_args = algo_options
+        pca_res = algo(cube=array, angle_list=angs, **algo_args)
+        if f_guess is not None and psfn is not None:
+            pca_res_inv = algo(cube=array, angle_list=-angs, **algo_args)
+
+    if f_guess is not None and psfn is not None:
+        if wedge is None:
+            wedge = (0, 360)
+        else:
+            wedge = wedge
+    elif wedge is None:
+        delta_theta = np.amax(angs) - np.amin(angs)
+        if delta_theta > 120:
+            delta_theta = 120  # if too much rotation, be less conservative
+
+        theta_ini = (theta_guess + delta_theta) % 360
+        theta_fin = theta_ini + (360 - 2 * delta_theta)
+        wedge = (theta_ini, theta_fin)
+    if wedge is not None:
+        if len(wedge) == 2:
+            if wedge[0] > wedge[1]:
+                msg = "2nd value of wedge smaller than first one => +360"
+                print(msg)
+                wedge = (wedge[0], wedge[1] + 360)
+        else:
+            raise TypeError("Wedge should have exactly 2 values")
+
+    # annulus to estimate mu & sigma should encompass the companion location
+    indices = get_annular_wedge(pca_res, inner_radius=radius_int,
+                                width=min(annulus_width, 2 * fwhm),
+                                wedge=wedge)
+    yy, xx = indices
+    if f_guess is not None and psfn is not None:
+        indices_inv = get_annular_wedge(pca_res_inv,
+                                        inner_radius=radius_int,
+                                        width=min(annulus_width, 2 * fwhm))
+        yyi, xxi = indices_inv
+        all_res = np.concatenate((pca_res[yy, xx], pca_res_inv[yyi, xxi]))
+        npx = len(yy) + len(yyi)
+    else:
+        all_res = pca_res[yy, xx]
+        npx = len(yy)
+    mu = np.nanmean(all_res)
+    all_res -= mu
+    area = np.pi * (fwhm / 2) ** 2
+    ddof = min(int(npx * (1.0 - (1.0 / area))), npx - 1)
+    sigma = np.nanstd(all_res, ddof=ddof)
 
     return mu, sigma
 

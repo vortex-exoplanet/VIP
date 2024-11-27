@@ -12,10 +12,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ..config.utils_conf import pool_map, iterable  # eval_func_tuple
-from ..fm import cube_inject_companions
+from ..fm import cube_inject_companions, cube_planet_free
 from .negfc_simplex import firstguess_simplex
 from .negfc_fmerit import get_mu_and_sigma
-from .utils_negfc import cube_planet_free
 from .negfc_mcmc import confidence
 
 
@@ -216,7 +215,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
                                   angle_range[-1]+delta_theta/2, n_ap,
                                   endpoint=False)
 
-    elif angle_range[0] % 360 == angle_range[-1] % 360:
+    if angle_range[0] % 360 == angle_range[-1] % 360:
         angle_range = angle_range[:-1]
 
     if verbose:
@@ -254,8 +253,8 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
             norm_weights = weights
         mu_sigma = get_mu_and_sigma(cube, derot_angles, ncomp, annulus_width,
                                     aperture_radius, fwhm, r_true, theta_true,
-                                    cube_ref=cube_ref, wedge=wedge, algo=algo,
-                                    weights=norm_weights,
+                                    f_true, psfn, cube_ref=cube_ref, wedge=wedge,
+                                    algo=algo, weights=norm_weights,
                                     algo_options=algo_options)
 
     res = pool_map(nproc, _estimate_speckle_one_angle, iterable(angle_range),
@@ -326,7 +325,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         offset = np.array(trim_offset)
 
     if bins is None:
-        bins = int(offset.shape[0]/10)
+        bins = int(offset.shape[0]/6)
 
     if force_rPA:
         labels = []

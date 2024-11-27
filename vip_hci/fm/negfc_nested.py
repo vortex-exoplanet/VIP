@@ -243,10 +243,10 @@ def nested_negfc_sampling(init, cube, angs, psfn, fwhm, mu_sigma=True,
 
     # calculate mu_sigma
     mu_sig = get_mu_and_sigma(cube, angs, ncomp, annulus_width, aperture_radius,
-                              fwhm, init[0], init[1], cube_ref=cube_ref,
-                              svd_mode=svd_mode, scaling=scaling, algo=algo,
-                              delta_rot=delta_rot, collapse=collapse,
-                              algo_options=algo_options)
+                              fwhm, init[0], init[1], init[2], psfn,
+                              cube_ref=cube_ref, svd_mode=svd_mode,
+                              scaling=scaling, algo=algo, delta_rot=delta_rot,
+                              collapse=collapse, algo_options=algo_options)
     # Measure mu and sigma once in the annulus (instead of each MCMC step)
     if isinstance(mu_sigma, tuple):
         if len(mu_sigma) != 2:

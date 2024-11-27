@@ -58,6 +58,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, masks, ref_cube=None, ncomp=2,
         Whether to also output pcs, reconstructed cube, residuals cube and
         derotated residual cube.
 
+
     Notes
     -----
     Masks can be created with the function
@@ -77,6 +78,7 @@ def cube_subtract_sky_pca(sci_cube, sky_cube, masks, ref_cube=None, ncomp=2,
          - boat principal components,
          - anchor principal components, and
          - reconstructed cube.
+
 
     Usage Example
     -------------

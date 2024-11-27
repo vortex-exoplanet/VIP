@@ -325,7 +325,7 @@ def speckle_noise_uncertainty(cube, p_true, angle_range, derot_angles, algo,
         offset = np.array(trim_offset)
 
     if bins is None:
-        bins = int(offset.shape[0]/10)
+        bins = int(offset.shape[0]/6)
 
     if force_rPA:
         labels = []

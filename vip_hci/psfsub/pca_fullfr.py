@@ -131,7 +131,7 @@ class PCA_Params:
 
 
 def pca(*all_args: List, **all_kwargs: dict):
-    """Full-frame PCA algorithm applied to PSF substraction.
+    """Full-frame PCA algorithm applied to PSF subtraction.
 
     The reference PSF and the quasi-static speckle pattern are modeled using
     Principal Component Analysis. Depending on the input parameters this PCA

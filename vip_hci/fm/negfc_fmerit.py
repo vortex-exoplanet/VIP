@@ -566,6 +566,7 @@ def get_values_optimize(
             weights=weights,
             mask_rdi=mask_rdi,
             verbose=False,
+            **algo_options,
         )
     else:
         res = algo(cube=cube, angle_list=angs, **algo_options)

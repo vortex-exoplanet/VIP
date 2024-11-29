@@ -545,6 +545,8 @@ def get_values_optimize(
     elif algo == pca:
         scale_list = algo_options.get("scale_list", None)
         ifs_collapse_range = algo_options.get("ifs_collapse_range", "all")
+        delta_rot = algo_options.get("delta_rot", delta_rot)
+        source_xy = algo_options.get("source_xy", None)
         res = pca(
             cube=cube,
             angle_list=angs,
@@ -553,6 +555,8 @@ def get_values_optimize(
             ncomp=ncomp,
             svd_mode=svd_mode,
             scaling=scaling,
+            delta_rot=delta_rot,
+            source_xy=source_xy,
             imlib=imlib,
             interpolation=interpolation,
             collapse=collapse,

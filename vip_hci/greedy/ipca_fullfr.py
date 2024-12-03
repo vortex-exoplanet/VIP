@@ -38,8 +38,9 @@ try:
     from GreeDS import GreeDS
     no_greeds = False
 except ImportError:
+    from warnings import warn
     msg = "GreeDS python bindings are missing."
-    warnings.warn(msg, ImportWarning)
+    warn(msg, ImportWarning)
     no_greeds = True
 
 @dataclass
